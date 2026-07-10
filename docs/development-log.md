@@ -107,7 +107,7 @@ compatibility classification (spec §7, §12), and TRUST validation/aggregation 
   transparent report — every signal a deterministic rule with plain-language evidence and a
   level rationale; levels verified-template / compatible / partially-compatible / unsupported
   / inspection-failed. No LLM decisions in structural compatibility.
-- `@oratlas/trust`: `validateTrustRecord`, `computeAggregate` (mean of *assessed* ordinals
+- `@oratlas/trust`: `validateTrustRecord`, `computeAggregate` (mean of _assessed_ ordinals
   only, never treating not-assessed/not-applicable as zero, always tagged
   `ordinal-mean-1.0`), `ordinalAtLeast`. Aggregate is optional; criterion record authoritative.
 - Added `@oratlas/github/fixtures` subpath so extractor tests reuse GitHub fixtures.
@@ -124,7 +124,7 @@ grounding, and cross-review link proposals (spec §14–16).
   archive/claim filters (DOI/TRUST/evidence availability, domain, keywords, author, relation
   type, TRUST criterion, human-reviewed state) and sorts.
 - `buildEvidencePacket`: knowledge-unit packets (claims + anchors + relations + TRUST status
-  + review identity/commit/DOI + only-cited citations); `hashEvidencePacket` stable hash.
+  - review identity/commit/DOI + only-cited citations); `hashEvidencePacket` stable hash.
 - `discussDeterministic`: groups matched claims by evidence relation, returns a structured
   summary, refuses to fabricate prose, warns that shared-source citations ≠ replication.
 - `discussWithLlm`: provider-neutral `LlmProvider`; parses Zod answer schema and
@@ -134,3 +134,33 @@ grounding, and cross-review link proposals (spec §14–16).
 - `proposeCrossReviewLinks`: conservative shared-citation + lexical-similarity proposals,
   cross-review only, emitted as drafts.
 - Verified: typecheck clean; 13 tests incl. grounding rejection/retry; full suite green.
+
+## PR-07 & PR-08 — Web application (archive, submission, review, claims, discussion, editorial)
+
+**Objective:** the full Next.js App Router surface plus API routes, auth, and the editorial
+workflow (spec §5, §8, §13, §14, §19).
+
+- `@oratlas/ui`: accessible primitives + the provenance visual system (repository-fact /
+  extracted / curated / agent-proposed / human-reviewed / warning / error), each colour- AND
+  text/icon-coded so distinctions never rely on colour alone.
+- Server library: singleton Prisma; SSRF-safe ingest service (inspect → extract → validate);
+  submission service (immutable snapshot + submission; editorial acceptance materializes a
+  versioned Review with contributors, identifiers, claims, citations, relations, TRUST);
+  knowledge-index builder (Prisma → framework-free index); review-detail loader; discussion
+  service (deterministic + optional Anthropic LLM, persists AgentRun); audit log; rate limiter;
+  signed httpOnly session cookies; dev-only mock auth (refused in production) + optional GitHub OAuth.
+- Pages: home (search + recent + domain/DOI/TRUST filters + provenance legend), archive
+  (full-text + all filters + sorts), review page (repository/commit/release/version DOI/concept
+  DOI/Zenodo/provenance/claims/citations/TRUST/limitations/version history + schema.org JSON-LD +
+  canonical/OG), claim explorer (search + relation/type/TRUST filters), 5-step submission wizard
+  (repository → inspect → editable metadata with per-field provenance → validation → submit),
+  Atlas Discuss (deterministic + LLM), editorial dashboard (validation reports, extracted-vs-edited
+  metadata diff, accept/reject/request-changes, audit log), sign-in.
+- API routes: health, inspect, validate-doi, submissions, editorial/decision, search, reviews/[slug],
+  claims, discuss, GitHub OAuth start/callback — all with typed structured errors (no stack traces),
+  rate limiting, body-size limits, and server-side role checks.
+- Security headers (CSP, X-Frame-Options, nosniff) via next.config; all repository content rendered
+  as escaped text (never raw HTML); example DOIs never rendered as outbound links.
+- Verified: `pnpm build` succeeds (all 20 routes); server smoke test — home/archive/review/claims 200,
+  search + claims + deterministic discuss APIs return correct data, editorial redirects unauth (307),
+  health ok. Lint clean; 78 unit tests pass; all 10 typechecks pass.

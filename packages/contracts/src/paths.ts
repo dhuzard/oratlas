@@ -9,6 +9,7 @@ import { z } from "zod";
  * backslashes, control characters, and anything containing a `:`.
  */
 const SEGMENT_RE = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
+// eslint-disable-next-line no-control-regex
 const CONTROL_CHARS_RE = /[\u0000-\u001f\u007f]/;
 export const MAX_REPO_PATH_LENGTH = 512;
 

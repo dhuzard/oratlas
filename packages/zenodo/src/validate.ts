@@ -235,7 +235,9 @@ function applyZenodoComparison(
       id: "release-match",
       description: "Release tag matches the Zenodo record version",
       outcome: matches ? "pass" : "warn",
-      details: matches ? undefined : `Release '${input.releaseTag}' vs record '${record.versionTag}'.`,
+      details: matches
+        ? undefined
+        : `Release '${input.releaseTag}' vs record '${record.versionTag}'.`,
     });
     if (!matches) {
       report.warnings.push("Release tag does not match the Zenodo record version.");

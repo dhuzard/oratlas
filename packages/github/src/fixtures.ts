@@ -45,10 +45,7 @@ export const ZENODO_JSON = JSON.stringify(
     license: "CC-BY-4.0",
     upload_type: "publication",
     publication_type: "article",
-    creators: [
-      { name: "Rivera, Ada", orcid: "0000-0002-1825-0097" },
-      { name: "Watanabe, Kenji" },
-    ],
+    creators: [{ name: "Rivera, Ada", orcid: "0000-0002-1825-0097" }, { name: "Watanabe, Kenji" }],
   },
   null,
   2,
@@ -119,7 +116,11 @@ export const CITATIONS_JSONL = [
 
 export const RELATIONS_JSONL = [
   JSON.stringify({ claimId: "claim-001", citationId: "ref-wilson1994", relationType: "supports" }),
-  JSON.stringify({ claimId: "claim-002", citationId: "ref-girardeau2009", relationType: "supports" }),
+  JSON.stringify({
+    claimId: "claim-002",
+    citationId: "ref-girardeau2009",
+    relationType: "supports",
+  }),
 ].join("\n");
 
 export const TRUST_JSONL = JSON.stringify({
@@ -218,7 +219,8 @@ export const partiallyCompatibleFixture: FakeRepoFixture = {
   },
   pages: { html_url: "https://example-lab.github.io/attention-oscillations-review/" },
   files: {
-    "myst.yml": "version: 1\nproject:\n  title: Attention and Oscillations\n  bibliography:\n    - content/references.bib\n",
+    "myst.yml":
+      "version: 1\nproject:\n  title: Attention and Oscillations\n  bibliography:\n    - content/references.bib\n",
     "CITATION.cff": `cff-version: 1.2.0\ntitle: "Cortical Oscillations and Selective Attention"\nauthors:\n  - given-names: Lena\n    family-names: Fischer\n    orcid: "https://orcid.org/0000-0003-4515-1234"\nlicense: MIT\nrepository-code: "https://github.com/example-lab/attention-oscillations-review"\n`,
     "content/references.bib": "@article{fries2001, title={Modulation}, year={2001}}",
     "content/01_introduction.md": "# Introduction\nA review of attention and oscillations.",

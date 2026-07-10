@@ -1,7 +1,4 @@
-import {
-  type AssessmentReviewStatus,
-  type ClaimEvidenceRelationType,
-} from "@oratlas/contracts";
+import { type AssessmentReviewStatus, type ClaimEvidenceRelationType } from "@oratlas/contracts";
 
 /**
  * Denormalized, framework-free views the knowledge layer operates on. The web

@@ -106,7 +106,17 @@ export const sampleIndex: KnowledgeIndexData = {
     },
   ],
   citations: [
-    { citationId: "ref-shared", doi: "10.5555/oratlas.example.shared", title: "A shared source", year: 2000 },
-    { citationId: "ref-contra", doi: "10.5555/oratlas.example.contra", title: "A contradicting source", year: 2010 },
+    {
+      citationId: "ref-shared",
+      doi: "10.5555/oratlas.example.shared",
+      title: "A shared source",
+      year: 2000,
+    },
+    {
+      citationId: "ref-contra",
+      doi: "10.5555/oratlas.example.contra",
+      title: "A contradicting source",
+      year: 2010,
+    },
   ],
 };

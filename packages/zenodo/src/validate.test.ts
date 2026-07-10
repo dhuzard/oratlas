@@ -5,7 +5,11 @@ import { type DoiResolver, type ZenodoRecord } from "./client.js";
 function resolverWith(record: ZenodoRecord | null, resolves = true): DoiResolver {
   return {
     async resolveDoi() {
-      return { resolves, status: resolves ? 302 : 404, resolvedUrl: "https://zenodo.org/records/9990001" };
+      return {
+        resolves,
+        status: resolves ? 302 : 404,
+        resolvedUrl: "https://zenodo.org/records/9990001",
+      };
     },
     async fetchZenodoRecord() {
       return record;

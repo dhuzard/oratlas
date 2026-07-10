@@ -11,7 +11,9 @@ describe("inspectRepository", () => {
     });
 
     expect(report.status).not.toBe("failed");
-    expect(report.repo.canonicalUrl).toBe("https://github.com/example-lab/hippocampal-replay-review");
+    expect(report.repo.canonicalUrl).toBe(
+      "https://github.com/example-lab/hippocampal-replay-review",
+    );
     expect(report.latestCommitSha).toBe("b".repeat(40));
     expect(report.licenseSpdx).toBe("CC-BY-4.0");
     expect(report.releases[0]?.tagName).toBe("v1.2.0");
@@ -29,7 +31,11 @@ describe("inspectRepository", () => {
   });
 
   it("reports a not-found repository as failed", async () => {
-    const transport = createFakeTransport({ ...plainRepoFixture, owner: "someone", name: "random-cli-tool" });
+    const transport = createFakeTransport({
+      ...plainRepoFixture,
+      owner: "someone",
+      name: "random-cli-tool",
+    });
     const report = await inspectRepository("someone/does-not-exist", { transport });
     expect(report.status).toBe("failed");
   });

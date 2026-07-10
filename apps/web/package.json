@@ -1,0 +1,38 @@
+{
+  "name": "@oratlas/web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "test:e2e": "playwright test"
+  },
+  "dependencies": {
+    "@oratlas/config": "workspace:*",
+    "@oratlas/contracts": "workspace:*",
+    "@oratlas/db": "workspace:*",
+    "@oratlas/extractor": "workspace:*",
+    "@oratlas/github": "workspace:*",
+    "@oratlas/knowledge": "workspace:*",
+    "@oratlas/trust": "workspace:*",
+    "@oratlas/ui": "workspace:*",
+    "@oratlas/zenodo": "workspace:*",
+    "next": "^15.3.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "server-only": "^0.0.1",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.52.0",
+    "@tailwindcss/postcss": "^4.1.0",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "postcss": "^8.5.0",
+    "tailwindcss": "^4.1.0",
+    "typescript": "^5.8.3"
+  }
+}

@@ -343,7 +343,10 @@ function placeholderRef(input: string): RepoRef {
     host: "github.com",
     owner: "unknown",
     name: "unknown",
-    canonicalUrl: typeof input === "string" ? "https://github.com/unknown/unknown" : "https://github.com/unknown/unknown",
+    canonicalUrl:
+      typeof input === "string"
+        ? "https://github.com/unknown/unknown"
+        : "https://github.com/unknown/unknown",
   };
 }
 

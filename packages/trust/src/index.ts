@@ -75,8 +75,7 @@ export function computeAggregate(record: TrustRecord): AggregateResult {
     }
   }
 
-  const score =
-    values.length > 0 ? values.reduce((a, b) => a + b, 0) / values.length : null;
+  const score = values.length > 0 ? values.reduce((a, b) => a + b, 0) / values.length : null;
   return {
     score: score === null ? null : Math.round(score * 100) / 100,
     method: ORDINAL_MEAN_METHOD,

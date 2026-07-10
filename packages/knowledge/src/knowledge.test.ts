@@ -13,14 +13,29 @@ describe("InProcessSearchProvider", () => {
   const provider = new InProcessSearchProvider(sampleIndex);
 
   it("finds reviews by lexical relevance", () => {
-    const result = provider.searchReviews({ q: "replay memory", sort: "relevance", page: 1, pageSize: 20 });
+    const result = provider.searchReviews({
+      q: "replay memory",
+      sort: "relevance",
+      page: 1,
+      pageSize: 20,
+    });
     expect(result.items[0]?.reviewSlug).toBe("replay-review");
   });
 
   it("filters by DOI availability", () => {
-    const withDoi = provider.searchReviews({ hasDoi: true, sort: "accepted", page: 1, pageSize: 20 });
+    const withDoi = provider.searchReviews({
+      hasDoi: true,
+      sort: "accepted",
+      page: 1,
+      pageSize: 20,
+    });
     expect(withDoi.items.map((r) => r.reviewSlug)).toEqual(["replay-review"]);
-    const withoutDoi = provider.searchReviews({ hasDoi: false, sort: "accepted", page: 1, pageSize: 20 });
+    const withoutDoi = provider.searchReviews({
+      hasDoi: false,
+      sort: "accepted",
+      page: 1,
+      pageSize: 20,
+    });
     expect(withoutDoi.items.map((r) => r.reviewSlug)).toEqual(["attention-review"]);
   });
 
@@ -76,7 +91,9 @@ describe("discussDeterministic", () => {
   });
 
   it("flags insufficient evidence for an unrelated question", () => {
-    const packet = buildEvidencePacket(sampleIndex, "quantum chromodynamics lattice gauge", { now });
+    const packet = buildEvidencePacket(sampleIndex, "quantum chromodynamics lattice gauge", {
+      now,
+    });
     const result = discussDeterministic(packet);
     expect(result.insufficientEvidence).toBe(true);
   });
@@ -110,7 +127,10 @@ describe("discussWithLlm — grounding enforcement", () => {
       missingEvidence: [],
       grounding: [{ statement: "s", claimIds: [claimId], citationIds: [citationId] }],
     };
-    const result = await discussWithLlm(fakeProvider(() => JSON.stringify(answer)), packet);
+    const result = await discussWithLlm(
+      fakeProvider(() => JSON.stringify(answer)),
+      packet,
+    );
     expect(result.answer).toBeDefined();
     expect(result.grounding?.ok).toBe(true);
     expect(result.attempts).toBe(1);
@@ -129,7 +149,11 @@ describe("discussWithLlm — grounding enforcement", () => {
       missingEvidence: [],
       grounding: [{ statement: "s", claimIds: ["fabricated-claim-999"], citationIds: [] }],
     };
-    const result = await discussWithLlm(fakeProvider(() => JSON.stringify(bad)), packet, 2);
+    const result = await discussWithLlm(
+      fakeProvider(() => JSON.stringify(bad)),
+      packet,
+      2,
+    );
     expect(result.answer).toBeUndefined();
     expect(result.error).toContain("unknown identifiers");
     expect(result.attempts).toBe(2);
@@ -137,7 +161,11 @@ describe("discussWithLlm — grounding enforcement", () => {
 
   it("rejects non-JSON output", async () => {
     const packet = buildEvidencePacket(sampleIndex, "memory", { now });
-    const result = await discussWithLlm(fakeProvider(() => "I cannot answer that."), packet, 1);
+    const result = await discussWithLlm(
+      fakeProvider(() => "I cannot answer that."),
+      packet,
+      1,
+    );
     expect(result.answer).toBeUndefined();
     expect(result.error).toBeTruthy();
   });

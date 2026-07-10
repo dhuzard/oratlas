@@ -63,10 +63,7 @@ export type TrustCriterionAssessment = z.infer<typeof trustCriterionAssessmentSc
 
 const criteriaShape = Object.fromEntries(
   TRUST_CRITERIA.map((c) => [c, trustCriterionAssessmentSchema.optional()]),
-) as Record<
-  (typeof TRUST_CRITERIA)[number],
-  z.ZodOptional<typeof trustCriterionAssessmentSchema>
->;
+) as Record<(typeof TRUST_CRITERIA)[number], z.ZodOptional<typeof trustCriterionAssessmentSchema>>;
 
 export const trustRecordSchema = z.object({
   claimId: z.string().min(1).max(120),

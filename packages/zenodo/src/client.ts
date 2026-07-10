@@ -35,8 +35,11 @@ export interface FetchResolverOptions {
 }
 
 export function createFetchResolver(options: FetchResolverOptions = {}): DoiResolver {
-  const { timeoutMs = 10_000, fetchImpl = fetch, zenodoApiBase = "https://zenodo.org/api" } =
-    options;
+  const {
+    timeoutMs = 10_000,
+    fetchImpl = fetch,
+    zenodoApiBase = "https://zenodo.org/api",
+  } = options;
 
   async function withTimeout<T>(fn: (signal: AbortSignal) => Promise<T>): Promise<T> {
     const controller = new AbortController();

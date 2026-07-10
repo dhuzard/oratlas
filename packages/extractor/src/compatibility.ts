@@ -38,7 +38,8 @@ export function assessCompatibility(
     report.templateFullName?.toLowerCase() === TEMPLATE_FULL_NAME;
   const isTemplateItself =
     `${report.repo.owner}/${report.repo.name}`.toLowerCase() === TEMPLATE_FULL_NAME;
-  if (parentIsTemplate) forkEvidence.push("Repository is a fork/instance of ComputationalReviewTemplate.");
+  if (parentIsTemplate)
+    forkEvidence.push("Repository is a fork/instance of ComputationalReviewTemplate.");
   if (isTemplateItself) forkEvidence.push("Repository is the ComputationalReviewTemplate itself.");
   const templateForkDetected = signal(parentIsTemplate || isTemplateItself, forkEvidence);
 
@@ -46,8 +47,9 @@ export function assessCompatibility(
   const templateFileEvidence: string[] = [];
   const hasMyst = hasFile("myst.yml") || hasFile("myst.yaml");
   const hasContentDir = anyPath((p) => p.startsWith("content/"));
-  const hasProvenanceFile =
-    anyPath((p) => p.endsWith("provenance.md") || p.endsWith("provenance.json"));
+  const hasProvenanceFile = anyPath(
+    (p) => p.endsWith("provenance.md") || p.endsWith("provenance.json"),
+  );
   const hasSkills = anyPath((p) => p.startsWith("skills/"));
   const hasPlugins = anyPath((p) => p.startsWith("plugins/"));
   if (hasMyst) templateFileEvidence.push("myst.yml present.");

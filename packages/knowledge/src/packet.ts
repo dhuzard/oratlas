@@ -1,9 +1,5 @@
 import { createHash } from "node:crypto";
-import {
-  type EvidenceCitation,
-  type EvidenceClaim,
-  type EvidencePacket,
-} from "@oratlas/contracts";
+import { type EvidenceCitation, type EvidenceClaim, type EvidencePacket } from "@oratlas/contracts";
 import { lexicalScore, tokenize, tokenSet } from "./text.js";
 import { type KnowledgeIndexData } from "./types.js";
 

@@ -1,10 +1,6 @@
 export * from "./text.js";
 export * from "./types.js";
-export {
-  InProcessSearchProvider,
-  type SearchProvider,
-  type SearchResult,
-} from "./search.js";
+export { InProcessSearchProvider, type SearchProvider, type SearchResult } from "./search.js";
 export { buildEvidencePacket, hashEvidencePacket, type BuildPacketOptions } from "./packet.js";
 export {
   discussDeterministic,

@@ -1,13 +1,6 @@
-import {
-  type ArchiveSearchQuery,
-  type ClaimSearchQuery,
-} from "@oratlas/contracts";
+import { type ArchiveSearchQuery, type ClaimSearchQuery } from "@oratlas/contracts";
 import { lexicalScore, tokenize, tokenSet } from "./text.js";
-import {
-  type IndexedClaim,
-  type IndexedReview,
-  type KnowledgeIndexData,
-} from "./types.js";
+import { type IndexedClaim, type IndexedReview, type KnowledgeIndexData } from "./types.js";
 
 export interface SearchResult<T> {
   items: T[];
@@ -41,7 +34,15 @@ export class InProcessSearchProvider implements SearchProvider {
     for (const r of data.reviews) {
       this.reviewTokens.set(
         r.reviewVersionId,
-        tokenSet([r.title, r.abstract ?? "", r.keywords.join(" "), r.domains.join(" "), r.authors.join(" ")].join(" ")),
+        tokenSet(
+          [
+            r.title,
+            r.abstract ?? "",
+            r.keywords.join(" "),
+            r.domains.join(" "),
+            r.authors.join(" "),
+          ].join(" "),
+        ),
       );
     }
     for (const c of data.claims) {
@@ -51,11 +52,14 @@ export class InProcessSearchProvider implements SearchProvider {
 
   searchReviews(query: ArchiveSearchQuery): SearchResult<IndexedReview & { score: number }> {
     const qTokens = query.q ? tokenize(query.q) : [];
-    let rows = this.data.reviews.filter((r) => this.reviewMatchesFilters(r, query));
+    const rows = this.data.reviews.filter((r) => this.reviewMatchesFilters(r, query));
 
     let scored = rows.map((r) => ({
       ...r,
-      score: qTokens.length > 0 ? lexicalScore(qTokens, this.reviewTokens.get(r.reviewVersionId) ?? new Set()) : 0,
+      score:
+        qTokens.length > 0
+          ? lexicalScore(qTokens, this.reviewTokens.get(r.reviewVersionId) ?? new Set())
+          : 0,
     }));
 
     if (qTokens.length > 0) {
@@ -104,11 +108,14 @@ export class InProcessSearchProvider implements SearchProvider {
 
   searchClaims(query: ClaimSearchQuery): SearchResult<IndexedClaim & { score: number }> {
     const qTokens = query.q ? tokenize(query.q) : [];
-    let rows = this.data.claims.filter((c) => this.claimMatchesFilters(c, query));
+    const rows = this.data.claims.filter((c) => this.claimMatchesFilters(c, query));
 
     let scored = rows.map((c) => ({
       ...c,
-      score: qTokens.length > 0 ? lexicalScore(qTokens, this.claimTokens.get(c.claimId) ?? new Set()) : 0,
+      score:
+        qTokens.length > 0
+          ? lexicalScore(qTokens, this.claimTokens.get(c.claimId) ?? new Set())
+          : 0,
     }));
     if (qTokens.length > 0) scored = scored.filter((c) => c.score > 0);
     scored.sort((a, b) => b.score - a.score || a.reviewTitle.localeCompare(b.reviewTitle));

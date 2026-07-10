@@ -40,9 +40,7 @@ export function getServerEnv(env: NodeJS.ProcessEnv = process.env): ServerEnv {
   }
   const sessionSecret = parsed.SESSION_SECRET ?? "insecure-dev-session-secret";
   if (!parsed.SESSION_SECRET && !isProduction) {
-    console.warn(
-      "[config] SESSION_SECRET not set — using an insecure development-only fallback.",
-    );
+    console.warn("[config] SESSION_SECRET not set — using an insecure development-only fallback.");
   }
 
   const githubOauthEnabled = Boolean(parsed.GITHUB_CLIENT_ID && parsed.GITHUB_CLIENT_SECRET);

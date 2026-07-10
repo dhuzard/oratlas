@@ -117,10 +117,10 @@ explicit, clearly-labelled mock sign-in (`AUTH_MOCK=1`) which is refused in prod
 
 ## Replaceability decisions
 
-| Concern | POC implementation | Replacement path |
-| --- | --- | --- |
-| Ingestion | synchronous `IngestionRunner` | queue/worker behind same interface |
-| Search | in-process lexical index | `SearchProvider` for Postgres FTS/engine |
-| LLM | Anthropic adapter (optional) | any `LlmProvider` implementation |
-| DB | SQLite | PostgreSQL (schema avoids SQLite-only features) |
-| Auth | cookie sessions + optional GitHub OAuth | full OAuth/OIDC provider |
+| Concern   | POC implementation                      | Replacement path                                |
+| --------- | --------------------------------------- | ----------------------------------------------- |
+| Ingestion | synchronous `IngestionRunner`           | queue/worker behind same interface              |
+| Search    | in-process lexical index                | `SearchProvider` for Postgres FTS/engine        |
+| LLM       | Anthropic adapter (optional)            | any `LlmProvider` implementation                |
+| DB        | SQLite                                  | PostgreSQL (schema avoids SQLite-only features) |
+| Auth      | cookie sessions + optional GitHub OAuth | full OAuth/OIDC provider                        |

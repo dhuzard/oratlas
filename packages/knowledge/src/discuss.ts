@@ -38,13 +38,17 @@ export function discussDeterministic(packet: EvidencePacket): DeterministicDiscu
 
   const notes: string[] = [];
   if (insufficient) {
-    notes.push("No indexed claims matched this question. The archive may not cover this topic yet.");
+    notes.push(
+      "No indexed claims matched this question. The archive may not cover this topic yet.",
+    );
   } else {
     notes.push(
       "This is a deterministic evidence summary, not a generated answer. Multiple reviews citing the same source are not independent replication.",
     );
     if (packet.reviews.length === 1) {
-      notes.push("All matched evidence comes from a single review; treat with appropriate caution.");
+      notes.push(
+        "All matched evidence comes from a single review; treat with appropriate caution.",
+      );
     }
   }
 

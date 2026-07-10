@@ -37,11 +37,7 @@ describe("computeAggregate", () => {
     // (0.75 + 1 + 0.5) / 3 = 0.75
     expect(result.score).toBe(0.75);
     expect(result.method).toBe(ORDINAL_MEAN_METHOD);
-    expect(result.assessedCriteria).toEqual([
-      "entailment",
-      "sourceAccess",
-      "populationRelevance",
-    ]);
+    expect(result.assessedCriteria).toEqual(["entailment", "sourceAccess", "populationRelevance"]);
     expect(result.skippedCriteria).toContain("replicationConvergence");
     expect(result.skippedCriteria).toContain("statisticalSafeguards");
   });

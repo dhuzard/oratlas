@@ -33,12 +33,8 @@ describe("runExtraction — template-compatible repository", () => {
     expect(title?.provenance.confidence).toBe(1);
 
     // Version DOI and concept DOI are separate fields.
-    expect(result.metadata.fields.versionDoi?.value).toBe(
-      "10.5555/oratlas.example.replay.v1-2-0",
-    );
-    expect(result.metadata.fields.conceptDoi?.value).toBe(
-      "10.5555/oratlas.example.replay.concept",
-    );
+    expect(result.metadata.fields.versionDoi?.value).toBe("10.5555/oratlas.example.replay.v1-2-0");
+    expect(result.metadata.fields.conceptDoi?.value).toBe("10.5555/oratlas.example.replay.concept");
     expect(result.metadata.fields.versionDoi?.value).not.toBe(
       result.metadata.fields.conceptDoi?.value,
     );
@@ -75,9 +71,7 @@ describe("runExtraction — partially compatible repository", () => {
     // Title falls back to CITATION.cff.
     expect(result.metadata.fields.title?.provenance.source).toBe("citation-cff");
     expect(
-      ["partially-compatible", "compatible"].includes(
-        result.compatibility.overallCompatibility,
-      ),
+      ["partially-compatible", "compatible"].includes(result.compatibility.overallCompatibility),
     ).toBe(true);
     expect(result.compatibility.recommendations.join(" ")).toContain("Zenodo");
   });

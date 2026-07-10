@@ -34,12 +34,15 @@ export function createFakeTransport(fixture: FakeRepoFixture): GithubTransport {
   return {
     async request(path: string): Promise<GithubResponse> {
       const pathname = path.split("?")[0] ?? path;
-      if (pathname === base) return ok({ ...fixture.repo, default_branch: fixture.repo.default_branch ?? "main" });
+      if (pathname === base)
+        return ok({ ...fixture.repo, default_branch: fixture.repo.default_branch ?? "main" });
       if (pathname === `${base}/commits/${fixture.repo.default_branch ?? "main"}`) {
         return ok({ sha: commitSha, commit: { committer: { date: "2026-06-01T00:00:00Z" } } });
       }
       if (pathname === `${base}/tags`) {
-        return ok((fixture.tags ?? []).map((t) => ({ name: t.name, commit: { sha: t.commitSha } })));
+        return ok(
+          (fixture.tags ?? []).map((t) => ({ name: t.name, commit: { sha: t.commitSha } })),
+        );
       }
       if (pathname === `${base}/releases`) {
         return ok(fixture.releases ?? []);

@@ -205,7 +205,8 @@ export const reviewWithDoi: SeedReview = {
     {
       localId: "ref-girardeau2009",
       doi: "10.5555/oratlas.example.girardeau2009",
-      title: "Selective suppression of hippocampal ripples impairs spatial memory (example citation)",
+      title:
+        "Selective suppression of hippocampal ripples impairs spatial memory (example citation)",
       authors: ["Girardeau G", "Benchenane K", "Wiener SI"],
       year: 2009,
       source: "Example Nature Neuroscience",
@@ -372,7 +373,8 @@ export const repositoryOnlyReview: SeedReview = {
     {
       localId: "ref-fries2001",
       doi: "10.5555/oratlas.example.fries2001",
-      title: "Modulation of oscillatory neuronal synchronization by selective attention (example citation)",
+      title:
+        "Modulation of oscillatory neuronal synchronization by selective attention (example citation)",
       authors: ["Fries P", "Reynolds JH", "Rorie AE", "Desimone R"],
       year: 2001,
       source: "Example Science",
@@ -391,7 +393,10 @@ export const repositoryOnlyReview: SeedReview = {
         assessorId: "atlas-trust-agent",
         reviewStatus: "agent-proposed",
         criteria: {
-          entailment: { rating: "high", rationale: "Reports the attention–synchrony relationship directly." },
+          entailment: {
+            rating: "high",
+            rationale: "Reports the attention–synchrony relationship directly.",
+          },
           populationRelevance: { rating: "high", rationale: "Non-human primate visual cortex." },
           replicationConvergence: { rating: "moderate" },
         },
@@ -449,7 +454,8 @@ export const templateDemoReview: SeedReview = {
     commitSha: sha("template00commit00demo"),
     branch: "main",
     releaseTag: "v1.0.0",
-    releaseUrl: "https://github.com/AllenNeuralDynamics/ComputationalReviewTemplate/releases/tag/v1.0.0",
+    releaseUrl:
+      "https://github.com/AllenNeuralDynamics/ComputationalReviewTemplate/releases/tag/v1.0.0",
   },
   version: {
     semanticVersion: "1.0.0",

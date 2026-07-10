@@ -24,20 +24,20 @@ These drive the transparent compatibility heuristics in `packages/extractor`.
 
 TypeScript pnpm monorepo:
 
-| Path | Purpose |
-| --- | --- |
-| `apps/web` | Next.js (App Router) public archive, submission wizard, editorial dashboard, Atlas Discuss |
-| `packages/contracts` | Zod schemas + shared types + review-manifest JSON Schema |
-| `packages/db` | Prisma schema (SQLite dev / PostgreSQL-compatible), client, seed |
-| `packages/github` | SSRF-safe GitHub URL validation + bounded repository inspection |
-| `packages/zenodo` | DOI normalization/resolution + Zenodo metadata matching |
-| `packages/extractor` | Deterministic metadata/artifact extraction + compatibility classification |
-| `packages/trust` | TRUST records, validation, documented aggregation |
-| `packages/knowledge` | Search provider, evidence packets, deterministic + LLM discussion, link proposals |
-| `packages/ui` | Reusable accessible UI primitives |
-| `packages/config` | Shared env parsing/config helpers |
-| `scripts` | Ingestion, DOI validation, JSON Schema checks |
-| `docs` | Architecture, governance, schemas, deployment |
+| Path                 | Purpose                                                                                    |
+| -------------------- | ------------------------------------------------------------------------------------------ |
+| `apps/web`           | Next.js (App Router) public archive, submission wizard, editorial dashboard, Atlas Discuss |
+| `packages/contracts` | Zod schemas + shared types + review-manifest JSON Schema                                   |
+| `packages/db`        | Prisma schema (SQLite dev / PostgreSQL-compatible), client, seed                           |
+| `packages/github`    | SSRF-safe GitHub URL validation + bounded repository inspection                            |
+| `packages/zenodo`    | DOI normalization/resolution + Zenodo metadata matching                                    |
+| `packages/extractor` | Deterministic metadata/artifact extraction + compatibility classification                  |
+| `packages/trust`     | TRUST records, validation, documented aggregation                                          |
+| `packages/knowledge` | Search provider, evidence packets, deterministic + LLM discussion, link proposals          |
+| `packages/ui`        | Reusable accessible UI primitives                                                          |
+| `packages/config`    | Shared env parsing/config helpers                                                          |
+| `scripts`            | Ingestion, DOI validation, JSON Schema checks                                              |
+| `docs`               | Architecture, governance, schemas, deployment                                              |
 
 Full details: `docs/architecture.md`.
 

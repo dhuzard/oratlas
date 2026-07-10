@@ -47,7 +47,10 @@ const FIELD_KEYS = [
 ] as const;
 type FieldKey = (typeof FIELD_KEYS)[number];
 
-function fileContent(report: InspectionReport, ...names: string[]): { path: string; content: string } | undefined {
+function fileContent(
+  report: InspectionReport,
+  ...names: string[]
+): { path: string; content: string } | undefined {
   for (const name of names) {
     const f = report.files[name];
     if (f?.content) return { path: name, content: f.content };
