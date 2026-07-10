@@ -54,3 +54,24 @@ slice can lint, typecheck, and test.
   `isExample` / `example-not-resolvable` so the UI never links them out.
 - Verified: `prisma validate` ok; `db:push` ok; `db:seed` ok; counts confirmed;
   typecheck clean. Added `packages/db/.env` (gitignored) for Prisma CLI.
+
+## PR-03 — GitHub repository inspection
+
+**Objective:** SSRF-safe URL handling and bounded, mockable repository inspection (spec §6).
+
+- `parseGithubRepoUrl`: normalizes canonical/shorthand/.git/deep-path forms to
+  `https://github.com/{owner}/{repo}`; rejects non-GitHub hosts, look-alike hosts,
+  embedded credentials, `@`, api./raw. hosts, localhost/loopback/link-local/private IPs,
+  non-standard ports, non-http(s) schemes, and reserved GitHub paths. Single SSRF choke point.
+- `inspectRepository`: server-side REST inspection with explicit per-request timeouts,
+  `redirect: "error"`, max file bytes/total bytes/file count/tree-entry caps, permitted
+  textual extensions, partial-inspection warnings. Fetches repo metadata, license, topics,
+  default branch, latest commit, tags, releases (+ DOIs parsed from release bodies), Pages
+  URL, and well-known files (manifest, CITATION.cff, .zenodo.json, codemeta, myst.yml,
+  package.json/pyproject, README, bibliography, knowledge JSONL, provenance). Never clones,
+  never executes code.
+- `IngestionRunner` interface + `SynchronousIngestionRunner` (queue-replaceable, spec §6).
+- Mockable `GithubTransport`; `createFakeTransport` fixture + realistic template fixtures
+  reused by later slices.
+- Verified: typecheck clean; 22 unit tests (URL normalization + SSRF rejection matrix +
+  bounded inspection + size limits) pass with zero network access.
