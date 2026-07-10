@@ -191,3 +191,22 @@ workflow (spec §5, §8, §13, §14, §19).
 - Debugging notes: added a webpack `extensionAlias` so Next resolves `.js`→`.ts`; made the CSP
   allow `'unsafe-eval'` in development only (Next HMR) while production stays strict.
 - Verified: 9/9 e2e pass; JSON Schema check passes; lint/format/typecheck/build all green.
+
+## PR-10 — Documentation, security pass, final verification
+
+**Objective:** complete documentation, community files, OpenAPI, and a final full verification.
+
+- Docs: README (purpose, screenshots placeholders, architecture, setup, env vars, db commands,
+  seeding, testing, deployment, how to submit, how Zenodo linking works, what the platform does
+  not verify), `CONTRIBUTING.md`, `SECURITY.md`, `CODE_OF_CONDUCT.md`, `LICENSE` (MIT),
+  `CLAUDE.md`, and `docs/{data-model, review-manifest, trust-model, submission-workflow,
+  doi-and-versioning, agent-governance, editorial-governance, deployment, poc-limitations}.md`
+  plus `docs/openapi.yaml`.
+- Documented the required cautions: acceptance ≠ peer review; TRUST is relation-specific; agent
+  links/assessments are proposals; DOI presence is not quality; default-branch may differ from a
+  deposited release; exact versions are tied to commit SHAs; shared-source citations ≠ replication.
+- Security posture (SECURITY.md): SSRF choke point, bounded inspection, no clone/execute,
+  untrusted-content-as-text, server-side secrets, signed httpOnly cookies + OAuth state,
+  server-side authorization, input/size/rate limits, grounded LLM output.
+- Final verification: `pnpm install` ok; format/lint/typecheck clean; 78 unit tests pass;
+  `schema:check` passes; production build succeeds (20 routes); 9/9 Playwright e2e pass.

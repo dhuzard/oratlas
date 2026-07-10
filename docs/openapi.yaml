@@ -1,0 +1,221 @@
+openapi: 3.1.0
+info:
+  title: Open Review Atlas API
+  version: 0.1.0
+  description: >
+    External data contracts for the Open Review Atlas POC. Application mutations
+    are exposed as conventional JSON API routes. All error responses use the
+    structured error envelope and never include internal stack traces.
+  license:
+    name: MIT
+servers:
+  - url: http://localhost:3000
+    description: Local development
+components:
+  securitySchemes:
+    session:
+      type: apiKey
+      in: cookie
+      name: oratlas_session
+  responses:
+    Error:
+      description: Structured error
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+  schemas:
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              enum:
+                [
+                  bad-request,
+                  unauthorized,
+                  forbidden,
+                  not-found,
+                  conflict,
+                  rate-limited,
+                  payload-too-large,
+                  upstream-error,
+                  internal-error,
+                ]
+            message: { type: string }
+            details:
+              type: array
+              items: { type: string }
+    InspectRequest:
+      type: object
+      required: [url]
+      properties:
+        url: { type: string, description: Public GitHub repository URL }
+    InspectResponse:
+      type: object
+      properties:
+        repo:
+          type: object
+          properties:
+            owner: { type: string }
+            name: { type: string }
+            canonicalUrl: { type: string }
+        inspectionStatus: { type: string, enum: [succeeded, partial, failed] }
+        extractedMetadata: { type: object }
+        effectiveMetadata: { type: object }
+        compatibility: { type: object }
+        validation: { type: object }
+        knowledgeCounts:
+          type: object
+          properties:
+            claims: { type: integer }
+            citations: { type: integer }
+            relations: { type: integer }
+            trust: { type: integer }
+    DoiValidationRequest:
+      type: object
+      required: [doi]
+      properties:
+        doi: { type: string }
+        repositoryUrl: { type: string }
+        title: { type: string }
+        releaseTag: { type: string }
+        expectedKind: { type: string, enum: [version, concept] }
+    SubmissionCreateRequest:
+      type: object
+      required: [url]
+      properties:
+        url: { type: string }
+        editedMetadata:
+          type: object
+          description: "{ edits: Record<field, { value, meta }> }"
+    SubmissionCreateResponse:
+      type: object
+      properties:
+        submissionId: { type: string }
+        status: { type: string }
+    EditorialDecisionRequest:
+      type: object
+      required: [submissionId, decision]
+      properties:
+        submissionId: { type: string }
+        decision: { type: string, enum: [accept, reject, request-changes] }
+        note: { type: string }
+    DiscussRequest:
+      type: object
+      required: [question]
+      properties:
+        question: { type: string, minLength: 3, maxLength: 1000 }
+        reviewSlugs:
+          type: array
+          items: { type: string }
+paths:
+  /api/health:
+    get:
+      summary: Health check
+      responses:
+        "200": { description: OK }
+  /api/inspect:
+    post:
+      summary: Inspect a repository and return extracted metadata, compatibility, and validation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/InspectRequest" }
+      responses:
+        "200":
+          description: Inspection result
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/InspectResponse" }
+        "400": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/Error" }
+  /api/validate-doi:
+    post:
+      summary: Validate a DOI and return a structured report
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DoiValidationRequest" }
+      responses:
+        "200": { description: Structured DOI validation report }
+        "400": { $ref: "#/components/responses/Error" }
+  /api/submissions:
+    post:
+      summary: Finalize a submission (creates immutable snapshot + submission)
+      security: [{ session: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SubmissionCreateRequest" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SubmissionCreateResponse" }
+        "401": { $ref: "#/components/responses/Error" }
+  /api/editorial/decision:
+    post:
+      summary: Editorial decision (editor role required)
+      security: [{ session: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/EditorialDecisionRequest" }
+      responses:
+        "200": { description: Decision recorded }
+        "403": { $ref: "#/components/responses/Error" }
+  /api/search:
+    get:
+      summary: Search accepted reviews
+      parameters:
+        - { name: q, in: query, schema: { type: string } }
+        - { name: domain, in: query, schema: { type: string } }
+        - { name: author, in: query, schema: { type: string } }
+        - { name: hasDoi, in: query, schema: { type: boolean } }
+        - { name: hasTrustData, in: query, schema: { type: boolean } }
+        - {
+            name: sort,
+            in: query,
+            schema: { type: string, enum: [accepted, updated, title, relevance] },
+          }
+      responses:
+        "200": { description: Search results }
+  /api/reviews/{slug}:
+    get:
+      summary: Retrieve a review by slug
+      parameters:
+        - { name: slug, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Review detail }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/claims:
+    get:
+      summary: Search claims across reviews
+      parameters:
+        - { name: q, in: query, schema: { type: string } }
+        - { name: reviewSlug, in: query, schema: { type: string } }
+        - { name: relationType, in: query, schema: { type: string } }
+      responses:
+        "200": { description: Claim results }
+  /api/discuss:
+    post:
+      summary: Grounded cross-review discussion (deterministic or LLM mode)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DiscussRequest" }
+      responses:
+        "200": { description: Discussion response }
+        "400": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/Error" }
