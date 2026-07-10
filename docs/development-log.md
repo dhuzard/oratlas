@@ -91,3 +91,24 @@ slice can lint, typecheck, and test.
 - Verified: typecheck clean; 12 unit tests (normalization forms, example short-circuit,
   invalid/unresolvable, high-confidence match, concept vs version, warnings-not-errors,
   metadata-unavailable) pass with no network access.
+
+## PR-05 — Extraction pipeline, compatibility, TRUST
+
+**Objective:** deterministic extraction with provenance, artifact ingestion, transparent
+compatibility classification (spec §7, §12), and TRUST validation/aggregation (spec §11).
+
+- `@oratlas/extractor`: priority-ordered source parsers (manifest → CITATION.cff →
+  .zenodo.json → codemeta → MyST → repo metadata → README heuristics). `extractMetadata`
+  sets each field from the first source that supplies it and stamps field-level provenance
+  (source, file, pointer, commit, extractor version, timestamp, confidence). Version DOI and
+  concept DOI stay separate. `extractKnowledge` ingests claims/citations/relations/TRUST
+  JSONL (manifest-guided, path re-validated) and enforces referential integrity (drops
+  relations/TRUST referencing unknown claims/citations). `assessCompatibility` produces the
+  transparent report — every signal a deterministic rule with plain-language evidence and a
+  level rationale; levels verified-template / compatible / partially-compatible / unsupported
+  / inspection-failed. No LLM decisions in structural compatibility.
+- `@oratlas/trust`: `validateTrustRecord`, `computeAggregate` (mean of *assessed* ordinals
+  only, never treating not-assessed/not-applicable as zero, always tagged
+  `ordinal-mean-1.0`), `ordinalAtLeast`. Aggregate is optional; criterion record authoritative.
+- Added `@oratlas/github/fixtures` subpath so extractor tests reuse GitHub fixtures.
+- Verified: typecheck clean; 12 new tests; full suite 65/65 passing, zero network.
