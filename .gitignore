@@ -1,0 +1,33 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# builds
+.next/
+out/
+dist/
+build/
+*.tsbuildinfo
+
+# databases
+*.db
+*.db-journal
+*.sqlite
+
+# env
+.env
+.env.local
+.env.*.local
+
+# test artifacts
+coverage/
+playwright-report/
+test-results/
+blob-report/
+
+# prisma generated client
+packages/db/generated/
+
+# misc
+.DS_Store
+*.log
