@@ -75,3 +75,19 @@ slice can lint, typecheck, and test.
   reused by later slices.
 - Verified: typecheck clean; 22 unit tests (URL normalization + SSRF rejection matrix +
   bounded inspection + size limits) pass with zero network access.
+
+## PR-04 — DOI and Zenodo validation
+
+**Objective:** DOI normalization, resolution, and structured Zenodo matching (spec §3).
+
+- `normalizeDoi`: handles `doi:`, `DOI:`, `https://doi.org/`, `dx.doi.org`, raw, trailing
+  punctuation; lower-cases (DOIs are case-insensitive). Zenodo detection + record-id
+  extraction. Reserved `10.5555/*` example DOIs flagged and never resolved outward.
+- Mockable `DoiResolver` (doi.org HEAD + Zenodo record GET, both with timeouts).
+- `validateDoi`: structured `DoiValidationReport` — per-check outcomes (syntax, resolution,
+  zenodo-metadata, repository-match, title-match, release-match), hard errors vs warnings
+  vs confidence, version-vs-concept DOI discrimination (discovers concept DOI from a
+  version record). Slight metadata differences produce warnings, never rejection.
+- Verified: typecheck clean; 12 unit tests (normalization forms, example short-circuit,
+  invalid/unresolvable, high-confidence match, concept vs version, warnings-not-errors,
+  metadata-unavailable) pass with no network access.

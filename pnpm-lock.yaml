@@ -100,6 +100,22 @@ importers:
         specifier: ^3.1.4
         version: 3.2.7(@types/node@22.20.1)(jiti@2.7.0)(tsx@4.23.0)
 
+  packages/zenodo:
+    dependencies:
+      '@oratlas/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+      zod:
+        specifier: ^3.25.0
+        version: 3.25.76
+    devDependencies:
+      typescript:
+        specifier: ^5.8.3
+        version: 5.9.3
+      vitest:
+        specifier: ^3.1.4
+        version: 3.2.7(@types/node@22.20.1)(jiti@2.7.0)(tsx@4.23.0)
+
 packages:
 
   '@esbuild/aix-ppc64@0.28.1':
