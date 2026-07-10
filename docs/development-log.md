@@ -112,3 +112,25 @@ compatibility classification (spec §7, §12), and TRUST validation/aggregation 
   `ordinal-mean-1.0`), `ordinalAtLeast`. Aggregate is optional; criterion record authoritative.
 - Added `@oratlas/github/fixtures` subpath so extractor tests reuse GitHub fixtures.
 - Verified: typecheck clean; 12 new tests; full suite 65/65 passing, zero network.
+
+## PR-06 — Knowledge layer (search, packets, discussion, links)
+
+**Objective:** search provider, evidence packets, deterministic + LLM discussion with
+grounding, and cross-review link proposals (spec §14–16).
+
+- Framework-free denormalized types (`IndexedReview/Claim/Citation`) so the layer has no DB
+  dependency; the web app maps Prisma rows into them.
+- `SearchProvider` interface + `InProcessSearchProvider` (lexical, deterministic) with all
+  archive/claim filters (DOI/TRUST/evidence availability, domain, keywords, author, relation
+  type, TRUST criterion, human-reviewed state) and sorts.
+- `buildEvidencePacket`: knowledge-unit packets (claims + anchors + relations + TRUST status
+  + review identity/commit/DOI + only-cited citations); `hashEvidencePacket` stable hash.
+- `discussDeterministic`: groups matched claims by evidence relation, returns a structured
+  summary, refuses to fabricate prose, warns that shared-source citations ≠ replication.
+- `discussWithLlm`: provider-neutral `LlmProvider`; parses Zod answer schema and
+  rejects/retries answers referencing unknown identifiers; returns provider/model/prompt
+  version + grounding result for persistence. Versioned prompt; no chain-of-thought.
+- `createAnthropicProvider`: the single concrete adapter (isolated), model gets only the packet.
+- `proposeCrossReviewLinks`: conservative shared-citation + lexical-similarity proposals,
+  cross-review only, emitted as drafts.
+- Verified: typecheck clean; 13 tests incl. grounding rejection/retry; full suite green.
