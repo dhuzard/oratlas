@@ -33,3 +33,24 @@ slice can lint, typecheck, and test.
 - Added `@oratlas/config` (validated server env; refuses mock auth in production,
   requires SESSION_SECRET in production).
 - Verified: `pnpm install` ok; vitest 19/19 pass; typecheck clean for both packages.
+
+## PR-02 — Database model and seed data
+
+**Objective:** normalized Prisma schema (spec §9) + realistic seed data (spec §20).
+
+- Schema: User, Repository, RepositorySnapshot (repo+commitSha unique), Review,
+  ReviewVersion (separate versionDoi/conceptDoi/zenodoRecordId + isExample flag), Person,
+  ReviewContributor, Submission (immutable submittedPayloadJson), Identifier,
+  Claim, Citation, ClaimEvidenceRelation (unique claim+citation+relation), TrustAssessment
+  (attached to the relation; per-criterion JSON columns; optional aggregate + method),
+  AgentRun, DiscussionThread, DiscussionMessage, KnowledgeLinkProposal, AuditEvent.
+- SQLite provider; Postgres-compatible by construction (enums→String validated by
+  contracts, JSON→String columns, arrays→JSON strings). SQLite file resolves
+  schema-relative to `packages/db/prisma/dev.db`, stable across web app and scripts.
+- Seed loads: DOI review (release + example Zenodo DOI), repository-only review,
+  template structural demo, pending submission, 5 claims, 4 citations, 5 relations
+  (incl. a `contradicts`), 5 TRUST records (4 agent-proposed + 1 human-reviewed), 1
+  cross-review link proposal. All DOIs use reserved `10.5555/` and are flagged
+  `isExample` / `example-not-resolvable` so the UI never links them out.
+- Verified: `prisma validate` ok; `db:push` ok; `db:seed` ok; counts confirmed;
+  typecheck clean. Added `packages/db/.env` (gitignored) for Prisma CLI.

@@ -31,3 +31,6 @@ packages/db/generated/
 # misc
 .DS_Store
 *.log
+
+# db package env for prisma CLI
+packages/db/.env
