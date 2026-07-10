@@ -14,7 +14,7 @@
     "db:push": "prisma db push",
     "db:validate": "prisma validate",
     "db:seed": "tsx src/seed/seed.ts",
-    "db:reset": "prisma db push --force-reset && tsx src/seed/seed.ts"
+    "db:reset": "tsx src/seed/reset.ts && prisma db push --skip-generate && tsx src/seed/seed.ts"
   },
   "prisma": {
     "schema": "prisma/schema.prisma"

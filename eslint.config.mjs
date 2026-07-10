@@ -38,5 +38,12 @@ export default tseslint.config(
     files: ["scripts/**/*.ts", "packages/db/**/*.ts", "**/*.test.ts", "apps/web/e2e/**/*.ts"],
     rules: { "no-console": "off" },
   },
+  {
+    // Node config files use CommonJS/Node globals.
+    files: ["**/*.config.{mjs,js,ts}", "**/next.config.mjs", "**/postcss.config.mjs"],
+    languageOptions: {
+      globals: { process: "readonly", module: "readonly", __dirname: "readonly" },
+    },
+  },
   prettier,
 );

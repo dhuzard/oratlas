@@ -374,6 +374,21 @@ async function main() {
       status: pendingSubmission.status,
       extractedMetadataJson: JSON.stringify(extractedMetadata),
       editedMetadataJson: JSON.stringify({ edits: {} }),
+      // Immutable payload an editor can accept (materializes a review). Kept
+      // minimal: repository-only, no knowledge artifacts.
+      submittedPayloadJson: JSON.stringify({
+        effectiveMetadata: {
+          title: pendingSubmission.title,
+          abstract: pendingSubmission.abstract,
+          authors: [],
+          keywords: [],
+          domains: ["Neuroscience"],
+          reviewType: "computational-literature-review",
+          repositoryUrl: pendingSubmission.repository.canonicalUrl,
+        },
+        compatibilityLevel: "partially-compatible",
+        knowledge: { claims: [], citations: [], relations: [], trust: [] },
+      }),
       validationReportJson: JSON.stringify({
         schemaVersion: "1.0.0",
         hardErrors: [],

@@ -164,3 +164,30 @@ workflow (spec §5, §8, §13, §14, §19).
 - Verified: `pnpm build` succeeds (all 20 routes); server smoke test — home/archive/review/claims 200,
   search + claims + deterministic discuss APIs return correct data, editorial redirects unauth (307),
   health ok. Lint clean; 78 unit tests pass; all 10 typechecks pass.
+
+## PR-09 — Scripts, CI, and end-to-end tests
+
+**Objective:** maintenance/validation CLIs, GitHub Actions, and essential Playwright flows
+(spec §21, §22).
+
+- Scripts: `scripts/validate-json-schemas.ts` (compiles the review-manifest JSON Schema with
+  Ajv 2020, validates the reference example, and asserts unsafe artifact paths are rejected);
+  `scripts/validate-doi.ts` (CLI structured DOI report; example DOIs never resolved);
+  `scripts/ingest.ts` (read-only inspect+extract of a repo URL).
+- `db:reset` rewritten to delete the SQLite file then push+seed (`src/seed/reset.ts`),
+  avoiding Prisma 6.19's interactive consent gate on `--force-reset`.
+- Seeded pending submission now carries a `submittedPayloadJson` so an editor can accept it
+  offline (used by the editorial e2e).
+- GitHub Actions `ci.yml`: two jobs — `verify` (install → prisma generate/validate → JSON
+  Schema check → lint → format:check → typecheck → unit tests → db push+seed → production
+  build) and `e2e` (db push+seed → Playwright chromium). pnpm cache; no deployment secrets
+  required for PR validation.
+- Playwright: dev-server webServer (so mock auth works; refused under production), absolute
+  SQLite path, pre-installed-Chromium fallback. Suites: archive browsing (home/archive/review
+  with version-vs-concept DOI, example-DOI marking, contradicting relation, TRUST), claim
+  explorer, deterministic discussion (grounded summary + insufficient-evidence), and the
+  editorial workflow (submitter + editor mock sign-in, dashboard + audit log, accept → review
+  appears in the archive).
+- Debugging notes: added a webpack `extensionAlias` so Next resolves `.js`→`.ts`; made the CSP
+  allow `'unsafe-eval'` in development only (Next HMR) while production stays strict.
+- Verified: 9/9 e2e pass; JSON Schema check passes; lint/format/typecheck/build all green.

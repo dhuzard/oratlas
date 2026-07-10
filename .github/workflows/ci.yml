@@ -1,0 +1,95 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Absolute SQLite path so it resolves from any working directory.
+  DATABASE_URL: "file:./dev.db"
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm --filter @oratlas/db db:generate
+
+      - name: Validate Prisma schema
+        run: pnpm --filter @oratlas/db db:validate
+
+      - name: Validate JSON Schemas
+        run: pnpm schema:check
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Format check
+        run: pnpm format:check
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Unit & integration tests
+        run: pnpm test
+
+      - name: Set up database (push + seed)
+        run: pnpm --filter @oratlas/db db:push && pnpm --filter @oratlas/db db:seed
+
+      - name: Production build
+        run: pnpm --filter @oratlas/web build
+        env:
+          DATABASE_URL: "file:./packages/db/prisma/dev.db"
+          SESSION_SECRET: ci-build-secret
+
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm --filter @oratlas/db db:generate
+
+      - name: Set up database (push + seed)
+        run: pnpm --filter @oratlas/db db:push && pnpm --filter @oratlas/db db:seed
+
+      - name: Install Playwright browser
+        run: pnpm --filter @oratlas/web exec playwright install --with-deps chromium
+
+      - name: Essential Playwright tests
+        run: pnpm --filter @oratlas/web test:e2e
+        env:
+          PLAYWRIGHT_CHROMIUM: ""
