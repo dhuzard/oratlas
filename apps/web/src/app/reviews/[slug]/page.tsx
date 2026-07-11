@@ -3,7 +3,10 @@ import Link from "next/link";
 import { type Metadata } from "next";
 import { Card, Badge, CompatibilityBadge, DefinitionList, Notice, StatusPill } from "@oratlas/ui";
 import { getReviewDetail } from "@/lib/reviews";
+import { listReviewComments } from "@/lib/comments";
+import { getCurrentUser, isEditor } from "@/lib/auth";
 import { TrustDisplay } from "@/components/TrustDisplay";
+import { CommentsSection } from "./CommentsSection";
 import { ProvenanceBadge } from "@oratlas/ui";
 
 export const dynamic = "force-dynamic";
@@ -48,6 +51,14 @@ export default async function ReviewPage({ params }: { params: Promise<{ slug: s
   const { slug } = await params;
   const review = await getReviewDetail(slug);
   if (!review) notFound();
+
+  const [comments, user] = await Promise.all([listReviewComments(slug), getCurrentUser()]);
+  const commentList = comments ?? { reviewSlug: slug, commentCount: 0, comments: [] };
+  const commentsByClaim = new Map<string, number>();
+  for (const c of commentList.comments) {
+    if (c.status !== "visible" || !c.claimLocalId) continue;
+    commentsByClaim.set(c.claimLocalId, (commentsByClaim.get(c.claimLocalId) ?? 0) + 1);
+  }
 
   const supportingByCitation = new Map<string, number>();
   for (const c of review.claims) {
@@ -208,53 +219,61 @@ export default async function ReviewPage({ params }: { params: Promise<{ slug: s
             {review.claims.length === 0 ? (
               <p className="muted">No claims were extracted for this review.</p>
             ) : (
-              review.claims.map((claim) => (
-                <div
-                  className="claim-card"
-                  key={claim.localClaimId}
-                  id={claim.anchor ?? claim.localClaimId}
-                >
-                  <p className="claim-text">{claim.text}</p>
-                  <div className="btn-row">
-                    <span className="mono muted">{claim.localClaimId}</span>
-                    {claim.claimType ? <Badge>{claim.claimType}</Badge> : null}
-                    {claim.section ? <span className="muted">§ {claim.section}</span> : null}
-                  </div>
-                  {claim.qualification ? (
-                    <p className="muted">
-                      <em>Qualification:</em> {claim.qualification}
-                    </p>
-                  ) : null}
-                  {claim.relations.map((rel, i) => (
-                    <div className="relation-row" key={i}>
-                      <Badge tone={rel.relationType === "contradicts" ? "warning" : "neutral"}>
-                        {rel.relationType.replace(/-/g, " ")}
-                      </Badge>
-                      <span>
-                        {rel.citationTitle ?? rel.citationLocalId}
-                        {rel.citationDoi ? (
-                          rel.citationIsExample ? (
-                            <span className="mono"> ({rel.citationDoi}, example)</span>
-                          ) : (
-                            <a className="mono" href={`https://doi.org/${rel.citationDoi}`}>
-                              {" "}
-                              ({rel.citationDoi})
-                            </a>
-                          )
-                        ) : null}
-                      </span>
-                      {rel.trust ? (
-                        <details>
-                          <summary>TRUST assessment</summary>
-                          <TrustDisplay trust={rel.trust} />
-                        </details>
-                      ) : (
-                        <span className="muted">no TRUST assessment</span>
-                      )}
+              review.claims.map((claim) => {
+                const claimComments = commentsByClaim.get(claim.localClaimId) ?? 0;
+                return (
+                  <div
+                    className="claim-card"
+                    key={claim.localClaimId}
+                    id={claim.anchor ?? claim.localClaimId}
+                  >
+                    <p className="claim-text">{claim.text}</p>
+                    <div className="btn-row">
+                      <span className="mono muted">{claim.localClaimId}</span>
+                      {claim.claimType ? <Badge>{claim.claimType}</Badge> : null}
+                      {claim.section ? <span className="muted">§ {claim.section}</span> : null}
+                      {claimComments > 0 ? (
+                        <a href="#community-review">
+                          {claimComments} comment{claimComments === 1 ? "" : "s"}
+                        </a>
+                      ) : null}
                     </div>
-                  ))}
-                </div>
-              ))
+                    {claim.qualification ? (
+                      <p className="muted">
+                        <em>Qualification:</em> {claim.qualification}
+                      </p>
+                    ) : null}
+                    {claim.relations.map((rel, i) => (
+                      <div className="relation-row" key={i}>
+                        <Badge tone={rel.relationType === "contradicts" ? "warning" : "neutral"}>
+                          {rel.relationType.replace(/-/g, " ")}
+                        </Badge>
+                        <span>
+                          {rel.citationTitle ?? rel.citationLocalId}
+                          {rel.citationDoi ? (
+                            rel.citationIsExample ? (
+                              <span className="mono"> ({rel.citationDoi}, example)</span>
+                            ) : (
+                              <a className="mono" href={`https://doi.org/${rel.citationDoi}`}>
+                                {" "}
+                                ({rel.citationDoi})
+                              </a>
+                            )
+                          ) : null}
+                        </span>
+                        {rel.trust ? (
+                          <details>
+                            <summary>TRUST assessment</summary>
+                            <TrustDisplay trust={rel.trust} />
+                          </details>
+                        ) : (
+                          <span className="muted">no TRUST assessment</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                );
+              })
             )}
           </Card>
 
@@ -296,6 +315,25 @@ export default async function ReviewPage({ params }: { params: Promise<{ slug: s
               </div>
             </Card>
           ) : null}
+
+          <CommentsSection
+            reviewSlug={review.slug}
+            list={commentList}
+            claims={review.claims.map((c) => ({
+              localClaimId: c.localClaimId,
+              anchor: c.anchor,
+              text: c.text,
+            }))}
+            viewer={
+              user
+                ? {
+                    githubLogin: user.githubLogin,
+                    displayName: user.displayName,
+                    isEditor: isEditor(user),
+                  }
+                : null
+            }
+          />
         </div>
 
         <aside>
@@ -352,9 +390,13 @@ export default async function ReviewPage({ params }: { params: Promise<{ slug: s
           </Card>
 
           <Card title="Discuss">
-            <p>Ask grounded questions across accepted reviews.</p>
+            <p>
+              <a href="#community-review">Community discussion ({commentList.commentCount})</a> —
+              questions, concerns and endorsements from readers.
+            </p>
+            <p>Or ask grounded questions across accepted reviews.</p>
             <Link className="btn btn-secondary" href={`/discuss?review=${review.slug}`}>
-              Discuss this review
+              Ask Atlas Discuss
             </Link>
           </Card>
         </aside>

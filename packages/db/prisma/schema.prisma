@@ -31,6 +31,7 @@ model User {
   submissions         Submission[]       @relation("submitter")
   editorialDecisions  Submission[]       @relation("reviewer")
   discussionThreads   DiscussionThread[]
+  reviewComments      ReviewComment[]
   auditEvents         AuditEvent[]
 }
 
@@ -104,6 +105,7 @@ model Review {
 
   currentSnapshot RepositorySnapshot? @relation("currentSnapshot", fields: [currentSnapshotId], references: [id])
   versions        ReviewVersion[]
+  comments        ReviewComment[]
 }
 
 model ReviewVersion {
@@ -223,6 +225,7 @@ model Claim {
   evidenceRelations ClaimEvidenceRelation[]
   linkProposalsFrom KnowledgeLinkProposal[] @relation("sourceClaim")
   linkProposalsTo   KnowledgeLinkProposal[] @relation("targetClaim")
+  comments          ReviewComment[]
 
   @@unique([reviewVersionId, localClaimId])
 }
@@ -353,6 +356,37 @@ model DiscussionMessage {
 
   thread   DiscussionThread @relation(fields: [threadId], references: [id])
   agentRun AgentRun?        @relation(fields: [agentRunId], references: [id])
+}
+
+/// Human peer commentary on a published review — the scholarly exchange layer.
+/// Distinct from DiscussionThread/Message, which persist AI-grounded Q&A.
+/// Bodies are plain text only and always rendered escaped (never raw HTML).
+model ReviewComment {
+  id       String  @id @default(cuid())
+  reviewId String
+  authorId String
+  /// Top-level comment when null; threads are one level deep (replies).
+  parentId String?
+  /// Optional claim this comment is anchored to (claim-level commentary).
+  claimId  String?
+  /// contracts COMMENT_KINDS: comment | question | concern | suggestion | endorsement
+  kind     String  @default("comment")
+  body     String
+  /// contracts COMMENT_STATUSES: visible | removed
+  status   String  @default("visible")
+  /// User id of the remover (author or editor); no FK to keep moderation light.
+  removedById String?
+  removedAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  review  Review          @relation(fields: [reviewId], references: [id])
+  author  User            @relation(fields: [authorId], references: [id])
+  parent  ReviewComment?  @relation("replies", fields: [parentId], references: [id])
+  replies ReviewComment[] @relation("replies")
+  claim   Claim?          @relation(fields: [claimId], references: [id])
+
+  @@index([reviewId, createdAt])
 }
 
 /// Conservative automated cross-review link proposals (spec §15).

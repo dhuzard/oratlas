@@ -8,24 +8,25 @@ suffix, and arrays are JSON-encoded strings. Switching to PostgreSQL is a dataso
 
 ## Entities
 
-| Model                                    | Purpose                           | Key constraints                                                      |
-| ---------------------------------------- | --------------------------------- | -------------------------------------------------------------------- |
-| `User`                                   | Minimal GitHub identity + role    | `githubLogin` unique; `role` ∈ USER/EDITOR/ADMIN                     |
-| `Repository`                             | Evolving GitHub project           | `(host, owner, name)` and `canonicalUrl` unique                      |
-| `RepositorySnapshot`                     | Exact repository state            | **`(repositoryId, commitSha)` unique**                               |
-| `Review`                                 | Public review record              | `slug` unique; `currentSnapshotId`                                   |
-| `ReviewVersion`                          | Immutable version                 | separate `versionDoi` / `conceptDoi` / `zenodoRecordId`; `isExample` |
-| `Person` / `ReviewContributor`           | Authors & roles per version       | contributors ordered by `position`                                   |
-| `Submission`                             | Editorial workflow record         | immutable `submittedPayloadJson`; `status`                           |
-| `Identifier`                             | DOIs/ORCID/URL/Zenodo per version | `relationType` distinguishes version vs concept DOI                  |
-| `Claim`                                  | A review claim                    | `(reviewVersionId, localClaimId)` unique                             |
-| `Citation`                               | A cited source                    | `(reviewVersionId, localCitationId)` unique                          |
-| `ClaimEvidenceRelation`                  | Claim↔citation relation           | `(claimId, citationId, relationType)` unique                         |
-| `TrustAssessment`                        | TRUST for one relation            | attached to the **relation**, per-criterion JSON columns             |
-| `AgentRun`                               | Provenance of an agent action     | model/provider/prompt/input-hash/output                              |
-| `DiscussionThread` / `DiscussionMessage` | Atlas Discuss history             | grounding + model metadata                                           |
-| `KnowledgeLinkProposal`                  | Cross-review link proposal        | `(source, target, relation)` unique; `status`                        |
-| `AuditEvent`                             | Append-only audit trail           | indexed by `(subjectType, subjectId)`                                |
+| Model                                    | Purpose                           | Key constraints                                                                       |
+| ---------------------------------------- | --------------------------------- | ------------------------------------------------------------------------------------- |
+| `User`                                   | Minimal GitHub identity + role    | `githubLogin` unique; `role` ∈ USER/EDITOR/ADMIN                                      |
+| `Repository`                             | Evolving GitHub project           | `(host, owner, name)` and `canonicalUrl` unique                                       |
+| `RepositorySnapshot`                     | Exact repository state            | **`(repositoryId, commitSha)` unique**                                                |
+| `Review`                                 | Public review record              | `slug` unique; `currentSnapshotId`                                                    |
+| `ReviewVersion`                          | Immutable version                 | separate `versionDoi` / `conceptDoi` / `zenodoRecordId`; `isExample`                  |
+| `Person` / `ReviewContributor`           | Authors & roles per version       | contributors ordered by `position`                                                    |
+| `Submission`                             | Editorial workflow record         | immutable `submittedPayloadJson`; `status`                                            |
+| `Identifier`                             | DOIs/ORCID/URL/Zenodo per version | `relationType` distinguishes version vs concept DOI                                   |
+| `Claim`                                  | A review claim                    | `(reviewVersionId, localClaimId)` unique                                              |
+| `Citation`                               | A cited source                    | `(reviewVersionId, localCitationId)` unique                                           |
+| `ClaimEvidenceRelation`                  | Claim↔citation relation           | `(claimId, citationId, relationType)` unique                                          |
+| `TrustAssessment`                        | TRUST for one relation            | attached to the **relation**, per-criterion JSON columns                              |
+| `AgentRun`                               | Provenance of an agent action     | model/provider/prompt/input-hash/output                                               |
+| `DiscussionThread` / `DiscussionMessage` | Atlas Discuss history             | grounding + model metadata                                                            |
+| `ReviewComment`                          | Human peer commentary on a review | typed (`kind`), optional `claimId` anchor, one-level `parentId` thread; soft `status` |
+| `KnowledgeLinkProposal`                  | Cross-review link proposal        | `(source, target, relation)` unique; `status`                                         |
+| `AuditEvent`                             | Append-only audit trail           | indexed by `(subjectType, subjectId)`                                                 |
 
 ## Immutability and versioning
 

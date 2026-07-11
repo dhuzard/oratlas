@@ -113,6 +113,21 @@ components:
         reviewSlugs:
           type: array
           items: { type: string }
+    CommentCreateRequest:
+      type: object
+      required: [body]
+      properties:
+        body: { type: string, minLength: 1, maxLength: 5000 }
+        kind:
+          type: string
+          enum: [comment, question, concern, suggestion, endorsement]
+          default: comment
+        claimLocalId:
+          type: string
+          description: Local id of a claim in the review's current version to anchor the comment to.
+        parentId:
+          type: string
+          description: Id of the comment being replied to. Threads are one level deep.
 paths:
   /api/health:
     get:
@@ -219,3 +234,38 @@ paths:
         "200": { description: Discussion response }
         "400": { $ref: "#/components/responses/Error" }
         "429": { $ref: "#/components/responses/Error" }
+  /api/reviews/{slug}/comments:
+    get:
+      summary: List human community comments on a review (threaded one level deep)
+      parameters:
+        - { name: slug, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Threaded comment list }
+        "404": { $ref: "#/components/responses/Error" }
+    post:
+      summary: Post a community comment or reply on a review (sign-in required)
+      security: [{ session: [] }]
+      parameters:
+        - { name: slug, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CommentCreateRequest" }
+      responses:
+        "201": { description: Created }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/Error" }
+  /api/comments/{id}:
+    delete:
+      summary: Remove a comment (its author or an editor); soft delete
+      security: [{ session: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Removed }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
