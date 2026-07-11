@@ -160,14 +160,14 @@ function CommentForm({ reviewSlug, claims, parentId, onDone }: CommentFormProps)
 function AuthorLine({
   comment,
 }: {
-  comment: ReviewCommentList["comments"][number] | ReviewCommentList["comments"][number]["replies"][number];
+  comment:
+    | ReviewCommentList["comments"][number]
+    | ReviewCommentList["comments"][number]["replies"][number];
 }) {
   const date = comment.createdAt.slice(0, 10);
   return (
     <div className="comment-meta">
-      <span className={`badge badge-${KIND_TONES[comment.kind]}`}>
-        {KIND_LABELS[comment.kind]}
-      </span>
+      <span className={`badge badge-${KIND_TONES[comment.kind]}`}>{KIND_LABELS[comment.kind]}</span>
       <strong>{comment.author?.displayName ?? comment.author?.githubLogin ?? "—"}</strong>
       {comment.author && (comment.author.role === "EDITOR" || comment.author.role === "ADMIN") ? (
         <span className="badge">editor</span>
@@ -236,8 +236,8 @@ export function CommentsSection({
           <CommentForm reviewSlug={reviewSlug} claims={claims} />
         ) : (
           <p className="notice notice-info">
-            <Link href="/signin">Sign in</Link> to join the discussion — comments are attributed
-            and moderated by editors.
+            <Link href="/signin">Sign in</Link> to join the discussion — comments are attributed and
+            moderated by editors.
           </p>
         )}
 

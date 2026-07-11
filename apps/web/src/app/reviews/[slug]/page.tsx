@@ -222,56 +222,56 @@ export default async function ReviewPage({ params }: { params: Promise<{ slug: s
               review.claims.map((claim) => {
                 const claimComments = commentsByClaim.get(claim.localClaimId) ?? 0;
                 return (
-                <div
-                  className="claim-card"
-                  key={claim.localClaimId}
-                  id={claim.anchor ?? claim.localClaimId}
-                >
-                  <p className="claim-text">{claim.text}</p>
-                  <div className="btn-row">
-                    <span className="mono muted">{claim.localClaimId}</span>
-                    {claim.claimType ? <Badge>{claim.claimType}</Badge> : null}
-                    {claim.section ? <span className="muted">§ {claim.section}</span> : null}
-                    {claimComments > 0 ? (
-                      <a href="#community-review">
-                        {claimComments} comment{claimComments === 1 ? "" : "s"}
-                      </a>
-                    ) : null}
-                  </div>
-                  {claim.qualification ? (
-                    <p className="muted">
-                      <em>Qualification:</em> {claim.qualification}
-                    </p>
-                  ) : null}
-                  {claim.relations.map((rel, i) => (
-                    <div className="relation-row" key={i}>
-                      <Badge tone={rel.relationType === "contradicts" ? "warning" : "neutral"}>
-                        {rel.relationType.replace(/-/g, " ")}
-                      </Badge>
-                      <span>
-                        {rel.citationTitle ?? rel.citationLocalId}
-                        {rel.citationDoi ? (
-                          rel.citationIsExample ? (
-                            <span className="mono"> ({rel.citationDoi}, example)</span>
-                          ) : (
-                            <a className="mono" href={`https://doi.org/${rel.citationDoi}`}>
-                              {" "}
-                              ({rel.citationDoi})
-                            </a>
-                          )
-                        ) : null}
-                      </span>
-                      {rel.trust ? (
-                        <details>
-                          <summary>TRUST assessment</summary>
-                          <TrustDisplay trust={rel.trust} />
-                        </details>
-                      ) : (
-                        <span className="muted">no TRUST assessment</span>
-                      )}
+                  <div
+                    className="claim-card"
+                    key={claim.localClaimId}
+                    id={claim.anchor ?? claim.localClaimId}
+                  >
+                    <p className="claim-text">{claim.text}</p>
+                    <div className="btn-row">
+                      <span className="mono muted">{claim.localClaimId}</span>
+                      {claim.claimType ? <Badge>{claim.claimType}</Badge> : null}
+                      {claim.section ? <span className="muted">§ {claim.section}</span> : null}
+                      {claimComments > 0 ? (
+                        <a href="#community-review">
+                          {claimComments} comment{claimComments === 1 ? "" : "s"}
+                        </a>
+                      ) : null}
                     </div>
-                  ))}
-                </div>
+                    {claim.qualification ? (
+                      <p className="muted">
+                        <em>Qualification:</em> {claim.qualification}
+                      </p>
+                    ) : null}
+                    {claim.relations.map((rel, i) => (
+                      <div className="relation-row" key={i}>
+                        <Badge tone={rel.relationType === "contradicts" ? "warning" : "neutral"}>
+                          {rel.relationType.replace(/-/g, " ")}
+                        </Badge>
+                        <span>
+                          {rel.citationTitle ?? rel.citationLocalId}
+                          {rel.citationDoi ? (
+                            rel.citationIsExample ? (
+                              <span className="mono"> ({rel.citationDoi}, example)</span>
+                            ) : (
+                              <a className="mono" href={`https://doi.org/${rel.citationDoi}`}>
+                                {" "}
+                                ({rel.citationDoi})
+                              </a>
+                            )
+                          ) : null}
+                        </span>
+                        {rel.trust ? (
+                          <details>
+                            <summary>TRUST assessment</summary>
+                            <TrustDisplay trust={rel.trust} />
+                          </details>
+                        ) : (
+                          <span className="muted">no TRUST assessment</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 );
               })
             )}

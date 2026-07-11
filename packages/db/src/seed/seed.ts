@@ -312,8 +312,7 @@ async function seedReviewComments(
       ? claimIdsBySlug.get(comment.reviewSlug)?.get(comment.claimLocalId)
       : undefined;
     const created = commentIdsByReview.get(comment.reviewSlug) ?? [];
-    const parentId =
-      comment.replyTo !== undefined ? (created[comment.replyTo] ?? null) : null;
+    const parentId = comment.replyTo !== undefined ? (created[comment.replyTo] ?? null) : null;
     const row = await prisma.reviewComment.create({
       data: {
         reviewId,

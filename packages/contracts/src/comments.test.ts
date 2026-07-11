@@ -21,9 +21,9 @@ describe("createCommentInputSchema", () => {
   });
 
   it("bounds the body length", () => {
-    expect(
-      createCommentInputSchema.safeParse({ body: "x".repeat(COMMENT_BODY_MAX) }).success,
-    ).toBe(true);
+    expect(createCommentInputSchema.safeParse({ body: "x".repeat(COMMENT_BODY_MAX) }).success).toBe(
+      true,
+    );
     expect(
       createCommentInputSchema.safeParse({ body: "x".repeat(COMMENT_BODY_MAX + 1) }).success,
     ).toBe(false);

@@ -200,7 +200,7 @@ workflow (spec §5, §8, §13, §14, §19).
   seeding, testing, deployment, how to submit, how Zenodo linking works, what the platform does
   not verify), `CONTRIBUTING.md`, `SECURITY.md`, `CODE_OF_CONDUCT.md`, `LICENSE` (MIT),
   `CLAUDE.md`, and `docs/{data-model, review-manifest, trust-model, submission-workflow,
-  doi-and-versioning, agent-governance, editorial-governance, deployment, poc-limitations}.md`
+doi-and-versioning, agent-governance, editorial-governance, deployment, poc-limitations}.md`
   plus `docs/openapi.yaml`.
 - Documented the required cautions: acceptance ≠ peer review; TRUST is relation-specific; agent
   links/assessments are proposals; DOI presence is not quality; default-branch may differ from a
