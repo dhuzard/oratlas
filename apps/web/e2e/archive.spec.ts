@@ -19,9 +19,10 @@ test.describe("Public archive browsing", () => {
   }) => {
     await page.goto("/reviews/hippocampal-replay-computational-review");
     await expect(page.getByRole("heading", { level: 1 })).toContainText("Hippocampal Replay");
-    // Version DOI and concept DOI are distinct rows.
-    await expect(page.getByText("Version DOI")).toBeVisible();
-    await expect(page.getByText("Concept DOI")).toBeVisible();
+    // Version DOI and concept DOI are distinct rows (exact: these are <dt>
+    // labels, and page prose such as comments may mention the same phrase).
+    await expect(page.getByText("Version DOI", { exact: true })).toBeVisible();
+    await expect(page.getByText("Concept DOI", { exact: true })).toBeVisible();
     // Example DOI is marked non-resolvable.
     await expect(page.getByText(/example — not resolvable/i).first()).toBeVisible();
     // A contradicting relation is present.

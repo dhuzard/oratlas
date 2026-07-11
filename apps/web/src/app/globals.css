@@ -597,3 +597,90 @@ table.data td {
 .filters .field {
   margin: 0;
 }
+
+/* Community review & discussion */
+.comment-count {
+  font-size: 0.9rem;
+  font-family: var(--font-sans);
+  font-weight: 400;
+}
+.comment-intro {
+  font-size: 0.92rem;
+  max-width: var(--measure);
+}
+.comment-form {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  padding: 1rem;
+  margin-bottom: 1.25rem;
+}
+.comment-form .field:last-of-type {
+  margin-bottom: 0.8rem;
+}
+.comment-form-row {
+  display: grid;
+  gap: 0.8rem;
+}
+@media (min-width: 720px) {
+  .comment-form-row {
+    grid-template-columns: 11rem 1fr;
+  }
+}
+.comment-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 0.9rem;
+}
+.comment {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  padding: 0.85rem 1rem;
+}
+.comment-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  font-size: 0.9rem;
+}
+.comment-body {
+  margin: 0.45rem 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-width: var(--measure);
+}
+.comment-removed {
+  font-style: italic;
+  margin: 0;
+}
+.comment-actions {
+  gap: 1rem;
+}
+.comment-replies {
+  margin-top: 0.8rem;
+  padding-left: 0.9rem;
+  border-left: 3px solid var(--border);
+}
+.comment-replies .comment {
+  background: var(--surface-2);
+}
+.btn-link {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--accent);
+  cursor: pointer;
+}
+.btn-link:hover {
+  text-decoration: underline;
+}
+.btn-link-danger {
+  color: var(--error);
+}

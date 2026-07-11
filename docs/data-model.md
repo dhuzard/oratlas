@@ -24,6 +24,7 @@ suffix, and arrays are JSON-encoded strings. Switching to PostgreSQL is a dataso
 | `TrustAssessment`                        | TRUST for one relation            | attached to the **relation**, per-criterion JSON columns             |
 | `AgentRun`                               | Provenance of an agent action     | model/provider/prompt/input-hash/output                              |
 | `DiscussionThread` / `DiscussionMessage` | Atlas Discuss history             | grounding + model metadata                                           |
+| `ReviewComment`                          | Human peer commentary on a review | typed (`kind`), optional `claimId` anchor, one-level `parentId` thread; soft `status` |
 | `KnowledgeLinkProposal`                  | Cross-review link proposal        | `(source, target, relation)` unique; `status`                        |
 | `AuditEvent`                             | Append-only audit trail           | indexed by `(subjectType, subjectId)`                                |
 

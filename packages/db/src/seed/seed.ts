@@ -5,6 +5,7 @@ import {
   TRUST_PROTOCOL_VERSION,
   linkProposal,
   pendingSubmission,
+  seedComments,
   seedReviews,
   seedUsers,
   type SeedRelation,
@@ -297,6 +298,39 @@ async function seedReview(review: SeedReview) {
   return { reviewRow, version, claimIdByLocal };
 }
 
+async function seedReviewComments(
+  reviewIdBySlug: Map<string, string>,
+  claimIdsBySlug: Map<string, Map<string, string>>,
+  userIdByLogin: Map<string, string>,
+) {
+  const commentIdsByReview = new Map<string, string[]>();
+  for (const comment of seedComments) {
+    const reviewId = reviewIdBySlug.get(comment.reviewSlug);
+    const authorId = userIdByLogin.get(comment.authorLogin);
+    if (!reviewId || !authorId) continue;
+    const claimId = comment.claimLocalId
+      ? claimIdsBySlug.get(comment.reviewSlug)?.get(comment.claimLocalId)
+      : undefined;
+    const created = commentIdsByReview.get(comment.reviewSlug) ?? [];
+    const parentId =
+      comment.replyTo !== undefined ? (created[comment.replyTo] ?? null) : null;
+    const row = await prisma.reviewComment.create({
+      data: {
+        reviewId,
+        authorId,
+        parentId,
+        claimId: claimId ?? null,
+        kind: comment.kind,
+        body: comment.body,
+      },
+    });
+    created.push(row.id);
+    commentIdsByReview.set(comment.reviewSlug, created);
+  }
+  const total = [...commentIdsByReview.values()].reduce((n, ids) => n + ids.length, 0);
+  if (total > 0) console.info(`  · seeded ${total} review comments`);
+}
+
 async function main() {
   console.info("Seeding Open Review Atlas database…");
 
@@ -317,11 +351,16 @@ async function main() {
 
   // Reviews
   const claimIdsBySlug = new Map<string, Map<string, string>>();
+  const reviewIdBySlug = new Map<string, string>();
   for (const review of seedReviews) {
-    const { claimIdByLocal } = await seedReview(review);
+    const { reviewRow, claimIdByLocal } = await seedReview(review);
     claimIdsBySlug.set(review.slug, claimIdByLocal);
+    reviewIdBySlug.set(review.slug, reviewRow.id);
     console.info(`  · seeded review: ${review.slug}`);
   }
+
+  // Community comments on published reviews
+  await seedReviewComments(reviewIdBySlug, claimIdsBySlug, users);
 
   // Pending submission (its own repository + snapshot, no accepted review)
   const submitterId = users.get("atlas-submitter")!;

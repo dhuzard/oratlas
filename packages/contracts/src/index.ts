@@ -7,5 +7,6 @@ export * from "./inspection.js";
 export * from "./doi.js";
 export * from "./artifacts.js";
 export * from "./discussion.js";
+export * from "./comments.js";
 export * from "./search.js";
 export * from "./api.js";

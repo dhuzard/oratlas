@@ -520,6 +520,51 @@ export const linkProposal = {
   status: "proposed",
 };
 
+export interface SeedComment {
+  reviewSlug: string;
+  authorLogin: string;
+  kind: string;
+  body: string;
+  claimLocalId?: string;
+  /** Index into the same review's comment list identifying the parent. */
+  replyTo?: number;
+}
+
+/**
+ * Sample scholarly exchange on the seeded reviews. Demonstrates typed
+ * commentary (question / concern / suggestion / endorsement), claim anchoring,
+ * and one-level threads with an editor reply.
+ */
+export const seedComments: SeedComment[] = [
+  {
+    reviewSlug: "hippocampal-replay-computational-review",
+    authorLogin: "atlas-submitter",
+    kind: "question",
+    claimLocalId: "claim-001",
+    body: "Does the replay-consolidation link hold under closed-loop disruption, or only in correlational recordings? The distinction matters for the causal reading of this claim.",
+  },
+  {
+    reviewSlug: "hippocampal-replay-computational-review",
+    authorLogin: "atlas-editor",
+    kind: "comment",
+    body: "Good question — Girardeau et al. (2009) is the closed-loop disruption result cited under the evidence for this claim; worth reading alongside the correlational work.",
+    replyTo: 0,
+  },
+  {
+    reviewSlug: "hippocampal-replay-computational-review",
+    authorLogin: "atlas-submitter",
+    kind: "endorsement",
+    body: "Clear separation of version DOI from concept DOI and explicit provenance on every extracted field — this is the kind of transparency reviews should aim for.",
+  },
+  {
+    reviewSlug: "cortical-oscillations-attention-review",
+    authorLogin: "atlas-submitter",
+    kind: "concern",
+    claimLocalId: "claim-001",
+    body: "The evidence base here leans on a single lab's recordings. A note on replication scope would help readers calibrate how far this generalizes.",
+  },
+];
+
 export const seedUsers = [
   {
     githubLogin: "atlas-editor",

@@ -1,0 +1,185 @@
+import "server-only";
+import {
+  type CommentKind,
+  type CreateCommentInput,
+  type ReviewComment,
+  type ReviewCommentList,
+} from "@oratlas/contracts";
+import { prisma } from "./db";
+import { isEditor, type SessionUser } from "./auth";
+
+export class CommentError extends Error {
+  constructor(
+    message: string,
+    public readonly code: "not-found" | "bad-request" | "forbidden" = "bad-request",
+  ) {
+    super(message);
+    this.name = "CommentError";
+  }
+}
+
+type CommentRow = {
+  id: string;
+  parentId: string | null;
+  kind: string;
+  status: string;
+  body: string;
+  createdAt: Date;
+  author: { githubLogin: string; displayName: string | null; role: string };
+  claim: { localClaimId: string; anchor: string | null } | null;
+};
+
+const commentInclude = {
+  author: { select: { githubLogin: true, displayName: true, role: true } },
+  claim: { select: { localClaimId: true, anchor: true } },
+} as const;
+
+function toDto(row: CommentRow): Omit<ReviewComment, "replies"> {
+  const removed = row.status !== "visible";
+  return {
+    id: row.id,
+    kind: row.kind as CommentKind,
+    status: removed ? "removed" : "visible",
+    // Never serve the body of a removed comment.
+    body: removed ? "" : row.body,
+    author: removed ? null : row.author,
+    claimLocalId: row.claim?.localClaimId,
+    claimAnchor: row.claim?.anchor ?? undefined,
+    createdAt: row.createdAt.toISOString(),
+  };
+}
+
+/**
+ * All comments for a review, threaded one level deep and ordered oldest-first.
+ * Removed comments are kept as placeholders only when they still hold visible
+ * replies (so threads stay coherent); otherwise they are dropped.
+ */
+export async function listReviewComments(slug: string): Promise<ReviewCommentList | null> {
+  const review = await prisma.review.findUnique({ where: { slug }, select: { id: true } });
+  if (!review) return null;
+
+  const rows = await prisma.reviewComment.findMany({
+    where: { reviewId: review.id },
+    orderBy: { createdAt: "asc" },
+    include: commentInclude,
+  });
+
+  const topLevel: ReviewComment[] = [];
+  const byId = new Map<string, ReviewComment>();
+  for (const row of rows) {
+    if (row.parentId) continue;
+    const node = { ...toDto(row), replies: [] as ReviewComment["replies"] };
+    topLevel.push(node);
+    byId.set(row.id, node);
+  }
+  for (const row of rows) {
+    if (!row.parentId || row.status !== "visible") continue;
+    byId.get(row.parentId)?.replies.push(toDto(row));
+  }
+
+  const comments = topLevel.filter((c) => c.status === "visible" || c.replies.length > 0);
+  const commentCount = comments.reduce(
+    (n, c) => n + (c.status === "visible" ? 1 : 0) + c.replies.length,
+    0,
+  );
+  return { reviewSlug: slug, commentCount, comments };
+}
+
+/** Create a comment (or a reply) on a published review. */
+export async function createReviewComment(
+  slug: string,
+  author: SessionUser,
+  input: CreateCommentInput,
+): Promise<{ id: string }> {
+  const review = await prisma.review.findUnique({
+    where: { slug },
+    select: { id: true, status: true, versions: { orderBy: { createdAt: "desc" }, take: 1 } },
+  });
+  if (!review) throw new CommentError("Review not found.", "not-found");
+  if (review.status !== "published") {
+    throw new CommentError("Comments are only open on published reviews.");
+  }
+
+  let claimId: string | undefined;
+  if (input.claimLocalId) {
+    const versionId = review.versions[0]?.id;
+    const claim = versionId
+      ? await prisma.claim.findUnique({
+          where: {
+            reviewVersionId_localClaimId: {
+              reviewVersionId: versionId,
+              localClaimId: input.claimLocalId,
+            },
+          },
+          select: { id: true },
+        })
+      : null;
+    if (!claim) throw new CommentError("Unknown claim for this review.");
+    claimId = claim.id;
+  }
+
+  let parentId: string | undefined;
+  if (input.parentId) {
+    const parent = await prisma.reviewComment.findUnique({
+      where: { id: input.parentId },
+      select: { id: true, parentId: true, reviewId: true, status: true },
+    });
+    if (!parent || parent.reviewId !== review.id) {
+      throw new CommentError("Unknown parent comment for this review.");
+    }
+    if (parent.status !== "visible") throw new CommentError("Cannot reply to a removed comment.");
+    // Threads stay one level deep: replying to a reply joins its thread.
+    parentId = parent.parentId ?? parent.id;
+  }
+
+  const comment = await prisma.reviewComment.create({
+    data: {
+      reviewId: review.id,
+      authorId: author.id,
+      parentId,
+      claimId,
+      kind: input.kind,
+      body: input.body,
+    },
+  });
+  await prisma.auditEvent.create({
+    data: {
+      actorId: author.id,
+      action: "comment.created",
+      subjectType: "reviewComment",
+      subjectId: comment.id,
+      detailsJson: JSON.stringify({ reviewSlug: slug, kind: input.kind, parentId, claimId }),
+    },
+  });
+  return { id: comment.id };
+}
+
+/** Remove a comment. Allowed for its author or an editor; the row is kept. */
+export async function removeReviewComment(commentId: string, actor: SessionUser): Promise<void> {
+  const comment = await prisma.reviewComment.findUnique({
+    where: { id: commentId },
+    select: { id: true, authorId: true, status: true, review: { select: { slug: true } } },
+  });
+  if (!comment) throw new CommentError("Comment not found.", "not-found");
+  if (comment.authorId !== actor.id && !isEditor(actor)) {
+    throw new CommentError("Only the author or an editor can remove a comment.", "forbidden");
+  }
+  if (comment.status === "removed") return;
+
+  await prisma.reviewComment.update({
+    where: { id: comment.id },
+    data: { status: "removed", removedById: actor.id, removedAt: new Date() },
+  });
+  await prisma.auditEvent.create({
+    data: {
+      actorId: actor.id,
+      action: "comment.removed",
+      subjectType: "reviewComment",
+      subjectId: comment.id,
+      detailsJson: JSON.stringify({
+        reviewSlug: comment.review.slug,
+        removedBy: comment.authorId === actor.id ? "author" : "editor",
+      }),
+    },
+  });
+}
