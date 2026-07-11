@@ -37,6 +37,11 @@ export const githubRepoNameSchema = z
   .regex(/^[A-Za-z0-9._-]+$/, { message: "Must be a valid GitHub repository name." })
   .refine((n) => n !== "." && n !== "..", { message: "Invalid repository name." });
 
+/** Canonical comparison key for GitHub's case-insensitive login namespace. */
+export function normalizeGitHubLogin(login: string): string {
+  return login.normalize("NFKC").toLowerCase();
+}
+
 export const httpsUrlSchema = z
   .string()
   .url()

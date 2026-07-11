@@ -5,6 +5,11 @@ import { createSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { audit } from "@/lib/audit";
 import { errorResponse } from "@/lib/api";
+import {
+  GitHubIdentityConflictError,
+  resolveGitHubIdentityWithRaceRecovery,
+  type GitHubIdentityDatabase,
+} from "@/lib/github-identity";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -56,24 +61,40 @@ export async function GET(request: Request) {
     html_url?: string;
   };
 
+  if (
+    !Number.isSafeInteger(gh.id) ||
+    gh.id <= 0 ||
+    typeof gh.login !== "string" ||
+    !/^[A-Za-z0-9-]{1,39}$/.test(gh.login)
+  ) {
+    return errorResponse("upstream-error", "GitHub returned an invalid identity profile.");
+  }
+
   // Store ONLY minimal identity (spec §5).
-  const user = await prisma.user.upsert({
-    where: { githubLogin: gh.login },
-    update: {
-      githubUserId: String(gh.id),
-      displayName: gh.name ?? gh.login,
-      avatarUrl: gh.avatar_url,
-      profileUrl: gh.html_url,
-    },
-    create: {
-      githubUserId: String(gh.id),
-      githubLogin: gh.login,
-      displayName: gh.name ?? gh.login,
-      avatarUrl: gh.avatar_url,
-      profileUrl: gh.html_url,
-      role: "USER",
-    },
-  });
+  let user: { id: string };
+  try {
+    user = await resolveGitHubIdentityWithRaceRecovery(
+      prisma as unknown as GitHubIdentityDatabase,
+      {
+        githubUserId: String(gh.id),
+        githubLogin: gh.login,
+        displayName: typeof gh.name === "string" && gh.name ? gh.name : gh.login,
+        ...(typeof gh.avatar_url === "string" ? { avatarUrl: gh.avatar_url } : {}),
+        ...(typeof gh.html_url === "string" ? { profileUrl: gh.html_url } : {}),
+      },
+    );
+  } catch (error) {
+    if (error instanceof GitHubIdentityConflictError) {
+      await audit(null, "auth.github-identity-conflict", "auth", String(gh.id), {
+        githubLogin: gh.login,
+      });
+      return errorResponse(
+        "conflict",
+        "This GitHub identity conflicts with an existing account. Contact an administrator.",
+      );
+    }
+    throw error;
+  }
   await createSession(user.id);
   await audit(user.id, "auth.github-login", "auth", user.id, {});
 

@@ -14,6 +14,7 @@
     "db:push": "prisma db push",
     "db:validate": "prisma validate",
     "db:seed": "tsx src/seed/seed.ts",
+    "db:backfill-github-logins": "tsx src/backfill-github-logins.ts",
     "db:reset": "tsx src/seed/reset.ts && prisma db push --skip-generate && tsx src/seed/seed.ts"
   },
   "prisma": {

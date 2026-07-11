@@ -6,6 +6,7 @@ import { proposeCrossReviewLinks } from "./links.js";
 import { extractJsonObject } from "./providers/anthropic.js";
 import { sampleIndex } from "./fixtures.js";
 import { type EvidencePacket, type GroundedAnswer } from "@oratlas/contracts";
+import { tokenize } from "./text.js";
 
 const now = () => new Date("2026-07-01T00:00:00Z");
 
@@ -21,6 +22,61 @@ describe("InProcessSearchProvider", () => {
     });
     expect(result.items[0]?.reviewSlug).toBe("replay-review");
   });
+
+  it.each(["accepted", "updated", "title"] as const)(
+    "excludes lexical nonmatches when sorted by %s",
+    (sort) => {
+      const result = provider.searchReviews({
+        q: "quantum-chromodynamics-unrelated",
+        sort,
+        page: 1,
+        pageSize: 20,
+      });
+      expect(result.items).toEqual([]);
+      expect(result.total).toBe(0);
+    },
+  );
+
+  it("distinguishes an absent query from a nonempty query containing no searchable terms", () => {
+    const absent = provider.searchReviews({ sort: "accepted", page: 1, pageSize: 20 });
+    const stopwords = provider.searchReviews({
+      q: "the and of",
+      sort: "accepted",
+      page: 1,
+      pageSize: 20,
+    });
+    const punctuation = provider.searchReviews({
+      q: "... !!!",
+      sort: "accepted",
+      page: 1,
+      pageSize: 20,
+    });
+
+    expect(absent.total).toBe(2);
+    expect(stopwords.total).toBe(0);
+    expect(punctuation.total).toBe(0);
+  });
+
+  it.each(["AI", "R", "MS", "AD", "UK", "3R"])(
+    "searches the meaningful short scientific term %s without returning the whole archive",
+    (term) => {
+      const shortTermIndex = {
+        ...sampleIndex,
+        reviews: sampleIndex.reviews.map((review, index) =>
+          index === 0 ? { ...review, keywords: [...review.keywords, term] } : review,
+        ),
+      };
+      const shortTermProvider = new InProcessSearchProvider(shortTermIndex);
+      const result = shortTermProvider.searchReviews({
+        q: term,
+        sort: "relevance",
+        page: 1,
+        pageSize: 20,
+      });
+
+      expect(result.items.map((review) => review.reviewSlug)).toEqual(["replay-review"]);
+    },
+  );
 
   it("filters by DOI availability", () => {
     const withDoi = provider.searchReviews({
@@ -57,6 +113,33 @@ describe("InProcessSearchProvider", () => {
       pageSize: 20,
     } as never);
     expect(contradicting.items.map((c) => c.claimId)).toEqual(["c-replay-2"]);
+  });
+});
+
+describe("tokenize", () => {
+  it("normalizes accented Latin text and preserves non-Latin search terms", () => {
+    expect(tokenize("Mémoire, réplication — Δίκτυο 神経科学")).toEqual([
+      "memoire",
+      "replication",
+      "δίκτυο",
+      "神経科学",
+    ]);
+  });
+
+  it("preserves combining vowel signs and viramas in Indic scripts", () => {
+    expect(tokenize("हिंदी தமிழ் తెలుగు")).toEqual(["हिंदी", "தமிழ்", "తెలుగు"]);
+  });
+
+  it("retains short scientific tokens while filtering ordinary stopwords", () => {
+    expect(tokenize("AI R MS AD UK 3R in the study")).toEqual([
+      "ai",
+      "r",
+      "ms",
+      "ad",
+      "uk",
+      "3r",
+      "study",
+    ]);
   });
 });
 
