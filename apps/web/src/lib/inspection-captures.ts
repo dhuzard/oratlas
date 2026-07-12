@@ -1,5 +1,5 @@
 import "server-only";
-import { createHash, randomBytes } from "node:crypto";
+import { randomBytes } from "node:crypto";
 import {
   canonicalJson,
   claimRecordSchema,
@@ -17,6 +17,7 @@ import {
 import { type FullExtraction } from "@oratlas/extractor";
 import { z } from "zod";
 import { prisma } from "./db";
+import { sha256 } from "./hash";
 
 export const INSPECTION_CAPTURE_TTL_MS = 30 * 60 * 1000;
 
@@ -112,8 +113,4 @@ export function parseAndVerifyCapture(
 
 export function hashInspectionToken(token: string): string {
   return sha256(token);
-}
-
-function sha256(value: string): string {
-  return createHash("sha256").update(value, "utf8").digest("hex");
 }

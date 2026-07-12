@@ -378,3 +378,42 @@ paths:
         "401": { $ref: "#/components/responses/Error" }
         "403": { $ref: "#/components/responses/Error" }
         "404": { $ref: "#/components/responses/Error" }
+  /api/reviews/{slug}/versions/{versionId}/export/{format}:
+    get:
+      summary: Standards export of one immutable version (archive-only, no upstream access)
+      parameters:
+        - { name: slug, in: path, required: true, schema: { type: string } }
+        - { name: versionId, in: path, required: true, schema: { type: string } }
+        - name: format
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [csl, bibtex, ris, jats, ro-crate, prov, package]
+      responses:
+        "200":
+          description: >
+            Export document. csl → CSL-JSON, bibtex → BibTeX, ris → RIS,
+            jats → JATS XML front matter, ro-crate → RO-Crate 1.1 JSON-LD,
+            prov → W3C PROV JSON-LD, package → preservation manifest with
+            file checksums, SWHIDs and integrity hashes. Example identifiers
+            (10.5555/…) are withheld from machine-actionable fields.
+        "404": { $ref: "#/components/responses/Error" }
+  /api/reviews/{slug}/versions/{versionId}/files/{path}:
+    get:
+      summary: Preserved raw file content from the exact accepted inspection capture
+      parameters:
+        - { name: slug, in: path, required: true, schema: { type: string } }
+        - { name: versionId, in: path, required: true, schema: { type: string } }
+        - { name: path, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: >
+            Plain-text attachment (nosniff). Repository content is untrusted
+            and is never served as renderable HTML.
+        "404": { $ref: "#/components/responses/Error" }
+  /api/feeds/atom:
+    get:
+      summary: Atom feed of recently accepted review versions
+      responses:
+        "200": { description: Atom 1.0 document }

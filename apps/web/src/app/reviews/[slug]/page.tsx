@@ -9,6 +9,7 @@ import { getCurrentUser, isEditor } from "@/lib/auth";
 import { TrustDisplay } from "@/components/TrustDisplay";
 import { CommentsSection } from "./CommentsSection";
 import { ProvenanceBadge } from "@oratlas/ui";
+import { swhidArchiveUrl, swhidForRevision } from "@oratlas/exports";
 import { serializeJsonForHtml } from "@/lib/json-for-html";
 
 export const dynamic = "force-dynamic";
@@ -88,6 +89,10 @@ export default async function ReviewPage({
       );
     }
   }
+
+  const revisionSwhid = review.snapshot.commitSha
+    ? swhidForRevision(review.snapshot.commitSha)
+    : undefined;
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -185,6 +190,23 @@ export default async function ReviewPage({
                 {
                   term: "Exact tree",
                   value: <span className="mono">{review.snapshot.treeSha || "—"}</span>,
+                },
+                {
+                  term: "Archival ID (SWHID)",
+                  value: revisionSwhid ? (
+                    review.version.isExample ? (
+                      <span>
+                        <span className="mono">{revisionSwhid}</span>{" "}
+                        <Badge tone="warning">example — not archived</Badge>
+                      </span>
+                    ) : (
+                      <a className="mono" href={swhidArchiveUrl(revisionSwhid)}>
+                        {revisionSwhid}
+                      </a>
+                    )
+                  ) : (
+                    <span className="muted">—</span>
+                  ),
                 },
                 {
                   term: "Source selection",
@@ -462,6 +484,34 @@ export default async function ReviewPage({
               </ul>
             </Card>
           ) : null}
+
+          <Card title="Preservation &amp; exports">
+            <p className="muted" style={{ fontSize: "0.9rem" }}>
+              Accepted versions are preserved in the archive and stay readable and exportable even
+              if the upstream repository disappears.
+            </p>
+            <ul className="tag-list" style={{ flexDirection: "column", alignItems: "flex-start" }}>
+              {(
+                [
+                  ["bibtex", "BibTeX"],
+                  ["ris", "RIS"],
+                  ["csl", "CSL-JSON"],
+                  ["jats", "JATS XML"],
+                  ["ro-crate", "RO-Crate"],
+                  ["prov", "PROV (JSON-LD)"],
+                  ["package", "Preservation manifest"],
+                ] as const
+              ).map(([format, label]) => (
+                <li key={format}>
+                  <a
+                    href={`/api/reviews/${review.slug}/versions/${review.version.id}/export/${format}`}
+                  >
+                    {label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </Card>
 
           <Card title="Version history">
             <ul className="tag-list" style={{ flexDirection: "column", alignItems: "flex-start" }}>

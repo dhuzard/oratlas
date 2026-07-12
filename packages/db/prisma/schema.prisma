@@ -92,6 +92,10 @@ model RepositorySnapshot {
   sourceKind           String?
   /// Validated review manifest content, when present.
   manifestJson         String?
+  /// Durable canonical-JSON copy of preserved textual file contents
+  /// (contracts preservedFilesSchema), written at submission so preservation
+  /// never depends on the ephemeral inspect-to-submit capability row.
+  preservedFilesJson   String?
   /// SHA-256 over the normalized inspection payload (integrity/versioning aid).
   contentHash          String
 

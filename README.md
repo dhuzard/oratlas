@@ -35,20 +35,21 @@ The POC ships a restrained, scholarly server-rendered interface. Key pages:
 TypeScript `pnpm` monorepo. Framework-free domain packages are tested in isolation and reused by
 CLI scripts; the web app is server-rendered Next.js (App Router).
 
-| Path                 | Purpose                                                           |
-| -------------------- | ----------------------------------------------------------------- |
-| `apps/web`           | Next.js App Router UI + API routes                                |
-| `packages/contracts` | Zod schemas, shared types, review-manifest JSON Schema            |
-| `packages/config`    | Environment parsing / runtime config                              |
-| `packages/db`        | Prisma schema + client + seed (SQLite dev, PostgreSQL-compatible) |
-| `packages/github`    | SSRF-safe GitHub URL validation + bounded inspection              |
-| `packages/zenodo`    | DOI normalization/resolution + Zenodo metadata matching           |
-| `packages/extractor` | Deterministic metadata/artifact extraction + compatibility report |
-| `packages/trust`     | TRUST validation and documented aggregation                       |
-| `packages/knowledge` | Search, evidence packets, discussion, cross-review links          |
-| `packages/ui`        | Reusable accessible React primitives                              |
-| `scripts`            | Ingestion / validation CLIs                                       |
-| `docs`               | Architecture, governance, schemas, deployment                     |
+| Path                 | Purpose                                                              |
+| -------------------- | -------------------------------------------------------------------- |
+| `apps/web`           | Next.js App Router UI + API routes                                   |
+| `packages/contracts` | Zod schemas, shared types, review-manifest JSON Schema               |
+| `packages/config`    | Environment parsing / runtime config                                 |
+| `packages/db`        | Prisma schema + client + seed (SQLite dev, PostgreSQL-compatible)    |
+| `packages/github`    | SSRF-safe GitHub URL validation + bounded inspection                 |
+| `packages/zenodo`    | DOI normalization/resolution + Zenodo metadata matching              |
+| `packages/extractor` | Deterministic metadata/artifact extraction + compatibility report    |
+| `packages/exports`   | Standards exports: CSL/BibTeX/RIS, JATS, RO-Crate, PROV, SWHID, Atom |
+| `packages/trust`     | TRUST validation and documented aggregation                          |
+| `packages/knowledge` | Search, evidence packets, discussion, cross-review links             |
+| `packages/ui`        | Reusable accessible React primitives                                 |
+| `scripts`            | Ingestion / validation CLIs                                          |
+| `docs`               | Architecture, governance, schemas, deployment                        |
 
 Full detail: [`docs/architecture.md`](docs/architecture.md).
 
