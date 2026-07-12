@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { getServerEnv } from "@oratlas/config";
 import { atomFeed, type FeedEntryInput } from "@oratlas/exports";
+import { appBaseUrl } from "@/lib/base-url";
 import { prisma } from "@/lib/db";
 import { handleRouteError } from "@/lib/api";
 
@@ -12,14 +12,21 @@ const FEED_LIMIT = 50;
 /** Atom feed of recently accepted review versions, served from the archive. */
 export async function GET() {
   try {
-    const base = getServerEnv().NEXT_PUBLIC_BASE_URL.replace(/\/+$/, "");
+    const base = appBaseUrl();
     const versions = await prisma.reviewVersion.findMany({
       where: { publishedAt: { not: null }, review: { status: "published" } },
       orderBy: { publishedAt: "desc" },
       take: FEED_LIMIT,
-      include: {
+      select: {
+        id: true,
+        title: true,
+        abstract: true,
+        publishedAt: true,
         review: { select: { slug: true } },
-        contributors: { include: { person: true }, orderBy: { position: "asc" } },
+        contributors: {
+          select: { person: { select: { displayName: true } } },
+          orderBy: { position: "asc" },
+        },
       },
     });
     const entries: FeedEntryInput[] = versions.map((version) => {

@@ -6,9 +6,9 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 /**
- * Preserved raw file content from the exact accepted inspection capture.
- * Repository content is untrusted: it is served as a plain-text download
- * (nosniff, attachment) and is never rendered as HTML.
+ * Preserved raw file content for one immutable version. Repository content is
+ * untrusted: it is served as a plain-text download (nosniff, attachment) and
+ * is never rendered as HTML.
  */
 export async function GET(
   _request: Request,
@@ -16,7 +16,9 @@ export async function GET(
 ) {
   try {
     const { slug, versionId, path } = await params;
-    const filePath = path.map((segment) => decodeURIComponent(segment)).join("/");
+    // Next.js already URL-decodes catch-all segments; join them verbatim so a
+    // literal "%" in a preserved path is neither double-decoded nor rejected.
+    const filePath = path.join("/");
     if (filePath.length > 500 || filePath.includes("\0")) {
       return errorResponse("bad-request", "Invalid file path.");
     }
@@ -33,7 +35,8 @@ export async function GET(
         "Content-Type": "text/plain; charset=utf-8",
         "Content-Disposition": `attachment; filename="${downloadName}.txt"`,
         "X-Content-Type-Options": "nosniff",
-        "Cache-Control": "public, max-age=300",
+        // Preserved bytes for a version never change: cache aggressively.
+        "Cache-Control": "public, max-age=31536000, immutable",
       },
     });
   } catch (err) {

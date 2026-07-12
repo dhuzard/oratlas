@@ -66,6 +66,16 @@ describe("bibtex", () => {
   it("keeps a stable, sanitized citation key", () => {
     expect(bibtex(base)).toMatch(/^@misc\{sample-review-2026,\n/);
   });
+
+  it("escapes braces in DOI and URL values so fields cannot be terminated early", () => {
+    const entry = bibtex({
+      ...base,
+      versionDoi: "10.1234/weird}doi",
+      canonicalUrl: "https://atlas.example.org/reviews/x}y",
+    });
+    expect(entry).toContain("doi = {10.1234/weird\\}doi}");
+    expect(entry).not.toContain("weird}doi}");
+  });
 });
 
 describe("bibtexEscape", () => {

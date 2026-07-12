@@ -143,11 +143,11 @@ describe.sequential("preservation and standards exports", () => {
     expect(serializedProv).toContain("pres-editor");
   }, 30_000);
 
-  it("returns null for unknown paths and versions without captures", async () => {
+  it("keeps preserved content durable after the ephemeral capture row is deleted", async () => {
     const capability = await runtime.createInspectionCapture(
       submitterId,
-      inspectionReport("no-capture-review", "2"),
-      fullExtraction("no-capture-review"),
+      inspectionReport("capture-pruned-review", "2"),
+      fullExtraction("capture-pruned-review"),
       validationReport(),
       new Date(),
     );
@@ -166,12 +166,57 @@ describe.sequential("preservation and standards exports", () => {
       await runtime.getPreservedFileContent(accepted.reviewSlug, versionId, "missing.md"),
     ).toBeNull();
 
-    // Metadata-only preservation still works when the capture row is gone
-    // (retention policies may prune raw payloads; checksums remain).
+    // The capture is an expiring capability, not the archive's copy: delete
+    // the row entirely and preservation must be unaffected.
     await runtime.prisma.reviewVersion.update({
       where: { id: versionId },
       data: { inspectionCaptureId: null },
     });
+    await runtime.prisma.submission.update({
+      where: { id: submission.submissionId },
+      data: { inspectionCaptureId: null },
+    });
+    await runtime.prisma.inspectionCapture.deleteMany({});
+
+    const context = await runtime.getVersionExportContext(accepted.reviewSlug, versionId);
+    expect(context?.manifest.preservedContentAvailable).toBe(true);
+    const preserved = await runtime.getPreservedFileContent(
+      accepted.reviewSlug,
+      versionId,
+      "README.md",
+    );
+    expect(preserved?.content).toBe(readmeContent);
+  }, 30_000);
+
+  it("degrades to metadata-only preservation for legacy rows without stored content", async () => {
+    const capability = await runtime.createInspectionCapture(
+      submitterId,
+      inspectionReport("legacy-review", "3"),
+      fullExtraction("legacy-review"),
+      validationReport(),
+      new Date(),
+    );
+    const submission = await runtime.createSubmission({
+      inspectionToken: capability.token,
+      submitterId,
+    });
+    const accepted = await runtime.acceptSubmission(submission.submissionId, editorId);
+    const review = await runtime.prisma.review.findUniqueOrThrow({
+      where: { slug: accepted.reviewSlug },
+      include: { versions: { include: { snapshot: true } } },
+    });
+    const versionId = review.versions[0]!.id;
+
+    // Simulate a legacy row: no durable content column, no capture.
+    await runtime.prisma.repositorySnapshot.update({
+      where: { id: review.versions[0]!.snapshotId },
+      data: { preservedFilesJson: null },
+    });
+    await runtime.prisma.reviewVersion.update({
+      where: { id: versionId },
+      data: { inspectionCaptureId: null },
+    });
+
     const context = await runtime.getVersionExportContext(accepted.reviewSlug, versionId);
     expect(context?.manifest.preservedContentAvailable).toBe(false);
     expect(context?.manifest.files.length).toBeGreaterThan(0);

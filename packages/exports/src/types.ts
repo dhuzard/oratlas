@@ -45,13 +45,9 @@ export interface VersionExportInput {
   canonicalUrl: string;
 }
 
-export interface PreservedFileDescriptor {
-  path: string;
-  size: number;
-  truncated: boolean;
-  /** SHA-256 of the preserved content; absent when only metadata was captured. */
-  sha256?: string;
-}
+// The preserved-file descriptor is a public contract shared with the
+// preservation manifest; re-exported so exporters and callers agree.
+export { type PreservedFileDescriptor } from "@oratlas/contracts";
 
 export interface FeedEntryInput {
   /** Stable entry id (IRI). */

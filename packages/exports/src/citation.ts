@@ -113,10 +113,14 @@ export function bibtex(input: VersionExportInput): string {
       fields.push(["month", String(date.getUTCMonth() + 1)]);
     }
   }
-  fields.push(["howpublished", `Open Review Atlas, \\url{${input.canonicalUrl}}`]);
-  fields.push(["url", input.canonicalUrl]);
+  // URLs and DOIs are also escaped: an untrusted value containing "}" must
+  // not terminate the field and forge additional BibTeX entries.
+  fields.push(["howpublished", `Open Review Atlas, \\url{${bibtexEscape(input.canonicalUrl)}}`]);
+  fields.push(["url", bibtexEscape(input.canonicalUrl)]);
   if (input.semanticVersion) fields.push(["version", bibtexEscape(input.semanticVersion)]);
-  if (input.versionDoi && !input.isExample) fields.push(["doi", input.versionDoi]);
+  if (input.versionDoi && !input.isExample) {
+    fields.push(["doi", bibtexEscape(input.versionDoi)]);
+  }
   const notes = [`Source repository: ${input.repositoryUrl} at commit ${input.commitSha}.`];
   if (input.isExample && (input.versionDoi || input.conceptDoi)) {
     notes.push(EXAMPLE_IDENTIFIER_NOTE);

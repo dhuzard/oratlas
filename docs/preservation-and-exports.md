@@ -14,13 +14,13 @@ At submission time the platform stores, per accepted version:
 - a **repository snapshot storage report** with per-file sizes, truncation flags and SHA-256
   content checksums (`RepositorySnapshot.inspectionReportJson`), plus a normalized
   `contentHash` over the whole snapshot;
-- the **append-only inspection capture** (`InspectionCapture.payloadJson`), which contains the
-  full textual content of the well-known files fetched at inspection, integrity-protected by
-  `payloadHash` (also stamped on the version as `capturePayloadHash`).
-
-The capture is the only source of raw file bytes. If a retention policy ever prunes capture
-payloads, the checksums in the snapshot report keep the package verifiable
-(`preservedContentAvailable: false` in the manifest).
+- a **durable copy of the preserved textual file contents**
+  (`RepositorySnapshot.preservedFilesJson`, contracts `preservedFilesSchema`), copied out of the
+  inspection capture when the submission is finalized. The capture row itself is an expiring
+  inspect-to-submit capability and may be pruned without any effect on preservation; it is
+  consulted only as a read fallback for rows created before the durable column existed. Legacy
+  rows without either source degrade to metadata-only preservation
+  (`preservedContentAvailable: false`), with checksums still verifiable.
 
 ## Endpoints
 

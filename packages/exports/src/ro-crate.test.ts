@@ -53,6 +53,18 @@ describe("roCrate", () => {
     expect(String(root.disambiguatingDescription)).toContain("2".repeat(64));
   });
 
+  it("percent-encodes file paths into valid URI-reference @ids", () => {
+    const crate = roCrate({
+      version,
+      files: [{ path: "notes draft/#1 result?.md", size: 10, truncated: false }],
+    });
+    const root = findEntity(crate["@graph"], "./")!;
+    const encoded = "notes%20draft/%231%20result%3F.md";
+    expect(root.hasPart).toEqual([{ "@id": encoded }]);
+    const file = findEntity(crate["@graph"], encoded)!;
+    expect(file.name).toBe("notes draft/#1 result?.md");
+  });
+
   it("never emits example DOIs or ORCIDs as identifiers", () => {
     const crate = roCrate({
       version: {

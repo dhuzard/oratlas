@@ -23,6 +23,15 @@ export interface RoCrateInput {
 
 type JsonLdEntity = Record<string, unknown>;
 
+/**
+ * Data-entity @ids must be valid URI references (RO-Crate 1.1); preserved
+ * repository paths may contain spaces, "#" or "?", so each segment is
+ * percent-encoded while "/" separators are kept.
+ */
+function fileEntityId(path: string): string {
+  return path.split("/").map(encodeURIComponent).join("/");
+}
+
 export function roCrate(input: RoCrateInput): { "@context": string; "@graph": JsonLdEntity[] } {
   const { version, files } = input;
   const graph: JsonLdEntity[] = [];
@@ -51,7 +60,7 @@ export function roCrate(input: RoCrateInput): { "@context": string; "@graph": Js
     url: version.canonicalUrl,
     isBasedOn: version.repositoryUrl,
     publisher: { "@id": "#open-review-atlas" },
-    hasPart: files.map((file) => ({ "@id": file.path })),
+    hasPart: files.map((file) => ({ "@id": fileEntityId(file.path) })),
     author: version.contributors.map((_, index) => ({ "@id": `#author-${index}` })),
   };
   if (version.abstract) root.description = version.abstract;
@@ -98,8 +107,9 @@ export function roCrate(input: RoCrateInput): { "@context": string; "@graph": Js
 
   for (const file of files) {
     const entity: JsonLdEntity = {
-      "@id": file.path,
+      "@id": fileEntityId(file.path),
       "@type": "File",
+      name: file.path,
       contentSize: String(file.size),
     };
     if (file.sha256) entity.sha256 = file.sha256;

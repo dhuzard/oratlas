@@ -1,5 +1,4 @@
 import "server-only";
-import { createHash } from "node:crypto";
 import {
   canonicalJson,
   claimRecordSchema,
@@ -18,6 +17,8 @@ import {
   type InspectionReport,
   type PublicationConsistencyReport,
   type RelationRecord,
+  type PreservedFiles,
+  type SnapshotStorageReport,
   type SubmissionValidationReport,
   type TrustRecord,
   submissionValidationReportSchema,
@@ -27,6 +28,7 @@ import { type Prisma } from "@oratlas/db";
 import { normalizeImportedTrustRecord } from "@oratlas/trust";
 import { z } from "zod";
 import { prisma, parseJsonColumn } from "./db";
+import { sha256 } from "./hash";
 import { buildValidationReport } from "./ingest";
 import {
   hashInspectionToken,
@@ -155,9 +157,13 @@ export async function createSubmission(
             },
           };
           const storageReport = repositorySnapshotReport(exact);
+          // Preserved content is copied to the durable snapshot here; the
+          // inspection capture row is an expiring capability, never the
+          // archive's only copy of accepted file bytes.
+          const preservedFilesJson = canonicalJson(preservedFilesFromCapture(exact));
           const snapshot = await tx.repositorySnapshot.upsert({
             where: snapshotKey,
-            update: { sourceTreeSha: source.treeSha },
+            update: { sourceTreeSha: source.treeSha, preservedFilesJson },
             create: {
               repositoryId: repository.id,
               commitSha: source.commitSha,
@@ -170,6 +176,7 @@ export async function createSubmission(
               manifestJson: exact.extraction.manifest
                 ? canonicalJson(exact.extraction.manifest)
                 : null,
+              preservedFilesJson,
               contentHash: sourceContentHash(exact),
             },
           });
@@ -678,7 +685,7 @@ function sourceContentHash(capture: InspectionCapturePayload): string {
   );
 }
 
-function repositorySnapshotReport(capture: InspectionCapturePayload) {
+function repositorySnapshotReport(capture: InspectionCapturePayload): SnapshotStorageReport {
   const source = capture.report.selectedSource!;
   return {
     schemaVersion: "1.0.0",
@@ -697,6 +704,15 @@ function repositorySnapshotReport(capture: InspectionCapturePayload) {
       ]),
     ),
   };
+}
+
+function preservedFilesFromCapture(capture: InspectionCapturePayload): PreservedFiles {
+  const out: PreservedFiles = {};
+  for (const [path, file] of Object.entries(capture.report.files)) {
+    if (file.content === undefined) continue;
+    out[path] = { size: file.size, truncated: file.truncated, content: file.content };
+  }
+  return out;
 }
 
 function sourceSelectionKey(source: NonNullable<InspectionReport["selectedSource"]>): string {
@@ -1035,10 +1051,6 @@ function isRecoverableSubmissionUniqueConflict(error: unknown): boolean {
 
 function uniqueTargetLabel(error: unknown): string {
   return uniqueTargets(error).join(", ") || "unknown unique target";
-}
-
-function sha256(value: string): string {
-  return createHash("sha256").update(value, "utf8").digest("hex");
 }
 
 function parseStoredSubmissionPayload(payloadJson: string | null): SubmissionPayload | null {
