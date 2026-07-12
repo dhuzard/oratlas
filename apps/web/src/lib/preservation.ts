@@ -3,6 +3,8 @@ import {
   preservationManifestSchema,
   preservedFilesSchema,
   snapshotStorageReportSchema,
+  isExactCommitSha,
+  isSafeRepoRelativePath,
   type PreservationManifest,
   type PreservedFileDescriptor,
   type PreservedFiles,
@@ -18,7 +20,6 @@ import {
 import { appBaseUrl } from "./base-url";
 import { prisma, parseJsonColumn } from "./db";
 import { sha256 } from "./hash";
-import { parseAndVerifyCapture } from "./inspection-captures";
 
 /**
  * Preservation and export data for one immutable version, assembled from the
@@ -26,8 +27,8 @@ import { parseAndVerifyCapture } from "./inspection-captures";
  * module: a deleted upstream repository does not affect any output.
  *
  * Preserved file content lives durably on the repository snapshot
- * (preservedFilesJson, written at submission). The inspection capture is only
- * consulted as a fallback for rows created before that column existed.
+ * (preservedFilesJson, written at submission). The inspection capture is an
+ * expiring capability and is never consulted by public delivery paths.
  */
 
 export const EXAMPLE_SWHID_NOTE =
@@ -43,12 +44,15 @@ async function loadVersionRow(slug: string, versionId: string) {
   return prisma.reviewVersion.findFirst({
     // Exports are public artifacts of the public archive: only versions of
     // published reviews are served, matching the Atom feed.
-    where: { id: versionId, review: { slug, status: "published" } },
+    where: {
+      id: versionId,
+      publicState: { in: ["published", "withdrawn"] },
+      review: { slug, status: "published" },
+    },
     include: {
       review: { select: { slug: true } },
       snapshot: { include: { repository: true } },
       contributors: { include: { person: true }, orderBy: { position: "asc" } },
-      inspectionCapture: true,
       sourceSubmission: { include: { submitter: true, reviewer: true } },
     },
   });
@@ -61,7 +65,7 @@ export async function getVersionExportContext(
   versionId: string,
 ): Promise<VersionExportContext | null> {
   const version = await loadVersionRow(slug, versionId);
-  if (!version) return null;
+  if (!version || !isExactCommitSha(version.snapshot.commitSha)) return null;
   const snapshot = version.snapshot;
   const repository = snapshot.repository;
 
@@ -107,10 +111,10 @@ export async function getVersionExportContext(
     repositoryUrl: repository.canonicalUrl,
     commitSha: snapshot.commitSha,
     treeSha: snapshot.sourceTreeSha ?? undefined,
-    capture: version.inspectionCapture
+    capture: version.capturePayloadHash
       ? {
-          payloadHash: version.inspectionCapture.payloadHash,
-          capturedAt: version.inspectionCapture.createdAt.toISOString(),
+          payloadHash: version.capturePayloadHash,
+          capturedAt: snapshot.capturedAt.toISOString(),
         }
       : undefined,
     submission: version.sourceSubmission
@@ -127,6 +131,10 @@ export async function getVersionExportContext(
   };
 
   const preserved = preservedFilesForVersion(version);
+  // Public preservation/export delivery never falls back to the expiring
+  // inspection capability. Legacy missing or malformed durable storage is
+  // unavailable until explicitly migrated.
+  if (!preserved) return null;
   const files = fileDescriptors(version, preserved);
   const revision = swhidForRevision(snapshot.commitSha);
   const directory = snapshot.sourceTreeSha ? swhidForDirectory(snapshot.sourceTreeSha) : undefined;
@@ -164,45 +172,25 @@ export async function getVersionExportContext(
     },
     integrity: {
       snapshotContentHash: snapshot.contentHash,
-      capturePayloadHash:
-        version.capturePayloadHash ?? version.inspectionCapture?.payloadHash ?? undefined,
+      capturePayloadHash: version.capturePayloadHash ?? undefined,
     },
     files,
-    preservedContentAvailable: preserved !== null,
+    preservedContentAvailable: true,
   } satisfies PreservationManifest);
 
   return { exportInput, provInput, manifest };
 }
 
 /**
- * Durable preserved content for a version: the snapshot column first, then
- * the verified inspection capture for legacy rows. Null when neither holds
- * raw content (metadata-only preservation).
+ * Durable preserved content for a version. InspectionCapture is an expiring
+ * submission capability and is never a public delivery fallback.
  */
 function preservedFilesForVersion(version: VersionRow): PreservedFiles | null {
-  if (version.snapshot.preservedFilesJson) {
-    const parsed = preservedFilesSchema.safeParse(
-      parseJsonColumn<unknown>(version.snapshot.preservedFilesJson, null),
-    );
-    if (parsed.success) return parsed.data;
-  }
-  if (version.inspectionCapture) {
-    try {
-      const payload = parseAndVerifyCapture(
-        version.inspectionCapture.payloadJson,
-        version.inspectionCapture.payloadHash,
-      );
-      const out: PreservedFiles = {};
-      for (const [path, file] of Object.entries(payload.report.files)) {
-        if (file.content === undefined) continue;
-        out[path] = { size: file.size, truncated: file.truncated, content: file.content };
-      }
-      return out;
-    } catch {
-      // A capture that fails its integrity check contributes nothing.
-    }
-  }
-  return null;
+  if (!version.snapshot.preservedFilesJson) return null;
+  const parsed = preservedFilesSchema.safeParse(
+    parseJsonColumn<unknown>(version.snapshot.preservedFilesJson, null),
+  );
+  return parsed.success ? parsed.data : null;
 }
 
 /**
@@ -258,14 +246,18 @@ export async function getPreservedFileContent(
   versionId: string,
   path: string,
 ): Promise<PreservedFileContent | null> {
+  if (!isSafeRepoRelativePath(path)) return null;
   const version = await prisma.reviewVersion.findFirst({
-    where: { id: versionId, review: { slug, status: "published" } },
+    where: {
+      id: versionId,
+      publicState: { in: ["published", "withdrawn"] },
+      review: { slug, status: "published" },
+    },
     select: {
-      snapshot: { select: { preservedFilesJson: true } },
-      inspectionCapture: { select: { payloadJson: true, payloadHash: true } },
+      snapshot: { select: { commitSha: true, preservedFilesJson: true } },
     },
   });
-  if (!version) return null;
+  if (!version || !isExactCommitSha(version.snapshot.commitSha)) return null;
 
   if (version.snapshot.preservedFilesJson) {
     const parsed = preservedFilesSchema.safeParse(
@@ -274,20 +266,6 @@ export async function getPreservedFileContent(
     const file = parsed.success ? parsed.data[path] : undefined;
     if (file) return { path, size: file.size, truncated: file.truncated, content: file.content };
     if (parsed.success) return null;
-  }
-  if (version.inspectionCapture) {
-    try {
-      const payload = parseAndVerifyCapture(
-        version.inspectionCapture.payloadJson,
-        version.inspectionCapture.payloadHash,
-      );
-      const file = payload.report.files[path];
-      if (file?.content !== undefined) {
-        return { path, size: file.size, truncated: file.truncated, content: file.content };
-      }
-    } catch {
-      // Fall through: integrity-failed captures serve nothing.
-    }
   }
   return null;
 }

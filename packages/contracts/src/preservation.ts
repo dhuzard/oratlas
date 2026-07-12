@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { commitShaSchema } from "./identifiers.js";
 
 /**
  * Preservation contracts: the durable per-snapshot storage payloads written at
@@ -11,8 +12,8 @@ export const snapshotStorageReportSchema = z.object({
   schemaVersion: z.literal("1.0.0"),
   githubRepositoryId: z.string().optional(),
   repositoryUrl: z.string(),
-  commitSha: z.string(),
-  treeSha: z.string(),
+  commitSha: commitShaSchema,
+  treeSha: commitShaSchema,
   files: z.record(
     z.string(),
     z.object({
@@ -69,8 +70,8 @@ export const preservationManifestSchema = z.object({
     kind: z.string().optional(),
     branch: z.string().optional(),
     selectionKey: z.string().optional(),
-    commitSha: z.string(),
-    treeSha: z.string().optional(),
+    commitSha: commitShaSchema,
+    treeSha: commitShaSchema.optional(),
   }),
   licenseSpdx: z.string().optional(),
   swhids: z.object({

@@ -82,8 +82,9 @@ export async function GET(
         "Content-Type": exporter.contentType,
         "Content-Disposition": `attachment; filename="${filenameBase}.${exporter.extension}"`,
         "X-Content-Type-Options": "nosniff",
-        // Version exports are immutable: cache aggressively.
-        "Cache-Control": "public, max-age=31536000, immutable",
+        // A later tombstone must revoke this projection immediately.
+        "Cache-Control": "no-store, must-revalidate",
+        Pragma: "no-cache",
       },
     });
   } catch (err) {

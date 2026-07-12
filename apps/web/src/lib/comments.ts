@@ -1,6 +1,7 @@
 import "server-only";
 import {
   claimDomAnchor,
+  isExactCommitSha,
   type CommentKind,
   type CreateCommentInput,
   type ReviewComment,
@@ -8,11 +9,12 @@ import {
 } from "@oratlas/contracts";
 import { prisma } from "./db";
 import { isEditor, type SessionUser } from "./auth";
+import { isReadablePublicState, isTombstonedState } from "./review-lifecycle";
 
 export class CommentError extends Error {
   constructor(
     message: string,
-    public readonly code: "not-found" | "bad-request" | "forbidden" = "bad-request",
+    public readonly code: "not-found" | "bad-request" | "forbidden" | "conflict" = "bad-request",
   ) {
     super(message);
     this.name = "CommentError";
@@ -67,7 +69,15 @@ export async function listReviewComments(
     where: { slug },
     select: {
       id: true,
-      versions: { select: { id: true }, orderBy: { createdAt: "desc" } },
+      status: true,
+      versions: {
+        select: {
+          id: true,
+          publicState: true,
+          snapshot: { select: { commitSha: true } },
+        },
+        orderBy: { createdAt: "desc" },
+      },
     },
   });
   if (!review) return null;
@@ -75,6 +85,17 @@ export async function listReviewComments(
     ? review.versions.find((version) => version.id === requestedVersionId)
     : review.versions[0];
   if (!selectedVersion) return null;
+  if (review.status !== "published" || !isExactCommitSha(selectedVersion.snapshot.commitSha)) {
+    return null;
+  }
+  if (isTombstonedState(selectedVersion.publicState)) {
+    return {
+      reviewSlug: slug,
+      reviewVersionId: selectedVersion.id,
+      commentCount: 0,
+      comments: [],
+    };
+  }
   const isCurrentVersion = selectedVersion.id === review.versions[0]?.id;
 
   const rows = await prisma.reviewComment.findMany({
@@ -122,78 +143,149 @@ export async function createReviewComment(
   author: SessionUser,
   input: CreateCommentInput,
 ): Promise<{ id: string }> {
-  const review = await prisma.review.findUnique({
-    where: { slug },
-    select: { id: true, status: true, versions: { orderBy: { createdAt: "desc" }, take: 1 } },
-  });
-  if (!review) throw new CommentError("Review not found.", "not-found");
-  if (review.status !== "published") {
-    throw new CommentError("Comments are only open on published reviews.");
-  }
-  const reviewVersionId = review.versions[0]?.id;
-  if (!reviewVersionId) throw new CommentError("Review has no published version.");
-
-  let claimId: string | undefined;
-  if (input.claimLocalId) {
-    const claim = await prisma.claim.findUnique({
-      where: {
-        reviewVersionId_localClaimId: {
-          reviewVersionId,
-          localClaimId: input.claimLocalId,
+  try {
+    return await prisma.$transaction(async (tx) => {
+      const review = await tx.review.findUnique({
+        where: { slug },
+        select: {
+          id: true,
+          status: true,
+          lifecycleRevision: true,
+          currentSnapshotId: true,
+          versions: {
+            orderBy: { createdAt: "desc" },
+            take: 1,
+            select: {
+              id: true,
+              publicState: true,
+              publishedAt: true,
+              snapshot: { select: { commitSha: true } },
+            },
+          },
         },
-      },
-      select: { id: true },
-    });
-    if (!claim) throw new CommentError("Unknown claim for this review.");
-    claimId = claim.id;
-  }
+      });
+      if (!review) throw new CommentError("Review not found.", "not-found");
+      if (review.status !== "published") {
+        throw new CommentError("Comments are only open on published reviews.");
+      }
+      const currentVersion = review.versions[0];
+      const reviewVersionId = currentVersion?.id;
+      if (!currentVersion || !reviewVersionId) {
+        throw new CommentError("Review has no published version.");
+      }
+      if (
+        !isReadablePublicState(currentVersion.publicState) ||
+        !currentVersion.publishedAt ||
+        !isExactCommitSha(currentVersion.snapshot.commitSha)
+      ) {
+        throw new CommentError("Comments are closed on this withheld review version.");
+      }
 
-  let parentId: string | undefined;
-  if (input.parentId) {
-    const parent = await prisma.reviewComment.findUnique({
-      where: { id: input.parentId },
-      select: {
-        id: true,
-        parentId: true,
-        reviewId: true,
-        reviewVersionId: true,
-        status: true,
-        claim: { select: { reviewVersionId: true } },
-      },
-    });
-    if (!parent || parent.reviewId !== review.id) {
-      throw new CommentError("Unknown parent comment for this review.");
-    }
-    if (parent.status !== "visible") throw new CommentError("Cannot reply to a removed comment.");
-    const parentVersionId = parent.reviewVersionId ?? parent.claim?.reviewVersionId;
-    if (parentVersionId && parentVersionId !== reviewVersionId) {
-      throw new CommentError("Cannot reply across review versions.");
-    }
-    // Threads stay one level deep: replying to a reply joins its thread.
-    parentId = parent.parentId ?? parent.id;
-  }
+      let claimId: string | undefined;
+      if (input.claimLocalId) {
+        const claim = await tx.claim.findUnique({
+          where: {
+            reviewVersionId_localClaimId: {
+              reviewVersionId,
+              localClaimId: input.claimLocalId,
+            },
+          },
+          select: { id: true },
+        });
+        if (!claim) throw new CommentError("Unknown claim for this review.");
+        claimId = claim.id;
+      }
 
-  const comment = await prisma.reviewComment.create({
-    data: {
-      reviewId: review.id,
-      reviewVersionId,
-      authorId: author.id,
-      parentId,
-      claimId,
-      kind: input.kind,
-      body: input.body,
-    },
-  });
-  await prisma.auditEvent.create({
-    data: {
-      actorId: author.id,
-      action: "comment.created",
-      subjectType: "reviewComment",
-      subjectId: comment.id,
-      detailsJson: JSON.stringify({ reviewSlug: slug, kind: input.kind, parentId, claimId }),
-    },
-  });
-  return { id: comment.id };
+      let parentId: string | undefined;
+      if (input.parentId) {
+        const parent = await tx.reviewComment.findUnique({
+          where: { id: input.parentId },
+          select: {
+            id: true,
+            parentId: true,
+            reviewId: true,
+            reviewVersionId: true,
+            status: true,
+            claim: { select: { reviewVersionId: true } },
+          },
+        });
+        if (!parent || parent.reviewId !== review.id) {
+          throw new CommentError("Unknown parent comment for this review.");
+        }
+        if (parent.status !== "visible") {
+          throw new CommentError("Cannot reply to a removed comment.");
+        }
+        const parentVersionId = parent.reviewVersionId ?? parent.claim?.reviewVersionId;
+        if (parentVersionId && parentVersionId !== reviewVersionId) {
+          throw new CommentError("Cannot reply across review versions.");
+        }
+        // Threads stay one level deep: replying to a reply joins its thread.
+        parentId = parent.parentId ?? parent.id;
+      }
+
+      // Lock and compare both lifecycle epoch and current snapshot before the
+      // insert. A concurrent tombstone/new accepted version either commits
+      // first (count 0) or waits until this earlier comment transaction ends.
+      const reviewClaim = await tx.review.updateMany({
+        where: {
+          id: review.id,
+          status: "published",
+          lifecycleRevision: review.lifecycleRevision,
+          currentSnapshotId: review.currentSnapshotId,
+        },
+        data: { lifecycleRevision: review.lifecycleRevision },
+      });
+      const versionClaim = await tx.reviewVersion.updateMany({
+        where: {
+          id: reviewVersionId,
+          publicState: currentVersion.publicState,
+          publishedAt: { not: null },
+        },
+        data: { publicState: currentVersion.publicState },
+      });
+      if (reviewClaim.count !== 1 || versionClaim.count !== 1) {
+        throw new CommentError(
+          "Review lifecycle changed while the comment was being posted.",
+          "conflict",
+        );
+      }
+
+      const comment = await tx.reviewComment.create({
+        data: {
+          reviewId: review.id,
+          reviewVersionId,
+          authorId: author.id,
+          parentId,
+          claimId,
+          kind: input.kind,
+          body: input.body,
+        },
+      });
+      await tx.auditEvent.create({
+        data: {
+          actorId: author.id,
+          action: "comment.created",
+          subjectType: "reviewComment",
+          subjectId: comment.id,
+          detailsJson: JSON.stringify({ reviewSlug: slug, kind: input.kind, parentId, claimId }),
+        },
+      });
+      return { id: comment.id };
+    });
+  } catch (error) {
+    if (error instanceof CommentError) throw error;
+    const code =
+      typeof error === "object" && error !== null && "code" in error
+        ? String((error as { code?: unknown }).code)
+        : undefined;
+    if (["P1008", "P2028", "P2034"].includes(code ?? "")) {
+      throw new CommentError(
+        "Review lifecycle changed while the comment was being posted.",
+        "conflict",
+      );
+    }
+    throw error;
+  }
 }
 
 /** Remove a comment. Allowed for its author or an editor; the row is kept. */

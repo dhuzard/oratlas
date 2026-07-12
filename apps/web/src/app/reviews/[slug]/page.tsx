@@ -11,6 +11,8 @@ import { CommentsSection } from "./CommentsSection";
 import { ProvenanceBadge } from "@oratlas/ui";
 import { swhidArchiveUrl, swhidForRevision } from "@oratlas/exports";
 import { serializeJsonForHtml } from "@/lib/json-for-html";
+import { getPreservedArticle } from "@/lib/article-reader";
+import { ArticleReader } from "./ArticleReader";
 
 export const dynamic = "force-dynamic";
 
@@ -22,6 +24,13 @@ export async function generateMetadata({
   const { slug, versionId } = await params;
   const review = await getReviewDetail(slug, versionId);
   if (!review) return { title: "Review not found" };
+  if (review.isTombstoned) {
+    return {
+      title: "Content unavailable",
+      description: "This scholarly review version has been tombstoned.",
+      robots: { index: false, follow: false },
+    };
+  }
   return {
     title: review.title,
     description: review.abstract?.slice(0, 200),
@@ -62,10 +71,37 @@ export default async function ReviewPage({
   if (!review) notFound();
   const isHistoricalRoute = Boolean(versionId);
 
-  const [comments, user, requestHeaders] = await Promise.all([
+  if (review.isTombstoned) {
+    return (
+      <article>
+        <StatusPill status="tombstoned" />
+        <h1>Content unavailable</h1>
+        <Notice tone="error" title="Tombstoned scholarly version">
+          The archived content and every derived public representation are withheld. Article
+          metadata, authors, claims, citations, comments, search entries, discussion evidence,
+          assets, exports and feed summaries are not served.
+        </Notice>
+        {review.lifecycleEvents.map((event) => (
+          <Card title="Public lifecycle record" key={event.id}>
+            <p>{event.reason}</p>
+            <p className="muted">
+              Recorded by @{event.actorLogin} on {event.createdAt.slice(0, 10)} · revision{" "}
+              {event.revision}
+            </p>
+          </Card>
+        ))}
+        <p>
+          <Link href="/api/feeds/lifecycle">View the machine-readable lifecycle ledger</Link>.
+        </p>
+      </article>
+    );
+  }
+
+  const [comments, user, requestHeaders, preservedArticle] = await Promise.all([
     listReviewComments(slug, review.version.id),
     getCurrentUser(),
     headers(),
+    getPreservedArticle(slug, review.version.id),
   ]);
   const nonce = requestHeaders.get("x-nonce") ?? undefined;
   const commentList = comments ?? {
@@ -131,6 +167,52 @@ export default async function ReviewPage({
           <Link href={`/reviews/${review.slug}`}>View the current version</Link>.
         </Notice>
       ) : null}
+
+      {review.publicState === "withdrawn" ? (
+        <Notice tone="error" title="Withdrawn version">
+          This version remains visible as part of the scholarly record but should not be relied
+          upon. See the attributable lifecycle notice below.
+        </Notice>
+      ) : null}
+
+      {review.lifecycleEvents.map((event) => {
+        const isCorrection = event.kind === "correction";
+        const isCorrectedVersion = isCorrection && event.reviewVersionId === review.version.id;
+        const isSupersededVersion = isCorrection && event.supersedesVersionId === review.version.id;
+        return (
+          <Notice
+            key={event.id}
+            tone={event.kind === "withdrawal" ? "error" : "warning"}
+            title={
+              isCorrectedVersion
+                ? "Correction published"
+                : isSupersededVersion
+                  ? "Superseded by a corrected version"
+                  : "Lifecycle notice"
+            }
+          >
+            {event.reason} — @{event.actorLogin}, {event.createdAt.slice(0, 10)}.
+            {isCorrectedVersion && event.supersedesVersionId ? (
+              <>
+                {" "}
+                <Link href={`/reviews/${review.slug}/versions/${event.supersedesVersionId}`}>
+                  View the prior version
+                </Link>
+                .
+              </>
+            ) : null}
+            {isSupersededVersion ? (
+              <>
+                {" "}
+                <Link href={`/reviews/${review.slug}/versions/${event.reviewVersionId}`}>
+                  View the corrected version
+                </Link>
+                .
+              </>
+            ) : null}
+          </Notice>
+        );
+      })}
 
       <h1>{review.title}</h1>
       {review.abstract ? <p className="prose">{review.abstract}</p> : null}
@@ -309,6 +391,23 @@ export default async function ReviewPage({
             </Card>
           ) : null}
 
+          {preservedArticle ? (
+            <ArticleReader
+              document={preservedArticle}
+              claims={review.claims.map((claim) => ({
+                anchor: claim.anchor,
+                localClaimId: claim.localClaimId,
+                text: claim.text,
+                section: claim.section,
+              }))}
+            />
+          ) : (
+            <Notice tone="info" title="No complete preserved article file">
+              This version still exposes its immutable metadata and evidence graph, but no complete,
+              non-truncated Markdown article was captured for the reader.
+            </Notice>
+          )}
+
           <Card title="Claims and evidence">
             {review.claims.length === 0 ? (
               <p className="muted">No claims were extracted for this review.</p>
@@ -319,7 +418,11 @@ export default async function ReviewPage({
                   <div
                     className="claim-card"
                     key={claim.localClaimId}
-                    id={claim.anchor ?? claim.localClaimId}
+                    id={
+                      preservedArticle
+                        ? `${claim.anchor}-evidence`
+                        : (claim.anchor ?? claim.localClaimId)
+                    }
                   >
                     <p className="claim-text">{claim.text}</p>
                     <div className="btn-row">
@@ -518,15 +621,28 @@ export default async function ReviewPage({
               {review.versions.map((v) => (
                 <li key={v.id}>
                   <Link href={`/reviews/${review.slug}/versions/${v.id}`}>
-                    {v.semanticVersion ?? v.releaseTag ?? "version"}
+                    {v.publicState === "tombstoned"
+                      ? "withheld version"
+                      : (v.semanticVersion ?? v.releaseTag ?? "version")}
                   </Link>{" "}
                   {v.isCurrent ? <Badge>current</Badge> : null}{" "}
+                  {v.publicState !== "published" ? (
+                    <Badge tone="warning">{v.publicState}</Badge>
+                  ) : null}{" "}
                   {v.publishedAt ? (
                     <span className="muted">({v.publishedAt.slice(0, 10)})</span>
                   ) : null}
                 </li>
               ))}
             </ul>
+            {review.versions.filter((version) => version.publicState !== "tombstoned").length >
+            1 ? (
+              <Link
+                href={`/reviews/${review.slug}/compare?from=${review.versions.filter((version) => version.publicState !== "tombstoned")[1]!.id}&to=${review.versions.filter((version) => version.publicState !== "tombstoned")[0]!.id}`}
+              >
+                Compare the two latest readable versions
+              </Link>
+            ) : null}
           </Card>
 
           <Card title="Discuss">

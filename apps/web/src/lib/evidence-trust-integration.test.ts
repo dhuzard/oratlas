@@ -205,6 +205,7 @@ function buildVersion(versionId: string, semanticVersion: string, createdAt: Dat
     zenodoRecordId: null,
     releaseTag: `v${semanticVersion}`,
     isExample: false,
+    publicState: "published",
     publishedAt: createdAt,
     createdAt,
     contributors: [],
@@ -263,10 +264,11 @@ function buildDatabaseFixture() {
     acceptedAt: current.publishedAt,
     createdAt: historical.createdAt,
     updatedAt: current.createdAt,
+    lifecycleRevision: 0,
   };
   return {
     indexReview: { ...base, versions: [current] },
-    detailReview: { ...base, versions: [current, historical] },
+    detailReview: { ...base, versions: [current, historical], lifecycleEvents: [] },
   };
 }
 

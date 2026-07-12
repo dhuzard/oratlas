@@ -13,8 +13,9 @@ suffix, and arrays are JSON-encoded strings. Switching to PostgreSQL is a dataso
 | `User`                                   | Minimal GitHub identity + role     | `githubUserId` OAuth key; normalized login indexed and application-checked        |
 | `Repository`                             | Evolving GitHub project            | immutable `githubRepositoryId`; URL/name remain renameable                        |
 | `RepositorySnapshot`                     | Exact repository state             | **`(repositoryId, commitSha)` unique**                                            |
-| `Review`                                 | Public review record               | `slug` unique; `currentSnapshotId`                                                |
-| `ReviewVersion`                          | Immutable version                  | separate `versionDoi` / `conceptDoi` / `zenodoRecordId`; `isExample`              |
+| `Review`                                 | Public review record               | `slug` unique; `currentSnapshotId`; lifecycle CAS revision                        |
+| `ReviewVersion`                          | Immutable version                  | exact snapshot; DOI roles; materialized public lifecycle state                    |
+| `ReviewLifecycleEvent`                   | Append-only scholarly lifecycle    | `(reviewId, revision)` unique; same-review correction/withdrawal/tombstone        |
 | `Person` / `ReviewContributor`           | Authors & roles per version        | contributors ordered by `position`                                                |
 | `Submission`                             | Editorial workflow record          | immutable `submittedPayloadJson`; `status`                                        |
 | `InspectionCapture`                      | Exact inspect-to-submit payload    | token hash unique; user-bound, expiring, single-use; payload/hash append-only     |

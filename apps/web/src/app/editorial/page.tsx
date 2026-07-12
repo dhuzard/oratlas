@@ -2,10 +2,11 @@ import { redirect } from "next/navigation";
 import { type Metadata } from "next";
 import { Card, Notice, StatusPill, ProvenanceBadge } from "@oratlas/ui";
 import { getCurrentUser, isEditor } from "@/lib/auth";
-import { listAuditEvents, listSubmissions } from "@/lib/editorial";
+import { listAuditEvents, listLifecycleEditorialReviews, listSubmissions } from "@/lib/editorial";
 import { listTrustEditorialQueue, type TrustQueueFilter } from "@/lib/trust-provenance";
 import { DecisionForm } from "./DecisionForm";
 import { TrustVerificationForm } from "./TrustVerificationForm";
+import { LifecycleForm } from "./LifecycleForm";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Editorial dashboard" };
@@ -33,6 +34,7 @@ export default async function EditorialPage({
   ]);
   const decided = await listSubmissions(["accepted", "rejected"]);
   const audit = await listAuditEvents(30);
+  const lifecycleReviews = await listLifecycleEditorialReviews();
   const params = (await searchParams) ?? {};
   const requestedTrustFilter = Array.isArray(params.trustFilter)
     ? params.trustFilter[0]
@@ -172,6 +174,28 @@ export default async function EditorialPage({
           </Card>
         ))
       )}
+
+      <h2>Corrections, withdrawals and tombstones</h2>
+      <p className="muted">
+        Lifecycle actions are public, append-only and version-bound. Tombstones immediately withhold
+        article content, metadata, claims, citations, comments, assets, exports and
+        machine-discussion evidence at every public boundary.
+      </p>
+      {lifecycleReviews.map((review) => (
+        <Card as="article" key={review.slug}>
+          <div className="btn-row">
+            <a href={`/reviews/${review.slug}`} className="mono">
+              {review.slug}
+            </a>
+            <span className="muted">lifecycle revision {review.lifecycleRevision}</span>
+          </div>
+          <LifecycleForm
+            reviewSlug={review.slug}
+            revision={review.lifecycleRevision}
+            versions={review.versions}
+          />
+        </Card>
+      ))}
 
       <h2>TRUST provenance queue ({trustQueue.length})</h2>
       <p className="muted">

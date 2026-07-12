@@ -6,6 +6,7 @@ import {
   findWorkIdentifierConflicts,
   globalCitationId,
   globalClaimId,
+  isExactCommitSha,
   type AssessmentReviewStatus,
   type ClaimEvidenceRelationType,
 } from "@oratlas/contracts";
@@ -18,6 +19,7 @@ import {
 } from "@oratlas/knowledge";
 import { prisma, parseJsonColumn } from "./db";
 import { resolveTrustAssessmentRows } from "./trust-provenance";
+import { isReadablePublicState } from "./review-lifecycle";
 
 /**
  * Build the in-memory knowledge index from accepted/published reviews. Uses the
@@ -53,7 +55,13 @@ export async function buildKnowledgeIndex(): Promise<KnowledgeIndexData> {
 
   for (const review of reviews) {
     const version = review.versions[0];
-    if (!version) continue;
+    if (
+      !version ||
+      !isReadablePublicState(version.publicState) ||
+      !isExactCommitSha(version.snapshot.commitSha)
+    ) {
+      continue;
+    }
     const meta = parseJsonColumn<{
       keywords?: string[];
       domains?: string[];
@@ -83,7 +91,10 @@ export async function buildKnowledgeIndex(): Promise<KnowledgeIndexData> {
         }),
       ),
     );
-    const hasEvidence = version.claims.length > 0 && version.citations.length > 0;
+    const hasEvidence =
+      version.publicState === "published" &&
+      version.claims.length > 0 &&
+      version.citations.length > 0;
 
     indexedReviews.push({
       reviewSlug: review.slug,
@@ -106,8 +117,12 @@ export async function buildKnowledgeIndex(): Promise<KnowledgeIndexData> {
       hasEvidenceData: hasEvidence,
       hasHumanReviewedTrust: hasHumanTrust,
       compatibilityLevel: meta.compatibilityLevel,
-      status: review.status,
+      status: version.publicState,
     });
+
+    // Withdrawn records remain discoverable with an explicit status, but
+    // their claims never enter search or Atlas Discuss evidence packets.
+    if (version.publicState === "withdrawn") continue;
 
     for (const citation of version.citations) {
       const citationId = globalCitationId(version.id, citation.localCitationId);

@@ -188,7 +188,7 @@ describe.sequential("preservation and standards exports", () => {
     expect(preserved?.content).toBe(readmeContent);
   }, 30_000);
 
-  it("degrades to metadata-only preservation for legacy rows without stored content", async () => {
+  it("fails closed for legacy rows without valid durable preserved content", async () => {
     const capability = await runtime.createInspectionCapture(
       submitterId,
       inspectionReport("legacy-review", "3"),
@@ -218,9 +218,16 @@ describe.sequential("preservation and standards exports", () => {
     });
 
     const context = await runtime.getVersionExportContext(accepted.reviewSlug, versionId);
-    expect(context?.manifest.preservedContentAvailable).toBe(false);
-    expect(context?.manifest.files.length).toBeGreaterThan(0);
-    expect(context?.manifest.files[0]!.sha256).toBeDefined();
+    expect(context).toBeNull();
+    expect(
+      await runtime.getPreservedFileContent(accepted.reviewSlug, versionId, "README.md"),
+    ).toBeNull();
+
+    await runtime.prisma.repositorySnapshot.update({
+      where: { id: review.versions[0]!.snapshotId },
+      data: { preservedFilesJson: "{malformed" },
+    });
+    expect(await runtime.getVersionExportContext(accepted.reviewSlug, versionId)).toBeNull();
     expect(
       await runtime.getPreservedFileContent(accepted.reviewSlug, versionId, "README.md"),
     ).toBeNull();
