@@ -103,6 +103,7 @@ export const TRUST_CRITERIA = [
 export type TrustCriterion = (typeof TRUST_CRITERIA)[number];
 
 export const ASSESSMENT_REVIEW_STATUSES = [
+  "unverified-import",
   "agent-proposed",
   "human-reviewed",
   "adjudicated",
@@ -111,11 +112,33 @@ export const ASSESSMENT_REVIEW_STATUSES = [
 export const assessmentReviewStatusSchema = z.enum(ASSESSMENT_REVIEW_STATUSES);
 export type AssessmentReviewStatus = z.infer<typeof assessmentReviewStatusSchema>;
 
+/** Statuses Atlas editors can assign through a platform verification marker. */
+export const PLATFORM_TRUST_REVIEW_STATUSES = ["human-reviewed", "adjudicated"] as const;
+export const platformTrustReviewStatusSchema = z.enum(PLATFORM_TRUST_REVIEW_STATUSES);
+export type PlatformTrustReviewStatus = z.infer<typeof platformTrustReviewStatusSchema>;
+
+/** Result of validating a separate Atlas verification marker against its canonical subject. */
+export const TRUST_VERIFICATION_STATES = [
+  "platform-verified",
+  "unverified-import",
+  "stale-verification",
+  "legacy-unknown",
+] as const;
+export const trustVerificationStateSchema = z.enum(TRUST_VERIFICATION_STATES);
+export type TrustVerificationState = z.infer<typeof trustVerificationStateSchema>;
+
 export const ASSESSOR_TYPES = ["agent", "human"] as const;
 export const assessorTypeSchema = z.enum(ASSESSOR_TYPES);
 export type AssessorType = z.infer<typeof assessorTypeSchema>;
 
-export const IDENTIFIER_SCHEMES = ["doi", "github", "orcid", "url", "zenodo-record"] as const;
+export const IDENTIFIER_SCHEMES = [
+  "doi",
+  "github",
+  "git",
+  "orcid",
+  "url",
+  "zenodo-record",
+] as const;
 export const identifierSchemeSchema = z.enum(IDENTIFIER_SCHEMES);
 export type IdentifierScheme = z.infer<typeof identifierSchemeSchema>;
 
@@ -123,6 +146,7 @@ export const IDENTIFIER_RELATION_TYPES = [
   "version-doi",
   "concept-doi",
   "repository",
+  "source-commit",
   "release",
   "published-review",
   "zenodo-record",

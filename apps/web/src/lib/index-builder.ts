@@ -1,6 +1,14 @@
 import "server-only";
-import { computeAggregate, type TrustRecord } from "@oratlas/trust";
-import { type AssessmentReviewStatus, type ClaimEvidenceRelationType } from "@oratlas/contracts";
+import { computeAggregate, selectPreferredTrustAssessment, type TrustRecord } from "@oratlas/trust";
+import {
+  canonicalWorkAliases,
+  claimDomAnchor,
+  findWorkIdentifierConflicts,
+  globalCitationId,
+  globalClaimId,
+  type AssessmentReviewStatus,
+  type ClaimEvidenceRelationType,
+} from "@oratlas/contracts";
 import {
   type IndexedClaim,
   type IndexedCitation,
@@ -9,6 +17,7 @@ import {
   type KnowledgeIndexData,
 } from "@oratlas/knowledge";
 import { prisma, parseJsonColumn } from "./db";
+import { resolveTrustAssessmentRows } from "./trust-provenance";
 
 /**
  * Build the in-memory knowledge index from accepted/published reviews. Uses the
@@ -24,9 +33,12 @@ export async function buildKnowledgeIndex(): Promise<KnowledgeIndexData> {
         take: 1,
         include: {
           contributors: { include: { person: true }, orderBy: { position: "asc" } },
+          snapshot: true,
           claims: {
             include: {
-              evidenceRelations: { include: { trustAssessments: true } },
+              evidenceRelations: {
+                include: { citation: true, trustAssessments: { include: { verification: true } } },
+              },
             },
           },
           citations: true,
@@ -52,9 +64,23 @@ export async function buildKnowledgeIndex(): Promise<KnowledgeIndexData> {
     const hasTrust = version.claims.some((c) =>
       c.evidenceRelations.some((r) => r.trustAssessments.length > 0),
     );
-    const hasHumanTrust = version.claims.some((c) =>
-      c.evidenceRelations.some((r) =>
-        r.trustAssessments.some((t) => t.reviewStatus === "human-reviewed"),
+    const hasHumanTrust = version.claims.some((claim) =>
+      claim.evidenceRelations.some((relation) =>
+        relation.trustAssessments.some((assessment) => {
+          const resolved = resolveTrustAssessmentRows(
+            {
+              assessment,
+              relation,
+              claim,
+              citation: relation.citation,
+            },
+            assessment.verification,
+          );
+          return (
+            resolved.effectiveStatus === "human-reviewed" ||
+            resolved.effectiveStatus === "adjudicated"
+          );
+        }),
       ),
     );
     const hasEvidence = version.claims.length > 0 && version.citations.length > 0;
@@ -72,7 +98,7 @@ export async function buildKnowledgeIndex(): Promise<KnowledgeIndexData> {
       acceptedAt: review.acceptedAt?.toISOString(),
       updatedAt: review.updatedAt.toISOString(),
       publicationYear: version.publishedAt?.getFullYear(),
-      commitSha: version.snapshotId ? undefined : undefined,
+      commitSha: version.snapshot.commitSha,
       versionDoi: version.versionDoi ?? undefined,
       conceptDoi: version.conceptDoi ?? undefined,
       hasDoi: Boolean(version.versionDoi || version.conceptDoi),
@@ -84,9 +110,21 @@ export async function buildKnowledgeIndex(): Promise<KnowledgeIndexData> {
     });
 
     for (const citation of version.citations) {
-      citationMap.set(citation.localCitationId, {
-        citationId: citation.localCitationId,
+      const citationId = globalCitationId(version.id, citation.localCitationId);
+      const aliases = canonicalWorkAliases({
         doi: citation.doi ?? undefined,
+        pmid: citation.pmid ?? undefined,
+        openAlexId: citation.openAlexId ?? undefined,
+      });
+      citationMap.set(citationId, {
+        citationId,
+        localCitationId: citation.localCitationId,
+        reviewVersionId: version.id,
+        workId: aliases[0] ?? citationId,
+        canonicalWorkAliases: aliases,
+        doi: citation.doi ?? undefined,
+        pmid: citation.pmid ?? undefined,
+        openAlexId: citation.openAlexId ?? undefined,
         title: citation.title ?? undefined,
         year: citation.year ?? undefined,
         source: citation.source ?? undefined,
@@ -94,49 +132,80 @@ export async function buildKnowledgeIndex(): Promise<KnowledgeIndexData> {
     }
 
     // Map citation DB id -> localCitationId for relation resolution.
-    const citationLocalById = new Map(version.citations.map((c) => [c.id, c.localCitationId]));
+    const citationGlobalById = new Map(
+      version.citations.map((citation) => [
+        citation.id,
+        globalCitationId(version.id, citation.localCitationId),
+      ]),
+    );
 
     for (const claim of version.claims) {
       const relations: IndexedRelation[] = claim.evidenceRelations.map((rel) => {
-        const trust = rel.trustAssessments[0];
+        const trust = selectPreferredTrustAssessment(
+          rel.trustAssessments.map((assessment) => {
+            const resolved = resolveTrustAssessmentRows(
+              { assessment, relation: rel, claim, citation: rel.citation },
+              assessment.verification,
+            );
+            return {
+              id: assessment.id,
+              effectiveStatus: resolved.effectiveStatus,
+              assessedAt: assessment.assessedAt?.toISOString() ?? null,
+              value: { assessment, resolved },
+            };
+          }),
+        )?.value;
         let indexedTrust;
         if (trust) {
-          const record = toTrustRecord(trust);
+          const record = toTrustRecord(trust.assessment);
           const agg = computeAggregate(record);
           indexedTrust = {
-            reviewStatus: trust.reviewStatus as AssessmentReviewStatus,
-            aggregateScore: trust.aggregateScore ?? agg.score ?? undefined,
-            aggregateMethod: trust.aggregateMethod ?? agg.method,
+            reviewStatus: trust.resolved.effectiveStatus as AssessmentReviewStatus,
+            verificationState: trust.resolved.state,
+            aggregateScore: agg.score ?? undefined,
+            aggregateMethod: agg.method,
             notableCriteria: agg.assessedCriteria,
           };
         }
         return {
-          citationId: citationLocalById.get(rel.citationId) ?? rel.citationId,
+          citationId:
+            citationGlobalById.get(rel.citationId) ??
+            globalCitationId(version.id, `missing:${rel.citationId}`),
           relationType: rel.relationType as ClaimEvidenceRelationType,
           trust: indexedTrust,
         };
       });
 
       indexedClaims.push({
-        claimId: claim.localClaimId,
+        claimId: globalClaimId(version.id, claim.localClaimId),
+        localClaimId: claim.localClaimId,
         reviewSlug: review.slug,
         reviewId: review.id,
         reviewVersionId: version.id,
         reviewTitle: version.title,
         text: claim.text,
         section: claim.section ?? undefined,
-        anchor: claim.anchor ?? undefined,
+        anchor: claimDomAnchor(version.id, claim.localClaimId),
+        sourceAnchor: claim.anchor ?? undefined,
         claimType: claim.claimType ?? undefined,
         versionDoi: version.versionDoi ?? undefined,
+        commitSha: version.snapshot.commitSha,
         relations,
       });
     }
   }
 
+  const citations = [...citationMap.values()];
   return {
     reviews: indexedReviews,
     claims: indexedClaims,
-    citations: [...citationMap.values()],
+    citations,
+    identifierConflicts: findWorkIdentifierConflicts(
+      citations.map((citation) => ({
+        citationId: citation.citationId,
+        aliases: citation.canonicalWorkAliases,
+      })),
+    ),
   };
 }
 

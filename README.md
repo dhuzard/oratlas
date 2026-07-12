@@ -98,8 +98,9 @@ pnpm --filter @oratlas/db db:validate  # validate the Prisma schema
 
 `db:seed` loads: an accepted review **with** a GitHub release and a (synthetic) Zenodo DOI, an
 accepted **repository-only** review, the reference template as a structural demonstration, a
-**pending** submission, multiple claims/citations, supporting and contradicting relations,
-agent-proposed **and** human-reviewed TRUST records, and one cross-review link proposal.
+**pending** submission, multiple claims/citations, supporting and contradicting relations, five
+repository TRUST assertions (including an explicit-null source aggregate), one separate Atlas
+structural-review marker, and one cross-review link proposal.
 
 All example identifiers use the reserved documentation DOI prefix `10.5555/` and are flagged so
 the UI never renders them as resolvable outbound links.
@@ -107,13 +108,13 @@ the UI never renders them as resolvable outbound links.
 ## Testing
 
 ```bash
-pnpm test           # Vitest unit/integration tests (78 tests, no network)
+pnpm test           # Vitest unit/integration tests (no network)
 pnpm typecheck      # strict TypeScript across all packages
 pnpm lint           # ESLint
 pnpm format:check   # Prettier
 pnpm schema:check   # validate the review-manifest JSON Schema
 pnpm --filter @oratlas/web build       # production build
-pnpm --filter @oratlas/web test:e2e    # essential Playwright flows (9 tests)
+pnpm --filter @oratlas/web test:e2e    # essential Playwright flows
 ```
 
 Tests never depend on GitHub or Zenodo network availability — external APIs are mocked.
@@ -130,13 +131,17 @@ datasource provider to `postgresql`, set `SESSION_SECRET`, run `prisma migrate d
 1. Sign in with GitHub (or the dev mock).
 2. Paste a **public** GitHub repository URL. The platform normalizes and validates it
    (rejecting non-GitHub hosts, credentials, local-network targets — SSRF-safe).
-3. The repository is **inspected via the GitHub API** (never cloned, never executed) with
-   timeouts and size caps. Metadata is extracted deterministically with per-field provenance.
+3. Explicitly choose the current default branch, an exact tag, or an exact published release.
+   The repository is **inspected via the GitHub API** (never cloned, never executed) with timeouts
+   and size caps. Atlas pins the resolved commit and its tree SHA; metadata is extracted
+   deterministically with per-field provenance.
 4. Review and correct the extracted metadata. Edits are stored separately from extracted values.
 5. Review the validation report (compatibility, DOI validation, release, completeness, evidence
    and TRUST availability).
-6. Submit. An immutable snapshot enters the editorial workflow. An editor accepts, rejects, or
-   requests changes. Acceptance publishes an immutable versioned review.
+6. Submit the user-bound, 30-minute, single-use capture capability. GitHub is not read again.
+   The canonical capture and immutable snapshot enter the editorial workflow.
+7. An editor accepts, rejects, or requests changes. Acceptance is transactional and idempotent;
+   failed release/DOI/commit checks require separate, audited override rationales.
 
 You do **not** need to own the submitted repository; you are recorded as the submitter, distinct
 from the repository's authors and maintainers.
@@ -145,7 +150,7 @@ from the repository's authors and maintainers.
 
 A GitHub repository and a DOI are different identifiers, and the platform keeps them distinct:
 
-- a **commit SHA** identifies an exact repository state,
+- a **commit SHA + tree SHA** identify the exact repository state Atlas read,
 - a **release/tag** identifies a named version,
 - a **version DOI** identifies one deposited release,
 - a **concept DOI** identifies the collection of all versions.
@@ -168,11 +173,12 @@ Zenodo access token.
 - **Acceptance into the archive is not peer review.** It is an editorial curation decision.
 - **TRUST is relation-specific.** Each assessment describes one claim–citation relation, never a
   whole paper, and is never a probability that a paper is "true."
-- **Agent-generated links and TRUST records are proposals** until a human reviews them; the UI
-  labels them as such.
+- **Repository and agent TRUST records are source assertions.** Atlas preserves their claimed
+  status but imports them as unverified. A separate hash-bound editor marker can record structural
+  review; it does not establish scientific correctness.
 - **A DOI does not establish scientific quality.** DOI presence is not a quality signal.
 - **GitHub default-branch content may differ from a deposited release.** The exact reviewed state
-  is the recorded commit SHA.
+  is the explicitly selected commit and tree SHA.
 - **Several reviews citing the same primary source are not independent replication.**
 
 ## License

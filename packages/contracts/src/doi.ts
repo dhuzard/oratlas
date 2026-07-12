@@ -58,6 +58,22 @@ export const doiValidationReportSchema = z.object({
 });
 export type DoiValidationReport = z.infer<typeof doiValidationReportSchema>;
 
+export const publicationConsistencyReportSchema = z.object({
+  schemaVersion: z.literal("1.0.0"),
+  status: z.enum(["pass", "warn", "fail", "not-applicable"]),
+  selectedSourceKind: z.enum(["default-branch", "tag", "release"]),
+  selectedCommitSha: z.string(),
+  selectedTreeSha: z.string(),
+  selectedReleaseTag: z.string().optional(),
+  checks: z.array(doiCheckSchema).default([]),
+  errors: z.array(z.string()).default([]),
+  warnings: z.array(z.string()).default([]),
+  /** Failed check ids an editor must explicitly and individually override. */
+  overridableCheckIds: z.array(z.string()).default([]),
+  requiresEditorOverride: z.boolean().default(false),
+});
+export type PublicationConsistencyReport = z.infer<typeof publicationConsistencyReportSchema>;
+
 /**
  * Overall submission validation report shown at wizard step 4 and stored on
  * the submission (spec §8).
@@ -77,6 +93,8 @@ export const submissionValidationReportSchema = z.object({
     releaseTagMatches: z.boolean().optional(),
     details: z.array(z.string()).default([]),
   }),
+  /** Cross-check of the selected Git source, release and deposit identifiers. */
+  publicationConsistency: publicationConsistencyReportSchema.optional(),
   metadataCompleteness: z.object({
     requiredMissing: z.array(z.string()).default([]),
     recommendedMissing: z.array(z.string()).default([]),

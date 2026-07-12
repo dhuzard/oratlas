@@ -5,7 +5,7 @@ import {
   createAnthropicProvider,
   discussDeterministic,
   discussWithLlm,
-  hashEvidencePacket,
+  prepareEvidencePacket,
   type LlmDiscussionResult,
 } from "@oratlas/knowledge";
 import { type DeterministicDiscussionResult } from "@oratlas/contracts";
@@ -28,6 +28,7 @@ export async function runDiscussion(
   const env = getServerEnv();
   const index = await buildKnowledgeIndex();
   const packet = buildEvidencePacket(index, question, { reviewSlugs });
+  const prepared = prepareEvidencePacket(packet);
   const deterministic = discussDeterministic(packet);
 
   if (!env.llmEnabled || !env.ANTHROPIC_API_KEY) {
@@ -40,8 +41,7 @@ export async function runDiscussion(
   });
 
   const startedAt = new Date();
-  const result = await discussWithLlm(provider, packet);
-  const packetHash = hashEvidencePacket(packet);
+  const result = await discussWithLlm(provider, prepared);
 
   // Persist the agent run for provenance (spec §14).
   await prisma.agentRun.create({
@@ -51,11 +51,9 @@ export async function runDiscussion(
       modelName: result.model,
       modelVersion: result.modelVersion,
       promptVersion: result.promptVersion,
-      inputHash: packetHash,
-      inputReferencesJson: JSON.stringify({
-        claimIds: packet.claims.map((c) => c.claimId),
-        citationIds: packet.citations.map((c) => c.citationId),
-      }),
+      inputHash: prepared.sha256,
+      // The exact canonical bytes hashed above and sent to the provider.
+      inputReferencesJson: prepared.json,
       outputJson: result.answer ? JSON.stringify(result.answer) : undefined,
       status: result.answer ? "succeeded" : "failed",
       startedAt,

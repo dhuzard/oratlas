@@ -6,6 +6,7 @@ import {
   type GroundedAnswer,
   type GroundingValidationResult,
 } from "@oratlas/contracts";
+import { type PreparedEvidencePacket } from "./packet.js";
 
 /**
  * Deterministic discussion mode (spec §14). When no LLM key is configured, we
@@ -83,8 +84,8 @@ export interface LlmProvider {
   readonly model: string;
   readonly modelVersion?: string;
   readonly promptVersion: string;
-  /** Return raw JSON text for the grounded-answer schema, given the packet. */
-  complete(packet: EvidencePacket): Promise<string>;
+  /** Return raw JSON text; input is the already-canonicalized packet bytes. */
+  complete(packetJson: string): Promise<string>;
 }
 
 export interface LlmDiscussionResult {
@@ -107,16 +108,17 @@ export interface LlmDiscussionResult {
  */
 export async function discussWithLlm(
   provider: LlmProvider,
-  packet: EvidencePacket,
+  prepared: PreparedEvidencePacket,
   maxAttempts = 2,
 ): Promise<LlmDiscussionResult> {
+  const { packet, json: packetJson } = prepared;
   const rawRejected: string[] = [];
   let lastError = "";
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     let raw: string;
     try {
-      raw = await provider.complete(packet);
+      raw = await provider.complete(packetJson);
     } catch (err) {
       lastError = err instanceof Error ? err.message : String(err);
       continue;
@@ -140,7 +142,18 @@ export async function discussWithLlm(
 
     const grounding = validateGrounding(parsed.data, packet);
     if (!grounding.ok) {
-      lastError = `Model referenced unknown identifiers: claims=[${grounding.unknownClaimIds.join(",")}] citations=[${grounding.unknownCitationIds.join(",")}]`;
+      lastError = [
+        `Model output failed exact evidence-edge grounding`,
+        `claims=[${grounding.unknownClaimIds.join(",")}]`,
+        `citations=[${grounding.unknownCitationIds.join(",")}]`,
+        `invalidEdges=${grounding.invalidEvidenceEdges.length}`,
+        `summaryMismatch=${
+          grounding.claimsMissingFromGrounding.length +
+          grounding.citationsMissingFromGrounding.length +
+          grounding.claimsMissingFromSummary.length +
+          grounding.citationsMissingFromSummary.length
+        }`,
+      ].join(" ");
       rawRejected.push(raw.slice(0, 500));
       continue;
     }
@@ -171,9 +184,9 @@ export async function discussWithLlm(
 }
 
 /** The system prompt contract for LLM mode (kept versioned and inspectable). */
-export const DISCUSSION_PROMPT_VERSION = "atlas-discuss-1.0";
+export const DISCUSSION_PROMPT_VERSION = "atlas-discuss-2.0";
 
-export function buildDiscussionPrompt(packet: EvidencePacket): {
+export function buildDiscussionPrompt(packetJson: string): {
   system: string;
   user: string;
 } {
@@ -183,13 +196,15 @@ export function buildDiscussionPrompt(packet: EvidencePacket): {
     "You must return a single JSON object matching this shape:",
     '{ "answer", "scope", "reviewClaimsUsed", "citationsUsed", "agreements", "disagreements", "uncertainties", "missingEvidence", "grounding" }.',
     "reviewClaimsUsed and citationsUsed must contain ONLY identifiers present in the packet.",
-    "grounding is an array of { statement, claimIds, citationIds } tying each statement to packet identifiers.",
+    "grounding is an array of { statement, evidenceEdges: [{ claimId, citationId }] }.",
+    "Include at least one grounded statement; if the packet has no usable edge, do not invent one.",
+    "Every evidence edge must exist exactly in a packet claim's relations. Never attach a citation to a different claim.",
+    "reviewClaimsUsed and citationsUsed must exactly equal the identifiers used by all grounding evidenceEdges.",
     "Do not imply scientific consensus from the number of reviews. Multiple reviews citing the same source are not independent replication.",
     "Distinguish agreement, disagreement, and missing evidence. State clearly when the indexed material is insufficient.",
-    "Note whether supporting TRUST assessments are agent-proposed or human-reviewed.",
+    "Treat each TRUST verificationState as authoritative. Only platform-verified may be described as Atlas-reviewed; unverified-import, stale-verification, and legacy-unknown must remain explicitly unverified.",
     "Do not include any reasoning or chain-of-thought; return only the JSON object.",
   ].join("\n");
 
-  const user = JSON.stringify(packet);
-  return { system, user };
+  return { system, user: packetJson };
 }

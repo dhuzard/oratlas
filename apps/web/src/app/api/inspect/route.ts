@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { resolveEffectiveMetadata } from "@oratlas/contracts";
-import { getCurrentUser } from "@/lib/auth";
+import { repoSourceSelectionSchema, resolveEffectiveMetadata } from "@oratlas/contracts";
+import { getServerEnv, requireUser } from "@/lib/auth";
 import { inspectAndExtract, normalizeRepoUrl, buildValidationReport } from "@/lib/ingest";
 import {
   BadJsonError,
@@ -11,21 +11,33 @@ import {
   readJsonBody,
 } from "@/lib/api";
 import { rateLimit, clientKey } from "@/lib/rate-limit";
+import { validateSameOriginJsonRequest } from "@/lib/mutation-request";
+import { createInspectionCapture } from "@/lib/inspection-captures";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-const bodySchema = z.object({ url: z.string().min(1).max(2048) });
+const bodySchema = z.object({
+  url: z.string().min(1).max(2048),
+  source: repoSourceSelectionSchema,
+});
 
 /** Inspect a repository URL and return extracted metadata + compatibility + validation. */
 export async function POST(request: Request) {
   try {
-    const user = await getCurrentUser();
-    const limit = rateLimit(
-      clientKey(request.headers, `inspect:${user?.id ?? "anon"}`),
-      20,
-      60_000,
-    );
+    const integrity = validateSameOriginJsonRequest(request, getServerEnv().NEXT_PUBLIC_BASE_URL);
+    if (!integrity.ok)
+      return NextResponse.json(
+        {
+          error: {
+            code: integrity.status === 415 ? "bad-request" : "forbidden",
+            message: integrity.message,
+          },
+        },
+        { status: integrity.status },
+      );
+    const user = await requireUser();
+    const limit = rateLimit(clientKey(request.headers, `inspect:${user.id}`), 20, 60_000);
     if (!limit.ok)
       return errorResponse("rate-limited", "Too many inspection requests. Try again shortly.");
 
@@ -36,7 +48,10 @@ export async function POST(request: Request) {
     const normalized = normalizeRepoUrl(parsed.data.url);
     if (!normalized.ok) return errorResponse("bad-request", normalized.reason);
 
-    const outcome = await inspectAndExtract(normalized.ref.canonicalUrl);
+    const outcome = await inspectAndExtract(normalized.ref.canonicalUrl, parsed.data.source);
+    if (outcome.report.status === "failed" || !outcome.report.selectedSource) {
+      return errorResponse("upstream-error", outcome.report.error ?? "Inspection failed.");
+    }
     const hasEvidence =
       outcome.extraction.knowledge.claims.length > 0 &&
       outcome.extraction.knowledge.citations.length > 0;
@@ -50,9 +65,19 @@ export async function POST(request: Request) {
       hasTrust,
     );
     const effective = resolveEffectiveMetadata(outcome.extractedMetadata, undefined);
+    const capture = await createInspectionCapture(
+      user.id,
+      outcome.report,
+      outcome.extraction,
+      validation,
+    );
 
     return NextResponse.json({
-      repo: normalized.ref,
+      repo: outcome.report.repo,
+      selectedSource: outcome.report.selectedSource,
+      captureToken: capture.token,
+      captureExpiresAt: capture.expiresAt,
+      capturePayloadHash: capture.payloadHash,
       inspectionStatus: outcome.report.status,
       inspectionWarnings: outcome.report.warnings,
       inspectionError: outcome.report.error,

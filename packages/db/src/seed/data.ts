@@ -7,6 +7,7 @@
  * repository is included as a *structural demonstration*, not as a submitted
  * scientific review.
  */
+import { type AssessmentReviewStatus, type TrustOrdinal } from "@oratlas/contracts";
 
 export const EXTRACTOR_VERSION = "extractor-0.1.0";
 export const TRUST_PROTOCOL_VERSION = "trust-poc-1.0";
@@ -55,11 +56,20 @@ export interface SeedRelation {
 export interface SeedTrust {
   assessorType: "agent" | "human";
   assessorId?: string;
-  reviewStatus: string;
-  criteria: Record<string, { rating: string; status?: string; rationale?: string }>;
+  assessedAt?: string;
+  reviewStatus: AssessmentReviewStatus;
+  criteria: Record<
+    string,
+    {
+      rating: TrustOrdinal;
+      status?: "assessed" | "not-assessed" | "not-applicable";
+      rationale?: string;
+    }
+  >;
   limitations?: string[];
-  aggregateScore?: number;
-  aggregateMethod?: string;
+  evidence?: Record<string, unknown>;
+  aggregateScore?: number | null;
+  aggregateMethod?: string | null;
 }
 
 export interface SeedReview {
@@ -252,8 +262,10 @@ export const reviewWithDoi: SeedReview = {
           "Rodent-only evidence.",
           "Correlational reactivation, not causal for this specific citation.",
         ],
-        aggregateScore: 0.68,
-        aggregateMethod: "ordinal-mean-1.0",
+        // Explicit-null source aggregate exercises provenance preservation;
+        // Atlas computes the public value from criteria.
+        aggregateScore: null,
+        aggregateMethod: null,
       },
     },
     {
@@ -451,7 +463,7 @@ export const templateDemoReview: SeedReview = {
     pagesUrl: "https://allenneuraldynamics.github.io/ComputationalReviewTemplate/",
   },
   snapshot: {
-    commitSha: sha("template00commit00demo"),
+    commitSha: sha("deadc0deca11ab1e0000"),
     branch: "main",
     releaseTag: "v1.0.0",
     releaseUrl:
@@ -494,6 +506,7 @@ export const pendingSubmission = {
   },
   snapshot: {
     commitSha: sha("55bb66cc77dd88ee99ff"),
+    treeSha: sha("66cc77dd88ee99ff00aa"),
     branch: "main",
   },
   title: "A Computational Review of Spike-Sorting Methods",
@@ -568,14 +581,14 @@ export const seedComments: SeedComment[] = [
 export const seedUsers = [
   {
     githubLogin: "atlas-editor",
-    githubUserId: "100001",
+    githubUserId: "mock:atlas-editor",
     displayName: "Atlas Editor (demo)",
     role: "EDITOR",
     profileUrl: "https://github.com/atlas-editor",
   },
   {
     githubLogin: "atlas-submitter",
-    githubUserId: "100002",
+    githubUserId: "mock:atlas-submitter",
     displayName: "Atlas Submitter (demo)",
     role: "USER",
     profileUrl: "https://github.com/atlas-submitter",

@@ -1,5 +1,10 @@
 import { createHash } from "node:crypto";
-import { type EvidenceCitation, type EvidenceClaim, type EvidencePacket } from "@oratlas/contracts";
+import {
+  evidencePacketSchema,
+  type EvidenceCitation,
+  type EvidenceClaim,
+  type EvidencePacket,
+} from "@oratlas/contracts";
 import { lexicalScore, tokenize, tokenSet } from "./text.js";
 import { type KnowledgeIndexData } from "./types.js";
 
@@ -42,6 +47,7 @@ export function buildEvidencePacket(
     for (const rel of c.relations) usedCitationIds.add(rel.citationId);
     return {
       claimId: c.claimId,
+      localClaimId: c.localClaimId,
       reviewSlug: c.reviewSlug,
       reviewTitle: c.reviewTitle,
       reviewVersionId: c.reviewVersionId,
@@ -50,6 +56,7 @@ export function buildEvidencePacket(
       text: c.text,
       section: c.section,
       anchor: c.anchor,
+      sourceAnchor: c.sourceAnchor,
       claimType: c.claimType,
       relations: c.relations.map((rel) => ({
         citationId: rel.citationId,
@@ -57,6 +64,7 @@ export function buildEvidencePacket(
         trust: rel.trust
           ? {
               reviewStatus: rel.trust.reviewStatus,
+              verificationState: rel.trust.verificationState,
               aggregateScore: rel.trust.aggregateScore,
               aggregateMethod: rel.trust.aggregateMethod,
               notableCriteria: rel.trust.notableCriteria,
@@ -70,7 +78,13 @@ export function buildEvidencePacket(
     .filter((c) => usedCitationIds.has(c.citationId))
     .map((c) => ({
       citationId: c.citationId,
+      localCitationId: c.localCitationId,
+      reviewVersionId: c.reviewVersionId,
+      workId: c.workId,
+      canonicalWorkAliases: c.canonicalWorkAliases,
       doi: c.doi,
+      pmid: c.pmid,
+      openAlexId: c.openAlexId,
       title: c.title,
       year: c.year,
       source: c.source,
@@ -89,21 +103,62 @@ export function buildEvidencePacket(
     }));
 
   return {
-    schemaVersion: "1.0.0",
+    schemaVersion: "1.1.0",
     question,
     builtAt: now().toISOString(),
     reviews,
     claims: evidenceClaims,
     citations,
+    identifierConflicts: data.identifierConflicts.filter((conflict) =>
+      conflict.citationIds.some((citationId) => usedCitationIds.has(citationId)),
+    ),
   };
 }
 
-/** Stable hash of the evidence packet (persisted with AgentRun for provenance). */
-export function hashEvidencePacket(packet: EvidencePacket): string {
-  const canonical = JSON.stringify({
-    question: packet.question,
-    claims: packet.claims.map((c) => c.claimId).sort(),
-    citations: packet.citations.map((c) => c.citationId).sort(),
-  });
-  return createHash("sha256").update(canonical).digest("hex");
+export interface PreparedEvidencePacket {
+  packet: EvidencePacket;
+  /** Canonical UTF-8 JSON bytes represented as a JavaScript string. */
+  json: string;
+  sha256: string;
+}
+
+/**
+ * Validate, canonicalize exactly once, then hash those exact bytes. Callers
+ * pass `json` unchanged to the provider and persistence layer.
+ */
+export function prepareEvidencePacket(packet: EvidencePacket): PreparedEvidencePacket {
+  const validated = evidencePacketSchema.parse(packet);
+  const json = canonicalJson(validated);
+  return {
+    packet: validated,
+    json,
+    sha256: hashEvidencePacket(json),
+  };
+}
+
+/** SHA-256 of packet bytes. Object input is retained for non-LLM callers. */
+export function hashEvidencePacket(packet: EvidencePacket | string): string {
+  const bytes =
+    typeof packet === "string" ? packet : canonicalJson(evidencePacketSchema.parse(packet));
+  return createHash("sha256").update(bytes, "utf8").digest("hex");
+}
+
+/** RFC-8785-style deterministic object-key ordering for JSON-compatible data. */
+export function canonicalJson(value: unknown): string {
+  if (value === null || typeof value === "boolean" || typeof value === "string") {
+    return JSON.stringify(value);
+  }
+  if (typeof value === "number") return Number.isFinite(value) ? JSON.stringify(value) : "null";
+  if (Array.isArray(value)) {
+    return `[${value.map((entry) => (entry === undefined ? "null" : canonicalJson(entry))).join(",")}]`;
+  }
+  if (typeof value === "object") {
+    const record = value as Record<string, unknown>;
+    const entries = Object.keys(record)
+      .filter((key) => record[key] !== undefined)
+      .sort()
+      .map((key) => `${JSON.stringify(key)}:${canonicalJson(record[key])}`);
+    return `{${entries.join(",")}}`;
+  }
+  throw new TypeError(`Cannot encode ${typeof value} as canonical JSON.`);
 }

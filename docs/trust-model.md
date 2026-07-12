@@ -39,14 +39,32 @@ ordinal criteria only — `not-assessed`/`not-applicable` are excluded, never co
 The criterion-level record is always authoritative. The UI never shows an aggregate without
 accessible criterion detail and the aggregate method.
 
-## Review status
+## Repository assertions and platform verification
 
-`agent-proposed` → `human-reviewed` → `adjudicated`, or `superseded`. Agent-proposed assessments
-are clearly labelled in the UI (the `agent-proposed` provenance badge) and are distinguishable
-from human-reviewed records everywhere they appear.
+Repository artifacts may assert `agent-proposed`, `human-reviewed`, `adjudicated`, or
+`superseded`, and a relation may assert `humanReviewed: true`. Atlas preserves those exact source
+assertions (status, assessor, evidence, timestamp, aggregate—including explicit `null`), but never
+treats them as platform verification. Every imported assessment and relation is publicly
+`unverified-import`/`humanReviewed = false` until an Atlas editor records a separate marker.
+
+The one-to-one `TrustVerification` marker records `human-reviewed` or `adjudicated`, the reviewer
+foreign key, their role at review time, a rationale, and a canonical subject hash. The hash covers
+the criterion JSON, evidence, source assertions, relation, claim, and citation. A later mutation of
+any covered field makes the marker stale and public reads fail closed to `unverified-import`.
+Legacy rows without source provenance also fail closed and appear in the editorial queue.
+
+Verification writes require the current subject hash and `TrustAssessment.revision`; a transaction
+uses both as optimistic-concurrency guards before writing the marker and audit event. The endpoint
+also requires an editor session, exact same-origin `Origin`, same-origin Fetch Metadata when
+present, and `Content-Type: application/json`.
+
+Presentation is fail-safe: only the known `human-reviewed` and `adjudicated` workflows receive a
+human-reviewed badge. Imported, superseded, mixed, or unknown status values receive an explicit
+warning and are never promoted to human-reviewed by a fallback label.
 
 ## What the UI shows
 
-The claim, the citation, the support relation, each criterion rating (with status and rationale),
-limitations, provenance, whether the assessment is agent-proposed or human-reviewed, and — only
-when an aggregate is displayed — its method.
+The claim, citation, support relation, criterion ratings (with status and rationale), limitations,
+repository assertion, current platform-marker state, and — only when an Atlas-computed aggregate
+is displayed — its method. Atlas structural review is not scientific peer review and does not
+establish that a claim or paper is correct.

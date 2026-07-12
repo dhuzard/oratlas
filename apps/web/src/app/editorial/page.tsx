@@ -3,12 +3,18 @@ import { type Metadata } from "next";
 import { Card, Notice, StatusPill, ProvenanceBadge } from "@oratlas/ui";
 import { getCurrentUser, isEditor } from "@/lib/auth";
 import { listAuditEvents, listSubmissions } from "@/lib/editorial";
+import { listTrustEditorialQueue, type TrustQueueFilter } from "@/lib/trust-provenance";
 import { DecisionForm } from "./DecisionForm";
+import { TrustVerificationForm } from "./TrustVerificationForm";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Editorial dashboard" };
 
-export default async function EditorialPage() {
+export default async function EditorialPage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const user = await getCurrentUser();
   if (!user) redirect("/signin");
   if (!isEditor(user)) {
@@ -27,6 +33,20 @@ export default async function EditorialPage() {
   ]);
   const decided = await listSubmissions(["accepted", "rejected"]);
   const audit = await listAuditEvents(30);
+  const params = (await searchParams) ?? {};
+  const requestedTrustFilter = Array.isArray(params.trustFilter)
+    ? params.trustFilter[0]
+    : params.trustFilter;
+  const trustFilter: TrustQueueFilter = [
+    "all",
+    "needs-review",
+    "stale",
+    "legacy",
+    "verified",
+  ].includes(requestedTrustFilter ?? "")
+    ? (requestedTrustFilter as TrustQueueFilter)
+    : "needs-review";
+  const trustQueue = await listTrustEditorialQueue(trustFilter);
 
   return (
     <div>
@@ -53,8 +73,13 @@ export default async function EditorialPage() {
               <span className="muted">by {s.submitterLogin}</span>
             </div>
             <p className="mono muted" style={{ fontSize: "0.85rem" }}>
-              commit {s.commitSha ?? "—"}
+              {s.sourceKind ?? "source"} commit {s.commitSha ?? "—"} · tree {s.treeSha ?? "—"}
             </p>
+            {s.capturePayloadHash ? (
+              <p className="mono muted" style={{ fontSize: "0.8rem" }}>
+                exact capture SHA-256 {s.capturePayloadHash}
+              </p>
+            ) : null}
 
             {s.validation ? (
               <div>
@@ -85,6 +110,28 @@ export default async function EditorialPage() {
                       ))}
                     </ul>
                   </details>
+                ) : null}
+                {s.validation.publicationConsistency ? (
+                  <Notice
+                    tone={
+                      s.validation.publicationConsistency.status === "fail"
+                        ? "error"
+                        : s.validation.publicationConsistency.status === "warn"
+                          ? "warning"
+                          : "info"
+                    }
+                    title={`Release / DOI / commit consistency: ${s.validation.publicationConsistency.status}`}
+                  >
+                    <ul>
+                      {s.validation.publicationConsistency.checks.map((check) => (
+                        <li key={check.id}>
+                          <span className="mono">{check.id}</span>: {check.outcome} —{" "}
+                          {check.description}
+                          {check.details ? ` (${check.details})` : ""}
+                        </li>
+                      ))}
+                    </ul>
+                  </Notice>
                 ) : null}
               </div>
             ) : null}
@@ -118,7 +165,100 @@ export default async function EditorialPage() {
               </div>
             </details>
 
-            <DecisionForm submissionId={s.id} />
+            <DecisionForm
+              submissionId={s.id}
+              overrideCheckIds={s.validation?.publicationConsistency?.overridableCheckIds ?? []}
+            />
+          </Card>
+        ))
+      )}
+
+      <h2>TRUST provenance queue ({trustQueue.length})</h2>
+      <p className="muted">
+        Repository-supplied review labels are assertions only. Recording a platform marker confirms
+        that an editor checked the captured structure and provenance; it is not scientific peer
+        review and does not certify that a claim is correct.
+      </p>
+      <form method="get" className="filters" style={{ marginBottom: "1rem" }}>
+        <div className="field">
+          <label htmlFor="trustFilter">Queue state</label>
+          <select id="trustFilter" name="trustFilter" defaultValue={trustFilter}>
+            <option value="needs-review">Needs review</option>
+            <option value="stale">Stale marker</option>
+            <option value="legacy">Legacy/unknown provenance</option>
+            <option value="verified">Platform reviewed</option>
+            <option value="all">All</option>
+          </select>
+        </div>
+        <button className="btn btn-secondary" type="submit">
+          Filter queue
+        </button>
+      </form>
+      {trustQueue.length === 0 ? (
+        <Card>
+          <p className="muted">No TRUST records match this queue filter.</p>
+        </Card>
+      ) : (
+        trustQueue.map((item) => (
+          <Card as="article" key={item.assessmentId}>
+            <div className="btn-row">
+              <ProvenanceBadge
+                kind={
+                  item.verificationState === "platform-verified"
+                    ? "human-reviewed"
+                    : item.verificationState === "unverified-import"
+                      ? "repository-fact"
+                      : "warning"
+                }
+              >
+                {item.verificationState.replaceAll("-", " ")}
+              </ProvenanceBadge>
+              <a href={`/reviews/${item.reviewSlug}`} className="mono">
+                {item.reviewSlug}
+              </a>
+              <span className="muted">{item.relationType}</span>
+            </div>
+            <p className="claim-text">{item.claimText}</p>
+            <p className="muted">
+              Citation {item.citationLocalId}
+              {item.citationTitle ? ` — ${item.citationTitle}` : ""}
+            </p>
+            <div className="table-scroll">
+              <table className="data">
+                <thead>
+                  <tr>
+                    <th>Provenance</th>
+                    <th>Status</th>
+                    <th>Assessor</th>
+                    <th>Aggregate</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Repository assertion</td>
+                    <td>{item.sourceReviewStatus ?? "not supplied"}</td>
+                    <td>{item.sourceAssessorType ?? "not supplied"}</td>
+                    <td>{item.sourceAggregateScore ?? "null / not supplied"}</td>
+                  </tr>
+                  <tr>
+                    <td>Atlas-computed public value</td>
+                    <td>{item.effectiveStatus.replaceAll("-", " ")}</td>
+                    <td>{item.reviewerLogin ?? "not reviewed"}</td>
+                    <td>{item.computedAggregateScore ?? "not computable"}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            {item.rationale ? (
+              <p className="muted">
+                Existing marker ({item.reviewerRoleSnapshot}): {item.rationale}
+              </p>
+            ) : null}
+            <TrustVerificationForm
+              assessmentId={item.assessmentId}
+              revision={item.revision}
+              assessmentHash={item.assessmentHash}
+            />
           </Card>
         ))
       )}

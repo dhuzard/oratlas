@@ -1,4 +1,15 @@
 import { createHash } from "node:crypto";
+import {
+  canonicalJson,
+  type CompatibilityReport,
+  type SubmissionValidationReport,
+  type TrustRecord,
+} from "@oratlas/contracts";
+import {
+  normalizeImportedTrustRecord,
+  reviewedTrustSubjectHash,
+  trustSubjectInputFromDatabaseRows,
+} from "@oratlas/trust";
 import { PrismaClient } from "../../generated/client/index.js";
 import {
   EXTRACTOR_VERSION,
@@ -10,13 +21,16 @@ import {
   seedUsers,
   type SeedRelation,
   type SeedReview,
-  type SeedTrust,
 } from "./data.js";
 
 const prisma = new PrismaClient();
 
 function contentHash(input: unknown): string {
   return createHash("sha256").update(JSON.stringify(input)).digest("hex");
+}
+
+function sha256(value: string): string {
+  return createHash("sha256").update(value, "utf8").digest("hex");
 }
 
 function buildMetadataJson(review: SeedReview) {
@@ -31,28 +45,7 @@ function buildMetadataJson(review: SeedReview) {
   });
 }
 
-function trustColumns(trust: SeedTrust) {
-  const cols: Record<string, string | null> = {
-    identityIntegrity: null,
-    entailment: null,
-    sourceAccess: null,
-    populationRelevance: null,
-    interventionExposureRelevance: null,
-    outcomeRelevance: null,
-    methodologicalSafeguards: null,
-    statisticalSafeguards: null,
-    replicationConvergence: null,
-    conflictDependency: null,
-  };
-  for (const [criterion, value] of Object.entries(trust.criteria)) {
-    if (criterion in cols) {
-      cols[criterion] = JSON.stringify({ status: "assessed", ...value });
-    }
-  }
-  return cols;
-}
-
-async function seedReview(review: SeedReview) {
+async function seedReview(review: SeedReview, editorId: string) {
   const repo = await prisma.repository.create({
     data: {
       host: "github.com",
@@ -93,6 +86,7 @@ async function seedReview(review: SeedReview) {
   const reviewRow = await prisma.review.create({
     data: {
       slug: review.slug,
+      repositoryId: repo.id,
       currentSnapshotId: snapshot.id,
       title: review.title,
       abstract: review.abstract,
@@ -108,6 +102,12 @@ async function seedReview(review: SeedReview) {
     data: {
       reviewId: reviewRow.id,
       snapshotId: snapshot.id,
+      sourceKind: review.snapshot.releaseTag ? "release" : "default-branch",
+      sourceBranch: review.snapshot.releaseTag ? null : review.snapshot.branch,
+      sourceSelectionKey: review.snapshot.releaseTag
+        ? `release:${review.snapshot.releaseTag}`
+        : `default-branch:${review.snapshot.branch}`,
+      sourceCreatedAt: new Date("2026-06-01T00:00:00.000Z"),
       semanticVersion: review.version.semanticVersion,
       title: review.title,
       abstract: review.abstract,
@@ -116,6 +116,7 @@ async function seedReview(review: SeedReview) {
       conceptDoi: review.version.conceptDoi,
       zenodoRecordId: review.version.zenodoRecordId,
       releaseTag: review.version.releaseTag,
+      releaseUrl: review.snapshot.releaseUrl,
       isExample: review.version.isExample,
       publishedAt: new Date("2026-06-15T00:00:00.000Z"),
     },
@@ -227,6 +228,7 @@ async function seedReview(review: SeedReview) {
 
   // Claims
   const claimIdByLocal = new Map<string, string>();
+  const claimByLocal = new Map<string, Awaited<ReturnType<typeof prisma.claim.create>>>();
   for (const claim of review.claims) {
     const row = await prisma.claim.create({
       data: {
@@ -241,10 +243,12 @@ async function seedReview(review: SeedReview) {
       },
     });
     claimIdByLocal.set(claim.localId, row.id);
+    claimByLocal.set(claim.localId, row);
   }
 
   // Citations
   const citationIdByLocal = new Map<string, string>();
+  const citationByLocal = new Map<string, Awaited<ReturnType<typeof prisma.citation.create>>>();
   for (const citation of review.citations) {
     const row = await prisma.citation.create({
       data: {
@@ -259,6 +263,7 @@ async function seedReview(review: SeedReview) {
       },
     });
     citationIdByLocal.set(citation.localId, row.id);
+    citationByLocal.set(citation.localId, row);
   }
 
   // Relations + TRUST
@@ -274,24 +279,81 @@ async function seedReview(review: SeedReview) {
         supportDirection: rel.supportDirection,
         extractionMethod: "seed",
         extractionConfidence: 0.9,
-        humanReviewed: rel.humanReviewed ?? false,
+        humanReviewed: false,
       },
     });
     if (rel.trust) {
-      await prisma.trustAssessment.create({
+      const sourceAssessedAt = rel.trust.assessedAt ?? "2026-06-10T00:00:00.000Z";
+      const sourceRecord: TrustRecord = {
+        claimId: rel.claimLocalId,
+        citationId: rel.citationLocalId,
+        protocolVersion: TRUST_PROTOCOL_VERSION,
+        assessorType: rel.trust.assessorType,
+        assessorId: rel.trust.assessorId,
+        assessedAt: sourceAssessedAt,
+        criteria: Object.fromEntries(
+          Object.entries(rel.trust.criteria).map(([criterion, value]) => [
+            criterion,
+            { status: "assessed" as const, ...value },
+          ]),
+        ),
+        limitations: rel.trust.limitations,
+        evidence: rel.trust.evidence,
+        aggregateScore: rel.trust.aggregateScore,
+        aggregateMethod: rel.trust.aggregateMethod,
+        reviewStatus: rel.trust.reviewStatus,
+      };
+      const imported = normalizeImportedTrustRecord(sourceRecord, rel.humanReviewed ?? null);
+      const assessment = await prisma.trustAssessment.create({
         data: {
           claimEvidenceRelationId: relation.id,
-          protocolVersion: TRUST_PROTOCOL_VERSION,
-          assessorType: rel.trust.assessorType,
-          assessorId: rel.trust.assessorId,
-          assessedAt: new Date("2026-06-10T00:00:00.000Z"),
-          ...trustColumns(rel.trust),
-          limitationsJson: JSON.stringify(rel.trust.limitations ?? []),
-          aggregateScore: rel.trust.aggregateScore,
-          aggregateMethod: rel.trust.aggregateMethod,
-          reviewStatus: rel.trust.reviewStatus,
+          protocolVersion: imported.record.protocolVersion,
+          assessorType: imported.record.assessorType,
+          assessorId: imported.record.assessorId,
+          assessedAt: imported.record.assessedAt ? new Date(imported.record.assessedAt) : null,
+          ...imported.criterionColumns,
+          limitationsJson: imported.limitationsJson,
+          evidenceJson: imported.evidenceJson,
+          aggregateScore: imported.aggregateScore,
+          aggregateMethod: imported.aggregateMethod,
+          reviewStatus: imported.reviewStatus,
+          sourceRecordJson: imported.sourceRecordJson,
+          sourceReviewStatus: imported.sourceReviewStatus,
+          sourceAssessorType: imported.sourceAssessorType,
+          sourceAssessorId: imported.sourceAssessorId,
+          sourceAssessedAt: imported.sourceAssessedAt ? new Date(imported.sourceAssessedAt) : null,
+          sourceEvidenceJson: imported.sourceEvidenceJson,
+          sourceAggregateScore: imported.sourceAggregateScore,
+          sourceAggregateMethod: imported.sourceAggregateMethod,
+          sourceRelationHumanReviewed: imported.sourceRelationHumanReviewed,
         },
       });
+
+      // Seeded review is an explicit platform fixture, represented with the
+      // same separate marker and canonical hash used by production editorial
+      // verification. Repository flags alone never create this marker.
+      if (rel.humanReviewed || rel.trust.reviewStatus === "human-reviewed") {
+        const claimRow = claimByLocal.get(rel.claimLocalId);
+        const citationRow = citationByLocal.get(rel.citationLocalId);
+        if (claimRow && citationRow) {
+          const subject = trustSubjectInputFromDatabaseRows({
+            assessment,
+            relation,
+            claim: claimRow,
+            citation: citationRow,
+          });
+          await prisma.trustVerification.create({
+            data: {
+              trustAssessmentId: assessment.id,
+              status: "human-reviewed",
+              reviewerId: editorId,
+              reviewerRoleSnapshot: "EDITOR",
+              rationale: "Synthetic fixture structurally reviewed by the Atlas demo editor.",
+              assessmentHash: reviewedTrustSubjectHash(subject),
+            },
+          });
+        }
+      }
     }
   }
 
@@ -300,6 +362,7 @@ async function seedReview(review: SeedReview) {
 
 async function seedReviewComments(
   reviewIdBySlug: Map<string, string>,
+  versionIdBySlug: Map<string, string>,
   claimIdsBySlug: Map<string, Map<string, string>>,
   userIdByLogin: Map<string, string>,
 ) {
@@ -307,7 +370,8 @@ async function seedReviewComments(
   for (const comment of seedComments) {
     const reviewId = reviewIdBySlug.get(comment.reviewSlug);
     const authorId = userIdByLogin.get(comment.authorLogin);
-    if (!reviewId || !authorId) continue;
+    const reviewVersionId = versionIdBySlug.get(comment.reviewSlug);
+    if (!reviewId || !reviewVersionId || !authorId) continue;
     const claimId = comment.claimLocalId
       ? claimIdsBySlug.get(comment.reviewSlug)?.get(comment.claimLocalId)
       : undefined;
@@ -316,6 +380,7 @@ async function seedReviewComments(
     const row = await prisma.reviewComment.create({
       data: {
         reviewId,
+        reviewVersionId,
         authorId,
         parentId,
         claimId: claimId ?? null,
@@ -339,6 +404,7 @@ async function main() {
     const row = await prisma.user.create({
       data: {
         githubLogin: u.githubLogin,
+        githubLoginNormalized: u.githubLogin.normalize("NFKC").toLowerCase(),
         githubUserId: u.githubUserId,
         displayName: u.displayName,
         role: u.role,
@@ -351,15 +417,20 @@ async function main() {
   // Reviews
   const claimIdsBySlug = new Map<string, Map<string, string>>();
   const reviewIdBySlug = new Map<string, string>();
+  const versionIdBySlug = new Map<string, string>();
   for (const review of seedReviews) {
-    const { reviewRow, claimIdByLocal } = await seedReview(review);
+    const { reviewRow, version, claimIdByLocal } = await seedReview(
+      review,
+      users.get("atlas-editor")!,
+    );
     claimIdsBySlug.set(review.slug, claimIdByLocal);
     reviewIdBySlug.set(review.slug, reviewRow.id);
+    versionIdBySlug.set(review.slug, version.id);
     console.info(`  · seeded review: ${review.slug}`);
   }
 
   // Community comments on published reviews
-  await seedReviewComments(reviewIdBySlug, claimIdsBySlug, users);
+  await seedReviewComments(reviewIdBySlug, versionIdBySlug, claimIdsBySlug, users);
 
   // Pending submission (its own repository + snapshot, no accepted review)
   const submitterId = users.get("atlas-submitter")!;
@@ -379,6 +450,7 @@ async function main() {
     data: {
       repositoryId: pendingRepo.id,
       commitSha: pendingSubmission.snapshot.commitSha,
+      sourceTreeSha: pendingSubmission.snapshot.treeSha,
       branch: pendingSubmission.snapshot.branch,
       inspectionStatus: "succeeded",
       inspectionReportJson: JSON.stringify({ schemaVersion: "1.0.0", note: "seed pending" }),
@@ -404,44 +476,97 @@ async function main() {
     },
     warnings: ["No review-manifest.json found; title extracted heuristically from README."],
   };
+  // Immutable payload an editor can accept (materializes a review). Kept
+  // minimal — repository-only, no knowledge artifacts — but it must satisfy
+  // the strict canonical-payload contract acceptance enforces: canonical
+  // JSON, a capture hash, and a full compatibility + validation report.
+  const absentSignal = { detected: false, evidence: [] };
+  const pendingCompatibility: CompatibilityReport = {
+    schemaVersion: "1.0.0",
+    templateForkDetected: absentSignal,
+    templateFilesDetected: absentSignal,
+    mystProjectDetected: absentSignal,
+    bibliographyDetected: absentSignal,
+    reviewContentDetected: {
+      detected: true,
+      evidence: ["README.md describes a computational review draft."],
+    },
+    provenanceDetected: absentSignal,
+    trustDataDetected: absentSignal,
+    releaseDetected: absentSignal,
+    doiDetected: absentSignal,
+    overallCompatibility: "partially-compatible",
+    levelRationale: [
+      "Review content detected without a release, DOI or manifest; eligible as repository-only.",
+    ],
+    blockingErrors: [],
+    warnings: [],
+    recommendations: ["Add review-manifest.json and mint a Zenodo DOI for a future version."],
+  };
+  const pendingValidation: SubmissionValidationReport = {
+    schemaVersion: "1.0.0",
+    hardErrors: [],
+    warnings: ["No DOI supplied; eligible as repository-only."],
+    releaseValidation: { releaseDetected: false, details: ["No release found."] },
+    publicationConsistency: {
+      schemaVersion: "1.0.0",
+      status: "not-applicable",
+      selectedSourceKind: "default-branch",
+      selectedCommitSha: pendingSubmission.snapshot.commitSha,
+      selectedTreeSha: pendingSubmission.snapshot.treeSha,
+      checks: [],
+      errors: [],
+      warnings: ["No release or DOI is linked; nothing to cross-check."],
+      overridableCheckIds: [],
+      requiresEditorOverride: false,
+    },
+    metadataCompleteness: {
+      requiredMissing: [],
+      recommendedMissing: ["keywords"],
+      score: 0.6,
+    },
+    compatibilityLevel: "partially-compatible",
+    evidenceDataAvailable: false,
+    trustDataAvailable: false,
+    validatedAt: "2026-07-01T12:00:00.000Z",
+  };
+  const pendingPayloadJson = canonicalJson({
+    schemaVersion: "1.0.0",
+    // Synthetic capture hash: the seed has no real inspection capture, but the
+    // payload contract requires the hash of the capture it was derived from.
+    capturePayloadHash: contentHash({
+      capture: pendingSubmission.repository.canonicalUrl,
+      commitSha: pendingSubmission.snapshot.commitSha,
+    }),
+    effectiveMetadata: {
+      title: pendingSubmission.title,
+      abstract: pendingSubmission.abstract,
+      authors: [],
+      keywords: [],
+      domains: ["Neuroscience"],
+      reviewType: "computational-literature-review",
+      repositoryUrl: pendingSubmission.repository.canonicalUrl,
+    },
+    compatibilityLevel: pendingCompatibility.overallCompatibility,
+    compatibilityReport: pendingCompatibility,
+    validation: pendingValidation,
+    knowledge: { claims: [], citations: [], relations: [], trust: [], warnings: [] },
+  });
   await prisma.submission.create({
     data: {
       submitterId,
       repositoryId: pendingRepo.id,
       snapshotId: pendingSnapshot.id,
+      sourceKind: "default-branch",
+      sourceBranch: pendingSubmission.snapshot.branch,
+      sourceSelectionKey: `default-branch:${pendingSubmission.snapshot.branch}`,
       status: pendingSubmission.status,
       extractedMetadataJson: JSON.stringify(extractedMetadata),
       editedMetadataJson: JSON.stringify({ edits: {} }),
-      // Immutable payload an editor can accept (materializes a review). Kept
-      // minimal: repository-only, no knowledge artifacts.
-      submittedPayloadJson: JSON.stringify({
-        effectiveMetadata: {
-          title: pendingSubmission.title,
-          abstract: pendingSubmission.abstract,
-          authors: [],
-          keywords: [],
-          domains: ["Neuroscience"],
-          reviewType: "computational-literature-review",
-          repositoryUrl: pendingSubmission.repository.canonicalUrl,
-        },
-        compatibilityLevel: "partially-compatible",
-        knowledge: { claims: [], citations: [], relations: [], trust: [] },
-      }),
-      validationReportJson: JSON.stringify({
-        schemaVersion: "1.0.0",
-        hardErrors: [],
-        warnings: ["No DOI supplied; eligible as repository-only."],
-        releaseValidation: { releaseDetected: false, details: ["No release found."] },
-        metadataCompleteness: {
-          requiredMissing: [],
-          recommendedMissing: ["abstract", "keywords"],
-          score: 0.6,
-        },
-        compatibilityLevel: "partially-compatible",
-        evidenceDataAvailable: false,
-        trustDataAvailable: false,
-        validatedAt: "2026-07-01T12:00:00.000Z",
-      }),
+      submittedPayloadJson: pendingPayloadJson,
+      submittedPayloadHash: sha256(pendingPayloadJson),
+      validationReportJson: canonicalJson(pendingValidation),
+      publicationConsistencyJson: canonicalJson(pendingValidation.publicationConsistency),
       submittedAt: new Date("2026-07-02T09:00:00.000Z"),
     },
   });

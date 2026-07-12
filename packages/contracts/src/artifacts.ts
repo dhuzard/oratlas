@@ -75,8 +75,10 @@ export const trustRecordSchema = z.object({
   criteria: z.object(criteriaShape),
   limitations: z.array(z.string().max(2_000)).max(50).optional(),
   evidence: z.record(z.string(), z.unknown()).optional(),
-  aggregateScore: z.number().min(0).max(1).optional(),
-  aggregateMethod: z.string().max(200).optional(),
+  // Explicit null is retained as a source assertion. Atlas recomputes the
+  // public aggregate from criterion-level data after import.
+  aggregateScore: z.number().min(0).max(1).nullable().optional(),
+  aggregateMethod: z.string().max(200).nullable().optional(),
   reviewStatus: assessmentReviewStatusSchema.default("agent-proposed"),
 });
 export type TrustRecord = z.infer<typeof trustRecordSchema>;

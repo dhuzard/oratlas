@@ -21,6 +21,9 @@ export interface EditorialSubmission {
   submitterLogin: string;
   repository: { canonicalUrl: string; owner: string; name: string };
   commitSha?: string;
+  treeSha?: string;
+  sourceKind?: string;
+  capturePayloadHash?: string;
   validation?: SubmissionValidationReport;
   metadataDiff: MetadataDiffRow[];
   editorialNote?: string;
@@ -41,7 +44,7 @@ export async function listSubmissions(statuses?: string[]): Promise<EditorialSub
   const submissions = await prisma.submission.findMany({
     where: statuses ? { status: { in: statuses } } : undefined,
     orderBy: { createdAt: "desc" },
-    include: { submitter: true, repository: true, snapshot: true },
+    include: { submitter: true, repository: true, snapshot: true, inspectionCapture: true },
     take: 100,
   });
 
@@ -81,6 +84,9 @@ export async function listSubmissions(statuses?: string[]): Promise<EditorialSub
         name: s.repository.name,
       },
       commitSha: s.snapshot?.commitSha,
+      treeSha: s.snapshot?.sourceTreeSha ?? undefined,
+      sourceKind: s.sourceKind ?? s.snapshot?.sourceKind ?? undefined,
+      capturePayloadHash: s.inspectionCapture?.payloadHash,
       validation,
       metadataDiff,
       editorialNote: s.editorialNote ?? undefined,

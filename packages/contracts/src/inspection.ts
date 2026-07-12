@@ -34,6 +34,14 @@ export const repoReleaseSchema = z.object({
 });
 export type RepoRelease = z.infer<typeof repoReleaseSchema>;
 
+/** A caller must deliberately choose the mutable default branch or an exact tag/release. */
+export const repoSourceSelectionSchema = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("default-branch") }),
+  z.object({ kind: z.literal("tag"), tag: z.string().trim().min(1).max(120) }),
+  z.object({ kind: z.literal("release"), tag: z.string().trim().min(1).max(120) }),
+]);
+export type RepoSourceSelection = z.infer<typeof repoSourceSelectionSchema>;
+
 /**
  * Result of bounded server-side inspection of a public GitHub repository.
  * Produced by @oratlas/github; consumed by the extractor and the wizard.
@@ -43,7 +51,8 @@ export const inspectionReportSchema = z.object({
   repo: repoRefSchema,
   inspectedAt: z.string().datetime(),
   status: inspectionStatusSchema,
-  githubRepositoryId: z.number().int().optional(),
+  /** Immutable GitHub repository database id (stored as a decimal string). */
+  githubRepositoryId: z.string().regex(/^\d+$/).optional(),
   description: z.string().nullable().optional(),
   defaultBranch: z.string().optional(),
   latestCommitSha: commitShaSchema.optional(),
@@ -60,8 +69,23 @@ export const inspectionReportSchema = z.object({
   starCount: z.number().int().optional(),
   createdAt: z.string().optional(),
   pushedAt: z.string().optional(),
-  tags: z.array(z.object({ name: z.string(), commitSha: z.string() })).default([]),
+  tags: z.array(z.object({ name: z.string(), commitSha: commitShaSchema })).default([]),
   releases: z.array(repoReleaseSchema).default([]),
+  /** Exact source selected for this inspection. No implicit release guessing. */
+  selectedSource: z
+    .object({
+      kind: z.enum(["default-branch", "tag", "release"]),
+      commitSha: commitShaSchema,
+      branch: z.string().optional(),
+      releaseTag: z.string().optional(),
+      releaseUrl: z.string().url().optional(),
+      /** SHA of an annotated tag object; absent for lightweight tags. */
+      tagObjectSha: commitShaSchema.optional(),
+      /** Tree object belonging to commitSha; tree traversal is always pinned here. */
+      treeSha: commitShaSchema,
+      sourceCreatedAt: z.string().datetime().optional(),
+    })
+    .optional(),
   /** Full file listing (paths + sizes) up to the traversal bound. */
   tree: z.array(z.object({ path: z.string(), size: z.number().int().nonnegative() })).default([]),
   treeTruncated: z.boolean().default(false),

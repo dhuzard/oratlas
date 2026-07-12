@@ -51,6 +51,7 @@ export class InProcessSearchProvider implements SearchProvider {
   }
 
   searchReviews(query: ArchiveSearchQuery): SearchResult<IndexedReview & { score: number }> {
+    const hasTextQuery = Boolean(query.q?.trim());
     const qTokens = query.q ? tokenize(query.q) : [];
     const rows = this.data.reviews.filter((r) => this.reviewMatchesFilters(r, query));
 
@@ -62,8 +63,11 @@ export class InProcessSearchProvider implements SearchProvider {
           : 0,
     }));
 
-    if (qTokens.length > 0) {
-      scored = scored.filter((r) => r.score > 0 || query.sort !== "relevance");
+    if (hasTextQuery) {
+      // Sorting changes ordering, never membership. Previously a date/title
+      // sort retained every review when none matched q. A nonempty query that
+      // reduces to stopwords/punctuation also intentionally matches nothing.
+      scored = scored.filter((r) => r.score > 0);
     }
 
     scored.sort((a, b) => {
@@ -107,6 +111,7 @@ export class InProcessSearchProvider implements SearchProvider {
   }
 
   searchClaims(query: ClaimSearchQuery): SearchResult<IndexedClaim & { score: number }> {
+    const hasTextQuery = Boolean(query.q?.trim());
     const qTokens = query.q ? tokenize(query.q) : [];
     const rows = this.data.claims.filter((c) => this.claimMatchesFilters(c, query));
 
@@ -117,7 +122,7 @@ export class InProcessSearchProvider implements SearchProvider {
           ? lexicalScore(qTokens, this.claimTokens.get(c.claimId) ?? new Set())
           : 0,
     }));
-    if (qTokens.length > 0) scored = scored.filter((c) => c.score > 0);
+    if (hasTextQuery) scored = scored.filter((c) => c.score > 0);
     scored.sort((a, b) => b.score - a.score || a.reviewTitle.localeCompare(b.reviewTitle));
 
     return paginate(scored, query.page, query.pageSize);

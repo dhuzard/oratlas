@@ -1,4 +1,10 @@
-import { type AssessmentReviewStatus, type ClaimEvidenceRelationType } from "@oratlas/contracts";
+import {
+  type AssessmentReviewStatus,
+  type CanonicalWorkAlias,
+  type ClaimEvidenceRelationType,
+  type TrustVerificationState,
+  type WorkIdentityAssertion,
+} from "@oratlas/contracts";
 
 /**
  * Denormalized, framework-free views the knowledge layer operates on. The web
@@ -19,7 +25,7 @@ export interface IndexedReview {
   acceptedAt?: string;
   updatedAt?: string;
   publicationYear?: number;
-  commitSha?: string;
+  commitSha: string;
   versionDoi?: string;
   conceptDoi?: string;
   hasDoi: boolean;
@@ -32,7 +38,13 @@ export interface IndexedReview {
 
 export interface IndexedCitation {
   citationId: string;
+  localCitationId: string;
+  reviewVersionId: string;
+  workId: string;
+  canonicalWorkAliases: CanonicalWorkAlias[];
   doi?: string;
+  pmid?: string;
+  openAlexId?: string;
   title?: string;
   year?: number;
   source?: string;
@@ -40,6 +52,7 @@ export interface IndexedCitation {
 
 export interface IndexedTrust {
   reviewStatus: AssessmentReviewStatus;
+  verificationState: TrustVerificationState;
   aggregateScore?: number;
   aggregateMethod?: string;
   notableCriteria: string[];
@@ -53,15 +66,19 @@ export interface IndexedRelation {
 
 export interface IndexedClaim {
   claimId: string;
+  localClaimId: string;
   reviewSlug: string;
   reviewId: string;
   reviewVersionId: string;
   reviewTitle: string;
   text: string;
   section?: string;
-  anchor?: string;
+  /** Atlas-owned durable DOM anchor. */
+  anchor: string;
+  /** Repository-provided anchor retained only as untrusted metadata. */
+  sourceAnchor?: string;
   claimType?: string;
-  commitSha?: string;
+  commitSha: string;
   versionDoi?: string;
   relations: IndexedRelation[];
 }
@@ -70,4 +87,5 @@ export interface KnowledgeIndexData {
   reviews: IndexedReview[];
   claims: IndexedClaim[];
   citations: IndexedCitation[];
+  identifierConflicts: WorkIdentityAssertion[];
 }

@@ -6,6 +6,16 @@ interface InspectResponse {
   inspectionStatus: string;
   inspectionWarnings: string[];
   inspectionError?: string;
+  captureToken: string;
+  captureExpiresAt: string;
+  capturePayloadHash: string;
+  selectedSource: {
+    kind: "default-branch" | "tag" | "release";
+    commitSha: string;
+    treeSha: string;
+    branch?: string;
+    releaseTag?: string;
+  };
   effectiveMetadata: Record<string, unknown>;
   extractedMetadata: {
     fields: Record<string, { value: unknown; provenance: { source: string; confidence: number } }>;
@@ -32,6 +42,13 @@ interface InspectResponse {
       versionDoi?: { status: string; confidence: string; warnings: string[]; errors: string[] };
       conceptDoi?: { status: string; confidence: string };
     };
+    publicationConsistency?: {
+      status: "pass" | "warn" | "fail" | "not-applicable";
+      checks: Array<{ id: string; description: string; outcome: string; details?: string }>;
+      errors: string[];
+      warnings: string[];
+      requiresEditorOverride: boolean;
+    };
   };
   knowledgeCounts: { claims: number; citations: number; relations: number; trust: number };
 }
@@ -53,6 +70,10 @@ const STEPS = ["Repository", "Inspect", "Review metadata", "Validation", "Submit
 export function SubmitWizard({ signedIn }: { signedIn: boolean }) {
   const [step, setStep] = useState(0);
   const [url, setUrl] = useState("");
+  const [sourceKind, setSourceKind] = useState<"default-branch" | "tag" | "release">(
+    "default-branch",
+  );
+  const [sourceTag, setSourceTag] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [inspection, setInspection] = useState<InspectResponse | null>(null);
@@ -66,7 +87,13 @@ export function SubmitWizard({ signedIn }: { signedIn: boolean }) {
       const res = await fetch("/api/inspect", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url }),
+        body: JSON.stringify({
+          url,
+          source:
+            sourceKind === "default-branch"
+              ? { kind: "default-branch" }
+              : { kind: sourceKind, tag: sourceTag.trim() },
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -98,7 +125,7 @@ export function SubmitWizard({ signedIn }: { signedIn: boolean }) {
       const res = await fetch("/api/submissions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: inspection.repo.canonicalUrl, editedMetadata }),
+        body: JSON.stringify({ inspectionToken: inspection.captureToken, editedMetadata }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -132,8 +159,8 @@ export function SubmitWizard({ signedIn }: { signedIn: boolean }) {
 
       {!signedIn ? (
         <div className="notice notice-warning">
-          You must <a href="/signin">sign in</a> to finalize a submission. You can still inspect a
-          repository.
+          You must <a href="/signin">sign in</a> before inspection so the expiring submission
+          capability can be bound to your account.
         </div>
       ) : null}
 
@@ -154,7 +181,46 @@ export function SubmitWizard({ signedIn }: { signedIn: boolean }) {
               cloned or executed.
             </small>
           </div>
-          <button className="btn" onClick={inspect} disabled={loading || url.trim().length === 0}>
+          <div className="field">
+            <label htmlFor="source-kind">Source to capture</label>
+            <select
+              id="source-kind"
+              value={sourceKind}
+              onChange={(event) =>
+                setSourceKind(event.target.value as "default-branch" | "tag" | "release")
+              }
+            >
+              <option value="default-branch">Repository only — current default branch</option>
+              <option value="release">Published GitHub release</option>
+              <option value="tag">Git tag that is not a published release</option>
+            </select>
+            <small>
+              This choice is explicit and is pinned to the commit resolved during inspection.
+            </small>
+          </div>
+          {sourceKind !== "default-branch" ? (
+            <div className="field">
+              <label htmlFor="source-tag">Exact tag</label>
+              <input
+                id="source-tag"
+                type="text"
+                value={sourceTag}
+                onChange={(event) => setSourceTag(event.target.value)}
+                placeholder="v1.2.0"
+                autoComplete="off"
+              />
+            </div>
+          ) : null}
+          <button
+            className="btn"
+            onClick={inspect}
+            disabled={
+              loading ||
+              !signedIn ||
+              url.trim().length === 0 ||
+              (sourceKind !== "default-branch" && sourceTag.trim().length === 0)
+            }
+          >
             {loading ? "Inspecting…" : "Inspect repository"}
           </button>
         </div>
@@ -169,6 +235,13 @@ export function SubmitWizard({ signedIn }: { signedIn: boolean }) {
           </p>
           <p>
             <strong>Compatibility:</strong> {inspection.compatibility.overallCompatibility}
+          </p>
+          <p className="mono">
+            Captured {inspection.selectedSource.kind}: {inspection.selectedSource.commitSha}
+          </p>
+          <p className="muted">
+            Capability expires {new Date(inspection.captureExpiresAt).toLocaleString()}; exact
+            capture SHA-256 {inspection.capturePayloadHash}.
           </p>
           {EDITABLE_FIELDS.map((f) => {
             const field = inspection.extractedMetadata.fields[f.key];
@@ -305,6 +378,31 @@ function ValidationView({ inspection }: { inspection: InspectResponse }) {
           connect the repository to Zenodo and publish a release.
         </p>
       )}
+
+      {v.publicationConsistency ? (
+        <div
+          className={`notice ${
+            v.publicationConsistency.status === "fail"
+              ? "notice-error"
+              : v.publicationConsistency.status === "warn"
+                ? "notice-warning"
+                : "notice-success"
+          }`}
+        >
+          <strong>Release / DOI / commit consistency: {v.publicationConsistency.status}</strong>
+          <ul>
+            {v.publicationConsistency.checks.map((check) => (
+              <li key={check.id}>
+                {check.outcome}: {check.description}
+                {check.details ? ` — ${check.details}` : ""}
+              </li>
+            ))}
+          </ul>
+          {v.publicationConsistency.requiresEditorOverride ? (
+            <p>Every failed check requires a separate, audited editor rationale.</p>
+          ) : null}
+        </div>
+      ) : null}
 
       {inspection.compatibility.recommendations.length > 0 ? (
         <div className="notice notice-info">

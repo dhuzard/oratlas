@@ -1,4 +1,3 @@
-import { type EvidencePacket } from "@oratlas/contracts";
 import { buildDiscussionPrompt, DISCUSSION_PROMPT_VERSION, type LlmProvider } from "../discuss.js";
 
 export interface AnthropicProviderOptions {
@@ -28,8 +27,8 @@ export function createAnthropicProvider(options: AnthropicProviderOptions): LlmP
     name: "anthropic",
     model,
     promptVersion: DISCUSSION_PROMPT_VERSION,
-    async complete(packet: EvidencePacket): Promise<string> {
-      const { system, user } = buildDiscussionPrompt(packet);
+    async complete(packetJson: string): Promise<string> {
+      const { system, user } = buildDiscussionPrompt(packetJson);
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), timeoutMs);
       try {
@@ -48,7 +47,7 @@ export function createAnthropicProvider(options: AnthropicProviderOptions): LlmP
             messages: [
               {
                 role: "user",
-                content: `Evidence packet (JSON). Answer the question inside it.\n\n${user}`,
+                content: user,
               },
             ],
           }),

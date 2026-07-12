@@ -44,6 +44,7 @@ export type CommentAuthor = z.infer<typeof commentAuthorSchema>;
 
 const commentBaseSchema = z.object({
   id: z.string(),
+  reviewVersionId: z.string(),
   kind: commentKindSchema,
   status: commentStatusSchema,
   /** Empty when status is "removed" — the body is never served for those. */
@@ -61,6 +62,7 @@ export type ReviewComment = z.infer<typeof reviewCommentSchema>;
 
 export const reviewCommentListSchema = z.object({
   reviewSlug: z.string(),
+  reviewVersionId: z.string(),
   /** Visible comments + replies. */
   commentCount: z.number().int(),
   comments: z.array(reviewCommentSchema),

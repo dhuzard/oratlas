@@ -98,7 +98,9 @@ export default async function HomePage() {
                 <Link href="/archive?hasTrustData=true">Has TRUST data</Link>
               </li>
               <li>
-                <Link href="/archive?trustReviewState=human-reviewed">Human-reviewed TRUST</Link>
+                <Link href="/archive?trustReviewState=human-reviewed">
+                  Atlas-reviewed TRUST structure
+                </Link>
               </li>
             </ul>
             {domains.length > 0 ? (
@@ -118,7 +120,7 @@ export default async function HomePage() {
             <ProvenanceLegend />
             <p className="muted">
               The interface always distinguishes repository facts, extracted metadata, human-curated
-              metadata, agent proposals, and human-reviewed records.
+              metadata, repository assertions, agent proposals, and Atlas structural-review records.
             </p>
           </Card>
         </aside>

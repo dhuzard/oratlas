@@ -4,19 +4,53 @@ import { type ReviewTrust } from "@/lib/reviews";
 /**
  * Renders a TRUST assessment for a claim–citation relation. Never shows an
  * aggregate without the criterion detail and the aggregate method (spec §11).
- * Clearly marks agent-proposed vs human-reviewed.
+ * Clearly separates repository assertions from Atlas verification.
  */
 export function TrustDisplay({ trust }: { trust: ReviewTrust }) {
-  const isHuman = trust.reviewStatus === "human-reviewed" || trust.reviewStatus === "adjudicated";
+  const platformVerified = trust.verificationState === "platform-verified";
   return (
     <div className="trust-block">
       <div className="btn-row" style={{ marginBottom: "0.4rem" }}>
-        <ProvenanceBadge kind={isHuman ? "human-reviewed" : "agent-proposed"}>
-          {trust.reviewStatus.replace(/-/g, " ")}
-        </ProvenanceBadge>
-        <span className="muted">assessor: {trust.assessorType}</span>
+        {platformVerified ? (
+          <ProvenanceBadge kind="human-reviewed">
+            {trust.reviewStatus === "adjudicated"
+              ? "Atlas structurally adjudicated"
+              : "Atlas structurally reviewed"}
+          </ProvenanceBadge>
+        ) : trust.verificationState === "stale-verification" ? (
+          <ProvenanceBadge kind="warning">Atlas verification is stale</ProvenanceBadge>
+        ) : trust.verificationState === "legacy-unknown" ? (
+          <ProvenanceBadge kind="warning">Legacy provenance unknown</ProvenanceBadge>
+        ) : (
+          <ProvenanceBadge kind="repository-fact">
+            Repository assertion — not verified by Atlas
+          </ProvenanceBadge>
+        )}
         <span className="muted">protocol {trust.protocolVersion}</span>
       </div>
+
+      <p className="muted" style={{ fontSize: "0.85rem" }}>
+        Repository assertion: status {trust.sourceAssertion.reviewStatus ?? "not supplied"};
+        assessor type {trust.sourceAssertion.assessorType ?? trust.assessorType}
+        {trust.sourceAssertion.assessorId ? ` (${trust.sourceAssertion.assessorId})` : ""}
+        {trust.sourceAssertion.relationHumanReviewed === true
+          ? "; relation was labelled human-reviewed by the repository"
+          : ""}
+        . Repository labels are preserved as provenance and do not become Atlas verification.
+      </p>
+
+      {platformVerified && trust.platformVerification ? (
+        <p className="muted" style={{ fontSize: "0.85rem" }}>
+          Atlas marker: {trust.platformVerification.reviewerLogin} (
+          {trust.platformVerification.reviewerRoleSnapshot}) —{" "}
+          {trust.platformVerification.rationale}
+        </p>
+      ) : trust.verificationState === "stale-verification" ? (
+        <p className="muted" style={{ fontSize: "0.85rem" }}>
+          The reviewed content changed after an Atlas marker was recorded, so the marker no longer
+          applies.
+        </p>
+      ) : null}
 
       {trust.criteria.length === 0 ? (
         <p className="muted">No criterion-level assessments recorded.</p>
@@ -58,11 +92,15 @@ export function TrustDisplay({ trust }: { trust: ReviewTrust }) {
 
       {trust.aggregateScore !== undefined && trust.aggregateScore !== null ? (
         <p className="muted" style={{ fontSize: "0.85rem" }}>
-          Aggregate: <strong>{trust.aggregateScore.toFixed(2)}</strong> via{" "}
+          Atlas-computed aggregate: <strong>{trust.aggregateScore.toFixed(2)}</strong> via{" "}
           <span className="mono">{trust.aggregateMethod}</span> — advisory only; the criterion
           ratings above are authoritative. This is not the probability that the paper is true.
         </p>
       ) : null}
+      <p className="muted" style={{ fontSize: "0.85rem" }}>
+        Atlas review of this record concerns provenance and structural consistency. It is not peer
+        review and does not establish scientific correctness.
+      </p>
     </div>
   );
 }

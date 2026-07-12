@@ -1,8 +1,8 @@
 import { z } from "zod";
 
-/** Full 40-character git commit SHA. */
-export const commitShaSchema = z.string().regex(/^[0-9a-f]{40}$/, {
-  message: "Must be a full 40-character lowercase git commit SHA.",
+/** Full lowercase Git object id: SHA-1 (40 hex) or SHA-256 (64 hex). */
+export const commitShaSchema = z.string().regex(/^(?:[0-9a-f]{40}|[0-9a-f]{64})$/, {
+  message: "Must be a full 40- or 64-character lowercase Git object id.",
 });
 
 /**
@@ -36,6 +36,11 @@ export const githubRepoNameSchema = z
   .max(100)
   .regex(/^[A-Za-z0-9._-]+$/, { message: "Must be a valid GitHub repository name." })
   .refine((n) => n !== "." && n !== "..", { message: "Invalid repository name." });
+
+/** Canonical comparison key for GitHub's case-insensitive login namespace. */
+export function normalizeGitHubLogin(login: string): string {
+  return login.normalize("NFKC").toLowerCase();
+}
 
 export const httpsUrlSchema = z
   .string()
