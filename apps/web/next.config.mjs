@@ -6,6 +6,7 @@ const nextConfig = {
     "@oratlas/config",
     "@oratlas/contracts",
     "@oratlas/db",
+    "@oratlas/exports",
     "@oratlas/extractor",
     "@oratlas/github",
     "@oratlas/knowledge",

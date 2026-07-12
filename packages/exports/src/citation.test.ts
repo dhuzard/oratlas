@@ -1,0 +1,100 @@
+import { describe, expect, it } from "vitest";
+import { bibtex, bibtexEscape, cslJson, ris } from "./citation.js";
+import { EXAMPLE_IDENTIFIER_NOTE, type VersionExportInput } from "./types.js";
+
+const base: VersionExportInput = {
+  slug: "sample-review",
+  versionId: "v-1",
+  title: "A Sample Computational Review",
+  abstract: "An abstract with special chars: & < > 100% #1 _x_.",
+  contributors: [
+    {
+      displayName: "Ada Lovelace",
+      givenName: "Ada",
+      familyName: "Lovelace",
+      orcid: "0000-0002-1825-0097",
+    },
+    { displayName: "Research Collective" },
+  ],
+  keywords: ["neuroscience", "methods"],
+  domains: ["Neuroscience"],
+  licenseSpdx: "CC-BY-4.0",
+  publishedAt: "2026-06-15T00:00:00.000Z",
+  semanticVersion: "1.2.0",
+  versionDoi: "10.5281/zenodo.123456",
+  conceptDoi: "10.5281/zenodo.123455",
+  isExample: false,
+  repositoryUrl: "https://github.com/example-lab/sample-review",
+  commitSha: "a".repeat(40),
+  canonicalUrl: "https://atlas.example.org/reviews/sample-review/versions/v-1",
+};
+
+describe("cslJson", () => {
+  it("maps names, DOI, date and URL", () => {
+    const item = cslJson(base);
+    expect(item.type).toBe("article");
+    expect(item.author).toEqual([
+      { family: "Lovelace", given: "Ada" },
+      { literal: "Research Collective" },
+    ]);
+    expect(item.DOI).toBe("10.5281/zenodo.123456");
+    expect(item.issued).toEqual({ "date-parts": [[2026, 6, 15]] });
+    expect(item.URL).toBe(base.canonicalUrl);
+    expect(item.note).toBeUndefined();
+  });
+
+  it("withholds example DOIs and records the omission", () => {
+    const item = cslJson({ ...base, isExample: true, versionDoi: "10.5555/zenodo.1" });
+    expect(item.DOI).toBeUndefined();
+    expect(item.note).toBe(EXAMPLE_IDENTIFIER_NOTE);
+  });
+});
+
+describe("bibtex", () => {
+  it("emits a doi field only for resolvable identifiers", () => {
+    expect(bibtex(base)).toContain("doi = {10.5281/zenodo.123456}");
+    const example = bibtex({ ...base, isExample: true, versionDoi: "10.5555/zenodo.1" });
+    expect(example).not.toContain("doi = {");
+    expect(example).toContain("synthetic examples");
+  });
+
+  it("escapes TeX metacharacters in field values", () => {
+    const entry = bibtex({ ...base, title: "50% of {claims} use $math_mode$ & #tags" });
+    expect(entry).toContain("50\\% of \\{claims\\} use \\$math\\_mode\\$ \\& \\#tags");
+  });
+
+  it("keeps a stable, sanitized citation key", () => {
+    expect(bibtex(base)).toMatch(/^@misc\{sample-review-2026,\n/);
+  });
+});
+
+describe("bibtexEscape", () => {
+  it("escapes backslashes before wrapping other characters", () => {
+    expect(bibtexEscape("a\\b")).toBe("a\\textbackslash{}b");
+    expect(bibtexEscape("~^")).toBe("\\textasciitilde{}\\textasciicircum{}");
+  });
+});
+
+describe("ris", () => {
+  it("emits tagged lines terminated by ER", () => {
+    const record = ris(base);
+    expect(record).toContain("TY  - GEN");
+    expect(record).toContain("AU  - Lovelace, Ada");
+    expect(record).toContain("AU  - Research Collective");
+    expect(record).toContain("PY  - 2026/06/15");
+    expect(record).toContain("DO  - 10.5281/zenodo.123456");
+    expect(record.trimEnd().endsWith("ER  -")).toBe(true);
+  });
+
+  it("strips newlines so values cannot forge extra tags", () => {
+    const record = ris({ ...base, title: "Line one\nDO  - 10.9999/forged" });
+    expect(record).toContain("TI  - Line one DO  - 10.9999/forged");
+    expect(record).not.toMatch(/^DO {2}- 10\.9999/m);
+  });
+
+  it("withholds example DOIs", () => {
+    const record = ris({ ...base, isExample: true, versionDoi: "10.5555/zenodo.1" });
+    expect(record).not.toContain("DO  - ");
+    expect(record).toContain("synthetic examples");
+  });
+});

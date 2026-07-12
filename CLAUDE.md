@@ -10,7 +10,7 @@ built from GitHub repositories. See `PLAN.md` and `docs/architecture.md` for the
   other packages; everything else depends on it.
 - `packages/db` — Prisma (SQLite dev / Postgres-compatible) + seed. Not imported by domain packages.
 - `packages/github`, `packages/zenodo`, `packages/extractor`, `packages/trust`,
-  `packages/knowledge` — framework-free domain logic (no Prisma, no React).
+  `packages/knowledge`, `packages/exports` — framework-free domain logic (no Prisma, no React).
 - `packages/ui`, `packages/config` — UI primitives / env config.
 
 ## Conventions

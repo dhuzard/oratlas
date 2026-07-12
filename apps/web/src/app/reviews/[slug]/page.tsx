@@ -463,6 +463,39 @@ export default async function ReviewPage({
             </Card>
           ) : null}
 
+          <Card title="Preservation &amp; exports">
+            <p className="muted" style={{ fontSize: "0.9rem" }}>
+              Accepted versions are preserved in the archive and stay readable and exportable even
+              if the upstream repository disappears.
+            </p>
+            <ul className="tag-list" style={{ flexDirection: "column", alignItems: "flex-start" }}>
+              {(
+                [
+                  ["bibtex", "BibTeX"],
+                  ["ris", "RIS"],
+                  ["csl", "CSL-JSON"],
+                  ["jats", "JATS XML"],
+                  ["ro-crate", "RO-Crate"],
+                  ["prov", "PROV (JSON-LD)"],
+                  ["package", "Preservation manifest"],
+                ] as const
+              ).map(([format, label]) => (
+                <li key={format}>
+                  <a
+                    href={`/api/reviews/${review.slug}/versions/${review.version.id}/export/${format}`}
+                  >
+                    {label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+            {review.snapshot.commitSha && /^[0-9a-f]{40}$/.test(review.snapshot.commitSha) ? (
+              <p className="mono muted" style={{ overflowWrap: "anywhere", fontSize: "0.85rem" }}>
+                SWHID swh:1:rev:{review.snapshot.commitSha}
+              </p>
+            ) : null}
+          </Card>
+
           <Card title="Version history">
             <ul className="tag-list" style={{ flexDirection: "column", alignItems: "flex-start" }}>
               {review.versions.map((v) => (
