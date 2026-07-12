@@ -95,6 +95,7 @@ function loadedRow(): LoadedTrustAssessment {
           isExample: false,
           publishedAt: now,
           createdAt: now,
+          publicState: "published",
           review: {
             id: "review-1",
             slug: "review",
@@ -109,6 +110,7 @@ function loadedRow(): LoadedTrustAssessment {
             acceptedAt: now,
             createdAt: now,
             updatedAt: now,
+            lifecycleRevision: 0,
           },
         },
       },

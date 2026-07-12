@@ -43,6 +43,7 @@ export async function GET(request: Request) {
         hasDoi: r.hasDoi,
         hasTrustData: r.hasTrustData,
         compatibilityLevel: r.compatibilityLevel,
+        status: r.status,
         score: r.score,
       })),
     });

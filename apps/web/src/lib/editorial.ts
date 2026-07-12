@@ -118,3 +118,49 @@ export async function listAuditEvents(limit = 50): Promise<AuditRow[]> {
     details: parseJsonColumn<unknown>(e.detailsJson, {}),
   }));
 }
+
+export interface LifecycleEditorialReview {
+  slug: string;
+  lifecycleRevision: number;
+  versions: Array<{
+    id: string;
+    label: string;
+    publicState: string;
+    commitSha: string;
+    isCurrent: boolean;
+  }>;
+}
+
+export async function listLifecycleEditorialReviews(): Promise<LifecycleEditorialReview[]> {
+  const reviews = await prisma.review.findMany({
+    where: { status: "published" },
+    orderBy: { updatedAt: "desc" },
+    take: 100,
+    select: {
+      slug: true,
+      lifecycleRevision: true,
+      versions: {
+        orderBy: { createdAt: "desc" },
+        select: {
+          id: true,
+          semanticVersion: true,
+          releaseTag: true,
+          title: true,
+          publicState: true,
+          snapshot: { select: { commitSha: true } },
+        },
+      },
+    },
+  });
+  return reviews.map((review) => ({
+    slug: review.slug,
+    lifecycleRevision: review.lifecycleRevision,
+    versions: review.versions.map((version, index) => ({
+      id: version.id,
+      label: version.semanticVersion ?? version.releaseTag ?? version.title,
+      publicState: version.publicState,
+      commitSha: version.snapshot.commitSha,
+      isCurrent: index === 0,
+    })),
+  }));
+}

@@ -81,8 +81,8 @@ components:
           required: [kind, commitSha, treeSha]
           properties:
             kind: { type: string, enum: [default-branch, tag, release] }
-            commitSha: { type: string, pattern: "^(?:[0-9a-f]{40}|[0-9a-f]{64})$" }
-            treeSha: { type: string, pattern: "^(?:[0-9a-f]{40}|[0-9a-f]{64})$" }
+            commitSha: { type: string, pattern: "^(?!0{40}$|0{64}$)(?:[0-9a-f]{40}|[0-9a-f]{64})$" }
+            treeSha: { type: string, pattern: "^(?!0{40}$|0{64}$)(?:[0-9a-f]{40}|[0-9a-f]{64})$" }
             branch: { type: string }
             releaseTag: { type: string }
         captureToken:
@@ -155,6 +155,18 @@ components:
         expectedAssessmentHash:
           type: string
           pattern: "^[a-f0-9]{64}$"
+    ReviewLifecycleRequest:
+      type: object
+      required: [reviewSlug, reviewVersionId, kind, reason, expectedRevision]
+      properties:
+        reviewSlug: { type: string, minLength: 1, maxLength: 200 }
+        reviewVersionId: { type: string, minLength: 1, maxLength: 200 }
+        kind: { type: string, enum: [correction, withdrawal, tombstone] }
+        reason: { type: string, minLength: 20, maxLength: 5000 }
+        expectedRevision: { type: integer, minimum: 0 }
+        supersedesVersionId:
+          type: string
+          description: Required only for correction; must belong to the same review.
     DiscussRequest:
       type: object
       required: [question]
@@ -280,6 +292,26 @@ paths:
         "403": { $ref: "#/components/responses/Error" }
         "409": { $ref: "#/components/responses/Error" }
         "415": { $ref: "#/components/responses/Error" }
+  /api/editorial/lifecycle:
+    post:
+      summary: Append a version-bound correction, withdrawal or tombstone
+      description: >
+        Editor role, exact same-origin application/json, and expected review lifecycle revision
+        are required. Target and superseded versions must belong to the same review and carry
+        exact non-zero commits. State guard, event and audit commit atomically.
+      security: [{ session: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ReviewLifecycleRequest" }
+      responses:
+        "201": { description: Append-only lifecycle event recorded }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "415": { $ref: "#/components/responses/Error" }
   /api/search:
     get:
       summary: Search accepted reviews
@@ -321,6 +353,18 @@ paths:
         - { name: versionId, in: path, required: true, schema: { type: string } }
       responses:
         "200": { description: Version-scoped review detail }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/reviews/{slug}/diff:
+    get:
+      summary: Deterministic canonical diff of two readable archived versions
+      parameters:
+        - { name: slug, in: path, required: true, schema: { type: string } }
+        - { name: from, in: query, required: true, schema: { type: string } }
+        - { name: to, in: query, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Checksummed changes across assets, metadata, claims and citations
+        "400": { $ref: "#/components/responses/Error" }
         "404": { $ref: "#/components/responses/Error" }
   /api/reviews/{slug}/versions/{versionId}/comments:
     get:
@@ -401,7 +445,7 @@ paths:
         "404": { $ref: "#/components/responses/Error" }
   /api/reviews/{slug}/versions/{versionId}/files/{path}:
     get:
-      summary: Preserved raw file content from the exact accepted inspection capture
+      summary: Preserved raw file content from the durable accepted database snapshot
       parameters:
         - { name: slug, in: path, required: true, schema: { type: string } }
         - { name: versionId, in: path, required: true, schema: { type: string } }
@@ -417,3 +461,12 @@ paths:
       summary: Atom feed of recently accepted review versions
       responses:
         "200": { description: Atom 1.0 document }
+  /api/feeds/lifecycle:
+    get:
+      summary: Machine-readable correction, withdrawal and tombstone ledger
+      responses:
+        "200":
+          description: >
+            Public event metadata including review/version ids, exact commit, reason, actor,
+            timestamp, CAS revision and optional superseded-version link. No tombstoned
+            scholarly payload is included.

@@ -5,6 +5,10 @@ database alone — no GitHub, DOI or other network request occurs on any preserv
 path — so **a deleted upstream repository does not remove an accepted version**: it remains
 readable on its immutable version page and machine-exportable through the endpoints here.
 
+The article reader and canonical version diff are documented in
+[`article-lifecycle.md`](article-lifecycle.md). Tombstoned versions are withheld from every reader,
+asset and export path even though their append-only lifecycle record remains public.
+
 ## What is preserved
 
 At submission time the platform stores, per accepted version:
@@ -17,10 +21,9 @@ At submission time the platform stores, per accepted version:
 - a **durable copy of the preserved textual file contents**
   (`RepositorySnapshot.preservedFilesJson`, contracts `preservedFilesSchema`), copied out of the
   inspection capture when the submission is finalized. The capture row itself is an expiring
-  inspect-to-submit capability and may be pruned without any effect on preservation; it is
-  consulted only as a read fallback for rows created before the durable column existed. Legacy
-  rows without either source degrade to metadata-only preservation
-  (`preservedContentAvailable: false`), with checksums still verifiable.
+  inspect-to-submit capability and may be pruned without any effect on preservation. Public
+  reader, file and export routes never consult it. Legacy rows with missing or malformed durable
+  preserved content fail closed as unavailable until explicitly migrated.
 
 ## Endpoints
 
@@ -35,6 +38,8 @@ At submission time the platform stores, per accepted version:
 | `GET /api/reviews/{slug}/versions/{id}/export/package`  | Preservation manifest (files, checksums, SWHIDs, integrity hashes) |
 | `GET /api/reviews/{slug}/versions/{id}/files/{path}`    | Preserved raw file content (plain-text attachment)                 |
 | `GET /api/feeds/atom`                                   | Atom 1.0 feed of recently accepted versions                        |
+| `GET /api/reviews/{slug}/diff?from={id}&to={id}`        | Canonical checksummed asset/metadata/claim/citation diff           |
+| `GET /api/feeds/lifecycle`                              | JSON correction/withdrawal/tombstone ledger                        |
 
 All exporters live in the framework-free `@oratlas/exports` package and take plain typed
 inputs; the web app maps database rows into those inputs in `apps/web/src/lib/preservation.ts`.
@@ -56,6 +61,12 @@ versions, whose synthetic object ids do not exist in any archive.
 - **Repository content is untrusted.** Preserved file content is served as a plain-text
   attachment with `X-Content-Type-Options: nosniff` and is never rendered as HTML; XML
   exports escape every repository-derived value.
+- **Exact commits are mandatory.** Public readers and exporters reject abbreviated, mutable,
+  malformed and all-zero commit identities; a branch name is never a fallback.
+- **Tombstones fail closed.** A tombstoned version serves no article, metadata, people, evidence,
+  comments, assets or export. Only its attributable lifecycle event remains public.
+- **Delivery is revocable.** Files, exports, canonical diffs and the acceptance Atom feed use
+  `no-store, must-revalidate`; an intermediary cannot keep serving content after a tombstone.
 - **Exports are pure functions of stored rows.** The PROV chain (repository state →
   inspection capture → submission → accepted version) reflects the actual pipeline and embeds
   the stored integrity hashes.

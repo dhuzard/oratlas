@@ -12,12 +12,15 @@ import {
   findWorkIdentifierConflicts,
   globalCitationId,
   globalClaimId,
+  isExactCommitSha,
   type PublicationConsistencyReport,
+  type PublicLifecycleEvent,
   type WorkIdentityAssertion,
 } from "@oratlas/contracts";
 import { prisma, parseJsonColumn } from "./db";
 import { toTrustRecord } from "./index-builder";
 import { resolveTrustAssessmentRows } from "./trust-provenance";
+import { isTombstonedState, lifecycleEventDto } from "./review-lifecycle";
 
 export interface ReviewCriterion {
   criterion: string;
@@ -81,6 +84,10 @@ export interface ReviewDetail {
   licenseSpdx?: string;
   publishedReviewUrl?: string;
   status: string;
+  publicState: string;
+  isTombstoned: boolean;
+  lifecycleRevision: number;
+  lifecycleEvents: PublicLifecycleEvent[];
   acceptedAt?: string;
   updatedAt: string;
   keywords: string[];
@@ -142,6 +149,7 @@ export interface ReviewDetail {
     publishedAt?: string;
     isExample: boolean;
     isCurrent: boolean;
+    publicState: string;
   }>;
   claims: ReviewClaim[];
   citations: Array<{
@@ -194,14 +202,58 @@ export async function getReviewDetail(
           },
         },
       },
+      lifecycleEvents: {
+        include: { actor: true },
+        orderBy: { revision: "asc" },
+      },
     },
   });
-  if (!review) return null;
+  if (!review || review.status !== "published") return null;
   const currentVersion = review.versions[0];
   const version = requestedVersionId
     ? review.versions.find((candidate) => candidate.id === requestedVersionId)
     : currentVersion;
-  if (!version) return null;
+  if (!version || !isExactCommitSha(version.snapshot.commitSha)) return null;
+
+  const lifecycleEvents = review.lifecycleEvents
+    .filter(
+      (event) => event.reviewVersionId === version.id || event.supersedesVersionId === version.id,
+    )
+    .map(lifecycleEventDto);
+  const versionIsTombstoned = isTombstonedState(version.publicState);
+  if (versionIsTombstoned) {
+    return {
+      slug: review.slug,
+      title: "Content unavailable",
+      status: "tombstoned",
+      publicState: version.publicState,
+      isTombstoned: true,
+      lifecycleRevision: review.lifecycleRevision,
+      lifecycleEvents,
+      updatedAt: lifecycleEvents.at(-1)?.createdAt ?? version.createdAt.toISOString(),
+      keywords: [],
+      domains: [],
+      contributors: [],
+      repository: { canonicalUrl: "", owner: "", name: "" },
+      snapshot: { commitSha: version.snapshot.commitSha },
+      version: {
+        id: version.id,
+        isExample: false,
+        editorialOverrides: [],
+      },
+      identifiers: [],
+      versions: review.versions.map((candidate) => ({
+        id: candidate.id,
+        isExample: false,
+        isCurrent: candidate.id === currentVersion?.id,
+        publicState: candidate.publicState,
+      })),
+      claims: [],
+      citations: [],
+      limitations: [],
+      identifierConflicts: [],
+    };
+  }
 
   const snapshot = version.snapshot;
   const repo = snapshot.repository;
@@ -319,6 +371,10 @@ export async function getReviewDetail(
       review.publishedReviewUrl ??
       undefined,
     status: review.status,
+    publicState: version.publicState,
+    isTombstoned: false,
+    lifecycleRevision: review.lifecycleRevision,
+    lifecycleEvents,
     acceptedAt: version.publishedAt?.toISOString() ?? review.acceptedAt?.toISOString(),
     updatedAt: requestedVersionId
       ? version.createdAt.toISOString()
@@ -378,15 +434,19 @@ export async function getReviewDetail(
       validationStatus: id.validationStatus,
       isExample: id.isExample,
     })),
-    versions: review.versions.map((v) => ({
-      id: v.id,
-      semanticVersion: v.semanticVersion ?? undefined,
-      versionDoi: v.versionDoi ?? undefined,
-      releaseTag: v.releaseTag ?? undefined,
-      publishedAt: v.publishedAt?.toISOString(),
-      isExample: v.isExample,
-      isCurrent: v.id === currentVersion?.id,
-    })),
+    versions: review.versions.map((v) => {
+      const withheld = isTombstonedState(v.publicState);
+      return {
+        id: v.id,
+        semanticVersion: withheld ? undefined : (v.semanticVersion ?? undefined),
+        versionDoi: withheld ? undefined : (v.versionDoi ?? undefined),
+        releaseTag: withheld ? undefined : (v.releaseTag ?? undefined),
+        publishedAt: withheld ? undefined : v.publishedAt?.toISOString(),
+        isExample: withheld ? false : v.isExample,
+        isCurrent: v.id === currentVersion?.id,
+        publicState: v.publicState,
+      };
+    }),
     claims,
     citations: version.citations.map((c) => ({
       localCitationId: c.localCitationId,
@@ -438,7 +498,21 @@ function isExampleCitation(rawJson: string | null): boolean {
 export async function listPublishedSlugs(): Promise<string[]> {
   const rows = await prisma.review.findMany({
     where: { status: "published" },
-    select: { slug: true },
+    select: {
+      slug: true,
+      versions: {
+        orderBy: { createdAt: "desc" },
+        take: 1,
+        select: { publicState: true, snapshot: { select: { commitSha: true } } },
+      },
+    },
   });
-  return rows.map((r) => r.slug);
+  return rows
+    .filter(
+      (row) =>
+        row.versions[0] &&
+        !isTombstonedState(row.versions[0].publicState) &&
+        isExactCommitSha(row.versions[0].snapshot.commitSha),
+    )
+    .map((row) => row.slug);
 }

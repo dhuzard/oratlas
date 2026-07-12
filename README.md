@@ -21,8 +21,8 @@ The POC ships a restrained, scholarly server-rendered interface. Key pages:
 - **Home** — product explanation, search, recently accepted reviews, domain/DOI/TRUST filters,
   provenance legend. _(placeholder: `docs/screenshots/home.png`)_
 - **Archive** — full-text search + faceted filters. _(placeholder: `docs/screenshots/archive.png`)_
-- **Review page** — repository, exact commit, release, version DOI vs concept DOI, Zenodo record,
-  provenance, claims, citations, TRUST assessments, limitations, version history.
+- **Review page** — safe archived article reader and TOC, exact claim anchors, repository/commit,
+  provenance, claims, citations, TRUST, canonical version diff, and lifecycle notices.
   _(placeholder: `docs/screenshots/review.png`)_
 - **Submission wizard** — repository → inspect → editable metadata (with per-field provenance) →
   validation → submit. _(placeholder: `docs/screenshots/submit.png`)_
@@ -143,6 +143,11 @@ datasource provider to `postgresql`, set `SESSION_SECRET`, run `prisma migrate d
    The canonical capture and immutable snapshot enter the editorial workflow.
 7. An editor accepts, rejects, or requests changes. Acceptance is transactional and idempotent;
    failed release/DOI/commit checks require separate, audited override rationales.
+
+Accepted Markdown is read from the durable database snapshot with no active repository HTML.
+Corrections link immutable versions; withdrawals remain visibly marked but leave Atlas Discuss;
+tombstones fail closed across pages, APIs, comments, search, claims, discussion, assets, exports
+and feeds. See [`docs/article-lifecycle.md`](docs/article-lifecycle.md).
 
 You do **not** need to own the submitted repository; you are recorded as the submitter, distinct
 from the repository's authors and maintainers.

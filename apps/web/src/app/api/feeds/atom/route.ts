@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { atomFeed, type FeedEntryInput } from "@oratlas/exports";
+import { isExactCommitSha } from "@oratlas/contracts";
 import { appBaseUrl } from "@/lib/base-url";
 import { prisma } from "@/lib/db";
 import { handleRouteError } from "@/lib/api";
@@ -14,7 +15,13 @@ export async function GET() {
   try {
     const base = appBaseUrl();
     const versions = await prisma.reviewVersion.findMany({
-      where: { publishedAt: { not: null }, review: { status: "published" } },
+      where: {
+        publishedAt: { not: null },
+        // Withdrawals are published in the lifecycle ledger, not as ordinary
+        // accepted content in this discovery feed.
+        publicState: "published",
+        review: { status: "published" },
+      },
       orderBy: { publishedAt: "desc" },
       take: FEED_LIMIT,
       select: {
@@ -23,23 +30,26 @@ export async function GET() {
         abstract: true,
         publishedAt: true,
         review: { select: { slug: true } },
+        snapshot: { select: { commitSha: true } },
         contributors: {
           select: { person: { select: { displayName: true } } },
           orderBy: { position: "asc" },
         },
       },
     });
-    const entries: FeedEntryInput[] = versions.map((version) => {
-      const url = `${base}/reviews/${version.review.slug}/versions/${version.id}`;
-      return {
-        id: url,
-        title: version.title,
-        url,
-        updated: version.publishedAt!.toISOString(),
-        summary: version.abstract ?? undefined,
-        authors: version.contributors.map((contributor) => contributor.person.displayName),
-      };
-    });
+    const entries: FeedEntryInput[] = versions
+      .filter((version) => isExactCommitSha(version.snapshot.commitSha))
+      .map((version) => {
+        const url = `${base}/reviews/${version.review.slug}/versions/${version.id}`;
+        return {
+          id: url,
+          title: version.title,
+          url,
+          updated: version.publishedAt!.toISOString(),
+          summary: version.abstract ?? undefined,
+          authors: version.contributors.map((contributor) => contributor.person.displayName),
+        };
+      });
     const updated = entries[0]?.updated ?? new Date(0).toISOString();
     const xml = atomFeed({
       id: `${base}/api/feeds/atom`,
@@ -53,7 +63,8 @@ export async function GET() {
       headers: {
         "Content-Type": "application/atom+xml; charset=utf-8",
         "X-Content-Type-Options": "nosniff",
-        "Cache-Control": "public, max-age=300",
+        "Cache-Control": "no-store, must-revalidate",
+        Pragma: "no-cache",
       },
     });
   } catch (err) {

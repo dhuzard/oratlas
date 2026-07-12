@@ -35,8 +35,10 @@ export async function GET(
         "Content-Type": "text/plain; charset=utf-8",
         "Content-Disposition": `attachment; filename="${downloadName}.txt"`,
         "X-Content-Type-Options": "nosniff",
-        // Preserved bytes for a version never change: cache aggressively.
-        "Cache-Control": "public, max-age=31536000, immutable",
+        // Lifecycle tombstones must revoke delivery immediately; public or
+        // browser caches may not retain a previously readable response.
+        "Cache-Control": "no-store, must-revalidate",
+        Pragma: "no-cache",
       },
     });
   } catch (err) {

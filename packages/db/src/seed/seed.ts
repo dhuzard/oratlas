@@ -62,10 +62,30 @@ async function seedReview(review: SeedReview, editorId: string) {
     },
   });
 
+  const treeSha = `${review.snapshot.commitSha.slice(0, -1)}f`;
+  const article = [
+    `# ${review.title}`,
+    "",
+    review.abstract,
+    "",
+    "## Claims",
+    "",
+    ...review.claims.flatMap((claim) => [`- ${claim.text}`, ""]),
+  ].join("\n");
+  const articleBytes = Buffer.byteLength(article, "utf8");
   const inspectionReport = {
     schemaVersion: "1.0.0",
-    note: "Seed inspection report (synthetic).",
-    compatibilityLevel: review.compatibilityLevel,
+    githubRepositoryId: `seed:${review.slug}`,
+    repositoryUrl: review.repository.canonicalUrl,
+    commitSha: review.snapshot.commitSha,
+    treeSha,
+    files: {
+      "README.md": {
+        size: articleBytes,
+        truncated: false,
+        contentHash: sha256(article),
+      },
+    },
   };
 
   const snapshot = await prisma.repositorySnapshot.create({
@@ -78,7 +98,11 @@ async function seedReview(review: SeedReview, editorId: string) {
       sourceCreatedAt: new Date("2026-06-01T00:00:00.000Z"),
       inspectionStatus: "succeeded",
       inspectionReportJson: JSON.stringify(inspectionReport),
+      sourceTreeSha: treeSha,
       manifestJson: null,
+      preservedFilesJson: canonicalJson({
+        "README.md": { size: articleBytes, truncated: false, content: article },
+      }),
       contentHash: contentHash({ repo: repo.canonicalUrl, sha: review.snapshot.commitSha }),
     },
   });

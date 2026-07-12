@@ -71,6 +71,7 @@ export default async function ArchivePage({
                         <Badge>repository-only</Badge>
                       )}
                       {r.hasTrustData ? <Badge>TRUST data</Badge> : null}
+                      {r.status === "withdrawn" ? <Badge tone="warning">withdrawn</Badge> : null}
                       {r.hasHumanReviewedTrust ? (
                         <Badge tone="success">Atlas-reviewed TRUST structure</Badge>
                       ) : null}
