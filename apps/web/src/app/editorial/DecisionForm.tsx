@@ -2,11 +2,18 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-export function DecisionForm({ submissionId }: { submissionId: string }) {
+export function DecisionForm({
+  submissionId,
+  overrideCheckIds = [],
+}: {
+  submissionId: string;
+  overrideCheckIds?: string[];
+}) {
   const router = useRouter();
   const [note, setNote] = useState("");
   const [loading, setLoading] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [overrideRationales, setOverrideRationales] = useState<Record<string, string>>({});
 
   async function decide(decision: "accept" | "reject" | "request-changes") {
     setLoading(decision);
@@ -15,7 +22,18 @@ export function DecisionForm({ submissionId }: { submissionId: string }) {
       const res = await fetch("/api/editorial/decision", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ submissionId, decision, note: note || undefined }),
+        body: JSON.stringify({
+          submissionId,
+          decision,
+          note: note || undefined,
+          overrides:
+            decision === "accept"
+              ? overrideCheckIds.map((checkId) => ({
+                  checkId,
+                  rationale: overrideRationales[checkId] ?? "",
+                }))
+              : [],
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -45,8 +63,36 @@ export function DecisionForm({ submissionId }: { submissionId: string }) {
           onChange={(e) => setNote(e.target.value)}
         />
       </div>
+      {overrideCheckIds.map((checkId) => (
+        <div className="field" key={checkId}>
+          <label htmlFor={`override-${submissionId}-${checkId}`}>
+            Override rationale for failed check <span className="mono">{checkId}</span>
+          </label>
+          <textarea
+            id={`override-${submissionId}-${checkId}`}
+            value={overrideRationales[checkId] ?? ""}
+            minLength={20}
+            required
+            onChange={(event) =>
+              setOverrideRationales({ ...overrideRationales, [checkId]: event.target.value })
+            }
+          />
+          <small>
+            This exception is check-scoped, immutable, attributed, and publicly auditable.
+          </small>
+        </div>
+      ))}
       <div className="btn-row">
-        <button className="btn" onClick={() => decide("accept")} disabled={loading !== null}>
+        <button
+          className="btn"
+          onClick={() => decide("accept")}
+          disabled={
+            loading !== null ||
+            overrideCheckIds.some(
+              (checkId) => (overrideRationales[checkId]?.trim().length ?? 0) < 20,
+            )
+          }
+        >
           {loading === "accept" ? "Accepting…" : "Accept"}
         </button>
         <button

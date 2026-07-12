@@ -72,6 +72,10 @@ export function extractMetadata(
   report: InspectionReport,
   now: () => Date = () => new Date(),
 ): ExtractionResult {
+  const capturedCommitSha = report.selectedSource?.commitSha ?? report.latestCommitSha;
+  const selectedRelease = report.selectedSource?.releaseTag
+    ? report.releases.find((release) => release.tagName === report.selectedSource?.releaseTag)
+    : undefined;
   const warnings: string[] = [];
   const runs: SourceRun[] = [];
   let manifestPresent = false;
@@ -136,7 +140,7 @@ export function extractMetadata(
       repositoryUrl: report.repo.canonicalUrl,
       license: report.licenseSpdx ?? undefined,
       publishedReviewUrl: report.pagesUrl ?? report.homepageUrl ?? undefined,
-      releaseTag: report.releases.find((r) => !r.isDraft)?.tagName,
+      releaseTag: report.selectedSource?.releaseTag,
       keywords: report.topics.length > 0 ? report.topics : undefined,
       abstract: report.description ?? undefined,
       warnings: [],
@@ -155,7 +159,7 @@ export function extractMetadata(
   }
 
   // Collect DOIs discovered in release bodies (as a fallback for versionDoi).
-  const releaseDoi = report.releases.flatMap((r) => r.bodyDois)[0];
+  const releaseDoi = selectedRelease?.bodyDois[0];
   if (releaseDoi) {
     runs.push({
       source: "repository-metadata",
@@ -179,7 +183,7 @@ export function extractMetadata(
           source: run.source,
           file: run.file,
           pointer: pointerFor(run.source, key),
-          commitSha: report.latestCommitSha,
+          commitSha: capturedCommitSha,
           extractorVersion: EXTRACTOR_VERSION,
           extractedAt: now().toISOString(),
           confidence: run.confidence,
@@ -190,12 +194,12 @@ export function extractMetadata(
   }
 
   // commitSha field from inspection (always deterministic).
-  if (report.latestCommitSha) {
+  if (capturedCommitSha) {
     fields.commitSha = {
-      value: report.latestCommitSha,
+      value: capturedCommitSha,
       provenance: {
         source: "repository-metadata",
-        commitSha: report.latestCommitSha,
+        commitSha: capturedCommitSha,
         extractorVersion: EXTRACTOR_VERSION,
         extractedAt: now().toISOString(),
         confidence: 1,
@@ -207,7 +211,7 @@ export function extractMetadata(
   const metadata = extractedMetadataSchema.parse({
     extractorVersion: EXTRACTOR_VERSION,
     extractedAt: now().toISOString(),
-    commitSha: report.latestCommitSha,
+    commitSha: capturedCommitSha,
     fields,
     warnings,
   });

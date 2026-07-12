@@ -506,6 +506,7 @@ export const pendingSubmission = {
   },
   snapshot: {
     commitSha: sha("55bb66cc77dd88ee99ff"),
+    treeSha: sha("66cc77dd88ee99ff00aa"),
     branch: "main",
   },
   title: "A Computational Review of Spike-Sorting Methods",

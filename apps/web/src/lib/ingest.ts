@@ -9,9 +9,11 @@ import {
   type EditedMetadata,
   type ExtractedMetadata,
   type InspectionReport,
+  type RepoSourceSelection,
   type SubmissionValidationReport,
 } from "@oratlas/contracts";
 import { validateDoi } from "@oratlas/zenodo";
+import { buildPublicationConsistency } from "./publication-consistency";
 
 const env = getServerEnv();
 const runner = new SynchronousIngestionRunner({ token: env.GITHUB_TOKEN || undefined });
@@ -24,8 +26,11 @@ export interface InspectionOutcome {
 }
 
 /** Inspect a repository URL and run deterministic extraction (server-side). */
-export async function inspectAndExtract(url: string): Promise<InspectionOutcome> {
-  const report = await runner.run(url);
+export async function inspectAndExtract(
+  url: string,
+  source: RepoSourceSelection = { kind: "default-branch" },
+): Promise<InspectionOutcome> {
+  const report = await runner.run(url, { source });
   const extraction = runExtraction(report);
   return {
     report,
@@ -61,7 +66,7 @@ export async function buildValidationReport(
   if (effective.versionDoi) {
     doiValidation.versionDoi = await validateDoi({
       doi: effective.versionDoi,
-      repositoryUrl: effective.repositoryUrl,
+      repositoryUrl: report.repo.canonicalUrl,
       title: effective.title,
       releaseTag: effective.releaseTag,
       expectedKind: "version",
@@ -70,7 +75,7 @@ export async function buildValidationReport(
   if (effective.conceptDoi) {
     doiValidation.conceptDoi = await validateDoi({
       doi: effective.conceptDoi,
-      repositoryUrl: effective.repositoryUrl,
+      repositoryUrl: report.repo.canonicalUrl,
       title: effective.title,
       expectedKind: "concept",
     });
@@ -84,16 +89,30 @@ export async function buildValidationReport(
     if (v) warnings.push(...v.warnings.map((w) => `DOI: ${w}`));
   }
 
-  const activeRelease = report.releases.find((r) => !r.isDraft);
+  const publicationConsistency = report.selectedSource
+    ? buildPublicationConsistency(report, effective, doiValidation)
+    : undefined;
+  if (publicationConsistency) warnings.push(...publicationConsistency.warnings);
+
+  const selected = report.selectedSource;
+  const activeRelease =
+    selected?.kind === "release"
+      ? report.releases.find(
+          (release) => release.tagName === selected.releaseTag && !release.isDraft,
+        )
+      : undefined;
   const releaseValidation = {
     releaseDetected: Boolean(activeRelease),
     releaseTagMatches:
-      activeRelease && effective.releaseTag
-        ? activeRelease.tagName.replace(/^v/i, "") === effective.releaseTag.replace(/^v/i, "")
+      selected?.releaseTag && effective.releaseTag
+        ? selected.releaseTag.replace(/^v/i, "") === effective.releaseTag.replace(/^v/i, "")
         : undefined,
-    details: activeRelease
-      ? [`Release ${activeRelease.tagName} detected.`]
-      : ["No published GitHub release found; the review is eligible as repository-only."],
+    details:
+      selected?.kind === "release"
+        ? [`Published release ${selected.releaseTag} explicitly selected.`]
+        : selected?.kind === "tag"
+          ? [`Non-release Git tag ${selected.releaseTag} explicitly selected.`]
+          : ["Default branch explicitly selected; the review is eligible as repository-only."],
   };
 
   // Metadata completeness
@@ -121,6 +140,7 @@ export async function buildValidationReport(
     hardErrors,
     warnings,
     doiValidation: doiValidation.versionDoi || doiValidation.conceptDoi ? doiValidation : undefined,
+    publicationConsistency,
     releaseValidation,
     metadataCompleteness: {
       requiredMissing,

@@ -46,7 +46,8 @@ need no database.
 
 ### Submission and ingestion
 
-1. **Repository step** — user pastes a GitHub URL. `packages/github` normalizes it and
+1. **Repository step** — a signed-in user pastes a GitHub URL and explicitly chooses the default
+   branch, an exact tag, or an exact published release. `packages/github` normalizes it and
    rejects non-GitHub hosts, credentials, malformed URLs, and local-network targets
    (SSRF prevention). Only `https://github.com/{owner}/{repo}` survives.
 2. **Inspect step** — `InspectionService` (server-side only) fetches repository metadata,
@@ -55,7 +56,9 @@ need no database.
    `codemeta.json`, `myst.yml`, `review-manifest.json`, bibliography, knowledge JSONL
    artifacts…) via the GitHub REST API with explicit timeouts, max file counts/sizes,
    and total byte caps. Repositories are **never cloned** and no repository code is ever
-   executed. Inspection runs synchronously behind an `IngestionRunner` interface so a
+   executed. Published-release classification uses `/releases/tags/{tag}`; annotated tags are
+   dereferenced with a depth/cycle bound. Atlas resolves the selected commit object, traverses its
+   `tree.sha`, and fetches content with `ref=<selected commit>`. Inspection runs synchronously behind an `IngestionRunner` interface so a
    queue can replace it later without touching callers.
 3. **Extraction** — `packages/extractor` derives metadata deterministically in priority
    order (manifest → CITATION.cff → .zenodo.json → codemeta.json → MyST config → repo
@@ -67,11 +70,16 @@ need no database.
 5. **Validation** — DOI validation (`packages/zenodo`) returns a structured report with
    hard errors, warnings, per-check outcomes and a confidence level. Version DOIs and
    concept DOIs are distinct fields end-to-end.
-6. **Finalize** — an immutable `RepositorySnapshot` (repository + commit SHA unique) and a
-   `Submission` snapshot are persisted; status enters the editorial workflow.
-7. **Editorial decision** — accepting creates/updates a public `Review` plus an immutable
-   `ReviewVersion` (with identifiers, claims, citations, relations, TRUST records) and
-   emits `AuditEvent`s. Previous versions are never destroyed.
+6. **Capture** — exact canonical inspection/extraction/validation bytes are stored in a separate
+   append-only capture. A random 30-minute, single-use capability is stored only as a hash and is
+   bound to the authenticated inspector.
+7. **Finalize** — the capability is consumed transactionally; GitHub is not called again. The
+   immutable `RepositorySnapshot` is deduplicated by stable GitHub repository id + commit, while
+   every reinspection remains independently auditable. Ref/release selection stays on the
+   `Submission` and accepted `ReviewVersion`, not on the shared commit snapshot.
+8. **Editorial decision** — a database-only, SQLite-retry-bounded transaction claims the status by
+   compare-and-set, creates/updates the review and immutable version, materializes evidence, stores
+   check-scoped overrides, and emits idempotent audits. Any failure rolls everything back.
 
 ### Search
 

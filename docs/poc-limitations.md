@@ -29,6 +29,8 @@ knowledge-consensus engine.
 - **Compatibility heuristics are tuned to the reference template.** They are transparent and
   rule-based, but a genuinely novel-but-valid review structure could be under-classified; the
   report always explains why, and editors can still accept.
+- **Inspection capabilities expire after 30 minutes.** An expired or consumed capability requires
+  reinspection. This deliberately favors source integrity over long-lived browser drafts.
 - **Example data is synthetic.** Seed DOIs (`10.5555/…`) do not resolve and are flagged; do not
   mistake them for real deposits.
 
@@ -40,7 +42,8 @@ knowledge-consensus engine.
   current hash-bound structural-review marker.
 - **DOI presence does not establish scientific quality.**
 - **GitHub default-branch content may differ from a deposited release**; the exact reviewed state
-  is the commit SHA.
+  is the explicitly selected commit and its tree SHA. Version DOI claims cannot silently use the
+  default-branch selection.
 - Several reviews citing the same primary source are **not independent replication**.
 - A validated Atlas Discuss evidence edge proves that the answer points to a recorded relation; it
   does **not** prove that the claim or cited study is scientifically correct.

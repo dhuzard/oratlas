@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Open Review Atlas API
-  version: 0.1.0
+  version: 0.2.0
   description: >
     External data contracts for the Open Review Atlas POC. Application mutations
     are exposed as conventional JSON API routes. All error responses use the
@@ -52,9 +52,20 @@ components:
               items: { type: string }
     InspectRequest:
       type: object
-      required: [url]
+      required: [url, source]
       properties:
         url: { type: string, description: Public GitHub repository URL }
+        source:
+          oneOf:
+            - type: object
+              required: [kind]
+              properties:
+                kind: { const: default-branch }
+            - type: object
+              required: [kind, tag]
+              properties:
+                kind: { type: string, enum: [tag, release] }
+                tag: { type: string, minLength: 1, maxLength: 120 }
     InspectResponse:
       type: object
       properties:
@@ -65,6 +76,20 @@ components:
             name: { type: string }
             canonicalUrl: { type: string }
         inspectionStatus: { type: string, enum: [succeeded, partial, failed] }
+        selectedSource:
+          type: object
+          required: [kind, commitSha, treeSha]
+          properties:
+            kind: { type: string, enum: [default-branch, tag, release] }
+            commitSha: { type: string, pattern: "^(?:[0-9a-f]{40}|[0-9a-f]{64})$" }
+            treeSha: { type: string, pattern: "^(?:[0-9a-f]{40}|[0-9a-f]{64})$" }
+            branch: { type: string }
+            releaseTag: { type: string }
+        captureToken:
+          type: string
+          description: Opaque, user-bound, single-use capability. Expires in 30 minutes.
+        captureExpiresAt: { type: string, format: date-time }
+        capturePayloadHash: { type: string, pattern: "^[0-9a-f]{64}$" }
         extractedMetadata: { type: object }
         effectiveMetadata: { type: object }
         compatibility: { type: object }
@@ -87,9 +112,13 @@ components:
         expectedKind: { type: string, enum: [version, concept] }
     SubmissionCreateRequest:
       type: object
-      required: [url]
+      required: [inspectionToken]
       properties:
-        url: { type: string }
+        inspectionToken:
+          type: string
+          minLength: 40
+          maxLength: 100
+          description: Capability returned by this user's exact /api/inspect request.
         editedMetadata:
           type: object
           description: "{ edits: Record<field, { value, meta }> }"
@@ -105,6 +134,16 @@ components:
         submissionId: { type: string }
         decision: { type: string, enum: [accept, reject, request-changes] }
         note: { type: string }
+        overrides:
+          type: array
+          maxItems: 30
+          description: One explicit rationale for each failed publication-consistency check.
+          items:
+            type: object
+            required: [checkId, rationale]
+            properties:
+              checkId: { type: string, minLength: 1, maxLength: 120 }
+              rationale: { type: string, minLength: 20, maxLength: 4000 }
     TrustVerificationRequest:
       type: object
       required: [assessmentId, status, rationale, expectedRevision, expectedAssessmentHash]
@@ -147,7 +186,12 @@ paths:
         "200": { description: OK }
   /api/inspect:
     post:
-      summary: Inspect a repository and return extracted metadata, compatibility, and validation
+      summary: Capture an explicitly selected immutable repository source
+      description: >
+        Sign-in, exact same-origin JSON, and an explicit default-branch/tag/release selection are
+        required. Returns an expiring, single-use capability bound to the user and exact canonical
+        capture bytes. A release is classified through GitHub's exact release-by-tag endpoint.
+      security: [{ session: [] }]
       requestBody:
         required: true
         content:
@@ -160,6 +204,9 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/InspectResponse" }
         "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "415": { $ref: "#/components/responses/Error" }
         "429": { $ref: "#/components/responses/Error" }
   /api/validate-doi:
     post:
@@ -174,7 +221,10 @@ paths:
         "400": { $ref: "#/components/responses/Error" }
   /api/submissions:
     post:
-      summary: Finalize a submission (creates immutable snapshot + submission)
+      summary: Consume one exact inspection capture and finalize a submission
+      description: >
+        Does not re-inspect GitHub. The capability, repository/snapshot, canonical submission,
+        capture consumption and audit event are committed atomically.
       security: [{ session: [] }]
       requestBody:
         required: true
@@ -188,9 +238,16 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/SubmissionCreateResponse" }
         "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "415": { $ref: "#/components/responses/Error" }
   /api/editorial/decision:
     post:
-      summary: Editorial decision (editor role required)
+      summary: Transactional, idempotent editorial decision (editor role required)
+      description: >
+        Acceptance uses a compare-and-set terminal transition. Review/version/evidence rows,
+        check-scoped exceptions and idempotent audit events commit together. Every failed
+        consistency check requires its own override rationale.
       security: [{ session: [] }]
       requestBody:
         required: true
@@ -200,6 +257,8 @@ paths:
       responses:
         "200": { description: Decision recorded }
         "403": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "415": { $ref: "#/components/responses/Error" }
   /api/editorial/trust:
     post:
       summary: Record a hash-bound Atlas structural review of an imported TRUST assessment

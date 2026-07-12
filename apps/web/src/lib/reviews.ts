@@ -12,6 +12,7 @@ import {
   findWorkIdentifierConflicts,
   globalCitationId,
   globalClaimId,
+  type PublicationConsistencyReport,
   type WorkIdentityAssertion,
 } from "@oratlas/contracts";
 import { prisma, parseJsonColumn } from "./db";
@@ -102,16 +103,28 @@ export interface ReviewDetail {
   };
   snapshot: {
     commitSha: string;
-    releaseTag?: string;
-    releaseUrl?: string;
+    treeSha?: string;
   };
   version: {
     id: string;
+    sourceKind?: string;
+    sourceBranch?: string;
+    releaseTag?: string;
+    releaseUrl?: string;
+    tagObjectSha?: string;
     semanticVersion?: string;
     versionDoi?: string;
     conceptDoi?: string;
     zenodoRecordId?: string;
     isExample: boolean;
+    capturePayloadHash?: string;
+    publicationConsistency?: PublicationConsistencyReport;
+    editorialOverrides: Array<{
+      checkId: string;
+      rationale: string;
+      editorLogin: string;
+      createdAt: string;
+    }>;
   };
   identifiers: Array<{
     scheme: string;
@@ -161,6 +174,11 @@ export async function getReviewDetail(
           contributors: { include: { person: true }, orderBy: { position: "asc" } },
           identifiers: true,
           snapshot: { include: { repository: true } },
+          sourceSubmission: {
+            include: {
+              editorialOverrides: { include: { editor: true }, orderBy: { checkId: "asc" } },
+            },
+          },
           citations: true,
           claims: {
             include: {
@@ -191,10 +209,11 @@ export async function getReviewDetail(
     keywords?: string[];
     domains?: string[];
     compatibilityLevel?: string;
+    compatibilityReport?: unknown;
     reviewType?: string;
     license?: string;
   }>(version.metadataJson, {});
-  const inspectionReport = snapshot
+  const legacyInspectionReport = snapshot
     ? parseJsonColumn<{ compatibilityReport?: unknown }>(snapshot.inspectionReportJson, {})
     : {};
 
@@ -307,7 +326,7 @@ export async function getReviewDetail(
     keywords: meta.keywords ?? [],
     domains: meta.domains ?? [],
     compatibilityLevel: meta.compatibilityLevel,
-    compatibilityReport: inspectionReport.compatibilityReport,
+    compatibilityReport: meta.compatibilityReport ?? legacyInspectionReport.compatibilityReport,
     contributors: version.contributors.map((c) => ({
       displayName: c.person.displayName,
       orcid: c.person.orcid ?? undefined,
@@ -324,16 +343,32 @@ export async function getReviewDetail(
     },
     snapshot: {
       commitSha: snapshot?.commitSha ?? "",
-      releaseTag: snapshot?.releaseTag ?? undefined,
-      releaseUrl: snapshot?.releaseUrl ?? undefined,
+      treeSha: snapshot?.sourceTreeSha ?? undefined,
     },
     version: {
       id: version.id,
+      sourceKind: version.sourceKind ?? snapshot?.sourceKind ?? undefined,
+      sourceBranch: version.sourceBranch ?? snapshot?.branch ?? undefined,
+      releaseTag: version.releaseTag ?? snapshot?.releaseTag ?? undefined,
+      releaseUrl: version.releaseUrl ?? snapshot?.releaseUrl ?? undefined,
+      tagObjectSha: version.tagObjectSha ?? undefined,
       semanticVersion: version.semanticVersion ?? undefined,
       versionDoi: version.versionDoi ?? undefined,
       conceptDoi: version.conceptDoi ?? undefined,
       zenodoRecordId: version.zenodoRecordId ?? undefined,
       isExample: version.isExample,
+      capturePayloadHash: version.capturePayloadHash ?? undefined,
+      publicationConsistency: parseJsonColumn<PublicationConsistencyReport | undefined>(
+        version.publicationConsistencyJson,
+        undefined,
+      ),
+      editorialOverrides:
+        version.sourceSubmission?.editorialOverrides.map((override) => ({
+          checkId: override.checkId,
+          rationale: override.rationale,
+          editorLogin: override.editor.githubLogin,
+          createdAt: override.createdAt.toISOString(),
+        })) ?? [],
     },
     identifiers: version.identifiers.map((id) => ({
       scheme: id.scheme,

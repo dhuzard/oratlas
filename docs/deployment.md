@@ -38,6 +38,23 @@ server; Next.js App Router with server actions and API routes).
    pnpm --filter @oratlas/web start   # or: next start behind your process manager
    ```
 
+## Legacy GitHub repository identity reconciliation
+
+Before applying the unique string `Repository.githubRepositoryId` constraint to a populated legacy
+SQLite database:
+
+1. Back up the database.
+2. Run `pnpm --filter @oratlas/db db:reconcile-github-repositories` as a dry-run preflight.
+3. If duplicate immutable GitHub ids are reported, rerun with `-- --apply`. The newest repository
+   row survives; snapshots, submissions and review/version links are rewired transactionally, and
+   an audit event records the merged rows.
+4. Apply the Prisma schema without `--accept-data-loss`.
+5. Run the reconciliation command once more with `-- --apply` to backfill nullable legacy
+   `Review.repositoryId` values from their version snapshots.
+
+The command refuses non-SQLite URLs. PostgreSQL deployments should encode the same preflight and
+rewiring steps in a reviewed migration before adding the unique index.
+
 ## Existing-user login migration
 
 `User.githubLoginNormalized` is intentionally nullable during this transition. Its index is
