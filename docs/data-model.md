@@ -10,7 +10,7 @@ suffix, and arrays are JSON-encoded strings. Switching to PostgreSQL is a dataso
 
 | Model                                    | Purpose                           | Key constraints                                                                       |
 | ---------------------------------------- | --------------------------------- | ------------------------------------------------------------------------------------- |
-| `User`                                   | Minimal GitHub identity + role    | `githubLogin` unique; `role` ∈ USER/EDITOR/ADMIN                                      |
+| `User`                                   | Minimal GitHub identity + role    | `githubUserId` OAuth key; normalized login indexed and application-checked            |
 | `Repository`                             | Evolving GitHub project           | `(host, owner, name)` and `canonicalUrl` unique                                       |
 | `RepositorySnapshot`                     | Exact repository state            | **`(repositoryId, commitSha)` unique**                                                |
 | `Review`                                 | Public review record              | `slug` unique; `currentSnapshotId`                                                    |

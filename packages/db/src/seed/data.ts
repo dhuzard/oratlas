@@ -568,14 +568,14 @@ export const seedComments: SeedComment[] = [
 export const seedUsers = [
   {
     githubLogin: "atlas-editor",
-    githubUserId: "100001",
+    githubUserId: "mock:atlas-editor",
     displayName: "Atlas Editor (demo)",
     role: "EDITOR",
     profileUrl: "https://github.com/atlas-editor",
   },
   {
     githubLogin: "atlas-submitter",
-    githubUserId: "100002",
+    githubUserId: "mock:atlas-submitter",
     displayName: "Atlas Submitter (demo)",
     role: "USER",
     profileUrl: "https://github.com/atlas-submitter",

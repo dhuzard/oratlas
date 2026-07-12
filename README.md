@@ -107,13 +107,13 @@ the UI never renders them as resolvable outbound links.
 ## Testing
 
 ```bash
-pnpm test           # Vitest unit/integration tests (78 tests, no network)
+pnpm test           # Vitest unit/integration tests (no network)
 pnpm typecheck      # strict TypeScript across all packages
 pnpm lint           # ESLint
 pnpm format:check   # Prettier
 pnpm schema:check   # validate the review-manifest JSON Schema
 pnpm --filter @oratlas/web build       # production build
-pnpm --filter @oratlas/web test:e2e    # essential Playwright flows (9 tests)
+pnpm --filter @oratlas/web test:e2e    # essential Playwright flows
 ```
 
 Tests never depend on GitHub or Zenodo network availability — external APIs are mocked.

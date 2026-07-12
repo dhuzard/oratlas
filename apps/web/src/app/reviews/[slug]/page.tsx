@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { headers } from "next/headers";
 import Link from "next/link";
 import { type Metadata } from "next";
 import { Card, Badge, CompatibilityBadge, DefinitionList, Notice, StatusPill } from "@oratlas/ui";
@@ -8,6 +9,7 @@ import { getCurrentUser, isEditor } from "@/lib/auth";
 import { TrustDisplay } from "@/components/TrustDisplay";
 import { CommentsSection } from "./CommentsSection";
 import { ProvenanceBadge } from "@oratlas/ui";
+import { serializeJsonForHtml } from "@/lib/json-for-html";
 
 export const dynamic = "force-dynamic";
 
@@ -52,7 +54,12 @@ export default async function ReviewPage({ params }: { params: Promise<{ slug: s
   const review = await getReviewDetail(slug);
   if (!review) notFound();
 
-  const [comments, user] = await Promise.all([listReviewComments(slug), getCurrentUser()]);
+  const [comments, user, requestHeaders] = await Promise.all([
+    listReviewComments(slug),
+    getCurrentUser(),
+    headers(),
+  ]);
+  const nonce = requestHeaders.get("x-nonce") ?? undefined;
   const commentList = comments ?? { reviewSlug: slug, commentCount: 0, comments: [] };
   const commentsByClaim = new Map<string, number>();
   for (const c of commentList.comments) {
@@ -87,7 +94,8 @@ export default async function ReviewPage({ params }: { params: Promise<{ slug: s
     <article>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        nonce={nonce}
+        dangerouslySetInnerHTML={{ __html: serializeJsonForHtml(jsonLd) }}
       />
 
       <div className="btn-row" style={{ marginBottom: "0.5rem" }}>

@@ -339,6 +339,7 @@ async function main() {
     const row = await prisma.user.create({
       data: {
         githubLogin: u.githubLogin,
+        githubLoginNormalized: u.githubLogin.normalize("NFKC").toLowerCase(),
         githubUserId: u.githubUserId,
         displayName: u.displayName,
         role: u.role,

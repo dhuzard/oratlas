@@ -1,12 +1,11 @@
 import "server-only";
-import { createHmac, timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
 import { getServerEnv } from "@oratlas/config";
 import { type UserRole } from "@oratlas/contracts";
 import { prisma } from "./db";
+import { createSessionToken, readSessionToken, SESSION_MAX_AGE_SECONDS } from "./session-token";
 
 const COOKIE_NAME = "oratlas_session";
-const MAX_AGE_SECONDS = 60 * 60 * 24 * 7;
 
 export interface SessionUser {
   id: string;
@@ -17,29 +16,17 @@ export interface SessionUser {
   role: UserRole;
 }
 
-function sign(value: string): string {
-  const env = getServerEnv();
-  return createHmac("sha256", env.sessionSecret).update(value).digest("base64url");
-}
-
-function verify(value: string, signature: string): boolean {
-  const expected = sign(value);
-  if (expected.length !== signature.length) return false;
-  return timingSafeEqual(Buffer.from(expected), Buffer.from(signature));
-}
-
 /** Create a signed session cookie for a user id. */
 export async function createSession(userId: string): Promise<void> {
   const env = getServerEnv();
-  const payload = `${userId}.${Date.now()}`;
-  const token = `${payload}.${sign(payload)}`;
+  const token = createSessionToken(userId, env.sessionSecret);
   const jar = await cookies();
   jar.set(COOKIE_NAME, token, {
     httpOnly: true,
     sameSite: "lax",
     secure: env.isProduction,
     path: "/",
-    maxAge: MAX_AGE_SECONDS,
+    maxAge: SESSION_MAX_AGE_SECONDS,
   });
 }
 
@@ -53,12 +40,7 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
   const jar = await cookies();
   const token = jar.get(COOKIE_NAME)?.value;
   if (!token) return null;
-  const lastDot = token.lastIndexOf(".");
-  if (lastDot === -1) return null;
-  const payload = token.slice(0, lastDot);
-  const signature = token.slice(lastDot + 1);
-  if (!verify(payload, signature)) return null;
-  const userId = payload.split(".")[0];
+  const userId = readSessionToken(token, getServerEnv().sessionSecret);
   if (!userId) return null;
 
   const user = await prisma.user.findUnique({ where: { id: userId } });
@@ -118,11 +100,14 @@ export async function mockLogin(role: UserRole = "USER"): Promise<SessionUser> {
     throw new AuthError("Mock authentication is disabled in this environment.", 403);
   }
   const login = role === "EDITOR" ? "atlas-editor" : "atlas-submitter";
+  const mockGithubUserId = `mock:${login}`;
   const user = await prisma.user.upsert({
-    where: { githubLogin: login },
-    update: { role },
+    where: { githubUserId: mockGithubUserId },
+    update: { githubLogin: login, githubLoginNormalized: login, role },
     create: {
+      githubUserId: mockGithubUserId,
       githubLogin: login,
+      githubLoginNormalized: login,
       displayName: `Mock ${role} (dev)`,
       role,
       profileUrl: `https://github.com/${login}`,
