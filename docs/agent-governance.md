@@ -27,13 +27,15 @@ document states where agents are and are **not** used.
 - Each run persists an `AgentRun`: provider, model, model version, prompt version, evidence-packet
   hash, output, and grounding-validation result. Chain-of-thought is never requested or exposed.
 - Answers must distinguish agreement, disagreement, and missing evidence, note whether supporting
-  TRUST is agent-proposed or human-reviewed, and must **not imply consensus from the number of
+  TRUST is a repository assertion or has a current Atlas structural-review marker, and must **not imply consensus from the number of
   reviews** (several reviews citing the same source are not independent replication).
 
 ### TRUST assessments
 
-Agent-proposed TRUST records carry `reviewStatus = agent-proposed` and are visually labelled
-everywhere. They become authoritative only after human review (`human-reviewed`/`adjudicated`).
+Repository TRUST records are always imported as `unverified-import`; source status and assessor
+claims remain provenance only. Atlas `human-reviewed`/`adjudicated` is carried by a separate,
+hash-bound editor marker. Even a current marker confirms structural/provenance review only and is
+not an assertion of scientific correctness.
 
 ### Cross-review link proposals
 

@@ -72,7 +72,7 @@ export default async function ArchivePage({
                       )}
                       {r.hasTrustData ? <Badge>TRUST data</Badge> : null}
                       {r.hasHumanReviewedTrust ? (
-                        <Badge tone="success">human-reviewed TRUST</Badge>
+                        <Badge tone="success">Atlas-reviewed TRUST structure</Badge>
                       ) : null}
                       {r.publicationYear ? <span>{r.publicationYear}</span> : null}
                     </div>
@@ -144,8 +144,8 @@ export default async function ArchivePage({
                   defaultValue={get("trustReviewState") ?? "any"}
                 >
                   <option value="any">Any</option>
-                  <option value="human-reviewed">Human-reviewed</option>
-                  <option value="agent-proposed-only">Agent-proposed only</option>
+                  <option value="human-reviewed">Atlas structurally reviewed</option>
+                  <option value="agent-proposed-only">Repository/unverified only</option>
                 </select>
               </div>
               <div className="field">

@@ -174,10 +174,14 @@ function DeterministicView({ result }: { result: DeterministicResult }) {
                 <a href={`/reviews/${claim.reviewSlug}#${claim.anchor ?? claim.claimId}`}>
                   {claim.reviewTitle}
                 </a>
-                {claim.relations.some((r) => r.trust?.reviewStatus === "human-reviewed")
-                  ? " · human-reviewed TRUST"
+                {claim.relations.some(
+                  (r) =>
+                    r.trust?.reviewStatus === "human-reviewed" ||
+                    r.trust?.reviewStatus === "adjudicated",
+                )
+                  ? " · Atlas-reviewed TRUST structure"
                   : claim.relations.some((r) => r.trust)
-                    ? " · agent-proposed TRUST"
+                    ? " · repository TRUST assertion (unverified)"
                     : ""}
               </p>
             </div>
