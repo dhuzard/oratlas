@@ -1,5 +1,10 @@
 import { createHash } from "node:crypto";
-import { type TrustRecord } from "@oratlas/contracts";
+import {
+  canonicalJson,
+  type CompatibilityReport,
+  type SubmissionValidationReport,
+  type TrustRecord,
+} from "@oratlas/contracts";
 import {
   normalizeImportedTrustRecord,
   reviewedTrustSubjectHash,
@@ -22,6 +27,10 @@ const prisma = new PrismaClient();
 
 function contentHash(input: unknown): string {
   return createHash("sha256").update(JSON.stringify(input)).digest("hex");
+}
+
+function sha256(value: string): string {
+  return createHash("sha256").update(value, "utf8").digest("hex");
 }
 
 function buildMetadataJson(review: SeedReview) {
@@ -441,6 +450,7 @@ async function main() {
     data: {
       repositoryId: pendingRepo.id,
       commitSha: pendingSubmission.snapshot.commitSha,
+      sourceTreeSha: pendingSubmission.snapshot.treeSha,
       branch: pendingSubmission.snapshot.branch,
       inspectionStatus: "succeeded",
       inspectionReportJson: JSON.stringify({ schemaVersion: "1.0.0", note: "seed pending" }),
@@ -466,44 +476,97 @@ async function main() {
     },
     warnings: ["No review-manifest.json found; title extracted heuristically from README."],
   };
+  // Immutable payload an editor can accept (materializes a review). Kept
+  // minimal — repository-only, no knowledge artifacts — but it must satisfy
+  // the strict canonical-payload contract acceptance enforces: canonical
+  // JSON, a capture hash, and a full compatibility + validation report.
+  const absentSignal = { detected: false, evidence: [] };
+  const pendingCompatibility: CompatibilityReport = {
+    schemaVersion: "1.0.0",
+    templateForkDetected: absentSignal,
+    templateFilesDetected: absentSignal,
+    mystProjectDetected: absentSignal,
+    bibliographyDetected: absentSignal,
+    reviewContentDetected: {
+      detected: true,
+      evidence: ["README.md describes a computational review draft."],
+    },
+    provenanceDetected: absentSignal,
+    trustDataDetected: absentSignal,
+    releaseDetected: absentSignal,
+    doiDetected: absentSignal,
+    overallCompatibility: "partially-compatible",
+    levelRationale: [
+      "Review content detected without a release, DOI or manifest; eligible as repository-only.",
+    ],
+    blockingErrors: [],
+    warnings: [],
+    recommendations: ["Add review-manifest.json and mint a Zenodo DOI for a future version."],
+  };
+  const pendingValidation: SubmissionValidationReport = {
+    schemaVersion: "1.0.0",
+    hardErrors: [],
+    warnings: ["No DOI supplied; eligible as repository-only."],
+    releaseValidation: { releaseDetected: false, details: ["No release found."] },
+    publicationConsistency: {
+      schemaVersion: "1.0.0",
+      status: "not-applicable",
+      selectedSourceKind: "default-branch",
+      selectedCommitSha: pendingSubmission.snapshot.commitSha,
+      selectedTreeSha: pendingSubmission.snapshot.treeSha,
+      checks: [],
+      errors: [],
+      warnings: ["No release or DOI is linked; nothing to cross-check."],
+      overridableCheckIds: [],
+      requiresEditorOverride: false,
+    },
+    metadataCompleteness: {
+      requiredMissing: [],
+      recommendedMissing: ["keywords"],
+      score: 0.6,
+    },
+    compatibilityLevel: "partially-compatible",
+    evidenceDataAvailable: false,
+    trustDataAvailable: false,
+    validatedAt: "2026-07-01T12:00:00.000Z",
+  };
+  const pendingPayloadJson = canonicalJson({
+    schemaVersion: "1.0.0",
+    // Synthetic capture hash: the seed has no real inspection capture, but the
+    // payload contract requires the hash of the capture it was derived from.
+    capturePayloadHash: contentHash({
+      capture: pendingSubmission.repository.canonicalUrl,
+      commitSha: pendingSubmission.snapshot.commitSha,
+    }),
+    effectiveMetadata: {
+      title: pendingSubmission.title,
+      abstract: pendingSubmission.abstract,
+      authors: [],
+      keywords: [],
+      domains: ["Neuroscience"],
+      reviewType: "computational-literature-review",
+      repositoryUrl: pendingSubmission.repository.canonicalUrl,
+    },
+    compatibilityLevel: pendingCompatibility.overallCompatibility,
+    compatibilityReport: pendingCompatibility,
+    validation: pendingValidation,
+    knowledge: { claims: [], citations: [], relations: [], trust: [], warnings: [] },
+  });
   await prisma.submission.create({
     data: {
       submitterId,
       repositoryId: pendingRepo.id,
       snapshotId: pendingSnapshot.id,
+      sourceKind: "default-branch",
+      sourceBranch: pendingSubmission.snapshot.branch,
+      sourceSelectionKey: `default-branch:${pendingSubmission.snapshot.branch}`,
       status: pendingSubmission.status,
       extractedMetadataJson: JSON.stringify(extractedMetadata),
       editedMetadataJson: JSON.stringify({ edits: {} }),
-      // Immutable payload an editor can accept (materializes a review). Kept
-      // minimal: repository-only, no knowledge artifacts.
-      submittedPayloadJson: JSON.stringify({
-        effectiveMetadata: {
-          title: pendingSubmission.title,
-          abstract: pendingSubmission.abstract,
-          authors: [],
-          keywords: [],
-          domains: ["Neuroscience"],
-          reviewType: "computational-literature-review",
-          repositoryUrl: pendingSubmission.repository.canonicalUrl,
-        },
-        compatibilityLevel: "partially-compatible",
-        knowledge: { claims: [], citations: [], relations: [], trust: [] },
-      }),
-      validationReportJson: JSON.stringify({
-        schemaVersion: "1.0.0",
-        hardErrors: [],
-        warnings: ["No DOI supplied; eligible as repository-only."],
-        releaseValidation: { releaseDetected: false, details: ["No release found."] },
-        metadataCompleteness: {
-          requiredMissing: [],
-          recommendedMissing: ["abstract", "keywords"],
-          score: 0.6,
-        },
-        compatibilityLevel: "partially-compatible",
-        evidenceDataAvailable: false,
-        trustDataAvailable: false,
-        validatedAt: "2026-07-01T12:00:00.000Z",
-      }),
+      submittedPayloadJson: pendingPayloadJson,
+      submittedPayloadHash: sha256(pendingPayloadJson),
+      validationReportJson: canonicalJson(pendingValidation),
+      publicationConsistencyJson: canonicalJson(pendingValidation.publicationConsistency),
       submittedAt: new Date("2026-07-02T09:00:00.000Z"),
     },
   });
