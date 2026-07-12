@@ -58,6 +58,10 @@ uses both as optimistic-concurrency guards before writing the marker and audit e
 also requires an editor session, exact same-origin `Origin`, same-origin Fetch Metadata when
 present, and `Content-Type: application/json`.
 
+Presentation is fail-safe: only the known `human-reviewed` and `adjudicated` workflows receive a
+human-reviewed badge. Imported, superseded, mixed, or unknown status values receive an explicit
+warning and are never promoted to human-reviewed by a fallback label.
+
 ## What the UI shows
 
 The claim, citation, support relation, criterion ratings (with status and rationale), limitations,

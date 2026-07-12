@@ -463,7 +463,7 @@ export const templateDemoReview: SeedReview = {
     pagesUrl: "https://allenneuraldynamics.github.io/ComputationalReviewTemplate/",
   },
   snapshot: {
-    commitSha: sha("template00commit00demo"),
+    commitSha: sha("deadc0deca11ab1e0000"),
     branch: "main",
     releaseTag: "v1.0.0",
     releaseUrl:

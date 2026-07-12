@@ -345,6 +345,7 @@ async function seedReview(review: SeedReview, editorId: string) {
 
 async function seedReviewComments(
   reviewIdBySlug: Map<string, string>,
+  versionIdBySlug: Map<string, string>,
   claimIdsBySlug: Map<string, Map<string, string>>,
   userIdByLogin: Map<string, string>,
 ) {
@@ -352,7 +353,8 @@ async function seedReviewComments(
   for (const comment of seedComments) {
     const reviewId = reviewIdBySlug.get(comment.reviewSlug);
     const authorId = userIdByLogin.get(comment.authorLogin);
-    if (!reviewId || !authorId) continue;
+    const reviewVersionId = versionIdBySlug.get(comment.reviewSlug);
+    if (!reviewId || !reviewVersionId || !authorId) continue;
     const claimId = comment.claimLocalId
       ? claimIdsBySlug.get(comment.reviewSlug)?.get(comment.claimLocalId)
       : undefined;
@@ -361,6 +363,7 @@ async function seedReviewComments(
     const row = await prisma.reviewComment.create({
       data: {
         reviewId,
+        reviewVersionId,
         authorId,
         parentId,
         claimId: claimId ?? null,
@@ -397,15 +400,20 @@ async function main() {
   // Reviews
   const claimIdsBySlug = new Map<string, Map<string, string>>();
   const reviewIdBySlug = new Map<string, string>();
+  const versionIdBySlug = new Map<string, string>();
   for (const review of seedReviews) {
-    const { reviewRow, claimIdByLocal } = await seedReview(review, users.get("atlas-editor")!);
+    const { reviewRow, version, claimIdByLocal } = await seedReview(
+      review,
+      users.get("atlas-editor")!,
+    );
     claimIdsBySlug.set(review.slug, claimIdByLocal);
     reviewIdBySlug.set(review.slug, reviewRow.id);
+    versionIdBySlug.set(review.slug, version.id);
     console.info(`  · seeded review: ${review.slug}`);
   }
 
   // Community comments on published reviews
-  await seedReviewComments(reviewIdBySlug, claimIdsBySlug, users);
+  await seedReviewComments(reviewIdBySlug, versionIdBySlug, claimIdsBySlug, users);
 
   // Pending submission (its own repository + snapshot, no accepted review)
   const submitterId = users.get("atlas-submitter")!;

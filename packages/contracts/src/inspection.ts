@@ -60,7 +60,7 @@ export const inspectionReportSchema = z.object({
   starCount: z.number().int().optional(),
   createdAt: z.string().optional(),
   pushedAt: z.string().optional(),
-  tags: z.array(z.object({ name: z.string(), commitSha: z.string() })).default([]),
+  tags: z.array(z.object({ name: z.string(), commitSha: commitShaSchema })).default([]),
   releases: z.array(repoReleaseSchema).default([]),
   /** Full file listing (paths + sizes) up to the traversal bound. */
   tree: z.array(z.object({ path: z.string(), size: z.number().int().nonnegative() })).default([]),

@@ -254,6 +254,24 @@ paths:
         - { name: relationType, in: query, schema: { type: string } }
       responses:
         "200": { description: Claim results }
+  /api/reviews/{slug}/versions/{versionId}:
+    get:
+      summary: Retrieve one immutable review version and its exact snapshot/evidence
+      parameters:
+        - { name: slug, in: path, required: true, schema: { type: string } }
+        - { name: versionId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Version-scoped review detail }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/reviews/{slug}/versions/{versionId}/comments:
+    get:
+      summary: List read-only comments bound to one immutable review version
+      parameters:
+        - { name: slug, in: path, required: true, schema: { type: string } }
+        - { name: versionId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Version-scoped threaded comment list }
+        "404": { $ref: "#/components/responses/Error" }
   /api/discuss:
     post:
       summary: Grounded cross-review discussion (deterministic or LLM mode)

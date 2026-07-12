@@ -52,10 +52,12 @@ describe("reviewCommentListSchema", () => {
   it("validates a threaded list payload", () => {
     const payload = {
       reviewSlug: "some-review",
+      reviewVersionId: "rv-1",
       commentCount: 2,
       comments: [
         {
           id: "c1",
+          reviewVersionId: "rv-1",
           kind: "question",
           status: "visible",
           body: "How was the baseline chosen?",
@@ -66,6 +68,7 @@ describe("reviewCommentListSchema", () => {
           replies: [
             {
               id: "c2",
+              reviewVersionId: "rv-1",
               kind: "comment",
               status: "visible",
               body: "See section 3.",

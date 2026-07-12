@@ -16,10 +16,10 @@ export const dynamic = "force-dynamic";
 export async function generateMetadata({
   params,
 }: {
-  params: Promise<{ slug: string }>;
+  params: Promise<{ slug: string; versionId?: string }>;
 }): Promise<Metadata> {
-  const { slug } = await params;
-  const review = await getReviewDetail(slug);
+  const { slug, versionId } = await params;
+  const review = await getReviewDetail(slug, versionId);
   if (!review) return { title: "Review not found" };
   return {
     title: review.title,
@@ -29,7 +29,9 @@ export async function generateMetadata({
       description: review.abstract?.slice(0, 200),
       type: "article",
     },
-    alternates: { canonical: `/reviews/${slug}` },
+    alternates: {
+      canonical: versionId ? `/reviews/${slug}/versions/${versionId}` : `/reviews/${slug}`,
+    },
   };
 }
 
@@ -49,18 +51,28 @@ function DoiValue({ value, isExample }: { value?: string; isExample: boolean }) 
   );
 }
 
-export default async function ReviewPage({ params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = await params;
-  const review = await getReviewDetail(slug);
+export default async function ReviewPage({
+  params,
+}: {
+  params: Promise<{ slug: string; versionId?: string }>;
+}) {
+  const { slug, versionId } = await params;
+  const review = await getReviewDetail(slug, versionId);
   if (!review) notFound();
+  const isHistoricalRoute = Boolean(versionId);
 
   const [comments, user, requestHeaders] = await Promise.all([
-    listReviewComments(slug),
+    listReviewComments(slug, review.version.id),
     getCurrentUser(),
     headers(),
   ]);
   const nonce = requestHeaders.get("x-nonce") ?? undefined;
-  const commentList = comments ?? { reviewSlug: slug, commentCount: 0, comments: [] };
+  const commentList = comments ?? {
+    reviewSlug: slug,
+    reviewVersionId: review.version.id,
+    commentCount: 0,
+    comments: [],
+  };
   const commentsByClaim = new Map<string, number>();
   for (const c of commentList.comments) {
     if (c.status !== "visible" || !c.claimLocalId) continue;
@@ -105,6 +117,15 @@ export default async function ReviewPage({ params }: { params: Promise<{ slug: s
         ) : null}
         {review.version.isExample ? <Badge tone="warning">example data</Badge> : null}
       </div>
+
+      {isHistoricalRoute ? (
+        <Notice tone="info" title="Immutable historical version">
+          You are viewing version {review.version.semanticVersion ?? review.version.id}. Its
+          snapshot, evidence and version-scoped discussion are preserved exactly. Historical
+          comments are read-only.{" "}
+          <Link href={`/reviews/${review.slug}`}>View the current version</Link>.
+        </Notice>
+      ) : null}
 
       <h1>{review.title}</h1>
       {review.abstract ? <p className="prose">{review.abstract}</p> : null}
@@ -287,6 +308,18 @@ export default async function ReviewPage({ params }: { params: Promise<{ slug: s
 
           {review.citations.length > 0 ? (
             <Card title="Citations">
+              {review.identifierConflicts.length > 0 ? (
+                <Notice tone="warning" title="Conflicting work identifiers">
+                  <ul>
+                    {review.identifierConflicts.map((conflict) => (
+                      <li key={`${conflict.scheme}:${conflict.values.join(":")}`}>
+                        {conflict.message} Atlas preserves this assertion but does not silently
+                        merge the affected citations.
+                      </li>
+                    ))}
+                  </ul>
+                </Notice>
+              ) : null}
               <div className="table-scroll">
                 <table className="data">
                   <thead>
@@ -341,6 +374,7 @@ export default async function ReviewPage({ params }: { params: Promise<{ slug: s
                   }
                 : null
             }
+            readOnly={isHistoricalRoute}
           />
         </div>
 
@@ -351,7 +385,8 @@ export default async function ReviewPage({ params }: { params: Promise<{ slug: s
             ) : null}
             <p className="muted" style={{ fontSize: "0.9rem" }}>
               Structural compatibility is determined by transparent rules over repository files —
-              never by an opaque model decision.
+              never by an opaque model decision. Structural grounding does not establish the
+              scientific correctness of a claim.
             </p>
           </Card>
 
@@ -389,7 +424,10 @@ export default async function ReviewPage({ params }: { params: Promise<{ slug: s
             <ul className="tag-list" style={{ flexDirection: "column", alignItems: "flex-start" }}>
               {review.versions.map((v) => (
                 <li key={v.id}>
-                  {v.semanticVersion ?? v.releaseTag ?? "version"}{" "}
+                  <Link href={`/reviews/${review.slug}/versions/${v.id}`}>
+                    {v.semanticVersion ?? v.releaseTag ?? "version"}
+                  </Link>{" "}
+                  {v.isCurrent ? <Badge>current</Badge> : null}{" "}
                   {v.publishedAt ? (
                     <span className="muted">({v.publishedAt.slice(0, 10)})</span>
                   ) : null}

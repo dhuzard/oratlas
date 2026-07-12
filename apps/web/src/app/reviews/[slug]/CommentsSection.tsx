@@ -187,11 +187,13 @@ export function CommentsSection({
   list,
   claims,
   viewer,
+  readOnly = false,
 }: {
   reviewSlug: string;
   list: ReviewCommentList;
   claims: CommentClaimOption[];
   viewer: CommentViewer | null;
+  readOnly?: boolean;
 }) {
   const router = useRouter();
   const [replyTo, setReplyTo] = useState<string | null>(null);
@@ -232,7 +234,11 @@ export function CommentsSection({
           publicly attributed to your account.
         </p>
 
-        {viewer ? (
+        {readOnly ? (
+          <p className="notice notice-info">
+            This discussion is bound to an immutable historical review version and is read-only.
+          </p>
+        ) : viewer ? (
           <CommentForm reviewSlug={reviewSlug} claims={claims} />
         ) : (
           <p className="notice notice-info">
@@ -260,7 +266,7 @@ export function CommentsSection({
                     <AuthorLine comment={comment} />
                     <p className="comment-body">{comment.body}</p>
                     <div className="btn-row comment-actions">
-                      {viewer ? (
+                      {viewer && !readOnly ? (
                         <button
                           className="btn-link"
                           type="button"
@@ -269,7 +275,7 @@ export function CommentsSection({
                           Reply
                         </button>
                       ) : null}
-                      {canRemove(comment.author?.githubLogin) ? (
+                      {!readOnly && canRemove(comment.author?.githubLogin) ? (
                         <button
                           className="btn-link btn-link-danger"
                           type="button"
@@ -282,7 +288,7 @@ export function CommentsSection({
                   </>
                 )}
 
-                {replyTo === comment.id && viewer ? (
+                {replyTo === comment.id && viewer && !readOnly ? (
                   <div className="comment-replies">
                     <CommentForm
                       reviewSlug={reviewSlug}
@@ -299,7 +305,7 @@ export function CommentsSection({
                       <li className="comment" key={reply.id}>
                         <AuthorLine comment={reply} />
                         <p className="comment-body">{reply.body}</p>
-                        {canRemove(reply.author?.githubLogin) ? (
+                        {!readOnly && canRemove(reply.author?.githubLogin) ? (
                           <div className="btn-row comment-actions">
                             <button
                               className="btn-link btn-link-danger"

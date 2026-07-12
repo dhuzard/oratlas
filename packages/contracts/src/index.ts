@@ -1,5 +1,6 @@
 export * from "./enums.js";
 export * from "./identifiers.js";
+export * from "./evidence-identity.js";
 export * from "./paths.js";
 export * from "./manifest.js";
 export * from "./metadata.js";

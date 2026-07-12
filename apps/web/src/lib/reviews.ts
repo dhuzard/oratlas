@@ -6,6 +6,14 @@ import {
   type TrustRecord,
   type TrustVerificationState,
 } from "@oratlas/trust";
+import {
+  canonicalWorkAliases,
+  claimDomAnchor,
+  findWorkIdentifierConflicts,
+  globalCitationId,
+  globalClaimId,
+  type WorkIdentityAssertion,
+} from "@oratlas/contracts";
 import { prisma, parseJsonColumn } from "./db";
 import { toTrustRecord } from "./index-builder";
 import { resolveTrustAssessmentRows } from "./trust-provenance";
@@ -53,10 +61,12 @@ export interface ReviewRelation {
 }
 
 export interface ReviewClaim {
+  claimId: string;
   localClaimId: string;
   text: string;
   section?: string;
-  anchor?: string;
+  anchor: string;
+  sourceAnchor?: string;
   claimType?: string;
   qualification?: string;
   relations: ReviewRelation[];
@@ -96,6 +106,7 @@ export interface ReviewDetail {
     releaseUrl?: string;
   };
   version: {
+    id: string;
     semanticVersion?: string;
     versionDoi?: string;
     conceptDoi?: string;
@@ -117,29 +128,39 @@ export interface ReviewDetail {
     releaseTag?: string;
     publishedAt?: string;
     isExample: boolean;
+    isCurrent: boolean;
   }>;
   claims: ReviewClaim[];
   citations: Array<{
     localCitationId: string;
+    citationId: string;
     title?: string;
     doi?: string;
+    pmid?: string;
+    openAlexId?: string;
+    workId: string;
+    canonicalWorkAliases: string[];
     year?: number;
     source?: string;
     isExample: boolean;
   }>;
   limitations: string[];
+  identifierConflicts: WorkIdentityAssertion[];
 }
 
-export async function getReviewDetail(slug: string): Promise<ReviewDetail | null> {
+export async function getReviewDetail(
+  slug: string,
+  requestedVersionId?: string,
+): Promise<ReviewDetail | null> {
   const review = await prisma.review.findUnique({
     where: { slug },
     include: {
-      currentSnapshot: { include: { repository: true } },
       versions: {
         orderBy: { createdAt: "desc" },
         include: {
           contributors: { include: { person: true }, orderBy: { position: "asc" } },
           identifiers: true,
+          snapshot: { include: { repository: true } },
           citations: true,
           claims: {
             include: {
@@ -158,15 +179,20 @@ export async function getReviewDetail(slug: string): Promise<ReviewDetail | null
     },
   });
   if (!review) return null;
-  const version = review.versions[0];
+  const currentVersion = review.versions[0];
+  const version = requestedVersionId
+    ? review.versions.find((candidate) => candidate.id === requestedVersionId)
+    : currentVersion;
   if (!version) return null;
 
-  const snapshot = review.currentSnapshot;
-  const repo = snapshot?.repository;
+  const snapshot = version.snapshot;
+  const repo = snapshot.repository;
   const meta = parseJsonColumn<{
     keywords?: string[];
     domains?: string[];
     compatibilityLevel?: string;
+    reviewType?: string;
+    license?: string;
   }>(version.metadataJson, {});
   const inspectionReport = snapshot
     ? parseJsonColumn<{ compatibilityReport?: unknown }>(snapshot.inspectionReportJson, {})
@@ -174,10 +200,12 @@ export async function getReviewDetail(slug: string): Promise<ReviewDetail | null
 
   const limitations = new Set<string>();
   const claims: ReviewClaim[] = version.claims.map((claim) => ({
+    claimId: globalClaimId(version.id, claim.localClaimId),
     localClaimId: claim.localClaimId,
     text: claim.text,
     section: claim.section ?? undefined,
-    anchor: claim.anchor ?? undefined,
+    anchor: claimDomAnchor(version.id, claim.localClaimId),
+    sourceAnchor: claim.anchor ?? undefined,
     claimType: claim.claimType ?? undefined,
     qualification: claim.qualification ?? undefined,
     relations: claim.evidenceRelations.map((rel) => {
@@ -241,16 +269,41 @@ export async function getReviewDetail(slug: string): Promise<ReviewDetail | null
     }),
   }));
 
+  const citationIdentities = version.citations.map((citation) => {
+    const citationId = globalCitationId(version.id, citation.localCitationId);
+    const aliases = canonicalWorkAliases({
+      doi: citation.doi ?? undefined,
+      pmid: citation.pmid ?? undefined,
+      openAlexId: citation.openAlexId ?? undefined,
+    });
+    return { citationId, aliases, workId: aliases[0] ?? citationId };
+  });
+  const identityByLocalId = new Map(
+    version.citations.map((citation, index) => [
+      citation.localCitationId,
+      citationIdentities[index]!,
+    ]),
+  );
+  const publishedIdentifier = version.identifiers.find(
+    (identifier) => identifier.relationType === "published-review",
+  );
+
   return {
     slug: review.slug,
     title: version.title,
     abstract: version.abstract ?? undefined,
-    reviewType: review.reviewType ?? undefined,
-    licenseSpdx: review.licenseSpdx ?? undefined,
-    publishedReviewUrl: review.publishedReviewUrl ?? undefined,
+    reviewType: meta.reviewType ?? review.reviewType ?? undefined,
+    licenseSpdx: meta.license ?? review.licenseSpdx ?? undefined,
+    publishedReviewUrl:
+      publishedIdentifier?.url ??
+      publishedIdentifier?.value ??
+      review.publishedReviewUrl ??
+      undefined,
     status: review.status,
-    acceptedAt: review.acceptedAt?.toISOString(),
-    updatedAt: review.updatedAt.toISOString(),
+    acceptedAt: version.publishedAt?.toISOString() ?? review.acceptedAt?.toISOString(),
+    updatedAt: requestedVersionId
+      ? version.createdAt.toISOString()
+      : review.updatedAt.toISOString(),
     keywords: meta.keywords ?? [],
     domains: meta.domains ?? [],
     compatibilityLevel: meta.compatibilityLevel,
@@ -275,6 +328,7 @@ export async function getReviewDetail(slug: string): Promise<ReviewDetail | null
       releaseUrl: snapshot?.releaseUrl ?? undefined,
     },
     version: {
+      id: version.id,
       semanticVersion: version.semanticVersion ?? undefined,
       versionDoi: version.versionDoi ?? undefined,
       conceptDoi: version.conceptDoi ?? undefined,
@@ -296,17 +350,29 @@ export async function getReviewDetail(slug: string): Promise<ReviewDetail | null
       releaseTag: v.releaseTag ?? undefined,
       publishedAt: v.publishedAt?.toISOString(),
       isExample: v.isExample,
+      isCurrent: v.id === currentVersion?.id,
     })),
     claims,
     citations: version.citations.map((c) => ({
       localCitationId: c.localCitationId,
+      citationId: identityByLocalId.get(c.localCitationId)!.citationId,
       title: c.title ?? undefined,
       doi: c.doi ?? undefined,
+      pmid: c.pmid ?? undefined,
+      openAlexId: c.openAlexId ?? undefined,
+      workId: identityByLocalId.get(c.localCitationId)!.workId,
+      canonicalWorkAliases: identityByLocalId.get(c.localCitationId)!.aliases,
       year: c.year ?? undefined,
       source: c.source ?? undefined,
       isExample: isExampleCitation(c.rawCitationJson),
     })),
     limitations: [...limitations],
+    identifierConflicts: findWorkIdentifierConflicts(
+      citationIdentities.map((identity) => ({
+        citationId: identity.citationId,
+        aliases: identity.aliases,
+      })),
+    ),
   };
 }
 
