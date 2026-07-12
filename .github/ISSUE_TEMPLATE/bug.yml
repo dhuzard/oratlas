@@ -1,0 +1,61 @@
+name: Bug report
+description: Report a reproducible problem in Open Review Atlas.
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: >-
+        Thanks for helping improve Open Review Atlas. Do not include security-sensitive or private
+        research data here; use the private security advisory link for vulnerabilities.
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: Describe the observed behavior and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction
+      description: Provide the smallest reliable sequence of steps, repository, or review URL.
+      placeholder: |
+        1. Open …
+        2. Select …
+        3. Observe …
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+      description: Exact deployment version, release, or commit SHA if known.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Affected area
+      options:
+        - Submission and repository inspection
+        - Editorial workflow
+        - Published reviews and archive
+        - Claims, citations, or TRUST provenance
+        - Discussion and grounding
+        - Documentation or developer tooling
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Supporting evidence
+      description: Add logs, screenshots, or links after removing secrets and personal data.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Pre-submission checks
+      options:
+        - label: I searched existing issues for this problem.
+          required: true
+        - label: This report does not disclose a security vulnerability or secret.
+          required: true

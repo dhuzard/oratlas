@@ -40,6 +40,9 @@
     "vitest": "^3.1.4"
   },
   "pnpm": {
+    "overrides": {
+      "postcss": "8.5.16"
+    },
     "onlyBuiltDependencies": [
       "@prisma/client",
       "@prisma/engines",

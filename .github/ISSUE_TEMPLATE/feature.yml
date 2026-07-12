@@ -1,0 +1,50 @@
+name: Feature proposal
+description: Propose a focused improvement to open-science publishing or platform operations.
+title: "[Feature]: "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or opportunity
+      description: What user, editorial, reproducibility, or research-integrity need is unmet?
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Desired outcome
+      description: Describe observable success without prescribing implementation details.
+    validations:
+      required: true
+  - type: dropdown
+    id: audience
+    attributes:
+      label: Primary audience
+      options:
+        - Readers and evidence users
+        - Review authors and maintainers
+        - Editors and reviewers
+        - Data stewards and repository operators
+        - Developers and integrators
+    validations:
+      required: true
+  - type: textarea
+    id: provenance
+    attributes:
+      label: Provenance and integrity considerations
+      description: Note effects on versioning, attribution, evidence identity, TRUST, or auditability.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Include relevant standards, prior art, or simpler approaches.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Pre-submission checks
+      options:
+        - label: I searched existing issues and roadmap items for this proposal.
+          required: true

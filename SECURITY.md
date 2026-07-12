@@ -5,9 +5,10 @@ attack given that it ingests untrusted, third-party repository content.
 
 ## Reporting a vulnerability
 
-Please report suspected vulnerabilities privately to the maintainers rather than opening a public
-issue. Include a description, reproduction steps, and impact. We will acknowledge and respond as
-soon as we reasonably can.
+Please report suspected vulnerabilities through a
+[private GitHub security advisory](https://github.com/dhuzard/oratlas/security/advisories/new)
+rather than opening a public issue. Include a description, reproduction steps, and impact. We will
+acknowledge and respond as soon as we reasonably can.
 
 ## Security properties (by design)
 
