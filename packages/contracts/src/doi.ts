@@ -77,6 +77,18 @@ export const submissionValidationReportSchema = z.object({
     releaseTagMatches: z.boolean().optional(),
     details: z.array(z.string()).default([]),
   }),
+  /** Cross-check of the selected Git source, release and deposit identifiers. */
+  publicationConsistency: z
+    .object({
+      status: z.enum(["pass", "warn", "fail", "not-applicable"]),
+      selectedCommitSha: z.string().optional(),
+      selectedReleaseTag: z.string().optional(),
+      checks: z.array(doiCheckSchema).default([]),
+      errors: z.array(z.string()).default([]),
+      warnings: z.array(z.string()).default([]),
+      requiresEditorOverride: z.boolean().default(false),
+    })
+    .optional(),
   metadataCompleteness: z.object({
     requiredMissing: z.array(z.string()).default([]),
     recommendedMissing: z.array(z.string()).default([]),

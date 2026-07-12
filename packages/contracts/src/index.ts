@@ -10,3 +10,4 @@ export * from "./discussion.js";
 export * from "./comments.js";
 export * from "./search.js";
 export * from "./api.js";
+export * from "./canonical-json.js";

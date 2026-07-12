@@ -43,7 +43,8 @@ export const inspectionReportSchema = z.object({
   repo: repoRefSchema,
   inspectedAt: z.string().datetime(),
   status: inspectionStatusSchema,
-  githubRepositoryId: z.number().int().optional(),
+  /** Immutable GitHub repository database id (stored as a decimal string). */
+  githubRepositoryId: z.string().regex(/^\d+$/).optional(),
   description: z.string().nullable().optional(),
   defaultBranch: z.string().optional(),
   latestCommitSha: commitShaSchema.optional(),
@@ -62,6 +63,19 @@ export const inspectionReportSchema = z.object({
   pushedAt: z.string().optional(),
   tags: z.array(z.object({ name: z.string(), commitSha: z.string() })).default([]),
   releases: z.array(repoReleaseSchema).default([]),
+  /** Exact source selected for this inspection. No implicit release guessing. */
+  selectedSource: z
+    .object({
+      kind: z.enum(["default-branch", "tag", "release"]),
+      commitSha: commitShaSchema,
+      branch: z.string().optional(),
+      releaseTag: z.string().optional(),
+      releaseUrl: z.string().url().optional(),
+      /** SHA of an annotated tag object; absent for lightweight tags. */
+      tagObjectSha: commitShaSchema.optional(),
+      sourceCreatedAt: z.string().datetime().optional(),
+    })
+    .optional(),
   /** Full file listing (paths + sizes) up to the traversal bound. */
   tree: z.array(z.object({ path: z.string(), size: z.number().int().nonnegative() })).default([]),
   treeTruncated: z.boolean().default(false),

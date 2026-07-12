@@ -70,6 +70,8 @@ export interface InspectOptions {
   token?: string;
   limits?: Partial<InspectionLimits>;
   now?: () => Date;
+  /** Exact release/tag to inspect. Omit for a repository-only default-branch capture. */
+  releaseTag?: string;
 }
 
 /**
@@ -146,7 +148,7 @@ export async function inspectRepository(
 
   // 3. Tags
   const tags: Array<{ name: string; commitSha: string }> = [];
-  const tagsRes = await transport.request(`/repos/${ref.owner}/${ref.name}/tags?per_page=20`);
+  const tagsRes = await transport.request(`/repos/${ref.owner}/${ref.name}/tags?per_page=100`);
   if (tagsRes.ok && Array.isArray(tagsRes.json)) {
     for (const t of tagsRes.json as Array<Record<string, unknown>>) {
       const commit = t.commit as Record<string, unknown> | undefined;
@@ -158,7 +160,7 @@ export async function inspectRepository(
 
   // 4. Releases
   const releases: RepoRelease[] = [];
-  const relRes = await transport.request(`/repos/${ref.owner}/${ref.name}/releases?per_page=20`);
+  const relRes = await transport.request(`/repos/${ref.owner}/${ref.name}/releases?per_page=100`);
   if (relRes.ok && Array.isArray(relRes.json)) {
     for (const r of relRes.json as Array<Record<string, unknown>>) {
       const body = typeof r.body === "string" ? r.body : "";
@@ -174,7 +176,54 @@ export async function inspectRepository(
     }
   }
 
-  // 5. Pages URL
+  // 5. Resolve the exact source. A requested tag is dereferenced through Git
+  // tag objects until a commit is reached (annotated and lightweight tags are
+  // both supported). Failure never falls back to a mutable default branch.
+  let selectedCommitSha = latestCommitSha;
+  let selectedCommitDate = latestCommitDate;
+  let selectedTagObjectSha: string | undefined;
+  const requestedTag = options.releaseTag?.trim();
+  if (options.releaseTag !== undefined && !requestedTag) {
+    return failedReport(ref, now, "Release/tag selection cannot be empty.", limits);
+  }
+  if (requestedTag) {
+    const resolved = await resolveTagToCommit(transport, ref, requestedTag);
+    if (!resolved.ok) return failedReport(ref, now, resolved.error, limits);
+    selectedCommitSha = resolved.commitSha;
+    selectedTagObjectSha = resolved.tagObjectSha;
+    const selectedCommit = await transport.request(
+      `/repos/${ref.owner}/${ref.name}/commits/${encodeURIComponent(selectedCommitSha)}`,
+    );
+    if (selectedCommit.ok && selectedCommit.json && typeof selectedCommit.json === "object") {
+      const commit = (selectedCommit.json as Record<string, unknown>).commit as
+        Record<string, unknown> | undefined;
+      const committer = commit?.committer as Record<string, unknown> | undefined;
+      if (typeof committer?.date === "string") selectedCommitDate = committer.date;
+    }
+  }
+  if (!selectedCommitSha) {
+    return failedReport(ref, now, "Could not resolve an immutable source commit.", limits);
+  }
+  const selectedRelease = requestedTag
+    ? releases.find((release) => release.tagName === requestedTag && !release.isDraft)
+    : undefined;
+  const selectedSource: NonNullable<InspectionReport["selectedSource"]> = requestedTag
+    ? {
+        kind: selectedRelease ? "release" : "tag",
+        commitSha: selectedCommitSha,
+        releaseTag: requestedTag,
+        releaseUrl: selectedRelease?.htmlUrl,
+        tagObjectSha: selectedTagObjectSha,
+        sourceCreatedAt: selectedCommitDate,
+      }
+    : {
+        kind: "default-branch",
+        commitSha: selectedCommitSha,
+        branch: defaultBranch,
+        sourceCreatedAt: selectedCommitDate,
+      };
+
+  // 6. Pages URL
   let pagesUrl: string | null = null;
   const pagesRes = await transport.request(`/repos/${ref.owner}/${ref.name}/pages`);
   if (pagesRes.ok && pagesRes.json && typeof pagesRes.json === "object") {
@@ -182,10 +231,10 @@ export async function inspectRepository(
     if (typeof p.html_url === "string") pagesUrl = p.html_url;
   }
 
-  // 6. File tree (bounded)
+  // 7. File tree (bounded) at the exact selected commit.
   const tree: Array<{ path: string; size: number }> = [];
   let treeTruncated = false;
-  const treeSha = latestCommitSha ?? defaultBranch;
+  const treeSha = selectedCommitSha;
   const treeRes = await transport.request(
     `/repos/${ref.owner}/${ref.name}/git/trees/${encodeURIComponent(treeSha)}?recursive=1`,
   );
@@ -211,7 +260,7 @@ export async function inspectRepository(
     warnings.push("Could not read the repository file tree; extraction will be limited.");
   }
 
-  // 7. Determine which files to fetch: well-known files + discovered artifacts.
+  // 8. Determine which files to fetch: well-known files + discovered artifacts.
   const treePaths = new Set(tree.map((t) => t.path));
   const toFetch = new Set<string>();
   for (const wk of WELL_KNOWN_FILES) {
@@ -295,7 +344,12 @@ export async function inspectRepository(
     repo: ref,
     inspectedAt: now().toISOString(),
     status,
-    githubRepositoryId: typeof repo.id === "number" ? repo.id : undefined,
+    githubRepositoryId:
+      typeof repo.id === "number" && Number.isSafeInteger(repo.id)
+        ? String(repo.id)
+        : typeof repo.id === "string" && /^\d+$/.test(repo.id)
+          ? repo.id
+          : undefined,
     description: (repo.description as string | null) ?? null,
     defaultBranch,
     latestCommitSha,
@@ -314,6 +368,7 @@ export async function inspectRepository(
     pushedAt: typeof repo.pushed_at === "string" ? repo.pushed_at : undefined,
     tags,
     releases,
+    selectedSource,
     tree,
     treeTruncated,
     files,
@@ -326,6 +381,56 @@ export async function inspectRepository(
       filesFetched,
     },
   };
+}
+
+type TagResolution =
+  { ok: true; commitSha: string; tagObjectSha?: string } | { ok: false; error: string };
+
+async function resolveTagToCommit(
+  transport: GithubTransport,
+  ref: RepoRef,
+  tag: string,
+): Promise<TagResolution> {
+  if (tag.length > 120) return { ok: false, error: "Release/tag selection is too long." };
+  const response = await transport.request(
+    `/repos/${ref.owner}/${ref.name}/git/ref/tags/${encodeURIComponent(tag)}`,
+  );
+  if (!response.ok || !response.json || typeof response.json !== "object") {
+    return { ok: false, error: `Release/tag '${tag}' was not found.` };
+  }
+  let object = (response.json as Record<string, unknown>).object as
+    Record<string, unknown> | undefined;
+  let tagObjectSha: string | undefined;
+  const visited = new Set<string>();
+  for (let depth = 0; depth < 8; depth += 1) {
+    const type = object?.type;
+    const sha = normalizeGitOid(object?.sha);
+    if (!sha || (type !== "commit" && type !== "tag")) {
+      return { ok: false, error: `Release/tag '${tag}' has an unsupported target.` };
+    }
+    if (type === "commit") return { ok: true, commitSha: sha, tagObjectSha };
+    tagObjectSha ??= sha;
+    if (visited.has(sha)) {
+      return { ok: false, error: `Release/tag '${tag}' contains a tag cycle.` };
+    }
+    visited.add(sha);
+    const tagResponse = await transport.request(
+      `/repos/${ref.owner}/${ref.name}/git/tags/${encodeURIComponent(sha)}`,
+    );
+    if (!tagResponse.ok || !tagResponse.json || typeof tagResponse.json !== "object") {
+      return { ok: false, error: `Annotated tag '${tag}' could not be dereferenced.` };
+    }
+    object = (tagResponse.json as Record<string, unknown>).object as
+      Record<string, unknown> | undefined;
+  }
+  return { ok: false, error: `Release/tag '${tag}' exceeds the dereference limit.` };
+}
+
+function normalizeGitOid(value: unknown): string | undefined {
+  if (typeof value !== "string" || !/^(?:[0-9a-f]{40}|[0-9a-f]{64})$/i.test(value)) {
+    return undefined;
+  }
+  return value.toLowerCase();
 }
 
 export function extractDoisFromText(text: string): string[] {
