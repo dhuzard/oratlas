@@ -1,5 +1,5 @@
 import "server-only";
-import { computeAggregate, type TrustRecord } from "@oratlas/trust";
+import { computeAggregate, selectPreferredTrustAssessment, type TrustRecord } from "@oratlas/trust";
 import { type AssessmentReviewStatus, type ClaimEvidenceRelationType } from "@oratlas/contracts";
 import {
   type IndexedClaim,
@@ -9,6 +9,7 @@ import {
   type KnowledgeIndexData,
 } from "@oratlas/knowledge";
 import { prisma, parseJsonColumn } from "./db";
+import { resolveTrustAssessmentRows } from "./trust-provenance";
 
 /**
  * Build the in-memory knowledge index from accepted/published reviews. Uses the
@@ -26,7 +27,9 @@ export async function buildKnowledgeIndex(): Promise<KnowledgeIndexData> {
           contributors: { include: { person: true }, orderBy: { position: "asc" } },
           claims: {
             include: {
-              evidenceRelations: { include: { trustAssessments: true } },
+              evidenceRelations: {
+                include: { citation: true, trustAssessments: { include: { verification: true } } },
+              },
             },
           },
           citations: true,
@@ -52,9 +55,23 @@ export async function buildKnowledgeIndex(): Promise<KnowledgeIndexData> {
     const hasTrust = version.claims.some((c) =>
       c.evidenceRelations.some((r) => r.trustAssessments.length > 0),
     );
-    const hasHumanTrust = version.claims.some((c) =>
-      c.evidenceRelations.some((r) =>
-        r.trustAssessments.some((t) => t.reviewStatus === "human-reviewed"),
+    const hasHumanTrust = version.claims.some((claim) =>
+      claim.evidenceRelations.some((relation) =>
+        relation.trustAssessments.some((assessment) => {
+          const resolved = resolveTrustAssessmentRows(
+            {
+              assessment,
+              relation,
+              claim,
+              citation: relation.citation,
+            },
+            assessment.verification,
+          );
+          return (
+            resolved.effectiveStatus === "human-reviewed" ||
+            resolved.effectiveStatus === "adjudicated"
+          );
+        }),
       ),
     );
     const hasEvidence = version.claims.length > 0 && version.citations.length > 0;
@@ -98,15 +115,28 @@ export async function buildKnowledgeIndex(): Promise<KnowledgeIndexData> {
 
     for (const claim of version.claims) {
       const relations: IndexedRelation[] = claim.evidenceRelations.map((rel) => {
-        const trust = rel.trustAssessments[0];
+        const trust = selectPreferredTrustAssessment(
+          rel.trustAssessments.map((assessment) => {
+            const resolved = resolveTrustAssessmentRows(
+              { assessment, relation: rel, claim, citation: rel.citation },
+              assessment.verification,
+            );
+            return {
+              id: assessment.id,
+              effectiveStatus: resolved.effectiveStatus,
+              assessedAt: assessment.assessedAt?.toISOString() ?? null,
+              value: { assessment, resolved },
+            };
+          }),
+        )?.value;
         let indexedTrust;
         if (trust) {
-          const record = toTrustRecord(trust);
+          const record = toTrustRecord(trust.assessment);
           const agg = computeAggregate(record);
           indexedTrust = {
-            reviewStatus: trust.reviewStatus as AssessmentReviewStatus,
-            aggregateScore: trust.aggregateScore ?? agg.score ?? undefined,
-            aggregateMethod: trust.aggregateMethod ?? agg.method,
+            reviewStatus: trust.resolved.effectiveStatus as AssessmentReviewStatus,
+            aggregateScore: agg.score ?? undefined,
+            aggregateMethod: agg.method,
             notableCriteria: agg.assessedCriteria,
           };
         }

@@ -98,8 +98,9 @@ pnpm --filter @oratlas/db db:validate  # validate the Prisma schema
 
 `db:seed` loads: an accepted review **with** a GitHub release and a (synthetic) Zenodo DOI, an
 accepted **repository-only** review, the reference template as a structural demonstration, a
-**pending** submission, multiple claims/citations, supporting and contradicting relations,
-agent-proposed **and** human-reviewed TRUST records, and one cross-review link proposal.
+**pending** submission, multiple claims/citations, supporting and contradicting relations, five
+repository TRUST assertions (including an explicit-null source aggregate), one separate Atlas
+structural-review marker, and one cross-review link proposal.
 
 All example identifiers use the reserved documentation DOI prefix `10.5555/` and are flagged so
 the UI never renders them as resolvable outbound links.
@@ -168,8 +169,9 @@ Zenodo access token.
 - **Acceptance into the archive is not peer review.** It is an editorial curation decision.
 - **TRUST is relation-specific.** Each assessment describes one claim–citation relation, never a
   whole paper, and is never a probability that a paper is "true."
-- **Agent-generated links and TRUST records are proposals** until a human reviews them; the UI
-  labels them as such.
+- **Repository and agent TRUST records are source assertions.** Atlas preserves their claimed
+  status but imports them as unverified. A separate hash-bound editor marker can record structural
+  review; it does not establish scientific correctness.
 - **A DOI does not establish scientific quality.** DOI presence is not a quality signal.
 - **GitHub default-branch content may differ from a deposited release.** The exact reviewed state
   is the recorded commit SHA.

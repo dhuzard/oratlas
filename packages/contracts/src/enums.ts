@@ -103,6 +103,7 @@ export const TRUST_CRITERIA = [
 export type TrustCriterion = (typeof TRUST_CRITERIA)[number];
 
 export const ASSESSMENT_REVIEW_STATUSES = [
+  "unverified-import",
   "agent-proposed",
   "human-reviewed",
   "adjudicated",
@@ -110,6 +111,11 @@ export const ASSESSMENT_REVIEW_STATUSES = [
 ] as const;
 export const assessmentReviewStatusSchema = z.enum(ASSESSMENT_REVIEW_STATUSES);
 export type AssessmentReviewStatus = z.infer<typeof assessmentReviewStatusSchema>;
+
+/** Statuses Atlas editors can assign through a platform verification marker. */
+export const PLATFORM_TRUST_REVIEW_STATUSES = ["human-reviewed", "adjudicated"] as const;
+export const platformTrustReviewStatusSchema = z.enum(PLATFORM_TRUST_REVIEW_STATUSES);
+export type PlatformTrustReviewStatus = z.infer<typeof platformTrustReviewStatusSchema>;
 
 export const ASSESSOR_TYPES = ["agent", "human"] as const;
 export const assessorTypeSchema = z.enum(ASSESSOR_TYPES);

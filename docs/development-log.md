@@ -43,13 +43,14 @@ slice can lint, typecheck, and test.
   ReviewContributor, Submission (immutable submittedPayloadJson), Identifier,
   Claim, Citation, ClaimEvidenceRelation (unique claim+citation+relation), TrustAssessment
   (attached to the relation; per-criterion JSON columns; optional aggregate + method),
+  TrustVerification (separate hash-bound platform marker),
   AgentRun, DiscussionThread, DiscussionMessage, KnowledgeLinkProposal, AuditEvent.
 - SQLite provider; Postgres-compatible by construction (enums→String validated by
   contracts, JSON→String columns, arrays→JSON strings). SQLite file resolves
   schema-relative to `packages/db/prisma/dev.db`, stable across web app and scripts.
 - Seed loads: DOI review (release + example Zenodo DOI), repository-only review,
   template structural demo, pending submission, 5 claims, 4 citations, 5 relations
-  (incl. a `contradicts`), 5 TRUST records (4 agent-proposed + 1 human-reviewed), 1
+  (incl. a `contradicts`), 5 repository TRUST assertions + 1 Atlas structural-review marker, 1
   cross-review link proposal. All DOIs use reserved `10.5555/` and are flagged
   `isExample` / `example-not-resolvable` so the UI never links them out.
 - Verified: `prisma validate` ok; `db:push` ok; `db:seed` ok; counts confirmed;

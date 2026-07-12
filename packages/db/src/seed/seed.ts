@@ -1,4 +1,10 @@
 import { createHash } from "node:crypto";
+import { type TrustRecord } from "@oratlas/contracts";
+import {
+  normalizeImportedTrustRecord,
+  reviewedTrustSubjectHash,
+  trustSubjectInputFromDatabaseRows,
+} from "@oratlas/trust";
 import { PrismaClient } from "../../generated/client/index.js";
 import {
   EXTRACTOR_VERSION,
@@ -10,7 +16,6 @@ import {
   seedUsers,
   type SeedRelation,
   type SeedReview,
-  type SeedTrust,
 } from "./data.js";
 
 const prisma = new PrismaClient();
@@ -31,28 +36,7 @@ function buildMetadataJson(review: SeedReview) {
   });
 }
 
-function trustColumns(trust: SeedTrust) {
-  const cols: Record<string, string | null> = {
-    identityIntegrity: null,
-    entailment: null,
-    sourceAccess: null,
-    populationRelevance: null,
-    interventionExposureRelevance: null,
-    outcomeRelevance: null,
-    methodologicalSafeguards: null,
-    statisticalSafeguards: null,
-    replicationConvergence: null,
-    conflictDependency: null,
-  };
-  for (const [criterion, value] of Object.entries(trust.criteria)) {
-    if (criterion in cols) {
-      cols[criterion] = JSON.stringify({ status: "assessed", ...value });
-    }
-  }
-  return cols;
-}
-
-async function seedReview(review: SeedReview) {
+async function seedReview(review: SeedReview, editorId: string) {
   const repo = await prisma.repository.create({
     data: {
       host: "github.com",
@@ -227,6 +211,7 @@ async function seedReview(review: SeedReview) {
 
   // Claims
   const claimIdByLocal = new Map<string, string>();
+  const claimByLocal = new Map<string, Awaited<ReturnType<typeof prisma.claim.create>>>();
   for (const claim of review.claims) {
     const row = await prisma.claim.create({
       data: {
@@ -241,10 +226,12 @@ async function seedReview(review: SeedReview) {
       },
     });
     claimIdByLocal.set(claim.localId, row.id);
+    claimByLocal.set(claim.localId, row);
   }
 
   // Citations
   const citationIdByLocal = new Map<string, string>();
+  const citationByLocal = new Map<string, Awaited<ReturnType<typeof prisma.citation.create>>>();
   for (const citation of review.citations) {
     const row = await prisma.citation.create({
       data: {
@@ -259,6 +246,7 @@ async function seedReview(review: SeedReview) {
       },
     });
     citationIdByLocal.set(citation.localId, row.id);
+    citationByLocal.set(citation.localId, row);
   }
 
   // Relations + TRUST
@@ -274,24 +262,81 @@ async function seedReview(review: SeedReview) {
         supportDirection: rel.supportDirection,
         extractionMethod: "seed",
         extractionConfidence: 0.9,
-        humanReviewed: rel.humanReviewed ?? false,
+        humanReviewed: false,
       },
     });
     if (rel.trust) {
-      await prisma.trustAssessment.create({
+      const sourceAssessedAt = rel.trust.assessedAt ?? "2026-06-10T00:00:00.000Z";
+      const sourceRecord: TrustRecord = {
+        claimId: rel.claimLocalId,
+        citationId: rel.citationLocalId,
+        protocolVersion: TRUST_PROTOCOL_VERSION,
+        assessorType: rel.trust.assessorType,
+        assessorId: rel.trust.assessorId,
+        assessedAt: sourceAssessedAt,
+        criteria: Object.fromEntries(
+          Object.entries(rel.trust.criteria).map(([criterion, value]) => [
+            criterion,
+            { status: "assessed" as const, ...value },
+          ]),
+        ),
+        limitations: rel.trust.limitations,
+        evidence: rel.trust.evidence,
+        aggregateScore: rel.trust.aggregateScore,
+        aggregateMethod: rel.trust.aggregateMethod,
+        reviewStatus: rel.trust.reviewStatus,
+      };
+      const imported = normalizeImportedTrustRecord(sourceRecord, rel.humanReviewed ?? null);
+      const assessment = await prisma.trustAssessment.create({
         data: {
           claimEvidenceRelationId: relation.id,
-          protocolVersion: TRUST_PROTOCOL_VERSION,
-          assessorType: rel.trust.assessorType,
-          assessorId: rel.trust.assessorId,
-          assessedAt: new Date("2026-06-10T00:00:00.000Z"),
-          ...trustColumns(rel.trust),
-          limitationsJson: JSON.stringify(rel.trust.limitations ?? []),
-          aggregateScore: rel.trust.aggregateScore,
-          aggregateMethod: rel.trust.aggregateMethod,
-          reviewStatus: rel.trust.reviewStatus,
+          protocolVersion: imported.record.protocolVersion,
+          assessorType: imported.record.assessorType,
+          assessorId: imported.record.assessorId,
+          assessedAt: imported.record.assessedAt ? new Date(imported.record.assessedAt) : null,
+          ...imported.criterionColumns,
+          limitationsJson: imported.limitationsJson,
+          evidenceJson: imported.evidenceJson,
+          aggregateScore: imported.aggregateScore,
+          aggregateMethod: imported.aggregateMethod,
+          reviewStatus: imported.reviewStatus,
+          sourceRecordJson: imported.sourceRecordJson,
+          sourceReviewStatus: imported.sourceReviewStatus,
+          sourceAssessorType: imported.sourceAssessorType,
+          sourceAssessorId: imported.sourceAssessorId,
+          sourceAssessedAt: imported.sourceAssessedAt ? new Date(imported.sourceAssessedAt) : null,
+          sourceEvidenceJson: imported.sourceEvidenceJson,
+          sourceAggregateScore: imported.sourceAggregateScore,
+          sourceAggregateMethod: imported.sourceAggregateMethod,
+          sourceRelationHumanReviewed: imported.sourceRelationHumanReviewed,
         },
       });
+
+      // Seeded review is an explicit platform fixture, represented with the
+      // same separate marker and canonical hash used by production editorial
+      // verification. Repository flags alone never create this marker.
+      if (rel.humanReviewed || rel.trust.reviewStatus === "human-reviewed") {
+        const claimRow = claimByLocal.get(rel.claimLocalId);
+        const citationRow = citationByLocal.get(rel.citationLocalId);
+        if (claimRow && citationRow) {
+          const subject = trustSubjectInputFromDatabaseRows({
+            assessment,
+            relation,
+            claim: claimRow,
+            citation: citationRow,
+          });
+          await prisma.trustVerification.create({
+            data: {
+              trustAssessmentId: assessment.id,
+              status: "human-reviewed",
+              reviewerId: editorId,
+              reviewerRoleSnapshot: "EDITOR",
+              rationale: "Synthetic fixture structurally reviewed by the Atlas demo editor.",
+              assessmentHash: reviewedTrustSubjectHash(subject),
+            },
+          });
+        }
+      }
     }
   }
 
@@ -353,7 +398,7 @@ async function main() {
   const claimIdsBySlug = new Map<string, Map<string, string>>();
   const reviewIdBySlug = new Map<string, string>();
   for (const review of seedReviews) {
-    const { reviewRow, claimIdByLocal } = await seedReview(review);
+    const { reviewRow, claimIdByLocal } = await seedReview(review, users.get("atlas-editor")!);
     claimIdsBySlug.set(review.slug, claimIdByLocal);
     reviewIdBySlug.set(review.slug, reviewRow.id);
     console.info(`  · seeded review: ${review.slug}`);

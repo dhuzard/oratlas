@@ -17,25 +17,26 @@ datasource db {
 }
 
 model User {
-  id           String   @id @default(cuid())
-  githubUserId String?  @unique
-  githubLogin  String   @unique
+  id                    String   @id @default(cuid())
+  githubUserId          String?  @unique
+  githubLogin           String   @unique
   /// NFKC + lowercase login used solely for collision prevention.
   /// Transitional: application-enforced uniqueness until issue #7.
   githubLoginNormalized String?
-  displayName  String?
-  avatarUrl    String?
-  profileUrl   String?
+  displayName           String?
+  avatarUrl             String?
+  profileUrl            String?
   /// USER | EDITOR | ADMIN
-  role         String   @default("USER")
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  role                  String   @default("USER")
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
 
-  submissions         Submission[]       @relation("submitter")
-  editorialDecisions  Submission[]       @relation("reviewer")
-  discussionThreads   DiscussionThread[]
-  reviewComments      ReviewComment[]
-  auditEvents         AuditEvent[]
+  submissions        Submission[]        @relation("submitter")
+  editorialDecisions Submission[]        @relation("reviewer")
+  discussionThreads  DiscussionThread[]
+  reviewComments     ReviewComment[]
+  auditEvents        AuditEvent[]
+  trustVerifications TrustVerification[] @relation("trustReviewer")
 
   @@index([githubLoginNormalized])
 }
@@ -132,8 +133,8 @@ model ReviewVersion {
   publishedAt     DateTime?
   createdAt       DateTime  @default(now())
 
-  review       Review               @relation(fields: [reviewId], references: [id])
-  snapshot     RepositorySnapshot   @relation(fields: [snapshotId], references: [id])
+  review       Review              @relation(fields: [reviewId], references: [id])
+  snapshot     RepositorySnapshot  @relation(fields: [snapshotId], references: [id])
   contributors ReviewContributor[]
   identifiers  Identifier[]
   claims       Claim[]
@@ -289,27 +290,70 @@ model TrustAssessment {
 
   /// Each criterion: JSON {rating, status, rationale, evidencePointer} — the
   /// column stays queryable per criterion while remaining provider-portable.
-  identityIntegrity            String?
-  entailment                   String?
-  sourceAccess                 String?
-  populationRelevance          String?
+  identityIntegrity             String?
+  entailment                    String?
+  sourceAccess                  String?
+  populationRelevance           String?
   interventionExposureRelevance String?
-  outcomeRelevance             String?
-  methodologicalSafeguards     String?
-  statisticalSafeguards        String?
-  replicationConvergence       String?
-  conflictDependency           String?
+  outcomeRelevance              String?
+  methodologicalSafeguards      String?
+  statisticalSafeguards         String?
+  replicationConvergence        String?
+  conflictDependency            String?
 
-  limitationsJson String  @default("[]")
+  limitationsJson String    @default("[]")
   evidenceJson    String?
   aggregateScore  Float?
   aggregateMethod String?
-  /// agent-proposed | human-reviewed | adjudicated | superseded
-  reviewStatus    String  @default("agent-proposed")
+  /// Public imported state is always unverified-import. A valid separate
+  /// TrustVerification marker can elevate it at read time.
+  reviewStatus    String    @default("unverified-import")
   adjudicatorId   String?
   adjudicatedAt   DateTime?
 
-  relation ClaimEvidenceRelation @relation(fields: [claimEvidenceRelationId], references: [id])
+  /// Exact repository assertions are provenance only, never platform trust.
+  /// sourceRecordJson preserves absent versus explicit-null source fields.
+  sourceRecordJson            String?
+  sourceReviewStatus          String?
+  sourceAssessorType          String?
+  sourceAssessorId            String?
+  sourceAssessedAt            DateTime?
+  sourceEvidenceJson          String?
+  sourceAggregateScore        Float?
+  sourceAggregateMethod       String?
+  sourceRelationHumanReviewed Boolean?
+
+  /// Incremented by editorial verification writes for optimistic concurrency.
+  revision  Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  relation     ClaimEvidenceRelation @relation(fields: [claimEvidenceRelationId], references: [id])
+  verification TrustVerification?
+
+  @@index([reviewStatus])
+}
+
+/// Platform-owned review marker. This is deliberately separate from the
+/// repository-authored TRUST assessment and relation assertions.
+model TrustVerification {
+  id                   String   @id @default(cuid())
+  trustAssessmentId    String   @unique
+  /// human-reviewed | adjudicated
+  status               String
+  reviewerId           String
+  reviewerRoleSnapshot String
+  rationale            String
+  /// SHA-256 over the canonical reviewed subject. Reads fail closed on mismatch.
+  assessmentHash       String
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  assessment TrustAssessment @relation(fields: [trustAssessmentId], references: [id])
+  reviewer   User            @relation("trustReviewer", fields: [reviewerId], references: [id])
+
+  @@index([status])
+  @@index([reviewerId])
 }
 
 model AgentRun {
@@ -367,18 +411,18 @@ model DiscussionMessage {
 /// Distinct from DiscussionThread/Message, which persist AI-grounded Q&A.
 /// Bodies are plain text only and always rendered escaped (never raw HTML).
 model ReviewComment {
-  id       String  @id @default(cuid())
-  reviewId String
-  authorId String
+  id          String    @id @default(cuid())
+  reviewId    String
+  authorId    String
   /// Top-level comment when null; threads are one level deep (replies).
-  parentId String?
+  parentId    String?
   /// Optional claim this comment is anchored to (claim-level commentary).
-  claimId  String?
+  claimId     String?
   /// contracts COMMENT_KINDS: comment | question | concern | suggestion | endorsement
-  kind     String  @default("comment")
-  body     String
+  kind        String    @default("comment")
+  body        String
   /// contracts COMMENT_STATUSES: visible | removed
-  status   String  @default("visible")
+  status      String    @default("visible")
   /// User id of the remover (author or editor); no FK to keep moderation light.
   removedById String?
   removedAt   DateTime?
@@ -396,7 +440,7 @@ model ReviewComment {
 
 /// Conservative automated cross-review link proposals (spec §15).
 model KnowledgeLinkProposal {
-  id                 String   @id @default(cuid())
+  id                 String    @id @default(cuid())
   sourceClaimId      String
   targetClaimId      String
   /// contracts LINK_PROPOSAL_TYPES
@@ -408,10 +452,10 @@ model KnowledgeLinkProposal {
   /// Provenance: agent run / extractor version.
   agentProvenance    String
   /// proposed | accepted | rejected | superseded
-  status             String   @default("proposed")
+  status             String    @default("proposed")
   reviewedById       String?
   reviewedAt         DateTime?
-  createdAt          DateTime @default(now())
+  createdAt          DateTime  @default(now())
 
   sourceClaim Claim @relation("sourceClaim", fields: [sourceClaimId], references: [id])
   targetClaim Claim @relation("targetClaim", fields: [targetClaimId], references: [id])

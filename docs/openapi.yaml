@@ -105,6 +105,17 @@ components:
         submissionId: { type: string }
         decision: { type: string, enum: [accept, reject, request-changes] }
         note: { type: string }
+    TrustVerificationRequest:
+      type: object
+      required: [assessmentId, status, rationale, expectedRevision, expectedAssessmentHash]
+      properties:
+        assessmentId: { type: string }
+        status: { type: string, enum: [human-reviewed, adjudicated] }
+        rationale: { type: string, minLength: 10, maxLength: 4000 }
+        expectedRevision: { type: integer, minimum: 0 }
+        expectedAssessmentHash:
+          type: string
+          pattern: "^[a-f0-9]{64}$"
     DiscussRequest:
       type: object
       required: [question]
@@ -189,6 +200,27 @@ paths:
       responses:
         "200": { description: Decision recorded }
         "403": { $ref: "#/components/responses/Error" }
+  /api/editorial/trust:
+    post:
+      summary: Record a hash-bound Atlas structural review of an imported TRUST assessment
+      description: >
+        Editor role, an exact same-origin Origin header, same-origin Fetch Metadata when present,
+        and application/json are required. The expected hash and revision provide optimistic
+        concurrency; a mismatch returns 409. This records provenance/structure review, not
+        scientific correctness.
+      security: [{ session: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TrustVerificationRequest" }
+      responses:
+        "200": { description: Verification marker recorded }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "415": { $ref: "#/components/responses/Error" }
   /api/search:
     get:
       summary: Search accepted reviews

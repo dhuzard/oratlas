@@ -36,7 +36,8 @@ knowledge-consensus engine.
 
 - Acceptance is **not peer review**.
 - TRUST is **relation-specific**, never a whole-paper probability.
-- Agent-generated links and TRUST records are **proposals** until human-reviewed.
+- Repository and agent TRUST records are **source assertions** until an Atlas editor records a
+  current hash-bound structural-review marker.
 - **DOI presence does not establish scientific quality.**
 - **GitHub default-branch content may differ from a deposited release**; the exact reviewed state
   is the commit SHA.

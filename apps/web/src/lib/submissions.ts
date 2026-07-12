@@ -5,6 +5,7 @@ import {
   type EffectiveMetadata,
   type ExtractedMetadata,
 } from "@oratlas/contracts";
+import { normalizeImportedTrustRecord } from "@oratlas/trust";
 import {
   type ClaimRecord,
   type CitationRecord,
@@ -444,6 +445,7 @@ async function materializeKnowledge(
   }
 
   const relationIdByPair = new Map<string, string>();
+  const relationSourceReviewByPair = new Map<string, boolean | null>();
   for (const rel of payload.knowledge.relations) {
     const claimId = claimIdByLocal.get(rel.claimId);
     const citationId = citationIdByLocal.get(rel.citationId);
@@ -457,30 +459,44 @@ async function materializeKnowledge(
         sourceLocation: rel.sourceLocation,
         extractionMethod: rel.extractionMethod ?? "extracted",
         extractionConfidence: rel.extractionConfidence,
-        humanReviewed: rel.humanReviewed ?? false,
+        // A repository may assert human review, but only an Atlas-owned
+        // verification marker can make that a public platform claim.
+        humanReviewed: false,
       },
     });
-    relationIdByPair.set(`${rel.claimId}|${rel.citationId}`, row.id);
+    const pair = `${rel.claimId}|${rel.citationId}`;
+    relationIdByPair.set(pair, row.id);
+    relationSourceReviewByPair.set(pair, rel.humanReviewed ?? null);
   }
 
   for (const trust of payload.knowledge.trust) {
     const relationId = relationIdByPair.get(`${trust.claimId}|${trust.citationId}`);
     if (!relationId) continue;
-    const criteriaColumns: Record<string, string | null> = {};
-    for (const [criterion, value] of Object.entries(trust.criteria)) {
-      if (value) criteriaColumns[criterion] = JSON.stringify(value);
-    }
+    const sourceRelationHumanReviewed =
+      relationSourceReviewByPair.get(`${trust.claimId}|${trust.citationId}`) ?? null;
+    const imported = normalizeImportedTrustRecord(trust, sourceRelationHumanReviewed);
     await prisma.trustAssessment.create({
       data: {
         claimEvidenceRelationId: relationId,
-        protocolVersion: trust.protocolVersion,
-        assessorType: trust.assessorType,
-        assessorId: trust.assessorId,
-        ...criteriaColumns,
-        limitationsJson: JSON.stringify(trust.limitations ?? []),
-        aggregateScore: trust.aggregateScore,
-        aggregateMethod: trust.aggregateMethod,
-        reviewStatus: trust.reviewStatus,
+        protocolVersion: imported.record.protocolVersion,
+        assessorType: imported.record.assessorType,
+        assessorId: imported.record.assessorId,
+        assessedAt: imported.record.assessedAt ? new Date(imported.record.assessedAt) : null,
+        ...imported.criterionColumns,
+        limitationsJson: imported.limitationsJson,
+        evidenceJson: imported.evidenceJson,
+        aggregateScore: imported.aggregateScore,
+        aggregateMethod: imported.aggregateMethod,
+        reviewStatus: imported.reviewStatus,
+        sourceRecordJson: imported.sourceRecordJson,
+        sourceReviewStatus: imported.sourceReviewStatus,
+        sourceAssessorType: imported.sourceAssessorType,
+        sourceAssessorId: imported.sourceAssessorId,
+        sourceAssessedAt: imported.sourceAssessedAt ? new Date(imported.sourceAssessedAt) : null,
+        sourceEvidenceJson: imported.sourceEvidenceJson,
+        sourceAggregateScore: imported.sourceAggregateScore,
+        sourceAggregateMethod: imported.sourceAggregateMethod,
+        sourceRelationHumanReviewed: imported.sourceRelationHumanReviewed,
       },
     });
   }

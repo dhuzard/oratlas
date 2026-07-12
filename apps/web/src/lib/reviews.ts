@@ -1,7 +1,14 @@
 import "server-only";
-import { computeAggregate, TRUST_CRITERIA, type TrustRecord } from "@oratlas/trust";
+import {
+  computeAggregate,
+  selectPreferredTrustAssessment,
+  TRUST_CRITERIA,
+  type TrustRecord,
+  type TrustVerificationState,
+} from "@oratlas/trust";
 import { prisma, parseJsonColumn } from "./db";
 import { toTrustRecord } from "./index-builder";
+import { resolveTrustAssessmentRows } from "./trust-provenance";
 
 export interface ReviewCriterion {
   criterion: string;
@@ -13,11 +20,26 @@ export interface ReviewCriterion {
 export interface ReviewTrust {
   assessorType: string;
   reviewStatus: string;
+  verificationState: TrustVerificationState;
   protocolVersion: string;
   criteria: ReviewCriterion[];
   limitations: string[];
   aggregateScore?: number;
   aggregateMethod?: string;
+  sourceAssertion: {
+    reviewStatus?: string;
+    assessorType?: string;
+    assessorId?: string;
+    assessedAt?: string;
+    relationHumanReviewed?: boolean;
+    aggregateScore: number | null;
+    aggregateMethod?: string;
+  };
+  platformVerification?: {
+    reviewerLogin: string;
+    reviewerRoleSnapshot: string;
+    rationale: string;
+  };
 }
 
 export interface ReviewRelation {
@@ -122,7 +144,12 @@ export async function getReviewDetail(slug: string): Promise<ReviewDetail | null
           claims: {
             include: {
               evidenceRelations: {
-                include: { citation: true, trustAssessments: true },
+                include: {
+                  citation: true,
+                  trustAssessments: {
+                    include: { verification: { include: { reviewer: true } } },
+                  },
+                },
               },
             },
           },
@@ -154,21 +181,51 @@ export async function getReviewDetail(slug: string): Promise<ReviewDetail | null
     claimType: claim.claimType ?? undefined,
     qualification: claim.qualification ?? undefined,
     relations: claim.evidenceRelations.map((rel) => {
-      const trustRow = rel.trustAssessments[0];
+      const trustRow = selectPreferredTrustAssessment(
+        rel.trustAssessments.map((assessment) => {
+          const resolved = resolveTrustAssessmentRows(
+            { assessment, relation: rel, claim, citation: rel.citation },
+            assessment.verification,
+          );
+          return {
+            id: assessment.id,
+            effectiveStatus: resolved.effectiveStatus,
+            assessedAt: assessment.assessedAt?.toISOString() ?? null,
+            value: { assessment, resolved },
+          };
+        }),
+      )?.value;
       let trust: ReviewTrust | undefined;
       if (trustRow) {
-        const record = toTrustRecord(trustRow);
+        const record = toTrustRecord(trustRow.assessment);
         const agg = computeAggregate(record);
-        const limitationList = parseJsonColumn<string[]>(trustRow.limitationsJson, []);
+        const limitationList = parseJsonColumn<string[]>(trustRow.assessment.limitationsJson, []);
         for (const l of limitationList) limitations.add(l);
         trust = {
-          assessorType: trustRow.assessorType,
-          reviewStatus: trustRow.reviewStatus,
-          protocolVersion: trustRow.protocolVersion,
+          assessorType: trustRow.assessment.assessorType,
+          reviewStatus: trustRow.resolved.effectiveStatus,
+          verificationState: trustRow.resolved.state,
+          protocolVersion: trustRow.assessment.protocolVersion,
           criteria: criteriaList(record),
           limitations: limitationList,
-          aggregateScore: trustRow.aggregateScore ?? agg.score ?? undefined,
-          aggregateMethod: trustRow.aggregateMethod ?? agg.method,
+          aggregateScore: agg.score ?? undefined,
+          aggregateMethod: agg.method,
+          sourceAssertion: {
+            reviewStatus: trustRow.assessment.sourceReviewStatus ?? undefined,
+            assessorType: trustRow.assessment.sourceAssessorType ?? undefined,
+            assessorId: trustRow.assessment.sourceAssessorId ?? undefined,
+            assessedAt: trustRow.assessment.sourceAssessedAt?.toISOString(),
+            relationHumanReviewed: trustRow.assessment.sourceRelationHumanReviewed ?? undefined,
+            aggregateScore: trustRow.assessment.sourceAggregateScore,
+            aggregateMethod: trustRow.assessment.sourceAggregateMethod ?? undefined,
+          },
+          platformVerification: trustRow.assessment.verification
+            ? {
+                reviewerLogin: trustRow.assessment.verification.reviewer.githubLogin,
+                reviewerRoleSnapshot: trustRow.assessment.verification.reviewerRoleSnapshot,
+                rationale: trustRow.assessment.verification.rationale,
+              }
+            : undefined,
         };
       }
       return {
@@ -177,7 +234,8 @@ export async function getReviewDetail(slug: string): Promise<ReviewDetail | null
         citationTitle: rel.citation.title ?? undefined,
         citationDoi: rel.citation.doi ?? undefined,
         citationIsExample: isExampleCitation(rel.citation.rawCitationJson),
-        humanReviewed: rel.humanReviewed,
+        // Legacy/source relation flags never become a platform assertion.
+        humanReviewed: false,
         trust,
       };
     }),

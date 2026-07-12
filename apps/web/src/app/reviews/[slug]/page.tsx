@@ -364,10 +364,11 @@ export default async function ReviewPage({ params }: { params: Promise<{ slug: s
                 <ProvenanceBadge kind="extracted" /> title, abstract, authors, DOIs
               </li>
               <li>
-                <ProvenanceBadge kind="agent-proposed" /> agent TRUST assessments
+                <ProvenanceBadge kind="repository-fact" /> repository TRUST assertions (not Atlas
+                verification)
               </li>
               <li>
-                <ProvenanceBadge kind="human-reviewed" /> reviewed TRUST assessments
+                <ProvenanceBadge kind="human-reviewed" /> Atlas-reviewed TRUST structure
               </li>
             </ul>
           </Card>
