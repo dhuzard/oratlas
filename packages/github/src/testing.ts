@@ -5,13 +5,23 @@ export interface FakeRepoFixture {
   name: string;
   repo: Record<string, unknown>;
   commitSha?: string;
-  tags?: Array<{ name: string; commitSha: string }>;
+  tags?: Array<{
+    name: string;
+    commitSha: string;
+    /** Optional current ref target when the list endpoint was stale or the tag moved. */
+    refCommitSha?: string;
+    tagObjectSha?: string;
+  }>;
+  /** Annotated tag object sha -> its immediate target. */
+  tagObjects?: Record<string, { type: "tag" | "commit"; sha: string }>;
   releases?: Array<Record<string, unknown>>;
   pages?: Record<string, unknown> | null;
   /** repository-relative path -> file content (utf-8). */
   files?: Record<string, string>;
   /** extra tree entries (paths) with no fetched content. */
   extraTreePaths?: string[];
+  /** Optional request trace used to assert exact commit/tree endpoint selection. */
+  requestLog?: string[];
 }
 
 function ok(json: unknown, headers: Record<string, string> = {}): GithubResponse {
@@ -26,18 +36,34 @@ function notFound(): GithubResponse {
  * suite never touches the network (spec §21).
  */
 export function createFakeTransport(fixture: FakeRepoFixture): GithubTransport {
-  const base = `/repos/${fixture.owner}/${fixture.name}`;
+  const inputBase = `/repos/${fixture.owner}/${fixture.name}`;
+  const repoOwner = fixture.repo.owner as Record<string, unknown> | undefined;
+  const resolvedOwner = typeof repoOwner?.login === "string" ? repoOwner.login : fixture.owner;
+  const resolvedName = typeof fixture.repo.name === "string" ? fixture.repo.name : fixture.name;
+  const resolvedBase = `/repos/${resolvedOwner}/${resolvedName}`;
   const commitSha = fixture.commitSha ?? "a".repeat(40);
+  const treeSha = "f".repeat(40);
   const files = fixture.files ?? {};
   const treePaths = new Set<string>([...Object.keys(files), ...(fixture.extraTreePaths ?? [])]);
 
   return {
     async request(path: string): Promise<GithubResponse> {
+      fixture.requestLog?.push(path);
       const pathname = path.split("?")[0] ?? path;
+      const base =
+        pathname === resolvedBase || pathname.startsWith(`${resolvedBase}/`)
+          ? resolvedBase
+          : inputBase;
       if (pathname === base)
         return ok({ ...fixture.repo, default_branch: fixture.repo.default_branch ?? "main" });
-      if (pathname === `${base}/commits/${fixture.repo.default_branch ?? "main"}`) {
-        return ok({ sha: commitSha, commit: { committer: { date: "2026-06-01T00:00:00Z" } } });
+      if (pathname.startsWith(`${base}/commits/`)) {
+        const requested = decodeURIComponent(pathname.slice(`${base}/commits/`.length));
+        const sha = requested === (fixture.repo.default_branch ?? "main") ? commitSha : requested;
+        return ok({ sha, commit: { committer: { date: "2026-06-01T00:00:00Z" } } });
+      }
+      if (pathname.startsWith(`${base}/git/commits/`)) {
+        const requested = decodeURIComponent(pathname.slice(`${base}/git/commits/`.length));
+        return ok({ sha: requested, tree: { sha: treeSha } });
       }
       if (pathname === `${base}/tags`) {
         return ok(
@@ -46,6 +72,27 @@ export function createFakeTransport(fixture: FakeRepoFixture): GithubTransport {
       }
       if (pathname === `${base}/releases`) {
         return ok(fixture.releases ?? []);
+      }
+      if (pathname.startsWith(`${base}/releases/tags/`)) {
+        const name = decodeURIComponent(pathname.slice(`${base}/releases/tags/`.length));
+        const release = fixture.releases?.find((candidate) => candidate.tag_name === name);
+        return release ? ok(release) : notFound();
+      }
+      if (pathname.startsWith(`${base}/git/ref/tags/`)) {
+        const name = decodeURIComponent(pathname.slice(`${base}/git/ref/tags/`.length));
+        const tag = fixture.tags?.find((candidate) => candidate.name === name);
+        if (!tag) return notFound();
+        return ok({
+          ref: `refs/tags/${name}`,
+          object: tag.tagObjectSha
+            ? { type: "tag", sha: tag.tagObjectSha }
+            : { type: "commit", sha: tag.refCommitSha ?? tag.commitSha },
+        });
+      }
+      if (pathname.startsWith(`${base}/git/tags/`)) {
+        const sha = decodeURIComponent(pathname.slice(`${base}/git/tags/`.length));
+        const target = fixture.tagObjects?.[sha];
+        return target ? ok({ object: target }) : notFound();
       }
       if (pathname === `${base}/pages`) {
         return fixture.pages ? ok(fixture.pages) : notFound();

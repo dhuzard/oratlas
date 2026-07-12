@@ -77,6 +77,7 @@ async function seedReview(review: SeedReview, editorId: string) {
   const reviewRow = await prisma.review.create({
     data: {
       slug: review.slug,
+      repositoryId: repo.id,
       currentSnapshotId: snapshot.id,
       title: review.title,
       abstract: review.abstract,
@@ -92,6 +93,12 @@ async function seedReview(review: SeedReview, editorId: string) {
     data: {
       reviewId: reviewRow.id,
       snapshotId: snapshot.id,
+      sourceKind: review.snapshot.releaseTag ? "release" : "default-branch",
+      sourceBranch: review.snapshot.releaseTag ? null : review.snapshot.branch,
+      sourceSelectionKey: review.snapshot.releaseTag
+        ? `release:${review.snapshot.releaseTag}`
+        : `default-branch:${review.snapshot.branch}`,
+      sourceCreatedAt: new Date("2026-06-01T00:00:00.000Z"),
       semanticVersion: review.version.semanticVersion,
       title: review.title,
       abstract: review.abstract,
@@ -100,6 +107,7 @@ async function seedReview(review: SeedReview, editorId: string) {
       conceptDoi: review.version.conceptDoi,
       zenodoRecordId: review.version.zenodoRecordId,
       releaseTag: review.version.releaseTag,
+      releaseUrl: review.snapshot.releaseUrl,
       isExample: review.version.isExample,
       publishedAt: new Date("2026-06-15T00:00:00.000Z"),
     },

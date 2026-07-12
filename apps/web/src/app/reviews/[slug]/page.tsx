@@ -183,12 +183,20 @@ export default async function ReviewPage({
                   value: <span className="mono">{review.snapshot.commitSha || "—"}</span>,
                 },
                 {
+                  term: "Exact tree",
+                  value: <span className="mono">{review.snapshot.treeSha || "—"}</span>,
+                },
+                {
+                  term: "Source selection",
+                  value: review.version.sourceKind ?? "legacy capture",
+                },
+                {
                   term: "Release",
-                  value: review.snapshot.releaseTag ? (
-                    review.snapshot.releaseUrl ? (
-                      <a href={review.snapshot.releaseUrl}>{review.snapshot.releaseTag}</a>
+                  value: review.version.releaseTag ? (
+                    review.version.releaseUrl ? (
+                      <a href={review.version.releaseUrl}>{review.version.releaseTag}</a>
                     ) : (
-                      review.snapshot.releaseTag
+                      review.version.releaseTag
                     )
                   ) : (
                     <span className="muted">no release (repository-only)</span>
@@ -242,7 +250,42 @@ export default async function ReviewPage({
                 exact reviewed state is the commit above.
               </Notice>
             ) : null}
+            {review.version.capturePayloadHash ? (
+              <p className="mono muted" style={{ overflowWrap: "anywhere" }}>
+                Accepted capture SHA-256 {review.version.capturePayloadHash}
+              </p>
+            ) : null}
           </Card>
+
+          {review.version.publicationConsistency ? (
+            <Card title="Release / DOI / commit consistency">
+              <StatusPill status={review.version.publicationConsistency.status} />
+              <ul>
+                {review.version.publicationConsistency.checks.map((check) => (
+                  <li key={check.id}>
+                    <span className="mono">{check.id}</span>: {check.outcome} — {check.description}
+                    {check.details ? ` (${check.details})` : ""}
+                  </li>
+                ))}
+              </ul>
+              {review.version.editorialOverrides.length > 0 ? (
+                <Notice tone="warning" title="Editorial exceptions">
+                  <ul>
+                    {review.version.editorialOverrides.map((override) => (
+                      <li key={override.checkId}>
+                        <span className="mono">{override.checkId}</span> — {override.rationale} — @
+                        {override.editorLogin}, {override.createdAt.slice(0, 10)}
+                      </li>
+                    ))}
+                  </ul>
+                </Notice>
+              ) : null}
+              <p className="muted">
+                This report verifies identifier and source consistency. It does not judge the
+                scientific correctness of the review.
+              </p>
+            </Card>
+          ) : null}
 
           <Card title="Claims and evidence">
             {review.claims.length === 0 ? (

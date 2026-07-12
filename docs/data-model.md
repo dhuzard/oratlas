@@ -11,12 +11,14 @@ suffix, and arrays are JSON-encoded strings. Switching to PostgreSQL is a dataso
 | Model                                    | Purpose                            | Key constraints                                                                   |
 | ---------------------------------------- | ---------------------------------- | --------------------------------------------------------------------------------- |
 | `User`                                   | Minimal GitHub identity + role     | `githubUserId` OAuth key; normalized login indexed and application-checked        |
-| `Repository`                             | Evolving GitHub project            | `(host, owner, name)` and `canonicalUrl` unique                                   |
+| `Repository`                             | Evolving GitHub project            | immutable `githubRepositoryId`; URL/name remain renameable                        |
 | `RepositorySnapshot`                     | Exact repository state             | **`(repositoryId, commitSha)` unique**                                            |
 | `Review`                                 | Public review record               | `slug` unique; `currentSnapshotId`                                                |
 | `ReviewVersion`                          | Immutable version                  | separate `versionDoi` / `conceptDoi` / `zenodoRecordId`; `isExample`              |
 | `Person` / `ReviewContributor`           | Authors & roles per version        | contributors ordered by `position`                                                |
 | `Submission`                             | Editorial workflow record          | immutable `submittedPayloadJson`; `status`                                        |
+| `InspectionCapture`                      | Exact inspect-to-submit payload    | token hash unique; user-bound, expiring, single-use; payload/hash append-only     |
+| `EditorialOverride`                      | Scoped consistency exception       | `(submissionId, checkId)` unique; editor and rationale retained                   |
 | `Identifier`                             | DOIs/ORCID/URL/Zenodo per version  | `relationType` distinguishes version vs concept DOI                               |
 | `Claim`                                  | A review claim                     | `(reviewVersionId, localClaimId)` unique                                          |
 | `Citation`                               | A cited source                     | `(reviewVersionId, localCitationId)` unique                                       |
@@ -27,17 +29,28 @@ suffix, and arrays are JSON-encoded strings. Switching to PostgreSQL is a dataso
 | `DiscussionThread` / `DiscussionMessage` | Atlas Discuss history              | grounding + model metadata                                                        |
 | `ReviewComment`                          | Human peer commentary on a version | `reviewVersionId`, optional `claimId`, one-level `parentId`; soft `status`        |
 | `KnowledgeLinkProposal`                  | Cross-review link proposal         | `(source, target, relation)` unique; `status`                                     |
-| `AuditEvent`                             | Append-only audit trail            | indexed by `(subjectType, subjectId)`                                             |
+| `AuditEvent`                             | Append-only audit trail            | operation key + `(subjectType, subjectId)` indexed                                |
+| `IdempotencyKey`                         | Retry-safe operation claim         | primary-key uniqueness; same decision transaction                                 |
 
 ## Immutability and versioning
 
 - A `RepositorySnapshot` is uniquely a `(repository, commitSha)` pair — the exact reviewed state.
+- Source selection is not snapshot identity. `Submission` and `ReviewVersion` retain the exact
+  capture, source kind, branch/tag/release, tag object and selection key. The same commit can
+  therefore have distinct default-branch, tag, and release versions without mutating the snapshot.
+- `Repository.githubRepositoryId` is the authoritative identity across owner/name changes.
+- Reinspection creates a new `InspectionCapture`, while `RepositorySnapshot` stays deduplicated by
+  repository and commit. Captures store exact canonical bytes and SHA-256 independently.
 - Accepting a submission creates a **new** `ReviewVersion` bound to that snapshot. Earlier
   versions are never destroyed; `Review.currentSnapshotId` points at the latest.
 - Historical UI/API routes resolve the chosen version's own snapshot and evidence. Comments are
   version-scoped and read-only on historical routes; nullable version ids only support legacy rows.
 - `Submission.submittedPayloadJson` is the immutable snapshot of exactly what the submitter
   finalized; editorial acceptance materializes the review from it.
+- Acceptance binds `ReviewVersion.sourceSubmissionId` uniquely and stores its public consistency
+  report, inspection-capture reference, and capture hash. Transactional compare-and-set and unique
+  constraints make retries safe. `(review, snapshot, sourceSelectionKey)` prevents duplicate
+  publication of one selection while permitting different refs to the same commit.
 
 Source-local claim/citation ids are unique only inside a version. Atlas derives global ids from
 `(reviewVersionId, localId)` and uses canonical DOI/PMID/OpenAlex aliases for work comparison. See

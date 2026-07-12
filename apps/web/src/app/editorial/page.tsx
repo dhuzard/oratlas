@@ -73,8 +73,13 @@ export default async function EditorialPage({
               <span className="muted">by {s.submitterLogin}</span>
             </div>
             <p className="mono muted" style={{ fontSize: "0.85rem" }}>
-              commit {s.commitSha ?? "—"}
+              {s.sourceKind ?? "source"} commit {s.commitSha ?? "—"} · tree {s.treeSha ?? "—"}
             </p>
+            {s.capturePayloadHash ? (
+              <p className="mono muted" style={{ fontSize: "0.8rem" }}>
+                exact capture SHA-256 {s.capturePayloadHash}
+              </p>
+            ) : null}
 
             {s.validation ? (
               <div>
@@ -105,6 +110,28 @@ export default async function EditorialPage({
                       ))}
                     </ul>
                   </details>
+                ) : null}
+                {s.validation.publicationConsistency ? (
+                  <Notice
+                    tone={
+                      s.validation.publicationConsistency.status === "fail"
+                        ? "error"
+                        : s.validation.publicationConsistency.status === "warn"
+                          ? "warning"
+                          : "info"
+                    }
+                    title={`Release / DOI / commit consistency: ${s.validation.publicationConsistency.status}`}
+                  >
+                    <ul>
+                      {s.validation.publicationConsistency.checks.map((check) => (
+                        <li key={check.id}>
+                          <span className="mono">{check.id}</span>: {check.outcome} —{" "}
+                          {check.description}
+                          {check.details ? ` (${check.details})` : ""}
+                        </li>
+                      ))}
+                    </ul>
+                  </Notice>
                 ) : null}
               </div>
             ) : null}
@@ -138,7 +165,10 @@ export default async function EditorialPage({
               </div>
             </details>
 
-            <DecisionForm submissionId={s.id} />
+            <DecisionForm
+              submissionId={s.id}
+              overrideCheckIds={s.validation?.publicationConsistency?.overridableCheckIds ?? []}
+            />
           </Card>
         ))
       )}

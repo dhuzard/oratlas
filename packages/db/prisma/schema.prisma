@@ -37,6 +37,8 @@ model User {
   reviewComments     ReviewComment[]
   auditEvents        AuditEvent[]
   trustVerifications TrustVerification[] @relation("trustReviewer")
+  inspectionCaptures InspectionCapture[]
+  editorialOverrides EditorialOverride[]
 
   @@index([githubLoginNormalized])
 }
@@ -48,7 +50,8 @@ model Repository {
   owner              String
   name               String
   canonicalUrl       String    @unique
-  githubRepositoryId Int?
+  /// Immutable GitHub database id. Decimal string avoids 32-bit truncation.
+  githubRepositoryId String?   @unique
   defaultBranch      String?
   description        String?
   licenseSpdx        String?
@@ -63,6 +66,7 @@ model Repository {
 
   snapshots   RepositorySnapshot[]
   submissions Submission[]
+  reviews     Review[]
 
   @@unique([host, owner, name])
 }
@@ -71,6 +75,8 @@ model RepositorySnapshot {
   id                   String    @id @default(cuid())
   repositoryId         String
   commitSha            String
+  /// Legacy selection fields. New writes keep source selection on Submission
+  /// and ReviewVersion because one commit can be reached through many refs.
   branch               String?
   releaseTag           String?
   releaseUrl           String?
@@ -80,6 +86,10 @@ model RepositorySnapshot {
   /// succeeded | partial | failed
   inspectionStatus     String
   inspectionReportJson String
+  /// Git tree object belonging to commitSha.
+  sourceTreeSha        String?
+  /// default-branch | tag | release
+  sourceKind           String?
   /// Validated review manifest content, when present.
   manifestJson         String?
   /// SHA-256 over the normalized inspection payload (integrity/versioning aid).
@@ -96,6 +106,8 @@ model RepositorySnapshot {
 model Review {
   id                 String    @id @default(cuid())
   slug               String    @unique
+  /// Stable repository identity; prevents concurrent duplicate review rows.
+  repositoryId       String?   @unique
   currentSnapshotId  String?
   title              String
   abstract           String?
@@ -110,36 +122,79 @@ model Review {
   updatedAt          DateTime  @updatedAt
 
   currentSnapshot RepositorySnapshot? @relation("currentSnapshot", fields: [currentSnapshotId], references: [id])
+  repository      Repository?         @relation(fields: [repositoryId], references: [id])
   versions        ReviewVersion[]
   comments        ReviewComment[]
 }
 
 model ReviewVersion {
-  id              String    @id @default(cuid())
-  reviewId        String
-  snapshotId      String
-  semanticVersion String?
-  title           String
-  abstract        String?
+  id                         String    @id @default(cuid())
+  reviewId                   String
+  snapshotId                 String
+  /// First submission that materialized this version (idempotency provenance).
+  sourceSubmissionId         String?   @unique
+  inspectionCaptureId        String?   @unique
+  /// Exact source selection accepted for this version.
+  sourceKind                 String?
+  sourceBranch               String?
+  sourceSelectionKey         String?
+  tagObjectSha               String?
+  sourceCreatedAt            DateTime?
+  semanticVersion            String?
+  title                      String
+  abstract                   String?
   /// Effective metadata + provenance for this immutable version.
-  metadataJson    String
-  versionDoi      String?
-  conceptDoi      String?
-  zenodoRecordId  String?
-  releaseTag      String?
+  metadataJson               String
+  versionDoi                 String?
+  conceptDoi                 String?
+  zenodoRecordId             String?
+  releaseTag                 String?
+  releaseUrl                 String?
+  /// Public, immutable release/DOI/commit consistency evidence.
+  publicationConsistencyJson String?
+  /// SHA-256 of the exact canonical inspection capture accepted here.
+  capturePayloadHash         String?
   /// True when every DOI/identifier on this version is a synthetic example
   /// (seed/demo data). The UI must not render outbound resolvers for these.
-  isExample       Boolean   @default(false)
-  publishedAt     DateTime?
-  createdAt       DateTime  @default(now())
+  isExample                  Boolean   @default(false)
+  publishedAt                DateTime?
+  createdAt                  DateTime  @default(now())
 
-  review       Review              @relation(fields: [reviewId], references: [id])
-  snapshot     RepositorySnapshot  @relation(fields: [snapshotId], references: [id])
-  contributors ReviewContributor[]
-  identifiers  Identifier[]
-  claims       Claim[]
-  citations    Citation[]
-  comments     ReviewComment[]
+  review               Review              @relation(fields: [reviewId], references: [id])
+  snapshot             RepositorySnapshot  @relation(fields: [snapshotId], references: [id])
+  contributors         ReviewContributor[]
+  identifiers          Identifier[]
+  claims               Claim[]
+  citations            Citation[]
+  comments             ReviewComment[]
+  sourceSubmission     Submission?         @relation("VersionSource", fields: [sourceSubmissionId], references: [id])
+  inspectionCapture    InspectionCapture?  @relation(fields: [inspectionCaptureId], references: [id])
+  resultingSubmissions Submission[]        @relation("ResultingVersion")
+
+  @@unique([reviewId, snapshotId, sourceSelectionKey])
+}
+
+/// Server-side, opaque, expiring inspect-to-submit capability. Payloads are
+/// append-only; consumption and submission creation occur in one transaction.
+model InspectionCapture {
+  id                    String         @id @default(cuid())
+  tokenHash             String         @unique
+  payloadJson           String
+  payloadHash           String
+  githubRepositoryId    String
+  canonicalUrlAtCapture String
+  inspectedByUserId     String
+  commitSha             String
+  releaseTag            String?
+  createdAt             DateTime       @default(now())
+  expiresAt             DateTime
+  consumedAt            DateTime?
+  inspectedBy           User           @relation(fields: [inspectedByUserId], references: [id])
+  submission            Submission?
+  reviewVersion         ReviewVersion?
+
+  @@index([expiresAt])
+  @@index([payloadHash])
 }
 
 model Person {
@@ -167,30 +222,64 @@ model ReviewContributor {
 }
 
 model Submission {
-  id                    String    @id @default(cuid())
-  submitterId           String
-  repositoryId          String
-  snapshotId            String?
+  id                         String    @id @default(cuid())
+  submitterId                String
+  repositoryId               String
+  snapshotId                 String?
+  inspectionCaptureId        String?   @unique
+  /// Exact selection provenance from the consumed inspection capture.
+  sourceKind                 String?
+  sourceBranch               String?
+  sourceSelectionKey         String?
+  releaseTag                 String?
+  releaseUrl                 String?
+  tagObjectSha               String?
+  sourceCreatedAt            DateTime?
   /// contracts SUBMISSION_STATUSES
-  status                String    @default("draft")
-  extractedMetadataJson String?
-  editedMetadataJson    String?
-  validationReportJson  String?
+  status                     String    @default("draft")
+  extractedMetadataJson      String?
+  editedMetadataJson         String?
+  validationReportJson       String?
   /// Immutable snapshot of the exact payload the submitter finalized.
-  submittedPayloadJson  String?
-  submittedAt           DateTime?
-  reviewedAt            DateTime?
-  reviewerId            String?
-  editorialNote         String?
+  submittedPayloadJson       String?
+  submittedPayloadHash       String?
+  submittedAt                DateTime?
+  reviewedAt                 DateTime?
+  reviewerId                 String?
+  editorialNote              String?
+  /// Public consistency report produced from the exact captured source.
+  publicationConsistencyJson String?
   /// Review created/updated when this submission was accepted.
-  resultingReviewId     String?
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
+  resultingReviewId          String?
+  resultingReviewVersionId   String?
+  createdAt                  DateTime  @default(now())
+  updatedAt                  DateTime  @updatedAt
 
-  submitter  User                @relation("submitter", fields: [submitterId], references: [id])
-  reviewer   User?               @relation("reviewer", fields: [reviewerId], references: [id])
-  repository Repository          @relation(fields: [repositoryId], references: [id])
-  snapshot   RepositorySnapshot? @relation(fields: [snapshotId], references: [id])
+  submitter              User                @relation("submitter", fields: [submitterId], references: [id])
+  reviewer               User?               @relation("reviewer", fields: [reviewerId], references: [id])
+  repository             Repository          @relation(fields: [repositoryId], references: [id])
+  snapshot               RepositorySnapshot? @relation(fields: [snapshotId], references: [id])
+  inspectionCapture      InspectionCapture?  @relation(fields: [inspectionCaptureId], references: [id])
+  sourceVersion          ReviewVersion?      @relation("VersionSource")
+  resultingReviewVersion ReviewVersion?      @relation("ResultingVersion", fields: [resultingReviewVersionId], references: [id])
+  editorialOverrides     EditorialOverride[]
+}
+
+/// An explicit, check-scoped editorial exception. Overrides never rewrite the
+/// consistency report and are immutable once acceptance commits.
+model EditorialOverride {
+  id           String   @id @default(cuid())
+  submissionId String
+  checkId      String
+  rationale    String
+  editorId     String
+  createdAt    DateTime @default(now())
+
+  submission Submission @relation(fields: [submissionId], references: [id])
+  editor     User       @relation(fields: [editorId], references: [id])
+
+  @@unique([submissionId, checkId])
+  @@index([editorId])
 }
 
 model Identifier {
@@ -471,17 +560,28 @@ model KnowledgeLinkProposal {
 
 /// Append-only audit trail for editorially meaningful changes.
 model AuditEvent {
-  id          String   @id @default(cuid())
-  actorId     String?
+  id             String   @id @default(cuid())
+  actorId        String?
   /// e.g. submission.finalized, submission.accepted, review.published,
   /// trust.adjudicated, linkProposal.reviewed, auth.mock-login-refused
-  action      String
-  subjectType String
-  subjectId   String
-  detailsJson String   @default("{}")
-  createdAt   DateTime @default(now())
+  action         String
+  subjectType    String
+  subjectId      String
+  detailsJson    String   @default("{}")
+  /// Optional deterministic key for retry-safe transactional events.
+  idempotencyKey String?
+  createdAt      DateTime @default(now())
 
   actor User? @relation(fields: [actorId], references: [id])
 
   @@index([subjectType, subjectId])
+  @@index([idempotencyKey])
+}
+
+/// Database-enforced operation claim used before retry-safe audit writes.
+/// A new table keeps populated upgrades safe without adding a unique index
+/// over a legacy nullable column.
+model IdempotencyKey {
+  key       String   @id
+  createdAt DateTime @default(now())
 }

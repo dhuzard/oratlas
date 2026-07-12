@@ -131,13 +131,17 @@ datasource provider to `postgresql`, set `SESSION_SECRET`, run `prisma migrate d
 1. Sign in with GitHub (or the dev mock).
 2. Paste a **public** GitHub repository URL. The platform normalizes and validates it
    (rejecting non-GitHub hosts, credentials, local-network targets — SSRF-safe).
-3. The repository is **inspected via the GitHub API** (never cloned, never executed) with
-   timeouts and size caps. Metadata is extracted deterministically with per-field provenance.
+3. Explicitly choose the current default branch, an exact tag, or an exact published release.
+   The repository is **inspected via the GitHub API** (never cloned, never executed) with timeouts
+   and size caps. Atlas pins the resolved commit and its tree SHA; metadata is extracted
+   deterministically with per-field provenance.
 4. Review and correct the extracted metadata. Edits are stored separately from extracted values.
 5. Review the validation report (compatibility, DOI validation, release, completeness, evidence
    and TRUST availability).
-6. Submit. An immutable snapshot enters the editorial workflow. An editor accepts, rejects, or
-   requests changes. Acceptance publishes an immutable versioned review.
+6. Submit the user-bound, 30-minute, single-use capture capability. GitHub is not read again.
+   The canonical capture and immutable snapshot enter the editorial workflow.
+7. An editor accepts, rejects, or requests changes. Acceptance is transactional and idempotent;
+   failed release/DOI/commit checks require separate, audited override rationales.
 
 You do **not** need to own the submitted repository; you are recorded as the submitter, distinct
 from the repository's authors and maintainers.
@@ -146,7 +150,7 @@ from the repository's authors and maintainers.
 
 A GitHub repository and a DOI are different identifiers, and the platform keeps them distinct:
 
-- a **commit SHA** identifies an exact repository state,
+- a **commit SHA + tree SHA** identify the exact repository state Atlas read,
 - a **release/tag** identifies a named version,
 - a **version DOI** identifies one deposited release,
 - a **concept DOI** identifies the collection of all versions.
@@ -174,7 +178,7 @@ Zenodo access token.
   review; it does not establish scientific correctness.
 - **A DOI does not establish scientific quality.** DOI presence is not a quality signal.
 - **GitHub default-branch content may differ from a deposited release.** The exact reviewed state
-  is the recorded commit SHA.
+  is the explicitly selected commit and tree SHA.
 - **Several reviews citing the same primary source are not independent replication.**
 
 ## License

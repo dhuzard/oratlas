@@ -131,7 +131,14 @@ export const ASSESSOR_TYPES = ["agent", "human"] as const;
 export const assessorTypeSchema = z.enum(ASSESSOR_TYPES);
 export type AssessorType = z.infer<typeof assessorTypeSchema>;
 
-export const IDENTIFIER_SCHEMES = ["doi", "github", "orcid", "url", "zenodo-record"] as const;
+export const IDENTIFIER_SCHEMES = [
+  "doi",
+  "github",
+  "git",
+  "orcid",
+  "url",
+  "zenodo-record",
+] as const;
 export const identifierSchemeSchema = z.enum(IDENTIFIER_SCHEMES);
 export type IdentifierScheme = z.infer<typeof identifierSchemeSchema>;
 
@@ -139,6 +146,7 @@ export const IDENTIFIER_RELATION_TYPES = [
   "version-doi",
   "concept-doi",
   "repository",
+  "source-commit",
   "release",
   "published-review",
   "zenodo-record",
