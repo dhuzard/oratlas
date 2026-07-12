@@ -1,7 +1,14 @@
 export * from "./text.js";
 export * from "./types.js";
 export { InProcessSearchProvider, type SearchProvider, type SearchResult } from "./search.js";
-export { buildEvidencePacket, hashEvidencePacket, type BuildPacketOptions } from "./packet.js";
+export {
+  buildEvidencePacket,
+  canonicalJson,
+  hashEvidencePacket,
+  prepareEvidencePacket,
+  type BuildPacketOptions,
+  type PreparedEvidencePacket,
+} from "./packet.js";
 export {
   discussDeterministic,
   discussWithLlm,

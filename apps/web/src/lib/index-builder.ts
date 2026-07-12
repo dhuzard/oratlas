@@ -1,6 +1,14 @@
 import "server-only";
 import { computeAggregate, selectPreferredTrustAssessment, type TrustRecord } from "@oratlas/trust";
-import { type AssessmentReviewStatus, type ClaimEvidenceRelationType } from "@oratlas/contracts";
+import {
+  canonicalWorkAliases,
+  claimDomAnchor,
+  findWorkIdentifierConflicts,
+  globalCitationId,
+  globalClaimId,
+  type AssessmentReviewStatus,
+  type ClaimEvidenceRelationType,
+} from "@oratlas/contracts";
 import {
   type IndexedClaim,
   type IndexedCitation,
@@ -25,6 +33,7 @@ export async function buildKnowledgeIndex(): Promise<KnowledgeIndexData> {
         take: 1,
         include: {
           contributors: { include: { person: true }, orderBy: { position: "asc" } },
+          snapshot: true,
           claims: {
             include: {
               evidenceRelations: {
@@ -89,7 +98,7 @@ export async function buildKnowledgeIndex(): Promise<KnowledgeIndexData> {
       acceptedAt: review.acceptedAt?.toISOString(),
       updatedAt: review.updatedAt.toISOString(),
       publicationYear: version.publishedAt?.getFullYear(),
-      commitSha: version.snapshotId ? undefined : undefined,
+      commitSha: version.snapshot.commitSha,
       versionDoi: version.versionDoi ?? undefined,
       conceptDoi: version.conceptDoi ?? undefined,
       hasDoi: Boolean(version.versionDoi || version.conceptDoi),
@@ -101,9 +110,21 @@ export async function buildKnowledgeIndex(): Promise<KnowledgeIndexData> {
     });
 
     for (const citation of version.citations) {
-      citationMap.set(citation.localCitationId, {
-        citationId: citation.localCitationId,
+      const citationId = globalCitationId(version.id, citation.localCitationId);
+      const aliases = canonicalWorkAliases({
         doi: citation.doi ?? undefined,
+        pmid: citation.pmid ?? undefined,
+        openAlexId: citation.openAlexId ?? undefined,
+      });
+      citationMap.set(citationId, {
+        citationId,
+        localCitationId: citation.localCitationId,
+        reviewVersionId: version.id,
+        workId: aliases[0] ?? citationId,
+        canonicalWorkAliases: aliases,
+        doi: citation.doi ?? undefined,
+        pmid: citation.pmid ?? undefined,
+        openAlexId: citation.openAlexId ?? undefined,
         title: citation.title ?? undefined,
         year: citation.year ?? undefined,
         source: citation.source ?? undefined,
@@ -111,7 +132,12 @@ export async function buildKnowledgeIndex(): Promise<KnowledgeIndexData> {
     }
 
     // Map citation DB id -> localCitationId for relation resolution.
-    const citationLocalById = new Map(version.citations.map((c) => [c.id, c.localCitationId]));
+    const citationGlobalById = new Map(
+      version.citations.map((citation) => [
+        citation.id,
+        globalCitationId(version.id, citation.localCitationId),
+      ]),
+    );
 
     for (const claim of version.claims) {
       const relations: IndexedRelation[] = claim.evidenceRelations.map((rel) => {
@@ -135,38 +161,51 @@ export async function buildKnowledgeIndex(): Promise<KnowledgeIndexData> {
           const agg = computeAggregate(record);
           indexedTrust = {
             reviewStatus: trust.resolved.effectiveStatus as AssessmentReviewStatus,
+            verificationState: trust.resolved.state,
             aggregateScore: agg.score ?? undefined,
             aggregateMethod: agg.method,
             notableCriteria: agg.assessedCriteria,
           };
         }
         return {
-          citationId: citationLocalById.get(rel.citationId) ?? rel.citationId,
+          citationId:
+            citationGlobalById.get(rel.citationId) ??
+            globalCitationId(version.id, `missing:${rel.citationId}`),
           relationType: rel.relationType as ClaimEvidenceRelationType,
           trust: indexedTrust,
         };
       });
 
       indexedClaims.push({
-        claimId: claim.localClaimId,
+        claimId: globalClaimId(version.id, claim.localClaimId),
+        localClaimId: claim.localClaimId,
         reviewSlug: review.slug,
         reviewId: review.id,
         reviewVersionId: version.id,
         reviewTitle: version.title,
         text: claim.text,
         section: claim.section ?? undefined,
-        anchor: claim.anchor ?? undefined,
+        anchor: claimDomAnchor(version.id, claim.localClaimId),
+        sourceAnchor: claim.anchor ?? undefined,
         claimType: claim.claimType ?? undefined,
         versionDoi: version.versionDoi ?? undefined,
+        commitSha: version.snapshot.commitSha,
         relations,
       });
     }
   }
 
+  const citations = [...citationMap.values()];
   return {
     reviews: indexedReviews,
     claims: indexedClaims,
-    citations: [...citationMap.values()],
+    citations,
+    identifierConflicts: findWorkIdentifierConflicts(
+      citations.map((citation) => ({
+        citationId: citation.citationId,
+        aliases: citation.canonicalWorkAliases,
+      })),
+    ),
   };
 }
 

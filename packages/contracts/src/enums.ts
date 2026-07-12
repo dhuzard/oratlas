@@ -117,6 +117,16 @@ export const PLATFORM_TRUST_REVIEW_STATUSES = ["human-reviewed", "adjudicated"] 
 export const platformTrustReviewStatusSchema = z.enum(PLATFORM_TRUST_REVIEW_STATUSES);
 export type PlatformTrustReviewStatus = z.infer<typeof platformTrustReviewStatusSchema>;
 
+/** Result of validating a separate Atlas verification marker against its canonical subject. */
+export const TRUST_VERIFICATION_STATES = [
+  "platform-verified",
+  "unverified-import",
+  "stale-verification",
+  "legacy-unknown",
+] as const;
+export const trustVerificationStateSchema = z.enum(TRUST_VERIFICATION_STATES);
+export type TrustVerificationState = z.infer<typeof trustVerificationStateSchema>;
+
 export const ASSESSOR_TYPES = ["agent", "human"] as const;
 export const assessorTypeSchema = z.enum(ASSESSOR_TYPES);
 export type AssessorType = z.infer<typeof assessorTypeSchema>;

@@ -42,6 +42,8 @@ knowledge-consensus engine.
 - **GitHub default-branch content may differ from a deposited release**; the exact reviewed state
   is the commit SHA.
 - Several reviews citing the same primary source are **not independent replication**.
+- A validated Atlas Discuss evidence edge proves that the answer points to a recorded relation; it
+  does **not** prove that the claim or cited study is scientifically correct.
 
 ## Suggested next production steps
 

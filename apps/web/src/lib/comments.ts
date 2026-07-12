@@ -1,5 +1,6 @@
 import "server-only";
 import {
+  claimDomAnchor,
   type CommentKind,
   type CreateCommentInput,
   type ReviewComment,
@@ -20,31 +21,35 @@ export class CommentError extends Error {
 
 type CommentRow = {
   id: string;
+  reviewVersionId: string | null;
   parentId: string | null;
   kind: string;
   status: string;
   body: string;
   createdAt: Date;
   author: { githubLogin: string; displayName: string | null; role: string };
-  claim: { localClaimId: string; anchor: string | null } | null;
+  claim: { localClaimId: string; anchor: string | null; reviewVersionId: string } | null;
 };
 
 const commentInclude = {
   author: { select: { githubLogin: true, displayName: true, role: true } },
-  claim: { select: { localClaimId: true, anchor: true } },
+  claim: { select: { localClaimId: true, anchor: true, reviewVersionId: true } },
 } as const;
 
-function toDto(row: CommentRow): Omit<ReviewComment, "replies"> {
+function toDto(row: CommentRow, selectedVersionId: string): Omit<ReviewComment, "replies"> {
   const removed = row.status !== "visible";
   return {
     id: row.id,
+    reviewVersionId: row.reviewVersionId ?? row.claim?.reviewVersionId ?? selectedVersionId,
     kind: row.kind as CommentKind,
     status: removed ? "removed" : "visible",
     // Never serve the body of a removed comment.
     body: removed ? "" : row.body,
     author: removed ? null : row.author,
     claimLocalId: row.claim?.localClaimId,
-    claimAnchor: row.claim?.anchor ?? undefined,
+    claimAnchor: row.claim
+      ? claimDomAnchor(row.claim.reviewVersionId, row.claim.localClaimId)
+      : undefined,
     createdAt: row.createdAt.toISOString(),
   };
 }
@@ -54,12 +59,35 @@ function toDto(row: CommentRow): Omit<ReviewComment, "replies"> {
  * Removed comments are kept as placeholders only when they still hold visible
  * replies (so threads stay coherent); otherwise they are dropped.
  */
-export async function listReviewComments(slug: string): Promise<ReviewCommentList | null> {
-  const review = await prisma.review.findUnique({ where: { slug }, select: { id: true } });
+export async function listReviewComments(
+  slug: string,
+  requestedVersionId?: string,
+): Promise<ReviewCommentList | null> {
+  const review = await prisma.review.findUnique({
+    where: { slug },
+    select: {
+      id: true,
+      versions: { select: { id: true }, orderBy: { createdAt: "desc" } },
+    },
+  });
   if (!review) return null;
+  const selectedVersion = requestedVersionId
+    ? review.versions.find((version) => version.id === requestedVersionId)
+    : review.versions[0];
+  if (!selectedVersion) return null;
+  const isCurrentVersion = selectedVersion.id === review.versions[0]?.id;
 
   const rows = await prisma.reviewComment.findMany({
-    where: { reviewId: review.id },
+    where: {
+      reviewId: review.id,
+      OR: [
+        { reviewVersionId: selectedVersion.id },
+        // Transitional support for old claim-anchored rows.
+        { reviewVersionId: null, claim: { reviewVersionId: selectedVersion.id } },
+        // An unscoped legacy comment can only be associated with the current version.
+        ...(isCurrentVersion ? [{ reviewVersionId: null, claimId: null }] : []),
+      ],
+    },
     orderBy: { createdAt: "asc" },
     include: commentInclude,
   });
@@ -68,13 +96,16 @@ export async function listReviewComments(slug: string): Promise<ReviewCommentLis
   const byId = new Map<string, ReviewComment>();
   for (const row of rows) {
     if (row.parentId) continue;
-    const node = { ...toDto(row), replies: [] as ReviewComment["replies"] };
+    const node = {
+      ...toDto(row, selectedVersion.id),
+      replies: [] as ReviewComment["replies"],
+    };
     topLevel.push(node);
     byId.set(row.id, node);
   }
   for (const row of rows) {
     if (!row.parentId || row.status !== "visible") continue;
-    byId.get(row.parentId)?.replies.push(toDto(row));
+    byId.get(row.parentId)?.replies.push(toDto(row, selectedVersion.id));
   }
 
   const comments = topLevel.filter((c) => c.status === "visible" || c.replies.length > 0);
@@ -82,7 +113,7 @@ export async function listReviewComments(slug: string): Promise<ReviewCommentLis
     (n, c) => n + (c.status === "visible" ? 1 : 0) + c.replies.length,
     0,
   );
-  return { reviewSlug: slug, commentCount, comments };
+  return { reviewSlug: slug, reviewVersionId: selectedVersion.id, commentCount, comments };
 }
 
 /** Create a comment (or a reply) on a published review. */
@@ -99,21 +130,20 @@ export async function createReviewComment(
   if (review.status !== "published") {
     throw new CommentError("Comments are only open on published reviews.");
   }
+  const reviewVersionId = review.versions[0]?.id;
+  if (!reviewVersionId) throw new CommentError("Review has no published version.");
 
   let claimId: string | undefined;
   if (input.claimLocalId) {
-    const versionId = review.versions[0]?.id;
-    const claim = versionId
-      ? await prisma.claim.findUnique({
-          where: {
-            reviewVersionId_localClaimId: {
-              reviewVersionId: versionId,
-              localClaimId: input.claimLocalId,
-            },
-          },
-          select: { id: true },
-        })
-      : null;
+    const claim = await prisma.claim.findUnique({
+      where: {
+        reviewVersionId_localClaimId: {
+          reviewVersionId,
+          localClaimId: input.claimLocalId,
+        },
+      },
+      select: { id: true },
+    });
     if (!claim) throw new CommentError("Unknown claim for this review.");
     claimId = claim.id;
   }
@@ -122,12 +152,23 @@ export async function createReviewComment(
   if (input.parentId) {
     const parent = await prisma.reviewComment.findUnique({
       where: { id: input.parentId },
-      select: { id: true, parentId: true, reviewId: true, status: true },
+      select: {
+        id: true,
+        parentId: true,
+        reviewId: true,
+        reviewVersionId: true,
+        status: true,
+        claim: { select: { reviewVersionId: true } },
+      },
     });
     if (!parent || parent.reviewId !== review.id) {
       throw new CommentError("Unknown parent comment for this review.");
     }
     if (parent.status !== "visible") throw new CommentError("Cannot reply to a removed comment.");
+    const parentVersionId = parent.reviewVersionId ?? parent.claim?.reviewVersionId;
+    if (parentVersionId && parentVersionId !== reviewVersionId) {
+      throw new CommentError("Cannot reply across review versions.");
+    }
     // Threads stay one level deep: replying to a reply joins its thread.
     parentId = parent.parentId ?? parent.id;
   }
@@ -135,6 +176,7 @@ export async function createReviewComment(
   const comment = await prisma.reviewComment.create({
     data: {
       reviewId: review.id,
+      reviewVersionId,
       authorId: author.id,
       parentId,
       claimId,

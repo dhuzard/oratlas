@@ -85,17 +85,23 @@ The knowledge unit is an **evidence packet** built from review metadata, claims 
 anchors), citations, claim–evidence relations, TRUST assessments, version/commit/DOI, and
 provenance — not raw text chunks.
 
+Claim/citation ids are globally namespaced by immutable review version while their source-local
+ids remain available. Citation equality across reviews uses canonical DOI/PMID/OpenAlex aliases;
+conflicting alias assertions are surfaced and excluded from automatic merging. See
+`docs/evidence-identity.md`.
+
 - **Deterministic mode** (no LLM key): lexical claim retrieval grouped by topic and
   relation, returned as a structured evidence summary. No generated prose.
 - **LLM mode**: a provider-neutral `LlmProvider` adapter receives only the evidence
-  packet, must return JSON validated against the Zod answer schema, and any answer citing
-  unknown review/claim/citation identifiers is rejected and retried once. Model,
-  provider, prompt version, packet hash, output and grounding validation are persisted as
-  an `AgentRun`. Chain-of-thought is never exposed.
+  packet, must return JSON validated against the Zod answer schema, and every statement must cite
+  exact claim→citation edges present in that packet. Unknown ids, nonexistent edges, and summary
+  mismatches are rejected and retried once. The exact canonical packet bytes are hashed, sent and
+  persisted with model/provider/prompt provenance in an `AgentRun`. Chain-of-thought is never
+  exposed.
 
 ### Cross-review knowledge links
 
-Conservative deterministic proposals (shared citation DOIs, normalized claim-text
+Conservative deterministic proposals (shared canonical DOI/PMID/OpenAlex aliases, normalized claim-text
 similarity) stored as reviewable proposals (`proposed/accepted/rejected/superseded`),
 always labelled as unreviewed until a human decision.
 
