@@ -51,6 +51,8 @@ model User {
   authorResponses    AuthorResponse[]       @relation("respondingAuthor")
   decisionLetters    DecisionLetter[]       @relation("decisionEditor")
   notifications      Notification[]         @relation("notificationUser")
+  statusRecords      CitationStatusRecord[] @relation("statusRecorder")
+  proposalsResolved  ClaimUpdateProposal[]  @relation("proposalResolver")
 
   @@index([githubLoginNormalized])
 }
@@ -378,6 +380,7 @@ model Claim {
   linkProposalsFrom KnowledgeLinkProposal[] @relation("sourceClaim")
   linkProposalsTo   KnowledgeLinkProposal[] @relation("targetClaim")
   comments          ReviewComment[]
+  updateProposals   ClaimUpdateProposal[]
 
   @@unique([reviewVersionId, localClaimId])
 }
@@ -398,6 +401,7 @@ model Citation {
 
   reviewVersion     ReviewVersion           @relation(fields: [reviewVersionId], references: [id])
   evidenceRelations ClaimEvidenceRelation[]
+  updateProposals   ClaimUpdateProposal[]
 
   @@unique([reviewVersionId, localCitationId])
   @@index([doi])
@@ -754,4 +758,51 @@ model Notification {
   user User @relation("notificationUser", fields: [userId], references: [id])
 
   @@index([userId, readAt])
+}
+
+/// Externally observed change to a cited work (retraction, correction,
+/// expression of concern, new evidence). Signals are append-only.
+model CitationStatusRecord {
+  id           String   @id @default(cuid())
+  /// Canonical work alias (contracts canonicalWorkAliases form, e.g. doi:10.x/y).
+  workAlias    String
+  /// contracts CITATION_STATUSES
+  status       String
+  /// Where the signal came from (registry, publisher notice, manual review).
+  source       String
+  evidenceUrl  String?
+  note         String?
+  recordedById String?
+  recordedAt   DateTime @default(now())
+
+  recordedBy User?                 @relation("statusRecorder", fields: [recordedById], references: [id])
+  proposals  ClaimUpdateProposal[]
+
+  @@index([workAlias])
+}
+
+/// Human-reviewable update proposal opened when a status signal affects a
+/// claim. Conclusions are never rewritten automatically; an editor resolves
+/// each proposal with an attributable note.
+model ClaimUpdateProposal {
+  id             String    @id @default(cuid())
+  statusRecordId String
+  claimId        String
+  citationId     String
+  /// contracts PROPOSAL_STATUSES
+  status         String    @default("open")
+  /// Deterministic description of why this claim is affected.
+  rationale      String
+  resolvedById   String?
+  resolutionNote String?
+  createdAt      DateTime  @default(now())
+  resolvedAt     DateTime?
+
+  statusRecord CitationStatusRecord @relation(fields: [statusRecordId], references: [id])
+  claim        Claim                @relation(fields: [claimId], references: [id])
+  citation     Citation             @relation(fields: [citationId], references: [id])
+  resolvedBy   User?                @relation("proposalResolver", fields: [resolvedById], references: [id])
+
+  @@unique([statusRecordId, claimId])
+  @@index([status])
 }
