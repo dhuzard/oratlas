@@ -470,3 +470,84 @@ paths:
             Public event metadata including review/version ids, exact commit, reason, actor,
             timestamp, CAS revision and optional superseded-version link. No tombstoned
             scholarly payload is included.
+  /api/editorial/assignments:
+    post:
+      summary: Assign an editor to a submission with an explicit conflict-of-interest declaration
+      security: [{ session: [] }]
+      responses:
+        "200": { description: Assignment created (declared conflicts record a recusal) }
+        "403": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+  /api/editorial/assignments/{id}/recuse:
+    post:
+      summary: Recuse an active assignment (the assigned editor or an admin)
+      security: [{ session: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Recused }
+        "403": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+  /api/editorial/rounds:
+    post:
+      summary: Open the next formal review round (actively assigned editor only)
+      security: [{ session: [] }]
+      responses:
+        "200": { description: Round opened }
+        "403": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+  /api/editorial/rounds/{id}/reports:
+    post:
+      summary: Submit an immutable, attributable formal review report (one per reviewer per round)
+      security: [{ session: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Report recorded with SHA-256 body hash }
+        "409": { $ref: "#/components/responses/Error" }
+  /api/editorial/rounds/{id}/responses:
+    post:
+      summary: Submit an author response within an open round (submitter only)
+      security: [{ session: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Response recorded }
+        "403": { $ref: "#/components/responses/Error" }
+  /api/editorial/rounds/{id}/decision:
+    post:
+      summary: Close a round with a decision letter and apply the archive decision
+      security: [{ session: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Decision issued; acceptance publishes atomically }
+        "403": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+  /api/editorial/process:
+    get:
+      summary: Public immutable editorial process history across resubmission lineage
+      parameters:
+        - { name: submissionId, in: query, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Rounds, reports, responses and decision letters }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/notifications:
+    get:
+      summary: List the signed-in user's editorial notifications
+      security: [{ session: [] }]
+      responses:
+        "200": { description: Notification list }
+        "401": { $ref: "#/components/responses/Error" }
+    post:
+      summary: Mark one notification as read
+      security: [{ session: [] }]
+      responses:
+        "200": { description: Marked read }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/profile/orcid:
+    post:
+      summary: Attach or clear the signed-in user's ORCID iD (stored unverified)
+      security: [{ session: [] }]
+      responses:
+        "200": { description: ORCID stored, verification pending an ORCID sign-in flow }

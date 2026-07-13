@@ -690,3 +690,160 @@ export async function markNotificationRead(userId: string, notificationId: strin
     throw new LifecycleError("Notification not found or already read.", "not-found");
   }
 }
+
+export interface SubmissionWorkflow {
+  assignments: Array<{
+    id: string;
+    editorId: string;
+    editorLogin: string;
+    status: string;
+    coiDeclared: boolean;
+  }>;
+  rounds: Array<{
+    id: string;
+    roundNumber: number;
+    status: string;
+    reportCount: number;
+    responseCount: number;
+    decision?: string;
+  }>;
+}
+
+/** Editorial-queue state for one submission (dashboard view). */
+export async function getSubmissionWorkflow(submissionId: string): Promise<SubmissionWorkflow> {
+  const [assignments, rounds] = await Promise.all([
+    prisma.editorAssignment.findMany({
+      where: { submissionId },
+      include: { editor: true },
+      orderBy: { createdAt: "asc" },
+    }),
+    prisma.reviewRound.findMany({
+      where: { submissionId },
+      include: {
+        _count: { select: { reports: true, responses: true } },
+        decisionLetter: true,
+      },
+      orderBy: { roundNumber: "asc" },
+    }),
+  ]);
+  return {
+    assignments: assignments.map((assignment) => ({
+      id: assignment.id,
+      editorId: assignment.editorId,
+      editorLogin: assignment.editor.githubLogin,
+      status: assignment.status,
+      coiDeclared: assignment.coiDeclared,
+    })),
+    rounds: rounds.map((round) => ({
+      id: round.id,
+      roundNumber: round.roundNumber,
+      status: round.status,
+      reportCount: round._count.reports,
+      responseCount: round._count.responses,
+      decision: round.decisionLetter?.decision,
+    })),
+  };
+}
+
+export interface RoundDetail {
+  roundId: string;
+  roundNumber: number;
+  status: string;
+  submissionId: string;
+  submissionStatus: string;
+  submissionTitle: string;
+  submitterLogin: string;
+  viewerIsSubmitter: boolean;
+  viewerIsActiveEditor: boolean;
+  viewerHasReported: boolean;
+  viewerIsAssignedEditor: boolean;
+  reports: ProcessHistoryReport[];
+  responses: Array<{ authorLogin: string; body: AuthorResponseBody; submittedAt: string }>;
+  decision?: {
+    editorLogin: string;
+    decision: string;
+    letter: DecisionLetterBody;
+    issuedAt: string;
+  };
+}
+
+/** Round detail for the round page, with viewer eligibility flags. */
+export async function getRoundDetail(
+  roundId: string,
+  viewerId: string,
+): Promise<RoundDetail | null> {
+  const round = await prisma.reviewRound.findUnique({
+    where: { id: roundId },
+    include: {
+      submission: { include: { submitter: true, repository: true } },
+      reports: { orderBy: { submittedAt: "asc" }, include: { reviewer: true } },
+      responses: { orderBy: { submittedAt: "asc" }, include: { author: true } },
+      decisionLetter: { include: { editor: true } },
+    },
+  });
+  if (!round) return null;
+  const assignment = await prisma.editorAssignment.findUnique({
+    where: { submissionId_editorId: { submissionId: round.submissionId, editorId: viewerId } },
+  });
+  const extracted = parseTitle(round.submission.extractedMetadataJson);
+  return {
+    roundId: round.id,
+    roundNumber: round.roundNumber,
+    status: round.status,
+    submissionId: round.submissionId,
+    submissionStatus: round.submission.status,
+    submissionTitle:
+      extracted ?? `${round.submission.repository.owner}/${round.submission.repository.name}`,
+    submitterLogin: round.submission.submitter.githubLogin,
+    viewerIsSubmitter: round.submission.submitterId === viewerId,
+    viewerIsActiveEditor: assignment?.status === "active",
+    viewerIsAssignedEditor: Boolean(assignment),
+    viewerHasReported: round.reports.some((report) => report.reviewerId === viewerId),
+    reports: round.reports.map((report) => ({
+      reviewerLogin: report.reviewer.githubLogin,
+      reviewerOrcid: report.reviewerOrcid ?? undefined,
+      orcidVerified: report.reviewerOrcidVerified,
+      recommendation: report.recommendation,
+      body: formalReviewReportBodySchema.parse(JSON.parse(report.bodyJson)),
+      bodyHash: report.bodyHash,
+      coiStatement: report.coiStatement ?? undefined,
+      submittedAt: report.submittedAt.toISOString(),
+    })),
+    responses: round.responses.map((response) => ({
+      authorLogin: response.author.githubLogin,
+      body: authorResponseBodySchema.parse(JSON.parse(response.bodyJson)),
+      submittedAt: response.submittedAt.toISOString(),
+    })),
+    decision: round.decisionLetter
+      ? {
+          editorLogin: round.decisionLetter.editor.githubLogin,
+          decision: round.decisionLetter.decision,
+          letter: decisionLetterBodySchema.parse(JSON.parse(round.decisionLetter.bodyJson)),
+          issuedAt: round.decisionLetter.createdAt.toISOString(),
+        }
+      : undefined,
+  };
+}
+
+function parseTitle(extractedMetadataJson: string | null): string | undefined {
+  if (!extractedMetadataJson) return undefined;
+  try {
+    const parsed: unknown = JSON.parse(extractedMetadataJson);
+    const title = (parsed as { fields?: { title?: { value?: unknown } } }).fields?.title?.value;
+    return typeof title === "string" ? title : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/** Process history for the submission that produced a version, if any. */
+export async function getProcessHistoryForVersion(
+  versionId: string,
+): Promise<ProcessHistoryEntry[]> {
+  const version = await prisma.reviewVersion.findUnique({
+    where: { id: versionId },
+    select: { sourceSubmissionId: true },
+  });
+  if (!version?.sourceSubmissionId) return [];
+  return getProcessHistory(version.sourceSubmissionId);
+}

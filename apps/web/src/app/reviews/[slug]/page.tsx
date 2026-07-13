@@ -12,6 +12,7 @@ import { ProvenanceBadge } from "@oratlas/ui";
 import { swhidArchiveUrl, swhidForRevision } from "@oratlas/exports";
 import { serializeJsonForHtml } from "@/lib/json-for-html";
 import { getPreservedArticle } from "@/lib/article-reader";
+import { getProcessHistoryForVersion } from "@/lib/editorial-lifecycle";
 import { ArticleReader } from "./ArticleReader";
 
 export const dynamic = "force-dynamic";
@@ -97,11 +98,12 @@ export default async function ReviewPage({
     );
   }
 
-  const [comments, user, requestHeaders, preservedArticle] = await Promise.all([
+  const [comments, user, requestHeaders, preservedArticle, processHistory] = await Promise.all([
     listReviewComments(slug, review.version.id),
     getCurrentUser(),
     headers(),
     getPreservedArticle(slug, review.version.id),
+    getProcessHistoryForVersion(review.version.id),
   ]);
   const nonce = requestHeaders.get("x-nonce") ?? undefined;
   const commentList = comments ?? {
@@ -525,6 +527,58 @@ export default async function ReviewPage({
             </Card>
           ) : null}
 
+          {processHistory.length > 0 ? (
+            <Card title="Editorial process history">
+              <p className="muted">
+                Open review: reports, responses and decision letters are public, attributable and
+                immutable across revision rounds.
+              </p>
+              {processHistory.map((entry, entryIndex) => (
+                <div key={entry.submissionId}>
+                  <p>
+                    <strong>Submission {entryIndex + 1}</strong>{" "}
+                    <span className="muted">
+                      by @{entry.submitterLogin}
+                      {entry.submittedAt ? ` · ${entry.submittedAt.slice(0, 10)}` : ""} ·{" "}
+                      {entry.status}
+                    </span>
+                  </p>
+                  {entry.rounds.map((round) => (
+                    <div className="claim-card" key={round.roundId}>
+                      <p>
+                        <strong>Round {round.roundNumber}</strong>{" "}
+                        <span className="muted">({round.status})</span>
+                      </p>
+                      <ul>
+                        {round.reports.map((report, reportIndex) => (
+                          <li key={reportIndex}>
+                            Review by @{report.reviewerLogin} — {report.recommendation}
+                            {report.reviewerOrcid
+                              ? ` (ORCID ${report.reviewerOrcid}${report.orcidVerified ? "" : ", unverified"})`
+                              : ""}
+                            , {report.submittedAt.slice(0, 10)}
+                          </li>
+                        ))}
+                        {round.responses.map((response, responseIndex) => (
+                          <li key={`r-${responseIndex}`}>
+                            Author response by @{response.authorLogin},{" "}
+                            {response.submittedAt.slice(0, 10)}
+                          </li>
+                        ))}
+                        {round.decision ? (
+                          <li>
+                            Decision: {round.decision.decision} — @{round.decision.editorLogin},{" "}
+                            {round.decision.issuedAt.slice(0, 10)}
+                          </li>
+                        ) : null}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </Card>
+          ) : null}
+
           <CommentsSection
             reviewSlug={review.slug}
             list={commentList}
@@ -603,6 +657,7 @@ export default async function ReviewPage({
                   ["ro-crate", "RO-Crate"],
                   ["prov", "PROV (JSON-LD)"],
                   ["package", "Preservation manifest"],
+                  ["docmap", "DocMaps process history"],
                 ] as const
               ).map(([format, label]) => (
                 <li key={format}>

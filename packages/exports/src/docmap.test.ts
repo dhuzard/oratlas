@@ -44,7 +44,7 @@ const base: DocmapInput = {
 
 describe("docmap", () => {
   it("chains submission → round → publication steps", () => {
-    const map = docmap(base) as Record<string, never>;
+    const map = docmap(base);
     const steps = map["steps"] as Record<string, Record<string, unknown>>;
     expect(map["first-step"]).toBe("_:b0");
     expect(steps["_:b0"]!["next-step"]).toBe("_:b1");

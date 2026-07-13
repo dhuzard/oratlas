@@ -4,7 +4,9 @@ import { Card, Notice, StatusPill, ProvenanceBadge } from "@oratlas/ui";
 import { getCurrentUser, isEditor } from "@/lib/auth";
 import { listAuditEvents, listLifecycleEditorialReviews, listSubmissions } from "@/lib/editorial";
 import { listTrustEditorialQueue, type TrustQueueFilter } from "@/lib/trust-provenance";
+import { getSubmissionWorkflow } from "@/lib/editorial-lifecycle";
 import { DecisionForm } from "./DecisionForm";
+import { WorkflowPanel } from "./WorkflowPanel";
 import { TrustVerificationForm } from "./TrustVerificationForm";
 import { LifecycleForm } from "./LifecycleForm";
 
@@ -32,6 +34,9 @@ export default async function EditorialPage({
     "automated-checks-failed",
     "changes-requested",
   ]);
+  const workflows = new Map(
+    await Promise.all(pending.map(async (s) => [s.id, await getSubmissionWorkflow(s.id)] as const)),
+  );
   const decided = await listSubmissions(["accepted", "rejected"]);
   const audit = await listAuditEvents(30);
   const lifecycleReviews = await listLifecycleEditorialReviews();
@@ -166,6 +171,13 @@ export default async function EditorialPage({
                 </table>
               </div>
             </details>
+
+            <WorkflowPanel
+              submissionId={s.id}
+              viewerId={user.id}
+              assignments={workflows.get(s.id)?.assignments ?? []}
+              rounds={workflows.get(s.id)?.rounds ?? []}
+            />
 
             <DecisionForm
               submissionId={s.id}
