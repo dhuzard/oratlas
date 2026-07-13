@@ -1,5 +1,11 @@
 export { bibtex, bibtexEscape, cslJson, ris, type CslItem } from "./citation.js";
 export { atomFeed } from "./feed.js";
+export {
+  docmap,
+  type DocmapInput,
+  type DocmapReportInput,
+  type DocmapRoundInput,
+} from "./docmap.js";
 export { jats } from "./jats.js";
 export { provJsonLd, type ProvExportInput } from "./prov.js";
 export { roCrate, type RoCrateInput } from "./ro-crate.js";
