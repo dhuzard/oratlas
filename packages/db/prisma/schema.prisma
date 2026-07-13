@@ -17,9 +17,9 @@ datasource db {
 }
 
 model User {
-  id                    String   @id @default(cuid())
-  githubUserId          String?  @unique
-  githubLogin           String   @unique
+  id                    String    @id @default(cuid())
+  githubUserId          String?   @unique
+  githubLogin           String    @unique
   /// NFKC + lowercase login used solely for collision prevention.
   /// Transitional: application-enforced uniqueness until issue #7.
   githubLoginNormalized String?
@@ -27,9 +27,13 @@ model User {
   avatarUrl             String?
   profileUrl            String?
   /// USER | EDITOR | ADMIN
-  role                  String   @default("USER")
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+  role                  String    @default("USER")
+  /// Reviewer ORCID iD (contracts orcidSchema). Unverified until an ORCID
+  /// sign-in confirms it; reports snapshot the verification state.
+  orcid                 String?
+  orcidVerifiedAt       DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
 
   submissions        Submission[]           @relation("submitter")
   editorialDecisions Submission[]           @relation("reviewer")
@@ -40,6 +44,13 @@ model User {
   inspectionCaptures InspectionCapture[]
   editorialOverrides EditorialOverride[]
   lifecycleEvents    ReviewLifecycleEvent[] @relation("lifecycleActor")
+  editorAssignments  EditorAssignment[]     @relation("assignmentEditor")
+  assignmentsMade    EditorAssignment[]     @relation("assignmentAssigner")
+  roundsOpened       ReviewRound[]          @relation("roundOpener")
+  formalReports      FormalReviewReport[]   @relation("formalReviewer")
+  authorResponses    AuthorResponse[]       @relation("respondingAuthor")
+  decisionLetters    DecisionLetter[]       @relation("decisionEditor")
+  notifications      Notification[]         @relation("notificationUser")
 
   @@index([githubLoginNormalized])
 }
@@ -291,6 +302,8 @@ model Submission {
   /// Review created/updated when this submission was accepted.
   resultingReviewId          String?
   resultingReviewVersionId   String?
+  /// Revision lineage: the changes-requested submission this one resubmits.
+  previousSubmissionId       String?   @unique
   createdAt                  DateTime  @default(now())
   updatedAt                  DateTime  @updatedAt
 
@@ -302,6 +315,10 @@ model Submission {
   sourceVersion          ReviewVersion?      @relation("VersionSource")
   resultingReviewVersion ReviewVersion?      @relation("ResultingVersion", fields: [resultingReviewVersionId], references: [id])
   editorialOverrides     EditorialOverride[]
+  previousSubmission     Submission?         @relation("Resubmission", fields: [previousSubmissionId], references: [id])
+  resubmission           Submission?         @relation("Resubmission")
+  editorAssignments      EditorAssignment[]
+  reviewRounds           ReviewRound[]
 }
 
 /// An explicit, check-scoped editorial exception. Overrides never rewrite the
@@ -623,4 +640,118 @@ model AuditEvent {
 model IdempotencyKey {
   key       String   @id
   createdAt DateTime @default(now())
+}
+
+/// Editor responsible for a submission, with an explicit conflict-of-interest
+/// declaration. A declared conflict forces immediate recusal; an editor can
+/// never be assigned to their own submission.
+model EditorAssignment {
+  id           String   @id @default(cuid())
+  submissionId String
+  editorId     String
+  assignedById String
+  /// contracts EDITOR_ASSIGNMENT_STATUSES: active | recused | completed
+  status       String   @default("active")
+  coiDeclared  Boolean  @default(false)
+  coiStatement String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  submission Submission @relation(fields: [submissionId], references: [id])
+  editor     User       @relation("assignmentEditor", fields: [editorId], references: [id])
+  assignedBy User       @relation("assignmentAssigner", fields: [assignedById], references: [id])
+
+  @@unique([submissionId, editorId])
+}
+
+/// Numbered formal review round on a submission. Rounds are append-only and
+/// close exactly once with a decision letter.
+model ReviewRound {
+  id           String    @id @default(cuid())
+  submissionId String
+  roundNumber  Int
+  /// contracts REVIEW_ROUND_STATUSES: open | decided
+  status       String    @default("open")
+  openedById   String
+  openedAt     DateTime  @default(now())
+  decidedAt    DateTime?
+
+  submission     Submission           @relation(fields: [submissionId], references: [id])
+  openedBy       User                 @relation("roundOpener", fields: [openedById], references: [id])
+  reports        FormalReviewReport[]
+  responses      AuthorResponse[]
+  decisionLetter DecisionLetter?
+
+  @@unique([submissionId, roundNumber])
+}
+
+/// Immutable, attributable formal peer-review report. One report per
+/// reviewer per round; there is no update or delete path.
+model FormalReviewReport {
+  id                    String   @id @default(cuid())
+  roundId               String
+  reviewerId            String
+  /// Reviewer ORCID snapshot at submission time (contracts orcidSchema).
+  reviewerOrcid         String?
+  reviewerOrcidVerified Boolean  @default(false)
+  /// contracts REVIEW_RECOMMENDATIONS
+  recommendation        String
+  /// Canonical JSON of contracts formalReviewReportBodySchema.
+  bodyJson              String
+  /// SHA-256 of bodyJson (integrity of the immutable report).
+  bodyHash              String
+  coiStatement          String?
+  submittedAt           DateTime @default(now())
+
+  round    ReviewRound @relation(fields: [roundId], references: [id])
+  reviewer User        @relation("formalReviewer", fields: [reviewerId], references: [id])
+
+  @@unique([roundId, reviewerId])
+}
+
+/// Author response within a review round; append-only and attributable.
+model AuthorResponse {
+  id          String   @id @default(cuid())
+  roundId     String
+  authorId    String
+  /// Canonical JSON of contracts authorResponseBodySchema.
+  bodyJson    String
+  bodyHash    String
+  submittedAt DateTime @default(now())
+
+  round  ReviewRound @relation(fields: [roundId], references: [id])
+  author User        @relation("respondingAuthor", fields: [authorId], references: [id])
+}
+
+/// Decision letter closing a round. Exactly one per round; immutable.
+model DecisionLetter {
+  id        String   @id @default(cuid())
+  roundId   String   @unique
+  editorId  String
+  /// contracts ROUND_DECISIONS: accept | reject | request-changes
+  decision  String
+  /// Canonical JSON of contracts decisionLetterBodySchema.
+  bodyJson  String
+  bodyHash  String
+  createdAt DateTime @default(now())
+
+  round  ReviewRound @relation(fields: [roundId], references: [id])
+  editor User        @relation("decisionEditor", fields: [editorId], references: [id])
+}
+
+/// In-app notification for editorial lifecycle events.
+model Notification {
+  id          String    @id @default(cuid())
+  userId      String
+  /// contracts NOTIFICATION_KINDS
+  kind        String
+  subjectType String
+  subjectId   String
+  payloadJson String    @default("{}")
+  readAt      DateTime?
+  createdAt   DateTime  @default(now())
+
+  user User @relation("notificationUser", fields: [userId], references: [id])
+
+  @@index([userId, readAt])
 }

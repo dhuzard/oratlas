@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { editorialOverridesSchema } from "@oratlas/contracts";
 import { getServerEnv, requireEditor } from "@/lib/auth";
 import { acceptSubmission, decideSubmission, SubmissionError } from "@/lib/submissions";
 import {
@@ -18,15 +19,7 @@ const bodySchema = z.object({
   submissionId: z.string().min(1),
   decision: z.enum(["accept", "reject", "request-changes"]),
   note: z.string().max(5000).optional(),
-  overrides: z
-    .array(
-      z.object({
-        checkId: z.string().trim().min(1).max(120),
-        rationale: z.string().trim().min(20).max(4000),
-      }),
-    )
-    .max(30)
-    .default([]),
+  overrides: editorialOverridesSchema,
 });
 
 /** Editorial decision endpoint. Editor role required (checked server-side). */

@@ -36,6 +36,7 @@ At submission time the platform stores, per accepted version:
 | `GET /api/reviews/{slug}/versions/{id}/export/ro-crate` | RO-Crate 1.1 metadata (JSON-LD)                                    |
 | `GET /api/reviews/{slug}/versions/{id}/export/prov`     | W3C PROV provenance (JSON-LD)                                      |
 | `GET /api/reviews/{slug}/versions/{id}/export/package`  | Preservation manifest (files, checksums, SWHIDs, integrity hashes) |
+| `GET /api/reviews/{slug}/versions/{id}/export/docmap`   | DocMaps-compatible editorial process history (JSON-LD)             |
 | `GET /api/reviews/{slug}/versions/{id}/files/{path}`    | Preserved raw file content (plain-text attachment)                 |
 | `GET /api/feeds/atom`                                   | Atom 1.0 feed of recently accepted versions                        |
 | `GET /api/reviews/{slug}/diff?from={id}&to={id}`        | Canonical checksummed asset/metadata/claim/citation diff           |

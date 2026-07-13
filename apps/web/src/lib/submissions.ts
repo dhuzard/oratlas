@@ -28,6 +28,7 @@ import { type Prisma } from "@oratlas/db";
 import { normalizeImportedTrustRecord } from "@oratlas/trust";
 import { z } from "zod";
 import { prisma, parseJsonColumn } from "./db";
+import { prismaCode, uniqueTargets, withSqliteRetry as sharedWithSqliteRetry } from "./db-retry";
 import { sha256 } from "./hash";
 import { buildValidationReport } from "./ingest";
 import {
@@ -56,6 +57,8 @@ export interface CreateSubmissionInput {
   inspectionToken: string;
   submitterId: string;
   editedMetadata?: EditedMetadata;
+  /** Revision lineage: the changes-requested submission this one resubmits. */
+  previousSubmissionId?: string;
 }
 
 export interface CreateSubmissionResult {
@@ -187,12 +190,42 @@ export async function createSubmission(
             );
           }
 
+          let previous = null;
+          if (input.previousSubmissionId) {
+            previous = await tx.submission.findUnique({
+              where: { id: input.previousSubmissionId },
+              include: { editorAssignments: true },
+            });
+            if (!previous) {
+              throw new SubmissionError("Previous submission not found.", "bad-request");
+            }
+            if (previous.submitterId !== input.submitterId) {
+              throw new SubmissionError(
+                "A resubmission must come from the original submitter.",
+                "conflict",
+              );
+            }
+            if (previous.repositoryId !== repository.id) {
+              throw new SubmissionError(
+                "A resubmission must target the same repository.",
+                "conflict",
+              );
+            }
+            if (previous.status !== "changes-requested") {
+              throw new SubmissionError(
+                `Only a changes-requested submission can be resubmitted (currently ${previous.status}).`,
+                "conflict",
+              );
+            }
+          }
+
           const submission = await tx.submission.create({
             data: {
               submitterId: input.submitterId,
               repositoryId: repository.id,
               snapshotId: snapshot.id,
               inspectionCaptureId: locked.id,
+              previousSubmissionId: previous?.id,
               sourceKind: source.kind,
               sourceBranch: source.branch,
               sourceSelectionKey: sourceSelectionKey(source),
@@ -214,6 +247,39 @@ export async function createSubmission(
               submittedAt: new Date(),
             },
           });
+          if (previous) {
+            // The revision replaces the changes-requested submission and the
+            // editorial team carries over with continuity notifications.
+            const superseded = await tx.submission.updateMany({
+              where: { id: previous.id, status: "changes-requested" },
+              data: { status: "superseded" },
+            });
+            if (superseded.count !== 1) {
+              throw new SubmissionError("Previous submission changed concurrently.", "conflict");
+            }
+            for (const assignment of previous.editorAssignments) {
+              if (assignment.status !== "active") continue;
+              await tx.editorAssignment.create({
+                data: {
+                  submissionId: submission.id,
+                  editorId: assignment.editorId,
+                  assignedById: assignment.assignedById,
+                  status: "active",
+                  coiDeclared: assignment.coiDeclared,
+                  coiStatement: assignment.coiStatement,
+                },
+              });
+              await tx.notification.create({
+                data: {
+                  userId: assignment.editorId,
+                  kind: "submission-resubmitted",
+                  subjectType: "submission",
+                  subjectId: submission.id,
+                  payloadJson: canonicalJson({ previousSubmissionId: previous.id }),
+                },
+              });
+            }
+          }
           await tx.inspectionCapture.update({
             where: { id: locked.id },
             data: { consumedAt: new Date() },
@@ -232,6 +298,7 @@ export async function createSubmission(
                 githubRepositoryId: exact.report.githubRepositoryId,
                 commitSha: source.commitSha,
                 capturePayloadHash: locked.payloadHash,
+                previousSubmissionId: previous?.id,
               }),
             },
           });
@@ -1002,35 +1069,8 @@ function isDecidableStatus(status: string): boolean {
   return status === "pending-editorial-review" || status === "automated-checks-failed";
 }
 
-async function withSqliteRetry<T>(operation: () => Promise<T>): Promise<T> {
-  for (let attempt = 0; ; attempt += 1) {
-    try {
-      return await operation();
-    } catch (error) {
-      if (error instanceof SubmissionError || attempt >= 3 || !isRetriableSqliteError(error))
-        throw error;
-      await new Promise((resolve) => setTimeout(resolve, 25 * 2 ** attempt));
-    }
-  }
-}
-
-function isRetriableSqliteError(error: unknown): boolean {
-  const code = prismaCode(error);
-  const message = error instanceof Error ? error.message : "";
-  return code === "P1008" || code === "P2034" || /database is locked|SQLITE_BUSY/i.test(message);
-}
-
-function prismaCode(error: unknown): string | undefined {
-  return typeof error === "object" && error !== null && "code" in error
-    ? String((error as { code?: unknown }).code)
-    : undefined;
-}
-
-function uniqueTargets(error: unknown): string[] {
-  if (typeof error !== "object" || error === null || !("meta" in error)) return [];
-  const target = (error as { meta?: { target?: unknown } }).meta?.target;
-  if (Array.isArray(target)) return target.map(String);
-  return target === undefined ? [] : [String(target)];
+function withSqliteRetry<T>(operation: () => Promise<T>): Promise<T> {
+  return sharedWithSqliteRetry(operation, (error) => error instanceof SubmissionError);
 }
 
 function isRecoverableSubmissionUniqueConflict(error: unknown): boolean {

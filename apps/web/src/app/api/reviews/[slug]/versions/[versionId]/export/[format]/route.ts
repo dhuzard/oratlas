@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { bibtex, cslJson, jats, provJsonLd, ris, roCrate } from "@oratlas/exports";
 import { errorResponse, handleRouteError } from "@/lib/api";
+import { getDocmapForVersion } from "@/lib/editorial-docmap";
 import { getVersionExportContext, type VersionExportContext } from "@/lib/preservation";
 
 export const dynamic = "force-dynamic";
@@ -69,6 +70,21 @@ export async function GET(
 ) {
   try {
     const { slug, versionId, format } = await params;
+    const filenameBase = `${slug}-${versionId}`.replace(/[^A-Za-z0-9._-]/g, "-");
+    if (format === "docmap") {
+      const map = await getDocmapForVersion(slug, versionId);
+      if (!map) return errorResponse("not-found", "Review version not found.");
+      return new NextResponse(JSON.stringify(map, null, 2), {
+        headers: {
+          "Content-Type": "application/ld+json; charset=utf-8",
+          "Content-Disposition": `attachment; filename="${filenameBase}.docmap.json"`,
+          "X-Content-Type-Options": "nosniff",
+          // A later tombstone must revoke this projection immediately.
+          "Cache-Control": "no-store, must-revalidate",
+          Pragma: "no-cache",
+        },
+      });
+    }
     const exporter = Object.prototype.hasOwnProperty.call(EXPORTERS, format)
       ? EXPORTERS[format]!
       : undefined;
@@ -76,7 +92,6 @@ export async function GET(
     const context = await getVersionExportContext(slug, versionId);
     if (!context) return errorResponse("not-found", "Review version not found.");
 
-    const filenameBase = `${slug}-${versionId}`.replace(/[^A-Za-z0-9._-]/g, "-");
     return new NextResponse(exporter.render(context), {
       headers: {
         "Content-Type": exporter.contentType,
