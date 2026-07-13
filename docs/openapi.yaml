@@ -433,7 +433,7 @@ paths:
           required: true
           schema:
             type: string
-            enum: [csl, bibtex, ris, jats, ro-crate, prov, package]
+            enum: [csl, bibtex, ris, jats, ro-crate, prov, package, docmap]
       responses:
         "200":
           description: >

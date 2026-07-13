@@ -83,6 +83,17 @@ export const NOTIFICATION_KINDS = [
 export const notificationKindSchema = z.enum(NOTIFICATION_KINDS);
 export type NotificationKind = z.infer<typeof notificationKindSchema>;
 
+/** Check-scoped editorial overrides accompanying an acceptance decision. */
+export const editorialOverridesSchema = z
+  .array(
+    z.object({
+      checkId: z.string().trim().min(1).max(120),
+      rationale: z.string().trim().min(20).max(4000),
+    }),
+  )
+  .max(30)
+  .default([]);
+
 /** Editor's conflict-of-interest declaration at assignment time. */
 export const conflictOfInterestSchema = z.object({
   declared: z.boolean(),

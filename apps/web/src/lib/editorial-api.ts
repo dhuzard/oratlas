@@ -11,6 +11,7 @@ import {
 import { getServerEnv, requireUser, type SessionUser } from "./auth";
 import { LifecycleError } from "./editorial-lifecycle";
 import { validateSameOriginJsonRequest } from "./mutation-request";
+import { clientKey, rateLimit } from "./rate-limit";
 import { SubmissionError } from "./submissions";
 
 /**
@@ -22,6 +23,7 @@ export async function handleLifecyclePost<Schema extends z.ZodTypeAny>(
   request: Request,
   schema: Schema,
   handler: (actor: SessionUser, body: z.infer<Schema>) => Promise<unknown>,
+  limitSuffix = "lifecycle",
 ): Promise<NextResponse> {
   try {
     const integrity = validateSameOriginJsonRequest(request, getServerEnv().NEXT_PUBLIC_BASE_URL);
@@ -32,6 +34,10 @@ export async function handleLifecyclePost<Schema extends z.ZodTypeAny>(
       );
     }
     const actor = await requireUser();
+    const limit = rateLimit(clientKey(request.headers, `${limitSuffix}:${actor.id}`), 10, 60_000);
+    if (!limit.ok) {
+      return errorResponse("rate-limited", "Too many editorial actions. Try again shortly.");
+    }
     const parsed = schema.safeParse(await readJsonBody(request));
     if (!parsed.success) {
       return errorResponse("bad-request", "Invalid request payload.");

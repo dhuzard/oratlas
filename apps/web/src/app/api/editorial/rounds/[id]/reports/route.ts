@@ -15,13 +15,17 @@ const bodySchema = z.object({
 /** Submit an immutable formal review report (any signed-in non-conflicted user). */
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  return handleLifecyclePost(request, bodySchema, (actor, body) =>
-    submitReviewReport(
-      { id: actor.id, role: actor.role },
-      id,
-      body.recommendation,
-      body.body,
-      body.coiStatement,
-    ),
+  return handleLifecyclePost(
+    request,
+    bodySchema,
+    (actor, body) =>
+      submitReviewReport(
+        { id: actor.id, role: actor.role },
+        id,
+        body.recommendation,
+        body.body,
+        body.coiStatement,
+      ),
+    "report",
   );
 }

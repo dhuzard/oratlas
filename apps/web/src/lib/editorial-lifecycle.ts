@@ -573,6 +573,83 @@ export interface ProcessHistoryEntry {
   rounds: ProcessHistoryRound[];
 }
 
+type ReportRow = Prisma.FormalReviewReportGetPayload<{ include: { reviewer: true } }>;
+type ResponseRow = Prisma.AuthorResponseGetPayload<{ include: { author: true } }>;
+type LetterRow = Prisma.DecisionLetterGetPayload<{ include: { editor: true } }>;
+
+function parseStoredJson(value: string): unknown {
+  try {
+    return JSON.parse(value);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Stored bodies are canonical JSON written by this module; a row that fails
+ * validation is corrupt and is omitted (logged) rather than crashing every
+ * public history view.
+ */
+function mapReportRow(report: ReportRow): ProcessHistoryReport | null {
+  const body = formalReviewReportBodySchema.safeParse(parseStoredJson(report.bodyJson));
+  if (!body.success) {
+    console.error(`[editorial] report ${report.id} failed stored-body validation; omitted.`);
+    return null;
+  }
+  return {
+    reviewerLogin: report.reviewer.githubLogin,
+    reviewerOrcid: report.reviewerOrcid ?? undefined,
+    orcidVerified: report.reviewerOrcidVerified,
+    recommendation: report.recommendation,
+    body: body.data,
+    bodyHash: report.bodyHash,
+    coiStatement: report.coiStatement ?? undefined,
+    submittedAt: report.submittedAt.toISOString(),
+  };
+}
+
+function mapResponseRow(
+  response: ResponseRow,
+): { authorLogin: string; body: AuthorResponseBody; submittedAt: string } | null {
+  const body = authorResponseBodySchema.safeParse(parseStoredJson(response.bodyJson));
+  if (!body.success) {
+    console.error(`[editorial] response ${response.id} failed stored-body validation; omitted.`);
+    return null;
+  }
+  return {
+    authorLogin: response.author.githubLogin,
+    body: body.data,
+    submittedAt: response.submittedAt.toISOString(),
+  };
+}
+
+function mapLetterRow(letter: LetterRow):
+  | {
+      editorLogin: string;
+      decision: string;
+      letter: DecisionLetterBody;
+      bodyHash: string;
+      issuedAt: string;
+    }
+  | undefined {
+  const body = decisionLetterBodySchema.safeParse(parseStoredJson(letter.bodyJson));
+  if (!body.success) {
+    console.error(`[editorial] letter ${letter.id} failed stored-body validation; omitted.`);
+    return undefined;
+  }
+  return {
+    editorLogin: letter.editor.githubLogin,
+    decision: letter.decision,
+    letter: body.data,
+    bodyHash: letter.bodyHash,
+    issuedAt: letter.createdAt.toISOString(),
+  };
+}
+
+function notNull<T>(value: T | null): value is T {
+  return value !== null;
+}
+
 type SubmissionWithProcess = Prisma.SubmissionGetPayload<{
   include: {
     submitter: true;
@@ -622,30 +699,9 @@ export async function getProcessHistory(submissionId: string): Promise<ProcessHi
         roundNumber: round.roundNumber,
         status: round.status,
         openedAt: round.openedAt.toISOString(),
-        reports: round.reports.map((report) => ({
-          reviewerLogin: report.reviewer.githubLogin,
-          reviewerOrcid: report.reviewerOrcid ?? undefined,
-          orcidVerified: report.reviewerOrcidVerified,
-          recommendation: report.recommendation,
-          body: formalReviewReportBodySchema.parse(JSON.parse(report.bodyJson)),
-          bodyHash: report.bodyHash,
-          coiStatement: report.coiStatement ?? undefined,
-          submittedAt: report.submittedAt.toISOString(),
-        })),
-        responses: round.responses.map((response) => ({
-          authorLogin: response.author.githubLogin,
-          body: authorResponseBodySchema.parse(JSON.parse(response.bodyJson)),
-          submittedAt: response.submittedAt.toISOString(),
-        })),
-        decision: round.decisionLetter
-          ? {
-              editorLogin: round.decisionLetter.editor.githubLogin,
-              decision: round.decisionLetter.decision,
-              letter: decisionLetterBodySchema.parse(JSON.parse(round.decisionLetter.bodyJson)),
-              bodyHash: round.decisionLetter.bodyHash,
-              issuedAt: round.decisionLetter.createdAt.toISOString(),
-            }
-          : undefined,
+        reports: round.reports.map(mapReportRow).filter(notNull),
+        responses: round.responses.map(mapResponseRow).filter(notNull),
+        decision: round.decisionLetter ? mapLetterRow(round.decisionLetter) : undefined,
       })),
     });
     currentId = submission.previousSubmissionId;
@@ -763,6 +819,7 @@ export interface RoundDetail {
     editorLogin: string;
     decision: string;
     letter: DecisionLetterBody;
+    bodyHash: string;
     issuedAt: string;
   };
 }
@@ -799,29 +856,9 @@ export async function getRoundDetail(
     viewerIsActiveEditor: assignment?.status === "active",
     viewerIsAssignedEditor: Boolean(assignment),
     viewerHasReported: round.reports.some((report) => report.reviewerId === viewerId),
-    reports: round.reports.map((report) => ({
-      reviewerLogin: report.reviewer.githubLogin,
-      reviewerOrcid: report.reviewerOrcid ?? undefined,
-      orcidVerified: report.reviewerOrcidVerified,
-      recommendation: report.recommendation,
-      body: formalReviewReportBodySchema.parse(JSON.parse(report.bodyJson)),
-      bodyHash: report.bodyHash,
-      coiStatement: report.coiStatement ?? undefined,
-      submittedAt: report.submittedAt.toISOString(),
-    })),
-    responses: round.responses.map((response) => ({
-      authorLogin: response.author.githubLogin,
-      body: authorResponseBodySchema.parse(JSON.parse(response.bodyJson)),
-      submittedAt: response.submittedAt.toISOString(),
-    })),
-    decision: round.decisionLetter
-      ? {
-          editorLogin: round.decisionLetter.editor.githubLogin,
-          decision: round.decisionLetter.decision,
-          letter: decisionLetterBodySchema.parse(JSON.parse(round.decisionLetter.bodyJson)),
-          issuedAt: round.decisionLetter.createdAt.toISOString(),
-        }
-      : undefined,
+    reports: round.reports.map(mapReportRow).filter(notNull),
+    responses: round.responses.map(mapResponseRow).filter(notNull),
+    decision: round.decisionLetter ? mapLetterRow(round.decisionLetter) : undefined,
   };
 }
 

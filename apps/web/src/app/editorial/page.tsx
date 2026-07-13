@@ -179,10 +179,17 @@ export default async function EditorialPage({
               rounds={workflows.get(s.id)?.rounds ?? []}
             />
 
-            <DecisionForm
-              submissionId={s.id}
-              overrideCheckIds={s.validation?.publicationConsistency?.overridableCheckIds ?? []}
-            />
+            {workflows.get(s.id)?.rounds.some((round) => round.status === "open") ? (
+              <p className="muted">
+                A formal review round is open; decisions for this submission are issued from the
+                round page with a decision letter.
+              </p>
+            ) : (
+              <DecisionForm
+                submissionId={s.id}
+                overrideCheckIds={s.validation?.publicationConsistency?.overridableCheckIds ?? []}
+              />
+            )}
           </Card>
         ))
       )}

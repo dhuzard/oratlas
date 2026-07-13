@@ -2,19 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-
-async function post(url: string, body: unknown): Promise<string | null> {
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  if (res.ok) return null;
-  const payload = (await res.json().catch(() => null)) as {
-    error?: { message?: string };
-  } | null;
-  return payload?.error?.message ?? `Request failed (${res.status}).`;
-}
+import { postJson as post } from "@/lib/client-post";
 
 export function ReportForm({ roundId }: { roundId: string }) {
   const router = useRouter();
