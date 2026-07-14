@@ -79,6 +79,7 @@ export const NOTIFICATION_KINDS = [
   "author-responded",
   "decision-issued",
   "submission-resubmitted",
+  "evidence-alert",
 ] as const;
 export const notificationKindSchema = z.enum(NOTIFICATION_KINDS);
 export type NotificationKind = z.infer<typeof notificationKindSchema>;
