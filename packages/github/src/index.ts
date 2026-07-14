@@ -14,5 +14,16 @@ export {
   type GithubResponse,
   type FetchTransportOptions,
 } from "./transport.js";
-export { SynchronousIngestionRunner, type IngestionRunner } from "./ingestion.js";
+export {
+  SynchronousIngestionRunner,
+  type IngestionRunner,
+  type IngestionJob,
+} from "./ingestion.js";
+export {
+  InMemoryJobQueue,
+  type Job,
+  type JobStatus,
+  type JobWorker,
+  type InMemoryJobQueueOptions,
+} from "./job-queue.js";
 export { createFakeTransport, type FakeRepoFixture } from "./testing.js";

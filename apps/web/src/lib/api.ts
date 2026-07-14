@@ -32,12 +32,21 @@ export function handleRouteError(err: unknown): NextResponse {
   return errorResponse("internal-error", "An unexpected error occurred.");
 }
 
-const MAX_BODY_BYTES = 256 * 1024;
+export const MAX_BODY_BYTES = 256 * 1024;
 
-/** Parse and size-limit a JSON request body. */
+/**
+ * Parse and size-limit a JSON request body. The cap is enforced on the actual
+ * UTF-8 byte length (not JS string length, which undercounts multi-byte
+ * characters), with a fast path on a declared Content-Length so oversized
+ * uploads are rejected before the whole body is buffered.
+ */
 export async function readJsonBody<T = unknown>(request: Request): Promise<T> {
+  const declared = Number(request.headers.get("content-length"));
+  if (Number.isFinite(declared) && declared > MAX_BODY_BYTES) {
+    throw new BodyTooLargeError();
+  }
   const text = await request.text();
-  if (text.length > MAX_BODY_BYTES) {
+  if (Buffer.byteLength(text, "utf8") > MAX_BODY_BYTES) {
     throw new BodyTooLargeError();
   }
   try {

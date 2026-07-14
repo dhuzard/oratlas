@@ -193,9 +193,19 @@ components:
 paths:
   /api/health:
     get:
-      summary: Health check
+      summary: Liveness check
+      description: Dependency-free liveness probe; always returns quickly when the process is up.
       responses:
         "200": { description: OK }
+  /api/health/ready:
+    get:
+      summary: Readiness check
+      description: >
+        Readiness probe for load balancers. Performs a trivial database round-trip and returns 503
+        when a dependency is unavailable. No error detail is leaked in the body.
+      responses:
+        "200": { description: Ready }
+        "503": { description: Unavailable }
   /api/inspect:
     post:
       summary: Capture an explicitly selected immutable repository source
