@@ -617,6 +617,37 @@ async function main() {
     console.info("  · seeded cross-review link proposal");
   }
 
+  // Evidence-monitoring fixture: one retraction signal on a cited work of the
+  // replay review, opening a human-reviewable update proposal (issue #3).
+  const monitoredCitation = await prisma.citation.findFirst({
+    where: { doi: { not: null }, reviewVersion: { review: { slug: seedReviews[0]!.slug } } },
+    include: { evidenceRelations: { take: 1 } },
+  });
+  const monitoredRelation = monitoredCitation?.evidenceRelations[0];
+  if (monitoredCitation?.doi && monitoredRelation) {
+    const statusRecord = await prisma.citationStatusRecord.create({
+      data: {
+        workAlias: `doi:${monitoredCitation.doi.toLowerCase()}`,
+        status: "retracted",
+        source: "seed fixture (synthetic publisher notice)",
+        note: "Synthetic example: the cited work was retracted after the review was published.",
+        recordedById: users.get("atlas-editor")!,
+      },
+    });
+    await prisma.claimUpdateProposal.create({
+      data: {
+        statusRecordId: statusRecord.id,
+        claimId: monitoredRelation.claimId,
+        citationId: monitoredCitation.id,
+        rationale:
+          `Cited work doi:${monitoredCitation.doi.toLowerCase()} was marked "retracted" ` +
+          `(source: seed fixture (synthetic publisher notice)). This claim relies on it via a ` +
+          `"${monitoredRelation.relationType}" relation.`,
+      },
+    });
+    console.info("  · seeded citation retraction signal and update proposal");
+  }
+
   // Audit event for the seed run
   await prisma.auditEvent.create({
     data: {

@@ -9,6 +9,7 @@ import {
   readJsonBody,
 } from "./api";
 import { getServerEnv, requireUser, type SessionUser } from "./auth";
+import { MonitoringError } from "./claim-monitoring";
 import { LifecycleError } from "./editorial-lifecycle";
 import { validateSameOriginJsonRequest } from "./mutation-request";
 import { clientKey, rateLimit } from "./rate-limit";
@@ -46,6 +47,7 @@ export async function handleLifecyclePost<Schema extends z.ZodTypeAny>(
     return NextResponse.json(result ?? { ok: true });
   } catch (err) {
     if (err instanceof LifecycleError) return errorResponse(err.code, err.message);
+    if (err instanceof MonitoringError) return errorResponse(err.code, err.message);
     if (err instanceof SubmissionError) return errorResponse(err.code, err.message);
     if (err instanceof z.ZodError) return errorResponse("bad-request", "Invalid request payload.");
     if (err instanceof BodyTooLargeError)
