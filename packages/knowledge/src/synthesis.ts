@@ -174,17 +174,16 @@ export interface ContradictionEntry {
   claimIdA: string;
   claimIdB: string;
   /**
-   * genuine-contradiction-shared-evidence: opposite directions over at least
-   *   one shared evidence family;
-   * contradiction-independent-evidence: opposite directions with disjoint
-   *   families (stronger signal — two lines of evidence disagree);
-   * scope-difference: opposite directions but the declared scopes differ, so
-   *   the statements may answer different questions.
+   * Both kinds require the two claims to read at least one *shared* evidence
+   * family in opposite directions — claims whose evidence never overlaps are
+   * about different things, not contradictions.
+   * genuine-contradiction: shared evidence, opposite directions, and no
+   *   declared scope difference — a real disagreement;
+   * scope-difference: shared evidence in opposite directions, but the declared
+   *   scopes differ, so the statements may answer different questions.
    */
-  kind:
-    | "genuine-contradiction-shared-evidence"
-    | "contradiction-independent-evidence"
-    | "scope-difference";
+  kind: "genuine-contradiction" | "scope-difference";
+  /** Number of evidence families the two claims read in opposite directions. */
   sharedFamilyCount: number;
   differingScopeFields: string[];
 }
@@ -298,25 +297,20 @@ export function synthesize(
       const aOppose = familiesOf(a, -1);
       const bSupport = familiesOf(b, 1);
       const bOppose = familiesOf(b, -1);
+      // A contradiction requires a *shared* evidence family read in opposite
+      // directions: A supports a family that B opposes, or vice versa. Two
+      // claims with disjoint evidence are unrelated, not contradictory.
       const sharedOpposite = new Set(
         [...aSupport]
           .filter((family) => bOppose.has(family))
           .concat([...bSupport].filter((family) => aOppose.has(family))),
       );
-      const bothTouchOpposites =
-        (aSupport.size > 0 && bOppose.size > 0) || (bSupport.size > 0 && aOppose.size > 0);
-      if (!bothTouchOpposites) continue;
+      if (sharedOpposite.size === 0) continue;
       const scopeDiff = differingScopeFields(a.scope, b.scope);
-      const kind =
-        scopeDiff.length > 0
-          ? "scope-difference"
-          : sharedOpposite.size > 0
-            ? "genuine-contradiction-shared-evidence"
-            : "contradiction-independent-evidence";
       contradictions.push({
         claimIdA: a.claimId,
         claimIdB: b.claimId,
-        kind,
+        kind: scopeDiff.length > 0 ? "scope-difference" : "genuine-contradiction",
         sharedFamilyCount: sharedOpposite.size,
         differingScopeFields: scopeDiff,
       });

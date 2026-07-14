@@ -32,6 +32,13 @@ export interface SeedClaim {
   anchor?: string;
   claimType?: string;
   qualification?: string;
+  scope?: {
+    population?: string;
+    model?: string;
+    intervention?: string;
+    outcome?: string;
+    method?: string;
+  };
 }
 
 export interface SeedCitation {
@@ -42,6 +49,8 @@ export interface SeedCitation {
   year?: number;
   source?: string;
   isExample?: boolean;
+  datasetIds?: string[];
+  derivedFromDois?: string[];
 }
 
 export interface SeedRelation {
@@ -181,6 +190,7 @@ export const reviewWithDoi: SeedReview = {
     {
       localId: "claim-001",
       text: "Sharp-wave ripple-associated replay during non-REM sleep supports the consolidation of recently acquired spatial memories.",
+      scope: { population: "rodent hippocampus", method: "electrophysiology" },
       section: "Results",
       anchor: "sec-replay-consolidation",
       claimType: "empirical",
@@ -380,6 +390,15 @@ export const repositoryOnlyReview: SeedReview = {
       claimType: "mechanistic",
       qualification: "Causality is inferred; direct causal manipulations remain scarce.",
     },
+    {
+      localId: "claim-003",
+      text: "Waking place-cell sequences are not faithfully reactivated during human sleep replay.",
+      section: "Discussion",
+      anchor: "sec-replay-scope",
+      claimType: "empirical",
+      qualification: "Human evidence is indirect; direct place-cell recordings are scarce.",
+      scope: { population: "human cortex", method: "intracranial EEG" },
+    },
   ],
   citations: [
     {
@@ -392,8 +411,26 @@ export const repositoryOnlyReview: SeedReview = {
       source: "Example Science",
       isExample: true,
     },
+    {
+      // Same work as the replay review's ref-wilson1994 (shared DOI): lets the
+      // synthesis engine detect a cross-review opposing pair over one work.
+      localId: "ref-wilson1994-shared",
+      doi: "10.5555/oratlas.example.wilson1994",
+      title: "Reactivation of hippocampal ensemble memories during sleep (example citation)",
+      authors: ["Wilson MA", "McNaughton BL"],
+      year: 1994,
+      source: "Example Science",
+      isExample: true,
+    },
   ],
   relations: [
+    {
+      claimLocalId: "claim-003",
+      citationLocalId: "ref-wilson1994-shared",
+      relationType: "contradicts",
+      supportDirection: "negative",
+      humanReviewed: false,
+    },
     {
       claimLocalId: "claim-001",
       citationLocalId: "ref-fries2001",

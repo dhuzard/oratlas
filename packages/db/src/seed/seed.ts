@@ -264,6 +264,7 @@ async function seedReview(review: SeedReview, editorId: string) {
         anchor: claim.anchor,
         claimType: claim.claimType,
         qualification: claim.qualification,
+        scopeJson: claim.scope ? JSON.stringify(claim.scope) : null,
       },
     });
     claimIdByLocal.set(claim.localId, row.id);
@@ -279,6 +280,8 @@ async function seedReview(review: SeedReview, editorId: string) {
         reviewVersionId: version.id,
         localCitationId: citation.localId,
         doi: citation.doi,
+        datasetIdsJson: JSON.stringify(citation.datasetIds ?? []),
+        derivedFromJson: JSON.stringify(citation.derivedFromDois ?? []),
         title: citation.title,
         authorsJson: JSON.stringify(citation.authors ?? []),
         year: citation.year,

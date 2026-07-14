@@ -112,7 +112,7 @@ describe("synthesize", () => {
     };
     const genuine = synthesize([supports, opposes], citations);
     expect(genuine.contradictions).toHaveLength(1);
-    expect(genuine.contradictions[0]!.kind).toBe("genuine-contradiction-shared-evidence");
+    expect(genuine.contradictions[0]!.kind).toBe("genuine-contradiction");
     expect(genuine.contradictions[0]!.sharedFamilyCount).toBe(1);
 
     const scopedOpposes: SynthesisStatement = {
@@ -128,7 +128,7 @@ describe("synthesize", () => {
     expect(scoped.contradictions[0]!.differingScopeFields).toEqual(["population"]);
   });
 
-  it("marks contradictions over disjoint families as independent evidence", () => {
+  it("does not pair claims whose evidence never overlaps", () => {
     const twoWorks = [
       citation({ citationId: "s1", doi: "10.1234/support" }),
       citation({ citationId: "o1", doi: "10.1234/oppose" }),
@@ -149,9 +149,8 @@ describe("synthesize", () => {
       text: "Does not hold.",
       evidence: [{ citationId: "o1", relationType: "contradicts" }],
     };
-    const result = synthesize([supports, opposes], twoWorks);
-    expect(result.contradictions[0]!.kind).toBe("contradiction-independent-evidence");
-    expect(result.contradictions[0]!.sharedFamilyCount).toBe(0);
+    // Opposite directions but disjoint evidence families → not a contradiction.
+    expect(synthesize([supports, opposes], twoWorks).contradictions).toHaveLength(0);
   });
 
   it("excludes circular citations from independent counts", () => {
