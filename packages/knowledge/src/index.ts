@@ -27,3 +27,19 @@ export {
   type LinkProposalDraft,
   type LinkProposerOptions,
 } from "./links.js";
+export {
+  synthesize,
+  evidenceFamilies,
+  circularCitations,
+  differingScopeFields,
+  workKey,
+  SCOPE_FIELDS,
+  type SynthesisCitation,
+  type SynthesisStatement,
+  type SynthesisResult,
+  type StatementSynthesis,
+  type IndependenceSummary,
+  type ContradictionEntry,
+  type ClaimScope,
+  type ArchivedReviewDoi,
+} from "./synthesis.js";

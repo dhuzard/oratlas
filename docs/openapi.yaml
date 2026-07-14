@@ -584,3 +584,12 @@ paths:
       responses:
         "200": { description: Resolved }
         "409": { $ref: "#/components/responses/Error" }
+  /api/synthesis/contradictions:
+    get:
+      summary: Cross-review contradiction map with independence-aware classification
+      responses:
+        "200":
+          description: >
+            Contradictions between opposing claims that share an evidence
+            family, each classified as a genuine contradiction or a scope
+            difference, plus review/statement counts.

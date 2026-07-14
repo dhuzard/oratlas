@@ -15,6 +15,18 @@ import { doiSchema } from "./identifiers.js";
  * All content is untrusted input and is strictly validated and size-bounded.
  */
 
+/** Declared comparison scope of a claim (issue #5, scope-aware comparison). */
+export const claimScopeSchema = z
+  .object({
+    population: z.string().max(300).optional(),
+    model: z.string().max(300).optional(),
+    intervention: z.string().max(300).optional(),
+    outcome: z.string().max(300).optional(),
+    method: z.string().max(300).optional(),
+  })
+  .strict();
+export type ClaimScope = z.infer<typeof claimScopeSchema>;
+
 export const claimRecordSchema = z.object({
   id: z.string().min(1).max(120),
   text: z.string().min(1).max(5_000),
@@ -22,6 +34,8 @@ export const claimRecordSchema = z.object({
   anchor: z.string().max(300).optional(),
   claimType: claimTypeSchema.optional(),
   qualification: z.string().max(2_000).optional(),
+  /** Declared scope for independence-aware comparison. */
+  scope: claimScopeSchema.optional(),
 });
 export type ClaimRecord = z.infer<typeof claimRecordSchema>;
 
@@ -38,6 +52,10 @@ export const citationRecordSchema = z.object({
   year: z.number().int().min(1500).max(2100).optional(),
   source: z.string().max(500).optional(),
   url: z.string().url().max(1_000).optional(),
+  /** Declared dataset/cohort accessions the work uses (independence signal). */
+  datasetIds: z.array(z.string().max(200)).max(100).optional(),
+  /** DOIs of works this one is a derivative analysis of (independence signal). */
+  derivedFromDois: z.array(doiSchema).max(100).optional(),
 });
 export type CitationRecord = z.infer<typeof citationRecordSchema>;
 

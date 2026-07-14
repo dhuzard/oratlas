@@ -3,6 +3,7 @@ import Link from "next/link";
 import { type Metadata } from "next";
 import { Badge, Card, DefinitionList, Notice, StatusPill } from "@oratlas/ui";
 import { getClaimPassport } from "@/lib/claim-monitoring";
+import { getClaimIndependence } from "@/lib/synthesis";
 
 export const dynamic = "force-dynamic";
 
@@ -30,6 +31,7 @@ export default async function ClaimPassportPage({
   const passport = await getClaimPassport(versionId, localClaimId);
   if (!passport) notFound();
   const openAlerts = passport.alerts.filter((alert) => alert.status === "open");
+  const independence = await getClaimIndependence(versionId, localClaimId);
 
   return (
     <article>
@@ -105,6 +107,70 @@ export default async function ClaimPassportPage({
           ))
         )}
       </Card>
+
+      {independence ? (
+        <Card title="Independence &amp; contradictions">
+          <p className="muted">
+            Independent evidence is counted in families: cited works sharing a dataset, cohort or
+            derivative lineage collapse into one. Circular citations back into the archive are
+            excluded.
+          </p>
+          <DefinitionList
+            items={[
+              {
+                term: "Supporting works",
+                value: `${independence.summary.supportingWorks} (${independence.summary.independentSupportingFamilies} independent famil${independence.summary.independentSupportingFamilies === 1 ? "y" : "ies"})`,
+              },
+              {
+                term: "Opposing works",
+                value: `${independence.summary.opposingWorks} (${independence.summary.independentOpposingFamilies} independent famil${independence.summary.independentOpposingFamilies === 1 ? "y" : "ies"})`,
+              },
+              {
+                term: "Shared with other claims",
+                value:
+                  independence.summary.sharedWorkKeys.length > 0 ? (
+                    <span className="mono">{independence.summary.sharedWorkKeys.join(", ")}</span>
+                  ) : (
+                    <span className="muted">none</span>
+                  ),
+              },
+              {
+                term: "Circular citations",
+                value:
+                  independence.summary.circularCitationIds.length > 0 ? (
+                    <Badge tone="warning">
+                      {independence.summary.circularCitationIds.length} (excluded from counts)
+                    </Badge>
+                  ) : (
+                    <span className="muted">none</span>
+                  ),
+              },
+            ]}
+          />
+          {independence.contradictions.length > 0 ? (
+            <ul>
+              {independence.contradictions.map((row, index) => {
+                const other = row.a.claimId === passport.claimId ? row.b : row.a;
+                return (
+                  <li key={index}>
+                    {row.kind === "scope-difference"
+                      ? `Scope difference (${row.differingScopeFields.join(", ")})`
+                      : row.kind === "undetermined-scope"
+                        ? "Contradiction over shared evidence (scope undeclared)"
+                        : "Genuine contradiction over shared evidence"}{" "}
+                    with <Link href={other.passportPath}>{other.text.slice(0, 80)}</Link>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <p className="muted">No opposing claims detected in the current corpus.</p>
+          )}
+          <p>
+            <Link href="/synthesis">View the full contradiction map</Link>.
+          </p>
+        </Card>
+      ) : null}
 
       <Card title="Lineage across versions">
         <p className="muted">
