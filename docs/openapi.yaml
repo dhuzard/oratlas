@@ -193,9 +193,19 @@ components:
 paths:
   /api/health:
     get:
-      summary: Health check
+      summary: Liveness check
+      description: Dependency-free liveness probe; always returns quickly when the process is up.
       responses:
         "200": { description: OK }
+  /api/health/ready:
+    get:
+      summary: Readiness check
+      description: >
+        Readiness probe for load balancers. Performs a trivial database round-trip and returns 503
+        when a dependency is unavailable. No error detail is leaked in the body.
+      responses:
+        "200": { description: Ready }
+        "503": { description: Unavailable }
   /api/inspect:
     post:
       summary: Capture an explicitly selected immutable repository source
@@ -551,3 +561,45 @@ paths:
       security: [{ session: [] }]
       responses:
         "200": { description: ORCID stored, verification pending an ORCID sign-in flow }
+  /api/claims/{versionId}/{localClaimId}:
+    get:
+      summary: Stable machine-readable claim passport (identity, evidence selectors, lineage, alerts)
+      parameters:
+        - { name: versionId, in: path, required: true, schema: { type: string } }
+        - { name: localClaimId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Claim passport }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/reviews/{slug}/update-proposals:
+    get:
+      summary: Living-review surface; upstream CI can gate on openCount === 0
+      parameters:
+        - { name: slug, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Open and resolved claim-update proposals for the review }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/monitoring/citation-status:
+    post:
+      summary: Register a cited-work status signal (retracted/corrected/concern/new-evidence)
+      security: [{ session: [] }]
+      responses:
+        "200": { description: Signal recorded; one proposal opened per affected claim }
+        "403": { $ref: "#/components/responses/Error" }
+  /api/monitoring/proposals/{id}/resolve:
+    post:
+      summary: Resolve an open claim-update proposal with an attributable note
+      security: [{ session: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Resolved }
+        "409": { $ref: "#/components/responses/Error" }
+  /api/synthesis/contradictions:
+    get:
+      summary: Cross-review contradiction map with independence-aware classification
+      responses:
+        "200":
+          description: >
+            Contradictions between opposing claims that share an evidence
+            family, each classified as a genuine contradiction or a scope
+            difference, plus review/statement counts.

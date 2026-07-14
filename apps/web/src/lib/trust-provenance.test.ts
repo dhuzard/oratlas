@@ -69,6 +69,7 @@ function loadedRow(): LoadedTrustAssessment {
         anchor: "claim-local",
         claimType: "empirical",
         qualification: null,
+        scopeJson: null,
         createdAt: now,
         reviewVersion: {
           id: "version-1",
@@ -126,6 +127,8 @@ function loadedRow(): LoadedTrustAssessment {
         year: 2025,
         source: "Journal",
         url: null,
+        datasetIdsJson: "[]",
+        derivedFromJson: "[]",
         rawCitationJson: null,
       },
     },

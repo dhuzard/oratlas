@@ -4,8 +4,10 @@ import { Card, Notice, StatusPill, ProvenanceBadge } from "@oratlas/ui";
 import { getCurrentUser, isEditor } from "@/lib/auth";
 import { listAuditEvents, listLifecycleEditorialReviews, listSubmissions } from "@/lib/editorial";
 import { listTrustEditorialQueue, type TrustQueueFilter } from "@/lib/trust-provenance";
+import { listOpenProposals } from "@/lib/claim-monitoring";
 import { getSubmissionWorkflow } from "@/lib/editorial-lifecycle";
 import { DecisionForm } from "./DecisionForm";
+import { MonitoringPanel } from "./MonitoringPanel";
 import { WorkflowPanel } from "./WorkflowPanel";
 import { TrustVerificationForm } from "./TrustVerificationForm";
 import { LifecycleForm } from "./LifecycleForm";
@@ -54,6 +56,7 @@ export default async function EditorialPage({
     ? (requestedTrustFilter as TrustQueueFilter)
     : "needs-review";
   const trustQueue = await listTrustEditorialQueue(trustFilter);
+  const openProposals = await listOpenProposals();
 
   return (
     <div>
@@ -319,6 +322,21 @@ export default async function EditorialPage({
           ))}
         </ul>
       )}
+
+      <h2>Evidence monitoring</h2>
+      <Card>
+        <MonitoringPanel
+          proposals={openProposals.map((proposal) => ({
+            id: proposal.id,
+            citationStatus: proposal.citationStatus,
+            workAlias: proposal.workAlias,
+            rationale: proposal.rationale,
+            claimText: proposal.claimText,
+            passportPath: proposal.passportPath,
+            createdAt: proposal.createdAt,
+          }))}
+        />
+      </Card>
 
       <h2>Audit log</h2>
       <div className="table-scroll">

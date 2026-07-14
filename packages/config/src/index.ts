@@ -17,6 +17,10 @@ const serverEnvSchema = z.object({
   ANTHROPIC_API_KEY: z.string().optional(),
   LLM_MODEL: z.string().default("claude-sonnet-5"),
   NEXT_PUBLIC_BASE_URL: z.string().default("http://localhost:3000"),
+  // Rate limiting (per identity+route). In-process for the POC; a shared store
+  // (Redis) is the production swap. Coerced from strings so env vars parse.
+  RATE_LIMIT_MAX: z.coerce.number().int().positive().default(10),
+  RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(60_000),
 });
 
 export type ServerEnv = z.infer<typeof serverEnvSchema> & {

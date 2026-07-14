@@ -50,6 +50,17 @@ jobs:
       - name: Validate JSON Schemas
         run: pnpm schema:check
 
+      - name: OpenAPI contract drift check
+        run: pnpm openapi:check
+
+      - name: PostgreSQL schema/DDL drift check
+        run: |
+          pnpm --filter @oratlas/db db:pg:schema
+          pnpm --filter @oratlas/db db:pg:ddl
+          git diff --exit-code -- \
+            packages/db/prisma/schema.postgres.prisma \
+            packages/db/prisma/schema.postgres.sql
+
       - name: Lint
         run: pnpm lint
 
@@ -69,6 +80,56 @@ jobs:
         run: pnpm --filter @oratlas/web build
         env:
           SESSION_SECRET: ci-build-secret
+
+  postgres:
+    # Proves the schema is portable: push + seed the generated PostgreSQL schema
+    # against a real Postgres service on every PR ("tested migrations").
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: oratlas
+          POSTGRES_PASSWORD: oratlas
+          POSTGRES_DB: oratlas
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U oratlas"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: "postgresql://oratlas:oratlas@localhost:5432/oratlas"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate PostgreSQL schema
+        run: pnpm --filter @oratlas/db db:pg:schema
+
+      - name: Generate Prisma client (postgres)
+        working-directory: packages/db
+        run: pnpm exec prisma generate --schema prisma/schema.postgres.prisma
+
+      - name: Push schema to PostgreSQL
+        working-directory: packages/db
+        run: pnpm exec prisma db push --schema prisma/schema.postgres.prisma --skip-generate
+
+      - name: Seed PostgreSQL
+        run: pnpm --filter @oratlas/db db:seed
 
   e2e:
     runs-on: ubuntu-latest
@@ -102,7 +163,7 @@ jobs:
       - name: Install Playwright browser
         run: pnpm --filter @oratlas/web exec playwright install --with-deps chromium
 
-      - name: Essential Playwright tests
+      - name: Essential Playwright tests (incl. axe accessibility)
         run: pnpm --filter @oratlas/web test:e2e
         env:
           PLAYWRIGHT_CHROMIUM: ""

@@ -82,10 +82,14 @@ h4 {
 
 a {
   color: var(--accent);
+  /* Underline by default so links are distinguishable from surrounding text
+     without relying on color alone (WCAG 1.4.1). Component classes that read as
+     buttons/nav opt out with `text-decoration: none`. */
+  text-decoration: underline;
   text-underline-offset: 2px;
 }
 a:hover {
-  text-decoration: underline;
+  text-decoration-thickness: 2px;
 }
 
 :focus-visible {

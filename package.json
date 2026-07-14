@@ -22,6 +22,11 @@
     "db:seed": "pnpm --filter @oratlas/db db:seed",
     "db:reset": "pnpm --filter @oratlas/db db:reset",
     "schema:check": "tsx scripts/validate-json-schemas.ts",
+    "openapi:check": "tsx scripts/check-openapi-routes.ts",
+    "backup": "tsx scripts/backup.ts",
+    "restore": "tsx scripts/restore.ts",
+    "db:pg:schema": "pnpm --filter @oratlas/db db:pg:schema",
+    "db:pg:ddl": "pnpm --filter @oratlas/db db:pg:ddl",
     "ingest": "tsx scripts/ingest.ts",
     "validate-doi": "tsx scripts/validate-doi.ts"
   },

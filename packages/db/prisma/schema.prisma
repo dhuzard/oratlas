@@ -373,6 +373,9 @@ model Claim {
   /// contracts CLAIM_TYPES
   claimType       String?
   qualification   String?
+  /// Declared comparison scope (contracts claimScopeSchema JSON), for
+  /// independence-aware synthesis. Absent when the repository declared none.
+  scopeJson       String?
   createdAt       DateTime @default(now())
 
   reviewVersion     ReviewVersion           @relation(fields: [reviewVersionId], references: [id])
@@ -397,6 +400,10 @@ model Citation {
   year            Int?
   source          String?
   url             String?
+  /// Declared dataset/cohort accessions (JSON string array) and derivative
+  /// source DOIs (JSON string array): deterministic independence signals.
+  datasetIdsJson  String  @default("[]")
+  derivedFromJson String  @default("[]")
   rawCitationJson String?
 
   reviewVersion     ReviewVersion           @relation(fields: [reviewVersionId], references: [id])

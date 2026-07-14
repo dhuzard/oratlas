@@ -966,6 +966,7 @@ async function materializeKnowledge(
         anchor: claim.anchor,
         claimType: claim.claimType,
         qualification: claim.qualification,
+        scopeJson: claim.scope ? canonicalJson(claim.scope) : null,
       },
     });
     claimIdByLocal.set(claim.id, row.id);
@@ -984,6 +985,8 @@ async function materializeKnowledge(
         year: citation.year,
         source: citation.source,
         url: citation.url,
+        datasetIdsJson: canonicalJson(citation.datasetIds ?? []),
+        derivedFromJson: canonicalJson(citation.derivedFromDois ?? []),
         rawCitationJson: canonicalJson(citation),
       },
     });

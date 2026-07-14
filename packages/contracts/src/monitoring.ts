@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { httpsUrlSchema } from "./identifiers.js";
 
 /**
  * Evidence monitoring contracts (issue #3): externally observed changes to
@@ -34,7 +35,7 @@ export const citationStatusInputSchema = z
     status: citationStatusSchema,
     /** Where the signal came from (e.g. "crossref", "publisher notice", "manual"). */
     source: z.string().trim().min(1).max(200),
-    evidenceUrl: z.string().trim().url().max(2000).optional(),
+    evidenceUrl: httpsUrlSchema.optional(),
     note: z.string().trim().max(4000).optional(),
   })
   .refine((value) => Boolean(value.doi || value.pmid || value.openAlexId), {

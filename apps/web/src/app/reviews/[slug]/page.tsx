@@ -12,6 +12,7 @@ import { ProvenanceBadge } from "@oratlas/ui";
 import { swhidArchiveUrl, swhidForRevision } from "@oratlas/exports";
 import { serializeJsonForHtml } from "@/lib/json-for-html";
 import { getPreservedArticle } from "@/lib/article-reader";
+import { getClaimAlertCounts } from "@/lib/claim-monitoring";
 import { getProcessHistoryForVersion } from "@/lib/editorial-lifecycle";
 import { ArticleReader } from "./ArticleReader";
 
@@ -105,6 +106,7 @@ export default async function ReviewPage({
     getPreservedArticle(slug, review.version.id),
     getProcessHistoryForVersion(review.version.id),
   ]);
+  const claimAlertCounts = await getClaimAlertCounts(review.version.id);
   const nonce = requestHeaders.get("x-nonce") ?? undefined;
   const commentList = comments ?? {
     reviewSlug: slug,
@@ -430,6 +432,16 @@ export default async function ReviewPage({
                     <div className="btn-row">
                       <span className="mono muted">{claim.localClaimId}</span>
                       {claim.claimType ? <Badge>{claim.claimType}</Badge> : null}
+                      <Link
+                        href={`/claims/${review.version.id}/${encodeURIComponent(claim.localClaimId)}`}
+                      >
+                        passport
+                      </Link>
+                      {(claimAlertCounts.get(claim.localClaimId) ?? 0) > 0 ? (
+                        <Badge tone="warning">
+                          evidence alert ({claimAlertCounts.get(claim.localClaimId)})
+                        </Badge>
+                      ) : null}
                       {claim.section ? <span className="muted">§ {claim.section}</span> : null}
                       {claimComments > 0 ? (
                         <a href="#community-review">

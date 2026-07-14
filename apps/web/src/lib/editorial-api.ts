@@ -9,9 +9,10 @@ import {
   readJsonBody,
 } from "./api";
 import { getServerEnv, requireUser, type SessionUser } from "./auth";
+import { MonitoringError } from "./claim-monitoring";
 import { LifecycleError } from "./editorial-lifecycle";
 import { validateSameOriginJsonRequest } from "./mutation-request";
-import { clientKey, rateLimit } from "./rate-limit";
+import { clientKey, rateLimit, rateLimitDefaults } from "./rate-limit";
 import { SubmissionError } from "./submissions";
 
 /**
@@ -34,7 +35,12 @@ export async function handleLifecyclePost<Schema extends z.ZodTypeAny>(
       );
     }
     const actor = await requireUser();
-    const limit = rateLimit(clientKey(request.headers, `${limitSuffix}:${actor.id}`), 10, 60_000);
+    const { max, windowMs } = rateLimitDefaults();
+    const limit = rateLimit(
+      clientKey(request.headers, `${limitSuffix}:${actor.id}`),
+      max,
+      windowMs,
+    );
     if (!limit.ok) {
       return errorResponse("rate-limited", "Too many editorial actions. Try again shortly.");
     }
@@ -46,6 +52,7 @@ export async function handleLifecyclePost<Schema extends z.ZodTypeAny>(
     return NextResponse.json(result ?? { ok: true });
   } catch (err) {
     if (err instanceof LifecycleError) return errorResponse(err.code, err.message);
+    if (err instanceof MonitoringError) return errorResponse(err.code, err.message);
     if (err instanceof SubmissionError) return errorResponse(err.code, err.message);
     if (err instanceof z.ZodError) return errorResponse("bad-request", "Invalid request payload.");
     if (err instanceof BodyTooLargeError)
