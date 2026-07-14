@@ -17,7 +17,34 @@ jobs:
         with:
           persist-credentials: false
 
+      # The dependency-review API only works when the repository's Dependency
+      # graph is enabled (Settings → Security → Dependency graph). Probe first
+      # so the check reports its real state instead of hard-failing every PR;
+      # once the setting is on, the review below becomes enforcing with no
+      # workflow change.
+      - name: Check dependency graph availability
+        id: graph
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          status=$(curl -sS -o /dev/null -w "%{http_code}" \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/dependency-graph/sbom")
+          echo "HTTP ${status} from the dependency-graph API"
+          if [ "$status" = "200" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Reject vulnerable dependency changes
+        if: steps.graph.outputs.enabled == 'true'
         uses: actions/dependency-review-action@2031cfc080254a8a887f58cffee85186f0e49e48 # v4
         with:
           fail-on-severity: moderate
+
+      - name: Report skipped review
+        if: steps.graph.outputs.enabled != 'true'
+        run: |
+          echo "::warning::Dependency graph is disabled for this repository, so dependency review was skipped. Enable it at https://github.com/${GITHUB_REPOSITORY}/settings/security_analysis to make this check enforcing."
