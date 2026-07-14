@@ -24,26 +24,25 @@ test.describe("Editorial workflow (mock auth)", () => {
     await expect(page).toHaveURL(/\/editorial/);
 
     const pending = page.getByText(/spike-sorting-methods-review/).first();
-    if (await pending.isVisible().catch(() => false)) {
-      // Wait for the client component to hydrate before clicking (the decision
-      // handler is client-side fetch, unlike the server-action sign-in form).
-      await page.waitForLoadState("networkidle");
-      const acceptButton = page.getByRole("button", { name: /^Accept$/ }).first();
-      await expect(acceptButton).toBeEnabled();
-      await page.waitForTimeout(1000);
-      // Assert the durable outcome: the decision POST succeeds and the review
-      // becomes visible in the public archive.
-      const [response] = await Promise.all([
-        page.waitForResponse(
-          (r) => r.url().includes("/api/editorial/decision") && r.request().method() === "POST",
-          { timeout: 30_000 },
-        ),
-        acceptButton.click(),
-      ]);
-      expect(response.ok()).toBeTruthy();
+    await expect(pending).toBeVisible();
 
-      await page.goto("/archive");
-      await expect(page.getByText(/Spike-Sorting Methods/i).first()).toBeVisible();
-    }
+    // Wait for the client component to hydrate before clicking (the decision
+    // handler is client-side fetch, unlike the server-action sign-in form).
+    await page.waitForLoadState("networkidle");
+    const acceptButton = page.getByRole("button", { name: /^Accept$/ }).first();
+    await expect(acceptButton).toBeEnabled();
+    // Assert the durable outcome: the decision POST succeeds and the review
+    // becomes visible in the public archive.
+    const [response] = await Promise.all([
+      page.waitForResponse(
+        (r) => r.url().includes("/api/editorial/decision") && r.request().method() === "POST",
+        { timeout: 30_000 },
+      ),
+      acceptButton.click(),
+    ]);
+    expect(response.ok()).toBeTruthy();
+
+    await page.goto("/archive");
+    await expect(page.getByText(/Spike-Sorting Methods/i).first()).toBeVisible();
   });
 });

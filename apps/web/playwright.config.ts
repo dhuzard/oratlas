@@ -2,6 +2,7 @@ import { defineConfig, devices } from "@playwright/test";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { existsSync } from "node:fs";
+import { resolveE2EDatabaseUrl } from "./src/lib/e2e-database-url";
 
 const here = dirname(fileURLToPath(import.meta.url));
 
@@ -12,9 +13,13 @@ const chromiumPath =
   process.env.PLAYWRIGHT_CHROMIUM || (existsSync(PRESET_CHROMIUM) ? PRESET_CHROMIUM : undefined);
 const PORT = process.env.E2E_PORT ?? "3100";
 // Absolute SQLite path so it resolves regardless of the server's working dir.
-const DB =
-  process.env.E2E_DATABASE_URL ??
-  `file:${join(here, "..", "..", "packages", "db", "prisma", "dev.db")}`;
+const DB = resolveE2EDatabaseUrl(
+  {
+    E2E_DATABASE_URL: process.env.E2E_DATABASE_URL,
+    DATABASE_URL: process.env.DATABASE_URL,
+  },
+  `file:${join(here, "..", "..", "packages", "db", "prisma", "dev.db")}`,
+);
 
 /**
  * Essential end-to-end tests (spec §21, §22). The web server is started against

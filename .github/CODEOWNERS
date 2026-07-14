@@ -1,0 +1,10 @@
+# Default ownership keeps every change inside the maintainer review boundary.
+* @dhuzard
+
+# Security- and publication-sensitive surfaces are called out explicitly.
+/.github/ @dhuzard
+/SECURITY.md @dhuzard
+/apps/web/src/app/api/auth/ @dhuzard
+/apps/web/src/app/api/editorial/ @dhuzard
+/packages/db/prisma/ @dhuzard
+/packages/trust/ @dhuzard
