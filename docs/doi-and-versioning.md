@@ -4,14 +4,15 @@
 
 Open Review Atlas preserves the distinction between four kinds of identifier:
 
-| Identifier        | Identifies                     | Field                           |
-| ----------------- | ------------------------------ | ------------------------------- |
-| GitHub repository | the evolving project           | `Repository.canonicalUrl`       |
-| Commit SHA        | an exact repository state      | `RepositorySnapshot.commitSha`  |
-| Release / tag     | a named version                | `RepositorySnapshot.releaseTag` |
-| Version DOI       | one deposited release          | `ReviewVersion.versionDoi`      |
-| Concept DOI       | the collection of all versions | `ReviewVersion.conceptDoi`      |
-| Zenodo record     | a Zenodo deposit               | `ReviewVersion.zenodoRecordId`  |
+| Identifier        | Identifies                     | Field                              |
+| ----------------- | ------------------------------ | ---------------------------------- |
+| GitHub repository | the evolving project           | `Repository.canonicalUrl`          |
+| Commit SHA        | an exact repository state      | `RepositorySnapshot.commitSha`     |
+| Git tree SHA      | the exact tree read by Atlas   | `RepositorySnapshot.sourceTreeSha` |
+| Release / tag     | the ref selected for a version | `ReviewVersion.releaseTag`         |
+| Version DOI       | one deposited release          | `ReviewVersion.versionDoi`         |
+| Concept DOI       | the collection of all versions | `ReviewVersion.conceptDoi`         |
+| Zenodo record     | a Zenodo deposit               | `ReviewVersion.zenodoRecordId`     |
 
 **Version DOI and concept DOI are never collapsed into one field.**
 
@@ -36,6 +37,27 @@ case-insensitive). Output is the bare `10.xxxx/suffix` form.
 A review is **not rejected merely because metadata differ slightly** — mismatches are recorded as
 warnings.
 
+## Publication consistency
+
+The submission records a deterministic, public cross-check of:
+
+- the explicitly selected source kind, tag/release, commit SHA, and commit tree SHA;
+- repository metadata's commit and release declarations;
+- version-DOI versus concept-DOI classification;
+- the Zenodo record id and deposit version tag;
+- commit- or tag-specific GitHub links in deposit metadata; and
+- a DOI declared in the selected GitHub release body, when present.
+
+Version and concept DOIs are validated independently for resolution, status, and role. Example,
+unresolved, invalid, and unvalidated identifiers never pass. When a version deposit exposes a
+concept DOI, it must match the declared concept DOI. Deposit GitHub URLs are normalized to
+case-insensitive `owner/repository` identity (including `.git` forms) before commit or tag links
+are compared, so a matching SHA from another repository cannot pass.
+
+Failures remain in the immutable report. Editorial acceptance requires a check-scoped, attributed
+override rationale for every failed check; warnings need no override. The accepted version exposes
+the report, overrides, and exact inspection-capture hash.
+
 ## No DOI
 
 When no DOI is found, the review is accepted as **repository-only** (if other requirements pass),
@@ -55,5 +77,7 @@ short-circuits without any network call.
 
 ## The default-branch caveat
 
-GitHub default-branch content may differ from a deposited release. The exact reviewed state is the
-recorded **commit SHA** — always cite that, not "the repository".
+GitHub default-branch content may differ from a deposited release. A repository-only submission is
+valid only when deliberately selected and no version DOI/release is claimed. Atlas resolves the
+selected commit's `commit.tree.sha`, traverses that tree, and reads all files at the selected commit.
+Always cite the recorded commit, not merely "the repository".

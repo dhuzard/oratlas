@@ -2,10 +2,13 @@ import { redirect } from "next/navigation";
 import { type Metadata } from "next";
 import { Card, Notice, StatusPill, ProvenanceBadge } from "@oratlas/ui";
 import { getCurrentUser, isEditor } from "@/lib/auth";
-import { listAuditEvents, listSubmissions } from "@/lib/editorial";
+import { listAuditEvents, listLifecycleEditorialReviews, listSubmissions } from "@/lib/editorial";
 import { listTrustEditorialQueue, type TrustQueueFilter } from "@/lib/trust-provenance";
+import { getSubmissionWorkflow } from "@/lib/editorial-lifecycle";
 import { DecisionForm } from "./DecisionForm";
+import { WorkflowPanel } from "./WorkflowPanel";
 import { TrustVerificationForm } from "./TrustVerificationForm";
+import { LifecycleForm } from "./LifecycleForm";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Editorial dashboard" };
@@ -31,8 +34,12 @@ export default async function EditorialPage({
     "automated-checks-failed",
     "changes-requested",
   ]);
+  const workflows = new Map(
+    await Promise.all(pending.map(async (s) => [s.id, await getSubmissionWorkflow(s.id)] as const)),
+  );
   const decided = await listSubmissions(["accepted", "rejected"]);
   const audit = await listAuditEvents(30);
+  const lifecycleReviews = await listLifecycleEditorialReviews();
   const params = (await searchParams) ?? {};
   const requestedTrustFilter = Array.isArray(params.trustFilter)
     ? params.trustFilter[0]
@@ -73,8 +80,13 @@ export default async function EditorialPage({
               <span className="muted">by {s.submitterLogin}</span>
             </div>
             <p className="mono muted" style={{ fontSize: "0.85rem" }}>
-              commit {s.commitSha ?? "—"}
+              {s.sourceKind ?? "source"} commit {s.commitSha ?? "—"} · tree {s.treeSha ?? "—"}
             </p>
+            {s.capturePayloadHash ? (
+              <p className="mono muted" style={{ fontSize: "0.8rem" }}>
+                exact capture SHA-256 {s.capturePayloadHash}
+              </p>
+            ) : null}
 
             {s.validation ? (
               <div>
@@ -105,6 +117,28 @@ export default async function EditorialPage({
                       ))}
                     </ul>
                   </details>
+                ) : null}
+                {s.validation.publicationConsistency ? (
+                  <Notice
+                    tone={
+                      s.validation.publicationConsistency.status === "fail"
+                        ? "error"
+                        : s.validation.publicationConsistency.status === "warn"
+                          ? "warning"
+                          : "info"
+                    }
+                    title={`Release / DOI / commit consistency: ${s.validation.publicationConsistency.status}`}
+                  >
+                    <ul>
+                      {s.validation.publicationConsistency.checks.map((check) => (
+                        <li key={check.id}>
+                          <span className="mono">{check.id}</span>: {check.outcome} —{" "}
+                          {check.description}
+                          {check.details ? ` (${check.details})` : ""}
+                        </li>
+                      ))}
+                    </ul>
+                  </Notice>
                 ) : null}
               </div>
             ) : null}
@@ -138,10 +172,49 @@ export default async function EditorialPage({
               </div>
             </details>
 
-            <DecisionForm submissionId={s.id} />
+            <WorkflowPanel
+              submissionId={s.id}
+              viewerId={user.id}
+              assignments={workflows.get(s.id)?.assignments ?? []}
+              rounds={workflows.get(s.id)?.rounds ?? []}
+            />
+
+            {workflows.get(s.id)?.rounds.some((round) => round.status === "open") ? (
+              <p className="muted">
+                A formal review round is open; decisions for this submission are issued from the
+                round page with a decision letter.
+              </p>
+            ) : (
+              <DecisionForm
+                submissionId={s.id}
+                overrideCheckIds={s.validation?.publicationConsistency?.overridableCheckIds ?? []}
+              />
+            )}
           </Card>
         ))
       )}
+
+      <h2>Corrections, withdrawals and tombstones</h2>
+      <p className="muted">
+        Lifecycle actions are public, append-only and version-bound. Tombstones immediately withhold
+        article content, metadata, claims, citations, comments, assets, exports and
+        machine-discussion evidence at every public boundary.
+      </p>
+      {lifecycleReviews.map((review) => (
+        <Card as="article" key={review.slug}>
+          <div className="btn-row">
+            <a href={`/reviews/${review.slug}`} className="mono">
+              {review.slug}
+            </a>
+            <span className="muted">lifecycle revision {review.lifecycleRevision}</span>
+          </div>
+          <LifecycleForm
+            reviewSlug={review.slug}
+            revision={review.lifecycleRevision}
+            versions={review.versions}
+          />
+        </Card>
+      ))}
 
       <h2>TRUST provenance queue ({trustQueue.length})</h2>
       <p className="muted">

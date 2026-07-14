@@ -40,3 +40,32 @@ surfaced in the editorial dashboard.
 The platform records the submitter separately from the repository's authors and maintainers, so
 editors can see when a submitter is also an author. TRUST's `conflictDependency` criterion is the
 place to record conflict/dependency at the evidence level.
+
+## Formal review lifecycle (issue #6)
+
+Archive acceptance is not peer review. The formal lifecycle adds, on top of the
+structural checks:
+
+- **Editor assignment with conflicts of interest.** An editor can never be assigned to
+  their own submission; a declared conflict records the assignment as an immediate
+  recusal, and active editors can recuse themselves later with an attributable statement.
+- **Numbered review rounds** (`ReviewRound`), opened only by actively assigned editors on
+  pending submissions and closed exactly once by a decision letter.
+- **Immutable review reports** (`FormalReviewReport`): one per reviewer per round,
+  structured (contracts `formalReviewReportBodySchema`), canonical-JSON hashed, with a
+  reviewer-ORCID snapshot whose verification state is explicit. Neither the submitter nor
+  an assigned editor of the submission may review it.
+- **Author responses and decision letters**, both append-only and hashed. A decision
+  letter applies the archive decision idempotently: acceptance runs the atomic
+  publication machinery; request-changes reopens the path to resubmission.
+- **Resubmission lineage.** A changes-requested submission is superseded by its revision
+  (`previousSubmissionId`); active editor assignments carry over and editors are
+  notified. The public process history spans the whole lineage.
+- **Open process history.** `GET /api/editorial/process?submissionId=…` and the
+  per-version `export/docmap` (DocMaps-compatible) expose the full attributable history;
+  version pages render it under "Editorial process history".
+- **Notifications** are in-app rows scoped to the recipient; no email leaves the POC.
+
+ORCID iDs attach via `POST /api/profile/orcid` and are always stored unverified; only a
+future ORCID sign-in flow can verify them, and only verified iDs are exported as
+identifiers.

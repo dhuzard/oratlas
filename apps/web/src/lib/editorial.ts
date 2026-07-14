@@ -21,6 +21,9 @@ export interface EditorialSubmission {
   submitterLogin: string;
   repository: { canonicalUrl: string; owner: string; name: string };
   commitSha?: string;
+  treeSha?: string;
+  sourceKind?: string;
+  capturePayloadHash?: string;
   validation?: SubmissionValidationReport;
   metadataDiff: MetadataDiffRow[];
   editorialNote?: string;
@@ -41,7 +44,7 @@ export async function listSubmissions(statuses?: string[]): Promise<EditorialSub
   const submissions = await prisma.submission.findMany({
     where: statuses ? { status: { in: statuses } } : undefined,
     orderBy: { createdAt: "desc" },
-    include: { submitter: true, repository: true, snapshot: true },
+    include: { submitter: true, repository: true, snapshot: true, inspectionCapture: true },
     take: 100,
   });
 
@@ -81,6 +84,9 @@ export async function listSubmissions(statuses?: string[]): Promise<EditorialSub
         name: s.repository.name,
       },
       commitSha: s.snapshot?.commitSha,
+      treeSha: s.snapshot?.sourceTreeSha ?? undefined,
+      sourceKind: s.sourceKind ?? s.snapshot?.sourceKind ?? undefined,
+      capturePayloadHash: s.inspectionCapture?.payloadHash,
       validation,
       metadataDiff,
       editorialNote: s.editorialNote ?? undefined,
@@ -110,5 +116,51 @@ export async function listAuditEvents(limit = 50): Promise<AuditRow[]> {
     actorLogin: e.actor?.githubLogin,
     createdAt: e.createdAt.toISOString(),
     details: parseJsonColumn<unknown>(e.detailsJson, {}),
+  }));
+}
+
+export interface LifecycleEditorialReview {
+  slug: string;
+  lifecycleRevision: number;
+  versions: Array<{
+    id: string;
+    label: string;
+    publicState: string;
+    commitSha: string;
+    isCurrent: boolean;
+  }>;
+}
+
+export async function listLifecycleEditorialReviews(): Promise<LifecycleEditorialReview[]> {
+  const reviews = await prisma.review.findMany({
+    where: { status: "published" },
+    orderBy: { updatedAt: "desc" },
+    take: 100,
+    select: {
+      slug: true,
+      lifecycleRevision: true,
+      versions: {
+        orderBy: { createdAt: "desc" },
+        select: {
+          id: true,
+          semanticVersion: true,
+          releaseTag: true,
+          title: true,
+          publicState: true,
+          snapshot: { select: { commitSha: true } },
+        },
+      },
+    },
+  });
+  return reviews.map((review) => ({
+    slug: review.slug,
+    lifecycleRevision: review.lifecycleRevision,
+    versions: review.versions.map((version, index) => ({
+      id: version.id,
+      label: version.semanticVersion ?? version.releaseTag ?? version.title,
+      publicState: version.publicState,
+      commitSha: version.snapshot.commitSha,
+      isCurrent: index === 0,
+    })),
   }));
 }

@@ -19,7 +19,8 @@ export default async function DiscussPage({
         A grounded assistant that answers questions using only accepted review versions — their
         claims, citations, evidence relations, and TRUST assessments. It cites the reviews and
         claims it uses, distinguishes agreement from disagreement from missing evidence, and never
-        implies scientific consensus from the number of reviews alone.
+        implies scientific consensus from the number of reviews alone. Structural grounding
+        preserves provenance; it does not establish scientific correctness.
         {env.llmEnabled
           ? " An LLM provider is configured; answers are generated and then validated so every referenced identifier exists in the evidence."
           : " No LLM provider is configured, so responses are deterministic structured evidence summaries rather than generated prose."}

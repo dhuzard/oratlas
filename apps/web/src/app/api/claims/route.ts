@@ -28,10 +28,13 @@ export async function GET(request: Request) {
       total: result.total,
       items: result.items.map((c) => ({
         claimId: c.claimId,
+        localClaimId: c.localClaimId,
         reviewSlug: c.reviewSlug,
+        reviewVersionId: c.reviewVersionId,
         reviewTitle: c.reviewTitle,
         text: c.text,
         claimType: c.claimType,
+        anchor: c.anchor,
         relations: c.relations,
       })),
     });

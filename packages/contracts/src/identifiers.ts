@@ -1,9 +1,19 @@
 import { z } from "zod";
 
-/** Full 40-character git commit SHA. */
-export const commitShaSchema = z.string().regex(/^[0-9a-f]{40}$/, {
-  message: "Must be a full 40-character lowercase git commit SHA.",
-});
+/** Full lowercase Git object id: SHA-1 (40 hex) or SHA-256 (64 hex). */
+export const commitShaSchema = z
+  .string()
+  .regex(/^(?:[0-9a-f]{40}|[0-9a-f]{64})$/, {
+    message: "Must be a full 40- or 64-character lowercase Git object id.",
+  })
+  .refine((value) => !/^0+$/.test(value), {
+    message: "The all-zero Git object id is not an exact commit.",
+  });
+
+/** Public paths fail closed unless provenance names one exact, non-zero commit. */
+export function isExactCommitSha(value: string | null | undefined): value is string {
+  return commitShaSchema.safeParse(value).success;
+}
 
 /**
  * DOI syntax (not resolution). Accepts the bare `10.xxxx/suffix` form only —

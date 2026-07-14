@@ -1,11 +1,17 @@
 import { describe, expect, it } from "vitest";
 import { InProcessSearchProvider } from "./search.js";
-import { buildEvidencePacket, hashEvidencePacket } from "./packet.js";
-import { discussDeterministic, discussWithLlm, type LlmProvider } from "./discuss.js";
+import { createHash } from "node:crypto";
+import { buildEvidencePacket, hashEvidencePacket, prepareEvidencePacket } from "./packet.js";
+import {
+  buildDiscussionPrompt,
+  discussDeterministic,
+  discussWithLlm,
+  type LlmProvider,
+} from "./discuss.js";
 import { proposeCrossReviewLinks } from "./links.js";
 import { extractJsonObject } from "./providers/anthropic.js";
 import { sampleIndex } from "./fixtures.js";
-import { type EvidencePacket, type GroundedAnswer } from "@oratlas/contracts";
+import { type GroundedAnswer } from "@oratlas/contracts";
 import { tokenize } from "./text.js";
 
 const now = () => new Date("2026-07-01T00:00:00Z");
@@ -112,7 +118,7 @@ describe("InProcessSearchProvider", () => {
       page: 1,
       pageSize: 20,
     } as never);
-    expect(contradicting.items.map((c) => c.claimId)).toEqual(["c-replay-2"]);
+    expect(contradicting.items.map((c) => c.localClaimId)).toEqual(["c-replay-2"]);
   });
 });
 
@@ -147,19 +153,41 @@ describe("buildEvidencePacket", () => {
   it("builds a packet with claims, relations, TRUST status and citations", () => {
     const packet = buildEvidencePacket(sampleIndex, "memory consolidation", { now });
     expect(packet.claims.length).toBeGreaterThan(0);
-    const ids = packet.claims.map((c) => c.claimId);
+    expect(packet.schemaVersion).toBe("1.1.0");
+    const ids = packet.claims.map((c) => c.localClaimId);
     expect(ids).toContain("c-replay-1");
     // Only cited citations are included.
-    expect(packet.citations.map((c) => c.citationId)).toContain("ref-shared");
+    expect(packet.citations.map((c) => c.localCitationId)).toContain("ref-shared");
     // TRUST review status is carried.
-    const c1 = packet.claims.find((c) => c.claimId === "c-replay-1");
+    const c1 = packet.claims.find((c) => c.localClaimId === "c-replay-1");
     expect(c1?.relations[0]?.trust?.reviewStatus).toBe("human-reviewed");
+    expect(c1?.relations[0]?.trust?.verificationState).toBe("platform-verified");
+    expect(c1?.commitSha).toBe("a".repeat(40));
+    expect(c1?.anchor).toMatch(/^oratlas-claim-v1-/);
+    expect(c1?.sourceAnchor).toBe("sec-replay");
   });
 
   it("produces a stable hash independent of claim ordering", () => {
     const p1 = buildEvidencePacket(sampleIndex, "memory", { now });
     const p2 = buildEvidencePacket(sampleIndex, "memory", { now });
     expect(hashEvidencePacket(p1)).toBe(hashEvidencePacket(p2));
+  });
+
+  it("prepares one canonical byte string whose hash matches exactly", () => {
+    const packet = buildEvidencePacket(sampleIndex, "memory", { now });
+    const prepared = prepareEvidencePacket(packet);
+    expect(prepared.json).toBe(prepareEvidencePacket(packet).json);
+    expect(prepared.sha256).toBe(createHash("sha256").update(prepared.json, "utf8").digest("hex"));
+    expect(hashEvidencePacket(prepared.json)).toBe(prepared.sha256);
+  });
+});
+
+describe("buildDiscussionPrompt", () => {
+  it("allows only hash-valid platform verification to be described as Atlas-reviewed", () => {
+    const prompt = buildDiscussionPrompt("{}").system;
+    expect(prompt).toContain("Only platform-verified may be described as Atlas-reviewed");
+    expect(prompt).toContain("stale-verification");
+    expect(prompt).toContain("legacy-unknown");
   });
 });
 
@@ -182,14 +210,14 @@ describe("discussDeterministic", () => {
   });
 });
 
-function fakeProvider(output: (packet: EvidencePacket) => string): LlmProvider {
+function fakeProvider(output: (packetJson: string) => string): LlmProvider {
   return {
     name: "fake",
     model: "fake-model",
     modelVersion: "1",
     promptVersion: "test-1.0",
-    async complete(packet) {
-      return output(packet);
+    async complete(packetJson) {
+      return output(packetJson);
     },
   };
 }
@@ -198,7 +226,7 @@ describe("discussWithLlm — grounding enforcement", () => {
   it("accepts a well-grounded answer", async () => {
     const packet = buildEvidencePacket(sampleIndex, "memory consolidation", { now });
     const claimId = packet.claims[0]!.claimId;
-    const citationId = packet.citations[0]!.citationId;
+    const citationId = packet.claims[0]!.relations[0]!.citationId;
     const answer: GroundedAnswer = {
       answer: "Grounded.",
       scope: "One review.",
@@ -208,15 +236,21 @@ describe("discussWithLlm — grounding enforcement", () => {
       disagreements: [],
       uncertainties: [],
       missingEvidence: [],
-      grounding: [{ statement: "s", claimIds: [claimId], citationIds: [citationId] }],
+      grounding: [{ statement: "s", evidenceEdges: [{ claimId, citationId }] }],
     };
+    let received = "";
+    const prepared = prepareEvidencePacket(packet);
     const result = await discussWithLlm(
-      fakeProvider(() => JSON.stringify(answer)),
-      packet,
+      fakeProvider((packetJson) => {
+        received = packetJson;
+        return JSON.stringify(answer);
+      }),
+      prepared,
     );
     expect(result.answer).toBeDefined();
     expect(result.grounding?.ok).toBe(true);
     expect(result.attempts).toBe(1);
+    expect(received).toBe(prepared.json);
   });
 
   it("rejects and retries an answer citing an unknown claim id", async () => {
@@ -230,15 +264,25 @@ describe("discussWithLlm — grounding enforcement", () => {
       disagreements: [],
       uncertainties: [],
       missingEvidence: [],
-      grounding: [{ statement: "s", claimIds: ["fabricated-claim-999"], citationIds: [] }],
+      grounding: [
+        {
+          statement: "s",
+          evidenceEdges: [
+            {
+              claimId: "fabricated-claim-999",
+              citationId: packet.citations[0]!.citationId,
+            },
+          ],
+        },
+      ],
     };
     const result = await discussWithLlm(
       fakeProvider(() => JSON.stringify(bad)),
-      packet,
+      prepareEvidencePacket(packet),
       2,
     );
     expect(result.answer).toBeUndefined();
-    expect(result.error).toContain("unknown identifiers");
+    expect(result.error).toContain("claims=[fabricated-claim-999]");
     expect(result.attempts).toBe(2);
   });
 
@@ -246,7 +290,7 @@ describe("discussWithLlm — grounding enforcement", () => {
     const packet = buildEvidencePacket(sampleIndex, "memory", { now });
     const result = await discussWithLlm(
       fakeProvider(() => "I cannot answer that."),
-      packet,
+      prepareEvidencePacket(packet),
       1,
     );
     expect(result.answer).toBeUndefined();
@@ -256,14 +300,52 @@ describe("discussWithLlm — grounding enforcement", () => {
 
 describe("proposeCrossReviewLinks", () => {
   it("proposes a shared-citation link across reviews and never within one", () => {
-    const proposals = proposeCrossReviewLinks(sampleIndex.claims);
+    const proposals = proposeCrossReviewLinks(sampleIndex.claims, sampleIndex.citations);
     expect(proposals.length).toBeGreaterThan(0);
     for (const p of proposals) {
       expect(p.sourceReviewSlug).not.toBe(p.targetReviewSlug);
     }
     const shared = proposals.find((p) => p.proposedRelation === "shared-citations");
     expect(shared).toBeDefined();
-    expect(shared?.features.sharedCitations).toContain("ref-shared");
+    expect(shared?.features.sharedCitations).toContain("doi:10.5555/oratlas.example.shared");
+  });
+
+  it("does not match equal repository-local ids without a canonical work alias", () => {
+    const withoutAliases = sampleIndex.citations.map((citation) => ({
+      ...citation,
+      canonicalWorkAliases: [],
+      workId: citation.citationId,
+    }));
+    const proposals = proposeCrossReviewLinks(sampleIndex.claims, withoutAliases, {
+      similarityThreshold: 1,
+    });
+    expect(proposals.some((proposal) => proposal.proposedRelation === "shared-citations")).toBe(
+      false,
+    );
+  });
+
+  it("does not merge a scholarly-work alias cluster with conflicting assertions", () => {
+    const conflicted = sampleIndex.citations.map((citation) => {
+      if (citation.reviewVersionId === "rv1" && citation.localCitationId === "ref-shared") {
+        return {
+          ...citation,
+          canonicalWorkAliases: ["pmid:7", "doi:10.1000/a"] as typeof citation.canonicalWorkAliases,
+        };
+      }
+      if (citation.reviewVersionId === "rv2" && citation.localCitationId === "ref-shared") {
+        return {
+          ...citation,
+          canonicalWorkAliases: ["pmid:7", "doi:10.1000/b"] as typeof citation.canonicalWorkAliases,
+        };
+      }
+      return citation;
+    });
+    const proposals = proposeCrossReviewLinks(sampleIndex.claims, conflicted, {
+      similarityThreshold: 1,
+    });
+    expect(proposals.some((proposal) => proposal.proposedRelation === "shared-citations")).toBe(
+      false,
+    );
   });
 });
 

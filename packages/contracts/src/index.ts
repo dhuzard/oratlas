@@ -1,5 +1,6 @@
 export * from "./enums.js";
 export * from "./identifiers.js";
+export * from "./evidence-identity.js";
 export * from "./paths.js";
 export * from "./manifest.js";
 export * from "./metadata.js";
@@ -10,3 +11,8 @@ export * from "./discussion.js";
 export * from "./comments.js";
 export * from "./search.js";
 export * from "./api.js";
+export * from "./canonical-json.js";
+export * from "./preservation.js";
+export * from "./editorial.js";
+export * from "./monitoring.js";
+export * from "./lifecycle.js";

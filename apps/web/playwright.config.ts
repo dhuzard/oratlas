@@ -56,6 +56,9 @@ export default defineConfig({
       DATABASE_URL: DB,
       SESSION_SECRET: "e2e-session-secret",
       AUTH_MOCK: "1",
+      // Same-origin mutation checks compare the Origin header against this
+      // configured origin, so it must match the port the e2e server uses.
+      NEXT_PUBLIC_BASE_URL: `http://localhost:${PORT}`,
     },
   },
 });

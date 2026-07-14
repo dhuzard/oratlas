@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Open Review Atlas API
-  version: 0.1.0
+  version: 0.2.0
   description: >
     External data contracts for the Open Review Atlas POC. Application mutations
     are exposed as conventional JSON API routes. All error responses use the
@@ -52,9 +52,20 @@ components:
               items: { type: string }
     InspectRequest:
       type: object
-      required: [url]
+      required: [url, source]
       properties:
         url: { type: string, description: Public GitHub repository URL }
+        source:
+          oneOf:
+            - type: object
+              required: [kind]
+              properties:
+                kind: { const: default-branch }
+            - type: object
+              required: [kind, tag]
+              properties:
+                kind: { type: string, enum: [tag, release] }
+                tag: { type: string, minLength: 1, maxLength: 120 }
     InspectResponse:
       type: object
       properties:
@@ -65,6 +76,20 @@ components:
             name: { type: string }
             canonicalUrl: { type: string }
         inspectionStatus: { type: string, enum: [succeeded, partial, failed] }
+        selectedSource:
+          type: object
+          required: [kind, commitSha, treeSha]
+          properties:
+            kind: { type: string, enum: [default-branch, tag, release] }
+            commitSha: { type: string, pattern: "^(?!0{40}$|0{64}$)(?:[0-9a-f]{40}|[0-9a-f]{64})$" }
+            treeSha: { type: string, pattern: "^(?!0{40}$|0{64}$)(?:[0-9a-f]{40}|[0-9a-f]{64})$" }
+            branch: { type: string }
+            releaseTag: { type: string }
+        captureToken:
+          type: string
+          description: Opaque, user-bound, single-use capability. Expires in 30 minutes.
+        captureExpiresAt: { type: string, format: date-time }
+        capturePayloadHash: { type: string, pattern: "^[0-9a-f]{64}$" }
         extractedMetadata: { type: object }
         effectiveMetadata: { type: object }
         compatibility: { type: object }
@@ -87,9 +112,13 @@ components:
         expectedKind: { type: string, enum: [version, concept] }
     SubmissionCreateRequest:
       type: object
-      required: [url]
+      required: [inspectionToken]
       properties:
-        url: { type: string }
+        inspectionToken:
+          type: string
+          minLength: 40
+          maxLength: 100
+          description: Capability returned by this user's exact /api/inspect request.
         editedMetadata:
           type: object
           description: "{ edits: Record<field, { value, meta }> }"
@@ -105,6 +134,16 @@ components:
         submissionId: { type: string }
         decision: { type: string, enum: [accept, reject, request-changes] }
         note: { type: string }
+        overrides:
+          type: array
+          maxItems: 30
+          description: One explicit rationale for each failed publication-consistency check.
+          items:
+            type: object
+            required: [checkId, rationale]
+            properties:
+              checkId: { type: string, minLength: 1, maxLength: 120 }
+              rationale: { type: string, minLength: 20, maxLength: 4000 }
     TrustVerificationRequest:
       type: object
       required: [assessmentId, status, rationale, expectedRevision, expectedAssessmentHash]
@@ -116,6 +155,18 @@ components:
         expectedAssessmentHash:
           type: string
           pattern: "^[a-f0-9]{64}$"
+    ReviewLifecycleRequest:
+      type: object
+      required: [reviewSlug, reviewVersionId, kind, reason, expectedRevision]
+      properties:
+        reviewSlug: { type: string, minLength: 1, maxLength: 200 }
+        reviewVersionId: { type: string, minLength: 1, maxLength: 200 }
+        kind: { type: string, enum: [correction, withdrawal, tombstone] }
+        reason: { type: string, minLength: 20, maxLength: 5000 }
+        expectedRevision: { type: integer, minimum: 0 }
+        supersedesVersionId:
+          type: string
+          description: Required only for correction; must belong to the same review.
     DiscussRequest:
       type: object
       required: [question]
@@ -147,7 +198,12 @@ paths:
         "200": { description: OK }
   /api/inspect:
     post:
-      summary: Inspect a repository and return extracted metadata, compatibility, and validation
+      summary: Capture an explicitly selected immutable repository source
+      description: >
+        Sign-in, exact same-origin JSON, and an explicit default-branch/tag/release selection are
+        required. Returns an expiring, single-use capability bound to the user and exact canonical
+        capture bytes. A release is classified through GitHub's exact release-by-tag endpoint.
+      security: [{ session: [] }]
       requestBody:
         required: true
         content:
@@ -160,6 +216,9 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/InspectResponse" }
         "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "415": { $ref: "#/components/responses/Error" }
         "429": { $ref: "#/components/responses/Error" }
   /api/validate-doi:
     post:
@@ -174,7 +233,10 @@ paths:
         "400": { $ref: "#/components/responses/Error" }
   /api/submissions:
     post:
-      summary: Finalize a submission (creates immutable snapshot + submission)
+      summary: Consume one exact inspection capture and finalize a submission
+      description: >
+        Does not re-inspect GitHub. The capability, repository/snapshot, canonical submission,
+        capture consumption and audit event are committed atomically.
       security: [{ session: [] }]
       requestBody:
         required: true
@@ -188,9 +250,16 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/SubmissionCreateResponse" }
         "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "415": { $ref: "#/components/responses/Error" }
   /api/editorial/decision:
     post:
-      summary: Editorial decision (editor role required)
+      summary: Transactional, idempotent editorial decision (editor role required)
+      description: >
+        Acceptance uses a compare-and-set terminal transition. Review/version/evidence rows,
+        check-scoped exceptions and idempotent audit events commit together. Every failed
+        consistency check requires its own override rationale.
       security: [{ session: [] }]
       requestBody:
         required: true
@@ -200,6 +269,8 @@ paths:
       responses:
         "200": { description: Decision recorded }
         "403": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "415": { $ref: "#/components/responses/Error" }
   /api/editorial/trust:
     post:
       summary: Record a hash-bound Atlas structural review of an imported TRUST assessment
@@ -216,6 +287,26 @@ paths:
             schema: { $ref: "#/components/schemas/TrustVerificationRequest" }
       responses:
         "200": { description: Verification marker recorded }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "415": { $ref: "#/components/responses/Error" }
+  /api/editorial/lifecycle:
+    post:
+      summary: Append a version-bound correction, withdrawal or tombstone
+      description: >
+        Editor role, exact same-origin application/json, and expected review lifecycle revision
+        are required. Target and superseded versions must belong to the same review and carry
+        exact non-zero commits. State guard, event and audit commit atomically.
+      security: [{ session: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ReviewLifecycleRequest" }
+      responses:
+        "201": { description: Append-only lifecycle event recorded }
         "400": { $ref: "#/components/responses/Error" }
         "401": { $ref: "#/components/responses/Error" }
         "403": { $ref: "#/components/responses/Error" }
@@ -254,6 +345,36 @@ paths:
         - { name: relationType, in: query, schema: { type: string } }
       responses:
         "200": { description: Claim results }
+  /api/reviews/{slug}/versions/{versionId}:
+    get:
+      summary: Retrieve one immutable review version and its exact snapshot/evidence
+      parameters:
+        - { name: slug, in: path, required: true, schema: { type: string } }
+        - { name: versionId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Version-scoped review detail }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/reviews/{slug}/diff:
+    get:
+      summary: Deterministic canonical diff of two readable archived versions
+      parameters:
+        - { name: slug, in: path, required: true, schema: { type: string } }
+        - { name: from, in: query, required: true, schema: { type: string } }
+        - { name: to, in: query, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Checksummed changes across assets, metadata, claims and citations
+        "400": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/reviews/{slug}/versions/{versionId}/comments:
+    get:
+      summary: List read-only comments bound to one immutable review version
+      parameters:
+        - { name: slug, in: path, required: true, schema: { type: string } }
+        - { name: versionId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Version-scoped threaded comment list }
+        "404": { $ref: "#/components/responses/Error" }
   /api/discuss:
     post:
       summary: Grounded cross-review discussion (deterministic or LLM mode)
@@ -301,3 +422,132 @@ paths:
         "401": { $ref: "#/components/responses/Error" }
         "403": { $ref: "#/components/responses/Error" }
         "404": { $ref: "#/components/responses/Error" }
+  /api/reviews/{slug}/versions/{versionId}/export/{format}:
+    get:
+      summary: Standards export of one immutable version (archive-only, no upstream access)
+      parameters:
+        - { name: slug, in: path, required: true, schema: { type: string } }
+        - { name: versionId, in: path, required: true, schema: { type: string } }
+        - name: format
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [csl, bibtex, ris, jats, ro-crate, prov, package, docmap]
+      responses:
+        "200":
+          description: >
+            Export document. csl → CSL-JSON, bibtex → BibTeX, ris → RIS,
+            jats → JATS XML front matter, ro-crate → RO-Crate 1.1 JSON-LD,
+            prov → W3C PROV JSON-LD, package → preservation manifest with
+            file checksums, SWHIDs and integrity hashes. Example identifiers
+            (10.5555/…) are withheld from machine-actionable fields.
+        "404": { $ref: "#/components/responses/Error" }
+  /api/reviews/{slug}/versions/{versionId}/files/{path}:
+    get:
+      summary: Preserved raw file content from the durable accepted database snapshot
+      parameters:
+        - { name: slug, in: path, required: true, schema: { type: string } }
+        - { name: versionId, in: path, required: true, schema: { type: string } }
+        - { name: path, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: >
+            Plain-text attachment (nosniff). Repository content is untrusted
+            and is never served as renderable HTML.
+        "404": { $ref: "#/components/responses/Error" }
+  /api/feeds/atom:
+    get:
+      summary: Atom feed of recently accepted review versions
+      responses:
+        "200": { description: Atom 1.0 document }
+  /api/feeds/lifecycle:
+    get:
+      summary: Machine-readable correction, withdrawal and tombstone ledger
+      responses:
+        "200":
+          description: >
+            Public event metadata including review/version ids, exact commit, reason, actor,
+            timestamp, CAS revision and optional superseded-version link. No tombstoned
+            scholarly payload is included.
+  /api/editorial/assignments:
+    post:
+      summary: Assign an editor to a submission with an explicit conflict-of-interest declaration
+      security: [{ session: [] }]
+      responses:
+        "200": { description: Assignment created (declared conflicts record a recusal) }
+        "403": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+  /api/editorial/assignments/{id}/recuse:
+    post:
+      summary: Recuse an active assignment (the assigned editor or an admin)
+      security: [{ session: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Recused }
+        "403": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+  /api/editorial/rounds:
+    post:
+      summary: Open the next formal review round (actively assigned editor only)
+      security: [{ session: [] }]
+      responses:
+        "200": { description: Round opened }
+        "403": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+  /api/editorial/rounds/{id}/reports:
+    post:
+      summary: Submit an immutable, attributable formal review report (one per reviewer per round)
+      security: [{ session: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Report recorded with SHA-256 body hash }
+        "409": { $ref: "#/components/responses/Error" }
+  /api/editorial/rounds/{id}/responses:
+    post:
+      summary: Submit an author response within an open round (submitter only)
+      security: [{ session: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Response recorded }
+        "403": { $ref: "#/components/responses/Error" }
+  /api/editorial/rounds/{id}/decision:
+    post:
+      summary: Close a round with a decision letter and apply the archive decision
+      security: [{ session: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Decision issued; acceptance publishes atomically }
+        "403": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+  /api/editorial/process:
+    get:
+      summary: Public immutable editorial process history across resubmission lineage
+      parameters:
+        - { name: submissionId, in: query, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Rounds, reports, responses and decision letters }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/notifications:
+    get:
+      summary: List the signed-in user's editorial notifications
+      security: [{ session: [] }]
+      responses:
+        "200": { description: Notification list }
+        "401": { $ref: "#/components/responses/Error" }
+    post:
+      summary: Mark one notification as read
+      security: [{ session: [] }]
+      responses:
+        "200": { description: Marked read }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/profile/orcid:
+    post:
+      summary: Attach or clear the signed-in user's ORCID iD (stored unverified)
+      security: [{ session: [] }]
+      responses:
+        "200": { description: ORCID stored, verification pending an ORCID sign-in flow }

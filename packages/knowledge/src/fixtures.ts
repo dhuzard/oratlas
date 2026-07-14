@@ -1,4 +1,18 @@
+import {
+  claimDomAnchor,
+  globalCitationId,
+  globalClaimId,
+  type CanonicalWorkAlias,
+} from "@oratlas/contracts";
 import { type KnowledgeIndexData } from "./types.js";
+
+const replayClaim1 = globalClaimId("rv1", "c-replay-1");
+const replayClaim2 = globalClaimId("rv1", "c-replay-2");
+const attentionClaim1 = globalClaimId("rv2", "c-attn-1");
+const replaySharedCitation = globalCitationId("rv1", "ref-shared");
+const replayContradictionCitation = globalCitationId("rv1", "ref-contra");
+const attentionSharedCitation = globalCitationId("rv2", "ref-shared");
+const sharedWorkAliases: CanonicalWorkAlias[] = ["doi:10.5555/oratlas.example.shared"];
 
 /** Two accepted reviews with overlapping evidence, for knowledge-layer tests. */
 export const sampleIndex: KnowledgeIndexData = {
@@ -47,23 +61,26 @@ export const sampleIndex: KnowledgeIndexData = {
   ],
   claims: [
     {
-      claimId: "c-replay-1",
+      claimId: replayClaim1,
+      localClaimId: "c-replay-1",
       reviewSlug: "replay-review",
       reviewId: "r1",
       reviewVersionId: "rv1",
       reviewTitle: "Hippocampal Replay and Memory Consolidation",
       text: "Sharp-wave ripple replay during sleep supports consolidation of spatial memory.",
       section: "Results",
-      anchor: "sec-replay",
+      anchor: claimDomAnchor("rv1", "c-replay-1"),
+      sourceAnchor: "sec-replay",
       claimType: "empirical",
       commitSha: "a".repeat(40),
       versionDoi: "10.5555/oratlas.example.replay",
       relations: [
         {
-          citationId: "ref-shared",
+          citationId: replaySharedCitation,
           relationType: "supports",
           trust: {
             reviewStatus: "human-reviewed",
+            verificationState: "platform-verified",
             aggregateScore: 0.82,
             aggregateMethod: "ordinal-mean-1.0",
             notableCriteria: ["entailment"],
@@ -72,33 +89,38 @@ export const sampleIndex: KnowledgeIndexData = {
       ],
     },
     {
-      claimId: "c-replay-2",
+      claimId: replayClaim2,
+      localClaimId: "c-replay-2",
       reviewSlug: "replay-review",
       reviewId: "r1",
       reviewVersionId: "rv1",
       reviewTitle: "Hippocampal Replay and Memory Consolidation",
       text: "Replay is strictly veridical reverse-order replay of the most recent trajectory.",
       section: "Discussion",
+      anchor: claimDomAnchor("rv1", "c-replay-2"),
       claimType: "mechanistic",
       commitSha: "a".repeat(40),
-      relations: [{ citationId: "ref-contra", relationType: "contradicts" }],
+      relations: [{ citationId: replayContradictionCitation, relationType: "contradicts" }],
     },
     {
-      claimId: "c-attn-1",
+      claimId: attentionClaim1,
+      localClaimId: "c-attn-1",
       reviewSlug: "attention-review",
       reviewId: "r2",
       reviewVersionId: "rv2",
       reviewTitle: "Cortical Oscillations and Selective Attention",
       text: "Coordinated neural activity supports memory-related cognitive performance.",
       section: "Results",
+      anchor: claimDomAnchor("rv2", "c-attn-1"),
       claimType: "empirical",
       commitSha: "b".repeat(40),
       relations: [
         {
-          citationId: "ref-shared",
+          citationId: attentionSharedCitation,
           relationType: "supports",
           trust: {
-            reviewStatus: "agent-proposed",
+            reviewStatus: "unverified-import",
+            verificationState: "unverified-import",
             notableCriteria: ["entailment"],
           },
         },
@@ -107,16 +129,35 @@ export const sampleIndex: KnowledgeIndexData = {
   ],
   citations: [
     {
-      citationId: "ref-shared",
+      citationId: replaySharedCitation,
+      localCitationId: "ref-shared",
+      reviewVersionId: "rv1",
+      workId: sharedWorkAliases[0]!,
+      canonicalWorkAliases: sharedWorkAliases,
       doi: "10.5555/oratlas.example.shared",
       title: "A shared source",
       year: 2000,
     },
     {
-      citationId: "ref-contra",
+      citationId: replayContradictionCitation,
+      localCitationId: "ref-contra",
+      reviewVersionId: "rv1",
+      workId: "doi:10.5555/oratlas.example.contra",
+      canonicalWorkAliases: ["doi:10.5555/oratlas.example.contra"],
       doi: "10.5555/oratlas.example.contra",
       title: "A contradicting source",
       year: 2010,
     },
+    {
+      citationId: attentionSharedCitation,
+      localCitationId: "ref-shared",
+      reviewVersionId: "rv2",
+      workId: sharedWorkAliases[0]!,
+      canonicalWorkAliases: sharedWorkAliases,
+      doi: "https://doi.org/10.5555/ORATLAS.EXAMPLE.SHARED",
+      title: "A shared source",
+      year: 2000,
+    },
   ],
+  identifierConflicts: [],
 };

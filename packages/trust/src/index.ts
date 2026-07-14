@@ -5,6 +5,7 @@ import {
   type TrustCriterion,
   type TrustOrdinal,
   type TrustRecord,
+  type TrustVerificationState,
 } from "@oratlas/contracts";
 import { createHash } from "node:crypto";
 
@@ -401,8 +402,7 @@ export function reviewedTrustSubjectHash(input: ReviewedTrustSubjectInput): stri
     .digest("hex");
 }
 
-export type TrustVerificationState =
-  "platform-verified" | "unverified-import" | "stale-verification" | "legacy-unknown";
+export type { TrustVerificationState };
 
 export interface TrustVerificationMarker {
   status: string;

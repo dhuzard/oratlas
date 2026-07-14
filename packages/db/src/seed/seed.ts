@@ -1,5 +1,10 @@
 import { createHash } from "node:crypto";
-import { type TrustRecord } from "@oratlas/contracts";
+import {
+  canonicalJson,
+  type CompatibilityReport,
+  type SubmissionValidationReport,
+  type TrustRecord,
+} from "@oratlas/contracts";
 import {
   normalizeImportedTrustRecord,
   reviewedTrustSubjectHash,
@@ -22,6 +27,10 @@ const prisma = new PrismaClient();
 
 function contentHash(input: unknown): string {
   return createHash("sha256").update(JSON.stringify(input)).digest("hex");
+}
+
+function sha256(value: string): string {
+  return createHash("sha256").update(value, "utf8").digest("hex");
 }
 
 function buildMetadataJson(review: SeedReview) {
@@ -53,10 +62,30 @@ async function seedReview(review: SeedReview, editorId: string) {
     },
   });
 
+  const treeSha = `${review.snapshot.commitSha.slice(0, -1)}f`;
+  const article = [
+    `# ${review.title}`,
+    "",
+    review.abstract,
+    "",
+    "## Claims",
+    "",
+    ...review.claims.flatMap((claim) => [`- ${claim.text}`, ""]),
+  ].join("\n");
+  const articleBytes = Buffer.byteLength(article, "utf8");
   const inspectionReport = {
     schemaVersion: "1.0.0",
-    note: "Seed inspection report (synthetic).",
-    compatibilityLevel: review.compatibilityLevel,
+    githubRepositoryId: `seed:${review.slug}`,
+    repositoryUrl: review.repository.canonicalUrl,
+    commitSha: review.snapshot.commitSha,
+    treeSha,
+    files: {
+      "README.md": {
+        size: articleBytes,
+        truncated: false,
+        contentHash: sha256(article),
+      },
+    },
   };
 
   const snapshot = await prisma.repositorySnapshot.create({
@@ -69,7 +98,11 @@ async function seedReview(review: SeedReview, editorId: string) {
       sourceCreatedAt: new Date("2026-06-01T00:00:00.000Z"),
       inspectionStatus: "succeeded",
       inspectionReportJson: JSON.stringify(inspectionReport),
+      sourceTreeSha: treeSha,
       manifestJson: null,
+      preservedFilesJson: canonicalJson({
+        "README.md": { size: articleBytes, truncated: false, content: article },
+      }),
       contentHash: contentHash({ repo: repo.canonicalUrl, sha: review.snapshot.commitSha }),
     },
   });
@@ -77,6 +110,7 @@ async function seedReview(review: SeedReview, editorId: string) {
   const reviewRow = await prisma.review.create({
     data: {
       slug: review.slug,
+      repositoryId: repo.id,
       currentSnapshotId: snapshot.id,
       title: review.title,
       abstract: review.abstract,
@@ -92,6 +126,12 @@ async function seedReview(review: SeedReview, editorId: string) {
     data: {
       reviewId: reviewRow.id,
       snapshotId: snapshot.id,
+      sourceKind: review.snapshot.releaseTag ? "release" : "default-branch",
+      sourceBranch: review.snapshot.releaseTag ? null : review.snapshot.branch,
+      sourceSelectionKey: review.snapshot.releaseTag
+        ? `release:${review.snapshot.releaseTag}`
+        : `default-branch:${review.snapshot.branch}`,
+      sourceCreatedAt: new Date("2026-06-01T00:00:00.000Z"),
       semanticVersion: review.version.semanticVersion,
       title: review.title,
       abstract: review.abstract,
@@ -100,6 +140,7 @@ async function seedReview(review: SeedReview, editorId: string) {
       conceptDoi: review.version.conceptDoi,
       zenodoRecordId: review.version.zenodoRecordId,
       releaseTag: review.version.releaseTag,
+      releaseUrl: review.snapshot.releaseUrl,
       isExample: review.version.isExample,
       publishedAt: new Date("2026-06-15T00:00:00.000Z"),
     },
@@ -345,6 +386,7 @@ async function seedReview(review: SeedReview, editorId: string) {
 
 async function seedReviewComments(
   reviewIdBySlug: Map<string, string>,
+  versionIdBySlug: Map<string, string>,
   claimIdsBySlug: Map<string, Map<string, string>>,
   userIdByLogin: Map<string, string>,
 ) {
@@ -352,7 +394,8 @@ async function seedReviewComments(
   for (const comment of seedComments) {
     const reviewId = reviewIdBySlug.get(comment.reviewSlug);
     const authorId = userIdByLogin.get(comment.authorLogin);
-    if (!reviewId || !authorId) continue;
+    const reviewVersionId = versionIdBySlug.get(comment.reviewSlug);
+    if (!reviewId || !reviewVersionId || !authorId) continue;
     const claimId = comment.claimLocalId
       ? claimIdsBySlug.get(comment.reviewSlug)?.get(comment.claimLocalId)
       : undefined;
@@ -361,6 +404,7 @@ async function seedReviewComments(
     const row = await prisma.reviewComment.create({
       data: {
         reviewId,
+        reviewVersionId,
         authorId,
         parentId,
         claimId: claimId ?? null,
@@ -397,15 +441,20 @@ async function main() {
   // Reviews
   const claimIdsBySlug = new Map<string, Map<string, string>>();
   const reviewIdBySlug = new Map<string, string>();
+  const versionIdBySlug = new Map<string, string>();
   for (const review of seedReviews) {
-    const { reviewRow, claimIdByLocal } = await seedReview(review, users.get("atlas-editor")!);
+    const { reviewRow, version, claimIdByLocal } = await seedReview(
+      review,
+      users.get("atlas-editor")!,
+    );
     claimIdsBySlug.set(review.slug, claimIdByLocal);
     reviewIdBySlug.set(review.slug, reviewRow.id);
+    versionIdBySlug.set(review.slug, version.id);
     console.info(`  · seeded review: ${review.slug}`);
   }
 
   // Community comments on published reviews
-  await seedReviewComments(reviewIdBySlug, claimIdsBySlug, users);
+  await seedReviewComments(reviewIdBySlug, versionIdBySlug, claimIdsBySlug, users);
 
   // Pending submission (its own repository + snapshot, no accepted review)
   const submitterId = users.get("atlas-submitter")!;
@@ -425,6 +474,7 @@ async function main() {
     data: {
       repositoryId: pendingRepo.id,
       commitSha: pendingSubmission.snapshot.commitSha,
+      sourceTreeSha: pendingSubmission.snapshot.treeSha,
       branch: pendingSubmission.snapshot.branch,
       inspectionStatus: "succeeded",
       inspectionReportJson: JSON.stringify({ schemaVersion: "1.0.0", note: "seed pending" }),
@@ -450,44 +500,97 @@ async function main() {
     },
     warnings: ["No review-manifest.json found; title extracted heuristically from README."],
   };
+  // Immutable payload an editor can accept (materializes a review). Kept
+  // minimal — repository-only, no knowledge artifacts — but it must satisfy
+  // the strict canonical-payload contract acceptance enforces: canonical
+  // JSON, a capture hash, and a full compatibility + validation report.
+  const absentSignal = { detected: false, evidence: [] };
+  const pendingCompatibility: CompatibilityReport = {
+    schemaVersion: "1.0.0",
+    templateForkDetected: absentSignal,
+    templateFilesDetected: absentSignal,
+    mystProjectDetected: absentSignal,
+    bibliographyDetected: absentSignal,
+    reviewContentDetected: {
+      detected: true,
+      evidence: ["README.md describes a computational review draft."],
+    },
+    provenanceDetected: absentSignal,
+    trustDataDetected: absentSignal,
+    releaseDetected: absentSignal,
+    doiDetected: absentSignal,
+    overallCompatibility: "partially-compatible",
+    levelRationale: [
+      "Review content detected without a release, DOI or manifest; eligible as repository-only.",
+    ],
+    blockingErrors: [],
+    warnings: [],
+    recommendations: ["Add review-manifest.json and mint a Zenodo DOI for a future version."],
+  };
+  const pendingValidation: SubmissionValidationReport = {
+    schemaVersion: "1.0.0",
+    hardErrors: [],
+    warnings: ["No DOI supplied; eligible as repository-only."],
+    releaseValidation: { releaseDetected: false, details: ["No release found."] },
+    publicationConsistency: {
+      schemaVersion: "1.0.0",
+      status: "not-applicable",
+      selectedSourceKind: "default-branch",
+      selectedCommitSha: pendingSubmission.snapshot.commitSha,
+      selectedTreeSha: pendingSubmission.snapshot.treeSha,
+      checks: [],
+      errors: [],
+      warnings: ["No release or DOI is linked; nothing to cross-check."],
+      overridableCheckIds: [],
+      requiresEditorOverride: false,
+    },
+    metadataCompleteness: {
+      requiredMissing: [],
+      recommendedMissing: ["keywords"],
+      score: 0.6,
+    },
+    compatibilityLevel: "partially-compatible",
+    evidenceDataAvailable: false,
+    trustDataAvailable: false,
+    validatedAt: "2026-07-01T12:00:00.000Z",
+  };
+  const pendingPayloadJson = canonicalJson({
+    schemaVersion: "1.0.0",
+    // Synthetic capture hash: the seed has no real inspection capture, but the
+    // payload contract requires the hash of the capture it was derived from.
+    capturePayloadHash: contentHash({
+      capture: pendingSubmission.repository.canonicalUrl,
+      commitSha: pendingSubmission.snapshot.commitSha,
+    }),
+    effectiveMetadata: {
+      title: pendingSubmission.title,
+      abstract: pendingSubmission.abstract,
+      authors: [],
+      keywords: [],
+      domains: ["Neuroscience"],
+      reviewType: "computational-literature-review",
+      repositoryUrl: pendingSubmission.repository.canonicalUrl,
+    },
+    compatibilityLevel: pendingCompatibility.overallCompatibility,
+    compatibilityReport: pendingCompatibility,
+    validation: pendingValidation,
+    knowledge: { claims: [], citations: [], relations: [], trust: [], warnings: [] },
+  });
   await prisma.submission.create({
     data: {
       submitterId,
       repositoryId: pendingRepo.id,
       snapshotId: pendingSnapshot.id,
+      sourceKind: "default-branch",
+      sourceBranch: pendingSubmission.snapshot.branch,
+      sourceSelectionKey: `default-branch:${pendingSubmission.snapshot.branch}`,
       status: pendingSubmission.status,
       extractedMetadataJson: JSON.stringify(extractedMetadata),
       editedMetadataJson: JSON.stringify({ edits: {} }),
-      // Immutable payload an editor can accept (materializes a review). Kept
-      // minimal: repository-only, no knowledge artifacts.
-      submittedPayloadJson: JSON.stringify({
-        effectiveMetadata: {
-          title: pendingSubmission.title,
-          abstract: pendingSubmission.abstract,
-          authors: [],
-          keywords: [],
-          domains: ["Neuroscience"],
-          reviewType: "computational-literature-review",
-          repositoryUrl: pendingSubmission.repository.canonicalUrl,
-        },
-        compatibilityLevel: "partially-compatible",
-        knowledge: { claims: [], citations: [], relations: [], trust: [] },
-      }),
-      validationReportJson: JSON.stringify({
-        schemaVersion: "1.0.0",
-        hardErrors: [],
-        warnings: ["No DOI supplied; eligible as repository-only."],
-        releaseValidation: { releaseDetected: false, details: ["No release found."] },
-        metadataCompleteness: {
-          requiredMissing: [],
-          recommendedMissing: ["abstract", "keywords"],
-          score: 0.6,
-        },
-        compatibilityLevel: "partially-compatible",
-        evidenceDataAvailable: false,
-        trustDataAvailable: false,
-        validatedAt: "2026-07-01T12:00:00.000Z",
-      }),
+      submittedPayloadJson: pendingPayloadJson,
+      submittedPayloadHash: sha256(pendingPayloadJson),
+      validationReportJson: canonicalJson(pendingValidation),
+      publicationConsistencyJson: canonicalJson(pendingValidation.publicationConsistency),
       submittedAt: new Date("2026-07-02T09:00:00.000Z"),
     },
   });

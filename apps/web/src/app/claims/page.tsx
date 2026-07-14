@@ -76,7 +76,9 @@ export default async function ClaimsPage({
                   </div>
                   <p className="muted" style={{ margin: "0.4rem 0 0" }}>
                     from{" "}
-                    <Link href={`/reviews/${claim.reviewSlug}#${claim.anchor ?? claim.claimId}`}>
+                    <Link
+                      href={`/reviews/${claim.reviewSlug}/versions/${claim.reviewVersionId}#${claim.anchor}`}
+                    >
                       {claim.reviewTitle}
                     </Link>
                   </p>

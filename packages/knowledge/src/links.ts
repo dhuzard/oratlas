@@ -1,6 +1,6 @@
-import { type LinkProposalType } from "@oratlas/contracts";
+import { findWorkIdentifierConflicts, type LinkProposalType } from "@oratlas/contracts";
 import { jaccard, tokenSet } from "./text.js";
-import { type IndexedClaim } from "./types.js";
+import { type IndexedCitation, type IndexedClaim } from "./types.js";
 
 export interface LinkProposalDraft {
   sourceClaimId: string;
@@ -33,17 +33,38 @@ export interface LinkProposerOptions {
  */
 export function proposeCrossReviewLinks(
   claims: IndexedClaim[],
-  options: LinkProposerOptions = {},
+  citationsOrOptions: IndexedCitation[] | LinkProposerOptions = {},
+  maybeOptions: LinkProposerOptions = {},
 ): LinkProposalDraft[] {
+  const citations = Array.isArray(citationsOrOptions) ? citationsOrOptions : [];
+  const options = Array.isArray(citationsOrOptions) ? maybeOptions : citationsOrOptions;
   const threshold = options.similarityThreshold ?? 0.18;
   const maxProposals = options.maxProposals ?? 50;
   const proposals: LinkProposalDraft[] = [];
   const seen = new Set<string>();
 
+  const citationById = new Map(citations.map((citation) => [citation.citationId, citation]));
+  const conflictedCitationIds = new Set(
+    findWorkIdentifierConflicts(
+      citations.map((citation) => ({
+        citationId: citation.citationId,
+        aliases: citation.canonicalWorkAliases,
+      })),
+    ).flatMap((conflict) => conflict.citationIds),
+  );
   const enriched = claims.map((c) => ({
     claim: c,
     tokens: tokenSet(c.text),
-    citationDois: new Set(c.relations.map((r) => r.citationId)),
+    canonicalWorks: new Set(
+      c.relations.flatMap((relation) => {
+        const citation = citationById.get(relation.citationId);
+        return citation &&
+          citation.canonicalWorkAliases.length > 0 &&
+          !conflictedCitationIds.has(citation.citationId)
+          ? citation.canonicalWorkAliases
+          : [`citation:${relation.citationId}`];
+      }),
+    ),
   }));
 
   for (let i = 0; i < enriched.length; i++) {
@@ -53,7 +74,7 @@ export function proposeCrossReviewLinks(
       // Only propose links across different reviews.
       if (a.claim.reviewSlug === b.claim.reviewSlug) continue;
 
-      const shared = [...a.citationDois].filter((d) => b.citationDois.has(d));
+      const shared = [...a.canonicalWorks].filter((id) => b.canonicalWorks.has(id));
       const overlap = jaccard(a.tokens, b.tokens);
 
       let relation: LinkProposalType | undefined;

@@ -6,9 +6,21 @@ import {
   type TrustRecord,
   type TrustVerificationState,
 } from "@oratlas/trust";
+import {
+  canonicalWorkAliases,
+  claimDomAnchor,
+  findWorkIdentifierConflicts,
+  globalCitationId,
+  globalClaimId,
+  isExactCommitSha,
+  type PublicationConsistencyReport,
+  type PublicLifecycleEvent,
+  type WorkIdentityAssertion,
+} from "@oratlas/contracts";
 import { prisma, parseJsonColumn } from "./db";
 import { toTrustRecord } from "./index-builder";
 import { resolveTrustAssessmentRows } from "./trust-provenance";
+import { isTombstonedState, lifecycleEventDto } from "./review-lifecycle";
 
 export interface ReviewCriterion {
   criterion: string;
@@ -53,10 +65,12 @@ export interface ReviewRelation {
 }
 
 export interface ReviewClaim {
+  claimId: string;
   localClaimId: string;
   text: string;
   section?: string;
-  anchor?: string;
+  anchor: string;
+  sourceAnchor?: string;
   claimType?: string;
   qualification?: string;
   relations: ReviewRelation[];
@@ -70,6 +84,10 @@ export interface ReviewDetail {
   licenseSpdx?: string;
   publishedReviewUrl?: string;
   status: string;
+  publicState: string;
+  isTombstoned: boolean;
+  lifecycleRevision: number;
+  lifecycleEvents: PublicLifecycleEvent[];
   acceptedAt?: string;
   updatedAt: string;
   keywords: string[];
@@ -92,15 +110,28 @@ export interface ReviewDetail {
   };
   snapshot: {
     commitSha: string;
-    releaseTag?: string;
-    releaseUrl?: string;
+    treeSha?: string;
   };
   version: {
+    id: string;
+    sourceKind?: string;
+    sourceBranch?: string;
+    releaseTag?: string;
+    releaseUrl?: string;
+    tagObjectSha?: string;
     semanticVersion?: string;
     versionDoi?: string;
     conceptDoi?: string;
     zenodoRecordId?: string;
     isExample: boolean;
+    capturePayloadHash?: string;
+    publicationConsistency?: PublicationConsistencyReport;
+    editorialOverrides: Array<{
+      checkId: string;
+      rationale: string;
+      editorLogin: string;
+      createdAt: string;
+    }>;
   };
   identifiers: Array<{
     scheme: string;
@@ -117,29 +148,45 @@ export interface ReviewDetail {
     releaseTag?: string;
     publishedAt?: string;
     isExample: boolean;
+    isCurrent: boolean;
+    publicState: string;
   }>;
   claims: ReviewClaim[];
   citations: Array<{
     localCitationId: string;
+    citationId: string;
     title?: string;
     doi?: string;
+    pmid?: string;
+    openAlexId?: string;
+    workId: string;
+    canonicalWorkAliases: string[];
     year?: number;
     source?: string;
     isExample: boolean;
   }>;
   limitations: string[];
+  identifierConflicts: WorkIdentityAssertion[];
 }
 
-export async function getReviewDetail(slug: string): Promise<ReviewDetail | null> {
+export async function getReviewDetail(
+  slug: string,
+  requestedVersionId?: string,
+): Promise<ReviewDetail | null> {
   const review = await prisma.review.findUnique({
     where: { slug },
     include: {
-      currentSnapshot: { include: { repository: true } },
       versions: {
         orderBy: { createdAt: "desc" },
         include: {
           contributors: { include: { person: true }, orderBy: { position: "asc" } },
           identifiers: true,
+          snapshot: { include: { repository: true } },
+          sourceSubmission: {
+            include: {
+              editorialOverrides: { include: { editor: true }, orderBy: { checkId: "asc" } },
+            },
+          },
           citations: true,
           claims: {
             include: {
@@ -155,29 +202,81 @@ export async function getReviewDetail(slug: string): Promise<ReviewDetail | null
           },
         },
       },
+      lifecycleEvents: {
+        include: { actor: true },
+        orderBy: { revision: "asc" },
+      },
     },
   });
-  if (!review) return null;
-  const version = review.versions[0];
-  if (!version) return null;
+  if (!review || review.status !== "published") return null;
+  const currentVersion = review.versions[0];
+  const version = requestedVersionId
+    ? review.versions.find((candidate) => candidate.id === requestedVersionId)
+    : currentVersion;
+  if (!version || !isExactCommitSha(version.snapshot.commitSha)) return null;
 
-  const snapshot = review.currentSnapshot;
-  const repo = snapshot?.repository;
+  const lifecycleEvents = review.lifecycleEvents
+    .filter(
+      (event) => event.reviewVersionId === version.id || event.supersedesVersionId === version.id,
+    )
+    .map(lifecycleEventDto);
+  const versionIsTombstoned = isTombstonedState(version.publicState);
+  if (versionIsTombstoned) {
+    return {
+      slug: review.slug,
+      title: "Content unavailable",
+      status: "tombstoned",
+      publicState: version.publicState,
+      isTombstoned: true,
+      lifecycleRevision: review.lifecycleRevision,
+      lifecycleEvents,
+      updatedAt: lifecycleEvents.at(-1)?.createdAt ?? version.createdAt.toISOString(),
+      keywords: [],
+      domains: [],
+      contributors: [],
+      repository: { canonicalUrl: "", owner: "", name: "" },
+      snapshot: { commitSha: version.snapshot.commitSha },
+      version: {
+        id: version.id,
+        isExample: false,
+        editorialOverrides: [],
+      },
+      identifiers: [],
+      versions: review.versions.map((candidate) => ({
+        id: candidate.id,
+        isExample: false,
+        isCurrent: candidate.id === currentVersion?.id,
+        publicState: candidate.publicState,
+      })),
+      claims: [],
+      citations: [],
+      limitations: [],
+      identifierConflicts: [],
+    };
+  }
+
+  const snapshot = version.snapshot;
+  const repo = snapshot.repository;
   const meta = parseJsonColumn<{
     keywords?: string[];
     domains?: string[];
     compatibilityLevel?: string;
+    compatibilityReport?: unknown;
+    reviewType?: string;
+    license?: string;
   }>(version.metadataJson, {});
-  const inspectionReport = snapshot
+  const legacyInspectionReport = snapshot
     ? parseJsonColumn<{ compatibilityReport?: unknown }>(snapshot.inspectionReportJson, {})
     : {};
 
   const limitations = new Set<string>();
   const claims: ReviewClaim[] = version.claims.map((claim) => ({
+    claimId: globalClaimId(version.id, claim.localClaimId),
     localClaimId: claim.localClaimId,
     text: claim.text,
     section: claim.section ?? undefined,
-    anchor: claim.anchor ?? undefined,
+    anchor: claimDomAnchor(version.id, claim.localClaimId),
+    sourceAnchor: claim.anchor ?? undefined,
     claimType: claim.claimType ?? undefined,
     qualification: claim.qualification ?? undefined,
     relations: claim.evidenceRelations.map((rel) => {
@@ -241,20 +340,49 @@ export async function getReviewDetail(slug: string): Promise<ReviewDetail | null
     }),
   }));
 
+  const citationIdentities = version.citations.map((citation) => {
+    const citationId = globalCitationId(version.id, citation.localCitationId);
+    const aliases = canonicalWorkAliases({
+      doi: citation.doi ?? undefined,
+      pmid: citation.pmid ?? undefined,
+      openAlexId: citation.openAlexId ?? undefined,
+    });
+    return { citationId, aliases, workId: aliases[0] ?? citationId };
+  });
+  const identityByLocalId = new Map(
+    version.citations.map((citation, index) => [
+      citation.localCitationId,
+      citationIdentities[index]!,
+    ]),
+  );
+  const publishedIdentifier = version.identifiers.find(
+    (identifier) => identifier.relationType === "published-review",
+  );
+
   return {
     slug: review.slug,
     title: version.title,
     abstract: version.abstract ?? undefined,
-    reviewType: review.reviewType ?? undefined,
-    licenseSpdx: review.licenseSpdx ?? undefined,
-    publishedReviewUrl: review.publishedReviewUrl ?? undefined,
+    reviewType: meta.reviewType ?? review.reviewType ?? undefined,
+    licenseSpdx: meta.license ?? review.licenseSpdx ?? undefined,
+    publishedReviewUrl:
+      publishedIdentifier?.url ??
+      publishedIdentifier?.value ??
+      review.publishedReviewUrl ??
+      undefined,
     status: review.status,
-    acceptedAt: review.acceptedAt?.toISOString(),
-    updatedAt: review.updatedAt.toISOString(),
+    publicState: version.publicState,
+    isTombstoned: false,
+    lifecycleRevision: review.lifecycleRevision,
+    lifecycleEvents,
+    acceptedAt: version.publishedAt?.toISOString() ?? review.acceptedAt?.toISOString(),
+    updatedAt: requestedVersionId
+      ? version.createdAt.toISOString()
+      : review.updatedAt.toISOString(),
     keywords: meta.keywords ?? [],
     domains: meta.domains ?? [],
     compatibilityLevel: meta.compatibilityLevel,
-    compatibilityReport: inspectionReport.compatibilityReport,
+    compatibilityReport: meta.compatibilityReport ?? legacyInspectionReport.compatibilityReport,
     contributors: version.contributors.map((c) => ({
       displayName: c.person.displayName,
       orcid: c.person.orcid ?? undefined,
@@ -271,15 +399,32 @@ export async function getReviewDetail(slug: string): Promise<ReviewDetail | null
     },
     snapshot: {
       commitSha: snapshot?.commitSha ?? "",
-      releaseTag: snapshot?.releaseTag ?? undefined,
-      releaseUrl: snapshot?.releaseUrl ?? undefined,
+      treeSha: snapshot?.sourceTreeSha ?? undefined,
     },
     version: {
+      id: version.id,
+      sourceKind: version.sourceKind ?? snapshot?.sourceKind ?? undefined,
+      sourceBranch: version.sourceBranch ?? snapshot?.branch ?? undefined,
+      releaseTag: version.releaseTag ?? snapshot?.releaseTag ?? undefined,
+      releaseUrl: version.releaseUrl ?? snapshot?.releaseUrl ?? undefined,
+      tagObjectSha: version.tagObjectSha ?? undefined,
       semanticVersion: version.semanticVersion ?? undefined,
       versionDoi: version.versionDoi ?? undefined,
       conceptDoi: version.conceptDoi ?? undefined,
       zenodoRecordId: version.zenodoRecordId ?? undefined,
       isExample: version.isExample,
+      capturePayloadHash: version.capturePayloadHash ?? undefined,
+      publicationConsistency: parseJsonColumn<PublicationConsistencyReport | undefined>(
+        version.publicationConsistencyJson,
+        undefined,
+      ),
+      editorialOverrides:
+        version.sourceSubmission?.editorialOverrides.map((override) => ({
+          checkId: override.checkId,
+          rationale: override.rationale,
+          editorLogin: override.editor.githubLogin,
+          createdAt: override.createdAt.toISOString(),
+        })) ?? [],
     },
     identifiers: version.identifiers.map((id) => ({
       scheme: id.scheme,
@@ -289,24 +434,40 @@ export async function getReviewDetail(slug: string): Promise<ReviewDetail | null
       validationStatus: id.validationStatus,
       isExample: id.isExample,
     })),
-    versions: review.versions.map((v) => ({
-      id: v.id,
-      semanticVersion: v.semanticVersion ?? undefined,
-      versionDoi: v.versionDoi ?? undefined,
-      releaseTag: v.releaseTag ?? undefined,
-      publishedAt: v.publishedAt?.toISOString(),
-      isExample: v.isExample,
-    })),
+    versions: review.versions.map((v) => {
+      const withheld = isTombstonedState(v.publicState);
+      return {
+        id: v.id,
+        semanticVersion: withheld ? undefined : (v.semanticVersion ?? undefined),
+        versionDoi: withheld ? undefined : (v.versionDoi ?? undefined),
+        releaseTag: withheld ? undefined : (v.releaseTag ?? undefined),
+        publishedAt: withheld ? undefined : v.publishedAt?.toISOString(),
+        isExample: withheld ? false : v.isExample,
+        isCurrent: v.id === currentVersion?.id,
+        publicState: v.publicState,
+      };
+    }),
     claims,
     citations: version.citations.map((c) => ({
       localCitationId: c.localCitationId,
+      citationId: identityByLocalId.get(c.localCitationId)!.citationId,
       title: c.title ?? undefined,
       doi: c.doi ?? undefined,
+      pmid: c.pmid ?? undefined,
+      openAlexId: c.openAlexId ?? undefined,
+      workId: identityByLocalId.get(c.localCitationId)!.workId,
+      canonicalWorkAliases: identityByLocalId.get(c.localCitationId)!.aliases,
       year: c.year ?? undefined,
       source: c.source ?? undefined,
       isExample: isExampleCitation(c.rawCitationJson),
     })),
     limitations: [...limitations],
+    identifierConflicts: findWorkIdentifierConflicts(
+      citationIdentities.map((identity) => ({
+        citationId: identity.citationId,
+        aliases: identity.aliases,
+      })),
+    ),
   };
 }
 
@@ -337,7 +498,21 @@ function isExampleCitation(rawJson: string | null): boolean {
 export async function listPublishedSlugs(): Promise<string[]> {
   const rows = await prisma.review.findMany({
     where: { status: "published" },
-    select: { slug: true },
+    select: {
+      slug: true,
+      versions: {
+        orderBy: { createdAt: "desc" },
+        take: 1,
+        select: { publicState: true, snapshot: { select: { commitSha: true } } },
+      },
+    },
   });
-  return rows.map((r) => r.slug);
+  return rows
+    .filter(
+      (row) =>
+        row.versions[0] &&
+        !isTombstonedState(row.versions[0].publicState) &&
+        isExactCommitSha(row.versions[0].snapshot.commitSha),
+    )
+    .map((row) => row.slug);
 }

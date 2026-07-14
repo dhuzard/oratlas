@@ -9,18 +9,29 @@ import { getCurrentUser, isEditor } from "@/lib/auth";
 import { TrustDisplay } from "@/components/TrustDisplay";
 import { CommentsSection } from "./CommentsSection";
 import { ProvenanceBadge } from "@oratlas/ui";
+import { swhidArchiveUrl, swhidForRevision } from "@oratlas/exports";
 import { serializeJsonForHtml } from "@/lib/json-for-html";
+import { getPreservedArticle } from "@/lib/article-reader";
+import { getProcessHistoryForVersion } from "@/lib/editorial-lifecycle";
+import { ArticleReader } from "./ArticleReader";
 
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata({
   params,
 }: {
-  params: Promise<{ slug: string }>;
+  params: Promise<{ slug: string; versionId?: string }>;
 }): Promise<Metadata> {
-  const { slug } = await params;
-  const review = await getReviewDetail(slug);
+  const { slug, versionId } = await params;
+  const review = await getReviewDetail(slug, versionId);
   if (!review) return { title: "Review not found" };
+  if (review.isTombstoned) {
+    return {
+      title: "Content unavailable",
+      description: "This scholarly review version has been tombstoned.",
+      robots: { index: false, follow: false },
+    };
+  }
   return {
     title: review.title,
     description: review.abstract?.slice(0, 200),
@@ -29,7 +40,9 @@ export async function generateMetadata({
       description: review.abstract?.slice(0, 200),
       type: "article",
     },
-    alternates: { canonical: `/reviews/${slug}` },
+    alternates: {
+      canonical: versionId ? `/reviews/${slug}/versions/${versionId}` : `/reviews/${slug}`,
+    },
   };
 }
 
@@ -49,18 +62,56 @@ function DoiValue({ value, isExample }: { value?: string; isExample: boolean }) 
   );
 }
 
-export default async function ReviewPage({ params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = await params;
-  const review = await getReviewDetail(slug);
+export default async function ReviewPage({
+  params,
+}: {
+  params: Promise<{ slug: string; versionId?: string }>;
+}) {
+  const { slug, versionId } = await params;
+  const review = await getReviewDetail(slug, versionId);
   if (!review) notFound();
+  const isHistoricalRoute = Boolean(versionId);
 
-  const [comments, user, requestHeaders] = await Promise.all([
-    listReviewComments(slug),
+  if (review.isTombstoned) {
+    return (
+      <article>
+        <StatusPill status="tombstoned" />
+        <h1>Content unavailable</h1>
+        <Notice tone="error" title="Tombstoned scholarly version">
+          The archived content and every derived public representation are withheld. Article
+          metadata, authors, claims, citations, comments, search entries, discussion evidence,
+          assets, exports and feed summaries are not served.
+        </Notice>
+        {review.lifecycleEvents.map((event) => (
+          <Card title="Public lifecycle record" key={event.id}>
+            <p>{event.reason}</p>
+            <p className="muted">
+              Recorded by @{event.actorLogin} on {event.createdAt.slice(0, 10)} · revision{" "}
+              {event.revision}
+            </p>
+          </Card>
+        ))}
+        <p>
+          <Link href="/api/feeds/lifecycle">View the machine-readable lifecycle ledger</Link>.
+        </p>
+      </article>
+    );
+  }
+
+  const [comments, user, requestHeaders, preservedArticle, processHistory] = await Promise.all([
+    listReviewComments(slug, review.version.id),
     getCurrentUser(),
     headers(),
+    getPreservedArticle(slug, review.version.id),
+    getProcessHistoryForVersion(review.version.id),
   ]);
   const nonce = requestHeaders.get("x-nonce") ?? undefined;
-  const commentList = comments ?? { reviewSlug: slug, commentCount: 0, comments: [] };
+  const commentList = comments ?? {
+    reviewSlug: slug,
+    reviewVersionId: review.version.id,
+    commentCount: 0,
+    comments: [],
+  };
   const commentsByClaim = new Map<string, number>();
   for (const c of commentList.comments) {
     if (c.status !== "visible" || !c.claimLocalId) continue;
@@ -76,6 +127,10 @@ export default async function ReviewPage({ params }: { params: Promise<{ slug: s
       );
     }
   }
+
+  const revisionSwhid = review.snapshot.commitSha
+    ? swhidForRevision(review.snapshot.commitSha)
+    : undefined;
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -105,6 +160,61 @@ export default async function ReviewPage({ params }: { params: Promise<{ slug: s
         ) : null}
         {review.version.isExample ? <Badge tone="warning">example data</Badge> : null}
       </div>
+
+      {isHistoricalRoute ? (
+        <Notice tone="info" title="Immutable historical version">
+          You are viewing version {review.version.semanticVersion ?? review.version.id}. Its
+          snapshot, evidence and version-scoped discussion are preserved exactly. Historical
+          comments are read-only.{" "}
+          <Link href={`/reviews/${review.slug}`}>View the current version</Link>.
+        </Notice>
+      ) : null}
+
+      {review.publicState === "withdrawn" ? (
+        <Notice tone="error" title="Withdrawn version">
+          This version remains visible as part of the scholarly record but should not be relied
+          upon. See the attributable lifecycle notice below.
+        </Notice>
+      ) : null}
+
+      {review.lifecycleEvents.map((event) => {
+        const isCorrection = event.kind === "correction";
+        const isCorrectedVersion = isCorrection && event.reviewVersionId === review.version.id;
+        const isSupersededVersion = isCorrection && event.supersedesVersionId === review.version.id;
+        return (
+          <Notice
+            key={event.id}
+            tone={event.kind === "withdrawal" ? "error" : "warning"}
+            title={
+              isCorrectedVersion
+                ? "Correction published"
+                : isSupersededVersion
+                  ? "Superseded by a corrected version"
+                  : "Lifecycle notice"
+            }
+          >
+            {event.reason} — @{event.actorLogin}, {event.createdAt.slice(0, 10)}.
+            {isCorrectedVersion && event.supersedesVersionId ? (
+              <>
+                {" "}
+                <Link href={`/reviews/${review.slug}/versions/${event.supersedesVersionId}`}>
+                  View the prior version
+                </Link>
+                .
+              </>
+            ) : null}
+            {isSupersededVersion ? (
+              <>
+                {" "}
+                <Link href={`/reviews/${review.slug}/versions/${event.reviewVersionId}`}>
+                  View the corrected version
+                </Link>
+                .
+              </>
+            ) : null}
+          </Notice>
+        );
+      })}
 
       <h1>{review.title}</h1>
       {review.abstract ? <p className="prose">{review.abstract}</p> : null}
@@ -162,12 +272,37 @@ export default async function ReviewPage({ params }: { params: Promise<{ slug: s
                   value: <span className="mono">{review.snapshot.commitSha || "—"}</span>,
                 },
                 {
-                  term: "Release",
-                  value: review.snapshot.releaseTag ? (
-                    review.snapshot.releaseUrl ? (
-                      <a href={review.snapshot.releaseUrl}>{review.snapshot.releaseTag}</a>
+                  term: "Exact tree",
+                  value: <span className="mono">{review.snapshot.treeSha || "—"}</span>,
+                },
+                {
+                  term: "Archival ID (SWHID)",
+                  value: revisionSwhid ? (
+                    review.version.isExample ? (
+                      <span>
+                        <span className="mono">{revisionSwhid}</span>{" "}
+                        <Badge tone="warning">example — not archived</Badge>
+                      </span>
                     ) : (
-                      review.snapshot.releaseTag
+                      <a className="mono" href={swhidArchiveUrl(revisionSwhid)}>
+                        {revisionSwhid}
+                      </a>
+                    )
+                  ) : (
+                    <span className="muted">—</span>
+                  ),
+                },
+                {
+                  term: "Source selection",
+                  value: review.version.sourceKind ?? "legacy capture",
+                },
+                {
+                  term: "Release",
+                  value: review.version.releaseTag ? (
+                    review.version.releaseUrl ? (
+                      <a href={review.version.releaseUrl}>{review.version.releaseTag}</a>
+                    ) : (
+                      review.version.releaseTag
                     )
                   ) : (
                     <span className="muted">no release (repository-only)</span>
@@ -221,7 +356,59 @@ export default async function ReviewPage({ params }: { params: Promise<{ slug: s
                 exact reviewed state is the commit above.
               </Notice>
             ) : null}
+            {review.version.capturePayloadHash ? (
+              <p className="mono muted" style={{ overflowWrap: "anywhere" }}>
+                Accepted capture SHA-256 {review.version.capturePayloadHash}
+              </p>
+            ) : null}
           </Card>
+
+          {review.version.publicationConsistency ? (
+            <Card title="Release / DOI / commit consistency">
+              <StatusPill status={review.version.publicationConsistency.status} />
+              <ul>
+                {review.version.publicationConsistency.checks.map((check) => (
+                  <li key={check.id}>
+                    <span className="mono">{check.id}</span>: {check.outcome} — {check.description}
+                    {check.details ? ` (${check.details})` : ""}
+                  </li>
+                ))}
+              </ul>
+              {review.version.editorialOverrides.length > 0 ? (
+                <Notice tone="warning" title="Editorial exceptions">
+                  <ul>
+                    {review.version.editorialOverrides.map((override) => (
+                      <li key={override.checkId}>
+                        <span className="mono">{override.checkId}</span> — {override.rationale} — @
+                        {override.editorLogin}, {override.createdAt.slice(0, 10)}
+                      </li>
+                    ))}
+                  </ul>
+                </Notice>
+              ) : null}
+              <p className="muted">
+                This report verifies identifier and source consistency. It does not judge the
+                scientific correctness of the review.
+              </p>
+            </Card>
+          ) : null}
+
+          {preservedArticle ? (
+            <ArticleReader
+              document={preservedArticle}
+              claims={review.claims.map((claim) => ({
+                anchor: claim.anchor,
+                localClaimId: claim.localClaimId,
+                text: claim.text,
+                section: claim.section,
+              }))}
+            />
+          ) : (
+            <Notice tone="info" title="No complete preserved article file">
+              This version still exposes its immutable metadata and evidence graph, but no complete,
+              non-truncated Markdown article was captured for the reader.
+            </Notice>
+          )}
 
           <Card title="Claims and evidence">
             {review.claims.length === 0 ? (
@@ -233,7 +420,11 @@ export default async function ReviewPage({ params }: { params: Promise<{ slug: s
                   <div
                     className="claim-card"
                     key={claim.localClaimId}
-                    id={claim.anchor ?? claim.localClaimId}
+                    id={
+                      preservedArticle
+                        ? `${claim.anchor}-evidence`
+                        : (claim.anchor ?? claim.localClaimId)
+                    }
                   >
                     <p className="claim-text">{claim.text}</p>
                     <div className="btn-row">
@@ -287,6 +478,18 @@ export default async function ReviewPage({ params }: { params: Promise<{ slug: s
 
           {review.citations.length > 0 ? (
             <Card title="Citations">
+              {review.identifierConflicts.length > 0 ? (
+                <Notice tone="warning" title="Conflicting work identifiers">
+                  <ul>
+                    {review.identifierConflicts.map((conflict) => (
+                      <li key={`${conflict.scheme}:${conflict.values.join(":")}`}>
+                        {conflict.message} Atlas preserves this assertion but does not silently
+                        merge the affected citations.
+                      </li>
+                    ))}
+                  </ul>
+                </Notice>
+              ) : null}
               <div className="table-scroll">
                 <table className="data">
                   <thead>
@@ -324,6 +527,58 @@ export default async function ReviewPage({ params }: { params: Promise<{ slug: s
             </Card>
           ) : null}
 
+          {processHistory.length > 0 ? (
+            <Card title="Editorial process history">
+              <p className="muted">
+                Open review: reports, responses and decision letters are public, attributable and
+                immutable across revision rounds.
+              </p>
+              {processHistory.map((entry, entryIndex) => (
+                <div key={entry.submissionId}>
+                  <p>
+                    <strong>Submission {entryIndex + 1}</strong>{" "}
+                    <span className="muted">
+                      by @{entry.submitterLogin}
+                      {entry.submittedAt ? ` · ${entry.submittedAt.slice(0, 10)}` : ""} ·{" "}
+                      {entry.status}
+                    </span>
+                  </p>
+                  {entry.rounds.map((round) => (
+                    <div className="claim-card" key={round.roundId}>
+                      <p>
+                        <strong>Round {round.roundNumber}</strong>{" "}
+                        <span className="muted">({round.status})</span>
+                      </p>
+                      <ul>
+                        {round.reports.map((report, reportIndex) => (
+                          <li key={reportIndex}>
+                            Review by @{report.reviewerLogin} — {report.recommendation}
+                            {report.reviewerOrcid
+                              ? ` (ORCID ${report.reviewerOrcid}${report.orcidVerified ? "" : ", unverified"})`
+                              : ""}
+                            , {report.submittedAt.slice(0, 10)}
+                          </li>
+                        ))}
+                        {round.responses.map((response, responseIndex) => (
+                          <li key={`r-${responseIndex}`}>
+                            Author response by @{response.authorLogin},{" "}
+                            {response.submittedAt.slice(0, 10)}
+                          </li>
+                        ))}
+                        {round.decision ? (
+                          <li>
+                            Decision: {round.decision.decision} — @{round.decision.editorLogin},{" "}
+                            {round.decision.issuedAt.slice(0, 10)}
+                          </li>
+                        ) : null}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </Card>
+          ) : null}
+
           <CommentsSection
             reviewSlug={review.slug}
             list={commentList}
@@ -341,6 +596,7 @@ export default async function ReviewPage({ params }: { params: Promise<{ slug: s
                   }
                 : null
             }
+            readOnly={isHistoricalRoute}
           />
         </div>
 
@@ -351,7 +607,8 @@ export default async function ReviewPage({ params }: { params: Promise<{ slug: s
             ) : null}
             <p className="muted" style={{ fontSize: "0.9rem" }}>
               Structural compatibility is determined by transparent rules over repository files —
-              never by an opaque model decision.
+              never by an opaque model decision. Structural grounding does not establish the
+              scientific correctness of a claim.
             </p>
           </Card>
 
@@ -385,17 +642,62 @@ export default async function ReviewPage({ params }: { params: Promise<{ slug: s
             </Card>
           ) : null}
 
+          <Card title="Preservation &amp; exports">
+            <p className="muted" style={{ fontSize: "0.9rem" }}>
+              Accepted versions are preserved in the archive and stay readable and exportable even
+              if the upstream repository disappears.
+            </p>
+            <ul className="tag-list" style={{ flexDirection: "column", alignItems: "flex-start" }}>
+              {(
+                [
+                  ["bibtex", "BibTeX"],
+                  ["ris", "RIS"],
+                  ["csl", "CSL-JSON"],
+                  ["jats", "JATS XML"],
+                  ["ro-crate", "RO-Crate"],
+                  ["prov", "PROV (JSON-LD)"],
+                  ["package", "Preservation manifest"],
+                  ["docmap", "DocMaps process history"],
+                ] as const
+              ).map(([format, label]) => (
+                <li key={format}>
+                  <a
+                    href={`/api/reviews/${review.slug}/versions/${review.version.id}/export/${format}`}
+                  >
+                    {label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </Card>
+
           <Card title="Version history">
             <ul className="tag-list" style={{ flexDirection: "column", alignItems: "flex-start" }}>
               {review.versions.map((v) => (
                 <li key={v.id}>
-                  {v.semanticVersion ?? v.releaseTag ?? "version"}{" "}
+                  <Link href={`/reviews/${review.slug}/versions/${v.id}`}>
+                    {v.publicState === "tombstoned"
+                      ? "withheld version"
+                      : (v.semanticVersion ?? v.releaseTag ?? "version")}
+                  </Link>{" "}
+                  {v.isCurrent ? <Badge>current</Badge> : null}{" "}
+                  {v.publicState !== "published" ? (
+                    <Badge tone="warning">{v.publicState}</Badge>
+                  ) : null}{" "}
                   {v.publishedAt ? (
                     <span className="muted">({v.publishedAt.slice(0, 10)})</span>
                   ) : null}
                 </li>
               ))}
             </ul>
+            {review.versions.filter((version) => version.publicState !== "tombstoned").length >
+            1 ? (
+              <Link
+                href={`/reviews/${review.slug}/compare?from=${review.versions.filter((version) => version.publicState !== "tombstoned")[1]!.id}&to=${review.versions.filter((version) => version.publicState !== "tombstoned")[0]!.id}`}
+              >
+                Compare the two latest readable versions
+              </Link>
+            ) : null}
           </Card>
 
           <Card title="Discuss">

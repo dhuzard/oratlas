@@ -5,12 +5,18 @@ interface EvidenceClaim {
   claimId: string;
   reviewTitle: string;
   reviewSlug: string;
+  reviewVersionId: string;
   text: string;
-  anchor?: string;
+  anchor: string;
   relations: Array<{
     citationId: string;
     relationType: string;
-    trust?: { reviewStatus: string; notableCriteria: string[] };
+    trust?: {
+      reviewStatus: string;
+      verificationState:
+        "platform-verified" | "unverified-import" | "stale-verification" | "legacy-unknown";
+      notableCriteria: string[];
+    };
   }>;
 }
 
@@ -143,7 +149,8 @@ function LlmAnswer({ answer }: { answer: NonNullable<LlmResult["answer"]> }) {
       <List title="Missing evidence" items={answer.missingEvidence} />
       <p className="muted">
         Grounded in {answer.reviewClaimsUsed.length} claim(s) and {answer.citationsUsed.length}{" "}
-        citation(s). All identifiers were validated against the evidence packet.
+        citation(s). Every claim–citation edge was validated against the evidence packet. This is
+        structural grounding, not a finding that the claims are scientifically correct.
       </p>
     </div>
   );
@@ -171,18 +178,12 @@ function DeterministicView({ result }: { result: DeterministicResult }) {
               <p className="claim-text">{claim.text}</p>
               <p className="muted" style={{ margin: 0 }}>
                 from{" "}
-                <a href={`/reviews/${claim.reviewSlug}#${claim.anchor ?? claim.claimId}`}>
+                <a
+                  href={`/reviews/${claim.reviewSlug}/versions/${claim.reviewVersionId}#${claim.anchor}`}
+                >
                   {claim.reviewTitle}
                 </a>
-                {claim.relations.some(
-                  (r) =>
-                    r.trust?.reviewStatus === "human-reviewed" ||
-                    r.trust?.reviewStatus === "adjudicated",
-                )
-                  ? " · Atlas-reviewed TRUST structure"
-                  : claim.relations.some((r) => r.trust)
-                    ? " · repository TRUST assertion (unverified)"
-                    : ""}
+                {trustSummary(claim)}
               </p>
             </div>
           ))}
@@ -197,6 +198,19 @@ function DeterministicView({ result }: { result: DeterministicResult }) {
       </div>
     </div>
   );
+}
+
+function trustSummary(claim: EvidenceClaim): string {
+  const states = new Set(
+    claim.relations.flatMap((relation) =>
+      relation.trust ? [relation.trust.verificationState] : [],
+    ),
+  );
+  if (states.has("platform-verified")) return " · Atlas-reviewed TRUST structure";
+  if (states.has("stale-verification")) return " · Atlas TRUST verification is stale";
+  if (states.has("legacy-unknown")) return " · legacy TRUST provenance unknown";
+  if (states.has("unverified-import")) return " · repository TRUST assertion (unverified)";
+  return "";
 }
 
 function List({ title, items }: { title: string; items: string[] }) {

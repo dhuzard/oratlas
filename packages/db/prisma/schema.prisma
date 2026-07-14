@@ -17,9 +17,9 @@ datasource db {
 }
 
 model User {
-  id                    String   @id @default(cuid())
-  githubUserId          String?  @unique
-  githubLogin           String   @unique
+  id                    String    @id @default(cuid())
+  githubUserId          String?   @unique
+  githubLogin           String    @unique
   /// NFKC + lowercase login used solely for collision prevention.
   /// Transitional: application-enforced uniqueness until issue #7.
   githubLoginNormalized String?
@@ -27,16 +27,32 @@ model User {
   avatarUrl             String?
   profileUrl            String?
   /// USER | EDITOR | ADMIN
-  role                  String   @default("USER")
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+  role                  String    @default("USER")
+  /// Reviewer ORCID iD (contracts orcidSchema). Unverified until an ORCID
+  /// sign-in confirms it; reports snapshot the verification state.
+  orcid                 String?
+  orcidVerifiedAt       DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
 
-  submissions        Submission[]        @relation("submitter")
-  editorialDecisions Submission[]        @relation("reviewer")
+  submissions        Submission[]           @relation("submitter")
+  editorialDecisions Submission[]           @relation("reviewer")
   discussionThreads  DiscussionThread[]
   reviewComments     ReviewComment[]
   auditEvents        AuditEvent[]
-  trustVerifications TrustVerification[] @relation("trustReviewer")
+  trustVerifications TrustVerification[]    @relation("trustReviewer")
+  inspectionCaptures InspectionCapture[]
+  editorialOverrides EditorialOverride[]
+  lifecycleEvents    ReviewLifecycleEvent[] @relation("lifecycleActor")
+  editorAssignments  EditorAssignment[]     @relation("assignmentEditor")
+  assignmentsMade    EditorAssignment[]     @relation("assignmentAssigner")
+  roundsOpened       ReviewRound[]          @relation("roundOpener")
+  formalReports      FormalReviewReport[]   @relation("formalReviewer")
+  authorResponses    AuthorResponse[]       @relation("respondingAuthor")
+  decisionLetters    DecisionLetter[]       @relation("decisionEditor")
+  notifications      Notification[]         @relation("notificationUser")
+  statusRecords      CitationStatusRecord[] @relation("statusRecorder")
+  proposalsResolved  ClaimUpdateProposal[]  @relation("proposalResolver")
 
   @@index([githubLoginNormalized])
 }
@@ -48,7 +64,8 @@ model Repository {
   owner              String
   name               String
   canonicalUrl       String    @unique
-  githubRepositoryId Int?
+  /// Immutable GitHub database id. Decimal string avoids 32-bit truncation.
+  githubRepositoryId String?   @unique
   defaultBranch      String?
   description        String?
   licenseSpdx        String?
@@ -63,6 +80,7 @@ model Repository {
 
   snapshots   RepositorySnapshot[]
   submissions Submission[]
+  reviews     Review[]
 
   @@unique([host, owner, name])
 }
@@ -71,6 +89,8 @@ model RepositorySnapshot {
   id                   String    @id @default(cuid())
   repositoryId         String
   commitSha            String
+  /// Legacy selection fields. New writes keep source selection on Submission
+  /// and ReviewVersion because one commit can be reached through many refs.
   branch               String?
   releaseTag           String?
   releaseUrl           String?
@@ -80,8 +100,16 @@ model RepositorySnapshot {
   /// succeeded | partial | failed
   inspectionStatus     String
   inspectionReportJson String
+  /// Git tree object belonging to commitSha.
+  sourceTreeSha        String?
+  /// default-branch | tag | release
+  sourceKind           String?
   /// Validated review manifest content, when present.
   manifestJson         String?
+  /// Durable canonical-JSON copy of preserved textual file contents
+  /// (contracts preservedFilesSchema), written at submission so preservation
+  /// never depends on the ephemeral inspect-to-submit capability row.
+  preservedFilesJson   String?
   /// SHA-256 over the normalized inspection payload (integrity/versioning aid).
   contentHash          String
 
@@ -96,6 +124,8 @@ model RepositorySnapshot {
 model Review {
   id                 String    @id @default(cuid())
   slug               String    @unique
+  /// Stable repository identity; prevents concurrent duplicate review rows.
+  repositoryId       String?   @unique
   currentSnapshotId  String?
   title              String
   abstract           String?
@@ -108,37 +138,115 @@ model Review {
   acceptedAt         DateTime?
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
+  /// Optimistic-concurrency counter for append-only public lifecycle events.
+  lifecycleRevision  Int       @default(0)
 
-  currentSnapshot RepositorySnapshot? @relation("currentSnapshot", fields: [currentSnapshotId], references: [id])
+  currentSnapshot RepositorySnapshot?    @relation("currentSnapshot", fields: [currentSnapshotId], references: [id])
+  repository      Repository?            @relation(fields: [repositoryId], references: [id])
   versions        ReviewVersion[]
   comments        ReviewComment[]
+  lifecycleEvents ReviewLifecycleEvent[]
 }
 
 model ReviewVersion {
-  id              String    @id @default(cuid())
-  reviewId        String
-  snapshotId      String
-  semanticVersion String?
-  title           String
-  abstract        String?
+  id                         String    @id @default(cuid())
+  reviewId                   String
+  snapshotId                 String
+  /// First submission that materialized this version (idempotency provenance).
+  sourceSubmissionId         String?   @unique
+  inspectionCaptureId        String?   @unique
+  /// Exact source selection accepted for this version.
+  sourceKind                 String?
+  sourceBranch               String?
+  sourceSelectionKey         String?
+  tagObjectSha               String?
+  sourceCreatedAt            DateTime?
+  semanticVersion            String?
+  title                      String
+  abstract                   String?
   /// Effective metadata + provenance for this immutable version.
-  metadataJson    String
-  versionDoi      String?
-  conceptDoi      String?
-  zenodoRecordId  String?
-  releaseTag      String?
+  metadataJson               String
+  versionDoi                 String?
+  conceptDoi                 String?
+  zenodoRecordId             String?
+  releaseTag                 String?
+  releaseUrl                 String?
+  /// Public, immutable release/DOI/commit consistency evidence.
+  publicationConsistencyJson String?
+  /// SHA-256 of the exact canonical inspection capture accepted here.
+  capturePayloadHash         String?
   /// True when every DOI/identifier on this version is a synthetic example
   /// (seed/demo data). The UI must not render outbound resolvers for these.
-  isExample       Boolean   @default(false)
-  publishedAt     DateTime?
-  createdAt       DateTime  @default(now())
+  isExample                  Boolean   @default(false)
+  publishedAt                DateTime?
+  createdAt                  DateTime  @default(now())
+  /// published | withdrawn | tombstoned. Updated only in the same
+  /// transaction that appends an attributable lifecycle event.
+  publicState                String    @default("published")
 
-  review       Review              @relation(fields: [reviewId], references: [id])
-  snapshot     RepositorySnapshot  @relation(fields: [snapshotId], references: [id])
-  contributors ReviewContributor[]
-  identifiers  Identifier[]
-  claims       Claim[]
-  citations    Citation[]
+  review               Review                 @relation(fields: [reviewId], references: [id])
+  snapshot             RepositorySnapshot     @relation(fields: [snapshotId], references: [id])
+  contributors         ReviewContributor[]
+  identifiers          Identifier[]
+  claims               Claim[]
+  citations            Citation[]
+  comments             ReviewComment[]
+  sourceSubmission     Submission?            @relation("VersionSource", fields: [sourceSubmissionId], references: [id])
+  inspectionCapture    InspectionCapture?     @relation(fields: [inspectionCaptureId], references: [id])
+  resultingSubmissions Submission[]           @relation("ResultingVersion")
+  lifecycleEvents      ReviewLifecycleEvent[] @relation("lifecycleTarget")
+  supersededByEvents   ReviewLifecycleEvent[] @relation("lifecycleSupersededVersion")
+
+  @@unique([reviewId, snapshotId, sourceSelectionKey])
+}
+
+/// Corrections, withdrawals and tombstones are immutable public events. The
+/// materialized ReviewVersion.publicState is only a fail-closed access guard;
+/// this append-only ledger remains the attributable scholarly record.
+model ReviewLifecycleEvent {
+  id                  String   @id @default(cuid())
+  reviewId            String
+  reviewVersionId     String
+  actorId             String
+  /// correction | withdrawal | tombstone
+  kind                String
+  reason              String
+  supersedesVersionId String?
+  /// Resulting Review.lifecycleRevision. Unique per review supplies CAS.
+  revision            Int
+  createdAt           DateTime @default(now())
+
+  review            Review         @relation(fields: [reviewId], references: [id])
+  reviewVersion     ReviewVersion  @relation("lifecycleTarget", fields: [reviewVersionId], references: [id])
+  supersedesVersion ReviewVersion? @relation("lifecycleSupersededVersion", fields: [supersedesVersionId], references: [id])
+  actor             User           @relation("lifecycleActor", fields: [actorId], references: [id])
+
+  @@unique([reviewId, revision])
+  @@index([reviewVersionId, createdAt])
+  @@index([kind, createdAt])
+}
+
+/// Server-side, opaque, expiring inspect-to-submit capability. Payloads are
+/// append-only; consumption and submission creation occur in one transaction.
+model InspectionCapture {
+  id                    String         @id @default(cuid())
+  tokenHash             String         @unique
+  payloadJson           String
+  payloadHash           String
+  githubRepositoryId    String
+  canonicalUrlAtCapture String
+  inspectedByUserId     String
+  commitSha             String
+  releaseTag            String?
+  createdAt             DateTime       @default(now())
+  expiresAt             DateTime
+  consumedAt            DateTime?
+  inspectedBy           User           @relation(fields: [inspectedByUserId], references: [id])
+  submission            Submission?
+  reviewVersion         ReviewVersion?
+
+  @@index([expiresAt])
+  @@index([payloadHash])
 }
 
 model Person {
@@ -166,30 +274,70 @@ model ReviewContributor {
 }
 
 model Submission {
-  id                    String    @id @default(cuid())
-  submitterId           String
-  repositoryId          String
-  snapshotId            String?
+  id                         String    @id @default(cuid())
+  submitterId                String
+  repositoryId               String
+  snapshotId                 String?
+  inspectionCaptureId        String?   @unique
+  /// Exact selection provenance from the consumed inspection capture.
+  sourceKind                 String?
+  sourceBranch               String?
+  sourceSelectionKey         String?
+  releaseTag                 String?
+  releaseUrl                 String?
+  tagObjectSha               String?
+  sourceCreatedAt            DateTime?
   /// contracts SUBMISSION_STATUSES
-  status                String    @default("draft")
-  extractedMetadataJson String?
-  editedMetadataJson    String?
-  validationReportJson  String?
+  status                     String    @default("draft")
+  extractedMetadataJson      String?
+  editedMetadataJson         String?
+  validationReportJson       String?
   /// Immutable snapshot of the exact payload the submitter finalized.
-  submittedPayloadJson  String?
-  submittedAt           DateTime?
-  reviewedAt            DateTime?
-  reviewerId            String?
-  editorialNote         String?
+  submittedPayloadJson       String?
+  submittedPayloadHash       String?
+  submittedAt                DateTime?
+  reviewedAt                 DateTime?
+  reviewerId                 String?
+  editorialNote              String?
+  /// Public consistency report produced from the exact captured source.
+  publicationConsistencyJson String?
   /// Review created/updated when this submission was accepted.
-  resultingReviewId     String?
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
+  resultingReviewId          String?
+  resultingReviewVersionId   String?
+  /// Revision lineage: the changes-requested submission this one resubmits.
+  previousSubmissionId       String?   @unique
+  createdAt                  DateTime  @default(now())
+  updatedAt                  DateTime  @updatedAt
 
-  submitter  User                @relation("submitter", fields: [submitterId], references: [id])
-  reviewer   User?               @relation("reviewer", fields: [reviewerId], references: [id])
-  repository Repository          @relation(fields: [repositoryId], references: [id])
-  snapshot   RepositorySnapshot? @relation(fields: [snapshotId], references: [id])
+  submitter              User                @relation("submitter", fields: [submitterId], references: [id])
+  reviewer               User?               @relation("reviewer", fields: [reviewerId], references: [id])
+  repository             Repository          @relation(fields: [repositoryId], references: [id])
+  snapshot               RepositorySnapshot? @relation(fields: [snapshotId], references: [id])
+  inspectionCapture      InspectionCapture?  @relation(fields: [inspectionCaptureId], references: [id])
+  sourceVersion          ReviewVersion?      @relation("VersionSource")
+  resultingReviewVersion ReviewVersion?      @relation("ResultingVersion", fields: [resultingReviewVersionId], references: [id])
+  editorialOverrides     EditorialOverride[]
+  previousSubmission     Submission?         @relation("Resubmission", fields: [previousSubmissionId], references: [id])
+  resubmission           Submission?         @relation("Resubmission")
+  editorAssignments      EditorAssignment[]
+  reviewRounds           ReviewRound[]
+}
+
+/// An explicit, check-scoped editorial exception. Overrides never rewrite the
+/// consistency report and are immutable once acceptance commits.
+model EditorialOverride {
+  id           String   @id @default(cuid())
+  submissionId String
+  checkId      String
+  rationale    String
+  editorId     String
+  createdAt    DateTime @default(now())
+
+  submission Submission @relation(fields: [submissionId], references: [id])
+  editor     User       @relation(fields: [editorId], references: [id])
+
+  @@unique([submissionId, checkId])
+  @@index([editorId])
 }
 
 model Identifier {
@@ -232,6 +380,7 @@ model Claim {
   linkProposalsFrom KnowledgeLinkProposal[] @relation("sourceClaim")
   linkProposalsTo   KnowledgeLinkProposal[] @relation("targetClaim")
   comments          ReviewComment[]
+  updateProposals   ClaimUpdateProposal[]
 
   @@unique([reviewVersionId, localClaimId])
 }
@@ -252,6 +401,7 @@ model Citation {
 
   reviewVersion     ReviewVersion           @relation(fields: [reviewVersionId], references: [id])
   evidenceRelations ClaimEvidenceRelation[]
+  updateProposals   ClaimUpdateProposal[]
 
   @@unique([reviewVersionId, localCitationId])
   @@index([doi])
@@ -411,31 +561,36 @@ model DiscussionMessage {
 /// Distinct from DiscussionThread/Message, which persist AI-grounded Q&A.
 /// Bodies are plain text only and always rendered escaped (never raw HTML).
 model ReviewComment {
-  id          String    @id @default(cuid())
-  reviewId    String
-  authorId    String
+  id              String    @id @default(cuid())
+  reviewId        String
+  /// Immutable review version this comment was made against. Nullable only
+  /// for legacy rows created before version-scoped discussion.
+  reviewVersionId String?
+  authorId        String
   /// Top-level comment when null; threads are one level deep (replies).
-  parentId    String?
+  parentId        String?
   /// Optional claim this comment is anchored to (claim-level commentary).
-  claimId     String?
+  claimId         String?
   /// contracts COMMENT_KINDS: comment | question | concern | suggestion | endorsement
-  kind        String    @default("comment")
-  body        String
+  kind            String    @default("comment")
+  body            String
   /// contracts COMMENT_STATUSES: visible | removed
-  status      String    @default("visible")
+  status          String    @default("visible")
   /// User id of the remover (author or editor); no FK to keep moderation light.
-  removedById String?
-  removedAt   DateTime?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  removedById     String?
+  removedAt       DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
-  review  Review          @relation(fields: [reviewId], references: [id])
-  author  User            @relation(fields: [authorId], references: [id])
-  parent  ReviewComment?  @relation("replies", fields: [parentId], references: [id])
-  replies ReviewComment[] @relation("replies")
-  claim   Claim?          @relation(fields: [claimId], references: [id])
+  review        Review          @relation(fields: [reviewId], references: [id])
+  reviewVersion ReviewVersion?  @relation(fields: [reviewVersionId], references: [id])
+  author        User            @relation(fields: [authorId], references: [id])
+  parent        ReviewComment?  @relation("replies", fields: [parentId], references: [id])
+  replies       ReviewComment[] @relation("replies")
+  claim         Claim?          @relation(fields: [claimId], references: [id])
 
   @@index([reviewId, createdAt])
+  @@index([reviewVersionId, createdAt])
 }
 
 /// Conservative automated cross-review link proposals (spec §15).
@@ -465,17 +620,189 @@ model KnowledgeLinkProposal {
 
 /// Append-only audit trail for editorially meaningful changes.
 model AuditEvent {
-  id          String   @id @default(cuid())
-  actorId     String?
+  id             String   @id @default(cuid())
+  actorId        String?
   /// e.g. submission.finalized, submission.accepted, review.published,
   /// trust.adjudicated, linkProposal.reviewed, auth.mock-login-refused
-  action      String
-  subjectType String
-  subjectId   String
-  detailsJson String   @default("{}")
-  createdAt   DateTime @default(now())
+  action         String
+  subjectType    String
+  subjectId      String
+  detailsJson    String   @default("{}")
+  /// Optional deterministic key for retry-safe transactional events.
+  idempotencyKey String?
+  createdAt      DateTime @default(now())
 
   actor User? @relation(fields: [actorId], references: [id])
 
   @@index([subjectType, subjectId])
+  @@index([idempotencyKey])
+}
+
+/// Database-enforced operation claim used before retry-safe audit writes.
+/// A new table keeps populated upgrades safe without adding a unique index
+/// over a legacy nullable column.
+model IdempotencyKey {
+  key       String   @id
+  createdAt DateTime @default(now())
+}
+
+/// Editor responsible for a submission, with an explicit conflict-of-interest
+/// declaration. A declared conflict forces immediate recusal; an editor can
+/// never be assigned to their own submission.
+model EditorAssignment {
+  id           String   @id @default(cuid())
+  submissionId String
+  editorId     String
+  assignedById String
+  /// contracts EDITOR_ASSIGNMENT_STATUSES: active | recused | completed
+  status       String   @default("active")
+  coiDeclared  Boolean  @default(false)
+  coiStatement String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  submission Submission @relation(fields: [submissionId], references: [id])
+  editor     User       @relation("assignmentEditor", fields: [editorId], references: [id])
+  assignedBy User       @relation("assignmentAssigner", fields: [assignedById], references: [id])
+
+  @@unique([submissionId, editorId])
+}
+
+/// Numbered formal review round on a submission. Rounds are append-only and
+/// close exactly once with a decision letter.
+model ReviewRound {
+  id           String    @id @default(cuid())
+  submissionId String
+  roundNumber  Int
+  /// contracts REVIEW_ROUND_STATUSES: open | decided
+  status       String    @default("open")
+  openedById   String
+  openedAt     DateTime  @default(now())
+  decidedAt    DateTime?
+
+  submission     Submission           @relation(fields: [submissionId], references: [id])
+  openedBy       User                 @relation("roundOpener", fields: [openedById], references: [id])
+  reports        FormalReviewReport[]
+  responses      AuthorResponse[]
+  decisionLetter DecisionLetter?
+
+  @@unique([submissionId, roundNumber])
+}
+
+/// Immutable, attributable formal peer-review report. One report per
+/// reviewer per round; there is no update or delete path.
+model FormalReviewReport {
+  id                    String   @id @default(cuid())
+  roundId               String
+  reviewerId            String
+  /// Reviewer ORCID snapshot at submission time (contracts orcidSchema).
+  reviewerOrcid         String?
+  reviewerOrcidVerified Boolean  @default(false)
+  /// contracts REVIEW_RECOMMENDATIONS
+  recommendation        String
+  /// Canonical JSON of contracts formalReviewReportBodySchema.
+  bodyJson              String
+  /// SHA-256 of bodyJson (integrity of the immutable report).
+  bodyHash              String
+  coiStatement          String?
+  submittedAt           DateTime @default(now())
+
+  round    ReviewRound @relation(fields: [roundId], references: [id])
+  reviewer User        @relation("formalReviewer", fields: [reviewerId], references: [id])
+
+  @@unique([roundId, reviewerId])
+}
+
+/// Author response within a review round; append-only and attributable.
+model AuthorResponse {
+  id          String   @id @default(cuid())
+  roundId     String
+  authorId    String
+  /// Canonical JSON of contracts authorResponseBodySchema.
+  bodyJson    String
+  bodyHash    String
+  submittedAt DateTime @default(now())
+
+  round  ReviewRound @relation(fields: [roundId], references: [id])
+  author User        @relation("respondingAuthor", fields: [authorId], references: [id])
+}
+
+/// Decision letter closing a round. Exactly one per round; immutable.
+model DecisionLetter {
+  id        String   @id @default(cuid())
+  roundId   String   @unique
+  editorId  String
+  /// contracts ROUND_DECISIONS: accept | reject | request-changes
+  decision  String
+  /// Canonical JSON of contracts decisionLetterBodySchema.
+  bodyJson  String
+  bodyHash  String
+  createdAt DateTime @default(now())
+
+  round  ReviewRound @relation(fields: [roundId], references: [id])
+  editor User        @relation("decisionEditor", fields: [editorId], references: [id])
+}
+
+/// In-app notification for editorial lifecycle events.
+model Notification {
+  id          String    @id @default(cuid())
+  userId      String
+  /// contracts NOTIFICATION_KINDS
+  kind        String
+  subjectType String
+  subjectId   String
+  payloadJson String    @default("{}")
+  readAt      DateTime?
+  createdAt   DateTime  @default(now())
+
+  user User @relation("notificationUser", fields: [userId], references: [id])
+
+  @@index([userId, readAt])
+}
+
+/// Externally observed change to a cited work (retraction, correction,
+/// expression of concern, new evidence). Signals are append-only.
+model CitationStatusRecord {
+  id           String   @id @default(cuid())
+  /// Canonical work alias (contracts canonicalWorkAliases form, e.g. doi:10.x/y).
+  workAlias    String
+  /// contracts CITATION_STATUSES
+  status       String
+  /// Where the signal came from (registry, publisher notice, manual review).
+  source       String
+  evidenceUrl  String?
+  note         String?
+  recordedById String?
+  recordedAt   DateTime @default(now())
+
+  recordedBy User?                 @relation("statusRecorder", fields: [recordedById], references: [id])
+  proposals  ClaimUpdateProposal[]
+
+  @@index([workAlias])
+}
+
+/// Human-reviewable update proposal opened when a status signal affects a
+/// claim. Conclusions are never rewritten automatically; an editor resolves
+/// each proposal with an attributable note.
+model ClaimUpdateProposal {
+  id             String    @id @default(cuid())
+  statusRecordId String
+  claimId        String
+  citationId     String
+  /// contracts PROPOSAL_STATUSES
+  status         String    @default("open")
+  /// Deterministic description of why this claim is affected.
+  rationale      String
+  resolvedById   String?
+  resolutionNote String?
+  createdAt      DateTime  @default(now())
+  resolvedAt     DateTime?
+
+  statusRecord CitationStatusRecord @relation(fields: [statusRecordId], references: [id])
+  claim        Claim                @relation(fields: [claimId], references: [id])
+  citation     Citation             @relation(fields: [citationId], references: [id])
+  resolvedBy   User?                @relation("proposalResolver", fields: [resolvedById], references: [id])
+
+  @@unique([statusRecordId, claimId])
+  @@index([status])
 }

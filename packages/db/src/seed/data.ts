@@ -463,7 +463,7 @@ export const templateDemoReview: SeedReview = {
     pagesUrl: "https://allenneuraldynamics.github.io/ComputationalReviewTemplate/",
   },
   snapshot: {
-    commitSha: sha("template00commit00demo"),
+    commitSha: sha("deadc0deca11ab1e0000"),
     branch: "main",
     releaseTag: "v1.0.0",
     releaseUrl:
@@ -506,6 +506,7 @@ export const pendingSubmission = {
   },
   snapshot: {
     commitSha: sha("55bb66cc77dd88ee99ff"),
+    treeSha: sha("66cc77dd88ee99ff00aa"),
     branch: "main",
   },
   title: "A Computational Review of Spike-Sorting Methods",
