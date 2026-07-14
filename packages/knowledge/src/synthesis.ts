@@ -61,6 +61,17 @@ function normalizeToken(value: string): string {
   return value.trim().toLowerCase();
 }
 
+/**
+ * Low-entropy dataset labels ("controls", "n/a", …) are not identifiers and
+ * must never union unrelated works into one evidence family. Only tokens that
+ * look like a namespaced accession (a prefix, or a digit-bearing code) group
+ * works together.
+ */
+function isGroupingDatasetToken(token: string): boolean {
+  if (token.length < 4) return false;
+  return /[:/]/.test(token) || (/\d/.test(token) && /[a-z]/.test(token)) || /^\d{4,}$/.test(token);
+}
+
 /** Primary canonical alias of a citation, or a citation-scoped fallback. */
 export function workKey(citation: SynthesisCitation): string {
   const aliases = canonicalWorkAliases({
@@ -113,7 +124,7 @@ export function evidenceFamilies(citations: SynthesisCitation[]): Map<string, st
     for (const citation of group) {
       for (const dataset of citation.datasetIds) {
         const token = normalizeToken(dataset);
-        if (!token) continue;
+        if (!isGroupingDatasetToken(token)) continue;
         const existing = byDataset.get(token);
         if (existing) union(existing, key);
         else byDataset.set(token, key);
@@ -174,15 +185,17 @@ export interface ContradictionEntry {
   claimIdA: string;
   claimIdB: string;
   /**
-   * Both kinds require the two claims to read at least one *shared* evidence
+   * All kinds require the two claims to read at least one *shared* evidence
    * family in opposite directions — claims whose evidence never overlaps are
    * about different things, not contradictions.
-   * genuine-contradiction: shared evidence, opposite directions, and no
-   *   declared scope difference — a real disagreement;
-   * scope-difference: shared evidence in opposite directions, but the declared
-   *   scopes differ, so the statements may answer different questions.
+   * genuine-contradiction: opposite directions, both claims declare scope, and
+   *   no declared field differs — a real disagreement;
+   * scope-difference: opposite directions, but a declared scope field differs,
+   *   so the statements may answer different questions;
+   * undetermined-scope: opposite directions, but at least one claim declared no
+   *   scope, so a scope difference can neither be confirmed nor ruled out.
    */
-  kind: "genuine-contradiction" | "scope-difference";
+  kind: "genuine-contradiction" | "scope-difference" | "undetermined-scope";
   /** Number of evidence families the two claims read in opposite directions. */
   sharedFamilyCount: number;
   differingScopeFields: string[];
@@ -307,10 +320,18 @@ export function synthesize(
       );
       if (sharedOpposite.size === 0) continue;
       const scopeDiff = differingScopeFields(a.scope, b.scope);
+      // A missing scope on either side means we cannot claim the scopes match,
+      // so an empty diff is only a genuine contradiction when both declared one.
+      const kind =
+        scopeDiff.length > 0
+          ? "scope-difference"
+          : a.scope && b.scope
+            ? "genuine-contradiction"
+            : "undetermined-scope";
       contradictions.push({
         claimIdA: a.claimId,
         claimIdB: b.claimId,
-        kind: scopeDiff.length > 0 ? "scope-difference" : "genuine-contradiction",
+        kind,
         sharedFamilyCount: sharedOpposite.size,
         differingScopeFields: scopeDiff,
       });

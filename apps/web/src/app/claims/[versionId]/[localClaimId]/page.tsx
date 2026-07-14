@@ -155,7 +155,9 @@ export default async function ClaimPassportPage({
                   <li key={index}>
                     {row.kind === "scope-difference"
                       ? `Scope difference (${row.differingScopeFields.join(", ")})`
-                      : "Genuine contradiction over shared evidence"}{" "}
+                      : row.kind === "undetermined-scope"
+                        ? "Contradiction over shared evidence (scope undeclared)"
+                        : "Genuine contradiction over shared evidence"}{" "}
                     with <Link href={other.passportPath}>{other.text.slice(0, 80)}</Link>
                   </li>
                 );

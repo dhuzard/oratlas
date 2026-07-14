@@ -37,6 +37,22 @@ describe("evidenceFamilies", () => {
     ]);
     expect(families.get("doi:10.1234/source")).toBe(families.get("doi:10.1234/derived"));
   });
+
+  it("does not union works over low-entropy dataset labels", () => {
+    const families = evidenceFamilies([
+      citation({ citationId: "c1", doi: "10.1234/a", datasetIds: ["controls"] }),
+      citation({ citationId: "c2", doi: "10.1234/b", datasetIds: ["controls"] }),
+    ]);
+    expect(families.get("doi:10.1234/a")).not.toBe(families.get("doi:10.1234/b"));
+  });
+
+  it("unions works over accession-like dataset ids", () => {
+    const families = evidenceFamilies([
+      citation({ citationId: "c1", doi: "10.1234/a", datasetIds: ["GSE12345"] }),
+      citation({ citationId: "c2", doi: "10.1234/b", datasetIds: ["gse12345"] }),
+    ]);
+    expect(families.get("doi:10.1234/a")).toBe(families.get("doi:10.1234/b"));
+  });
 });
 
 describe("circularCitations", () => {
@@ -67,8 +83,8 @@ describe("differingScopeFields", () => {
 
 describe("synthesize", () => {
   const citations = [
-    citation({ citationId: "c1", doi: "10.1234/a", datasetIds: ["D1"] }),
-    citation({ citationId: "c2", doi: "10.1234/b", datasetIds: ["D1"] }), // same family as c1
+    citation({ citationId: "c1", doi: "10.1234/a", datasetIds: ["GSE1001"] }),
+    citation({ citationId: "c2", doi: "10.1234/b", datasetIds: ["GSE1001"] }), // same family as c1
     citation({ citationId: "c3", doi: "10.1234/c" }), // independent
   ];
 
@@ -101,6 +117,7 @@ describe("synthesize", () => {
       claimId: "claim:S",
       localClaimId: "s",
       text: "Sorters match manual curation.",
+      scope: { population: "dense probes" },
       evidence: [{ citationId: "c3", relationType: "supports" }],
     };
     const opposes: SynthesisStatement = {
@@ -108,12 +125,23 @@ describe("synthesize", () => {
       claimId: "claim:O",
       localClaimId: "o",
       text: "Sorters do not match manual curation.",
+      scope: { population: "dense probes" },
       evidence: [{ citationId: "c3", relationType: "contradicts" }],
     };
     const genuine = synthesize([supports, opposes], citations);
     expect(genuine.contradictions).toHaveLength(1);
     expect(genuine.contradictions[0]!.kind).toBe("genuine-contradiction");
     expect(genuine.contradictions[0]!.sharedFamilyCount).toBe(1);
+
+    // Same evidence and directions, but neither claim declares a scope.
+    const undeclared = synthesize(
+      [
+        { ...supports, scope: undefined },
+        { ...opposes, scope: undefined },
+      ],
+      citations,
+    );
+    expect(undeclared.contradictions[0]!.kind).toBe("undetermined-scope");
 
     const scopedOpposes: SynthesisStatement = {
       ...opposes,

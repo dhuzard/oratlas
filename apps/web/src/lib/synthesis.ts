@@ -140,34 +140,43 @@ function passportPath(entry: { reviewVersionId: string; localClaimId: string }):
   return `/claims/${entry.reviewVersionId}/${encodeURIComponent(entry.localClaimId)}`;
 }
 
+function toContradictionRow(
+  entry: ContradictionEntry,
+  statementByClaim: Map<string, SynthesisStatement>,
+  claimTextById: Map<string, { text: string }>,
+): ContradictionMapRow {
+  const a = statementByClaim.get(entry.claimIdA)!;
+  const b = statementByClaim.get(entry.claimIdB)!;
+  return {
+    kind: entry.kind,
+    sharedFamilyCount: entry.sharedFamilyCount,
+    differingScopeFields: entry.differingScopeFields,
+    a: {
+      claimId: entry.claimIdA,
+      text: claimTextById.get(entry.claimIdA)!.text,
+      passportPath: passportPath(a),
+    },
+    b: {
+      claimId: entry.claimIdB,
+      text: claimTextById.get(entry.claimIdB)!.text,
+      passportPath: passportPath(b),
+    },
+  };
+}
+
+function zeroCounts(): Record<ContradictionEntry["kind"], number> {
+  return { "genuine-contradiction": 0, "scope-difference": 0, "undetermined-scope": 0 };
+}
+
 /** Cross-review contradiction map with independence-aware classification. */
 export async function getContradictionMap(): Promise<ContradictionMap> {
   const { statements, citations, archivedDois, claimTextById } = await assemble();
   const result = synthesize(statements, citations, archivedDois);
-  const versionByClaim = new Map(statements.map((statement) => [statement.claimId, statement]));
-  const counts: Record<ContradictionEntry["kind"], number> = {
-    "genuine-contradiction": 0,
-    "scope-difference": 0,
-  };
+  const statementByClaim = new Map(statements.map((statement) => [statement.claimId, statement]));
+  const counts = zeroCounts();
   const rows: ContradictionMapRow[] = result.contradictions.map((entry) => {
     counts[entry.kind] += 1;
-    const a = versionByClaim.get(entry.claimIdA)!;
-    const b = versionByClaim.get(entry.claimIdB)!;
-    return {
-      kind: entry.kind,
-      sharedFamilyCount: entry.sharedFamilyCount,
-      differingScopeFields: entry.differingScopeFields,
-      a: {
-        claimId: entry.claimIdA,
-        text: claimTextById.get(entry.claimIdA)!.text,
-        passportPath: passportPath(a),
-      },
-      b: {
-        claimId: entry.claimIdB,
-        text: claimTextById.get(entry.claimIdB)!.text,
-        passportPath: passportPath(b),
-      },
-    };
+    return toContradictionRow(entry, statementByClaim, claimTextById);
   });
   const reviewSlugs = new Set(statements.map((statement) => statement.reviewSlug));
   return {
@@ -199,28 +208,10 @@ export async function getClaimIndependence(
   const result = synthesize(statements, citations, archivedDois);
   const summary = result.statements.find((entry) => entry.claimId === claimId)?.summary;
   if (!summary) return null;
-  const versionByClaim = new Map(statements.map((entry) => [entry.claimId, entry]));
+  const statementByClaim = new Map(statements.map((entry) => [entry.claimId, entry]));
   const contradictions: ContradictionMapRow[] = result.contradictions
     .filter((entry) => entry.claimIdA === claimId || entry.claimIdB === claimId)
-    .map((entry) => {
-      const a = versionByClaim.get(entry.claimIdA)!;
-      const b = versionByClaim.get(entry.claimIdB)!;
-      return {
-        kind: entry.kind,
-        sharedFamilyCount: entry.sharedFamilyCount,
-        differingScopeFields: entry.differingScopeFields,
-        a: {
-          claimId: entry.claimIdA,
-          text: claimTextById.get(entry.claimIdA)!.text,
-          passportPath: passportPath(a),
-        },
-        b: {
-          claimId: entry.claimIdB,
-          text: claimTextById.get(entry.claimIdB)!.text,
-          passportPath: passportPath(b),
-        },
-      };
-    });
+    .map((entry) => toContradictionRow(entry, statementByClaim, claimTextById));
   return { summary, contradictions };
 }
 

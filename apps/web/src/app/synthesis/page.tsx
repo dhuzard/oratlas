@@ -9,11 +9,13 @@ export const metadata: Metadata = { title: "Contradiction map" };
 const KIND_LABEL: Record<ContradictionMapRow["kind"], string> = {
   "genuine-contradiction": "Genuine contradiction",
   "scope-difference": "Scope difference",
+  "undetermined-scope": "Contradiction (scope undeclared)",
 };
 
-const KIND_TONE: Record<ContradictionMapRow["kind"], "warning" | "info"> = {
+const KIND_TONE: Record<ContradictionMapRow["kind"], "warning" | "info" | "neutral"> = {
   "genuine-contradiction": "warning",
   "scope-difference": "info",
+  "undetermined-scope": "neutral",
 };
 
 /**
@@ -38,7 +40,11 @@ export default async function SynthesisPage() {
       <div className="btn-row" style={{ marginBottom: "0.6rem" }}>
         <Badge tone="warning">{map.counts["genuine-contradiction"]} genuine contradictions</Badge>
         <Badge tone="neutral">{map.counts["scope-difference"]} scope differences</Badge>
+        <Badge tone="neutral">{map.counts["undetermined-scope"]} scope undeclared</Badge>
       </div>
+      <p className="muted" style={{ fontSize: "0.9rem" }}>
+        Comparison is over the current version of each review.
+      </p>
 
       {map.contradictions.length === 0 ? (
         <Card>

@@ -18,6 +18,10 @@ independent line of evidence.
 
 A citation whose DOI resolves to an archived (non-example) review version points back
 into Atlas. Such citations are flagged and excluded from independent-evidence counts.
+The seeded archive is entirely synthetic (every version DOI uses the reserved
+`10.5555/` example prefix and is flagged non-resolvable), so no seeded citation is
+circular; the logic is covered by `synthesis.test.ts` and activates only once real,
+non-example review DOIs exist.
 
 ## Contradiction classification
 
@@ -30,6 +34,12 @@ contradictory. Each qualifying pair is classified:
 - **scope-difference** — shared evidence in opposite directions, but the claims declare
   different `population`, `model`, `intervention`, `outcome` or `method`, so they may
   answer different questions.
+- **undetermined-scope** — shared evidence in opposite directions, but at least one
+  claim declared no scope, so a scope difference can be neither confirmed nor ruled out
+  (never silently treated as a genuine contradiction).
+
+Dataset accessions group works only when they look like identifiers (namespaced or
+digit-bearing); low-entropy labels like "controls" never union unrelated works.
 
 ## Surfaces
 
@@ -37,6 +47,9 @@ contradictory. Each qualifying pair is classified:
 - `GET /api/synthesis/contradictions` — the same data as JSON (no-store).
 - Each claim passport shows an independence summary (supporting/opposing works vs
   independent families, shared works, circular citations) and its contradictions.
+
+Comparison is over the current version of each review; passports of superseded
+versions therefore render no independence card.
 
 ## Data
 
