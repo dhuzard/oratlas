@@ -6,12 +6,12 @@ developer node: database portability and migrations, backup and recovery,
 observability, rate limiting and request caps, accessibility coverage, and the
 privacy/takedown process that backs the tombstone invariant.
 
-| Runbook | Purpose |
-| --- | --- |
-| [postgres.md](./postgres.md) | Running on PostgreSQL; schema portability and tested migrations. |
-| [backup-recovery.md](./backup-recovery.md) | Backup and restore procedures for SQLite and PostgreSQL. |
-| [observability.md](./observability.md) | Health/readiness endpoints, structured logs, request correlation. |
-| [privacy-and-takedown.md](./privacy-and-takedown.md) | Handling takedown/privacy requests via the tombstone mechanism. |
+| Runbook                                              | Purpose                                                           |
+| ---------------------------------------------------- | ----------------------------------------------------------------- |
+| [postgres.md](./postgres.md)                         | Running on PostgreSQL; schema portability and tested migrations.  |
+| [backup-recovery.md](./backup-recovery.md)           | Backup and restore procedures for SQLite and PostgreSQL.          |
+| [observability.md](./observability.md)               | Health/readiness endpoints, structured logs, request correlation. |
+| [privacy-and-takedown.md](./privacy-and-takedown.md) | Handling takedown/privacy requests via the tombstone mechanism.   |
 
 ## Production gates
 

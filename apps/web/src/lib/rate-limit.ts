@@ -1,4 +1,5 @@
 import "server-only";
+import { getServerEnv } from "@oratlas/config";
 
 /**
  * In-process fixed-window rate limiter (spec §17). Sufficient for the POC and a
@@ -31,6 +32,12 @@ export function rateLimit(key: string, limit: number, windowMs: number): RateLim
   }
   existing.count += 1;
   return { ok: true, remaining: limit - existing.count, resetAt: existing.resetAt };
+}
+
+/** Configured default budget (RATE_LIMIT_MAX / RATE_LIMIT_WINDOW_MS). */
+export function rateLimitDefaults(): { max: number; windowMs: number } {
+  const env = getServerEnv();
+  return { max: env.RATE_LIMIT_MAX, windowMs: env.RATE_LIMIT_WINDOW_MS };
 }
 
 /** Best-effort client identity for rate limiting (IP header or fallback). */
