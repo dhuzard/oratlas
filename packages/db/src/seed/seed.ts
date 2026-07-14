@@ -620,7 +620,7 @@ async function main() {
   // Evidence-monitoring fixture: one retraction signal on a cited work of the
   // replay review, opening a human-reviewable update proposal (issue #3).
   const monitoredCitation = await prisma.citation.findFirst({
-    where: { doi: { not: null }, reviewVersion: { review: { slug: seedReviews[0]!.slug } } },
+    where: { doi: { not: null }, reviewVersionId: versionIdBySlug.get(seedReviews[0]!.slug) },
     include: { evidenceRelations: { take: 1 } },
   });
   const monitoredRelation = monitoredCitation?.evidenceRelations[0];

@@ -12,7 +12,7 @@ export async function generateMetadata({
   params: Promise<{ versionId: string; localClaimId: string }>;
 }): Promise<Metadata> {
   const { versionId, localClaimId } = await params;
-  const passport = await getClaimPassport(versionId, decodeURIComponent(localClaimId));
+  const passport = await getClaimPassport(versionId, localClaimId);
   if (!passport) return { title: "Claim not found" };
   return { title: `Claim ${passport.localClaimId} — ${passport.reviewTitle}` };
 }
@@ -27,7 +27,7 @@ export default async function ClaimPassportPage({
   params: Promise<{ versionId: string; localClaimId: string }>;
 }) {
   const { versionId, localClaimId } = await params;
-  const passport = await getClaimPassport(versionId, decodeURIComponent(localClaimId));
+  const passport = await getClaimPassport(versionId, localClaimId);
   if (!passport) notFound();
   const openAlerts = passport.alerts.filter((alert) => alert.status === "open");
 

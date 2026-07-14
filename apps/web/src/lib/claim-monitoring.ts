@@ -11,7 +11,7 @@ import {
 } from "@oratlas/contracts";
 import { type Prisma } from "@oratlas/db";
 import { prisma } from "./db";
-import { prismaCode, withSqliteRetry as sharedWithSqliteRetry } from "./db-retry";
+import { withSqliteRetry as sharedWithSqliteRetry } from "./db-retry";
 import { isReadablePublicState } from "./review-lifecycle";
 
 /**
@@ -110,27 +110,32 @@ export async function registerCitationStatus(
             recordedById: actor.id,
           },
         });
-        const affectedClaimIds: string[] = [];
+        // One proposal per claim and signal: dedupe in application code so no
+        // unique violation ever fires inside the transaction (a caught P2002
+        // would abort the whole transaction on Postgres).
+        const targetByClaim = new Map<string, { citationId: string; relationType: string }>();
         for (const citation of affected) {
           for (const relation of citation.evidenceRelations) {
-            try {
-              await tx.claimUpdateProposal.create({
-                data: {
-                  statusRecordId: record.id,
-                  claimId: relation.claimId,
-                  citationId: citation.id,
-                  rationale:
-                    `Cited work ${aliases[0]} was marked "${parsed.status}" (source: ${parsed.source}). ` +
-                    `This claim relies on it via a "${relation.relationType}" relation.`,
-                },
+            if (!targetByClaim.has(relation.claimId)) {
+              targetByClaim.set(relation.claimId, {
+                citationId: citation.id,
+                relationType: relation.relationType,
               });
-              affectedClaimIds.push(relation.claimId);
-            } catch (error) {
-              // One proposal per claim and signal; further citations of the
-              // same work by the same claim collapse into it.
-              if (prismaCode(error) !== "P2002") throw error;
             }
           }
+        }
+        const affectedClaimIds = [...targetByClaim.keys()];
+        for (const [claimId, target] of targetByClaim) {
+          await tx.claimUpdateProposal.create({
+            data: {
+              statusRecordId: record.id,
+              claimId,
+              citationId: target.citationId,
+              rationale:
+                `Cited work ${aliases[0]} was marked "${parsed.status}" (source: ${parsed.source}). ` +
+                `This claim relies on it via a "${target.relationType}" relation.`,
+            },
+          });
         }
         await tx.auditEvent.create({
           data: {
@@ -274,7 +279,10 @@ const PROPOSAL_INCLUDE = {
 /** Open proposals for the editorial queue. */
 export async function listOpenProposals(): Promise<ProposalRow[]> {
   const rows = await prisma.claimUpdateProposal.findMany({
-    where: { status: "open" },
+    where: {
+      status: "open",
+      claim: { reviewVersion: { publicState: { in: ["published", "withdrawn"] } } },
+    },
     include: PROPOSAL_INCLUDE,
     orderBy: { createdAt: "desc" },
     take: 200,
@@ -289,10 +297,19 @@ export async function listOpenProposals(): Promise<ProposalRow[]> {
 export async function listProposalsForSlug(
   slug: string,
 ): Promise<{ openCount: number; proposals: ProposalRow[] } | null> {
-  const review = await prisma.review.findUnique({ where: { slug }, select: { id: true } });
+  // Public boundary: only published reviews, and only claims of readable
+  // (non-tombstoned) versions, matching the passport and review pages.
+  const review = await prisma.review.findFirst({
+    where: { slug, status: "published" },
+    select: { id: true },
+  });
   if (!review) return null;
   const rows = await prisma.claimUpdateProposal.findMany({
-    where: { claim: { reviewVersion: { reviewId: review.id } } },
+    where: {
+      claim: {
+        reviewVersion: { reviewId: review.id, publicState: { in: ["published", "withdrawn"] } },
+      },
+    },
     include: PROPOSAL_INCLUDE,
     orderBy: { createdAt: "desc" },
     take: 200,
