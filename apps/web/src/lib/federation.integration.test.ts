@@ -90,7 +90,11 @@ beforeAll(async () => {
   user = { id: userRow.id, role: userRow.role };
 
   const repository = await prisma.repository.create({
-    data: { owner: "lab", name: "review", canonicalUrl: "https://github.com/lab/review" },
+    data: {
+      owner: "federation-lab",
+      name: "federated-review",
+      canonicalUrl: "https://github.com/federation-lab/federated-review",
+    },
   });
   const snapshot = await prisma.repositorySnapshot.create({
     data: {
