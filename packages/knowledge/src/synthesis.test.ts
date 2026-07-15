@@ -181,6 +181,24 @@ describe("synthesize", () => {
     expect(synthesize([supports, opposes], twoWorks).contradictions).toHaveLength(0);
   });
 
+  it("counts a shared family once when both claims declare both directions", () => {
+    const statement = (claimId: string): SynthesisStatement => ({
+      claimId,
+      reviewSlug: "r",
+      reviewVersionId: "v",
+      localClaimId: claimId,
+      text: "Mixed evidence.",
+      evidence: [
+        { citationId: "c3", relationType: "supports" },
+        { citationId: "c3", relationType: "contradicts" },
+      ],
+    });
+    const result = synthesize([statement("claim:A"), statement("claim:B")], citations);
+
+    expect(result.contradictions).toHaveLength(1);
+    expect(result.contradictions[0]!.sharedFamilyCount).toBe(1);
+  });
+
   it("excludes circular citations from independent counts", () => {
     const withCircular = [citation({ citationId: "c1", doi: "10.5281/zenodo.9" })];
     const statement: SynthesisStatement = {
@@ -195,6 +213,25 @@ describe("synthesize", () => {
       { doi: "10.5281/zenodo.9", reviewSlug: "prior" },
     ]);
     expect(result.statements[0]!.summary.independentSupportingFamilies).toBe(0);
+    expect(result.statements[0]!.summary.circularCitationIds).toEqual(["c1"]);
+  });
+
+  it("counts one circular citation once even when the claim declares multiple relations", () => {
+    const withCircular = [citation({ citationId: "c1", doi: "10.5281/zenodo.9" })];
+    const statement: SynthesisStatement = {
+      claimId: "claim:A",
+      reviewSlug: "r",
+      reviewVersionId: "v",
+      localClaimId: "a",
+      text: "Holds with qualifications.",
+      evidence: [
+        { citationId: "c1", relationType: "supports" },
+        { citationId: "c1", relationType: "contradicts" },
+      ],
+    };
+    const result = synthesize([statement], withCircular, [
+      { doi: "10.5281/zenodo.9", reviewSlug: "prior" },
+    ]);
     expect(result.statements[0]!.summary.circularCitationIds).toEqual(["c1"]);
   });
 });

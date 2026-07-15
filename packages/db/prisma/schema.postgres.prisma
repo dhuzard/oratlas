@@ -39,24 +39,29 @@ model User {
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
 
-  submissions        Submission[]           @relation("submitter")
-  editorialDecisions Submission[]           @relation("reviewer")
-  discussionThreads  DiscussionThread[]
-  reviewComments     ReviewComment[]
-  auditEvents        AuditEvent[]
-  trustVerifications TrustVerification[]    @relation("trustReviewer")
-  inspectionCaptures InspectionCapture[]
-  editorialOverrides EditorialOverride[]
-  lifecycleEvents    ReviewLifecycleEvent[] @relation("lifecycleActor")
-  editorAssignments  EditorAssignment[]     @relation("assignmentEditor")
-  assignmentsMade    EditorAssignment[]     @relation("assignmentAssigner")
-  roundsOpened       ReviewRound[]          @relation("roundOpener")
-  formalReports      FormalReviewReport[]   @relation("formalReviewer")
-  authorResponses    AuthorResponse[]       @relation("respondingAuthor")
-  decisionLetters    DecisionLetter[]       @relation("decisionEditor")
-  notifications      Notification[]         @relation("notificationUser")
-  statusRecords      CitationStatusRecord[] @relation("statusRecorder")
-  proposalsResolved  ClaimUpdateProposal[]  @relation("proposalResolver")
+  submissions                Submission[]           @relation("submitter")
+  editorialDecisions         Submission[]           @relation("reviewer")
+  discussionThreads          DiscussionThread[]
+  reviewComments             ReviewComment[]
+  auditEvents                AuditEvent[]
+  trustVerifications         TrustVerification[]    @relation("trustReviewer")
+  inspectionCaptures         InspectionCapture[]
+  editorialOverrides         EditorialOverride[]
+  lifecycleEvents            ReviewLifecycleEvent[] @relation("lifecycleActor")
+  editorAssignments          EditorAssignment[]     @relation("assignmentEditor")
+  assignmentsMade            EditorAssignment[]     @relation("assignmentAssigner")
+  roundsOpened               ReviewRound[]          @relation("roundOpener")
+  formalReports              FormalReviewReport[]   @relation("formalReviewer")
+  authorResponses            AuthorResponse[]       @relation("respondingAuthor")
+  decisionLetters            DecisionLetter[]       @relation("decisionEditor")
+  notifications              Notification[]         @relation("notificationUser")
+  statusRecords              CitationStatusRecord[] @relation("statusRecorder")
+  proposalsResolved          ClaimUpdateProposal[]  @relation("proposalResolver")
+  replicationBriefsCreated   ReplicationBrief[]     @relation("replicationCreator")
+  replicationBriefsPublished ReplicationBrief[]     @relation("replicationPublisher")
+  replicationBriefsClaimed   ReplicationBrief[]     @relation("replicationClaimant")
+  replicationBriefsCompleted ReplicationBrief[]     @relation("replicationCompleter")
+  replicationBriefsWithdrawn ReplicationBrief[]     @relation("replicationWithdrawer")
 
   @@index([githubLoginNormalized])
 }
@@ -388,8 +393,71 @@ model Claim {
   linkProposalsTo   KnowledgeLinkProposal[] @relation("targetClaim")
   comments          ReviewComment[]
   updateProposals   ClaimUpdateProposal[]
+  replicationBriefs ReplicationBriefClaim[]
 
   @@unique([reviewVersionId, localClaimId])
+}
+
+/// A human-editor-published replication opportunity. Triage snapshots are
+/// deterministic evidence-gap metadata only; they are never scientific truth
+/// scores, outcome predictions, or rankings of the people who claim briefs.
+model ReplicationBrief {
+  id                      String    @id @default(cuid())
+  requestKey              String    @unique
+  requestHash             String
+  slug                    String    @unique
+  title                   String
+  summary                 String
+  scopeJson               String
+  expectedInformationGain String
+  effortBand              String
+  protocolUrl             String?
+  citationUrlsJson        String    @default("[]")
+  /// draft | open | claimed | completed | withdrawn
+  status                  String    @default("draft")
+  /// Optimistic-concurrency counter for every lifecycle transition.
+  revision                Int       @default(0)
+  /// Snapshot of rule ids/counts at publication; no scalar score.
+  triageSnapshotJson      String?
+  createdById             String
+  publishedById           String?
+  publishedAt             DateTime?
+  claimedById             String?
+  claimedAt               DateTime?
+  claimNote               String?
+  completedById           String?
+  completedAt             DateTime?
+  completionUrl           String?
+  completionSummary       String?
+  withdrawnById           String?
+  withdrawnAt             DateTime?
+  withdrawalReason        String?
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+
+  createdBy   User                    @relation("replicationCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  publishedBy User?                   @relation("replicationPublisher", fields: [publishedById], references: [id], onDelete: Restrict)
+  claimedBy   User?                   @relation("replicationClaimant", fields: [claimedById], references: [id], onDelete: Restrict)
+  completedBy User?                   @relation("replicationCompleter", fields: [completedById], references: [id], onDelete: Restrict)
+  withdrawnBy User?                   @relation("replicationWithdrawer", fields: [withdrawnById], references: [id], onDelete: Restrict)
+  claims      ReplicationBriefClaim[]
+
+  @@index([status, publishedAt])
+  @@index([effortBand, status])
+  @@index([claimedById, status])
+}
+
+model ReplicationBriefClaim {
+  replicationBriefId String
+  claimId            String
+  position           Int
+
+  replicationBrief ReplicationBrief @relation(fields: [replicationBriefId], references: [id])
+  claim            Claim            @relation(fields: [claimId], references: [id])
+
+  @@id([replicationBriefId, claimId])
+  @@unique([replicationBriefId, position])
+  @@index([claimId])
 }
 
 model Citation {

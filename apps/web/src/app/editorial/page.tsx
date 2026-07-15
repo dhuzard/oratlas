@@ -66,6 +66,9 @@ export default async function EditorialPage({
         submission materializes an immutable public review version from the exact submitted
         snapshot.
       </p>
+      <p>
+        <a href="/editorial/replications">Manage replication briefs →</a>
+      </p>
 
       <h2>Pending submissions ({pending.length})</h2>
       {pending.length === 0 ? (

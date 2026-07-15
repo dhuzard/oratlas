@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Open Review Atlas API
-  version: 0.2.0
+  version: 0.3.0
   description: >
     External data contracts for the Open Review Atlas POC. Application mutations
     are exposed as conventional JSON API routes. All error responses use the
@@ -190,6 +190,273 @@ components:
         parentId:
           type: string
           description: Id of the comment being replied to. Threads are one level deep.
+    ReplicationClaimRef:
+      type: object
+      additionalProperties: false
+      required: [reviewVersionId, localClaimId]
+      properties:
+        reviewVersionId: { type: string, minLength: 1, maxLength: 200 }
+        localClaimId: { type: string, minLength: 1, maxLength: 120 }
+    ReplicationPublicUrl:
+      type: string
+      format: uri
+      maxLength: 2000
+      pattern: "^https://[^/?#@]+(?:/[^?#]*)?$"
+      description: >
+        Canonical public HTTPS URL. Atlas trims and normalizes accepted values and rejects
+        credentials, queries, fragments, localhost, single-label or internal hostnames, and
+        loopback, private, link-local, multicast, documentation, or reserved IP literals without
+        performing DNS or network access.
+    ReplicationScope:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      description: At least one bounded scope field is required.
+      properties:
+        population: { type: string, minLength: 1, maxLength: 300 }
+        model: { type: string, minLength: 1, maxLength: 300 }
+        intervention: { type: string, minLength: 1, maxLength: 300 }
+        outcome: { type: string, minLength: 1, maxLength: 300 }
+        method: { type: string, minLength: 1, maxLength: 300 }
+        notes: { type: string, minLength: 20, maxLength: 2000 }
+    ReplicationBriefCreateRequest:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          idempotencyKey,
+          slug,
+          title,
+          summary,
+          scope,
+          expectedInformationGain,
+          effortBand,
+          citationUrls,
+          claims,
+        ]
+      properties:
+        idempotencyKey: { type: string, format: uuid }
+        slug:
+          type: string
+          minLength: 3
+          maxLength: 100
+          pattern: "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+        title: { type: string, minLength: 10, maxLength: 300 }
+        summary: { type: string, minLength: 50, maxLength: 5000 }
+        scope: { $ref: "#/components/schemas/ReplicationScope" }
+        expectedInformationGain: { type: string, minLength: 50, maxLength: 5000 }
+        effortBand: { type: string, enum: [small, medium, large, consortium] }
+        protocolUrl: { $ref: "#/components/schemas/ReplicationPublicUrl" }
+        citationUrls:
+          type: array
+          minItems: 1
+          maxItems: 20
+          uniqueItems: true
+          items: { $ref: "#/components/schemas/ReplicationPublicUrl" }
+        claims:
+          type: array
+          minItems: 1
+          maxItems: 20
+          uniqueItems: true
+          items: { $ref: "#/components/schemas/ReplicationClaimRef" }
+    ReplicationBriefTransitionRequest:
+      description: Explicit lifecycle transition guarded by expectedRevision compare-and-swap.
+      oneOf:
+        - type: object
+          additionalProperties: false
+          required: [action, expectedRevision]
+          properties:
+            action: { const: publish }
+            expectedRevision: { type: integer, minimum: 0, maximum: 1000000000 }
+        - type: object
+          additionalProperties: false
+          required: [action, expectedRevision, protocolUrl, note]
+          properties:
+            action: { const: claim }
+            expectedRevision: { type: integer, minimum: 0, maximum: 1000000000 }
+            protocolUrl: { $ref: "#/components/schemas/ReplicationPublicUrl" }
+            note: { type: string, minLength: 20, maxLength: 2000 }
+        - type: object
+          additionalProperties: false
+          required: [action, expectedRevision, completionUrl, summary]
+          properties:
+            action: { const: complete }
+            expectedRevision: { type: integer, minimum: 0, maximum: 1000000000 }
+            completionUrl: { $ref: "#/components/schemas/ReplicationPublicUrl" }
+            summary: { type: string, minLength: 50, maxLength: 5000 }
+        - type: object
+          additionalProperties: false
+          required: [action, expectedRevision, reason]
+          properties:
+            action: { const: withdraw }
+            expectedRevision: { type: integer, minimum: 0, maximum: 1000000000 }
+            reason: { type: string, minLength: 20, maxLength: 5000 }
+    ReplicationTriageSignal:
+      type: object
+      additionalProperties: false
+      required: [code, explanation]
+      properties:
+        code:
+          type: string
+          enum:
+            [
+              genuine-contradiction,
+              scope-undeclared-contradiction,
+              scope-difference,
+              opposing-evidence,
+              no-independent-support,
+              single-independent-family,
+              duplicated-evidence-family,
+              circular-citation,
+              scope-undeclared,
+            ]
+        explanation: { type: string }
+    ReplicationTriageIndependence:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          supportingWorks,
+          independentSupportingFamilies,
+          opposingWorks,
+          independentOpposingFamilies,
+          sharedWorkKeys,
+          circularCitationIds,
+        ]
+      properties:
+        supportingWorks: { type: integer, minimum: 0 }
+        independentSupportingFamilies: { type: integer, minimum: 0 }
+        opposingWorks: { type: integer, minimum: 0 }
+        independentOpposingFamilies: { type: integer, minimum: 0 }
+        sharedWorkKeys: { type: array, items: { type: string } }
+        circularCitationIds:
+          type: array
+          uniqueItems: true
+          items: { type: string }
+    ReplicationTriageContradictions:
+      type: object
+      additionalProperties: false
+      required: [genuine, scopeDifference, undeterminedScope]
+      properties:
+        genuine: { type: integer, minimum: 0 }
+        scopeDifference: { type: integer, minimum: 0 }
+        undeterminedScope: { type: integer, minimum: 0 }
+    ReplicationTriageClaim:
+      type: object
+      additionalProperties: false
+      required: [claimId, triageBand, signals, independence, contradictions]
+      properties:
+        claimId: { type: string }
+        triageBand:
+          type: string
+          enum:
+            [contradiction-attention, independence-attention, scope-attention, routine-attention]
+        signals:
+          type: array
+          items: { $ref: "#/components/schemas/ReplicationTriageSignal" }
+        independence: { $ref: "#/components/schemas/ReplicationTriageIndependence" }
+        contradictions: { $ref: "#/components/schemas/ReplicationTriageContradictions" }
+    ReplicationTriageSnapshot:
+      type: object
+      additionalProperties: false
+      required: [schemaVersion, corpusHash, capturedAt, method, disclaimer, claims]
+      properties:
+        schemaVersion: { type: string, const: "1.0.0" }
+        corpusHash: { type: string, pattern: "^[a-f0-9]{64}$" }
+        capturedAt: { type: string, format: date-time }
+        method: { type: string, const: oratlas-replication-triage-1.0 }
+        disclaimer: { type: string }
+        claims:
+          type: array
+          minItems: 1
+          maxItems: 20
+          items: { $ref: "#/components/schemas/ReplicationTriageClaim" }
+    ReplicationBriefClaim:
+      type: object
+      additionalProperties: false
+      required: [reviewSlug, reviewVersionId, localClaimId, text, passportPath]
+      properties:
+        reviewSlug: { type: string }
+        reviewVersionId: { type: string }
+        localClaimId: { type: string }
+        text: { type: string }
+        passportPath: { type: string }
+    ReplicationBrief:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          slug,
+          title,
+          summary,
+          scope,
+          expectedInformationGain,
+          effortBand,
+          citationUrls,
+          status,
+          revision,
+          claims,
+          createdByLogin,
+          createdAt,
+          updatedAt,
+        ]
+      properties:
+        slug: { type: string, pattern: "^[a-z0-9]+(?:-[a-z0-9]+)*$" }
+        title: { type: string }
+        summary: { type: string }
+        scope: { $ref: "#/components/schemas/ReplicationScope" }
+        expectedInformationGain: { type: string }
+        effortBand: { type: string, enum: [small, medium, large, consortium] }
+        protocolUrl: { $ref: "#/components/schemas/ReplicationPublicUrl" }
+        citationUrls:
+          type: array
+          minItems: 1
+          maxItems: 20
+          uniqueItems: true
+          items: { $ref: "#/components/schemas/ReplicationPublicUrl" }
+        status: { type: string, enum: [draft, open, claimed, completed, withdrawn] }
+        revision: { type: integer, minimum: 0, maximum: 1000000000 }
+        triageSnapshot: { $ref: "#/components/schemas/ReplicationTriageSnapshot" }
+        claims:
+          type: array
+          minItems: 1
+          maxItems: 20
+          items: { $ref: "#/components/schemas/ReplicationBriefClaim" }
+        createdByLogin: { type: string }
+        publishedByLogin: { type: string }
+        publishedAt: { type: string, format: date-time }
+        claimedByLogin: { type: string }
+        claimedAt: { type: string, format: date-time }
+        claimNote:
+          type: string
+          description: Public note published with the attributable claimant account.
+        completedByLogin: { type: string }
+        completedAt: { type: string, format: date-time }
+        completionUrl: { $ref: "#/components/schemas/ReplicationPublicUrl" }
+        completionSummary: { type: string }
+        withdrawnByLogin: { type: string }
+        withdrawnAt: { type: string, format: date-time }
+        withdrawalReason: { type: string }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    ReplicationMarketplacePage:
+      type: object
+      additionalProperties: false
+      required: [page, pageSize, total, briefs]
+      properties:
+        page: { type: integer, minimum: 1 }
+        pageSize: { type: integer, minimum: 1, maximum: 50 }
+        total: { type: integer, minimum: 0 }
+        briefs: { type: array, items: { $ref: "#/components/schemas/ReplicationBrief" } }
+    ReplicationBriefMutationResult:
+      type: object
+      additionalProperties: false
+      required: [slug, status, revision]
+      properties:
+        slug: { type: string }
+        status: { type: string, enum: [draft, open, claimed, completed, withdrawn] }
+        revision: { type: integer, minimum: 0, maximum: 1000000000 }
+        idempotent: { type: boolean }
 paths:
   /api/health:
     get:
@@ -603,3 +870,89 @@ paths:
             Contradictions between opposing claims that share an evidence
             family, each classified as a genuine contradiction or a scope
             difference, plus review/statement counts.
+  /api/replications:
+    get:
+      summary: List human-published replication briefs
+      description: >
+        Returns only briefs tied to readable claims. The categorical evidence-gap metadata is
+        deterministic editorial triage, not a truth score, outcome prediction, or person ranking.
+      parameters:
+        - name: status
+          in: query
+          schema: { type: string, enum: [open, claimed, completed, withdrawn] }
+        - name: effortBand
+          in: query
+          schema: { type: string, enum: [small, medium, large, consortium] }
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 10000, default: 1 }
+        - name: pageSize
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 50, default: 20 }
+      responses:
+        "200":
+          description: Bounded page of public replication briefs
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ReplicationMarketplacePage" }
+        "400": { $ref: "#/components/responses/Error" }
+    post:
+      summary: Register a private replication-brief draft
+      description: Editor-only and idempotent. This operation never publishes automatically.
+      security: [{ session: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ReplicationBriefCreateRequest" }
+      responses:
+        "200":
+          description: Draft registered or idempotently replayed
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ReplicationBriefMutationResult" }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "413": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/Error" }
+  /api/replications/{slug}:
+    get:
+      summary: Get one public replication brief and its attributable lifecycle
+      parameters:
+        - { name: slug, in: path, required: true, schema: { type: string, maxLength: 100 } }
+      responses:
+        "200":
+          description: Published replication brief
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ReplicationBrief" }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/replications/{slug}/transitions:
+    post:
+      summary: Apply an authenticated replication-brief lifecycle transition
+      description: >
+        Publishing and withdrawal require an editor. Claiming requires a signed-in user. Only the
+        attributable claimant can record completion. Every transition is audited and CAS-guarded.
+      security: [{ session: [] }]
+      parameters:
+        - { name: slug, in: path, required: true, schema: { type: string, maxLength: 100 } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ReplicationBriefTransitionRequest" }
+      responses:
+        "200":
+          description: Transition committed
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ReplicationBriefMutationResult" }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "413": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/Error" }
