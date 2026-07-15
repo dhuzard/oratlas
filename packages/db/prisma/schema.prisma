@@ -35,24 +35,26 @@ model User {
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
 
-  submissions        Submission[]           @relation("submitter")
-  editorialDecisions Submission[]           @relation("reviewer")
-  discussionThreads  DiscussionThread[]
-  reviewComments     ReviewComment[]
-  auditEvents        AuditEvent[]
-  trustVerifications TrustVerification[]    @relation("trustReviewer")
-  inspectionCaptures InspectionCapture[]
-  editorialOverrides EditorialOverride[]
-  lifecycleEvents    ReviewLifecycleEvent[] @relation("lifecycleActor")
-  editorAssignments  EditorAssignment[]     @relation("assignmentEditor")
-  assignmentsMade    EditorAssignment[]     @relation("assignmentAssigner")
-  roundsOpened       ReviewRound[]          @relation("roundOpener")
-  formalReports      FormalReviewReport[]   @relation("formalReviewer")
-  authorResponses    AuthorResponse[]       @relation("respondingAuthor")
-  decisionLetters    DecisionLetter[]       @relation("decisionEditor")
-  notifications      Notification[]         @relation("notificationUser")
-  statusRecords      CitationStatusRecord[] @relation("statusRecorder")
-  proposalsResolved  ClaimUpdateProposal[]  @relation("proposalResolver")
+  submissions               Submission[]            @relation("submitter")
+  editorialDecisions        Submission[]            @relation("reviewer")
+  discussionThreads         DiscussionThread[]
+  reviewComments            ReviewComment[]
+  auditEvents               AuditEvent[]
+  trustVerifications        TrustVerification[]     @relation("trustReviewer")
+  inspectionCaptures        InspectionCapture[]
+  editorialOverrides        EditorialOverride[]
+  lifecycleEvents           ReviewLifecycleEvent[]  @relation("lifecycleActor")
+  editorAssignments         EditorAssignment[]      @relation("assignmentEditor")
+  assignmentsMade           EditorAssignment[]      @relation("assignmentAssigner")
+  roundsOpened              ReviewRound[]           @relation("roundOpener")
+  formalReports             FormalReviewReport[]    @relation("formalReviewer")
+  authorResponses           AuthorResponse[]        @relation("respondingAuthor")
+  decisionLetters           DecisionLetter[]        @relation("decisionEditor")
+  notifications             Notification[]          @relation("notificationUser")
+  statusRecords             CitationStatusRecord[]  @relation("statusRecorder")
+  proposalsResolved         ClaimUpdateProposal[]   @relation("proposalResolver")
+  protocolSnapshots         ProtocolSnapshot[]      @relation("protocolSnapshotCreator")
+  protocolProposalsResolved ProtocolDriftProposal[] @relation("protocolProposalResolver")
 
   @@index([githubLoginNormalized])
 }
@@ -196,6 +198,7 @@ model ReviewVersion {
   resultingSubmissions Submission[]           @relation("ResultingVersion")
   lifecycleEvents      ReviewLifecycleEvent[] @relation("lifecycleTarget")
   supersededByEvents   ReviewLifecycleEvent[] @relation("lifecycleSupersededVersion")
+  protocolSnapshots    ProtocolSnapshot[]
 
   @@unique([reviewId, snapshotId, sourceSelectionKey])
 }
@@ -384,6 +387,7 @@ model Claim {
   linkProposalsTo   KnowledgeLinkProposal[] @relation("targetClaim")
   comments          ReviewComment[]
   updateProposals   ClaimUpdateProposal[]
+  protocolSnapshots ProtocolSnapshot[]
 
   @@unique([reviewVersionId, localClaimId])
 }
@@ -812,4 +816,68 @@ model ClaimUpdateProposal {
 
   @@unique([statusRecordId, claimId])
   @@index([status])
+}
+
+/// Immutable registry payload plus its deterministic normalized representation.
+/// The primary key is a SHA-256-derived stable id over the exact target, source
+/// version and payload hash, making retries idempotent across SQLite/PostgreSQL.
+model ProtocolSnapshot {
+  id                   String    @id
+  reviewVersionId      String
+  claimId              String?
+  createdById          String
+  /// review-version:<id> or claim:<id>; explicit because nullable unique keys
+  /// behave differently between providers.
+  targetKey            String
+  /// osf | clinicaltrials-gov
+  registry             String
+  sourceId             String
+  sourceUrl            String
+  sourceVersion        String
+  sourceTimestamp      DateTime?
+  fetchedAt            DateTime
+  normalizedJson       String
+  rawJson              String
+  questionMetadataJson String?
+  contentHash          String
+  observedJson         String
+  comparatorVersion    String
+  createdAt            DateTime  @default(now())
+
+  reviewVersion ReviewVersion           @relation(fields: [reviewVersionId], references: [id])
+  claim         Claim?                  @relation(fields: [claimId], references: [id])
+  createdBy     User                    @relation("protocolSnapshotCreator", fields: [createdById], references: [id])
+  proposals     ProtocolDriftProposal[]
+
+  @@unique([targetKey, registry, sourceId, sourceVersion])
+  @@index([reviewVersionId, createdAt])
+  @@index([claimId, createdAt])
+  @@index([registry, sourceId])
+}
+
+/// Neutral, human-reviewable reconciliation proposal. It never asserts intent
+/// or rewrites review content. Stable comparison ids make creation retry-safe.
+model ProtocolDriftProposal {
+  id                String    @id
+  snapshotId        String
+  /// population | outcomes | exclusions | analysis-plan
+  category          String
+  /// not-described-in-review | not-registered | content-differs
+  kind              String
+  registeredJson    String
+  observedJson      String
+  rationale         String
+  comparatorVersion String
+  /// open | confirmed-update-needed | explained | dismissed
+  status            String    @default("open")
+  resolvedById      String?
+  resolutionNote    String?
+  resolvedAt        DateTime?
+  createdAt         DateTime  @default(now())
+
+  snapshot   ProtocolSnapshot @relation(fields: [snapshotId], references: [id])
+  resolvedBy User?            @relation("protocolProposalResolver", fields: [resolvedById], references: [id])
+
+  @@index([snapshotId, status])
+  @@index([status, createdAt])
 }

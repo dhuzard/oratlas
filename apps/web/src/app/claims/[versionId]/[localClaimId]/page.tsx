@@ -218,6 +218,48 @@ export default async function ClaimPassportPage({
           ))}
         </Card>
       ) : null}
+
+      {passport.protocolDrift.snapshots.length > 0 ? (
+        <Card title={`Protocol Drift Radar (${passport.protocolDrift.openCount} open)`}>
+          <p className="muted">
+            Deterministic comparison of registered protocol fields with this claim&apos;s declared
+            scope. Differences are neutral proposals for human review, never assertions about intent
+            or misconduct.
+          </p>
+          {passport.protocolDrift.snapshots.map((snapshot) => (
+            <div className="claim-card" key={snapshot.id}>
+              <div className="btn-row">
+                <Badge>{snapshot.registry}</Badge>
+                <a href={snapshot.sourceUrl} rel="noopener noreferrer">
+                  {snapshot.sourceId}
+                </a>
+                <span className="mono muted">version {snapshot.sourceVersion}</span>
+              </div>
+              <p className="mono muted" style={{ fontSize: "0.8rem" }}>
+                captured {snapshot.fetchedAt} · SHA-256 {snapshot.contentHash}
+              </p>
+              {snapshot.proposals.length === 0 ? (
+                <p>No structured differences detected.</p>
+              ) : (
+                <ul>
+                  {snapshot.proposals.map((proposal) => (
+                    <li key={proposal.id}>
+                      <StatusPill status={proposal.status} /> <strong>{proposal.category}</strong>:{" "}
+                      {proposal.rationale}
+                      {proposal.resolutionNote ? (
+                        <span className="muted">
+                          {" "}
+                          Resolution: {proposal.resolutionNote} — @{proposal.resolvedByLogin}
+                        </span>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          ))}
+        </Card>
+      ) : null}
     </article>
   );
 }

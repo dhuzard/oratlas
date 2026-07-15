@@ -556,6 +556,49 @@ CREATE TABLE "ClaimUpdateProposal" (
     CONSTRAINT "ClaimUpdateProposal_pkey" PRIMARY KEY ("id")
 );
 
+-- CreateTable
+CREATE TABLE "ProtocolSnapshot" (
+    "id" TEXT NOT NULL,
+    "reviewVersionId" TEXT NOT NULL,
+    "claimId" TEXT,
+    "createdById" TEXT NOT NULL,
+    "targetKey" TEXT NOT NULL,
+    "registry" TEXT NOT NULL,
+    "sourceId" TEXT NOT NULL,
+    "sourceUrl" TEXT NOT NULL,
+    "sourceVersion" TEXT NOT NULL,
+    "sourceTimestamp" TIMESTAMP(3),
+    "fetchedAt" TIMESTAMP(3) NOT NULL,
+    "normalizedJson" TEXT NOT NULL,
+    "rawJson" TEXT NOT NULL,
+    "questionMetadataJson" TEXT,
+    "contentHash" TEXT NOT NULL,
+    "observedJson" TEXT NOT NULL,
+    "comparatorVersion" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "ProtocolSnapshot_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "ProtocolDriftProposal" (
+    "id" TEXT NOT NULL,
+    "snapshotId" TEXT NOT NULL,
+    "category" TEXT NOT NULL,
+    "kind" TEXT NOT NULL,
+    "registeredJson" TEXT NOT NULL,
+    "observedJson" TEXT NOT NULL,
+    "rationale" TEXT NOT NULL,
+    "comparatorVersion" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'open',
+    "resolvedById" TEXT,
+    "resolutionNote" TEXT,
+    "resolvedAt" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "ProtocolDriftProposal_pkey" PRIMARY KEY ("id")
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX "User_githubUserId_key" ON "User"("githubUserId");
 
@@ -687,6 +730,24 @@ CREATE INDEX "ClaimUpdateProposal_status_idx" ON "ClaimUpdateProposal"("status")
 
 -- CreateIndex
 CREATE UNIQUE INDEX "ClaimUpdateProposal_statusRecordId_claimId_key" ON "ClaimUpdateProposal"("statusRecordId", "claimId");
+
+-- CreateIndex
+CREATE INDEX "ProtocolSnapshot_reviewVersionId_createdAt_idx" ON "ProtocolSnapshot"("reviewVersionId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "ProtocolSnapshot_claimId_createdAt_idx" ON "ProtocolSnapshot"("claimId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "ProtocolSnapshot_registry_sourceId_idx" ON "ProtocolSnapshot"("registry", "sourceId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "ProtocolSnapshot_targetKey_registry_sourceId_sourceVersion_key" ON "ProtocolSnapshot"("targetKey", "registry", "sourceId", "sourceVersion");
+
+-- CreateIndex
+CREATE INDEX "ProtocolDriftProposal_snapshotId_status_idx" ON "ProtocolDriftProposal"("snapshotId", "status");
+
+-- CreateIndex
+CREATE INDEX "ProtocolDriftProposal_status_createdAt_idx" ON "ProtocolDriftProposal"("status", "createdAt");
 
 -- AddForeignKey
 ALTER TABLE "RepositorySnapshot" ADD CONSTRAINT "RepositorySnapshot_repositoryId_fkey" FOREIGN KEY ("repositoryId") REFERENCES "Repository"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -864,4 +925,19 @@ ALTER TABLE "ClaimUpdateProposal" ADD CONSTRAINT "ClaimUpdateProposal_citationId
 
 -- AddForeignKey
 ALTER TABLE "ClaimUpdateProposal" ADD CONSTRAINT "ClaimUpdateProposal_resolvedById_fkey" FOREIGN KEY ("resolvedById") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ProtocolSnapshot" ADD CONSTRAINT "ProtocolSnapshot_reviewVersionId_fkey" FOREIGN KEY ("reviewVersionId") REFERENCES "ReviewVersion"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ProtocolSnapshot" ADD CONSTRAINT "ProtocolSnapshot_claimId_fkey" FOREIGN KEY ("claimId") REFERENCES "Claim"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ProtocolSnapshot" ADD CONSTRAINT "ProtocolSnapshot_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ProtocolDriftProposal" ADD CONSTRAINT "ProtocolDriftProposal_snapshotId_fkey" FOREIGN KEY ("snapshotId") REFERENCES "ProtocolSnapshot"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ProtocolDriftProposal" ADD CONSTRAINT "ProtocolDriftProposal_resolvedById_fkey" FOREIGN KEY ("resolvedById") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
