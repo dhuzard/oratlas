@@ -81,6 +81,163 @@ components:
                 properties:
                   keyId: { type: string, pattern: "^[0-9a-f]{64}$" }
                   sig: { type: string, contentEncoding: base64 }
+    ProtocolSnapshotRequest:
+      type: object
+      additionalProperties: false
+      required: [reviewVersionId, registry, sourceUrl, sourceVersion, fetchedAt, payload]
+      allOf:
+        - if:
+            properties: { registry: { const: osf } }
+            required: [registry]
+          then:
+            required: [osfQuestions]
+          else:
+            not: { required: [osfQuestions] }
+      properties:
+        reviewVersionId: { type: string, minLength: 1, maxLength: 200 }
+        claimLocalId: { type: string, minLength: 1, maxLength: 120 }
+        registry: { type: string, enum: [osf, clinicaltrials-gov] }
+        sourceUrl:
+          type: string
+          format: uri
+          maxLength: 2000
+          oneOf:
+            - {
+                pattern: '^https://(?:www\.)?clinicaltrials\.gov/(?:study|api/v2/studies)/[^/?#]+/?$',
+              }
+            - { pattern: '^https://osf\.io/[^/?#]+/?$' }
+            - { pattern: '^https://api\.osf\.io/v2/registrations/[^/?#]+/?$' }
+          description: Clean canonical registry URL without credentials, query, or fragment; payload id must match.
+        sourceVersion:
+          type: string
+          minLength: 1
+          maxLength: 300
+          description: Exact ETag, registry data version, or immutable source timestamp.
+        fetchedAt: { type: string, format: date-time }
+        payload:
+          description: Exact OSF registration or ClinicalTrials.gov API v2 JSON response.
+        osfQuestions:
+          type: array
+          maxItems: 500
+          description: Required only for OSF; exact labels plus explicit non-inferred comparison categories.
+          items:
+            type: object
+            additionalProperties: false
+            required: [id, label, category]
+            properties:
+              id: { type: string, minLength: 1, maxLength: 300 }
+              label: { type: string, minLength: 1, maxLength: 2000 }
+              category:
+                type: string
+                enum: [population, outcomes, exclusions, analysis-plan, unclassified]
+    ProtocolProposalResolution:
+      type: object
+      additionalProperties: false
+      required: [resolution, note]
+      properties:
+        resolution:
+          type: string
+          enum: [confirmed-update-needed, explained, dismissed]
+        note: { type: string, minLength: 10, maxLength: 4000 }
+    ProtocolEvidence:
+      type: object
+      additionalProperties: false
+      required: [value, sourcePointer]
+      properties:
+        value: { type: string, minLength: 1, maxLength: 10000 }
+        sourcePointer: { type: string, minLength: 1, maxLength: 1000 }
+    ProtocolFields:
+      type: object
+      additionalProperties: false
+      required: [population, outcomes, exclusions, analysis-plan]
+      properties:
+        population:
+          { type: array, maxItems: 200, items: { $ref: "#/components/schemas/ProtocolEvidence" } }
+        outcomes:
+          { type: array, maxItems: 200, items: { $ref: "#/components/schemas/ProtocolEvidence" } }
+        exclusions:
+          { type: array, maxItems: 200, items: { $ref: "#/components/schemas/ProtocolEvidence" } }
+        analysis-plan:
+          { type: array, maxItems: 200, items: { $ref: "#/components/schemas/ProtocolEvidence" } }
+    NormalizedProtocol:
+      type: object
+      additionalProperties: false
+      required: [schemaVersion, source, title, fields, unclassified]
+      properties:
+        schemaVersion: { const: 1.0.0 }
+        source:
+          type: object
+          additionalProperties: false
+          required: [registry, sourceId, sourceUrl, sourceVersion, capturedAt]
+          properties:
+            registry: { type: string, enum: [osf, clinicaltrials-gov] }
+            sourceId: { type: string }
+            sourceUrl: { type: string, format: uri }
+            sourceVersion: { type: string }
+            registeredAt: { type: string, format: date-time }
+            lastUpdatedAt: { type: string, format: date-time }
+            capturedAt: { type: string, format: date-time }
+        title: { type: string }
+        fields: { $ref: "#/components/schemas/ProtocolFields" }
+        unclassified:
+          type: array
+          maxItems: 500
+          items: { $ref: "#/components/schemas/ProtocolEvidence" }
+    ProtocolProposal:
+      type: object
+      additionalProperties: false
+      required: [id, category, kind, status, rationale, registered, observed, createdAt]
+      properties:
+        id: { type: string, pattern: "^pdp_[a-f0-9]{64}$" }
+        category: { type: string, enum: [population, outcomes, exclusions, analysis-plan] }
+        kind: { type: string, enum: [not-described-in-review, not-registered, content-differs] }
+        status: { type: string }
+        rationale: { type: string }
+        registered: { type: array, items: { $ref: "#/components/schemas/ProtocolEvidence" } }
+        observed: { type: array, items: { $ref: "#/components/schemas/ProtocolEvidence" } }
+        createdAt: { type: string, format: date-time }
+        resolvedAt: { type: string, format: date-time }
+        resolvedByLogin: { type: string }
+        resolutionNote: { type: string }
+    ProtocolSnapshotSummary:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          id,
+          target,
+          registry,
+          sourceId,
+          sourceUrl,
+          sourceVersion,
+          fetchedAt,
+          contentHash,
+          normalized,
+          proposals,
+          createdAt,
+        ]
+      properties:
+        id: { type: string }
+        target: { type: string, enum: [review-version, claim] }
+        registry: { type: string, enum: [osf, clinicaltrials-gov] }
+        sourceId: { type: string }
+        sourceUrl: { type: string, format: uri }
+        sourceVersion: { type: string }
+        sourceTimestamp: { type: string, format: date-time }
+        fetchedAt: { type: string, format: date-time }
+        contentHash: { type: string, pattern: "^[a-f0-9]{64}$" }
+        normalized: { $ref: "#/components/schemas/NormalizedProtocol" }
+        proposals: { type: array, items: { $ref: "#/components/schemas/ProtocolProposal" } }
+        createdAt: { type: string, format: date-time }
+    ProtocolDriftSummary:
+      type: object
+      additionalProperties: false
+      required: [reviewVersionId, openCount, snapshots]
+      properties:
+        reviewVersionId: { type: string }
+        claimLocalId: { type: string }
+        openCount: { type: integer, minimum: 0 }
+        snapshots: { type: array, items: { $ref: "#/components/schemas/ProtocolSnapshotSummary" } }
     InspectRequest:
       type: object
       required: [url, source]
@@ -678,6 +835,55 @@ paths:
       responses:
         "200": { description: Resolved }
         "409": { $ref: "#/components/responses/Error" }
+  /api/protocols/snapshots:
+    post:
+      summary: Register an exact OSF or ClinicalTrials.gov protocol snapshot and open neutral proposals
+      description: >
+        Editor-only, same-origin, rate- and body-limited ingestion. The same target/source version
+        with different content is rejected; an exact retry is idempotent. No registry network request
+        occurs in this endpoint.
+      security: [{ session: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ProtocolSnapshotRequest" }
+      responses:
+        "200": { description: Immutable snapshot and deterministic proposal counts }
+        "400": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "413": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/Error" }
+  /api/protocols/proposals/{id}/resolve:
+    post:
+      summary: Resolve one neutral protocol reconciliation proposal with attribution
+      security: [{ session: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ProtocolProposalResolution" }
+      responses:
+        "200": { description: Proposal resolved exactly once }
+        "403": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "413": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/Error" }
+  /api/protocols/reviews/{versionId}:
+    get:
+      summary: Public review-level protocol provenance and neutral reconciliation proposals
+      parameters:
+        - { name: versionId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Normalized snapshots, exact versions/timestamps/hashes, and proposal states
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ProtocolDriftSummary" }
+        "404": { $ref: "#/components/responses/Error" }
   /api/synthesis/contradictions:
     get:
       summary: Cross-review contradiction map with independence-aware classification

@@ -10,6 +10,7 @@ import {
 } from "./api";
 import { getServerEnv, requireUser, type SessionUser } from "./auth";
 import { MonitoringError } from "./claim-monitoring";
+import { ProtocolDriftError } from "./protocol-drift";
 import { LifecycleError } from "./editorial-lifecycle";
 import { ExecutionPassportError } from "./execution-passports";
 import { validateSameOriginJsonRequest } from "./mutation-request";
@@ -54,6 +55,7 @@ export async function handleLifecyclePost<Schema extends z.ZodTypeAny>(
   } catch (err) {
     if (err instanceof LifecycleError) return errorResponse(err.code, err.message);
     if (err instanceof MonitoringError) return errorResponse(err.code, err.message);
+    if (err instanceof ProtocolDriftError) return errorResponse(err.code, err.message);
     if (err instanceof SubmissionError) return errorResponse(err.code, err.message);
     if (err instanceof ExecutionPassportError) return errorResponse(err.code, err.message);
     if (err instanceof z.ZodError) return errorResponse("bad-request", "Invalid request payload.");

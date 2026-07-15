@@ -1,6 +1,6 @@
 /**
- * Validate that the review-manifest JSON Schema is itself valid (draft 2020-12)
- * and that the reference example manifest validates against it. Run in CI.
+ * Validate public JSON Schemas (draft 2020-12) and their reference examples.
+ * Run in CI so runtime contracts and machine-readable files cannot drift silently.
  */
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -9,7 +9,7 @@ import Ajv2020 from "ajv/dist/2020.js";
 import addFormats from "ajv-formats";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const schemaPath = join(
+const manifestSchemaPath = join(
   here,
   "..",
   "packages",
@@ -50,7 +50,7 @@ const exampleManifest = {
 };
 
 function main(): void {
-  const schema = JSON.parse(readFileSync(schemaPath, "utf-8"));
+  const schema = JSON.parse(readFileSync(manifestSchemaPath, "utf-8"));
   const ajv = new Ajv2020({ allErrors: true, strict: false });
   addFormats(ajv);
 
@@ -72,6 +72,42 @@ function main(): void {
 
   console.info("✓ review-manifest.schema.json is valid and matches the reference example.");
   console.info("✓ Unsafe artifact paths are rejected by the schema.");
+
+  const atlasCheckSchema = JSON.parse(
+    readFileSync(
+      join(here, "..", "packages", "contracts", "schemas", "atlas-check-report.schema.json"),
+      "utf-8",
+    ),
+  );
+  const validateAtlasCheck = ajv.compile(atlasCheckSchema);
+  const exampleReport = {
+    schemaVersion: "1.0.0",
+    tool: { name: "oratlas-check", version: "0.1.0" },
+    summary: {
+      passed: false,
+      errors: 1,
+      warnings: 0,
+      notices: 0,
+      filesChecked: 2,
+      recordsChecked: 1,
+    },
+    findings: [
+      {
+        ruleId: "ORATLAS-ARTIFACT-002",
+        severity: "error",
+        message: "Invalid JSON in the claims artifact.",
+        path: "knowledge/claims.jsonl",
+        line: 2,
+        suggestion: "Store exactly one JSON object per line.",
+      },
+    ],
+  };
+  if (!validateAtlasCheck(exampleReport)) {
+    console.error("Example Atlas Check report failed schema validation:");
+    console.error(validateAtlasCheck.errors);
+    process.exit(1);
+  }
+  console.info("✓ atlas-check-report.schema.json is valid and matches the reference example.");
 }
 
 main();

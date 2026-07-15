@@ -17,6 +17,7 @@ import {
   listExecutionPassportsForClaim,
   type PublicExecutionPassport,
 } from "./execution-passports";
+import { getPublicProtocolSummary, type ProtocolDriftSummary } from "./protocol-drift";
 
 /**
  * Evidence monitoring and claim passports (issue #3). A registered signal
@@ -373,6 +374,7 @@ export interface ClaimPassport {
   }>;
   alerts: ProposalRow[];
   executionPassports: PublicExecutionPassport[];
+  protocolDrift: ProtocolDriftSummary;
 }
 
 /**
@@ -416,6 +418,9 @@ export async function getClaimPassport(
   );
   const executionPassports = await listExecutionPassportsForClaim(versionId, localClaimId);
 
+  const protocolDrift = await getPublicProtocolSummary(version.id, claim.localClaimId);
+  if (!protocolDrift) return null;
+
   return {
     claimId: globalClaimId(version.id, claim.localClaimId),
     localClaimId: claim.localClaimId,
@@ -452,6 +457,7 @@ export async function getClaimPassport(
       })),
     alerts: claim.updateProposals.map(proposalDto),
     executionPassports,
+    protocolDrift,
   };
 }
 

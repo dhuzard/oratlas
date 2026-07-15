@@ -74,6 +74,9 @@ importers:
       '@oratlas/knowledge':
         specifier: workspace:*
         version: link:../../packages/knowledge
+      '@oratlas/protocols':
+        specifier: workspace:*
+        version: link:../../packages/protocols
       '@oratlas/trust':
         specifier: workspace:*
         version: link:../../packages/trust
@@ -123,6 +126,25 @@ importers:
       typescript:
         specifier: ^5.8.3
         version: 5.9.3
+
+  packages/atlas-check:
+    dependencies:
+      '@oratlas/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+      tsx:
+        specifier: ^4.19.4
+        version: 4.23.0
+      zod:
+        specifier: ^3.25.0
+        version: 3.25.76
+    devDependencies:
+      typescript:
+        specifier: ^5.8.3
+        version: 5.9.3
+      vitest:
+        specifier: ^3.1.4
+        version: 3.2.7(@types/node@22.20.1)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.23.0)(yaml@2.9.0)
 
   packages/config:
     dependencies:
@@ -254,6 +276,16 @@ importers:
       vitest:
         specifier: ^3.1.4
         version: 3.2.7(@types/node@22.20.1)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.23.0)(yaml@2.9.0)
+
+  packages/protocols:
+    dependencies:
+      zod:
+        specifier: ^3.25.0
+        version: 3.25.76
+    devDependencies:
+      typescript:
+        specifier: ^5.8.3
+        version: 5.9.3
 
   packages/trust:
     dependencies:

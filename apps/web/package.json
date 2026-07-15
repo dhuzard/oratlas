@@ -19,6 +19,7 @@
     "@oratlas/extractor": "workspace:*",
     "@oratlas/github": "workspace:*",
     "@oratlas/knowledge": "workspace:*",
+    "@oratlas/protocols": "workspace:*",
     "@oratlas/trust": "workspace:*",
     "@oratlas/ui": "workspace:*",
     "@oratlas/zenodo": "workspace:*",

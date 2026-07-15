@@ -1,0 +1,47 @@
+name: Open Review Atlas Check
+description: Deterministic evidence CI for TRUST, FAIR, and review artifacts
+author: Open Review Atlas contributors
+
+inputs:
+  fail-on:
+    description: Failure threshold (error, warning, or never)
+    required: false
+    default: error
+  report-path:
+    description: Path for the machine-readable JSON report
+    required: false
+    default: atlas-check-report.json
+
+runs:
+  using: composite
+  steps:
+    - name: Set up pnpm
+      uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+      with:
+        version: 10.33.0
+
+    - name: Set up Node.js
+      uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+      with:
+        node-version: 22
+
+    - name: Install the bounded evaluator
+      shell: bash
+      run: pnpm --dir "$GITHUB_ACTION_PATH" --filter @oratlas/atlas-check... install --prod --frozen-lockfile
+
+    - name: Evaluate review evidence
+      shell: bash
+      env:
+        ATLAS_CHECK_FAIL_ON: ${{ inputs.fail-on }}
+        ATLAS_CHECK_REPORT_PATH: ${{ inputs.report-path }}
+      run: |
+        pnpm --dir "$GITHUB_ACTION_PATH" --filter @oratlas/atlas-check exec \
+          tsx "$GITHUB_ACTION_PATH/scripts/atlas-check.ts" \
+          --root "$GITHUB_WORKSPACE" \
+          --format github \
+          --json-output "$ATLAS_CHECK_REPORT_PATH" \
+          --fail-on "$ATLAS_CHECK_FAIL_ON"
+
+branding:
+  icon: check-circle
+  color: blue

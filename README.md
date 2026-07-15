@@ -46,6 +46,8 @@ CLI scripts; the web app is server-rendered Next.js (App Router).
 | `packages/extractor`           | Deterministic metadata/artifact extraction + compatibility report    |
 | `packages/exports`             | Standards exports: CSL/BibTeX/RIS, JATS, RO-Crate, PROV, SWHID, Atom |
 | `packages/trust`               | TRUST validation and documented aggregation                          |
+| `packages/atlas-check`         | Deterministic TRUST/FAIR evidence CI and GitHub annotations          |
+| `packages/protocols`           | Offline registry adapters and neutral protocol-drift comparison      |
 | `packages/execution-passports` | Offline signed Workflow Run provenance verification                  |
 | `packages/knowledge`           | Search, evidence packets, discussion, cross-review links             |
 | `packages/ui`                  | Reusable accessible React primitives                                 |
@@ -181,6 +183,8 @@ Zenodo access token.
 - **Acceptance into the archive is not peer review.** It is an editorial curation decision.
 - **TRUST is relation-specific.** Each assessment describes one claim–citation relation, never a
   whole paper, and is never a probability that a paper is "true."
+- **Atlas Check is structural evidence CI.** It checks `TRUST.md`, `FAIR.md`, and the declared
+  evidence graph without an LLM or network access; see [the rule catalog](docs/atlas-check.md).
 - **Repository and agent TRUST records are source assertions.** Atlas preserves their claimed
   status but imports them as unverified. A separate hash-bound editor marker can record structural
   review; it does not establish scientific correctness.
