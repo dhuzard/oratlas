@@ -16,3 +16,4 @@ export * from "./preservation.js";
 export * from "./editorial.js";
 export * from "./monitoring.js";
 export * from "./lifecycle.js";
+export * from "./atlas-check.js";
