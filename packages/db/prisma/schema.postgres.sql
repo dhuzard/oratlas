@@ -611,6 +611,32 @@ CREATE TABLE "ClaimUpdateProposal" (
 );
 
 -- CreateTable
+CREATE TABLE "FederationNotification" (
+    "id" TEXT NOT NULL,
+    "activityId" TEXT NOT NULL,
+    "direction" TEXT NOT NULL,
+    "pattern" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'pending',
+    "actorUri" TEXT,
+    "objectUri" TEXT NOT NULL,
+    "contextUri" TEXT,
+    "originUri" TEXT NOT NULL,
+    "originInbox" TEXT,
+    "targetUri" TEXT NOT NULL,
+    "targetInbox" TEXT NOT NULL,
+    "inReplyTo" TEXT,
+    "payloadJson" TEXT NOT NULL,
+    "payloadHash" TEXT NOT NULL,
+    "reviewVersionId" TEXT,
+    "resolvedById" TEXT,
+    "resolutionNote" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "resolvedAt" TIMESTAMP(3),
+
+    CONSTRAINT "FederationNotification_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "ProtocolSnapshot" (
     "id" TEXT NOT NULL,
     "reviewVersionId" TEXT NOT NULL,
@@ -805,6 +831,18 @@ CREATE INDEX "ClaimUpdateProposal_status_idx" ON "ClaimUpdateProposal"("status")
 
 -- CreateIndex
 CREATE UNIQUE INDEX "ClaimUpdateProposal_statusRecordId_claimId_key" ON "ClaimUpdateProposal"("statusRecordId", "claimId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "FederationNotification_activityId_key" ON "FederationNotification"("activityId");
+
+-- CreateIndex
+CREATE INDEX "FederationNotification_direction_status_createdAt_idx" ON "FederationNotification"("direction", "status", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "FederationNotification_reviewVersionId_idx" ON "FederationNotification"("reviewVersionId");
+
+-- CreateIndex
+CREATE INDEX "FederationNotification_inReplyTo_idx" ON "FederationNotification"("inReplyTo");
 
 -- CreateIndex
 CREATE INDEX "ProtocolSnapshot_reviewVersionId_createdAt_idx" ON "ProtocolSnapshot"("reviewVersionId", "createdAt");
@@ -1015,6 +1053,12 @@ ALTER TABLE "ClaimUpdateProposal" ADD CONSTRAINT "ClaimUpdateProposal_citationId
 
 -- AddForeignKey
 ALTER TABLE "ClaimUpdateProposal" ADD CONSTRAINT "ClaimUpdateProposal_resolvedById_fkey" FOREIGN KEY ("resolvedById") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "FederationNotification" ADD CONSTRAINT "FederationNotification_reviewVersionId_fkey" FOREIGN KEY ("reviewVersionId") REFERENCES "ReviewVersion"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "FederationNotification" ADD CONSTRAINT "FederationNotification_resolvedById_fkey" FOREIGN KEY ("resolvedById") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "ProtocolSnapshot" ADD CONSTRAINT "ProtocolSnapshot_reviewVersionId_fkey" FOREIGN KEY ("reviewVersionId") REFERENCES "ReviewVersion"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

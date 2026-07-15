@@ -6,12 +6,14 @@ import { listAuditEvents, listLifecycleEditorialReviews, listSubmissions } from 
 import { listTrustEditorialQueue, type TrustQueueFilter } from "@/lib/trust-provenance";
 import { listOpenProposals } from "@/lib/claim-monitoring";
 import { getSubmissionWorkflow } from "@/lib/editorial-lifecycle";
+import { listFederationQueue } from "@/lib/federation";
 import { listOpenProtocolProposals } from "@/lib/protocol-drift";
 import { DecisionForm } from "./DecisionForm";
 import { MonitoringPanel } from "./MonitoringPanel";
 import { WorkflowPanel } from "./WorkflowPanel";
 import { TrustVerificationForm } from "./TrustVerificationForm";
 import { LifecycleForm } from "./LifecycleForm";
+import { FederationPanel } from "./FederationPanel";
 import { ProtocolDriftPanel } from "./ProtocolDriftPanel";
 
 export const dynamic = "force-dynamic";
@@ -59,6 +61,7 @@ export default async function EditorialPage({
     : "needs-review";
   const trustQueue = await listTrustEditorialQueue(trustFilter);
   const openProposals = await listOpenProposals();
+  const federationQueue = await listFederationQueue();
   const openProtocolProposals = await listOpenProtocolProposals();
 
   return (
@@ -354,6 +357,11 @@ export default async function EditorialPage({
             createdAt: proposal.createdAt,
           }))}
         />
+      </Card>
+
+      <h2>Federated review exchange</h2>
+      <Card>
+        <FederationPanel notifications={federationQueue} />
       </Card>
 
       <h2>Audit log</h2>

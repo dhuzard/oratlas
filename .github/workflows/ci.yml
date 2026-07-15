@@ -136,6 +136,11 @@ jobs:
       - name: Seed PostgreSQL
         run: pnpm --filter @oratlas/db db:seed
 
+      - name: Exercise federation persistence and race handling on PostgreSQL
+        run: pnpm exec vitest run apps/web/src/lib/federation.integration.test.ts
+        env:
+          FEDERATION_TEST_DATABASE_URL: "postgresql://oratlas:oratlas@localhost:5432/oratlas"
+
       - name: Exercise Execution Passport persistence on PostgreSQL
         run: pnpm exec vitest run apps/web/src/lib/execution-passports.integration.test.ts
         env:

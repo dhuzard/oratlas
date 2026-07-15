@@ -893,3 +893,111 @@ paths:
             Contradictions between opposing claims that share an evidence
             family, each classified as a genuine contradiction or a scope
             difference, plus review/statement counts.
+  /api/federation/inbox:
+    get:
+      summary: List accepted federation notification resource URLs as an LDN container
+      description: Returns only editor-accepted inbound notifications with bounded cursor pagination.
+      parameters:
+        - name: cursor
+          in: query
+          description: Opaque cursor from the preceding Link rel=next URL.
+          schema: { type: string, minLength: 1, maxLength: 200 }
+        - name: limit
+          in: query
+          description: Maximum notification URLs to return.
+          schema: { type: integer, minimum: 1, maximum: 100, default: 50 }
+      responses:
+        "200":
+          description: JSON-LD LDP container with accepted notification URLs
+          headers:
+            Link:
+              description: Present when another page exists; carries the next cursor with rel=next.
+              schema: { type: string }
+        "400": { $ref: "#/components/responses/Error" }
+    options:
+      summary: Advertise accepted LDN notification media types
+      responses:
+        "204": { description: Allow and Accept-Post headers }
+    post:
+      summary: Receive a COAR Notify Request Review or Announce Review activity
+      description: >
+        Public rate-limited JSON-LD inbox. External URLs are preserved as identifiers and are
+        never dereferenced. New messages remain pending until an editor resolves them.
+      requestBody:
+        required: true
+        content:
+          application/ld+json:
+            schema: { type: object }
+          application/json:
+            schema: { type: object }
+      responses:
+        "202": { description: Immutable notification persisted privately for editorial triage }
+        "200": { description: Idempotent receipt of the same activity and payload }
+        "400": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "413": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/Error" }
+  /api/federation/notifications/{id}:
+    get:
+      summary: Read an editor-accepted immutable inbound federation notification as JSON-LD
+      description: Pending, rejected, and unknown notification resources all return 404.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Original COAR Notify JSON-LD payload }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/editorial/federation:
+    get:
+      summary: List inbound COAR Notify activities for editorial triage
+      security: [{ session: [] }]
+      responses:
+        "200": { description: Federation queue }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+  /api/editorial/federation/{id}/resolve:
+    post:
+      summary: Accept or reject a pending federated review request
+      security: [{ session: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [decision, note]
+              properties:
+                decision: { type: string, enum: [accepted, rejected] }
+                note: { type: string, minLength: 10, maxLength: 4000 }
+      responses:
+        "200": { description: Attributable editorial resolution }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+  /api/reviews/{slug}/versions/{versionId}/federation/announce:
+    post:
+      summary: Prepare an Announce Review reply to an accepted Request Review
+      description: Persists and audits JSON-LD without delivering it or making external requests.
+      security: [{ session: [] }]
+      parameters:
+        - { name: slug, in: path, required: true, schema: { type: string } }
+        - { name: versionId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [inReplyTo]
+              properties:
+                inReplyTo: { type: string, format: uri, maxLength: 2048 }
+      responses:
+        "200": { description: COAR Notify 1.0.1 Announce Review JSON-LD }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }

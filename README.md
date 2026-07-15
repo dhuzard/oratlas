@@ -49,6 +49,7 @@ CLI scripts; the web app is server-rendered Next.js (App Router).
 | `packages/atlas-check`         | Deterministic TRUST/FAIR evidence CI and GitHub annotations          |
 | `packages/protocols`           | Offline registry adapters and neutral protocol-drift comparison      |
 | `packages/execution-passports` | Offline signed Workflow Run provenance verification                  |
+| `packages/federation`          | COAR Notify review exchange validation and immutable projections     |
 | `packages/knowledge`           | Search, evidence packets, discussion, cross-review links             |
 | `packages/ui`                  | Reusable accessible React primitives                                 |
 | `scripts`                      | Ingestion / validation CLIs                                          |

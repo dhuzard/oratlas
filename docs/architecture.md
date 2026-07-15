@@ -18,6 +18,7 @@ packages/
   atlas-check/         Local TRUST/FAIR evidence evaluator and GitHub annotation renderer
   protocols/           Offline registry adapters and neutral protocol-drift comparison
   execution-passports/ Offline Workflow Run crate + signed-attestation verification
+  federation/          Bounded offline COAR Notify validation and immutable projections
   knowledge/           Search provider, evidence packets, discussion engine, link proposals
   ui/                  Reusable accessible React primitives
 scripts/               Ingestion / validation / maintenance CLIs (tsx)
@@ -40,6 +41,7 @@ packages/github      packages/zenodo
 packages/contracts (types + runtime validation, no dependencies on other packages)
 packages/db (persistence; consumed by web + scripts, not by domain packages)
 packages/atlas-check (bounded local evidence CI; depends only on contracts + Zod)
+packages/federation (bounded COAR Notify parsing; depends only on contracts + Zod)
 ```
 
 Domain packages never import Prisma. They accept and return plain typed values
