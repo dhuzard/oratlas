@@ -15,24 +15,22 @@ triage.
 > **This platform does not perform peer review** and does not present AI-generated conclusions as
 > established scientific consensus. See [What the platform does not verify](#what-the-platform-does-not-verify).
 
-## Screenshots / placeholders
+## Key pages
 
-The POC ships a restrained, scholarly server-rendered interface. Key pages:
+The POC ships a restrained, scholarly server-rendered interface:
 
 - **Home** — product explanation, search, recently accepted reviews, domain/DOI/TRUST filters,
-  provenance legend. _(placeholder: `docs/screenshots/home.png`)_
-- **Archive** — full-text search + faceted filters. _(placeholder: `docs/screenshots/archive.png`)_
+  provenance legend.
+- **Archive** — full-text search + faceted filters.
 - **Review page** — safe archived article reader and TOC, exact claim anchors, repository/commit,
   provenance, claims, citations, TRUST, canonical version diff, and lifecycle notices.
-  _(placeholder: `docs/screenshots/review.png`)_
 - **Submission wizard** — repository → inspect → editable metadata (with per-field provenance) →
-  validation → submit. _(placeholder: `docs/screenshots/submit.png`)_
-- **Atlas Discuss** — grounded cross-review discussion. _(placeholder: `docs/screenshots/discuss.png`)_
+  validation → submit.
+- **Atlas Discuss** — grounded cross-review discussion.
 - **Replication Marketplace** — deterministic evidence-gap triage and human-published, scoped
   replication briefs with attributable claiming/completion. See
   [`docs/replication-marketplace.md`](docs/replication-marketplace.md).
 - **Editorial dashboard** — validation reports, metadata diff, accept/reject, audit log.
-  _(placeholder: `docs/screenshots/editorial.png`)_
 
 ## Architecture summary
 
@@ -67,11 +65,11 @@ Requirements: Node ≥ 20.9, `pnpm` 10.
 
 ```bash
 pnpm install
-cp .env.example .env               # sensible local defaults (SQLite, mock auth)
-pnpm --filter @oratlas/db db:generate
-pnpm --filter @oratlas/db db:push  # create the SQLite schema
-pnpm --filter @oratlas/db db:seed  # load realistic example data
-pnpm dev                           # http://localhost:3000
+cp .env.example .env                    # sensible local defaults (SQLite, mock auth)
+pnpm --filter @oratlas/db db:generate   # generate the Prisma client
+pnpm db:push                            # create the SQLite schema
+pnpm db:seed                            # load realistic example data
+pnpm dev                                # http://localhost:3000
 ```
 
 The SQLite database lives at `packages/db/prisma/dev.db` (resolved relative to the Prisma schema,
@@ -98,9 +96,9 @@ deterministic mode. Without OAuth credentials, development offers a clearly-mark
 ## Database commands
 
 ```bash
-pnpm --filter @oratlas/db db:push      # apply schema to the database
-pnpm --filter @oratlas/db db:seed      # load example data
-pnpm --filter @oratlas/db db:reset     # delete SQLite db, re-push, re-seed (dev only)
+pnpm db:push                           # apply schema to the database
+pnpm db:seed                           # load example data
+pnpm db:reset                          # delete SQLite db, re-push, re-seed (dev only)
 pnpm --filter @oratlas/db db:validate  # validate the Prisma schema
 ```
 
@@ -123,11 +121,30 @@ pnpm typecheck      # strict TypeScript across all packages
 pnpm lint           # ESLint
 pnpm format:check   # Prettier
 pnpm schema:check   # validate the review-manifest JSON Schema
-pnpm --filter @oratlas/web build       # production build
-pnpm --filter @oratlas/web test:e2e    # essential Playwright flows
+pnpm openapi:check  # detect drift between docs/openapi.yaml and the API routes
+pnpm build          # production build
+pnpm test:e2e       # essential Playwright flows (needs a seeded db)
 ```
 
 Tests never depend on GitHub or Zenodo network availability — external APIs are mocked.
+
+## CLI tools
+
+The domain packages are framework-free and reusable from the command line:
+
+```bash
+pnpm ingest https://github.com/owner/repository   # inspect + extract; read-only, prints JSON
+pnpm validate-doi 10.5281/zenodo.1234567 [--repo <url>] [--title <title>]
+pnpm atlas-check --root <directory>               # deterministic evidence CI (--help for options)
+pnpm backup                                       # copy the SQLite db to backups/ (prints pg_dump advice for Postgres)
+```
+
+`ingest` inspects a public GitHub repository via the API (never cloned, never executed) and
+prints the extraction result — metadata, compatibility, knowledge counts — without writing to
+the database; `GITHUB_TOKEN` raises rate limits. `validate-doi` prints the structured DOI
+validation report; reserved example DOIs (`10.5555/*`) are never resolved outward.
+`atlas-check` evaluates `TRUST.md`, `FAIR.md`, and review-manifest evidence artifacts with no
+network, LLM, or code execution — see [`docs/atlas-check.md`](docs/atlas-check.md).
 
 ## Deployment
 
@@ -200,6 +217,42 @@ Zenodo access token.
 - **Replication briefs are editorial opportunities, not promises or truth scores.** Atlas does not
   rank researchers, predict outcomes, execute studies, initiate payments, or automatically
   publish briefs; a completion record is not an endorsement of the reported result.
+
+A full inventory of limitations lives in [`docs/poc-limitations.md`](docs/poc-limitations.md).
+
+## Documentation
+
+| Document                                                                       | Contents                                                  |
+| ------------------------------------------------------------------------------ | --------------------------------------------------------- |
+| [`docs/architecture.md`](docs/architecture.md)                                 | Monorepo layout, package boundaries, swappable interfaces |
+| [`docs/data-model.md`](docs/data-model.md)                                     | Prisma schema walkthrough                                 |
+| [`docs/submission-workflow.md`](docs/submission-workflow.md)                   | UI flow, capture capability, editorial pipeline           |
+| [`docs/article-lifecycle.md`](docs/article-lifecycle.md)                       | Article reader, version diff, corrections, tombstones     |
+| [`docs/doi-and-versioning.md`](docs/doi-and-versioning.md)                     | Version vs concept DOI, validation report semantics       |
+| [`docs/trust-model.md`](docs/trust-model.md)                                   | TRUST dimensions, relation-level attachment, aggregation  |
+| [`docs/evidence-identity.md`](docs/evidence-identity.md)                       | Evidence identifiers and structural grounding             |
+| [`docs/review-manifest.md`](docs/review-manifest.md)                           | Optional `review-manifest.json` format                    |
+| [`docs/atlas-check.md`](docs/atlas-check.md)                                   | Deterministic evidence CI rule catalog                    |
+| [`docs/living-review.md`](docs/living-review.md)                               | Claim passports and living-review monitoring              |
+| [`docs/synthesis-and-contradictions.md`](docs/synthesis-and-contradictions.md) | Independence-aware synthesis and contradiction maps       |
+| [`docs/replication-marketplace.md`](docs/replication-marketplace.md)           | Evidence-gap triage and replication briefs                |
+| [`docs/protocol-drift-radar.md`](docs/protocol-drift-radar.md)                 | Protocol-registry snapshot comparison                     |
+| [`docs/execution-passports.md`](docs/execution-passports.md)                   | Offline signed workflow-run provenance verification       |
+| [`docs/federation.md`](docs/federation.md)                                     | COAR Notify review exchange                               |
+| [`docs/preservation-and-exports.md`](docs/preservation-and-exports.md)         | Standards exports and preservation artifacts              |
+| [`docs/editorial-governance.md`](docs/editorial-governance.md)                 | Roles, decisions, overrides, audit                        |
+| [`docs/agent-governance.md`](docs/agent-governance.md)                         | How automated agents are bounded and supervised           |
+| [`docs/deployment.md`](docs/deployment.md)                                     | Production deployment                                     |
+| [`docs/operations/`](docs/operations/README.md)                                | Backups, observability, Postgres, privacy & takedown      |
+| [`docs/poc-limitations.md`](docs/poc-limitations.md)                           | What the POC deliberately does not do                     |
+| [`docs/openapi.yaml`](docs/openapi.yaml)                                       | API description                                           |
+| [`PLAN.md`](PLAN.md)                                                           | Implementation plan and backlog                           |
+
+## Contributing
+
+See [`CONTRIBUTING.md`](CONTRIBUTING.md) for development workflow and expectations,
+[`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) for community standards, and
+[`SECURITY.md`](SECURITY.md) for how to report vulnerabilities.
 
 ## License
 
