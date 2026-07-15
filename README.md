@@ -35,21 +35,22 @@ The POC ships a restrained, scholarly server-rendered interface. Key pages:
 TypeScript `pnpm` monorepo. Framework-free domain packages are tested in isolation and reused by
 CLI scripts; the web app is server-rendered Next.js (App Router).
 
-| Path                 | Purpose                                                              |
-| -------------------- | -------------------------------------------------------------------- |
-| `apps/web`           | Next.js App Router UI + API routes                                   |
-| `packages/contracts` | Zod schemas, shared types, review-manifest JSON Schema               |
-| `packages/config`    | Environment parsing / runtime config                                 |
-| `packages/db`        | Prisma schema + client + seed (SQLite dev, PostgreSQL-compatible)    |
-| `packages/github`    | SSRF-safe GitHub URL validation + bounded inspection                 |
-| `packages/zenodo`    | DOI normalization/resolution + Zenodo metadata matching              |
-| `packages/extractor` | Deterministic metadata/artifact extraction + compatibility report    |
-| `packages/exports`   | Standards exports: CSL/BibTeX/RIS, JATS, RO-Crate, PROV, SWHID, Atom |
-| `packages/trust`     | TRUST validation and documented aggregation                          |
-| `packages/knowledge` | Search, evidence packets, discussion, cross-review links             |
-| `packages/ui`        | Reusable accessible React primitives                                 |
-| `scripts`            | Ingestion / validation CLIs                                          |
-| `docs`               | Architecture, governance, schemas, deployment                        |
+| Path                   | Purpose                                                              |
+| ---------------------- | -------------------------------------------------------------------- |
+| `apps/web`             | Next.js App Router UI + API routes                                   |
+| `packages/contracts`   | Zod schemas, shared types, review-manifest JSON Schema               |
+| `packages/config`      | Environment parsing / runtime config                                 |
+| `packages/db`          | Prisma schema + client + seed (SQLite dev, PostgreSQL-compatible)    |
+| `packages/github`      | SSRF-safe GitHub URL validation + bounded inspection                 |
+| `packages/zenodo`      | DOI normalization/resolution + Zenodo metadata matching              |
+| `packages/extractor`   | Deterministic metadata/artifact extraction + compatibility report    |
+| `packages/exports`     | Standards exports: CSL/BibTeX/RIS, JATS, RO-Crate, PROV, SWHID, Atom |
+| `packages/trust`       | TRUST validation and documented aggregation                          |
+| `packages/atlas-check` | Deterministic TRUST/FAIR evidence CI and GitHub annotations          |
+| `packages/knowledge`   | Search, evidence packets, discussion, cross-review links             |
+| `packages/ui`          | Reusable accessible React primitives                                 |
+| `scripts`              | Ingestion / validation CLIs                                          |
+| `docs`                 | Architecture, governance, schemas, deployment                        |
 
 Full detail: [`docs/architecture.md`](docs/architecture.md).
 
@@ -179,6 +180,8 @@ Zenodo access token.
 - **Acceptance into the archive is not peer review.** It is an editorial curation decision.
 - **TRUST is relation-specific.** Each assessment describes one claim–citation relation, never a
   whole paper, and is never a probability that a paper is "true."
+- **Atlas Check is structural evidence CI.** It checks `TRUST.md`, `FAIR.md`, and the declared
+  evidence graph without an LLM or network access; see [the rule catalog](docs/atlas-check.md).
 - **Repository and agent TRUST records are source assertions.** Atlas preserves their claimed
   status but imports them as unverified. A separate hash-bound editor marker can record structural
   review; it does not establish scientific correctness.

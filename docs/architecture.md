@@ -15,6 +15,7 @@ packages/
   zenodo/              DOI normalization/resolution + Zenodo metadata matching
   extractor/           Deterministic metadata & artifact extraction, compatibility report
   trust/               TRUST assessment validation and documented aggregation
+  atlas-check/         Local TRUST/FAIR evidence evaluator and GitHub annotation renderer
   knowledge/           Search provider, evidence packets, discussion engine, link proposals
   ui/                  Reusable accessible React primitives
 scripts/               Ingestion / validation / maintenance CLIs (tsx)
@@ -36,6 +37,7 @@ packages/github      packages/zenodo
             ▼
 packages/contracts (types + runtime validation, no dependencies on other packages)
 packages/db (persistence; consumed by web + scripts, not by domain packages)
+packages/atlas-check (bounded local evidence CI; depends only on contracts + Zod)
 ```
 
 Domain packages never import Prisma. They accept and return plain typed values
