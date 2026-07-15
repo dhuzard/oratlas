@@ -9,7 +9,8 @@ a review built with, forked from, or structurally compatible with the
 The platform inspects the repository, extracts metadata deterministically, validates optional
 Zenodo DOIs, and — after an editorial decision — publishes an immutable, versioned review record
 with claims, citations, claim-level TRUST assessments, and a grounded cross-review discussion
-assistant (Atlas Discuss).
+assistant (Atlas Discuss), plus human-published replication briefs from transparent evidence-gap
+triage.
 
 > **This platform does not perform peer review** and does not present AI-generated conclusions as
 > established scientific consensus. See [What the platform does not verify](#what-the-platform-does-not-verify).
@@ -27,6 +28,9 @@ The POC ships a restrained, scholarly server-rendered interface. Key pages:
 - **Submission wizard** — repository → inspect → editable metadata (with per-field provenance) →
   validation → submit. _(placeholder: `docs/screenshots/submit.png`)_
 - **Atlas Discuss** — grounded cross-review discussion. _(placeholder: `docs/screenshots/discuss.png`)_
+- **Replication Marketplace** — deterministic evidence-gap triage and human-published, scoped
+  replication briefs with attributable claiming/completion. See
+  [`docs/replication-marketplace.md`](docs/replication-marketplace.md).
 - **Editorial dashboard** — validation reports, metadata diff, accept/reject, audit log.
   _(placeholder: `docs/screenshots/editorial.png`)_
 
@@ -50,7 +54,7 @@ CLI scripts; the web app is server-rendered Next.js (App Router).
 | `packages/protocols`           | Offline registry adapters and neutral protocol-drift comparison      |
 | `packages/execution-passports` | Offline signed Workflow Run provenance verification                  |
 | `packages/federation`          | COAR Notify review exchange validation and immutable projections     |
-| `packages/knowledge`           | Search, evidence packets, discussion, cross-review links             |
+| `packages/knowledge`           | Search, evidence packets, discussion, replication marketplace        |
 | `packages/ui`                  | Reusable accessible React primitives                                 |
 | `scripts`                      | Ingestion / validation CLIs                                          |
 | `docs`                         | Architecture, governance, schemas, deployment                        |
@@ -193,6 +197,9 @@ Zenodo access token.
 - **GitHub default-branch content may differ from a deposited release.** The exact reviewed state
   is the explicitly selected commit and tree SHA.
 - **Several reviews citing the same primary source are not independent replication.**
+- **Replication briefs are editorial opportunities, not promises or truth scores.** Atlas does not
+  rank researchers, predict outcomes, execute studies, initiate payments, or automatically
+  publish briefs; a completion record is not an endorsement of the reported result.
 
 ## License
 

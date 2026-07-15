@@ -43,3 +43,11 @@ export {
   type ClaimScope,
   type ArchivedReviewDoi,
 } from "./synthesis.js";
+export {
+  rankReplicationGaps,
+  REPLICATION_TRIAGE_METHOD,
+  REPLICATION_TRIAGE_DISCLAIMER,
+  type ReplicationGapCandidate,
+  type ReplicationGapSignalCode,
+  type RankedReplicationGap,
+} from "./replication.js";

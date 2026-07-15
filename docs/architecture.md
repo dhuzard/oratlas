@@ -41,7 +41,10 @@ packages/github      packages/zenodo
 packages/contracts (types + runtime validation, no dependencies on other packages)
 packages/db (persistence; consumed by web + scripts, not by domain packages)
 packages/atlas-check (bounded local evidence CI; depends only on contracts + Zod)
+packages/protocols (offline registry adapters and protocol-drift comparison)
+packages/execution-passports (offline Workflow Run provenance verification)
 packages/federation (bounded COAR Notify parsing; depends only on contracts + Zod)
+packages/knowledge/replication (evidence-gap triage and replication marketplace)
 ```
 
 Domain packages never import Prisma. They accept and return plain typed values

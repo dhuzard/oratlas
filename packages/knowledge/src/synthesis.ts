@@ -242,17 +242,18 @@ export function synthesize(
   const circularByCitationId = circularCitations(citations, archivedDois);
 
   const workUse = new Map<string, Set<string>>();
-  const perStatement: StatementSynthesis[] = statements.map((statement) => {
+  const directionFamilies: Array<{ supporting: Set<string>; opposing: Set<string> }> = [];
+  const perStatement: StatementSynthesis[] = statements.map((statement, statementIndex) => {
     const supportingWorkKeys = new Set<string>();
     const opposingWorkKeys = new Set<string>();
-    const circularIds: string[] = [];
+    const circularIds = new Set<string>();
     for (const evidence of statement.evidence) {
       const citation = citationById.get(evidence.citationId);
       if (!citation) continue;
       const key = workKey(citation);
       workUse.set(key, (workUse.get(key) ?? new Set()).add(statement.claimId));
       if (circularByCitationId.has(citation.citationId)) {
-        circularIds.push(citation.citationId);
+        circularIds.add(citation.citationId);
         continue;
       }
       const direction = statementDirection(evidence);
@@ -260,16 +261,22 @@ export function synthesize(
       else if (direction === -1) opposingWorkKeys.add(key);
     }
     const families = (keys: Set<string>) =>
-      new Set([...keys].map((key) => familyByWorkKey.get(key) ?? key)).size;
+      new Set([...keys].map((key) => familyByWorkKey.get(key) ?? key));
+    const supportingFamilies = families(supportingWorkKeys);
+    const opposingFamilies = families(opposingWorkKeys);
+    directionFamilies[statementIndex] = {
+      supporting: supportingFamilies,
+      opposing: opposingFamilies,
+    };
     return {
       claimId: statement.claimId,
       summary: {
         supportingWorks: supportingWorkKeys.size,
-        independentSupportingFamilies: families(supportingWorkKeys),
+        independentSupportingFamilies: supportingFamilies.size,
         opposingWorks: opposingWorkKeys.size,
-        independentOpposingFamilies: families(opposingWorkKeys),
+        independentOpposingFamilies: opposingFamilies.size,
         sharedWorkKeys: [],
-        circularCitationIds: circularIds,
+        circularCitationIds: [...circularIds].sort(),
       },
     };
   });
@@ -286,57 +293,69 @@ export function synthesize(
     perStatement[index]!.summary.sharedWorkKeys = [...used].filter((key) => sharedKeys.has(key));
   }
 
-  const familiesOf = (statement: SynthesisStatement, direction: 1 | -1): Set<string> => {
-    const families = new Set<string>();
-    for (const evidence of statement.evidence) {
-      const citation = citationById.get(evidence.citationId);
-      if (!citation || circularByCitationId.has(citation.citationId)) continue;
-      if (statementDirection(evidence) !== direction) continue;
-      const key = workKey(citation);
-      families.add(familyByWorkKey.get(key) ?? key);
+  // Index statements by evidence family and direction. This avoids comparing
+  // every claim pair when their evidence is disjoint; work is proportional to
+  // declared relations plus the contradiction pairs that must be returned.
+  const useByFamily = new Map<string, { supporting: number[]; opposing: number[] }>();
+  for (const [statementIndex, directions] of directionFamilies.entries()) {
+    for (const family of directions.supporting) {
+      const use = useByFamily.get(family) ?? { supporting: [], opposing: [] };
+      use.supporting.push(statementIndex);
+      useByFamily.set(family, use);
     }
-    return families;
-  };
+    for (const family of directions.opposing) {
+      const use = useByFamily.get(family) ?? { supporting: [], opposing: [] };
+      use.opposing.push(statementIndex);
+      useByFamily.set(family, use);
+    }
+  }
 
-  const contradictions: ContradictionEntry[] = [];
-  for (let i = 0; i < statements.length; i += 1) {
-    for (let j = i + 1; j < statements.length; j += 1) {
-      const a = statements[i]!;
-      const b = statements[j]!;
-      // A contradiction pair: A's supporting families intersect B's opposing
-      // families or vice versa (they read shared or parallel evidence in
-      // opposite directions).
-      const aSupport = familiesOf(a, 1);
-      const aOppose = familiesOf(a, -1);
-      const bSupport = familiesOf(b, 1);
-      const bOppose = familiesOf(b, -1);
-      // A contradiction requires a *shared* evidence family read in opposite
-      // directions: A supports a family that B opposes, or vice versa. Two
-      // claims with disjoint evidence are unrelated, not contradictory.
-      const sharedOpposite = new Set(
-        [...aSupport]
-          .filter((family) => bOppose.has(family))
-          .concat([...bSupport].filter((family) => aOppose.has(family))),
-      );
-      if (sharedOpposite.size === 0) continue;
+  const oppositeFamiliesByPair = new Map<
+    string,
+    { left: number; right: number; count: number; lastFamilyIndex: number }
+  >();
+  let familyIndex = 0;
+  for (const use of useByFamily.values()) {
+    for (const supportingIndex of use.supporting) {
+      for (const opposingIndex of use.opposing) {
+        if (supportingIndex === opposingIndex) continue;
+        const left = Math.min(supportingIndex, opposingIndex);
+        const right = Math.max(supportingIndex, opposingIndex);
+        const key = `${left}\u0000${right}`;
+        const pair = oppositeFamiliesByPair.get(key);
+        if (pair) {
+          if (pair.lastFamilyIndex !== familyIndex) {
+            pair.count += 1;
+            pair.lastFamilyIndex = familyIndex;
+          }
+        } else {
+          oppositeFamiliesByPair.set(key, { left, right, count: 1, lastFamilyIndex: familyIndex });
+        }
+      }
+    }
+    familyIndex += 1;
+  }
+
+  const contradictions: ContradictionEntry[] = [...oppositeFamiliesByPair.values()]
+    .sort((left, right) => left.left - right.left || left.right - right.right)
+    .map(({ left, right, count }) => {
+      const a = statements[left]!;
+      const b = statements[right]!;
       const scopeDiff = differingScopeFields(a.scope, b.scope);
-      // A missing scope on either side means we cannot claim the scopes match,
-      // so an empty diff is only a genuine contradiction when both declared one.
       const kind =
         scopeDiff.length > 0
           ? "scope-difference"
           : a.scope && b.scope
             ? "genuine-contradiction"
             : "undetermined-scope";
-      contradictions.push({
+      return {
         claimIdA: a.claimId,
         claimIdB: b.claimId,
         kind,
-        sharedFamilyCount: sharedOpposite.size,
+        sharedFamilyCount: count,
         differingScopeFields: scopeDiff,
-      });
-    }
-  }
+      };
+    });
 
   return { statements: perStatement, contradictions, familyByWorkKey, circularByCitationId };
 }

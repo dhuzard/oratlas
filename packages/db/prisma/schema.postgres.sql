@@ -248,6 +248,50 @@ CREATE TABLE "Claim" (
 );
 
 -- CreateTable
+CREATE TABLE "ReplicationBrief" (
+    "id" TEXT NOT NULL,
+    "requestKey" TEXT NOT NULL,
+    "requestHash" TEXT NOT NULL,
+    "slug" TEXT NOT NULL,
+    "title" TEXT NOT NULL,
+    "summary" TEXT NOT NULL,
+    "scopeJson" TEXT NOT NULL,
+    "expectedInformationGain" TEXT NOT NULL,
+    "effortBand" TEXT NOT NULL,
+    "protocolUrl" TEXT,
+    "citationUrlsJson" TEXT NOT NULL DEFAULT '[]',
+    "status" TEXT NOT NULL DEFAULT 'draft',
+    "revision" INTEGER NOT NULL DEFAULT 0,
+    "triageSnapshotJson" TEXT,
+    "createdById" TEXT NOT NULL,
+    "publishedById" TEXT,
+    "publishedAt" TIMESTAMP(3),
+    "claimedById" TEXT,
+    "claimedAt" TIMESTAMP(3),
+    "claimNote" TEXT,
+    "completedById" TEXT,
+    "completedAt" TIMESTAMP(3),
+    "completionUrl" TEXT,
+    "completionSummary" TEXT,
+    "withdrawnById" TEXT,
+    "withdrawnAt" TIMESTAMP(3),
+    "withdrawalReason" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "ReplicationBrief_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "ReplicationBriefClaim" (
+    "replicationBriefId" TEXT NOT NULL,
+    "claimId" TEXT NOT NULL,
+    "position" INTEGER NOT NULL,
+
+    CONSTRAINT "ReplicationBriefClaim_pkey" PRIMARY KEY ("replicationBriefId","claimId")
+);
+
+-- CreateTable
 CREATE TABLE "ExecutionPassport" (
     "id" TEXT NOT NULL,
     "status" TEXT NOT NULL DEFAULT 'execution-attested',
@@ -752,6 +796,27 @@ CREATE INDEX "Identifier_scheme_normalizedValue_idx" ON "Identifier"("scheme", "
 CREATE UNIQUE INDEX "Claim_reviewVersionId_localClaimId_key" ON "Claim"("reviewVersionId", "localClaimId");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "ReplicationBrief_requestKey_key" ON "ReplicationBrief"("requestKey");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "ReplicationBrief_slug_key" ON "ReplicationBrief"("slug");
+
+-- CreateIndex
+CREATE INDEX "ReplicationBrief_status_publishedAt_idx" ON "ReplicationBrief"("status", "publishedAt");
+
+-- CreateIndex
+CREATE INDEX "ReplicationBrief_effortBand_status_idx" ON "ReplicationBrief"("effortBand", "status");
+
+-- CreateIndex
+CREATE INDEX "ReplicationBrief_claimedById_status_idx" ON "ReplicationBrief"("claimedById", "status");
+
+-- CreateIndex
+CREATE INDEX "ReplicationBriefClaim_claimId_idx" ON "ReplicationBriefClaim"("claimId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "ReplicationBriefClaim_replicationBriefId_position_key" ON "ReplicationBriefClaim"("replicationBriefId", "position");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "ExecutionPassport_payloadSha256_key" ON "ExecutionPassport"("payloadSha256");
 
 -- CreateIndex
@@ -936,6 +1001,27 @@ ALTER TABLE "Identifier" ADD CONSTRAINT "Identifier_reviewVersionId_fkey" FOREIG
 
 -- AddForeignKey
 ALTER TABLE "Claim" ADD CONSTRAINT "Claim_reviewVersionId_fkey" FOREIGN KEY ("reviewVersionId") REFERENCES "ReviewVersion"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ReplicationBrief" ADD CONSTRAINT "ReplicationBrief_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ReplicationBrief" ADD CONSTRAINT "ReplicationBrief_publishedById_fkey" FOREIGN KEY ("publishedById") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ReplicationBrief" ADD CONSTRAINT "ReplicationBrief_claimedById_fkey" FOREIGN KEY ("claimedById") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ReplicationBrief" ADD CONSTRAINT "ReplicationBrief_completedById_fkey" FOREIGN KEY ("completedById") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ReplicationBrief" ADD CONSTRAINT "ReplicationBrief_withdrawnById_fkey" FOREIGN KEY ("withdrawnById") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ReplicationBriefClaim" ADD CONSTRAINT "ReplicationBriefClaim_replicationBriefId_fkey" FOREIGN KEY ("replicationBriefId") REFERENCES "ReplicationBrief"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ReplicationBriefClaim" ADD CONSTRAINT "ReplicationBriefClaim_claimId_fkey" FOREIGN KEY ("claimId") REFERENCES "Claim"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "ExecutionPassport" ADD CONSTRAINT "ExecutionPassport_registeredById_fkey" FOREIGN KEY ("registeredById") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

@@ -17,6 +17,7 @@ import { ExecutionPassportError } from "./execution-passports";
 import { validateSameOriginJsonRequest } from "./mutation-request";
 import { clientKey, rateLimit, rateLimitDefaults } from "./rate-limit";
 import { SubmissionError } from "./submissions";
+import { ReplicationMarketplaceError } from "./replication-marketplace";
 
 /**
  * Shared plumbing for cookie-authenticated lifecycle mutations: same-origin
@@ -60,6 +61,7 @@ export async function handleLifecyclePost<Schema extends z.ZodTypeAny>(
     if (err instanceof MonitoringError) return errorResponse(err.code, err.message);
     if (err instanceof ProtocolDriftError) return errorResponse(err.code, err.message);
     if (err instanceof SubmissionError) return errorResponse(err.code, err.message);
+    if (err instanceof ReplicationMarketplaceError) return errorResponse(err.code, err.message);
     if (err instanceof ExecutionPassportError) return errorResponse(err.code, err.message);
     if (err instanceof z.ZodError) return errorResponse("bad-request", "Invalid request payload.");
     if (err instanceof BodyTooLargeError)

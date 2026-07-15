@@ -1,18 +1,23 @@
 import "server-only";
 import {
+  canonicalJson,
   claimScopeSchema,
   globalClaimId,
   type ClaimScope as ContractClaimScope,
 } from "@oratlas/contracts";
+import { type Prisma } from "@oratlas/db";
 import {
+  rankReplicationGaps,
   synthesize,
   type ArchivedReviewDoi,
   type ContradictionEntry,
   type StatementSynthesis,
   type SynthesisCitation,
   type SynthesisStatement,
+  type RankedReplicationGap,
 } from "@oratlas/knowledge";
 import { prisma, parseJsonColumn } from "./db";
+import { sha256 } from "./hash";
 
 /**
  * Web adapter for independence-aware synthesis (issue #5). Assembles
@@ -20,13 +25,18 @@ import { prisma, parseJsonColumn } from "./db";
  * deterministic engine. No model is consulted.
  */
 
-async function readableCurrentVersions() {
-  const reviews = await prisma.review.findMany({
+type CorpusReader = Pick<
+  Prisma.TransactionClient,
+  "review" | "claim" | "citation" | "reviewVersion"
+>;
+
+async function readableCurrentVersions(reader: CorpusReader) {
+  const reviews = await reader.review.findMany({
     where: { status: "published" },
     include: {
       versions: {
         where: { publicState: { in: ["published", "withdrawn"] } },
-        orderBy: { createdAt: "desc" },
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
       },
     },
   });
@@ -55,21 +65,24 @@ interface AssembledInput {
   claimTextById: Map<string, { text: string; reviewSlug: string; localClaimId: string }>;
 }
 
-async function assemble(): Promise<AssembledInput> {
-  const entries = await readableCurrentVersions();
+async function assemble(reader: CorpusReader = prisma): Promise<AssembledInput> {
+  const entries = await readableCurrentVersions(reader);
   const versionIds = entries.map((entry) => entry.version.id);
   const slugByVersion = new Map(entries.map((entry) => [entry.version.id, entry.review.slug]));
 
-  const claims = await prisma.claim.findMany({
+  const claims = await reader.claim.findMany({
     where: { reviewVersionId: { in: versionIds } },
     include: {
       evidenceRelations: {
         select: { citationId: true, relationType: true, supportDirection: true },
+        orderBy: { id: "asc" },
       },
     },
+    orderBy: { id: "asc" },
   });
-  const citations = await prisma.citation.findMany({
+  const citations = await reader.citation.findMany({
     where: { reviewVersionId: { in: versionIds } },
+    orderBy: { id: "asc" },
   });
 
   const statements: SynthesisStatement[] = [];
@@ -110,9 +123,10 @@ async function assemble(): Promise<AssembledInput> {
 
   // Archived review DOIs (real, non-example) enable circular-citation
   // detection: a citation resolving to one of these points back into Atlas.
-  const versionDois = await prisma.reviewVersion.findMany({
+  const versionDois = await reader.reviewVersion.findMany({
     where: { id: { in: versionIds }, isExample: false, versionDoi: { not: null } },
     select: { versionDoi: true, review: { select: { slug: true } } },
+    orderBy: { id: "asc" },
   });
   const archivedDois: ArchivedReviewDoi[] = versionDois
     .filter((entry) => entry.versionDoi)
@@ -213,6 +227,135 @@ export async function getClaimIndependence(
     .filter((entry) => entry.claimIdA === claimId || entry.claimIdB === claimId)
     .map((entry) => toContradictionRow(entry, statementByClaim, claimTextById));
   return { summary, contradictions };
+}
+
+export interface ReplicationTriageRow extends RankedReplicationGap {
+  text: string;
+  reviewSlug: string;
+  reviewVersionId: string;
+  localClaimId: string;
+  passportPath: string;
+}
+
+export interface ReplicationTriageSnapshot {
+  corpusHash: string;
+  capturedAt: string;
+  rows: ReplicationTriageRow[];
+}
+
+const TRIAGE_CACHE_ENTRIES = 3;
+const triageByCorpusHash = new Map<string, Promise<ReplicationTriageSnapshot>>();
+
+function replicationCorpusHash(input: AssembledInput): string {
+  return sha256(
+    canonicalJson({
+      statements: input.statements,
+      citations: input.citations,
+      archivedDois: input.archivedDois,
+    }),
+  );
+}
+
+/**
+ * Deterministic evidence-gap ordering for human editorial triage. The output
+ * deliberately has no quality/truth score and never creates or publishes a brief.
+ */
+function computeReplicationTriageRows({
+  statements,
+  citations,
+  archivedDois,
+}: AssembledInput): ReplicationTriageRow[] {
+  const result = synthesize(statements, citations, archivedDois);
+  const synthesisByClaim = new Map(
+    result.statements.map((entry) => [entry.claimId, entry.summary]),
+  );
+  const contradictionCounts = new Map<
+    string,
+    { genuine: number; scopeDifference: number; undeterminedScope: number }
+  >();
+  const countsFor = (claimId: string) => {
+    const current = contradictionCounts.get(claimId) ?? {
+      genuine: 0,
+      scopeDifference: 0,
+      undeterminedScope: 0,
+    };
+    contradictionCounts.set(claimId, current);
+    return current;
+  };
+  for (const contradiction of result.contradictions) {
+    for (const claimId of [contradiction.claimIdA, contradiction.claimIdB]) {
+      const counts = countsFor(claimId);
+      if (contradiction.kind === "genuine-contradiction") counts.genuine += 1;
+      else if (contradiction.kind === "scope-difference") counts.scopeDifference += 1;
+      else counts.undeterminedScope += 1;
+    }
+  }
+
+  const ranked = rankReplicationGaps(
+    statements.map((statement) => ({
+      claimId: statement.claimId,
+      scopeDeclared: Boolean(statement.scope),
+      independence: synthesisByClaim.get(statement.claimId)!,
+      contradictions: countsFor(statement.claimId),
+    })),
+  );
+  const statementByClaim = new Map(statements.map((statement) => [statement.claimId, statement]));
+  return ranked.map((entry) => {
+    const statement = statementByClaim.get(entry.claimId)!;
+    return {
+      ...entry,
+      text: statement.text,
+      reviewSlug: statement.reviewSlug,
+      reviewVersionId: statement.reviewVersionId,
+      localClaimId: statement.localClaimId,
+      passportPath: passportPath(statement),
+    };
+  });
+}
+
+async function replicationTriageSnapshot(): Promise<ReplicationTriageSnapshot> {
+  const input = await assemble();
+  const corpusHash = replicationCorpusHash(input);
+  const existing = triageByCorpusHash.get(corpusHash);
+  if (existing) return existing;
+
+  const pending = Promise.resolve().then(() => ({
+    corpusHash,
+    capturedAt: new Date().toISOString(),
+    rows: computeReplicationTriageRows(input),
+  }));
+  triageByCorpusHash.set(corpusHash, pending);
+  while (triageByCorpusHash.size > TRIAGE_CACHE_ENTRIES) {
+    const oldest = triageByCorpusHash.keys().next().value as string | undefined;
+    if (!oldest || oldest === corpusHash) break;
+    triageByCorpusHash.delete(oldest);
+  }
+  void pending.catch(() => {
+    if (triageByCorpusHash.get(corpusHash) === pending) triageByCorpusHash.delete(corpusHash);
+  });
+  return pending;
+}
+
+export async function getReplicationTriage(limit = 100): Promise<ReplicationTriageRow[]> {
+  const boundedLimit = Math.max(1, Math.min(500, Math.trunc(limit)));
+  return (await replicationTriageSnapshot()).rows.slice(0, boundedLimit);
+}
+
+/** Exact triage snapshots for a bounded set of claims selected by an editor. */
+export async function getReplicationTriageForClaimIds(
+  claimIds: string[],
+): Promise<ReplicationTriageSnapshot> {
+  if (claimIds.length < 1 || claimIds.length > 20 || new Set(claimIds).size !== claimIds.length) {
+    throw new Error("One to twenty unique claim ids are required for a triage snapshot.");
+  }
+  const selected = new Set(claimIds);
+  const snapshot = await replicationTriageSnapshot();
+  return { ...snapshot, rows: snapshot.rows.filter((entry) => selected.has(entry.claimId)) };
+}
+
+/** Recompute only the canonical corpus identity inside a publication transaction. */
+export async function getReplicationCorpusHash(reader: Prisma.TransactionClient): Promise<string> {
+  return replicationCorpusHash(await assemble(reader));
 }
 
 function isExampleCitation(rawJson: string | null): boolean {
