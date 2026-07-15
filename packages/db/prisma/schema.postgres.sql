@@ -292,6 +292,60 @@ CREATE TABLE "ReplicationBriefClaim" (
 );
 
 -- CreateTable
+CREATE TABLE "ExecutionPassport" (
+    "id" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'execution-attested',
+    "verificationStatus" TEXT NOT NULL DEFAULT 'verified',
+    "revision" INTEGER NOT NULL DEFAULT 0,
+    "sourceJson" TEXT NOT NULL,
+    "crateSha256" TEXT NOT NULL,
+    "attestationSha256" TEXT NOT NULL,
+    "payloadSha256" TEXT NOT NULL,
+    "repositoryUrl" TEXT NOT NULL,
+    "commitSha" TEXT NOT NULL,
+    "treeSha" TEXT NOT NULL,
+    "workflowEntityId" TEXT NOT NULL,
+    "workflowPath" TEXT NOT NULL,
+    "workflowSha256" TEXT NOT NULL,
+    "workflowRunId" TEXT NOT NULL,
+    "workflowRunAttempt" INTEGER NOT NULL,
+    "signingKeyId" TEXT NOT NULL,
+    "signingIssuer" TEXT NOT NULL,
+    "signingSubject" TEXT NOT NULL,
+    "issuedAt" TIMESTAMP(3) NOT NULL,
+    "registeredById" TEXT NOT NULL,
+    "lastVerifiedById" TEXT NOT NULL,
+    "registeredAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "verifiedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "ExecutionPassport_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "ExecutionPassportClaim" (
+    "id" TEXT NOT NULL,
+    "passportId" TEXT NOT NULL,
+    "claimId" TEXT NOT NULL,
+
+    CONSTRAINT "ExecutionPassportClaim_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "ExecutionPassportArtifact" (
+    "id" TEXT NOT NULL,
+    "passportId" TEXT NOT NULL,
+    "entityId" TEXT NOT NULL,
+    "role" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "path" TEXT NOT NULL,
+    "mediaType" TEXT,
+    "byteSize" INTEGER NOT NULL,
+    "sha256" TEXT NOT NULL,
+
+    CONSTRAINT "ExecutionPassportArtifact_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "Citation" (
     "id" TEXT NOT NULL,
     "reviewVersionId" TEXT NOT NULL,
@@ -600,6 +654,75 @@ CREATE TABLE "ClaimUpdateProposal" (
     CONSTRAINT "ClaimUpdateProposal_pkey" PRIMARY KEY ("id")
 );
 
+-- CreateTable
+CREATE TABLE "FederationNotification" (
+    "id" TEXT NOT NULL,
+    "activityId" TEXT NOT NULL,
+    "direction" TEXT NOT NULL,
+    "pattern" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'pending',
+    "actorUri" TEXT,
+    "objectUri" TEXT NOT NULL,
+    "contextUri" TEXT,
+    "originUri" TEXT NOT NULL,
+    "originInbox" TEXT,
+    "targetUri" TEXT NOT NULL,
+    "targetInbox" TEXT NOT NULL,
+    "inReplyTo" TEXT,
+    "payloadJson" TEXT NOT NULL,
+    "payloadHash" TEXT NOT NULL,
+    "reviewVersionId" TEXT,
+    "resolvedById" TEXT,
+    "resolutionNote" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "resolvedAt" TIMESTAMP(3),
+
+    CONSTRAINT "FederationNotification_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "ProtocolSnapshot" (
+    "id" TEXT NOT NULL,
+    "reviewVersionId" TEXT NOT NULL,
+    "claimId" TEXT,
+    "createdById" TEXT NOT NULL,
+    "targetKey" TEXT NOT NULL,
+    "registry" TEXT NOT NULL,
+    "sourceId" TEXT NOT NULL,
+    "sourceUrl" TEXT NOT NULL,
+    "sourceVersion" TEXT NOT NULL,
+    "sourceTimestamp" TIMESTAMP(3),
+    "fetchedAt" TIMESTAMP(3) NOT NULL,
+    "normalizedJson" TEXT NOT NULL,
+    "rawJson" TEXT NOT NULL,
+    "questionMetadataJson" TEXT,
+    "contentHash" TEXT NOT NULL,
+    "observedJson" TEXT NOT NULL,
+    "comparatorVersion" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "ProtocolSnapshot_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "ProtocolDriftProposal" (
+    "id" TEXT NOT NULL,
+    "snapshotId" TEXT NOT NULL,
+    "category" TEXT NOT NULL,
+    "kind" TEXT NOT NULL,
+    "registeredJson" TEXT NOT NULL,
+    "observedJson" TEXT NOT NULL,
+    "rationale" TEXT NOT NULL,
+    "comparatorVersion" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'open',
+    "resolvedById" TEXT,
+    "resolutionNote" TEXT,
+    "resolvedAt" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "ProtocolDriftProposal_pkey" PRIMARY KEY ("id")
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX "User_githubUserId_key" ON "User"("githubUserId");
 
@@ -694,6 +817,27 @@ CREATE INDEX "ReplicationBriefClaim_claimId_idx" ON "ReplicationBriefClaim"("cla
 CREATE UNIQUE INDEX "ReplicationBriefClaim_replicationBriefId_position_key" ON "ReplicationBriefClaim"("replicationBriefId", "position");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "ExecutionPassport_payloadSha256_key" ON "ExecutionPassport"("payloadSha256");
+
+-- CreateIndex
+CREATE INDEX "ExecutionPassport_verificationStatus_registeredAt_idx" ON "ExecutionPassport"("verificationStatus", "registeredAt");
+
+-- CreateIndex
+CREATE INDEX "ExecutionPassport_commitSha_idx" ON "ExecutionPassport"("commitSha");
+
+-- CreateIndex
+CREATE INDEX "ExecutionPassportClaim_claimId_idx" ON "ExecutionPassportClaim"("claimId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "ExecutionPassportClaim_passportId_claimId_key" ON "ExecutionPassportClaim"("passportId", "claimId");
+
+-- CreateIndex
+CREATE INDEX "ExecutionPassportArtifact_passportId_role_idx" ON "ExecutionPassportArtifact"("passportId", "role");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "ExecutionPassportArtifact_passportId_entityId_key" ON "ExecutionPassportArtifact"("passportId", "entityId");
+
+-- CreateIndex
 CREATE INDEX "Citation_doi_idx" ON "Citation"("doi");
 
 -- CreateIndex
@@ -752,6 +896,36 @@ CREATE INDEX "ClaimUpdateProposal_status_idx" ON "ClaimUpdateProposal"("status")
 
 -- CreateIndex
 CREATE UNIQUE INDEX "ClaimUpdateProposal_statusRecordId_claimId_key" ON "ClaimUpdateProposal"("statusRecordId", "claimId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "FederationNotification_activityId_key" ON "FederationNotification"("activityId");
+
+-- CreateIndex
+CREATE INDEX "FederationNotification_direction_status_createdAt_idx" ON "FederationNotification"("direction", "status", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "FederationNotification_reviewVersionId_idx" ON "FederationNotification"("reviewVersionId");
+
+-- CreateIndex
+CREATE INDEX "FederationNotification_inReplyTo_idx" ON "FederationNotification"("inReplyTo");
+
+-- CreateIndex
+CREATE INDEX "ProtocolSnapshot_reviewVersionId_createdAt_idx" ON "ProtocolSnapshot"("reviewVersionId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "ProtocolSnapshot_claimId_createdAt_idx" ON "ProtocolSnapshot"("claimId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "ProtocolSnapshot_registry_sourceId_idx" ON "ProtocolSnapshot"("registry", "sourceId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "ProtocolSnapshot_targetKey_registry_sourceId_sourceVersion_key" ON "ProtocolSnapshot"("targetKey", "registry", "sourceId", "sourceVersion");
+
+-- CreateIndex
+CREATE INDEX "ProtocolDriftProposal_snapshotId_status_idx" ON "ProtocolDriftProposal"("snapshotId", "status");
+
+-- CreateIndex
+CREATE INDEX "ProtocolDriftProposal_status_createdAt_idx" ON "ProtocolDriftProposal"("status", "createdAt");
 
 -- AddForeignKey
 ALTER TABLE "RepositorySnapshot" ADD CONSTRAINT "RepositorySnapshot_repositoryId_fkey" FOREIGN KEY ("repositoryId") REFERENCES "Repository"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -848,6 +1022,21 @@ ALTER TABLE "ReplicationBriefClaim" ADD CONSTRAINT "ReplicationBriefClaim_replic
 
 -- AddForeignKey
 ALTER TABLE "ReplicationBriefClaim" ADD CONSTRAINT "ReplicationBriefClaim_claimId_fkey" FOREIGN KEY ("claimId") REFERENCES "Claim"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ExecutionPassport" ADD CONSTRAINT "ExecutionPassport_registeredById_fkey" FOREIGN KEY ("registeredById") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ExecutionPassport" ADD CONSTRAINT "ExecutionPassport_lastVerifiedById_fkey" FOREIGN KEY ("lastVerifiedById") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ExecutionPassportClaim" ADD CONSTRAINT "ExecutionPassportClaim_passportId_fkey" FOREIGN KEY ("passportId") REFERENCES "ExecutionPassport"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ExecutionPassportClaim" ADD CONSTRAINT "ExecutionPassportClaim_claimId_fkey" FOREIGN KEY ("claimId") REFERENCES "Claim"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ExecutionPassportArtifact" ADD CONSTRAINT "ExecutionPassportArtifact_passportId_fkey" FOREIGN KEY ("passportId") REFERENCES "ExecutionPassport"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Citation" ADD CONSTRAINT "Citation_reviewVersionId_fkey" FOREIGN KEY ("reviewVersionId") REFERENCES "ReviewVersion"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -950,4 +1139,25 @@ ALTER TABLE "ClaimUpdateProposal" ADD CONSTRAINT "ClaimUpdateProposal_citationId
 
 -- AddForeignKey
 ALTER TABLE "ClaimUpdateProposal" ADD CONSTRAINT "ClaimUpdateProposal_resolvedById_fkey" FOREIGN KEY ("resolvedById") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "FederationNotification" ADD CONSTRAINT "FederationNotification_reviewVersionId_fkey" FOREIGN KEY ("reviewVersionId") REFERENCES "ReviewVersion"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "FederationNotification" ADD CONSTRAINT "FederationNotification_resolvedById_fkey" FOREIGN KEY ("resolvedById") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ProtocolSnapshot" ADD CONSTRAINT "ProtocolSnapshot_reviewVersionId_fkey" FOREIGN KEY ("reviewVersionId") REFERENCES "ReviewVersion"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ProtocolSnapshot" ADD CONSTRAINT "ProtocolSnapshot_claimId_fkey" FOREIGN KEY ("claimId") REFERENCES "Claim"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ProtocolSnapshot" ADD CONSTRAINT "ProtocolSnapshot_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ProtocolDriftProposal" ADD CONSTRAINT "ProtocolDriftProposal_snapshotId_fkey" FOREIGN KEY ("snapshotId") REFERENCES "ProtocolSnapshot"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ProtocolDriftProposal" ADD CONSTRAINT "ProtocolDriftProposal_resolvedById_fkey" FOREIGN KEY ("resolvedById") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 

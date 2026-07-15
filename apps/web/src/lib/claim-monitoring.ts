@@ -13,6 +13,11 @@ import { type Prisma } from "@oratlas/db";
 import { prisma } from "./db";
 import { withSqliteRetry as sharedWithSqliteRetry } from "./db-retry";
 import { isReadablePublicState } from "./review-lifecycle";
+import {
+  listExecutionPassportsForClaim,
+  type PublicExecutionPassport,
+} from "./execution-passports";
+import { getPublicProtocolSummary, type ProtocolDriftSummary } from "./protocol-drift";
 
 /**
  * Evidence monitoring and claim passports (issue #3). A registered signal
@@ -368,6 +373,8 @@ export interface ClaimPassport {
     textChanged: boolean;
   }>;
   alerts: ProposalRow[];
+  executionPassports: PublicExecutionPassport[];
+  protocolDrift: ProtocolDriftSummary;
 }
 
 /**
@@ -409,6 +416,10 @@ export async function getClaimPassport(
   const textByVersion = new Map(
     lineageClaims.map((entry) => [entry.reviewVersionId, entry.normalizedText]),
   );
+  const executionPassports = await listExecutionPassportsForClaim(versionId, localClaimId);
+
+  const protocolDrift = await getPublicProtocolSummary(version.id, claim.localClaimId);
+  if (!protocolDrift) return null;
 
   return {
     claimId: globalClaimId(version.id, claim.localClaimId),
@@ -445,6 +456,8 @@ export async function getClaimPassport(
         textChanged: textByVersion.get(candidate.id) !== claim.normalizedText,
       })),
     alerts: claim.updateProposals.map(proposalDto),
+    executionPassports,
+    protocolDrift,
   };
 }
 

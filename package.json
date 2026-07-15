@@ -28,7 +28,9 @@
     "db:pg:schema": "pnpm --filter @oratlas/db db:pg:schema",
     "db:pg:ddl": "pnpm --filter @oratlas/db db:pg:ddl",
     "ingest": "tsx scripts/ingest.ts",
-    "validate-doi": "tsx scripts/validate-doi.ts"
+    "validate-doi": "tsx scripts/validate-doi.ts",
+    "atlas-check": "tsx scripts/atlas-check.ts",
+    "atlas-check:json": "tsx scripts/atlas-check.ts --format json"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",

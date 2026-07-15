@@ -23,6 +23,9 @@ export const claimScopeSchema = z
     intervention: z.string().max(300).optional(),
     outcome: z.string().max(300).optional(),
     method: z.string().max(300).optional(),
+    /** Structured reporting fields used by protocol-drift comparison. */
+    exclusions: z.string().max(1_000).optional(),
+    analysisPlan: z.string().max(1_000).optional(),
   })
   .strict();
 export type ClaimScope = z.infer<typeof claimScopeSchema>;

@@ -21,6 +21,10 @@ const serverEnvSchema = z.object({
   // (Redis) is the production swap. Coerced from strings so env vars parse.
   RATE_LIMIT_MAX: z.coerce.number().int().positive().default(10),
   RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(60_000),
+  // Offline trust policy for Execution Passport Ed25519 attestations. JSON
+  // array of {keyId, algorithm, publicKeyPem, issuer, subject}; parsed and
+  // fingerprint-checked by @oratlas/execution-passports.
+  EXECUTION_PASSPORT_TRUSTED_KEYS_JSON: z.string().optional(),
 });
 
 export type ServerEnv = z.infer<typeof serverEnvSchema> & {

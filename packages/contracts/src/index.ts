@@ -17,3 +17,5 @@ export * from "./editorial.js";
 export * from "./monitoring.js";
 export * from "./lifecycle.js";
 export * from "./replication.js";
+export * from "./execution-passports.js";
+export * from "./atlas-check.js";

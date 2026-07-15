@@ -108,6 +108,54 @@ export default async function ClaimPassportPage({
         )}
       </Card>
 
+      <Card title={`Execution passports (${passport.executionPassports.length})`}>
+        <p className="muted">
+          These records verify signed provenance for exact workflow runs. They do not mean Atlas
+          reran the code, reproduced the result, or established that this claim is true.
+        </p>
+        {passport.executionPassports.length === 0 ? (
+          <p className="muted">No verified execution attestation is bound to this claim.</p>
+        ) : (
+          passport.executionPassports.map((execution) => (
+            <div className="claim-card" key={execution.id}>
+              <div className="btn-row">
+                <Badge>execution-attested</Badge>
+                <a href={execution.machineUrl}>machine-readable passport</a>
+              </div>
+              <DefinitionList
+                items={[
+                  {
+                    term: "Repository commit",
+                    value: <span className="mono">{execution.repository.commitSha}</span>,
+                  },
+                  {
+                    term: "Tree",
+                    value: <span className="mono">{execution.repository.treeSha}</span>,
+                  },
+                  {
+                    term: "Workflow",
+                    value: (
+                      <span className="mono">
+                        {execution.workflow.path} · run {execution.workflow.runId}/
+                        {execution.workflow.runAttempt}
+                      </span>
+                    ),
+                  },
+                  {
+                    term: "Signing identity",
+                    value: <span className="mono">{execution.signingIdentity.subject}</span>,
+                  },
+                  {
+                    term: "Artifacts",
+                    value: `${execution.artifacts.filter((artifact) => artifact.role === "input").length} input(s), ${execution.artifacts.filter((artifact) => artifact.role === "output").length} output(s)`,
+                  },
+                ]}
+              />
+            </div>
+          ))
+        )}
+      </Card>
+
       {independence ? (
         <Card title="Independence &amp; contradictions">
           <p className="muted">
@@ -214,6 +262,48 @@ export default async function ClaimPassportPage({
                   {alert.resolvedAt?.slice(0, 10)}
                 </p>
               ) : null}
+            </div>
+          ))}
+        </Card>
+      ) : null}
+
+      {passport.protocolDrift.snapshots.length > 0 ? (
+        <Card title={`Protocol Drift Radar (${passport.protocolDrift.openCount} open)`}>
+          <p className="muted">
+            Deterministic comparison of registered protocol fields with this claim&apos;s declared
+            scope. Differences are neutral proposals for human review, never assertions about intent
+            or misconduct.
+          </p>
+          {passport.protocolDrift.snapshots.map((snapshot) => (
+            <div className="claim-card" key={snapshot.id}>
+              <div className="btn-row">
+                <Badge>{snapshot.registry}</Badge>
+                <a href={snapshot.sourceUrl} rel="noopener noreferrer">
+                  {snapshot.sourceId}
+                </a>
+                <span className="mono muted">version {snapshot.sourceVersion}</span>
+              </div>
+              <p className="mono muted" style={{ fontSize: "0.8rem" }}>
+                captured {snapshot.fetchedAt} · SHA-256 {snapshot.contentHash}
+              </p>
+              {snapshot.proposals.length === 0 ? (
+                <p>No structured differences detected.</p>
+              ) : (
+                <ul>
+                  {snapshot.proposals.map((proposal) => (
+                    <li key={proposal.id}>
+                      <StatusPill status={proposal.status} /> <strong>{proposal.category}</strong>:{" "}
+                      {proposal.rationale}
+                      {proposal.resolutionNote ? (
+                        <span className="muted">
+                          {" "}
+                          Resolution: {proposal.resolutionNote} — @{proposal.resolvedByLogin}
+                        </span>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           ))}
         </Card>
