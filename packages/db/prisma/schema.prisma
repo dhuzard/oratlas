@@ -35,25 +35,29 @@ model User {
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
 
-  submissions        Submission[]           @relation("submitter")
-  editorialDecisions Submission[]           @relation("reviewer")
-  discussionThreads  DiscussionThread[]
-  reviewComments     ReviewComment[]
-  auditEvents        AuditEvent[]
-  trustVerifications TrustVerification[]    @relation("trustReviewer")
-  inspectionCaptures InspectionCapture[]
-  editorialOverrides EditorialOverride[]
-  lifecycleEvents    ReviewLifecycleEvent[] @relation("lifecycleActor")
-  editorAssignments  EditorAssignment[]     @relation("assignmentEditor")
-  assignmentsMade    EditorAssignment[]     @relation("assignmentAssigner")
-  roundsOpened       ReviewRound[]          @relation("roundOpener")
-  formalReports      FormalReviewReport[]   @relation("formalReviewer")
-  authorResponses    AuthorResponse[]       @relation("respondingAuthor")
-  decisionLetters    DecisionLetter[]       @relation("decisionEditor")
-  notifications      Notification[]         @relation("notificationUser")
-  statusRecords      CitationStatusRecord[] @relation("statusRecorder")
-  proposalsResolved  ClaimUpdateProposal[]  @relation("proposalResolver")
-  federationResolved FederationNotification[] @relation("federationResolver")
+  submissions               Submission[]             @relation("submitter")
+  editorialDecisions        Submission[]             @relation("reviewer")
+  discussionThreads         DiscussionThread[]
+  reviewComments            ReviewComment[]
+  auditEvents               AuditEvent[]
+  trustVerifications        TrustVerification[]      @relation("trustReviewer")
+  inspectionCaptures        InspectionCapture[]
+  editorialOverrides        EditorialOverride[]
+  lifecycleEvents           ReviewLifecycleEvent[]   @relation("lifecycleActor")
+  editorAssignments         EditorAssignment[]       @relation("assignmentEditor")
+  assignmentsMade           EditorAssignment[]       @relation("assignmentAssigner")
+  roundsOpened              ReviewRound[]            @relation("roundOpener")
+  formalReports             FormalReviewReport[]     @relation("formalReviewer")
+  authorResponses           AuthorResponse[]         @relation("respondingAuthor")
+  decisionLetters           DecisionLetter[]         @relation("decisionEditor")
+  notifications             Notification[]           @relation("notificationUser")
+  statusRecords             CitationStatusRecord[]   @relation("statusRecorder")
+  proposalsResolved         ClaimUpdateProposal[]    @relation("proposalResolver")
+  protocolSnapshots         ProtocolSnapshot[]       @relation("protocolSnapshotCreator")
+  protocolProposalsResolved ProtocolDriftProposal[]  @relation("protocolProposalResolver")
+  passportsRegistered       ExecutionPassport[]      @relation("passportRegistrant")
+  passportsVerified         ExecutionPassport[]      @relation("passportVerifier")
+  federationResolved        FederationNotification[] @relation("federationResolver")
 
   @@index([githubLoginNormalized])
 }
@@ -185,19 +189,20 @@ model ReviewVersion {
   /// transaction that appends an attributable lifecycle event.
   publicState                String    @default("published")
 
-  review               Review                 @relation(fields: [reviewId], references: [id])
-  snapshot             RepositorySnapshot     @relation(fields: [snapshotId], references: [id])
-  contributors         ReviewContributor[]
-  identifiers          Identifier[]
-  claims               Claim[]
-  citations            Citation[]
-  comments             ReviewComment[]
-  sourceSubmission     Submission?            @relation("VersionSource", fields: [sourceSubmissionId], references: [id])
-  inspectionCapture    InspectionCapture?     @relation(fields: [inspectionCaptureId], references: [id])
-  resultingSubmissions Submission[]           @relation("ResultingVersion")
-  lifecycleEvents      ReviewLifecycleEvent[] @relation("lifecycleTarget")
-  supersededByEvents   ReviewLifecycleEvent[] @relation("lifecycleSupersededVersion")
+  review                  Review                   @relation(fields: [reviewId], references: [id])
+  snapshot                RepositorySnapshot       @relation(fields: [snapshotId], references: [id])
+  contributors            ReviewContributor[]
+  identifiers             Identifier[]
+  claims                  Claim[]
+  citations               Citation[]
+  comments                ReviewComment[]
+  sourceSubmission        Submission?              @relation("VersionSource", fields: [sourceSubmissionId], references: [id])
+  inspectionCapture       InspectionCapture?       @relation(fields: [inspectionCaptureId], references: [id])
+  resultingSubmissions    Submission[]             @relation("ResultingVersion")
+  lifecycleEvents         ReviewLifecycleEvent[]   @relation("lifecycleTarget")
+  supersededByEvents      ReviewLifecycleEvent[]   @relation("lifecycleSupersededVersion")
   federationNotifications FederationNotification[]
+  protocolSnapshots       ProtocolSnapshot[]
 
   @@unique([reviewId, snapshotId, sourceSelectionKey])
 }
@@ -380,14 +385,89 @@ model Claim {
   scopeJson       String?
   createdAt       DateTime @default(now())
 
-  reviewVersion     ReviewVersion           @relation(fields: [reviewVersionId], references: [id])
-  evidenceRelations ClaimEvidenceRelation[]
-  linkProposalsFrom KnowledgeLinkProposal[] @relation("sourceClaim")
-  linkProposalsTo   KnowledgeLinkProposal[] @relation("targetClaim")
-  comments          ReviewComment[]
-  updateProposals   ClaimUpdateProposal[]
+  reviewVersion      ReviewVersion            @relation(fields: [reviewVersionId], references: [id])
+  evidenceRelations  ClaimEvidenceRelation[]
+  linkProposalsFrom  KnowledgeLinkProposal[]  @relation("sourceClaim")
+  linkProposalsTo    KnowledgeLinkProposal[]  @relation("targetClaim")
+  comments           ReviewComment[]
+  updateProposals    ClaimUpdateProposal[]
+  protocolSnapshots  ProtocolSnapshot[]
+  executionPassports ExecutionPassportClaim[]
 
   @@unique([reviewVersionId, localClaimId])
+}
+
+/// Offline-verified execution provenance bound to immutable Atlas claims.
+/// Submitted repositories are never cloned or executed. Source JSON retains
+/// the exact bounded crate/envelope so verification can be repeated later.
+model ExecutionPassport {
+  id                 String   @id @default(cuid())
+  /// Always execution-attested for a valid public record. This label does not
+  /// assert that results were reproduced or that a claim is scientifically true.
+  status             String   @default("execution-attested")
+  /// verified | failed. Public reads require verified and re-check hashes.
+  verificationStatus String   @default("verified")
+  revision           Int      @default(0)
+  sourceJson         String
+  crateSha256        String
+  attestationSha256  String
+  /// Canonical signed statement identity; envelope signature-array changes
+  /// cannot create duplicate passports for the same attested execution.
+  payloadSha256      String   @unique
+  repositoryUrl      String
+  commitSha          String
+  treeSha            String
+  workflowEntityId   String
+  workflowPath       String
+  workflowSha256     String
+  workflowRunId      String
+  workflowRunAttempt Int
+  signingKeyId       String
+  signingIssuer      String
+  signingSubject     String
+  issuedAt           DateTime
+  registeredById     String
+  lastVerifiedById   String
+  registeredAt       DateTime @default(now())
+  verifiedAt         DateTime @default(now())
+
+  registeredBy   User                        @relation("passportRegistrant", fields: [registeredById], references: [id])
+  lastVerifiedBy User                        @relation("passportVerifier", fields: [lastVerifiedById], references: [id])
+  claims         ExecutionPassportClaim[]
+  artifacts      ExecutionPassportArtifact[]
+
+  @@index([verificationStatus, registeredAt])
+  @@index([commitSha])
+}
+
+model ExecutionPassportClaim {
+  id         String @id @default(cuid())
+  passportId String
+  claimId    String
+
+  passport ExecutionPassport @relation(fields: [passportId], references: [id])
+  claim    Claim             @relation(fields: [claimId], references: [id])
+
+  @@unique([passportId, claimId])
+  @@index([claimId])
+}
+
+model ExecutionPassportArtifact {
+  id         String  @id @default(cuid())
+  passportId String
+  entityId   String
+  /// input | output
+  role       String
+  name       String
+  path       String
+  mediaType  String?
+  byteSize   Int
+  sha256     String
+
+  passport ExecutionPassport @relation(fields: [passportId], references: [id])
+
+  @@unique([passportId, entityId])
+  @@index([passportId, role])
 }
 
 model Citation {
@@ -850,4 +930,68 @@ model FederationNotification {
   @@index([direction, status, createdAt])
   @@index([reviewVersionId])
   @@index([inReplyTo])
+}
+
+/// Immutable registry payload plus its deterministic normalized representation.
+/// The primary key is a SHA-256-derived stable id over the exact target, source
+/// version and payload hash, making retries idempotent across SQLite/PostgreSQL.
+model ProtocolSnapshot {
+  id                   String    @id
+  reviewVersionId      String
+  claimId              String?
+  createdById          String
+  /// review-version:<id> or claim:<id>; explicit because nullable unique keys
+  /// behave differently between providers.
+  targetKey            String
+  /// osf | clinicaltrials-gov
+  registry             String
+  sourceId             String
+  sourceUrl            String
+  sourceVersion        String
+  sourceTimestamp      DateTime?
+  fetchedAt            DateTime
+  normalizedJson       String
+  rawJson              String
+  questionMetadataJson String?
+  contentHash          String
+  observedJson         String
+  comparatorVersion    String
+  createdAt            DateTime  @default(now())
+
+  reviewVersion ReviewVersion           @relation(fields: [reviewVersionId], references: [id])
+  claim         Claim?                  @relation(fields: [claimId], references: [id])
+  createdBy     User                    @relation("protocolSnapshotCreator", fields: [createdById], references: [id])
+  proposals     ProtocolDriftProposal[]
+
+  @@unique([targetKey, registry, sourceId, sourceVersion])
+  @@index([reviewVersionId, createdAt])
+  @@index([claimId, createdAt])
+  @@index([registry, sourceId])
+}
+
+/// Neutral, human-reviewable reconciliation proposal. It never asserts intent
+/// or rewrites review content. Stable comparison ids make creation retry-safe.
+model ProtocolDriftProposal {
+  id                String    @id
+  snapshotId        String
+  /// population | outcomes | exclusions | analysis-plan
+  category          String
+  /// not-described-in-review | not-registered | content-differs
+  kind              String
+  registeredJson    String
+  observedJson      String
+  rationale         String
+  comparatorVersion String
+  /// open | confirmed-update-needed | explained | dismissed
+  status            String    @default("open")
+  resolvedById      String?
+  resolutionNote    String?
+  resolvedAt        DateTime?
+  createdAt         DateTime  @default(now())
+
+  snapshot   ProtocolSnapshot @relation(fields: [snapshotId], references: [id])
+  resolvedBy User?            @relation("protocolProposalResolver", fields: [resolvedById], references: [id])
+
+  @@index([snapshotId, status])
+  @@index([status, createdAt])
 }

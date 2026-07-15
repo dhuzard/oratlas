@@ -14,6 +14,8 @@ import { serializeJsonForHtml } from "@/lib/json-for-html";
 import { getPreservedArticle } from "@/lib/article-reader";
 import { getClaimAlertCounts } from "@/lib/claim-monitoring";
 import { getProcessHistoryForVersion } from "@/lib/editorial-lifecycle";
+import { listExecutionPassportsForVersion } from "@/lib/execution-passports";
+import { getPublicProtocolSummary } from "@/lib/protocol-drift";
 import { ArticleReader } from "./ArticleReader";
 
 export const dynamic = "force-dynamic";
@@ -99,12 +101,22 @@ export default async function ReviewPage({
     );
   }
 
-  const [comments, user, requestHeaders, preservedArticle, processHistory] = await Promise.all([
+  const [
+    comments,
+    user,
+    requestHeaders,
+    preservedArticle,
+    processHistory,
+    executionPassports,
+    protocolDrift,
+  ] = await Promise.all([
     listReviewComments(slug, review.version.id),
     getCurrentUser(),
     headers(),
     getPreservedArticle(slug, review.version.id),
     getProcessHistoryForVersion(review.version.id),
+    listExecutionPassportsForVersion(review.version.id),
+    getPublicProtocolSummary(review.version.id),
   ]);
   const claimAlertCounts = await getClaimAlertCounts(review.version.id);
   const nonce = requestHeaders.get("x-nonce") ?? undefined;
@@ -220,6 +232,40 @@ export default async function ReviewPage({
 
       <h1>{review.title}</h1>
       {review.abstract ? <p className="prose">{review.abstract}</p> : null}
+
+      {protocolDrift?.snapshots.length ? (
+        <Card title={`Protocol Drift Radar (${protocolDrift.openCount} open)`}>
+          <p className="muted">
+            Registered protocol snapshots are compared exactly with structured claim scope.
+            Differences are human-review proposals, not misconduct findings.
+          </p>
+          {protocolDrift.snapshots.map((snapshot) => (
+            <div className="claim-card" key={snapshot.id}>
+              <div className="btn-row">
+                <Badge>{snapshot.registry}</Badge>
+                <a href={snapshot.sourceUrl} rel="noopener noreferrer">
+                  {snapshot.sourceId}
+                </a>
+                <span className="mono muted">version {snapshot.sourceVersion}</span>
+              </div>
+              <p className="mono muted" style={{ fontSize: "0.8rem" }}>
+                captured {snapshot.fetchedAt} · SHA-256 {snapshot.contentHash}
+              </p>
+              {snapshot.proposals.map((proposal) => (
+                <p key={proposal.id}>
+                  <StatusPill status={proposal.status} /> <strong>{proposal.category}</strong>:{" "}
+                  {proposal.rationale}
+                </p>
+              ))}
+            </div>
+          ))}
+          <p>
+            <Link href={`/api/protocols/reviews/${review.version.id}`}>
+              Machine-readable summary
+            </Link>
+          </p>
+        </Card>
+      ) : null}
 
       {review.contributors.length > 0 ? (
         <p className="muted">
@@ -640,6 +686,31 @@ export default async function ReviewPage({
                 <ProvenanceBadge kind="human-reviewed" /> Atlas-reviewed TRUST structure
               </li>
             </ul>
+          </Card>
+
+          <Card title={`Execution passports (${executionPassports.length})`}>
+            <p className="muted">
+              Offline verification of exact commit/tree, workflow identity, inputs, outputs, SHA-256
+              digests and configured signing identity. “Execution-attested” is not a claim that
+              Atlas reran the workflow or reproduced its scientific result.
+            </p>
+            {executionPassports.length === 0 ? (
+              <p className="muted">No verified execution attestations are bound to this version.</p>
+            ) : (
+              <ul>
+                {executionPassports.map((execution) => (
+                  <li key={execution.id}>
+                    <Badge>execution-attested</Badge>{" "}
+                    <span className="mono">{execution.workflow.path}</span> run{" "}
+                    <span className="mono">
+                      {execution.workflow.runId}/{execution.workflow.runAttempt}
+                    </span>{" "}
+                    · {execution.claims.length} claim(s) · {execution.artifacts.length} artifact(s)
+                    · <a href={execution.machineUrl}>JSON passport</a>
+                  </li>
+                ))}
+              </ul>
+            )}
           </Card>
 
           {review.limitations.length > 0 ? (
