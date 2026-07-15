@@ -35,22 +35,24 @@ The POC ships a restrained, scholarly server-rendered interface. Key pages:
 TypeScript `pnpm` monorepo. Framework-free domain packages are tested in isolation and reused by
 CLI scripts; the web app is server-rendered Next.js (App Router).
 
-| Path                   | Purpose                                                              |
-| ---------------------- | -------------------------------------------------------------------- |
-| `apps/web`             | Next.js App Router UI + API routes                                   |
-| `packages/contracts`   | Zod schemas, shared types, review-manifest JSON Schema               |
-| `packages/config`      | Environment parsing / runtime config                                 |
-| `packages/db`          | Prisma schema + client + seed (SQLite dev, PostgreSQL-compatible)    |
-| `packages/github`      | SSRF-safe GitHub URL validation + bounded inspection                 |
-| `packages/zenodo`      | DOI normalization/resolution + Zenodo metadata matching              |
-| `packages/extractor`   | Deterministic metadata/artifact extraction + compatibility report    |
-| `packages/exports`     | Standards exports: CSL/BibTeX/RIS, JATS, RO-Crate, PROV, SWHID, Atom |
-| `packages/trust`       | TRUST validation and documented aggregation                          |
-| `packages/atlas-check` | Deterministic TRUST/FAIR evidence CI and GitHub annotations          |
-| `packages/knowledge`   | Search, evidence packets, discussion, cross-review links             |
-| `packages/ui`          | Reusable accessible React primitives                                 |
-| `scripts`              | Ingestion / validation CLIs                                          |
-| `docs`                 | Architecture, governance, schemas, deployment                        |
+| Path                           | Purpose                                                              |
+| ------------------------------ | -------------------------------------------------------------------- |
+| `apps/web`                     | Next.js App Router UI + API routes                                   |
+| `packages/contracts`           | Zod schemas, shared types, review-manifest JSON Schema               |
+| `packages/config`              | Environment parsing / runtime config                                 |
+| `packages/db`                  | Prisma schema + client + seed (SQLite dev, PostgreSQL-compatible)    |
+| `packages/github`              | SSRF-safe GitHub URL validation + bounded inspection                 |
+| `packages/zenodo`              | DOI normalization/resolution + Zenodo metadata matching              |
+| `packages/extractor`           | Deterministic metadata/artifact extraction + compatibility report    |
+| `packages/exports`             | Standards exports: CSL/BibTeX/RIS, JATS, RO-Crate, PROV, SWHID, Atom |
+| `packages/trust`               | TRUST validation and documented aggregation                          |
+| `packages/atlas-check`         | Deterministic TRUST/FAIR evidence CI and GitHub annotations          |
+| `packages/protocols`           | Offline registry adapters and neutral protocol-drift comparison      |
+| `packages/execution-passports` | Offline signed Workflow Run provenance verification                  |
+| `packages/knowledge`           | Search, evidence packets, discussion, cross-review links             |
+| `packages/ui`                  | Reusable accessible React primitives                                 |
+| `scripts`                      | Ingestion / validation CLIs                                          |
+| `docs`                         | Architecture, governance, schemas, deployment                        |
 
 Full detail: [`docs/architecture.md`](docs/architecture.md).
 
@@ -83,6 +85,7 @@ All documented in [`.env.example`](.env.example). Summary:
 | `AUTH_MOCK`                                        | no       | `1` enables the dev-only mock sign-in (ignored in production)  |
 | `LLM_PROVIDER` / `ANTHROPIC_API_KEY` / `LLM_MODEL` | no       | Enables Atlas Discuss LLM mode                                 |
 | `NEXT_PUBLIC_BASE_URL`                             | no       | Canonical base URL for links / Open Graph                      |
+| `EXECUTION_PASSPORT_TRUSTED_KEYS_JSON`             | no       | Explicit offline Ed25519 signer trust policy                   |
 
 No paid external service is required to run the POC. Without an LLM key, Atlas Discuss runs in
 deterministic mode. Without OAuth credentials, development offers a clearly-marked mock sign-in.

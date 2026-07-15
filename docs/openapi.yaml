@@ -50,6 +50,37 @@ components:
             details:
               type: array
               items: { type: string }
+    ExecutionPassportRegistration:
+      type: object
+      required: [crate, attestation]
+      properties:
+        crate:
+          type: object
+          required: ["@context", "@graph"]
+          properties:
+            "@context": {}
+            "@graph":
+              type: array
+              minItems: 6
+              maxItems: 256
+              items: { type: object }
+        attestation:
+          type: object
+          required: [payloadType, payload, signatures]
+          properties:
+            payloadType:
+              const: application/vnd.oratlas.execution-attestation.v1+json
+            payload: { type: string, contentEncoding: base64 }
+            signatures:
+              type: array
+              minItems: 1
+              maxItems: 4
+              items:
+                type: object
+                required: [keyId, sig]
+                properties:
+                  keyId: { type: string, pattern: "^[0-9a-f]{64}$" }
+                  sig: { type: string, contentEncoding: base64 }
     ProtocolSnapshotRequest:
       type: object
       additionalProperties: false
@@ -727,6 +758,59 @@ paths:
       responses:
         "200": { description: Claim passport }
         "404": { $ref: "#/components/responses/Error" }
+  /api/execution-passports/{id}:
+    get:
+      summary: Export one offline-verified Execution Passport
+      description: >
+        Returns an archive-only Workflow Run crate, signed envelope, exact claim/artifact bindings,
+        and verification summary. execution-attested does not mean reproduced or scientifically true.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Verified execution passport
+          content:
+            application/vnd.oratlas.execution-passport.v1+json:
+              schema: { type: object }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/editorial/execution-passports:
+    post:
+      summary: Verify and register a signed execution package (editor only)
+      description: Offline-only; submitted code is never cloned or executed.
+      security: [{ session: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ExecutionPassportRegistration" }
+      responses:
+        "200": { description: Registered with status execution-attested }
+        "400": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/Error" }
+  /api/editorial/execution-passports/{id}/verify:
+    post:
+      summary: Re-verify a stored execution package against the current offline trust policy
+      security: [{ session: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [expectedRevision]
+              properties:
+                expectedRevision: { type: integer, minimum: 0 }
+      responses:
+        "200": { description: Verification revision recorded }
+        "400": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/Error" }
   /api/reviews/{slug}/update-proposals:
     get:
       summary: Living-review surface; upstream CI can gate on openCount === 0

@@ -59,6 +59,9 @@ importers:
       '@oratlas/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@oratlas/execution-passports':
+        specifier: workspace:*
+        version: link:../../packages/execution-passports
       '@oratlas/exports':
         specifier: workspace:*
         version: link:../../packages/exports
@@ -184,6 +187,22 @@ importers:
       tsx:
         specifier: ^4.19.4
         version: 4.23.0
+      typescript:
+        specifier: ^5.8.3
+        version: 5.9.3
+
+  packages/execution-passports:
+    dependencies:
+      '@oratlas/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+      zod:
+        specifier: ^3.25.0
+        version: 3.25.76
+    devDependencies:
+      '@types/node':
+        specifier: ^22.15.0
+        version: 22.20.1
       typescript:
         specifier: ^5.8.3
         version: 5.9.3
