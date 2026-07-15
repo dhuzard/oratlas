@@ -27,6 +27,9 @@ suffix, and arrays are JSON-encoded strings. Switching to PostgreSQL is a dataso
 | `TrustAssessment`                        | Imported TRUST for one relation    | public import state is `unverified-import`; source assertions retained separately |
 | `TrustVerification`                      | Atlas editorial review marker      | one-to-one with assessment; reviewer FK, role snapshot, rationale, subject hash   |
 | `AgentRun`                               | Provenance of an agent action      | model/provider/prompt/input-hash/output                                           |
+| `ExecutionPassport`                      | Signed execution provenance        | attestation hash unique; exact commit/tree/workflow; verification revision        |
+| `ExecutionPassportClaim`                 | Passport↔immutable claim binding   | `(passportId, claimId)` unique                                                    |
+| `ExecutionPassportArtifact`              | Exact run input/output descriptor  | `(passportId, entityId)` unique; SHA-256 + byte size                              |
 | `DiscussionThread` / `DiscussionMessage` | Atlas Discuss history              | grounding + model metadata                                                        |
 | `ReviewComment`                          | Human peer commentary on a version | `reviewVersionId`, optional `claimId`, one-level `parentId`; soft `status`        |
 | `KnowledgeLinkProposal`                  | Cross-review link proposal         | `(source, target, relation)` unique; `status`                                     |
@@ -84,3 +87,8 @@ reviewed subject: assessment criteria/evidence/source assertions, relation, clai
 Every verification write uses `TrustAssessment.revision` as an optimistic-concurrency guard.
 Missing legacy provenance and hash mismatches fail closed and remain visible in the editorial
 queue.
+
+Execution Passport source JSON is retained for offline re-verification. Public reads require a
+verified state and compare the re-verified package with all materialized repository, workflow,
+identity, claim and artifact fields. Their status is the narrow `execution-attested`, never
+“reproduced” or “true”.

@@ -35,24 +35,26 @@ model User {
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
 
-  submissions        Submission[]           @relation("submitter")
-  editorialDecisions Submission[]           @relation("reviewer")
-  discussionThreads  DiscussionThread[]
-  reviewComments     ReviewComment[]
-  auditEvents        AuditEvent[]
-  trustVerifications TrustVerification[]    @relation("trustReviewer")
-  inspectionCaptures InspectionCapture[]
-  editorialOverrides EditorialOverride[]
-  lifecycleEvents    ReviewLifecycleEvent[] @relation("lifecycleActor")
-  editorAssignments  EditorAssignment[]     @relation("assignmentEditor")
-  assignmentsMade    EditorAssignment[]     @relation("assignmentAssigner")
-  roundsOpened       ReviewRound[]          @relation("roundOpener")
-  formalReports      FormalReviewReport[]   @relation("formalReviewer")
-  authorResponses    AuthorResponse[]       @relation("respondingAuthor")
-  decisionLetters    DecisionLetter[]       @relation("decisionEditor")
-  notifications      Notification[]         @relation("notificationUser")
-  statusRecords      CitationStatusRecord[] @relation("statusRecorder")
-  proposalsResolved  ClaimUpdateProposal[]  @relation("proposalResolver")
+  submissions         Submission[]           @relation("submitter")
+  editorialDecisions  Submission[]           @relation("reviewer")
+  discussionThreads   DiscussionThread[]
+  reviewComments      ReviewComment[]
+  auditEvents         AuditEvent[]
+  trustVerifications  TrustVerification[]    @relation("trustReviewer")
+  inspectionCaptures  InspectionCapture[]
+  editorialOverrides  EditorialOverride[]
+  lifecycleEvents     ReviewLifecycleEvent[] @relation("lifecycleActor")
+  editorAssignments   EditorAssignment[]     @relation("assignmentEditor")
+  assignmentsMade     EditorAssignment[]     @relation("assignmentAssigner")
+  roundsOpened        ReviewRound[]          @relation("roundOpener")
+  formalReports       FormalReviewReport[]   @relation("formalReviewer")
+  authorResponses     AuthorResponse[]       @relation("respondingAuthor")
+  decisionLetters     DecisionLetter[]       @relation("decisionEditor")
+  notifications       Notification[]         @relation("notificationUser")
+  statusRecords       CitationStatusRecord[] @relation("statusRecorder")
+  proposalsResolved   ClaimUpdateProposal[]  @relation("proposalResolver")
+  passportsRegistered ExecutionPassport[]    @relation("passportRegistrant")
+  passportsVerified   ExecutionPassport[]    @relation("passportVerifier")
 
   @@index([githubLoginNormalized])
 }
@@ -378,14 +380,88 @@ model Claim {
   scopeJson       String?
   createdAt       DateTime @default(now())
 
-  reviewVersion     ReviewVersion           @relation(fields: [reviewVersionId], references: [id])
-  evidenceRelations ClaimEvidenceRelation[]
-  linkProposalsFrom KnowledgeLinkProposal[] @relation("sourceClaim")
-  linkProposalsTo   KnowledgeLinkProposal[] @relation("targetClaim")
-  comments          ReviewComment[]
-  updateProposals   ClaimUpdateProposal[]
+  reviewVersion      ReviewVersion            @relation(fields: [reviewVersionId], references: [id])
+  evidenceRelations  ClaimEvidenceRelation[]
+  linkProposalsFrom  KnowledgeLinkProposal[]  @relation("sourceClaim")
+  linkProposalsTo    KnowledgeLinkProposal[]  @relation("targetClaim")
+  comments           ReviewComment[]
+  updateProposals    ClaimUpdateProposal[]
+  executionPassports ExecutionPassportClaim[]
 
   @@unique([reviewVersionId, localClaimId])
+}
+
+/// Offline-verified execution provenance bound to immutable Atlas claims.
+/// Submitted repositories are never cloned or executed. Source JSON retains
+/// the exact bounded crate/envelope so verification can be repeated later.
+model ExecutionPassport {
+  id                 String   @id @default(cuid())
+  /// Always execution-attested for a valid public record. This label does not
+  /// assert that results were reproduced or that a claim is scientifically true.
+  status             String   @default("execution-attested")
+  /// verified | failed. Public reads require verified and re-check hashes.
+  verificationStatus String   @default("verified")
+  revision           Int      @default(0)
+  sourceJson         String
+  crateSha256        String
+  attestationSha256  String
+  /// Canonical signed statement identity; envelope signature-array changes
+  /// cannot create duplicate passports for the same attested execution.
+  payloadSha256      String   @unique
+  repositoryUrl      String
+  commitSha          String
+  treeSha            String
+  workflowEntityId   String
+  workflowPath       String
+  workflowSha256     String
+  workflowRunId      String
+  workflowRunAttempt Int
+  signingKeyId       String
+  signingIssuer      String
+  signingSubject     String
+  issuedAt           DateTime
+  registeredById     String
+  lastVerifiedById   String
+  registeredAt       DateTime @default(now())
+  verifiedAt         DateTime @default(now())
+
+  registeredBy   User                        @relation("passportRegistrant", fields: [registeredById], references: [id])
+  lastVerifiedBy User                        @relation("passportVerifier", fields: [lastVerifiedById], references: [id])
+  claims         ExecutionPassportClaim[]
+  artifacts      ExecutionPassportArtifact[]
+
+  @@index([verificationStatus, registeredAt])
+  @@index([commitSha])
+}
+
+model ExecutionPassportClaim {
+  id         String @id @default(cuid())
+  passportId String
+  claimId    String
+
+  passport ExecutionPassport @relation(fields: [passportId], references: [id])
+  claim    Claim             @relation(fields: [claimId], references: [id])
+
+  @@unique([passportId, claimId])
+  @@index([claimId])
+}
+
+model ExecutionPassportArtifact {
+  id         String  @id @default(cuid())
+  passportId String
+  entityId   String
+  /// input | output
+  role       String
+  name       String
+  path       String
+  mediaType  String?
+  byteSize   Int
+  sha256     String
+
+  passport ExecutionPassport @relation(fields: [passportId], references: [id])
+
+  @@unique([passportId, entityId])
+  @@index([passportId, role])
 }
 
 model Citation {

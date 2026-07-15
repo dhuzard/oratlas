@@ -248,6 +248,60 @@ CREATE TABLE "Claim" (
 );
 
 -- CreateTable
+CREATE TABLE "ExecutionPassport" (
+    "id" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'execution-attested',
+    "verificationStatus" TEXT NOT NULL DEFAULT 'verified',
+    "revision" INTEGER NOT NULL DEFAULT 0,
+    "sourceJson" TEXT NOT NULL,
+    "crateSha256" TEXT NOT NULL,
+    "attestationSha256" TEXT NOT NULL,
+    "payloadSha256" TEXT NOT NULL,
+    "repositoryUrl" TEXT NOT NULL,
+    "commitSha" TEXT NOT NULL,
+    "treeSha" TEXT NOT NULL,
+    "workflowEntityId" TEXT NOT NULL,
+    "workflowPath" TEXT NOT NULL,
+    "workflowSha256" TEXT NOT NULL,
+    "workflowRunId" TEXT NOT NULL,
+    "workflowRunAttempt" INTEGER NOT NULL,
+    "signingKeyId" TEXT NOT NULL,
+    "signingIssuer" TEXT NOT NULL,
+    "signingSubject" TEXT NOT NULL,
+    "issuedAt" TIMESTAMP(3) NOT NULL,
+    "registeredById" TEXT NOT NULL,
+    "lastVerifiedById" TEXT NOT NULL,
+    "registeredAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "verifiedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "ExecutionPassport_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "ExecutionPassportClaim" (
+    "id" TEXT NOT NULL,
+    "passportId" TEXT NOT NULL,
+    "claimId" TEXT NOT NULL,
+
+    CONSTRAINT "ExecutionPassportClaim_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "ExecutionPassportArtifact" (
+    "id" TEXT NOT NULL,
+    "passportId" TEXT NOT NULL,
+    "entityId" TEXT NOT NULL,
+    "role" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "path" TEXT NOT NULL,
+    "mediaType" TEXT,
+    "byteSize" INTEGER NOT NULL,
+    "sha256" TEXT NOT NULL,
+
+    CONSTRAINT "ExecutionPassportArtifact_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "Citation" (
     "id" TEXT NOT NULL,
     "reviewVersionId" TEXT NOT NULL,
@@ -629,6 +683,27 @@ CREATE INDEX "Identifier_scheme_normalizedValue_idx" ON "Identifier"("scheme", "
 CREATE UNIQUE INDEX "Claim_reviewVersionId_localClaimId_key" ON "Claim"("reviewVersionId", "localClaimId");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "ExecutionPassport_payloadSha256_key" ON "ExecutionPassport"("payloadSha256");
+
+-- CreateIndex
+CREATE INDEX "ExecutionPassport_verificationStatus_registeredAt_idx" ON "ExecutionPassport"("verificationStatus", "registeredAt");
+
+-- CreateIndex
+CREATE INDEX "ExecutionPassport_commitSha_idx" ON "ExecutionPassport"("commitSha");
+
+-- CreateIndex
+CREATE INDEX "ExecutionPassportClaim_claimId_idx" ON "ExecutionPassportClaim"("claimId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "ExecutionPassportClaim_passportId_claimId_key" ON "ExecutionPassportClaim"("passportId", "claimId");
+
+-- CreateIndex
+CREATE INDEX "ExecutionPassportArtifact_passportId_role_idx" ON "ExecutionPassportArtifact"("passportId", "role");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "ExecutionPassportArtifact_passportId_entityId_key" ON "ExecutionPassportArtifact"("passportId", "entityId");
+
+-- CreateIndex
 CREATE INDEX "Citation_doi_idx" ON "Citation"("doi");
 
 -- CreateIndex
@@ -762,6 +837,21 @@ ALTER TABLE "Identifier" ADD CONSTRAINT "Identifier_reviewVersionId_fkey" FOREIG
 
 -- AddForeignKey
 ALTER TABLE "Claim" ADD CONSTRAINT "Claim_reviewVersionId_fkey" FOREIGN KEY ("reviewVersionId") REFERENCES "ReviewVersion"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ExecutionPassport" ADD CONSTRAINT "ExecutionPassport_registeredById_fkey" FOREIGN KEY ("registeredById") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ExecutionPassport" ADD CONSTRAINT "ExecutionPassport_lastVerifiedById_fkey" FOREIGN KEY ("lastVerifiedById") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ExecutionPassportClaim" ADD CONSTRAINT "ExecutionPassportClaim_passportId_fkey" FOREIGN KEY ("passportId") REFERENCES "ExecutionPassport"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ExecutionPassportClaim" ADD CONSTRAINT "ExecutionPassportClaim_claimId_fkey" FOREIGN KEY ("claimId") REFERENCES "Claim"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ExecutionPassportArtifact" ADD CONSTRAINT "ExecutionPassportArtifact_passportId_fkey" FOREIGN KEY ("passportId") REFERENCES "ExecutionPassport"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Citation" ADD CONSTRAINT "Citation_reviewVersionId_fkey" FOREIGN KEY ("reviewVersionId") REFERENCES "ReviewVersion"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

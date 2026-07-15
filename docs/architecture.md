@@ -15,6 +15,7 @@ packages/
   zenodo/              DOI normalization/resolution + Zenodo metadata matching
   extractor/           Deterministic metadata & artifact extraction, compatibility report
   trust/               TRUST assessment validation and documented aggregation
+  execution-passports/ Offline Workflow Run crate + signed-attestation verification
   knowledge/           Search provider, evidence packets, discussion engine, link proposals
   ui/                  Reusable accessible React primitives
 scripts/               Ingestion / validation / maintenance CLIs (tsx)
@@ -122,6 +123,9 @@ always labelled as unreviewed until a human decision.
   browser.
 - Sessions are HMAC-signed httpOnly cookies; editorial routes check roles server-side;
   mutating routes are rate limited and size limited; editorial actions are audited.
+- Execution Passports retain the no-execution boundary: exact crate/digest/claim bindings and an
+  Ed25519 identity are verified offline against an explicit operator trust policy. See
+  [Execution Passports](execution-passports.md).
 
 ## Authentication
 

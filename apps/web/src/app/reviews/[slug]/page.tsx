@@ -15,6 +15,7 @@ import { getPreservedArticle } from "@/lib/article-reader";
 import { getClaimAlertCounts } from "@/lib/claim-monitoring";
 import { getProcessHistoryForVersion } from "@/lib/editorial-lifecycle";
 import { ArticleReader } from "./ArticleReader";
+import { listExecutionPassportsForVersion } from "@/lib/execution-passports";
 
 export const dynamic = "force-dynamic";
 
@@ -99,13 +100,15 @@ export default async function ReviewPage({
     );
   }
 
-  const [comments, user, requestHeaders, preservedArticle, processHistory] = await Promise.all([
-    listReviewComments(slug, review.version.id),
-    getCurrentUser(),
-    headers(),
-    getPreservedArticle(slug, review.version.id),
-    getProcessHistoryForVersion(review.version.id),
-  ]);
+  const [comments, user, requestHeaders, preservedArticle, processHistory, executionPassports] =
+    await Promise.all([
+      listReviewComments(slug, review.version.id),
+      getCurrentUser(),
+      headers(),
+      getPreservedArticle(slug, review.version.id),
+      getProcessHistoryForVersion(review.version.id),
+      listExecutionPassportsForVersion(review.version.id),
+    ]);
   const claimAlertCounts = await getClaimAlertCounts(review.version.id);
   const nonce = requestHeaders.get("x-nonce") ?? undefined;
   const commentList = comments ?? {
@@ -640,6 +643,31 @@ export default async function ReviewPage({
                 <ProvenanceBadge kind="human-reviewed" /> Atlas-reviewed TRUST structure
               </li>
             </ul>
+          </Card>
+
+          <Card title={`Execution passports (${executionPassports.length})`}>
+            <p className="muted">
+              Offline verification of exact commit/tree, workflow identity, inputs, outputs, SHA-256
+              digests and configured signing identity. “Execution-attested” is not a claim that
+              Atlas reran the workflow or reproduced its scientific result.
+            </p>
+            {executionPassports.length === 0 ? (
+              <p className="muted">No verified execution attestations are bound to this version.</p>
+            ) : (
+              <ul>
+                {executionPassports.map((execution) => (
+                  <li key={execution.id}>
+                    <Badge>execution-attested</Badge>{" "}
+                    <span className="mono">{execution.workflow.path}</span> run{" "}
+                    <span className="mono">
+                      {execution.workflow.runId}/{execution.workflow.runAttempt}
+                    </span>{" "}
+                    · {execution.claims.length} claim(s) · {execution.artifacts.length} artifact(s)
+                    · <a href={execution.machineUrl}>JSON passport</a>
+                  </li>
+                ))}
+              </ul>
+            )}
           </Card>
 
           {review.limitations.length > 0 ? (

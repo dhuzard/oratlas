@@ -108,6 +108,54 @@ export default async function ClaimPassportPage({
         )}
       </Card>
 
+      <Card title={`Execution passports (${passport.executionPassports.length})`}>
+        <p className="muted">
+          These records verify signed provenance for exact workflow runs. They do not mean Atlas
+          reran the code, reproduced the result, or established that this claim is true.
+        </p>
+        {passport.executionPassports.length === 0 ? (
+          <p className="muted">No verified execution attestation is bound to this claim.</p>
+        ) : (
+          passport.executionPassports.map((execution) => (
+            <div className="claim-card" key={execution.id}>
+              <div className="btn-row">
+                <Badge>execution-attested</Badge>
+                <a href={execution.machineUrl}>machine-readable passport</a>
+              </div>
+              <DefinitionList
+                items={[
+                  {
+                    term: "Repository commit",
+                    value: <span className="mono">{execution.repository.commitSha}</span>,
+                  },
+                  {
+                    term: "Tree",
+                    value: <span className="mono">{execution.repository.treeSha}</span>,
+                  },
+                  {
+                    term: "Workflow",
+                    value: (
+                      <span className="mono">
+                        {execution.workflow.path} · run {execution.workflow.runId}/
+                        {execution.workflow.runAttempt}
+                      </span>
+                    ),
+                  },
+                  {
+                    term: "Signing identity",
+                    value: <span className="mono">{execution.signingIdentity.subject}</span>,
+                  },
+                  {
+                    term: "Artifacts",
+                    value: `${execution.artifacts.filter((artifact) => artifact.role === "input").length} input(s), ${execution.artifacts.filter((artifact) => artifact.role === "output").length} output(s)`,
+                  },
+                ]}
+              />
+            </div>
+          ))
+        )}
+      </Card>
+
       {independence ? (
         <Card title="Independence &amp; contradictions">
           <p className="muted">
