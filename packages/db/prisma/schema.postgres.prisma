@@ -57,6 +57,7 @@ model User {
   notifications      Notification[]         @relation("notificationUser")
   statusRecords      CitationStatusRecord[] @relation("statusRecorder")
   proposalsResolved  ClaimUpdateProposal[]  @relation("proposalResolver")
+  federationResolved FederationNotification[] @relation("federationResolver")
 
   @@index([githubLoginNormalized])
 }
@@ -200,6 +201,7 @@ model ReviewVersion {
   resultingSubmissions Submission[]           @relation("ResultingVersion")
   lifecycleEvents      ReviewLifecycleEvent[] @relation("lifecycleTarget")
   supersededByEvents   ReviewLifecycleEvent[] @relation("lifecycleSupersededVersion")
+  federationNotifications FederationNotification[]
 
   @@unique([reviewId, snapshotId, sourceSelectionKey])
 }
@@ -816,4 +818,40 @@ model ClaimUpdateProposal {
 
   @@unique([statusRecordId, claimId])
   @@index([status])
+}
+
+/// COAR Notify review activities received from or prepared for external
+/// repository services. Payloads are immutable canonical JSON; an editor may
+/// accept or reject an inbound request, but never rewrite the received bytes.
+model FederationNotification {
+  id              String    @id @default(cuid())
+  activityId      String    @unique
+  /// inbound | outbound
+  direction       String
+  /// request-review | announce-review
+  pattern         String
+  /// pending | accepted | rejected | prepared | delivered
+  status          String    @default("pending")
+  actorUri        String?
+  objectUri       String
+  contextUri      String?
+  originUri       String
+  originInbox     String?
+  targetUri       String
+  targetInbox     String
+  inReplyTo       String?
+  payloadJson     String
+  payloadHash     String
+  reviewVersionId String?
+  resolvedById    String?
+  resolutionNote  String?
+  createdAt       DateTime  @default(now())
+  resolvedAt      DateTime?
+
+  reviewVersion ReviewVersion? @relation(fields: [reviewVersionId], references: [id])
+  resolvedBy    User?          @relation("federationResolver", fields: [resolvedById], references: [id])
+
+  @@index([direction, status, createdAt])
+  @@index([reviewVersionId])
+  @@index([inReplyTo])
 }

@@ -65,6 +65,9 @@ importers:
       '@oratlas/extractor':
         specifier: workspace:*
         version: link:../../packages/extractor
+      '@oratlas/federation':
+        specifier: workspace:*
+        version: link:../../packages/federation
       '@oratlas/github':
         specifier: workspace:*
         version: link:../../packages/github
@@ -190,6 +193,22 @@ importers:
       yaml:
         specifier: ^2.7.0
         version: 2.9.0
+      zod:
+        specifier: ^3.25.0
+        version: 3.25.76
+    devDependencies:
+      typescript:
+        specifier: ^5.8.3
+        version: 5.9.3
+      vitest:
+        specifier: ^3.1.4
+        version: 3.2.7(@types/node@22.20.1)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.23.0)(yaml@2.9.0)
+
+  packages/federation:
+    dependencies:
+      '@oratlas/contracts':
+        specifier: workspace:*
+        version: link:../contracts
       zod:
         specifier: ^3.25.0
         version: 3.25.76

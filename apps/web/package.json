@@ -16,6 +16,7 @@
     "@oratlas/db": "workspace:*",
     "@oratlas/exports": "workspace:*",
     "@oratlas/extractor": "workspace:*",
+    "@oratlas/federation": "workspace:*",
     "@oratlas/github": "workspace:*",
     "@oratlas/knowledge": "workspace:*",
     "@oratlas/trust": "workspace:*",
