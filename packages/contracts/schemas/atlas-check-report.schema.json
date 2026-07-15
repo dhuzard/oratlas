@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://oratlas.org/schemas/atlas-check-report.schema.json",
+  "title": "Open Review Atlas Check report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "tool", "summary", "findings"],
+  "properties": {
+    "schemaVersion": { "const": "1.0.0" },
+    "tool": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "version"],
+      "properties": {
+        "name": { "const": "oratlas-check" },
+        "version": { "type": "string", "minLength": 1, "maxLength": 40 }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["passed", "errors", "warnings", "notices", "filesChecked", "recordsChecked"],
+      "properties": {
+        "passed": { "type": "boolean" },
+        "errors": { "type": "integer", "minimum": 0 },
+        "warnings": { "type": "integer", "minimum": 0 },
+        "notices": { "type": "integer", "minimum": 0 },
+        "filesChecked": { "type": "integer", "minimum": 0 },
+        "recordsChecked": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "findings": {
+      "type": "array",
+      "maxItems": 1000,
+      "items": { "$ref": "#/$defs/finding" }
+    }
+  },
+  "$defs": {
+    "safePath": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512,
+      "pattern": "^(?![/~])(?!.*(?:^|/)\\.{1,2}(?:/|$))(?!.*[\\\\:])[A-Za-z0-9][A-Za-z0-9._-]*(?:/[A-Za-z0-9][A-Za-z0-9._-]*)*$"
+    },
+    "finding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ruleId", "severity", "message"],
+      "properties": {
+        "ruleId": { "type": "string", "pattern": "^ORATLAS-[A-Z]+-[0-9]{3}$" },
+        "severity": { "enum": ["error", "warning", "notice"] },
+        "message": { "type": "string", "minLength": 1, "maxLength": 4000 },
+        "path": { "$ref": "#/$defs/safePath" },
+        "line": { "type": "integer", "minimum": 1 },
+        "column": { "type": "integer", "minimum": 1 },
+        "suggestion": { "type": "string", "minLength": 1, "maxLength": 4000 }
+      }
+    }
+  }
+}
