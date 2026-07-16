@@ -13,15 +13,13 @@ export {
   discussDeterministic,
   discussWithLlm,
   buildDiscussionPrompt,
+  extractJsonObject,
   DISCUSSION_PROMPT_VERSION,
   type LlmProvider,
+  type LlmJsonCompletionRequest,
   type LlmDiscussionResult,
 } from "./discuss.js";
-export {
-  createAnthropicProvider,
-  extractJsonObject,
-  type AnthropicProviderOptions,
-} from "./providers/anthropic.js";
+export { createAnthropicProvider, type AnthropicProviderOptions } from "./providers/anthropic.js";
 export {
   proposeCrossReviewLinks,
   type LinkProposalDraft,
@@ -70,3 +68,28 @@ export {
   type PreparedSubgraphEvidencePacket,
   type SubgraphEvidenceErrorCode,
 } from "./subgraph-evidence.js";
+export {
+  SynthesisWriter,
+  SynthesisWriterError,
+  SYNTHESIS_WRITER_ERROR_CODES,
+  SYNTHESIS_PROMPT_VERSION,
+  SYNTHESIS_PIPELINE_VERSION,
+  SYNTHESIS_SYSTEM_PROMPT,
+  SYNTHESIS_PROMPT_HASH,
+  SYNTHESIS_FALLBACK_PROVIDER,
+  SYNTHESIS_FALLBACK_MODEL,
+  assertCanonicalPreparedPacket,
+  buildSynthesisCompletionRequest,
+  composeDeterministicSynthesis,
+  parseAndValidateSynthesisOutput,
+  validateSynthesisGrounding,
+  verifySynthesisDocument,
+  synthesisSelectionIdentity,
+  synthesisGenerationKey,
+  type SynthesisWriterErrorCode,
+  type SynthesisGroundingIssue,
+  type SynthesisGroundingResult,
+  type SynthesisRunStart,
+  type SynthesisRunRecorder,
+  type SynthesisGenerationResult,
+} from "./synthesis-writer.js";

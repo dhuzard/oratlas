@@ -594,3 +594,35 @@ changing the legacy Atlas Discuss packet.
   formatting, JSON schemas, OpenAPI route coverage, and diff hygiene. The full repository run passed
   550 tests and skipped 10; its three failures are the known Windows-only suites that execute the
   extensionless Prisma shell shim and fail during setup with `ENOENT`.
+
+## KG-12 — Long-form review generator (issue #52)
+
+**Objective:** generate sectioned synthesis reviews from KG-11 packets without admitting
+unattributed model prose or bypassing durable run provenance.
+
+- Added the strict `SynthesisReviewDocument` 1.0 contract: exactly six ordered sections, bounded
+  single-paragraph text blocks, strict keys, no HTML/URLs/control text, total UTF-8 cap, and exact
+  reference/node/version citation triples.
+- Added pure, reusable writer seams for canonical packet revalidation, static prompt/request
+  construction, strict raw JSON parsing, schema validation, grounding/prose-identifier validation,
+  deterministic fallback, read-time acceptance verification, stable typed error codes, selection
+  identity, and provider/model generation keys. These require no DB, clock, network, or recorder.
+- Generalized `LlmProvider` to an explicit JSON completion request. Atlas Discuss keeps its existing
+  prompt and behavior, while the Anthropic adapter is transport-only, enforces request-specific
+  token/response-byte bounds, and returns text verbatim instead of extracting fenced JSON.
+- Added a required recorder protocol and Prisma implementation. `AgentRun` is persisted as running
+  before provider/fallback work, then succeeded or sanitized-failed before return. Fallback has
+  explicit deterministic provider/model identity; provider failures never fall back. Exact packet
+  JSON and validated canonical document JSON are retained, while rejected raw output, prompts,
+  chain-of-thought, and source exception text are not.
+- Added `promptHash` and `packetHash` to SQLite/PostgreSQL Prisma models and generated PostgreSQL DDL,
+  plus contract, offline mock/provider, grounding/adversarial, recorder, fallback, and Prisma-backed
+  integration coverage.
+- Audit hardening normalizes prose with NFKC before scanning fullwidth and common DOI, PMID, and
+  OpenAlex forms. Exact DOI matching tolerates terminal sentence punctuation without weakening
+  reserved-prefix or fabricated-identifier rejection.
+- The deterministic fallback now cites node references only after identifier-like prose is redacted,
+  deduplicates endpoint citations, and applies a deterministic UTF-8 budget while retaining all six
+  nonempty sections. A 24-node/24-edge near-bound fixture exercises actual budget reduction.
+- Generation keys now bind the prompt hash as well as packet, prompt version, output schema,
+  pipeline version, and model identity, so any prompt-byte change produces a distinct key.

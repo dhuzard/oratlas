@@ -920,6 +920,8 @@ model AgentRun {
   modelName           String?
   modelVersion        String?
   promptVersion       String?
+  promptHash          String?
+  packetHash          String?
   inputHash           String?
   inputReferencesJson String?
   outputJson          String?

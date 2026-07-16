@@ -365,11 +365,11 @@ packages: [packages/knowledge, packages/contracts]
 ```yaml
 id: KG-12
 epic: C
-status: todo
+status: done (PR #54)
 depends_on: [KG-11]
 size: L
 labels: [knowledge, llm]
-packages: [packages/knowledge, packages/contracts]
+packages: [packages/contracts, packages/knowledge, packages/db, apps/web]
 ```
 
 **Scope.**
