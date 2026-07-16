@@ -626,3 +626,20 @@ unattributed model prose or bypassing durable run provenance.
   nonempty sections. A 24-node/24-edge near-bound fixture exercises actual budget reduction.
 - Generation keys now bind the prompt hash as well as packet, prompt version, output schema,
   pipeline version, and model identity, so any prompt-byte change produces a distinct key.
+
+## KG-19 — Grounding evaluation harness in CI (issue #56)
+
+**Objective:** continuously prove that KG-12 grounding and instruction/data separation survive a
+bounded adversarial corpus without requiring provider credentials in CI.
+
+- Added a pure sequential evaluator that sends each fixture through the production synthesis
+  request builder and exact parser/grounding validator, and also validates the deterministic
+  fallback through that same boundary. No recorder, database, filesystem, clock, or network is
+  available in the evaluator.
+- Added auto-discovered one-file fixtures covering an exact DOI/node-reference baseline, unknown
+  references, wrong node ownership/version, example references, fabricated and reserved-example
+  DOIs, and prompt injection embedded in repository node text. The injection remains canonical
+  user-packet data while the production system prompt stays byte-identical.
+- Added the offline-default `pnpm eval:grounding` CLI, explicit bounded real-provider opt-in,
+  deterministic privacy-minimal report v1, documented bounds and exit statuses, and a dedicated CI
+  step with provider variables explicitly empty.

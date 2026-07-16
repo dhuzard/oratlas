@@ -93,3 +93,22 @@ export {
   type SynthesisRunRecorder,
   type SynthesisGenerationResult,
 } from "./synthesis-writer.js";
+export {
+  defineGroundingEvalFixture,
+  evaluateGroundingFixtures,
+  prepareGroundingEvalFixtures,
+  GroundingEvalFixtureError,
+  GROUNDING_EVAL_LIMITS,
+  GROUNDING_EVAL_REPORT_VERSION,
+  GROUNDING_EVAL_RUNNER_VERSION,
+  GROUNDING_EVAL_OPERATIONAL_ERROR_CODES,
+  type GroundingEvalFixture,
+  type GroundingEvalRequestAssertions,
+  type GroundingEvalCaseResult,
+  type GroundingEvalReport,
+  type GroundingEvalMode,
+  type GroundingEvalExpectedOutcome,
+  type GroundingEvalObservedOutcome,
+  type GroundingEvalOperationalErrorCode,
+  type GroundingEvalOptions,
+} from "./grounding-evaluation.js";
