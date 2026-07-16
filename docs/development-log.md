@@ -562,3 +562,35 @@ interface without creating a second query or privacy path.
 - Added one deterministic, privacy-minimal proposed-edge seed fixture so confirmed/proposed
   presentation is exercised end to end. It contains no AgentRun, evidence, reviewer, audit, or
   editorial-note payload.
+
+## KG-11 — Subgraph evidence packets (issue #49)
+
+**Objective:** prepare reproducible, bounded graph-native evidence for long-form synthesis without
+changing the legacy Atlas Discuss packet.
+
+- Added a separate strict `SubgraphEvidencePacket` 1.0 contract and bounded-source contract. The
+  shared contract package is intentionally in scope so KG-12 and later verification can validate
+  the same exact references; Atlas Discuss `EvidencePacket` remains at 1.1.0 unchanged.
+- Added a framework- and persistence-free builder over a trusted loader's supplied bounded domain.
+  It validates selector-bound fingerprints, internal closure/counts, unique ownership, full exact
+  node versions and per-node snapshot/commit provenance, confirmed/editor edges, contradiction
+  inventory, and relation-bound TRUST state. The public paginated graph DTO is not treated as proof
+  of complete topic selection.
+- Added canonical node and identifier references bound to exact node versions. The internally
+  derived citeable DOI whitelist preserves version/concept/artifact roles, normalizes DOI equality,
+  excludes flagged and reserved-prefix examples, and prevents identifier-to-node laundering.
+- Added canonical contradiction pairs with editor-confirmation provenance and TRUST summaries with
+  criterion data, protocol/status/verification state, and a recomputed documented aggregate method.
+  Stale/unverified TRUST cannot retain an authoritative review status.
+- Added strict caps for nodes, edges, identifiers, UTF-8 text, and final canonical packet bytes;
+  canonical sorting, strict JSON, SHA-256 preparation, no clock fields, and typed errors. Hostile
+  source prose remains inert data and no artifact, network, code, private editorial, or AgentRun
+  path is available.
+- Added contract and builder tests covering all four node kinds, role-aware references, reserved
+  `10.5555` exclusion, exact contradictions, TRUST laundering, bounds, non-finite numbers, forged
+  ownership/whitelists, canonical topic identity, permutation invariance, input immutability, and
+  hostile text.
+- Verified 19 focused and 182 affected-package tests, all 15 workspace typechecks, lint, changed-file
+  formatting, JSON schemas, OpenAPI route coverage, and diff hygiene. The full repository run passed
+  550 tests and skipped 10; its three failures are the known Windows-only suites that execute the
+  extensionless Prisma shell shim and fail during setup with `ENOENT`.

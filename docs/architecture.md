@@ -122,6 +122,31 @@ Conservative deterministic proposals (shared canonical DOI/PMID/OpenAlex aliases
 similarity) stored as reviewable proposals (`proposed/accepted/rejected/superseded`),
 always labelled as unreviewed until a human decision.
 
+### Graph-native synthesis evidence
+
+Long-form synthesis uses the separate `SubgraphEvidencePacket` 1.0 contract; it does not alter or
+reuse the Atlas Discuss `EvidencePacket` 1.1 review/citation shape. `packages/contracts` owns the
+strict, versioned runtime DTO because later writer and verification slices need the same boundary,
+while `packages/knowledge` owns the pure deterministic builder and SHA-256 preparation path. The
+builder has no Prisma, React, artifact, network, or execution dependency.
+
+The builder accepts a bounded subgraph supplied by a trusted, unpaginated loader. A paginated
+`GET /api/graph` response is not evidence of global topic completeness and is deliberately not the
+source contract. KG-11 verifies internal closure, declared counts, selector fingerprint, exact
+node-version ownership, and the full contradiction inventory it receives; loader integration is
+responsible for selecting the complete bounded domain for its seed or canonical topic query.
+Every node retains its repository snapshot, commit, and source provenance. Only editor-confirmed
+exact-version edges enter the packet. TRUST remains exact-relation-scoped, fail-closed verification
+status is preserved, and any aggregate is recomputed by the documented ordinal-mean method.
+
+Writer citations resolve only through a canonical references table. Exact node-version references
+are always available; DOI references carry their exact node/version owner and distinct semantic
+role. The identifier whitelist is derived rather than accepted, excludes all example identifiers
+(including the reserved `10.5555` prefix independently of caller flags), and cannot be used to
+launder an identifier onto another node. Derived tables, canonical JSON, and the hash are available
+only through the source-building path. The packet contains no volatile clock, editorial/private
+records, or agent-run fields, and enforces node, edge, identifier, text, and final-byte caps.
+
 ## Trust boundaries
 
 - All repository content is untrusted: rendered as plain text (React escaping), never as

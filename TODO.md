@@ -341,11 +341,11 @@ packages: [packages/trust, packages/contracts, docs]
 ```yaml
 id: KG-11
 epic: C
-status: todo
+status: done (PR #51)
 depends_on: [KG-08]
 size: M
 labels: [knowledge]
-packages: [packages/knowledge]
+packages: [packages/knowledge, packages/contracts]
 ```
 
 **Scope.**
