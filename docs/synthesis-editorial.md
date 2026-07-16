@@ -6,6 +6,11 @@ edge, contradiction, TRUST, traversal, and bound policies. The stable series ide
 the canonical semantic seed or topic, while each generation snapshots its full selector, exact
 node-version memberships, citation occurrences, packet bytes and hashes.
 
+The normative authorship, accountability, disclosure, privacy, rights, DOI, correction, and
+incident requirements are defined by the versioned
+[AI synthesis governance and attribution policy](synthesis-governance.md). This lifecycle MUST be
+interpreted under that policy.
+
 Before provider execution, the server permanently binds a request key to its canonical selector in
 a durable, expiring lease claim. Recorder start atomically creates the `AgentRun` and attaches it to
 the claim. An exact retry reclaims a stale pre-run or running lease, while provider failures remain

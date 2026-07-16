@@ -4,8 +4,8 @@ import { Prisma, type PrismaClient } from "@oratlas/db";
 import {
   canonicalJson,
   editorialSynthesisDraftSchema,
+  isSupportedSynthesisAcceptanceChecklist,
   publicSynthesisReviewSchema,
-  synthesisAcceptanceChecklistSchema,
   subgraphEvidenceTrustSchema,
   subgraphEvidencePacketSchema,
   synthesisDraftDecisionSchema,
@@ -1565,9 +1565,12 @@ export async function getPublicSynthesisReview(
   try {
     integrity = assertDraftIntegrity(draft);
     checklistIsValid =
-      draft.checklistVersion === SYNTHESIS_ACCEPTANCE_CHECKLIST_VERSION &&
+      draft.checklistVersion !== null &&
       draft.checklistJson !== null &&
-      synthesisAcceptanceChecklistSchema.safeParse(JSON.parse(draft.checklistJson)).success;
+      isSupportedSynthesisAcceptanceChecklist(
+        draft.checklistVersion,
+        JSON.parse(draft.checklistJson),
+      );
   } catch {
     return null;
   }

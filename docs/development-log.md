@@ -643,3 +643,20 @@ bounded adversarial corpus without requiring provider credentials in CI.
 - Added the offline-default `pnpm eval:grounding` CLI, explicit bounded real-provider opt-in,
   deterministic privacy-minimal report v1, documented bounds and exit statuses, and a dedicated CI
   step with provider variables explicitly empty.
+
+## KG-18 — Governance and AI attribution policy (issue #60)
+
+**Objective:** make software authorship, editorial accountability, public disclosure, and incident
+boundaries normative and machine-checkable for AI-generated synthesis reviews.
+
+- Added a versioned MUST/MUST NOT policy covering non-person software-agent credit, accountable
+  editor acceptance, no autonomous publication, exact evidence provenance, the strict public
+  allowlist/private denylist, model/prompt disclosure boundaries, rights/licenses, DOI roles,
+  checklist duties, fail-closed reads, immutable corrections, withdrawal limitations, and incident
+  response.
+- Added canonical public label/scope wording and field-list constants, bound the public reading UI
+  to them, and documented the GitHub-login accountability boundary without adding personal data.
+- Added append-only attribution/materialization/checklist registries and version-aware historical
+  public validation so future policy bumps cannot silently reinterpret or 404 older accepted
+  versions. Contract tests cover terminology, versions, allowlists, forbidden private fields, and
+  checklist dispatch; OpenAPI and governance cross-links carry the same policy.

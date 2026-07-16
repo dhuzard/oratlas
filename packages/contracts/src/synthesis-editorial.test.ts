@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   editorialSynthesisDraftSchema,
+  isSupportedSynthesisAcceptanceChecklist,
   publicSynthesisReviewSchema,
   synthesisRegenerationProposalSchema,
   synthesisDraftDecisionSchema,
@@ -9,6 +10,14 @@ import {
   SYNTHESIS_MATERIALIZATION_POLICY_VERSION,
   SYNTHESIS_PIPELINE_SOFTWARE_ID,
   SYNTHESIS_PIPELINE_SOFTWARE_NAME,
+  SYNTHESIS_PUBLIC_AI_LABEL,
+  SYNTHESIS_PUBLIC_PRIVATE_FIELD_DENYLIST,
+  SYNTHESIS_PUBLIC_PROVENANCE_FIELDS,
+  SYNTHESIS_PUBLIC_REVIEW_FIELDS,
+  SYNTHESIS_PUBLIC_SCOPE_NOTICE,
+  SYNTHESIS_SUPPORTED_ACCEPTANCE_CHECKLIST_VERSIONS,
+  SYNTHESIS_SUPPORTED_ATTRIBUTION_POLICY_VERSIONS,
+  SYNTHESIS_SUPPORTED_MATERIALIZATION_POLICY_VERSIONS,
 } from "./synthesis-editorial.js";
 import {
   SYNTHESIS_REVIEW_SCHEMA_VERSION,
@@ -47,6 +56,39 @@ const generation = {
   attributionPolicyVersion: SYNTHESIS_ATTRIBUTION_POLICY_VERSION,
   materializationPolicyVersion: SYNTHESIS_MATERIALIZATION_POLICY_VERSION,
 };
+
+function publicReview() {
+  return {
+    slug: "synthesis-1",
+    reviewType: "ai-synthesis" as const,
+    title: document.title,
+    abstract: document.summary,
+    document,
+    provenance: {
+      ...generation,
+      acceptedAt: "2026-07-16T11:00:00.000Z",
+      approvingEditor: {
+        displayName: "Editor",
+        githubLogin: "editor",
+        roleSnapshot: "EDITOR" as const,
+      },
+      rightsStatement: "The editor confirms publication rights for this synthesis.",
+      licenseSpdx: "CC-BY-4.0",
+      checklistVersion: SYNTHESIS_ACCEPTANCE_CHECKLIST_VERSION,
+      ordinal: 1,
+      acceptedPredecessorVersionId: null,
+      acceptedPredecessorOrdinal: null,
+    },
+    citations: [],
+    version: { id: "version-1", ordinal: 1, isCurrent: true },
+    freshness: {
+      status: "unchecked" as const,
+      policyVersion: "synthesis-staleness/1.0.0" as const,
+      reasonCodes: [],
+      affectedReferenceCount: 0,
+    },
+  };
+}
 
 describe("synthesis editorial contracts", () => {
   it("normalizes distinct live DOIs and rejects reserved or duplicate identifiers", () => {
@@ -115,32 +157,7 @@ describe("synthesis editorial contracts", () => {
   });
 
   it("requires every acceptance and lineage field on public provenance", () => {
-    const publicValue = {
-      slug: "synthesis-1",
-      reviewType: "ai-synthesis",
-      title: document.title,
-      abstract: document.summary,
-      document,
-      provenance: {
-        ...generation,
-        acceptedAt: "2026-07-16T11:00:00.000Z",
-        approvingEditor: { displayName: "Editor", githubLogin: "editor", roleSnapshot: "EDITOR" },
-        rightsStatement: "The editor confirms publication rights for this synthesis.",
-        licenseSpdx: "CC-BY-4.0",
-        checklistVersion: SYNTHESIS_ACCEPTANCE_CHECKLIST_VERSION,
-        ordinal: 1,
-        acceptedPredecessorVersionId: null,
-        acceptedPredecessorOrdinal: null,
-      },
-      citations: [],
-      version: { id: "version-1", ordinal: 1, isCurrent: true },
-      freshness: {
-        status: "unchecked",
-        policyVersion: "synthesis-staleness/1.0.0",
-        reasonCodes: [],
-        affectedReferenceCount: 0,
-      },
-    };
+    const publicValue = publicReview();
     expect(publicSynthesisReviewSchema.safeParse(publicValue).success).toBe(true);
     for (const field of [
       "acceptedAt",
@@ -196,5 +213,40 @@ describe("synthesis editorial contracts", () => {
         affectedReferenceCount: 2,
       }).success,
     ).toBe(false);
+  });
+
+  it("pins public terminology, allowlists, private denials, and append-only policy registries", () => {
+    const publicValue = publicReview();
+    expect(Object.keys(publicValue)).toEqual(SYNTHESIS_PUBLIC_REVIEW_FIELDS);
+    expect(Object.keys(publicValue.provenance)).toEqual(SYNTHESIS_PUBLIC_PROVENANCE_FIELDS);
+    expect(SYNTHESIS_PUBLIC_AI_LABEL).toBe("AI-generated synthesis — editor-accepted");
+    expect(SYNTHESIS_PUBLIC_SCOPE_NOTICE).toContain("does not establish peer review");
+    expect(SYNTHESIS_SUPPORTED_ATTRIBUTION_POLICY_VERSIONS).toContain(
+      SYNTHESIS_ATTRIBUTION_POLICY_VERSION,
+    );
+    expect(SYNTHESIS_SUPPORTED_MATERIALIZATION_POLICY_VERSIONS).toContain(
+      SYNTHESIS_MATERIALIZATION_POLICY_VERSION,
+    );
+    expect(SYNTHESIS_SUPPORTED_ACCEPTANCE_CHECKLIST_VERSIONS).toContain(
+      SYNTHESIS_ACCEPTANCE_CHECKLIST_VERSION,
+    );
+    expect(
+      isSupportedSynthesisAcceptanceChecklist(SYNTHESIS_ACCEPTANCE_CHECKLIST_VERSION, {
+        groundingAndCitationsReviewed: true,
+        contradictionAndNonConsensusFramingReviewed: true,
+        attributionAndAiDisclosureReviewed: true,
+        limitationsReviewed: true,
+        privacyAndInjectionLeakageReviewed: true,
+        rightsAndLicenseConfirmed: true,
+      }),
+    ).toBe(true);
+    expect(isSupportedSynthesisAcceptanceChecklist("synthesis-checklist/999.0.0", {})).toBe(false);
+
+    for (const field of SYNTHESIS_PUBLIC_PRIVATE_FIELD_DENYLIST) {
+      expect(
+        publicSynthesisReviewSchema.safeParse({ ...publicValue, [field]: "private-value" }).success,
+        field,
+      ).toBe(false);
+    }
   });
 });

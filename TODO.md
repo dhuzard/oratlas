@@ -528,11 +528,11 @@ packages: [apps/web]
 ```yaml
 id: KG-18
 epic: E
-status: todo
+status: in-progress (issue #60)
 depends_on: [KG-13]
 size: S
 labels: [docs, governance]
-packages: [docs]
+packages: [docs, packages/contracts, apps/web]
 ```
 
 **Scope.**

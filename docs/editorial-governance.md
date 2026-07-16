@@ -19,6 +19,22 @@ also hidden from non-editors, but the server checks are authoritative.
 - Rejecting or requesting changes records the decision and an optional note; the submission's
   immutable snapshot is preserved.
 
+### AI-generated synthesis acceptance
+
+AI synthesis decisions follow the normative
+[AI synthesis governance and attribution policy](synthesis-governance.md) and the
+[synthesis editorial lifecycle](synthesis-editorial.md). The synthesis software is a non-person
+authoring agent; the approving editor is publicly accountable for the publication decision and
+six-part checklist, not represented as the writer of generated prose. Acceptance MUST NOT imply
+peer review, scientific correctness, consensus, truth adjudication, or blanket TRUST.
+
+Accept, reject, and request-regeneration require a private rationale. Only accept materializes an
+immutable public successor. Editors must verify exact grounding, contradiction/non-consensus
+framing, AI/editor attribution, limitations, privacy/injection leakage, and rights/license. A
+missing check, stale revision, corrupt lineage, unsupported policy version, or invalid/reserved DOI
+fails closed. The agent cannot accept its own output and no automated job may advance the public
+head.
+
 ## Editorial dashboard
 
 Editors can:

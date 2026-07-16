@@ -7,6 +7,16 @@ export const SYNTHESIS_SELECTOR_VERSION = "synthesis-selector/1.0.0" as const;
 export const SYNTHESIS_MATERIALIZATION_POLICY_VERSION = "synthesis-materialization/1.0.0" as const;
 export const SYNTHESIS_ATTRIBUTION_POLICY_VERSION = "synthesis-attribution/1.0.0" as const;
 export const SYNTHESIS_ACCEPTANCE_CHECKLIST_VERSION = "synthesis-checklist/1.0.0" as const;
+/** Append-only registries: never remove a version while an accepted record may reference it. */
+export const SYNTHESIS_SUPPORTED_MATERIALIZATION_POLICY_VERSIONS = [
+  SYNTHESIS_MATERIALIZATION_POLICY_VERSION,
+] as const;
+export const SYNTHESIS_SUPPORTED_ATTRIBUTION_POLICY_VERSIONS = [
+  SYNTHESIS_ATTRIBUTION_POLICY_VERSION,
+] as const;
+export const SYNTHESIS_SUPPORTED_ACCEPTANCE_CHECKLIST_VERSIONS = [
+  SYNTHESIS_ACCEPTANCE_CHECKLIST_VERSION,
+] as const;
 export const SYNTHESIS_PIPELINE_SOFTWARE_NAME = "Open Review Atlas Synthesis Writer" as const;
 export const SYNTHESIS_PIPELINE_SOFTWARE_ID = "software:oratlas-synthesis-writer" as const;
 export const SYNTHESIS_STALENESS_POLICY_VERSION = "synthesis-staleness/1.0.0" as const;
@@ -130,6 +140,62 @@ export const synthesisStalenessScanFailureSchema = z
       .optional(),
   })
   .strict();
+export const SYNTHESIS_PUBLIC_AI_LABEL = "AI-generated synthesis — editor-accepted" as const;
+export const SYNTHESIS_PUBLIC_SCOPE_NOTICE =
+  "Generated from cited evidence by software. Editorial acceptance permits publication; it does not establish peer review, scientific correctness, or consensus." as const;
+export const SYNTHESIS_PUBLIC_REVIEW_FIELDS = [
+  "slug",
+  "reviewType",
+  "title",
+  "abstract",
+  "document",
+  "provenance",
+  "citations",
+  "version",
+] as const;
+export const SYNTHESIS_PUBLIC_PROVENANCE_FIELDS = [
+  "generationMode",
+  "pipelineSoftware",
+  "provider",
+  "model",
+  "modelVersion",
+  "promptVersion",
+  "promptHash",
+  "packetHash",
+  "documentHash",
+  "generatedAt",
+  "attributionPolicyVersion",
+  "materializationPolicyVersion",
+  "acceptedAt",
+  "approvingEditor",
+  "rightsStatement",
+  "licenseSpdx",
+  "checklistVersion",
+  "ordinal",
+  "acceptedPredecessorVersionId",
+  "acceptedPredecessorOrdinal",
+] as const;
+export const SYNTHESIS_PUBLIC_PRIVATE_FIELD_DENYLIST = [
+  "draftId",
+  "agentRunId",
+  "requestKey",
+  "idempotencyKey",
+  "selector",
+  "seriesKey",
+  "generationKey",
+  "packetJson",
+  "prompt",
+  "promptBytes",
+  "providerRequest",
+  "providerResponse",
+  "rawOutput",
+  "error",
+  "stack",
+  "rationale",
+  "editorialNotes",
+  "apiKey",
+  "secret",
+] as const;
 
 const boundedId = z.string().trim().min(1).max(200);
 const sha256 = z.string().regex(/^[0-9a-f]{64}$/);
@@ -279,6 +345,15 @@ export const synthesisAcceptanceChecklistSchema = z
   })
   .strict();
 
+export function isSupportedSynthesisAcceptanceChecklist(version: string, value: unknown): boolean {
+  switch (version) {
+    case SYNTHESIS_ACCEPTANCE_CHECKLIST_VERSION:
+      return synthesisAcceptanceChecklistSchema.safeParse(value).success;
+    default:
+      return false;
+  }
+}
+
 export const synthesisDraftDecisionSchema = z
   .discriminatedUnion("action", [
     z
@@ -337,7 +412,10 @@ export const synthesisGenerationProvenanceSchema = z
 export type SynthesisGenerationProvenance = z.infer<typeof synthesisGenerationProvenanceSchema>;
 
 export const acceptedSynthesisProvenanceSchema = synthesisGenerationProvenanceSchema
+  .omit({ attributionPolicyVersion: true, materializationPolicyVersion: true })
   .extend({
+    attributionPolicyVersion: z.enum(SYNTHESIS_SUPPORTED_ATTRIBUTION_POLICY_VERSIONS),
+    materializationPolicyVersion: z.enum(SYNTHESIS_SUPPORTED_MATERIALIZATION_POLICY_VERSIONS),
     acceptedAt: z.string().datetime(),
     approvingEditor: z
       .object({
@@ -348,7 +426,7 @@ export const acceptedSynthesisProvenanceSchema = synthesisGenerationProvenanceSc
       .strict(),
     rightsStatement: z.string().min(10).max(2_000),
     licenseSpdx: z.string().min(1).max(120),
-    checklistVersion: z.literal(SYNTHESIS_ACCEPTANCE_CHECKLIST_VERSION),
+    checklistVersion: z.enum(SYNTHESIS_SUPPORTED_ACCEPTANCE_CHECKLIST_VERSIONS),
     acceptedPredecessorVersionId: boundedId.nullable(),
     acceptedPredecessorOrdinal: z.number().int().min(1).nullable(),
     ordinal: z.number().int().min(1),

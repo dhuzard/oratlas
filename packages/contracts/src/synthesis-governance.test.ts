@@ -1,0 +1,123 @@
+import { existsSync, readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { describe, expect, it } from "vitest";
+import {
+  SYNTHESIS_ACCEPTANCE_CHECKLIST_VERSION,
+  SYNTHESIS_ATTRIBUTION_POLICY_VERSION,
+  SYNTHESIS_MATERIALIZATION_POLICY_VERSION,
+  SYNTHESIS_PUBLIC_AI_LABEL,
+  SYNTHESIS_PUBLIC_PRIVATE_FIELD_DENYLIST,
+  SYNTHESIS_PUBLIC_SCOPE_NOTICE,
+  SYNTHESIS_SUPPORTED_ACCEPTANCE_CHECKLIST_VERSIONS,
+  SYNTHESIS_SUPPORTED_ATTRIBUTION_POLICY_VERSIONS,
+  SYNTHESIS_SUPPORTED_MATERIALIZATION_POLICY_VERSIONS,
+} from "./synthesis-editorial.js";
+
+const root = resolve(import.meta.dirname, "../../..");
+
+function read(relativePath: string): string {
+  return readFileSync(resolve(root, relativePath), "utf8");
+}
+
+function expectLocalMarkdownLinksResolve(relativePath: string): void {
+  const absolutePath = resolve(root, relativePath);
+  const markdown = readFileSync(absolutePath, "utf8");
+  for (const match of markdown.matchAll(/\[[^\]]+\]\(([^)]+)\)/g)) {
+    const target = match[1]!.split("#", 1)[0]!;
+    if (!target || /^(?:https?:|mailto:)/.test(target)) continue;
+    expect(existsSync(resolve(dirname(absolutePath), target)), `${relativePath}: ${target}`).toBe(
+      true,
+    );
+  }
+}
+
+describe("AI synthesis governance policy drift", () => {
+  it("binds the normative policy to canonical versions and public wording", () => {
+    const policy = read("docs/synthesis-governance.md");
+    const normalizedPolicy = policy.replace(/\s+/g, " ");
+    expect(policy).toContain("Policy identifier");
+    expect(policy).toContain(`\`${SYNTHESIS_ATTRIBUTION_POLICY_VERSION}\``);
+    expect(policy).toContain("Checklist identifier");
+    expect(policy).toContain(`\`${SYNTHESIS_ACCEPTANCE_CHECKLIST_VERSION}\``);
+    expect(policy).toContain("Materialization identifier");
+    expect(policy).toContain(`\`${SYNTHESIS_MATERIALIZATION_POLICY_VERSION}\``);
+    expect(policy).toContain(`**“${SYNTHESIS_PUBLIC_AI_LABEL}”**`);
+    expect(normalizedPolicy).toContain(SYNTHESIS_PUBLIC_SCOPE_NOTICE);
+    for (const heading of [
+      "Authorship, credit, and accountability",
+      "Public allowlist and private denylist",
+      "Model, prompt, and exact evidence disclosure",
+      "Rights and licensing",
+      "DOI policy",
+      "Editorial checklist and transitions",
+      "Fail-closed integrity and privacy",
+      "Corrections, withdrawals, and incidents",
+      "Policy evolution and compatibility",
+    ]) {
+      expect(policy).toContain(heading);
+    }
+    expect(policy.match(/\bMUST(?: NOT)?\b/g)?.length ?? 0).toBeGreaterThan(35);
+    expect(SYNTHESIS_PUBLIC_PRIVATE_FIELD_DENYLIST).toEqual(
+      expect.arrayContaining([
+        "agentRunId",
+        "packetJson",
+        "promptBytes",
+        "providerResponse",
+        "rawOutput",
+        "editorialNotes",
+        "apiKey",
+      ]),
+    );
+    for (const privateConcept of [
+      "AgentRun",
+      "packet JSON/bytes",
+      "prompt bytes",
+      "provider request/response bytes",
+      "raw or rejected output",
+      "editorial rationale, notes",
+      "API keys",
+    ]) {
+      expect(normalizedPolicy).toContain(privateConcept);
+    }
+  });
+
+  it("keeps compatibility registries append-only and represented in OpenAPI", () => {
+    const openapi = read("docs/openapi.yaml");
+    expect(SYNTHESIS_SUPPORTED_ATTRIBUTION_POLICY_VERSIONS).toContain(
+      SYNTHESIS_ATTRIBUTION_POLICY_VERSION,
+    );
+    expect(SYNTHESIS_SUPPORTED_MATERIALIZATION_POLICY_VERSIONS).toContain(
+      SYNTHESIS_MATERIALIZATION_POLICY_VERSION,
+    );
+    expect(SYNTHESIS_SUPPORTED_ACCEPTANCE_CHECKLIST_VERSIONS).toContain(
+      SYNTHESIS_ACCEPTANCE_CHECKLIST_VERSION,
+    );
+    for (const version of [
+      ...SYNTHESIS_SUPPORTED_ATTRIBUTION_POLICY_VERSIONS,
+      ...SYNTHESIS_SUPPORTED_MATERIALIZATION_POLICY_VERSIONS,
+      ...SYNTHESIS_SUPPORTED_ACCEPTANCE_CHECKLIST_VERSIONS,
+    ]) {
+      expect(openapi).toContain(version);
+    }
+    expect(openapi).toContain("append-only compatibility registries");
+  });
+
+  it("binds the shipped public UI to contract wording and resolves governance links", () => {
+    const page = read("apps/web/src/app/reviews/[slug]/page.tsx");
+    expect(page).toContain("SYNTHESIS_PUBLIC_AI_LABEL");
+    expect(page).toContain("SYNTHESIS_PUBLIC_SCOPE_NOTICE");
+    expect(page).not.toContain("AI-written synthesis");
+    expect(page).not.toContain("AI-generated, editor-approved");
+
+    for (const document of [
+      "docs/synthesis-governance.md",
+      "docs/synthesis-editorial.md",
+      "docs/agent-governance.md",
+      "docs/editorial-governance.md",
+      "docs/poc-limitations.md",
+      "README.md",
+    ]) {
+      expectLocalMarkdownLinksResolve(document);
+    }
+  });
+});

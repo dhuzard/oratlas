@@ -1258,6 +1258,9 @@ components:
     AcceptedSynthesisProvenance:
       type: object
       additionalProperties: false
+      description: >
+        Public provenance for one immutable accepted synthesis version. Policy/checklist enums are
+        append-only compatibility registries so older accepted versions remain readable.
       required:
         [
           generationMode,
@@ -1292,13 +1295,13 @@ components:
         packetHash: { type: string, pattern: "^[0-9a-f]{64}$" }
         documentHash: { type: string, pattern: "^[0-9a-f]{64}$" }
         generatedAt: { type: string, format: date-time }
-        attributionPolicyVersion: { const: synthesis-attribution/1.0.0 }
-        materializationPolicyVersion: { const: synthesis-materialization/1.0.0 }
+        attributionPolicyVersion: { type: string, enum: [synthesis-attribution/1.0.0] }
+        materializationPolicyVersion: { type: string, enum: [synthesis-materialization/1.0.0] }
         acceptedAt: { type: string, format: date-time }
         approvingEditor: { $ref: "#/components/schemas/SynthesisApprovingEditor" }
         rightsStatement: { type: string, minLength: 10, maxLength: 2000 }
         licenseSpdx: { type: string, minLength: 1, maxLength: 120 }
-        checklistVersion: { const: synthesis-checklist/1.0.0 }
+        checklistVersion: { type: string, enum: [synthesis-checklist/1.0.0] }
         acceptedPredecessorVersionId: { type: [string, "null"], minLength: 1, maxLength: 200 }
         acceptedPredecessorOrdinal: { type: [integer, "null"], minimum: 1 }
         ordinal: { type: integer, minimum: 1 }
@@ -1494,6 +1497,10 @@ components:
     PublicSynthesisReview:
       type: object
       additionalProperties: false
+      description: >
+        Strict public allowlist for an editor-accepted AI synthesis. Draft/run identifiers,
+        selector and request keys, packet/prompt/provider bytes, errors, rationale, notes, and
+        credentials are private and forbidden by additionalProperties=false.
       required:
         [slug, reviewType, title, abstract, document, provenance, citations, version, freshness]
       properties:
