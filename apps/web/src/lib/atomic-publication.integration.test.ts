@@ -8,7 +8,7 @@ import {
   type InspectionReport,
   type SubmissionValidationReport,
 } from "@oratlas/contracts";
-import { type FullExtraction } from "@oratlas/extractor";
+import { createEmptyNodeExtractionReport, type FullExtraction } from "@oratlas/extractor";
 import { type PrismaClient } from "@oratlas/db";
 import { type createInspectionCapture } from "./inspection-captures";
 import { type acceptSubmission, type createSubmission, type decideSubmission } from "./submissions";
@@ -437,6 +437,10 @@ function fullExtraction(
     },
     manifestPresent: false,
     knowledge,
+    nodeExtraction: createEmptyNodeExtractionReport({
+      commitSha: report.selectedSource!.commitSha,
+      extractorVersion: "integration-test",
+    }),
     compatibility: compatibilityReport(),
   };
 }

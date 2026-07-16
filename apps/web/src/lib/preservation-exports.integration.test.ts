@@ -8,7 +8,7 @@ import {
   type InspectionReport,
   type SubmissionValidationReport,
 } from "@oratlas/contracts";
-import { type FullExtraction } from "@oratlas/extractor";
+import { createEmptyNodeExtractionReport, type FullExtraction } from "@oratlas/extractor";
 import { bibtex, jats, provJsonLd, roCrate } from "@oratlas/exports";
 import { type PrismaClient } from "@oratlas/db";
 import { type createInspectionCapture } from "./inspection-captures";
@@ -296,6 +296,10 @@ function fullExtraction(name = "preserved-review"): FullExtraction {
     },
     manifestPresent: false,
     knowledge: { claims: [], citations: [], relations: [], trust: [], warnings: [] },
+    nodeExtraction: createEmptyNodeExtractionReport({
+      commitSha: commitA,
+      extractorVersion: "preservation-test",
+    }),
     compatibility: compatibilityReport(),
   };
 }
