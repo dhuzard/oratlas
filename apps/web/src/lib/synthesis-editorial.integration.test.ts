@@ -588,6 +588,47 @@ describe.sequential("synthesis editorial lifecycle", () => {
       freshness: { status: "stale", reasonCodes: ["materialization-policy-changed"] },
     });
 
+    const recurringEvaluation = await prisma.synthesisStalenessEvaluation.findUniqueOrThrow({
+      where: { evaluationKey: recurringA.evaluationKey },
+    });
+    await prisma.synthesisStalenessEvaluation.update({
+      where: { id: recurringEvaluation.id },
+      data: {
+        status: "fresh",
+        reasonCodesJson: "[]",
+        affectedReferencesJson: "[]",
+        affectedReferenceCount: 0,
+        affectedReferencesTruncated: false,
+      },
+    });
+    expect(await service.getPublicSynthesisReview(review.slug, prisma)).toMatchObject({
+      freshness: { status: "unchecked" },
+    });
+    expect(await staleness.listSynthesisRegenerationProposals(prisma)).toEqual([]);
+    await expect(
+      staleness.decideSynthesisRegenerationProposal(
+        actor,
+        recurringProposal.id,
+        {
+          action: "dismiss",
+          expectedRevision: 0,
+          idempotencyKey: sharedKey,
+          rationale: "The editor refuses a coherently rewritten but hash-mismatched evaluation.",
+        },
+        prisma,
+      ),
+    ).rejects.toMatchObject({ code: "conflict" });
+    await prisma.synthesisStalenessEvaluation.update({
+      where: { id: recurringEvaluation.id },
+      data: {
+        status: recurringEvaluation.status,
+        reasonCodesJson: recurringEvaluation.reasonCodesJson,
+        affectedReferencesJson: recurringEvaluation.affectedReferencesJson,
+        affectedReferenceCount: recurringEvaluation.affectedReferenceCount,
+        affectedReferencesTruncated: recurringEvaluation.affectedReferencesTruncated,
+      },
+    });
+
     const version = await prisma.reviewVersion.findUniqueOrThrow({
       where: { id: review.currentSynthesisVersionId! },
     });
@@ -1014,6 +1055,52 @@ describe.sequential("synthesis editorial lifecycle", () => {
         },
       });
     }
+    const forgedProposal = await prisma.synthesisRegenerationProposal.create({
+      data: {
+        evaluationId: freshness.id,
+        reviewId: review.id,
+        acceptedReviewVersionId: versionId,
+        openHeadKey: versionId,
+      },
+    });
+    await prisma.synthesisStalenessEvaluation.update({
+      where: { id: freshness.id },
+      data: {
+        status: "stale",
+        reasonCodesJson: '["materialization-policy-changed"]',
+        affectedReferencesJson: '[{"change":"changed","id":"forged-policy","kind":"policy"}]',
+        affectedReferenceCount: 1,
+        affectedReferencesTruncated: false,
+      },
+    });
+    expect(await service.getPublicSynthesisReview(review.slug, prisma)).toMatchObject({
+      freshness: { status: "unchecked" },
+    });
+    expect(await staleness.listSynthesisRegenerationProposals(prisma)).toEqual([]);
+    await expect(
+      staleness.decideSynthesisRegenerationProposal(
+        actor,
+        forgedProposal.id,
+        {
+          action: "dismiss",
+          expectedRevision: 0,
+          idempotencyKey: "forged-false-stale-decision",
+          rationale: "The editor must not act on a coherently rewritten freshness evaluation.",
+        },
+        prisma,
+      ),
+    ).rejects.toMatchObject({ code: "conflict" });
+    await prisma.synthesisRegenerationProposal.delete({ where: { id: forgedProposal.id } });
+    await prisma.synthesisStalenessEvaluation.update({
+      where: { id: freshness.id },
+      data: {
+        status: freshness.status,
+        reasonCodesJson: freshness.reasonCodesJson,
+        affectedReferencesJson: freshness.affectedReferencesJson,
+        affectedReferenceCount: freshness.affectedReferenceCount,
+        affectedReferencesTruncated: freshness.affectedReferencesTruncated,
+      },
+    });
     const citation = await prisma.synthesisDraftCitation.findFirstOrThrow({
       where: { draftId: draft.id },
     });

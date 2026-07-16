@@ -12,6 +12,7 @@ import {
 
 interface StoredEvaluation {
   id: string;
+  evaluationKey: string;
   policyVersion: string;
   reviewId: string;
   acceptedReviewVersionId: string;
@@ -59,6 +60,7 @@ export function validateStoredSynthesisStaleness(
   try {
     if (
       evaluation.policyVersion !== SYNTHESIS_STALENESS_POLICY_VERSION ||
+      !/^[0-9a-f]{64}$/.test(evaluation.evaluationKey) ||
       evaluation.reviewId !== snapshot.reviewId ||
       evaluation.acceptedReviewVersionId !== snapshot.acceptedReviewVersionId ||
       evaluation.acceptedDraftId !== snapshot.acceptedDraftId ||
@@ -130,6 +132,25 @@ export function validateStoredSynthesisStaleness(
       (evaluation.failureCode !== null) !== reasonCodes.includes("materialization-failed")
     )
       return null;
+
+    const evaluationIdentity = {
+      policyVersion: evaluation.policyVersion,
+      acceptedReviewVersionId: evaluation.acceptedReviewVersionId,
+      seriesKey: evaluation.seriesKey,
+      selectorHash: evaluation.selectorHash,
+      acceptedMaterializationPolicyVersion: evaluation.acceptedMaterializationPolicyVersion,
+      evaluatedMaterializationPolicyVersion: evaluation.evaluatedMaterializationPolicyVersion,
+      acceptedPacketHash: evaluation.acceptedPacketHash,
+      evaluatedPacketHash: evaluation.evaluatedPacketHash,
+      failureCode: evaluation.failureCode,
+      failureFingerprint: evaluation.failureFingerprint,
+      status: evaluation.status,
+      reasonCodes,
+      affectedReferences,
+      affectedReferenceCount: evaluation.affectedReferenceCount,
+      affectedReferencesTruncated: evaluation.affectedReferencesTruncated,
+    };
+    if (digest(canonicalJson(evaluationIdentity)) !== evaluation.evaluationKey) return null;
 
     const freshness = synthesisFreshnessSchema.safeParse({
       status: evaluation.status,

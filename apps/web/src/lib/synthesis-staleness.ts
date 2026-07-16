@@ -756,12 +756,24 @@ export async function decideSynthesisRegenerationProposal(
           where: { id: proposalId },
           include: {
             review: { select: { currentSynthesisVersionId: true, slug: true } },
-            evaluation: { select: { id: true, status: true } },
+            evaluation: true,
             acceptedReviewVersion: {
               select: {
                 reviewId: true,
+                synthesisDraftId: true,
                 synthesisStalenessHead: {
-                  select: { reviewId: true, currentEvaluationId: true },
+                  select: { reviewId: true, currentEvaluationId: true, observedAt: true },
+                },
+                synthesisDraft: {
+                  select: {
+                    id: true,
+                    seriesKey: true,
+                    selectorJson: true,
+                    selectorHash: true,
+                    materializationPolicyVersion: true,
+                    packetJson: true,
+                    packetHash: true,
+                  },
                 },
               },
             },
@@ -791,8 +803,28 @@ export async function decideSynthesisRegenerationProposal(
           );
         }
         const observation = proposal.acceptedReviewVersion.synthesisStalenessHead;
+        const draft = proposal.acceptedReviewVersion.synthesisDraft;
+        const validated =
+          observation && draft
+            ? validateStoredSynthesisStaleness(
+                proposal.evaluation,
+                {
+                  reviewId: proposal.reviewId,
+                  acceptedReviewVersionId: proposal.acceptedReviewVersionId,
+                  acceptedDraftId: draft.id,
+                  seriesKey: draft.seriesKey,
+                  selectorJson: draft.selectorJson,
+                  selectorHash: draft.selectorHash,
+                  materializationPolicyVersion: draft.materializationPolicyVersion,
+                  packetJson: draft.packetJson,
+                  packetHash: draft.packetHash,
+                },
+                observation.observedAt,
+              )
+            : null;
         if (
-          proposal.evaluation.status !== "stale" ||
+          validated?.freshness.status !== "stale" ||
+          proposal.acceptedReviewVersion.synthesisDraftId !== draft?.id ||
           proposal.acceptedReviewVersion.reviewId !== proposal.reviewId ||
           observation?.reviewId !== proposal.reviewId ||
           observation.currentEvaluationId !== proposal.evaluation.id
