@@ -211,7 +211,7 @@ packages: [apps/web, packages/ui]
 ```yaml
 id: KG-06
 epic: B
-status: in-progress (issue #36)
+status: done (PR #38)
 depends_on: [KG-02]
 size: M
 labels: [knowledge, identity]
