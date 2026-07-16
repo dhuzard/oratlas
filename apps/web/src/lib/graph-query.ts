@@ -281,9 +281,15 @@ function signCursorPayload(payload: string, secret: string): string {
 }
 
 function signaturesMatch(payload: string, signature: string, secret: string): boolean {
-  const expected = Buffer.from(signCursorPayload(payload, secret), "base64url");
+  // A SHA-256 HMAC has exactly 32 bytes and one canonical unpadded base64url
+  // representation (43 characters). Buffer.from is intentionally permissive:
+  // it accepts aliases whose unused final bits are non-zero, so validate and
+  // round-trip before the constant-time byte comparison.
+  if (!/^[A-Za-z0-9_-]{43}$/.test(signature)) return false;
   const provided = Buffer.from(signature, "base64url");
-  return expected.length === provided.length && timingSafeEqual(expected, provided);
+  if (provided.length !== 32 || provided.toString("base64url") !== signature) return false;
+  const expected = createHmac("sha256", secret).update(payload).digest();
+  return timingSafeEqual(expected, provided);
 }
 
 function decodeCursor(

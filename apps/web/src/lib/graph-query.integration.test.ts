@@ -1,4 +1,5 @@
 import { execFileSync } from "node:child_process";
+import { createHmac } from "node:crypto";
 import { createRequire } from "node:module";
 import { dirname, resolve } from "node:path";
 import { existsSync, rmSync } from "node:fs";
@@ -246,9 +247,10 @@ afterAll(async () => {
 async function query(
   input: Parameters<typeof publicGraphQuerySchema.parse>[0],
   trustProvider: GraphQuery.GraphTrustProvider = graph.emptyGraphTrustProvider,
+  cursorSecret = CURSOR_SECRET,
 ) {
   return graph.queryPublicGraph(publicGraphQuerySchema.parse(input), {
-    cursorSecret: CURSOR_SECRET,
+    cursorSecret,
     trustProvider,
   });
 }
@@ -308,6 +310,52 @@ describe.sequential("public graph query", () => {
       where: { id: confirmedUsesCodeId },
       data: { rationale: null },
     });
+  });
+
+  it("rejects canonical and noncanonical final-character signature mutations", async () => {
+    const first = await query({ seed: targetNodeId, depth: 1, limit: 1 });
+    const template = first.page.nextCursor!;
+    const separator = template.lastIndexOf(".");
+    const payload = template.slice(0, separator);
+    const secretsByEnding = new Map<string, string>();
+
+    // The final character of an unpadded 32-byte base64url value is one of
+    // A/Q/g/w. Fixed candidate secrets make this exhaustive and repeatable.
+    for (let index = 0; index < 256 && secretsByEnding.size < 4; index += 1) {
+      const secret = `kg08-canonical-signature-${index}`;
+      const signature = createHmac("sha256", secret).update(payload).digest("base64url");
+      const ending = signature.at(-1)!;
+      if (["A", "Q", "g", "w"].includes(ending)) secretsByEnding.set(ending, secret);
+    }
+    expect([...secretsByEnding.keys()].sort()).toEqual(["A", "Q", "g", "w"].sort());
+
+    const unusedBitMutation: Record<string, string> = { A: "B", Q: "R", g: "h", w: "x" };
+    const significantBitMutation: Record<string, string> = { A: "Q", Q: "g", g: "w", w: "A" };
+    for (const ending of ["A", "Q", "g", "w"]) {
+      const secret = secretsByEnding.get(ending)!;
+      const signature = createHmac("sha256", secret).update(payload).digest("base64url");
+      expect(signature).toHaveLength(43);
+      expect(signature.endsWith(ending)).toBe(true);
+      const canonicalCursor = `${payload}.${signature}`;
+      await expect(
+        query(
+          { seed: targetNodeId, depth: 1, limit: 1, cursor: canonicalCursor },
+          graph.emptyGraphTrustProvider,
+          secret,
+        ),
+      ).resolves.toMatchObject({ edges: [expect.any(Object)] });
+
+      for (const replacement of [unusedBitMutation[ending]!, significantBitMutation[ending]!]) {
+        const mutated = `${payload}.${signature.slice(0, -1)}${replacement}`;
+        await expect(
+          query(
+            { seed: targetNodeId, depth: 1, limit: 1, cursor: mutated },
+            graph.emptyGraphTrustProvider,
+            secret,
+          ),
+        ).rejects.toThrow("invalid, stale");
+      }
+    }
   });
 
   it("searches topic seeds and exposes authoritative snapshot and commit identity", async () => {

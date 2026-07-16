@@ -153,7 +153,8 @@ test("submitter finalizes a node-only capture and an editor publishes its nodes"
 
   const confirmProposal = editorPage
     .locator("article.claim-card")
-    .filter({ hasText: "uses-dataset" });
+    .filter({ hasText: "uses-dataset" })
+    .filter({ hasText: "author assertion" });
   await expect(confirmProposal.getByText(/proposal — not editor-confirmed/)).toBeVisible();
   await confirmProposal
     .getByPlaceholder(/Attributable decision note/)

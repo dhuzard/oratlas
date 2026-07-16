@@ -523,8 +523,51 @@ async function seedKnowledgeGraph(
     });
   }
 
+  // A privacy-minimal pending relation gives the public graph explorer a
+  // deterministic proposed-edge fixture. Editorial state and agent artifacts
+  // are deliberately absent; the public projection never reads evidenceJson.
+  const proposalSourceKey = "replication-lab:independent-replay-replication";
+  const proposalTargetKey = "replay-lab:replay-sequences-dataset";
+  const proposalSourceVersionId = versionIdByKey.get(proposalSourceKey);
+  const proposalTargetNodeId = identityIdByKey.get(proposalTargetKey);
+  const proposalTargetVersionId = versionIdByKey.get(proposalTargetKey);
+  const proposalSourceBinding = repositories.get("replication-lab");
+  const proposalTargetBinding = repositories.get("replay-lab");
+  if (
+    !proposalSourceVersionId ||
+    !proposalTargetNodeId ||
+    !proposalTargetVersionId ||
+    !proposalSourceBinding ||
+    !proposalTargetBinding
+  ) {
+    throw new Error("Unresolved seed graph proposal.");
+  }
+  await prisma.nodeEdgeProposal.create({
+    data: {
+      originKey: "seed:agent-proposal:independent-replay-uses-dataset",
+      sourceStableKey: canonicalJson({
+        githubRepositoryId: proposalSourceBinding.githubRepositoryId,
+        localNodeId: "independent-replay-replication",
+        commitSha: proposalSourceBinding.commitSha.toLowerCase(),
+      }),
+      targetStableKey: canonicalJson({
+        githubRepositoryId: proposalTargetBinding.githubRepositoryId,
+        localNodeId: "replay-sequences-dataset",
+        commitSha: proposalTargetBinding.commitSha.toLowerCase(),
+      }),
+      sourceNodeVersionId: proposalSourceVersionId,
+      targetNodeId: proposalTargetNodeId,
+      targetNodeVersionId: proposalTargetVersionId,
+      relationType: "uses-dataset",
+      origin: "proposed-by-agent",
+      rationale: "A proposed dataset dependency awaiting editorial confirmation.",
+      evidenceJson: "{}",
+      status: "proposed",
+    },
+  });
+
   console.info(
-    `  · seeded knowledge graph: ${seedKnowledgeNodes.length} nodes, ${seedNodeEdges.length} edges`,
+    `  · seeded knowledge graph: ${seedKnowledgeNodes.length} nodes, ${seedNodeEdges.length} confirmed edges, 1 proposal`,
   );
 }
 
