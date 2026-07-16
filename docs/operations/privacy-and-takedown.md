@@ -1,12 +1,21 @@
 # Privacy & takedown
 
 How Open Review Atlas honors a takedown or privacy request while preserving citation
-integrity. The mechanism is the **tombstone**, and it is already implemented.
+integrity. The repository-backed review mechanism is the **tombstone**, and it is implemented for
+repository publication. AI syntheses do not yet have synthesis-specific tombstone state.
 
 See also: [article-lifecycle.md](../article-lifecycle.md) for the full lifecycle ledger, the
 [operations index](./README.md), and the repository `SECURITY.md`.
 
 ## Tombstoning a request (fail closed)
+
+This standard tombstone flow applies only to repository-backed review versions. For an AI-synthesis
+incident, operators MUST immediately contain exposure by disabling or restricting the affected
+public synthesis route, preserve the immutable accepted record and audit evidence, escalate to an
+ADMIN and the publication-rights owner, and publish an honest incident notice through an available
+operational channel. Operators MUST NOT silently delete or mutate an accepted synthesis. Restoration
+requires editor re-review or an immutable corrected successor; see
+[AI-written synthesis governance](../synthesis-governance.md#11-incidents-corrections-and-withdrawal).
 
 A takedown or privacy request is actioned by tombstoning the affected article version. A
 tombstoned article **fails closed**:
@@ -33,9 +42,10 @@ All repository content is treated as untrusted regardless of takedown state:
 ## Routing a request
 
 Route takedown and privacy requests through the repository security/reporting policy
-(`SECURITY.md`) rather than ad-hoc channels. An editor then performs the lifecycle transition
-via the standard editorial flow (editor session, same-origin JSON, a public reason, and the
-expected lifecycle revision).
+(`SECURITY.md`) rather than ad-hoc channels. For repository-backed reviews, an editor then performs
+the lifecycle transition via the standard editorial flow (editor session, same-origin JSON, a public
+reason, and the expected lifecycle revision). Synthesis requests follow the containment and
+escalation path above until synthesis-specific withdrawal state exists.
 
 ## Audit
 

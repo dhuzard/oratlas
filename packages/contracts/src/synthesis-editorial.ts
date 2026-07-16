@@ -1,22 +1,32 @@
 import { z } from "zod";
 import { nodeRelationTypeSchema } from "./enums.js";
 import { doiSchema } from "./identifiers.js";
+import { synthesisSpdxExpressionSchema } from "./licenses.js";
 import { synthesisReviewDocumentSchema } from "./synthesis-review.js";
 
 export const SYNTHESIS_SELECTOR_VERSION = "synthesis-selector/1.0.0" as const;
-export const SYNTHESIS_MATERIALIZATION_POLICY_VERSION = "synthesis-materialization/1.0.0" as const;
-export const SYNTHESIS_ATTRIBUTION_POLICY_VERSION = "synthesis-attribution/1.0.0" as const;
-export const SYNTHESIS_ACCEPTANCE_CHECKLIST_VERSION = "synthesis-checklist/1.0.0" as const;
 /** Append-only registries: never remove a version while an accepted record may reference it. */
 export const SYNTHESIS_SUPPORTED_MATERIALIZATION_POLICY_VERSIONS = [
-  SYNTHESIS_MATERIALIZATION_POLICY_VERSION,
+  "synthesis-materialization/1.0.0",
 ] as const;
 export const SYNTHESIS_SUPPORTED_ATTRIBUTION_POLICY_VERSIONS = [
-  SYNTHESIS_ATTRIBUTION_POLICY_VERSION,
+  "synthesis-attribution/1.0.0",
 ] as const;
 export const SYNTHESIS_SUPPORTED_ACCEPTANCE_CHECKLIST_VERSIONS = [
-  SYNTHESIS_ACCEPTANCE_CHECKLIST_VERSION,
+  "synthesis-checklist/1.0.0",
 ] as const;
+export const SYNTHESIS_MATERIALIZATION_POLICY_VERSION =
+  SYNTHESIS_SUPPORTED_MATERIALIZATION_POLICY_VERSIONS[
+    SYNTHESIS_SUPPORTED_MATERIALIZATION_POLICY_VERSIONS.length - 1
+  ]!;
+export const SYNTHESIS_ATTRIBUTION_POLICY_VERSION =
+  SYNTHESIS_SUPPORTED_ATTRIBUTION_POLICY_VERSIONS[
+    SYNTHESIS_SUPPORTED_ATTRIBUTION_POLICY_VERSIONS.length - 1
+  ]!;
+export const SYNTHESIS_ACCEPTANCE_CHECKLIST_VERSION =
+  SYNTHESIS_SUPPORTED_ACCEPTANCE_CHECKLIST_VERSIONS[
+    SYNTHESIS_SUPPORTED_ACCEPTANCE_CHECKLIST_VERSIONS.length - 1
+  ]!;
 export const SYNTHESIS_PIPELINE_SOFTWARE_NAME = "Open Review Atlas Synthesis Writer" as const;
 export const SYNTHESIS_PIPELINE_SOFTWARE_ID = "software:oratlas-synthesis-writer" as const;
 export const SYNTHESIS_STALENESS_POLICY_VERSION = "synthesis-staleness/1.0.0" as const;
@@ -171,9 +181,29 @@ export const SYNTHESIS_PUBLIC_PROVENANCE_FIELDS = [
   "rightsStatement",
   "licenseSpdx",
   "checklistVersion",
-  "ordinal",
   "acceptedPredecessorVersionId",
   "acceptedPredecessorOrdinal",
+  "ordinal",
+] as const;
+export const SYNTHESIS_PUBLIC_CITATION_FIELDS = [
+  "referenceId",
+  "nodeId",
+  "nodeVersionId",
+  "nodeKind",
+  "title",
+  "href",
+  "location",
+  "occurrenceOrdinal",
+  "identifierScheme",
+  "identifierRole",
+  "identifierValue",
+] as const;
+export const SYNTHESIS_PUBLIC_VERSION_FIELDS = [
+  "id",
+  "ordinal",
+  "isCurrent",
+  "versionDoi",
+  "conceptDoi",
 ] as const;
 export const SYNTHESIS_PUBLIC_PRIVATE_FIELD_DENYLIST = [
   "draftId",
@@ -334,6 +364,29 @@ const normalizedDoiSchema = doiSchema
     message: "Reserved example DOI prefixes cannot be published as live synthesis identifiers.",
   });
 
+const liveSynthesisDoiPairShape = {
+  versionDoi: normalizedDoiSchema.optional(),
+  conceptDoi: normalizedDoiSchema.optional(),
+};
+
+function validateLiveSynthesisDoiPair(
+  value: { versionDoi?: string; conceptDoi?: string },
+  context: z.RefinementCtx,
+) {
+  if (value.versionDoi && value.conceptDoi && value.versionDoi === value.conceptDoi) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["conceptDoi"],
+      message: "Concept DOI must differ from version DOI.",
+    });
+  }
+}
+
+export const liveSynthesisDoiPairSchema = z
+  .object(liveSynthesisDoiPairShape)
+  .strict()
+  .superRefine(validateLiveSynthesisDoiPair);
+
 export const synthesisAcceptanceChecklistSchema = z
   .object({
     groundingAndCitationsReviewed: z.literal(true),
@@ -360,10 +413,9 @@ export const synthesisDraftDecisionSchema = z
       .object({
         ...decisionBase,
         action: z.literal("accept"),
-        licenseSpdx: z.string().trim().min(1).max(120),
+        licenseSpdx: synthesisSpdxExpressionSchema,
         rightsStatement: z.string().trim().min(10).max(2_000),
-        versionDoi: normalizedDoiSchema.optional(),
-        conceptDoi: normalizedDoiSchema.optional(),
+        ...liveSynthesisDoiPairShape,
         checklist: synthesisAcceptanceChecklistSchema,
       })
       .strict(),
@@ -371,18 +423,7 @@ export const synthesisDraftDecisionSchema = z
     z.object({ ...decisionBase, action: z.literal("request-regeneration") }).strict(),
   ])
   .superRefine((decision, context) => {
-    if (
-      decision.action === "accept" &&
-      decision.versionDoi &&
-      decision.conceptDoi &&
-      decision.versionDoi === decision.conceptDoi
-    ) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["conceptDoi"],
-        message: "Concept DOI must differ from version DOI.",
-      });
-    }
+    if (decision.action === "accept") validateLiveSynthesisDoiPair(decision, context);
   });
 export type SynthesisDraftDecision = z.infer<typeof synthesisDraftDecisionSchema>;
 
@@ -411,11 +452,28 @@ export const synthesisGenerationProvenanceSchema = z
   .strict();
 export type SynthesisGenerationProvenance = z.infer<typeof synthesisGenerationProvenanceSchema>;
 
-export const acceptedSynthesisProvenanceSchema = synthesisGenerationProvenanceSchema
-  .omit({ attributionPolicyVersion: true, materializationPolicyVersion: true })
+export function createPersistedSynthesisGenerationProvenanceSchema(
+  attributionVersions: readonly [string, ...string[]],
+  materializationVersions: readonly [string, ...string[]],
+) {
+  return synthesisGenerationProvenanceSchema
+    .omit({ attributionPolicyVersion: true, materializationPolicyVersion: true })
+    .extend({
+      attributionPolicyVersion: z.enum(attributionVersions),
+      materializationPolicyVersion: z.enum(materializationVersions),
+    })
+    .strict();
+}
+
+/** Persisted read schema uses append-only registries; new generation still uses current literals. */
+export const persistedSynthesisGenerationProvenanceSchema =
+  createPersistedSynthesisGenerationProvenanceSchema(
+    SYNTHESIS_SUPPORTED_ATTRIBUTION_POLICY_VERSIONS,
+    SYNTHESIS_SUPPORTED_MATERIALIZATION_POLICY_VERSIONS,
+  );
+
+export const acceptedSynthesisProvenanceSchema = persistedSynthesisGenerationProvenanceSchema
   .extend({
-    attributionPolicyVersion: z.enum(SYNTHESIS_SUPPORTED_ATTRIBUTION_POLICY_VERSIONS),
-    materializationPolicyVersion: z.enum(SYNTHESIS_SUPPORTED_MATERIALIZATION_POLICY_VERSIONS),
     acceptedAt: z.string().datetime(),
     approvingEditor: z
       .object({
@@ -425,7 +483,7 @@ export const acceptedSynthesisProvenanceSchema = synthesisGenerationProvenanceSc
       })
       .strict(),
     rightsStatement: z.string().min(10).max(2_000),
-    licenseSpdx: z.string().min(1).max(120),
+    licenseSpdx: synthesisSpdxExpressionSchema,
     checklistVersion: z.enum(SYNTHESIS_SUPPORTED_ACCEPTANCE_CHECKLIST_VERSIONS),
     acceptedPredecessorVersionId: boundedId.nullable(),
     acceptedPredecessorOrdinal: z.number().int().min(1).nullable(),
@@ -446,7 +504,7 @@ export const editorialSynthesisDraftSchema = z
     parentDraftId: boundedId.optional(),
     previousAcceptedOrdinal: z.number().int().min(1).optional(),
     document: synthesisReviewDocumentSchema,
-    provenance: synthesisGenerationProvenanceSchema,
+    provenance: persistedSynthesisGenerationProvenanceSchema,
     citations: z.array(
       z
         .object({
@@ -467,6 +525,34 @@ export const editorialSynthesisDraftSchema = z
   .strict();
 export type EditorialSynthesisDraft = z.infer<typeof editorialSynthesisDraftSchema>;
 
+export const publicSynthesisCitationSchema = z
+  .object({
+    referenceId: z.string().min(1),
+    nodeId: boundedId,
+    nodeVersionId: boundedId,
+    nodeKind: z.enum(["claim", "figure", "dataset", "code"]),
+    title: z.string().min(1).max(500),
+    href: z.string().regex(/^\/nodes\/[^/]+\/versions\/[^/]+$/),
+    location: z.string().min(1).max(200),
+    occurrenceOrdinal: z.number().int().nonnegative(),
+    identifierScheme: z.string().min(1).max(40).optional(),
+    identifierRole: z.string().min(1).max(80).optional(),
+    identifierValue: z.string().min(1).max(500).optional(),
+  })
+  .strict();
+
+export const publicSynthesisVersionBaseSchema = z
+  .object({
+    id: boundedId,
+    ordinal: z.number().int().min(1),
+    isCurrent: z.boolean(),
+    ...liveSynthesisDoiPairShape,
+  })
+  .strict();
+export const publicSynthesisVersionSchema = publicSynthesisVersionBaseSchema.superRefine(
+  validateLiveSynthesisDoiPair,
+);
+
 /** Public synthesis DTO: deliberately no draft/run ids, packet/prompt bytes, keys, errors, or notes. */
 export const publicSynthesisReviewSchema = z
   .object({
@@ -476,32 +562,8 @@ export const publicSynthesisReviewSchema = z
     abstract: z.string().min(1).max(2_000),
     document: synthesisReviewDocumentSchema,
     provenance: acceptedSynthesisProvenanceSchema,
-    citations: z.array(
-      z
-        .object({
-          referenceId: z.string().min(1),
-          nodeId: boundedId,
-          nodeVersionId: boundedId,
-          nodeKind: z.enum(["claim", "figure", "dataset", "code"]),
-          title: z.string().min(1).max(500),
-          href: z.string().regex(/^\/nodes\/[^/]+\/versions\/[^/]+$/),
-          location: z.string().min(1).max(200),
-          occurrenceOrdinal: z.number().int().nonnegative(),
-          identifierScheme: z.string().min(1).max(40).optional(),
-          identifierRole: z.string().min(1).max(80).optional(),
-          identifierValue: z.string().min(1).max(500).optional(),
-        })
-        .strict(),
-    ),
-    version: z
-      .object({
-        id: boundedId,
-        ordinal: z.number().int().min(1),
-        isCurrent: z.boolean(),
-        versionDoi: doiSchema.optional(),
-        conceptDoi: doiSchema.optional(),
-      })
-      .strict(),
+    citations: z.array(publicSynthesisCitationSchema),
+    version: publicSynthesisVersionSchema,
     freshness: synthesisFreshnessSchema,
   })
   .strict();

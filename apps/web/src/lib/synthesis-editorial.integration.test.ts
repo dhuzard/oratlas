@@ -314,6 +314,63 @@ describe.sequential("synthesis editorial lifecycle", () => {
     ).rejects.toMatchObject({ code: "conflict" });
   });
 
+  it("rejects synthesis DOI reuse across versions, roles, and series", async () => {
+    const successor = await service.generateSynthesisDraft(
+      { selector, requestKey: "generation-doi-successor-0001" },
+      { client: prisma, actor, loadPacket: async () => prepared() },
+    );
+    await expect(
+      service.decideSynthesisDraft(
+        successor.id,
+        {
+          ...acceptance,
+          idempotencyKey: "doi-successor-concept-change-0001",
+          versionDoi: "10.5281/zenodo.2234567",
+          conceptDoi: "10.5281/zenodo.2234500",
+        },
+        actor,
+        prisma,
+      ),
+    ).rejects.toMatchObject({ code: "conflict" });
+    await expect(
+      service.decideSynthesisDraft(
+        successor.id,
+        { ...acceptance, idempotencyKey: "doi-successor-version-reuse-0001" },
+        actor,
+        prisma,
+      ),
+    ).rejects.toMatchObject({ code: "conflict" });
+
+    const crossSeriesSelector = {
+      ...selector,
+      selection: { kind: "seed" as const, nodeId: "claim-reject" },
+    };
+    const crossSeries = await service.generateSynthesisDraft(
+      { selector: crossSeriesSelector, requestKey: "generation-doi-cross-series-0001" },
+      { client: prisma, actor, loadPacket: async () => prepared("claim-reject") },
+    );
+    await expect(
+      service.decideSynthesisDraft(
+        crossSeries.id,
+        { ...acceptance, idempotencyKey: "doi-cross-series-version-reuse-0001" },
+        actor,
+        prisma,
+      ),
+    ).rejects.toMatchObject({ code: "conflict" });
+    await expect(
+      service.decideSynthesisDraft(
+        crossSeries.id,
+        {
+          ...acceptance,
+          idempotencyKey: "doi-cross-series-concept-reuse-0001",
+          versionDoi: "10.5281/zenodo.3234567",
+        },
+        actor,
+        prisma,
+      ),
+    ).rejects.toMatchObject({ code: "conflict" });
+  });
+
   it("reclaims a stale pre-recorder lease without leaving an orphan run", async () => {
     let clock = new Date("2026-07-16T12:00:00.000Z");
     let providerCalls = 0;

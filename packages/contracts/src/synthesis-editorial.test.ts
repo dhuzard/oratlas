@@ -1,9 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
+  acceptedSynthesisProvenanceSchema,
+  createPersistedSynthesisGenerationProvenanceSchema,
   editorialSynthesisDraftSchema,
   isSupportedSynthesisAcceptanceChecklist,
+  publicSynthesisCitationSchema,
   publicSynthesisReviewSchema,
   synthesisRegenerationProposalSchema,
+  publicSynthesisVersionBaseSchema,
   synthesisDraftDecisionSchema,
   SYNTHESIS_ACCEPTANCE_CHECKLIST_VERSION,
   SYNTHESIS_ATTRIBUTION_POLICY_VERSION,
@@ -11,10 +15,12 @@ import {
   SYNTHESIS_PIPELINE_SOFTWARE_ID,
   SYNTHESIS_PIPELINE_SOFTWARE_NAME,
   SYNTHESIS_PUBLIC_AI_LABEL,
+  SYNTHESIS_PUBLIC_CITATION_FIELDS,
   SYNTHESIS_PUBLIC_PRIVATE_FIELD_DENYLIST,
   SYNTHESIS_PUBLIC_PROVENANCE_FIELDS,
   SYNTHESIS_PUBLIC_REVIEW_FIELDS,
   SYNTHESIS_PUBLIC_SCOPE_NOTICE,
+  SYNTHESIS_PUBLIC_VERSION_FIELDS,
   SYNTHESIS_SUPPORTED_ACCEPTANCE_CHECKLIST_VERSIONS,
   SYNTHESIS_SUPPORTED_ATTRIBUTION_POLICY_VERSIONS,
   SYNTHESIS_SUPPORTED_MATERIALIZATION_POLICY_VERSIONS,
@@ -75,9 +81,9 @@ function publicReview() {
       rightsStatement: "The editor confirms publication rights for this synthesis.",
       licenseSpdx: "CC-BY-4.0",
       checklistVersion: SYNTHESIS_ACCEPTANCE_CHECKLIST_VERSION,
-      ordinal: 1,
       acceptedPredecessorVersionId: null,
       acceptedPredecessorOrdinal: null,
+      ordinal: 1,
     },
     citations: [],
     version: { id: "version-1", ordinal: 1, isCurrent: true },
@@ -124,6 +130,15 @@ describe("synthesis editorial contracts", () => {
       synthesisDraftDecisionSchema.safeParse({ ...decision, versionDoi: "10.5555/example.v1" })
         .success,
     ).toBe(false);
+    expect(
+      synthesisDraftDecisionSchema.safeParse({ ...decision, licenseSpdx: "not-a-license" }).success,
+    ).toBe(false);
+    expect(
+      synthesisDraftDecisionSchema.safeParse({
+        ...decision,
+        licenseSpdx: "(MIT OR Apache-2.0) AND GPL-3.0-only WITH Classpath-exception-2.0",
+      }).success,
+    ).toBe(true);
   });
 
   it("accepts a private pending generation without acceptance provenance", () => {
@@ -219,6 +234,16 @@ describe("synthesis editorial contracts", () => {
     const publicValue = publicReview();
     expect(Object.keys(publicValue)).toEqual(SYNTHESIS_PUBLIC_REVIEW_FIELDS);
     expect(Object.keys(publicValue.provenance)).toEqual(SYNTHESIS_PUBLIC_PROVENANCE_FIELDS);
+    expect(Object.keys(publicSynthesisReviewSchema.shape)).toEqual(SYNTHESIS_PUBLIC_REVIEW_FIELDS);
+    expect(Object.keys(acceptedSynthesisProvenanceSchema.shape)).toEqual(
+      SYNTHESIS_PUBLIC_PROVENANCE_FIELDS,
+    );
+    expect(Object.keys(publicSynthesisCitationSchema.shape)).toEqual(
+      SYNTHESIS_PUBLIC_CITATION_FIELDS,
+    );
+    expect(Object.keys(publicSynthesisVersionBaseSchema.shape)).toEqual(
+      SYNTHESIS_PUBLIC_VERSION_FIELDS,
+    );
     expect(SYNTHESIS_PUBLIC_AI_LABEL).toBe("AI-generated synthesis — editor-accepted");
     expect(SYNTHESIS_PUBLIC_SCOPE_NOTICE).toContain("does not establish peer review");
     expect(SYNTHESIS_SUPPORTED_ATTRIBUTION_POLICY_VERSIONS).toContain(
@@ -229,6 +254,15 @@ describe("synthesis editorial contracts", () => {
     );
     expect(SYNTHESIS_SUPPORTED_ACCEPTANCE_CHECKLIST_VERSIONS).toContain(
       SYNTHESIS_ACCEPTANCE_CHECKLIST_VERSION,
+    );
+    expect(SYNTHESIS_SUPPORTED_ATTRIBUTION_POLICY_VERSIONS).toContain(
+      "synthesis-attribution/1.0.0",
+    );
+    expect(SYNTHESIS_SUPPORTED_MATERIALIZATION_POLICY_VERSIONS).toContain(
+      "synthesis-materialization/1.0.0",
+    );
+    expect(SYNTHESIS_SUPPORTED_ACCEPTANCE_CHECKLIST_VERSIONS).toContain(
+      "synthesis-checklist/1.0.0",
     );
     expect(
       isSupportedSynthesisAcceptanceChecklist(SYNTHESIS_ACCEPTANCE_CHECKLIST_VERSION, {
@@ -248,5 +282,64 @@ describe("synthesis editorial contracts", () => {
         field,
       ).toBe(false);
     }
+  });
+
+  it("keeps persisted provenance readable across a simulated supported-version bump", () => {
+    const simulated = createPersistedSynthesisGenerationProvenanceSchema(
+      ["synthesis-attribution/1.0.0", "synthesis-attribution/2.0.0"],
+      ["synthesis-materialization/1.0.0", "synthesis-materialization/2.0.0"],
+    );
+    expect(simulated.safeParse(generation).success).toBe(true);
+    expect(
+      simulated.safeParse({
+        ...generation,
+        attributionPolicyVersion: "synthesis-attribution/2.0.0",
+        materializationPolicyVersion: "synthesis-materialization/2.0.0",
+      }).success,
+    ).toBe(true);
+    expect(
+      synthesisDraftDecisionSchema.safeParse({
+        action: "accept",
+        expectedRevision: 0,
+        idempotencyKey: "invalid-spdx-0001",
+        rationale: "The editor completed all required checks for publication.",
+        licenseSpdx: "not-a-license",
+        rightsStatement: "The editor confirms publication rights for this synthesis.",
+        checklist: {
+          groundingAndCitationsReviewed: true,
+          contradictionAndNonConsensusFramingReviewed: true,
+          attributionAndAiDisclosureReviewed: true,
+          limitationsReviewed: true,
+          privacyAndInjectionLeakageReviewed: true,
+          rightsAndLicenseConfirmed: true,
+        },
+      }).success,
+    ).toBe(false);
+  });
+
+  it("fails public reads closed for invalid SPDX expressions and corrupt DOI pairs", () => {
+    const value = publicReview();
+    expect(
+      publicSynthesisReviewSchema.safeParse({
+        ...value,
+        provenance: { ...value.provenance, licenseSpdx: "not-a-license" },
+      }).success,
+    ).toBe(false);
+    expect(
+      publicSynthesisReviewSchema.safeParse({
+        ...value,
+        version: { ...value.version, versionDoi: "10.5555/example.v1" },
+      }).success,
+    ).toBe(false);
+    expect(
+      publicSynthesisReviewSchema.safeParse({
+        ...value,
+        version: {
+          ...value.version,
+          versionDoi: "10.5281/zenodo.1",
+          conceptDoi: "10.5281/ZENODO.1",
+        },
+      }).success,
+    ).toBe(false);
   });
 });

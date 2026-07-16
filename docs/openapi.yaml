@@ -1115,7 +1115,12 @@ components:
                 expectedRevision: { type: integer, minimum: 0, maximum: 1000000000 }
                 idempotencyKey: { type: string, minLength: 8, maxLength: 200 }
                 rationale: { type: string, minLength: 10, maxLength: 4000 }
-                licenseSpdx: { type: string, minLength: 1, maxLength: 120 }
+                licenseSpdx:
+                  type: string
+                  minLength: 1
+                  maxLength: 120
+                  description: A supported SPDX license expression using SPDX identifiers and AND, OR, WITH, or parentheses.
+                  x-oratlas-validation: spdx-expression/1.0.0
                 rightsStatement: { type: string, minLength: 10, maxLength: 2000 }
                 versionDoi:
                   {
@@ -1300,7 +1305,12 @@ components:
         acceptedAt: { type: string, format: date-time }
         approvingEditor: { $ref: "#/components/schemas/SynthesisApprovingEditor" }
         rightsStatement: { type: string, minLength: 10, maxLength: 2000 }
-        licenseSpdx: { type: string, minLength: 1, maxLength: 120 }
+        licenseSpdx:
+          type: string
+          minLength: 1
+          maxLength: 120
+          description: A supported SPDX license expression using SPDX identifiers and AND, OR, WITH, or parentheses.
+          x-oratlas-validation: spdx-expression/1.0.0
         checklistVersion: { type: string, enum: [synthesis-checklist/1.0.0] }
         acceptedPredecessorVersionId: { type: [string, "null"], minLength: 1, maxLength: 200 }
         acceptedPredecessorOrdinal: { type: [integer, "null"], minimum: 1 }
@@ -1345,8 +1355,15 @@ components:
         id: { type: string, minLength: 1, maxLength: 200 }
         ordinal: { type: integer, minimum: 1 }
         isCurrent: { type: boolean }
-        versionDoi: { type: string, pattern: "^10\\.[0-9]{4,9}/\\S+$" }
-        conceptDoi: { type: string, pattern: "^10\\.[0-9]{4,9}/\\S+$" }
+        versionDoi:
+          type: string
+          pattern: "^10\\.[0-9]{4,9}/\\S+$"
+          not: { pattern: "^10\\.5555/" }
+        conceptDoi:
+          type: string
+          pattern: "^10\\.[0-9]{4,9}/\\S+$"
+          not: { pattern: "^10\\.5555/" }
+      description: Version and concept DOIs are normalized, reserved-example-free, and distinct when both are present.
     SynthesisStalenessReasonCode:
       type: string
       enum:

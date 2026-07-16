@@ -104,7 +104,8 @@ exports, logs intended for readers, or error responses:
 
 - draft ID/status/revision, parent draft, series key, selector, generation key, request key, lease
   state, and decision idempotency key;
-- `AgentRun` ID, database IDs, exact packet JSON/bytes, system or user prompt bytes, provider
+- `AgentRun` ID, internal/private database IDs (except the allowlisted public review-version,
+  node, and node-version IDs above), exact packet JSON/bytes, system or user prompt bytes, provider
   request/response bytes, raw or rejected output, and chain-of-thought;
 - API keys, credentials, environment values, exception text/stacks, provider errors, retries, and
   internal diagnostics;
@@ -137,7 +138,9 @@ truth.
 
 ## 6. Rights and licensing
 
-Acceptance MUST include a non-empty SPDX license expression and a rights statement. The editor MUST
+Acceptance MUST include a bounded, parser-validated SPDX license expression composed only from the
+contract's supported SPDX license/exception identifiers and `AND`, `OR`, `WITH`, or parentheses,
+plus a rights statement. A free-form license label MUST NOT pass as an SPDX expression. The editor MUST
 confirm, to the best of the information available to them, that Atlas may publish the synthesis
 under that license and that the generated text does not reproduce protected source material beyond
 permitted quotation/citation. If provider terms, source licenses, or jurisdictional rules leave
@@ -157,6 +160,10 @@ Atlas MUST NOT mint, reserve, or pretend to create a DOI.
 - A **concept DOI** identifies the synthesis series across versions.
 - When both exist they MUST be normalized and distinct. A concept DOI MUST NOT be used as the
   version DOI or cited as though it fixed one version.
+- A version DOI MUST be globally unique across accepted synthesis versions and MUST NOT equal any
+  synthesis concept DOI. A concept DOI MUST remain stable within one series, MUST NOT identify a
+  different series, and MUST NOT equal any synthesis version DOI. Acceptance MUST enforce these
+  role constraints in the serializable publication transaction.
 - DOIs are optional. Their presence MUST NOT be treated as evidence quality, peer review, or
   scientific endorsement. Without a DOI, the stable Atlas version URL remains authoritative.
 - `10.5555/*` and any identifier marked as an example are documentation fixtures. They MUST NOT be

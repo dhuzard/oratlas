@@ -1059,10 +1059,8 @@ function draftProvenance(row: LoadedDraft) {
     packetHash: row.packetHash,
     documentHash: row.documentHash,
     generatedAt: row.generatedAt.toISOString(),
-    attributionPolicyVersion:
-      row.attributionPolicyVersion as typeof SYNTHESIS_ATTRIBUTION_POLICY_VERSION,
-    materializationPolicyVersion:
-      row.materializationPolicyVersion as typeof SYNTHESIS_MATERIALIZATION_POLICY_VERSION,
+    attributionPolicyVersion: row.attributionPolicyVersion,
+    materializationPolicyVersion: row.materializationPolicyVersion,
   };
 }
 
@@ -1265,6 +1263,7 @@ export async function decideSynthesisDraft(
                 synthesisOrdinal: true,
                 synthesisDraftId: true,
                 acceptedPredecessorVersionId: true,
+                conceptDoi: true,
               },
             },
           },
@@ -1296,6 +1295,50 @@ export async function decideSynthesisDraft(
         }
         const ordinal = (previousVersion?.synthesisOrdinal ?? 0) + 1;
         const slug = slugForSeries(draft.seriesKey);
+        if (
+          previousVersion &&
+          (previousVersion.conceptDoi ?? null) !== (input.conceptDoi ?? null)
+        ) {
+          throw new SynthesisEditorialError(
+            "Concept DOI must remain stable for the synthesis series.",
+            "conflict",
+          );
+        }
+        if (input.versionDoi) {
+          const reused = await tx.reviewVersion.findFirst({
+            where: {
+              recordSourceType: "synthesis",
+              OR: [{ versionDoi: input.versionDoi }, { conceptDoi: input.versionDoi }],
+            },
+            select: { id: true },
+          });
+          if (reused) {
+            throw new SynthesisEditorialError(
+              "Version DOI is already assigned to a synthesis identifier.",
+              "conflict",
+            );
+          }
+        }
+        if (input.conceptDoi) {
+          const crossRole = await tx.reviewVersion.findFirst({
+            where: { recordSourceType: "synthesis", versionDoi: input.conceptDoi },
+            select: { id: true },
+          });
+          const otherSeries = await tx.reviewVersion.findFirst({
+            where: {
+              recordSourceType: "synthesis",
+              conceptDoi: input.conceptDoi,
+              ...(existingReview ? { reviewId: { not: existingReview.id } } : {}),
+            },
+            select: { id: true },
+          });
+          if (crossRole || otherSeries) {
+            throw new SynthesisEditorialError(
+              "Concept DOI is already assigned to another synthesis role or series.",
+              "conflict",
+            );
+          }
+        }
         let review = existingReview;
         if (!review) {
           review = await tx.review.create({
@@ -1318,6 +1361,7 @@ export async function decideSynthesisDraft(
                   synthesisOrdinal: true,
                   synthesisDraftId: true,
                   acceptedPredecessorVersionId: true,
+                  conceptDoi: true,
                 },
               },
             },

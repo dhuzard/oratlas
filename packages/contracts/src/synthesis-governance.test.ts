@@ -1,13 +1,18 @@
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
+import { parse as parseYaml } from "yaml";
 import {
   SYNTHESIS_ACCEPTANCE_CHECKLIST_VERSION,
   SYNTHESIS_ATTRIBUTION_POLICY_VERSION,
   SYNTHESIS_MATERIALIZATION_POLICY_VERSION,
   SYNTHESIS_PUBLIC_AI_LABEL,
   SYNTHESIS_PUBLIC_PRIVATE_FIELD_DENYLIST,
+  SYNTHESIS_PUBLIC_CITATION_FIELDS,
+  SYNTHESIS_PUBLIC_PROVENANCE_FIELDS,
+  SYNTHESIS_PUBLIC_REVIEW_FIELDS,
   SYNTHESIS_PUBLIC_SCOPE_NOTICE,
+  SYNTHESIS_PUBLIC_VERSION_FIELDS,
   SYNTHESIS_SUPPORTED_ACCEPTANCE_CHECKLIST_VERSIONS,
   SYNTHESIS_SUPPORTED_ATTRIBUTION_POLICY_VERSIONS,
   SYNTHESIS_SUPPORTED_MATERIALIZATION_POLICY_VERSIONS,
@@ -100,6 +105,33 @@ describe("AI synthesis governance policy drift", () => {
       expect(openapi).toContain(version);
     }
     expect(openapi).toContain("append-only compatibility registries");
+    expect(SYNTHESIS_SUPPORTED_ATTRIBUTION_POLICY_VERSIONS).toContain(
+      "synthesis-attribution/1.0.0",
+    );
+    expect(SYNTHESIS_SUPPORTED_MATERIALIZATION_POLICY_VERSIONS).toContain(
+      "synthesis-materialization/1.0.0",
+    );
+    expect(SYNTHESIS_SUPPORTED_ACCEPTANCE_CHECKLIST_VERSIONS).toContain(
+      "synthesis-checklist/1.0.0",
+    );
+
+    const schemas = (
+      parseYaml(openapi) as {
+        components: { schemas: Record<string, { properties: Record<string, unknown> }> };
+      }
+    ).components.schemas;
+    expect(Object.keys(schemas.PublicSynthesisReview!.properties)).toEqual(
+      SYNTHESIS_PUBLIC_REVIEW_FIELDS,
+    );
+    expect(Object.keys(schemas.AcceptedSynthesisProvenance!.properties)).toEqual(
+      SYNTHESIS_PUBLIC_PROVENANCE_FIELDS,
+    );
+    expect(Object.keys(schemas.PublicSynthesisCitation!.properties)).toEqual(
+      SYNTHESIS_PUBLIC_CITATION_FIELDS,
+    );
+    expect(Object.keys(schemas.PublicSynthesisVersion!.properties)).toEqual(
+      SYNTHESIS_PUBLIC_VERSION_FIELDS,
+    );
   });
 
   it("binds the shipped public UI to contract wording and resolves governance links", () => {
@@ -115,6 +147,7 @@ describe("AI synthesis governance policy drift", () => {
       "docs/agent-governance.md",
       "docs/editorial-governance.md",
       "docs/poc-limitations.md",
+      "docs/operations/privacy-and-takedown.md",
       "README.md",
     ]) {
       expectLocalMarkdownLinksResolve(document);
