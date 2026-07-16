@@ -182,7 +182,7 @@ packages: [apps/web, packages/db]
 ```yaml
 id: KG-05
 epic: A
-status: in-progress (issue #40)
+status: done (PR #43)
 depends_on: [KG-04]
 size: M
 labels: [web, ui]
