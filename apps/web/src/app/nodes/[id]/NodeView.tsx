@@ -28,6 +28,13 @@ export function NodeView({
       </div>
       <h1>{version.title}</h1>
       {version.abstract ? <p className="lead muted">{version.abstract}</p> : null}
+      <p>
+        <Link
+          href={`/graph?seed=${encodeURIComponent(node.id)}&depth=1&limit=10&edgeStatus=confirmed`}
+        >
+          Explore this node’s graph
+        </Link>
+      </p>
 
       <div className="grid layout-2">
         <div>

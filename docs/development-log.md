@@ -539,3 +539,26 @@ relations, and visibly labelled privacy-minimal proposals.
   confirmed/proposed separation, and adversarial proposal privacy. The Windows test setup retains
   Prisma `db push` as its primary path and uses generated Prisma DDL through SQLite only when the
   known local schema-engine failure occurs.
+
+## KG-09 — Graph explorer UI (issue #48)
+
+**Objective:** make KG-08's bounded public graph navigable in an accessible, server-rendered
+interface without creating a second query or privacy path.
+
+- Added `/graph`, which calls `queryPublicGraph` directly in the server component and renders its
+  validated public DTO. There is no internal HTTP round-trip, browser-side database query, or
+  duplicate Prisma traversal. Invalid inputs and bounded-query failures receive safe, useful error
+  states without leaking storage details.
+- The ordered relation list is the authoritative view and works without JavaScript. Confirmed and
+  proposed relations use text, filled versus hollow symbols, and solid versus dashed borders;
+  contradictions additionally use a bar symbol and double border. Meaning therefore never depends
+  on color. Every endpoint links to its exact immutable node version and can become a new seed.
+- Filters cover node kind, relation type, publication status, depth, page size, and exact-relation
+  TRUST presence. Signed KG-08 cursors and all bound query values are preserved in pagination links.
+- Added narrow-screen layout, visible keyboard focus, reduced-motion compatibility, empty and error
+  states, a primary-navigation entry, and node-page links into the explorer. All text is rendered as
+  escaped React content. Identifiers are informational only in this compact view, and synthetic
+  example DOIs are explicitly marked “example — not linked”.
+- Added one deterministic, privacy-minimal proposed-edge seed fixture so confirmed/proposed
+  presentation is exercised end to end. It contains no AgentRun, evidence, reviewer, audit, or
+  editorial-note payload.
