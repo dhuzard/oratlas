@@ -125,6 +125,59 @@ test("submitter finalizes a node-only capture and an editor publishes its nodes"
   await submissionCard.getByRole("button", { name: "Accept" }).click();
   expect((await decisionResponse).ok()).toBeTruthy();
 
+  const pendingProposal = await prisma.nodeEdgeProposal.findFirstOrThrow({
+    where: { sourceSubmissionId: finalized.submissionId },
+  });
+  const submitterDecisionStatus = await page.evaluate(async (proposalId) => {
+    const response = await fetch(`/api/editorial/node-edge-proposals/${proposalId}/decision`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        decision: "confirm",
+        expectedRevision: 0,
+        note: "A submitter cannot confer editorial authority.",
+      }),
+    });
+    return response.status;
+  }, pendingProposal.id);
+  expect(submitterDecisionStatus).toBe(403);
+  const oversizedEdgeDecisionStatus = await editorPage.evaluate(async (proposalId) => {
+    const response = await fetch(`/api/editorial/node-edge-proposals/${proposalId}/decision`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ padding: "x".repeat(300_000) }),
+    });
+    return response.status;
+  }, pendingProposal.id);
+  expect(oversizedEdgeDecisionStatus).toBe(413);
+
+  const confirmProposal = editorPage
+    .locator("article.claim-card")
+    .filter({ hasText: "uses-dataset" });
+  await expect(confirmProposal.getByText(/proposal — not editor-confirmed/)).toBeVisible();
+  await confirmProposal
+    .getByPlaceholder(/Attributable decision note/)
+    .fill("Editor checked the captured dataset relation.");
+  await confirmProposal.getByRole("button", { name: "Confirm edge" }).click();
+  const rejectProposal = editorPage
+    .locator("article.claim-card")
+    .filter({ hasText: "derives-from" });
+  await rejectProposal
+    .getByPlaceholder(/Attributable decision note/)
+    .fill("The captured record does not justify derivation.");
+  await rejectProposal.getByRole("button", { name: "Reject" }).click();
+
+  const sourceIdentity = await prisma.knowledgeNode.findFirstOrThrow({
+    where: { repository: { canonicalUrl: repositoryUrl }, localNodeId: "claim:e2e" },
+  });
+  const publicProjection = await editorPage.evaluate(async (nodeId) => {
+    const response = await fetch(`/api/nodes/${nodeId}/edges`);
+    return response.json() as Promise<{ edges: Array<{ relationType: string; status: string }> }>;
+  }, sourceIdentity.id);
+  expect(publicProjection.edges).toEqual([
+    expect.objectContaining({ relationType: "uses-dataset", status: "confirmed" }),
+  ]);
+
   await editorPage.goto("/nodes");
   const publicNode = editorPage.locator("article.card").filter({ hasText: repositoryName });
   await expect(publicNode.getByText(fixture.title)).toBeVisible();
@@ -230,9 +283,52 @@ function captureFixture(repositoryName: string, repositoryUrl: string) {
         doiReferences: [],
         issues: [],
       },
+      {
+        status: "ok" as const,
+        sourcePath: "nodes/publications.json",
+        sourcePointer: "/1",
+        declaredId: "dataset:e2e",
+        node: {
+          id: "dataset:e2e",
+          kind: "dataset" as const,
+          title: "E2E observations",
+          contributors: [{ displayName: "E2E Researcher" }],
+          license: "CC-BY-4.0",
+          provenance: { sourcePath: "nodes/publications.json", repositoryUrl, commitSha },
+          payload: { artifactPath: "data/observations.csv", format: "text/csv", sizeBytes: 42 },
+        },
+        fieldProvenance: {},
+        doiReferences: [],
+        issues: [],
+      },
     ],
-    edges: [],
-    counts: { ok: 1, invalid: 0, skipped: 0, edgesOk: 0, edgesInvalid: 0, edgesSkipped: 0 },
+    edges: [
+      {
+        status: "ok" as const,
+        sourcePath: "nodes/edges.jsonl",
+        sourcePointer: "line:1",
+        edge: {
+          sourceNodeId: "claim:e2e",
+          targetNodeId: "dataset:e2e",
+          relationType: "uses-dataset" as const,
+          rationale: "The claim uses the captured observations.",
+        },
+        issues: [],
+      },
+      {
+        status: "ok" as const,
+        sourcePath: "nodes/edges.jsonl",
+        sourcePointer: "line:2",
+        edge: {
+          sourceNodeId: "claim:e2e",
+          targetNodeId: "dataset:e2e",
+          relationType: "derives-from" as const,
+          rationale: "A second proposal exercises rejection.",
+        },
+        issues: [],
+      },
+    ],
+    counts: { ok: 2, invalid: 0, skipped: 0, edgesOk: 2, edgesInvalid: 0, edgesSkipped: 0 },
     errors: [],
     warnings: [],
   };

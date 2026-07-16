@@ -38,6 +38,10 @@ const NODE_EDGE_SEMANTIC_FIELDS = [
   "provenance",
   "rationale",
   "assertedAt",
+  "confirmedTargetNodeVersionId",
+  "confirmedById",
+  "confirmedAt",
+  "revision",
   "createdAt",
   "updatedAt",
 ] as const;
@@ -275,6 +279,7 @@ async function mergeKnowledgeNodes(
     await updateIfTable(tx, "Claim", "knowledgeNodeId", survivorNodeId, loserNode.id);
     await mergeNodeAliases(tx, survivorNodeId, loserNode.id);
     await mergeNodeEdgeTargets(tx, survivorNodeId, loserNode.id);
+    await updateIfTable(tx, "NodeEdgeProposal", "targetNodeId", survivorNodeId, loserNode.id);
     await tx.$executeRawUnsafe("DELETE FROM KnowledgeNode WHERE id = ?", loserNode.id);
   }
 }
@@ -334,6 +339,27 @@ async function mergeKnowledgeNodeVersionsForSnapshot(
     );
     if (existing[0]) {
       await assertKnowledgeNodeVersionsEquivalent(tx, existing[0].id, version.id);
+      await updateIfTable(
+        tx,
+        "NodeEdge",
+        "confirmedTargetNodeVersionId",
+        existing[0].id,
+        version.id,
+      );
+      await updateIfTable(
+        tx,
+        "NodeEdgeProposal",
+        "sourceNodeVersionId",
+        existing[0].id,
+        version.id,
+      );
+      await updateIfTable(
+        tx,
+        "NodeEdgeProposal",
+        "targetNodeVersionId",
+        existing[0].id,
+        version.id,
+      );
       await mergeNodeEdgeSources(tx, existing[0].id, version.id);
       await tx.$executeRawUnsafe("DELETE FROM KnowledgeNodeVersion WHERE id = ?", version.id);
     } else {
@@ -369,6 +395,7 @@ async function mergeNodeEdgeTargets(
     );
     if (duplicate[0]) {
       await assertNodeEdgesEquivalent(tx, duplicate[0].id, edge.id);
+      await updateIfTable(tx, "NodeEdgeProposal", "confirmedEdgeId", duplicate[0].id, edge.id);
       await tx.$executeRawUnsafe("DELETE FROM NodeEdge WHERE id = ?", edge.id);
     } else {
       await tx.$executeRawUnsafe(
@@ -403,6 +430,7 @@ async function mergeNodeEdgeSources(
     );
     if (duplicate[0]) {
       await assertNodeEdgesEquivalent(tx, duplicate[0].id, edge.id);
+      await updateIfTable(tx, "NodeEdgeProposal", "confirmedEdgeId", duplicate[0].id, edge.id);
       await tx.$executeRawUnsafe("DELETE FROM NodeEdge WHERE id = ?", edge.id);
     } else {
       await tx.$executeRawUnsafe(

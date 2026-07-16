@@ -397,6 +397,158 @@ describe.sequential("atomic publication integration", () => {
     expect(await runtime.prisma.nodeEdge.count()).toBe(0);
   });
 
+  it("retains selected author edges as private proposals and drops dangling local declarations", async () => {
+    const nodes = knowledgeNodes().slice(0, 3);
+    const edge = {
+      sourceNodeId: nodes[0]!.id,
+      targetNodeId: nodes[2]!.id,
+      relationType: "uses-dataset",
+      provenance: "confirmed-by-editor",
+      status: "confirmed",
+      rationale: "The captured claim uses the captured dataset.",
+    };
+    const bothCapture = await capture({
+      githubRepositoryId: nextRepoId(),
+      nodeExtraction: nodeReport(nodes, [edge]),
+      reviewContentDetected: false,
+    });
+    const bothSubmission = await runtime.createSubmission({
+      inspectionToken: bothCapture.token,
+      submitterId,
+    });
+    await runtime.acceptSubmission(
+      bothSubmission.submissionId,
+      editorId,
+      undefined,
+      [],
+      [nodes[0]!.id, nodes[2]!.id],
+    );
+    const proposal = await runtime.prisma.nodeEdgeProposal.findFirstOrThrow({
+      where: { sourceSubmissionId: bothSubmission.submissionId },
+    });
+    expect(proposal).toMatchObject({
+      origin: "asserted-by-author",
+      status: "proposed",
+      relationType: "uses-dataset",
+      inspectionCaptureId: expect.any(String),
+    });
+    expect(await runtime.prisma.nodeEdge.count({ where: { relationType: "uses-dataset" } })).toBe(
+      0,
+    );
+    expect(
+      await runtime.prisma.auditEvent.count({
+        where: { action: "node-edge.asserted", subjectId: proposal.id },
+      }),
+    ).toBe(1);
+
+    const partialCapture = await capture({
+      githubRepositoryId: nextRepoId(),
+      nodeExtraction: nodeReport(nodes, [edge]),
+      reviewContentDetected: false,
+    });
+    const partialSubmission = await runtime.createSubmission({
+      inspectionToken: partialCapture.token,
+      submitterId,
+    });
+    await runtime.acceptSubmission(
+      partialSubmission.submissionId,
+      editorId,
+      undefined,
+      [],
+      [nodes[0]!.id],
+    );
+    expect(
+      await runtime.prisma.nodeEdgeProposal.count({
+        where: { sourceSubmissionId: partialSubmission.submissionId },
+      }),
+    ).toBe(0);
+  });
+
+  it("resolves an exact cross-lab author target and fails closed when it is missing", async () => {
+    const [claim, , dataset] = knowledgeNodes();
+    const targetRepositoryId = nextRepoId();
+    const targetCapture = await capture({
+      githubRepositoryId: targetRepositoryId,
+      nodeExtraction: nodeReport([dataset!]),
+      reviewContentDetected: false,
+    });
+    const targetSubmission = await runtime.createSubmission({
+      inspectionToken: targetCapture.token,
+      submitterId,
+    });
+    const targetResult = await runtime.acceptSubmission(
+      targetSubmission.submissionId,
+      editorId,
+      undefined,
+      [],
+      [dataset!.id],
+    );
+    const externalEdge = {
+      sourceNodeId: claim!.id,
+      targetNodeId: dataset!.id,
+      relationType: "uses-dataset",
+      targetRepository: { githubRepositoryId: targetRepositoryId, commitSha: commitA },
+    };
+    const sourceCapture = await capture({
+      githubRepositoryId: nextRepoId(),
+      nodeExtraction: nodeReport([claim!], [externalEdge]),
+      reviewContentDetected: false,
+    });
+    const sourceSubmission = await runtime.createSubmission({
+      inspectionToken: sourceCapture.token,
+      submitterId,
+    });
+    await runtime.acceptSubmission(
+      sourceSubmission.submissionId,
+      editorId,
+      undefined,
+      [],
+      [claim!.id],
+    );
+    expect(
+      await runtime.prisma.nodeEdgeProposal.findFirstOrThrow({
+        where: { sourceSubmissionId: sourceSubmission.submissionId },
+      }),
+    ).toMatchObject({ targetNodeVersionId: targetResult.nodeVersionIds[0] });
+
+    const missingCapture = await capture({
+      githubRepositoryId: nextRepoId(),
+      nodeExtraction: nodeReport(
+        [claim!],
+        [
+          {
+            ...externalEdge,
+            targetRepository: { githubRepositoryId: "999999999", commitSha: commitA },
+          },
+        ],
+      ),
+      reviewContentDetected: false,
+    });
+    const missingSubmission = await runtime.createSubmission({
+      inspectionToken: missingCapture.token,
+      submitterId,
+    });
+    await expect(
+      runtime.acceptSubmission(
+        missingSubmission.submissionId,
+        editorId,
+        undefined,
+        [],
+        [claim!.id],
+      ),
+    ).rejects.toMatchObject({ code: "conflict" });
+    expect(
+      await runtime.prisma.nodeEdgeProposal.count({
+        where: { sourceSubmissionId: missingSubmission.submissionId },
+      }),
+    ).toBe(0);
+    expect(
+      await runtime.prisma.knowledgeNodeVersion.count({
+        where: { sourceSubmissionId: missingSubmission.submissionId },
+      }),
+    ).toBe(0);
+  });
+
   it("flags example DOIs from every embedded node location even when report references are incomplete", async () => {
     const [claim, figure, dataset] = knowledgeNodes();
     const nodes = [
@@ -924,7 +1076,7 @@ function knowledgeNodes(): KnowledgeNode[] {
   ];
 }
 
-function nodeReport(nodes: KnowledgeNode[]): NodeExtractionReport {
+function nodeReport(nodes: KnowledgeNode[], edges: unknown[] = []): NodeExtractionReport {
   return nodeExtractionReportSchema.parse({
     ...createEmptyNodeExtractionReport({
       commitSha: commitA,
@@ -950,11 +1102,18 @@ function nodeReport(nodes: KnowledgeNode[]): NodeExtractionReport {
       doiReferences: [],
       issues: [],
     })),
+    edges: edges.map((edge, index) => ({
+      status: "ok",
+      sourcePath: "nodes/edges.jsonl",
+      sourcePointer: `line:${index + 1}`,
+      edge,
+      issues: [],
+    })),
     counts: {
       ok: nodes.length,
       invalid: 0,
       skipped: 0,
-      edgesOk: 0,
+      edgesOk: edges.length,
       edgesInvalid: 0,
       edgesSkipped: 0,
     },

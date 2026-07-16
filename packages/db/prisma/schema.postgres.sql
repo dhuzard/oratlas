@@ -297,8 +297,40 @@ CREATE TABLE "NodeEdge" (
     "assertedAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
+    "confirmedTargetNodeVersionId" TEXT,
+    "confirmedById" TEXT,
+    "confirmedAt" TIMESTAMP(3),
+    "revision" INTEGER NOT NULL DEFAULT 0,
 
     CONSTRAINT "NodeEdge_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "NodeEdgeProposal" (
+    "id" TEXT NOT NULL,
+    "originKey" TEXT NOT NULL,
+    "sourceStableKey" TEXT NOT NULL,
+    "targetStableKey" TEXT NOT NULL,
+    "sourceNodeVersionId" TEXT NOT NULL,
+    "targetNodeId" TEXT NOT NULL,
+    "targetNodeVersionId" TEXT NOT NULL,
+    "relationType" TEXT NOT NULL,
+    "origin" TEXT NOT NULL,
+    "rationale" TEXT,
+    "evidenceJson" TEXT NOT NULL DEFAULT '{}',
+    "sourceSubmissionId" TEXT,
+    "inspectionCaptureId" TEXT,
+    "agentRunId" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'proposed',
+    "revision" INTEGER NOT NULL DEFAULT 0,
+    "reviewedById" TEXT,
+    "reviewedAt" TIMESTAMP(3),
+    "reviewNote" TEXT,
+    "confirmedEdgeId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "NodeEdgeProposal_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -890,7 +922,25 @@ CREATE INDEX "NodeEdge_targetNodeId_idx" ON "NodeEdge"("targetNodeId");
 CREATE INDEX "NodeEdge_status_relationType_idx" ON "NodeEdge"("status", "relationType");
 
 -- CreateIndex
+CREATE INDEX "NodeEdge_confirmedTargetNodeVersionId_idx" ON "NodeEdge"("confirmedTargetNodeVersionId");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "NodeEdge_sourceNodeVersionId_targetNodeId_relationType_key" ON "NodeEdge"("sourceNodeVersionId", "targetNodeId", "relationType");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "NodeEdgeProposal_originKey_key" ON "NodeEdgeProposal"("originKey");
+
+-- CreateIndex
+CREATE INDEX "NodeEdgeProposal_status_createdAt_idx" ON "NodeEdgeProposal"("status", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "NodeEdgeProposal_sourceNodeVersionId_idx" ON "NodeEdgeProposal"("sourceNodeVersionId");
+
+-- CreateIndex
+CREATE INDEX "NodeEdgeProposal_targetNodeId_idx" ON "NodeEdgeProposal"("targetNodeId");
+
+-- CreateIndex
+CREATE INDEX "NodeEdgeProposal_confirmedEdgeId_idx" ON "NodeEdgeProposal"("confirmedEdgeId");
 
 -- CreateIndex
 CREATE INDEX "NodeAlias_scheme_value_idx" ON "NodeAlias"("scheme", "value");
@@ -1128,6 +1178,36 @@ ALTER TABLE "NodeEdge" ADD CONSTRAINT "NodeEdge_sourceNodeVersionId_fkey" FOREIG
 
 -- AddForeignKey
 ALTER TABLE "NodeEdge" ADD CONSTRAINT "NodeEdge_targetNodeId_fkey" FOREIGN KEY ("targetNodeId") REFERENCES "KnowledgeNode"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "NodeEdge" ADD CONSTRAINT "NodeEdge_confirmedTargetNodeVersionId_fkey" FOREIGN KEY ("confirmedTargetNodeVersionId") REFERENCES "KnowledgeNodeVersion"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "NodeEdge" ADD CONSTRAINT "NodeEdge_confirmedById_fkey" FOREIGN KEY ("confirmedById") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "NodeEdgeProposal" ADD CONSTRAINT "NodeEdgeProposal_sourceNodeVersionId_fkey" FOREIGN KEY ("sourceNodeVersionId") REFERENCES "KnowledgeNodeVersion"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "NodeEdgeProposal" ADD CONSTRAINT "NodeEdgeProposal_targetNodeId_fkey" FOREIGN KEY ("targetNodeId") REFERENCES "KnowledgeNode"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "NodeEdgeProposal" ADD CONSTRAINT "NodeEdgeProposal_targetNodeVersionId_fkey" FOREIGN KEY ("targetNodeVersionId") REFERENCES "KnowledgeNodeVersion"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "NodeEdgeProposal" ADD CONSTRAINT "NodeEdgeProposal_sourceSubmissionId_fkey" FOREIGN KEY ("sourceSubmissionId") REFERENCES "Submission"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "NodeEdgeProposal" ADD CONSTRAINT "NodeEdgeProposal_inspectionCaptureId_fkey" FOREIGN KEY ("inspectionCaptureId") REFERENCES "InspectionCapture"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "NodeEdgeProposal" ADD CONSTRAINT "NodeEdgeProposal_agentRunId_fkey" FOREIGN KEY ("agentRunId") REFERENCES "AgentRun"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "NodeEdgeProposal" ADD CONSTRAINT "NodeEdgeProposal_reviewedById_fkey" FOREIGN KEY ("reviewedById") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "NodeEdgeProposal" ADD CONSTRAINT "NodeEdgeProposal_confirmedEdgeId_fkey" FOREIGN KEY ("confirmedEdgeId") REFERENCES "NodeEdge"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "NodeAlias" ADD CONSTRAINT "NodeAlias_knowledgeNodeId_fkey" FOREIGN KEY ("knowledgeNodeId") REFERENCES "KnowledgeNode"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

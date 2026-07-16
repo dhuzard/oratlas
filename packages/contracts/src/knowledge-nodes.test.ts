@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   knowledgeNodeSchema,
+  repositoryNodeEdgeDeclarationSchema,
   nodeEdgeSchema,
   validateNodeManifest,
   type KnowledgeNode,
@@ -135,6 +136,46 @@ describe("knowledgeNodeSchema", () => {
 });
 
 describe("nodeEdgeSchema", () => {
+  it("normalizes legacy repository lifecycle claims to a declaration", () => {
+    expect(
+      repositoryNodeEdgeDeclarationSchema.parse({
+        sourceNodeId: "claim:primary-result",
+        targetNodeId: "dataset:observations",
+        relationType: "uses-dataset",
+        provenance: "confirmed-by-editor",
+        status: "confirmed",
+        rationale: "A repository cannot confer editorial authority.",
+      }),
+    ).toEqual({
+      sourceNodeId: "claim:primary-result",
+      targetNodeId: "dataset:observations",
+      relationType: "uses-dataset",
+      rationale: "A repository cannot confer editorial authority.",
+    });
+  });
+
+  it("accepts an exact immutable cross-lab target address", () => {
+    expect(
+      repositoryNodeEdgeDeclarationSchema.parse({
+        sourceNodeId: "claim:primary-result",
+        targetNodeId: "claim:replication",
+        targetRepository: {
+          githubRepositoryId: "987654321",
+          commitSha: "b".repeat(40),
+        },
+        relationType: "contradicts",
+      }),
+    ).toMatchObject({ targetRepository: { githubRepositoryId: "987654321" } });
+    expect(
+      repositoryNodeEdgeDeclarationSchema.safeParse({
+        sourceNodeId: "claim:primary-result",
+        targetNodeId: "claim:replication",
+        targetRepository: { githubRepositoryId: "mutable-name", commitSha: "b".repeat(40) },
+        relationType: "contradicts",
+      }).success,
+    ).toBe(false);
+  });
+
   it("accepts every relation type in the public contract", () => {
     const relationTypes = [
       "supports",

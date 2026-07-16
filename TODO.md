@@ -236,11 +236,11 @@ packages: [packages/knowledge, packages/contracts, docs]
 ```yaml
 id: KG-07
 epic: B
-status: todo
+status: in-progress (issue #41)
 depends_on: [KG-02, KG-03, KG-04, KG-06]
 size: M
 labels: [knowledge, editorial]
-packages: [packages/knowledge, apps/web]
+packages: [packages/contracts, packages/knowledge, packages/db, apps/web]
 ```
 
 **Scope.**

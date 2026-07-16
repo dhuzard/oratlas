@@ -28,6 +28,7 @@ import {
   validNodeCandidates,
   type SubmissionPayload,
 } from "./submission-payload";
+import { materializeAuthorEdgeProposals } from "./node-edge-lifecycle";
 
 export type { SubmissionPayload } from "./submission-payload";
 
@@ -440,6 +441,12 @@ export async function acceptSubmission(
           if (!submission.snapshotId || !submission.snapshot) {
             throw new SubmissionError("Submission has no snapshot to publish.");
           }
+          if (!submission.repository.githubRepositoryId) {
+            throw new SubmissionError(
+              "Submission repository has no immutable GitHub identity.",
+              "conflict",
+            );
+          }
           if (
             payload.schemaVersion === "1.1.0" &&
             (!submission.inspectionCaptureId || !submission.inspectionCapture)
@@ -524,6 +531,32 @@ export async function acceptSubmission(
             reviewerId,
             reviewVersionId,
           );
+          let edgeProposalIds: string[] = [];
+          if (
+            submission.inspectionCaptureId &&
+            submission.inspectionCapture &&
+            nodeVersionIds.length > 0
+          ) {
+            const selectedVersions = await tx.knowledgeNodeVersion.findMany({
+              where: { id: { in: nodeVersionIds } },
+              include: { knowledgeNode: true },
+            });
+            edgeProposalIds = await materializeAuthorEdgeProposals(tx, {
+              submissionId: submission.id,
+              submitterId: submission.submitterId,
+              inspectionCaptureId: submission.inspectionCaptureId,
+              capturePayloadHash: submission.inspectionCapture.payloadHash,
+              sourceRepositoryGithubId: submission.repository.githubRepositoryId,
+              sourceCommitSha: submission.snapshot.commitSha,
+              edges: payload.nodeExtraction.edges,
+              selectedVersions: selectedVersions.map((version) => ({
+                id: version.id,
+                knowledgeNodeId: version.knowledgeNodeId,
+                localNodeId: version.knowledgeNode.localNodeId,
+                kind: version.knowledgeNode.kind,
+              })),
+            });
+          }
 
           if (reviewId && reviewVersionId) {
             await tx.submission.update({
@@ -544,6 +577,7 @@ export async function acceptSubmission(
                 reviewVersionId,
                 selectedNodeIds: requestedSelection,
                 nodeVersionIds,
+                edgeProposalIds,
                 overrideCheckIds: validatedOverrides.map((entry) => entry.checkId),
               }),
             },
