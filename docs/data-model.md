@@ -16,6 +16,7 @@ suffix, and arrays are JSON-encoded strings. Switching to PostgreSQL is a dataso
 | `KnowledgeNode`                          | Stable publication-node identity   | **`(repositoryId, localNodeId)` unique**; contract-validated kind                 |
 | `KnowledgeNodeVersion`                   | Immutable node content snapshot    | **`(knowledgeNodeId, snapshotId)` unique**; capture/submission provenance         |
 | `NodeEdge`                               | Typed graph relation               | **`(sourceNodeVersionId, targetNodeId, relationType)` unique**                    |
+| `NodeEdgeProposal`                       | Attributable edge assertion        | `originKey` unique; revisioned editorial CAS; optional confirmed edge             |
 | `NodeAlias`                              | Canonical node work-identity key   | per-node scheme/role/value unique; shared values intentionally allowed globally   |
 | `Review`                                 | Public review record               | `slug` unique; `currentSnapshotId`; lifecycle CAS revision                        |
 | `ReviewVersion`                          | Immutable version                  | exact snapshot; DOI roles; materialized public lifecycle state                    |
@@ -61,6 +62,25 @@ suffix, and arrays are JSON-encoded strings. Switching to PostgreSQL is a dataso
 - A `NodeEdge` starts at one immutable source version and targets a stable node identity. Relation,
   status, and provenance remain separate contract-validated string columns so proposed and
   editor-confirmed meanings cannot be conflated.
+- Repository and agent assertions live in `NodeEdgeProposal`, not in the authoritative edge row.
+  Author proposals retain their accepted submission, capture, source pointer and payload hash;
+  cross-lab author targets use an immutable GitHub repository id plus commit SHA and fail closed
+  unless that address resolves exactly once. Immutable source identity is required when selected
+  endpoints would actually materialize an author proposal; dangling declarations do not block a
+  legacy review-only acceptance. Agent proposals require a succeeded
+  `node-edge-proposal` run whose canonical output candidate and SHA-256 match the request. The
+  observed target version is frozen on every proposal. Stable endpoint keys, rather than mutable
+  database ids, drive origin idempotency so legacy repository reconciliation can rewire foreign
+  keys without changing provenance. Confirmation uses a serializable revision CAS and only then
+  creates or reuses a `NodeEdge`; rejection creates no edge. Independent origins can therefore
+  support the same logical tuple without overwriting one another.
+- Repository lifecycle fields are untrusted. Legacy declarations that claimed `confirmed` or
+  `confirmed-by-editor` are normalized to author proposals, and only a current editor/admin can
+  write the confirmation audit. Public projection additionally requires the confirmer's current
+  role to remain `EDITOR` or `ADMIN`, plus a timestamp, frozen target version, and exact ownership
+  of that version by the target identity; non-editor-attributed, incomplete, or misbound legacy
+  rows stay private. Contradiction endpoints are canonically ordered, leaving one stored row that
+  public projection reads from both endpoints.
 - A `NodeAlias` retains its DOI/PMID/OpenAlex scheme and semantic role. Version, concept, artifact,
   and external-work DOI roles therefore remain distinguishable. The same canonical value may
   belong to several stable nodes: that match is indexed evidence for a reviewable proposal, never

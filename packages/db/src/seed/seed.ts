@@ -396,11 +396,14 @@ async function seedReview(review: SeedReview, editorId: string) {
 interface SeedNodeRepositoryBinding {
   repositoryId: string;
   snapshotId: string;
+  githubRepositoryId: string;
+  commitSha: string;
 }
 
 async function seedKnowledgeGraph(
   repositories: Map<string, SeedNodeRepositoryBinding>,
   claimIdsBySlug: Map<string, Map<string, string>>,
+  editorId: string,
 ): Promise<void> {
   const identityIdByKey = new Map<string, string>();
   const versionIdByKey = new Map<string, string>();
@@ -470,12 +473,39 @@ async function seedKnowledgeGraph(
 
   for (const fixture of seedNodeEdges) {
     const edge = nodeEdgeSchema.parse(fixture.edge);
-    const sourceNodeVersionId = versionIdByKey.get(
+    let sourceNodeVersionId = versionIdByKey.get(
       `${fixture.sourceRepositoryKey}:${edge.sourceNodeId}`,
     );
-    const targetNodeId = identityIdByKey.get(`${fixture.targetRepositoryKey}:${edge.targetNodeId}`);
-    if (!sourceNodeVersionId || !targetNodeId) {
+    const sourceNodeId = identityIdByKey.get(`${fixture.sourceRepositoryKey}:${edge.sourceNodeId}`);
+    let targetNodeId = identityIdByKey.get(`${fixture.targetRepositoryKey}:${edge.targetNodeId}`);
+    let targetNodeVersionId = versionIdByKey.get(
+      `${fixture.targetRepositoryKey}:${edge.targetNodeId}`,
+    );
+    const sourceBinding = repositories.get(fixture.sourceRepositoryKey);
+    const targetBinding = repositories.get(fixture.targetRepositoryKey);
+    if (
+      !sourceNodeVersionId ||
+      !sourceNodeId ||
+      !targetNodeId ||
+      !targetNodeVersionId ||
+      !sourceBinding ||
+      !targetBinding
+    ) {
       throw new Error(`Unresolved seed edge '${edge.sourceNodeId}' -> '${edge.targetNodeId}'.`);
+    }
+    const sourceStableKey = canonicalJson({
+      githubRepositoryId: sourceBinding.githubRepositoryId,
+      localNodeId: edge.sourceNodeId,
+      commitSha: sourceBinding.commitSha.toLowerCase(),
+    });
+    const targetStableKey = canonicalJson({
+      githubRepositoryId: targetBinding.githubRepositoryId,
+      localNodeId: edge.targetNodeId,
+      commitSha: targetBinding.commitSha.toLowerCase(),
+    });
+    if (edge.relationType === "contradicts" && sourceStableKey > targetStableKey) {
+      [sourceNodeVersionId, targetNodeVersionId] = [targetNodeVersionId, sourceNodeVersionId];
+      targetNodeId = sourceNodeId;
     }
     await prisma.nodeEdge.create({
       data: {
@@ -486,6 +516,9 @@ async function seedKnowledgeGraph(
         provenance: edge.provenance,
         rationale: edge.rationale,
         assertedAt: edge.assertedAt ? new Date(edge.assertedAt) : null,
+        confirmedTargetNodeVersionId: targetNodeVersionId,
+        confirmedById: editorId,
+        confirmedAt: edge.assertedAt ? new Date(edge.assertedAt) : new Date(),
       },
     });
   }
@@ -563,7 +596,12 @@ async function main() {
     reviewIdBySlug.set(review.slug, reviewRow.id);
     versionIdBySlug.set(review.slug, version.id);
     if (review.slug === seedReviews[0]!.slug) {
-      nodeRepositories.set("replay-lab", { repositoryId: repo.id, snapshotId: snapshot.id });
+      nodeRepositories.set("replay-lab", {
+        repositoryId: repo.id,
+        snapshotId: snapshot.id,
+        githubRepositoryId: repo.githubRepositoryId!,
+        commitSha: snapshot.commitSha,
+      });
     }
     console.info(`  · seeded review: ${review.slug}`);
   }
@@ -603,9 +641,11 @@ async function main() {
   nodeRepositories.set("replication-lab", {
     repositoryId: replicationRepo.id,
     snapshotId: replicationSnapshot.id,
+    githubRepositoryId: replicationRepo.githubRepositoryId!,
+    commitSha: replicationSnapshot.commitSha,
   });
 
-  await seedKnowledgeGraph(nodeRepositories, claimIdsBySlug);
+  await seedKnowledgeGraph(nodeRepositories, claimIdsBySlug, users.get("atlas-editor")!);
 
   // Community comments on published reviews
   await seedReviewComments(reviewIdBySlug, versionIdBySlug, claimIdsBySlug, users);

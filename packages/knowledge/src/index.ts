@@ -58,3 +58,4 @@ export {
   type NormalizedClaimIdentity,
   type ProposeNodeIdentitiesOptions,
 } from "./node-identity.js";
+export * from "./node-edge-lifecycle.js";

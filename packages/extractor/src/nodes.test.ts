@@ -15,6 +15,48 @@ async function inspect(fixture: FakeRepoFixture, maxFileBytes?: number) {
 }
 
 describe("extractKnowledgeNodes", () => {
+  it("drops lifecycle authority claimed by a legacy repository edge", async () => {
+    const fixture = structuredClone(nodePublicationFixture);
+    fixture.files!["nodes/edges.jsonl"] = JSON.stringify({
+      sourceNodeId: "claim:primary-result",
+      targetNodeId: "dataset:observations",
+      relationType: "uses-dataset",
+      provenance: "confirmed-by-editor",
+      status: "confirmed",
+      rationale: "Repository-supplied lifecycle fields are untrusted.",
+    });
+
+    const report = extractKnowledgeNodes(await inspect(fixture));
+    expect(report.edges[0]?.status).toBe("ok");
+    expect(report.edges[0]?.edge).toEqual({
+      sourceNodeId: "claim:primary-result",
+      targetNodeId: "dataset:observations",
+      relationType: "uses-dataset",
+      rationale: "Repository-supplied lifecycle fields are untrusted.",
+    });
+  });
+
+  it("retains an exact cross-lab target without requiring it in the local manifest", async () => {
+    const fixture = structuredClone(nodePublicationFixture);
+    fixture.files!["nodes/edges.jsonl"] = JSON.stringify({
+      sourceNodeId: "claim:primary-result",
+      targetNodeId: "claim:external",
+      targetRepository: {
+        githubRepositoryId: "987654321",
+        commitSha: "c".repeat(40),
+      },
+      relationType: "contradicts",
+    });
+    const report = extractKnowledgeNodes(await inspect(fixture));
+    expect(report.edges[0]).toMatchObject({
+      status: "ok",
+      edge: {
+        targetNodeId: "claim:external",
+        targetRepository: { githubRepositoryId: "987654321" },
+      },
+    });
+  });
+
   it("extracts all node kinds and edges with field-level provenance", async () => {
     const report = extractKnowledgeNodes(await inspect(nodePublicationFixture));
 

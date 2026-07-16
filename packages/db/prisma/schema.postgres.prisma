@@ -67,6 +67,8 @@ model User {
   replicationBriefsClaimed   ReplicationBrief[]       @relation("replicationClaimant")
   replicationBriefsCompleted ReplicationBrief[]       @relation("replicationCompleter")
   replicationBriefsWithdrawn ReplicationBrief[]       @relation("replicationWithdrawer")
+  nodeEdgeProposalsReviewed  NodeEdgeProposal[]       @relation("nodeEdgeProposalReviewer")
+  nodeEdgesConfirmed         NodeEdge[]               @relation("nodeEdgeConfirmer")
 
   @@index([githubLoginNormalized])
 }
@@ -263,6 +265,7 @@ model InspectionCapture {
   submission            Submission?
   reviewVersion         ReviewVersion?
   knowledgeNodeVersions KnowledgeNodeVersion[] @relation("NodeVersionCapture")
+  nodeEdgeProposals     NodeEdgeProposal[]     @relation("NodeEdgeProposalCapture")
 
   @@index([expiresAt])
   @@index([payloadHash])
@@ -345,6 +348,7 @@ model Submission {
   resubmission           Submission?            @relation("Resubmission")
   editorAssignments      EditorAssignment[]
   reviewRounds           ReviewRound[]
+  nodeEdgeProposals      NodeEdgeProposal[]     @relation("NodeEdgeProposalSubmission")
 }
 
 /// An explicit, check-scoped editorial exception. Overrides never rewrite the
@@ -431,11 +435,12 @@ model KnowledgeNode {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  repository    Repository             @relation(fields: [repositoryId], references: [id])
-  versions      KnowledgeNodeVersion[]
-  incomingEdges NodeEdge[]             @relation("targetNode")
-  linkedClaims  Claim[]
-  aliases       NodeAlias[]
+  repository            Repository             @relation(fields: [repositoryId], references: [id])
+  versions              KnowledgeNodeVersion[]
+  incomingEdges         NodeEdge[]             @relation("targetNode")
+  incomingEdgeProposals NodeEdgeProposal[]     @relation("proposalTargetNode")
+  linkedClaims          Claim[]
+  aliases               NodeAlias[]
 
   @@unique([repositoryId, localNodeId])
   @@index([kind])
@@ -474,6 +479,9 @@ model KnowledgeNodeVersion {
   sourceSubmission  Submission?        @relation("NodeVersionSource", fields: [sourceSubmissionId], references: [id])
   inspectionCapture InspectionCapture? @relation("NodeVersionCapture", fields: [inspectionCaptureId], references: [id])
   outgoingEdges     NodeEdge[]         @relation("sourceNodeVersion")
+  proposedEdgesFrom NodeEdgeProposal[] @relation("proposalSourceVersion")
+  proposedAsTarget  NodeEdgeProposal[] @relation("proposalTargetVersion")
+  confirmedAsTarget NodeEdge[]         @relation("confirmedTargetVersion")
 
   @@unique([knowledgeNodeId, snapshotId])
   @@index([snapshotId])
@@ -484,23 +492,74 @@ model KnowledgeNodeVersion {
 /// Directed, typed relation asserted from an immutable source version to a
 /// stable target identity. Status and provenance use @oratlas/contracts enums.
 model NodeEdge {
-  id                  String    @id @default(cuid())
-  sourceNodeVersionId String
-  targetNodeId        String
-  relationType        String
-  status              String
-  provenance          String
-  rationale           String?
-  assertedAt          DateTime?
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
+  id                           String    @id @default(cuid())
+  sourceNodeVersionId          String
+  targetNodeId                 String
+  relationType                 String
+  status                       String
+  provenance                   String
+  rationale                    String?
+  assertedAt                   DateTime?
+  createdAt                    DateTime  @default(now())
+  updatedAt                    DateTime  @updatedAt
+  confirmedTargetNodeVersionId String?
+  confirmedById                String?
+  confirmedAt                  DateTime?
+  revision                     Int       @default(0)
 
-  sourceNodeVersion KnowledgeNodeVersion @relation("sourceNodeVersion", fields: [sourceNodeVersionId], references: [id])
-  targetNode        KnowledgeNode        @relation("targetNode", fields: [targetNodeId], references: [id])
+  sourceNodeVersion          KnowledgeNodeVersion  @relation("sourceNodeVersion", fields: [sourceNodeVersionId], references: [id])
+  targetNode                 KnowledgeNode         @relation("targetNode", fields: [targetNodeId], references: [id])
+  confirmedTargetNodeVersion KnowledgeNodeVersion? @relation("confirmedTargetVersion", fields: [confirmedTargetNodeVersionId], references: [id])
+  confirmedBy                User?                 @relation("nodeEdgeConfirmer", fields: [confirmedById], references: [id])
+  proposals                  NodeEdgeProposal[]    @relation("confirmedProposalEdge")
 
   @@unique([sourceNodeVersionId, targetNodeId, relationType])
   @@index([targetNodeId])
   @@index([status, relationType])
+  @@index([confirmedTargetNodeVersionId])
+}
+
+/// An attributable author assertion or agent proposal. Editorial confirmation
+/// materializes the separate NodeEdge while preserving this immutable origin.
+model NodeEdgeProposal {
+  id                  String    @id @default(cuid())
+  originKey           String    @unique
+  sourceStableKey     String
+  targetStableKey     String
+  sourceNodeVersionId String
+  targetNodeId        String
+  targetNodeVersionId String
+  relationType        String
+  /// asserted-by-author | proposed-by-agent
+  origin              String
+  rationale           String?
+  evidenceJson        String    @default("{}")
+  sourceSubmissionId  String?
+  inspectionCaptureId String?
+  agentRunId          String?
+  /// proposed | confirmed | rejected | superseded
+  status              String    @default("proposed")
+  revision            Int       @default(0)
+  reviewedById        String?
+  reviewedAt          DateTime?
+  reviewNote          String?
+  confirmedEdgeId     String?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  sourceNodeVersion KnowledgeNodeVersion @relation("proposalSourceVersion", fields: [sourceNodeVersionId], references: [id])
+  targetNode        KnowledgeNode        @relation("proposalTargetNode", fields: [targetNodeId], references: [id])
+  targetNodeVersion KnowledgeNodeVersion @relation("proposalTargetVersion", fields: [targetNodeVersionId], references: [id])
+  sourceSubmission  Submission?          @relation("NodeEdgeProposalSubmission", fields: [sourceSubmissionId], references: [id])
+  inspectionCapture InspectionCapture?   @relation("NodeEdgeProposalCapture", fields: [inspectionCaptureId], references: [id])
+  agentRun          AgentRun?            @relation(fields: [agentRunId], references: [id])
+  reviewedBy        User?                @relation("nodeEdgeProposalReviewer", fields: [reviewedById], references: [id])
+  confirmedEdge     NodeEdge?            @relation("confirmedProposalEdge", fields: [confirmedEdgeId], references: [id])
+
+  @@index([status, createdAt])
+  @@index([sourceNodeVersionId])
+  @@index([targetNodeId])
+  @@index([confirmedEdgeId])
 }
 
 /// Canonical DOI/PMID/OpenAlex comparison key declared for a stable node.
@@ -806,6 +865,7 @@ model AgentRun {
   humanReviewStatus   String    @default("unreviewed")
 
   discussionMessages DiscussionMessage[]
+  nodeEdgeProposals  NodeEdgeProposal[]
 }
 
 model DiscussionThread {

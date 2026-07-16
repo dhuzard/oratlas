@@ -139,6 +139,14 @@ components:
           type: string
           enum: [confirmed-update-needed, explained, dismissed]
         note: { type: string, minLength: 10, maxLength: 4000 }
+    NodeEdgeDecision:
+      type: object
+      additionalProperties: false
+      required: [decision, expectedRevision, note]
+      properties:
+        decision: { type: string, enum: [confirm, reject, supersede] }
+        expectedRevision: { type: integer, minimum: 0 }
+        note: { type: string, minLength: 10, maxLength: 4000 }
     ProtocolEvidence:
       type: object
       additionalProperties: false
@@ -1139,6 +1147,36 @@ paths:
         "409": { $ref: "#/components/responses/Error" }
         "413": { $ref: "#/components/responses/Error" }
         "429": { $ref: "#/components/responses/Error" }
+  /api/editorial/node-edge-proposals/{id}/decision:
+    post:
+      summary: Confirm, reject, or supersede an attributable node-edge proposal
+      description: >
+        Current editor/admin role, same-origin JSON, rate and body limits, and an expected
+        revision are required. Only confirmation materializes an authoritative NodeEdge.
+      security: [{ session: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/NodeEdgeDecision" }
+      responses:
+        "200": { description: CAS decision result; exact retries are idempotent }
+        "400": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "413": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/Error" }
+  /api/nodes/{id}/edges:
+    get:
+      summary: Minimal public confirmed-edge projection for one knowledge node
+      description: Rejected, superseded, and unconfirmed proposals are excluded; contradictions project symmetrically.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Bounded list of editor-confirmed typed edges }
   /api/protocols/reviews/{versionId}:
     get:
       summary: Public review-level protocol provenance and neutral reconciliation proposals

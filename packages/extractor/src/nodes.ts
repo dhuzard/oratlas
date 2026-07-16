@@ -3,7 +3,7 @@ import {
   MAX_NODE_RECORD_BYTES,
   MAX_NODE_SOURCE_FILES,
   knowledgeNodeSchema,
-  nodeEdgeSchema,
+  repositoryNodeEdgeDeclarationSchema,
   validateNodeManifest,
   type InspectionReport,
   type KnowledgeNode,
@@ -71,7 +71,7 @@ export const extractedEdgeRecordSchema = z
     status: nodeRecordStatusSchema,
     sourcePath: z.string().min(1).max(512),
     sourcePointer: z.string().min(1).max(512),
-    edge: nodeEdgeSchema.optional(),
+    edge: repositoryNodeEdgeDeclarationSchema.optional(),
     issues: z.array(nodeExtractionIssueSchema),
   })
   .strict();
@@ -472,12 +472,15 @@ function extractEdgeRecord(
   seenEdges: Set<string>,
 ): ExtractedEdgeRecord {
   if (record.issue) return edgeFailure(record);
-  const parsed = nodeEdgeSchema.safeParse(record.value);
+  const parsed = repositoryNodeEdgeDeclarationSchema.safeParse(record.value);
   if (!parsed.success) return edgeFailure(record, issuesFromZod(parsed.error.issues));
 
   const edge = parsed.data;
   const issues: NodeExtractionIssue[] = [];
-  if (!validNodeIds.has(edge.sourceNodeId) || !validNodeIds.has(edge.targetNodeId)) {
+  if (
+    !validNodeIds.has(edge.sourceNodeId) ||
+    (!edge.targetRepository && !validNodeIds.has(edge.targetNodeId))
+  ) {
     issues.push(
       error(
         "edge-unknown-node",
@@ -485,7 +488,10 @@ function extractEdgeRecord(
       ),
     );
   }
-  const key = `${edge.sourceNodeId}\0${edge.targetNodeId}\0${edge.relationType}`;
+  const targetScope = edge.targetRepository
+    ? `${edge.targetRepository.githubRepositoryId}@${edge.targetRepository.commitSha}`
+    : "local";
+  const key = `${edge.sourceNodeId}\0${targetScope}\0${edge.targetNodeId}\0${edge.relationType}`;
   if (seenEdges.has(key)) {
     issues.push(error("duplicate-edge", "The same typed node edge was already declared."));
   } else {

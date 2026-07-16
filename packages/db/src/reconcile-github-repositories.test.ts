@@ -84,6 +84,51 @@ describe.sequential("legacy GitHub repository reconciliation", () => {
       },
     ]);
     expect(await count("NodeEdge")).toBe(1);
+    const proposals = await prisma.$queryRawUnsafe<
+      Array<{
+        id: string;
+        originKey: string;
+        sourceStableKey: string;
+        targetStableKey: string;
+        sourceNodeVersionId: string;
+        targetNodeId: string;
+        targetNodeVersionId: string;
+        confirmedEdgeId: string;
+        sourceSubmissionId: string | null;
+        inspectionCaptureId: string | null;
+        agentRunId: string | null;
+      }>
+    >(
+      "SELECT id, originKey, sourceStableKey, targetStableKey, sourceNodeVersionId, targetNodeId, targetNodeVersionId, confirmedEdgeId, sourceSubmissionId, inspectionCaptureId, agentRunId FROM NodeEdgeProposal ORDER BY id",
+    );
+    expect(proposals).toEqual([
+      {
+        id: "proposal-agent",
+        originKey: "stable-agent-origin-key",
+        sourceStableKey: "stable-source-key",
+        targetStableKey: "stable-target-key",
+        sourceNodeVersionId: "node-version-new",
+        targetNodeId: "node-new",
+        targetNodeVersionId: "node-version-new",
+        confirmedEdgeId: "edge-new",
+        sourceSubmissionId: null,
+        inspectionCaptureId: null,
+        agentRunId: "agent-run-old",
+      },
+      {
+        id: "proposal-author",
+        originKey: "stable-author-origin-key",
+        sourceStableKey: "stable-source-key",
+        targetStableKey: "stable-target-key",
+        sourceNodeVersionId: "node-version-new",
+        targetNodeId: "node-new",
+        targetNodeVersionId: "node-version-new",
+        confirmedEdgeId: "edge-new",
+        sourceSubmissionId: "submission-old",
+        inspectionCaptureId: "capture-old",
+        agentRunId: null,
+      },
+    ]);
     const aliases = await prisma.$queryRawUnsafe<
       Array<{ knowledgeNodeId: string; scheme: string; role: string; value: string }>
     >("SELECT knowledgeNodeId, scheme, role, value FROM NodeAlias ORDER BY value");
@@ -261,8 +306,16 @@ async function createLegacySchema(client: PrismaClient): Promise<void> {
     )`,
     `CREATE TABLE NodeEdge (
       id TEXT PRIMARY KEY, sourceNodeVersionId TEXT, targetNodeId TEXT, relationType TEXT,
-      status TEXT, provenance TEXT, rationale TEXT, assertedAt TEXT, createdAt TEXT, updatedAt TEXT,
+      status TEXT, provenance TEXT, rationale TEXT, assertedAt TEXT,
+      confirmedTargetNodeVersionId TEXT, confirmedById TEXT, confirmedAt TEXT,
+      revision INTEGER, createdAt TEXT, updatedAt TEXT,
       UNIQUE(sourceNodeVersionId, targetNodeId, relationType)
+    )`,
+    `CREATE TABLE NodeEdgeProposal (
+      id TEXT PRIMARY KEY, originKey TEXT UNIQUE, sourceStableKey TEXT, targetStableKey TEXT,
+      sourceNodeVersionId TEXT, targetNodeId TEXT, targetNodeVersionId TEXT,
+      relationType TEXT, origin TEXT, evidenceJson TEXT, confirmedEdgeId TEXT,
+      sourceSubmissionId TEXT, inspectionCaptureId TEXT, agentRunId TEXT
     )`,
     `CREATE TABLE NodeAlias (
       id TEXT PRIMARY KEY, knowledgeNodeId TEXT, scheme TEXT, role TEXT, value TEXT,
@@ -336,10 +389,21 @@ async function seedDuplicateIdentityGraph(client: PrismaClient): Promise<void> {
     `INSERT INTO NodeEdge VALUES
       ('edge-old', 'node-version-old', 'node-old', 'supports', 'confirmed',
        'confirmed-by-editor', 'Same rationale', '2026-01-03T00:00:00.000Z',
+       'node-version-old', 'editor', '2026-01-03T00:00:00.000Z', 0,
        '2026-01-03T00:00:00.000Z', '2026-01-03T00:00:00.000Z'),
       ('edge-new', 'node-version-new', 'node-new', 'supports', 'confirmed',
        'confirmed-by-editor', 'Same rationale', '2026-01-03T00:00:00.000Z',
+       'node-version-new', 'editor', '2026-01-03T00:00:00.000Z', 0,
        '2026-01-03T00:00:00.000Z', '2026-01-03T00:00:00.000Z')`,
+  );
+  await client.$executeRawUnsafe(
+    `INSERT INTO NodeEdgeProposal VALUES
+      ('proposal-agent', 'stable-agent-origin-key', 'stable-source-key', 'stable-target-key',
+       'node-version-old', 'node-old', 'node-version-old', 'supports',
+       'proposed-by-agent', '{}', 'edge-old', NULL, NULL, 'agent-run-old'),
+      ('proposal-author', 'stable-author-origin-key', 'stable-source-key', 'stable-target-key',
+       'node-version-old', 'node-old', 'node-version-old', 'supports',
+       'asserted-by-author', '{}', 'edge-old', 'submission-old', 'capture-old', NULL)`,
   );
   await client.$executeRawUnsafe("INSERT INTO Claim VALUES ('claim-old', 'node-old')");
 }

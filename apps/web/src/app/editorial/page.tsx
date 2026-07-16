@@ -15,6 +15,8 @@ import { TrustVerificationForm } from "./TrustVerificationForm";
 import { LifecycleForm } from "./LifecycleForm";
 import { FederationPanel } from "./FederationPanel";
 import { ProtocolDriftPanel } from "./ProtocolDriftPanel";
+import { NodeEdgeProposalPanel } from "./NodeEdgeProposalPanel";
+import { listPendingNodeEdgeProposals } from "@/lib/node-edge-lifecycle";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Editorial dashboard" };
@@ -63,6 +65,7 @@ export default async function EditorialPage({
   const openProposals = await listOpenProposals();
   const federationQueue = await listFederationQueue();
   const openProtocolProposals = await listOpenProtocolProposals();
+  const nodeEdgeProposals = await listPendingNodeEdgeProposals();
 
   return (
     <div>
@@ -333,6 +336,13 @@ export default async function EditorialPage({
           ))}
         </ul>
       )}
+
+      <h2>Knowledge edge proposals ({nodeEdgeProposals.length})</h2>
+      <p className="muted">
+        Author assertions and agent suggestions remain non-authoritative proposals until an editor
+        confirms them. Confirmation records structural editorial review, not scientific truth.
+      </p>
+      <NodeEdgeProposalPanel proposals={nodeEdgeProposals} />
 
       <h2>Evidence monitoring</h2>
       <Card>

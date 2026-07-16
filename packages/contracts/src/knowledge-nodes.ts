@@ -133,18 +133,62 @@ export const knowledgeNodeSchema = z
   });
 export type KnowledgeNode = z.infer<typeof knowledgeNodeSchema>;
 
-export const nodeEdgeSchema = z
+const nodeEdgeDeclarationFields = {
+  sourceNodeId: localNodeIdSchema,
+  targetNodeId: localNodeIdSchema,
+  targetRepository: z
+    .object({
+      githubRepositoryId: z.string().regex(/^\d+$/).max(30),
+      commitSha: commitShaSchema,
+    })
+    .strict()
+    .optional(),
+  relationType: nodeRelationTypeSchema,
+  rationale: z.string().min(1).max(4_000).optional(),
+  assertedAt: z.string().datetime().optional(),
+};
+
+/** Untrusted repository declaration. Lifecycle state is assigned only by Atlas. */
+export const nodeEdgeDeclarationSchema = z.object(nodeEdgeDeclarationFields).strict();
+export type NodeEdgeDeclaration = z.infer<typeof nodeEdgeDeclarationSchema>;
+
+/**
+ * KG-01 manifests included platform lifecycle fields. Continue accepting those
+ * captures, but deliberately discard them so a repository can never claim an
+ * editor confirmation.
+ */
+export const legacyNodeEdgeDeclarationSchema = z
   .object({
-    sourceNodeId: localNodeIdSchema,
-    targetNodeId: localNodeIdSchema,
-    relationType: nodeRelationTypeSchema,
+    ...nodeEdgeDeclarationFields,
     provenance: nodeEdgeProvenanceSchema,
     status: nodeEdgeStatusSchema,
-    rationale: z.string().min(1).max(4_000).optional(),
-    assertedAt: z.string().datetime().optional(),
+  })
+  .strict()
+  .transform(({ provenance: _provenance, status: _status, ...declaration }) => declaration);
+
+export const repositoryNodeEdgeDeclarationSchema = z.union([
+  nodeEdgeDeclarationSchema,
+  legacyNodeEdgeDeclarationSchema,
+]);
+
+/** Platform lifecycle projection. This shape is never accepted from a repository. */
+export const nodeEdgeSchema = z
+  .object({
+    ...nodeEdgeDeclarationFields,
+    provenance: nodeEdgeProvenanceSchema,
+    status: nodeEdgeStatusSchema,
   })
   .strict();
 export type NodeEdge = z.infer<typeof nodeEdgeSchema>;
+
+export const nodeEdgeDecisionSchema = z
+  .object({
+    decision: z.enum(["confirm", "reject", "supersede"]),
+    expectedRevision: z.number().int().nonnegative(),
+    note: z.string().trim().min(10).max(4_000),
+  })
+  .strict();
+export type NodeEdgeDecision = z.infer<typeof nodeEdgeDecisionSchema>;
 
 const uniqueSafePathsSchema = z
   .array(safeRepoRelativePathSchema)

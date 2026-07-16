@@ -330,6 +330,37 @@ without changing the durable repository-local identity of any published node.
   tests successfully; 24 tests in five pre-existing suites remain skipped because they directly
   launch the extensionless Prisma shell shim and fail with `ENOENT` on Windows.
 
+## KG-07 — Typed edge lifecycle (issue #41)
+
+**Objective:** retain author and agent edge assertions as attributable proposals, require a
+human editorial decision before a typed edge becomes authoritative, and expose contradictions
+symmetrically without duplicating scholarly records.
+
+- Started implementation after KG-02, KG-03, KG-04, and KG-06 merged. Expanded the recorded
+  package scope to include contracts and persistence because repository declarations must be
+  separated from platform lifecycle state and proposal origin must survive editorial decisions.
+- Split repository edge declarations from Atlas lifecycle projections. Older captures that carry
+  repository-supplied `confirmed`/`confirmed-by-editor` values remain parseable, but extraction
+  discards that authority before submission or persistence.
+- Added revisioned `NodeEdgeProposal` records for accepted author assertions and deterministic
+  AgentRun proposals. They retain exact source and target versions, capture/run provenance and
+  independent origin keys; editorial confirmation alone creates or reuses a confirmed `NodeEdge`.
+- Added pure transition/typed-endpoint guards, serializable CAS decisions with exact-retry
+  idempotency, current-role enforcement, per-transition audits, the editorial queue, a minimal
+  confirmed-edge API, and symmetric contradiction projection without reverse-row duplication.
+- Hardened the lifecycle after adversarial audit: immutable cross-lab author addresses now resolve
+  exactly once or roll back acceptance; confirmed seed/public rows carry a frozen target version,
+  editor and timestamp; reciprocal contradictions canonicalize to one tuple; stable endpoint
+  provenance survives repository reconciliation; concurrent independent confirmations safely
+  reuse the winning edge; and agent candidates must match a canonical, hashed output recorded by
+  a succeeded node-edge AgentRun.
+- Verified contract/extractor/lifecycle and publication integration coverage (62 focused tests),
+  all 15 workspace typechecks, lint, JSON schemas, OpenAPI route parity, Prisma validation and
+  generation, deterministic PostgreSQL schema/DDL generation, isolated SQLite reset/seed, the
+  production web build, and the real Playwright author-proposal confirm/reject flow. The full
+  Windows Vitest run completes 444 tests; 10 tests in three pre-existing suites remain skipped
+  because they launch the extensionless Unix Prisma shell shim and fail with `ENOENT`.
+
 ## KG-04 — Node submission and editorial acceptance (issue #37)
 
 **Objective:** let submitters finalize immutable node candidates and let editors select and
