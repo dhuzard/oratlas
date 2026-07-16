@@ -231,6 +231,79 @@ describe.sequential("node edge lifecycle integration", () => {
     expect(tx).toBeDefined();
   });
 
+  it("requires immutable source identity only when an author edge would materialize", async () => {
+    await expect(
+      prisma.$transaction((tx) =>
+        lifecycle.materializeAuthorEdgeProposals(tx, {
+          submissionId: "submission-with-dangling-edge",
+          submitterId: editor.id,
+          inspectionCaptureId: "capture-with-dangling-edge",
+          capturePayloadHash: "a".repeat(64),
+          sourceRepositoryGithubId: null,
+          sourceCommitSha: "a".repeat(40),
+          selectedVersions: [
+            {
+              id: sourceVersionId,
+              knowledgeNodeId: sourceNodeId,
+              localNodeId: "source-claim",
+              kind: "claim",
+            },
+          ],
+          edges: [
+            {
+              status: "ok",
+              sourcePath: "nodes/edges.jsonl",
+              sourcePointer: "/0",
+              edge: {
+                sourceNodeId: "source-claim",
+                targetNodeId: "unselected-target",
+                relationType: "supports",
+              },
+            },
+          ],
+        }),
+      ),
+    ).resolves.toEqual([]);
+    await expect(
+      prisma.$transaction((tx) =>
+        lifecycle.materializeAuthorEdgeProposals(tx, {
+          submissionId: "submission-with-materializable-edge",
+          submitterId: editor.id,
+          inspectionCaptureId: "capture-with-materializable-edge",
+          capturePayloadHash: "a".repeat(64),
+          sourceRepositoryGithubId: null,
+          sourceCommitSha: "a".repeat(40),
+          selectedVersions: [
+            {
+              id: sourceVersionId,
+              knowledgeNodeId: sourceNodeId,
+              localNodeId: "source-claim",
+              kind: "claim",
+            },
+            {
+              id: targetVersionId,
+              knowledgeNodeId: targetNodeId,
+              localNodeId: "target-claim",
+              kind: "claim",
+            },
+          ],
+          edges: [
+            {
+              status: "ok",
+              sourcePath: "nodes/edges.jsonl",
+              sourcePointer: "/0",
+              edge: {
+                sourceNodeId: "source-claim",
+                targetNodeId: "target-claim",
+                relationType: "supports",
+              },
+            },
+          ],
+        }),
+      ),
+    ).rejects.toThrow(/immutable source repository identity/);
+  });
+
   it("creates an attributable agent proposal idempotently", async () => {
     const run = await createAgentRun("contradicts");
     const input = proposalInput(run.id, "contradicts");

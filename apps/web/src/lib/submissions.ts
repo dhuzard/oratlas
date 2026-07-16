@@ -441,12 +441,6 @@ export async function acceptSubmission(
           if (!submission.snapshotId || !submission.snapshot) {
             throw new SubmissionError("Submission has no snapshot to publish.");
           }
-          if (!submission.repository.githubRepositoryId) {
-            throw new SubmissionError(
-              "Submission repository has no immutable GitHub identity.",
-              "conflict",
-            );
-          }
           if (
             payload.schemaVersion === "1.1.0" &&
             (!submission.inspectionCaptureId || !submission.inspectionCapture)

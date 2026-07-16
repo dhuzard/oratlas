@@ -65,7 +65,9 @@ suffix, and arrays are JSON-encoded strings. Switching to PostgreSQL is a dataso
 - Repository and agent assertions live in `NodeEdgeProposal`, not in the authoritative edge row.
   Author proposals retain their accepted submission, capture, source pointer and payload hash;
   cross-lab author targets use an immutable GitHub repository id plus commit SHA and fail closed
-  unless that address resolves exactly once. Agent proposals require a succeeded
+  unless that address resolves exactly once. Immutable source identity is required when selected
+  endpoints would actually materialize an author proposal; dangling declarations do not block a
+  legacy review-only acceptance. Agent proposals require a succeeded
   `node-edge-proposal` run whose canonical output candidate and SHA-256 match the request. The
   observed target version is frozen on every proposal. Stable endpoint keys, rather than mutable
   database ids, drive origin idempotency so legacy repository reconciliation can rewire foreign

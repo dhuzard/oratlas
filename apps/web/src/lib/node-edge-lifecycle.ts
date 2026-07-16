@@ -61,7 +61,7 @@ export async function materializeAuthorEdgeProposals(
     submitterId: string;
     inspectionCaptureId: string;
     capturePayloadHash: string;
-    sourceRepositoryGithubId: string;
+    sourceRepositoryGithubId?: string | null;
     sourceCommitSha: string;
     edges: AuthorEdgeRecord[];
     selectedVersions: SelectedNodeVersion[];
@@ -78,7 +78,7 @@ export async function materializeAuthorEdgeProposals(
     // A local declaration never creates a dangling proposal to an excluded node.
     if (!source) continue;
     let target = localTarget;
-    let targetRepositoryGithubId = input.sourceRepositoryGithubId;
+    let targetRepositoryGithubId = input.sourceRepositoryGithubId ?? undefined;
     let targetCommitSha = input.sourceCommitSha;
     if (record.edge.targetRepository) {
       targetRepositoryGithubId = record.edge.targetRepository.githubRepositoryId;
@@ -111,6 +111,13 @@ export async function materializeAuthorEdgeProposals(
       };
     }
     if (!target) continue;
+    if (!input.sourceRepositoryGithubId) {
+      throw new NodeEdgeLifecycleError(
+        "A materialized author edge requires an immutable source repository identity.",
+        "conflict",
+      );
+    }
+    targetRepositoryGithubId ??= input.sourceRepositoryGithubId;
     const prepared = prepareNodeEdgeProposal({
       sourceNodeId: source.knowledgeNodeId,
       sourceNodeVersionId: source.id,

@@ -96,6 +96,28 @@ afterAll(async () => {
 });
 
 describe.sequential("atomic publication integration", () => {
+  it("accepts a legacy review-only submission without immutable GitHub identity", async () => {
+    const capability = await capture({ githubRepositoryId: nextRepoId() });
+    const submission = await runtime.createSubmission({
+      inspectionToken: capability.token,
+      submitterId,
+    });
+    const stored = await runtime.prisma.submission.findUniqueOrThrow({
+      where: { id: submission.submissionId },
+      select: { repositoryId: true },
+    });
+    await runtime.prisma.repository.update({
+      where: { id: stored.repositoryId },
+      data: { githubRepositoryId: null },
+    });
+    await expect(
+      runtime.acceptSubmission(submission.submissionId, editorId),
+    ).resolves.toMatchObject({
+      idempotent: false,
+      reviewSlug: expect.any(String),
+    });
+  });
+
   it("rejects a capability owned by another user", async () => {
     const capability = await capture({ githubRepositoryId: nextRepoId() });
     await expect(
