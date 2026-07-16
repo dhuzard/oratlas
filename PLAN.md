@@ -57,6 +57,10 @@ Full details: `docs/architecture.md`.
 
 Progress and outcomes per slice are recorded in `docs/development-log.md`.
 
+All PR-00…PR-10 slices above have shipped. The next phase — node-first publication (claims,
+figures, datasets, code as first-class knowledge-graph nodes) and AI-written long-form
+syntheses consumed by humans — is specified as an agent-ready backlog in `TODO.md` (KG-01…KG-20).
+
 ## Non-goals (POC boundary)
 
 File uploads, private repositories, DOI minting, full peer-review management, manuscript

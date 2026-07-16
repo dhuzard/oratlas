@@ -1,0 +1,16 @@
+{
+  "schemaVersion": "1.0.0",
+  "nodes": {
+    "format": "json",
+    "files": [
+      "nodes/primary-claim.json",
+      "nodes/main-figure.json",
+      "nodes/source-dataset.json",
+      "nodes/analysis-code.json"
+    ]
+  },
+  "edges": {
+    "format": "jsonl",
+    "path": "nodes/edges.jsonl"
+  }
+}

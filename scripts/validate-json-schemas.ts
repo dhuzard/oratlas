@@ -17,6 +17,23 @@ const manifestSchemaPath = join(
   "schemas",
   "review-manifest.schema.json",
 );
+const nodeManifestSchemaPath = join(
+  here,
+  "..",
+  "packages",
+  "contracts",
+  "schemas",
+  "node-manifest.schema.json",
+);
+const nodeManifestExamplePath = join(
+  here,
+  "..",
+  "packages",
+  "contracts",
+  "schemas",
+  "examples",
+  "node-manifest.example.json",
+);
 
 const exampleManifest = {
   schemaVersion: "1.0.0",
@@ -72,6 +89,24 @@ function main(): void {
 
   console.info("✓ review-manifest.schema.json is valid and matches the reference example.");
   console.info("✓ Unsafe artifact paths are rejected by the schema.");
+
+  const nodeManifestSchema = JSON.parse(readFileSync(nodeManifestSchemaPath, "utf-8"));
+  const exampleNodeManifest = JSON.parse(readFileSync(nodeManifestExamplePath, "utf-8"));
+  const validateNodeManifest = ajv.compile(nodeManifestSchema);
+  if (!validateNodeManifest(exampleNodeManifest)) {
+    console.error("Reference node manifest failed schema validation:");
+    console.error(validateNodeManifest.errors);
+    process.exit(1);
+  }
+
+  const badNodeManifest = structuredClone(exampleNodeManifest);
+  badNodeManifest.nodes.files[0] = "../../private.json";
+  if (validateNodeManifest(badNodeManifest)) {
+    console.error("Node manifest schema incorrectly accepted an unsafe node path.");
+    process.exit(1);
+  }
+  console.info("✓ node-manifest.schema.json is valid and matches the reference example.");
+  console.info("✓ Unsafe node source paths are rejected by the schema.");
 
   const atlasCheckSchema = JSON.parse(
     readFileSync(
