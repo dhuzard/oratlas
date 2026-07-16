@@ -365,7 +365,7 @@ packages: [packages/knowledge, packages/contracts]
 ```yaml
 id: KG-12
 epic: C
-status: in-progress (issue #52)
+status: done (PR #54)
 depends_on: [KG-11]
 size: L
 labels: [knowledge, llm]
