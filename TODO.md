@@ -153,7 +153,7 @@ packages: [packages/extractor, packages/github]
 ```yaml
 id: KG-04
 epic: A
-status: in-progress (issue #37)
+status: done (PR #39)
 depends_on: [KG-02, KG-03]
 size: L
 labels: [web, editorial, api]
