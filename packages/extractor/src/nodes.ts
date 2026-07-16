@@ -606,10 +606,10 @@ function rawStringField(value: unknown, key: string): string | undefined {
 }
 
 function normalizeRepositoryUrl(url: string): string {
-  return url
-    .toLowerCase()
-    .replace(/\.git$/i, "")
-    .replace(/\/+$/, "");
+  let end = url.length;
+  while (end > 0 && url.charCodeAt(end - 1) === 47) end -= 1;
+  const normalized = url.slice(0, end).toLowerCase();
+  return normalized.endsWith(".git") ? normalized.slice(0, -4) : normalized;
 }
 
 function issuesFromZod(

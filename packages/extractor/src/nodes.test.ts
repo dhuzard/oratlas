@@ -175,6 +175,21 @@ describe("extractKnowledgeNodes", () => {
     expect(extractKnowledgeNodes(inspection)).toEqual(extractKnowledgeNodes(inspection));
   });
 
+  it("normalizes repository URLs with adversarial trailing separators in linear time", async () => {
+    const node = JSON.parse(CLAIM_NODE_JSON) as Record<string, unknown>;
+    node.provenance = {
+      sourcePath: "nodes/url-normalization.json",
+      commitSha: NODE_COMMIT,
+      repositoryUrl: "https://GITHUB.COM/example-lab/node-publications.git" + "/".repeat(512),
+    };
+    const report = extractKnowledgeNodes(
+      await inspect(singleJsonNodeFixture("nodes/url-normalization.json", node)),
+    );
+
+    expect(report.nodes[0]?.status).toBe("ok");
+    expect(report.nodes[0]?.issues.map((issue) => issue.code)).not.toContain("repository-mismatch");
+  });
+
   it("classifies a valid node-only repository as compatible", async () => {
     const extraction = runExtraction(await inspect(nodePublicationFixture), now);
     expect(extraction.compatibility.overallCompatibility).toBe("compatible");
