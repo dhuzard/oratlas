@@ -30,6 +30,40 @@ does not invent a crosswalk when no common alias exists. If a connected alias cl
 different values for the same scheme (for example, one PMID connected to two DOIs), the packet and
 review API expose an explicit conflict assertion and automated linking does not merge that cluster.
 
+## Knowledge-node identity proposals
+
+A knowledge node's durable identity is exactly `(repositoryId, localNodeId)`. The repository id is
+the Atlas row anchored to GitHub's immutable repository id; mutable owner/name display values are
+not identity. DOI, PMID, and OpenAlex aliases are comparison signals and never replace that stable
+key. Alias rows retain both scheme and role, so a version DOI is never silently rewritten into a
+concept, artifact, or external-work DOI. Shared aliases are intentionally non-unique across nodes.
+
+`packages/knowledge` applies the versioned deterministic method
+`oratlas-node-identity-1.0.0`. It emits reviewable `same-work` or `same-claim` proposals and never
+updates, merges, or deletes nodes. The method:
+
+- compares only nodes of the same kind in different repositories;
+- canonicalizes declared DOI/PMID/OpenAlex representations using the rules above;
+- excludes every alias flagged as a synthetic example from matching;
+- hashes claim statements together with their qualifiers after Unicode, case, punctuation, and
+  whitespace normalization; and
+- retains negation, numbers, and qualifier text, with additional fail-closed guards that prevent a
+  high lexical overlap from hiding a changed negation or numeric value. `cannot` and common
+  apostrophe/curly-apostrophe `n't` forms normalize to explicit negation; near-similarity also
+  requires normalized qualifier lists to be equal.
+
+An equal normalized claim hash or conservative near-identical comparison produces a
+`same-claim` proposal. A shared identifier without matching claim text produces only a `same-work`
+proposal: two distinct claims from one paper are not thereby asserted to be the same claim. Pair
+orientation, signals, shared aliases, proposal ids, ordering, and the report SHA-256 are stable for
+the same candidate set regardless of input order or host locale. Raw aliases pass through one
+contract-validated canonicalization boundary before persistence, so resolver URLs, case variants,
+prefixes, and insignificant PMID zeroes cannot occupy separate rows. No LLM participates in
+identity matching.
+
+The current schema establishes cross-repository identity. It cannot prove organizationally
+independent laboratories because the POC deliberately has no separate durable lab authority model.
+
 ## Evidence packet 1.1
 
 Each packet carries the selected versions, exact snapshot Git object ids, globally scoped and local

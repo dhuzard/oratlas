@@ -308,3 +308,24 @@ bounded GitHub repository capture without cloning, executing, or fetching refere
   all 351 tests outside the five Windows-incompatible Prisma-shim suites pass. The full test command
   reaches the same 351 passes, while those five pre-existing suites cannot launch the extensionless
   `packages/db/node_modules/.bin/prisma` shim on Windows (`ENOENT`) and skip their 24 tests.
+
+## KG-06 — Cross-lab claim identity and deduplication (issue #36)
+
+**Objective:** identify shared scholarly works and near-identical claim nodes deterministically
+without changing the durable repository-local identity of any published node.
+
+- Added scheme- and role-preserving DOI/PMID/OpenAlex alias contracts plus deterministic
+  same-work/same-claim proposal reports with stable proposal and report hashes.
+- Added identity-specific claim normalization that keeps negation, numbers, and qualifiers, and
+  excludes example identifiers from all matching signals. The knowledge layer is pure and emits
+  proposals only; it never mutates or merges nodes. Negated contractions and `cannot` normalize to
+  an explicit protected negation, and near-similarity fails closed when qualifier semantics differ.
+- Added portable `NodeAlias` persistence with non-global alias uniqueness and fail-closed legacy
+  repository reconciliation. Shared aliases are evidence for editorial review, not database merge
+  instructions. A single validated upsert boundary canonicalizes DOI resolver/case, PMID prefixes
+  and leading zeroes, and OpenAlex URL/case forms before applying the compound unique key.
+- Verified Prisma validation/generation, SQLite push/seed/reset, deterministic PostgreSQL
+  schema/DDL regeneration, repository lint, all 15 workspace typechecks, schema checks, 37 focused
+  identity/database tests, and the production web build. The full Windows test run completes 383
+  tests successfully; 24 tests in five pre-existing suites remain skipped because they directly
+  launch the extensionless Prisma shell shim and fail with `ENOENT` on Windows.

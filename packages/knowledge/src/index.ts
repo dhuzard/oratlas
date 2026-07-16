@@ -51,3 +51,10 @@ export {
   type ReplicationGapSignalCode,
   type RankedReplicationGap,
 } from "./replication.js";
+export {
+  canonicalNodeAlias,
+  normalizeClaimIdentity,
+  proposeNodeIdentities,
+  type NormalizedClaimIdentity,
+  type ProposeNodeIdentitiesOptions,
+} from "./node-identity.js";
