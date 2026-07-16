@@ -64,6 +64,12 @@ describe("compareRoutes", () => {
 describe("synthesis OpenAPI contracts", () => {
   it("uses reusable concrete request and response schemas", () => {
     const openapi = readFileSync(resolve(process.cwd(), "docs/openapi.yaml"), "utf8");
+    const component = (name: string) => {
+      const start = openapi.indexOf(`    ${name}:`);
+      expect(start, `${name} component`).toBeGreaterThanOrEqual(0);
+      const next = openapi.slice(start + 4).search(/^ {4}[A-Za-z][A-Za-z0-9]+:/m);
+      return next < 0 ? openapi.slice(start) : openapi.slice(start, start + 4 + next);
+    };
     for (const schema of [
       "SynthesisSelector",
       "SynthesisGenerationRequest",
@@ -80,5 +86,37 @@ describe("synthesis OpenAPI contracts", () => {
     );
     expect(openapi).toContain('schema: { $ref: "#/components/schemas/SynthesisDecision" }');
     expect(openapi).toContain('schema: { $ref: "#/components/schemas/PublicSynthesisReview" }');
+
+    for (const schema of [
+      "SynthesisReviewCitation",
+      "SynthesisReviewParagraph",
+      "SynthesisReviewSection",
+      "SynthesisReviewDocument",
+      "SynthesisPipelineSoftware",
+      "SynthesisGenerationProvenance",
+      "SynthesisApprovingEditor",
+      "AcceptedSynthesisProvenance",
+      "EditorialSynthesisCitation",
+      "PublicSynthesisCitation",
+      "PublicSynthesisVersion",
+      "EditorialSynthesisDraft",
+      "PublicSynthesisReview",
+    ]) {
+      const shape = component(schema);
+      expect(shape, `${schema} closes its allowlist`).toContain("additionalProperties: false");
+      expect(shape, `${schema} declares required fields`).toContain("required:");
+      expect(shape, `${schema} declares properties`).toContain("properties:");
+    }
+
+    const draft = component("EditorialSynthesisDraft");
+    expect(draft).toContain('$ref: "#/components/schemas/SynthesisReviewDocument"');
+    expect(draft).toContain('$ref: "#/components/schemas/SynthesisGenerationProvenance"');
+    expect(draft).toContain('$ref: "#/components/schemas/EditorialSynthesisCitation"');
+    const publicReview = component("PublicSynthesisReview");
+    expect(publicReview).toContain('$ref: "#/components/schemas/SynthesisReviewDocument"');
+    expect(publicReview).toContain('$ref: "#/components/schemas/AcceptedSynthesisProvenance"');
+    expect(publicReview).toContain('$ref: "#/components/schemas/PublicSynthesisCitation"');
+    expect(publicReview).toContain('$ref: "#/components/schemas/PublicSynthesisVersion"');
+    expect(publicReview).not.toMatch(/packetJson|selectorJson|agentRunId|requestKey|errorCode/);
   });
 });

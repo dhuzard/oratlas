@@ -1138,6 +1138,212 @@ components:
             expectedRevision: { type: integer, minimum: 0, maximum: 1000000000 }
             idempotencyKey: { type: string, minLength: 8, maxLength: 200 }
             rationale: { type: string, minLength: 10, maxLength: 4000 }
+    SynthesisReviewCitation:
+      type: object
+      additionalProperties: false
+      required: [referenceId, nodeId, nodeVersionId]
+      properties:
+        referenceId: { type: string, pattern: "^reference:sha256:[0-9a-f]{64}$" }
+        nodeId: { type: string, minLength: 1, maxLength: 200 }
+        nodeVersionId: { type: string, minLength: 1, maxLength: 200 }
+    SynthesisReviewParagraph:
+      type: object
+      additionalProperties: false
+      required: [text, citations]
+      properties:
+        text: { type: string, minLength: 1, maxLength: 4000 }
+        citations:
+          type: array
+          maxItems: 50
+          uniqueItems: true
+          items: { $ref: "#/components/schemas/SynthesisReviewCitation" }
+    SynthesisReviewSection:
+      type: object
+      additionalProperties: false
+      required: [id, title, paragraphs]
+      properties:
+        id:
+          type: string
+          enum:
+            [
+              background,
+              state-of-knowledge,
+              agreements,
+              contradictions-and-open-questions,
+              data-and-code-availability,
+              limitations,
+            ]
+        title:
+          type: string
+          enum:
+            [
+              Background,
+              State of knowledge,
+              Agreements,
+              Contradictions and open questions,
+              Data and code availability,
+              Limitations,
+            ]
+        paragraphs:
+          type: array
+          minItems: 1
+          maxItems: 12
+          items: { $ref: "#/components/schemas/SynthesisReviewParagraph" }
+    SynthesisReviewDocument:
+      type: object
+      additionalProperties: false
+      required: [schemaVersion, title, summary, citations, sections]
+      properties:
+        schemaVersion: { const: 1.0.0 }
+        title: { type: string, minLength: 1, maxLength: 300 }
+        summary: { type: string, minLength: 1, maxLength: 2000 }
+        citations:
+          type: array
+          maxItems: 50
+          uniqueItems: true
+          items: { $ref: "#/components/schemas/SynthesisReviewCitation" }
+        sections:
+          type: array
+          minItems: 6
+          maxItems: 6
+          items: { $ref: "#/components/schemas/SynthesisReviewSection" }
+    SynthesisPipelineSoftware:
+      type: object
+      additionalProperties: false
+      required: [id, kind, displayName, pipelineVersion]
+      properties:
+        id: { const: "software:oratlas-synthesis-writer" }
+        kind: { const: software-agent }
+        displayName: { const: Open Review Atlas Synthesis Writer }
+        pipelineVersion: { type: string, minLength: 1, maxLength: 120 }
+    SynthesisGenerationProvenance:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          generationMode,
+          pipelineSoftware,
+          provider,
+          model,
+          modelVersion,
+          promptVersion,
+          promptHash,
+          packetHash,
+          documentHash,
+          generatedAt,
+          attributionPolicyVersion,
+          materializationPolicyVersion,
+        ]
+      properties:
+        generationMode: { type: string, enum: [llm, deterministic-template] }
+        pipelineSoftware: { $ref: "#/components/schemas/SynthesisPipelineSoftware" }
+        provider: { type: string, minLength: 1, maxLength: 120 }
+        model: { type: string, minLength: 1, maxLength: 200 }
+        modelVersion: { type: string, minLength: 1, maxLength: 200 }
+        promptVersion: { type: string, minLength: 1, maxLength: 120 }
+        promptHash: { type: string, pattern: "^[0-9a-f]{64}$" }
+        packetHash: { type: string, pattern: "^[0-9a-f]{64}$" }
+        documentHash: { type: string, pattern: "^[0-9a-f]{64}$" }
+        generatedAt: { type: string, format: date-time }
+        attributionPolicyVersion: { const: synthesis-attribution/1.0.0 }
+        materializationPolicyVersion: { const: synthesis-materialization/1.0.0 }
+    SynthesisApprovingEditor:
+      type: object
+      additionalProperties: false
+      required: [displayName, githubLogin, roleSnapshot]
+      properties:
+        displayName: { type: string, minLength: 1, maxLength: 200 }
+        githubLogin: { type: string, minLength: 1, maxLength: 100 }
+        roleSnapshot: { type: string, enum: [EDITOR, ADMIN] }
+    AcceptedSynthesisProvenance:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          generationMode,
+          pipelineSoftware,
+          provider,
+          model,
+          modelVersion,
+          promptVersion,
+          promptHash,
+          packetHash,
+          documentHash,
+          generatedAt,
+          attributionPolicyVersion,
+          materializationPolicyVersion,
+          acceptedAt,
+          approvingEditor,
+          rightsStatement,
+          licenseSpdx,
+          checklistVersion,
+          acceptedPredecessorVersionId,
+          acceptedPredecessorOrdinal,
+          ordinal,
+        ]
+      properties:
+        generationMode: { type: string, enum: [llm, deterministic-template] }
+        pipelineSoftware: { $ref: "#/components/schemas/SynthesisPipelineSoftware" }
+        provider: { type: string, minLength: 1, maxLength: 120 }
+        model: { type: string, minLength: 1, maxLength: 200 }
+        modelVersion: { type: string, minLength: 1, maxLength: 200 }
+        promptVersion: { type: string, minLength: 1, maxLength: 120 }
+        promptHash: { type: string, pattern: "^[0-9a-f]{64}$" }
+        packetHash: { type: string, pattern: "^[0-9a-f]{64}$" }
+        documentHash: { type: string, pattern: "^[0-9a-f]{64}$" }
+        generatedAt: { type: string, format: date-time }
+        attributionPolicyVersion: { const: synthesis-attribution/1.0.0 }
+        materializationPolicyVersion: { const: synthesis-materialization/1.0.0 }
+        acceptedAt: { type: string, format: date-time }
+        approvingEditor: { $ref: "#/components/schemas/SynthesisApprovingEditor" }
+        rightsStatement: { type: string, minLength: 10, maxLength: 2000 }
+        licenseSpdx: { type: string, minLength: 1, maxLength: 120 }
+        checklistVersion: { const: synthesis-checklist/1.0.0 }
+        acceptedPredecessorVersionId: { type: [string, "null"], minLength: 1, maxLength: 200 }
+        acceptedPredecessorOrdinal: { type: [integer, "null"], minimum: 1 }
+        ordinal: { type: integer, minimum: 1 }
+    EditorialSynthesisCitation:
+      type: object
+      additionalProperties: false
+      required: [referenceId, nodeId, nodeVersionId, nodeKind, title, location, occurrenceOrdinal]
+      properties:
+        referenceId: { type: string, minLength: 1 }
+        nodeId: { type: string, minLength: 1, maxLength: 200 }
+        nodeVersionId: { type: string, minLength: 1, maxLength: 200 }
+        nodeKind: { type: string, enum: [claim, figure, dataset, code] }
+        title: { type: string, minLength: 1, maxLength: 500 }
+        location: { type: string, minLength: 1, maxLength: 200 }
+        occurrenceOrdinal: { type: integer, minimum: 0 }
+        identifierScheme: { type: string, minLength: 1, maxLength: 40 }
+        identifierRole: { type: string, minLength: 1, maxLength: 80 }
+        identifierValue: { type: string, minLength: 1, maxLength: 500 }
+    PublicSynthesisCitation:
+      type: object
+      additionalProperties: false
+      required:
+        [referenceId, nodeId, nodeVersionId, nodeKind, title, href, location, occurrenceOrdinal]
+      properties:
+        referenceId: { type: string, minLength: 1 }
+        nodeId: { type: string, minLength: 1, maxLength: 200 }
+        nodeVersionId: { type: string, minLength: 1, maxLength: 200 }
+        nodeKind: { type: string, enum: [claim, figure, dataset, code] }
+        title: { type: string, minLength: 1, maxLength: 500 }
+        href: { type: string, pattern: "^/nodes/[^/]+/versions/[^/]+$" }
+        location: { type: string, minLength: 1, maxLength: 200 }
+        occurrenceOrdinal: { type: integer, minimum: 0 }
+        identifierScheme: { type: string, minLength: 1, maxLength: 40 }
+        identifierRole: { type: string, minLength: 1, maxLength: 80 }
+        identifierValue: { type: string, minLength: 1, maxLength: 500 }
+    PublicSynthesisVersion:
+      type: object
+      additionalProperties: false
+      required: [id, ordinal, isCurrent]
+      properties:
+        id: { type: string, minLength: 1, maxLength: 200 }
+        ordinal: { type: integer, minimum: 1 }
+        isCurrent: { type: boolean }
+        versionDoi: { type: string, pattern: "^10\\.[0-9]{4,9}/\\S+$" }
+        conceptDoi: { type: string, pattern: "^10\\.[0-9]{4,9}/\\S+$" }
     EditorialSynthesisDraft:
       type: object
       additionalProperties: false
@@ -1164,9 +1370,11 @@ components:
         regenerationOrdinal: { type: integer, minimum: 1 }
         parentDraftId: { type: string }
         previousAcceptedOrdinal: { type: integer, minimum: 1 }
-        document: { type: object, description: Validated synthesis-review/1.0.0 document }
-        provenance: { type: object, description: Allowlisted immutable generation provenance }
-        citations: { type: array, items: { type: object } }
+        document: { $ref: "#/components/schemas/SynthesisReviewDocument" }
+        provenance: { $ref: "#/components/schemas/SynthesisGenerationProvenance" }
+        citations:
+          type: array
+          items: { $ref: "#/components/schemas/EditorialSynthesisCitation" }
     SynthesisDecisionResult:
       type: object
       additionalProperties: false
@@ -1185,27 +1393,12 @@ components:
         reviewType: { const: ai-synthesis }
         title: { type: string, minLength: 1, maxLength: 300 }
         abstract: { type: string, minLength: 1, maxLength: 2000 }
-        document: { type: object, description: Validated synthesis-review/1.0.0 document }
-        provenance:
-          {
-            type: object,
-            description: Accepted generation,
-            editor,
-            rights,
-            checklist,
-            and lineage provenance,
-          }
-        citations: { type: array, items: { type: object } }
-        version:
-          type: object
-          additionalProperties: false
-          required: [id, ordinal, isCurrent]
-          properties:
-            id: { type: string }
-            ordinal: { type: integer, minimum: 1 }
-            isCurrent: { const: true }
-            versionDoi: { type: string, pattern: "^10\\.[0-9]{4,9}/\\S+$" }
-            conceptDoi: { type: string, pattern: "^10\\.[0-9]{4,9}/\\S+$" }
+        document: { $ref: "#/components/schemas/SynthesisReviewDocument" }
+        provenance: { $ref: "#/components/schemas/AcceptedSynthesisProvenance" }
+        citations:
+          type: array
+          items: { $ref: "#/components/schemas/PublicSynthesisCitation" }
+        version: { $ref: "#/components/schemas/PublicSynthesisVersion" }
 paths:
   /api/health:
     get:
