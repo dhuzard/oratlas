@@ -5,6 +5,7 @@ export * from "./paths.js";
 export * from "./manifest.js";
 export * from "./knowledge-nodes.js";
 export * from "./node-publication.js";
+export * from "./graph.js";
 export * from "./node-identity.js";
 export * from "./metadata.js";
 export * from "./inspection.js";

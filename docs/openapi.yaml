@@ -220,6 +220,183 @@ components:
           type: array
           description: Relation-scoped claim-citation context; never a bare node-level TRUST score.
           items: { type: object }
+    PublicGraphNode:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          id,
+          localNodeId,
+          kind,
+          repository,
+          versionId,
+          snapshotId,
+          commitSha,
+          title,
+          provenance,
+          identifiers,
+          createdAt,
+        ]
+      properties:
+        id: { type: string, description: Stable KnowledgeNode identity }
+        localNodeId: { type: string }
+        kind: { type: string, enum: [claim, figure, dataset, code] }
+        repository:
+          type: object
+          additionalProperties: false
+          required: [owner, name, url]
+          properties:
+            owner: { type: string }
+            name: { type: string }
+            url: { type: string, format: uri }
+        versionId: { type: string, description: Exact immutable version represented in this page }
+        snapshotId: { type: string, description: Authoritative immutable repository snapshot }
+        commitSha: { type: string, pattern: "^(?:[0-9a-f]{40}|[0-9a-f]{64})$" }
+        title: { type: string }
+        abstract: { type: string }
+        provenance:
+          type: object
+          additionalProperties: false
+          required: [sourcePath]
+          properties:
+            sourcePath: { type: string }
+            sourcePointer: { type: string }
+            repositoryUrl: { type: string, format: uri }
+            commitSha: { type: string, pattern: "^(?:[0-9a-f]{40}|[0-9a-f]{64})$" }
+            declaredAt: { type: string, format: date-time }
+        identifiers:
+          type: array
+          maxItems: 3
+          items:
+            type: object
+            additionalProperties: false
+            required: [scheme, role, value, isExample]
+            properties:
+              scheme: { const: doi }
+              role: { type: string, enum: [version-doi, concept-doi, artifact-doi] }
+              value: { type: string }
+              isExample: { type: boolean }
+        createdAt: { type: string, format: date-time }
+    PublicGraphTrust:
+      type: object
+      additionalProperties: false
+      required: [protocolVersion, reviewStatus, verificationState]
+      properties:
+        protocolVersion: { type: string }
+        reviewStatus:
+          {
+            type: string,
+            enum: [unverified-import, agent-proposed, human-reviewed, adjudicated, superseded],
+          }
+        verificationState:
+          {
+            type: string,
+            enum: [platform-verified, unverified-import, stale-verification, legacy-unknown],
+          }
+    PublicGraphEdge:
+      oneOf:
+        - type: object
+          additionalProperties: false
+          required:
+            [
+              id,
+              sourceNodeId,
+              sourceVersionId,
+              targetNodeId,
+              targetVersionId,
+              relationType,
+              status,
+              provenance,
+              confirmedAt,
+            ]
+          properties:
+            id: { type: string }
+            sourceNodeId: { type: string }
+            sourceVersionId: { type: string }
+            targetNodeId: { type: string }
+            targetVersionId: { type: string }
+            relationType:
+              {
+                type: string,
+                enum:
+                  [
+                    supports,
+                    contradicts,
+                    replicates,
+                    extends,
+                    uses-dataset,
+                    uses-code,
+                    derives-from,
+                  ],
+              }
+            status: { const: confirmed }
+            provenance: { const: confirmed-by-editor }
+            rationale: { type: string }
+            assertedAt: { type: string, format: date-time }
+            confirmedAt: { type: string, format: date-time }
+            trust: { $ref: "#/components/schemas/PublicGraphTrust" }
+        - type: object
+          additionalProperties: false
+          description: >
+            Privacy-minimal public proposal. Evidence JSON, AgentRun data, editor/reviewer identity,
+            review notes and audit details are never included. Rejected and superseded proposals
+            are never addressable from this API.
+          required:
+            [
+              id,
+              sourceNodeId,
+              sourceVersionId,
+              targetNodeId,
+              targetVersionId,
+              relationType,
+              status,
+              provenance,
+              proposedAt,
+            ]
+          properties:
+            id: { type: string }
+            sourceNodeId: { type: string }
+            sourceVersionId: { type: string }
+            targetNodeId: { type: string }
+            targetVersionId: { type: string }
+            relationType:
+              {
+                type: string,
+                enum:
+                  [
+                    supports,
+                    contradicts,
+                    replicates,
+                    extends,
+                    uses-dataset,
+                    uses-code,
+                    derives-from,
+                  ],
+              }
+            status: { const: proposed }
+            provenance: { type: string, enum: [asserted-by-author, proposed-by-agent] }
+            rationale: { type: string }
+            assertedAt: { type: string, format: date-time }
+            proposedAt: { type: string, format: date-time }
+    PublicGraphResponse:
+      type: object
+      additionalProperties: false
+      required: [schemaVersion, seedNodeIds, depth, nodes, edges, page]
+      properties:
+        schemaVersion: { const: 1.0.0 }
+        seedNodeIds: { type: array, maxItems: 10, items: { type: string } }
+        depth: { type: integer, minimum: 0, maximum: 3 }
+        nodes:
+          { type: array, maxItems: 110, items: { $ref: "#/components/schemas/PublicGraphNode" } }
+        edges:
+          { type: array, maxItems: 50, items: { $ref: "#/components/schemas/PublicGraphEdge" } }
+        page:
+          type: object
+          additionalProperties: false
+          required: [limit]
+          properties:
+            limit: { type: integer, minimum: 1, maximum: 50 }
+            nextCursor: { type: string, maxLength: 768 }
     ExecutionPassportRegistration:
       type: object
       required: [crate, attestation]
@@ -987,6 +1164,66 @@ paths:
           }
       responses:
         "200": { description: Search results }
+  /api/graph:
+    get:
+      summary: Query a bounded public knowledge subgraph by seed node or topic
+      description: >
+        Traverses canonical directed edges in both directions, so contradictions appear from
+        either endpoint without duplicating or reversing their edge identity. Confirmed edges are
+        the default. The proposed view is privacy-minimal and never exposes rejected/superseded
+        proposals, raw evidence, agent runs, reviewer identity, review notes or audit data.
+      parameters:
+        - { name: seed, in: query, schema: { type: string, maxLength: 200 } }
+        - { name: q, in: query, schema: { type: string, maxLength: 500 } }
+        - { name: depth, in: query, schema: { type: integer, minimum: 0, maximum: 3, default: 1 } }
+        - {
+            name: limit,
+            in: query,
+            schema: { type: integer, minimum: 1, maximum: 50, default: 25 },
+          }
+        - { name: cursor, in: query, schema: { type: string, maxLength: 768 } }
+        - { name: kind, in: query, schema: { type: string, enum: [claim, figure, dataset, code] } }
+        - name: relationType
+          in: query
+          schema:
+            {
+              type: string,
+              enum:
+                [supports, contradicts, replicates, extends, uses-dataset, uses-code, derives-from],
+            }
+        - {
+            name: edgeStatus,
+            in: query,
+            schema: { type: string, enum: [confirmed, proposed], default: confirmed },
+          }
+        - name: hasTrust
+          in: query
+          description: Filter edges by presence of an exact relation-scoped TRUST assessment
+          schema: { type: boolean }
+      responses:
+        "200":
+          description: One cursor page of exact-version graph nodes and edges
+          headers:
+            RateLimit-Limit: { schema: { type: integer }, description: Configured request budget }
+            RateLimit-Remaining: { schema: { type: integer }, description: Requests remaining }
+            RateLimit-Reset:
+              { schema: { type: integer }, description: Fixed-window reset as Unix epoch seconds }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PublicGraphResponse" }
+        "400": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "429":
+          description: Structured rate-limit error
+          headers:
+            Retry-After: { schema: { type: integer }, description: Seconds until retry }
+            RateLimit-Limit: { schema: { type: integer }, description: Configured request budget }
+            RateLimit-Remaining: { schema: { type: integer }, description: Always zero }
+            RateLimit-Reset:
+              { schema: { type: integer }, description: Fixed-window reset as Unix epoch seconds }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
   /api/nodes:
     get:
       summary: List accepted knowledge nodes

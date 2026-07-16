@@ -1,6 +1,11 @@
 import { type ArchiveSearchQuery, type ClaimSearchQuery } from "@oratlas/contracts";
 import { lexicalScore, tokenize, tokenSet } from "./text.js";
-import { type IndexedClaim, type IndexedReview, type KnowledgeIndexData } from "./types.js";
+import {
+  type IndexedClaim,
+  type IndexedNode,
+  type IndexedReview,
+  type KnowledgeIndexData,
+} from "./types.js";
 
 export interface SearchResult<T> {
   items: T[];
@@ -17,6 +22,12 @@ export interface SearchResult<T> {
 export interface SearchProvider {
   searchReviews(query: ArchiveSearchQuery): SearchResult<IndexedReview & { score: number }>;
   searchClaims(query: ClaimSearchQuery): SearchResult<IndexedClaim & { score: number }>;
+  searchNodes(query: {
+    q: string;
+    kind?: string;
+    page: number;
+    pageSize: number;
+  }): SearchResult<IndexedNode & { score: number }>;
 }
 
 function paginate<T>(items: T[], page: number, pageSize: number): SearchResult<T> {
@@ -29,6 +40,7 @@ function paginate<T>(items: T[], page: number, pageSize: number): SearchResult<T
 export class InProcessSearchProvider implements SearchProvider {
   private readonly reviewTokens = new Map<string, Set<string>>();
   private readonly claimTokens = new Map<string, Set<string>>();
+  private readonly nodeTokens = new Map<string, Set<string>>();
 
   constructor(private readonly data: KnowledgeIndexData) {
     for (const r of data.reviews) {
@@ -47,6 +59,14 @@ export class InProcessSearchProvider implements SearchProvider {
     }
     for (const c of data.claims) {
       this.claimTokens.set(c.claimId, tokenSet(`${c.text} ${c.reviewTitle}`));
+    }
+    for (const node of data.nodes ?? []) {
+      this.nodeTokens.set(
+        node.nodeId,
+        tokenSet(
+          `${node.title} ${node.abstract ?? ""} ${node.localNodeId} ${node.repositoryOwner} ${node.repositoryName}`,
+        ),
+      );
     }
   }
 
@@ -125,6 +145,24 @@ export class InProcessSearchProvider implements SearchProvider {
     if (hasTextQuery) scored = scored.filter((c) => c.score > 0);
     scored.sort((a, b) => b.score - a.score || a.reviewTitle.localeCompare(b.reviewTitle));
 
+    return paginate(scored, query.page, query.pageSize);
+  }
+
+  searchNodes(query: {
+    q: string;
+    kind?: string;
+    page: number;
+    pageSize: number;
+  }): SearchResult<IndexedNode & { score: number }> {
+    const qTokens = tokenize(query.q);
+    const scored = (this.data.nodes ?? [])
+      .filter((node) => !query.kind || node.kind === query.kind)
+      .map((node) => ({
+        ...node,
+        score: lexicalScore(qTokens, this.nodeTokens.get(node.nodeId) ?? new Set()),
+      }))
+      .filter((node) => qTokens.length > 0 && node.score > 0)
+      .sort((a, b) => b.score - a.score || a.nodeId.localeCompare(b.nodeId));
     return paginate(scored, query.page, query.pageSize);
   }
 

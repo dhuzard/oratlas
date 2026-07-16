@@ -83,9 +83,21 @@ export interface IndexedClaim {
   relations: IndexedRelation[];
 }
 
+export interface IndexedNode {
+  nodeId: string;
+  localNodeId: string;
+  kind: string;
+  title: string;
+  abstract?: string;
+  repositoryOwner: string;
+  repositoryName: string;
+}
+
 export interface KnowledgeIndexData {
   reviews: IndexedReview[];
   claims: IndexedClaim[];
   citations: IndexedCitation[];
   identifierConflicts: WorkIdentityAssertion[];
+  /** Public, strictly validated node versions. Omitted by legacy review-only callers. */
+  nodes?: IndexedNode[];
 }

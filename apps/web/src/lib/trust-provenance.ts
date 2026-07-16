@@ -1,10 +1,15 @@
 import "server-only";
-import { type PlatformTrustReviewStatus } from "@oratlas/contracts";
+import {
+  publicGraphTrustSchema,
+  type PlatformTrustReviewStatus,
+  type PublicGraphTrust,
+} from "@oratlas/contracts";
 import {
   isAuthoritativeNodeRelationTrustSubject,
   nodeRelationTrustSubjectInputFromDatabaseRows,
   resolveNodeRelationTrustVerification,
   resolveTrustVerification,
+  selectPreferredTrustAssessment,
   trustSubjectInputFromDatabaseRows,
   type DatabaseTrustSubjectRows,
   type ReviewedNodeRelationAssessmentInput,
@@ -55,6 +60,13 @@ export type LoadedTrustAssessment = Prisma.TrustAssessmentGetPayload<{
 export type LoadedNodeRelationTrustAssessment = Prisma.NodeRelationTrustAssessmentGetPayload<{
   include: typeof loadedNodeRelationTrustInclude;
 }>;
+
+export const PUBLIC_NODE_RELATION_TRUST_GLOBAL_LIMIT = 10_000;
+export const PUBLIC_NODE_RELATION_TRUST_PER_KEY_LIMIT = 50;
+
+export interface PublicNodeRelationTrustSummary extends PublicGraphTrust {
+  assessmentId: string;
+}
 
 export interface ResolvedTrustAssessment extends ResolvedTrustVerification {
   subject: ReturnType<typeof trustSubjectInputFromDatabaseRows>;
@@ -139,6 +151,42 @@ export function resolveLoadedNodeRelationTrustAssessment(
     authoritative: isAuthoritativeNodeRelationTrustSubject(subject),
     ...resolveNodeRelationTrustVerification(subject, row.verification),
   };
+}
+
+/**
+ * Resolve one bounded exact-relation group into its preferred anonymous summary.
+ * Persisted review labels are never projected without reconstructing the subject.
+ */
+export function selectPreferredPublicNodeRelationTrustAssessment(
+  rows: readonly LoadedNodeRelationTrustAssessment[],
+): PublicNodeRelationTrustSummary | undefined {
+  if (rows.length > PUBLIC_NODE_RELATION_TRUST_PER_KEY_LIMIT) return undefined;
+
+  const candidates = rows.flatMap((row) => {
+    try {
+      const resolved = resolveLoadedNodeRelationTrustAssessment(row);
+      if (!resolved.authoritative) return [];
+      const parsed = publicGraphTrustSchema.safeParse({
+        protocolVersion: row.protocolVersion,
+        reviewStatus: resolved.effectiveStatus,
+        verificationState: resolved.state,
+      });
+      if (!parsed.success) return [];
+      return [
+        {
+          id: row.id,
+          effectiveStatus: resolved.effectiveStatus,
+          assessedAt: row.assessedAt?.toISOString() ?? null,
+          value: { assessmentId: row.id, ...parsed.data },
+        },
+      ];
+    } catch {
+      // Malformed persisted subjects fail closed for anonymous projections.
+      return [];
+    }
+  });
+
+  return selectPreferredTrustAssessment(candidates)?.value;
 }
 
 function mapNodeAssessment(

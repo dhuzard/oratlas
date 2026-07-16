@@ -513,6 +513,8 @@ describe.sequential("atomic publication integration", () => {
     expect(accepted.reviewSlug).toBeUndefined();
 
     const trust = await import("./trust-provenance");
+    const graphTrust = await import("./graph-trust-provider");
+    const graphTrustKey = await import("./graph-trust");
     const lifecycle = await import("./node-edge-lifecycle");
     const publication = await import("./node-publication");
     const assessment = await runtime.prisma.nodeRelationTrustAssessment.findFirstOrThrow({
@@ -526,6 +528,12 @@ describe.sequential("atomic publication integration", () => {
     });
     expect(assessment.proposal.status).toBe("proposed");
     expect(trust.resolveLoadedNodeRelationTrustAssessment(assessment).authoritative).toBe(false);
+    const exactTrustKey = {
+      sourceVersionId: assessment.proposal.sourceNodeVersionId,
+      targetVersionId: assessment.proposal.targetNodeVersionId,
+      relationType: "uses-dataset" as const,
+    };
+    expect(await graphTrust.databaseGraphTrustProvider.lookup([exactTrustKey])).toEqual(new Map());
 
     const sourceNodeId = assessment.proposal.sourceNodeVersion.knowledgeNode.id;
     expect((await publication.getPublicNode(sourceNodeId))?.edges).toEqual([]);
@@ -554,6 +562,26 @@ describe.sequential("atomic publication integration", () => {
     });
     const resolved = trust.resolveLoadedNodeRelationTrustAssessment(loaded);
     expect(resolved.authoritative).toBe(true);
+    expect(await graphTrust.databaseGraphTrustProvider.lookup([exactTrustKey])).toEqual(
+      new Map([
+        [
+          graphTrustKey.graphTrustLookupKey(exactTrustKey),
+          {
+            protocolVersion: "trust-poc-1.0",
+            reviewStatus: "unverified-import",
+            verificationState: "unverified-import",
+          },
+        ],
+      ]),
+    );
+    expect(
+      await graphTrust.databaseGraphTrustProvider.lookup([
+        { ...exactTrustKey, relationType: "supports" },
+      ]),
+    ).toEqual(new Map());
+    await runtime.prisma.user.update({ where: { id: editorId }, data: { role: "USER" } });
+    expect(await graphTrust.databaseGraphTrustProvider.lookup([exactTrustKey])).toEqual(new Map());
+    await runtime.prisma.user.update({ where: { id: editorId }, data: { role: "EDITOR" } });
 
     await expect(
       trust.verifyTrustAssessment(
@@ -596,6 +624,15 @@ describe.sequential("atomic publication integration", () => {
     expect((await lifecycle.listConfirmedEdgesForNode(sourceNodeId))[0]?.trust).toEqual(
       publicNode?.edges[0]?.trust,
     );
+    expect(
+      (await graphTrust.databaseGraphTrustProvider.lookup([exactTrustKey])).get(
+        graphTrustKey.graphTrustLookupKey(exactTrustKey),
+      ),
+    ).toEqual({
+      protocolVersion: "trust-poc-1.0",
+      reviewStatus: "human-reviewed",
+      verificationState: "platform-verified",
+    });
     await expect(
       trust.verifyTrustAssessment(
         {
@@ -615,6 +652,72 @@ describe.sequential("atomic publication integration", () => {
       }),
     ).toBe(1);
 
+    await runtime.prisma.nodeRelationTrustVerification.update({
+      where: { nodeRelationTrustAssessmentId: assessment.id },
+      data: { assessmentHash: "f".repeat(64) },
+    });
+    expect(
+      (await graphTrust.databaseGraphTrustProvider.lookup([exactTrustKey])).get(
+        graphTrustKey.graphTrustLookupKey(exactTrustKey),
+      ),
+    ).toEqual({
+      protocolVersion: "trust-poc-1.0",
+      reviewStatus: "unverified-import",
+      verificationState: "stale-verification",
+    });
+    expect((await publication.getPublicNode(sourceNodeId))?.edges[0]?.trust).toMatchObject({
+      assessmentId: assessment.id,
+      reviewStatus: "unverified-import",
+      verificationState: "stale-verification",
+    });
+    await runtime.prisma.nodeRelationTrustVerification.update({
+      where: { nodeRelationTrustAssessmentId: assessment.id },
+      data: { assessmentHash: resolved.currentHash },
+    });
+
+    const verifiedLoaded = await runtime.prisma.nodeRelationTrustAssessment.findUniqueOrThrow({
+      where: { id: assessment.id },
+      include: trust.loadedNodeRelationTrustInclude,
+    });
+    const {
+      id: _id,
+      createdAt: _createdAt,
+      updatedAt: _updatedAt,
+      proposal: _proposal,
+      verification: _verification,
+      ...cloneData
+    } = verifiedLoaded;
+    await runtime.prisma.nodeRelationTrustAssessment.create({
+      data: { ...cloneData, assessedAt: new Date("2027-01-01T00:00:00.000Z") },
+    });
+    expect(
+      (await graphTrust.databaseGraphTrustProvider.lookup([exactTrustKey])).get(
+        graphTrustKey.graphTrustLookupKey(exactTrustKey),
+      ),
+    ).toMatchObject({ reviewStatus: "human-reviewed", verificationState: "platform-verified" });
+
+    await runtime.prisma.nodeRelationTrustAssessment.create({
+      data: {
+        ...cloneData,
+        protocolVersion: "x".repeat(121),
+        assessedAt: new Date("2027-01-01T01:00:00.000Z"),
+      },
+    });
+    expect(
+      (await graphTrust.databaseGraphTrustProvider.lookup([exactTrustKey])).get(
+        graphTrustKey.graphTrustLookupKey(exactTrustKey),
+      ),
+    ).toMatchObject({ reviewStatus: "human-reviewed", verificationState: "platform-verified" });
+
+    await runtime.prisma.nodeRelationTrustAssessment.createMany({
+      data: Array.from({ length: 48 }, (_, index) => ({
+        ...cloneData,
+        assessedAt: new Date(Date.UTC(2027, 0, 2, 0, 0, index)),
+      })),
+    });
+    expect(await graphTrust.databaseGraphTrustProvider.lookup([exactTrustKey])).toEqual(new Map());
+    expect((await publication.getPublicNode(sourceNodeId))?.edges[0]?.trust).toBeUndefined();
+
     await lifecycle.decideNodeEdgeProposal(
       { id: editorId, role: "EDITOR" },
       assessment.proposal.id,
@@ -628,6 +731,7 @@ describe.sequential("atomic publication integration", () => {
       await runtime.prisma.nodeRelationTrustAssessment.count({ where: { id: assessment.id } }),
     ).toBe(1);
     expect((await publication.getPublicNode(sourceNodeId))?.edges).toEqual([]);
+    expect(await graphTrust.databaseGraphTrustProvider.lookup([exactTrustKey])).toEqual(new Map());
     const stale = await runtime.prisma.nodeRelationTrustAssessment.findUniqueOrThrow({
       where: { id: assessment.id },
       include: trust.loadedNodeRelationTrustInclude,
@@ -746,6 +850,16 @@ describe.sequential("atomic publication integration", () => {
         where: { nodeEdgeProposalId: externalProposal.id },
       }),
     ).toBe(1);
+    const graphTrust = await import("./graph-trust-provider");
+    expect(
+      await graphTrust.databaseGraphTrustProvider.lookup([
+        {
+          sourceVersionId: externalProposal.sourceNodeVersionId,
+          targetVersionId: externalProposal.targetNodeVersionId,
+          relationType: "uses-dataset",
+        },
+      ]),
+    ).toEqual(new Map());
 
     const missingCapture = await capture({
       githubRepositoryId: nextRepoId(),

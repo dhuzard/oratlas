@@ -264,7 +264,7 @@ packages: [packages/contracts, packages/knowledge, packages/db, apps/web]
 ```yaml
 id: KG-08
 epic: B
-status: todo
+status: done (PR #47)
 depends_on: [KG-05, KG-07]
 size: M
 labels: [api, knowledge]
