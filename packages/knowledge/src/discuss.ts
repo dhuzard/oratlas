@@ -227,10 +227,25 @@ export function buildDiscussionPrompt(packetJson: string): {
 
 /** Discuss compatibility: tolerate provider prose/fences before its existing strict schema parse. */
 export function extractJsonObject(text: string): string {
-  const fence = /```(?:json)?\s*([\s\S]*?)```/.exec(text);
-  const candidate = fence ? fence[1]! : text;
+  let candidate = text;
+  const openingFence = text.indexOf("```");
+  if (openingFence !== -1) {
+    let contentStart = openingFence + 3;
+    if (text.slice(contentStart, contentStart + 4).toLowerCase() === "json") {
+      contentStart += 4;
+    }
+    while (contentStart < text.length && isFenceWhitespace(text.charCodeAt(contentStart))) {
+      contentStart += 1;
+    }
+    const closingFence = text.indexOf("```", contentStart);
+    if (closingFence !== -1) candidate = text.slice(contentStart, closingFence);
+  }
   const start = candidate.indexOf("{");
   const end = candidate.lastIndexOf("}");
   if (start === -1 || end === -1 || end < start) return candidate.trim();
   return candidate.slice(start, end + 1);
+}
+
+function isFenceWhitespace(code: number): boolean {
+  return code === 9 || code === 10 || code === 11 || code === 12 || code === 13 || code === 32;
 }

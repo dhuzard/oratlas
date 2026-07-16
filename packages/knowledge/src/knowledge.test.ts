@@ -223,9 +223,20 @@ describe("buildDiscussionPrompt", () => {
 });
 
 describe("extractJsonObject", () => {
-  it("preserves Atlas Discuss fenced/prose compatibility", () => {
+  it("preserves Atlas Discuss JSON/json fenced, plain, and prose compatibility", () => {
     expect(extractJsonObject('```json\n{"a":1}\n```')).toBe('{"a":1}');
+    expect(extractJsonObject('```JSON\r\n {"a":1} \r\n```')).toBe('{"a":1}');
+    expect(extractJsonObject('{"a":1}')).toBe('{"a":1}');
     expect(extractJsonObject('Sure: {"a":1} done')).toBe('{"a":1}');
+  });
+
+  it("handles large adversarial fences and whitespace with linear delimiter scans", () => {
+    const whitespace = " \t\r\n".repeat(50_000);
+    expect(extractJsonObject(`prefix\n\`\`\`JSON${whitespace}{"ok":true}\n\`\`\`suffix`)).toBe(
+      '{"ok":true}',
+    );
+    expect(extractJsonObject(`\`\`\`json${whitespace}{"ok":true}`)).toBe('{"ok":true}');
+    expect(extractJsonObject(`\`\`\`${"x".repeat(250_000)}\`\`\``)).toBe("x".repeat(250_000));
   });
 });
 
