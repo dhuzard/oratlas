@@ -16,16 +16,23 @@ vi.mock("server-only", () => ({}));
 const fileName = `.tmp-oratlas-graph-${process.pid}-${Date.now()}.db`;
 const databasePath = resolve(process.cwd(), "packages/db/prisma", fileName);
 const databaseUrl = `file:./${fileName}`;
+const CURSOR_SECRET = "kg08-integration-cursor-secret";
 
 let prisma: PrismaClient;
 let graph: typeof GraphQuery;
 let sourceNodeId: string;
 let targetNodeId: string;
 let confirmedContradictionId: string;
+let confirmedUsesCodeId: string;
 let proposedEdgeId: string;
+let repositoryId: string;
+let editorId: string;
+let sourceVersionId: string;
+let targetVersionId: string;
 
 beforeAll(async () => {
   process.env.DATABASE_URL = databaseUrl;
+  process.env.SESSION_SECRET = CURSOR_SECRET;
   const require = createRequire(import.meta.url);
   const prismaPackage = require.resolve("prisma/package.json", {
     paths: [resolve(process.cwd(), "packages/db")],
@@ -70,6 +77,8 @@ beforeAll(async () => {
   const editor = await prisma.user.create({
     data: { githubUserId: "graph-editor", githubLogin: "graph-editor", role: "EDITOR" },
   });
+  repositoryId = repository.id;
+  editorId = editor.id;
   const source = await createNode(repository.id, "source-claim", "claim", "a", {
     statement: "Memory replay supports consolidation.",
     qualifiers: [],
@@ -87,6 +96,8 @@ beforeAll(async () => {
   });
   sourceNodeId = source.nodeId;
   targetNodeId = target.nodeId;
+  sourceVersionId = source.versionId;
+  targetVersionId = target.versionId;
 
   const review = await prisma.review.create({
     data: {
@@ -143,7 +154,7 @@ beforeAll(async () => {
     },
   });
   confirmedContradictionId = confirmed.id;
-  await prisma.nodeEdge.create({
+  const usesCode = await prisma.nodeEdge.create({
     data: {
       sourceNodeVersionId: target.versionId,
       targetNodeId: code.nodeId,
@@ -153,6 +164,20 @@ beforeAll(async () => {
       confirmedTargetNodeVersionId: code.versionId,
       confirmedById: editor.id,
       confirmedAt: new Date("2026-03-02T00:00:00Z"),
+    },
+  });
+  confirmedUsesCodeId = usesCode.id;
+
+  await prisma.nodeEdge.create({
+    data: {
+      sourceNodeVersionId: source.versionId,
+      targetNodeId: code.nodeId,
+      relationType: "invalid-private-relation",
+      status: "confirmed",
+      provenance: "confirmed-by-editor",
+      confirmedTargetNodeVersionId: code.versionId,
+      confirmedById: editor.id,
+      confirmedAt: new Date("2026-03-02T12:00:00Z"),
     },
   });
 
@@ -172,6 +197,20 @@ beforeAll(async () => {
     },
   });
   proposedEdgeId = proposed.id;
+  await prisma.nodeEdgeProposal.create({
+    data: {
+      originKey: "agent:invalid-public-proposal",
+      sourceStableKey: `node:${target.nodeId}`,
+      targetStableKey: `node:${source.nodeId}`,
+      sourceNodeVersionId: target.versionId,
+      targetNodeId: source.nodeId,
+      targetNodeVersionId: source.versionId,
+      relationType: "supports",
+      origin: "private-origin",
+      rationale: "Invalid stored projection.",
+      status: "proposed",
+    },
+  });
   await prisma.nodeEdgeProposal.create({
     data: {
       originKey: "agent:rejected-proposal",
@@ -204,14 +243,20 @@ afterAll(async () => {
   }
 });
 
+async function query(
+  input: Parameters<typeof publicGraphQuerySchema.parse>[0],
+  trustProvider: GraphQuery.GraphTrustProvider = graph.emptyGraphTrustProvider,
+) {
+  return graph.queryPublicGraph(publicGraphQuerySchema.parse(input), {
+    cursorSecret: CURSOR_SECRET,
+    trustProvider,
+  });
+}
+
 describe.sequential("public graph query", () => {
   it("traverses contradictions symmetrically without changing their canonical direction or id", async () => {
-    const fromSource = await graph.queryPublicGraph(
-      publicGraphQuerySchema.parse({ seed: sourceNodeId, depth: 1 }),
-    );
-    const fromTarget = await graph.queryPublicGraph(
-      publicGraphQuerySchema.parse({ seed: targetNodeId, depth: 1 }),
-    );
+    const fromSource = await query({ seed: sourceNodeId, depth: 1 });
+    const fromTarget = await query({ seed: targetNodeId, depth: 1 });
     for (const result of [fromSource, fromTarget]) {
       expect(publicGraphResponseSchema.parse(result)).toEqual(result);
       const contradictions = result.edges.filter((edge) => edge.relationType === "contradicts");
@@ -225,50 +270,61 @@ describe.sequential("public graph query", () => {
     }
   });
 
-  it("paginates deterministic confirmed edges with a query-bound cursor", async () => {
-    const first = await graph.queryPublicGraph(
-      publicGraphQuerySchema.parse({ seed: targetNodeId, depth: 1, limit: 1 }),
-    );
+  it("uses a signed mutation-sensitive keyset cursor", async () => {
+    const first = await query({ seed: targetNodeId, depth: 1, limit: 1 });
     expect(first.edges).toHaveLength(1);
     expect(first.page.nextCursor).toBeTruthy();
-    const second = await graph.queryPublicGraph(
-      publicGraphQuerySchema.parse({
-        seed: targetNodeId,
-        depth: 1,
-        limit: 1,
-        cursor: first.page.nextCursor,
-      }),
-    );
+    const second = await query({
+      seed: targetNodeId,
+      depth: 1,
+      limit: 1,
+      cursor: first.page.nextCursor,
+    });
     expect(second.edges).toHaveLength(1);
     expect(second.edges[0]?.id).not.toBe(first.edges[0]?.id);
     await expect(
-      graph.queryPublicGraph(
-        publicGraphQuerySchema.parse({
-          seed: targetNodeId,
-          depth: 2,
-          limit: 1,
-          cursor: first.page.nextCursor,
-        }),
-      ),
-    ).rejects.toThrow("invalid for this query");
+      query({
+        seed: targetNodeId,
+        depth: 2,
+        limit: 1,
+        cursor: first.page.nextCursor,
+      }),
+    ).rejects.toThrow("invalid, stale");
+
+    const cursor = first.page.nextCursor!;
+    const replacement = cursor.endsWith("a") ? "b" : "a";
+    await expect(
+      query({ seed: targetNodeId, depth: 1, limit: 1, cursor: cursor.slice(0, -1) + replacement }),
+    ).rejects.toThrow("invalid, stale");
+
+    await prisma.nodeEdge.update({
+      where: { id: confirmedUsesCodeId },
+      data: { rationale: "Candidate mutation invalidates old cursors." },
+    });
+    await expect(query({ seed: targetNodeId, depth: 1, limit: 1, cursor })).rejects.toThrow(
+      "invalid, stale",
+    );
+    await prisma.nodeEdge.update({
+      where: { id: confirmedUsesCodeId },
+      data: { rationale: null },
+    });
   });
 
-  it("searches topic seeds and exposes exact version provenance and identifiers", async () => {
-    const result = await graph.queryPublicGraph(
-      publicGraphQuerySchema.parse({ q: "memory consolidation", depth: 0 }),
-    );
+  it("searches topic seeds and exposes authoritative snapshot and commit identity", async () => {
+    const result = await query({ q: "memory consolidation", depth: 0 });
     expect(result.seedNodeIds).toEqual([sourceNodeId]);
     expect(result.nodes[0]).toMatchObject({
       id: sourceNodeId,
+      versionId: sourceVersionId,
+      snapshotId: expect.any(String),
+      commitSha: "a".repeat(40),
       provenance: { sourcePath: "nodes/source-claim.json" },
     });
     expect(result.nodes[0]?.identifiers).toEqual([]);
   });
 
-  it("returns only privacy-minimal proposed edges and never rejected proposals", async () => {
-    const result = await graph.queryPublicGraph(
-      publicGraphQuerySchema.parse({ seed: targetNodeId, edgeStatus: "proposed", depth: 1 }),
-    );
+  it("safe-parses stored rows and returns only privacy-minimal valid proposals", async () => {
+    const result = await query({ seed: targetNodeId, edgeStatus: "proposed", depth: 1 });
     expect(result.edges).toEqual([
       expect.objectContaining({
         id: proposedEdgeId,
@@ -286,33 +342,150 @@ describe.sequential("public graph query", () => {
       "reviewedById",
       "evidenceJson",
       "agentRun",
+      "Invalid stored projection",
     ]) {
       expect(serialized).not.toContain(forbidden);
     }
+    const confirmed = await query({ seed: sourceNodeId, depth: 1 });
+    expect(JSON.stringify(confirmed.edges)).not.toContain("invalid-private-relation");
   });
 
-  it("applies relation, kind, and TRUST-presence filters without orphan endpoints", async () => {
-    const relation = await graph.queryPublicGraph(
-      publicGraphQuerySchema.parse({ seed: targetNodeId, relationType: "uses-code", depth: 1 }),
-    );
+  it("applies relation and kind filters without orphan endpoints", async () => {
+    const relation = await query({ seed: targetNodeId, relationType: "uses-code", depth: 1 });
     expect(relation.edges.map((edge) => edge.relationType)).toEqual(["uses-code"]);
-    const kind = await graph.queryPublicGraph(
-      publicGraphQuerySchema.parse({ seed: targetNodeId, kind: "dataset", depth: 1 }),
-    );
+    const kind = await query({ seed: targetNodeId, kind: "dataset", depth: 1 });
     expect(kind.edges).toEqual([]);
     expect(kind.nodes.every((node) => node.kind === "dataset")).toBe(true);
-    const trust = await graph.queryPublicGraph(
-      publicGraphQuerySchema.parse({ seed: targetNodeId, hasTrust: true, depth: 1 }),
-    );
-    expect(trust.nodes).toEqual([]);
-    expect(trust.edges).toEqual([]);
-    const trustedSource = await graph.queryPublicGraph(
-      publicGraphQuerySchema.parse({ seed: sourceNodeId, hasTrust: true, depth: 0 }),
-    );
-    expect(trustedSource.nodes).toEqual([
-      expect.objectContaining({ id: sourceNodeId, hasTrust: true }),
-    ]);
   });
+
+  it("keeps TRUST exact-edge scoped behind the KG-10 provider seam", async () => {
+    const defaultResult = await query({ seed: sourceNodeId, depth: 1 });
+    expect(defaultResult.nodes.every((node) => !("hasTrust" in node))).toBe(true);
+    expect(defaultResult.edges.every((edge) => !("trust" in edge))).toBe(true);
+    expect((await query({ seed: sourceNodeId, depth: 1, hasTrust: true })).edges).toEqual([]);
+
+    const expectedKey = graph.graphTrustLookupKey({
+      sourceVersionId,
+      targetVersionId,
+      relationType: "contradicts",
+    });
+    const provider: GraphQuery.GraphTrustProvider = {
+      async lookup(keys) {
+        expect(keys).toContainEqual({
+          sourceVersionId,
+          targetVersionId,
+          relationType: "contradicts",
+        });
+        return new Map([
+          [
+            expectedKey,
+            {
+              protocolVersion: "TRUST-1.0",
+              reviewStatus: "human-reviewed",
+              verificationState: "platform-verified",
+              aggregateScore: 0.75,
+              aggregateMethod: "mean-v1",
+            },
+          ],
+          [
+            graph.graphTrustLookupKey({
+              sourceVersionId: targetVersionId,
+              targetVersionId:
+                keys.find((key) => key.relationType === "uses-code")?.targetVersionId ?? "missing",
+              relationType: "uses-code",
+            }),
+            { protocolVersion: "bad", reviewStatus: "private-invalid" },
+          ],
+        ]);
+      },
+    };
+    const trusted = await query({ seed: sourceNodeId, depth: 1, hasTrust: true }, provider);
+    expect(trusted.edges).toEqual([
+      expect.objectContaining({
+        id: confirmedContradictionId,
+        trust: {
+          protocolVersion: "TRUST-1.0",
+          reviewStatus: "human-reviewed",
+          verificationState: "platform-verified",
+          aggregateScore: 0.75,
+          aggregateMethod: "mean-v1",
+        },
+      }),
+    ]);
+    expect(JSON.stringify(trusted.nodes)).not.toContain("trust");
+
+    const proposed = await query(
+      { seed: targetNodeId, edgeStatus: "proposed", hasTrust: false, depth: 1 },
+      provider,
+    );
+    expect(proposed.edges).toHaveLength(1);
+    expect(proposed.edges.every((edge) => !("trust" in edge))).toBe(true);
+    expect(
+      (
+        await query(
+          { seed: targetNodeId, edgeStatus: "proposed", hasTrust: true, depth: 1 },
+          provider,
+        )
+      ).edges,
+    ).toEqual([]);
+  });
+
+  it("returns typed errors instead of truncating traversal and topic scans", async () => {
+    const overflow = await createNode(repositoryId, "overflow-source", "claim", "d", {
+      statement: "Overflow source.",
+      qualifiers: [],
+    });
+    const targetNodes = Array.from({ length: 501 }, (_, index) => ({
+      id: `overflow-node-${index.toString().padStart(3, "0")}`,
+      repositoryId,
+      localNodeId: `overflow-target-${index}`,
+      kind: "claim",
+    }));
+    for (let index = 0; index < targetNodes.length; index += 100) {
+      await prisma.knowledgeNode.createMany({ data: targetNodes.slice(index, index + 100) });
+    }
+    const versions = targetNodes.map((node, index) => ({
+      id: `overflow-version-${index.toString().padStart(3, "0")}`,
+      knowledgeNodeId: node.id,
+      snapshotId: overflow.snapshotId,
+      title: `Overflow target ${index}`,
+      contributorsJson: "[]",
+      license: "CC-BY-4.0",
+      provenanceJson: canonicalJson({ sourcePath: `nodes/overflow-${index}.json` }),
+      payloadJson: canonicalJson({ statement: `Overflow target ${index}.`, qualifiers: [] }),
+    }));
+    for (let index = 0; index < versions.length; index += 50) {
+      await prisma.knowledgeNodeVersion.createMany({ data: versions.slice(index, index + 50) });
+    }
+    const edges = targetNodes.map((node, index) => ({
+      id: `overflow-edge-${index.toString().padStart(3, "0")}`,
+      sourceNodeVersionId: overflow.versionId,
+      targetNodeId: node.id,
+      relationType: "supports",
+      status: "confirmed",
+      provenance: "confirmed-by-editor",
+      confirmedTargetNodeVersionId: versions[index]!.id,
+      confirmedById: editorId,
+      confirmedAt: new Date("2026-04-01T00:00:00Z"),
+    }));
+    for (let index = 0; index < edges.length; index += 50) {
+      await prisma.nodeEdge.createMany({ data: edges.slice(index, index + 50) });
+    }
+    await expect(query({ seed: overflow.nodeId, depth: 1 })).rejects.toThrow(
+      "500-edge traversal bound",
+    );
+
+    const extraNodes = Array.from({ length: 600 }, (_, index) => ({
+      id: `topic-overflow-${index.toString().padStart(3, "0")}`,
+      repositoryId,
+      localNodeId: `topic-overflow-${index}`,
+      kind: "claim",
+    }));
+    for (let index = 0; index < extraNodes.length; index += 100) {
+      await prisma.knowledgeNode.createMany({ data: extraNodes.slice(index, index + 100) });
+    }
+    await expect(query({ q: "overflow", depth: 0 })).rejects.toThrow("1,000-node scan bound");
+  }, 60_000);
 });
 
 async function createNode(

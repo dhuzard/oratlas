@@ -2,26 +2,39 @@ import { NextResponse } from "next/server";
 import { publicGraphQuerySchema } from "@oratlas/contracts";
 import { errorResponse, handleRouteError } from "@/lib/api";
 import { GraphQueryError, queryPublicGraph } from "@/lib/graph-query";
-import { clientKey, rateLimit, rateLimitDefaults } from "@/lib/rate-limit";
+import { clientKey, rateLimit, rateLimitDefaults, type RateLimitResult } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
+function graphResponseHeaders(
+  response: NextResponse,
+  budget?: RateLimitResult,
+  maximum?: number,
+): NextResponse {
+  response.headers.set("Cache-Control", "no-store, must-revalidate");
+  if (budget && maximum !== undefined) {
+    response.headers.set("RateLimit-Limit", String(maximum));
+    response.headers.set("RateLimit-Remaining", String(budget.remaining));
+    response.headers.set("RateLimit-Reset", String(Math.ceil(budget.resetAt / 1_000)));
+  }
+  return response;
+}
+
 export async function GET(request: Request) {
+  let budget: RateLimitResult | undefined;
+  let maximum: number | undefined;
   try {
     const defaults = rateLimitDefaults();
-    const budget = rateLimit(
-      clientKey(request.headers, "public-graph"),
-      defaults.max,
-      defaults.windowMs,
-    );
+    maximum = defaults.max;
+    budget = rateLimit(clientKey(request.headers, "public-graph"), defaults.max, defaults.windowMs);
     if (!budget.ok) {
       const response = errorResponse("rate-limited", "Too many graph requests.");
       response.headers.set(
         "Retry-After",
         String(Math.max(1, Math.ceil((budget.resetAt - Date.now()) / 1000))),
       );
-      return response;
+      return graphResponseHeaders(response, budget, maximum);
     }
 
     const params = new URL(request.url).searchParams;
@@ -47,17 +60,26 @@ export async function GET(request: Request) {
       hasTrust: boolean("hasTrust"),
     });
     if (!parsed.success) {
-      return errorResponse(
-        "bad-request",
-        "Invalid graph query.",
-        parsed.error.issues.map((issue) => issue.message),
+      return graphResponseHeaders(
+        errorResponse(
+          "bad-request",
+          "Invalid graph query.",
+          parsed.error.issues.map((issue) => issue.message),
+        ),
+        budget,
+        maximum,
       );
     }
-    return NextResponse.json(await queryPublicGraph(parsed.data), {
-      headers: { "Cache-Control": "no-store, must-revalidate" },
-    });
+    return graphResponseHeaders(
+      NextResponse.json(await queryPublicGraph(parsed.data)),
+      budget,
+      maximum,
+    );
   } catch (error) {
-    if (error instanceof GraphQueryError) return errorResponse(error.code, error.message);
-    return handleRouteError(error);
+    const response =
+      error instanceof GraphQueryError
+        ? errorResponse(error.code, error.message)
+        : handleRouteError(error);
+    return graphResponseHeaders(response, budget, maximum);
   }
 }

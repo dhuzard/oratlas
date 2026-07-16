@@ -230,11 +230,12 @@ components:
           kind,
           repository,
           versionId,
+          snapshotId,
+          commitSha,
           title,
           provenance,
           identifiers,
           createdAt,
-          hasTrust,
         ]
       properties:
         id: { type: string, description: Stable KnowledgeNode identity }
@@ -249,6 +250,8 @@ components:
             name: { type: string }
             url: { type: string, format: uri }
         versionId: { type: string, description: Exact immutable version represented in this page }
+        snapshotId: { type: string, description: Authoritative immutable repository snapshot }
+        commitSha: { type: string, pattern: "^(?:[0-9a-f]{40}|[0-9a-f]{64})$" }
         title: { type: string }
         abstract: { type: string }
         provenance:
@@ -274,9 +277,28 @@ components:
               value: { type: string }
               isExample: { type: boolean }
         createdAt: { type: string, format: date-time }
-        hasTrust:
-          type: boolean
-          description: Whether the stable claim node has relation-scoped TRUST assessments
+    PublicGraphTrust:
+      type: object
+      additionalProperties: false
+      required: [protocolVersion, reviewStatus, verificationState]
+      dependentRequired:
+        aggregateScore: [aggregateMethod]
+      properties:
+        protocolVersion: { type: string }
+        reviewStatus:
+          {
+            type: string,
+            enum: [unverified-import, agent-proposed, human-reviewed, adjudicated, superseded],
+          }
+        verificationState:
+          {
+            type: string,
+            enum: [platform-verified, unverified-import, stale-verification, legacy-unknown],
+          }
+        aggregateScore: { type: number, minimum: 0, maximum: 1 }
+        aggregateMethod:
+          type: string
+          description: Required whenever aggregateScore is present
     PublicGraphEdge:
       oneOf:
         - type: object
@@ -318,6 +340,7 @@ components:
             rationale: { type: string }
             assertedAt: { type: string, format: date-time }
             confirmedAt: { type: string, format: date-time }
+            trust: { $ref: "#/components/schemas/PublicGraphTrust" }
         - type: object
           additionalProperties: false
           description: >
@@ -379,7 +402,7 @@ components:
           required: [limit]
           properties:
             limit: { type: integer, minimum: 1, maximum: 50 }
-            nextCursor: { type: string }
+            nextCursor: { type: string, maxLength: 768 }
     ExecutionPassportRegistration:
       type: object
       required: [crate, attestation]
@@ -1164,7 +1187,7 @@ paths:
             in: query,
             schema: { type: integer, minimum: 1, maximum: 50, default: 25 },
           }
-        - { name: cursor, in: query, schema: { type: string, maxLength: 512 } }
+        - { name: cursor, in: query, schema: { type: string, maxLength: 768 } }
         - { name: kind, in: query, schema: { type: string, enum: [claim, figure, dataset, code] } }
         - name: relationType
           in: query
@@ -1179,16 +1202,34 @@ paths:
             in: query,
             schema: { type: string, enum: [confirmed, proposed], default: confirmed },
           }
-        - { name: hasTrust, in: query, schema: { type: boolean } }
+        - name: hasTrust
+          in: query
+          description: Filter edges by presence of an exact relation-scoped TRUST assessment
+          schema: { type: boolean }
       responses:
         "200":
           description: One cursor page of exact-version graph nodes and edges
+          headers:
+            RateLimit-Limit: { schema: { type: integer }, description: Configured request budget }
+            RateLimit-Remaining: { schema: { type: integer }, description: Requests remaining }
+            RateLimit-Reset:
+              { schema: { type: integer }, description: Fixed-window reset as Unix epoch seconds }
           content:
             application/json:
               schema: { $ref: "#/components/schemas/PublicGraphResponse" }
         "400": { $ref: "#/components/responses/Error" }
         "404": { $ref: "#/components/responses/Error" }
-        "429": { $ref: "#/components/responses/Error" }
+        "429":
+          description: Structured rate-limit error
+          headers:
+            Retry-After: { schema: { type: integer }, description: Seconds until retry }
+            RateLimit-Limit: { schema: { type: integer }, description: Configured request budget }
+            RateLimit-Remaining: { schema: { type: integer }, description: Always zero }
+            RateLimit-Reset:
+              { schema: { type: integer }, description: Fixed-window reset as Unix epoch seconds }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
   /api/nodes:
     get:
       summary: List accepted knowledge nodes

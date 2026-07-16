@@ -1,8 +1,10 @@
 import { z } from "zod";
 import {
+  assessmentReviewStatusSchema,
   knowledgeNodeKindSchema,
   nodeEdgeProvenanceSchema,
   nodeRelationTypeSchema,
+  trustVerificationStateSchema,
 } from "./enums.js";
 import { httpsUrlSchema } from "./identifiers.js";
 import { knowledgeNodeProvenanceSchema } from "./knowledge-nodes.js";
@@ -17,7 +19,7 @@ export const publicGraphQuerySchema = z
     q: z.string().trim().min(1).max(500).optional(),
     depth: z.number().int().min(0).max(GRAPH_MAX_DEPTH).default(1),
     limit: z.number().int().min(1).max(GRAPH_MAX_PAGE_SIZE).default(25),
-    cursor: z.string().trim().min(1).max(512).optional(),
+    cursor: z.string().trim().min(1).max(768).optional(),
     kind: knowledgeNodeKindSchema.optional(),
     relationType: nodeRelationTypeSchema.optional(),
     edgeStatus: z.enum(["confirmed", "proposed"]).default("confirmed"),
@@ -31,27 +33,46 @@ export type PublicGraphQuery = z.infer<typeof publicGraphQuerySchema>;
 
 export const publicGraphNodeSchema = z
   .object({
-    id: z.string().min(1),
+    id: z.string().min(1).max(200),
     localNodeId: z.string().min(1).max(120),
     kind: knowledgeNodeKindSchema,
     repository: z.object({ owner: z.string(), name: z.string(), url: httpsUrlSchema }).strict(),
-    versionId: z.string().min(1),
+    versionId: z.string().min(1).max(200),
+    snapshotId: z.string().min(1).max(200),
+    commitSha: z.string().regex(/^(?:[0-9a-f]{40}|[0-9a-f]{64})$/i),
     title: z.string().min(1).max(500),
     abstract: z.string().max(10_000).optional(),
     provenance: knowledgeNodeProvenanceSchema,
     identifiers: z.array(publicNodeIdentifierSchema).max(3),
     createdAt: z.string().datetime(),
-    hasTrust: z.boolean(),
   })
   .strict();
 export type PublicGraphNode = z.infer<typeof publicGraphNodeSchema>;
 
+const publicGraphTrustBase = {
+  protocolVersion: z.string().min(1).max(120),
+  reviewStatus: assessmentReviewStatusSchema,
+  verificationState: trustVerificationStateSchema,
+};
+
+export const publicGraphTrustSchema = z.union([
+  z
+    .object({
+      ...publicGraphTrustBase,
+      aggregateScore: z.number().min(0).max(1),
+      aggregateMethod: z.string().min(1).max(200),
+    })
+    .strict(),
+  z.object(publicGraphTrustBase).strict(),
+]);
+export type PublicGraphTrust = z.infer<typeof publicGraphTrustSchema>;
+
 const publicGraphEdgeBase = {
-  id: z.string().min(1),
-  sourceNodeId: z.string().min(1),
-  sourceVersionId: z.string().min(1),
-  targetNodeId: z.string().min(1),
-  targetVersionId: z.string().min(1),
+  id: z.string().min(1).max(200),
+  sourceNodeId: z.string().min(1).max(200),
+  sourceVersionId: z.string().min(1).max(200),
+  targetNodeId: z.string().min(1).max(200),
+  targetVersionId: z.string().min(1).max(200),
   relationType: nodeRelationTypeSchema,
   rationale: z.string().max(4_000).optional(),
   assertedAt: z.string().datetime().optional(),
@@ -64,6 +85,7 @@ export const publicGraphEdgeSchema = z.discriminatedUnion("status", [
       status: z.literal("confirmed"),
       provenance: z.literal("confirmed-by-editor"),
       confirmedAt: z.string().datetime(),
+      trust: publicGraphTrustSchema.optional(),
     })
     .strict(),
   z
@@ -80,14 +102,14 @@ export type PublicGraphEdge = z.infer<typeof publicGraphEdgeSchema>;
 export const publicGraphResponseSchema = z
   .object({
     schemaVersion: z.literal("1.0.0"),
-    seedNodeIds: z.array(z.string().min(1)).max(10),
+    seedNodeIds: z.array(z.string().min(1).max(200)).max(10),
     depth: z.number().int().min(0).max(GRAPH_MAX_DEPTH),
     nodes: z.array(publicGraphNodeSchema).max(110),
     edges: z.array(publicGraphEdgeSchema).max(GRAPH_MAX_PAGE_SIZE),
     page: z
       .object({
         limit: z.number().int().min(1).max(GRAPH_MAX_PAGE_SIZE),
-        nextCursor: z.string().min(1).max(512).optional(),
+        nextCursor: z.string().min(1).max(768).optional(),
       })
       .strict(),
   })

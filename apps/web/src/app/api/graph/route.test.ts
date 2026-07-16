@@ -38,6 +38,10 @@ describe("GET /api/graph", () => {
   it("returns typed 400 errors for oversized bounds before querying storage", async () => {
     const response = await GET(new Request("https://oratlas.test/api/graph?seed=n1&depth=4"));
     expect(response.status).toBe(400);
+    expect(response.headers.get("cache-control")).toBe("no-store, must-revalidate");
+    expect(response.headers.get("ratelimit-limit")).toBe("10");
+    expect(response.headers.get("ratelimit-remaining")).toBe("9");
+    expect(response.headers.get("ratelimit-reset")).toMatch(/^\d+$/);
     expect(await response.json()).toMatchObject({ error: { code: "bad-request" } });
     expect(state.query).not.toHaveBeenCalled();
   });
@@ -46,6 +50,10 @@ describe("GET /api/graph", () => {
     state.budget = { ok: false, remaining: 0, resetAt: Date.now() + 30_000 };
     const response = await GET(new Request("https://oratlas.test/api/graph?seed=n1"));
     expect(response.status).toBe(429);
+    expect(response.headers.get("cache-control")).toBe("no-store, must-revalidate");
+    expect(response.headers.get("ratelimit-limit")).toBe("10");
+    expect(response.headers.get("ratelimit-remaining")).toBe("0");
+    expect(response.headers.get("ratelimit-reset")).toMatch(/^\d+$/);
     expect(response.headers.get("retry-after")).toBeTruthy();
     expect(await response.json()).toEqual({
       error: { code: "rate-limited", message: "Too many graph requests." },
@@ -61,5 +69,16 @@ describe("GET /api/graph", () => {
     expect(state.query).toHaveBeenCalledWith(
       expect.objectContaining({ edgeStatus: "proposed", hasTrust: false }),
     );
+  });
+
+  it("applies no-store and rate metadata to unexpected errors", async () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    state.query.mockRejectedValueOnce(new Error("private database detail"));
+    const response = await GET(new Request("https://oratlas.test/api/graph?seed=n1"));
+    expect(response.status).toBe(500);
+    expect(response.headers.get("cache-control")).toBe("no-store, must-revalidate");
+    expect(response.headers.get("ratelimit-limit")).toBe("10");
+    expect(JSON.stringify(await response.json())).not.toContain("private database detail");
+    consoleError.mockRestore();
   });
 });

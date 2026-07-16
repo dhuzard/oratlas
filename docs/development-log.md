@@ -498,16 +498,18 @@ relations, and visibly labelled privacy-minimal proposals.
 
 - Added strict graph query, node, edge, cursor-page, and response contracts. Requests require a
   stable seed node or keyword query, cap traversal depth at 3 and pages at 50 edges, and support
-  node-kind, relation-type, edge-status, and relation-scoped TRUST-presence filters. The contracts
+  node-kind, relation-type, edge-status, and exact-edge TRUST-presence filters. The contracts
   package is included because the public API needs one runtime-validated DTO shared by the web and
   future graph consumers.
 - Extended the existing dependency-free `SearchProvider` with deterministic node-topic search.
   Only the newest strictly valid public node version enters its bounded 1,000-node POC index; a
   malformed current version is withheld rather than falling back to older content.
 - Added `GET /api/graph` with the configured public-route rate budget, typed errors, no-store
-  responses, query-bound opaque cursors, a 500-edge traversal-work ceiling, at most 10 topic seeds,
-  and stable exact-version node/edge identifiers. Node DTOs retain public provenance and distinct
-  DOI roles for KG-09 and later graph consumers.
+  responses, HMAC-SHA256 signed keyset cursors, a 500-edge traversal-work ceiling, at most 10 topic
+  seeds, and stable exact-version node/edge identifiers. Cursor verification is constant-time and
+  binds the query, canonical last edge id, and complete candidate-set hash, rejecting tampering,
+  query mismatch, and graph mutation. Node DTOs retain authoritative snapshot id, commit SHA,
+  public provenance, and distinct DOI roles for KG-09 and later graph consumers.
 - Reused KG-07's authoritative confirmed-edge predicate and KG-05's strict version parser.
   Confirmed traversal requires current editor/admin confirmation and an owned frozen target
   version. Directed edges are traversable from either endpoint, so contradictions are symmetric
@@ -517,6 +519,19 @@ relations, and visibly labelled privacy-minimal proposals.
   proposal time. Rejected/superseded proposals, evidence JSON, agent-run payloads, review notes,
   editor/reviewer identities, and audit data are neither selected for the DTO nor serialized.
   Existing node pages remain confirmed-only.
+- Removed the earlier bare-node TRUST-presence approximation. Optional typed TRUST summaries now
+  exist only on confirmed edges and include protocol, review status, verification state, and an
+  aggregate method whenever a score is present. Lookup is behind a narrow batch provider keyed by
+  exact source version, target version, and relation type. Its default implementation returns no
+  assessment; KG-10 persistence must be rebased and wired into this seam before production TRUST
+  graph summaries are available. Proposed edges can never carry TRUST.
+- Converted all work ceilings to fail-closed typed errors: 1,001 topic rows reject the query, 501
+  rows at a traversal frontier reject the query, and more than 500 unique cumulative edges reject
+  rather than silently truncating. Stored nodes, edges, and provider TRUST values are safe-parsed
+  independently so one malformed row is omitted without invalidating unrelated projections.
+- Every success and error response carries `Cache-Control: no-store`; rate-budget headers report
+  limit, remaining requests, and reset time on normal and error responses, with `Retry-After` on
+  429 responses.
 - Added contract/search unit coverage and a seeded SQLite integration graph covering symmetric
   contradictions, cursor pagination and query binding, topic seeds, exact provenance, filters,
   confirmed/proposed separation, and adversarial proposal privacy. The Windows test setup retains
