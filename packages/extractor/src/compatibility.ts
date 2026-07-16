@@ -5,6 +5,7 @@ import {
   type InspectionReport,
 } from "@oratlas/contracts";
 import { type ExtractedKnowledge } from "./knowledge.js";
+import { type NodeExtractionReport } from "./nodes.js";
 
 const TEMPLATE_FULL_NAME = "allenneuraldynamics/computationalreviewtemplate";
 
@@ -22,6 +23,7 @@ export function assessCompatibility(
   report: InspectionReport,
   knowledge: ExtractedKnowledge,
   manifestPresent: boolean,
+  nodeExtraction?: NodeExtractionReport,
 ): CompatibilityReport {
   if (report.status === "failed") {
     return inspectionFailed(report.error ?? "Inspection failed.");
@@ -111,18 +113,27 @@ export function assessCompatibility(
       : ["No published GitHub release found."],
   );
 
+  const validNodeDeclarations =
+    nodeExtraction?.manifest.status === "ok" && nodeExtraction.counts.ok > 0;
+
   // 9. DOI
   const manifestDoi = manifestPresent && anyPath((p) => p === "review-manifest.json");
   const releaseDoi = report.releases.some((r) => r.bodyDois.length > 0);
+  const nodeDoi =
+    nodeExtraction?.nodes.some(
+      (record) => record.status === "ok" && record.doiReferences.length > 0,
+    ) ?? false;
   const doiDetected = signal(
-    manifestDoi || releaseDoi,
+    manifestDoi || releaseDoi || nodeDoi,
     [
       manifestDoi ? "review-manifest.json may declare a DOI." : "",
       releaseDoi ? "A DOI appears in a release body." : "",
+      nodeDoi ? "A valid first-class node declares a DOI." : "",
     ].filter(Boolean),
   );
 
-  const knowledgeArtifacts = knowledge.claims.length > 0 || knowledge.citations.length > 0;
+  const legacyKnowledgeArtifacts = knowledge.claims.length > 0 || knowledge.citations.length > 0;
+  const knowledgeArtifacts = legacyKnowledgeArtifacts || validNodeDeclarations;
 
   // --- Level decision (transparent) ---
   const rationale: string[] = [];
@@ -143,6 +154,11 @@ export function assessCompatibility(
     rationale.push(
       "Structurally compatible: MyST project plus review content/bibliography and manifest or knowledge/provenance artifacts.",
     );
+  } else if (validNodeDeclarations) {
+    level = "compatible";
+    rationale.push(
+      `Node-publication compatible: ${nodeExtraction.counts.ok} valid first-class knowledge node(s) were deterministically extracted.`,
+    );
   } else if (
     reviewContentDetected.detected ||
     bibliographyDetected.detected ||
@@ -162,7 +178,7 @@ export function assessCompatibility(
   }
 
   // Recommendations (non-blocking)
-  if (!manifestPresent) {
+  if (!manifestPresent && !validNodeDeclarations) {
     recommendations.push(
       "Add a review-manifest.json to declare title, DOIs, and knowledge artifact paths precisely.",
     );
@@ -177,7 +193,7 @@ export function assessCompatibility(
       "Connect the repository to Zenodo and publish a release to mint a DOI. See docs/doi-and-versioning.md.",
     );
   }
-  if (!trustDataDetected.detected && knowledgeArtifacts) {
+  if (!trustDataDetected.detected && legacyKnowledgeArtifacts) {
     warnings.push("Claims/citations found but no TRUST assessments were provided.");
   }
   if (report.status === "partial") {

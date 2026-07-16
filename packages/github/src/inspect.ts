@@ -1,9 +1,13 @@
 import {
+  MAX_NODE_MANIFEST_BYTES,
   type InspectionReport,
+  type NodeManifest,
+  type NodeManifestSource,
   type RepoFile,
   type RepoRef,
   type RepoRelease,
   type RepoSourceSelection,
+  validateNodeManifest,
 } from "@oratlas/contracts";
 import { parseGithubRepoUrl } from "./url.js";
 import { createFetchTransport, type GithubTransport } from "./transport.js";
@@ -30,6 +34,7 @@ export const DEFAULT_LIMITS: InspectionLimits = {
  */
 const WELL_KNOWN_FILES = [
   "review-manifest.json",
+  "node-manifest.json",
   "CITATION.cff",
   ".zenodo.json",
   "codemeta.json",
@@ -340,9 +345,13 @@ export async function inspectRepository(
 
   // 8. Determine which files to fetch: well-known files + discovered artifacts.
   const treePaths = new Set(tree.map((t) => t.path));
+  const wellKnownToFetch = new Set<string>();
   const toFetch = new Set<string>();
   for (const wk of WELL_KNOWN_FILES) {
-    if (treePaths.has(wk)) toFetch.add(wk);
+    if (treePaths.has(wk)) {
+      wellKnownToFetch.add(wk);
+      toFetch.add(wk);
+    }
   }
   // Discover bibliography, knowledge JSONL, and provenance files from the tree.
   for (const entry of tree) {
@@ -358,37 +367,54 @@ export async function inspectRepository(
   const files: Record<string, RepoFile> = {};
   let totalBytesFetched = 0;
   let filesFetched = 0;
-  for (const path of toFetch) {
-    if (filesFetched >= limits.maxFileCount) {
-      warnings.push(`File fetch cap (${limits.maxFileCount}) reached; some files not inspected.`);
-      break;
+  let fileFetchAttempts = 0;
+  let fileFetchCapWarned = false;
+  let nodeManifest: NodeManifest | undefined;
+
+  const warnFileFetchCap = (): void => {
+    if (fileFetchCapWarned) return;
+    fileFetchCapWarned = true;
+    warnings.push(`File fetch cap (${limits.maxFileCount}) reached; some files not inspected.`);
+  };
+
+  /** Fetch one textual repository file at the selected immutable commit. */
+  const fetchFile = async (path: string, maxFileBytes = limits.maxFileBytes): Promise<void> => {
+    if (fileFetchAttempts >= limits.maxFileCount) {
+      warnFileFetchCap();
+      return;
     }
     const ext = extensionOf(path);
     if (ext && !PERMITTED_EXTENSIONS.has(ext) && !path.endsWith("CITATION.cff")) {
-      continue;
+      return;
     }
     const declaredSize = tree.find((t) => t.path === path)?.size ?? 0;
-    if (declaredSize > limits.maxFileBytes) {
+    if (declaredSize > maxFileBytes) {
       warnings.push(`Skipped oversized file '${path}' (${declaredSize} bytes).`);
       files[path] = { path, size: declaredSize, truncated: true };
-      continue;
+      return;
     }
     if (totalBytesFetched + declaredSize > limits.maxTotalBytes) {
       warnings.push(`Total content cap reached before fetching '${path}'.`);
-      break;
+      return;
     }
+    if (!treePaths.has(path)) {
+      warnings.push(`Declared file '${path}' does not exist in the selected commit tree.`);
+      return;
+    }
+    fileFetchAttempts += 1;
     const contentRes = await transport.request(
       `/repos/${ref.owner}/${ref.name}/contents/${path.split("/").map(encodeURIComponent).join("/")}?ref=${encodeURIComponent(selectedCommitSha)}`,
     );
     if (!contentRes.ok || !contentRes.json || typeof contentRes.json !== "object") {
       warnings.push(`Could not fetch '${path}'.`);
-      continue;
+      return;
     }
     const c = contentRes.json as Record<string, unknown>;
     const size = typeof c.size === "number" ? c.size : declaredSize;
-    if (size > limits.maxFileBytes) {
+    if (size > maxFileBytes) {
+      warnings.push(`Skipped oversized file '${path}' (${size} bytes).`);
       files[path] = { path, size, truncated: true };
-      continue;
+      return;
     }
     let content: string | undefined;
     if (c.encoding === "base64" && typeof c.content === "string") {
@@ -398,14 +424,88 @@ export async function inspectRepository(
     }
     if (content !== undefined) {
       const bytes = Buffer.byteLength(content, "utf-8");
+      if (bytes > maxFileBytes) {
+        warnings.push(`Skipped oversized file '${path}' (${bytes} bytes).`);
+        files[path] = { path, size: bytes, truncated: true };
+        return;
+      }
       if (totalBytesFetched + bytes > limits.maxTotalBytes) {
         warnings.push(`Total content cap reached while fetching '${path}'.`);
-        break;
+        files[path] = { path, size: bytes, truncated: true };
+        return;
       }
       totalBytesFetched += bytes;
       filesFetched += 1;
       files[path] = { path, size, content, truncated: false };
     }
+  };
+
+  // The manifest is fetched first because it is the only trusted routing input
+  // for arbitrarily named node source files. It receives its contract-specific
+  // cap while still consuming the shared file-count and total-byte budgets.
+  if (treePaths.has("node-manifest.json")) {
+    await fetchFile("node-manifest.json", MAX_NODE_MANIFEST_BYTES);
+    toFetch.delete("node-manifest.json");
+    const manifestFile = files["node-manifest.json"];
+    if (manifestFile?.content) {
+      try {
+        const validation = validateNodeManifest(JSON.parse(manifestFile.content));
+        if (validation.ok && validation.manifest) {
+          nodeManifest = validation.manifest;
+          for (const path of sourcePaths(validation.manifest.nodes)) {
+            if (fileFetchAttempts >= limits.maxFileCount) {
+              warnFileFetchCap();
+              break;
+            }
+            await fetchFile(path);
+            toFetch.delete(path);
+          }
+          if (validation.manifest.edges) {
+            for (const path of sourcePaths(validation.manifest.edges)) {
+              if (fileFetchAttempts >= limits.maxFileCount) {
+                warnFileFetchCap();
+                break;
+              }
+              await fetchFile(path);
+              toFetch.delete(path);
+            }
+          }
+        } else {
+          warnings.push(
+            `Invalid node-manifest.json; declared node files were not fetched (${validation.errors[0] ?? "schema validation failed"}).`,
+          );
+        }
+      } catch {
+        warnings.push("Invalid node-manifest.json JSON; declared node files were not fetched.");
+      }
+    }
+  }
+
+  // A node artifact may match any legacy discovery heuristic. If a declared
+  // node source was unavailable or oversized, its artifact paths are unknown,
+  // so selectively filtering the generic queue would fail open. Once a valid
+  // node manifest exists, retain well-known metadata only; node and edge
+  // sources have already been fetched explicitly above. Mixed repositories
+  // must use an explicit, safely disambiguated legacy-artifact path in a future
+  // phase rather than relying on filename heuristics.
+  if (nodeManifest) {
+    const ambiguousPaths = [...toFetch].filter((path) => !wellKnownToFetch.has(path));
+    for (const path of ambiguousPaths) {
+      toFetch.delete(path);
+    }
+    if (ambiguousPaths.length > 0) {
+      warnings.push(
+        `Suppressed ${ambiguousPaths.length} generic content path(s) because a valid node manifest requires artifact-safe explicit fetching.`,
+      );
+    }
+  }
+
+  for (const path of toFetch) {
+    if (fileFetchAttempts >= limits.maxFileCount) {
+      warnFileFetchCap();
+      break;
+    }
+    await fetchFile(path);
   }
 
   const rateRemaining = repoRes.headers["x-ratelimit-remaining"];
@@ -459,6 +559,10 @@ export async function inspectRepository(
       filesFetched,
     },
   };
+}
+
+function sourcePaths(source: NodeManifestSource): string[] {
+  return source.format === "json" ? source.files : [source.path];
 }
 
 function toRepoRelease(raw: Record<string, unknown>, ref: RepoRef): RepoRelease {

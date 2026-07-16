@@ -1,7 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { inspectRepository, extractDoisFromText } from "./inspect.js";
 import { createFakeTransport } from "./testing.js";
-import { templateCompatibleFixture, plainRepoFixture } from "./fixtures.js";
+import {
+  CLAIM_NODE_JSON,
+  NODE_MANIFEST,
+  nodePublicationFixture,
+  templateCompatibleFixture,
+  plainRepoFixture,
+} from "./fixtures.js";
 
 describe("inspectRepository", () => {
   it("inspects a template-compatible repository and fetches well-known files", async () => {
@@ -207,6 +213,168 @@ describe("inspectRepository", () => {
     });
     expect(report.files["README.md"]?.truncated).toBe(true);
     expect(report.warnings.join(" ")).toContain("oversized");
+  });
+
+  it("fetches manifest-declared node sources at the selected commit without fetching artifacts", async () => {
+    const requests: string[] = [];
+    const fixture = { ...nodePublicationFixture, requestLog: requests };
+    const report = await inspectRepository(`${fixture.owner}/${fixture.name}`, {
+      transport: createFakeTransport(fixture),
+    });
+
+    expect(report.status).toBe("succeeded");
+    expect(report.files["node-manifest.json"]?.content).toBe(NODE_MANIFEST);
+    expect(report.files["nodes/primary-claim.json"]?.content).toBe(CLAIM_NODE_JSON);
+    expect(
+      requests.some(
+        (path) =>
+          path.includes("/contents/nodes/primary-claim.json") &&
+          path.endsWith(`ref=${nodePublicationFixture.commitSha}`),
+      ),
+    ).toBe(true);
+    for (const artifact of ["figures/main-result.png", "data/observations.csv", "src/analyse.py"]) {
+      expect(requests.some((path) => path.includes(`/contents/${artifact}`))).toBe(false);
+    }
+  });
+
+  it("does not follow paths from a malformed or unsafe node manifest", async () => {
+    for (const manifest of [
+      "{not-json",
+      JSON.stringify({
+        schemaVersion: "1.0.0",
+        nodes: { format: "json", files: ["../private.json"] },
+      }),
+    ]) {
+      const requests: string[] = [];
+      const fixture = {
+        ...nodePublicationFixture,
+        requestLog: requests,
+        files: {
+          "node-manifest.json": manifest,
+          "nodes/primary-claim.json": CLAIM_NODE_JSON,
+        },
+      };
+      const report = await inspectRepository(`${fixture.owner}/${fixture.name}`, {
+        transport: createFakeTransport(fixture),
+      });
+      expect(report.status).toBe("partial");
+      expect(requests.some((path) => path.includes("private.json"))).toBe(false);
+      expect(requests.some((path) => path.includes("nodes/primary-claim.json"))).toBe(false);
+    }
+  });
+
+  it("uses the manifest cap but applies the normal source-file budget to node records", async () => {
+    const report = await inspectRepository(
+      `${nodePublicationFixture.owner}/${nodePublicationFixture.name}`,
+      {
+        transport: createFakeTransport(nodePublicationFixture),
+        limits: { maxFileBytes: 100 },
+      },
+    );
+    expect(report.files["node-manifest.json"]?.content).toBeTruthy();
+    expect(report.files["nodes/primary-claim.json"]?.truncated).toBe(true);
+    expect(report.warnings.join(" ")).toContain("oversized");
+  });
+
+  it("marks inspection partial once when the node-source file-count cap is exhausted", async () => {
+    const files = ["nodes/a.json", "nodes/b.json", "nodes/c.json"];
+    const fixture = {
+      ...nodePublicationFixture,
+      files: {
+        "node-manifest.json": JSON.stringify({
+          schemaVersion: "1.0.0",
+          nodes: { format: "json", files },
+        }),
+        ...Object.fromEntries(files.map((path) => [path, CLAIM_NODE_JSON])),
+      },
+      extraTreePaths: [],
+    };
+    const report = await inspectRepository(`${fixture.owner}/${fixture.name}`, {
+      transport: createFakeTransport(fixture),
+      limits: { maxFileCount: 2 },
+    });
+
+    expect(report.status).toBe("partial");
+    expect(Object.keys(report.files)).toEqual(["node-manifest.json", "nodes/a.json"]);
+    expect(report.warnings.filter((warning) => warning.includes("File fetch cap"))).toEqual([
+      "File fetch cap (2) reached; some files not inspected.",
+    ]);
+  });
+
+  it("never fetches a declared artifact even when its name matches legacy discovery", async () => {
+    const requests: string[] = [];
+    const figure = JSON.parse(CLAIM_NODE_JSON) as Record<string, unknown>;
+    figure.id = "figure:heuristic-overlap";
+    figure.kind = "figure";
+    figure.title = ""; // Invalid records still must not route artifact fetches.
+    figure.provenance = {
+      sourcePath: "nodes/figure.json",
+      repositoryUrl: "https://github.com/example-lab/node-publications",
+      commitSha: nodePublicationFixture.commitSha,
+    };
+    figure.payload = {
+      artifactPath: "artifacts/claims.jsonl",
+      caption: "This artifact name overlaps a legacy discovery rule.",
+    };
+    const fixture = {
+      ...nodePublicationFixture,
+      requestLog: requests,
+      files: {
+        "node-manifest.json": JSON.stringify({
+          schemaVersion: "1.0.0",
+          nodes: { format: "json", files: ["nodes/figure.json"] },
+        }),
+        "nodes/figure.json": JSON.stringify(figure),
+        "artifacts/claims.jsonl": "untrusted artifact bytes",
+      },
+      extraTreePaths: [],
+    };
+    const report = await inspectRepository(`${fixture.owner}/${fixture.name}`, {
+      transport: createFakeTransport(fixture),
+    });
+    expect(report.tree.some((entry) => entry.path === "artifacts/claims.jsonl")).toBe(true);
+    expect(report.files["artifacts/claims.jsonl"]).toBeUndefined();
+    expect(requests.some((path) => path.includes("/contents/artifacts/claims.jsonl"))).toBe(false);
+  });
+
+  it("suppresses ambiguous legacy discovery when a node source is oversized", async () => {
+    const requests: string[] = [];
+    const artifactPath = "artifacts/claims.jsonl";
+    const figure = JSON.parse(CLAIM_NODE_JSON) as Record<string, unknown>;
+    figure.id = "figure:oversized-source";
+    figure.kind = "figure";
+    figure.text = "x".repeat(300);
+    figure.provenance = {
+      sourcePath: "nodes/oversized-figure.json",
+      repositoryUrl: "https://github.com/example-lab/node-publications",
+      commitSha: nodePublicationFixture.commitSha,
+    };
+    figure.payload = {
+      artifactPath,
+      caption: "Artifact bytes must remain unfetched even when the node source is unavailable.",
+    };
+    const fixture = {
+      ...nodePublicationFixture,
+      requestLog: requests,
+      files: {
+        "node-manifest.json": JSON.stringify({
+          schemaVersion: "1.0.0",
+          nodes: { format: "json", files: ["nodes/oversized-figure.json"] },
+        }),
+        "nodes/oversized-figure.json": JSON.stringify(figure),
+        [artifactPath]: "untrusted artifact bytes",
+      },
+      extraTreePaths: [],
+    };
+    const report = await inspectRepository(`${fixture.owner}/${fixture.name}`, {
+      transport: createFakeTransport(fixture),
+      limits: { maxFileBytes: 100 },
+    });
+
+    expect(report.files["nodes/oversized-figure.json"]?.truncated).toBe(true);
+    expect(report.files[artifactPath]).toBeUndefined();
+    expect(requests.some((path) => path.includes(`/contents/${artifactPath}`))).toBe(false);
+    expect(report.warnings.join(" ")).toContain("artifact-safe explicit fetching");
   });
 });
 

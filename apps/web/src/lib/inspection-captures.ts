@@ -14,7 +14,7 @@ import {
   type InspectionReport,
   type SubmissionValidationReport,
 } from "@oratlas/contracts";
-import { type FullExtraction } from "@oratlas/extractor";
+import { nodeExtractionReportSchema, type FullExtraction } from "@oratlas/extractor";
 import { z } from "zod";
 import { prisma } from "./db";
 import { sha256 } from "./hash";
@@ -52,6 +52,7 @@ const inspectionCapturePayloadSchema = z
             warnings: z.array(z.string()),
           })
           .strict(),
+        nodeExtraction: nodeExtractionReportSchema,
         compatibility: compatibilityReportSchema,
       })
       .strict(),

@@ -231,6 +231,9 @@ importers:
       '@oratlas/github':
         specifier: workspace:*
         version: link:../github
+      '@oratlas/zenodo':
+        specifier: workspace:*
+        version: link:../zenodo
       yaml:
         specifier: ^2.7.0
         version: 2.9.0

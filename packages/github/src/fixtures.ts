@@ -132,6 +132,134 @@ export const TRUST_JSONL = JSON.stringify({
   reviewStatus: "agent-proposed",
 });
 
+export const NODE_COMMIT = "e".repeat(40);
+
+const nodeEnvelope = {
+  title: "Reference knowledge node",
+  contributors: [{ displayName: "Ada Researcher", orcid: "0000-0002-1825-0097" }],
+  license: "CC-BY-4.0",
+  versionDoi: "10.5281/zenodo.1234567",
+  conceptDoi: "10.5281/zenodo.1234566",
+};
+
+export const CLAIM_NODE_JSON = JSON.stringify({
+  ...nodeEnvelope,
+  id: "claim:primary-result",
+  kind: "claim",
+  provenance: {
+    sourcePath: "nodes/primary-claim.json",
+    repositoryUrl: "https://github.com/example-lab/node-publications",
+    commitSha: NODE_COMMIT,
+  },
+  payload: {
+    statement: "The intervention changed the measured outcome.",
+    qualifiers: ["In the declared study population"],
+  },
+});
+
+export const FIGURE_NODE_JSON = JSON.stringify({
+  ...nodeEnvelope,
+  id: "figure:main",
+  kind: "figure",
+  provenance: {
+    sourcePath: "nodes/main-figure.json",
+    repositoryUrl: "https://github.com/example-lab/node-publications",
+    commitSha: NODE_COMMIT,
+  },
+  payload: {
+    artifactPath: "figures/main-result.png",
+    caption: "Measured outcome by experimental condition.",
+    altText: "A point plot comparing two experimental conditions.",
+  },
+});
+
+export const DATASET_NODE_JSON = JSON.stringify({
+  ...nodeEnvelope,
+  id: "dataset:observations",
+  kind: "dataset",
+  provenance: {
+    sourcePath: "nodes/source-dataset.json",
+    repositoryUrl: "https://github.com/example-lab/node-publications",
+    commitSha: NODE_COMMIT,
+  },
+  payload: {
+    artifactPath: "data/observations.csv",
+    format: "text/csv",
+    sizeBytes: 0,
+    doi: "10.5555/oratlas.example.dataset.v1",
+  },
+});
+
+export const CODE_NODE_JSON = JSON.stringify({
+  ...nodeEnvelope,
+  id: "code:analysis",
+  kind: "code",
+  provenance: {
+    sourcePath: "nodes/analysis-code.json",
+    repositoryUrl: "https://github.com/example-lab/node-publications",
+    commitSha: NODE_COMMIT,
+  },
+  payload: {
+    entryPoints: ["src/analyse.py"],
+    language: "Python",
+    releaseRef: "v1.0.0",
+  },
+});
+
+export const NODE_EDGES_JSONL = JSON.stringify({
+  sourceNodeId: "claim:primary-result",
+  targetNodeId: "dataset:observations",
+  relationType: "uses-dataset",
+  provenance: "asserted-by-author",
+  status: "proposed",
+});
+
+export const NODE_MANIFEST = JSON.stringify(
+  {
+    schemaVersion: "1.0.0",
+    nodes: {
+      format: "json",
+      files: [
+        "nodes/primary-claim.json",
+        "nodes/main-figure.json",
+        "nodes/source-dataset.json",
+        "nodes/analysis-code.json",
+      ],
+    },
+    edges: { format: "jsonl", path: "nodes/edges.jsonl" },
+  },
+  null,
+  2,
+);
+
+/** Repository fixture publishing all four first-class node kinds. */
+export const nodePublicationFixture: FakeRepoFixture = {
+  owner: "example-lab",
+  name: "node-publications",
+  commitSha: NODE_COMMIT,
+  repo: {
+    id: 787878,
+    full_name: "example-lab/node-publications",
+    private: false,
+    fork: false,
+    default_branch: "main",
+    description: "First-class knowledge node publications.",
+    topics: ["open-science", "knowledge-graph"],
+    license: { spdx_id: "CC-BY-4.0" },
+  },
+  files: {
+    "node-manifest.json": NODE_MANIFEST,
+    "nodes/primary-claim.json": CLAIM_NODE_JSON,
+    "nodes/main-figure.json": FIGURE_NODE_JSON,
+    "nodes/source-dataset.json": DATASET_NODE_JSON,
+    "nodes/analysis-code.json": CODE_NODE_JSON,
+    "nodes/edges.jsonl": NODE_EDGES_JSONL,
+  },
+  // Artifact paths are visible in the tree but intentionally have no content:
+  // inspection must validate their existence without fetching their bytes.
+  extraTreePaths: ["figures/main-result.png", "data/observations.csv", "src/analyse.py"],
+};
+
 /** A fully template-compatible review repository fixture. */
 export const templateCompatibleFixture: FakeRepoFixture = {
   owner: "example-lab",

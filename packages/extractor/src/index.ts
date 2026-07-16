@@ -2,17 +2,38 @@ import { type InspectionReport, type ReviewManifest } from "@oratlas/contracts";
 import { extractMetadata, type ExtractionResult } from "./extract.js";
 import { extractKnowledge, type ExtractedKnowledge } from "./knowledge.js";
 import { assessCompatibility } from "./compatibility.js";
+import { extractKnowledgeNodes, type NodeExtractionReport } from "./nodes.js";
 import { parseManifest } from "./sources.js";
 
 export { EXTRACTOR_VERSION } from "./version.js";
 export { extractMetadata, type ExtractionResult } from "./extract.js";
 export { extractKnowledge, type ExtractedKnowledge } from "./knowledge.js";
 export { assessCompatibility } from "./compatibility.js";
+export { createEmptyNodeExtractionReport, extractKnowledgeNodes } from "./nodes.js";
+export {
+  extractedEdgeRecordSchema,
+  extractedNodeRecordSchema,
+  nodeDoiReferenceSchema,
+  nodeExtractionIssueSchema,
+  nodeExtractionReportSchema,
+  nodeFieldProvenanceSchema,
+  nodeRecordStatusSchema,
+} from "./nodes.js";
+export type {
+  ExtractedEdgeRecord,
+  ExtractedNodeRecord,
+  NodeDoiReference,
+  NodeExtractionIssue,
+  NodeExtractionReport,
+  NodeFieldProvenance,
+  NodeRecordStatus,
+} from "./nodes.js";
 export * from "./sources.js";
 
 export interface FullExtraction extends ExtractionResult {
   manifest?: ReviewManifest;
   knowledge: ExtractedKnowledge;
+  nodeExtraction: NodeExtractionReport;
   compatibility: ReturnType<typeof assessCompatibility>;
 }
 
@@ -29,12 +50,19 @@ export function runExtraction(
 
   const metaResult = extractMetadata(report, now);
   const knowledge = extractKnowledge(report, manifest);
-  const compatibility = assessCompatibility(report, knowledge, metaResult.manifestPresent);
+  const nodeExtraction = extractKnowledgeNodes(report);
+  const compatibility = assessCompatibility(
+    report,
+    knowledge,
+    metaResult.manifestPresent,
+    nodeExtraction,
+  );
 
   return {
     ...metaResult,
     manifest,
     knowledge,
+    nodeExtraction,
     compatibility,
   };
 }

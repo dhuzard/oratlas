@@ -273,3 +273,38 @@ destructively migrating the existing review-claim archive.
   extensionless Prisma shim launch fails with `ENOENT`. Changed files pass Prettier; the repository-
   wide Windows check continues to report the checkout's existing CRLF/LF normalization across
   unrelated files.
+
+## KG-03 — Repository node extraction (issue #33)
+
+**Objective:** deterministically extract first-class node publications from an immutable,
+bounded GitHub repository capture without cloning, executing, or fetching referenced artifacts.
+
+- Extended GitHub inspection with a two-phase, commit-pinned fetch: `node-manifest.json` is
+  fetched and validated first, then only its declared JSON/JSONL node and edge sources are
+  fetched. The manifest-specific 1 MB cap and existing shared file-count, per-source, total-byte,
+  and tree-entry budgets all remain enforced. Exhausting the source-file budget marks inspection
+  partial exactly once. With a valid node manifest, ambiguous tree-discovered legacy content is
+  suppressed fail-closed; well-known metadata and explicit node/edge sources remain available,
+  but mixed repositories cannot rely on filename heuristics for legacy artifacts.
+- Added structured node extraction reports with per-record `ok` / `invalid` / `skipped` status,
+  stable error and warning codes, field-level file/pointer/commit provenance, distinct normalized
+  DOI references, and deterministic counts and ordering.
+- Node extraction validates author-declared provenance against the inspected repository and
+  commit, confirms figure/dataset/code paths exist in the captured tree without fetching their
+  content, preserves version and concept DOI separation after normalization, and flags reserved
+  `10.5555/*` examples without resolving them. A DOI accepted by the contract but rejected by
+  normalization is now a stable `doi-invalid` record error rather than being silently omitted.
+- Typed edges are extracted after nodes, with schema, endpoint, and duplicate checks. Invalid
+  records never enter the successful node or edge sets.
+- Exported the extraction-report Zod schema and wired it into the strict inspection-capture
+  runtime schema, so immutable submission capabilities preserve and validate node results.
+  Node-only repositories with valid declarations are now deterministically classified as
+  compatible, and their declared DOIs contribute to the transparent compatibility signal.
+- Added an all-kinds publication fixture and mock-transport coverage for commit pinning, malformed
+  and unsafe manifests, source size limits, artifact non-fetching, JSON and JSONL extraction,
+  example DOI handling, missing artifacts, duplicates, edge integrity, and determinism.
+- Verified: all KG-03 changed files pass Prettier; lint, all 15 workspace typechecks, JSON Schema
+  and OpenAPI checks, and the production web build pass. The 30 focused GitHub/extractor tests and
+  all 351 tests outside the five Windows-incompatible Prisma-shim suites pass. The full test command
+  reaches the same 351 passes, while those five pre-existing suites cannot launch the extensionless
+  `packages/db/node_modules/.bin/prisma` shim on Windows (`ENOENT`) and skip their 24 tests.
