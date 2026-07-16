@@ -18,6 +18,20 @@ describe("inspectRepository", () => {
     });
   });
 
+  it("fetches large textual content from the immutable tree blob", async () => {
+    const largeTrust = `${"x".repeat(1024 * 1024)}\n`;
+    const fixture = structuredClone(templateCompatibleFixture);
+    fixture.contentsInlineLimitBytes = 1024 * 1024;
+    fixture.files!["knowledge/trust.jsonl"] = largeTrust;
+
+    const report = await inspectRepository(`${fixture.owner}/${fixture.name}`, {
+      transport: createFakeTransport(fixture),
+    });
+
+    expect(report.files["knowledge/trust.jsonl"]?.content).toBe(largeTrust);
+    expect(report.files["knowledge/trust.jsonl"]?.truncated).toBe(false);
+  });
+
   it("inspects a template-compatible repository and fetches well-known files", async () => {
     const report = await inspectRepository("example-lab/hippocampal-replay-review", {
       transport: createFakeTransport(templateCompatibleFixture),

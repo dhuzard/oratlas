@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { type GithubResponse, type GithubTransport } from "./transport.js";
 
 export interface FakeRepoFixture {
@@ -22,6 +23,13 @@ export interface FakeRepoFixture {
   extraTreePaths?: string[];
   /** Optional request trace used to assert exact commit/tree endpoint selection. */
   requestLog?: string[];
+  /** Simulate GitHub's Contents API omitting inline content above this size. */
+  contentsInlineLimitBytes?: number;
+}
+
+function gitBlobSha(content: string): string {
+  const bytes = Buffer.from(content, "utf8");
+  return createHash("sha1").update(`blob ${bytes.length}\0`).update(bytes).digest("hex");
 }
 
 function ok(json: unknown, headers: Record<string, string> = {}): GithubResponse {
@@ -104,15 +112,33 @@ export function createFakeTransport(fixture: FakeRepoFixture): GithubTransport {
             path: p,
             type: "blob",
             size: Buffer.byteLength(files[p] ?? "", "utf-8"),
+            sha: gitBlobSha(files[p] ?? ""),
           })),
+        });
+      }
+      if (pathname.startsWith(`${base}/git/blobs/`)) {
+        const sha = decodeURIComponent(pathname.slice(`${base}/git/blobs/`.length));
+        const content = Object.values(files).find((candidate) => gitBlobSha(candidate) === sha);
+        if (content === undefined) return notFound();
+        return ok({
+          size: Buffer.byteLength(content, "utf-8"),
+          encoding: "base64",
+          content: Buffer.from(content, "utf-8").toString("base64"),
         });
       }
       if (pathname.startsWith(`${base}/contents/`)) {
         const rel = decodeURIComponent(pathname.slice(`${base}/contents/`.length));
         const content = files[rel];
         if (content === undefined) return notFound();
+        const size = Buffer.byteLength(content, "utf-8");
+        if (
+          fixture.contentsInlineLimitBytes !== undefined &&
+          size > fixture.contentsInlineLimitBytes
+        ) {
+          return ok({ size, encoding: "none", content: "" });
+        }
         return ok({
-          size: Buffer.byteLength(content, "utf-8"),
+          size,
           encoding: "base64",
           content: Buffer.from(content, "utf-8").toString("base64"),
         });

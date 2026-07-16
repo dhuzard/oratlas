@@ -317,6 +317,7 @@ export async function inspectRepository(
 
   // 7. File tree (bounded) at the exact selected commit.
   const tree: Array<{ path: string; size: number }> = [];
+  const treeBlobShas = new Map<string, string>();
   let treeTruncated = false;
   const treeSha = selectedTreeSha;
   const treeRes = await transport.request(
@@ -333,6 +334,7 @@ export async function inspectRepository(
           break;
         }
         if (typeof entry.path === "string") {
+          if (typeof entry.sha === "string") treeBlobShas.set(entry.path, entry.sha);
           tree.push({
             path: entry.path,
             size: typeof entry.size === "number" ? entry.size : 0,
@@ -422,6 +424,23 @@ export async function inspectRepository(
       content = b64decode(c.content.replace(/\n/g, ""));
     } else if (typeof c.content === "string") {
       content = c.content;
+    }
+    // GitHub's Contents API omits inline content for files over 1 MiB. Fetch
+    // the exact blob discovered in the pinned commit tree; never follow a
+    // mutable or cross-host download URL.
+    if (content === undefined || (c.encoding === "none" && content === "")) {
+      const blobSha = treeBlobShas.get(path);
+      if (blobSha) {
+        const blobRes = await transport.request(
+          `/repos/${ref.owner}/${ref.name}/git/blobs/${encodeURIComponent(blobSha)}`,
+        );
+        if (blobRes.ok && typeof blobRes.json === "object" && blobRes.json !== null) {
+          const blob = blobRes.json as Record<string, unknown>;
+          if (blob.encoding === "base64" && typeof blob.content === "string") {
+            content = b64decode(blob.content.replace(/\n/g, ""));
+          }
+        }
+      }
     }
     if (content !== undefined) {
       const bytes = Buffer.byteLength(content, "utf-8");
