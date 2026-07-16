@@ -358,7 +358,7 @@ describe.sequential("public graph query", () => {
     expect(kind.nodes.every((node) => node.kind === "dataset")).toBe(true);
   });
 
-  it("keeps TRUST exact-edge scoped behind the KG-10 provider seam", async () => {
+  it("keeps TRUST exact-edge scoped behind the provider override", async () => {
     const defaultResult = await query({ seed: sourceNodeId, depth: 1 });
     expect(defaultResult.nodes.every((node) => !("hasTrust" in node))).toBe(true);
     expect(defaultResult.edges.every((edge) => !("trust" in edge))).toBe(true);
@@ -383,8 +383,6 @@ describe.sequential("public graph query", () => {
               protocolVersion: "TRUST-1.0",
               reviewStatus: "human-reviewed",
               verificationState: "platform-verified",
-              aggregateScore: 0.75,
-              aggregateMethod: "mean-v1",
             },
           ],
           [
@@ -407,8 +405,6 @@ describe.sequential("public graph query", () => {
           protocolVersion: "TRUST-1.0",
           reviewStatus: "human-reviewed",
           verificationState: "platform-verified",
-          aggregateScore: 0.75,
-          aggregateMethod: "mean-v1",
         },
       }),
     ]);

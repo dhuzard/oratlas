@@ -47,6 +47,7 @@ describe("public graph contracts", () => {
         reviewStatus: "human-reviewed",
         verificationState: "platform-verified",
         aggregateScore: 0.8,
+        aggregateMethod: "ordinal-mean-1.0",
       }).success,
     ).toBe(false);
     expect(

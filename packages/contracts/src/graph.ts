@@ -49,22 +49,13 @@ export const publicGraphNodeSchema = z
   .strict();
 export type PublicGraphNode = z.infer<typeof publicGraphNodeSchema>;
 
-const publicGraphTrustBase = {
-  protocolVersion: z.string().min(1).max(120),
-  reviewStatus: assessmentReviewStatusSchema,
-  verificationState: trustVerificationStateSchema,
-};
-
-export const publicGraphTrustSchema = z.union([
-  z
-    .object({
-      ...publicGraphTrustBase,
-      aggregateScore: z.number().min(0).max(1),
-      aggregateMethod: z.string().min(1).max(200),
-    })
-    .strict(),
-  z.object(publicGraphTrustBase).strict(),
-]);
+export const publicGraphTrustSchema = z
+  .object({
+    protocolVersion: z.string().min(1).max(120),
+    reviewStatus: assessmentReviewStatusSchema,
+    verificationState: trustVerificationStateSchema,
+  })
+  .strict();
 export type PublicGraphTrust = z.infer<typeof publicGraphTrustSchema>;
 
 const publicGraphEdgeBase = {

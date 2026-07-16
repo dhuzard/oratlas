@@ -28,9 +28,9 @@ import {
 } from "./node-edge-publication";
 import {
   loadedNodeRelationTrustInclude,
-  resolveLoadedNodeRelationTrustAssessment,
+  PUBLIC_NODE_RELATION_TRUST_GLOBAL_LIMIT,
   resolveTrustAssessmentRows,
-  type LoadedNodeRelationTrustAssessment,
+  selectPreferredPublicNodeRelationTrustAssessment,
 } from "./trust-provenance";
 
 const storedNodeProvenanceSchema = z.union([
@@ -392,56 +392,23 @@ export async function getPublicNode(
       },
       include: loadedNodeRelationTrustInclude,
       orderBy: [{ assessedAt: "desc" }, { id: "asc" }],
-      take: 10_001,
+      take: PUBLIC_NODE_RELATION_TRUST_GLOBAL_LIMIT + 1,
     });
     // A repository can import adversarially many assessments. Fail closed for
     // this optional projection if the one global bound is exceeded.
-    if (trustRows.length <= 10_000) {
-      const candidates = new Map<
-        string,
-        Array<{
-          id: string;
-          effectiveStatus:
-            | "unverified-import"
-            | "agent-proposed"
-            | "human-reviewed"
-            | "adjudicated"
-            | "superseded";
-          assessedAt: string | null;
-          value: LoadedNodeRelationTrustAssessment & {
-            resolved: ReturnType<typeof resolveLoadedNodeRelationTrustAssessment>;
-          };
-        }>
-      >();
+    if (trustRows.length <= PUBLIC_NODE_RELATION_TRUST_GLOBAL_LIMIT) {
+      const candidates = new Map<string, typeof trustRows>();
       for (const assessment of trustRows) {
         const edgeId = assessment.proposal.confirmedEdgeId;
         if (!edgeId) continue;
         const list = candidates.get(edgeId) ?? [];
-        if (list.length >= PUBLIC_NODE_TRUST_ASSESSMENT_LIMIT) continue;
-        try {
-          const loaded = assessment as LoadedNodeRelationTrustAssessment;
-          const resolved = resolveLoadedNodeRelationTrustAssessment(loaded);
-          if (!resolved.authoritative) continue;
-          list.push({
-            id: assessment.id,
-            effectiveStatus: resolved.effectiveStatus,
-            assessedAt: assessment.assessedAt?.toISOString() ?? null,
-            value: Object.assign(loaded, { resolved }),
-          });
-          candidates.set(edgeId, list);
-        } catch {
-          // Malformed persisted subjects are omitted from anonymous projections.
-        }
+        list.push(assessment);
+        candidates.set(edgeId, list);
       }
       for (const [edgeId, values] of candidates) {
-        const preferred = selectPreferredTrustAssessment(values)?.value;
+        const preferred = selectPreferredPublicNodeRelationTrustAssessment(values);
         if (!preferred) continue;
-        nodeTrustByEdge.set(edgeId, {
-          assessmentId: preferred.id,
-          protocolVersion: preferred.protocolVersion,
-          reviewStatus: preferred.resolved.effectiveStatus,
-          verificationState: preferred.resolved.state,
-        });
+        nodeTrustByEdge.set(edgeId, preferred);
       }
     }
   }

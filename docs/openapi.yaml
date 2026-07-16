@@ -281,8 +281,6 @@ components:
       type: object
       additionalProperties: false
       required: [protocolVersion, reviewStatus, verificationState]
-      dependentRequired:
-        aggregateScore: [aggregateMethod]
       properties:
         protocolVersion: { type: string }
         reviewStatus:
@@ -295,10 +293,6 @@ components:
             type: string,
             enum: [platform-verified, unverified-import, stale-verification, legacy-unknown],
           }
-        aggregateScore: { type: number, minimum: 0, maximum: 1 }
-        aggregateMethod:
-          type: string
-          description: Required whenever aggregateScore is present
     PublicGraphEdge:
       oneOf:
         - type: object

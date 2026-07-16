@@ -520,11 +520,13 @@ relations, and visibly labelled privacy-minimal proposals.
   editor/reviewer identities, and audit data are neither selected for the DTO nor serialized.
   Existing node pages remain confirmed-only.
 - Removed the earlier bare-node TRUST-presence approximation. Optional typed TRUST summaries now
-  exist only on confirmed edges and include protocol, review status, verification state, and an
-  aggregate method whenever a score is present. Lookup is behind a narrow batch provider keyed by
-  exact source version, target version, and relation type. Its default implementation returns no
-  assessment; KG-10 persistence must be rebased and wired into this seam before production TRUST
-  graph summaries are available. Proposed edges can never carry TRUST.
+  exist only on confirmed edges and include protocol, effective review status, and verification
+  state. Aggregates are omitted because the compact graph projection does not expose the criteria
+  needed to interpret them. The production batch provider is keyed by exact source version,
+  target version, and relation type; it reconstructs KG-10's authoritative subject and selects the
+  preferred current assessment. A single 10,001-row sentinel fails the optional projection closed
+  above 10,000 rows, and any exact key with more than 50 assessments is omitted without truncating
+  before status-precedence selection. Proposed edges can never carry TRUST.
 - Converted all work ceilings to fail-closed typed errors: 1,001 topic rows reject the query, 501
   rows at a traversal frontier reject the query, and more than 500 unique cumulative edges reject
   rather than silently truncating. Stored nodes, edges, and provider TRUST values are safe-parsed

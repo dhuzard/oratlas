@@ -16,6 +16,12 @@ import {
 import { getServerEnv } from "@oratlas/config";
 import { InProcessSearchProvider, type IndexedNode } from "@oratlas/knowledge";
 import { prisma } from "./db";
+import { databaseGraphTrustProvider } from "./graph-trust-provider";
+import {
+  graphTrustLookupKey,
+  type GraphTrustLookupKey,
+  type GraphTrustProvider,
+} from "./graph-trust";
 import {
   hasOwnedConfirmedTargetVersion,
   publicConfirmedNodeEdgeWhere,
@@ -35,26 +41,8 @@ const cursorSchema = z
   })
   .strict();
 
-export interface GraphTrustLookupKey {
-  sourceVersionId: string;
-  targetVersionId: string;
-  relationType: PublicGraphEdge["relationType"];
-}
-
-export interface GraphTrustProvider {
-  lookup(keys: readonly GraphTrustLookupKey[]): Promise<ReadonlyMap<string, unknown>>;
-}
-
-export function graphTrustLookupKey(key: GraphTrustLookupKey): string {
-  return JSON.stringify([key.sourceVersionId, key.targetVersionId, key.relationType]);
-}
-
-/** KG-10 replaces this empty seam with relation-scoped persistence after rebase. */
-export const emptyGraphTrustProvider: GraphTrustProvider = {
-  async lookup() {
-    return new Map();
-  },
-};
+export { emptyGraphTrustProvider, graphTrustLookupKey } from "./graph-trust";
+export type { GraphTrustLookupKey, GraphTrustProvider } from "./graph-trust";
 
 export interface GraphQueryOptions {
   trustProvider?: GraphTrustProvider;
@@ -356,7 +344,7 @@ export async function queryPublicGraph(
   query: PublicGraphQuery,
   options: GraphQueryOptions = {},
 ): Promise<PublicGraphResponse> {
-  const trustProvider = options.trustProvider ?? emptyGraphTrustProvider;
+  const trustProvider = options.trustProvider ?? databaseGraphTrustProvider;
   const cursorSecret = options.cursorSecret ?? getServerEnv().sessionSecret;
   const seeds = await resolveSeeds(query);
   const nodesByVersion = new Map(seeds.map((node) => [node.versionId, node]));
