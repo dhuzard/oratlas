@@ -1,7 +1,10 @@
 import { z } from "zod";
+import { publicNodeSummarySchema } from "./node-publication.js";
 
 /** Archive search query (spec §13, §16). */
 export const archiveSearchQuerySchema = z.object({
+  contentType: z.enum(["all", "review", "node"]).optional(),
+  nodeKind: z.enum(["claim", "figure", "dataset", "code"]).optional(),
   q: z.string().max(500).optional(),
   keywords: z.array(z.string().max(100)).max(20).optional(),
   author: z.string().max(200).optional(),
@@ -18,6 +21,43 @@ export const archiveSearchQuerySchema = z.object({
   pageSize: z.number().int().min(1).max(50).default(20),
 });
 export type ArchiveSearchQuery = z.infer<typeof archiveSearchQuerySchema>;
+
+export const archiveSearchResponseSchema = z
+  .object({
+    total: z.number().int().nonnegative(),
+    page: z.number().int().positive(),
+    pageSize: z.number().int().positive(),
+    items: z.array(
+      z.discriminatedUnion("contentType", [
+        z
+          .object({
+            contentType: z.literal("review"),
+            slug: z.string().min(1),
+            title: z.string().min(1),
+            abstract: z.string().optional(),
+            authors: z.array(z.string()),
+            domains: z.array(z.string()),
+            hasDoi: z.boolean(),
+            hasTrustData: z.boolean(),
+            compatibilityLevel: z.string().optional(),
+            status: z.string(),
+            score: z.number(),
+            sortDate: z.string().datetime().optional(),
+          })
+          .strict(),
+        z
+          .object({
+            contentType: z.literal("node"),
+            node: publicNodeSummarySchema,
+            score: z.number(),
+            sortDate: z.string().datetime(),
+          })
+          .strict(),
+      ]),
+    ),
+  })
+  .strict();
+export type ArchiveSearchResponse = z.infer<typeof archiveSearchResponseSchema>;
 
 export const claimSearchQuerySchema = z.object({
   q: z.string().max(500).optional(),

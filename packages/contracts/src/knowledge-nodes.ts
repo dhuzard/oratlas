@@ -46,16 +46,43 @@ const knowledgeNodeEnvelope = {
   conceptDoi: doiSchema.optional(),
 };
 
+export const claimNodePayloadSchema = z
+  .object({
+    statement: z.string().min(1).max(10_000),
+    qualifiers: z.array(z.string().min(1).max(2_000)).max(50).default([]),
+  })
+  .strict();
+
+export const figureNodePayloadSchema = z
+  .object({
+    artifactPath: safeRepoRelativePathSchema,
+    caption: z.string().min(1).max(10_000),
+    altText: z.string().min(1).max(2_000).optional(),
+  })
+  .strict();
+
+export const datasetNodePayloadSchema = z
+  .object({
+    artifactPath: safeRepoRelativePathSchema.optional(),
+    format: z.string().min(1).max(120),
+    sizeBytes: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER),
+    doi: doiSchema.optional(),
+  })
+  .strict();
+
+export const codeNodePayloadSchema = z
+  .object({
+    entryPoints: z.array(safeRepoRelativePathSchema).min(1).max(100),
+    language: z.string().min(1).max(120),
+    releaseRef: z.string().min(1).max(200),
+  })
+  .strict();
+
 export const claimNodeSchema = z
   .object({
     ...knowledgeNodeEnvelope,
     kind: z.literal("claim"),
-    payload: z
-      .object({
-        statement: z.string().min(1).max(10_000),
-        qualifiers: z.array(z.string().min(1).max(2_000)).max(50).default([]),
-      })
-      .strict(),
+    payload: claimNodePayloadSchema,
   })
   .strict();
 
@@ -63,13 +90,7 @@ export const figureNodeSchema = z
   .object({
     ...knowledgeNodeEnvelope,
     kind: z.literal("figure"),
-    payload: z
-      .object({
-        artifactPath: safeRepoRelativePathSchema,
-        caption: z.string().min(1).max(10_000),
-        altText: z.string().min(1).max(2_000).optional(),
-      })
-      .strict(),
+    payload: figureNodePayloadSchema,
   })
   .strict();
 
@@ -77,14 +98,7 @@ export const datasetNodeSchema = z
   .object({
     ...knowledgeNodeEnvelope,
     kind: z.literal("dataset"),
-    payload: z
-      .object({
-        artifactPath: safeRepoRelativePathSchema.optional(),
-        format: z.string().min(1).max(120),
-        sizeBytes: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER),
-        doi: doiSchema.optional(),
-      })
-      .strict(),
+    payload: datasetNodePayloadSchema,
   })
   .strict();
 
@@ -92,13 +106,7 @@ export const codeNodeSchema = z
   .object({
     ...knowledgeNodeEnvelope,
     kind: z.literal("code"),
-    payload: z
-      .object({
-        entryPoints: z.array(safeRepoRelativePathSchema).min(1).max(100),
-        language: z.string().min(1).max(120),
-        releaseRef: z.string().min(1).max(200),
-      })
-      .strict(),
+    payload: codeNodePayloadSchema,
   })
   .strict();
 

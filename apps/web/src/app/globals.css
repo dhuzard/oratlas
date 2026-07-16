@@ -546,6 +546,22 @@ textarea {
   border-top: 1px solid var(--border);
 }
 
+.node-preserved-text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-width: var(--measure);
+}
+
+.node-relation-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.node-relation-list > li {
+  padding: 0.8rem 0;
+  border-top: 1px solid var(--border);
+}
+
 .trust-grid {
   display: grid;
   gap: 0.4rem;

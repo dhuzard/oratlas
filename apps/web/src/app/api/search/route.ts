@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { archiveSearchQuerySchema } from "@oratlas/contracts";
-import { InProcessSearchProvider } from "@oratlas/knowledge";
-import { buildKnowledgeIndex } from "@/lib/index-builder";
 import { errorResponse, handleRouteError } from "@/lib/api";
+import { searchArchive } from "@/lib/archive-search";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -14,6 +13,8 @@ export async function GET(request: Request) {
     const bool = (k: string) =>
       p.get(k) === "true" ? true : p.get(k) === "false" ? false : undefined;
     const parsed = archiveSearchQuerySchema.safeParse({
+      contentType: p.get("contentType") || "all",
+      nodeKind: p.get("nodeKind") || undefined,
       q: p.get("q") || undefined,
       domain: p.get("domain") || undefined,
       author: p.get("author") || undefined,
@@ -28,25 +29,7 @@ export async function GET(request: Request) {
     });
     if (!parsed.success) return errorResponse("bad-request", "Invalid search query.");
 
-    const index = await buildKnowledgeIndex();
-    const provider = new InProcessSearchProvider(index);
-    const result = provider.searchReviews(parsed.data);
-    return NextResponse.json({
-      total: result.total,
-      page: result.page,
-      pageSize: result.pageSize,
-      items: result.items.map((r) => ({
-        slug: r.reviewSlug,
-        title: r.title,
-        authors: r.authors,
-        domains: r.domains,
-        hasDoi: r.hasDoi,
-        hasTrustData: r.hasTrustData,
-        compatibilityLevel: r.compatibilityLevel,
-        status: r.status,
-        score: r.score,
-      })),
-    });
+    return NextResponse.json(await searchArchive(parsed.data));
   } catch (err) {
     return handleRouteError(err);
   }

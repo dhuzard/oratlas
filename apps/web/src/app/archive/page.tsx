@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { Card, Badge, CompatibilityBadge } from "@oratlas/ui";
-import { InProcessSearchProvider } from "@oratlas/knowledge";
 import { archiveSearchQuerySchema } from "@oratlas/contracts";
 import { buildKnowledgeIndex } from "@/lib/index-builder";
+import { searchArchive } from "@/lib/archive-search";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +21,8 @@ export default async function ArchivePage({
   const get = (k: string) => (Array.isArray(sp[k]) ? sp[k]?.[0] : (sp[k] as string | undefined));
 
   const query = archiveSearchQuerySchema.parse({
+    contentType: get("contentType") || "all",
+    nodeKind: get("nodeKind") || undefined,
     q: get("q") || undefined,
     domain: get("domain") || undefined,
     author: get("author") || undefined,
@@ -35,69 +37,120 @@ export default async function ArchivePage({
   });
 
   const index = await buildKnowledgeIndex();
-  const provider = new InProcessSearchProvider(index);
-  const results = provider.searchReviews(query);
+  const results = await searchArchive(query, index);
   const domains = [...new Set(index.reviews.flatMap((r) => r.domains))].sort();
 
   return (
     <>
       <h1>Archive</h1>
       <p className="muted">
-        {results.total} review(s){query.q ? ` matching “${query.q}”` : ""}. Acceptance is not peer
-        review.
+        {results.total} publication(s){query.q ? ` matching “${query.q}”` : ""}. Acceptance is not
+        peer review.
       </p>
 
       <div className="grid layout-2">
         <div>
           {results.items.length === 0 ? (
             <Card>
-              <p className="muted">No reviews match these filters.</p>
+              <p className="muted">No publications match these filters.</p>
             </Card>
           ) : (
             <ul className="review-list">
-              {results.items.map((r) => (
-                <li key={r.reviewSlug} className="review-item">
+              {results.items.map((item) => (
+                <li
+                  key={
+                    item.contentType === "review" ? `review:${item.slug}` : `node:${item.node.id}`
+                  }
+                  className="review-item"
+                >
                   <Card as="article">
-                    <h2 style={{ fontSize: "1.2rem", margin: "0 0 0.3rem" }}>
-                      <Link href={`/reviews/${r.reviewSlug}`}>{r.title}</Link>
-                    </h2>
-                    <div className="meta">
-                      {r.compatibilityLevel ? (
-                        <CompatibilityBadge level={r.compatibilityLevel} />
-                      ) : null}
-                      {r.hasDoi ? (
-                        <Badge tone="success">DOI</Badge>
-                      ) : (
-                        <Badge>repository-only</Badge>
-                      )}
-                      {r.hasTrustData ? <Badge>TRUST data</Badge> : null}
-                      {r.status === "withdrawn" ? <Badge tone="warning">withdrawn</Badge> : null}
-                      {r.hasHumanReviewedTrust ? (
-                        <Badge tone="success">Atlas-reviewed TRUST structure</Badge>
-                      ) : null}
-                      {r.publicationYear ? <span>{r.publicationYear}</span> : null}
-                    </div>
-                    {r.abstract ? (
-                      <p style={{ marginBottom: 0 }}>
-                        {r.abstract.slice(0, 220)}
-                        {r.abstract.length > 220 ? "…" : ""}
-                      </p>
-                    ) : null}
-                    {r.authors.length > 0 ? (
-                      <p className="muted" style={{ margin: "0.4rem 0 0" }}>
-                        {r.authors.join(", ")}
-                      </p>
-                    ) : null}
+                    {item.contentType === "review" ? (
+                      <>
+                        <h2 style={{ fontSize: "1.2rem", margin: "0 0 0.3rem" }}>
+                          <Link href={`/reviews/${item.slug}`}>{item.title}</Link>
+                        </h2>
+                        <div className="meta">
+                          <Badge>review</Badge>
+                          {item.compatibilityLevel ? (
+                            <CompatibilityBadge level={item.compatibilityLevel} />
+                          ) : null}
+                          {item.hasDoi ? (
+                            <Badge tone="success">DOI</Badge>
+                          ) : (
+                            <Badge>repository-only</Badge>
+                          )}
+                          {item.hasTrustData ? <Badge>TRUST data</Badge> : null}
+                          {item.status === "withdrawn" ? (
+                            <Badge tone="warning">withdrawn</Badge>
+                          ) : null}
+                        </div>
+                        {item.abstract ? <p>{truncate(item.abstract)}</p> : null}
+                        {item.authors.length > 0 ? (
+                          <p className="muted">{item.authors.join(", ")}</p>
+                        ) : null}
+                      </>
+                    ) : (
+                      <>
+                        <h2 style={{ fontSize: "1.2rem", margin: "0 0 0.3rem" }}>
+                          <Link href={`/nodes/${item.node.id}`}>{item.node.title}</Link>
+                        </h2>
+                        <div className="meta">
+                          <Badge>node</Badge>
+                          <Badge>{item.node.kind}</Badge>
+                        </div>
+                        {item.node.abstract ? <p>{truncate(item.node.abstract)}</p> : null}
+                        <p className="muted">
+                          {item.node.repository.owner}/{item.node.repository.name} ·{" "}
+                          <span className="mono">{item.node.localNodeId}</span>
+                        </p>
+                      </>
+                    )}
                   </Card>
                 </li>
               ))}
             </ul>
           )}
+          {Math.ceil(results.total / results.pageSize) > 1 ? (
+            <nav className="btn-row" aria-label="Archive result pages">
+              {results.page > 1 ? (
+                <Link href={archiveHref(query, results.page - 1)}>Previous</Link>
+              ) : null}
+              <span className="muted">
+                Page {results.page} of {Math.ceil(results.total / results.pageSize)}
+              </span>
+              {results.page * results.pageSize < results.total ? (
+                <Link href={archiveHref(query, results.page + 1)}>Next</Link>
+              ) : null}
+            </nav>
+          ) : null}
         </div>
 
         <aside>
           <Card title="Filters">
+            <p className="muted">Author, domain, DOI, TRUST, and compatibility filter reviews.</p>
             <form method="get" className="filters">
+              <div className="field">
+                <label htmlFor="contentType">Content type</label>
+                <select
+                  id="contentType"
+                  name="contentType"
+                  defaultValue={query.contentType ?? "all"}
+                >
+                  <option value="all">Reviews and nodes</option>
+                  <option value="review">Reviews</option>
+                  <option value="node">Nodes</option>
+                </select>
+              </div>
+              <div className="field">
+                <label htmlFor="nodeKind">Node kind</label>
+                <select id="nodeKind" name="nodeKind" defaultValue={query.nodeKind ?? ""}>
+                  <option value="">Any kind</option>
+                  <option value="claim">Claim</option>
+                  <option value="figure">Figure</option>
+                  <option value="dataset">Dataset</option>
+                  <option value="code">Code</option>
+                </select>
+              </div>
               <div className="field">
                 <label htmlFor="q">Search</label>
                 <input id="q" type="search" name="q" defaultValue={query.q ?? ""} />
@@ -180,4 +233,27 @@ export default async function ArchivePage({
       </div>
     </>
   );
+}
+
+function truncate(value: string): string {
+  return value.length > 220 ? `${value.slice(0, 220)}…` : value;
+}
+
+function archiveHref(query: ReturnType<typeof archiveSearchQuerySchema.parse>, page: number) {
+  const params = new URLSearchParams();
+  params.set("contentType", query.contentType ?? "all");
+  if (query.nodeKind) params.set("nodeKind", query.nodeKind);
+  if (query.q) params.set("q", query.q);
+  if (query.domain) params.set("domain", query.domain);
+  if (query.author) params.set("author", query.author);
+  if (query.hasDoi !== undefined) params.set("hasDoi", String(query.hasDoi));
+  if (query.hasTrustData !== undefined) params.set("hasTrustData", String(query.hasTrustData));
+  if (query.hasEvidenceData !== undefined) {
+    params.set("hasEvidenceData", String(query.hasEvidenceData));
+  }
+  if (query.compatibility) params.set("compatibility", query.compatibility);
+  if (query.trustReviewState) params.set("trustReviewState", query.trustReviewState);
+  params.set("sort", query.sort);
+  params.set("page", String(page));
+  return `/archive?${params}`;
 }

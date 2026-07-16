@@ -182,12 +182,15 @@ packages: [apps/web, packages/db]
 ```yaml
 id: KG-05
 epic: A
-status: todo
+status: in-progress (issue #40)
 depends_on: [KG-04]
 size: M
 labels: [web, ui]
-packages: [apps/web, packages/ui]
+packages: [apps/web, packages/ui, packages/contracts]
 ```
+
+> Package-scope note: `packages/contracts` is required for the public node list/detail/history
+> query and response contracts shared by the API, UI query layer, and OpenAPI documentation.
 
 **Scope.**
 
