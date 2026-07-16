@@ -141,6 +141,14 @@ jobs:
         working-directory: packages/db
         run: pnpm exec prisma db push --schema prisma/schema.postgres.prisma --skip-generate
 
+      - name: Apply and verify database-native guards
+        run: pnpm --filter @oratlas/db db:guards
+
+      - name: Exercise database-native guards on PostgreSQL
+        run: pnpm exec vitest run packages/db/src/database-guards.integration.test.ts
+        env:
+          DATABASE_GUARD_TEST_DATABASE_URL: "postgresql://oratlas:oratlas@localhost:5432/oratlas"
+
       - name: Seed PostgreSQL
         run: pnpm --filter @oratlas/db db:seed
 

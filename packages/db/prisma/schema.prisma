@@ -1028,6 +1028,8 @@ model SynthesisDraft {
   attributionPolicyVersion     String
   rightsStatement              String?
   licenseSpdx                  String?
+  versionDoi                   String?
+  conceptDoi                   String?
   reviewId                     String?
   requestKey                   String    @unique
   createdAt                    DateTime  @default(now())
@@ -1054,16 +1056,19 @@ model SynthesisDraft {
 /// Durable pre-provider ownership claim. A request key is permanently bound to
 /// one canonical selector so retries cannot create orphan or duplicate runs.
 model SynthesisGenerationRequestClaim {
-  key          String   @id
-  requestKey   String   @unique
-  selectorJson String
-  selectorHash String
-  status       String   @default("running")
-  draftId      String?  @unique
-  agentRunId   String?  @unique
-  errorCode    String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  key            String    @id
+  requestKey     String    @unique
+  selectorJson   String
+  selectorHash   String
+  status         String    @default("running")
+  leaseToken     String?
+  leaseExpiresAt DateTime?
+  attempt        Int       @default(1)
+  draftId        String?   @unique
+  agentRunId     String?   @unique
+  errorCode      String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   draft    SynthesisDraft? @relation(fields: [draftId], references: [id])
   agentRun AgentRun?       @relation(fields: [agentRunId], references: [id])

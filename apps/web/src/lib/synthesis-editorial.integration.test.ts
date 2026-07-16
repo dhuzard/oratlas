@@ -4,7 +4,7 @@ import { createRequire } from "node:module";
 import { dirname, resolve } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import type { PrismaClient } from "@oratlas/db";
+import { applyDatabaseGuards, SQLITE_DATABASE_GUARD_NAMES, type PrismaClient } from "@oratlas/db";
 import type { SessionUser } from "./auth";
 import type * as Editorial from "./synthesis-editorial";
 import {
@@ -119,6 +119,7 @@ beforeAll(async () => {
     execFileSync("sqlite3", [databasePath], { input: ddl, stdio: ["pipe", "pipe", "pipe"] });
   }
   ({ prisma } = await import("./db"));
+  await applyDatabaseGuards(prisma, "sqlite");
   service = await import("./synthesis-editorial");
   const user = await prisma.user.create({
     data: { githubLogin: "editor", displayName: "Atlas Editor", role: "EDITOR" },
@@ -212,6 +213,8 @@ const acceptance = {
   rationale: "The editor reviewed grounding, framing, attribution, limitations and rights.",
   licenseSpdx: "CC-BY-4.0",
   rightsStatement: "The editor confirms publication rights for this grounded synthesis.",
+  versionDoi: "10.5281/ZENODO.1234567",
+  conceptDoi: "10.5281/ZENODO.1234500",
   checklist: {
     groundingAndCitationsReviewed: true as const,
     contradictionAndNonConsensusFramingReviewed: true as const,
@@ -261,8 +264,27 @@ describe.sequential("synthesis editorial lifecycle", () => {
     const publicReview = await service.getPublicSynthesisReview(accepted.reviewSlug!, prisma);
     expect(publicReview).toMatchObject({
       reviewType: "ai-synthesis",
-      version: { ordinal: 1, isCurrent: true },
+      version: {
+        ordinal: 1,
+        isCurrent: true,
+        versionDoi: "10.5281/zenodo.1234567",
+        conceptDoi: "10.5281/zenodo.1234500",
+      },
     });
+    const acceptedVersion = await prisma.reviewVersion.findUniqueOrThrow({
+      where: { id: accepted.reviewVersionId! },
+    });
+    const acceptedDraft = await prisma.synthesisDraft.findUniqueOrThrow({
+      where: { id: draft.id },
+    });
+    expect([acceptedVersion.versionDoi, acceptedVersion.conceptDoi]).toEqual([
+      "10.5281/zenodo.1234567",
+      "10.5281/zenodo.1234500",
+    ]);
+    expect([acceptedDraft.versionDoi, acceptedDraft.conceptDoi]).toEqual([
+      "10.5281/zenodo.1234567",
+      "10.5281/zenodo.1234500",
+    ]);
     const serialized = JSON.stringify(publicReview);
     for (const forbidden of [
       "packetJson",
@@ -284,13 +306,163 @@ describe.sequential("synthesis editorial lifecycle", () => {
     ).rejects.toMatchObject({ code: "conflict" });
   });
 
+  it("reclaims a stale pre-recorder lease without leaving an orphan run", async () => {
+    let clock = new Date("2026-07-16T12:00:00.000Z");
+    let providerCalls = 0;
+    const provider: LlmProvider = {
+      name: "pre-recorder-recovery",
+      model: "recovery-model",
+      async complete() {
+        providerCalls += 1;
+        return canonicalJson(composeDeterministicSynthesis(prepared()));
+      },
+    };
+    const input = { selector, requestKey: "generation-pre-recorder-crash-0001" };
+    await expect(
+      service.generateSynthesisDraft(input, {
+        client: prisma,
+        actor,
+        provider,
+        now: () => clock,
+        leaseDurationMs: 1_000,
+        loadPacket: async () => prepared(),
+        afterRequestClaimed: async () => {
+          throw new Error("injected-pre-recorder-crash");
+        },
+      }),
+    ).rejects.toThrow("injected-pre-recorder-crash");
+    const stranded = await prisma.synthesisGenerationRequestClaim.findUniqueOrThrow({
+      where: { requestKey: input.requestKey },
+    });
+    expect(stranded).toMatchObject({ status: "running", agentRunId: null, attempt: 1 });
+    expect(providerCalls).toBe(0);
+
+    clock = new Date(clock.getTime() + 2_000);
+    const recovered = await service.generateSynthesisDraft(input, {
+      client: prisma,
+      actor,
+      provider,
+      now: () => clock,
+      leaseDurationMs: 1_000,
+      loadPacket: async () => prepared(),
+    });
+    expect(recovered.status).toBe("pending");
+    expect(providerCalls).toBe(1);
+    expect(
+      await prisma.synthesisGenerationRequestClaim.findUniqueOrThrow({
+        where: { requestKey: input.requestKey },
+      }),
+    ).toMatchObject({ status: "completed", attempt: 2 });
+  });
+
+  it("expires a stale bound running run and retries with a new atomic run", async () => {
+    let clock = new Date("2026-07-16T13:00:00.000Z");
+    let staleRunId = "";
+    let providerCalls = 0;
+    const input = { selector, requestKey: "generation-bound-run-crash-0001" };
+    const provider: LlmProvider = {
+      name: "bound-run-recovery",
+      model: "recovery-model",
+      async complete() {
+        providerCalls += 1;
+        return canonicalJson(composeDeterministicSynthesis(prepared()));
+      },
+    };
+    await expect(
+      service.generateSynthesisDraft(input, {
+        client: prisma,
+        actor,
+        provider,
+        now: () => clock,
+        leaseDurationMs: 1_000,
+        loadPacket: async () => prepared(),
+        afterRequestClaimed: async () => {
+          await prisma.$transaction(async (tx) => {
+            const run = await tx.agentRun.create({
+              data: { agentType: "synthesis-review", status: "running" },
+            });
+            staleRunId = run.id;
+            await tx.synthesisGenerationRequestClaim.update({
+              where: { requestKey: input.requestKey },
+              data: { agentRunId: run.id },
+            });
+          });
+          throw new Error("injected-bound-run-crash");
+        },
+      }),
+    ).rejects.toThrow("injected-bound-run-crash");
+
+    clock = new Date(clock.getTime() + 2_000);
+    await service.generateSynthesisDraft(input, {
+      client: prisma,
+      actor,
+      provider,
+      now: () => clock,
+      leaseDurationMs: 1_000,
+      loadPacket: async () => prepared(),
+    });
+    expect(providerCalls).toBe(1);
+    expect(await prisma.agentRun.findUniqueOrThrow({ where: { id: staleRunId } })).toMatchObject({
+      status: "failed",
+      error: "lease-expired: Generation owner stopped before completion.",
+    });
+    expect(await prisma.agentRun.count({ where: { modelProvider: "bound-run-recovery" } })).toBe(1);
+  });
+
+  it("retries a recorded failed generation claim", async () => {
+    let providerCalls = 0;
+    const provider: LlmProvider = {
+      name: "failed-run-recovery",
+      model: "recovery-model",
+      async complete() {
+        providerCalls += 1;
+        if (providerCalls === 1) throw new Error("provider-unavailable");
+        return canonicalJson(composeDeterministicSynthesis(prepared()));
+      },
+    };
+    const input = { selector, requestKey: "generation-failed-retry-0001" };
+    await expect(
+      service.generateSynthesisDraft(input, {
+        client: prisma,
+        actor,
+        provider,
+        loadPacket: async () => prepared(),
+      }),
+    ).rejects.toThrow("Provider completion failed.");
+    expect(
+      await prisma.synthesisGenerationRequestClaim.findUniqueOrThrow({
+        where: { requestKey: input.requestKey },
+      }),
+    ).toMatchObject({ status: "failed", attempt: 1 });
+    await service.generateSynthesisDraft(input, {
+      client: prisma,
+      actor,
+      provider,
+      loadPacket: async () => prepared(),
+    });
+    expect(providerCalls).toBe(2);
+    expect(
+      await prisma.synthesisGenerationRequestClaim.findUniqueOrThrow({
+        where: { requestKey: input.requestKey },
+      }),
+    ).toMatchObject({ status: "completed", attempt: 2 });
+  });
+
   it("resumes a claimed successful run after final-persist interruption without calling the provider twice", async () => {
     let providerCalls = 0;
+    let observedAtomicStartBinding = false;
     const provider: LlmProvider = {
       name: "recovery-provider",
       model: "recovery-model",
       async complete() {
         providerCalls += 1;
+        const claim = await prisma.synthesisGenerationRequestClaim.findUniqueOrThrow({
+          where: { requestKey: "generation-interruption-0001" },
+        });
+        const running = claim.agentRunId
+          ? await prisma.agentRun.findUnique({ where: { id: claim.agentRunId } })
+          : null;
+        observedAtomicStartBinding = running?.status === "running";
         return canonicalJson(composeDeterministicSynthesis(prepared()));
       },
     };
@@ -307,17 +479,53 @@ describe.sequential("synthesis editorial lifecycle", () => {
       }),
     ).rejects.toThrow("injected-final-persist-interruption");
     expect(providerCalls).toBe(1);
+    expect(observedAtomicStartBinding).toBe(true);
     expect(await prisma.agentRun.count({ where: { modelProvider: "recovery-provider" } })).toBe(1);
 
     const resumed = await service.generateSynthesisDraft(input, {
       client: prisma,
       actor,
       provider,
-      loadPacket: async () => prepared(),
+      loadPacket: async () => {
+        throw new Error("current graph mutated and must not be rematerialized");
+      },
     });
     expect(resumed.status).toBe("pending");
     expect(providerCalls).toBe(1);
     expect(await prisma.agentRun.count({ where: { modelProvider: "recovery-provider" } })).toBe(1);
+  });
+
+  it("installs SQLite guards and rejects invalid lifecycle and reference writes", async () => {
+    const triggers = await prisma.$queryRaw<Array<{ name: string }>>`
+      SELECT name FROM sqlite_master WHERE type = 'trigger'
+    `;
+    expect(triggers.map(({ name }) => name)).toEqual(
+      expect.arrayContaining([...SQLITE_DATABASE_GUARD_NAMES]),
+    );
+    const review = await prisma.review.findFirstOrThrow({ where: { reviewType: "ai-synthesis" } });
+    await expect(
+      prisma.review.update({ where: { id: review.id }, data: { synthesisSeriesKey: null } }),
+    ).rejects.toThrow();
+    const completedClaim = await prisma.synthesisGenerationRequestClaim.findFirstOrThrow({
+      where: { status: "completed" },
+    });
+    await expect(
+      prisma.synthesisGenerationRequestClaim.update({
+        where: { key: completedClaim.key },
+        data: { status: "running" },
+      }),
+    ).rejects.toThrow();
+    const citation = await prisma.synthesisDraftCitation.findFirstOrThrow();
+    await expect(
+      prisma.synthesisDraftCitation.update({
+        where: { id: citation.id },
+        data: {
+          identifierScheme: "doi",
+          identifierRole: "version-doi",
+          identifierValue: "10.5281/zenodo.forged",
+        },
+      }),
+    ).rejects.toThrow();
   });
 
   it("fails public reads closed for corrupt provenance, attribution, hash, and citations", async () => {
@@ -362,6 +570,56 @@ describe.sequential("synthesis editorial lifecycle", () => {
       },
       data: { githubLoginSnapshot: attribution.githubLoginSnapshot },
     });
+    const softwareAttribution = await prisma.synthesisAttributionContributor.findFirstOrThrow({
+      where: { reviewVersionId: versionId, kind: "software-agent" },
+    });
+    await prisma.synthesisAttributionContributor.update({
+      where: {
+        reviewVersionId_position: {
+          reviewVersionId: versionId,
+          position: softwareAttribution.position,
+        },
+      },
+      data: { userId: actor.id },
+    });
+    expect(await service.getPublicSynthesisReview(review.slug, prisma)).toBeNull();
+    await prisma.synthesisAttributionContributor.update({
+      where: {
+        reviewVersionId_position: {
+          reviewVersionId: versionId,
+          position: softwareAttribution.position,
+        },
+      },
+      data: { userId: null },
+    });
+    await prisma.synthesisAttributionContributor.create({
+      data: {
+        reviewVersionId: versionId,
+        position: 2,
+        kind: "software-agent",
+        displayName: "forged",
+        role: "synthesis-generation",
+      },
+    });
+    expect(await service.getPublicSynthesisReview(review.slug, prisma)).toBeNull();
+    await prisma.synthesisAttributionContributor.delete({
+      where: { reviewVersionId_position: { reviewVersionId: versionId, position: 2 } },
+    });
+    await prisma.synthesisDraft.update({ where: { id: draft.id }, data: { checklistJson: "{}" } });
+    expect(await service.getPublicSynthesisReview(review.slug, prisma)).toBeNull();
+    await prisma.synthesisDraft.update({
+      where: { id: draft.id },
+      data: { checklistJson: draft.checklistJson },
+    });
+    await prisma.agentRun.update({
+      where: { id: draft.agentRunId },
+      data: { humanReviewStatus: "rejected" },
+    });
+    expect(await service.getPublicSynthesisReview(review.slug, prisma)).toBeNull();
+    await prisma.agentRun.update({
+      where: { id: draft.agentRunId },
+      data: { humanReviewStatus: "approved" },
+    });
     const citation = await prisma.synthesisDraftCitation.findFirstOrThrow({
       where: { draftId: draft.id },
     });
@@ -374,6 +632,21 @@ describe.sequential("synthesis editorial lifecycle", () => {
       where: { id: citation.id },
       data: { nodeTitle: citation.nodeTitle },
     });
+    await prisma.$executeRawUnsafe('DROP TRIGGER "SynthesisDraftCitation_guard_update"');
+    await prisma.synthesisDraftCitation.update({
+      where: { id: citation.id },
+      data: {
+        identifierScheme: "doi",
+        identifierRole: "version-doi",
+        identifierValue: "10.5281/zenodo.forged",
+      },
+    });
+    expect(await service.getPublicSynthesisReview(review.slug, prisma)).toBeNull();
+    await prisma.synthesisDraftCitation.update({
+      where: { id: citation.id },
+      data: { identifierScheme: null, identifierRole: null, identifierValue: null },
+    });
+    await applyDatabaseGuards(prisma, "sqlite");
   });
 
   it("keeps rejection private and resolves concurrent decisions with one CAS winner", async () => {

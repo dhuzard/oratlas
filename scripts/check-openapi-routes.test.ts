@@ -1,4 +1,6 @@
 import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { compareRoutes, normalizeRoutePath } from "./check-openapi-routes.js";
 
 describe("normalizeRoutePath", () => {
@@ -56,5 +58,27 @@ describe("compareRoutes", () => {
     const result = compareRoutes(documented, actual);
     expect(result.undocumented).toEqual(["/api/only-route"]);
     expect(result.missing).toEqual(["/api/only-doc"]);
+  });
+});
+
+describe("synthesis OpenAPI contracts", () => {
+  it("uses reusable concrete request and response schemas", () => {
+    const openapi = readFileSync(resolve(process.cwd(), "docs/openapi.yaml"), "utf8");
+    for (const schema of [
+      "SynthesisSelector",
+      "SynthesisGenerationRequest",
+      "SynthesisAcceptanceChecklist",
+      "SynthesisDecision",
+      "EditorialSynthesisDraft",
+      "SynthesisDecisionResult",
+      "PublicSynthesisReview",
+    ]) {
+      expect(openapi).toContain(`    ${schema}:`);
+    }
+    expect(openapi).toContain(
+      'schema: { $ref: "#/components/schemas/SynthesisGenerationRequest" }',
+    );
+    expect(openapi).toContain('schema: { $ref: "#/components/schemas/SynthesisDecision" }');
+    expect(openapi).toContain('schema: { $ref: "#/components/schemas/PublicSynthesisReview" }');
   });
 });

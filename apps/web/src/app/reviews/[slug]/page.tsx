@@ -101,6 +101,18 @@ function SynthesisReviewPage({ synthesis }: { synthesis: PublicSynthesisReview }
         <p>
           License: <span className="mono">{synthesis.provenance.licenseSpdx}</span>
         </p>
+        <DefinitionList
+          items={[
+            {
+              term: "Version DOI",
+              value: <DoiValue value={synthesis.version.versionDoi} isExample={false} />,
+            },
+            {
+              term: "Concept DOI",
+              value: <DoiValue value={synthesis.version.conceptDoi} isExample={false} />,
+            },
+          ]}
+        />
         <p className="mono muted">
           Model {synthesis.provenance.provider}/{synthesis.provenance.model} · document SHA-256{" "}
           {synthesis.provenance.documentHash}

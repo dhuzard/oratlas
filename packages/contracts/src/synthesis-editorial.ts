@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { nodeRelationTypeSchema } from "./enums.js";
+import { doiSchema } from "./identifiers.js";
 import { synthesisReviewDocumentSchema } from "./synthesis-review.js";
 
 export const SYNTHESIS_SELECTOR_VERSION = "synthesis-selector/1.0.0" as const;
@@ -93,29 +94,53 @@ const decisionBase = {
   idempotencyKey: z.string().trim().min(8).max(200),
   rationale: z.string().trim().min(10).max(4_000),
 };
+const normalizedDoiSchema = doiSchema
+  .transform((value) => value.normalize("NFKC").toLowerCase())
+  .refine((value) => !value.startsWith("10.5555/"), {
+    message: "Reserved example DOI prefixes cannot be published as live synthesis identifiers.",
+  });
 
-export const synthesisDraftDecisionSchema = z.discriminatedUnion("action", [
-  z
-    .object({
-      ...decisionBase,
-      action: z.literal("accept"),
-      licenseSpdx: z.string().trim().min(1).max(120),
-      rightsStatement: z.string().trim().min(10).max(2_000),
-      checklist: z
-        .object({
-          groundingAndCitationsReviewed: z.literal(true),
-          contradictionAndNonConsensusFramingReviewed: z.literal(true),
-          attributionAndAiDisclosureReviewed: z.literal(true),
-          limitationsReviewed: z.literal(true),
-          privacyAndInjectionLeakageReviewed: z.literal(true),
-          rightsAndLicenseConfirmed: z.literal(true),
-        })
-        .strict(),
-    })
-    .strict(),
-  z.object({ ...decisionBase, action: z.literal("reject") }).strict(),
-  z.object({ ...decisionBase, action: z.literal("request-regeneration") }).strict(),
-]);
+export const synthesisAcceptanceChecklistSchema = z
+  .object({
+    groundingAndCitationsReviewed: z.literal(true),
+    contradictionAndNonConsensusFramingReviewed: z.literal(true),
+    attributionAndAiDisclosureReviewed: z.literal(true),
+    limitationsReviewed: z.literal(true),
+    privacyAndInjectionLeakageReviewed: z.literal(true),
+    rightsAndLicenseConfirmed: z.literal(true),
+  })
+  .strict();
+
+export const synthesisDraftDecisionSchema = z
+  .discriminatedUnion("action", [
+    z
+      .object({
+        ...decisionBase,
+        action: z.literal("accept"),
+        licenseSpdx: z.string().trim().min(1).max(120),
+        rightsStatement: z.string().trim().min(10).max(2_000),
+        versionDoi: normalizedDoiSchema.optional(),
+        conceptDoi: normalizedDoiSchema.optional(),
+        checklist: synthesisAcceptanceChecklistSchema,
+      })
+      .strict(),
+    z.object({ ...decisionBase, action: z.literal("reject") }).strict(),
+    z.object({ ...decisionBase, action: z.literal("request-regeneration") }).strict(),
+  ])
+  .superRefine((decision, context) => {
+    if (
+      decision.action === "accept" &&
+      decision.versionDoi &&
+      decision.conceptDoi &&
+      decision.versionDoi === decision.conceptDoi
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["conceptDoi"],
+        message: "Concept DOI must differ from version DOI.",
+      });
+    }
+  });
 export type SynthesisDraftDecision = z.infer<typeof synthesisDraftDecisionSchema>;
 
 export const synthesisGenerationProvenanceSchema = z
@@ -223,7 +248,13 @@ export const publicSynthesisReviewSchema = z
         .strict(),
     ),
     version: z
-      .object({ id: boundedId, ordinal: z.number().int().min(1), isCurrent: z.boolean() })
+      .object({
+        id: boundedId,
+        ordinal: z.number().int().min(1),
+        isCurrent: z.boolean(),
+        versionDoi: doiSchema.optional(),
+        conceptDoi: doiSchema.optional(),
+      })
       .strict(),
   })
   .strict();

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   editorialSynthesisDraftSchema,
   publicSynthesisReviewSchema,
+  synthesisDraftDecisionSchema,
   SYNTHESIS_ACCEPTANCE_CHECKLIST_VERSION,
   SYNTHESIS_ATTRIBUTION_POLICY_VERSION,
   SYNTHESIS_MATERIALIZATION_POLICY_VERSION,
@@ -47,6 +48,41 @@ const generation = {
 };
 
 describe("synthesis editorial contracts", () => {
+  it("normalizes distinct live DOIs and rejects reserved or duplicate identifiers", () => {
+    const decision = {
+      action: "accept" as const,
+      expectedRevision: 0,
+      idempotencyKey: "accept-doi-contract-0001",
+      rationale: "The editor completed every required publication and grounding check.",
+      licenseSpdx: "CC-BY-4.0",
+      rightsStatement: "The editor confirms publication rights for this synthesis.",
+      versionDoi: "10.5281/ZENODO.1234567",
+      conceptDoi: "10.5281/ZENODO.1234500",
+      checklist: {
+        groundingAndCitationsReviewed: true,
+        contradictionAndNonConsensusFramingReviewed: true,
+        attributionAndAiDisclosureReviewed: true,
+        limitationsReviewed: true,
+        privacyAndInjectionLeakageReviewed: true,
+        rightsAndLicenseConfirmed: true,
+      },
+    };
+    expect(synthesisDraftDecisionSchema.parse(decision)).toMatchObject({
+      versionDoi: "10.5281/zenodo.1234567",
+      conceptDoi: "10.5281/zenodo.1234500",
+    });
+    expect(
+      synthesisDraftDecisionSchema.safeParse({
+        ...decision,
+        conceptDoi: decision.versionDoi.toLowerCase(),
+      }).success,
+    ).toBe(false);
+    expect(
+      synthesisDraftDecisionSchema.safeParse({ ...decision, versionDoi: "10.5555/example.v1" })
+        .success,
+    ).toBe(false);
+  });
+
   it("accepts a private pending generation without acceptance provenance", () => {
     expect(
       editorialSynthesisDraftSchema.safeParse({

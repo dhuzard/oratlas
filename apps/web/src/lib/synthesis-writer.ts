@@ -12,25 +12,42 @@ import { prisma } from "./db";
 /** Prisma-backed required recorder. Each transition fails closed unless the run is still running. */
 export function createPrismaSynthesisRunRecorder(
   client: PrismaClient = prisma,
+  generationClaim?: { key: string; leaseToken: string },
 ): SynthesisRunRecorder {
   return {
     async start(input) {
-      const run = await client.agentRun.create({
-        data: {
-          agentType: input.agentType,
-          modelProvider: input.modelProvider,
-          modelName: input.modelName,
-          modelVersion: input.modelVersion,
-          promptVersion: input.promptVersion,
-          promptHash: input.promptHash,
-          packetHash: input.packetHash,
-          inputHash: input.inputHash,
-          inputReferencesJson: input.inputReferencesJson,
-          status: "running",
-        },
-        select: { id: true },
+      return client.$transaction(async (tx) => {
+        const run = await tx.agentRun.create({
+          data: {
+            agentType: input.agentType,
+            modelProvider: input.modelProvider,
+            modelName: input.modelName,
+            modelVersion: input.modelVersion,
+            promptVersion: input.promptVersion,
+            promptHash: input.promptHash,
+            packetHash: input.packetHash,
+            inputHash: input.inputHash,
+            inputReferencesJson: input.inputReferencesJson,
+            status: "running",
+          },
+          select: { id: true },
+        });
+        if (generationClaim) {
+          const bound = await tx.synthesisGenerationRequestClaim.updateMany({
+            where: {
+              key: generationClaim.key,
+              status: "running",
+              leaseToken: generationClaim.leaseToken,
+              agentRunId: null,
+            },
+            data: { agentRunId: run.id },
+          });
+          if (bound.count !== 1) {
+            throw new Error("Generation claim is not in an unbound running state.");
+          }
+        }
+        return run;
       });
-      return run;
     },
     async succeed(id, output) {
       const updated = await client.agentRun.updateMany({
@@ -63,6 +80,10 @@ export async function generateSynthesisReview(
   prepared: PreparedSubgraphEvidencePacket,
   provider?: LlmProvider,
   client: PrismaClient = prisma,
+  generationClaim?: { key: string; leaseToken: string },
 ): Promise<SynthesisGenerationResult> {
-  return new SynthesisWriter(createPrismaSynthesisRunRecorder(client), provider).generate(prepared);
+  return new SynthesisWriter(
+    createPrismaSynthesisRunRecorder(client, generationClaim),
+    provider,
+  ).generate(prepared);
 }

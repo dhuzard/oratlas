@@ -1,10 +1,11 @@
 import "server-only";
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { Prisma, type PrismaClient } from "@oratlas/db";
 import {
   canonicalJson,
   editorialSynthesisDraftSchema,
   publicSynthesisReviewSchema,
+  synthesisAcceptanceChecklistSchema,
   subgraphEvidenceTrustSchema,
   subgraphEvidencePacketSchema,
   synthesisDraftDecisionSchema,
@@ -53,6 +54,7 @@ import { selectPreferredTrustAssessment } from "@oratlas/trust";
 
 const SYNTHESIS_TOPIC_SCAN_LIMIT = 1_000;
 const SYNTHESIS_TRANSACTION_ATTEMPTS = 3;
+const SYNTHESIS_GENERATION_LEASE_MS = 5 * 60_000;
 
 export class SynthesisEditorialError extends Error {
   constructor(
@@ -69,7 +71,10 @@ export interface GenerateSynthesisDraftOptions {
   provider?: LlmProvider;
   loadPacket?: (selector: SynthesisSelector) => Promise<PreparedSubgraphEvidencePacket>;
   now?: () => Date;
+  leaseDurationMs?: number;
   actor?: SessionUser;
+  /** Fault-injection seam after claim creation/reclaim but before recorder.start. */
+  afterRequestClaimed?: () => Promise<void>;
   /** Test/observability seam after the successful run is durably bound to the request claim. */
   afterRunClaimed?: () => Promise<void>;
 }
@@ -473,6 +478,10 @@ export async function generateSynthesisDraft(
   const selectorJson = canonicalJson(input.selector);
   const selectorHash = digest(selectorJson);
   const claimKey = digest(`synthesis-generation-request:${input.requestKey}`);
+  const claimNow = options.now?.() ?? new Date();
+  const leaseDurationMs = options.leaseDurationMs ?? SYNTHESIS_GENERATION_LEASE_MS;
+  const nextLeaseToken = randomUUID();
+  const nextLeaseExpiresAt = new Date(claimNow.getTime() + leaseDurationMs);
   const existing = await client.synthesisDraft.findUnique({
     where: { requestKey: input.requestKey },
   });
@@ -496,6 +505,7 @@ export async function generateSynthesisDraft(
         }
         const claim = await tx.synthesisGenerationRequestClaim.findUnique({
           where: { key: claimKey },
+          include: { agentRun: true },
         });
         if (claim) {
           if (
@@ -509,18 +519,64 @@ export async function generateSynthesisDraft(
             );
           }
           if (claim.status === "completed" && claim.draftId) return { draftId: claim.draftId };
-          if (claim.status === "running" && claim.agentRunId) {
+          if (claim.agentRun?.status === "succeeded") {
             return { agentRunId: claim.agentRunId };
           }
-          throw new SynthesisEditorialError(
-            "This synthesis generation request is already running.",
-            "conflict",
-          );
+          const leaseIsCurrent =
+            claim.status === "running" &&
+            claim.leaseExpiresAt !== null &&
+            claim.leaseExpiresAt.getTime() > claimNow.getTime();
+          if (leaseIsCurrent) {
+            throw new SynthesisEditorialError(
+              "This synthesis generation request is already running.",
+              "conflict",
+            );
+          }
+          if (claim.agentRun?.status === "running") {
+            await tx.agentRun.updateMany({
+              where: { id: claim.agentRun.id, status: "running" },
+              data: {
+                status: "failed",
+                completedAt: claimNow,
+                error: "lease-expired: Generation owner stopped before completion.",
+              },
+            });
+          }
+          const reclaimed = await tx.synthesisGenerationRequestClaim.updateMany({
+            where: {
+              key: claim.key,
+              status: claim.status,
+              leaseToken: claim.leaseToken,
+              agentRunId: claim.agentRunId,
+            },
+            data: {
+              status: "running",
+              agentRunId: null,
+              leaseToken: nextLeaseToken,
+              leaseExpiresAt: nextLeaseExpiresAt,
+              attempt: { increment: 1 },
+              errorCode: null,
+            },
+          });
+          if (reclaimed.count !== 1) {
+            throw new SynthesisEditorialError(
+              "Generation request lease changed concurrently.",
+              "conflict",
+            );
+          }
+          return { leaseToken: nextLeaseToken };
         }
         await tx.synthesisGenerationRequestClaim.create({
-          data: { key: claimKey, requestKey: input.requestKey, selectorJson, selectorHash },
+          data: {
+            key: claimKey,
+            requestKey: input.requestKey,
+            selectorJson,
+            selectorHash,
+            leaseToken: nextLeaseToken,
+            leaseExpiresAt: nextLeaseExpiresAt,
+          },
         });
-        return {};
+        return { leaseToken: nextLeaseToken };
       },
       { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
     ),
@@ -528,19 +584,29 @@ export async function generateSynthesisDraft(
   if (claimResolution.draftId) {
     return getEditorialSynthesisDraft(claimResolution.draftId, client);
   }
+  if (!claimResolution.agentRunId) await options.afterRequestClaimed?.();
 
   let prepared: PreparedSubgraphEvidencePacket;
   let result: SynthesisGenerationResult;
   let successfulRun: Awaited<ReturnType<typeof verifySuccessfulRun>>;
   try {
-    prepared = assertCanonicalPreparedPacket(
-      await (options.loadPacket ?? ((selector) => loadPreparedSynthesisPacket(selector, client)))(
-        input.selector,
-      ),
-    );
+    const resumedRun = claimResolution.agentRunId
+      ? await client.agentRun.findUnique({ where: { id: claimResolution.agentRunId } })
+      : null;
+    prepared = claimResolution.agentRunId
+      ? assertCanonicalPreparedPacket({
+          packet: JSON.parse(resumedRun?.inputReferencesJson ?? "null") as never,
+          json: resumedRun?.inputReferencesJson ?? "",
+          sha256: resumedRun?.packetHash ?? "",
+        })
+      : assertCanonicalPreparedPacket(
+          await (
+            options.loadPacket ?? ((selector) => loadPreparedSynthesisPacket(selector, client))
+          )(input.selector),
+        );
     assertSelectorPacketBinding(input.selector, prepared);
     if (claimResolution.agentRunId) {
-      const run = await client.agentRun.findUnique({ where: { id: claimResolution.agentRunId } });
+      const run = resumedRun;
       if (
         !run ||
         run.status !== "succeeded" ||
@@ -575,7 +641,13 @@ export async function generateSynthesisDraft(
         promptVersion: run.promptVersion,
       };
     } else {
-      result = await generateSynthesisReview(prepared, options.provider, client);
+      if (!claimResolution.leaseToken) {
+        throw new SynthesisEditorialError("Generation request lease is missing.", "conflict");
+      }
+      result = await generateSynthesisReview(prepared, options.provider, client, {
+        key: claimKey,
+        leaseToken: claimResolution.leaseToken,
+      });
     }
     verifySynthesisDocument(result.document, prepared);
     successfulRun = await verifySuccessfulRun(client, result, prepared);
@@ -600,20 +672,39 @@ export async function generateSynthesisDraft(
       );
     }
     if (!claimResolution.agentRunId) {
-      await client.synthesisGenerationRequestClaim.update({
+      const boundClaim = await client.synthesisGenerationRequestClaim.findUnique({
         where: { key: claimKey },
-        data: { agentRunId: result.runId },
+        select: { status: true, agentRunId: true },
       });
+      if (boundClaim?.status !== "running" || boundClaim.agentRunId !== result.runId) {
+        throw new SynthesisEditorialError(
+          "Successful run was not atomically bound to its claim.",
+          "conflict",
+        );
+      }
       await options.afterRunClaimed?.();
     }
   } catch (error) {
-    await client.synthesisGenerationRequestClaim.updateMany({
-      where: { key: claimKey, status: "running", agentRunId: null },
-      data: {
-        status: "failed",
-        errorCode: error instanceof Error ? error.name : "generation-failed",
-      },
+    const failedClaim = await client.synthesisGenerationRequestClaim.findUnique({
+      where: { key: claimKey },
+      include: { agentRun: { select: { status: true } } },
     });
+    if (!failedClaim?.agentRunId || failedClaim.agentRun?.status === "failed") {
+      await client.synthesisGenerationRequestClaim.updateMany({
+        where: {
+          key: claimKey,
+          status: "running",
+          leaseToken: claimResolution.leaseToken,
+          agentRunId: failedClaim?.agentRunId ?? null,
+        },
+        data: {
+          status: "failed",
+          leaseToken: null,
+          leaseExpiresAt: null,
+          errorCode: error instanceof Error ? error.name : "generation-failed",
+        },
+      });
+    }
     throw error;
   }
   const seriesKey = synthesisSeriesKey(input.selector);
@@ -753,7 +844,13 @@ export async function generateSynthesisDraft(
         });
         const completed = await tx.synthesisGenerationRequestClaim.updateMany({
           where: { key: claimKey, status: "running", selectorHash, agentRunId: result.runId },
-          data: { status: "completed", draftId: draft.id, errorCode: null },
+          data: {
+            status: "completed",
+            draftId: draft.id,
+            leaseToken: null,
+            leaseExpiresAt: null,
+            errorCode: null,
+          },
         });
         if (completed.count !== 1) {
           throw new SynthesisEditorialError(
@@ -882,12 +979,17 @@ function assertDraftIntegrity(row: LoadedDraft) {
   }
   for (const membership of row.memberships) {
     const reference = references.get(membership.referenceId);
+    const hasStoredIdentifier =
+      membership.identifierScheme !== null ||
+      membership.identifierRole !== null ||
+      membership.identifierValue !== null;
     if (
       !reference ||
       membership.nodeVersion.knowledgeNodeId !== membership.nodeId ||
       reference.kind !== membership.kind ||
       reference.nodeId !== membership.nodeId ||
       reference.nodeVersionId !== membership.nodeVersionId ||
+      (reference.kind === "node" && hasStoredIdentifier) ||
       (reference.kind === "identifier" &&
         (reference.scheme !== membership.identifierScheme ||
           reference.role !== membership.identifierRole ||
@@ -912,6 +1014,10 @@ function assertDraftIntegrity(row: LoadedDraft) {
     const node = prepared.packet.nodes.find(
       (candidate) => candidate.id === occurrence.citation.nodeId,
     );
+    const hasStoredIdentifier =
+      stored?.identifierScheme !== null ||
+      stored?.identifierRole !== null ||
+      stored?.identifierValue !== null;
     if (
       !stored ||
       !reference ||
@@ -922,6 +1028,7 @@ function assertDraftIntegrity(row: LoadedDraft) {
       stored.nodeVersionId !== occurrence.citation.nodeVersionId ||
       stored.nodeKind !== node.kind ||
       stored.nodeTitle !== node.title ||
+      (reference.kind === "node" && hasStoredIdentifier) ||
       (reference.kind === "identifier" &&
         (stored.identifierScheme !== reference.scheme ||
           stored.identifierRole !== reference.role ||
@@ -1260,6 +1367,8 @@ export async function decideSynthesisDraft(
             synthesisMaterializationPolicyVersion: SYNTHESIS_MATERIALIZATION_POLICY_VERSION,
             synthesisRightsStatement: input.rightsStatement,
             synthesisLicenseSpdx: input.licenseSpdx,
+            versionDoi: input.versionDoi,
+            conceptDoi: input.conceptDoi,
             acceptedPredecessorVersionId: previousVersion?.id,
             synthesisAttributions: {
               create: [
@@ -1307,6 +1416,8 @@ export async function decideSynthesisDraft(
             checklistVersion: SYNTHESIS_ACCEPTANCE_CHECKLIST_VERSION,
             rightsStatement: input.rightsStatement,
             licenseSpdx: input.licenseSpdx,
+            versionDoi: input.versionDoi,
+            conceptDoi: input.conceptDoi,
             reviewId: review.id,
           },
         });
@@ -1416,8 +1527,13 @@ export async function getPublicSynthesisReview(
 
   const draft = version.synthesisDraft as LoadedDraft;
   let integrity: ReturnType<typeof assertDraftIntegrity>;
+  let checklistIsValid = false;
   try {
     integrity = assertDraftIntegrity(draft);
+    checklistIsValid =
+      draft.checklistVersion === SYNTHESIS_ACCEPTANCE_CHECKLIST_VERSION &&
+      draft.checklistJson !== null &&
+      synthesisAcceptanceChecklistSchema.safeParse(JSON.parse(draft.checklistJson)).success;
   } catch {
     return null;
   }
@@ -1450,9 +1566,12 @@ export async function getPublicSynthesisReview(
     version.synthesisModelVersion !== draft.modelVersion ||
     version.synthesisAttributionPolicyVersion !== draft.attributionPolicyVersion ||
     version.synthesisMaterializationPolicyVersion !== draft.materializationPolicyVersion ||
+    !checklistIsValid ||
     version.synthesisChecklistVersion !== draft.checklistVersion ||
     version.synthesisRightsStatement !== draft.rightsStatement ||
     version.synthesisLicenseSpdx !== draft.licenseSpdx ||
+    version.versionDoi !== draft.versionDoi ||
+    version.conceptDoi !== draft.conceptDoi ||
     version.synthesisGeneratedAt?.getTime() !== draft.generatedAt.getTime() ||
     !version.synthesisAcceptedAt ||
     !version.synthesisApproverRole ||
@@ -1464,6 +1583,10 @@ export async function getPublicSynthesisReview(
     draft.acceptedByRoleSnapshot !== version.synthesisApproverRole ||
     draft.acceptedByDisplayName !== version.synthesisApproverDisplayName ||
     draft.acceptedByGithubLogin !== version.synthesisApproverGithubLogin ||
+    draft.agentRun.humanReviewStatus !== "approved" ||
+    version.synthesisApprovedById === null ||
+    version.synthesisApprovedById !== draft.acceptedById ||
+    (version.synthesisApproverRole !== "EDITOR" && version.synthesisApproverRole !== "ADMIN") ||
     (ordinal === 1 ? predecessor !== null : !predecessor) ||
     (predecessor &&
       (predecessor.reviewId !== review.id ||
@@ -1473,10 +1596,23 @@ export async function getPublicSynthesisReview(
         predecessor.synthesisOrdinal !== draft.previousAcceptedOrdinal)) ||
     (!predecessor &&
       (draft.previousAcceptedDraftId !== null || draft.previousAcceptedOrdinal !== null)) ||
+    version.synthesisAttributions.length !== 2 ||
     !softwareAttribution ||
+    softwareAttribution.position !== 0 ||
+    softwareAttribution.kind !== "software-agent" ||
+    softwareAttribution.role !== "synthesis-generation" ||
+    softwareAttribution.userId !== null ||
+    softwareAttribution.userRoleSnapshot !== null ||
+    softwareAttribution.githubLoginSnapshot !== null ||
     softwareAttribution.displayName !== version.synthesisPipelineName ||
     softwareAttribution.softwareVersion !== version.synthesisPipelineVersion ||
     !editorAttribution ||
+    editorAttribution.position !== 1 ||
+    editorAttribution.kind !== "approving-editor" ||
+    editorAttribution.role !== "editorial-approval" ||
+    editorAttribution.softwareVersion !== null ||
+    editorAttribution.userId !== version.synthesisApprovedById ||
+    editorAttribution.userId !== draft.acceptedById ||
     editorAttribution.displayName !== version.synthesisApproverDisplayName ||
     editorAttribution.userRoleSnapshot !== version.synthesisApproverRole ||
     editorAttribution.githubLoginSnapshot !== version.synthesisApproverGithubLogin
@@ -1524,7 +1660,13 @@ export async function getPublicSynthesisReview(
       ...citation,
       href: `/nodes/${citation.nodeId}/versions/${citation.nodeVersionId}`,
     })),
-    version: { id: version.id, ordinal, isCurrent: true },
+    version: {
+      id: version.id,
+      ordinal,
+      isCurrent: true,
+      versionDoi: version.versionDoi ?? undefined,
+      conceptDoi: version.conceptDoi ?? undefined,
+    },
   });
   return candidate.success ? candidate.data : null;
 }

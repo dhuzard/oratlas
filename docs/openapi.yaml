@@ -1005,6 +1005,207 @@ components:
         status: { type: string, enum: [draft, open, claimed, completed, withdrawn] }
         revision: { type: integer, minimum: 0, maximum: 1000000000 }
         idempotent: { type: boolean }
+    SynthesisSeriesSelection:
+      oneOf:
+        - type: object
+          additionalProperties: false
+          required: [kind, nodeId]
+          properties:
+            kind: { const: seed }
+            nodeId: { type: string, minLength: 1, maxLength: 200 }
+        - type: object
+          additionalProperties: false
+          required: [kind, canonicalQuery]
+          properties:
+            kind: { const: topic }
+            canonicalQuery: { type: string, minLength: 1, maxLength: 500 }
+    SynthesisSelector:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          schemaVersion,
+          selection,
+          depth,
+          maxNodes,
+          maxEdges,
+          relationTypes,
+          trustPolicy,
+          currentVersionPolicy,
+          topicSeedPolicy,
+          topicSeedLimit,
+          edgePolicy,
+          includeContradictions,
+        ]
+      properties:
+        schemaVersion: { const: synthesis-selector/1.0.0 }
+        selection: { $ref: "#/components/schemas/SynthesisSeriesSelection" }
+        depth: { type: integer, minimum: 1, maximum: 3 }
+        maxNodes: { type: integer, minimum: 1, maximum: 100 }
+        maxEdges: { type: integer, minimum: 0, maximum: 500 }
+        relationTypes:
+          type: array
+          minItems: 1
+          maxItems: 7
+          uniqueItems: true
+          contains: { const: contradicts }
+          items:
+            {
+              type: string,
+              enum:
+                [supports, contradicts, replicates, extends, uses-dataset, uses-code, derives-from],
+            }
+        trustPolicy: { const: authoritative-current-relation-trust-v1 }
+        currentVersionPolicy: { const: newest-valid-no-history-fallback }
+        topicSeedPolicy: { const: current-public-title-abstract-search-v1 }
+        topicSeedLimit: { type: integer, minimum: 1, maximum: 10 }
+        edgePolicy: { const: editor-confirmed-exact-versions-only }
+        includeContradictions: { const: true }
+    SynthesisGenerationRequest:
+      type: object
+      additionalProperties: false
+      required: [selector, requestKey]
+      properties:
+        selector: { $ref: "#/components/schemas/SynthesisSelector" }
+        requestKey: { type: string, minLength: 8, maxLength: 200 }
+    SynthesisAcceptanceChecklist:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          groundingAndCitationsReviewed,
+          contradictionAndNonConsensusFramingReviewed,
+          attributionAndAiDisclosureReviewed,
+          limitationsReviewed,
+          privacyAndInjectionLeakageReviewed,
+          rightsAndLicenseConfirmed,
+        ]
+      properties:
+        groundingAndCitationsReviewed: { const: true }
+        contradictionAndNonConsensusFramingReviewed: { const: true }
+        attributionAndAiDisclosureReviewed: { const: true }
+        limitationsReviewed: { const: true }
+        privacyAndInjectionLeakageReviewed: { const: true }
+        rightsAndLicenseConfirmed: { const: true }
+    SynthesisDecisionBase:
+      type: object
+      required: [action, expectedRevision, idempotencyKey, rationale]
+      properties:
+        expectedRevision: { type: integer, minimum: 0, maximum: 1000000000 }
+        idempotencyKey: { type: string, minLength: 8, maxLength: 200 }
+        rationale: { type: string, minLength: 10, maxLength: 4000 }
+    SynthesisDecision:
+      oneOf:
+        - allOf:
+            - { $ref: "#/components/schemas/SynthesisDecisionBase" }
+            - type: object
+              additionalProperties: false
+              required:
+                [
+                  action,
+                  expectedRevision,
+                  idempotencyKey,
+                  rationale,
+                  licenseSpdx,
+                  rightsStatement,
+                  checklist,
+                ]
+              properties:
+                action: { const: accept }
+                expectedRevision: { type: integer, minimum: 0, maximum: 1000000000 }
+                idempotencyKey: { type: string, minLength: 8, maxLength: 200 }
+                rationale: { type: string, minLength: 10, maxLength: 4000 }
+                licenseSpdx: { type: string, minLength: 1, maxLength: 120 }
+                rightsStatement: { type: string, minLength: 10, maxLength: 2000 }
+                versionDoi:
+                  {
+                    type: string,
+                    pattern: "^10\\.[0-9]{4,9}/\\S+$",
+                    not: { pattern: "^10\\.5555/" },
+                  }
+                conceptDoi:
+                  {
+                    type: string,
+                    pattern: "^10\\.[0-9]{4,9}/\\S+$",
+                    not: { pattern: "^10\\.5555/" },
+                  }
+                checklist: { $ref: "#/components/schemas/SynthesisAcceptanceChecklist" }
+        - type: object
+          additionalProperties: false
+          required: [action, expectedRevision, idempotencyKey, rationale]
+          properties:
+            action: { type: string, enum: [reject, request-regeneration] }
+            expectedRevision: { type: integer, minimum: 0, maximum: 1000000000 }
+            idempotencyKey: { type: string, minLength: 8, maxLength: 200 }
+            rationale: { type: string, minLength: 10, maxLength: 4000 }
+    EditorialSynthesisDraft:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          id,
+          status,
+          revision,
+          seriesKey,
+          selector,
+          generationKey,
+          regenerationOrdinal,
+          document,
+          provenance,
+          citations,
+        ]
+      properties:
+        id: { type: string }
+        status: { type: string, enum: [pending, accepted, rejected, regeneration-requested] }
+        revision: { type: integer, minimum: 0 }
+        seriesKey: { type: string, pattern: "^[0-9a-f]{64}$" }
+        selector: { $ref: "#/components/schemas/SynthesisSelector" }
+        generationKey: { type: string, pattern: "^[0-9a-f]{64}$" }
+        regenerationOrdinal: { type: integer, minimum: 1 }
+        parentDraftId: { type: string }
+        previousAcceptedOrdinal: { type: integer, minimum: 1 }
+        document: { type: object, description: Validated synthesis-review/1.0.0 document }
+        provenance: { type: object, description: Allowlisted immutable generation provenance }
+        citations: { type: array, items: { type: object } }
+    SynthesisDecisionResult:
+      type: object
+      additionalProperties: false
+      required: [status, revision]
+      properties:
+        status: { type: string, enum: [accepted, rejected, regeneration-requested] }
+        revision: { type: integer, minimum: 1 }
+        reviewSlug: { type: string }
+        reviewVersionId: { type: string }
+    PublicSynthesisReview:
+      type: object
+      additionalProperties: false
+      required: [slug, reviewType, title, abstract, document, provenance, citations, version]
+      properties:
+        slug: { type: string }
+        reviewType: { const: ai-synthesis }
+        title: { type: string, minLength: 1, maxLength: 300 }
+        abstract: { type: string, minLength: 1, maxLength: 2000 }
+        document: { type: object, description: Validated synthesis-review/1.0.0 document }
+        provenance:
+          {
+            type: object,
+            description: Accepted generation,
+            editor,
+            rights,
+            checklist,
+            and lineage provenance,
+          }
+        citations: { type: array, items: { type: object } }
+        version:
+          type: object
+          additionalProperties: false
+          required: [id, ordinal, isCurrent]
+          properties:
+            id: { type: string }
+            ordinal: { type: integer, minimum: 1 }
+            isCurrent: { const: true }
+            versionDoi: { type: string, pattern: "^10\\.[0-9]{4,9}/\\S+$" }
+            conceptDoi: { type: string, pattern: "^10\\.[0-9]{4,9}/\\S+$" }
 paths:
   /api/health:
     get:
@@ -1677,9 +1878,13 @@ paths:
         required: true
         content:
           application/json:
-            schema: { type: object, additionalProperties: false, required: [selector, requestKey] }
+            schema: { $ref: "#/components/schemas/SynthesisGenerationRequest" }
       responses:
-        "200": { description: Private editorial synthesis draft }
+        "200":
+          description: Private editorial synthesis draft
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/EditorialSynthesisDraft" }
         "400": { $ref: "#/components/responses/Error" }
         "403": { $ref: "#/components/responses/Error" }
         "409": { $ref: "#/components/responses/Error" }
@@ -1698,14 +1903,13 @@ paths:
         required: true
         content:
           application/json:
-            schema:
-              {
-                type: object,
-                additionalProperties: false,
-                required: [action, expectedRevision, idempotencyKey, rationale],
-              }
+            schema: { $ref: "#/components/schemas/SynthesisDecision" }
       responses:
-        "200": { description: Idempotent editorial decision result }
+        "200":
+          description: Idempotent editorial decision result
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SynthesisDecisionResult" }
         "400": { $ref: "#/components/responses/Error" }
         "403": { $ref: "#/components/responses/Error" }
         "404": { $ref: "#/components/responses/Error" }
@@ -1721,7 +1925,11 @@ paths:
       parameters:
         - { name: slug, in: path, required: true, schema: { type: string } }
       responses:
-        "200": { description: Current accepted synthesis without private packet or run fields }
+        "200":
+          description: Current accepted synthesis without private packet or run fields
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PublicSynthesisReview" }
         "404": { $ref: "#/components/responses/Error" }
   /api/nodes/{id}/edges:
     get:
