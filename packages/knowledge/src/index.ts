@@ -59,3 +59,14 @@ export {
   type ProposeNodeIdentitiesOptions,
 } from "./node-identity.js";
 export * from "./node-edge-lifecycle.js";
+export {
+  buildSubgraphEvidencePacket,
+  buildPreparedSubgraphEvidencePacket,
+  canonicalizeEvidenceTopic,
+  normalizeEvidenceIdentifier,
+  fingerprintSubgraphEvidenceSelection,
+  SubgraphEvidenceBuildError,
+  SUBGRAPH_EVIDENCE_ERROR_CODES,
+  type PreparedSubgraphEvidencePacket,
+  type SubgraphEvidenceErrorCode,
+} from "./subgraph-evidence.js";
