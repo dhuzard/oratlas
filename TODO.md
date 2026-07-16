@@ -71,6 +71,7 @@ packages: [packages/contracts]
 contracts has no dependencies, so it goes first.
 
 **Scope.**
+
 - Zod schemas + TS types for `KnowledgeNode` with `kind: claim | figure | dataset | code`,
   shared envelope (stable node id, title, abstract/text, contributors, license, provenance,
   optional version DOI + concept DOI as distinct fields), and kind-specific payloads
@@ -80,10 +81,11 @@ contracts has no dependencies, so it goes first.
   repository declares its nodes (e.g. `nodes/*.json` or a `nodes.jsonl`), reusing the existing
   artifact-path safety rules (no traversal, bounded size).
 - Typed edge schema: `NodeEdge` with `relationType: supports | contradicts | replicates |
-  extends | uses-dataset | uses-code | derives-from`, provenance (`asserted-by-author`,
+extends | uses-dataset | uses-code | derives-from`, provenance (`asserted-by-author`,
   `proposed-by-agent`, `confirmed-by-editor`), and status lifecycle.
 
 **Acceptance criteria.**
+
 - Schemas exported from `@oratlas/contracts` with unit tests covering valid/invalid payloads,
   path-safety rejection, and DOI field distinctness.
 - `pnpm schema:check` validates the new JSON Schema and a reference example.
@@ -102,6 +104,7 @@ packages: [packages/db]
 ```
 
 **Scope.**
+
 - Prisma models: `KnowledgeNode` (concept identity, kind, owning lab/repository),
   `KnowledgeNodeVersion` (immutable content snapshot bound to a `RepositorySnapshot` and
   commit SHA, distinct `versionDoi`/`conceptDoi`, `isExample`), `NodeEdge`
@@ -112,6 +115,7 @@ packages: [packages/db]
   one `contradicts` and one `replicates`, one example-DOI node.
 
 **Acceptance criteria.**
+
 - String enums validated by contracts, JSON payloads as `…Json` columns, Postgres-portable.
 - `db:push` + `db:seed` + `db:reset` work; existing seed and all existing tests still pass.
 - Data-model doc table in `docs/data-model.md` extended.
@@ -129,6 +133,7 @@ packages: [packages/extractor, packages/github]
 ```
 
 **Scope.**
+
 - Deterministic extraction of node manifests from an inspected repository (bounded fetch via
   the existing `GithubTransport`, size caps, no clone), with field-level provenance like the
   existing metadata extraction.
@@ -138,6 +143,7 @@ packages: [packages/extractor, packages/github]
   errors vs warnings, mirroring the compatibility-report style.
 
 **Acceptance criteria.**
+
 - Unit tests with a mock transport: happy path, malformed manifest, unsafe path, oversized
   file, example DOI flagged.
 - Extraction is pure/deterministic (same inputs → same report).
@@ -155,6 +161,7 @@ packages: [apps/web, packages/db]
 ```
 
 **Scope.**
+
 - Extend the submission flow so an inspected repository that declares nodes produces node
   candidates alongside (or instead of) a prose review: wizard step showing extracted nodes with
   per-field provenance, included in the immutable `submittedPayloadJson`.
@@ -165,6 +172,7 @@ packages: [apps/web, packages/db]
   limits, server-side role checks.
 
 **Acceptance criteria.**
+
 - E2e: submit a node-bearing repo (mock auth) → editor accepts → nodes visible publicly.
 - Rejected/changed-requested submissions leave no public nodes; audit log records the decision.
 - Re-acceptance of the same selection is idempotent (unique constraints, no duplicates).
@@ -182,6 +190,7 @@ packages: [apps/web, packages/ui]
 ```
 
 **Scope.**
+
 - `nodes/[id]` public page per node: kind badge, content (escaped text only), version history,
   provenance panel, DOI links (example DOIs marked, never linked), owning repository/lab,
   incoming/outgoing edges, attached TRUST context.
@@ -189,6 +198,7 @@ packages: [apps/web, packages/ui]
 - Schema.org JSON-LD for nodes (Dataset/SoftwareSourceCode/CreativeWork as appropriate).
 
 **Acceptance criteria.**
+
 - E2e covering a claim node and a dataset node page, edge display, and example-DOI marking.
 - Lighthouse/axe-level accessibility parity with existing pages (labels, landmarks, contrast).
 
@@ -209,13 +219,15 @@ packages: [packages/knowledge, packages/contracts, docs]
 ```
 
 **Scope.**
+
 - Extend `docs/evidence-identity.md` rules to nodes: canonical identity from
   `(repositoryId, localNodeId)` plus alias resolution via DOI/PMID/OpenAlex where declared.
 - Deterministic duplicate/same-claim detection (normalized-text hash + shared identifiers) that
-  emits *proposals*, never merges. An LLM must not decide identity.
+  emits _proposals_, never merges. An LLM must not decide identity.
 - `NodeAlias` table or equivalent in `packages/db` (small schema addition allowed here).
 
 **Acceptance criteria.**
+
 - Unit tests: same DOI ⇒ same work; near-identical text ⇒ proposal not merge; distinct claims
   untouched. Determinism test (stable output ordering/hashing).
 
@@ -232,12 +244,14 @@ packages: [packages/knowledge, apps/web]
 ```
 
 **Scope.**
+
 - Generalize `KnowledgeLinkProposal` to node edges: author-asserted edges arrive via the node
   manifest; agent-proposed edges come from the knowledge layer; editors confirm/reject in the
   dashboard. Confirmed edges become public; proposals are visibly labelled as proposals.
 - Contradiction edges surface symmetrically on both endpoints.
 
 **Acceptance criteria.**
+
 - Lifecycle unit tests (all transitions; illegal transitions rejected).
 - Editorial e2e: propose → confirm → edge public; propose → reject → edge never public.
 - Audit events for every transition.
@@ -255,12 +269,14 @@ packages: [apps/web, packages/knowledge]
 ```
 
 **Scope.**
+
 - `GET /api/graph`-style routes: subgraph by seed node (depth-bounded), by topic/keyword (via
   the existing `SearchProvider`), filtered by node kind, edge type, edge status, TRUST
   presence. Cursor pagination; hard caps on depth and result size; typed responses defined in
   contracts; documented in `docs/openapi.yaml`.
 
 **Acceptance criteria.**
+
 - Unit tests over seeded graph; bounds enforced (oversized depth/limit ⇒ 400 typed error);
   rate limiting consistent with existing routes.
 
@@ -277,12 +293,14 @@ packages: [apps/web, packages/ui]
 ```
 
 **Scope.**
+
 - A `graph` page: navigate the neighborhood of a node, filter by kind/edge type/status,
   distinguish confirmed vs proposed edges and supports vs contradicts visually, click through
   to node pages. Server-rendered fallback list view for accessibility/no-JS; any visualization
   renders escaped text only.
 
 **Acceptance criteria.**
+
 - E2e: seed graph is navigable; proposed edges visibly distinct from confirmed; contradiction
   visible from both ends. Keyboard navigable.
 
@@ -299,13 +317,15 @@ packages: [packages/trust, packages/contracts, docs]
 ```
 
 **Scope.**
+
 - Define how TRUST-style assessment applies to dataset/code/figure nodes **without breaking the
   invariant** that TRUST attaches to a claim–citation relation: model these as assessments on
-  the *relation between a claim node and its evidence node* (claim ← uses-dataset — dataset,
+  the _relation between a claim node and its evidence node_ (claim ← uses-dataset — dataset,
   etc.), imported as `unverified-import` with the existing verification/hash machinery.
 - Update `docs/trust-model.md`.
 
 **Acceptance criteria.**
+
 - Contracts + trust unit tests; hash-guarded verification works on node relations; no schema
   path allows TRUST attached to a bare node with no relation.
 
@@ -326,12 +346,14 @@ packages: [packages/knowledge]
 ```
 
 **Scope.**
+
 - Extend the evidence-packet builder to take a topic or seed subgraph and produce a bounded,
   deterministic packet: nodes (with kinds), confirmed edges, TRUST summaries with method,
   identifiers whitelist, contradiction pairs, and per-item provenance. Stable ordering and a
   packet hash for reproducibility/audit.
 
 **Acceptance criteria.**
+
 - Unit tests: bounded size, deterministic hash, identifiers whitelist exactly matches packet
   contents, contradictions always included when present in the subgraph.
 
@@ -348,6 +370,7 @@ packages: [packages/knowledge, packages/contracts]
 ```
 
 **Scope.**
+
 - A `SynthesisWriter` behind the existing provider-neutral `LlmProvider` interface producing a
   sectioned long-form review (background, state of knowledge, agreements, contradictions &
   open questions, data & code availability, limitations) as a Zod-validated structure where
@@ -359,6 +382,7 @@ packages: [packages/knowledge, packages/contracts]
   output).
 
 **Acceptance criteria.**
+
 - Unit tests with a mock LLM: valid output accepted; out-of-packet citation rejected; malformed
   JSON rejected; fallback path produces a valid grounded document from the seed graph.
 
@@ -375,6 +399,7 @@ packages: [apps/web, packages/db]
 ```
 
 **Scope.**
+
 - New review kind `ai-synthesis` reusing the Review/ReviewVersion machinery: immutable
   versions, distinct DOI fields, contributors = the pipeline (AgentRun-linked) plus the
   approving editor. Generation lands as a **draft in the editorial queue**; an editor
@@ -384,6 +409,7 @@ packages: [apps/web, packages/db]
   hash, AgentRun provenance.
 
 **Acceptance criteria.**
+
 - E2e: trigger generation (fallback composer) → draft in queue → accept → published synthesis
   review visible and labelled AI-generated; reject leaves nothing public. Audit events for all
   transitions; acceptance idempotent under retry.
@@ -401,6 +427,7 @@ packages: [packages/knowledge, scripts, apps/web]
 ```
 
 **Scope.**
+
 - Deterministic staleness check: a published synthesis review stores its packet hash and node
   set; when new/updated nodes or newly confirmed edges intersect its topic subgraph, mark it
   `stale` with a machine-readable delta (added/changed nodes).
@@ -409,6 +436,7 @@ packages: [packages/knowledge, scripts, apps/web]
 - Stale badge on the public synthesis page ("newer evidence exists").
 
 **Acceptance criteria.**
+
 - Unit tests: unaffected reviews untouched; affected review marked with correct delta; CLI is
   idempotent. E2e or integration test for the stale badge.
 
@@ -429,6 +457,7 @@ packages: [apps/web, packages/ui]
 ```
 
 **Scope.**
+
 - Long-form reading page: typographic layout for sustained reading, table of contents, every
   inline citation a popover/link into the underlying node (with kind, TRUST context, and
   provenance), contradictions rendered as explicit "disputed" callouts, prominent persistent
@@ -437,6 +466,7 @@ packages: [apps/web, packages/ui]
   AI-pipeline + editor attribution policy from KG-18).
 
 **Acceptance criteria.**
+
 - E2e: citation drill-down to node page; disputed callout renders for the seeded
   contradiction; AI labelling always visible. Accessibility parity with existing pages.
 
@@ -453,12 +483,14 @@ packages: [apps/web, packages/knowledge]
 ```
 
 **Scope.**
+
 - "What changed" view between two versions of a synthesis review: section-level text diff plus
   structured evidence delta (nodes added/removed/re-assessed, edges confirmed, contradictions
   resolved/opened) computed from packet hashes and node sets — the structured delta is the
   primary artifact, the text diff secondary.
 
 **Acceptance criteria.**
+
 - Unit tests for the delta computation; e2e rendering a diff between two seeded generations.
 
 ### KG-17 — Freshness, coverage, and discovery
@@ -474,12 +506,14 @@ packages: [apps/web]
 ```
 
 **Scope.**
+
 - Archive filters distinguishing repo-based reviews, nodes, and AI syntheses; per-synthesis
   freshness indicator (up-to-date / stale + delta size); a topic coverage view listing
   published nodes not yet covered by any synthesis (feeds the KG-14 loop and tells editors
   where a new review is warranted).
 
 **Acceptance criteria.**
+
 - E2e for filters and freshness badge; coverage list correct against the seed graph.
 
 ---
@@ -499,6 +533,7 @@ packages: [docs]
 ```
 
 **Scope.**
+
 - Update `docs/agent-governance.md`, `docs/editorial-governance.md`, and
   `docs/poc-limitations.md`: attribution policy for AI-authored syntheses (pipeline + editor,
   never a fabricated human author), labelling requirements, editor responsibilities and
@@ -509,6 +544,7 @@ packages: [docs]
 - Update `PLAN.md` non-goals and `README.md` to describe the node/synthesis model.
 
 **Acceptance criteria.**
+
 - Docs consistent with the shipped behavior of KG-04/07/13/14; cross-references resolve.
 
 ### KG-19 — Grounding evaluation harness in CI
@@ -524,6 +560,7 @@ packages: [packages/knowledge, scripts]
 ```
 
 **Scope.**
+
 - An automated grounding suite that runs in CI without API keys: adversarial mock-LLM fixtures
   (out-of-packet citations, fabricated DOIs, example-DOI leakage, prompt-injection strings
   embedded in node text) asserting the validator rejects or neutralizes each; injection
@@ -533,6 +570,7 @@ packages: [packages/knowledge, scripts]
   producing a pass/fail report; report format documented.
 
 **Acceptance criteria.**
+
 - Suite wired into `ci.yml`; all fixtures pass; adding a new fixture is a one-file change.
 
 ### KG-20 — Full-pipeline e2e and CI coverage
@@ -548,6 +586,7 @@ packages: [apps/web, .github]
 ```
 
 **Scope.**
+
 - One Playwright journey covering the whole target model against the seed: lab repo with node
   manifest → inspect → submit → editorial accept (nodes public) → agent proposes an edge →
   editor confirms → synthesis draft generated (fallback composer) → editor accepts → human
@@ -555,6 +594,7 @@ packages: [apps/web, .github]
 - Keep total e2e wall-time reasonable (reuse seeds; no external network).
 
 **Acceptance criteria.**
+
 - Journey green in CI alongside all existing suites; documented in
   `docs/development-log.md`.
 
