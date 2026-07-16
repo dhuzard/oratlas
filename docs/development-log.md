@@ -405,3 +405,47 @@ atomically publish node versions from the exact captured repository state.
   (`spawnSync packages/db/node_modules/.bin/prisma ENOENT`). The complete browser suite passes all
   33 tests against a clean seeded database,
   including existing accessibility and editorial flows plus the new node-publication flow.
+
+## KG-05 — Node pages: public UI + API (issue #40)
+
+**Objective:** make accepted knowledge nodes independently discoverable and inspectable while
+preserving immutable version identity, identifier roles, graph visibility, and relation-scoped
+TRUST provenance.
+
+- Expanded the declared package scope to `packages/contracts` for strict public node list,
+  detail, history, archive-query, and response DTOs shared by server mapping, API routes, tests,
+  and OpenAPI. The knowledge package was not expanded.
+- Added stable `/nodes/{KnowledgeNode.id}` URLs plus exact historical version URLs and list,
+  current-detail, history, and historical-detail JSON APIs. Stored contributor, provenance, and
+  kind payload JSON is parsed against strict schemas; capture/submission payloads are never read
+  or returned.
+- Rendered claim, figure, dataset, and code payloads as escaped React text with accessible
+  landmarks, labels, version history, repository/commit provenance, contributors, and machine
+  endpoints. Safe schema.org metadata maps datasets and code to their specific types and passes
+  through the existing script-safe JSON serializer.
+- Preserved version, concept, and dataset-artifact DOI roles independently. Each `10.5555/*`
+  value is marked and withheld from resolver links and JSON-LD without suppressing a real DOI in
+  another role on the same node.
+- Reused KG-07's centralized public edge predicate: publication requires confirmed status and
+  provenance, an editorial confirmer who still holds that role, a confirmation timestamp, and an
+  immutable target version owned by the stable target node. Outgoing relations bind the selected
+  source version to that exact confirmed target version; inbound projection is limited to symmetric
+  contradictions whose confirmed target version is the selected version. TRUST is shown only for
+  an exact linked claim–citation relation in the selected snapshot, never as a node-level score.
+- Integrated nodes into archive search with content-type and node-kind filters. Review and node
+  candidates are merged, sorted deterministically, and only then paginated, preventing skipped or
+  duplicated records at mixed-content page boundaries.
+- Added strict-contract, JSON-LD, temporary-database integration, dynamically discovered browser,
+  and axe coverage for payload validation, current/history selection, confirmed/proposed edges,
+  TRUST scope, DOI safety, combined pagination, claim and dataset pages, and stable database ids.
+- Bounded public request expansion to 2,000 archive node candidates, 200 listed versions, 200 edges
+  per direction, 200 total claim–citation TRUST relations, and 50 assessments per relation. These
+  are deliberate POC ceilings pending KG-08's database-native graph/search cursors:
+  archive totals and history lists are capped, while an exact older version URL remains resolvable
+  through a bounded point lookup. The standalone edge endpoint is likewise capped at 200 records,
+  uses Node runtime/error handling, and returns an explicit no-store policy.
+- Verified repository lint, all 15 workspace typechecks, JSON schemas, OpenAPI route coverage, and
+  the production web build with the required build-only session secret. Nine focused contract,
+  JSON-LD, and temporary-database tests pass, as do all 11 focused browser checks, including axe
+  scans of the claim and dataset node pages. The reserved citation DOI regression proves that a
+  `10.5555/*` DOI stays unlinked when raw citation metadata is absent or malformed.

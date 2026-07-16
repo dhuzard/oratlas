@@ -1,0 +1,521 @@
+import "server-only";
+import { z } from "zod";
+import {
+  claimNodePayloadSchema,
+  codeNodePayloadSchema,
+  datasetNodePayloadSchema,
+  figureNodePayloadSchema,
+  knowledgeNodeKindSchema,
+  knowledgeNodeProvenanceSchema,
+  manifestContributorSchema,
+  publicNodeDetailSchema,
+  publicNodeListResponseSchema,
+  type KnowledgeNodeKind,
+  type NodeArchiveQuery,
+  type PublicNodeDetail,
+  type PublicNodeIdentifier,
+  type PublicNodeListResponse,
+  type PublicRelatedNodeVersion,
+  type PublicNodeSummary,
+  type PublicNodeVersion,
+} from "@oratlas/contracts";
+import { nodeFieldProvenanceSchema } from "@oratlas/extractor";
+import { selectPreferredTrustAssessment } from "@oratlas/trust";
+import { prisma } from "./db";
+import {
+  hasOwnedConfirmedTargetVersion,
+  publicConfirmedNodeEdgeWhere,
+} from "./node-edge-publication";
+import { resolveTrustAssessmentRows } from "./trust-provenance";
+
+const storedNodeProvenanceSchema = z.union([
+  knowledgeNodeProvenanceSchema,
+  z
+    .object({
+      declared: knowledgeNodeProvenanceSchema,
+      extractedFields: z.record(z.string(), nodeFieldProvenanceSchema),
+      sourcePath: z.string().min(1).max(512),
+      sourcePointer: z.string().min(1).max(512),
+    })
+    .strict(),
+]);
+
+const contributorsSchema = z.array(manifestContributorSchema).max(200);
+
+// POC request-work ceilings. Exact historical URLs remain addressable beyond the
+// history window, but archive totals and list/history surfaces intentionally cap
+// their scanned cardinality until KG-08 supplies database-native graph/search cursors.
+const PUBLIC_NODE_SEARCH_LIMIT = 2_000;
+const PUBLIC_NODE_VERSION_LIMIT = 200;
+const PUBLIC_NODE_EDGE_LIMIT = 200;
+const PUBLIC_NODE_TRUST_RELATION_LIMIT = 200;
+const PUBLIC_NODE_TRUST_ASSESSMENT_LIMIT = 50;
+
+function parseJson(value: string, label: string): unknown {
+  try {
+    return JSON.parse(value) as unknown;
+  } catch {
+    throw new Error(`Stored ${label} is not valid JSON.`);
+  }
+}
+
+function payloadSchema(kind: KnowledgeNodeKind) {
+  switch (kind) {
+    case "claim":
+      return claimNodePayloadSchema;
+    case "figure":
+      return figureNodePayloadSchema;
+    case "dataset":
+      return datasetNodePayloadSchema;
+    case "code":
+      return codeNodePayloadSchema;
+  }
+}
+
+function isExampleDoi(value: string): boolean {
+  return /^10\.5555\//i.test(value);
+}
+
+function identifiersFor(
+  version: { versionDoi: string | null; conceptDoi: string | null },
+  kind: KnowledgeNodeKind,
+  payload: unknown,
+): PublicNodeIdentifier[] {
+  const identifiers: PublicNodeIdentifier[] = [];
+  const add = (role: PublicNodeIdentifier["role"], value: string | null | undefined) => {
+    if (value) identifiers.push({ scheme: "doi", role, value, isExample: isExampleDoi(value) });
+  };
+  add("version-doi", version.versionDoi);
+  add("concept-doi", version.conceptDoi);
+  if (kind === "dataset") add("artifact-doi", datasetNodePayloadSchema.parse(payload).doi);
+  return identifiers;
+}
+
+type StoredVersion = {
+  id: string;
+  snapshotId: string;
+  title: string;
+  abstract: string | null;
+  text: string | null;
+  contributorsJson: string;
+  license: string;
+  provenanceJson: string;
+  payloadJson: string;
+  versionDoi: string | null;
+  conceptDoi: string | null;
+  isExample: boolean;
+  createdAt: Date;
+  snapshot: { commitSha: string };
+};
+
+function mapVersion(kind: KnowledgeNodeKind, version: StoredVersion): PublicNodeVersion {
+  const contributors = contributorsSchema.parse(
+    parseJson(version.contributorsJson, "contributors"),
+  );
+  const storedProvenance = storedNodeProvenanceSchema.parse(
+    parseJson(version.provenanceJson, "node provenance"),
+  );
+  const provenance = "declared" in storedProvenance ? storedProvenance.declared : storedProvenance;
+  const payload = payloadSchema(kind).parse(parseJson(version.payloadJson, `${kind} payload`));
+  return publicNodeDetailSchema.shape.version.parse({
+    id: version.id,
+    snapshotId: version.snapshotId,
+    commitSha: version.snapshot.commitSha,
+    kind,
+    title: version.title,
+    abstract: version.abstract ?? undefined,
+    text: version.text ?? undefined,
+    contributors,
+    license: version.license,
+    provenance,
+    payload,
+    identifiers: identifiersFor(version, kind, payload),
+    isExample: version.isExample,
+    createdAt: version.createdAt.toISOString(),
+  });
+}
+
+function tryMapVersion(
+  kind: KnowledgeNodeKind,
+  version: StoredVersion,
+): PublicNodeVersion | undefined {
+  try {
+    return mapVersion(kind, version);
+  } catch {
+    return undefined;
+  }
+}
+
+export function tryMapPublicNodeVersion(
+  node: { kind: string },
+  version: StoredVersion,
+): PublicNodeVersion | undefined {
+  const kind = knowledgeNodeKindSchema.safeParse(node.kind);
+  return kind.success ? tryMapVersion(kind.data, version) : undefined;
+}
+
+function nodeSummary(
+  node: {
+    id: string;
+    localNodeId: string;
+    kind: string;
+    repository: { owner: string; name: string; canonicalUrl: string };
+  },
+  version: PublicNodeVersion,
+): PublicNodeSummary {
+  return {
+    id: node.id,
+    localNodeId: node.localNodeId,
+    kind: version.kind,
+    title: version.title,
+    abstract: version.abstract,
+    repository: {
+      owner: node.repository.owner,
+      name: node.repository.name,
+      url: node.repository.canonicalUrl,
+    },
+    currentVersionId: version.id,
+    updatedAt: version.createdAt,
+  };
+}
+
+function relatedNodeVersion(
+  node: {
+    id: string;
+    localNodeId: string;
+    kind: string;
+    repository: { owner: string; name: string; canonicalUrl: string };
+  },
+  version: PublicNodeVersion,
+): PublicRelatedNodeVersion {
+  const summary = nodeSummary(node, version);
+  const { currentVersionId: versionId, updatedAt: versionCreatedAt, ...stableNode } = summary;
+  return { ...stableNode, versionId, versionCreatedAt };
+}
+
+function tryRelatedNodeVersion(
+  node: {
+    id: string;
+    localNodeId: string;
+    kind: string;
+    repository: { owner: string; name: string; canonicalUrl: string };
+  },
+  version: StoredVersion,
+): PublicRelatedNodeVersion | undefined {
+  const mapped = tryMapPublicNodeVersion(node, version);
+  return mapped ? relatedNodeVersion(node, mapped) : undefined;
+}
+
+const versionInclude = { snapshot: { select: { commitSha: true } } } as const;
+
+export async function listPublicNodes(query: NodeArchiveQuery): Promise<PublicNodeListResponse> {
+  const rows = await listPublicNodeSummaries(query.kind);
+  const needle = query.q ? canonicalFold(query.q.trim()) : undefined;
+  const matching = rows.filter((row) => {
+    if (!needle) return true;
+    return [row.title, row.abstract, row.localNodeId, row.repository.owner, row.repository.name]
+      .filter((value): value is string => Boolean(value))
+      .some((value) => canonicalFold(value).includes(needle));
+  });
+  const start = (query.page - 1) * query.pageSize;
+  return publicNodeListResponseSchema.parse({
+    total: matching.length,
+    page: query.page,
+    pageSize: query.pageSize,
+    items: matching.slice(start, start + query.pageSize),
+  });
+}
+
+export async function listPublicNodeSummaries(
+  kind?: KnowledgeNodeKind,
+): Promise<PublicNodeSummary[]> {
+  const rows = await prisma.knowledgeNode.findMany({
+    where: {
+      versions: { some: {} },
+      ...(kind ? { kind } : {}),
+    },
+    include: {
+      repository: { select: { owner: true, name: true, canonicalUrl: true } },
+      versions: {
+        include: versionInclude,
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+        take: 1,
+      },
+    },
+    orderBy: { id: "asc" },
+    take: PUBLIC_NODE_SEARCH_LIMIT,
+  });
+  return rows
+    .flatMap((row) => {
+      const storedCurrent = row.versions[0];
+      if (!storedCurrent) return [];
+      const current = tryMapPublicNodeVersion(row, storedCurrent);
+      return current ? [nodeSummary(row, current)] : [];
+    })
+    .sort(
+      (left, right) =>
+        compareCanonical(right.updatedAt, left.updatedAt) ||
+        compareCanonical(left.title, right.title) ||
+        compareCanonical(left.id, right.id),
+    );
+}
+
+export async function getPublicNode(
+  id: string,
+  selectedVersionId?: string,
+): Promise<PublicNodeDetail | null> {
+  const node = await prisma.knowledgeNode.findUnique({
+    where: { id },
+    include: {
+      repository: { select: { owner: true, name: true, canonicalUrl: true } },
+      versions: {
+        include: versionInclude,
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+        take: PUBLIC_NODE_VERSION_LIMIT,
+      },
+    },
+  });
+  if (!node || node.versions.length === 0) return null;
+  const parsedKind = knowledgeNodeKindSchema.safeParse(node.kind);
+  if (!parsedKind.success) return null;
+  const kind = parsedKind.data;
+  const storedCurrent = node.versions[0]!;
+  const current = tryMapVersion(kind, storedCurrent);
+  // Never fall back to an older valid version when the newest stored version is corrupt.
+  if (!current) return null;
+
+  let selectedStored = selectedVersionId
+    ? node.versions.find((version) => version.id === selectedVersionId)
+    : storedCurrent;
+  if (!selectedStored && selectedVersionId) {
+    selectedStored =
+      (await prisma.knowledgeNodeVersion.findFirst({
+        where: { id: selectedVersionId, knowledgeNodeId: node.id },
+        include: versionInclude,
+      })) ?? undefined;
+  }
+  if (!selectedStored) return null;
+  const selected =
+    selectedStored.id === storedCurrent.id ? current : tryMapVersion(kind, selectedStored);
+  if (!selected) return null;
+  const currentVersionId = current.id;
+  const historyVersions = node.versions.some((version) => version.id === selectedStored.id)
+    ? node.versions
+    : [...node.versions, selectedStored];
+
+  const [outgoingRows, incomingRows, trustRelations] = await Promise.all([
+    prisma.nodeEdge.findMany({
+      where: { ...publicConfirmedNodeEdgeWhere, sourceNodeVersionId: selectedStored.id },
+      include: {
+        confirmedTargetNodeVersion: {
+          include: {
+            ...versionInclude,
+            knowledgeNode: {
+              include: {
+                repository: { select: { owner: true, name: true, canonicalUrl: true } },
+              },
+            },
+          },
+        },
+      },
+      orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+      take: PUBLIC_NODE_EDGE_LIMIT,
+    }),
+    prisma.nodeEdge.findMany({
+      where: {
+        ...publicConfirmedNodeEdgeWhere,
+        targetNodeId: node.id,
+        confirmedTargetNodeVersionId: selectedStored.id,
+        relationType: "contradicts",
+      },
+      include: {
+        confirmedTargetNodeVersion: { select: { knowledgeNodeId: true } },
+        sourceNodeVersion: {
+          include: {
+            ...versionInclude,
+            knowledgeNode: {
+              include: {
+                repository: { select: { owner: true, name: true, canonicalUrl: true } },
+              },
+            },
+          },
+        },
+      },
+      orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+      take: PUBLIC_NODE_EDGE_LIMIT,
+    }),
+    prisma.claimEvidenceRelation.findMany({
+      where: {
+        claim: {
+          knowledgeNodeId: node.id,
+          reviewVersion: { snapshotId: selectedStored.snapshotId },
+        },
+      },
+      include: {
+        claim: { include: { reviewVersion: { include: { review: true } } } },
+        citation: true,
+        trustAssessments: {
+          include: { verification: true },
+          orderBy: [{ assessedAt: "desc" }, { id: "desc" }],
+          take: PUBLIC_NODE_TRUST_ASSESSMENT_LIMIT,
+        },
+      },
+      orderBy: { id: "asc" },
+      take: PUBLIC_NODE_TRUST_RELATION_LIMIT,
+    }),
+  ]);
+
+  const outgoing = outgoingRows.flatMap((edge) => {
+    if (!hasOwnedConfirmedTargetVersion(edge)) return [];
+    const relatedNode = tryRelatedNodeVersion(
+      edge.confirmedTargetNodeVersion.knowledgeNode,
+      edge.confirmedTargetNodeVersion as StoredVersion,
+    );
+    if (!relatedNode) return [];
+    return [
+      {
+        id: edge.id,
+        direction: "outgoing" as const,
+        relationType: edge.relationType,
+        provenance: edge.provenance,
+        rationale: edge.rationale ?? undefined,
+        assertedAt: edge.assertedAt?.toISOString(),
+        relatedNode,
+      },
+    ];
+  });
+  const incoming = incomingRows.flatMap((edge) => {
+    if (!hasOwnedConfirmedTargetVersion(edge)) return [];
+    const relatedNode = tryRelatedNodeVersion(
+      edge.sourceNodeVersion.knowledgeNode,
+      edge.sourceNodeVersion as StoredVersion,
+    );
+    if (!relatedNode) return [];
+    return [
+      {
+        id: edge.id,
+        direction: "incoming" as const,
+        relationType: edge.relationType,
+        provenance: edge.provenance,
+        rationale: edge.rationale ?? undefined,
+        assertedAt: edge.assertedAt?.toISOString(),
+        relatedNode,
+      },
+    ];
+  });
+
+  const trustContext = trustRelations.map((relation) => {
+    const claim = relation.claim;
+    const preferred = selectPreferredTrustAssessment(
+      relation.trustAssessments.map((assessment) => {
+        const resolved = resolveTrustAssessmentRows(
+          { assessment, relation, claim, citation: relation.citation },
+          assessment.verification,
+        );
+        return {
+          id: assessment.id,
+          effectiveStatus: resolved.effectiveStatus,
+          assessedAt: assessment.assessedAt?.toISOString() ?? null,
+          value: { assessment, resolved },
+        };
+      }),
+    )?.value;
+    return {
+      claimId: claim.id,
+      claimLocalId: claim.localClaimId,
+      reviewSlug: claim.reviewVersion.review.slug,
+      reviewVersionId: claim.reviewVersion.id,
+      citationId: relation.citation.id,
+      citationLocalId: relation.citation.localCitationId,
+      citationTitle: relation.citation.title ?? undefined,
+      citationDoi: relation.citation.doi ?? undefined,
+      citationIsExample: citationIsExample(
+        relation.citation.doi,
+        relation.citation.rawCitationJson,
+      ),
+      relationType: relation.relationType,
+      trust: preferred
+        ? {
+            reviewStatus: preferred.resolved.effectiveStatus,
+            verificationState: preferred.resolved.state,
+            aggregateScore: preferred.assessment.aggregateScore ?? undefined,
+            aggregateMethod: preferred.assessment.aggregateMethod ?? undefined,
+          }
+        : undefined,
+    };
+  });
+
+  const publicHistoryVersions = historyVersions.flatMap((storedVersion) => {
+    const version =
+      storedVersion.id === current.id
+        ? current
+        : storedVersion.id === selected.id
+          ? selected
+          : tryMapVersion(kind, storedVersion);
+    if (!version) return [];
+    return [
+      {
+        id: version.id,
+        title: version.title,
+        commitSha: version.commitSha,
+        createdAt: version.createdAt,
+        isCurrent: version.id === currentVersionId,
+      },
+    ];
+  });
+
+  return publicNodeDetailSchema.parse({
+    schemaVersion: "1.0.0",
+    id: node.id,
+    localNodeId: node.localNodeId,
+    kind,
+    repository: {
+      owner: node.repository.owner,
+      name: node.repository.name,
+      url: node.repository.canonicalUrl,
+    },
+    version: selected,
+    versions: publicHistoryVersions,
+    edges: [...outgoing, ...incoming].sort(
+      (left, right) =>
+        compareCanonical(left.direction, right.direction) ||
+        compareCanonical(left.relationType, right.relationType) ||
+        compareCanonical(left.id, right.id),
+    ),
+    trustContext,
+  });
+}
+
+function citationIsExample(doi: string | null, raw: string | null): boolean {
+  // Reserved example DOIs must never become live links, even when legacy raw citation
+  // metadata is absent or malformed. The DOI itself is the authoritative safety signal.
+  if (doi && isExampleDoi(doi)) return true;
+  if (!raw) return false;
+  try {
+    const parsed = z
+      .object({ isExample: z.boolean().optional() })
+      .passthrough()
+      .parse(JSON.parse(raw));
+    return parsed.isExample === true;
+  } catch {
+    return false;
+  }
+}
+
+function canonicalFold(value: string): string {
+  return value.normalize("NFKC").toLowerCase();
+}
+
+function compareCanonical(left: string, right: string): number {
+  const foldedLeft = canonicalFold(left);
+  const foldedRight = canonicalFold(right);
+  return foldedLeft < foldedRight
+    ? -1
+    : foldedLeft > foldedRight
+      ? 1
+      : left < right
+        ? -1
+        : left > right
+          ? 1
+          : 0;
+}

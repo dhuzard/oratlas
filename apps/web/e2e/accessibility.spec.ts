@@ -39,3 +39,28 @@ for (const { name, path } of PAGES) {
     ).toEqual([]);
   });
 }
+
+for (const kind of ["claim", "dataset"] as const) {
+  test(`${kind} node page has no serious or critical accessibility violations`, async ({
+    page,
+    request,
+  }) => {
+    const response = await request.get(`/api/nodes?kind=${kind}&pageSize=1`);
+    expect(response.ok()).toBeTruthy();
+    const body = (await response.json()) as { items: Array<{ id: string }> };
+    expect(body.items[0]?.id).toBeTruthy();
+    await page.goto(`/nodes/${body.items[0]!.id}`);
+    await page.waitForLoadState("networkidle");
+
+    const results = await new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+      .analyze();
+    const blocking = results.violations.filter(
+      (violation) => violation.impact === "serious" || violation.impact === "critical",
+    );
+    expect(
+      blocking,
+      blocking.map((violation) => `${violation.id}: ${violation.help}`).join("\n"),
+    ).toEqual([]);
+  });
+}

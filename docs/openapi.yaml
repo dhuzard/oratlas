@@ -50,6 +50,159 @@ components:
             details:
               type: array
               items: { type: string }
+    PublicNodeSummary:
+      type: object
+      additionalProperties: false
+      required: [id, localNodeId, kind, title, repository, currentVersionId, updatedAt]
+      properties:
+        id: { type: string, description: Stable database KnowledgeNode.id used in public URLs }
+        localNodeId: { type: string }
+        kind: { type: string, enum: [claim, figure, dataset, code] }
+        title: { type: string }
+        abstract: { type: string }
+        repository:
+          type: object
+          additionalProperties: false
+          required: [owner, name, url]
+          properties:
+            owner: { type: string }
+            name: { type: string }
+            url: { type: string, format: uri }
+        currentVersionId: { type: string }
+        updatedAt: { type: string, format: date-time }
+    PublicRelatedNodeVersion:
+      type: object
+      additionalProperties: false
+      required: [id, localNodeId, kind, title, repository, versionId, versionCreatedAt]
+      properties:
+        id: { type: string, description: Stable database KnowledgeNode.id used in public URLs }
+        localNodeId: { type: string }
+        kind: { type: string, enum: [claim, figure, dataset, code] }
+        title: { type: string }
+        abstract: { type: string }
+        repository:
+          type: object
+          additionalProperties: false
+          required: [owner, name, url]
+          properties:
+            owner: { type: string }
+            name: { type: string }
+            url: { type: string, format: uri }
+        versionId:
+          type: string
+          description: Exact immutable version bound when the edge was confirmed
+        versionCreatedAt: { type: string, format: date-time }
+    PublicNodeVersionSummary:
+      type: object
+      additionalProperties: false
+      required: [id, title, commitSha, createdAt, isCurrent]
+      properties:
+        id: { type: string }
+        title: { type: string }
+        commitSha: { type: string, pattern: "^(?:[0-9a-f]{40}|[0-9a-f]{64})$" }
+        createdAt: { type: string, format: date-time }
+        isCurrent: { type: boolean }
+    PublicNodeDetail:
+      type: object
+      additionalProperties: false
+      required:
+        [schemaVersion, id, localNodeId, kind, repository, version, versions, edges, trustContext]
+      properties:
+        schemaVersion: { const: 1.0.0 }
+        id: { type: string }
+        localNodeId: { type: string }
+        kind: { type: string, enum: [claim, figure, dataset, code] }
+        repository:
+          type: object
+          required: [owner, name, url]
+          properties:
+            owner: { type: string }
+            name: { type: string }
+            url: { type: string, format: uri }
+        version:
+          type: object
+          description: >
+            Strict kind-specific immutable content. Payload is claim {statement, qualifiers},
+            figure {artifactPath, caption, altText}, dataset {artifactPath, format, sizeBytes, doi},
+            or code {entryPoints, language, releaseRef}. Identifier entries retain distinct
+            version-doi, concept-doi and artifact-doi roles; example identifiers are marked.
+          required:
+            [
+              id,
+              snapshotId,
+              commitSha,
+              kind,
+              title,
+              contributors,
+              license,
+              provenance,
+              payload,
+              identifiers,
+              isExample,
+              createdAt,
+            ]
+          properties:
+            id: { type: string }
+            snapshotId: { type: string }
+            commitSha: { type: string, pattern: "^(?:[0-9a-f]{40}|[0-9a-f]{64})$" }
+            kind: { type: string, enum: [claim, figure, dataset, code] }
+            title: { type: string }
+            abstract: { type: string }
+            text: { type: string }
+            contributors: { type: array, items: { type: object } }
+            license: { type: string }
+            provenance: { type: object }
+            payload: { type: object }
+            identifiers:
+              type: array
+              items:
+                type: object
+                required: [scheme, role, value, isExample]
+                properties:
+                  scheme: { const: doi }
+                  role: { type: string, enum: [version-doi, concept-doi, artifact-doi] }
+                  value: { type: string }
+                  isExample: { type: boolean }
+            isExample: { type: boolean }
+            createdAt: { type: string, format: date-time }
+        versions:
+          type: array
+          items: { $ref: "#/components/schemas/PublicNodeVersionSummary" }
+        edges:
+          type: array
+          description: >
+            Editorially confirmed edges only. Outgoing summaries use the immutable target version
+            bound at confirmation; inbound projection is limited to symmetric contradictions bound
+            to the selected target version.
+          items:
+            type: object
+            required: [id, direction, relationType, provenance, relatedNode]
+            properties:
+              id: { type: string }
+              direction: { type: string, enum: [incoming, outgoing] }
+              relationType:
+                {
+                  type: string,
+                  enum:
+                    [
+                      supports,
+                      contradicts,
+                      replicates,
+                      extends,
+                      uses-dataset,
+                      uses-code,
+                      derives-from,
+                    ],
+                }
+              provenance:
+                { type: string, enum: [asserted-by-author, proposed-by-agent, confirmed-by-editor] }
+              rationale: { type: string }
+              assertedAt: { type: string, format: date-time }
+              relatedNode: { $ref: "#/components/schemas/PublicRelatedNodeVersion" }
+        trustContext:
+          type: array
+          description: Relation-scoped claim-citation context; never a bare node-level TRUST score.
+          items: { type: object }
     ExecutionPassportRegistration:
       type: object
       required: [crate, attestation]
@@ -787,8 +940,19 @@ paths:
         "415": { $ref: "#/components/responses/Error" }
   /api/search:
     get:
-      summary: Search accepted reviews
+      summary: Search accepted reviews and knowledge nodes with one combined pagination window
+      description: Knowledge-node candidates are deterministically capped at 2,000 in this POC.
       parameters:
+        - {
+            name: contentType,
+            in: query,
+            schema: { type: string, enum: [all, review, node], default: all },
+          }
+        - {
+            name: nodeKind,
+            in: query,
+            schema: { type: string, enum: [claim, figure, dataset, code] },
+          }
         - { name: q, in: query, schema: { type: string } }
         - { name: domain, in: query, schema: { type: string } }
         - { name: author, in: query, schema: { type: string } }
@@ -801,6 +965,80 @@ paths:
           }
       responses:
         "200": { description: Search results }
+  /api/nodes:
+    get:
+      summary: List accepted knowledge nodes
+      parameters:
+        - { name: q, in: query, schema: { type: string, maxLength: 500 } }
+        - { name: kind, in: query, schema: { type: string, enum: [claim, figure, dataset, code] } }
+        - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+        - {
+            name: pageSize,
+            in: query,
+            schema: { type: integer, minimum: 1, maximum: 50, default: 20 },
+          }
+      responses:
+        "200":
+          description: Paginated node summaries from a deterministic POC scan capped at 2,000 nodes
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [total, page, pageSize, items]
+                properties:
+                  total: { type: integer, minimum: 0 }
+                  page: { type: integer, minimum: 1 }
+                  pageSize: { type: integer, minimum: 1 }
+                  items:
+                    type: array
+                    items: { $ref: "#/components/schemas/PublicNodeSummary" }
+        "400": { $ref: "#/components/responses/Error" }
+  /api/nodes/{id}:
+    get:
+      summary: Retrieve the current immutable version and public graph context for a stable node
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Current node detail
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PublicNodeDetail" }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/nodes/{id}/versions:
+    get:
+      summary: List immutable versions of a stable knowledge node
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The newest 200 immutable versions; exact older-version URLs remain readable
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [nodeId, currentVersionId, items]
+                properties:
+                  nodeId: { type: string }
+                  currentVersionId: { type: string }
+                  items:
+                    type: array
+                    maxItems: 200
+                    items: { $ref: "#/components/schemas/PublicNodeVersionSummary" }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/nodes/{id}/versions/{versionId}:
+    get:
+      summary: Retrieve one exact immutable knowledge-node version
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+        - { name: versionId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Historical node detail; graph context is separately labelled and may evolve
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PublicNodeDetail" }
+        "404": { $ref: "#/components/responses/Error" }
   /api/reviews/{slug}:
     get:
       summary: Retrieve a review by slug
@@ -1176,7 +1414,8 @@ paths:
       parameters:
         - { name: id, in: path, required: true, schema: { type: string } }
       responses:
-        "200": { description: Bounded list of editor-confirmed typed edges }
+        "200":
+          { description: Bounded list of at most 200 editor-confirmed typed edges; never cached }
   /api/protocols/reviews/{versionId}:
     get:
       summary: Public review-level protocol provenance and neutral reconciliation proposals

@@ -16,6 +16,11 @@ import {
 } from "@oratlas/knowledge";
 import { prisma } from "./db";
 import { prismaCode, withSqliteRetry } from "./db-retry";
+import {
+  hasOwnedConfirmedTargetVersion,
+  publicConfirmedNodeEdgeWhere,
+} from "./node-edge-publication";
+import { tryMapPublicNodeVersion } from "./node-publication";
 
 export class NodeEdgeLifecycleError extends Error {
   constructor(
@@ -558,30 +563,36 @@ export async function listPendingNodeEdgeProposals() {
 export async function listConfirmedEdgesForNode(nodeId: string) {
   const rows = await prisma.nodeEdge.findMany({
     where: {
-      status: "confirmed",
-      provenance: "confirmed-by-editor",
-      confirmedTargetNodeVersionId: { not: null },
-      confirmedById: { not: null },
-      confirmedAt: { not: null },
-      confirmedBy: { is: { role: { in: ["EDITOR", "ADMIN"] } } },
+      ...publicConfirmedNodeEdgeWhere,
       OR: [
         { sourceNodeVersion: { knowledgeNodeId: nodeId } },
         { relationType: "contradicts", targetNodeId: nodeId },
       ],
     },
     include: {
-      sourceNodeVersion: { include: { knowledgeNode: true } },
+      sourceNodeVersion: {
+        include: {
+          snapshot: { select: { commitSha: true } },
+          knowledgeNode: true,
+        },
+      },
       targetNode: true,
-      confirmedTargetNodeVersion: true,
+      confirmedTargetNodeVersion: { include: { snapshot: { select: { commitSha: true } } } },
     },
     orderBy: [{ createdAt: "asc" }, { id: "asc" }],
     take: 200,
   });
-  return rows
-    .filter((row) => row.confirmedTargetNodeVersion?.knowledgeNodeId === row.targetNodeId)
-    .map((row) => {
-      const sourceIsSeed = row.sourceNodeVersion.knowledgeNodeId === nodeId;
-      return {
+  return rows.flatMap((row) => {
+    if (!hasOwnedConfirmedTargetVersion(row)) return [];
+    const sourceVersion = tryMapPublicNodeVersion(
+      row.sourceNodeVersion.knowledgeNode,
+      row.sourceNodeVersion,
+    );
+    const targetVersion = tryMapPublicNodeVersion(row.targetNode, row.confirmedTargetNodeVersion);
+    if (!sourceVersion || !targetVersion) return [];
+    const sourceIsSeed = row.sourceNodeVersion.knowledgeNodeId === nodeId;
+    return [
+      {
         id: row.id,
         relationType: row.relationType,
         status: "confirmed" as const,
@@ -590,15 +601,16 @@ export async function listConfirmedEdgesForNode(nodeId: string) {
           ? {
               id: row.targetNode.id,
               localNodeId: row.targetNode.localNodeId,
-              title: row.confirmedTargetNodeVersion!.title,
+              title: targetVersion.title,
             }
           : {
               id: row.sourceNodeVersion.knowledgeNode.id,
               localNodeId: row.sourceNodeVersion.knowledgeNode.localNodeId,
-              title: row.sourceNodeVersion.title,
+              title: sourceVersion.title,
             },
-      };
-    });
+      },
+    ];
+  });
 }
 
 async function requireCurrentEditor(userId: string): Promise<void> {
