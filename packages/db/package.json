@@ -11,14 +11,15 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "db:generate": "prisma generate",
-    "db:push": "prisma db push",
+    "db:push": "prisma db push && tsx scripts/apply-database-guards.ts",
+    "db:guards": "tsx scripts/apply-database-guards.ts",
     "db:validate": "prisma validate",
     "db:pg:schema": "tsx scripts/gen-postgres-schema.ts",
-    "db:pg:ddl": "prisma migrate diff --from-empty --to-schema-datamodel prisma/schema.postgres.prisma --script > prisma/schema.postgres.sql",
+    "db:pg:ddl": "prisma migrate diff --from-empty --to-schema-datamodel prisma/schema.postgres.prisma --script > prisma/schema.postgres.sql && tsx scripts/append-postgres-constraints.ts",
     "db:seed": "tsx src/seed/seed.ts",
     "db:backfill-github-logins": "tsx src/backfill-github-logins.ts",
     "db:reconcile-github-repositories": "tsx src/reconcile-github-repositories.ts",
-    "db:reset": "tsx src/seed/reset.ts && prisma db push --skip-generate && tsx src/seed/seed.ts"
+    "db:reset": "tsx src/seed/reset.ts && prisma db push --skip-generate && tsx scripts/apply-database-guards.ts && tsx src/seed/seed.ts"
   },
   "prisma": {
     "schema": "prisma/schema.prisma"

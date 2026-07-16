@@ -58,6 +58,7 @@ export async function buildKnowledgeIndex(): Promise<KnowledgeIndexData> {
     if (
       !version ||
       !isReadablePublicState(version.publicState) ||
+      !version.snapshot ||
       !isExactCommitSha(version.snapshot.commitSha)
     ) {
       continue;

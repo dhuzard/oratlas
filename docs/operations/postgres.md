@@ -44,11 +44,15 @@ This produces `packages/db/prisma/schema.postgres.prisma` — the same models wi
 Apply the generated Postgres schema against your database:
 
 ```bash
-prisma migrate deploy   # apply committed migrations, or
-prisma db push          # push the schema directly
+pnpm --filter @oratlas/db exec prisma db push --schema prisma/schema.postgres.prisma --skip-generate
+pnpm --filter @oratlas/db db:guards
 ```
 
-The committed Postgres DDL is `packages/db/prisma/schema.postgres.sql`.
+The second command is required: Prisma `db push` does not install the native source-union,
+synthesis lifecycle/lease, and reference-integrity constraints/triggers. Deployments using committed
+migrations must likewise run `db:guards` after `prisma migrate deploy`. The guard installer is
+idempotent. The committed Postgres DDL is `packages/db/prisma/schema.postgres.sql` and includes the
+same guards for bootstrap workflows.
 
 ## CI gates (tested migrations)
 
@@ -57,8 +61,9 @@ Two jobs in the `CI` workflow keep Postgres support honest on every pull request
 - **Drift check** — CI regenerates the Postgres DDL and fails if
   `packages/db/prisma/schema.postgres.sql` differs from the checked-in copy. This is the
   "tested migrations" gate: the committed DDL must always match what the schema generates.
-- **Portability job** — CI pushes and seeds the schema against a real PostgreSQL service on
-  every PR, so a change that only works on SQLite cannot merge.
+- **Portability job** — CI pushes the schema, installs and introspects native guards, rejects invalid
+  direct writes, and seeds against a real PostgreSQL service on every PR, so a change that only works
+  on SQLite cannot merge.
 
 ## Caveat
 

@@ -65,6 +65,7 @@ export const claimTypeSchema = z.enum(CLAIM_TYPES);
 export type ClaimType = z.infer<typeof claimTypeSchema>;
 
 export const REVIEW_TYPES = [
+  "ai-synthesis",
   "computational-literature-review",
   "systematic-review",
   "scoping-review",

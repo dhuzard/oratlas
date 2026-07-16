@@ -1372,8 +1372,8 @@ async function assertSameCommitSelectionOrder(
     new Set(["default-branch", "release"]),
   );
   expect(versions.every((version) => version.inspectionCaptureId)).toBe(true);
-  expect(versions.every((version) => version.snapshot.sourceKind === null)).toBe(true);
-  expect(versions.every((version) => version.snapshot.releaseTag === null)).toBe(true);
+  expect(versions.every((version) => version.snapshot?.sourceKind === null)).toBe(true);
+  expect(versions.every((version) => version.snapshot?.releaseTag === null)).toBe(true);
 }
 
 function knowledgeNodes(): KnowledgeNode[] {

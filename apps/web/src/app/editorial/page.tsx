@@ -17,6 +17,8 @@ import { FederationPanel } from "./FederationPanel";
 import { ProtocolDriftPanel } from "./ProtocolDriftPanel";
 import { NodeEdgeProposalPanel } from "./NodeEdgeProposalPanel";
 import { listPendingNodeEdgeProposals } from "@/lib/node-edge-lifecycle";
+import { listEditorialSynthesisDrafts } from "@/lib/synthesis-editorial";
+import { SynthesisDraftPanel } from "./SynthesisDraftPanel";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Editorial dashboard" };
@@ -66,6 +68,7 @@ export default async function EditorialPage({
   const federationQueue = await listFederationQueue();
   const openProtocolProposals = await listOpenProtocolProposals();
   const nodeEdgeProposals = await listPendingNodeEdgeProposals();
+  const synthesisDrafts = await listEditorialSynthesisDrafts();
 
   return (
     <div>
@@ -78,6 +81,8 @@ export default async function EditorialPage({
       <p>
         <a href="/editorial/replications">Manage replication briefs →</a>
       </p>
+
+      <SynthesisDraftPanel drafts={synthesisDrafts} />
 
       <h2>Pending submissions ({pending.length})</h2>
       {pending.length === 0 ? (

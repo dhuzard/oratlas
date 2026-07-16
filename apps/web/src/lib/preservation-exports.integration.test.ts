@@ -209,7 +209,7 @@ describe.sequential("preservation and standards exports", () => {
 
     // Simulate a legacy row: no durable content column, no capture.
     await runtime.prisma.repositorySnapshot.update({
-      where: { id: review.versions[0]!.snapshotId },
+      where: { id: review.versions[0]!.snapshotId! },
       data: { preservedFilesJson: null },
     });
     await runtime.prisma.reviewVersion.update({
@@ -224,7 +224,7 @@ describe.sequential("preservation and standards exports", () => {
     ).toBeNull();
 
     await runtime.prisma.repositorySnapshot.update({
-      where: { id: review.versions[0]!.snapshotId },
+      where: { id: review.versions[0]!.snapshotId! },
       data: { preservedFilesJson: "{malformed" },
     });
     expect(await runtime.getVersionExportContext(accepted.reviewSlug, versionId)).toBeNull();

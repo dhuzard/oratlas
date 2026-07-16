@@ -85,7 +85,11 @@ export async function listReviewComments(
     ? review.versions.find((version) => version.id === requestedVersionId)
     : review.versions[0];
   if (!selectedVersion) return null;
-  if (review.status !== "published" || !isExactCommitSha(selectedVersion.snapshot.commitSha)) {
+  if (
+    review.status !== "published" ||
+    !selectedVersion.snapshot ||
+    !isExactCommitSha(selectedVersion.snapshot.commitSha)
+  ) {
     return null;
   }
   if (isTombstonedState(selectedVersion.publicState)) {
@@ -176,6 +180,7 @@ export async function createReviewComment(
       if (
         !isReadablePublicState(currentVersion.publicState) ||
         !currentVersion.publishedAt ||
+        !currentVersion.snapshot ||
         !isExactCommitSha(currentVersion.snapshot.commitSha)
       ) {
         throw new CommentError("Comments are closed on this withheld review version.");

@@ -8,6 +8,7 @@ export * from "./node-publication.js";
 export * from "./graph.js";
 export * from "./subgraph-evidence.js";
 export * from "./synthesis-review.js";
+export * from "./synthesis-editorial.js";
 export * from "./node-identity.js";
 export * from "./metadata.js";
 export * from "./inspection.js";
