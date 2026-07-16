@@ -7,11 +7,15 @@ import {
   type ExtractedMetadata,
   type InspectionReport,
   type PublicationConsistencyReport,
+  type NodeRelationTrustRecord,
   type PreservedFiles,
   type SnapshotStorageReport,
 } from "@oratlas/contracts";
 import { assertKnowledgeNodeMaterializationBinding, type Prisma } from "@oratlas/db";
-import { normalizeImportedTrustRecord } from "@oratlas/trust";
+import {
+  normalizeImportedNodeRelationTrustRecord,
+  normalizeImportedTrustRecord,
+} from "@oratlas/trust";
 import { isExampleDoi } from "@oratlas/zenodo";
 import { prisma, parseJsonColumn } from "./db";
 import { prismaCode, uniqueTargets, withSqliteRetry as sharedWithSqliteRetry } from "./db-retry";
@@ -525,7 +529,11 @@ export async function acceptSubmission(
             reviewerId,
             reviewVersionId,
           );
+          const nodeTrustRecords = payload.knowledge.trust.filter(
+            (record): record is NodeRelationTrustRecord => "subjectType" in record,
+          );
           let edgeProposalIds: string[] = [];
+          let nodeTrustAssessmentIds: string[] = [];
           if (
             submission.inspectionCaptureId &&
             submission.inspectionCapture &&
@@ -550,6 +558,17 @@ export async function acceptSubmission(
                 kind: version.knowledgeNode.kind,
               })),
             });
+            nodeTrustAssessmentIds = await materializeNodeRelationTrustAssessments(
+              tx,
+              nodeTrustRecords,
+              edgeProposalIds,
+              {
+                submissionId: submission.id,
+                inspectionCaptureId: submission.inspectionCaptureId,
+                sourceRepositoryGithubId: submission.repository.githubRepositoryId,
+                sourceCommitSha: submission.snapshot.commitSha,
+              },
+            );
           }
 
           if (reviewId && reviewVersionId) {
@@ -572,6 +591,7 @@ export async function acceptSubmission(
                 selectedNodeIds: requestedSelection,
                 nodeVersionIds,
                 edgeProposalIds,
+                nodeTrustAssessmentIds,
                 overrideCheckIds: validatedOverrides.map((entry) => entry.checkId),
               }),
             },
@@ -1342,6 +1362,7 @@ async function materializeKnowledge(
     sourceReviewByPair.set(pair, relation.humanReviewed ?? null);
   }
   for (const trust of payload.knowledge.trust) {
+    if ("subjectType" in trust) continue;
     const pair = `${trust.claimId}|${trust.citationId}`;
     const relationId = relationIdByPair.get(pair);
     if (!relationId) continue;
@@ -1371,6 +1392,105 @@ async function materializeKnowledge(
       },
     });
   }
+}
+
+async function materializeNodeRelationTrustAssessments(
+  tx: Prisma.TransactionClient,
+  records: NodeRelationTrustRecord[],
+  proposalIds: string[],
+  expected: {
+    submissionId: string;
+    inspectionCaptureId: string;
+    sourceRepositoryGithubId: string | null;
+    sourceCommitSha: string;
+  },
+): Promise<string[]> {
+  if (records.length === 0) return [];
+  if (!expected.sourceRepositoryGithubId) {
+    throw new SubmissionError(
+      "Node-relation TRUST requires an immutable source repository identity.",
+      "conflict",
+    );
+  }
+  const proposals = await tx.nodeEdgeProposal.findMany({
+    where: { id: { in: proposalIds } },
+    include: {
+      sourceNodeVersion: {
+        include: { knowledgeNode: { include: { repository: true } }, snapshot: true },
+      },
+      targetNodeVersion: {
+        include: { knowledgeNode: { include: { repository: true } }, snapshot: true },
+      },
+    },
+  });
+  const created: string[] = [];
+  for (const record of records) {
+    const matches = proposals.filter((proposal) => {
+      const subject = record.subject;
+      const source = proposal.sourceNodeVersion;
+      const target = proposal.targetNodeVersion;
+      const exactLocal =
+        source.knowledgeNode.localNodeId === subject.claimNodeId &&
+        source.knowledgeNode.kind === "claim" &&
+        target.knowledgeNode.localNodeId === subject.evidenceNodeId &&
+        target.knowledgeNode.kind === subject.evidenceKind &&
+        proposal.relationType === subject.relationType;
+      const exactOrigin =
+        proposal.origin === "asserted-by-author" &&
+        proposal.sourceSubmissionId === expected.submissionId &&
+        proposal.inspectionCaptureId === expected.inspectionCaptureId &&
+        source.knowledgeNode.repository.githubRepositoryId === expected.sourceRepositoryGithubId &&
+        source.snapshot.commitSha === expected.sourceCommitSha;
+      const exactTarget = subject.evidenceRepository
+        ? target.knowledgeNode.repository.githubRepositoryId ===
+            subject.evidenceRepository.githubRepositoryId &&
+          target.snapshot.commitSha === subject.evidenceRepository.commitSha
+        : target.knowledgeNode.repositoryId === source.knowledgeNode.repositoryId &&
+          target.snapshot.commitSha === expected.sourceCommitSha;
+      return exactLocal && exactOrigin && exactTarget;
+    });
+    if (matches.length !== 1) {
+      const sourceAccepted = proposals.some(
+        (proposal) =>
+          proposal.sourceNodeVersion.knowledgeNode.localNodeId === record.subject.claimNodeId,
+      );
+      const targetAccepted = proposals.some(
+        (proposal) =>
+          proposal.targetNodeVersion.knowledgeNode.localNodeId === record.subject.evidenceNodeId,
+      );
+      if (!sourceAccepted || (!record.subject.evidenceRepository && !targetAccepted)) continue;
+      throw new SubmissionError(
+        `Node-relation TRUST ${record.subject.claimNodeId}→${record.subject.evidenceNodeId} does not match exactly one accepted author edge.`,
+        "conflict",
+      );
+    }
+    const imported = normalizeImportedNodeRelationTrustRecord(record);
+    const row = await tx.nodeRelationTrustAssessment.create({
+      data: {
+        nodeEdgeProposalId: matches[0]!.id,
+        protocolVersion: imported.record.protocolVersion,
+        assessorType: imported.record.assessorType,
+        assessorId: imported.record.assessorId,
+        assessedAt: imported.record.assessedAt ? new Date(imported.record.assessedAt) : null,
+        ...imported.criterionColumns,
+        limitationsJson: imported.limitationsJson,
+        evidenceJson: imported.evidenceJson,
+        aggregateScore: imported.aggregateScore,
+        aggregateMethod: imported.aggregateMethod,
+        reviewStatus: imported.reviewStatus,
+        sourceRecordJson: imported.sourceRecordJson,
+        sourceReviewStatus: imported.sourceReviewStatus,
+        sourceAssessorType: imported.sourceAssessorType,
+        sourceAssessorId: imported.sourceAssessorId,
+        sourceAssessedAt: imported.sourceAssessedAt ? new Date(imported.sourceAssessedAt) : null,
+        sourceEvidenceJson: imported.sourceEvidenceJson,
+        sourceAggregateScore: imported.sourceAggregateScore,
+        sourceAggregateMethod: imported.sourceAggregateMethod,
+      },
+    });
+    created.push(row.id);
+  }
+  return created;
 }
 
 function detectExample(meta: EffectiveMetadata): boolean {

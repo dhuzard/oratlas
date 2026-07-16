@@ -141,7 +141,7 @@ export function normalizeImportedTrustRecord(
   sourceRelationHumanReviewed: boolean | null,
 ): NormalizedImportedTrustRecord {
   const record = trustRecordSchema.parse(input);
-  return normalizeImportedRecord(record, sourceRelationHumanReviewed);
+  return normalizeImportedRecord(record, sourceRelationHumanReviewed, true);
 }
 
 /**
@@ -153,12 +153,13 @@ export function normalizeImportedNodeRelationTrustRecord(
   input: NodeRelationTrustRecord,
 ): NormalizedImportedNodeRelationTrustRecord {
   const record = nodeRelationTrustRecordSchema.parse(input);
-  return normalizeImportedRecord(record, null);
+  return normalizeImportedRecord(record, null, false);
 }
 
 function normalizeImportedRecord<T extends TrustAssessmentRecord>(
   record: T,
   sourceRelationHumanReviewed: boolean | null,
+  includeLegacyRelationAssertion: boolean,
 ): Omit<NormalizedImportedTrustRecord, "record"> & { record: T } {
   const aggregate = computeAggregate(record);
   const criterionColumns: Partial<Record<TrustCriterion, string>> = {};
@@ -175,7 +176,9 @@ function normalizeImportedRecord<T extends TrustAssessmentRecord>(
     aggregateScore: aggregate.score,
     aggregateMethod: aggregate.method,
     reviewStatus: "unverified-import",
-    sourceRecordJson: canonicalJson({ ...record, sourceRelationHumanReviewed }),
+    sourceRecordJson: canonicalJson(
+      includeLegacyRelationAssertion ? { ...record, sourceRelationHumanReviewed } : record,
+    ),
     sourceReviewStatus: record.reviewStatus,
     sourceAssessorType: record.assessorType,
     sourceAssessorId: record.assessorId ?? null,
@@ -259,33 +262,200 @@ export interface ReviewedTrustSubjectInput {
 }
 
 /** Exact immutable claim-to-evidence node relation reviewed by an Atlas editor. */
+export type ReviewedNodeRelationAssessmentInput = Omit<
+  ReviewedTrustSubjectInput["assessment"],
+  "sourceRelationHumanReviewed"
+>;
+
 export interface ReviewedNodeRelationTrustSubjectInput {
-  assessment: ReviewedTrustSubjectInput["assessment"];
-  relation: {
+  assessment: ReviewedNodeRelationAssessmentInput;
+  importedRecord: NodeRelationTrustRecord;
+  proposal: {
     id: string;
+    originKey: string;
+    sourceStableKey: string;
+    targetStableKey: string;
     relationType: string;
     sourceNodeVersionId: string;
+    targetNodeId: string;
     targetNodeVersionId: string;
-    provenance: string;
-    status: string;
+    origin: string;
     rationale: string | null;
+    evidenceJson: string;
+    sourceSubmissionId: string | null;
+    inspectionCaptureId: string | null;
+    status: string;
+    revision: number;
+    reviewedById: string | null;
+    reviewedAt: string | null;
+    reviewNote: string | null;
+    confirmedEdgeId: string | null;
   };
-  claimNode: {
+  confirmedEdge: {
     id: string;
-    versionId: string;
-    kind: "claim";
+    sourceNodeVersionId: string;
+    targetNodeId: string;
+    relationType: string;
+    status: string;
+    provenance: string;
+    rationale: string | null;
+    assertedAt: string | null;
+    confirmedTargetNodeVersionId: string | null;
+    confirmedById: string | null;
+    confirmedAt: string | null;
+    revision: number;
+    confirmerRole: string | null;
+  } | null;
+  claimNode: ReviewedNodeVersionInput & { kind: "claim" };
+  evidenceNode: ReviewedNodeVersionInput & { kind: "dataset" | "code" | "figure" };
+}
+
+export interface ReviewedNodeVersionInput {
+  version: {
+    id: string;
+    knowledgeNodeId: string;
+    snapshotId: string;
+    sourceSubmissionId: string | null;
+    inspectionCaptureId: string | null;
+    capturePayloadHash: string | null;
     title: string;
+    abstract: string | null;
+    text: string | null;
+    contributorsJson: string;
+    license: string;
     payloadJson: string;
     provenanceJson: string;
+    versionDoi: string | null;
+    conceptDoi: string | null;
+    isExample: boolean;
   };
-  evidenceNode: {
+  node: {
     id: string;
-    versionId: string;
-    kind: "dataset" | "code" | "figure";
-    title: string;
-    payloadJson: string;
-    provenanceJson: string;
+    repositoryId: string;
+    localNodeId: string;
+    kind: string;
   };
+  repository: {
+    id: string;
+    githubRepositoryId: string | null;
+    canonicalUrl: string;
+  };
+  snapshot: {
+    id: string;
+    repositoryId: string;
+    commitSha: string;
+    sourceTreeSha: string | null;
+    sourceKind: string | null;
+    inspectionStatus: string;
+    contentHash: string;
+  };
+  inspectionCapture: {
+    id: string;
+    payloadHash: string;
+    githubRepositoryId: string;
+    commitSha: string;
+  } | null;
+  sourceSubmission: {
+    id: string;
+    repositoryId: string;
+    snapshotId: string | null;
+    inspectionCaptureId: string | null;
+    submittedPayloadHash: string | null;
+    acceptedNodeSelectionHash: string | null;
+  } | null;
+}
+
+export interface DatabaseNodeRelationTrustSubjectRows {
+  assessment: ReviewedNodeRelationAssessmentInput;
+  proposal: ReviewedNodeRelationTrustSubjectInput["proposal"];
+  confirmedEdge: ReviewedNodeRelationTrustSubjectInput["confirmedEdge"];
+  claimNode: ReviewedNodeRelationTrustSubjectInput["claimNode"];
+  evidenceNode: ReviewedNodeRelationTrustSubjectInput["evidenceNode"];
+}
+
+/** Validate and map one exact persisted node-relation assessment subject. */
+export function nodeRelationTrustSubjectInputFromDatabaseRows(
+  rows: DatabaseNodeRelationTrustSubjectRows,
+): ReviewedNodeRelationTrustSubjectInput {
+  let sourceValue: unknown;
+  try {
+    sourceValue = JSON.parse(rows.assessment.sourceRecordJson ?? "null");
+  } catch {
+    throw new TypeError("Node-relation TRUST source record is not valid JSON.");
+  }
+  const importedRecord = nodeRelationTrustRecordSchema.parse(sourceValue);
+  const subject = importedRecord.subject;
+  if (
+    !rows.claimNode.repository.githubRepositoryId ||
+    !rows.evidenceNode.repository.githubRepositoryId
+  ) {
+    throw new TypeError("Node-relation TRUST requires immutable repository GitHub identities.");
+  }
+  const expectedSourceStableKey = canonicalJson({
+    githubRepositoryId: rows.claimNode.repository.githubRepositoryId,
+    localNodeId: rows.claimNode.node.localNodeId,
+    commitSha: rows.claimNode.snapshot.commitSha.toLowerCase(),
+  });
+  const expectedTargetStableKey = canonicalJson({
+    githubRepositoryId: rows.evidenceNode.repository.githubRepositoryId,
+    localNodeId: rows.evidenceNode.node.localNodeId,
+    commitSha: rows.evidenceNode.snapshot.commitSha.toLowerCase(),
+  });
+  if (
+    rows.proposal.origin !== "asserted-by-author" ||
+    rows.proposal.sourceNodeVersionId !== rows.claimNode.version.id ||
+    rows.proposal.targetNodeVersionId !== rows.evidenceNode.version.id ||
+    rows.proposal.targetNodeId !== rows.evidenceNode.node.id ||
+    rows.claimNode.version.knowledgeNodeId !== rows.claimNode.node.id ||
+    rows.evidenceNode.version.knowledgeNodeId !== rows.evidenceNode.node.id ||
+    rows.claimNode.node.localNodeId !== subject.claimNodeId ||
+    rows.evidenceNode.node.localNodeId !== subject.evidenceNodeId ||
+    rows.claimNode.node.kind !== "claim" ||
+    rows.evidenceNode.node.kind !== subject.evidenceKind ||
+    rows.proposal.relationType !== subject.relationType ||
+    rows.proposal.sourceStableKey !== expectedSourceStableKey ||
+    rows.proposal.targetStableKey !== expectedTargetStableKey
+  ) {
+    throw new TypeError("Imported TRUST record does not match its exact persisted node relation.");
+  }
+  const targetRepository = subject.evidenceRepository;
+  if (
+    targetRepository &&
+    (rows.evidenceNode.repository.githubRepositoryId !== targetRepository.githubRepositoryId ||
+      rows.evidenceNode.snapshot.commitSha !== targetRepository.commitSha)
+  ) {
+    throw new TypeError("Imported TRUST cross-repository target identity does not match.");
+  }
+  if (
+    !targetRepository &&
+    (rows.claimNode.repository.id !== rows.evidenceNode.repository.id ||
+      rows.claimNode.snapshot.id !== rows.evidenceNode.snapshot.id ||
+      rows.claimNode.snapshot.commitSha !== rows.evidenceNode.snapshot.commitSha)
+  ) {
+    throw new TypeError("A local TRUST relation cannot resolve to another repository.");
+  }
+  return { ...rows, importedRecord };
+}
+
+export function isAuthoritativeNodeRelationTrustSubject(
+  input: ReviewedNodeRelationTrustSubjectInput,
+): boolean {
+  const edge = input.confirmedEdge;
+  return Boolean(
+    input.proposal.status === "confirmed" &&
+    edge &&
+    input.proposal.confirmedEdgeId === edge.id &&
+    edge.status === "confirmed" &&
+    edge.provenance === "confirmed-by-editor" &&
+    edge.sourceNodeVersionId === input.claimNode.version.id &&
+    edge.targetNodeId === input.evidenceNode.node.id &&
+    edge.confirmedTargetNodeVersionId === input.evidenceNode.version.id &&
+    edge.relationType === input.proposal.relationType &&
+    edge.confirmedById &&
+    edge.confirmedAt &&
+    (edge.confirmerRole === "EDITOR" || edge.confirmerRole === "ADMIN") &&
+    input.evidenceNode.version.knowledgeNodeId === edge.targetNodeId,
+  );
 }
 
 type DateValue = Date | string | null;
@@ -459,31 +629,83 @@ export function createReviewedTrustSubject(input: ReviewedTrustSubjectInput) {
 export function createReviewedNodeRelationTrustSubject(
   input: ReviewedNodeRelationTrustSubjectInput,
 ) {
-  if (input.claimNode.kind !== "claim") {
+  if (
+    !input.claimNode.repository.githubRepositoryId ||
+    !input.evidenceNode.repository.githubRepositoryId
+  ) {
+    throw new TypeError("TRUST node relations require immutable repository GitHub identities.");
+  }
+  const exactSourceStableKey = canonicalJson({
+    githubRepositoryId: input.claimNode.repository.githubRepositoryId,
+    localNodeId: input.claimNode.node.localNodeId,
+    commitSha: input.claimNode.snapshot.commitSha.toLowerCase(),
+  });
+  const exactTargetStableKey = canonicalJson({
+    githubRepositoryId: input.evidenceNode.repository.githubRepositoryId,
+    localNodeId: input.evidenceNode.node.localNodeId,
+    commitSha: input.evidenceNode.snapshot.commitSha.toLowerCase(),
+  });
+  if (
+    input.proposal.sourceStableKey !== exactSourceStableKey ||
+    input.proposal.targetStableKey !== exactTargetStableKey
+  ) {
+    throw new TypeError("TRUST node relation stable keys do not match their immutable endpoints.");
+  }
+  if (input.claimNode.kind !== "claim" || input.claimNode.node.kind !== "claim") {
     throw new TypeError("TRUST node relations must originate at a claim node version.");
   }
   if (!(["dataset", "code", "figure"] as const).includes(input.evidenceNode.kind)) {
     throw new TypeError("TRUST node relation evidence must be dataset, code, or figure.");
   }
+  if (input.evidenceNode.node.kind !== input.evidenceNode.kind) {
+    throw new TypeError("TRUST evidence node kind must match its stable node identity.");
+  }
   if (
-    input.relation.sourceNodeVersionId !== input.claimNode.versionId ||
-    input.relation.targetNodeVersionId !== input.evidenceNode.versionId
+    input.proposal.sourceNodeVersionId !== input.claimNode.version.id ||
+    input.proposal.targetNodeVersionId !== input.evidenceNode.version.id ||
+    input.proposal.targetNodeId !== input.evidenceNode.node.id
   ) {
     throw new TypeError("TRUST node relation endpoints must match both immutable node versions.");
   }
+  const imported = input.importedRecord.subject;
+  if (
+    imported.claimNodeId !== input.claimNode.node.localNodeId ||
+    imported.evidenceNodeId !== input.evidenceNode.node.localNodeId ||
+    imported.evidenceKind !== input.evidenceNode.kind ||
+    imported.relationType !== input.proposal.relationType
+  ) {
+    throw new TypeError("TRUST imported subject must match the persisted proposal exactly.");
+  }
+  if (
+    imported.evidenceRepository &&
+    (imported.evidenceRepository.githubRepositoryId !==
+      input.evidenceNode.repository.githubRepositoryId ||
+      imported.evidenceRepository.commitSha !== input.evidenceNode.snapshot.commitSha)
+  ) {
+    throw new TypeError("TRUST imported cross-repository identity must match the evidence node.");
+  }
+  if (
+    !imported.evidenceRepository &&
+    (input.claimNode.repository.id !== input.evidenceNode.repository.id ||
+      input.claimNode.snapshot.id !== input.evidenceNode.snapshot.id)
+  ) {
+    throw new TypeError("TRUST local evidence must use the claim's exact repository snapshot.");
+  }
   const validRelation =
-    input.relation.relationType === "derives-from" ||
-    (input.evidenceNode.kind === "dataset" && input.relation.relationType === "uses-dataset") ||
-    (input.evidenceNode.kind === "code" && input.relation.relationType === "uses-code");
+    input.proposal.relationType === "derives-from" ||
+    (input.evidenceNode.kind === "dataset" && input.proposal.relationType === "uses-dataset") ||
+    (input.evidenceNode.kind === "code" && input.proposal.relationType === "uses-code");
   if (!validRelation) {
     throw new TypeError(
-      `TRUST ${input.evidenceNode.kind} evidence cannot use ${input.relation.relationType}.`,
+      `TRUST ${input.evidenceNode.kind} evidence cannot use ${input.proposal.relationType}.`,
     );
   }
   return {
     schemaVersion: TRUST_NODE_RELATION_SUBJECT_SCHEMA_VERSION,
     assessment: input.assessment,
-    relation: input.relation,
+    importedRecord: input.importedRecord,
+    proposal: input.proposal,
+    confirmedEdge: input.confirmedEdge,
     claimNode: input.claimNode,
     evidenceNode: input.evidenceNode,
   } as const;
@@ -558,6 +780,13 @@ export function resolveNodeRelationTrustVerification(
   marker: TrustVerificationMarker | null | undefined,
 ): ResolvedTrustVerification {
   const currentHash = reviewedNodeRelationTrustSubjectHash(subject);
+  if (!isAuthoritativeNodeRelationTrustSubject(subject)) {
+    return {
+      effectiveStatus: "unverified-import",
+      state: marker ? "stale-verification" : "unverified-import",
+      currentHash,
+    };
+  }
   return resolveVerificationForHash(
     currentHash,
     subject.assessment.sourceRecordJson === null ||

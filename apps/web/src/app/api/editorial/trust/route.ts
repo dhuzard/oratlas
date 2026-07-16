@@ -21,6 +21,7 @@ export const runtime = "nodejs";
 
 const bodySchema = z.object({
   assessmentId: z.string().min(1).max(200),
+  subjectType: z.enum(["claim-citation", "node-relation"]).default("claim-citation"),
   status: platformTrustReviewStatusSchema,
   rationale: z.string().trim().min(10).max(4_000),
   expectedRevision: z.number().int().min(0),

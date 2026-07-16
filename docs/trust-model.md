@@ -26,7 +26,15 @@ There is intentionally no bare-node form. Dataset evidence uses `uses-dataset` o
 code evidence uses `uses-code` or `derives-from`, and figure evidence uses `derives-from`. Both
 endpoints are part of the subject; assessing a dataset, code release, or figure without the claim
 relation is invalid. The combined `trustAssessmentRecordSchema` lets new importers accept both
-forms without changing legacy claim–citation consumers.
+forms without changing legacy claim–citation consumers. A record containing either `subjectType`
+or `subject` is treated as node-relation intent and must pass the strict schema; malformed hybrids
+cannot fall back to the permissive legacy parser.
+
+Node-only repositories declare the JSONL stream in `node-manifest.json` as
+`trustAssessments: { "format": "jsonl", "path": "nodes/trust.jsonl" }`. The legacy
+`review-manifest.json` artifact remains supported. Mixed repositories may declare both paths; the
+bounded inspector fetches both routing manifests before routed artifacts, and the extractor reads
+and deduplicates both streams without turning node publication into prose-review publication.
 
 ## Criteria
 
@@ -74,12 +82,27 @@ and appear in the editorial queue.
 Repository assertions on node relations are normalized by
 `normalizeImportedNodeRelationTrustRecord`. Their asserted review status and aggregate are
 preserved as source provenance, while the public state is always `unverified-import` and the
-displayed aggregate is recomputed from criterion-level data. `resolveNodeRelationTrustVerification`
-uses the same canonical SHA-256 marker rules as legacy claim–citation verification; only a current
-Atlas-owned marker can promote the assessment.
+aggregate is omitted from compact node-edge and editorial summaries because those views do not
+expand criterion detail. `resolveNodeRelationTrustVerification` uses the same canonical SHA-256
+marker rules as legacy claim–citation verification; only a current Atlas-owned marker can promote
+the assessment.
 
-Verification writes require the current subject hash and `TrustAssessment.revision`; a transaction
-uses both as optimistic-concurrency guards before writing the marker and audit event. The endpoint
+The persisted unit is a mandatory `NodeRelationTrustAssessment → NodeEdgeProposal` relation with a
+separate one-to-one `NodeRelationTrustVerification`. Acceptance requires the exact extracted author
+edge, stable local ids, node kinds, relation type, capture/submission ownership, source repository
+id and commit, plus exact cross-repository id/commit when present. Confirmation does not rewrite the
+assessment. Rejected, proposed, or superseded proposals and incomplete/mismatched confirmed edges
+remain private and make any previous marker stale.
+
+The node-relation canonical subject hash covers the parsed imported record and every material
+assessment field, proposal lifecycle field, confirmed-edge field, stable endpoint key, complete
+claim/evidence node version, repository/snapshot identity, inspection capture, submission, frozen
+target, and current confirmer role. Verification uses the node assessment's own revision CAS and
+writes its marker plus audit event atomically. Public node detail and standalone edge APIs share the
+same fail-closed resolver and expose only compact status/protocol metadata on authoritative edges.
+
+Verification writes require the current subject hash and the applicable assessment revision; a
+transaction uses both as optimistic-concurrency guards before writing the marker and audit event. The endpoint
 also requires an editor session, exact same-origin `Origin`, same-origin Fetch Metadata when
 present, and `Content-Type: application/json`.
 

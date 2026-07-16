@@ -4,10 +4,12 @@ import { useRouter } from "next/navigation";
 
 export function TrustVerificationForm({
   assessmentId,
+  subjectType = "claim-citation",
   revision,
   assessmentHash,
 }: {
   assessmentId: string;
+  subjectType?: "claim-citation" | "node-relation";
   revision: number;
   assessmentHash: string;
 }) {
@@ -25,6 +27,7 @@ export function TrustVerificationForm({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           assessmentId,
+          subjectType,
           status,
           rationale,
           expectedRevision: revision,

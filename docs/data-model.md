@@ -17,6 +17,8 @@ suffix, and arrays are JSON-encoded strings. Switching to PostgreSQL is a dataso
 | `KnowledgeNodeVersion`                   | Immutable node content snapshot    | **`(knowledgeNodeId, snapshotId)` unique**; capture/submission provenance         |
 | `NodeEdge`                               | Typed graph relation               | **`(sourceNodeVersionId, targetNodeId, relationType)` unique**                    |
 | `NodeEdgeProposal`                       | Attributable edge assertion        | `originKey` unique; revisioned editorial CAS; optional confirmed edge             |
+| `NodeRelationTrustAssessment`            | Imported TRUST for one node edge   | mandatory proposal FK; exact source record and criterion columns                  |
+| `NodeRelationTrustVerification`          | Atlas review of node-edge TRUST    | one-to-one marker; reviewer, role snapshot, rationale, canonical subject hash     |
 | `NodeAlias`                              | Canonical node work-identity key   | per-node scheme/role/value unique; shared values intentionally allowed globally   |
 | `Review`                                 | Public review record               | `slug` unique; `currentSnapshotId`; lifecycle CAS revision                        |
 | `ReviewVersion`                          | Immutable version                  | exact snapshot; DOI roles; materialized public lifecycle state                    |
@@ -153,6 +155,19 @@ reviewed subject: assessment criteria/evidence/source assertions, relation, clai
 Every verification write uses `TrustAssessment.revision` as an optimistic-concurrency guard.
 Missing legacy provenance and hash mismatches fail closed and remain visible in the editorial
 queue.
+
+`NodeRelationTrustAssessment` is deliberately separate from legacy claim–citation storage and
+must reference exactly one `NodeEdgeProposal`; it is never attached to a bare node. Acceptance
+creates it only when the exact accepted claim/evidence versions match one author proposal from the
+same immutable capture. Partial node selection and prose-only acceptance skip unmatched records.
+Proposal confirmation, rejection, and supersession preserve the assessment and marker for audit,
+but only a currently confirmed proposal and its exact editor-confirmed edge are authoritative.
+
+`NodeRelationTrustVerification` uses its assessment's independent `revision` CAS. Its canonical
+hash includes the parsed imported record, all normalized assessment fields, proposal and confirmed
+edge lifecycle state, stable endpoint keys, both complete immutable node versions, repository and
+snapshot identities, capture/submission identities, and current confirmer role. Any mismatch,
+mutation, rejected/superseded proposal, missing edge, or non-editor confirmer fails closed.
 
 Execution Passport source JSON is retained for offline re-verification. Public reads require a
 verified state and compare the re-verified package with all materialized repository, workflow,

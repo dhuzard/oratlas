@@ -88,6 +88,14 @@ const criteriaShape = Object.fromEntries(
   TRUST_CRITERIA.map((c) => [c, trustCriterionAssessmentSchema.optional()]),
 ) as Record<(typeof TRUST_CRITERIA)[number], z.ZodOptional<typeof trustCriterionAssessmentSchema>>;
 
+const strictTrustCriterionAssessmentSchema = trustCriterionAssessmentSchema.strict();
+const strictCriteriaShape = Object.fromEntries(
+  TRUST_CRITERIA.map((criterion) => [criterion, strictTrustCriterionAssessmentSchema.optional()]),
+) as Record<
+  (typeof TRUST_CRITERIA)[number],
+  z.ZodOptional<typeof strictTrustCriterionAssessmentSchema>
+>;
+
 export const trustRecordSchema = z.object({
   claimId: z.string().min(1).max(120),
   citationId: z.string().min(1).max(120),
@@ -165,7 +173,7 @@ export const nodeRelationTrustRecordSchema = z
     assessorType: assessorTypeSchema,
     assessorId: z.string().max(200).optional(),
     assessedAt: z.string().datetime().optional(),
-    criteria: z.object(criteriaShape),
+    criteria: z.object(strictCriteriaShape).strict(),
     limitations: z.array(z.string().max(2_000)).max(50).optional(),
     evidence: z.record(z.string(), z.unknown()).optional(),
     aggregateScore: z.number().min(0).max(1).nullable().optional(),
@@ -177,14 +185,16 @@ export type NodeRelationTrustRecord = z.infer<typeof nodeRelationTrustRecordSche
 
 /**
  * Backward-compatible artifact parser for both subject forms. Presence of a
- * subjectType always selects the new strict schema, preventing malformed or
- * hybrid node records from falling back to the permissive legacy object.
+ * subject or subjectType always selects the new strict schema, preventing
+ * malformed or hybrid node records from falling back to the permissive legacy
+ * object and having their node-relation intent silently stripped.
  */
 export const trustAssessmentRecordSchema = z.unknown().transform((value, context) => {
-  const hasSubjectType = typeof value === "object" && value !== null && "subjectType" in value;
-  const parsed = (hasSubjectType ? nodeRelationTrustRecordSchema : trustRecordSchema).safeParse(
-    value,
-  );
+  const hasNodeSubjectIntent =
+    typeof value === "object" && value !== null && ("subjectType" in value || "subject" in value);
+  const parsed = (
+    hasNodeSubjectIntent ? nodeRelationTrustRecordSchema : trustRecordSchema
+  ).safeParse(value);
   if (parsed.success) return parsed.data;
   for (const issue of parsed.error.issues) context.addIssue(issue);
   return z.NEVER;

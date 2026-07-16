@@ -4,6 +4,7 @@ import {
   createReviewedNodeRelationTrustSubject,
   normalizeImportedNodeRelationTrustRecord,
   normalizeImportedTrustRecord,
+  nodeRelationTrustSubjectInputFromDatabaseRows,
   resolveNodeRelationTrustVerification,
   resolveTrustVerification,
   reviewedNodeRelationTrustSubjectHash,
@@ -86,32 +87,143 @@ function subject(): ReviewedTrustSubjectInput {
 }
 
 function nodeRelationSubject(): ReviewedNodeRelationTrustSubjectInput {
+  const importedRecord = {
+    subjectType: "node-relation" as const,
+    subject: {
+      claimNodeId: "claim:primary-result",
+      evidenceNodeId: "dataset:observations",
+      evidenceKind: "dataset" as const,
+      relationType: "uses-dataset" as const,
+    },
+    protocolVersion: "trust-poc-1.0",
+    assessorType: "agent" as const,
+    criteria: { sourceAccess: { rating: "high" as const, status: "assessed" as const } },
+    reviewStatus: "agent-proposed" as const,
+  };
+  const nodeVersion = (
+    id: string,
+    nodeId: string,
+    localNodeId: string,
+    kind: string,
+    payloadJson: string,
+  ) => ({
+    version: {
+      id,
+      knowledgeNodeId: nodeId,
+      snapshotId: "snapshot-1",
+      sourceSubmissionId: "submission-1",
+      inspectionCaptureId: "capture-1",
+      capturePayloadHash: "a".repeat(64),
+      title: localNodeId,
+      abstract: null,
+      text: null,
+      contributorsJson: "[]",
+      license: "MIT",
+      payloadJson,
+      provenanceJson: '{"commitSha":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}',
+      versionDoi: null,
+      conceptDoi: null,
+      isExample: false,
+    },
+    node: { id: nodeId, repositoryId: "repository-1", localNodeId, kind },
+    repository: {
+      id: "repository-1",
+      githubRepositoryId: "123",
+      canonicalUrl: "https://github.com/example/review",
+    },
+    snapshot: {
+      id: "snapshot-1",
+      repositoryId: "repository-1",
+      commitSha: "a".repeat(40),
+      sourceTreeSha: "b".repeat(40),
+      sourceKind: "default-branch",
+      inspectionStatus: "succeeded",
+      contentHash: "c".repeat(64),
+    },
+    inspectionCapture: {
+      id: "capture-1",
+      payloadHash: "a".repeat(64),
+      githubRepositoryId: "123",
+      commitSha: "a".repeat(40),
+    },
+    sourceSubmission: {
+      id: "submission-1",
+      repositoryId: "repository-1",
+      snapshotId: "snapshot-1",
+      inspectionCaptureId: "capture-1",
+      submittedPayloadHash: "d".repeat(64),
+      acceptedNodeSelectionHash: "e".repeat(64),
+    },
+  });
   return {
-    assessment: structuredClone(subject().assessment),
-    relation: {
-      id: "node-edge-1",
+    assessment: {
+      ...structuredClone(subject().assessment),
+      sourceRecordJson: canonicalJson(importedRecord),
+    },
+    importedRecord,
+    proposal: {
+      id: "proposal-1",
+      originKey: "origin-1",
+      sourceStableKey: canonicalJson({
+        githubRepositoryId: "123",
+        localNodeId: "claim:primary-result",
+        commitSha: "a".repeat(40),
+      }),
+      targetStableKey: canonicalJson({
+        githubRepositoryId: "123",
+        localNodeId: "dataset:observations",
+        commitSha: "a".repeat(40),
+      }),
       relationType: "uses-dataset",
       sourceNodeVersionId: "claim-version-1",
+      targetNodeId: "dataset-node-1",
       targetNodeVersionId: "dataset-version-1",
-      provenance: "confirmed-by-editor",
-      status: "confirmed",
+      origin: "asserted-by-author",
       rationale: "The analysis consumes this immutable dataset version.",
+      evidenceJson: "{}",
+      sourceSubmissionId: "submission-1",
+      inspectionCaptureId: "capture-1",
+      status: "confirmed",
+      revision: 1,
+      reviewedById: "editor-1",
+      reviewedAt: "2026-01-02T00:00:00.000Z",
+      reviewNote: "Confirmed exact evidence relation.",
+      confirmedEdgeId: "node-edge-1",
+    },
+    confirmedEdge: {
+      id: "node-edge-1",
+      sourceNodeVersionId: "claim-version-1",
+      targetNodeId: "dataset-node-1",
+      relationType: "uses-dataset",
+      status: "confirmed",
+      provenance: "confirmed-by-editor",
+      rationale: "The analysis consumes this immutable dataset version.",
+      assertedAt: null,
+      confirmedTargetNodeVersionId: "dataset-version-1",
+      confirmedById: "editor-1",
+      confirmedAt: "2026-01-02T00:00:00.000Z",
+      revision: 1,
+      confirmerRole: "EDITOR",
     },
     claimNode: {
-      id: "claim-node-1",
-      versionId: "claim-version-1",
+      ...nodeVersion(
+        "claim-version-1",
+        "claim-node-1",
+        "claim:primary-result",
+        "claim",
+        '{"statement":"A claim"}',
+      ),
       kind: "claim",
-      title: "Primary result",
-      payloadJson: '{"statement":"A claim"}',
-      provenanceJson: '{"commitSha":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}',
     },
     evidenceNode: {
-      id: "dataset-node-1",
-      versionId: "dataset-version-1",
+      ...nodeVersion(
+        "dataset-version-1",
+        "dataset-node-1",
+        "dataset:observations",
+        "dataset",
+        '{"format":"csv","sizeBytes":100}',
+      ),
       kind: "dataset",
-      title: "Observations",
-      payloadJson: '{"format":"csv","sizeBytes":100}',
-      provenanceJson: '{"commitSha":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}',
     },
   };
 }
@@ -237,6 +349,38 @@ describe("TRUST reviewed-subject integrity", () => {
 });
 
 describe("TRUST node-relation subject integrity", () => {
+  it("maps only canonical stable keys and exact local snapshots", () => {
+    const { importedRecord: _imported, ...rows } = nodeRelationSubject();
+    expect(
+      nodeRelationTrustSubjectInputFromDatabaseRows(rows).importedRecord.subject,
+    ).toMatchObject({
+      claimNodeId: "claim:primary-result",
+      evidenceNodeId: "dataset:observations",
+    });
+
+    const badKey = structuredClone(rows);
+    badKey.proposal.targetStableKey = "123:dataset:observations:mutable";
+    expect(() => nodeRelationTrustSubjectInputFromDatabaseRows(badKey)).toThrow(/persisted/i);
+
+    const missingRepositoryIdentity = structuredClone(rows);
+    missingRepositoryIdentity.evidenceNode.repository.githubRepositoryId = null;
+    expect(() => nodeRelationTrustSubjectInputFromDatabaseRows(missingRepositoryIdentity)).toThrow(
+      /GitHub identities/i,
+    );
+
+    const oldLocalVersion = structuredClone(rows);
+    oldLocalVersion.evidenceNode.snapshot.id = "older-snapshot";
+    oldLocalVersion.evidenceNode.snapshot.commitSha = "f".repeat(40);
+    oldLocalVersion.proposal.targetStableKey = canonicalJson({
+      githubRepositoryId: "123",
+      localNodeId: "dataset:observations",
+      commitSha: "f".repeat(40),
+    });
+    expect(() => nodeRelationTrustSubjectInputFromDatabaseRows(oldLocalVersion)).toThrow(
+      /local TRUST relation/i,
+    );
+  });
+
   it("normalizes every repository assertion to an unverified import", () => {
     const imported = normalizeImportedNodeRelationTrustRecord({
       subjectType: "node-relation",
@@ -267,24 +411,24 @@ describe("TRUST node-relation subject integrity", () => {
       sourceRelationHumanReviewed: null,
     });
     expect(imported.sourceRecordJson).toContain('"subjectType":"node-relation"');
-    expect(imported.sourceRecordJson).toContain('"sourceRelationHumanReviewed":null');
+    expect(imported.sourceRecordJson).not.toContain("sourceRelationHumanReviewed");
   });
 
   it.each([
     [
       "relation",
       (value: ReviewedNodeRelationTrustSubjectInput) =>
-        (value.relation.rationale = "Changed rationale"),
+        (value.proposal.rationale = "Changed rationale"),
     ],
     [
       "claim version",
       (value: ReviewedNodeRelationTrustSubjectInput) =>
-        (value.claimNode.payloadJson = '{"statement":"Changed"}'),
+        (value.claimNode.version.payloadJson = '{"statement":"Changed"}'),
     ],
     [
       "evidence version",
       (value: ReviewedNodeRelationTrustSubjectInput) =>
-        (value.evidenceNode.payloadJson = '{"format":"parquet","sizeBytes":100}'),
+        (value.evidenceNode.version.payloadJson = '{"format":"parquet","sizeBytes":100}'),
     ],
     [
       "source assertion",
@@ -311,7 +455,83 @@ describe("TRUST node-relation subject integrity", () => {
     ).toMatchObject({ state: "platform-verified", effectiveStatus: "human-reviewed" });
 
     const changed = structuredClone(current);
-    changed.evidenceNode.payloadJson = '{"format":"csv","sizeBytes":101}';
+    changed.evidenceNode.version.payloadJson = '{"format":"csv","sizeBytes":101}';
+    expect(
+      resolveNodeRelationTrustVerification(changed, {
+        status: "human-reviewed",
+        assessmentHash,
+      }),
+    ).toMatchObject({ state: "stale-verification", effectiveStatus: "unverified-import" });
+  });
+
+  it.each([
+    [
+      "proposed proposal",
+      (value: ReviewedNodeRelationTrustSubjectInput) => (value.proposal.status = "proposed"),
+    ],
+    [
+      "rejected proposal",
+      (value: ReviewedNodeRelationTrustSubjectInput) => (value.proposal.status = "rejected"),
+    ],
+    [
+      "superseded proposal",
+      (value: ReviewedNodeRelationTrustSubjectInput) => (value.proposal.status = "superseded"),
+    ],
+    [
+      "missing edge",
+      (value: ReviewedNodeRelationTrustSubjectInput) => (value.confirmedEdge = null),
+    ],
+    [
+      "mismatched edge id",
+      (value: ReviewedNodeRelationTrustSubjectInput) =>
+        (value.proposal.confirmedEdgeId = "other-edge"),
+    ],
+    [
+      "rejected edge",
+      (value: ReviewedNodeRelationTrustSubjectInput) => (value.confirmedEdge!.status = "rejected"),
+    ],
+    [
+      "author provenance",
+      (value: ReviewedNodeRelationTrustSubjectInput) =>
+        (value.confirmedEdge!.provenance = "asserted-by-author"),
+    ],
+    [
+      "wrong relation",
+      (value: ReviewedNodeRelationTrustSubjectInput) =>
+        (value.confirmedEdge!.relationType = "derives-from"),
+    ],
+    [
+      "wrong source",
+      (value: ReviewedNodeRelationTrustSubjectInput) =>
+        (value.confirmedEdge!.sourceNodeVersionId = "other-version"),
+    ],
+    [
+      "wrong stable target",
+      (value: ReviewedNodeRelationTrustSubjectInput) =>
+        (value.confirmedEdge!.targetNodeId = "other-node"),
+    ],
+    [
+      "wrong frozen version",
+      (value: ReviewedNodeRelationTrustSubjectInput) =>
+        (value.confirmedEdge!.confirmedTargetNodeVersionId = "other-version"),
+    ],
+    [
+      "missing confirmer",
+      (value: ReviewedNodeRelationTrustSubjectInput) => (value.confirmedEdge!.confirmedById = null),
+    ],
+    [
+      "missing confirmation time",
+      (value: ReviewedNodeRelationTrustSubjectInput) => (value.confirmedEdge!.confirmedAt = null),
+    ],
+    [
+      "inactive confirmer",
+      (value: ReviewedNodeRelationTrustSubjectInput) =>
+        (value.confirmedEdge!.confirmerRole = "USER"),
+    ],
+  ])("demotes a matching marker for %s", (_label, mutate) => {
+    const changed = nodeRelationSubject();
+    mutate(changed);
+    const assessmentHash = reviewedNodeRelationTrustSubjectHash(changed);
     expect(
       resolveNodeRelationTrustVerification(changed, {
         status: "human-reviewed",
@@ -322,11 +542,13 @@ describe("TRUST node-relation subject integrity", () => {
 
   it("refuses mismatched endpoints and invalid evidence semantics before hashing", () => {
     const mismatched = nodeRelationSubject();
-    mismatched.relation.targetNodeVersionId = "other-version";
+    mismatched.proposal.targetNodeVersionId = "other-version";
     expect(() => createReviewedNodeRelationTrustSubject(mismatched)).toThrow(/endpoints/i);
 
     const invalidFigure = nodeRelationSubject();
     invalidFigure.evidenceNode.kind = "figure";
+    invalidFigure.evidenceNode.node.kind = "figure";
+    invalidFigure.importedRecord.subject.evidenceKind = "figure";
     expect(() => createReviewedNodeRelationTrustSubject(invalidFigure)).toThrow(/figure evidence/i);
 
     const invalidKind = nodeRelationSubject();

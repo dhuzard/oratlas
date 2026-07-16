@@ -16,11 +16,7 @@ import {
 } from "@oratlas/knowledge";
 import { prisma } from "./db";
 import { prismaCode, withSqliteRetry } from "./db-retry";
-import {
-  hasOwnedConfirmedTargetVersion,
-  publicConfirmedNodeEdgeWhere,
-} from "./node-edge-publication";
-import { tryMapPublicNodeVersion } from "./node-publication";
+import { getPublicNode } from "./node-publication";
 
 export class NodeEdgeLifecycleError extends Error {
   constructor(
@@ -561,56 +557,20 @@ export async function listPendingNodeEdgeProposals() {
 
 /** Public authoritative projection. Rejected/superseded/proposed records never enter it. */
 export async function listConfirmedEdgesForNode(nodeId: string) {
-  const rows = await prisma.nodeEdge.findMany({
-    where: {
-      ...publicConfirmedNodeEdgeWhere,
-      OR: [
-        { sourceNodeVersion: { knowledgeNodeId: nodeId } },
-        { relationType: "contradicts", targetNodeId: nodeId },
-      ],
+  const node = await getPublicNode(nodeId);
+  if (!node) return [];
+  return node.edges.map((edge) => ({
+    id: edge.id,
+    relationType: edge.relationType,
+    status: "confirmed" as const,
+    symmetric: edge.relationType === "contradicts",
+    otherNode: {
+      id: edge.relatedNode.id,
+      localNodeId: edge.relatedNode.localNodeId,
+      title: edge.relatedNode.title,
     },
-    include: {
-      sourceNodeVersion: {
-        include: {
-          snapshot: { select: { commitSha: true } },
-          knowledgeNode: true,
-        },
-      },
-      targetNode: true,
-      confirmedTargetNodeVersion: { include: { snapshot: { select: { commitSha: true } } } },
-    },
-    orderBy: [{ createdAt: "asc" }, { id: "asc" }],
-    take: 200,
-  });
-  return rows.flatMap((row) => {
-    if (!hasOwnedConfirmedTargetVersion(row)) return [];
-    const sourceVersion = tryMapPublicNodeVersion(
-      row.sourceNodeVersion.knowledgeNode,
-      row.sourceNodeVersion,
-    );
-    const targetVersion = tryMapPublicNodeVersion(row.targetNode, row.confirmedTargetNodeVersion);
-    if (!sourceVersion || !targetVersion) return [];
-    const sourceIsSeed = row.sourceNodeVersion.knowledgeNodeId === nodeId;
-    return [
-      {
-        id: row.id,
-        relationType: row.relationType,
-        status: "confirmed" as const,
-        symmetric: row.relationType === "contradicts",
-        otherNode: sourceIsSeed
-          ? {
-              id: row.targetNode.id,
-              localNodeId: row.targetNode.localNodeId,
-              title: targetVersion.title,
-            }
-          : {
-              id: row.sourceNodeVersion.knowledgeNode.id,
-              localNodeId: row.sourceNodeVersion.knowledgeNode.localNodeId,
-              title: sourceVersion.title,
-            },
-      },
-    ];
-  });
+    trust: edge.trust,
+  }));
 }
 
 async function requireCurrentEditor(userId: string): Promise<void> {

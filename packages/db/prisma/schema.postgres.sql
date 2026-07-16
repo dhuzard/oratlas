@@ -536,6 +536,59 @@ CREATE TABLE "TrustVerification" (
 );
 
 -- CreateTable
+CREATE TABLE "NodeRelationTrustAssessment" (
+    "id" TEXT NOT NULL,
+    "nodeEdgeProposalId" TEXT NOT NULL,
+    "protocolVersion" TEXT NOT NULL,
+    "assessorType" TEXT NOT NULL,
+    "assessorId" TEXT,
+    "assessedAt" TIMESTAMP(3),
+    "identityIntegrity" TEXT,
+    "entailment" TEXT,
+    "sourceAccess" TEXT,
+    "populationRelevance" TEXT,
+    "interventionExposureRelevance" TEXT,
+    "outcomeRelevance" TEXT,
+    "methodologicalSafeguards" TEXT,
+    "statisticalSafeguards" TEXT,
+    "replicationConvergence" TEXT,
+    "conflictDependency" TEXT,
+    "limitationsJson" TEXT NOT NULL DEFAULT '[]',
+    "evidenceJson" TEXT,
+    "aggregateScore" DOUBLE PRECISION,
+    "aggregateMethod" TEXT,
+    "reviewStatus" TEXT NOT NULL DEFAULT 'unverified-import',
+    "sourceRecordJson" TEXT NOT NULL,
+    "sourceReviewStatus" TEXT NOT NULL,
+    "sourceAssessorType" TEXT NOT NULL,
+    "sourceAssessorId" TEXT,
+    "sourceAssessedAt" TIMESTAMP(3),
+    "sourceEvidenceJson" TEXT,
+    "sourceAggregateScore" DOUBLE PRECISION,
+    "sourceAggregateMethod" TEXT,
+    "revision" INTEGER NOT NULL DEFAULT 0,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "NodeRelationTrustAssessment_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "NodeRelationTrustVerification" (
+    "id" TEXT NOT NULL,
+    "nodeRelationTrustAssessmentId" TEXT NOT NULL,
+    "status" TEXT NOT NULL,
+    "reviewerId" TEXT NOT NULL,
+    "reviewerRoleSnapshot" TEXT NOT NULL,
+    "rationale" TEXT NOT NULL,
+    "assessmentHash" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "NodeRelationTrustVerification_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "AgentRun" (
     "id" TEXT NOT NULL,
     "agentType" TEXT NOT NULL,
@@ -1012,6 +1065,21 @@ CREATE INDEX "TrustVerification_status_idx" ON "TrustVerification"("status");
 CREATE INDEX "TrustVerification_reviewerId_idx" ON "TrustVerification"("reviewerId");
 
 -- CreateIndex
+CREATE INDEX "NodeRelationTrustAssessment_nodeEdgeProposalId_idx" ON "NodeRelationTrustAssessment"("nodeEdgeProposalId");
+
+-- CreateIndex
+CREATE INDEX "NodeRelationTrustAssessment_reviewStatus_idx" ON "NodeRelationTrustAssessment"("reviewStatus");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "NodeRelationTrustVerification_nodeRelationTrustAssessmentId_key" ON "NodeRelationTrustVerification"("nodeRelationTrustAssessmentId");
+
+-- CreateIndex
+CREATE INDEX "NodeRelationTrustVerification_status_idx" ON "NodeRelationTrustVerification"("status");
+
+-- CreateIndex
+CREATE INDEX "NodeRelationTrustVerification_reviewerId_idx" ON "NodeRelationTrustVerification"("reviewerId");
+
+-- CreateIndex
 CREATE INDEX "ReviewComment_reviewId_createdAt_idx" ON "ReviewComment"("reviewId", "createdAt");
 
 -- CreateIndex
@@ -1265,6 +1333,15 @@ ALTER TABLE "TrustVerification" ADD CONSTRAINT "TrustVerification_trustAssessmen
 
 -- AddForeignKey
 ALTER TABLE "TrustVerification" ADD CONSTRAINT "TrustVerification_reviewerId_fkey" FOREIGN KEY ("reviewerId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "NodeRelationTrustAssessment" ADD CONSTRAINT "NodeRelationTrustAssessment_nodeEdgeProposalId_fkey" FOREIGN KEY ("nodeEdgeProposalId") REFERENCES "NodeEdgeProposal"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "NodeRelationTrustVerification" ADD CONSTRAINT "NodeRelationTrustVerification_nodeRelationTrustAssessmentI_fkey" FOREIGN KEY ("nodeRelationTrustAssessmentId") REFERENCES "NodeRelationTrustAssessment"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "NodeRelationTrustVerification" ADD CONSTRAINT "NodeRelationTrustVerification_reviewerId_fkey" FOREIGN KEY ("reviewerId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "DiscussionThread" ADD CONSTRAINT "DiscussionThread_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;

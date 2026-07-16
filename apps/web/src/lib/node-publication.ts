@@ -26,7 +26,12 @@ import {
   hasOwnedConfirmedTargetVersion,
   publicConfirmedNodeEdgeWhere,
 } from "./node-edge-publication";
-import { resolveTrustAssessmentRows } from "./trust-provenance";
+import {
+  loadedNodeRelationTrustInclude,
+  resolveLoadedNodeRelationTrustAssessment,
+  resolveTrustAssessmentRows,
+  type LoadedNodeRelationTrustAssessment,
+} from "./trust-provenance";
 
 const storedNodeProvenanceSchema = z.union([
   knowledgeNodeProvenanceSchema,
@@ -365,6 +370,82 @@ export async function getPublicNode(
     }),
   ]);
 
+  const publicEdgeIds = [...outgoingRows, ...incomingRows].map((edge) => edge.id);
+  const nodeTrustByEdge = new Map<
+    string,
+    {
+      assessmentId: string;
+      protocolVersion: string;
+      reviewStatus:
+        "unverified-import" | "agent-proposed" | "human-reviewed" | "adjudicated" | "superseded";
+      verificationState:
+        "platform-verified" | "unverified-import" | "stale-verification" | "legacy-unknown";
+    }
+  >();
+  if (publicEdgeIds.length > 0) {
+    const trustRows = await prisma.nodeRelationTrustAssessment.findMany({
+      where: {
+        proposal: {
+          confirmedEdgeId: { in: [...new Set(publicEdgeIds)] },
+          status: "confirmed",
+        },
+      },
+      include: loadedNodeRelationTrustInclude,
+      orderBy: [{ assessedAt: "desc" }, { id: "asc" }],
+      take: 10_001,
+    });
+    // A repository can import adversarially many assessments. Fail closed for
+    // this optional projection if the one global bound is exceeded.
+    if (trustRows.length <= 10_000) {
+      const candidates = new Map<
+        string,
+        Array<{
+          id: string;
+          effectiveStatus:
+            | "unverified-import"
+            | "agent-proposed"
+            | "human-reviewed"
+            | "adjudicated"
+            | "superseded";
+          assessedAt: string | null;
+          value: LoadedNodeRelationTrustAssessment & {
+            resolved: ReturnType<typeof resolveLoadedNodeRelationTrustAssessment>;
+          };
+        }>
+      >();
+      for (const assessment of trustRows) {
+        const edgeId = assessment.proposal.confirmedEdgeId;
+        if (!edgeId) continue;
+        const list = candidates.get(edgeId) ?? [];
+        if (list.length >= PUBLIC_NODE_TRUST_ASSESSMENT_LIMIT) continue;
+        try {
+          const loaded = assessment as LoadedNodeRelationTrustAssessment;
+          const resolved = resolveLoadedNodeRelationTrustAssessment(loaded);
+          if (!resolved.authoritative) continue;
+          list.push({
+            id: assessment.id,
+            effectiveStatus: resolved.effectiveStatus,
+            assessedAt: assessment.assessedAt?.toISOString() ?? null,
+            value: Object.assign(loaded, { resolved }),
+          });
+          candidates.set(edgeId, list);
+        } catch {
+          // Malformed persisted subjects are omitted from anonymous projections.
+        }
+      }
+      for (const [edgeId, values] of candidates) {
+        const preferred = selectPreferredTrustAssessment(values)?.value;
+        if (!preferred) continue;
+        nodeTrustByEdge.set(edgeId, {
+          assessmentId: preferred.id,
+          protocolVersion: preferred.protocolVersion,
+          reviewStatus: preferred.resolved.effectiveStatus,
+          verificationState: preferred.resolved.state,
+        });
+      }
+    }
+  }
+
   const outgoing = outgoingRows.flatMap((edge) => {
     if (!hasOwnedConfirmedTargetVersion(edge)) return [];
     const relatedNode = tryRelatedNodeVersion(
@@ -380,6 +461,7 @@ export async function getPublicNode(
         provenance: edge.provenance,
         rationale: edge.rationale ?? undefined,
         assertedAt: edge.assertedAt?.toISOString(),
+        trust: nodeTrustByEdge.get(edge.id),
         relatedNode,
       },
     ];
@@ -399,6 +481,7 @@ export async function getPublicNode(
         provenance: edge.provenance,
         rationale: edge.rationale ?? undefined,
         assertedAt: edge.assertedAt?.toISOString(),
+        trust: nodeTrustByEdge.get(edge.id),
         relatedNode,
       },
     ];

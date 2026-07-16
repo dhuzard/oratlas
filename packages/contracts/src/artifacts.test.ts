@@ -174,4 +174,46 @@ describe("nodeRelationTrustRecordSchema", () => {
       }).success,
     ).toBe(false);
   });
+
+  it("does not let an untyped node subject fall back to legacy fields", () => {
+    expect(
+      trustAssessmentRecordSchema.safeParse({
+        claimId: "claim-1",
+        citationId: "citation-1",
+        subject: {
+          claimNodeId: "claim:primary-result",
+          evidenceNodeId: "dataset:observations",
+          evidenceKind: "dataset",
+          relationType: "uses-dataset",
+        },
+        protocolVersion: "trust-poc-1.0",
+        assessorType: "agent",
+        criteria: {},
+      }).success,
+    ).toBe(false);
+  });
+
+  it("rejects unknown node-relation criteria and criterion fields without changing legacy", () => {
+    expect(
+      nodeRelationTrustRecordSchema.safeParse({
+        ...record,
+        criteria: { inventedCriterion: { rating: "high" } },
+      }).success,
+    ).toBe(false);
+    expect(
+      nodeRelationTrustRecordSchema.safeParse({
+        ...record,
+        criteria: { sourceAccess: { rating: "high", unexpectedVerified: true } },
+      }).success,
+    ).toBe(false);
+    expect(
+      trustRecordSchema.safeParse({
+        claimId: "claim-1",
+        citationId: "citation-1",
+        protocolVersion: "trust-poc-1.0",
+        assessorType: "agent",
+        criteria: { entailment: { rating: "high", legacyExtension: true } },
+      }).success,
+    ).toBe(true);
+  });
 });

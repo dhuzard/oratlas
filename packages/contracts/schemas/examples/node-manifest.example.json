@@ -12,5 +12,9 @@
   "edges": {
     "format": "jsonl",
     "path": "nodes/edges.jsonl"
+  },
+  "trustAssessments": {
+    "format": "jsonl",
+    "path": "nodes/trust.jsonl"
   }
 }

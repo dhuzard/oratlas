@@ -7,6 +7,7 @@ import {
   type RepoRef,
   type RepoRelease,
   type RepoSourceSelection,
+  validateReviewManifest,
   validateNodeManifest,
 } from "@oratlas/contracts";
 import { parseGithubRepoUrl } from "./url.js";
@@ -440,7 +441,30 @@ export async function inspectRepository(
     }
   };
 
-  // The manifest is fetched first because it is the only trusted routing input
+  const reviewArtifactPaths: string[] = [];
+  // A valid review manifest is an explicit safe routing source for legacy
+  // knowledge artifacts, including relation-scoped TRUST in mixed node repos.
+  if (treePaths.has("review-manifest.json")) {
+    await fetchFile("review-manifest.json");
+    toFetch.delete("review-manifest.json");
+    const reviewManifestFile = files["review-manifest.json"];
+    if (reviewManifestFile?.content) {
+      try {
+        const validation = validateReviewManifest(JSON.parse(reviewManifestFile.content));
+        if (validation.ok && validation.manifest?.artifacts) {
+          reviewArtifactPaths.push(
+            ...Object.values(validation.manifest.artifacts).filter((path): path is string =>
+              Boolean(path),
+            ),
+          );
+        }
+      } catch {
+        warnings.push("Invalid review-manifest.json JSON; declared artifacts were not fetched.");
+      }
+    }
+  }
+
+  // The node manifest is fetched first because it is the only trusted routing input
   // for arbitrarily named node source files. It receives its contract-specific
   // cap while still consuming the shared file-count and total-byte budgets.
   if (treePaths.has("node-manifest.json")) {
@@ -470,6 +494,15 @@ export async function inspectRepository(
               toFetch.delete(path);
             }
           }
+          if (validation.manifest.trustAssessments) {
+            const path = validation.manifest.trustAssessments.path;
+            if (fileFetchAttempts < limits.maxFileCount) {
+              await fetchFile(path);
+              toFetch.delete(path);
+            } else {
+              warnFileFetchCap();
+            }
+          }
         } else {
           warnings.push(
             `Invalid node-manifest.json; declared node files were not fetched (${validation.errors[0] ?? "schema validation failed"}).`,
@@ -479,6 +512,22 @@ export async function inspectRepository(
         warnings.push("Invalid node-manifest.json JSON; declared node files were not fetched.");
       }
     }
+  }
+
+  // Both routing manifests have now consumed their reserved first attempts.
+  // Fetch explicitly declared review artifacts only after node sources so a
+  // low shared file cap cannot starve first-class node publication.
+  for (const path of [...new Set(reviewArtifactPaths)]) {
+    if (files[path]) {
+      toFetch.delete(path);
+      continue;
+    }
+    if (fileFetchAttempts >= limits.maxFileCount) {
+      warnFileFetchCap();
+      break;
+    }
+    await fetchFile(path);
+    toFetch.delete(path);
   }
 
   // A node artifact may match any legacy discovery heuristic. If a declared

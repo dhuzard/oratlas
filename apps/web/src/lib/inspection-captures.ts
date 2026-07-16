@@ -10,7 +10,7 @@ import {
   relationRecordSchema,
   reviewManifestSchema,
   submissionValidationReportSchema,
-  trustRecordSchema,
+  trustAssessmentRecordSchema,
   type InspectionReport,
   type SubmissionValidationReport,
 } from "@oratlas/contracts";
@@ -43,7 +43,7 @@ const knowledgeExtractionSchema = z
     claims: z.array(claimRecordSchema),
     citations: z.array(citationRecordSchema),
     relations: z.array(relationRecordSchema),
-    trust: z.array(trustRecordSchema),
+    trust: z.array(trustAssessmentRecordSchema),
     warnings: z.array(z.string()),
   })
   .strict();

@@ -223,11 +223,20 @@ export const nodeManifestSourceSchema = z.discriminatedUnion("format", [
 ]);
 export type NodeManifestSource = z.infer<typeof nodeManifestSourceSchema>;
 
+export const nodeManifestTrustSourceSchema = z
+  .object({
+    format: z.literal("jsonl"),
+    path: safeRepoRelativePathSchema,
+  })
+  .strict();
+export type NodeManifestTrustSource = z.infer<typeof nodeManifestTrustSourceSchema>;
+
 export const nodeManifestSchema = z
   .object({
     schemaVersion: z.literal(NODE_MANIFEST_SCHEMA_VERSION),
     nodes: nodeManifestSourceSchema,
     edges: nodeManifestSourceSchema.optional(),
+    trustAssessments: nodeManifestTrustSourceSchema.optional(),
   })
   .strict();
 export type NodeManifest = z.infer<typeof nodeManifestSchema>;

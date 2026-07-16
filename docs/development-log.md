@@ -466,15 +466,27 @@ without ever turning TRUST into a score attached to a bare knowledge node.
 - Added node-relation import normalization that retains source assessor, review-status, evidence,
   and aggregate assertions, but always exposes `unverified-import` and recomputes the advisory
   aggregate from criterion-level data.
-- Added a canonical node-relation reviewed subject whose SHA-256 covers the raw assessment,
-  complete edge, and both immutable node versions. Endpoint and relation-kind inconsistencies are
-  rejected before hashing. The existing marker semantics are shared: a current Atlas marker may
-  verify the assessment; any covered mutation makes it stale and fails closed.
+- Added optional node-manifest JSONL routing for node-only TRUST. Mixed repositories fetch both
+  routing manifests first and combine distinct node/review TRUST streams; the node route does not
+  make a node-only capture publish prose.
+- Added separate mandatory `NodeRelationTrustAssessment` and verification models in both SQLite
+  and PostgreSQL schemas. Acceptance binds a record to exactly one accepted author proposal,
+  including immutable cross-repository identity, while partial/prose-only selection skips it.
+- Added a canonical node-relation reviewed subject whose SHA-256 covers the parsed raw assessment,
+  all normalized fields, proposal and confirmed edge, both complete immutable node versions,
+  stable ownership, repositories, snapshots, captures, submissions, and current confirmer role.
+  Endpoint and relation-kind inconsistencies are rejected before hashing.
+- Added an independent revision/hash CAS verification transaction, editorial queue support with
+  exact version links, and a shared fail-closed public projection for node detail and standalone
+  edge reads. Proposed/rejected/superseded or otherwise non-authoritative predicates remain
+  private; compact summaries omit aggregates when criteria are not expanded.
 - Documented the two subject forms, relation semantics, cross-repository addressing, import
   provenance, aggregate handling, and hash invalidation behavior in the TRUST model.
-- Verified 40 focused contract/TRUST tests, all 15 workspace typechecks, lint, formatting, schema
-  checks, and diff checks. The repository run passed 487 tests; 10 were skipped and the three
-  pre-existing Windows-only suites that execute the extensionless Prisma shell shim failed with
-  `ENOENT`. The focused tests cover legacy compatibility, bare/incomplete/hybrid rejection,
-  kind/relation compatibility, immutable cross-repository targets, import demotion, canonical
-  hash mutation guards, endpoint validation, and stale/current platform markers.
+- Added focused contract, extractor, inspector, canonical-hash/lifecycle, database acceptance,
+  CAS, queue, and public-projection coverage. The temporary SQLite integration proves node-only,
+  partial/prose-only, local and cross-repository acceptance, confirmed publication, rejection and
+  supersession preservation, stale markers, and standalone API parity. Lint, all 15 workspace
+  typechecks, changed-file formatting, both Prisma schema validations, JSON schemas, OpenAPI route
+  coverage, and 125 focused tests pass. The full repository run passed 509 tests and skipped 10;
+  its three failures are pre-existing Windows-only suites that execute the extensionless Prisma
+  shell shim and fail with `ENOENT`.

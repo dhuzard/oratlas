@@ -301,6 +301,36 @@ describe("inspectRepository", () => {
     ]);
   });
 
+  it("reserves a low shared cap for both routing manifests before their artifacts", async () => {
+    const requests: string[] = [];
+    const fixture = structuredClone(nodePublicationFixture);
+    fixture.requestLog = requests;
+    fixture.files!["review-manifest.json"] = JSON.stringify({
+      schemaVersion: "1.0.0",
+      review: { title: "Mixed publication", license: "CC-BY-4.0" },
+      repository: { url: `https://github.com/${fixture.owner}/${fixture.name}` },
+      artifacts: { trustAssessments: "knowledge/legacy-trust.jsonl" },
+    });
+    const manifest = JSON.parse(fixture.files!["node-manifest.json"]!) as Record<string, unknown>;
+    manifest.trustAssessments = { format: "jsonl", path: "nodes/trust.jsonl" };
+    fixture.files!["node-manifest.json"] = JSON.stringify(manifest);
+    fixture.files!["knowledge/legacy-trust.jsonl"] = "{}";
+    fixture.files!["nodes/trust.jsonl"] = "{}";
+
+    const report = await inspectRepository(`${fixture.owner}/${fixture.name}`, {
+      transport: createFakeTransport(fixture),
+      limits: { maxFileCount: 2 },
+    });
+
+    expect(Object.keys(report.files).sort()).toEqual([
+      "node-manifest.json",
+      "review-manifest.json",
+    ]);
+    const contentRequests = requests.filter((path) => path.includes("/contents/"));
+    expect(contentRequests[0]).toContain("review-manifest.json");
+    expect(contentRequests[1]).toContain("node-manifest.json");
+  });
+
   it("never fetches a declared artifact even when its name matches legacy discovery", async () => {
     const requests: string[] = [];
     const figure = JSON.parse(CLAIM_NODE_JSON) as Record<string, unknown>;

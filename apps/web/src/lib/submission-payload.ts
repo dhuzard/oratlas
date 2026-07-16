@@ -8,14 +8,14 @@ import {
   effectiveMetadataSchema,
   relationRecordSchema,
   submissionValidationReportSchema,
-  trustRecordSchema,
+  trustAssessmentRecordSchema,
   type ClaimRecord,
   type CitationRecord,
   type CompatibilityReport,
   type EffectiveMetadata,
   type RelationRecord,
   type SubmissionValidationReport,
-  type TrustRecord,
+  type TrustAssessmentRecord,
 } from "@oratlas/contracts";
 import {
   createEmptyNodeExtractionReport,
@@ -41,7 +41,7 @@ export interface SubmissionPayload {
     claims: ClaimRecord[];
     citations: CitationRecord[];
     relations: RelationRecord[];
-    trust: TrustRecord[];
+    trust: TrustAssessmentRecord[];
     warnings: string[];
   };
   nodeExtraction: NodeExtractionReport;
@@ -58,7 +58,7 @@ const knowledgeSchema = z
     claims: z.array(claimRecordSchema),
     citations: z.array(citationRecordSchema),
     relations: z.array(relationRecordSchema),
-    trust: z.array(trustRecordSchema),
+    trust: z.array(trustAssessmentRecordSchema),
     warnings: z.array(z.string()),
   })
   .strict();

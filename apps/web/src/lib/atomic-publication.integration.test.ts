@@ -486,6 +486,202 @@ describe.sequential("atomic publication integration", () => {
     ).toBe(0);
   });
 
+  it("persists node-relation TRUST through acceptance, CAS review, public confirmation, and supersession", async () => {
+    const [claim, , dataset] = knowledgeNodes();
+    const edge = {
+      sourceNodeId: claim!.id,
+      targetNodeId: dataset!.id,
+      relationType: "uses-dataset",
+    };
+    const capability = await capture({
+      githubRepositoryId: nextRepoId(),
+      knowledge: nodeRelationTrustKnowledge(),
+      nodeExtraction: nodeReport([claim!, dataset!], [edge]),
+      reviewContentDetected: false,
+    });
+    const submission = await runtime.createSubmission({
+      inspectionToken: capability.token,
+      submitterId,
+    });
+    const accepted = await runtime.acceptSubmission(
+      submission.submissionId,
+      editorId,
+      undefined,
+      [],
+      [claim!.id, dataset!.id],
+    );
+    expect(accepted.reviewSlug).toBeUndefined();
+
+    const trust = await import("./trust-provenance");
+    const lifecycle = await import("./node-edge-lifecycle");
+    const publication = await import("./node-publication");
+    const assessment = await runtime.prisma.nodeRelationTrustAssessment.findFirstOrThrow({
+      where: { proposal: { sourceSubmissionId: submission.submissionId } },
+      include: trust.loadedNodeRelationTrustInclude,
+    });
+    expect(assessment.nodeEdgeProposalId).toBe(assessment.proposal.id);
+    expect(JSON.parse(assessment.sourceRecordJson)).toMatchObject({
+      subjectType: "node-relation",
+      subject: { claimNodeId: claim!.id, evidenceNodeId: dataset!.id },
+    });
+    expect(assessment.proposal.status).toBe("proposed");
+    expect(trust.resolveLoadedNodeRelationTrustAssessment(assessment).authoritative).toBe(false);
+
+    const sourceNodeId = assessment.proposal.sourceNodeVersion.knowledgeNode.id;
+    expect((await publication.getPublicNode(sourceNodeId))?.edges).toEqual([]);
+    const queuedBefore = (await trust.listTrustEditorialQueue("all")).find(
+      (item) => item.assessmentId === assessment.id,
+    );
+    expect(queuedBefore).toMatchObject({
+      canVerify: false,
+      subjectHref: `/nodes/${sourceNodeId}/versions/${assessment.proposal.sourceNodeVersionId}`,
+      computedAggregateScore: null,
+    });
+
+    const confirmed = await lifecycle.decideNodeEdgeProposal(
+      { id: editorId, role: "EDITOR" },
+      assessment.proposal.id,
+      {
+        decision: "confirm",
+        expectedRevision: 0,
+        note: "The editor checked the exact claim and dataset versions.",
+      },
+    );
+    expect(confirmed.status).toBe("confirmed");
+    const loaded = await runtime.prisma.nodeRelationTrustAssessment.findUniqueOrThrow({
+      where: { id: assessment.id },
+      include: trust.loadedNodeRelationTrustInclude,
+    });
+    const resolved = trust.resolveLoadedNodeRelationTrustAssessment(loaded);
+    expect(resolved.authoritative).toBe(true);
+
+    await expect(
+      trust.verifyTrustAssessment(
+        {
+          assessmentId: assessment.id,
+          subjectType: "node-relation",
+          status: "human-reviewed",
+          rationale: "The exact relation evidence and provenance were checked.",
+          expectedRevision: 0,
+          expectedAssessmentHash: "0".repeat(64),
+        },
+        { id: editorId, role: "EDITOR" },
+      ),
+    ).rejects.toMatchObject({ code: "conflict" });
+    expect(
+      await runtime.prisma.nodeRelationTrustVerification.count({
+        where: { nodeRelationTrustAssessmentId: assessment.id },
+      }),
+    ).toBe(0);
+
+    await trust.verifyTrustAssessment(
+      {
+        assessmentId: assessment.id,
+        subjectType: "node-relation",
+        status: "human-reviewed",
+        rationale: "The exact relation evidence and provenance were checked.",
+        expectedRevision: 0,
+        expectedAssessmentHash: resolved.currentHash,
+      },
+      { id: editorId, role: "EDITOR" },
+    );
+    const publicNode = await publication.getPublicNode(sourceNodeId);
+    expect(publicNode?.edges).toHaveLength(1);
+    expect(publicNode?.edges[0]?.trust).toMatchObject({
+      assessmentId: assessment.id,
+      protocolVersion: "trust-poc-1.0",
+      reviewStatus: "human-reviewed",
+      verificationState: "platform-verified",
+    });
+    expect((await lifecycle.listConfirmedEdgesForNode(sourceNodeId))[0]?.trust).toEqual(
+      publicNode?.edges[0]?.trust,
+    );
+    await expect(
+      trust.verifyTrustAssessment(
+        {
+          assessmentId: assessment.id,
+          subjectType: "node-relation",
+          status: "adjudicated",
+          rationale: "This stale queue revision must lose the compare-and-set race.",
+          expectedRevision: 0,
+          expectedAssessmentHash: resolved.currentHash,
+        },
+        { id: editorId, role: "EDITOR" },
+      ),
+    ).rejects.toMatchObject({ code: "conflict" });
+    expect(
+      await runtime.prisma.nodeRelationTrustVerification.count({
+        where: { nodeRelationTrustAssessmentId: assessment.id },
+      }),
+    ).toBe(1);
+
+    await lifecycle.decideNodeEdgeProposal(
+      { id: editorId, role: "EDITOR" },
+      assessment.proposal.id,
+      {
+        decision: "supersede",
+        expectedRevision: 1,
+        note: "A newer editorial relation decision replaces this exact predicate.",
+      },
+    );
+    expect(
+      await runtime.prisma.nodeRelationTrustAssessment.count({ where: { id: assessment.id } }),
+    ).toBe(1);
+    expect((await publication.getPublicNode(sourceNodeId))?.edges).toEqual([]);
+    const stale = await runtime.prisma.nodeRelationTrustAssessment.findUniqueOrThrow({
+      where: { id: assessment.id },
+      include: trust.loadedNodeRelationTrustInclude,
+    });
+    expect(trust.resolveLoadedNodeRelationTrustAssessment(stale)).toMatchObject({
+      authoritative: false,
+      state: "stale-verification",
+    });
+  });
+
+  it("skips node-relation TRUST for partial and prose-only acceptance", async () => {
+    const [claim, , dataset] = knowledgeNodes();
+    const edge = {
+      sourceNodeId: claim!.id,
+      targetNodeId: dataset!.id,
+      relationType: "uses-dataset",
+    };
+    const partialCapture = await capture({
+      githubRepositoryId: nextRepoId(),
+      knowledge: nodeRelationTrustKnowledge(),
+      nodeExtraction: nodeReport([claim!, dataset!], [edge]),
+      reviewContentDetected: false,
+    });
+    const partial = await runtime.createSubmission({
+      inspectionToken: partialCapture.token,
+      submitterId,
+    });
+    await runtime.acceptSubmission(partial.submissionId, editorId, undefined, [], [claim!.id]);
+    expect(
+      await runtime.prisma.nodeRelationTrustAssessment.count({
+        where: { proposal: { sourceSubmissionId: partial.submissionId } },
+      }),
+    ).toBe(0);
+
+    const proseCapture = await capture({
+      githubRepositoryId: nextRepoId(),
+      knowledge: nodeRelationTrustKnowledge(),
+      nodeExtraction: nodeReport([claim!, dataset!], [edge]),
+      reviewContentDetected: true,
+    });
+    const prose = await runtime.createSubmission({
+      inspectionToken: proseCapture.token,
+      submitterId,
+    });
+    const proseAccepted = await runtime.acceptSubmission(prose.submissionId, editorId);
+    expect(proseAccepted.reviewSlug).toBeTruthy();
+    expect(proseAccepted.nodeVersionIds).toEqual([]);
+    expect(
+      await runtime.prisma.nodeRelationTrustAssessment.count({
+        where: { proposal: { sourceSubmissionId: prose.submissionId } },
+      }),
+    ).toBe(0);
+  });
+
   it("resolves an exact cross-lab author target and fails closed when it is missing", async () => {
     const [claim, , dataset] = knowledgeNodes();
     const targetRepositoryId = nextRepoId();
@@ -513,6 +709,10 @@ describe.sequential("atomic publication integration", () => {
     };
     const sourceCapture = await capture({
       githubRepositoryId: nextRepoId(),
+      knowledge: nodeRelationTrustKnowledge({
+        githubRepositoryId: targetRepositoryId,
+        commitSha: commitA,
+      }),
       nodeExtraction: nodeReport([claim!], [externalEdge]),
       reviewContentDetected: false,
     });
@@ -527,11 +727,25 @@ describe.sequential("atomic publication integration", () => {
       [],
       [claim!.id],
     );
+    const externalProposal = await runtime.prisma.nodeEdgeProposal.findFirstOrThrow({
+      where: { sourceSubmissionId: sourceSubmission.submissionId },
+      include: { trustAssessments: true },
+    });
+    expect(externalProposal).toMatchObject({
+      targetNodeVersionId: targetResult.nodeVersionIds[0],
+      trustAssessments: [{ nodeEdgeProposalId: externalProposal.id }],
+    });
+    const lifecycle = await import("./node-edge-lifecycle");
+    await lifecycle.decideNodeEdgeProposal({ id: editorId, role: "EDITOR" }, externalProposal.id, {
+      decision: "reject",
+      expectedRevision: 0,
+      note: "The editor rejected this imported cross-repository predicate.",
+    });
     expect(
-      await runtime.prisma.nodeEdgeProposal.findFirstOrThrow({
-        where: { sourceSubmissionId: sourceSubmission.submissionId },
+      await runtime.prisma.nodeRelationTrustAssessment.count({
+        where: { nodeEdgeProposalId: externalProposal.id },
       }),
-    ).toMatchObject({ targetNodeVersionId: targetResult.nodeVersionIds[0] });
+    ).toBe(1);
 
     const missingCapture = await capture({
       githubRepositoryId: nextRepoId(),
@@ -1140,6 +1354,38 @@ function nodeReport(nodes: KnowledgeNode[], edges: unknown[] = []): NodeExtracti
       edgesSkipped: 0,
     },
   });
+}
+
+function nodeRelationTrustKnowledge(evidenceRepository?: {
+  githubRepositoryId: string;
+  commitSha: string;
+}): FullExtraction["knowledge"] {
+  return {
+    claims: [],
+    citations: [],
+    relations: [],
+    trust: [
+      {
+        subjectType: "node-relation",
+        subject: {
+          claimNodeId: "claim:result",
+          evidenceNodeId: "dataset:observations",
+          evidenceKind: "dataset",
+          relationType: "uses-dataset",
+          evidenceRepository,
+        },
+        protocolVersion: "trust-poc-1.0",
+        assessorType: "agent",
+        assessorId: "repository-agent",
+        assessedAt: nowIso,
+        criteria: { sourceAccess: { rating: "high", status: "assessed" } },
+        aggregateScore: 0.9,
+        aggregateMethod: "ordinal-mean-1.0",
+        reviewStatus: "agent-proposed",
+      },
+    ],
+    warnings: [],
+  };
 }
 
 function sha256(value: string): string {

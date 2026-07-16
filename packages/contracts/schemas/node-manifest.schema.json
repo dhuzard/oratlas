@@ -45,6 +45,15 @@
   "properties": {
     "schemaVersion": { "const": "1.0.0" },
     "nodes": { "$ref": "#/$defs/recordSource" },
-    "edges": { "$ref": "#/$defs/recordSource" }
+    "edges": { "$ref": "#/$defs/recordSource" },
+    "trustAssessments": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["format", "path"],
+      "properties": {
+        "format": { "const": "jsonl" },
+        "path": { "$ref": "#/$defs/safeRepoRelativePath" }
+      }
+    }
   }
 }

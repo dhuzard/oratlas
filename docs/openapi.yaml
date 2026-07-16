@@ -198,6 +198,23 @@ components:
                 { type: string, enum: [asserted-by-author, proposed-by-agent, confirmed-by-editor] }
               rationale: { type: string }
               assertedAt: { type: string, format: date-time }
+              trust:
+                type: object
+                additionalProperties: false
+                required: [assessmentId, protocolVersion, reviewStatus, verificationState]
+                description: >
+                  Compact relation-scoped TRUST state. Aggregate scores are intentionally omitted
+                  because criterion detail is not expanded in this edge summary.
+                properties:
+                  assessmentId: { type: string }
+                  protocolVersion: { type: string, minLength: 1, maxLength: 40 }
+                  reviewStatus:
+                    type: string
+                    enum:
+                      [unverified-import, agent-proposed, human-reviewed, adjudicated, superseded]
+                  verificationState:
+                    type: string
+                    enum: [platform-verified, unverified-import, stale-verification, legacy-unknown]
               relatedNode: { $ref: "#/components/schemas/PublicRelatedNodeVersion" }
         trustContext:
           type: array
@@ -498,6 +515,11 @@ components:
       required: [assessmentId, status, rationale, expectedRevision, expectedAssessmentHash]
       properties:
         assessmentId: { type: string }
+        subjectType:
+          type: string
+          enum: [claim-citation, node-relation]
+          default: claim-citation
+          description: Omit for backward-compatible claim-citation verification.
         status: { type: string, enum: [human-reviewed, adjudicated] }
         rationale: { type: string, minLength: 10, maxLength: 4000 }
         expectedRevision: { type: integer, minimum: 0 }
