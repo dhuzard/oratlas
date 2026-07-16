@@ -159,7 +159,7 @@ reserved `10.5555`, malformed, wrapped, HTML/URL-bearing, or oversized output fa
 When no provider is configured, a clock-free bounded template composes byte-identical grounded
 output. Provider errors never trigger fallback. Every attempted generation first persists a running
 `AgentRun`; success or sanitized failure is persisted before control returns. Packet, prompt, and
-document hashes plus a deterministic provider/model generation key make downstream editorial
+document hashes plus a deterministic packet/prompt/schema/pipeline/model generation key make downstream editorial
 idempotency and verification possible without storing prompts, rejected raw responses, or reasoning.
 
 ## Trust boundaries

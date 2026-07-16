@@ -18,6 +18,7 @@ import type { LlmJsonCompletionRequest, LlmProvider } from "./discuss.js";
 import type { PreparedSubgraphEvidencePacket } from "./subgraph-evidence.js";
 
 export const SYNTHESIS_PROMPT_VERSION = "atlas-synthesis-1.0" as const;
+export const SYNTHESIS_PIPELINE_VERSION = "synthesis-writer/1.0.0" as const;
 export const SYNTHESIS_FALLBACK_PROVIDER = "deterministic" as const;
 export const SYNTHESIS_FALLBACK_MODEL = "bounded-template-1.0" as const;
 
@@ -151,21 +152,42 @@ function normalizeDoi(value: string): string {
 
 interface ProseIdentifier {
   scheme: "doi" | "pmid" | "openalex";
-  value: string;
+  /** Exact normalized token plus punctuation-safe candidates, in preference order. */
+  values: string[];
 }
 
 function proseIdentifiers(prose: string): ProseIdentifier[] {
+  const normalized = prose.normalize("NFKC");
   const found: ProseIdentifier[] = [];
-  for (const match of prose.matchAll(/\b10\.\d{4,9}\/[^\s<>"']+/gi)) {
-    found.push({ scheme: "doi", value: normalizeDoi(match[0]) });
+  for (const match of normalized.matchAll(/\b10\.\d{4,9}\/[^\s<>"']+/gi)) {
+    const values = [normalizeDoi(match[0])];
+    let withoutPunctuation = values[0]!;
+    while (/[.,;:!?\])}]$/.test(withoutPunctuation)) {
+      withoutPunctuation = withoutPunctuation.slice(0, -1);
+      values.push(withoutPunctuation);
+    }
+    found.push({ scheme: "doi", values: [...new Set(values)] });
   }
-  for (const match of prose.matchAll(/\bPMID\s*:?\s*(\d+)\b/gi)) {
-    found.push({ scheme: "pmid", value: String(Number(match[1])) });
+  for (const match of normalized.matchAll(/\b(?:PMID|PubMed\s+ID)\s*(?:[:=]\s*)?(\d+)\b/gi)) {
+    found.push({ scheme: "pmid", values: [match[1]!.replace(/^0+(?=\d)/, "")] });
   }
-  for (const match of prose.matchAll(/\bOpenAlex\s*:?\s*(W\d+)\b/gi)) {
-    found.push({ scheme: "openalex", value: match[1]!.toUpperCase() });
+  for (const pattern of [
+    /\bOpenAlex(?:\s+ID)?\s*(?:[:=]\s*)?(W\d+)\b/gi,
+    /\b(?:https?:\/\/)?(?:www\.)?openalex\.org\/(W\d+)\b/gi,
+    /\b(W\d+)\b/gi,
+  ]) {
+    for (const match of normalized.matchAll(pattern)) {
+      found.push({ scheme: "openalex", values: [match[1]!.toUpperCase()] });
+    }
   }
-  return found;
+  return [
+    ...new Map(
+      found.map((identifier) => [
+        `${identifier.scheme}\u0000${identifier.values.join("\u0000")}`,
+        identifier,
+      ]),
+    ).values(),
+  ];
 }
 
 /** Pure exact-reference and prose-identifier grounding validation. */
@@ -230,7 +252,10 @@ export function validateSynthesisGrounding(
     }
 
     for (const identifier of proseIdentifiers(site.prose)) {
-      if (identifier.scheme === "doi" && identifier.value.startsWith("10.5555/")) {
+      if (
+        identifier.scheme === "doi" &&
+        identifier.values.some((value) => value.startsWith("10.5555/"))
+      ) {
         issues.push({ code: "reserved-example-identifier", path: site.path });
         continue;
       }
@@ -240,7 +265,9 @@ export function validateSynthesisGrounding(
           scheme: string;
           value: string;
         };
-        return candidate.scheme === identifier.scheme && candidate.value === identifier.value;
+        return (
+          candidate.scheme === identifier.scheme && identifier.values.includes(candidate.value)
+        );
       });
       if (!matching) issues.push({ code: "unstructured-identifier", path: site.path });
     }
@@ -307,8 +334,9 @@ function cleanProse(value: string): string {
     .replace(/<[^>]*>/g, " ")
     .replace(/https?:\/\/\S+/gi, "[external link omitted]")
     .replace(/\b10\.\d{4,9}\/[^\s<>"']+/gi, "[identifier omitted]")
-    .replace(/\bPMID\s*:?\s*\d+\b/gi, "[identifier omitted]")
-    .replace(/\bOpenAlex\s*:?\s*W\d+\b/gi, "[identifier omitted]")
+    .replace(/\b(?:PMID|PubMed\s+ID)\s*(?:[:=]\s*)?\d+\b/gi, "[identifier omitted]")
+    .replace(/\bOpenAlex(?:\s+ID)?\s*(?:[:=]\s*)?W\d+\b/gi, "[identifier omitted]")
+    .replace(/\bW\d+\b/gi, "[identifier omitted]")
     .replace(/\s+/g, " ")
     .trim();
   return cleaned || "Evidence was present but contained no usable plain text.";
@@ -327,7 +355,7 @@ function nodeCitations(
       (reference) =>
         reference.nodeId === node.id &&
         reference.nodeVersionId === node.versionId &&
-        (reference.kind === "node" || !reference.isExample),
+        reference.kind === "node",
     )
     .map((reference) => ({
       referenceId: reference.referenceId,
@@ -344,6 +372,50 @@ function paragraph(text: string, citations: SynthesisReviewCitation[] = []) {
     text: clip(cleanProse(text), SYNTHESIS_REVIEW_LIMITS.maxParagraphCharacters),
     citations: unique,
   };
+}
+
+function fallbackDocumentBytes(document: SynthesisReviewDocument): number {
+  return Buffer.byteLength(JSON.stringify(document), "utf8");
+}
+
+/**
+ * Deterministically remove the largest trailing detail blocks until the strict
+ * document cap is met. Every section keeps at least one nonempty paragraph.
+ */
+function fitFallbackByteBudget(document: SynthesisReviewDocument): SynthesisReviewDocument {
+  while (fallbackDocumentBytes(document) > SYNTHESIS_REVIEW_LIMITS.maxOutputBytes) {
+    const removable = document.sections.flatMap((section, sectionIndex) => {
+      const candidate = section.paragraphs.at(-1);
+      return section.paragraphs.length > 1 && candidate
+        ? [
+            {
+              sectionIndex,
+              bytes: Buffer.byteLength(JSON.stringify(candidate), "utf8"),
+            },
+          ]
+        : [];
+    });
+    removable.sort(
+      (left, right) => right.bytes - left.bytes || right.sectionIndex - left.sectionIndex,
+    );
+    const selected = removable[0];
+    if (!selected) break;
+    document.sections[selected.sectionIndex]!.paragraphs.pop();
+  }
+
+  if (fallbackDocumentBytes(document) > SYNTHESIS_REVIEW_LIMITS.maxOutputBytes) {
+    for (const section of document.sections) {
+      section.paragraphs = [
+        paragraph(
+          "Evidence detail was deterministically omitted to satisfy the bounded output limit.",
+        ),
+      ];
+    }
+    document.title = "Synthesis review of bounded evidence";
+    document.summary = "This deterministic review is limited to one bounded evidence packet.";
+    document.citations = [];
+  }
+  return document;
 }
 
 /** Pure, clock-free, byte-identical fallback composer. */
@@ -436,7 +508,13 @@ export function composeDeterministicSynthesis(
   ] as SynthesisReviewDocument["sections"];
 
   return verifySynthesisDocument(
-    { schemaVersion: SYNTHESIS_REVIEW_SCHEMA_VERSION, title, summary, citations: [], sections },
+    fitFallbackByteBudget({
+      schemaVersion: SYNTHESIS_REVIEW_SCHEMA_VERSION,
+      title,
+      summary,
+      citations: [],
+      sections,
+    }),
     prepared,
   );
 }
@@ -480,11 +558,18 @@ export function synthesisSelectionIdentity(packet: SubgraphEvidencePacket): stri
 export function synthesisGenerationKey(input: {
   packetHash: string;
   promptVersion: string;
+  promptHash: string;
   provider: string;
   model: string;
   modelVersion?: string;
 }): string {
-  return sha256(canonicalJson(input));
+  return sha256(
+    canonicalJson({
+      pipelineVersion: SYNTHESIS_PIPELINE_VERSION,
+      schemaVersion: SYNTHESIS_REVIEW_SCHEMA_VERSION,
+      ...input,
+    }),
+  );
 }
 
 /** Orchestrates provider/fallback generation around a required durable recorder. */
@@ -571,6 +656,7 @@ export class SynthesisWriter {
       generationKey: synthesisGenerationKey({
         packetHash: prepared.sha256,
         promptVersion: SYNTHESIS_PROMPT_VERSION,
+        promptHash: SYNTHESIS_PROMPT_HASH,
         ...identity,
       }),
       selectionIdentity: synthesisSelectionIdentity(prepared.packet),

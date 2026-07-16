@@ -618,3 +618,11 @@ unattributed model prose or bypassing durable run provenance.
 - Added `promptHash` and `packetHash` to SQLite/PostgreSQL Prisma models and generated PostgreSQL DDL,
   plus contract, offline mock/provider, grounding/adversarial, recorder, fallback, and Prisma-backed
   integration coverage.
+- Audit hardening normalizes prose with NFKC before scanning fullwidth and common DOI, PMID, and
+  OpenAlex forms. Exact DOI matching tolerates terminal sentence punctuation without weakening
+  reserved-prefix or fabricated-identifier rejection.
+- The deterministic fallback now cites node references only after identifier-like prose is redacted,
+  deduplicates endpoint citations, and applies a deterministic UTF-8 budget while retaining all six
+  nonempty sections. A 24-node/24-edge near-bound fixture exercises actual budget reduction.
+- Generation keys now bind the prompt hash as well as packet, prompt version, output schema,
+  pipeline version, and model identity, so any prompt-byte change produces a distinct key.

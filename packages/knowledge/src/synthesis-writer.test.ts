@@ -1,3 +1,4 @@
+import { Buffer } from "node:buffer";
 import { describe, expect, it, vi } from "vitest";
 import { canonicalJson, type SubgraphEvidenceSource } from "@oratlas/contracts";
 import {
@@ -14,6 +15,7 @@ import {
   SYNTHESIS_FALLBACK_PROVIDER,
   SYNTHESIS_PROMPT_HASH,
   SYNTHESIS_SYSTEM_PROMPT,
+  sha256,
   synthesisGenerationKey,
   validateSynthesisGrounding,
   verifySynthesisDocument,
@@ -157,6 +159,96 @@ function source(): SubgraphEvidenceSource {
   };
 }
 
+function largeSource(): SubgraphEvidenceSource {
+  const nodes: SubgraphEvidenceSource["nodes"] = [];
+  const edges: SubgraphEvidenceSource["edges"] = [];
+  const claimIds: string[] = [];
+  for (let index = 0; index < 12; index += 1) {
+    const suffix = `${index}`.padStart(2, "0");
+    const claimId = `claim-${suffix}-${"c".repeat(175)}`;
+    const datasetId = `dataset-${suffix}-${"d".repeat(173)}`;
+    claimIds.push(claimId);
+    const claimCommit = ((index % 14) + 1).toString(16).repeat(40);
+    const datasetCommit = (((index + 7) % 14) + 1).toString(16).repeat(40);
+    nodes.push({
+      id: claimId,
+      localNodeId: `claim-${suffix}`,
+      repository: repository(`large-claim-${suffix}`),
+      versionId: `v-${claimId}`,
+      snapshotId: `snapshot-claim-${suffix}`,
+      commitSha: claimCommit,
+      title: `Claim ${suffix} ${"x".repeat(490)}`.slice(0, 500),
+      contributors: [{ displayName: `Claim author ${suffix}` }],
+      license: "CC-BY-4.0",
+      provenance: provenance(`large-claim-${suffix}`, claimCommit),
+      identifiers: [
+        { scheme: "doi", role: "version-doi", value: `10.1234/CLAIM-${suffix}`, isExample: false },
+      ],
+      isExample: false,
+      createdAt: "2026-03-01T00:00:00.000Z",
+      kind: "claim",
+      payload: { statement: `Bounded statement ${suffix}.`, qualifiers: [] },
+    });
+    nodes.push({
+      id: datasetId,
+      localNodeId: `dataset-${suffix}`,
+      repository: repository(`large-dataset-${suffix}`),
+      versionId: `v-${datasetId}`,
+      snapshotId: `snapshot-dataset-${suffix}`,
+      commitSha: datasetCommit,
+      title: `Dataset ${suffix} ${"y".repeat(488)}`.slice(0, 500),
+      contributors: [{ displayName: `Dataset author ${suffix}` }],
+      license: "CC0-1.0",
+      provenance: provenance(`large-dataset-${suffix}`, datasetCommit),
+      identifiers: [
+        { scheme: "doi", role: "artifact-doi", value: `10.2345/DATA-${suffix}`, isExample: false },
+      ],
+      isExample: false,
+      createdAt: "2026-03-01T00:00:00.000Z",
+      kind: "dataset",
+      payload: { artifactPath: `data/${suffix}.csv`, format: "text/csv", sizeBytes: 10 },
+    });
+  }
+  for (let index = 0; index < 12; index += 1) {
+    const targetIndex = (index + 1) % 12;
+    for (const relationType of ["supports", "contradicts"] as const) {
+      edges.push({
+        id: `${relationType}-${index}`,
+        sourceNodeId: claimIds[index]!,
+        sourceVersionId: `v-${claimIds[index]!}`,
+        targetNodeId: claimIds[targetIndex]!,
+        targetVersionId: `v-${claimIds[targetIndex]!}`,
+        relationType,
+        status: "confirmed",
+        provenance: "confirmed-by-editor",
+        confirmedAt: "2026-03-02T00:00:00.000Z",
+      });
+    }
+  }
+  const selection = {
+    kind: "topic" as const,
+    canonicalQuery: "large bounded synthesis",
+    seedNodeIds: claimIds.slice(0, 10),
+  };
+  return {
+    schemaVersion: "bounded-subgraph/1.0.0",
+    selection,
+    source: {
+      kind: "bounded-supplied-subgraph",
+      selectorFingerprint: fingerprintSubgraphEvidenceSelection(selection),
+    },
+    declaredCounts: {
+      nodeCount: nodes.length,
+      edgeCount: edges.length,
+      contradictionEdgeIds: edges
+        .filter((edge) => edge.relationType === "contradicts")
+        .map((edge) => edge.id),
+    },
+    nodes,
+    edges,
+  };
+}
+
 class Recorder implements SynthesisRunRecorder {
   actions: Array<{ action: string; value: unknown }> = [];
   async start(value: Parameters<SynthesisRunRecorder["start"]>[0]) {
@@ -192,6 +284,32 @@ describe("SynthesisWriter pure boundaries", () => {
     expect(validateSynthesisGrounding(first, prepared.packet)).toEqual({ ok: true, issues: [] });
     expect(JSON.stringify(first)).not.toContain("10.5555");
     expect(JSON.stringify(first)).not.toMatch(/builtAt|generatedAt/);
+  });
+
+  it("keeps a near-bound 24-node/24-edge fallback deterministic, grounded, and under the cap", () => {
+    const prepared = buildPreparedSubgraphEvidencePacket(largeSource());
+    const first = composeDeterministicSynthesis(prepared);
+    const second = composeDeterministicSynthesis(prepared);
+    expect(canonicalJson(first)).toBe(canonicalJson(second));
+    expect(Buffer.byteLength(JSON.stringify(first), "utf8")).toBeLessThanOrEqual(65_536);
+    expect(first.sections.every((section) => section.paragraphs.length > 0)).toBe(true);
+    expect(
+      first.sections.reduce((sum, section) => sum + section.paragraphs.length, 0),
+    ).toBeLessThan(50);
+    expect(validateSynthesisGrounding(first, prepared.packet)).toEqual({ ok: true, issues: [] });
+    const references = new Map(
+      prepared.packet.references.map((reference) => [reference.referenceId, reference]),
+    );
+    const citations = [
+      ...first.citations,
+      ...first.sections.flatMap((section) =>
+        section.paragraphs.flatMap((paragraph) => paragraph.citations),
+      ),
+    ];
+    expect(citations.length).toBeGreaterThan(0);
+    expect(
+      citations.every((citation) => references.get(citation.referenceId)?.kind === "node"),
+    ).toBe(true);
   });
 
   it("keeps hostile packet prose only in canonical user data and uses a static system prompt", () => {
@@ -330,6 +448,45 @@ describe("SynthesisWriter pure boundaries", () => {
       ok: true,
       issues: [],
     });
+
+    for (const text of [
+      "Allowed (10.1234/claim).",
+      "Allowed [10.1234/claim]!",
+      "Allowed 10.1234/claim]",
+    ]) {
+      const punctuated = structuredClone(base);
+      punctuated.sections[0].paragraphs[0] = {
+        text,
+        citations: grounded.sections[0].paragraphs[0]!.citations,
+      };
+      expect(validateSynthesisGrounding(punctuated, prepared.packet)).toEqual({
+        ok: true,
+        issues: [],
+      });
+    }
+  });
+
+  it("normalizes hostile identifier forms before rejecting fabricated or reserved prose", () => {
+    const prepared = buildPreparedSubgraphEvidencePacket(source());
+    const base = composeDeterministicSynthesis(prepared);
+    const cases = [
+      ["Ｆａｂｒｉｃａｔｅｄ １０．９９９９／ＮＯＴ－ＲＥＡＬ．", "unstructured-identifier"],
+      ["Ｒｅｓｅｒｖｅｄ １０．５５５５／ＦＡＫＥ．", "reserved-example-identifier"],
+      ["PMID=123456", "unstructured-identifier"],
+      ["PubMed ID 123456", "unstructured-identifier"],
+      ["PubMed ID: 123456", "unstructured-identifier"],
+      ["OpenAlex ID: W123456789", "unstructured-identifier"],
+      ["OpenAlex=W123456789", "unstructured-identifier"],
+      ["Bare W123456789", "unstructured-identifier"],
+      ["Bare W123", "unstructured-identifier"],
+      ["openalex.org/W123456789", "unstructured-identifier"],
+      ["https://openalex.org/W123456789", "unstructured-identifier"],
+    ] as const;
+    for (const [text, code] of cases) {
+      const document = structuredClone(base);
+      document.sections[0].paragraphs[0] = { text, citations: [] };
+      expect(validateSynthesisGrounding(document, prepared.packet).issues[0]?.code).toBe(code);
+    }
   });
 
   it("rejects raw output above the byte cap before parsing", () => {
@@ -346,6 +503,18 @@ describe("SynthesisWriter pure boundaries", () => {
     expect(() =>
       composeDeterministicSynthesis({ ...prepared, sha256: "0".repeat(64) }),
     ).toThrowError(expect.objectContaining({ code: "invalid-prepared-packet" }));
+  });
+
+  it("changes the generation key when any prompt byte changes", () => {
+    const identity = {
+      packetHash: "a".repeat(64),
+      promptVersion: "atlas-synthesis-test",
+      provider: "mock",
+      model: "offline",
+    };
+    const first = synthesisGenerationKey({ ...identity, promptHash: sha256("prompt-a") });
+    const second = synthesisGenerationKey({ ...identity, promptHash: sha256("prompt-b") });
+    expect(first).not.toBe(second);
   });
 });
 
@@ -380,6 +549,7 @@ describe("SynthesisWriter orchestration", () => {
       synthesisGenerationKey({
         packetHash: prepared.sha256,
         promptVersion: result.promptVersion,
+        promptHash: result.promptHash,
         provider: result.provider,
         model: result.model,
         modelVersion: result.modelVersion,
