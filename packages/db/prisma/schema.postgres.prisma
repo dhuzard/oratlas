@@ -431,6 +431,7 @@ model KnowledgeNode {
   versions      KnowledgeNodeVersion[]
   incomingEdges NodeEdge[]             @relation("targetNode")
   linkedClaims  Claim[]
+  aliases       NodeAlias[]
 
   @@unique([repositoryId, localNodeId])
   @@index([kind])
@@ -496,6 +497,29 @@ model NodeEdge {
   @@unique([sourceNodeVersionId, targetNodeId, relationType])
   @@index([targetNodeId])
   @@index([status, relationType])
+}
+
+/// Canonical DOI/PMID/OpenAlex comparison key declared for a stable node.
+/// The role remains explicit so version and concept DOI meaning is never lost.
+/// Alias values are intentionally not globally unique: a shared value produces
+/// a reviewable identity proposal and never merges the owning nodes.
+model NodeAlias {
+  id              String   @id @default(cuid())
+  knowledgeNodeId String
+  /// contracts nodeAliasSchemeSchema: doi | pmid | openalex
+  scheme          String
+  /// contracts nodeAliasRoleSchema; version/concept/artifact/work stay distinct.
+  role            String
+  /// Canonical value without a resolver/prefix (for example 10.1000/work).
+  value           String
+  /// Synthetic examples are stored for provenance but excluded from matching.
+  isExample       Boolean  @default(false)
+  createdAt       DateTime @default(now())
+
+  knowledgeNode KnowledgeNode @relation(fields: [knowledgeNodeId], references: [id])
+
+  @@unique([knowledgeNodeId, scheme, role, value])
+  @@index([scheme, value])
 }
 
 /// A human-editor-published replication opportunity. Triage snapshots are

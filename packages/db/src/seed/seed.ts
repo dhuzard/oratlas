@@ -13,6 +13,7 @@ import {
   trustSubjectInputFromDatabaseRows,
 } from "@oratlas/trust";
 import { PrismaClient } from "../../generated/client/index.js";
+import { upsertNodeAlias } from "../node-aliases.js";
 import {
   EXTRACTOR_VERSION,
   TRUST_PROTOCOL_VERSION,
@@ -435,6 +436,24 @@ async function seedKnowledgeGraph(
     const key = `${fixture.repositoryKey}:${node.id}`;
     identityIdByKey.set(key, identity.id);
     versionIdByKey.set(key, version.id);
+
+    const aliases = [
+      node.versionDoi
+        ? { scheme: "doi" as const, role: "version-doi" as const, value: node.versionDoi }
+        : undefined,
+      node.conceptDoi
+        ? { scheme: "doi" as const, role: "concept-doi" as const, value: node.conceptDoi }
+        : undefined,
+      node.kind === "dataset" && node.payload.doi
+        ? { scheme: "doi" as const, role: "artifact-doi" as const, value: node.payload.doi }
+        : undefined,
+    ].filter((alias) => alias !== undefined);
+    for (const rawAlias of aliases) {
+      await upsertNodeAlias(prisma, {
+        knowledgeNodeId: identity.id,
+        alias: { ...rawAlias, isExample: fixture.isExample },
+      });
+    }
 
     if (fixture.legacyClaim) {
       const claimId = claimIdsBySlug

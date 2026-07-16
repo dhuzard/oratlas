@@ -300,6 +300,19 @@ CREATE TABLE "NodeEdge" (
 );
 
 -- CreateTable
+CREATE TABLE "NodeAlias" (
+    "id" TEXT NOT NULL,
+    "knowledgeNodeId" TEXT NOT NULL,
+    "scheme" TEXT NOT NULL,
+    "role" TEXT NOT NULL,
+    "value" TEXT NOT NULL,
+    "isExample" BOOLEAN NOT NULL DEFAULT false,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "NodeAlias_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "ReplicationBrief" (
     "id" TEXT NOT NULL,
     "requestKey" TEXT NOT NULL,
@@ -878,6 +891,12 @@ CREATE INDEX "NodeEdge_status_relationType_idx" ON "NodeEdge"("status", "relatio
 CREATE UNIQUE INDEX "NodeEdge_sourceNodeVersionId_targetNodeId_relationType_key" ON "NodeEdge"("sourceNodeVersionId", "targetNodeId", "relationType");
 
 -- CreateIndex
+CREATE INDEX "NodeAlias_scheme_value_idx" ON "NodeAlias"("scheme", "value");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "NodeAlias_knowledgeNodeId_scheme_role_value_key" ON "NodeAlias"("knowledgeNodeId", "scheme", "role", "value");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "ReplicationBrief_requestKey_key" ON "ReplicationBrief"("requestKey");
 
 -- CreateIndex
@@ -1107,6 +1126,9 @@ ALTER TABLE "NodeEdge" ADD CONSTRAINT "NodeEdge_sourceNodeVersionId_fkey" FOREIG
 
 -- AddForeignKey
 ALTER TABLE "NodeEdge" ADD CONSTRAINT "NodeEdge_targetNodeId_fkey" FOREIGN KEY ("targetNodeId") REFERENCES "KnowledgeNode"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "NodeAlias" ADD CONSTRAINT "NodeAlias_knowledgeNodeId_fkey" FOREIGN KEY ("knowledgeNodeId") REFERENCES "KnowledgeNode"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "ReplicationBrief" ADD CONSTRAINT "ReplicationBrief_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

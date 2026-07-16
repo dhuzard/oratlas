@@ -42,12 +42,18 @@ const NODE_EDGE_SEMANTIC_FIELDS = [
   "updatedAt",
 ] as const;
 
+const NODE_ALIAS_SEMANTIC_FIELDS = ["isExample", "createdAt"] as const;
+
 type NodeVersionSemanticRow = { id: string } & Record<
   (typeof NODE_VERSION_SEMANTIC_FIELDS)[number],
   unknown
 >;
 type NodeEdgeSemanticRow = { id: string } & Record<
   (typeof NODE_EDGE_SEMANTIC_FIELDS)[number],
+  unknown
+>;
+type NodeAliasSemanticRow = { id: string } & Record<
+  (typeof NODE_ALIAS_SEMANTIC_FIELDS)[number],
   unknown
 >;
 
@@ -267,8 +273,44 @@ async function mergeKnowledgeNodes(
       loserNode.id,
     );
     await updateIfTable(tx, "Claim", "knowledgeNodeId", survivorNodeId, loserNode.id);
+    await mergeNodeAliases(tx, survivorNodeId, loserNode.id);
     await mergeNodeEdgeTargets(tx, survivorNodeId, loserNode.id);
     await tx.$executeRawUnsafe("DELETE FROM KnowledgeNode WHERE id = ?", loserNode.id);
+  }
+}
+
+async function mergeNodeAliases(
+  tx: Prisma.TransactionClient,
+  survivorNodeId: string,
+  loserNodeId: string,
+): Promise<void> {
+  if (!(await tableExists(tx, "NodeAlias"))) return;
+  const aliases = await tx.$queryRawUnsafe<
+    Array<{ id: string; scheme: string; role: string; value: string }>
+  >(
+    `SELECT id, scheme, role, value FROM NodeAlias
+      WHERE knowledgeNodeId = ? ORDER BY id`,
+    loserNodeId,
+  );
+  for (const alias of aliases) {
+    const duplicate = await tx.$queryRawUnsafe<Array<{ id: string }>>(
+      `SELECT id FROM NodeAlias
+        WHERE knowledgeNodeId = ? AND scheme = ? AND role = ? AND value = ? LIMIT 1`,
+      survivorNodeId,
+      alias.scheme,
+      alias.role,
+      alias.value,
+    );
+    if (duplicate[0]) {
+      await assertNodeAliasesEquivalent(tx, duplicate[0].id, alias.id);
+      await tx.$executeRawUnsafe("DELETE FROM NodeAlias WHERE id = ?", alias.id);
+    } else {
+      await tx.$executeRawUnsafe(
+        "UPDATE NodeAlias SET knowledgeNodeId = ? WHERE id = ?",
+        survivorNodeId,
+        alias.id,
+      );
+    }
   }
 }
 
@@ -421,6 +463,33 @@ async function assertNodeEdgesEquivalent(
   if (differing.length > 0) {
     throw new Error(
       `Cannot reconcile node edges '${survivorEdgeId}' and '${loserEdgeId}': ` +
+        `semantic fields differ (${differing.join(", ")}).`,
+    );
+  }
+}
+
+async function assertNodeAliasesEquivalent(
+  tx: Prisma.TransactionClient,
+  survivorAliasId: string,
+  loserAliasId: string,
+): Promise<void> {
+  const selectFields = NODE_ALIAS_SEMANTIC_FIELDS.map((field) => `"${field}"`).join(", ");
+  const rows = await tx.$queryRawUnsafe<NodeAliasSemanticRow[]>(
+    `SELECT id, ${selectFields} FROM NodeAlias WHERE id IN (?, ?) ORDER BY id`,
+    survivorAliasId,
+    loserAliasId,
+  );
+  const survivor = rows.find((row) => row.id === survivorAliasId);
+  const loser = rows.find((row) => row.id === loserAliasId);
+  if (!survivor || !loser) {
+    throw new Error("Cannot reconcile node aliases: a collision row disappeared.");
+  }
+  const differing = NODE_ALIAS_SEMANTIC_FIELDS.filter(
+    (field) => !semanticValuesEqual(survivor[field], loser[field]),
+  );
+  if (differing.length > 0) {
+    throw new Error(
+      `Cannot reconcile node aliases '${survivorAliasId}' and '${loserAliasId}': ` +
         `semantic fields differ (${differing.join(", ")}).`,
     );
   }

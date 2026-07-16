@@ -84,6 +84,23 @@ describe.sequential("legacy GitHub repository reconciliation", () => {
       },
     ]);
     expect(await count("NodeEdge")).toBe(1);
+    const aliases = await prisma.$queryRawUnsafe<
+      Array<{ knowledgeNodeId: string; scheme: string; role: string; value: string }>
+    >("SELECT knowledgeNodeId, scheme, role, value FROM NodeAlias ORDER BY value");
+    expect(aliases).toEqual([
+      {
+        knowledgeNodeId: "node-new",
+        scheme: "doi",
+        role: "concept-doi",
+        value: "10.5555/shared.concept",
+      },
+      {
+        knowledgeNodeId: "node-old-only",
+        scheme: "pmid",
+        role: "work-pmid",
+        value: "77",
+      },
+    ]);
     const [claim] = await prisma.$queryRawUnsafe<Array<{ knowledgeNodeId: string }>>(
       "SELECT knowledgeNodeId FROM Claim WHERE id = 'claim-old'",
     );
@@ -148,6 +165,24 @@ describe("fail-closed knowledge-node reconciliation", () => {
         new RegExp(`semantic fields differ \\(${field}\\)`),
       );
       expect(await countWith(client, "NodeEdge")).toBe(2);
+    });
+  });
+
+  it.each([
+    ["isExample", 1],
+    ["createdAt", "2027-01-01T00:00:00.000Z"],
+  ])("rejects duplicate aliases when %s differs", async (field, value) => {
+    await withFreshFixture(async (client) => {
+      await client.$executeRawUnsafe(
+        `UPDATE NodeAlias SET "${field}" = ? WHERE id = 'alias-old'`,
+        value,
+      );
+      await expect(reconcileGithubRepositories(client, true)).rejects.toThrow(
+        new RegExp(`semantic fields differ \\(${field}\\)`),
+      );
+      expect(await countWith(client, "NodeAlias")).toBe(3);
+      expect(await countWith(client, "Repository")).toBe(2);
+      expect(await countWith(client, "KnowledgeNodeVersion")).toBe(3);
     });
   });
 
@@ -229,6 +264,11 @@ async function createLegacySchema(client: PrismaClient): Promise<void> {
       status TEXT, provenance TEXT, rationale TEXT, assertedAt TEXT, createdAt TEXT, updatedAt TEXT,
       UNIQUE(sourceNodeVersionId, targetNodeId, relationType)
     )`,
+    `CREATE TABLE NodeAlias (
+      id TEXT PRIMARY KEY, knowledgeNodeId TEXT, scheme TEXT, role TEXT, value TEXT,
+      isExample INTEGER, createdAt TEXT,
+      UNIQUE(knowledgeNodeId, scheme, role, value)
+    )`,
     `CREATE TABLE Claim (
       id TEXT PRIMARY KEY, knowledgeNodeId TEXT
     )`,
@@ -241,6 +281,15 @@ async function seedDuplicateIdentityGraph(client: PrismaClient): Promise<void> {
     `INSERT INTO Repository VALUES
       ('repo-old', 4242, 'old-owner', 'old-name', 'https://github.com/old-owner/old-name', '2025-01-01', '2025-01-01'),
       ('repo-new', 4242, 'new-owner', 'new-name', 'https://github.com/new-owner/new-name', '2026-01-01', '2026-01-01')`,
+  );
+  await client.$executeRawUnsafe(
+    `INSERT INTO NodeAlias VALUES
+      ('alias-old', 'node-old', 'doi', 'concept-doi', '10.5555/shared.concept', 0,
+       '2026-01-01T00:00:00.000Z'),
+      ('alias-new', 'node-new', 'doi', 'concept-doi', '10.5555/shared.concept', 0,
+       '2026-01-01T00:00:00.000Z'),
+      ('alias-old-only', 'node-old-only', 'pmid', 'work-pmid', '77', 0,
+       '2026-01-02T00:00:00.000Z')`,
   );
   await client.$executeRawUnsafe(
     `INSERT INTO RepositorySnapshot VALUES

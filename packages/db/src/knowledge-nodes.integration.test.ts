@@ -5,6 +5,7 @@ import { spawnSync } from "node:child_process";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { PrismaClient } from "../generated/client/index.js";
 import { assertKnowledgeNodeMaterializationBinding } from "./knowledge-node-integrity.js";
+import { upsertNodeAlias } from "./node-aliases.js";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 const databaseName = `knowledge-nodes-${process.pid}-${Date.now()}.db`;
@@ -97,6 +98,40 @@ describe.sequential("knowledge-node persistence", () => {
     const targetNode = await prisma.knowledgeNode.create({
       data: { repositoryId: repository.id, localNodeId: "dataset-a", kind: "dataset" },
     });
+    const sourceAlias = await upsertNodeAlias(prisma, {
+      knowledgeNodeId: sourceNode.id,
+      alias: {
+        scheme: "doi",
+        role: "work-doi",
+        value: "https://doi.org/10.1000/SHARED-WORK",
+      },
+    });
+    const equivalentSourceAlias = await upsertNodeAlias(prisma, {
+      knowledgeNodeId: sourceNode.id,
+      alias: {
+        scheme: "doi",
+        role: "work-doi",
+        value: "10.1000/shared-work",
+      },
+    });
+    expect(equivalentSourceAlias.id).toBe(sourceAlias.id);
+    await upsertNodeAlias(prisma, {
+      knowledgeNodeId: targetNode.id,
+      alias: {
+        scheme: "doi",
+        role: "artifact-doi",
+        value: "10.1000/shared-work",
+      },
+    });
+    await upsertNodeAlias(prisma, {
+      knowledgeNodeId: targetNode.id,
+      alias: {
+        scheme: "doi",
+        role: "concept-doi",
+        value: "10.5555/example-concept",
+        isExample: true,
+      },
+    });
     const sourceVersion = await prisma.knowledgeNodeVersion.create({
       data: {
         knowledgeNodeId: sourceNode.id,
@@ -167,6 +202,19 @@ describe.sequential("knowledge-node persistence", () => {
       qualifiers: [],
     });
     expect(edge.relationType).toBe("uses-dataset");
+    const sharedAliases = await prisma.nodeAlias.findMany({
+      where: { scheme: "doi", value: "10.1000/shared-work" },
+      orderBy: { knowledgeNodeId: "asc" },
+    });
+    expect(sharedAliases).toHaveLength(2);
+    expect(new Set(sharedAliases.map((alias) => alias.knowledgeNodeId))).toEqual(
+      new Set([sourceNode.id, targetNode.id]),
+    );
+    expect(
+      await prisma.nodeAlias.findFirstOrThrow({
+        where: { knowledgeNodeId: targetNode.id, role: "concept-doi" },
+      }),
+    ).toMatchObject({ isExample: true, value: "10.5555/example-concept" });
     const tracedVersion = await prisma.knowledgeNodeVersion.findUniqueOrThrow({
       where: { id: sourceVersion.id },
       include: {
@@ -215,6 +263,16 @@ describe.sequential("knowledge-node persistence", () => {
           relationType: "uses-dataset",
           status: "confirmed",
           provenance: "confirmed-by-editor",
+        },
+      }),
+    ).rejects.toMatchObject({ code: "P2002" });
+    await expect(
+      prisma.nodeAlias.create({
+        data: {
+          knowledgeNodeId: sourceNode.id,
+          scheme: "doi",
+          role: "work-doi",
+          value: "10.1000/shared-work",
         },
       }),
     ).rejects.toMatchObject({ code: "P2002" });
