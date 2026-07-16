@@ -236,7 +236,7 @@ packages: [packages/knowledge, packages/contracts, docs]
 ```yaml
 id: KG-07
 epic: B
-status: in-progress (issue #41)
+status: done (PR #42)
 depends_on: [KG-02, KG-03, KG-04, KG-06]
 size: M
 labels: [knowledge, editorial]
