@@ -19,6 +19,37 @@ const now = () => new Date("2026-07-01T00:00:00Z");
 describe("InProcessSearchProvider", () => {
   const provider = new InProcessSearchProvider(sampleIndex);
 
+  it("searches public nodes by topic deterministically", () => {
+    const nodes = [
+      {
+        nodeId: "n2",
+        localNodeId: "data-attention",
+        kind: "dataset",
+        title: "Attention recordings",
+        repositoryOwner: "lab",
+        repositoryName: "atlas",
+      },
+      {
+        nodeId: "n1",
+        localNodeId: "claim-replay",
+        kind: "claim",
+        title: "Hippocampal replay",
+        abstract: "Memory consolidation during sleep",
+        repositoryOwner: "lab",
+        repositoryName: "atlas",
+      },
+    ];
+    const nodeProvider = new InProcessSearchProvider({ ...sampleIndex, nodes });
+    expect(
+      nodeProvider
+        .searchNodes({ q: "memory replay", page: 1, pageSize: 10 })
+        .items.map((n) => n.nodeId),
+    ).toEqual(["n1"]);
+    expect(
+      nodeProvider.searchNodes({ q: "attention", kind: "claim", page: 1, pageSize: 10 }).items,
+    ).toEqual([]);
+  });
+
   it("finds reviews by lexical relevance", () => {
     const result = provider.searchReviews({
       q: "replay memory",

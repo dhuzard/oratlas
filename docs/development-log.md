@@ -490,3 +490,35 @@ without ever turning TRUST into a score attached to a bare knowledge node.
   coverage, and 125 focused tests pass. The full repository run passed 509 tests and skipped 10;
   its three failures are pre-existing Windows-only suites that execute the extensionless Prisma
   shell shim and fail with `ENOENT`.
+
+## KG-08 — Graph query API (issue #44)
+
+**Objective:** provide a typed, bounded graph API for exact-version public nodes, confirmed
+relations, and visibly labelled privacy-minimal proposals.
+
+- Added strict graph query, node, edge, cursor-page, and response contracts. Requests require a
+  stable seed node or keyword query, cap traversal depth at 3 and pages at 50 edges, and support
+  node-kind, relation-type, edge-status, and relation-scoped TRUST-presence filters. The contracts
+  package is included because the public API needs one runtime-validated DTO shared by the web and
+  future graph consumers.
+- Extended the existing dependency-free `SearchProvider` with deterministic node-topic search.
+  Only the newest strictly valid public node version enters its bounded 1,000-node POC index; a
+  malformed current version is withheld rather than falling back to older content.
+- Added `GET /api/graph` with the configured public-route rate budget, typed errors, no-store
+  responses, query-bound opaque cursors, a 500-edge traversal-work ceiling, at most 10 topic seeds,
+  and stable exact-version node/edge identifiers. Node DTOs retain public provenance and distinct
+  DOI roles for KG-09 and later graph consumers.
+- Reused KG-07's authoritative confirmed-edge predicate and KG-05's strict version parser.
+  Confirmed traversal requires current editor/admin confirmation and an owned frozen target
+  version. Directed edges are traversable from either endpoint, so contradictions are symmetric
+  without reversing or duplicating their canonical id.
+- Added an explicit `proposed` view for graph exploration. It reads only currently proposed
+  `NodeEdgeProposal` rows and exposes exact endpoints, relation type, safe origin, rationale, and
+  proposal time. Rejected/superseded proposals, evidence JSON, agent-run payloads, review notes,
+  editor/reviewer identities, and audit data are neither selected for the DTO nor serialized.
+  Existing node pages remain confirmed-only.
+- Added contract/search unit coverage and a seeded SQLite integration graph covering symmetric
+  contradictions, cursor pagination and query binding, topic seeds, exact provenance, filters,
+  confirmed/proposed separation, and adversarial proposal privacy. The Windows test setup retains
+  Prisma `db push` as its primary path and uses generated Prisma DDL through SQLite only when the
+  known local schema-engine failure occurs.
