@@ -125,7 +125,7 @@ packages: [packages/db]
 ```yaml
 id: KG-03
 epic: A
-status: in-progress (issue #33)
+status: done (PR #35)
 depends_on: [KG-01]
 size: M
 labels: [extractor]
