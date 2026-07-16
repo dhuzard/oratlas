@@ -60,7 +60,7 @@ figure, dataset, code — first-class, versioned, immutable publication objects.
 ```yaml
 id: KG-01
 epic: A
-status: in-progress (issue #30)
+status: done (PR #31)
 depends_on: []
 size: M
 labels: [contracts, schema]
@@ -96,7 +96,7 @@ extends | uses-dataset | uses-code | derives-from`, provenance (`asserted-by-aut
 ```yaml
 id: KG-02
 epic: A
-status: todo
+status: done (PR #34)
 depends_on: [KG-01]
 size: M
 labels: [db, prisma]

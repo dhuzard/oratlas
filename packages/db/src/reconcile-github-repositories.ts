@@ -16,6 +16,41 @@ export interface RepositoryReconciliationReport {
 
 type RawClient = Pick<Prisma.TransactionClient, "$queryRawUnsafe" | "$executeRawUnsafe">;
 
+const NODE_VERSION_SEMANTIC_FIELDS = [
+  "title",
+  "abstract",
+  "text",
+  "contributorsJson",
+  "license",
+  "provenanceJson",
+  "payloadJson",
+  "versionDoi",
+  "conceptDoi",
+  "isExample",
+  "sourceSubmissionId",
+  "inspectionCaptureId",
+  "capturePayloadHash",
+  "createdAt",
+] as const;
+
+const NODE_EDGE_SEMANTIC_FIELDS = [
+  "status",
+  "provenance",
+  "rationale",
+  "assertedAt",
+  "createdAt",
+  "updatedAt",
+] as const;
+
+type NodeVersionSemanticRow = { id: string } & Record<
+  (typeof NODE_VERSION_SEMANTIC_FIELDS)[number],
+  unknown
+>;
+type NodeEdgeSemanticRow = { id: string } & Record<
+  (typeof NODE_EDGE_SEMANTIC_FIELDS)[number],
+  unknown
+>;
+
 /**
  * Preflight and reconcile legacy repository rows before githubRepositoryId is
  * made unique. Run once with --apply before db push, then once after db push
@@ -135,6 +170,7 @@ async function mergeRepository(
   survivorId: string,
   loserId: string,
 ): Promise<void> {
+  await mergeKnowledgeNodes(tx, survivorId, loserId);
   const snapshots = await tx.$queryRawUnsafe<Array<{ id: string; commitSha: string }>>(
     "SELECT id, commitSha FROM RepositorySnapshot WHERE repositoryId = ? ORDER BY id",
     loserId,
@@ -146,6 +182,7 @@ async function mergeRepository(
       snapshot.commitSha,
     );
     if (existing[0]) {
+      await mergeKnowledgeNodeVersionsForSnapshot(tx, existing[0].id, snapshot.id);
       await updateIfTable(tx, "Submission", "snapshotId", existing[0].id, snapshot.id);
       await updateIfTable(tx, "ReviewVersion", "snapshotId", existing[0].id, snapshot.id);
       await updateIfTable(tx, "Review", "currentSnapshotId", existing[0].id, snapshot.id);
@@ -185,6 +222,216 @@ async function mergeRepository(
     }
   }
   await tx.$executeRawUnsafe("DELETE FROM Repository WHERE id = ?", loserId);
+}
+
+async function mergeKnowledgeNodes(
+  tx: Prisma.TransactionClient,
+  survivorRepositoryId: string,
+  loserRepositoryId: string,
+): Promise<void> {
+  if (!(await tableExists(tx, "KnowledgeNode"))) return;
+  const loserNodes = await tx.$queryRawUnsafe<
+    Array<{ id: string; localNodeId: string; kind: string }>
+  >(
+    "SELECT id, localNodeId, kind FROM KnowledgeNode WHERE repositoryId = ? ORDER BY id",
+    loserRepositoryId,
+  );
+  for (const loserNode of loserNodes) {
+    const existing = await tx.$queryRawUnsafe<Array<{ id: string; kind: string }>>(
+      `SELECT id, kind FROM KnowledgeNode
+        WHERE repositoryId = ? AND localNodeId = ? LIMIT 1`,
+      survivorRepositoryId,
+      loserNode.localNodeId,
+    );
+    if (!existing[0]) {
+      await tx.$executeRawUnsafe(
+        "UPDATE KnowledgeNode SET repositoryId = ? WHERE id = ?",
+        survivorRepositoryId,
+        loserNode.id,
+      );
+      continue;
+    }
+
+    const survivorNodeId = existing[0].id;
+    if (existing[0].kind !== loserNode.kind) {
+      throw new Error(
+        `Cannot reconcile knowledge node '${loserNode.localNodeId}': kind mismatch ` +
+          `('${existing[0].kind}' vs '${loserNode.kind}').`,
+      );
+    }
+    await updateIfTable(
+      tx,
+      "KnowledgeNodeVersion",
+      "knowledgeNodeId",
+      survivorNodeId,
+      loserNode.id,
+    );
+    await updateIfTable(tx, "Claim", "knowledgeNodeId", survivorNodeId, loserNode.id);
+    await mergeNodeEdgeTargets(tx, survivorNodeId, loserNode.id);
+    await tx.$executeRawUnsafe("DELETE FROM KnowledgeNode WHERE id = ?", loserNode.id);
+  }
+}
+
+async function mergeKnowledgeNodeVersionsForSnapshot(
+  tx: Prisma.TransactionClient,
+  survivorSnapshotId: string,
+  loserSnapshotId: string,
+): Promise<void> {
+  if (!(await tableExists(tx, "KnowledgeNodeVersion"))) return;
+  const versions = await tx.$queryRawUnsafe<Array<{ id: string; knowledgeNodeId: string }>>(
+    `SELECT id, knowledgeNodeId FROM KnowledgeNodeVersion
+      WHERE snapshotId = ? ORDER BY id`,
+    loserSnapshotId,
+  );
+  for (const version of versions) {
+    const existing = await tx.$queryRawUnsafe<Array<{ id: string }>>(
+      `SELECT id FROM KnowledgeNodeVersion
+        WHERE knowledgeNodeId = ? AND snapshotId = ? LIMIT 1`,
+      version.knowledgeNodeId,
+      survivorSnapshotId,
+    );
+    if (existing[0]) {
+      await assertKnowledgeNodeVersionsEquivalent(tx, existing[0].id, version.id);
+      await mergeNodeEdgeSources(tx, existing[0].id, version.id);
+      await tx.$executeRawUnsafe("DELETE FROM KnowledgeNodeVersion WHERE id = ?", version.id);
+    } else {
+      await tx.$executeRawUnsafe(
+        "UPDATE KnowledgeNodeVersion SET snapshotId = ? WHERE id = ?",
+        survivorSnapshotId,
+        version.id,
+      );
+    }
+  }
+}
+
+async function mergeNodeEdgeTargets(
+  tx: Prisma.TransactionClient,
+  survivorNodeId: string,
+  loserNodeId: string,
+): Promise<void> {
+  if (!(await tableExists(tx, "NodeEdge"))) return;
+  const edges = await tx.$queryRawUnsafe<
+    Array<{ id: string; sourceNodeVersionId: string; relationType: string }>
+  >(
+    `SELECT id, sourceNodeVersionId, relationType FROM NodeEdge
+      WHERE targetNodeId = ? ORDER BY id`,
+    loserNodeId,
+  );
+  for (const edge of edges) {
+    const duplicate = await tx.$queryRawUnsafe<Array<{ id: string }>>(
+      `SELECT id FROM NodeEdge
+        WHERE sourceNodeVersionId = ? AND targetNodeId = ? AND relationType = ? LIMIT 1`,
+      edge.sourceNodeVersionId,
+      survivorNodeId,
+      edge.relationType,
+    );
+    if (duplicate[0]) {
+      await assertNodeEdgesEquivalent(tx, duplicate[0].id, edge.id);
+      await tx.$executeRawUnsafe("DELETE FROM NodeEdge WHERE id = ?", edge.id);
+    } else {
+      await tx.$executeRawUnsafe(
+        "UPDATE NodeEdge SET targetNodeId = ? WHERE id = ?",
+        survivorNodeId,
+        edge.id,
+      );
+    }
+  }
+}
+
+async function mergeNodeEdgeSources(
+  tx: Prisma.TransactionClient,
+  survivorVersionId: string,
+  loserVersionId: string,
+): Promise<void> {
+  if (!(await tableExists(tx, "NodeEdge"))) return;
+  const edges = await tx.$queryRawUnsafe<
+    Array<{ id: string; targetNodeId: string; relationType: string }>
+  >(
+    `SELECT id, targetNodeId, relationType FROM NodeEdge
+      WHERE sourceNodeVersionId = ? ORDER BY id`,
+    loserVersionId,
+  );
+  for (const edge of edges) {
+    const duplicate = await tx.$queryRawUnsafe<Array<{ id: string }>>(
+      `SELECT id FROM NodeEdge
+        WHERE sourceNodeVersionId = ? AND targetNodeId = ? AND relationType = ? LIMIT 1`,
+      survivorVersionId,
+      edge.targetNodeId,
+      edge.relationType,
+    );
+    if (duplicate[0]) {
+      await assertNodeEdgesEquivalent(tx, duplicate[0].id, edge.id);
+      await tx.$executeRawUnsafe("DELETE FROM NodeEdge WHERE id = ?", edge.id);
+    } else {
+      await tx.$executeRawUnsafe(
+        "UPDATE NodeEdge SET sourceNodeVersionId = ? WHERE id = ?",
+        survivorVersionId,
+        edge.id,
+      );
+    }
+  }
+}
+
+async function assertKnowledgeNodeVersionsEquivalent(
+  tx: Prisma.TransactionClient,
+  survivorVersionId: string,
+  loserVersionId: string,
+): Promise<void> {
+  const selectFields = NODE_VERSION_SEMANTIC_FIELDS.map((field) => `"${field}"`).join(", ");
+  const rows = await tx.$queryRawUnsafe<NodeVersionSemanticRow[]>(
+    `SELECT id, ${selectFields} FROM KnowledgeNodeVersion WHERE id IN (?, ?) ORDER BY id`,
+    survivorVersionId,
+    loserVersionId,
+  );
+  const survivor = rows.find((row) => row.id === survivorVersionId);
+  const loser = rows.find((row) => row.id === loserVersionId);
+  if (!survivor || !loser) {
+    throw new Error("Cannot reconcile knowledge-node versions: a collision row disappeared.");
+  }
+  const differing = NODE_VERSION_SEMANTIC_FIELDS.filter(
+    (field) => !semanticValuesEqual(survivor[field], loser[field]),
+  );
+  if (differing.length > 0) {
+    throw new Error(
+      `Cannot reconcile knowledge-node versions '${survivorVersionId}' and ` +
+        `'${loserVersionId}': semantic fields differ (${differing.join(", ")}).`,
+    );
+  }
+}
+
+async function assertNodeEdgesEquivalent(
+  tx: Prisma.TransactionClient,
+  survivorEdgeId: string,
+  loserEdgeId: string,
+): Promise<void> {
+  const selectFields = NODE_EDGE_SEMANTIC_FIELDS.map((field) => `"${field}"`).join(", ");
+  const rows = await tx.$queryRawUnsafe<NodeEdgeSemanticRow[]>(
+    `SELECT id, ${selectFields} FROM NodeEdge WHERE id IN (?, ?) ORDER BY id`,
+    survivorEdgeId,
+    loserEdgeId,
+  );
+  const survivor = rows.find((row) => row.id === survivorEdgeId);
+  const loser = rows.find((row) => row.id === loserEdgeId);
+  if (!survivor || !loser) {
+    throw new Error("Cannot reconcile node edges: a collision row disappeared.");
+  }
+  const differing = NODE_EDGE_SEMANTIC_FIELDS.filter(
+    (field) => !semanticValuesEqual(survivor[field], loser[field]),
+  );
+  if (differing.length > 0) {
+    throw new Error(
+      `Cannot reconcile node edges '${survivorEdgeId}' and '${loserEdgeId}': ` +
+        `semantic fields differ (${differing.join(", ")}).`,
+    );
+  }
+}
+
+function semanticValuesEqual(left: unknown, right: unknown): boolean {
+  if (left instanceof Date && right instanceof Date) return left.getTime() === right.getTime();
+  if (left instanceof Uint8Array && right instanceof Uint8Array) {
+    return left.length === right.length && left.every((value, index) => value === right[index]);
+  }
+  return Object.is(left, right);
 }
 
 async function backfillReviewRepositories(prisma: PrismaClient): Promise<string[]> {

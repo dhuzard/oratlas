@@ -234,3 +234,42 @@ database, extraction, graph, editorial, and synthesis slice that follows.
   final dataset-locatability test was added, but five
   pre-existing integration suites cannot launch their extensionless Prisma shell shim on
   Windows (`spawnSync …/.bin/prisma ENOENT`); their 24 tests remain skipped on this platform.
+
+## KG-02 — Knowledge-node data model (issue #32)
+
+**Objective:** persist first-class, versioned knowledge nodes and typed graph edges without
+destructively migrating the existing review-claim archive.
+
+- Added stable `KnowledgeNode` identities scoped by `(repositoryId, localNodeId)`, immutable
+  `KnowledgeNodeVersion` content snapshots bound to exact `RepositorySnapshot` commits, and
+  typed `NodeEdge` rows from source versions to stable target identities. Enum-like values remain
+  contract-validated strings; contributors, provenance, and kind-specific payloads use portable
+  `…Json` string columns.
+- Kept version and concept DOI fields separate and added the node-version `isExample` guard.
+  Existing `Claim` rows gain only a nullable node-identity backlink, so no historical data needs a
+  destructive backfill.
+- Added nullable source-submission, inspection-capture, and capture-hash provenance on node
+  versions. One editorial acceptance can therefore trace all materialized nodes to the exact
+  immutable capture while retry deduplication remains anchored by node identity and snapshot.
+- Seeded six valid nodes across an existing review lab and an independent node-publishing lab,
+  covering claim, figure, dataset, and code kinds. The connected graph includes confirmed
+  cross-lab `replicates` and `contradicts` edges and one explicitly flagged `10.5555/…` node.
+- Hardened legacy GitHub repository reconciliation for node identities, snapshot-bound versions,
+  edge endpoints, and duplicate edge tuples, preserving the pre-existing rename/merge workflow.
+  Reconciliation now fails closed on kind mismatches or any content, DOI, example-marker, capture,
+  lifecycle, provenance, rationale, assertion-time, or record-time difference; it deduplicates only
+  rows proven semantically identical inside the transaction.
+- Added `assertKnowledgeNodeMaterializationBinding` for KG-04's acceptance transaction. Prisma
+  cannot encode repository equality across node, snapshot, submission, and capture tables, so this
+  guard verifies the immutable GitHub id, selected snapshot/capture, commit SHA, and capture hash
+  before a materialized node version is written.
+- Added fixture contracts, adversarial reconciliation cases, cross-table binding tests, and a
+  cross-platform SQLite persistence test for identities, immutable-version constraints, typed-edge
+  uniqueness, JSON round-trips, nullable claim backlinks, and exact capture provenance.
+- Verified: Prisma validate/generate, SQLite `db:push` + `db:seed` + `db:reset`, deterministic
+  PostgreSQL schema/DDL regeneration, repository lint, all 15 workspace typechecks, schema checks,
+  31 focused database/fixture tests, and the production web build pass. The full Windows test run
+  completes 361 tests successfully; 24 tests in five pre-existing suites remain skipped because their direct
+  extensionless Prisma shim launch fails with `ENOENT`. Changed files pass Prettier; the repository-
+  wide Windows check continues to report the checkout's existing CRLF/LF normalization across
+  unrelated files.
