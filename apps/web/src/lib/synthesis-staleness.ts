@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { Prisma, type PrismaClient } from "@oratlas/db";
+import { ZodError } from "zod";
 import {
   canonicalJson,
   subgraphEvidencePacketSchema,
@@ -10,22 +11,22 @@ import {
   SYNTHESIS_STALENESS_POLICY_VERSION,
   SYNTHESIS_STALENESS_REASON_CODES,
   type SynthesisRegenerationProposalDecision,
+  type SynthesisStalenessAffectedReference,
   type SynthesisStalenessReasonCode,
 } from "@oratlas/contracts";
 import type { SubgraphEvidencePacket } from "@oratlas/contracts";
 import type { SessionUser } from "./auth";
 import { prisma } from "./db";
-import { getPublicSynthesisReview, loadPreparedSynthesisPacket } from "./synthesis-editorial";
+import {
+  getPublicSynthesisReview,
+  loadPreparedSynthesisPacket,
+  SynthesisEditorialError,
+} from "./synthesis-editorial";
+import { validateStoredSynthesisStaleness } from "./synthesis-staleness-integrity";
 
 const SCAN_LIMIT = 100;
 const AFFECTED_REFERENCE_LIMIT = 100;
 const SERIALIZABLE_ATTEMPTS = 3;
-
-type AffectedReference = {
-  kind: "node" | "edge" | "trust" | "policy";
-  id: string;
-  change: "added" | "removed" | "changed";
-};
 
 export class SynthesisStalenessError extends Error {
   constructor(
@@ -51,6 +52,17 @@ function assertEditor(actor: SessionUser): void {
   }
 }
 
+function classifyMaterializationFailure(error: unknown) {
+  if (error instanceof Prisma.PrismaClientKnownRequestError) return "database-read-failed" as const;
+  if (error instanceof ZodError) return "invalid-materialization" as const;
+  if (error instanceof SynthesisEditorialError) {
+    if (error.code === "not-found") return "selection-unavailable" as const;
+    if (error.code === "conflict") return "materialization-conflict" as const;
+    return "bounded-selection-invalid" as const;
+  }
+  return "unexpected-materialization-failure" as const;
+}
+
 function withoutTrust(edge: SubgraphEvidencePacket["edges"][number]) {
   const { trust: _trust, ...identity } = edge;
   return identity;
@@ -61,23 +73,34 @@ export function compareSynthesisPackets(
   evaluated: SubgraphEvidencePacket,
 ) {
   const reasons = new Set<SynthesisStalenessReasonCode>();
-  const affected: AffectedReference[] = [];
+  const affected: SynthesisStalenessAffectedReference[] = [];
   const oldNodes = new Map(accepted.nodes.map((node) => [node.id, node]));
   const newNodes = new Map(evaluated.nodes.map((node) => [node.id, node]));
   for (const [id, node] of oldNodes) {
     const current = newNodes.get(id);
     if (!current) {
       reasons.add("membership-removed");
-      affected.push({ kind: "node", id, change: "removed" });
+      affected.push({ kind: "node", id, change: "removed", previousVersionId: node.versionId });
     } else if (node.versionId !== current.versionId) {
       reasons.add("node-head-changed");
-      affected.push({ kind: "node", id, change: "changed" });
+      affected.push({
+        kind: "node",
+        id,
+        change: "changed",
+        previousVersionId: node.versionId,
+        currentVersionId: current.versionId,
+      });
     }
   }
   for (const id of newNodes.keys()) {
     if (!oldNodes.has(id)) {
       reasons.add("membership-added");
-      affected.push({ kind: "node", id, change: "added" });
+      affected.push({
+        kind: "node",
+        id,
+        change: "added",
+        currentVersionId: newNodes.get(id)!.versionId,
+      });
     }
   }
 
@@ -158,12 +181,18 @@ async function loadAcceptedHead(reviewId: string, client: PrismaClient) {
 
 export async function evaluateSynthesisHead(
   reviewId: string,
-  options: { client?: PrismaClient; now?: () => Date; materializationPolicyVersion?: string } = {},
+  options: {
+    client?: PrismaClient;
+    now?: () => Date;
+    materializationPolicyVersion?: string;
+    actor?: SessionUser;
+    loadPacket?: typeof loadPreparedSynthesisPacket;
+  } = {},
 ) {
   const client = options.client ?? prisma;
   const head = await loadAcceptedHead(reviewId, client);
   const reasons = new Set<SynthesisStalenessReasonCode>();
-  const affected: AffectedReference[] = [];
+  const affected: SynthesisStalenessAffectedReference[] = [];
   const evaluatedMaterializationPolicyVersion =
     options.materializationPolicyVersion ?? SYNTHESIS_MATERIALIZATION_POLICY_VERSION;
   if (
@@ -184,8 +213,52 @@ export async function evaluateSynthesisHead(
   let evaluatedPacket: SubgraphEvidencePacket | null = null;
   let evaluatedPacketJson: string | null = null;
   let evaluatedPacketHash: string | null = null;
+  let failureCode: ReturnType<typeof classifyMaterializationFailure> | null = null;
+  let failureFingerprint: string | null = null;
+  let materializationWatermark = "unavailable";
   try {
-    const prepared = await loadPreparedSynthesisPacket(head.selector, client);
+    const [nodeVersions, edges, trust] = await Promise.all([
+      client.knowledgeNodeVersion.aggregate({
+        _count: { id: true },
+        _max: { id: true, createdAt: true },
+      }),
+      client.nodeEdge.aggregate({
+        _count: { id: true },
+        _max: { id: true, updatedAt: true },
+      }),
+      client.nodeRelationTrustAssessment.aggregate({
+        _count: { id: true },
+        _max: { id: true, updatedAt: true },
+      }),
+    ]);
+    materializationWatermark = digest(
+      canonicalJson({
+        nodeVersions: {
+          count: nodeVersions._count.id,
+          maxId: nodeVersions._max.id,
+          maxCreatedAt: nodeVersions._max.createdAt?.toISOString() ?? null,
+        },
+        edges: {
+          count: edges._count.id,
+          maxId: edges._max.id,
+          maxUpdatedAt: edges._max.updatedAt?.toISOString() ?? null,
+        },
+        trust: {
+          count: trust._count.id,
+          maxId: trust._max.id,
+          maxUpdatedAt: trust._max.updatedAt?.toISOString() ?? null,
+        },
+      }),
+    );
+    const loader = options.loadPacket ?? loadPreparedSynthesisPacket;
+    const prepared = await loader(head.selector, client);
+    const repeated = await loader(head.selector, client);
+    if (prepared.sha256 !== repeated.sha256 || prepared.json !== repeated.json) {
+      throw new SynthesisEditorialError(
+        "Materialization changed during the freshness observation.",
+        "conflict",
+      );
+    }
     evaluatedPacket = prepared.packet;
     evaluatedPacketJson = prepared.json;
     evaluatedPacketHash = prepared.sha256;
@@ -196,9 +269,23 @@ export async function evaluateSynthesisHead(
       reasons.add("packet-content-changed");
       affected.push({ kind: "policy", id: "packet-content", change: "changed" });
     }
-  } catch {
+  } catch (error) {
+    failureCode = classifyMaterializationFailure(error);
+    failureFingerprint = digest(
+      canonicalJson({
+        failureCode,
+        materializationWatermark,
+        selectorHash: head.draft.selectorHash,
+        acceptedPacketHash: head.draft.packetHash,
+        evaluatedMaterializationPolicyVersion,
+      }),
+    );
     reasons.add("materialization-failed");
-    affected.push({ kind: "policy", id: "materialization", change: "changed" });
+    affected.push({
+      kind: "policy",
+      id: `materialization:${failureCode}`,
+      change: "changed",
+    });
   }
 
   const orderedReasons = SYNTHESIS_STALENESS_REASON_CODES.filter((reason) => reasons.has(reason));
@@ -223,6 +310,8 @@ export async function evaluateSynthesisHead(
     evaluatedMaterializationPolicyVersion,
     acceptedPacketHash: head.draft.packetHash,
     evaluatedPacketHash,
+    failureCode,
+    failureFingerprint,
     status,
     reasonCodes: orderedReasons,
     affectedReferences: storedAffected,
@@ -265,6 +354,8 @@ export async function evaluateSynthesisHead(
               acceptedPacketJson: head.draft.packetJson,
               evaluatedPacketHash,
               evaluatedPacketJson,
+              failureCode,
+              failureFingerprint,
               status,
               reasonCodesJson: canonicalJson(orderedReasons),
               affectedReferencesJson: canonicalJson(storedAffected),
@@ -275,6 +366,7 @@ export async function evaluateSynthesisHead(
           });
           await tx.auditEvent.create({
             data: {
+              actorId: options.actor?.id,
               action: "synthesis.staleness-evaluated",
               subjectType: "synthesisStalenessEvaluation",
               subjectId: evaluation.id,
@@ -288,6 +380,71 @@ export async function evaluateSynthesisHead(
                 reasonCodes: orderedReasons,
                 affectedReferenceCount: uniqueAffected.length,
                 affectedReferencesTruncated: uniqueAffected.length > storedAffected.length,
+              }),
+            },
+          });
+        }
+
+        const previousObservation = await tx.synthesisStalenessHead.findUnique({
+          where: { acceptedReviewVersionId: head.version.id },
+        });
+        let observationChanged = false;
+        let observationRevision = previousObservation?.revision ?? 0;
+        if (!previousObservation) {
+          await tx.synthesisStalenessHead.create({
+            data: {
+              acceptedReviewVersionId: head.version.id,
+              reviewId: head.review.id,
+              currentEvaluationId: evaluation.id,
+              observedAt: evaluatedAt,
+            },
+          });
+          observationChanged = true;
+        } else if (previousObservation.currentEvaluationId !== evaluation.id) {
+          const changed = await tx.synthesisStalenessHead.updateMany({
+            where: {
+              acceptedReviewVersionId: head.version.id,
+              currentEvaluationId: previousObservation.currentEvaluationId,
+              revision: previousObservation.revision,
+            },
+            data: {
+              currentEvaluationId: evaluation.id,
+              revision: { increment: 1 },
+              observedAt: evaluatedAt,
+            },
+          });
+          if (changed.count !== 1) {
+            throw new SynthesisStalenessError(
+              "Synthesis freshness observation changed concurrently.",
+              "conflict",
+            );
+          }
+          observationRevision = previousObservation.revision + 1;
+          observationChanged = true;
+        }
+        if (observationChanged) {
+          await tx.auditEvent.create({
+            data: {
+              actorId: options.actor?.id,
+              action: "synthesis.staleness-observed",
+              subjectType: "reviewVersion",
+              subjectId: head.version.id,
+              idempotencyKey: `synthesis-staleness:head:${head.version.id}:observation:${observationRevision}`,
+              detailsJson: canonicalJson({
+                reviewId: head.review.id,
+                acceptedReviewVersionId: head.version.id,
+                observationRevision,
+                previousEvaluationKey: previousObservation
+                  ? (
+                      await tx.synthesisStalenessEvaluation.findUniqueOrThrow({
+                        where: { id: previousObservation.currentEvaluationId },
+                        select: { evaluationKey: true },
+                      })
+                    ).evaluationKey
+                  : null,
+                currentEvaluationKey: evaluationKey,
+                status,
+                reasonCodes: orderedReasons,
               }),
             },
           });
@@ -312,6 +469,7 @@ export async function evaluateSynthesisHead(
         if (obsoleteHeadProposals.length > 0) {
           await tx.auditEvent.createMany({
             data: obsoleteHeadProposals.map((proposal) => ({
+              actorId: options.actor?.id,
               action: "synthesis.regeneration-proposal.superseded",
               subjectType: "synthesisRegenerationProposal",
               subjectId: proposal.id,
@@ -328,10 +486,7 @@ export async function evaluateSynthesisHead(
         const open = await tx.synthesisRegenerationProposal.findUnique({
           where: { openHeadKey: head.version.id },
         });
-        const proposalForEvaluation = await tx.synthesisRegenerationProposal.findUnique({
-          where: { evaluationId: evaluation.id },
-        });
-        if (status === "fresh") {
+        if (observationChanged) {
           if (open) {
             await tx.synthesisRegenerationProposal.update({
               where: { id: open.id },
@@ -339,62 +494,22 @@ export async function evaluateSynthesisHead(
             });
             await tx.auditEvent.create({
               data: {
+                actorId: options.actor?.id,
                 action: "synthesis.regeneration-proposal.superseded",
                 subjectType: "synthesisRegenerationProposal",
                 subjectId: open.id,
-                idempotencyKey: `synthesis-staleness:proposal:${open.id}:superseded:fresh:${evaluationKey}`,
+                idempotencyKey: `synthesis-staleness:proposal:${open.id}:superseded:observation:${observationRevision}`,
                 detailsJson: canonicalJson({
-                  cause: "evaluated-fresh",
+                  cause: status === "fresh" ? "evaluated-fresh" : "changed-stale-observation",
                   reviewId: head.review.id,
                   acceptedReviewVersionId: head.version.id,
                   evaluationKey,
+                  observationRevision,
                 }),
               },
             });
           }
-        } else if (!open && !proposalForEvaluation) {
-          const proposal = await tx.synthesisRegenerationProposal.create({
-            data: {
-              evaluationId: evaluation.id,
-              reviewId: head.review.id,
-              acceptedReviewVersionId: head.version.id,
-              openHeadKey: head.version.id,
-            },
-          });
-          await tx.auditEvent.create({
-            data: {
-              action: "synthesis.regeneration-proposal.created",
-              subjectType: "synthesisRegenerationProposal",
-              subjectId: proposal.id,
-              idempotencyKey: `synthesis-staleness:proposal:${evaluation.id}:created`,
-              detailsJson: canonicalJson({
-                reviewId: head.review.id,
-                acceptedReviewVersionId: head.version.id,
-                evaluationKey,
-                reasonCodes: orderedReasons,
-              }),
-            },
-          });
-        } else if (open && open.evaluationId !== evaluation.id) {
-          await tx.synthesisRegenerationProposal.update({
-            where: { id: open.id },
-            data: { status: "superseded", openHeadKey: null },
-          });
-          await tx.auditEvent.create({
-            data: {
-              action: "synthesis.regeneration-proposal.superseded",
-              subjectType: "synthesisRegenerationProposal",
-              subjectId: open.id,
-              idempotencyKey: `synthesis-staleness:proposal:${open.id}:superseded:evaluation:${evaluationKey}`,
-              detailsJson: canonicalJson({
-                cause: "newer-evaluation",
-                reviewId: head.review.id,
-                acceptedReviewVersionId: head.version.id,
-                replacementEvaluationKey: evaluationKey,
-              }),
-            },
-          });
-          if (!proposalForEvaluation) {
+          if (status === "stale") {
             const proposal = await tx.synthesisRegenerationProposal.create({
               data: {
                 evaluationId: evaluation.id,
@@ -405,14 +520,16 @@ export async function evaluateSynthesisHead(
             });
             await tx.auditEvent.create({
               data: {
+                actorId: options.actor?.id,
                 action: "synthesis.regeneration-proposal.created",
                 subjectType: "synthesisRegenerationProposal",
                 subjectId: proposal.id,
-                idempotencyKey: `synthesis-staleness:proposal:${evaluation.id}:created`,
+                idempotencyKey: `synthesis-staleness:head:${head.version.id}:observation:${observationRevision}:proposal`,
                 detailsJson: canonicalJson({
                   reviewId: head.review.id,
                   acceptedReviewVersionId: head.version.id,
                   evaluationKey,
+                  observationRevision,
                   reasonCodes: orderedReasons,
                 }),
               },
@@ -441,6 +558,8 @@ export async function scanAcceptedSyntheses(
     actor?: SessionUser;
     now?: () => Date;
     materializationPolicyVersion?: string;
+    cursor?: string;
+    limit?: number;
   } = {},
 ) {
   const client = options.client ?? prisma;
@@ -451,31 +570,77 @@ export async function scanAcceptedSyntheses(
       throw new SynthesisStalenessError("Editor role required.", "forbidden");
     }
   }
+  const limit = options.limit ?? SCAN_LIMIT;
+  if (!Number.isInteger(limit) || limit < 1 || limit > SCAN_LIMIT) {
+    throw new SynthesisStalenessError("Synthesis scan limit is invalid.");
+  }
   const reviews = await client.review.findMany({
     where: {
       reviewType: "ai-synthesis",
       status: "published",
       currentSynthesisVersionId: { not: null },
+      ...(options.cursor ? { id: { gt: options.cursor } } : {}),
     },
     orderBy: { id: "asc" },
-    take: SCAN_LIMIT + 1,
-    select: { id: true },
+    take: limit + 1,
+    select: { id: true, slug: true, currentSynthesisVersionId: true },
   });
-  if (reviews.length > SCAN_LIMIT) {
-    throw new SynthesisStalenessError("Synthesis scan exceeds the configured bound.", "conflict");
-  }
+  const page = reviews.slice(0, limit);
   const results = [];
-  for (const review of reviews) {
-    results.push(await evaluateSynthesisHead(review.id, options));
+  const failures: Array<{ code: "evaluation-failed"; reviewSlug?: string }> = [];
+  for (const review of page) {
+    try {
+      results.push(await evaluateSynthesisHead(review.id, options));
+    } catch {
+      const safeSlug = /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(review.slug)
+        ? review.slug.slice(0, 200)
+        : undefined;
+      failures.push({ code: "evaluation-failed", ...(safeSlug ? { reviewSlug: safeSlug } : {}) });
+      const key = `synthesis-staleness:scan-failure:${review.id}:${review.currentSynthesisVersionId ?? "missing"}`;
+      try {
+        await client.$transaction(async (tx) => {
+          await tx.idempotencyKey.create({ data: { key, requestHash: digest(key) } });
+          await tx.auditEvent.create({
+            data: {
+              actorId: options.actor?.id,
+              action: "synthesis.staleness-scan-failed",
+              subjectType: "review",
+              subjectId: review.id,
+              idempotencyKey: key,
+              detailsJson: canonicalJson({
+                code: "evaluation-failed",
+                ...(safeSlug ? { reviewSlug: safeSlug } : {}),
+              }),
+            },
+          });
+        });
+      } catch {
+        // A duplicate claim or unavailable audit write must not block later heads in the batch.
+      }
+    }
   }
-  return { scanned: results.length, results };
+  return {
+    scanned: page.length,
+    succeeded: results.length,
+    failed: failures.length,
+    results,
+    failures,
+    nextCursor: reviews.length > limit ? page.at(-1)?.id : undefined,
+  };
 }
 
-export async function listSynthesisRegenerationProposals(client: PrismaClient = prisma) {
+export async function listSynthesisRegenerationProposalPage(
+  client: PrismaClient = prisma,
+  options: { cursor?: string; limit?: number } = {},
+) {
+  const limit = options.limit ?? SCAN_LIMIT;
+  if (!Number.isInteger(limit) || limit < 1 || limit > SCAN_LIMIT) {
+    throw new SynthesisStalenessError("Proposal page limit is invalid.");
+  }
   const rows = await client.synthesisRegenerationProposal.findMany({
-    where: { status: "open" },
-    orderBy: [{ createdAt: "asc" }, { id: "asc" }],
-    take: SCAN_LIMIT,
+    where: { status: "open", ...(options.cursor ? { id: { gt: options.cursor } } : {}) },
+    orderBy: { id: "asc" },
+    take: limit + 1,
     include: {
       evaluation: true,
       review: {
@@ -483,26 +648,64 @@ export async function listSynthesisRegenerationProposals(client: PrismaClient = 
           slug: true,
           title: true,
           currentSynthesisVersionId: true,
-          synthesisStalenessEvaluations: {
-            orderBy: [{ evaluatedAt: "desc" }, { id: "desc" }],
-            take: 1,
-            select: { id: true },
+        },
+      },
+      acceptedReviewVersion: {
+        select: {
+          reviewId: true,
+          synthesisDraftId: true,
+          synthesisMaterializationPolicyVersion: true,
+          synthesisStalenessHead: true,
+          synthesisDraft: {
+            select: {
+              id: true,
+              seriesKey: true,
+              selectorJson: true,
+              selectorHash: true,
+              materializationPolicyVersion: true,
+              packetJson: true,
+              packetHash: true,
+            },
           },
         },
       },
     },
   });
-  return rows.flatMap((row) => {
+  const proposals = [];
+  for (const row of rows.slice(0, limit)) {
+    const version = row.acceptedReviewVersion;
+    const draft = version.synthesisDraft;
+    const observation = version.synthesisStalenessHead;
     if (
       row.openHeadKey !== row.acceptedReviewVersionId ||
       row.review.currentSynthesisVersionId !== row.acceptedReviewVersionId ||
-      row.evaluation.reviewId !== row.reviewId ||
-      row.evaluation.acceptedReviewVersionId !== row.acceptedReviewVersionId ||
-      row.evaluation.status !== "stale" ||
-      row.review.synthesisStalenessEvaluations[0]?.id !== row.evaluation.id
+      version.reviewId !== row.reviewId ||
+      !draft ||
+      version.synthesisDraftId !== draft?.id ||
+      version.synthesisMaterializationPolicyVersion !== draft.materializationPolicyVersion ||
+      observation?.reviewId !== row.reviewId ||
+      observation.acceptedReviewVersionId !== row.acceptedReviewVersionId ||
+      observation.currentEvaluationId !== row.evaluation.id
     ) {
-      return [];
+      continue;
     }
+    const validated = validateStoredSynthesisStaleness(
+      row.evaluation,
+      {
+        reviewId: row.reviewId,
+        acceptedReviewVersionId: row.acceptedReviewVersionId,
+        acceptedDraftId: draft.id,
+        seriesKey: draft.seriesKey,
+        selectorJson: draft.selectorJson,
+        selectorHash: draft.selectorHash,
+        materializationPolicyVersion: draft.materializationPolicyVersion,
+        packetJson: draft.packetJson,
+        packetHash: draft.packetHash,
+      },
+      observation.observedAt,
+    );
+    if (!validated || validated.freshness.status !== "stale") continue;
+    if (!(await getPublicSynthesisReview(row.review.slug, client))) continue;
     try {
       const parsed = synthesisRegenerationProposalSchema.safeParse({
         id: row.id,
@@ -512,17 +715,25 @@ export async function listSynthesisRegenerationProposals(client: PrismaClient = 
         reviewTitle: row.review.title,
         acceptedReviewVersionId: row.acceptedReviewVersionId,
         evaluationKey: row.evaluation.evaluationKey,
-        reasonCodes: JSON.parse(row.evaluation.reasonCodesJson) as unknown,
-        affectedReferences: JSON.parse(row.evaluation.affectedReferencesJson) as unknown,
+        reasonCodes: validated.reasonCodes,
+        affectedReferences: validated.affectedReferences,
         affectedReferenceCount: row.evaluation.affectedReferenceCount,
         affectedReferencesTruncated: row.evaluation.affectedReferencesTruncated,
         createdAt: row.createdAt.toISOString(),
       });
-      return parsed.success ? [parsed.data] : [];
+      if (parsed.success) proposals.push(parsed.data);
     } catch {
-      return [];
+      // Malformed private rows are omitted without breaking the remaining queue.
     }
-  });
+  }
+  return {
+    proposals,
+    nextCursor: rows.length > limit ? rows[limit - 1]?.id : undefined,
+  };
+}
+
+export async function listSynthesisRegenerationProposals(client: PrismaClient = prisma) {
+  return (await listSynthesisRegenerationProposalPage(client)).proposals;
 }
 
 export async function decideSynthesisRegenerationProposal(
@@ -544,8 +755,16 @@ export async function decideSynthesisRegenerationProposal(
         const proposal = await tx.synthesisRegenerationProposal.findUnique({
           where: { id: proposalId },
           include: {
-            review: { select: { currentSynthesisVersionId: true } },
+            review: { select: { currentSynthesisVersionId: true, slug: true } },
             evaluation: { select: { id: true, status: true } },
+            acceptedReviewVersion: {
+              select: {
+                reviewId: true,
+                synthesisStalenessHead: {
+                  select: { reviewId: true, currentEvaluationId: true },
+                },
+              },
+            },
           },
         });
         if (!proposal) throw new SynthesisStalenessError("Proposal not found.", "not-found");
@@ -563,14 +782,20 @@ export async function decideSynthesisRegenerationProposal(
             "conflict",
           );
         }
-        const latestEvaluation = await tx.synthesisStalenessEvaluation.findFirst({
-          where: { acceptedReviewVersionId: proposal.acceptedReviewVersionId },
-          orderBy: [{ evaluatedAt: "desc" }, { id: "desc" }],
-          select: { id: true },
-        });
+        if (
+          !(await getPublicSynthesisReview(proposal.review.slug, tx as unknown as PrismaClient))
+        ) {
+          throw new SynthesisStalenessError(
+            "Accepted synthesis baseline is no longer valid.",
+            "conflict",
+          );
+        }
+        const observation = proposal.acceptedReviewVersion.synthesisStalenessHead;
         if (
           proposal.evaluation.status !== "stale" ||
-          latestEvaluation?.id !== proposal.evaluation.id
+          proposal.acceptedReviewVersion.reviewId !== proposal.reviewId ||
+          observation?.reviewId !== proposal.reviewId ||
+          observation.currentEvaluationId !== proposal.evaluation.id
         ) {
           throw new SynthesisStalenessError(
             "Proposal evaluation is no longer current.",
@@ -600,7 +825,7 @@ export async function decideSynthesisRegenerationProposal(
             action: `synthesis.regeneration-proposal.${status}`,
             subjectType: "synthesisRegenerationProposal",
             subjectId: proposal.id,
-            idempotencyKey: input.idempotencyKey,
+            idempotencyKey: `synthesis-regeneration-proposal:${proposal.id}:${input.idempotencyKey}`,
             detailsJson: canonicalJson({
               acceptedReviewVersionId: proposal.acceptedReviewVersionId,
             }),

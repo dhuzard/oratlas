@@ -170,7 +170,15 @@ describe("synthesis editorial contracts", () => {
       acceptedReviewVersionId: "version-1",
       evaluationKey: hash,
       reasonCodes: ["node-head-changed"],
-      affectedReferences: [{ kind: "node", id: "node-1", change: "changed" }],
+      affectedReferences: [
+        {
+          kind: "node",
+          id: "node-1",
+          change: "changed",
+          previousVersionId: "node-1-v1",
+          currentVersionId: "node-1-v2",
+        },
+      ],
       affectedReferenceCount: 1,
       affectedReferencesTruncated: false,
       createdAt: "2026-07-16T11:00:00.000Z",

@@ -44,6 +44,9 @@ export const POSTGRES_DATABASE_GUARD_SQL = [
   'ALTER TABLE "SynthesisStalenessEvaluation" DROP CONSTRAINT IF EXISTS "SynthesisStalenessEvaluation_status_check"',
   `ALTER TABLE "SynthesisStalenessEvaluation" ADD CONSTRAINT "SynthesisStalenessEvaluation_status_check" CHECK (
     "status" IN ('fresh', 'stale') AND "affectedReferenceCount" >= 0
+    AND (("evaluatedPacketHash" IS NULL AND "evaluatedPacketJson" IS NULL) OR ("evaluatedPacketHash" IS NOT NULL AND "evaluatedPacketJson" IS NOT NULL))
+    AND (("failureCode" IS NULL AND "failureFingerprint" IS NULL AND "evaluatedPacketJson" IS NOT NULL)
+      OR ("failureCode" IS NOT NULL AND "failureFingerprint" IS NOT NULL AND "evaluatedPacketJson" IS NULL))
   )`,
   'ALTER TABLE "SynthesisRegenerationProposal" DROP CONSTRAINT IF EXISTS "SynthesisRegenerationProposal_status_check"',
   `ALTER TABLE "SynthesisRegenerationProposal" ADD CONSTRAINT "SynthesisRegenerationProposal_status_check" CHECK (
@@ -119,6 +122,9 @@ const sqliteGuardConditions = {
     THEN 1 ELSE 0 END`,
   SynthesisStalenessEvaluation: `CASE WHEN
     NEW."status" IN ('fresh', 'stale') AND NEW."affectedReferenceCount" >= 0
+    AND ((NEW."evaluatedPacketHash" IS NULL AND NEW."evaluatedPacketJson" IS NULL) OR (NEW."evaluatedPacketHash" IS NOT NULL AND NEW."evaluatedPacketJson" IS NOT NULL))
+    AND ((NEW."failureCode" IS NULL AND NEW."failureFingerprint" IS NULL AND NEW."evaluatedPacketJson" IS NOT NULL)
+      OR (NEW."failureCode" IS NOT NULL AND NEW."failureFingerprint" IS NOT NULL AND NEW."evaluatedPacketJson" IS NULL))
     THEN 1 ELSE 0 END`,
   SynthesisRegenerationProposal: `CASE WHEN
     (NEW."status" = 'open' AND NEW."openHeadKey" = NEW."acceptedReviewVersionId" AND NEW."resolvedById" IS NULL AND NEW."resolvedAt" IS NULL)

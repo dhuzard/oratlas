@@ -778,6 +778,8 @@ CREATE TABLE "SynthesisStalenessEvaluation" (
     "acceptedPacketJson" TEXT NOT NULL,
     "evaluatedPacketHash" TEXT,
     "evaluatedPacketJson" TEXT,
+    "failureCode" TEXT,
+    "failureFingerprint" TEXT,
     "status" TEXT NOT NULL,
     "reasonCodesJson" TEXT NOT NULL,
     "affectedReferencesJson" TEXT NOT NULL,
@@ -786,6 +788,17 @@ CREATE TABLE "SynthesisStalenessEvaluation" (
     "evaluatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "SynthesisStalenessEvaluation_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "SynthesisStalenessHead" (
+    "acceptedReviewVersionId" TEXT NOT NULL,
+    "reviewId" TEXT NOT NULL,
+    "currentEvaluationId" TEXT NOT NULL,
+    "revision" INTEGER NOT NULL DEFAULT 0,
+    "observedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "SynthesisStalenessHead_pkey" PRIMARY KEY ("acceptedReviewVersionId")
 );
 
 -- CreateTable
@@ -1353,7 +1366,10 @@ CREATE INDEX "SynthesisStalenessEvaluation_acceptedReviewVersionId_evalua_idx" O
 CREATE INDEX "SynthesisStalenessEvaluation_reviewId_evaluatedAt_idx" ON "SynthesisStalenessEvaluation"("reviewId", "evaluatedAt");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "SynthesisRegenerationProposal_evaluationId_key" ON "SynthesisRegenerationProposal"("evaluationId");
+CREATE INDEX "SynthesisStalenessHead_reviewId_idx" ON "SynthesisStalenessHead"("reviewId");
+
+-- CreateIndex
+CREATE INDEX "SynthesisStalenessHead_currentEvaluationId_idx" ON "SynthesisStalenessHead"("currentEvaluationId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "SynthesisRegenerationProposal_openHeadKey_key" ON "SynthesisRegenerationProposal"("openHeadKey");
@@ -1363,6 +1379,9 @@ CREATE INDEX "SynthesisRegenerationProposal_status_createdAt_idx" ON "SynthesisR
 
 -- CreateIndex
 CREATE INDEX "SynthesisRegenerationProposal_reviewId_status_idx" ON "SynthesisRegenerationProposal"("reviewId", "status");
+
+-- CreateIndex
+CREATE INDEX "SynthesisRegenerationProposal_evaluationId_idx" ON "SynthesisRegenerationProposal"("evaluationId");
 
 -- CreateIndex
 CREATE INDEX "ReviewComment_reviewId_createdAt_idx" ON "ReviewComment"("reviewId", "createdAt");
@@ -1695,6 +1714,15 @@ ALTER TABLE "SynthesisStalenessEvaluation" ADD CONSTRAINT "SynthesisStalenessEva
 ALTER TABLE "SynthesisStalenessEvaluation" ADD CONSTRAINT "SynthesisStalenessEvaluation_acceptedDraftId_fkey" FOREIGN KEY ("acceptedDraftId") REFERENCES "SynthesisDraft"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "SynthesisStalenessHead" ADD CONSTRAINT "SynthesisStalenessHead_reviewId_fkey" FOREIGN KEY ("reviewId") REFERENCES "Review"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "SynthesisStalenessHead" ADD CONSTRAINT "SynthesisStalenessHead_acceptedReviewVersionId_fkey" FOREIGN KEY ("acceptedReviewVersionId") REFERENCES "ReviewVersion"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "SynthesisStalenessHead" ADD CONSTRAINT "SynthesisStalenessHead_currentEvaluationId_fkey" FOREIGN KEY ("currentEvaluationId") REFERENCES "SynthesisStalenessEvaluation"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "SynthesisRegenerationProposal" ADD CONSTRAINT "SynthesisRegenerationProposal_evaluationId_fkey" FOREIGN KEY ("evaluationId") REFERENCES "SynthesisStalenessEvaluation"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -1853,6 +1881,9 @@ ALTER TABLE "SynthesisStalenessEvaluation" DROP CONSTRAINT IF EXISTS "SynthesisS
 
 ALTER TABLE "SynthesisStalenessEvaluation" ADD CONSTRAINT "SynthesisStalenessEvaluation_status_check" CHECK (
     "status" IN ('fresh', 'stale') AND "affectedReferenceCount" >= 0
+    AND (("evaluatedPacketHash" IS NULL AND "evaluatedPacketJson" IS NULL) OR ("evaluatedPacketHash" IS NOT NULL AND "evaluatedPacketJson" IS NOT NULL))
+    AND (("failureCode" IS NULL AND "failureFingerprint" IS NULL AND "evaluatedPacketJson" IS NOT NULL)
+      OR ("failureCode" IS NOT NULL AND "failureFingerprint" IS NOT NULL AND "evaluatedPacketJson" IS NULL))
   );
 
 ALTER TABLE "SynthesisRegenerationProposal" DROP CONSTRAINT IF EXISTS "SynthesisRegenerationProposal_status_check";

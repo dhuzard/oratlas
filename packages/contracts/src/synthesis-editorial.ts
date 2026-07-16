@@ -10,6 +10,8 @@ export const SYNTHESIS_ACCEPTANCE_CHECKLIST_VERSION = "synthesis-checklist/1.0.0
 export const SYNTHESIS_PIPELINE_SOFTWARE_NAME = "Open Review Atlas Synthesis Writer" as const;
 export const SYNTHESIS_PIPELINE_SOFTWARE_ID = "software:oratlas-synthesis-writer" as const;
 export const SYNTHESIS_STALENESS_POLICY_VERSION = "synthesis-staleness/1.0.0" as const;
+/** Two disjoint max-size packets (100 nodes + 500 edges each), plus policy drift. */
+export const SYNTHESIS_STALENESS_AFFECTED_REFERENCE_MAX = 1_201 as const;
 
 export const SYNTHESIS_STALENESS_REASON_CODES = [
   "materialization-policy-changed",
@@ -31,8 +33,32 @@ export const synthesisStalenessAffectedReferenceSchema = z
     kind: z.enum(["node", "edge", "trust", "policy"]),
     id: z.string().min(1).max(200),
     change: z.enum(["added", "removed", "changed"]),
+    previousVersionId: z.string().min(1).max(200).optional(),
+    currentVersionId: z.string().min(1).max(200).optional(),
   })
-  .strict();
+  .strict()
+  .superRefine((reference, context) => {
+    const validNodeVersions =
+      reference.kind === "node" &&
+      (reference.change === "added"
+        ? !reference.previousVersionId && !!reference.currentVersionId
+        : reference.change === "removed"
+          ? !!reference.previousVersionId && !reference.currentVersionId
+          : !!reference.previousVersionId && !!reference.currentVersionId);
+    const validOther =
+      reference.kind !== "node" &&
+      reference.previousVersionId === undefined &&
+      reference.currentVersionId === undefined;
+    if (!validNodeVersions && !validOther) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Only node references carry exact old/new version identity.",
+      });
+    }
+  });
+export type SynthesisStalenessAffectedReference = z.infer<
+  typeof synthesisStalenessAffectedReferenceSchema
+>;
 
 export const synthesisFreshnessSchema = z
   .object({
@@ -42,7 +68,7 @@ export const synthesisFreshnessSchema = z
     reasonCodes: z
       .array(synthesisStalenessReasonCodeSchema)
       .max(SYNTHESIS_STALENESS_REASON_CODES.length),
-    affectedReferenceCount: z.number().int().min(0).max(1_200),
+    affectedReferenceCount: z.number().int().min(0).max(SYNTHESIS_STALENESS_AFFECTED_REFERENCE_MAX),
   })
   .strict()
   .superRefine((freshness, context) => {
@@ -88,7 +114,22 @@ export type SynthesisRegenerationProposalDecision = z.infer<
   typeof synthesisRegenerationProposalDecisionSchema
 >;
 
-export const synthesisStalenessScanRequestSchema = z.object({}).strict();
+export const synthesisStalenessScanRequestSchema = z
+  .object({
+    cursor: z.string().min(1).max(200).optional(),
+    limit: z.number().int().min(1).max(100).default(100),
+  })
+  .strict();
+export const synthesisStalenessScanFailureSchema = z
+  .object({
+    code: z.literal("evaluation-failed"),
+    reviewSlug: z
+      .string()
+      .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
+      .max(200)
+      .optional(),
+  })
+  .strict();
 
 const boundedId = z.string().trim().min(1).max(200);
 const sha256 = z.string().regex(/^[0-9a-f]{64}$/);
@@ -107,7 +148,7 @@ export const synthesisRegenerationProposalSchema = z
       .min(1)
       .max(SYNTHESIS_STALENESS_REASON_CODES.length),
     affectedReferences: z.array(synthesisStalenessAffectedReferenceSchema).max(100),
-    affectedReferenceCount: z.number().int().min(0).max(1_200),
+    affectedReferenceCount: z.number().int().min(0).max(SYNTHESIS_STALENESS_AFFECTED_REFERENCE_MAX),
     affectedReferencesTruncated: z.boolean(),
     createdAt: z.string().datetime(),
   })

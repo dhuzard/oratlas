@@ -9,7 +9,6 @@ import {
   subgraphEvidenceTrustSchema,
   subgraphEvidencePacketSchema,
   synthesisDraftDecisionSchema,
-  synthesisFreshnessSchema,
   synthesisGenerationRequestSchema,
   synthesisSelectorSchema,
   TRUST_CRITERIA,
@@ -41,6 +40,7 @@ import {
   type PreparedSubgraphEvidencePacket,
   type SynthesisGenerationResult,
 } from "@oratlas/knowledge";
+import { validateStoredSynthesisStaleness } from "./synthesis-staleness-integrity";
 import type { SessionUser } from "./auth";
 import { prisma } from "./db";
 import { publicConfirmedNodeEdgeWhere } from "./node-edge-publication";
@@ -1515,9 +1515,8 @@ export async function getPublicSynthesisReview(
             },
           },
           synthesisAttributions: { orderBy: { position: "asc" } },
-          synthesisStalenessEvaluations: {
-            orderBy: [{ evaluatedAt: "desc" }, { id: "desc" }],
-            take: 1,
+          synthesisStalenessHead: {
+            include: { currentEvaluation: true },
           },
           synthesisDraft: {
             include: {
@@ -1703,38 +1702,36 @@ export async function getPublicSynthesisReview(
       conceptDoi: version.conceptDoi ?? undefined,
     },
     freshness: (() => {
-      const evaluation = version.synthesisStalenessEvaluations[0];
-      if (!evaluation)
-        return {
-          status: "unchecked",
-          policyVersion: SYNTHESIS_STALENESS_POLICY_VERSION,
-          reasonCodes: [],
-          affectedReferenceCount: 0,
-        };
-      try {
-        const parsed = synthesisFreshnessSchema.safeParse({
-          status: evaluation.status,
-          policyVersion: evaluation.policyVersion,
-          evaluatedAt: evaluation.evaluatedAt.toISOString(),
-          reasonCodes: JSON.parse(evaluation.reasonCodesJson),
-          affectedReferenceCount: evaluation.affectedReferenceCount,
-        });
-        return parsed.success
-          ? parsed.data
-          : {
-              status: "unchecked",
-              policyVersion: SYNTHESIS_STALENESS_POLICY_VERSION,
-              reasonCodes: [],
-              affectedReferenceCount: 0,
-            };
-      } catch {
-        return {
-          status: "unchecked",
-          policyVersion: SYNTHESIS_STALENESS_POLICY_VERSION,
-          reasonCodes: [],
-          affectedReferenceCount: 0,
-        };
-      }
+      const observation = version.synthesisStalenessHead;
+      const unchecked = {
+        status: "unchecked" as const,
+        policyVersion: SYNTHESIS_STALENESS_POLICY_VERSION,
+        reasonCodes: [],
+        affectedReferenceCount: 0,
+      };
+      if (
+        !observation ||
+        observation.reviewId !== review.id ||
+        observation.acceptedReviewVersionId !== version.id ||
+        observation.currentEvaluationId !== observation.currentEvaluation.id
+      )
+        return unchecked;
+      const validated = validateStoredSynthesisStaleness(
+        observation.currentEvaluation,
+        {
+          reviewId: review.id,
+          acceptedReviewVersionId: version.id,
+          acceptedDraftId: draft.id,
+          seriesKey: draft.seriesKey,
+          selectorJson: draft.selectorJson,
+          selectorHash: draft.selectorHash,
+          materializationPolicyVersion: draft.materializationPolicyVersion,
+          packetJson: draft.packetJson,
+          packetHash: draft.packetHash,
+        },
+        observation.observedAt,
+      );
+      return validated?.freshness ?? unchecked;
     })(),
   });
   return candidate.success ? candidate.data : null;

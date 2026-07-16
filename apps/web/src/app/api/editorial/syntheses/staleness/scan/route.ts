@@ -9,7 +9,7 @@ export async function POST(request: Request) {
   return handleLifecyclePost(
     request,
     synthesisStalenessScanRequestSchema,
-    (actor) => scanAcceptedSyntheses({ actor }),
+    (actor, body) => scanAcceptedSyntheses({ actor, cursor: body.cursor, limit: body.limit }),
     "synthesis-staleness-scan",
   );
 }

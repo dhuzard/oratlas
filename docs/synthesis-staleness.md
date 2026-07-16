@@ -8,11 +8,22 @@ and authoritative relation-specific TRUST only.
 
 Each immutable evaluation stores a versioned canonical identity, accepted/evaluated packet bytes and
 hashes, selector identity, materialization policy versions, sorted reason codes, and a sorted preview
-of at most 100 affected node/edge/TRUST/policy references. The full affected count and a truncation
-flag remain available to editors. Reasons distinguish policy drift, node-head and membership drift,
-confirmed-edge changes, TRUST changes, residual packet drift, and fail-closed materialization failure.
-Materialization failures intentionally remain actionable but expose only that bounded reason code;
-raw loader/database errors are neither persisted in evaluation summaries nor returned to editors.
+of at most 100 affected node/edge/TRUST/policy references. Node references retain safe exact old/new
+version links. The full affected count (bounded at 1,201) and a truncation flag remain available to
+editors. Reasons distinguish policy drift, node-head and membership drift, confirmed-edge changes,
+TRUST changes, residual packet drift, and fail-closed materialization failure.
+
+One CAS-updated `SynthesisStalenessHead` row is the authoritative current observation for each
+accepted version. Immutable evaluations may be reused, so A→B→A points back to the original A bytes
+while advancing the observation revision/time and proposal lifecycle. Unchanged retries do not
+advance the pointer. Public reads, proposal listing, and decisions use this pointer rather than
+guessing from immutable evaluation timestamps.
+
+Materialization failures intentionally remain actionable but expose only a bounded typed class;
+raw loader/database errors, messages, and stacks are neither persisted nor returned. A safe failure
+fingerprint combines the class, selector/accepted packet/policy hashes, and a bounded graph watermark
+(counts plus latest IDs/timestamps for node versions, confirmed edges, and relation TRUST). This is a
+conservative state token, not a claim that a failed selector was fully materialized.
 
 Stale evaluations create a private `SynthesisRegenerationProposal`. Serializable transactions and a
 nullable unique accepted-head key allow at most one open proposal per head. Repeated scans reuse the
@@ -29,8 +40,15 @@ Run the bounded internal scan with:
 pnpm refresh:syntheses
 ```
 
+The API scan accepts a deterministic `cursor` and bounded `limit` (maximum 100); the CLI follows all
+pages. One corrupt head produces an allowlisted `evaluation-failed` item and audit event but does not
+block later heads. The editorial proposal queue is likewise cursor-paged. Each successful
+materialization is performed twice and accepted only when the canonical packet hash is stable,
+detecting graph mutations that overlap the read window.
+
 Public synthesis DTOs expose only `unchecked`, `fresh`, or `stale`, the versioned reason codes, the
 evaluation timestamp, and affected-reference count. Evaluation packet bytes, selectors, proposal
 IDs, editor decisions, run IDs, and draft IDs remain private. Invalid freshness rows degrade to
 `unchecked` without weakening the accepted-review integrity boundary. Malformed or obsolete private
 proposal rows are omitted from the editorial queue rather than partially decoded or exposed.
+Both listing and decisions also rerun the complete KG-13 accepted-head integrity boundary.

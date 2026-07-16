@@ -1,5 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
-import type { SubgraphEvidencePacket } from "@oratlas/contracts";
+import {
+  synthesisFreshnessSchema,
+  SYNTHESIS_STALENESS_AFFECTED_REFERENCE_MAX,
+  type SubgraphEvidencePacket,
+} from "@oratlas/contracts";
 import { compareSynthesisPackets } from "./synthesis-staleness";
 
 vi.mock("server-only", () => ({}));
@@ -37,11 +41,59 @@ describe("synthesis packet staleness deltas", () => {
     const removed = compareSynthesisPackets(accepted, reduced);
     expect([...removed.reasons]).toEqual(["membership-removed", "confirmed-edge-removed"]);
     expect(removed.affected).toEqual([
-      { kind: "node", id: "node-b", change: "removed" },
+      {
+        kind: "node",
+        id: "node-b",
+        change: "removed",
+        previousVersionId: "node-b-v1",
+      },
       { kind: "edge", id: "edge-1", change: "removed" },
     ]);
     const added = compareSynthesisPackets(reduced, accepted);
     expect([...added.reasons]).toEqual(["membership-added", "confirmed-edge-added"]);
+  });
+
+  it("accepts the exact 1,201-reference disjoint-packet plus policy boundary", () => {
+    const oldNodes = Array.from({ length: 100 }, (_, index) => ({
+      id: `old-node-${index}`,
+      versionId: `old-node-${index}-v1`,
+    }));
+    const newNodes = Array.from({ length: 100 }, (_, index) => ({
+      id: `new-node-${index}`,
+      versionId: `new-node-${index}-v1`,
+    }));
+    const edge = (prefix: string, index: number) => ({
+      id: `${prefix}-edge-${index}`,
+      sourceNodeId: `${prefix}-source-${index}`,
+      sourceVersionId: `${prefix}-source-${index}-v1`,
+      targetNodeId: `${prefix}-target-${index}`,
+      targetVersionId: `${prefix}-target-${index}-v1`,
+      relationType: "supports",
+      status: "confirmed",
+      provenance: "confirmed-by-editor",
+      confirmedAt: "2026-01-01T00:00:00.000Z",
+    });
+    const delta = compareSynthesisPackets(
+      packet({ nodes: oldNodes, edges: Array.from({ length: 500 }, (_, i) => edge("old", i)) }),
+      packet({ nodes: newNodes, edges: Array.from({ length: 500 }, (_, i) => edge("new", i)) }),
+    );
+    expect(delta.affected).toHaveLength(1_200);
+    expect(SYNTHESIS_STALENESS_AFFECTED_REFERENCE_MAX).toBe(1_201);
+    expect(
+      synthesisFreshnessSchema.safeParse({
+        status: "stale",
+        policyVersion: "synthesis-staleness/1.0.0",
+        evaluatedAt: "2026-07-16T12:00:00.000Z",
+        reasonCodes: [
+          "materialization-policy-changed",
+          "membership-added",
+          "membership-removed",
+          "confirmed-edge-added",
+          "confirmed-edge-removed",
+        ],
+        affectedReferenceCount: delta.affected.length + 1,
+      }).success,
+    ).toBe(true);
   });
 
   it("separates exact edge drift from relation-specific TRUST drift", () => {

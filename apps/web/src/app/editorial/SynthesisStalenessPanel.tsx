@@ -9,12 +9,25 @@ interface Proposal {
   reviewTitle: string;
   acceptedReviewVersionId: string;
   reasonCodes: string[];
+  affectedReferences: Array<{
+    kind: "node" | "edge" | "trust" | "policy";
+    id: string;
+    change: "added" | "removed" | "changed";
+    previousVersionId?: string;
+    currentVersionId?: string;
+  }>;
   affectedReferenceCount: number;
   affectedReferencesTruncated: boolean;
   createdAt: string;
 }
 
-export function SynthesisStalenessPanel({ proposals }: { proposals: Proposal[] }) {
+export function SynthesisStalenessPanel({
+  proposals,
+  nextCursor,
+}: {
+  proposals: Proposal[];
+  nextCursor?: string;
+}) {
   const [message, setMessage] = useState("");
 
   async function scan() {
@@ -68,6 +81,36 @@ export function SynthesisStalenessPanel({ proposals }: { proposals: Proposal[] }
             references{proposal.affectedReferencesTruncated ? " (bounded preview)" : ""}
           </p>
           <p className="mono">{proposal.reasonCodes.join(", ")}</p>
+          <details>
+            <summary>Inspect bounded affected references</summary>
+            <ul>
+              {proposal.affectedReferences.map((reference, index) => (
+                <li key={`${reference.kind}:${reference.id}:${reference.change}:${index}`}>
+                  <span className="mono">
+                    {reference.kind} {reference.id} · {reference.change}
+                  </span>
+                  {reference.previousVersionId ? (
+                    <>
+                      {" "}
+                      · old{" "}
+                      <a href={`/nodes/${reference.id}/versions/${reference.previousVersionId}`}>
+                        {reference.previousVersionId}
+                      </a>
+                    </>
+                  ) : null}
+                  {reference.currentVersionId ? (
+                    <>
+                      {" "}
+                      · new{" "}
+                      <a href={`/nodes/${reference.id}/versions/${reference.currentVersionId}`}>
+                        {reference.currentVersionId}
+                      </a>
+                    </>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          </details>
           <p>
             <a href={`/reviews/${proposal.reviewSlug}`}>View current public synthesis</a>
           </p>
@@ -81,6 +124,13 @@ export function SynthesisStalenessPanel({ proposals }: { proposals: Proposal[] }
           </div>
         </article>
       ))}
+      {nextCursor ? (
+        <p>
+          <a href={`/editorial?synthesisCursor=${encodeURIComponent(nextCursor)}`}>
+            Next proposal page →
+          </a>
+        </p>
+      ) : null}
     </section>
   );
 }

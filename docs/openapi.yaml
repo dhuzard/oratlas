@@ -1372,7 +1372,7 @@ components:
           uniqueItems: true
           maxItems: 10
           items: { $ref: "#/components/schemas/SynthesisStalenessReasonCode" }
-        affectedReferenceCount: { type: integer, minimum: 0, maximum: 1200 }
+        affectedReferenceCount: { type: integer, minimum: 0, maximum: 1201 }
     SynthesisAffectedReference:
       type: object
       additionalProperties: false
@@ -1381,6 +1381,8 @@ components:
         kind: { type: string, enum: [node, edge, trust, policy] }
         id: { type: string, minLength: 1, maxLength: 200 }
         change: { type: string, enum: [added, removed, changed] }
+        previousVersionId: { type: string, minLength: 1, maxLength: 200 }
+        currentVersionId: { type: string, minLength: 1, maxLength: 200 }
     SynthesisStalenessEvaluationResult:
       type: object
       additionalProperties: false
@@ -1408,18 +1410,31 @@ components:
           type: array
           maxItems: 100
           items: { $ref: "#/components/schemas/SynthesisAffectedReference" }
-        affectedReferenceCount: { type: integer, minimum: 0, maximum: 1200 }
+        affectedReferenceCount: { type: integer, minimum: 0, maximum: 1201 }
         affectedReferencesTruncated: { type: boolean }
     SynthesisStalenessScanResult:
       type: object
       additionalProperties: false
-      required: [scanned, results]
+      required: [scanned, succeeded, failed, results, failures]
       properties:
         scanned: { type: integer, minimum: 0, maximum: 100 }
+        succeeded: { type: integer, minimum: 0, maximum: 100 }
+        failed: { type: integer, minimum: 0, maximum: 100 }
+        nextCursor: { type: string, minLength: 1, maxLength: 200 }
         results:
           type: array
           maxItems: 100
           items: { $ref: "#/components/schemas/SynthesisStalenessEvaluationResult" }
+        failures:
+          type: array
+          maxItems: 100
+          items:
+            type: object
+            additionalProperties: false
+            required: [code]
+            properties:
+              code: { const: evaluation-failed }
+              reviewSlug: { type: string, pattern: "^[a-z0-9]+(?:-[a-z0-9]+)*$", maxLength: 200 }
     SynthesisRegenerationProposalDecision:
       type: object
       additionalProperties: false
@@ -2046,6 +2061,7 @@ paths:
       responses:
         "200": { description: Registered with status execution-attested }
         "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
         "403": { $ref: "#/components/responses/Error" }
         "409": { $ref: "#/components/responses/Error" }
         "429": { $ref: "#/components/responses/Error" }
@@ -2067,6 +2083,7 @@ paths:
       responses:
         "200": { description: Verification revision recorded }
         "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
         "403": { $ref: "#/components/responses/Error" }
         "404": { $ref: "#/components/responses/Error" }
         "409": { $ref: "#/components/responses/Error" }
@@ -2215,7 +2232,12 @@ paths:
         required: true
         content:
           application/json:
-            schema: { type: object, additionalProperties: false }
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                cursor: { type: string, minLength: 1, maxLength: 200 }
+                limit: { type: integer, minimum: 1, maximum: 100, default: 100 }
       responses:
         "200":
           description: Bounded allowlisted scan results
@@ -2223,6 +2245,7 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/SynthesisStalenessScanResult" }
         "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
         "403": { $ref: "#/components/responses/Error" }
         "409": { $ref: "#/components/responses/Error" }
         "413": { $ref: "#/components/responses/Error" }
@@ -2246,6 +2269,7 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/SynthesisRegenerationProposalDecisionResult" }
         "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
         "403": { $ref: "#/components/responses/Error" }
         "404": { $ref: "#/components/responses/Error" }
         "409": { $ref: "#/components/responses/Error" }

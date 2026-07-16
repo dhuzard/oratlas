@@ -174,6 +174,7 @@ model Review {
   comments                       ReviewComment[]
   lifecycleEvents                ReviewLifecycleEvent[]
   synthesisDrafts                SynthesisDraft[]
+  synthesisStalenessHeads        SynthesisStalenessHead[]
   synthesisStalenessEvaluations  SynthesisStalenessEvaluation[]
   synthesisRegenerationProposals SynthesisRegenerationProposal[]
 }
@@ -250,6 +251,7 @@ model ReviewVersion {
   acceptedPredecessor            ReviewVersion?                    @relation("synthesisVersionPredecessor", fields: [acceptedPredecessorVersionId], references: [id])
   synthesisSuccessors            ReviewVersion[]                   @relation("synthesisVersionPredecessor")
   synthesisAttributions          SynthesisAttributionContributor[]
+  synthesisStalenessHead         SynthesisStalenessHead?
   synthesisStalenessEvaluations  SynthesisStalenessEvaluation[]    @relation("synthesisStalenessVersion")
   synthesisRegenerationProposals SynthesisRegenerationProposal[]   @relation("synthesisRegenerationVersion")
   currentSynthesisOf             Review?                           @relation("currentSynthesisHead")
@@ -1170,6 +1172,8 @@ model SynthesisStalenessEvaluation {
   acceptedPacketJson                    String
   evaluatedPacketHash                   String?
   evaluatedPacketJson                   String?
+  failureCode                           String?
+  failureFingerprint                    String?
   status                                String
   reasonCodesJson                       String
   affectedReferencesJson                String
@@ -1177,20 +1181,38 @@ model SynthesisStalenessEvaluation {
   affectedReferencesTruncated           Boolean  @default(false)
   evaluatedAt                           DateTime @default(now())
 
-  review                Review                         @relation(fields: [reviewId], references: [id])
-  acceptedReviewVersion ReviewVersion                  @relation("synthesisStalenessVersion", fields: [acceptedReviewVersionId], references: [id])
-  acceptedDraft         SynthesisDraft                 @relation(fields: [acceptedDraftId], references: [id])
-  proposal              SynthesisRegenerationProposal?
+  review                Review                          @relation(fields: [reviewId], references: [id])
+  acceptedReviewVersion ReviewVersion                   @relation("synthesisStalenessVersion", fields: [acceptedReviewVersionId], references: [id])
+  acceptedDraft         SynthesisDraft                  @relation(fields: [acceptedDraftId], references: [id])
+  currentForHeads       SynthesisStalenessHead[]        @relation("currentSynthesisStalenessEvaluation")
+  proposals             SynthesisRegenerationProposal[]
 
   @@index([acceptedReviewVersionId, evaluatedAt])
   @@index([reviewId, evaluatedAt])
+}
+
+/// Authoritative freshness observation for one immutable accepted head. The
+/// evaluation may point back to a previously seen A state after A→B→A.
+model SynthesisStalenessHead {
+  acceptedReviewVersionId String   @id
+  reviewId                String
+  currentEvaluationId     String
+  revision                Int      @default(0)
+  observedAt              DateTime @default(now())
+
+  review            Review                       @relation(fields: [reviewId], references: [id])
+  acceptedVersion   ReviewVersion                @relation(fields: [acceptedReviewVersionId], references: [id])
+  currentEvaluation SynthesisStalenessEvaluation @relation("currentSynthesisStalenessEvaluation", fields: [currentEvaluationId], references: [id])
+
+  @@index([reviewId])
+  @@index([currentEvaluationId])
 }
 
 /// Private editorial proposal only. A nullable unique head key guarantees at
 /// most one open proposal per accepted head on SQLite and PostgreSQL.
 model SynthesisRegenerationProposal {
   id                       String    @id @default(cuid())
-  evaluationId             String    @unique
+  evaluationId             String
   reviewId                 String
   acceptedReviewVersionId  String
   openHeadKey              String?   @unique
@@ -1211,6 +1233,7 @@ model SynthesisRegenerationProposal {
 
   @@index([status, createdAt])
   @@index([reviewId, status])
+  @@index([evaluationId])
 }
 
 model DiscussionThread {
