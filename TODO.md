@@ -422,7 +422,7 @@ packages: [packages/contracts, packages/db, apps/web]
 ```yaml
 id: KG-14
 epic: C
-status: in-progress (issue #59)
+status: done (PR #61)
 depends_on: [KG-13]
 size: M
 labels: [knowledge, scripts]
