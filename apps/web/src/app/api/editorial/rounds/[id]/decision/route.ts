@@ -2,6 +2,7 @@ import { z } from "zod";
 import {
   decisionLetterBodySchema,
   editorialOverridesSchema,
+  localNodeIdSchema,
   roundDecisionSchema,
 } from "@oratlas/contracts";
 import { issueDecision } from "@/lib/editorial-lifecycle";
@@ -15,6 +16,7 @@ const bodySchema = z.object({
   letter: decisionLetterBodySchema,
   note: z.string().max(5000).optional(),
   overrides: editorialOverridesSchema,
+  selectedNodeIds: z.array(localNodeIdSchema).max(5_000).default([]),
 });
 
 /** Close a round with a decision letter and apply the archive decision. */
@@ -28,6 +30,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       body.letter,
       body.note,
       body.overrides,
+      body.selectedNodeIds,
     ),
   );
 }

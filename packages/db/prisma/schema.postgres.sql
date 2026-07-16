@@ -188,6 +188,8 @@ CREATE TABLE "Submission" (
     "validationReportJson" TEXT,
     "submittedPayloadJson" TEXT,
     "submittedPayloadHash" TEXT,
+    "acceptedNodeSelectionJson" TEXT,
+    "acceptedNodeSelectionHash" TEXT,
     "submittedAt" TIMESTAMP(3),
     "reviewedAt" TIMESTAMP(3),
     "reviewerId" TEXT,

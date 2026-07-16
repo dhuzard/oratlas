@@ -9,12 +9,11 @@ export default async function SubmitPage() {
   const user = await getCurrentUser();
   return (
     <div>
-      <h1>Submit a computational review</h1>
+      <h1>Submit a review or knowledge nodes</h1>
       <p className="prose muted">
-        Authors submit the URL of a public GitHub repository containing a review built with, forked
-        from, or structurally compatible with the ComputationalReviewTemplate. You do not need to
-        own the repository, but you are recorded as the submitter (distinct from the review’s
-        authors). No manuscript upload is required.
+        Authors submit a public GitHub repository containing a computational review, declared
+        knowledge nodes, or both. You do not need to own the repository, but you are recorded as the
+        submitter. No manuscript upload is required.
       </p>
       <SubmitWizard signedIn={Boolean(user)} />
     </div>

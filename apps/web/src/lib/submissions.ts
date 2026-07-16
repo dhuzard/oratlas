@@ -1,32 +1,18 @@
 import "server-only";
 import {
   canonicalJson,
-  claimRecordSchema,
-  citationRecordSchema,
-  compatibilityLevelSchema,
-  compatibilityReportSchema,
-  effectiveMetadataSchema,
-  relationRecordSchema,
   resolveEffectiveMetadata,
-  type ClaimRecord,
-  type CitationRecord,
-  type CompatibilityReport,
   type EditedMetadata,
   type EffectiveMetadata,
   type ExtractedMetadata,
   type InspectionReport,
   type PublicationConsistencyReport,
-  type RelationRecord,
   type PreservedFiles,
   type SnapshotStorageReport,
-  type SubmissionValidationReport,
-  type TrustRecord,
-  submissionValidationReportSchema,
-  trustRecordSchema,
 } from "@oratlas/contracts";
-import { type Prisma } from "@oratlas/db";
+import { assertKnowledgeNodeMaterializationBinding, type Prisma } from "@oratlas/db";
 import { normalizeImportedTrustRecord } from "@oratlas/trust";
-import { z } from "zod";
+import { isExampleDoi } from "@oratlas/zenodo";
 import { prisma, parseJsonColumn } from "./db";
 import { prismaCode, uniqueTargets, withSqliteRetry as sharedWithSqliteRetry } from "./db-retry";
 import { sha256 } from "./hash";
@@ -36,22 +22,14 @@ import {
   parseAndVerifyCapture,
   type InspectionCapturePayload,
 } from "./inspection-captures";
+import {
+  derivePublicationTargets,
+  parseStoredSubmissionPayload,
+  validNodeCandidates,
+  type SubmissionPayload,
+} from "./submission-payload";
 
-export interface SubmissionPayload {
-  schemaVersion: "1.0.0";
-  capturePayloadHash: string;
-  effectiveMetadata: EffectiveMetadata;
-  compatibilityLevel: string;
-  compatibilityReport: CompatibilityReport;
-  validation: SubmissionValidationReport;
-  knowledge: {
-    claims: ClaimRecord[];
-    citations: CitationRecord[];
-    relations: RelationRecord[];
-    trust: TrustRecord[];
-    warnings: string[];
-  };
-}
+export type { SubmissionPayload } from "./submission-payload";
 
 export interface CreateSubmissionInput {
   inspectionToken: string;
@@ -71,26 +49,6 @@ export interface EditorialOverrideInput {
   rationale: string;
 }
 
-const submissionPayloadSchema = z
-  .object({
-    schemaVersion: z.literal("1.0.0"),
-    capturePayloadHash: z.string().regex(/^[0-9a-f]{64}$/),
-    effectiveMetadata: effectiveMetadataSchema,
-    compatibilityLevel: compatibilityLevelSchema,
-    compatibilityReport: compatibilityReportSchema,
-    validation: submissionValidationReportSchema,
-    knowledge: z
-      .object({
-        claims: z.array(claimRecordSchema),
-        citations: z.array(citationRecordSchema),
-        relations: z.array(relationRecordSchema),
-        trust: z.array(trustRecordSchema),
-        warnings: z.array(z.string()),
-      })
-      .strict(),
-  })
-  .strict();
-
 /** Consume one exact inspection capture; no repository network request occurs here. */
 export async function createSubmission(
   input: CreateSubmissionInput,
@@ -109,6 +67,16 @@ export async function createSubmission(
   const captured = verifyCapture(capture);
   const effective = resolveEffectiveMetadata(captured.extraction.metadata, input.editedMetadata);
   const knowledge = captured.extraction.knowledge;
+  const nodeCandidates = captured.extraction.nodeExtraction.nodes.filter(
+    (record) => record.status === "ok" && Boolean(record.node),
+  );
+  const publicationTargets = derivePublicationTargets(
+    captured.extraction.compatibility.reviewContentDetected.detected,
+    captured.extraction.manifestPresent,
+    knowledge.claims.length,
+    knowledge.citations.length,
+    nodeCandidates.length,
+  );
   const validation = await buildValidationReport(
     captured.report,
     captured.extraction.compatibility,
@@ -116,19 +84,22 @@ export async function createSubmission(
     input.editedMetadata,
     knowledge.claims.length > 0 && knowledge.citations.length > 0,
     knowledge.trust.length > 0,
+    publicationTargets.knowledgeNodes,
   );
   const status =
     validation.hardErrors.length > 0 || validation.publicationConsistency?.status === "fail"
       ? "automated-checks-failed"
       : "pending-editorial-review";
   const submittedPayload: SubmissionPayload = {
-    schemaVersion: "1.0.0",
+    schemaVersion: "1.1.0",
     capturePayloadHash: capture.payloadHash,
     effectiveMetadata: effective,
     compatibilityLevel: captured.extraction.compatibility.overallCompatibility,
     compatibilityReport: captured.extraction.compatibility,
     validation,
     knowledge,
+    nodeExtraction: captured.extraction.nodeExtraction,
+    publicationTargets,
   };
   const submittedPayloadJson = canonicalJson(submittedPayload);
 
@@ -347,58 +318,93 @@ class DecisionRaceError extends SubmissionError {
   }
 }
 
+export interface AcceptanceResult {
+  reviewSlug?: string;
+  nodeVersionIds: string[];
+  selectedNodeIds: string[];
+  idempotent: boolean;
+}
+
 async function readAcceptedResult(
   submissionId: string,
-): Promise<{ reviewSlug: string; idempotent: true } | null> {
+  selectionHash: string,
+): Promise<AcceptanceResult | null> {
   const submission = await prisma.submission.findUnique({
     where: { id: submissionId },
-    select: { status: true, resultingReviewId: true },
+    select: {
+      status: true,
+      resultingReviewId: true,
+      acceptedNodeSelectionJson: true,
+      acceptedNodeSelectionHash: true,
+      sourceNodeVersions: {
+        select: { id: true, knowledgeNode: { select: { localNodeId: true } } },
+      },
+    },
   });
-  if (submission?.status !== "accepted" || !submission.resultingReviewId) return null;
-  const review = await prisma.review.findUnique({
-    where: { id: submission.resultingReviewId },
-    select: { slug: true },
-  });
-  return review ? { reviewSlug: review.slug, idempotent: true } : null;
+  if (submission?.status !== "accepted") return null;
+  const storedSelectionJson = submission.acceptedNodeSelectionJson ?? canonicalJson([]);
+  const storedSelectionHash = submission.acceptedNodeSelectionHash ?? sha256(storedSelectionJson);
+  if (storedSelectionHash !== selectionHash) {
+    throw new SubmissionError(
+      "Submission was already accepted with a different node selection.",
+      "conflict",
+    );
+  }
+  const selectedNodeIds = parseSelectionJson(storedSelectionJson);
+  const review = submission.resultingReviewId
+    ? await prisma.review.findUnique({
+        where: { id: submission.resultingReviewId },
+        select: { slug: true },
+      })
+    : null;
+  return {
+    reviewSlug: review?.slug,
+    nodeVersionIds: [...submission.sourceNodeVersions]
+      .sort((left, right) =>
+        left.knowledgeNode.localNodeId.localeCompare(right.knowledgeNode.localNodeId),
+      )
+      .map((version) => version.id),
+    selectedNodeIds,
+    idempotent: true,
+  };
 }
 
 /**
  * Atomically publish a stored submission. The transaction contains database
  * work only: all GitHub/DOI I/O happened before the submission was finalized.
  */
+export function acceptSubmission(
+  submissionId: string,
+  reviewerId: string,
+  note?: string,
+  overrides?: EditorialOverrideInput[],
+): Promise<AcceptanceResult & { reviewSlug: string }>;
+export function acceptSubmission(
+  submissionId: string,
+  reviewerId: string,
+  note: string | undefined,
+  overrides: EditorialOverrideInput[] | undefined,
+  selectedNodeIds: string[],
+): Promise<AcceptanceResult>;
 export async function acceptSubmission(
   submissionId: string,
   reviewerId: string,
   note?: string,
   overrides: EditorialOverrideInput[] = [],
-): Promise<{ reviewSlug: string; idempotent: boolean }> {
+  selectedNodeIds: string[] = [],
+): Promise<AcceptanceResult> {
+  const requestedSelection = normalizeRequestedSelection(selectedNodeIds);
+  const selectionJson = canonicalJson(requestedSelection);
+  const selectionHash = sha256(selectionJson);
   const run = () =>
     withSqliteRetry(() =>
       prisma.$transaction(
         async (tx) => {
           const submission = await tx.submission.findUnique({
             where: { id: submissionId },
-            include: { repository: true, snapshot: true },
+            include: { repository: true, snapshot: true, inspectionCapture: true },
           });
           if (!submission) throw new SubmissionError("Submission not found.");
-          if (submission.status === "accepted" && submission.resultingReviewId) {
-            const existing = await tx.review.findUnique({
-              where: { id: submission.resultingReviewId },
-            });
-            if (!existing)
-              throw new SubmissionError("Accepted submission has no review.", "conflict");
-            return { reviewSlug: existing.slug, idempotent: true };
-          }
-          if (!submission.snapshotId || !submission.snapshot) {
-            throw new SubmissionError("Submission has no snapshot to publish.");
-          }
-          if (!isDecidableStatus(submission.status)) {
-            throw new SubmissionError(
-              `Submission is already ${submission.status}; acceptance cannot replace that decision.`,
-              "conflict",
-            );
-          }
-
           const payload = parseStoredSubmissionPayload(submission.submittedPayloadJson);
           if (!payload) {
             throw new SubmissionError(
@@ -409,6 +415,59 @@ export async function acceptSubmission(
           if (sha256(submission.submittedPayloadJson!) !== submission.submittedPayloadHash) {
             throw new SubmissionError("Submission payload integrity check failed.", "conflict");
           }
+          const candidates = validNodeCandidates(payload);
+          validateRequestedSelection(
+            requestedSelection,
+            candidates.map((entry) => entry.node.id),
+          );
+          if (!payload.publicationTargets.proseReview && requestedSelection.length === 0) {
+            throw new SubmissionError(
+              "A node-only submission must publish at least one node candidate.",
+              "conflict",
+            );
+          }
+          if (submission.status === "accepted") {
+            const storedJson = submission.acceptedNodeSelectionJson ?? canonicalJson([]);
+            const storedHash = submission.acceptedNodeSelectionHash ?? sha256(storedJson);
+            if (storedHash !== selectionHash) {
+              throw new SubmissionError(
+                "Submission was already accepted with a different node selection.",
+                "conflict",
+              );
+            }
+            return acceptedResultInTransaction(tx, submission.id, storedJson, true);
+          }
+          if (!submission.snapshotId || !submission.snapshot) {
+            throw new SubmissionError("Submission has no snapshot to publish.");
+          }
+          if (
+            payload.schemaVersion === "1.1.0" &&
+            (!submission.inspectionCaptureId || !submission.inspectionCapture)
+          ) {
+            throw new SubmissionError("Submission has no inspection capture to publish.");
+          }
+          if (!isDecidableStatus(submission.status)) {
+            throw new SubmissionError(
+              `Submission is already ${submission.status}; acceptance cannot replace that decision.`,
+              "conflict",
+            );
+          }
+          if (submission.inspectionCapture) {
+            const captured = verifyStoredCaptureForAcceptance(submission.inspectionCapture);
+            if (
+              payload.capturePayloadHash !== submission.inspectionCapture.payloadHash ||
+              (payload.publicationTargets.knowledgeNodes &&
+                canonicalJson(payload.nodeExtraction) !==
+                  canonicalJson(captured.extraction.nodeExtraction)) ||
+              (payload.nodeExtraction.commitSha !== undefined &&
+                payload.nodeExtraction.commitSha !== submission.snapshot.commitSha)
+            ) {
+              throw new SubmissionError(
+                "Submitted node candidates do not match the immutable inspection capture.",
+                "conflict",
+              );
+            }
+          }
           if (payload.validation.hardErrors.length > 0) {
             throw new SubmissionError("Non-overridable automated checks still fail.", "conflict");
           }
@@ -416,12 +475,14 @@ export async function acceptSubmission(
           const validatedOverrides = validateOverrides(consistency, overrides);
 
           const claimed = await tx.submission.updateMany({
-            where: { id: submission.id, status: submission.status, resultingReviewVersionId: null },
+            where: { id: submission.id, status: submission.status },
             data: {
               status: "accepted",
               reviewerId,
               reviewedAt: new Date(),
               editorialNote: note,
+              acceptedNodeSelectionJson: selectionJson,
+              acceptedNodeSelectionHash: selectionHash,
             },
           });
           if (claimed.count !== 1) {
@@ -439,103 +500,37 @@ export async function acceptSubmission(
             });
           }
 
-          const meta = payload.effectiveMetadata;
-          const extracted = parseJsonColumn<ExtractedMetadata | null>(
-            submission.extractedMetadataJson,
-            null,
-          );
-          const anyExample = detectExample(meta);
-          const reviewData = {
-            title: meta.title ?? submission.repository.name,
-            abstract: meta.abstract,
-            reviewType: meta.reviewType,
-            licenseSpdx: meta.license,
-            publishedReviewUrl: meta.publishedReviewUrl,
-            status: "published",
-            currentSnapshotId: submission.snapshotId,
-            acceptedAt: new Date(),
-          };
-          let review = await tx.review.findUnique({
-            where: { repositoryId: submission.repositoryId },
-          });
-          if (!review) {
-            const legacyReview = await tx.review.findFirst({
-              where: {
-                repositoryId: null,
-                versions: { some: { snapshot: { repositoryId: submission.repositoryId } } },
-              },
-            });
-            if (legacyReview) {
-              review = await tx.review.update({
-                where: { id: legacyReview.id },
-                data: { repositoryId: submission.repositoryId },
-              });
-            }
-          }
-          if (!review) {
-            const slug = await uniqueSlug(tx, reviewData.title, submission.repository.owner);
-            review = await tx.review.upsert({
-              where: { repositoryId: submission.repositoryId },
-              update: reviewData,
-              create: { slug, repositoryId: submission.repositoryId, ...reviewData },
-            });
-          } else {
-            review = await tx.review.update({ where: { id: review.id }, data: reviewData });
+          let reviewSlug: string | undefined;
+          let reviewId: string | undefined;
+          let reviewVersionId: string | undefined;
+          if (payload.publicationTargets.proseReview) {
+            const materializedReview = await materializeReviewPublication(
+              tx,
+              submission,
+              payload,
+              consistency,
+            );
+            reviewSlug = materializedReview.slug;
+            reviewId = materializedReview.reviewId;
+            reviewVersionId = materializedReview.versionId;
           }
 
-          const metadataJson = canonicalJson({
-            keywords: meta.keywords,
-            domains: meta.domains,
-            reviewType: meta.reviewType,
-            license: meta.license,
-            compatibilityLevel: payload.compatibilityLevel,
-            compatibilityReport: payload.compatibilityReport,
-            extractorVersion: extracted?.extractorVersion,
-            provenance: extracted?.fields,
-          });
-          const version = await tx.reviewVersion.create({
-            data: {
-              reviewId: review.id,
-              snapshotId: submission.snapshotId,
-              sourceSubmissionId: submission.id,
-              inspectionCaptureId: submission.inspectionCaptureId,
-              sourceKind: submission.sourceKind,
-              sourceBranch: submission.sourceBranch,
-              sourceSelectionKey: submission.sourceSelectionKey,
-              tagObjectSha: submission.tagObjectSha,
-              sourceCreatedAt: submission.sourceCreatedAt,
-              semanticVersion: meta.releaseTag?.replace(/^v/i, "") ?? undefined,
-              title: reviewData.title,
-              abstract: meta.abstract,
-              metadataJson,
-              versionDoi: meta.versionDoi,
-              conceptDoi: meta.conceptDoi,
-              zenodoRecordId: meta.zenodoRecordId,
-              releaseTag: submission.releaseTag,
-              releaseUrl: submission.releaseUrl,
-              publicationConsistencyJson: consistency ? canonicalJson(consistency) : null,
-              capturePayloadHash: payload.capturePayloadHash,
-              isExample: anyExample,
-              publishedAt: new Date(),
-            },
-          });
-
-          await materializeContributors(tx, version.id, meta);
-          await createIdentifiers(
+          const selected = new Set(requestedSelection);
+          const selectedCandidates = candidates.filter((entry) => selected.has(entry.node.id));
+          const nodeVersionIds = await materializeKnowledgeNodes(
             tx,
-            version.id,
-            meta,
-            submission.repository.canonicalUrl,
-            submission.snapshot.commitSha,
-            submission.releaseUrl,
-            anyExample,
+            submission,
+            selectedCandidates,
+            reviewerId,
+            reviewVersionId,
           );
-          await materializeKnowledge(tx, version.id, payload);
 
-          await tx.submission.update({
-            where: { id: submission.id },
-            data: { resultingReviewId: review.id, resultingReviewVersionId: version.id },
-          });
+          if (reviewId && reviewVersionId) {
+            await tx.submission.update({
+              where: { id: submission.id },
+              data: { resultingReviewId: reviewId, resultingReviewVersionId: reviewVersionId },
+            });
+          }
           await claimIdempotency(tx, `submission.accepted:${submission.id}`);
           await tx.auditEvent.create({
             data: {
@@ -545,27 +540,36 @@ export async function acceptSubmission(
               subjectId: submission.id,
               idempotencyKey: `submission.accepted:${submission.id}`,
               detailsJson: canonicalJson({
-                reviewSlug: review.slug,
-                versionId: version.id,
+                reviewSlug,
+                reviewVersionId,
+                selectedNodeIds: requestedSelection,
+                nodeVersionIds,
                 overrideCheckIds: validatedOverrides.map((entry) => entry.checkId),
               }),
             },
           });
-          await claimIdempotency(tx, `review.published:${submission.id}`);
-          await tx.auditEvent.create({
-            data: {
-              actorId: reviewerId,
-              action: "review.published",
-              subjectType: "review",
-              subjectId: review.id,
-              idempotencyKey: `review.published:${submission.id}`,
-              detailsJson: canonicalJson({
-                versionId: version.id,
-                capturePayloadHash: payload.capturePayloadHash,
-              }),
-            },
-          });
-          return { reviewSlug: review.slug, idempotent: false };
+          if (reviewId && reviewVersionId) {
+            await claimIdempotency(tx, `review.published:${submission.id}`);
+            await tx.auditEvent.create({
+              data: {
+                actorId: reviewerId,
+                action: "review.published",
+                subjectType: "review",
+                subjectId: reviewId,
+                idempotencyKey: `review.published:${submission.id}`,
+                detailsJson: canonicalJson({
+                  versionId: reviewVersionId,
+                  capturePayloadHash: payload.capturePayloadHash,
+                }),
+              },
+            });
+          }
+          return {
+            reviewSlug,
+            nodeVersionIds,
+            selectedNodeIds: requestedSelection,
+            idempotent: false,
+          };
         },
         { maxWait: 5_000, timeout: 15_000, isolationLevel: "Serializable" },
       ),
@@ -575,7 +579,7 @@ export async function acceptSubmission(
     try {
       return await run();
     } catch (error) {
-      const accepted = await readAcceptedResult(submissionId);
+      const accepted = await readAcceptedResult(submissionId, selectionHash);
       if (accepted) return accepted;
       if (error instanceof DecisionRaceError) throw error;
       if (prismaCode(error) === "P2002") {
@@ -598,6 +602,301 @@ export async function acceptSubmission(
       throw error;
     }
   }
+}
+
+type SubmissionForAcceptance = Prisma.SubmissionGetPayload<{
+  include: { repository: true; snapshot: true; inspectionCapture: true };
+}>;
+
+function normalizeRequestedSelection(selectedNodeIds: string[]): string[] {
+  if (selectedNodeIds.length > 5_000) {
+    throw new SubmissionError("At most 5000 node candidates can be selected.");
+  }
+  const normalized = selectedNodeIds.map((id) => id.trim());
+  if (normalized.some((id) => id.length === 0)) {
+    throw new SubmissionError("Selected node ids cannot be empty.");
+  }
+  if (new Set(normalized).size !== normalized.length) {
+    throw new SubmissionError("Selected node ids must be unique.");
+  }
+  return normalized.sort((a, b) => a.localeCompare(b));
+}
+
+function validateRequestedSelection(selection: string[], candidateIds: string[]): void {
+  const candidates = new Set(candidateIds);
+  const unknown = selection.filter((id) => !candidates.has(id));
+  if (unknown.length > 0) {
+    throw new SubmissionError(
+      `Selected node ids are not candidates from this capture: ${unknown.join(", ")}.`,
+      "conflict",
+    );
+  }
+}
+
+function parseSelectionJson(value: string): string[] {
+  try {
+    const parsed: unknown = JSON.parse(value);
+    if (
+      !Array.isArray(parsed) ||
+      parsed.some((entry) => typeof entry !== "string") ||
+      canonicalJson(parsed) !== value
+    ) {
+      throw new Error("invalid selection");
+    }
+    return parsed;
+  } catch {
+    throw new SubmissionError("Accepted node selection is invalid.", "conflict");
+  }
+}
+
+async function acceptedResultInTransaction(
+  tx: Prisma.TransactionClient,
+  submissionId: string,
+  selectionJson: string,
+  idempotent: boolean,
+): Promise<AcceptanceResult> {
+  const accepted = await tx.submission.findUnique({
+    where: { id: submissionId },
+    select: {
+      resultingReviewId: true,
+      sourceNodeVersions: {
+        select: { id: true, knowledgeNode: { select: { localNodeId: true } } },
+      },
+    },
+  });
+  if (!accepted) throw new SubmissionError("Submission not found.");
+  const review = accepted.resultingReviewId
+    ? await tx.review.findUnique({
+        where: { id: accepted.resultingReviewId },
+        select: { slug: true },
+      })
+    : null;
+  const versions = [...accepted.sourceNodeVersions].sort((left, right) =>
+    left.knowledgeNode.localNodeId.localeCompare(right.knowledgeNode.localNodeId),
+  );
+  return {
+    reviewSlug: review?.slug,
+    nodeVersionIds: versions.map((version) => version.id),
+    selectedNodeIds: parseSelectionJson(selectionJson),
+    idempotent,
+  };
+}
+
+function verifyStoredCaptureForAcceptance(capture: {
+  payloadJson: string;
+  payloadHash: string;
+}): InspectionCapturePayload {
+  try {
+    return parseAndVerifyCapture(capture.payloadJson, capture.payloadHash);
+  } catch {
+    throw new SubmissionError("Inspection capture integrity check failed.", "conflict");
+  }
+}
+
+async function materializeReviewPublication(
+  tx: Prisma.TransactionClient,
+  submission: SubmissionForAcceptance,
+  payload: SubmissionPayload,
+  consistency: PublicationConsistencyReport | undefined,
+): Promise<{ reviewId: string; versionId: string; slug: string }> {
+  if (!submission.snapshotId || !submission.snapshot) {
+    throw new SubmissionError("Submission has no snapshot to publish.");
+  }
+  const meta = payload.effectiveMetadata;
+  const extracted = parseJsonColumn<ExtractedMetadata | null>(
+    submission.extractedMetadataJson,
+    null,
+  );
+  const anyExample = detectExample(meta);
+  const reviewData = {
+    title: meta.title ?? submission.repository.name,
+    abstract: meta.abstract,
+    reviewType: meta.reviewType,
+    licenseSpdx: meta.license,
+    publishedReviewUrl: meta.publishedReviewUrl,
+    status: "published",
+    currentSnapshotId: submission.snapshotId,
+    acceptedAt: new Date(),
+  };
+  let review = await tx.review.findUnique({ where: { repositoryId: submission.repositoryId } });
+  if (!review) {
+    const legacyReview = await tx.review.findFirst({
+      where: {
+        repositoryId: null,
+        versions: { some: { snapshot: { repositoryId: submission.repositoryId } } },
+      },
+    });
+    if (legacyReview) {
+      review = await tx.review.update({
+        where: { id: legacyReview.id },
+        data: { repositoryId: submission.repositoryId },
+      });
+    }
+  }
+  if (!review) {
+    const slug = await uniqueSlug(tx, reviewData.title, submission.repository.owner);
+    review = await tx.review.upsert({
+      where: { repositoryId: submission.repositoryId },
+      update: reviewData,
+      create: { slug, repositoryId: submission.repositoryId, ...reviewData },
+    });
+  } else {
+    review = await tx.review.update({ where: { id: review.id }, data: reviewData });
+  }
+
+  const version = await tx.reviewVersion.create({
+    data: {
+      reviewId: review.id,
+      snapshotId: submission.snapshotId,
+      sourceSubmissionId: submission.id,
+      inspectionCaptureId: submission.inspectionCaptureId,
+      sourceKind: submission.sourceKind,
+      sourceBranch: submission.sourceBranch,
+      sourceSelectionKey: submission.sourceSelectionKey,
+      tagObjectSha: submission.tagObjectSha,
+      sourceCreatedAt: submission.sourceCreatedAt,
+      semanticVersion: meta.releaseTag?.replace(/^v/i, "") ?? undefined,
+      title: reviewData.title,
+      abstract: meta.abstract,
+      metadataJson: canonicalJson({
+        keywords: meta.keywords,
+        domains: meta.domains,
+        reviewType: meta.reviewType,
+        license: meta.license,
+        compatibilityLevel: payload.compatibilityLevel,
+        compatibilityReport: payload.compatibilityReport,
+        extractorVersion: extracted?.extractorVersion,
+        provenance: extracted?.fields,
+      }),
+      versionDoi: meta.versionDoi,
+      conceptDoi: meta.conceptDoi,
+      zenodoRecordId: meta.zenodoRecordId,
+      releaseTag: submission.releaseTag,
+      releaseUrl: submission.releaseUrl,
+      publicationConsistencyJson: consistency ? canonicalJson(consistency) : null,
+      capturePayloadHash: payload.capturePayloadHash,
+      isExample: anyExample,
+      publishedAt: new Date(),
+    },
+  });
+  await materializeContributors(tx, version.id, meta);
+  await createIdentifiers(
+    tx,
+    version.id,
+    meta,
+    submission.repository.canonicalUrl,
+    submission.snapshot.commitSha,
+    submission.releaseUrl,
+    anyExample,
+  );
+  await materializeKnowledge(tx, version.id, payload);
+  return { reviewId: review.id, versionId: version.id, slug: review.slug };
+}
+
+async function materializeKnowledgeNodes(
+  tx: Prisma.TransactionClient,
+  submission: SubmissionForAcceptance,
+  candidates: ReturnType<typeof validNodeCandidates>,
+  reviewerId: string,
+  reviewVersionId?: string,
+): Promise<string[]> {
+  if (candidates.length === 0) return [];
+  if (!submission.snapshotId || !submission.snapshot || !submission.inspectionCapture) {
+    throw new SubmissionError("Node publication requires a snapshot and inspection capture.");
+  }
+  const versionIds: string[] = [];
+  for (const candidate of candidates) {
+    const node = candidate.node;
+    let identity = await tx.knowledgeNode.findUnique({
+      where: {
+        repositoryId_localNodeId: {
+          repositoryId: submission.repositoryId,
+          localNodeId: node.id,
+        },
+      },
+    });
+    if (identity && identity.kind !== node.kind) {
+      throw new SubmissionError(
+        `Node '${node.id}' changed kind from ${identity.kind} to ${node.kind}.`,
+        "conflict",
+      );
+    }
+    identity ??= await tx.knowledgeNode.create({
+      data: {
+        repositoryId: submission.repositoryId,
+        localNodeId: node.id,
+        kind: node.kind,
+      },
+    });
+    try {
+      assertKnowledgeNodeMaterializationBinding({
+        repository: submission.repository,
+        node: identity,
+        snapshot: submission.snapshot,
+        submission,
+        capture: submission.inspectionCapture,
+        version: {
+          sourceSubmissionId: submission.id,
+          inspectionCaptureId: submission.inspectionCaptureId,
+          capturePayloadHash: submission.inspectionCapture.payloadHash,
+        },
+      });
+    } catch (error) {
+      throw new SubmissionError(
+        error instanceof Error ? error.message : "Knowledge-node provenance binding failed.",
+        "conflict",
+      );
+    }
+    const version = await tx.knowledgeNodeVersion.create({
+      data: {
+        knowledgeNodeId: identity.id,
+        snapshotId: submission.snapshotId,
+        sourceSubmissionId: submission.id,
+        inspectionCaptureId: submission.inspectionCaptureId,
+        capturePayloadHash: submission.inspectionCapture.payloadHash,
+        title: node.title,
+        abstract: node.abstract,
+        text: node.text,
+        contributorsJson: canonicalJson(node.contributors),
+        license: node.license,
+        provenanceJson: canonicalJson({
+          declared: node.provenance,
+          extractedFields: candidate.fieldProvenance,
+          sourcePath: candidate.sourcePath,
+          sourcePointer: candidate.sourcePointer,
+        }),
+        payloadJson: canonicalJson(node.payload),
+        versionDoi: node.versionDoi,
+        conceptDoi: node.conceptDoi,
+        isExample: nodeContainsExampleDoi(node),
+      },
+    });
+    if (reviewVersionId && node.kind === "claim") {
+      await tx.claim.updateMany({
+        where: { reviewVersionId, localClaimId: node.id },
+        data: { knowledgeNodeId: identity.id },
+      });
+    }
+    await claimIdempotency(tx, `knowledge-node.published:${submission.id}:${node.id}`);
+    await tx.auditEvent.create({
+      data: {
+        actorId: reviewerId,
+        action: "knowledge-node.published",
+        subjectType: "knowledge-node",
+        subjectId: identity.id,
+        idempotencyKey: `knowledge-node.published:${submission.id}:${node.id}`,
+        detailsJson: canonicalJson({
+          versionId: version.id,
+          localNodeId: node.id,
+          kind: node.kind,
+          snapshotId: submission.snapshotId,
+          capturePayloadHash: submission.inspectionCapture.payloadHash,
+        }),
+      },
+    });
+    versionIds.push(version.id);
+  }
+  return versionIds;
 }
 
 export async function decideSubmission(
@@ -1050,6 +1349,16 @@ function detectExample(meta: EffectiveMetadata): boolean {
   return /10\.5555\//i.test(`${meta.versionDoi ?? ""} ${meta.conceptDoi ?? ""}`);
 }
 
+function nodeContainsExampleDoi(
+  node: ReturnType<typeof validNodeCandidates>[number]["node"],
+): boolean {
+  const doiValues = [node.versionDoi, node.conceptDoi];
+  for (const [field, value] of Object.entries(node.payload)) {
+    if (/doi$/i.test(field) && typeof value === "string") doiValues.push(value);
+  }
+  return doiValues.some((doi) => Boolean(doi && isExampleDoi(doi)));
+}
+
 async function uniqueSlug(
   tx: Prisma.TransactionClient,
   title: string,
@@ -1094,18 +1403,6 @@ function isRecoverableSubmissionUniqueConflict(error: unknown): boolean {
 
 function uniqueTargetLabel(error: unknown): string {
   return uniqueTargets(error).join(", ") || "unknown unique target";
-}
-
-function parseStoredSubmissionPayload(payloadJson: string | null): SubmissionPayload | null {
-  if (!payloadJson) return null;
-  try {
-    const value: unknown = JSON.parse(payloadJson);
-    if (canonicalJson(value) !== payloadJson) return null;
-    const parsed = submissionPayloadSchema.safeParse(value);
-    return parsed.success ? (parsed.data as SubmissionPayload) : null;
-  } catch {
-    return null;
-  }
 }
 
 async function claimIdempotency(tx: Prisma.TransactionClient, key: string): Promise<void> {

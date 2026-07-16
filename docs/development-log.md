@@ -329,3 +329,48 @@ without changing the durable repository-local identity of any published node.
   identity/database tests, and the production web build. The full Windows test run completes 383
   tests successfully; 24 tests in five pre-existing suites remain skipped because they directly
   launch the extensionless Prisma shell shim and fail with `ENOENT` on Windows.
+
+## KG-04 — Node submission and editorial acceptance (issue #37)
+
+**Objective:** let submitters finalize immutable node candidates and let editors select and
+atomically publish node versions from the exact captured repository state.
+
+- Started implementation and corrected KG-07's backlog dependency to include KG-03 and KG-04:
+  edge lifecycle work consumes extracted node declarations and editorially materialized node
+  identities, so it cannot safely begin from the database model and identity layer alone.
+- Versioned inspection captures and finalized submission payloads at `1.1.0`. New payloads retain
+  the complete structured node-extraction report plus server-derived prose/node publication
+  targets; canonical `1.0.0` captures and submissions normalize to empty-node legacy behavior.
+- Added the wizard's node review step and editorial candidate cards with escaped content and
+  field-level extraction provenance. Editors select a subset in both direct decisions and formal
+  review-round decisions; request schemas enforce local node ids, shared body limits, same-origin
+  integrity, per-user rate limits, and server-side editor roles.
+- Acceptance now re-verifies the submitted candidate report against the consumed capture inside
+  one serializable compare-and-set transaction. The sorted selection and its SHA-256 are persisted,
+  so an identical retry returns the original result and a different retry conflicts.
+- Materialized each selected candidate as an immutable `KnowledgeNodeVersion`, invoking KG-02's
+  repository/snapshot/submission/capture binding guard before every write. Node-only submissions
+  create no review, mixed submissions keep the existing review path, author edge declarations stay
+  private for KG-07, and claim backlinks are populated only when exact legacy claim ids coincide.
+- Derive the example-identifier safety marker from every validated DOI-bearing node field itself,
+  including envelope and kind-specific payload DOI fields. Materialization therefore remains safe
+  even if a schema-valid extraction report omits or incompletely describes its DOI references.
+- Re-check the actor's current editor/admin role at the formal-round decision service boundary,
+  before acceptance or any other transition. A previously assigned editor whose role is downgraded
+  cannot publish, close the round, write a decision letter, or emit publication/decision audits.
+- Added per-node and aggregate audit events, conditional review events, and a minimal public
+  `/nodes` listing sufficient to prove editorial publication without preempting KG-05's node detail,
+  history, DOI-linking, graph, and API scope.
+- Added integration coverage for all four node kinds, node-only and exact-subset publication,
+  legacy capture normalization, identical/different retries, candidate tampering, cross-capture,
+  repository, commit, and hash mismatch rollback, and reject/change-request privacy. The browser
+  flow covers real submission/finalization and editorial APIs, role rejection, oversized bodies,
+  default selection, public visibility, and escaped markup.
+- Verified: lint, all 15 workspace typechecks, Prisma validate/generate and deterministic PostgreSQL
+  schema/DDL generation, JSON schema checks, the production web build, 19 focused atomic
+  publication tests, three formal-lifecycle integration tests, and the focused node-publication e2e
+  pass. The repository test run completed 401 tests successfully; 10 tests in three pre-existing
+  integration suites remain skipped/failing on Windows because they launch the extensionless Prisma shell shim directly
+  (`spawnSync packages/db/node_modules/.bin/prisma ENOENT`). The complete browser suite passes all
+  33 tests against a clean seeded database,
+  including existing accessibility and editorial flows plus the new node-publication flow.

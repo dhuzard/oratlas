@@ -13,6 +13,7 @@ import {
 import { rateLimit, clientKey } from "@/lib/rate-limit";
 import { validateSameOriginJsonRequest } from "@/lib/mutation-request";
 import { createInspectionCapture } from "@/lib/inspection-captures";
+import { derivePublicationTargets } from "@/lib/submission-payload";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -56,6 +57,16 @@ export async function POST(request: Request) {
       outcome.extraction.knowledge.claims.length > 0 &&
       outcome.extraction.knowledge.citations.length > 0;
     const hasTrust = outcome.extraction.knowledge.trust.length > 0;
+    const validNodeCount = outcome.extraction.nodeExtraction.nodes.filter(
+      (record) => record.status === "ok" && Boolean(record.node),
+    ).length;
+    const publicationTargets = derivePublicationTargets(
+      outcome.compatibility.reviewContentDetected.detected,
+      outcome.extraction.manifestPresent,
+      outcome.extraction.knowledge.claims.length,
+      outcome.extraction.knowledge.citations.length,
+      validNodeCount,
+    );
     const validation = await buildValidationReport(
       outcome.report,
       outcome.compatibility,
@@ -63,6 +74,7 @@ export async function POST(request: Request) {
       undefined,
       hasEvidence,
       hasTrust,
+      publicationTargets.knowledgeNodes,
     );
     const effective = resolveEffectiveMetadata(outcome.extractedMetadata, undefined);
     const capture = await createInspectionCapture(
@@ -91,6 +103,8 @@ export async function POST(request: Request) {
         relations: outcome.extraction.knowledge.relations.length,
         trust: outcome.extraction.knowledge.trust.length,
       },
+      nodeExtraction: outcome.extraction.nodeExtraction,
+      publicationTargets,
     });
   } catch (err) {
     if (err instanceof BodyTooLargeError)

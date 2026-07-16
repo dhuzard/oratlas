@@ -51,6 +51,28 @@ interface InspectResponse {
     };
   };
   knowledgeCounts: { claims: number; citations: number; relations: number; trust: number };
+  publicationTargets: { proseReview: boolean; knowledgeNodes: boolean };
+  nodeExtraction: {
+    nodes: Array<{
+      status: "ok" | "invalid" | "skipped";
+      sourcePath: string;
+      sourcePointer: string;
+      declaredId?: string;
+      node?: {
+        id: string;
+        kind: "claim" | "figure" | "dataset" | "code";
+        title: string;
+        abstract?: string;
+        text?: string;
+        license: string;
+      };
+      fieldProvenance: Record<
+        string,
+        { file: string; pointer: string; commitSha?: string; extractorVersion: string }
+      >;
+      issues: Array<{ severity: "error" | "warning"; code: string; message: string }>;
+    }>;
+  };
 }
 
 const EDITABLE_FIELDS: Array<{ key: string; label: string }> = [
@@ -65,7 +87,7 @@ const EDITABLE_FIELDS: Array<{ key: string; label: string }> = [
   { key: "contact", label: "Contact / corresponding author" },
 ];
 
-const STEPS = ["Repository", "Inspect", "Review metadata", "Validation", "Submit"];
+const STEPS = ["Repository", "Inspect", "Review metadata", "Review nodes", "Validation", "Submit"];
 
 export function SubmitWizard({ signedIn }: { signedIn: boolean }) {
   const [step, setStep] = useState(0);
@@ -133,7 +155,7 @@ export function SubmitWizard({ signedIn }: { signedIn: boolean }) {
         return;
       }
       setResult(data);
-      setStep(4);
+      setStep(5);
     } catch {
       setError("Network error during submission.");
     } finally {
@@ -277,7 +299,7 @@ export function SubmitWizard({ signedIn }: { signedIn: boolean }) {
               Back
             </button>
             <button className="btn" onClick={() => setStep(3)}>
-              Continue to validation
+              Continue to node candidates
             </button>
           </div>
         </div>
@@ -285,10 +307,61 @@ export function SubmitWizard({ signedIn }: { signedIn: boolean }) {
 
       {step === 3 && inspection ? (
         <div className="card">
+          <h2 className="card-title">Review extracted node candidates</h2>
+          <p className="muted">
+            These candidates and their extraction provenance become part of the immutable
+            submission. An editor chooses the public subset; referenced artifacts are never fetched
+            or executed.
+          </p>
+          {inspection.nodeExtraction.nodes.length === 0 ? (
+            <p className="muted">No node manifest candidates were found.</p>
+          ) : (
+            inspection.nodeExtraction.nodes.map((record, index) => (
+              <article className="claim-card" key={`${record.sourcePath}:${record.sourcePointer}`}>
+                <p>
+                  <strong>
+                    {record.node?.title ?? record.declaredId ?? `Record ${index + 1}`}
+                  </strong>{" "}
+                  — {record.status}
+                  {record.node ? ` · ${record.node.kind} · ${record.node.id}` : ""}
+                </p>
+                {record.node?.abstract ? <p>{record.node.abstract}</p> : null}
+                {record.node?.text ? <p>{record.node.text}</p> : null}
+                <p className="mono muted">
+                  {record.sourcePath} {record.sourcePointer}
+                </p>
+                <p className="muted">
+                  Field provenance: {Object.keys(record.fieldProvenance).sort().join(", ") || "—"}
+                </p>
+                {record.issues.length > 0 ? (
+                  <ul>
+                    {record.issues.map((issue) => (
+                      <li key={`${issue.code}:${issue.message}`}>
+                        {issue.severity}: {issue.message}
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </article>
+            ))
+          )}
+          <div className="btn-row">
+            <button className="btn btn-secondary" onClick={() => setStep(2)}>
+              Back
+            </button>
+            <button className="btn" onClick={() => setStep(4)}>
+              Continue to validation
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      {step === 4 && inspection ? (
+        <div className="card">
           <h2 className="card-title">Validation</h2>
           <ValidationView inspection={inspection} />
           <div className="btn-row">
-            <button className="btn btn-secondary" onClick={() => setStep(2)}>
+            <button className="btn btn-secondary" onClick={() => setStep(3)}>
               Back
             </button>
             <button className="btn" onClick={submit} disabled={loading || !signedIn}>
@@ -298,7 +371,7 @@ export function SubmitWizard({ signedIn }: { signedIn: boolean }) {
         </div>
       ) : null}
 
-      {step === 4 && result ? (
+      {step === 5 && result ? (
         <div className="card">
           <h2 className="card-title">Submission received</h2>
           <p>
@@ -364,6 +437,16 @@ function ValidationView({ inspection }: { inspection: InspectResponse }) {
           Knowledge: {inspection.knowledgeCounts.claims} claims,{" "}
           {inspection.knowledgeCounts.citations} citations, {inspection.knowledgeCounts.trust} TRUST
           records
+        </li>
+        <li>
+          Node candidates:{" "}
+          {
+            inspection.nodeExtraction.nodes.filter(
+              (record) => record.status === "ok" && Boolean(record.node),
+            ).length
+          }{" "}
+          publishable (
+          {inspection.publicationTargets.proseReview ? "with prose review" : "node-only"})
         </li>
       </ul>
 

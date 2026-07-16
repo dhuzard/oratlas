@@ -153,7 +153,7 @@ packages: [packages/extractor, packages/github]
 ```yaml
 id: KG-04
 epic: A
-status: todo
+status: done (PR #39)
 depends_on: [KG-02, KG-03]
 size: L
 labels: [web, editorial, api]
@@ -237,7 +237,7 @@ packages: [packages/knowledge, packages/contracts, docs]
 id: KG-07
 epic: B
 status: todo
-depends_on: [KG-02, KG-06]
+depends_on: [KG-02, KG-03, KG-04, KG-06]
 size: M
 labels: [knowledge, editorial]
 packages: [packages/knowledge, apps/web]

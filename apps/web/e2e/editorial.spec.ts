@@ -6,7 +6,7 @@ test.describe("Editorial workflow (mock auth)", () => {
     await page.getByRole("button", { name: /Sign in as submitter/ }).click();
     await expect(page).toHaveURL(/\/submit/);
     await expect(page.getByRole("heading", { level: 1 })).toContainText(
-      "Submit a computational review",
+      "Submit a review or knowledge nodes",
     );
   });
 
@@ -23,13 +23,15 @@ test.describe("Editorial workflow (mock auth)", () => {
     await page.getByRole("button", { name: /Sign in as editor/ }).click();
     await expect(page).toHaveURL(/\/editorial/);
 
-    const pending = page.getByText(/spike-sorting-methods-review/).first();
+    const pending = page
+      .locator("article.card")
+      .filter({ hasText: /spike-sorting-methods-review/ });
     await expect(pending).toBeVisible();
 
     // Wait for the client component to hydrate before clicking (the decision
     // handler is client-side fetch, unlike the server-action sign-in form).
     await page.waitForLoadState("networkidle");
-    const acceptButton = page.getByRole("button", { name: /^Accept$/ }).first();
+    const acceptButton = pending.getByRole("button", { name: /^Accept$/ });
     await expect(acceptButton).toBeEnabled();
     // Assert the durable outcome: the decision POST succeeds and the review
     // becomes visible in the public archive.
@@ -40,7 +42,7 @@ test.describe("Editorial workflow (mock auth)", () => {
       ),
       acceptButton.click(),
     ]);
-    expect(response.ok()).toBeTruthy();
+    expect(response.ok(), await response.text()).toBeTruthy();
 
     await page.goto("/archive");
     await expect(page.getByText(/Spike-Sorting Methods/i).first()).toBeVisible();

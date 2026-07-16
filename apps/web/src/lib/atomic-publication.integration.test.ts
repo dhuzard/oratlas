@@ -4,11 +4,18 @@ import { existsSync, rmSync } from "node:fs";
 import { resolve } from "node:path";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import {
+  canonicalJson,
   type CompatibilityReport,
   type InspectionReport,
+  type KnowledgeNode,
   type SubmissionValidationReport,
 } from "@oratlas/contracts";
-import { createEmptyNodeExtractionReport, type FullExtraction } from "@oratlas/extractor";
+import {
+  createEmptyNodeExtractionReport,
+  nodeExtractionReportSchema,
+  type FullExtraction,
+  type NodeExtractionReport,
+} from "@oratlas/extractor";
 import { type PrismaClient } from "@oratlas/db";
 import { type createInspectionCapture } from "./inspection-captures";
 import { type acceptSubmission, type createSubmission, type decideSubmission } from "./submissions";
@@ -38,8 +45,15 @@ let sequence = 0;
 beforeAll(async () => {
   process.env.DATABASE_URL = databaseUrl;
   execFileSync(
-    resolve(process.cwd(), "packages/db/node_modules/.bin/prisma"),
-    ["db", "push", "--schema", "packages/db/prisma/schema.prisma", "--skip-generate"],
+    process.execPath,
+    [
+      resolve(process.cwd(), "packages/db/node_modules/prisma/build/index.js"),
+      "db",
+      "push",
+      "--schema",
+      "packages/db/prisma/schema.prisma",
+      "--skip-generate",
+    ],
     {
       env: { ...process.env, DATABASE_URL: databaseUrl, RUST_LOG: "info" },
       stdio: "pipe",
@@ -124,6 +138,25 @@ describe.sequential("atomic publication integration", () => {
     });
     expect(stored?.snapshot?.commitSha).toBe(commitA);
     expect(stored?.snapshot?.sourceTreeSha).toBe(treeA);
+  });
+
+  it("normalizes a canonical legacy capture without node extraction", async () => {
+    const capability = await capture({ githubRepositoryId: nextRepoId() });
+    const legacyPayload = JSON.parse(capability.payloadJson);
+    legacyPayload.schemaVersion = "1.0.0";
+    delete legacyPayload.extraction.nodeExtraction;
+    const payloadJson = canonicalJson(legacyPayload);
+    await runtime.prisma.inspectionCapture.update({
+      where: { tokenHash: sha256(capability.token) },
+      data: { payloadJson, payloadHash: sha256(payloadJson) },
+    });
+    const submission = await runtime.createSubmission({
+      inspectionToken: capability.token,
+      submitterId,
+    });
+    const accepted = await runtime.acceptSubmission(submission.submissionId, editorId);
+    expect(accepted.reviewSlug).toBeTruthy();
+    expect(accepted.nodeVersionIds).toEqual([]);
   });
 
   it("keeps reinspection captures append-only while deduplicating the source snapshot", async () => {
@@ -315,6 +348,304 @@ describe.sequential("atomic publication integration", () => {
     });
     expect(override).toMatchObject({ editorId, checkId: "metadata-commit" });
   });
+
+  it("publishes all four node kinds from a node-only capture without creating a review", async () => {
+    const nodes = knowledgeNodes();
+    const capability = await capture({
+      githubRepositoryId: nextRepoId(),
+      nodeExtraction: nodeReport(nodes),
+      reviewContentDetected: false,
+    });
+    const submission = await runtime.createSubmission({
+      inspectionToken: capability.token,
+      submitterId,
+    });
+    const storedPayload = await runtime.prisma.submission.findUniqueOrThrow({
+      where: { id: submission.submissionId },
+      select: { submittedPayloadJson: true },
+    });
+    expect(JSON.parse(storedPayload.submittedPayloadJson!)).toMatchObject({
+      schemaVersion: "1.1.0",
+      publicationTargets: { proseReview: false, knowledgeNodes: true },
+    });
+
+    const accepted = await runtime.acceptSubmission(
+      submission.submissionId,
+      editorId,
+      undefined,
+      [],
+      nodes.map((node) => node.id),
+    );
+    expect(accepted.reviewSlug).toBeUndefined();
+    expect(accepted.nodeVersionIds).toHaveLength(4);
+    expect(
+      await runtime.prisma.reviewVersion.count({
+        where: { sourceSubmissionId: submission.submissionId },
+      }),
+    ).toBe(0);
+    const versions = await runtime.prisma.knowledgeNodeVersion.findMany({
+      where: { sourceSubmissionId: submission.submissionId },
+      include: { knowledgeNode: true },
+    });
+    expect(new Set(versions.map((version) => version.knowledgeNode.kind))).toEqual(
+      new Set(["claim", "figure", "dataset", "code"]),
+    );
+    expect(versions.every((version) => version.inspectionCaptureId)).toBe(true);
+    expect(versions.every((version) => version.capturePayloadHash === capability.payloadHash)).toBe(
+      true,
+    );
+    expect(await runtime.prisma.nodeEdge.count()).toBe(0);
+  });
+
+  it("flags example DOIs from every embedded node location even when report references are incomplete", async () => {
+    const [claim, figure, dataset] = knowledgeNodes();
+    const nodes = [
+      {
+        ...claim!,
+        id: "claim:example-version-doi",
+        versionDoi: "10.5555/oratlas.example.version",
+        conceptDoi: "10.5281/zenodo.2000001",
+      },
+      {
+        ...figure!,
+        id: "figure:example-concept-doi",
+        versionDoi: "10.5281/zenodo.2000002",
+        conceptDoi: "10.5555/oratlas.example.concept",
+      },
+      {
+        ...dataset!,
+        id: "dataset:example-payload-doi",
+        versionDoi: "10.5281/zenodo.2000003",
+        conceptDoi: "10.5281/zenodo.2000004",
+        payload: {
+          ...dataset!.payload,
+          doi: "10.5555/oratlas.example.dataset",
+        },
+      },
+    ] as KnowledgeNode[];
+    const extraction = nodeReport(nodes);
+    extraction.nodes[2]!.doiReferences = [
+      {
+        field: "versionDoi",
+        input: "10.5281/zenodo.2000003",
+        normalizedDoi: "10.5281/zenodo.2000003",
+        isZenodo: true,
+        isExample: false,
+      },
+    ];
+    const capability = await capture({
+      githubRepositoryId: nextRepoId(),
+      nodeExtraction: nodeExtractionReportSchema.parse(extraction),
+      reviewContentDetected: false,
+    });
+    const submission = await runtime.createSubmission({
+      inspectionToken: capability.token,
+      submitterId,
+    });
+    await runtime.acceptSubmission(
+      submission.submissionId,
+      editorId,
+      undefined,
+      [],
+      nodes.map((node) => node.id),
+    );
+    const versions = await runtime.prisma.knowledgeNodeVersion.findMany({
+      where: { sourceSubmissionId: submission.submissionId },
+      include: { knowledgeNode: true },
+    });
+    const byLocalId = new Map(
+      versions.map((version) => [version.knowledgeNode.localNodeId, version]),
+    );
+    expect([...byLocalId.values()].every((version) => version.isExample)).toBe(true);
+    expect(byLocalId.get("claim:example-version-doi")).toMatchObject({
+      versionDoi: "10.5555/oratlas.example.version",
+      conceptDoi: "10.5281/zenodo.2000001",
+    });
+    expect(byLocalId.get("figure:example-concept-doi")).toMatchObject({
+      versionDoi: "10.5281/zenodo.2000002",
+      conceptDoi: "10.5555/oratlas.example.concept",
+    });
+    expect(byLocalId.get("dataset:example-payload-doi")).toMatchObject({
+      versionDoi: "10.5281/zenodo.2000003",
+      conceptDoi: "10.5281/zenodo.2000004",
+    });
+    expect(JSON.parse(byLocalId.get("dataset:example-payload-doi")!.payloadJson)).toMatchObject({
+      doi: "10.5555/oratlas.example.dataset",
+    });
+  });
+
+  it("publishes an exact subset idempotently and rejects a different retry selection", async () => {
+    const nodes = knowledgeNodes().slice(0, 2);
+    const capability = await capture({
+      githubRepositoryId: nextRepoId(),
+      nodeExtraction: nodeReport(nodes),
+      reviewContentDetected: false,
+    });
+    const submission = await runtime.createSubmission({
+      inspectionToken: capability.token,
+      submitterId,
+    });
+    const selected = [nodes[1]!.id];
+    const first = await runtime.acceptSubmission(
+      submission.submissionId,
+      editorId,
+      undefined,
+      [],
+      selected,
+    );
+    const retry = await runtime.acceptSubmission(
+      submission.submissionId,
+      editorId,
+      undefined,
+      [],
+      selected,
+    );
+    expect(first.nodeVersionIds).toHaveLength(1);
+    expect(retry).toMatchObject({
+      selectedNodeIds: selected,
+      nodeVersionIds: first.nodeVersionIds,
+      idempotent: true,
+    });
+    await expect(
+      runtime.acceptSubmission(submission.submissionId, editorId, undefined, [], [nodes[0]!.id]),
+    ).rejects.toMatchObject({ code: "conflict" });
+    expect(
+      await runtime.prisma.auditEvent.count({
+        where: { action: "knowledge-node.published", subjectId: { not: "" } },
+      }),
+    ).toBeGreaterThan(0);
+  });
+
+  it("rejects candidate tampering and rolls the entire acceptance back", async () => {
+    const nodes = knowledgeNodes().slice(0, 1);
+    const capability = await capture({
+      githubRepositoryId: nextRepoId(),
+      nodeExtraction: nodeReport(nodes),
+      reviewContentDetected: false,
+    });
+    const submission = await runtime.createSubmission({
+      inspectionToken: capability.token,
+      submitterId,
+    });
+    const row = await runtime.prisma.submission.findUniqueOrThrow({
+      where: { id: submission.submissionId },
+    });
+    const payload = JSON.parse(row.submittedPayloadJson!);
+    payload.nodeExtraction.nodes[0].node.title = "Tampered title";
+    const payloadJson = canonicalJson(payload);
+    await runtime.prisma.submission.update({
+      where: { id: submission.submissionId },
+      data: { submittedPayloadJson: payloadJson, submittedPayloadHash: sha256(payloadJson) },
+    });
+    await expect(
+      runtime.acceptSubmission(submission.submissionId, editorId, undefined, [], [nodes[0]!.id]),
+    ).rejects.toThrow("immutable inspection capture");
+    expect(
+      await runtime.prisma.submission.findUniqueOrThrow({
+        where: { id: submission.submissionId },
+        select: { status: true },
+      }),
+    ).toEqual({ status: "pending-editorial-review" });
+    expect(
+      await runtime.prisma.knowledgeNodeVersion.count({
+        where: { sourceSubmissionId: submission.submissionId },
+      }),
+    ).toBe(0);
+  });
+
+  it("rolls back cross-capture, repository, commit, and hash binding mismatches", async () => {
+    const nodes = knowledgeNodes().slice(0, 1);
+    const capability = await capture({
+      githubRepositoryId: nextRepoId(),
+      nodeExtraction: nodeReport(nodes),
+      reviewContentDetected: false,
+    });
+    const submission = await runtime.createSubmission({
+      inspectionToken: capability.token,
+      submitterId,
+    });
+    const stored = await runtime.prisma.submission.findUniqueOrThrow({
+      where: { id: submission.submissionId },
+      include: { inspectionCapture: true },
+    });
+    const accept = () =>
+      runtime.acceptSubmission(submission.submissionId, editorId, undefined, [], [nodes[0]!.id]);
+
+    await runtime.prisma.inspectionCapture.update({
+      where: { id: stored.inspectionCaptureId! },
+      data: { commitSha: "c".repeat(40) },
+    });
+    await expect(accept()).rejects.toThrow("capture commit mismatch");
+    await runtime.prisma.inspectionCapture.update({
+      where: { id: stored.inspectionCaptureId! },
+      data: {
+        commitSha: stored.inspectionCapture!.commitSha,
+        githubRepositoryId: "different-github-repository",
+      },
+    });
+    await expect(accept()).rejects.toThrow("capture repository identity mismatch");
+    await runtime.prisma.inspectionCapture.update({
+      where: { id: stored.inspectionCaptureId! },
+      data: { githubRepositoryId: stored.inspectionCapture!.githubRepositoryId },
+    });
+
+    await runtime.prisma.submission.update({
+      where: { id: submission.submissionId },
+      data: { submittedPayloadHash: "0".repeat(64) },
+    });
+    await expect(accept()).rejects.toThrow("payload integrity");
+    await runtime.prisma.submission.update({
+      where: { id: submission.submissionId },
+      data: { submittedPayloadHash: stored.submittedPayloadHash },
+    });
+
+    const other = await capture({ githubRepositoryId: nextRepoId() });
+    const otherCapture = await runtime.prisma.inspectionCapture.findUniqueOrThrow({
+      where: { tokenHash: sha256(other.token) },
+    });
+    await runtime.prisma.submission.update({
+      where: { id: submission.submissionId },
+      data: { inspectionCaptureId: otherCapture.id },
+    });
+    await expect(accept()).rejects.toThrow("immutable inspection capture");
+    await runtime.prisma.submission.update({
+      where: { id: submission.submissionId },
+      data: { inspectionCaptureId: stored.inspectionCaptureId },
+    });
+
+    expect((await accept()).nodeVersionIds).toHaveLength(1);
+    expect(
+      await runtime.prisma.knowledgeNodeVersion.count({
+        where: { sourceSubmissionId: submission.submissionId },
+      }),
+    ).toBe(1);
+  });
+
+  it("leaves node candidates private after reject and request-changes decisions", async () => {
+    for (const decision of ["reject", "request-changes"] as const) {
+      const nodes = knowledgeNodes().slice(0, 1);
+      const capability = await capture({
+        githubRepositoryId: nextRepoId(),
+        nodeExtraction: nodeReport(nodes),
+        reviewContentDetected: false,
+      });
+      const submission = await runtime.createSubmission({
+        inspectionToken: capability.token,
+        submitterId,
+      });
+      await runtime.decideSubmission(submission.submissionId, editorId, decision);
+      expect(
+        await runtime.prisma.knowledgeNodeVersion.count({
+          where: { sourceSubmissionId: submission.submissionId },
+        }),
+      ).toBe(0);
+      expect(
+        await runtime.prisma.auditEvent.count({
+          where: { idempotencyKey: `submission.${decision}:${submission.submissionId}` },
+        }),
+      ).toBe(1);
+    }
+  });
 });
 
 async function capture(options: {
@@ -326,6 +657,8 @@ async function capture(options: {
   releaseTag?: string;
   metadataCommitSha?: string;
   knowledge?: FullExtraction["knowledge"];
+  nodeExtraction?: NodeExtractionReport;
+  reviewContentDetected?: boolean;
 }) {
   const owner = options.owner ?? "lab";
   const name = options.name ?? `review-${sequence}`;
@@ -342,6 +675,8 @@ async function capture(options: {
     options.metadataCommitSha ?? commitA,
     options.releaseTag,
     options.knowledge,
+    options.nodeExtraction,
+    options.reviewContentDetected,
   );
   const baseValidation = validationReport(report);
   const capability = await runtime.createInspectionCapture(
@@ -413,6 +748,8 @@ function fullExtraction(
     trust: [],
     warnings: [],
   },
+  nodeExtraction?: NodeExtractionReport,
+  reviewContentDetected = true,
 ): FullExtraction {
   const provenance = {
     source: "repository-metadata" as const,
@@ -437,15 +774,17 @@ function fullExtraction(
     },
     manifestPresent: false,
     knowledge,
-    nodeExtraction: createEmptyNodeExtractionReport({
-      commitSha: report.selectedSource!.commitSha,
-      extractorVersion: "integration-test",
-    }),
-    compatibility: compatibilityReport(),
+    nodeExtraction:
+      nodeExtraction ??
+      createEmptyNodeExtractionReport({
+        commitSha: report.selectedSource!.commitSha,
+        extractorVersion: "integration-test",
+      }),
+    compatibility: compatibilityReport(reviewContentDetected),
   };
 }
 
-function compatibilityReport(): CompatibilityReport {
+function compatibilityReport(reviewContentDetected = true): CompatibilityReport {
   const absent = { detected: false, evidence: [] };
   return {
     schemaVersion: "1.0.0",
@@ -453,7 +792,9 @@ function compatibilityReport(): CompatibilityReport {
     templateFilesDetected: absent,
     mystProjectDetected: absent,
     bibliographyDetected: absent,
-    reviewContentDetected: { detected: true, evidence: ["integration fixture"] },
+    reviewContentDetected: reviewContentDetected
+      ? { detected: true, evidence: ["integration fixture"] }
+      : absent,
     provenanceDetected: absent,
     trustDataDetected: absent,
     releaseDetected: absent,
@@ -531,6 +872,93 @@ async function assertSameCommitSelectionOrder(
   expect(versions.every((version) => version.inspectionCaptureId)).toBe(true);
   expect(versions.every((version) => version.snapshot.sourceKind === null)).toBe(true);
   expect(versions.every((version) => version.snapshot.releaseTag === null)).toBe(true);
+}
+
+function knowledgeNodes(): KnowledgeNode[] {
+  const shared = {
+    abstract: "A bounded publication object.",
+    contributors: [{ displayName: "Ada Researcher" }],
+    license: "CC-BY-4.0",
+    provenance: {
+      sourcePath: "nodes/publications.json",
+      repositoryUrl: "https://github.com/lab/nodes",
+      commitSha: commitA,
+    },
+  };
+  return [
+    {
+      ...shared,
+      id: "claim:result",
+      kind: "claim",
+      title: "Primary claim",
+      text: "The intervention changed the measured outcome.",
+      payload: { statement: "The intervention changed the measured outcome.", qualifiers: [] },
+    },
+    {
+      ...shared,
+      id: "figure:main",
+      kind: "figure",
+      title: "Main figure",
+      payload: { artifactPath: "figures/main.png", caption: "Measured outcome by condition." },
+    },
+    {
+      ...shared,
+      id: "dataset:observations",
+      kind: "dataset",
+      title: "Observations",
+      versionDoi: "10.5281/zenodo.1234567",
+      conceptDoi: "10.5281/zenodo.1234566",
+      payload: {
+        artifactPath: "data/observations.csv",
+        format: "text/csv",
+        sizeBytes: 42_000,
+      },
+    },
+    {
+      ...shared,
+      id: "code:analysis",
+      kind: "code",
+      title: "Analysis code",
+      payload: { entryPoints: ["src/analyse.py"], language: "Python", releaseRef: "v1.0.0" },
+    },
+  ];
+}
+
+function nodeReport(nodes: KnowledgeNode[]): NodeExtractionReport {
+  return nodeExtractionReportSchema.parse({
+    ...createEmptyNodeExtractionReport({
+      commitSha: commitA,
+      extractorVersion: "integration-test",
+    }),
+    manifest: { path: "node-manifest.json", status: "ok", errors: [] },
+    nodes: nodes.map((node, index) => ({
+      status: "ok",
+      sourcePath: "nodes/publications.json",
+      sourcePointer: `/${index}`,
+      declaredId: node.id,
+      node,
+      fieldProvenance: {
+        title: {
+          source: "node-record",
+          file: "nodes/publications.json",
+          pointer: `/${index}/title`,
+          commitSha: commitA,
+          extractorVersion: "integration-test",
+          confidence: 1,
+        },
+      },
+      doiReferences: [],
+      issues: [],
+    })),
+    counts: {
+      ok: nodes.length,
+      invalid: 0,
+      skipped: 0,
+      edgesOk: 0,
+      edgesInvalid: 0,
+      edgesSkipped: 0,
+    },
+  });
 }
 
 function sha256(value: string): string {

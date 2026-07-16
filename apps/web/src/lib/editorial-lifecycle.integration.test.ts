@@ -51,8 +51,15 @@ const reportBody: FormalReviewReportBody = {
 beforeAll(async () => {
   process.env.DATABASE_URL = databaseUrl;
   execFileSync(
-    resolve(process.cwd(), "packages/db/node_modules/.bin/prisma"),
-    ["db", "push", "--schema", "packages/db/prisma/schema.prisma", "--skip-generate"],
+    process.execPath,
+    [
+      resolve(process.cwd(), "packages/db/node_modules/prisma/build/index.js"),
+      "db",
+      "push",
+      "--schema",
+      "packages/db/prisma/schema.prisma",
+      "--skip-generate",
+    ],
     { env: { ...process.env, DATABASE_URL: databaseUrl, RUST_LOG: "info" }, stdio: "pipe" },
   );
   const { prisma } = await import("./db");
@@ -279,6 +286,76 @@ describe.sequential("formal editorial-review lifecycle", () => {
       newSubmission(reviewer.id, "lineage-guard-review", "903", base.submissionId),
     ).rejects.toMatchObject({ code: "conflict" });
   }, 30_000);
+
+  it("refuses a formal decision after the assigned editor is downgraded", async () => {
+    const { lifecycle } = runtime;
+    const submission = await newSubmission(submitter.id, "downgraded-editor-review", "904");
+    const editorRow = await runtime.prisma.user.create({
+      data: {
+        githubUserId: "lc-downgraded-editor",
+        githubLogin: "lc-downgraded-editor",
+        role: "EDITOR",
+      },
+    });
+    const actor = { id: editorRow.id, role: "EDITOR" };
+    await lifecycle.assignEditor(editor, submission.submissionId, actor.id, {
+      declared: false,
+      statement: "",
+    });
+    const round = await lifecycle.openReviewRound(actor, submission.submissionId);
+    await runtime.prisma.user.update({ where: { id: actor.id }, data: { role: "USER" } });
+    actor.role = "USER";
+
+    await expect(
+      lifecycle.issueDecision(actor, round.roundId, "accept", {
+        schemaVersion: "1.0.0",
+        letter: "This decision must be refused after the editor role is removed.",
+      }),
+    ).rejects.toMatchObject({ code: "forbidden" });
+
+    const storedSubmission = await runtime.prisma.submission.findUniqueOrThrow({
+      where: { id: submission.submissionId },
+    });
+    expect(storedSubmission.status).toBe("pending-editorial-review");
+    expect(storedSubmission.resultingReviewId).toBeNull();
+    expect(storedSubmission.resultingReviewVersionId).toBeNull();
+    expect(
+      await runtime.prisma.review.count({
+        where: { repositoryId: storedSubmission.repositoryId },
+      }),
+    ).toBe(0);
+    expect(
+      await runtime.prisma.knowledgeNodeVersion.count({
+        where: { sourceSubmissionId: submission.submissionId },
+      }),
+    ).toBe(0);
+    expect(await runtime.prisma.decisionLetter.count({ where: { roundId: round.roundId } })).toBe(
+      0,
+    );
+    expect(
+      await runtime.prisma.auditEvent.count({
+        where: {
+          OR: [
+            { idempotencyKey: `submission.accepted:${submission.submissionId}` },
+            { idempotencyKey: `review.published:${submission.submissionId}` },
+            { idempotencyKey: `editorial.decision-issued:${round.roundId}` },
+            {
+              action: "knowledge-node.published",
+              idempotencyKey: {
+                startsWith: `knowledge-node.published:${submission.submissionId}:`,
+              },
+            },
+          ],
+        },
+      }),
+    ).toBe(0);
+    expect(
+      await runtime.prisma.reviewRound.findUniqueOrThrow({
+        where: { id: round.roundId },
+        select: { status: true, decidedAt: true },
+      }),
+    ).toEqual({ status: "open", decidedAt: null });
+  });
 });
 
 function inspectionReport(name: string, repoId: string): InspectionReport {
