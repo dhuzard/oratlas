@@ -12,6 +12,13 @@ Run the deterministic suite from the repository root:
 pnpm eval:grounding
 ```
 
+For machine consumption, silence the outer package-manager lifecycle framing so stdout is exactly
+one JSON object:
+
+```sh
+pnpm --silent eval:grounding
+```
+
 Offline mode is the default. It does not read provider, model, or API-key environment variables and
 makes no network request. CI runs this command with provider variables explicitly empty. A scripted
 provider captures exactly one production request for every fixture; its response and the
@@ -19,9 +26,9 @@ deterministic fallback both pass through the same production parser and groundin
 
 Fixtures are auto-discovered in
 `packages/knowledge/src/grounding-eval-fixtures`. Each `*.ts` file has one default export declared
-with `defineGroundingEvalFixture`; there is no registry to edit. File names and fixture IDs use
-lowercase letters, digits, and hyphens. Discovery and execution use code-unit sorting, and fixtures
-run sequentially.
+with `defineGroundingEvalFixture`; there is no registry to edit. A fixture ID equals its file name
+without `.ts`; both use lowercase letters, digits, and hyphens. Discovery and execution use
+code-unit sorting, and fixtures run sequentially.
 
 The checked-in corpus covers:
 
@@ -50,7 +57,8 @@ missing or unsupported configuration is an operational error.
 
 ## Report v1
 
-The command writes one canonical JSON object and no diagnostic prose. Case rows are sorted by ID:
+The evaluator writes one canonical JSON object and no diagnostic prose. Use the outer-silent command
+above when package-manager lifecycle framing is not acceptable. Case rows are sorted by ID:
 
 ```json
 {
@@ -73,6 +81,8 @@ Rejected expectations add only a stable `errorCode`. A runner-level failure has 
 and a stable `operationalErrorCode`. Reports never contain timestamps or durations in mock mode and
 never contain packets, prompts, packet/prompt hashes, raw provider or fixture output, exception
 messages/stacks, environment values, secrets, or `AgentRun` data.
+If stdout is unavailable, the runner fails closed with exit status `2` and emits no fallback
+diagnostic that could expose an exception or secret.
 
 Exit status meanings are:
 

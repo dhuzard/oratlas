@@ -94,7 +94,9 @@ export async function discoverGroundingEvalFixtures(): Promise<GroundingEvalFixt
     const module = (await import(pathToFileURL(fixturePath).href)) as {
       default?: unknown;
     };
-    if (!isFixture(module.default)) throw new GroundingEvalFixtureError("fixture-invalid");
+    if (!isFixture(module.default) || module.default.id !== entry.name.slice(0, -".ts".length)) {
+      throw new GroundingEvalFixtureError("fixture-invalid");
+    }
     fixtures.push(module.default);
   }
   return fixtures;
@@ -140,8 +142,37 @@ function boundedProvider(provider: LlmProvider, timeoutMs: number): LlmProvider 
 function writeReport(
   write: (report: string) => void,
   report: GroundingEvalReport | GroundingEvalOperationalReport,
-): void {
-  write(`${canonicalJson(report)}\n`);
+): boolean {
+  try {
+    write(`${canonicalJson(report)}\n`);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function finishWithReport(
+  write: (report: string) => void,
+  report: GroundingEvalReport | GroundingEvalOperationalReport,
+  intendedStatus: number,
+): number {
+  return writeReport(write, report) ? intendedStatus : GROUNDING_EVAL_EXIT.operationalError;
+}
+
+function writeStdoutFailClosed(report: string): void {
+  const markOperationalFailure = () => {
+    process.exitCode = GROUNDING_EVAL_EXIT.operationalError;
+  };
+  process.stdout.once("error", markOperationalFailure);
+  try {
+    process.stdout.write(report, (error) => {
+      process.stdout.off("error", markOperationalFailure);
+      if (error) markOperationalFailure();
+    });
+  } catch (error) {
+    process.stdout.off("error", markOperationalFailure);
+    throw error;
+  }
 }
 
 export async function runGroundingEvalCli(
@@ -149,12 +180,15 @@ export async function runGroundingEvalCli(
   dependencies: GroundingEvalCliDependencies = {},
 ): Promise<number> {
   const env = dependencies.env ?? process.env;
-  const write = dependencies.write ?? ((report: string) => process.stdout.write(report));
+  const write = dependencies.write ?? writeStdoutFailClosed;
   const mode: GroundingEvalMode = env.ORATLAS_GROUNDING_EVAL_REAL === "1" ? "real" : "mock";
 
   if (args.length > 0) {
-    writeReport(write, operationalReport(mode, "configuration-invalid"));
-    return GROUNDING_EVAL_EXIT.operationalError;
+    return finishWithReport(
+      write,
+      operationalReport(mode, "configuration-invalid"),
+      GROUNDING_EVAL_EXIT.operationalError,
+    );
   }
 
   let provider: LlmProvider | undefined;
@@ -163,8 +197,11 @@ export async function runGroundingEvalCli(
     const apiKey = env.ANTHROPIC_API_KEY;
     const model = env.LLM_MODEL;
     if (providerName !== "anthropic" || !apiKey || !model) {
-      writeReport(write, operationalReport(mode, "configuration-invalid"));
-      return GROUNDING_EVAL_EXIT.operationalError;
+      return finishWithReport(
+        write,
+        operationalReport(mode, "configuration-invalid"),
+        GROUNDING_EVAL_EXIT.operationalError,
+      );
     }
     const timeoutMs = dependencies.realTimeoutMs ?? GROUNDING_EVAL_LIMITS.maxRealProviderTimeoutMs;
     if (
@@ -172,15 +209,21 @@ export async function runGroundingEvalCli(
       timeoutMs < 1 ||
       timeoutMs > GROUNDING_EVAL_LIMITS.maxRealProviderTimeoutMs
     ) {
-      writeReport(write, operationalReport(mode, "configuration-invalid"));
-      return GROUNDING_EVAL_EXIT.operationalError;
+      return finishWithReport(
+        write,
+        operationalReport(mode, "configuration-invalid"),
+        GROUNDING_EVAL_EXIT.operationalError,
+      );
     }
     try {
       const createProvider = dependencies.createRealProvider ?? createAnthropicProvider;
       provider = boundedProvider(createProvider({ apiKey, model, timeoutMs }), timeoutMs);
     } catch {
-      writeReport(write, operationalReport(mode, "configuration-invalid"));
-      return GROUNDING_EVAL_EXIT.operationalError;
+      return finishWithReport(
+        write,
+        operationalReport(mode, "configuration-invalid"),
+        GROUNDING_EVAL_EXIT.operationalError,
+      );
     }
   }
 
@@ -189,8 +232,11 @@ export async function runGroundingEvalCli(
     fixtures = await (dependencies.discover ?? discoverGroundingEvalFixtures)();
   } catch (error) {
     const code = error instanceof GroundingEvalFixtureError ? error.code : "discovery-failed";
-    writeReport(write, operationalReport(mode, code));
-    return GROUNDING_EVAL_EXIT.operationalError;
+    return finishWithReport(
+      write,
+      operationalReport(mode, code),
+      GROUNDING_EVAL_EXIT.operationalError,
+    );
   }
 
   try {
@@ -198,21 +244,41 @@ export async function runGroundingEvalCli(
       mode,
       ...(provider ? { provider } : {}),
     });
-    writeReport(write, report);
-    if (report.cases.some((result) => result.observedOutcome === "operational-error")) {
-      return GROUNDING_EVAL_EXIT.operationalError;
-    }
-    return report.summary.failed === 0 ? GROUNDING_EVAL_EXIT.passed : GROUNDING_EVAL_EXIT.mismatch;
+    const status = report.cases.some((result) => result.observedOutcome === "operational-error")
+      ? GROUNDING_EVAL_EXIT.operationalError
+      : report.summary.failed === 0
+        ? GROUNDING_EVAL_EXIT.passed
+        : GROUNDING_EVAL_EXIT.mismatch;
+    return finishWithReport(write, report, status);
   } catch (error) {
     const code = error instanceof GroundingEvalFixtureError ? error.code : "runner-failed";
-    writeReport(write, operationalReport(mode, code));
+    return finishWithReport(
+      write,
+      operationalReport(mode, code),
+      GROUNDING_EVAL_EXIT.operationalError,
+    );
+  }
+}
+
+/** Terminal guard: no exception is allowed to reach Node's unhandled-rejection reporter. */
+export async function settleGroundingEvalCli(
+  args: readonly string[] = [],
+  dependencies: GroundingEvalCliDependencies = {},
+): Promise<number> {
+  try {
+    return await runGroundingEvalCli(args, dependencies);
+  } catch {
     return GROUNDING_EVAL_EXIT.operationalError;
   }
 }
 
 const invokedPath = process.argv[1] ? resolve(process.argv[1]) : "";
 if (invokedPath === fileURLToPath(import.meta.url)) {
-  void runGroundingEvalCli(process.argv.slice(2)).then((status) => {
-    process.exitCode = status;
-  });
+  void settleGroundingEvalCli(process.argv.slice(2))
+    .then((status) => {
+      process.exitCode = status;
+    })
+    .catch(() => {
+      process.exitCode = GROUNDING_EVAL_EXIT.operationalError;
+    });
 }

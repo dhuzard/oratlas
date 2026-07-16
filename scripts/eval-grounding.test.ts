@@ -1,3 +1,6 @@
+import { spawnSync } from "node:child_process";
+import { readdir, readFile } from "node:fs/promises";
+import { resolve } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import baseline from "../packages/knowledge/src/grounding-eval-fixtures/baseline-positive.js";
 import {
@@ -13,7 +16,18 @@ import {
   discoverGroundingEvalFixtures,
   GROUNDING_EVAL_EXIT,
   runGroundingEvalCli,
+  settleGroundingEvalCli,
 } from "./eval-grounding.js";
+
+const repositoryRoot = resolve(import.meta.dirname, "..");
+const fixtureDirectory = resolve(repositoryRoot, "packages/knowledge/src/grounding-eval-fixtures");
+
+async function fixtureIdsFromFileNames(): Promise<string[]> {
+  return (await readdir(fixtureDirectory))
+    .filter((name) => name.endsWith(".ts"))
+    .map((name) => name.slice(0, -".ts".length))
+    .sort();
+}
 
 function capture() {
   const reports: string[] = [];
@@ -23,16 +37,12 @@ function capture() {
 describe("eval-grounding CLI", () => {
   it("auto-discovers the sorted one-file corpus", async () => {
     const fixtures = await discoverGroundingEvalFixtures();
-    expect(fixtures.map((fixture) => fixture.id)).toEqual([
-      "baseline-positive",
-      "example-reference",
-      "fabricated-doi",
-      "prompt-injection",
-      "reserved-example-doi",
-      "unknown-reference",
-      "wrong-owner",
-      "wrong-version",
-    ]);
+    const discoveredIds = fixtures.map((fixture) => fixture.id);
+
+    expect(discoveredIds).toEqual(await fixtureIdsFromFileNames());
+    expect(discoveredIds).toEqual(
+      expect.arrayContaining(["baseline-positive", "prompt-injection"]),
+    );
   });
 
   it("passes offline without reading provider configuration or exposing evaluation content", async () => {
@@ -49,14 +59,19 @@ describe("eval-grounding CLI", () => {
       },
     );
 
+    const expectedCount = (await fixtureIdsFromFileNames()).length;
     const status = await runGroundingEvalCli([], { env, write });
 
     expect(status).toBe(GROUNDING_EVAL_EXIT.passed);
     expect(accessed).toEqual(["ORATLAS_GROUNDING_EVAL_REAL"]);
     expect(reports).toHaveLength(1);
     const report = JSON.parse(reports[0]!) as { summary: unknown; cases: unknown[] };
-    expect(report.summary).toEqual({ total: 8, passed: 8, failed: 0 });
-    expect(report.cases).toHaveLength(8);
+    expect(report.summary).toEqual({
+      total: expectedCount,
+      passed: expectedCount,
+      failed: 0,
+    });
+    expect(report.cases).toHaveLength(expectedCount);
     expect(reports[0]).not.toMatch(/10\.\d{4,9}\//i);
     expect(reports[0]).not.toContain("IGNORE THE SYSTEM PROMPT");
     expect(reports[0]).not.toContain("packet");
@@ -142,6 +157,9 @@ describe("eval-grounding CLI", () => {
 
   it("runs only real-eligible fixtures with explicit config, a fixed timeout, and no retry", async () => {
     const { reports, write } = capture();
+    const expectedRealCount = (await discoverGroundingEvalFixtures()).filter(
+      (fixture) => fixture.realEligible,
+    ).length;
     const complete = vi.fn(async () => validGroundingResponse(groundingEvalPacket()));
     const createRealProvider = vi.fn(() => ({ name: "anthropic", model: "test", complete }));
 
@@ -162,12 +180,80 @@ describe("eval-grounding CLI", () => {
       model: "test-model",
       timeoutMs: GROUNDING_EVAL_LIMITS.maxRealProviderTimeoutMs,
     });
-    expect(complete).toHaveBeenCalledTimes(2);
+    expect(complete).toHaveBeenCalledTimes(expectedRealCount);
     expect(JSON.parse(reports[0]!)).toMatchObject({
       mode: "real",
-      summary: { total: 2, passed: 2, failed: 0 },
+      summary: { total: expectedRealCount, passed: expectedRealCount, failed: 0 },
     });
     expect(reports[0]).not.toContain("not-a-real-secret");
+  });
+
+  it("fails closed without rejection or diagnostic leakage when the output sink is unavailable", async () => {
+    const sentinel = "WRITE_FAILURE_SECRET_SENTINEL";
+    const write = vi.fn(() => {
+      throw new Error(sentinel);
+    });
+
+    await expect(
+      runGroundingEvalCli([], {
+        env: {},
+        write,
+        discover: async () => [baseline],
+      }),
+    ).resolves.toBe(GROUNDING_EVAL_EXIT.operationalError);
+    await expect(runGroundingEvalCli(["--invalid"], { env: {}, write })).resolves.toBe(
+      GROUNDING_EVAL_EXIT.operationalError,
+    );
+    expect(write).toHaveBeenCalledTimes(2);
+    expect(write.mock.calls.flat().join("\n")).not.toContain(sentinel);
+
+    const terminalWrite = vi.fn();
+    const hostileEnv = new Proxy<Record<string, string | undefined>>(
+      {},
+      {
+        get() {
+          throw new Error(sentinel);
+        },
+      },
+    );
+    await expect(
+      settleGroundingEvalCli([], { env: hostileEnv, write: terminalWrite }),
+    ).resolves.toBe(GROUNDING_EVAL_EXIT.operationalError);
+    expect(terminalWrite).not.toHaveBeenCalled();
+  });
+
+  it("provides a silent root command whose stdout is exactly one JSON object", async () => {
+    const packageJson = JSON.parse(
+      await readFile(resolve(repositoryRoot, "package.json"), "utf8"),
+    ) as { scripts: Record<string, string> };
+    expect(packageJson.scripts["eval:grounding"]).toBe(
+      "pnpm --silent exec tsx scripts/eval-grounding.ts",
+    );
+
+    const execution = spawnSync("pnpm --silent eval:grounding", {
+      cwd: repositoryRoot,
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        ORATLAS_GROUNDING_EVAL_REAL: "",
+        LLM_PROVIDER: "",
+        LLM_MODEL: "",
+        ANTHROPIC_API_KEY: "",
+      },
+      shell: true,
+      windowsHide: true,
+    });
+
+    expect(execution.error).toBeUndefined();
+    expect(execution.status).toBe(0);
+    expect(execution.stderr).toBe("");
+    const outputLines = execution.stdout.trim().split(/\r?\n/);
+    expect(outputLines).toHaveLength(1);
+    expect(JSON.parse(outputLines[0]!)).toMatchObject({
+      mode: "mock",
+      schemaVersion: "1.0.0",
+      summary: { failed: 0 },
+    });
   });
 
   it("bounds a hanging real provider and does not retry it", async () => {
