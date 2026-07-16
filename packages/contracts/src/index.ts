@@ -3,6 +3,7 @@ export * from "./identifiers.js";
 export * from "./evidence-identity.js";
 export * from "./paths.js";
 export * from "./manifest.js";
+export * from "./knowledge-nodes.js";
 export * from "./metadata.js";
 export * from "./inspection.js";
 export * from "./doi.js";

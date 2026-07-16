@@ -211,3 +211,26 @@ doi-and-versioning, agent-governance, editorial-governance, deployment, poc-limi
   server-side authorization, input/size/rate limits, grounded LLM output.
 - Final verification: `pnpm install` ok; format/lint/typecheck clean; 78 unit tests pass;
   `schema:check` passes; production build succeeds (20 routes); 9/9 Playwright e2e pass.
+
+## KG-01 — Knowledge-node contracts (issue #30)
+
+**Objective:** establish dependency-free publication-node and typed-edge contracts for every
+database, extraction, graph, editorial, and synthesis slice that follows.
+
+- Added strict, discriminated `KnowledgeNode` schemas for claim, figure, dataset, and code
+  objects. The shared envelope preserves stable repository-local identity, bounded text,
+  contributors, license, repository provenance, and distinct version/concept DOI fields.
+- Added the typed `NodeEdge` relation, provenance, and editorial lifecycle enums required by
+  the graph model. Confirmed edges remain explicitly distinguishable from proposals.
+- Added `node-manifest.schema.json`, a matching Zod contract, and a checked reference example.
+  Repositories may enumerate individual JSON records or declare one JSONL stream; all source
+  and artifact paths reuse the traversal-safe repository path contract, and exported byte/file
+  caps are ready for the bounded KG-03 transport.
+- Exported the new runtime schemas and TypeScript types from `@oratlas/contracts` without adding
+  a package dependency.
+- Verified: changed files pass Prettier; repository lint and all 15 workspace typechecks pass;
+  10 new contract tests and all 318 non-database-integration tests pass; `pnpm schema:check` and
+  the production web build pass. The full test run completed 333 tests successfully before the
+  final dataset-locatability test was added, but five
+  pre-existing integration suites cannot launch their extensionless Prisma shell shim on
+  Windows (`spawnSync …/.bin/prisma ENOENT`); their 24 tests remain skipped on this platform.

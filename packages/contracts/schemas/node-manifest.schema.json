@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://oratlas.org/schemas/node-manifest-1.0.0.json",
+  "title": "Open Review Atlas node manifest",
+  "description": "Machine-readable declaration of knowledge-node and edge records in a repository. Version 1.0.0.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "nodes"],
+  "$defs": {
+    "safeRepoRelativePath": {
+      "type": "string",
+      "maxLength": 512,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*(/[A-Za-z0-9][A-Za-z0-9._-]*)*$",
+      "description": "Repository-relative path. No absolute paths, traversal, schemes, backslashes, or control characters."
+    },
+    "recordSource": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["format", "files"],
+          "properties": {
+            "format": { "const": "json" },
+            "files": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 5000,
+              "uniqueItems": true,
+              "items": { "$ref": "#/$defs/safeRepoRelativePath" }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["format", "path"],
+          "properties": {
+            "format": { "const": "jsonl" },
+            "path": { "$ref": "#/$defs/safeRepoRelativePath" }
+          }
+        }
+      ]
+    }
+  },
+  "properties": {
+    "schemaVersion": { "const": "1.0.0" },
+    "nodes": { "$ref": "#/$defs/recordSource" },
+    "edges": { "$ref": "#/$defs/recordSource" }
+  }
+}
