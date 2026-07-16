@@ -1,5 +1,7 @@
 import { PrismaClient } from "../generated/client/index.js";
 
+export * from "./knowledge-node-integrity.js";
+
 export * from "../generated/client/index.js";
 export type { PrismaClient };
 

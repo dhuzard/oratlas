@@ -13,6 +13,9 @@ suffix, and arrays are JSON-encoded strings. Switching to PostgreSQL is a dataso
 | `User`                                   | Minimal GitHub identity + role     | `githubUserId` OAuth key; normalized login indexed and application-checked        |
 | `Repository`                             | Evolving GitHub project            | immutable `githubRepositoryId`; URL/name remain renameable                        |
 | `RepositorySnapshot`                     | Exact repository state             | **`(repositoryId, commitSha)` unique**                                            |
+| `KnowledgeNode`                          | Stable publication-node identity   | **`(repositoryId, localNodeId)` unique**; contract-validated kind                 |
+| `KnowledgeNodeVersion`                   | Immutable node content snapshot    | **`(knowledgeNodeId, snapshotId)` unique**; capture/submission provenance         |
+| `NodeEdge`                               | Typed graph relation               | **`(sourceNodeVersionId, targetNodeId, relationType)` unique**                    |
 | `Review`                                 | Public review record               | `slug` unique; `currentSnapshotId`; lifecycle CAS revision                        |
 | `ReviewVersion`                          | Immutable version                  | exact snapshot; DOI roles; materialized public lifecycle state                    |
 | `ReviewLifecycleEvent`                   | Append-only scholarly lifecycle    | `(reviewId, revision)` unique; same-review correction/withdrawal/tombstone        |
@@ -21,7 +24,7 @@ suffix, and arrays are JSON-encoded strings. Switching to PostgreSQL is a dataso
 | `InspectionCapture`                      | Exact inspect-to-submit payload    | token hash unique; user-bound, expiring, single-use; payload/hash append-only     |
 | `EditorialOverride`                      | Scoped consistency exception       | `(submissionId, checkId)` unique; editor and rationale retained                   |
 | `Identifier`                             | DOIs/ORCID/URL/Zenodo per version  | `relationType` distinguishes version vs concept DOI                               |
-| `Claim`                                  | A review claim                     | `(reviewVersionId, localClaimId)` unique                                          |
+| `Claim`                                  | A review claim                     | `(reviewVersionId, localClaimId)` unique; optional stable-node backlink           |
 | `Citation`                               | A cited source                     | `(reviewVersionId, localCitationId)` unique                                       |
 | `ClaimEvidenceRelation`                  | Claim↔citation relation            | `(claimId, citationId, relationType)` unique                                      |
 | `TrustAssessment`                        | Imported TRUST for one relation    | public import state is `unverified-import`; source assertions retained separately |
@@ -39,6 +42,24 @@ suffix, and arrays are JSON-encoded strings. Switching to PostgreSQL is a dataso
 ## Immutability and versioning
 
 - A `RepositorySnapshot` is uniquely a `(repository, commitSha)` pair — the exact reviewed state.
+- A `KnowledgeNode` is a stable concept identity within its owning repository. Its kind is a
+  contract-validated string and content is stored only on `KnowledgeNodeVersion` rows.
+- Every `KnowledgeNodeVersion` binds to a `RepositorySnapshot`; its exact commit SHA is therefore
+  `version.snapshot.commitSha` and is not duplicated in a drift-prone second column. Contributors,
+  provenance, and kind-specific payloads are retained as portable JSON-encoded string columns.
+- Editorially materialized node versions also retain nullable `sourceSubmissionId`,
+  `inspectionCaptureId`, and `capturePayloadHash` provenance. The relations are many-to-one because
+  one accepted capture can contain several nodes; together they let KG-04 audit and replay the exact
+  accepted bytes without making the deduplicated repository snapshot carry submission state.
+- Prisma foreign keys cannot express the required cross-table equality: the node, snapshot, and
+  submission must belong to one repository; the submission must select that snapshot and capture;
+  and the capture's immutable GitHub repository id, commit SHA, and payload hash must match the
+  repository, snapshot, and node-version provenance. KG-04 materialization must call
+  `assertKnowledgeNodeMaterializationBinding` inside the acceptance transaction and fail closed
+  before creating a node version when any value differs.
+- A `NodeEdge` starts at one immutable source version and targets a stable node identity. Relation,
+  status, and provenance remain separate contract-validated string columns so proposed and
+  editor-confirmed meanings cannot be conflated.
 - Source selection is not snapshot identity. `Submission` and `ReviewVersion` retain the exact
   capture, source kind, branch/tag/release, tag object and selection key. The same commit can
   therefore have distinct default-branch, tag, and release versions without mutating the snapshot.
@@ -59,6 +80,19 @@ suffix, and arrays are JSON-encoded strings. Switching to PostgreSQL is a dataso
 Source-local claim/citation ids are unique only inside a version. Atlas derives global ids from
 `(reviewVersionId, localId)` and uses canonical DOI/PMID/OpenAlex aliases for work comparison. See
 `docs/evidence-identity.md`.
+
+Legacy `Claim` rows may optionally point to a stable `KnowledgeNode`. The nullable foreign key is
+additive: existing review claims remain valid without a backlink, and several historical review
+versions may refer to the same stable concept identity.
+
+KG-02 keeps ownership repository-scoped: the repository's `owner` identifies the publishing lab in
+the current GitHub-based POC. A separate organization/lab authority model is not inferred from a
+mutable display name and remains outside this schema slice.
+
+Legacy repository reconciliation is conservative for graph records. Colliding node identities are
+merged only when their kinds match; colliding versions and edges are deduplicated only when every
+immutable semantic/provenance field is exactly equal. Any mismatch aborts the transaction for
+manual resolution rather than silently choosing one scholarly record.
 
 ## The five information kinds
 

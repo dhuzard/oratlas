@@ -7,7 +7,12 @@
  * repository is included as a *structural demonstration*, not as a submitted
  * scientific review.
  */
-import { type AssessmentReviewStatus, type TrustOrdinal } from "@oratlas/contracts";
+import {
+  type AssessmentReviewStatus,
+  type KnowledgeNode,
+  type NodeEdge,
+  type TrustOrdinal,
+} from "@oratlas/contracts";
 
 export const EXTRACTOR_VERSION = "extractor-0.1.0";
 export const TRUST_PROTOCOL_VERSION = "trust-poc-1.0";
@@ -128,6 +133,19 @@ export interface SeedReview {
   relations: SeedRelation[];
   metadataProvenanceNote: string;
   compatibilityLevel: string;
+}
+
+export interface SeedKnowledgeNode {
+  repositoryKey: "replay-lab" | "replication-lab";
+  node: KnowledgeNode;
+  isExample: boolean;
+  legacyClaim?: { reviewSlug: string; localClaimId: string };
+}
+
+export interface SeedNodeEdge {
+  sourceRepositoryKey: SeedKnowledgeNode["repositoryKey"];
+  targetRepositoryKey: SeedKnowledgeNode["repositoryKey"];
+  edge: NodeEdge;
 }
 
 const sha = (seed: string) => seed.padEnd(40, "0").slice(0, 40);
@@ -530,6 +548,243 @@ export const templateDemoReview: SeedReview = {
 };
 
 export const seedReviews = [reviewWithDoi, repositoryOnlyReview, templateDemoReview];
+
+/** Repository and exact snapshot for a second, independent node-publishing lab. */
+export const replicationLabRepository = {
+  key: "replication-lab" as const,
+  owner: "independent-replication-lab",
+  name: "replay-node-publications",
+  canonicalUrl: "https://github.com/independent-replication-lab/replay-node-publications",
+  defaultBranch: "main",
+  description: "Independent replication knowledge nodes for the Atlas seed graph.",
+  topics: ["neuroscience", "hippocampal-replay", "replication", "knowledge-graph"],
+  commitSha: sha("cc44dd55ee66ff778899"),
+};
+
+const replayNodeContributor = {
+  displayName: "Dr. Ada Rivera",
+  givenName: "Ada",
+  familyName: "Rivera",
+  orcid: "0000-0002-1825-0097",
+  githubLogin: "arivera-example",
+  roles: ["author"],
+};
+
+const replicationNodeContributor = {
+  displayName: "Dr. Noor Okafor",
+  givenName: "Noor",
+  familyName: "Okafor",
+  githubLogin: "nokafor-example",
+  roles: ["author", "replicator"],
+};
+
+/** Six first-class nodes across two laboratories, covering every node kind. */
+export const seedKnowledgeNodes: SeedKnowledgeNode[] = [
+  {
+    repositoryKey: "replay-lab",
+    isExample: false,
+    legacyClaim: { reviewSlug: reviewWithDoi.slug, localClaimId: "claim-001" },
+    node: {
+      id: "replay-consolidation-claim",
+      kind: "claim",
+      title: "Replay supports systems memory consolidation",
+      abstract: "A bounded claim about the association between sleep replay and consolidation.",
+      text: "Hippocampal replay during sleep supports systems-level memory consolidation.",
+      contributors: [replayNodeContributor],
+      license: "CC-BY-4.0",
+      provenance: {
+        sourcePath: "nodes/replay-consolidation-claim.json",
+        repositoryUrl: reviewWithDoi.repository.canonicalUrl,
+        commitSha: reviewWithDoi.snapshot.commitSha,
+        declaredAt: NOW,
+      },
+      payload: {
+        statement: "Hippocampal replay during sleep supports systems-level memory consolidation.",
+        qualifiers: ["Evidence is strongest in rodent electrophysiology."],
+      },
+    },
+  },
+  {
+    repositoryKey: "replay-lab",
+    isExample: true,
+    node: {
+      id: "replay-sequences-dataset",
+      kind: "dataset",
+      title: "Annotated replay sequence dataset",
+      abstract: "Synthetic seed metadata for annotated sleep replay events.",
+      contributors: [replayNodeContributor],
+      license: "CC-BY-4.0",
+      provenance: {
+        sourcePath: "nodes/replay-sequences-dataset.json",
+        repositoryUrl: reviewWithDoi.repository.canonicalUrl,
+        commitSha: reviewWithDoi.snapshot.commitSha,
+        declaredAt: NOW,
+      },
+      versionDoi: "10.5555/oratlas.node.replay-dataset.v1",
+      conceptDoi: "10.5555/oratlas.node.replay-dataset.concept",
+      payload: {
+        artifactPath: "data/replay-sequences.csv",
+        format: "text/csv",
+        sizeBytes: 42_240,
+        doi: "10.5555/oratlas.node.replay-dataset.v1",
+      },
+    },
+  },
+  {
+    repositoryKey: "replay-lab",
+    isExample: false,
+    node: {
+      id: "replay-analysis-code",
+      kind: "code",
+      title: "Replay sequence analysis pipeline",
+      contributors: [replayNodeContributor],
+      license: "MIT",
+      provenance: {
+        sourcePath: "nodes/replay-analysis-code.json",
+        repositoryUrl: reviewWithDoi.repository.canonicalUrl,
+        commitSha: reviewWithDoi.snapshot.commitSha,
+        declaredAt: NOW,
+      },
+      payload: {
+        entryPoints: ["src/analyze_replay.py"],
+        language: "Python",
+        releaseRef: "v1.2.0",
+      },
+    },
+  },
+  {
+    repositoryKey: "replication-lab",
+    isExample: false,
+    node: {
+      id: "independent-replay-replication",
+      kind: "claim",
+      title: "Independent replay replication",
+      abstract: "An independent laboratory reports the same directional replay association.",
+      contributors: [replicationNodeContributor],
+      license: "CC-BY-4.0",
+      provenance: {
+        sourcePath: "nodes/independent-replay-replication.json",
+        repositoryUrl: replicationLabRepository.canonicalUrl,
+        commitSha: replicationLabRepository.commitSha,
+        declaredAt: NOW,
+      },
+      payload: {
+        statement: "An independent cohort reproduces the replay–consolidation association.",
+        qualifiers: ["The protocol differs in event-detection threshold."],
+      },
+    },
+  },
+  {
+    repositoryKey: "replication-lab",
+    isExample: false,
+    node: {
+      id: "replay-boundary-claim",
+      kind: "claim",
+      title: "Replay is not sufficient for consolidation",
+      text: "Replay frequency alone does not predict consolidation under the independent protocol.",
+      contributors: [replicationNodeContributor],
+      license: "CC-BY-4.0",
+      provenance: {
+        sourcePath: "nodes/replay-boundary-claim.json",
+        repositoryUrl: replicationLabRepository.canonicalUrl,
+        commitSha: replicationLabRepository.commitSha,
+        declaredAt: NOW,
+      },
+      payload: {
+        statement: "Replay frequency alone is not sufficient to predict memory consolidation.",
+        qualifiers: ["This contradicts a frequency-only interpretation, not all replay models."],
+      },
+    },
+  },
+  {
+    repositoryKey: "replication-lab",
+    isExample: false,
+    node: {
+      id: "replication-summary-figure",
+      kind: "figure",
+      title: "Cross-lab replay effect comparison",
+      contributors: [replicationNodeContributor],
+      license: "CC-BY-4.0",
+      provenance: {
+        sourcePath: "nodes/replication-summary-figure.json",
+        repositoryUrl: replicationLabRepository.canonicalUrl,
+        commitSha: replicationLabRepository.commitSha,
+        declaredAt: NOW,
+      },
+      payload: {
+        artifactPath: "figures/cross-lab-effect-comparison.svg",
+        caption: "Effect estimates from the original and independent replay cohorts.",
+        altText: "Two interval estimates comparing replay and later memory across laboratories.",
+      },
+    },
+  },
+];
+
+/** Typed graph edges; confirmed fixtures represent editor-confirmed public relations. */
+export const seedNodeEdges: SeedNodeEdge[] = [
+  {
+    sourceRepositoryKey: "replication-lab",
+    targetRepositoryKey: "replay-lab",
+    edge: {
+      sourceNodeId: "independent-replay-replication",
+      targetNodeId: "replay-consolidation-claim",
+      relationType: "replicates",
+      provenance: "confirmed-by-editor",
+      status: "confirmed",
+      rationale: "The independent protocol tests the same directional association.",
+      assertedAt: NOW,
+    },
+  },
+  {
+    sourceRepositoryKey: "replication-lab",
+    targetRepositoryKey: "replay-lab",
+    edge: {
+      sourceNodeId: "replay-boundary-claim",
+      targetNodeId: "replay-consolidation-claim",
+      relationType: "contradicts",
+      provenance: "confirmed-by-editor",
+      status: "confirmed",
+      rationale: "The independent result rejects a frequency-only interpretation.",
+      assertedAt: NOW,
+    },
+  },
+  {
+    sourceRepositoryKey: "replay-lab",
+    targetRepositoryKey: "replay-lab",
+    edge: {
+      sourceNodeId: "replay-consolidation-claim",
+      targetNodeId: "replay-sequences-dataset",
+      relationType: "uses-dataset",
+      provenance: "confirmed-by-editor",
+      status: "confirmed",
+      assertedAt: NOW,
+    },
+  },
+  {
+    sourceRepositoryKey: "replay-lab",
+    targetRepositoryKey: "replay-lab",
+    edge: {
+      sourceNodeId: "replay-consolidation-claim",
+      targetNodeId: "replay-analysis-code",
+      relationType: "uses-code",
+      provenance: "confirmed-by-editor",
+      status: "confirmed",
+      assertedAt: NOW,
+    },
+  },
+  {
+    sourceRepositoryKey: "replication-lab",
+    targetRepositoryKey: "replication-lab",
+    edge: {
+      sourceNodeId: "replication-summary-figure",
+      targetNodeId: "independent-replay-replication",
+      relationType: "derives-from",
+      provenance: "confirmed-by-editor",
+      status: "confirmed",
+      assertedAt: NOW,
+    },
+  },
+];
 
 /** A pending submission awaiting editorial review. */
 export const pendingSubmission = {

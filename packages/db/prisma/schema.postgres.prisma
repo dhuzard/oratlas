@@ -92,9 +92,10 @@ model Repository {
   updatedAt          DateTime  @updatedAt
   lastInspectedAt    DateTime?
 
-  snapshots   RepositorySnapshot[]
-  submissions Submission[]
-  reviews     Review[]
+  snapshots      RepositorySnapshot[]
+  submissions    Submission[]
+  reviews        Review[]
+  knowledgeNodes KnowledgeNode[]
 
   @@unique([host, owner, name])
 }
@@ -127,10 +128,11 @@ model RepositorySnapshot {
   /// SHA-256 over the normalized inspection payload (integrity/versioning aid).
   contentHash          String
 
-  repository     Repository      @relation(fields: [repositoryId], references: [id])
-  submissions    Submission[]
-  reviewVersions ReviewVersion[]
-  currentOf      Review[]        @relation("currentSnapshot")
+  repository            Repository             @relation(fields: [repositoryId], references: [id])
+  submissions           Submission[]
+  reviewVersions        ReviewVersion[]
+  knowledgeNodeVersions KnowledgeNodeVersion[]
+  currentOf             Review[]               @relation("currentSnapshot")
 
   @@unique([repositoryId, commitSha])
 }
@@ -245,8 +247,8 @@ model ReviewLifecycleEvent {
 /// Server-side, opaque, expiring inspect-to-submit capability. Payloads are
 /// append-only; consumption and submission creation occur in one transaction.
 model InspectionCapture {
-  id                    String         @id @default(cuid())
-  tokenHash             String         @unique
+  id                    String                 @id @default(cuid())
+  tokenHash             String                 @unique
   payloadJson           String
   payloadHash           String
   githubRepositoryId    String
@@ -254,12 +256,13 @@ model InspectionCapture {
   inspectedByUserId     String
   commitSha             String
   releaseTag            String?
-  createdAt             DateTime       @default(now())
+  createdAt             DateTime               @default(now())
   expiresAt             DateTime
   consumedAt            DateTime?
-  inspectedBy           User           @relation(fields: [inspectedByUserId], references: [id])
+  inspectedBy           User                   @relation(fields: [inspectedByUserId], references: [id])
   submission            Submission?
   reviewVersion         ReviewVersion?
+  knowledgeNodeVersions KnowledgeNodeVersion[] @relation("NodeVersionCapture")
 
   @@index([expiresAt])
   @@index([payloadHash])
@@ -325,16 +328,17 @@ model Submission {
   createdAt                  DateTime  @default(now())
   updatedAt                  DateTime  @updatedAt
 
-  submitter              User                @relation("submitter", fields: [submitterId], references: [id])
-  reviewer               User?               @relation("reviewer", fields: [reviewerId], references: [id])
-  repository             Repository          @relation(fields: [repositoryId], references: [id])
-  snapshot               RepositorySnapshot? @relation(fields: [snapshotId], references: [id])
-  inspectionCapture      InspectionCapture?  @relation(fields: [inspectionCaptureId], references: [id])
-  sourceVersion          ReviewVersion?      @relation("VersionSource")
-  resultingReviewVersion ReviewVersion?      @relation("ResultingVersion", fields: [resultingReviewVersionId], references: [id])
+  submitter              User                   @relation("submitter", fields: [submitterId], references: [id])
+  reviewer               User?                  @relation("reviewer", fields: [reviewerId], references: [id])
+  repository             Repository             @relation(fields: [repositoryId], references: [id])
+  snapshot               RepositorySnapshot?    @relation(fields: [snapshotId], references: [id])
+  inspectionCapture      InspectionCapture?     @relation(fields: [inspectionCaptureId], references: [id])
+  sourceVersion          ReviewVersion?         @relation("VersionSource")
+  resultingReviewVersion ReviewVersion?         @relation("ResultingVersion", fields: [resultingReviewVersionId], references: [id])
+  sourceNodeVersions     KnowledgeNodeVersion[] @relation("NodeVersionSource")
   editorialOverrides     EditorialOverride[]
-  previousSubmission     Submission?         @relation("Resubmission", fields: [previousSubmissionId], references: [id])
-  resubmission           Submission?         @relation("Resubmission")
+  previousSubmission     Submission?            @relation("Resubmission", fields: [previousSubmissionId], references: [id])
+  resubmission           Submission?            @relation("Resubmission")
   editorAssignments      EditorAssignment[]
   reviewRounds           ReviewRound[]
 }
@@ -380,6 +384,9 @@ model Identifier {
 model Claim {
   id              String   @id @default(cuid())
   reviewVersionId String
+  /// Optional bridge from legacy review claims to a stable publication node.
+  /// Existing rows remain valid and are not destructively backfilled.
+  knowledgeNodeId String?
   /// Identifier within the source repository artifacts (e.g. "claim-003").
   localClaimId    String
   text            String
@@ -395,6 +402,7 @@ model Claim {
   createdAt       DateTime @default(now())
 
   reviewVersion      ReviewVersion            @relation(fields: [reviewVersionId], references: [id])
+  knowledgeNode      KnowledgeNode?           @relation(fields: [knowledgeNodeId], references: [id])
   evidenceRelations  ClaimEvidenceRelation[]
   linkProposalsFrom  KnowledgeLinkProposal[]  @relation("sourceClaim")
   linkProposalsTo    KnowledgeLinkProposal[]  @relation("targetClaim")
@@ -405,6 +413,89 @@ model Claim {
   replicationBriefs  ReplicationBriefClaim[]
 
   @@unique([reviewVersionId, localClaimId])
+  @@index([knowledgeNodeId])
+}
+
+/// Stable concept identity for one repository-local publication node. Content
+/// lives only in immutable KnowledgeNodeVersion snapshots.
+model KnowledgeNode {
+  id           String   @id @default(cuid())
+  repositoryId String
+  localNodeId  String
+  /// contracts KNOWLEDGE_NODE_KINDS: claim | figure | dataset | code
+  kind         String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  repository    Repository             @relation(fields: [repositoryId], references: [id])
+  versions      KnowledgeNodeVersion[]
+  incomingEdges NodeEdge[]             @relation("targetNode")
+  linkedClaims  Claim[]
+
+  @@unique([repositoryId, localNodeId])
+  @@index([kind])
+}
+
+/// Immutable content snapshot for a node at one exact repository commit. The
+/// bound RepositorySnapshot supplies the commit SHA without duplicating it.
+model KnowledgeNodeVersion {
+  id                  String   @id @default(cuid())
+  knowledgeNodeId     String
+  snapshotId          String
+  /// Submission/capture that first materialized this version. A single
+  /// acceptance can publish many nodes, so these provenance FKs are not unique.
+  sourceSubmissionId  String?
+  inspectionCaptureId String?
+  /// SHA-256 of the exact canonical inspection capture accepted here.
+  capturePayloadHash  String?
+  title               String
+  abstract            String?
+  text                String?
+  /// contracts ManifestContributor[] encoded as JSON.
+  contributorsJson    String   @default("[]")
+  license             String
+  /// contracts KnowledgeNodeProvenance encoded as JSON.
+  provenanceJson      String
+  /// Kind-specific contracts KnowledgeNode.payload encoded as JSON.
+  payloadJson         String
+  versionDoi          String?
+  conceptDoi          String?
+  /// Synthetic example identifier marker; never render its DOI as outbound.
+  isExample           Boolean  @default(false)
+  createdAt           DateTime @default(now())
+
+  knowledgeNode     KnowledgeNode      @relation(fields: [knowledgeNodeId], references: [id])
+  snapshot          RepositorySnapshot @relation(fields: [snapshotId], references: [id])
+  sourceSubmission  Submission?        @relation("NodeVersionSource", fields: [sourceSubmissionId], references: [id])
+  inspectionCapture InspectionCapture? @relation("NodeVersionCapture", fields: [inspectionCaptureId], references: [id])
+  outgoingEdges     NodeEdge[]         @relation("sourceNodeVersion")
+
+  @@unique([knowledgeNodeId, snapshotId])
+  @@index([snapshotId])
+  @@index([sourceSubmissionId])
+  @@index([inspectionCaptureId])
+}
+
+/// Directed, typed relation asserted from an immutable source version to a
+/// stable target identity. Status and provenance use @oratlas/contracts enums.
+model NodeEdge {
+  id                  String    @id @default(cuid())
+  sourceNodeVersionId String
+  targetNodeId        String
+  relationType        String
+  status              String
+  provenance          String
+  rationale           String?
+  assertedAt          DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  sourceNodeVersion KnowledgeNodeVersion @relation("sourceNodeVersion", fields: [sourceNodeVersionId], references: [id])
+  targetNode        KnowledgeNode        @relation("targetNode", fields: [targetNodeId], references: [id])
+
+  @@unique([sourceNodeVersionId, targetNodeId, relationType])
+  @@index([targetNodeId])
+  @@index([status, relationType])
 }
 
 /// A human-editor-published replication opportunity. Triage snapshots are

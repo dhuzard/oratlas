@@ -65,6 +65,29 @@ describe.sequential("legacy GitHub repository reconciliation", () => {
       "SELECT reviewId FROM ReviewVersion WHERE id = 'version-old'",
     );
     expect(movedVersion?.reviewId).toBe("review-new");
+    const nodes = await prisma.$queryRawUnsafe<
+      Array<{ id: string; repositoryId: string; localNodeId: string }>
+    >("SELECT id, repositoryId, localNodeId FROM KnowledgeNode ORDER BY localNodeId");
+    expect(nodes).toEqual([
+      { id: "node-old-only", repositoryId: "repo-new", localNodeId: "old-only" },
+      { id: "node-new", repositoryId: "repo-new", localNodeId: "shared-node" },
+    ]);
+    const nodeVersions = await prisma.$queryRawUnsafe<
+      Array<{ id: string; knowledgeNodeId: string; snapshotId: string }>
+    >("SELECT id, knowledgeNodeId, snapshotId FROM KnowledgeNodeVersion ORDER BY knowledgeNodeId");
+    expect(nodeVersions).toEqual([
+      { id: "node-version-new", knowledgeNodeId: "node-new", snapshotId: "snap-new" },
+      {
+        id: "node-version-old-only",
+        knowledgeNodeId: "node-old-only",
+        snapshotId: "snap-old-only",
+      },
+    ]);
+    expect(await count("NodeEdge")).toBe(1);
+    const [claim] = await prisma.$queryRawUnsafe<Array<{ knowledgeNodeId: string }>>(
+      "SELECT knowledgeNodeId FROM Claim WHERE id = 'claim-old'",
+    );
+    expect(claim?.knowledgeNodeId).toBe("node-new");
     expect(await count("AuditEvent")).toBe(1);
   });
 
@@ -80,11 +103,91 @@ describe.sequential("legacy GitHub repository reconciliation", () => {
   });
 });
 
+describe("fail-closed knowledge-node reconciliation", () => {
+  it("rejects colliding identities with different kinds", async () => {
+    await withFreshFixture(async (client) => {
+      await client.$executeRawUnsafe(
+        "UPDATE KnowledgeNode SET kind = 'dataset' WHERE id = 'node-old'",
+      );
+      await expect(reconcileGithubRepositories(client, true)).rejects.toThrow(/kind mismatch/);
+      expect(await countWith(client, "Repository")).toBe(2);
+    });
+  });
+
+  it.each([
+    ["payloadJson", '{"statement":"changed"}'],
+    ["versionDoi", "10.5555/different-version"],
+    ["sourceSubmissionId", "different-submission"],
+    ["inspectionCaptureId", "different-capture"],
+    ["capturePayloadHash", "different-capture-hash"],
+  ])("rejects duplicate versions when %s differs", async (field, value) => {
+    await withFreshFixture(async (client) => {
+      await client.$executeRawUnsafe(
+        `UPDATE KnowledgeNodeVersion SET "${field}" = ? WHERE id = 'node-version-old'`,
+        value,
+      );
+      await expect(reconcileGithubRepositories(client, true)).rejects.toThrow(
+        new RegExp(`semantic fields differ \\(${field}\\)`),
+      );
+      expect(await countWith(client, "KnowledgeNodeVersion")).toBe(3);
+    });
+  });
+
+  it.each([
+    ["status", "rejected"],
+    ["provenance", "proposed-by-agent"],
+    ["rationale", "Different rationale"],
+    ["assertedAt", "2027-01-01T00:00:00.000Z"],
+  ])("rejects duplicate edges when %s differs", async (field, value) => {
+    await withFreshFixture(async (client) => {
+      await client.$executeRawUnsafe(
+        `UPDATE NodeEdge SET "${field}" = ? WHERE id = 'edge-old'`,
+        value,
+      );
+      await expect(reconcileGithubRepositories(client, true)).rejects.toThrow(
+        new RegExp(`semantic fields differ \\(${field}\\)`),
+      );
+      expect(await countWith(client, "NodeEdge")).toBe(2);
+    });
+  });
+
+  it("deduplicates exact semantic equality", async () => {
+    await withFreshFixture(async (client) => {
+      const report = await reconcileGithubRepositories(client, true);
+      expect(report.mergedRepositoryIds).toEqual(["repo-old"]);
+      expect(await countWith(client, "KnowledgeNodeVersion")).toBe(2);
+      expect(await countWith(client, "NodeEdge")).toBe(1);
+    });
+  });
+});
+
 async function count(table: string): Promise<number> {
-  const [row] = await prisma.$queryRawUnsafe<Array<{ count: bigint }>>(
+  return countWith(prisma, table);
+}
+
+async function countWith(client: PrismaClient, table: string): Promise<number> {
+  const [row] = await client.$queryRawUnsafe<Array<{ count: bigint }>>(
     `SELECT COUNT(*) AS count FROM "${table}"`,
   );
   return Number(row?.count ?? 0);
+}
+
+let fixtureCounter = 0;
+
+async function withFreshFixture(run: (client: PrismaClient) => Promise<void>): Promise<void> {
+  fixtureCounter += 1;
+  const path = `/tmp/oratlas-reconcile-adversarial-${process.pid}-${fixtureCounter}-${Date.now()}.db`;
+  const client = new PrismaClient({ datasourceUrl: `file:${path}` });
+  try {
+    await createLegacySchema(client);
+    await seedDuplicateIdentityGraph(client);
+    await run(client);
+  } finally {
+    await client.$disconnect();
+    for (const candidate of [path, `${path}-journal`, `${path}-wal`, `${path}-shm`]) {
+      if (existsSync(candidate)) rmSync(candidate);
+    }
+  }
 }
 
 async function createLegacySchema(client: PrismaClient): Promise<void> {
@@ -108,6 +211,26 @@ async function createLegacySchema(client: PrismaClient): Promise<void> {
     `CREATE TABLE AuditEvent (
       id TEXT PRIMARY KEY, action TEXT, subjectType TEXT, subjectId TEXT,
       detailsJson TEXT, createdAt TEXT
+    )`,
+    `CREATE TABLE KnowledgeNode (
+      id TEXT PRIMARY KEY, repositoryId TEXT, localNodeId TEXT, kind TEXT,
+      UNIQUE(repositoryId, localNodeId)
+    )`,
+    `CREATE TABLE KnowledgeNodeVersion (
+      id TEXT PRIMARY KEY, knowledgeNodeId TEXT, snapshotId TEXT,
+      title TEXT, abstract TEXT, text TEXT, contributorsJson TEXT, license TEXT,
+      provenanceJson TEXT, payloadJson TEXT, versionDoi TEXT, conceptDoi TEXT,
+      isExample INTEGER, sourceSubmissionId TEXT, inspectionCaptureId TEXT,
+      capturePayloadHash TEXT, createdAt TEXT,
+      UNIQUE(knowledgeNodeId, snapshotId)
+    )`,
+    `CREATE TABLE NodeEdge (
+      id TEXT PRIMARY KEY, sourceNodeVersionId TEXT, targetNodeId TEXT, relationType TEXT,
+      status TEXT, provenance TEXT, rationale TEXT, assertedAt TEXT, createdAt TEXT, updatedAt TEXT,
+      UNIQUE(sourceNodeVersionId, targetNodeId, relationType)
+    )`,
+    `CREATE TABLE Claim (
+      id TEXT PRIMARY KEY, knowledgeNodeId TEXT
     )`,
   ];
   for (const statement of statements) await client.$executeRawUnsafe(statement);
@@ -139,4 +262,35 @@ async function seedDuplicateIdentityGraph(client: PrismaClient): Promise<void> {
   await client.$executeRawUnsafe(
     "INSERT INTO ReviewVersion VALUES ('version-new', 'review-new', 'snap-new')",
   );
+  await client.$executeRawUnsafe(
+    `INSERT INTO KnowledgeNode VALUES
+      ('node-old', 'repo-old', 'shared-node', 'claim'),
+      ('node-new', 'repo-new', 'shared-node', 'claim'),
+      ('node-old-only', 'repo-old', 'old-only', 'dataset')`,
+  );
+  await client.$executeRawUnsafe(
+    `INSERT INTO KnowledgeNodeVersion VALUES
+      ('node-version-old', 'node-old', 'snap-old', 'Shared title', 'Shared abstract', 'Shared text',
+       '[]', 'CC-BY-4.0', '{"sourcePath":"nodes/shared.json"}',
+       '{"statement":"Shared claim","qualifiers":[]}', '10.5555/shared.v1',
+       '10.5555/shared.concept', 1, NULL, NULL, 'shared-capture-hash', '2026-01-01T00:00:00.000Z'),
+      ('node-version-new', 'node-new', 'snap-new', 'Shared title', 'Shared abstract', 'Shared text',
+       '[]', 'CC-BY-4.0', '{"sourcePath":"nodes/shared.json"}',
+       '{"statement":"Shared claim","qualifiers":[]}', '10.5555/shared.v1',
+       '10.5555/shared.concept', 1, NULL, NULL, 'shared-capture-hash', '2026-01-01T00:00:00.000Z'),
+      ('node-version-old-only', 'node-old-only', 'snap-old-only', 'Old-only dataset', NULL, NULL,
+       '[]', 'CC-BY-4.0', '{"sourcePath":"nodes/old-only.json"}',
+       '{"artifactPath":"data/old.csv","format":"text/csv","sizeBytes":10}', NULL,
+       NULL, 0, NULL, NULL, NULL, '2026-01-02T00:00:00.000Z')`,
+  );
+  await client.$executeRawUnsafe(
+    `INSERT INTO NodeEdge VALUES
+      ('edge-old', 'node-version-old', 'node-old', 'supports', 'confirmed',
+       'confirmed-by-editor', 'Same rationale', '2026-01-03T00:00:00.000Z',
+       '2026-01-03T00:00:00.000Z', '2026-01-03T00:00:00.000Z'),
+      ('edge-new', 'node-version-new', 'node-new', 'supports', 'confirmed',
+       'confirmed-by-editor', 'Same rationale', '2026-01-03T00:00:00.000Z',
+       '2026-01-03T00:00:00.000Z', '2026-01-03T00:00:00.000Z')`,
+  );
+  await client.$executeRawUnsafe("INSERT INTO Claim VALUES ('claim-old', 'node-old')");
 }

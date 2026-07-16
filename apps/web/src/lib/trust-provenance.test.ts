@@ -62,6 +62,7 @@ function loadedRow(): LoadedTrustAssessment {
       claim: {
         id: "claim-1",
         reviewVersionId: "version-1",
+        knowledgeNodeId: null,
         localClaimId: "claim-local",
         text: "A claim",
         normalizedText: "a claim",

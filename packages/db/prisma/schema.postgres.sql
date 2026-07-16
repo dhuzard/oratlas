@@ -234,6 +234,7 @@ CREATE TABLE "Identifier" (
 CREATE TABLE "Claim" (
     "id" TEXT NOT NULL,
     "reviewVersionId" TEXT NOT NULL,
+    "knowledgeNodeId" TEXT,
     "localClaimId" TEXT NOT NULL,
     "text" TEXT NOT NULL,
     "normalizedText" TEXT NOT NULL,
@@ -245,6 +246,57 @@ CREATE TABLE "Claim" (
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "Claim_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "KnowledgeNode" (
+    "id" TEXT NOT NULL,
+    "repositoryId" TEXT NOT NULL,
+    "localNodeId" TEXT NOT NULL,
+    "kind" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "KnowledgeNode_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "KnowledgeNodeVersion" (
+    "id" TEXT NOT NULL,
+    "knowledgeNodeId" TEXT NOT NULL,
+    "snapshotId" TEXT NOT NULL,
+    "sourceSubmissionId" TEXT,
+    "inspectionCaptureId" TEXT,
+    "capturePayloadHash" TEXT,
+    "title" TEXT NOT NULL,
+    "abstract" TEXT,
+    "text" TEXT,
+    "contributorsJson" TEXT NOT NULL DEFAULT '[]',
+    "license" TEXT NOT NULL,
+    "provenanceJson" TEXT NOT NULL,
+    "payloadJson" TEXT NOT NULL,
+    "versionDoi" TEXT,
+    "conceptDoi" TEXT,
+    "isExample" BOOLEAN NOT NULL DEFAULT false,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "KnowledgeNodeVersion_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "NodeEdge" (
+    "id" TEXT NOT NULL,
+    "sourceNodeVersionId" TEXT NOT NULL,
+    "targetNodeId" TEXT NOT NULL,
+    "relationType" TEXT NOT NULL,
+    "status" TEXT NOT NULL,
+    "provenance" TEXT NOT NULL,
+    "rationale" TEXT,
+    "assertedAt" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "NodeEdge_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -793,7 +845,37 @@ CREATE UNIQUE INDEX "EditorialOverride_submissionId_checkId_key" ON "EditorialOv
 CREATE INDEX "Identifier_scheme_normalizedValue_idx" ON "Identifier"("scheme", "normalizedValue");
 
 -- CreateIndex
+CREATE INDEX "Claim_knowledgeNodeId_idx" ON "Claim"("knowledgeNodeId");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "Claim_reviewVersionId_localClaimId_key" ON "Claim"("reviewVersionId", "localClaimId");
+
+-- CreateIndex
+CREATE INDEX "KnowledgeNode_kind_idx" ON "KnowledgeNode"("kind");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "KnowledgeNode_repositoryId_localNodeId_key" ON "KnowledgeNode"("repositoryId", "localNodeId");
+
+-- CreateIndex
+CREATE INDEX "KnowledgeNodeVersion_snapshotId_idx" ON "KnowledgeNodeVersion"("snapshotId");
+
+-- CreateIndex
+CREATE INDEX "KnowledgeNodeVersion_sourceSubmissionId_idx" ON "KnowledgeNodeVersion"("sourceSubmissionId");
+
+-- CreateIndex
+CREATE INDEX "KnowledgeNodeVersion_inspectionCaptureId_idx" ON "KnowledgeNodeVersion"("inspectionCaptureId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "KnowledgeNodeVersion_knowledgeNodeId_snapshotId_key" ON "KnowledgeNodeVersion"("knowledgeNodeId", "snapshotId");
+
+-- CreateIndex
+CREATE INDEX "NodeEdge_targetNodeId_idx" ON "NodeEdge"("targetNodeId");
+
+-- CreateIndex
+CREATE INDEX "NodeEdge_status_relationType_idx" ON "NodeEdge"("status", "relationType");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "NodeEdge_sourceNodeVersionId_targetNodeId_relationType_key" ON "NodeEdge"("sourceNodeVersionId", "targetNodeId", "relationType");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "ReplicationBrief_requestKey_key" ON "ReplicationBrief"("requestKey");
@@ -1001,6 +1083,30 @@ ALTER TABLE "Identifier" ADD CONSTRAINT "Identifier_reviewVersionId_fkey" FOREIG
 
 -- AddForeignKey
 ALTER TABLE "Claim" ADD CONSTRAINT "Claim_reviewVersionId_fkey" FOREIGN KEY ("reviewVersionId") REFERENCES "ReviewVersion"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Claim" ADD CONSTRAINT "Claim_knowledgeNodeId_fkey" FOREIGN KEY ("knowledgeNodeId") REFERENCES "KnowledgeNode"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "KnowledgeNode" ADD CONSTRAINT "KnowledgeNode_repositoryId_fkey" FOREIGN KEY ("repositoryId") REFERENCES "Repository"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "KnowledgeNodeVersion" ADD CONSTRAINT "KnowledgeNodeVersion_knowledgeNodeId_fkey" FOREIGN KEY ("knowledgeNodeId") REFERENCES "KnowledgeNode"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "KnowledgeNodeVersion" ADD CONSTRAINT "KnowledgeNodeVersion_snapshotId_fkey" FOREIGN KEY ("snapshotId") REFERENCES "RepositorySnapshot"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "KnowledgeNodeVersion" ADD CONSTRAINT "KnowledgeNodeVersion_sourceSubmissionId_fkey" FOREIGN KEY ("sourceSubmissionId") REFERENCES "Submission"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "KnowledgeNodeVersion" ADD CONSTRAINT "KnowledgeNodeVersion_inspectionCaptureId_fkey" FOREIGN KEY ("inspectionCaptureId") REFERENCES "InspectionCapture"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "NodeEdge" ADD CONSTRAINT "NodeEdge_sourceNodeVersionId_fkey" FOREIGN KEY ("sourceNodeVersionId") REFERENCES "KnowledgeNodeVersion"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "NodeEdge" ADD CONSTRAINT "NodeEdge_targetNodeId_fkey" FOREIGN KEY ("targetNodeId") REFERENCES "KnowledgeNode"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "ReplicationBrief" ADD CONSTRAINT "ReplicationBrief_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

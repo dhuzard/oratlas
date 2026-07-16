@@ -1,6 +1,8 @@
 import { createHash } from "node:crypto";
 import {
   canonicalJson,
+  knowledgeNodeSchema,
+  nodeEdgeSchema,
   type CompatibilityReport,
   type SubmissionValidationReport,
   type TrustRecord,
@@ -16,7 +18,10 @@ import {
   TRUST_PROTOCOL_VERSION,
   linkProposal,
   pendingSubmission,
+  replicationLabRepository,
   seedComments,
+  seedKnowledgeNodes,
+  seedNodeEdges,
   seedReviews,
   seedUsers,
   type SeedRelation,
@@ -384,7 +389,91 @@ async function seedReview(review: SeedReview, editorId: string) {
     }
   }
 
-  return { reviewRow, version, claimIdByLocal };
+  return { repo, snapshot, reviewRow, version, claimIdByLocal };
+}
+
+interface SeedNodeRepositoryBinding {
+  repositoryId: string;
+  snapshotId: string;
+}
+
+async function seedKnowledgeGraph(
+  repositories: Map<string, SeedNodeRepositoryBinding>,
+  claimIdsBySlug: Map<string, Map<string, string>>,
+): Promise<void> {
+  const identityIdByKey = new Map<string, string>();
+  const versionIdByKey = new Map<string, string>();
+
+  for (const fixture of seedKnowledgeNodes) {
+    const node = knowledgeNodeSchema.parse(fixture.node);
+    const binding = repositories.get(fixture.repositoryKey);
+    if (!binding) throw new Error(`Missing seed node repository '${fixture.repositoryKey}'.`);
+
+    const identity = await prisma.knowledgeNode.create({
+      data: {
+        repositoryId: binding.repositoryId,
+        localNodeId: node.id,
+        kind: node.kind,
+      },
+    });
+    const version = await prisma.knowledgeNodeVersion.create({
+      data: {
+        knowledgeNodeId: identity.id,
+        snapshotId: binding.snapshotId,
+        title: node.title,
+        abstract: node.abstract,
+        text: node.text,
+        contributorsJson: canonicalJson(node.contributors),
+        license: node.license,
+        provenanceJson: canonicalJson(node.provenance),
+        payloadJson: canonicalJson(node.payload),
+        versionDoi: node.versionDoi,
+        conceptDoi: node.conceptDoi,
+        isExample: fixture.isExample,
+      },
+    });
+    const key = `${fixture.repositoryKey}:${node.id}`;
+    identityIdByKey.set(key, identity.id);
+    versionIdByKey.set(key, version.id);
+
+    if (fixture.legacyClaim) {
+      const claimId = claimIdsBySlug
+        .get(fixture.legacyClaim.reviewSlug)
+        ?.get(fixture.legacyClaim.localClaimId);
+      if (!claimId) {
+        throw new Error(
+          `Missing legacy claim '${fixture.legacyClaim.reviewSlug}:${fixture.legacyClaim.localClaimId}'.`,
+        );
+      }
+      await prisma.claim.update({ where: { id: claimId }, data: { knowledgeNodeId: identity.id } });
+    }
+  }
+
+  for (const fixture of seedNodeEdges) {
+    const edge = nodeEdgeSchema.parse(fixture.edge);
+    const sourceNodeVersionId = versionIdByKey.get(
+      `${fixture.sourceRepositoryKey}:${edge.sourceNodeId}`,
+    );
+    const targetNodeId = identityIdByKey.get(`${fixture.targetRepositoryKey}:${edge.targetNodeId}`);
+    if (!sourceNodeVersionId || !targetNodeId) {
+      throw new Error(`Unresolved seed edge '${edge.sourceNodeId}' -> '${edge.targetNodeId}'.`);
+    }
+    await prisma.nodeEdge.create({
+      data: {
+        sourceNodeVersionId,
+        targetNodeId,
+        relationType: edge.relationType,
+        status: edge.status,
+        provenance: edge.provenance,
+        rationale: edge.rationale,
+        assertedAt: edge.assertedAt ? new Date(edge.assertedAt) : null,
+      },
+    });
+  }
+
+  console.info(
+    `  · seeded knowledge graph: ${seedKnowledgeNodes.length} nodes, ${seedNodeEdges.length} edges`,
+  );
 }
 
 async function seedReviewComments(
@@ -445,16 +534,59 @@ async function main() {
   const claimIdsBySlug = new Map<string, Map<string, string>>();
   const reviewIdBySlug = new Map<string, string>();
   const versionIdBySlug = new Map<string, string>();
+  const nodeRepositories = new Map<string, SeedNodeRepositoryBinding>();
   for (const review of seedReviews) {
-    const { reviewRow, version, claimIdByLocal } = await seedReview(
+    const { repo, snapshot, reviewRow, version, claimIdByLocal } = await seedReview(
       review,
       users.get("atlas-editor")!,
     );
     claimIdsBySlug.set(review.slug, claimIdByLocal);
     reviewIdBySlug.set(review.slug, reviewRow.id);
     versionIdBySlug.set(review.slug, version.id);
+    if (review.slug === seedReviews[0]!.slug) {
+      nodeRepositories.set("replay-lab", { repositoryId: repo.id, snapshotId: snapshot.id });
+    }
     console.info(`  · seeded review: ${review.slug}`);
   }
+
+  const replicationRepo = await prisma.repository.create({
+    data: {
+      host: "github.com",
+      owner: replicationLabRepository.owner,
+      name: replicationLabRepository.name,
+      canonicalUrl: replicationLabRepository.canonicalUrl,
+      githubRepositoryId: "seed:independent-replication-lab",
+      defaultBranch: replicationLabRepository.defaultBranch,
+      description: replicationLabRepository.description,
+      licenseSpdx: "CC-BY-4.0",
+      topicsJson: canonicalJson(replicationLabRepository.topics),
+      lastInspectedAt: new Date(),
+    },
+  });
+  const replicationSnapshot = await prisma.repositorySnapshot.create({
+    data: {
+      repositoryId: replicationRepo.id,
+      commitSha: replicationLabRepository.commitSha,
+      branch: replicationLabRepository.defaultBranch,
+      inspectionStatus: "succeeded",
+      inspectionReportJson: canonicalJson({
+        schemaVersion: "1.0.0",
+        repositoryUrl: replicationLabRepository.canonicalUrl,
+        commitSha: replicationLabRepository.commitSha,
+        note: "Synthetic node-publication seed repository.",
+      }),
+      contentHash: contentHash({
+        repositoryUrl: replicationLabRepository.canonicalUrl,
+        commitSha: replicationLabRepository.commitSha,
+      }),
+    },
+  });
+  nodeRepositories.set("replication-lab", {
+    repositoryId: replicationRepo.id,
+    snapshotId: replicationSnapshot.id,
+  });
+
+  await seedKnowledgeGraph(nodeRepositories, claimIdsBySlug);
 
   // Community comments on published reviews
   await seedReviewComments(reviewIdBySlug, versionIdBySlug, claimIdsBySlug, users);
