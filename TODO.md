@@ -555,7 +555,7 @@ packages: [docs]
 ```yaml
 id: KG-19
 epic: E
-status: in-progress (issue #56)
+status: done (PR #57)
 depends_on: [KG-12]
 size: M
 labels: [testing, ci, llm]
