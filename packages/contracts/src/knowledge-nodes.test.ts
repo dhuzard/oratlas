@@ -218,6 +218,7 @@ describe("validateNodeManifest", () => {
       schemaVersion: "1.0.0",
       nodes: { format: "json", files: ["nodes/claim.json", "nodes/figure.json"] },
       edges: { format: "jsonl", path: "nodes/edges.jsonl" },
+      trustAssessments: { format: "jsonl", path: "nodes/trust.jsonl" },
     });
     expect(files.ok).toBe(true);
     expect(files.errors).toEqual([]);
@@ -247,6 +248,11 @@ describe("validateNodeManifest", () => {
       {
         schemaVersion: "1.0.0",
         nodes: { format: "jsonl", path: "nodes.jsonl", files: ["nodes/claim.json"] },
+      },
+      {
+        schemaVersion: "1.0.0",
+        nodes: { format: "jsonl", path: "nodes.jsonl" },
+        trustAssessments: { format: "json", files: ["nodes/trust.json"] },
       },
     ];
     for (const manifest of badManifests) {

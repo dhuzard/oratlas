@@ -49,8 +49,8 @@ export function runExtraction(
   const manifest = manifestContent ? parseManifest(manifestContent).manifest : undefined;
 
   const metaResult = extractMetadata(report, now);
-  const knowledge = extractKnowledge(report, manifest);
   const nodeExtraction = extractKnowledgeNodes(report);
+  const knowledge = extractKnowledge(report, manifest, nodeExtraction);
   const compatibility = assessCompatibility(
     report,
     knowledge,

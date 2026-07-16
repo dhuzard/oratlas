@@ -15,6 +15,87 @@ async function inspect(fixture: FakeRepoFixture, maxFileBytes?: number) {
 }
 
 describe("extractKnowledgeNodes", () => {
+  it("imports TRUST only when it matches an exact extracted claim-evidence edge", async () => {
+    const fixture = structuredClone(nodePublicationFixture);
+    const nodeManifest = JSON.parse(fixture.files!["node-manifest.json"]!) as Record<
+      string,
+      unknown
+    >;
+    nodeManifest.trustAssessments = { format: "jsonl", path: "knowledge/trust.jsonl" };
+    fixture.files!["node-manifest.json"] = JSON.stringify(nodeManifest);
+    fixture.files!["knowledge/trust.jsonl"] = JSON.stringify({
+      subjectType: "node-relation",
+      subject: {
+        claimNodeId: "claim:primary-result",
+        evidenceNodeId: "dataset:observations",
+        evidenceKind: "dataset",
+        relationType: "uses-dataset",
+      },
+      protocolVersion: "trust-poc-1.0",
+      assessorType: "agent",
+      criteria: { sourceAccess: { rating: "high" } },
+    });
+    const extracted = runExtraction(await inspect(fixture));
+    expect(extracted.manifestPresent).toBe(false);
+    expect(extracted.knowledge.trust).toHaveLength(1);
+
+    fixture.files!["knowledge/trust.jsonl"] = fixture.files!["knowledge/trust.jsonl"]!.replace(
+      '"dataset","relationType":"uses-dataset"',
+      '"code","relationType":"uses-code"',
+    );
+    const mismatched = runExtraction(await inspect(fixture));
+    expect(mismatched.knowledge.trust).toHaveLength(0);
+    expect(mismatched.knowledge.warnings.join(" ")).toMatch(/evidence node kind/i);
+  });
+
+  it("combines distinct node- and review-manifest TRUST streams in a mixed repository", async () => {
+    const fixture = structuredClone(nodePublicationFixture);
+    const nodeManifest = JSON.parse(fixture.files!["node-manifest.json"]!) as Record<
+      string,
+      unknown
+    >;
+    nodeManifest.trustAssessments = { format: "jsonl", path: "nodes/trust.jsonl" };
+    fixture.files!["node-manifest.json"] = JSON.stringify(nodeManifest);
+    fixture.files!["nodes/trust.jsonl"] = JSON.stringify({
+      subjectType: "node-relation",
+      subject: {
+        claimNodeId: "claim:primary-result",
+        evidenceNodeId: "dataset:observations",
+        evidenceKind: "dataset",
+        relationType: "uses-dataset",
+      },
+      protocolVersion: "trust-poc-1.0",
+      assessorType: "agent",
+      criteria: { sourceAccess: { rating: "high" } },
+    });
+    fixture.files!["review-manifest.json"] = JSON.stringify({
+      schemaVersion: "1.0.0",
+      review: { title: "Mixed publication", license: "CC-BY-4.0" },
+      repository: { url: `https://github.com/${fixture.owner}/${fixture.name}` },
+      artifacts: {
+        claims: "knowledge/claims.jsonl",
+        citations: "knowledge/citations.jsonl",
+        trustAssessments: "knowledge/trust.jsonl",
+      },
+    });
+    fixture.files!["knowledge/claims.jsonl"] = JSON.stringify({ id: "claim-1", text: "Claim." });
+    fixture.files!["knowledge/citations.jsonl"] = JSON.stringify({
+      id: "citation-1",
+      title: "Evidence",
+    });
+    fixture.files!["knowledge/trust.jsonl"] = JSON.stringify({
+      claimId: "claim-1",
+      citationId: "citation-1",
+      protocolVersion: "trust-poc-1.0",
+      assessorType: "agent",
+      criteria: {},
+    });
+
+    const extracted = runExtraction(await inspect(fixture));
+    expect(extracted.knowledge.trust).toHaveLength(2);
+    expect(extracted.knowledge.trust.some((record) => "subjectType" in record)).toBe(true);
+    expect(extracted.knowledge.trust.some((record) => "claimId" in record)).toBe(true);
+  });
   it("drops lifecycle authority claimed by a legacy repository edge", async () => {
     const fixture = structuredClone(nodePublicationFixture);
     fixture.files!["nodes/edges.jsonl"] = JSON.stringify({

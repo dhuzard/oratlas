@@ -62,6 +62,10 @@ The `artifacts` block points at JSONL files inside the repository:
 - **relations** — `{ claimId, citationId, relationType, supportDirection?, … }`
 - **trustAssessments** — `{ claimId, citationId, protocolVersion, assessorType, criteria, … }`
 
+First-class node-relation TRUST belongs in the optional `trustAssessments` JSONL source of
+`node-manifest.json`; see `docs/trust-model.md`. Mixed repositories can declare both streams and
+the extractor retains both subject forms.
+
 Each JSONL file is parsed with strict per-line validation and a record cap; invalid lines are
 reported but never abort the file. Relations/TRUST that reference unknown claims or citations are
 dropped (referential integrity).

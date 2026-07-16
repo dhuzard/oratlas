@@ -273,14 +273,15 @@ export default async function EditorialPage({
               >
                 {item.verificationState.replaceAll("-", " ")}
               </ProvenanceBadge>
-              <a href={`/reviews/${item.reviewSlug}`} className="mono">
-                {item.reviewSlug}
+              <a href={item.subjectHref} className="mono">
+                {item.subjectLabel}
               </a>
               <span className="muted">{item.relationType}</span>
             </div>
             <p className="claim-text">{item.claimText}</p>
             <p className="muted">
-              Citation {item.citationLocalId}
+              {item.subjectType === "node-relation" ? "Evidence node" : "Citation"}{" "}
+              {item.citationLocalId}
               {item.citationTitle ? ` — ${item.citationTitle}` : ""}
             </p>
             <div className="table-scroll">
@@ -298,13 +299,21 @@ export default async function EditorialPage({
                     <td>Repository assertion</td>
                     <td>{item.sourceReviewStatus ?? "not supplied"}</td>
                     <td>{item.sourceAssessorType ?? "not supplied"}</td>
-                    <td>{item.sourceAggregateScore ?? "null / not supplied"}</td>
+                    <td>
+                      {item.subjectType === "node-relation"
+                        ? "omitted for relation TRUST"
+                        : (item.sourceAggregateScore ?? "null / not supplied")}
+                    </td>
                   </tr>
                   <tr>
                     <td>Atlas-computed public value</td>
                     <td>{item.effectiveStatus.replaceAll("-", " ")}</td>
                     <td>{item.reviewerLogin ?? "not reviewed"}</td>
-                    <td>{item.computedAggregateScore ?? "not computable"}</td>
+                    <td>
+                      {item.subjectType === "node-relation"
+                        ? "omitted for relation TRUST"
+                        : (item.computedAggregateScore ?? "not computable")}
+                    </td>
                   </tr>
                 </tbody>
               </table>
@@ -314,11 +323,18 @@ export default async function EditorialPage({
                 Existing marker ({item.reviewerRoleSnapshot}): {item.rationale}
               </p>
             ) : null}
-            <TrustVerificationForm
-              assessmentId={item.assessmentId}
-              revision={item.revision}
-              assessmentHash={item.assessmentHash}
-            />
+            {item.canVerify ? (
+              <TrustVerificationForm
+                assessmentId={item.assessmentId}
+                subjectType={item.subjectType}
+                revision={item.revision}
+                assessmentHash={item.assessmentHash}
+              />
+            ) : (
+              <p className="muted">
+                Verification is unavailable until this exact node edge is authoritatively confirmed.
+              </p>
+            )}
           </Card>
         ))
       )}

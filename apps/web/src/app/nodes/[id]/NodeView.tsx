@@ -70,6 +70,14 @@ export function NodeView({
                       {edge.provenance.replace(/-/g, " ")}
                       {edge.assertedAt ? ` · ${edge.assertedAt.slice(0, 10)}` : ""}
                     </p>
+                    {edge.trust ? (
+                      <p className="muted">
+                        Relation TRUST: {edge.trust.reviewStatus.replace(/-/g, " ")} ·{" "}
+                        {edge.trust.verificationState.replace(/-/g, " ")} · protocol{" "}
+                        {edge.trust.protocolVersion}. This compact view omits the aggregate because
+                        criterion detail is not displayed here.
+                      </p>
+                    ) : null}
                   </li>
                 ))}
               </ul>

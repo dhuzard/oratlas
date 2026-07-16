@@ -39,36 +39,37 @@ model User {
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
 
-  submissions                Submission[]             @relation("submitter")
-  editorialDecisions         Submission[]             @relation("reviewer")
-  discussionThreads          DiscussionThread[]
-  reviewComments             ReviewComment[]
-  auditEvents                AuditEvent[]
-  trustVerifications         TrustVerification[]      @relation("trustReviewer")
-  inspectionCaptures         InspectionCapture[]
-  editorialOverrides         EditorialOverride[]
-  lifecycleEvents            ReviewLifecycleEvent[]   @relation("lifecycleActor")
-  editorAssignments          EditorAssignment[]       @relation("assignmentEditor")
-  assignmentsMade            EditorAssignment[]       @relation("assignmentAssigner")
-  roundsOpened               ReviewRound[]            @relation("roundOpener")
-  formalReports              FormalReviewReport[]     @relation("formalReviewer")
-  authorResponses            AuthorResponse[]         @relation("respondingAuthor")
-  decisionLetters            DecisionLetter[]         @relation("decisionEditor")
-  notifications              Notification[]           @relation("notificationUser")
-  statusRecords              CitationStatusRecord[]   @relation("statusRecorder")
-  proposalsResolved          ClaimUpdateProposal[]    @relation("proposalResolver")
-  protocolSnapshots          ProtocolSnapshot[]       @relation("protocolSnapshotCreator")
-  protocolProposalsResolved  ProtocolDriftProposal[]  @relation("protocolProposalResolver")
-  passportsRegistered        ExecutionPassport[]      @relation("passportRegistrant")
-  passportsVerified          ExecutionPassport[]      @relation("passportVerifier")
-  federationResolved         FederationNotification[] @relation("federationResolver")
-  replicationBriefsCreated   ReplicationBrief[]       @relation("replicationCreator")
-  replicationBriefsPublished ReplicationBrief[]       @relation("replicationPublisher")
-  replicationBriefsClaimed   ReplicationBrief[]       @relation("replicationClaimant")
-  replicationBriefsCompleted ReplicationBrief[]       @relation("replicationCompleter")
-  replicationBriefsWithdrawn ReplicationBrief[]       @relation("replicationWithdrawer")
-  nodeEdgeProposalsReviewed  NodeEdgeProposal[]       @relation("nodeEdgeProposalReviewer")
-  nodeEdgesConfirmed         NodeEdge[]               @relation("nodeEdgeConfirmer")
+  submissions                    Submission[]                    @relation("submitter")
+  editorialDecisions             Submission[]                    @relation("reviewer")
+  discussionThreads              DiscussionThread[]
+  reviewComments                 ReviewComment[]
+  auditEvents                    AuditEvent[]
+  trustVerifications             TrustVerification[]             @relation("trustReviewer")
+  nodeRelationTrustVerifications NodeRelationTrustVerification[] @relation("nodeRelationTrustReviewer")
+  inspectionCaptures             InspectionCapture[]
+  editorialOverrides             EditorialOverride[]
+  lifecycleEvents                ReviewLifecycleEvent[]          @relation("lifecycleActor")
+  editorAssignments              EditorAssignment[]              @relation("assignmentEditor")
+  assignmentsMade                EditorAssignment[]              @relation("assignmentAssigner")
+  roundsOpened                   ReviewRound[]                   @relation("roundOpener")
+  formalReports                  FormalReviewReport[]            @relation("formalReviewer")
+  authorResponses                AuthorResponse[]                @relation("respondingAuthor")
+  decisionLetters                DecisionLetter[]                @relation("decisionEditor")
+  notifications                  Notification[]                  @relation("notificationUser")
+  statusRecords                  CitationStatusRecord[]          @relation("statusRecorder")
+  proposalsResolved              ClaimUpdateProposal[]           @relation("proposalResolver")
+  protocolSnapshots              ProtocolSnapshot[]              @relation("protocolSnapshotCreator")
+  protocolProposalsResolved      ProtocolDriftProposal[]         @relation("protocolProposalResolver")
+  passportsRegistered            ExecutionPassport[]             @relation("passportRegistrant")
+  passportsVerified              ExecutionPassport[]             @relation("passportVerifier")
+  federationResolved             FederationNotification[]        @relation("federationResolver")
+  replicationBriefsCreated       ReplicationBrief[]              @relation("replicationCreator")
+  replicationBriefsPublished     ReplicationBrief[]              @relation("replicationPublisher")
+  replicationBriefsClaimed       ReplicationBrief[]              @relation("replicationClaimant")
+  replicationBriefsCompleted     ReplicationBrief[]              @relation("replicationCompleter")
+  replicationBriefsWithdrawn     ReplicationBrief[]              @relation("replicationWithdrawer")
+  nodeEdgeProposalsReviewed      NodeEdgeProposal[]              @relation("nodeEdgeProposalReviewer")
+  nodeEdgesConfirmed             NodeEdge[]                      @relation("nodeEdgeConfirmer")
 
   @@index([githubLoginNormalized])
 }
@@ -547,14 +548,15 @@ model NodeEdgeProposal {
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
 
-  sourceNodeVersion KnowledgeNodeVersion @relation("proposalSourceVersion", fields: [sourceNodeVersionId], references: [id])
-  targetNode        KnowledgeNode        @relation("proposalTargetNode", fields: [targetNodeId], references: [id])
-  targetNodeVersion KnowledgeNodeVersion @relation("proposalTargetVersion", fields: [targetNodeVersionId], references: [id])
-  sourceSubmission  Submission?          @relation("NodeEdgeProposalSubmission", fields: [sourceSubmissionId], references: [id])
-  inspectionCapture InspectionCapture?   @relation("NodeEdgeProposalCapture", fields: [inspectionCaptureId], references: [id])
-  agentRun          AgentRun?            @relation(fields: [agentRunId], references: [id])
-  reviewedBy        User?                @relation("nodeEdgeProposalReviewer", fields: [reviewedById], references: [id])
-  confirmedEdge     NodeEdge?            @relation("confirmedProposalEdge", fields: [confirmedEdgeId], references: [id])
+  sourceNodeVersion KnowledgeNodeVersion          @relation("proposalSourceVersion", fields: [sourceNodeVersionId], references: [id])
+  targetNode        KnowledgeNode                 @relation("proposalTargetNode", fields: [targetNodeId], references: [id])
+  targetNodeVersion KnowledgeNodeVersion          @relation("proposalTargetVersion", fields: [targetNodeVersionId], references: [id])
+  sourceSubmission  Submission?                   @relation("NodeEdgeProposalSubmission", fields: [sourceSubmissionId], references: [id])
+  inspectionCapture InspectionCapture?            @relation("NodeEdgeProposalCapture", fields: [inspectionCaptureId], references: [id])
+  agentRun          AgentRun?                     @relation(fields: [agentRunId], references: [id])
+  reviewedBy        User?                         @relation("nodeEdgeProposalReviewer", fields: [reviewedById], references: [id])
+  confirmedEdge     NodeEdge?                     @relation("confirmedProposalEdge", fields: [confirmedEdgeId], references: [id])
+  trustAssessments  NodeRelationTrustAssessment[]
 
   @@index([status, createdAt])
   @@index([sourceNodeVersionId])
@@ -840,6 +842,75 @@ model TrustVerification {
 
   assessment TrustAssessment @relation(fields: [trustAssessmentId], references: [id])
   reviewer   User            @relation("trustReviewer", fields: [reviewerId], references: [id])
+
+  @@index([status])
+  @@index([reviewerId])
+}
+
+/// Imported TRUST assessment whose mandatory subject is one exact immutable
+/// author node-edge proposal. The proposal survives editorial rejection and
+/// links to the confirmed edge when accepted, preserving the imported subject.
+model NodeRelationTrustAssessment {
+  id                 String    @id @default(cuid())
+  nodeEdgeProposalId String
+  protocolVersion    String
+  assessorType       String
+  assessorId         String?
+  assessedAt         DateTime?
+
+  identityIntegrity             String?
+  entailment                    String?
+  sourceAccess                  String?
+  populationRelevance           String?
+  interventionExposureRelevance String?
+  outcomeRelevance              String?
+  methodologicalSafeguards      String?
+  statisticalSafeguards         String?
+  replicationConvergence        String?
+  conflictDependency            String?
+
+  limitationsJson String  @default("[]")
+  evidenceJson    String?
+  aggregateScore  Float?
+  aggregateMethod String?
+  reviewStatus    String  @default("unverified-import")
+
+  /// Exact strict parsed repository record, including the relation subject.
+  sourceRecordJson      String
+  sourceReviewStatus    String
+  sourceAssessorType    String
+  sourceAssessorId      String?
+  sourceAssessedAt      DateTime?
+  sourceEvidenceJson    String?
+  sourceAggregateScore  Float?
+  sourceAggregateMethod String?
+
+  revision  Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  proposal     NodeEdgeProposal               @relation(fields: [nodeEdgeProposalId], references: [id])
+  verification NodeRelationTrustVerification?
+
+  @@index([nodeEdgeProposalId])
+  @@index([reviewStatus])
+}
+
+/// Platform marker for a node-relation assessment. Kept separate from legacy
+/// claim-citation verification so neither subject can exist without its FK.
+model NodeRelationTrustVerification {
+  id                            String   @id @default(cuid())
+  nodeRelationTrustAssessmentId String   @unique
+  status                        String
+  reviewerId                    String
+  reviewerRoleSnapshot          String
+  rationale                     String
+  assessmentHash                String
+  createdAt                     DateTime @default(now())
+  updatedAt                     DateTime @updatedAt
+
+  assessment NodeRelationTrustAssessment @relation(fields: [nodeRelationTrustAssessmentId], references: [id])
+  reviewer   User                        @relation("nodeRelationTrustReviewer", fields: [reviewerId], references: [id])
 
   @@index([status])
   @@index([reviewerId])

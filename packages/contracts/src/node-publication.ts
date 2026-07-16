@@ -119,6 +119,15 @@ export const publicNodeEdgeSchema = z
     provenance: nodeEdgeProvenanceSchema,
     rationale: z.string().max(4_000).optional(),
     assertedAt: z.string().datetime().optional(),
+    trust: z
+      .object({
+        assessmentId: z.string().min(1),
+        protocolVersion: z.string().min(1).max(40),
+        reviewStatus: assessmentReviewStatusSchema,
+        verificationState: trustVerificationStateSchema,
+      })
+      .strict()
+      .optional(),
     relatedNode: publicRelatedNodeVersionSchema,
   })
   .strict();
