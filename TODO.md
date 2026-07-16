@@ -96,7 +96,7 @@ extends | uses-dataset | uses-code | derives-from`, provenance (`asserted-by-aut
 ```yaml
 id: KG-02
 epic: A
-status: in-progress (issue #32)
+status: done (PR #34)
 depends_on: [KG-01]
 size: M
 labels: [db, prisma]
