@@ -4,10 +4,12 @@ import {
   assessorTypeSchema,
   claimEvidenceRelationTypeSchema,
   claimTypeSchema,
+  nodeRelationTypeSchema,
   trustOrdinalSchema,
   TRUST_CRITERIA,
 } from "./enums.js";
-import { doiSchema } from "./identifiers.js";
+import { commitShaSchema, doiSchema } from "./identifiers.js";
+import { localNodeIdSchema } from "./knowledge-nodes.js";
 
 /**
  * Knowledge artifact records as they appear inside review repositories
@@ -103,6 +105,91 @@ export const trustRecordSchema = z.object({
   reviewStatus: assessmentReviewStatusSchema.default("agent-proposed"),
 });
 export type TrustRecord = z.infer<typeof trustRecordSchema>;
+
+/** Evidence node kinds that can be assessed only in the context of a claim relation. */
+export const trustEvidenceNodeKindSchema = z.enum(["dataset", "code", "figure"]);
+export type TrustEvidenceNodeKind = z.infer<typeof trustEvidenceNodeKindSchema>;
+
+const nodeRelationTrustSubjectSchema = z
+  .object({
+    claimNodeId: localNodeIdSchema,
+    evidenceNodeId: localNodeIdSchema,
+    evidenceKind: trustEvidenceNodeKindSchema,
+    relationType: nodeRelationTypeSchema,
+    /** Immutable address for cross-repository evidence; omitted for a local target. */
+    evidenceRepository: z
+      .object({
+        githubRepositoryId: z.string().regex(/^\d+$/).max(30),
+        commitSha: commitShaSchema,
+      })
+      .strict()
+      .optional(),
+  })
+  .strict()
+  .superRefine((subject, context) => {
+    if (subject.claimNodeId === subject.evidenceNodeId && !subject.evidenceRepository) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["evidenceNodeId"],
+        message: "Claim and evidence must identify different local nodes.",
+      });
+    }
+
+    const specializedRelation =
+      subject.evidenceKind === "dataset"
+        ? "uses-dataset"
+        : subject.evidenceKind === "code"
+          ? "uses-code"
+          : undefined;
+    if (subject.relationType !== "derives-from" && subject.relationType !== specializedRelation) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["relationType"],
+        message:
+          subject.evidenceKind === "figure"
+            ? "Figure evidence must use the derives-from relation."
+            : `${subject.evidenceKind} evidence must use ${specializedRelation} or derives-from.`,
+      });
+    }
+  });
+
+/**
+ * Repository TRUST assertion for dataset, code, or figure evidence. The complete
+ * relation is the subject: there is deliberately no nodeId-only alternative.
+ */
+export const nodeRelationTrustRecordSchema = z
+  .object({
+    subjectType: z.literal("node-relation"),
+    subject: nodeRelationTrustSubjectSchema,
+    protocolVersion: z.string().min(1).max(40),
+    assessorType: assessorTypeSchema,
+    assessorId: z.string().max(200).optional(),
+    assessedAt: z.string().datetime().optional(),
+    criteria: z.object(criteriaShape),
+    limitations: z.array(z.string().max(2_000)).max(50).optional(),
+    evidence: z.record(z.string(), z.unknown()).optional(),
+    aggregateScore: z.number().min(0).max(1).nullable().optional(),
+    aggregateMethod: z.string().max(200).nullable().optional(),
+    reviewStatus: assessmentReviewStatusSchema.default("agent-proposed"),
+  })
+  .strict();
+export type NodeRelationTrustRecord = z.infer<typeof nodeRelationTrustRecordSchema>;
+
+/**
+ * Backward-compatible artifact parser for both subject forms. Presence of a
+ * subjectType always selects the new strict schema, preventing malformed or
+ * hybrid node records from falling back to the permissive legacy object.
+ */
+export const trustAssessmentRecordSchema = z.unknown().transform((value, context) => {
+  const hasSubjectType = typeof value === "object" && value !== null && "subjectType" in value;
+  const parsed = (hasSubjectType ? nodeRelationTrustRecordSchema : trustRecordSchema).safeParse(
+    value,
+  );
+  if (parsed.success) return parsed.data;
+  for (const issue of parsed.error.issues) context.addIssue(issue);
+  return z.NEVER;
+});
+export type TrustAssessmentRecord = z.infer<typeof trustAssessmentRecordSchema>;
 
 export interface JsonlParseResult<T> {
   records: T[];

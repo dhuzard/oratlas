@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { claimRecordSchema, parseJsonlArtifact, trustRecordSchema } from "./artifacts.js";
+import {
+  claimRecordSchema,
+  nodeRelationTrustRecordSchema,
+  parseJsonlArtifact,
+  trustAssessmentRecordSchema,
+  trustRecordSchema,
+} from "./artifacts.js";
 
 describe("parseJsonlArtifact", () => {
   it("parses valid lines and reports invalid ones without aborting", () => {
@@ -67,5 +73,105 @@ describe("trustRecordSchema", () => {
       aggregateMethod: "ordinal-mean-1.0",
     };
     expect(trustRecordSchema.safeParse(record).success).toBe(true);
+  });
+});
+
+describe("nodeRelationTrustRecordSchema", () => {
+  const record = {
+    subjectType: "node-relation",
+    subject: {
+      claimNodeId: "claim:primary-result",
+      evidenceNodeId: "dataset:observations",
+      evidenceKind: "dataset",
+      relationType: "uses-dataset",
+    },
+    protocolVersion: "trust-poc-1.0",
+    assessorType: "agent",
+    criteria: { sourceAccess: { rating: "high", status: "assessed" } },
+    reviewStatus: "human-reviewed",
+  } as const;
+
+  it("accepts TRUST only for a complete claim-to-evidence relation", () => {
+    expect(nodeRelationTrustRecordSchema.parse(record)).toMatchObject(record);
+    expect(trustAssessmentRecordSchema.safeParse(record).success).toBe(true);
+  });
+
+  it.each([
+    ["dataset", "uses-code"],
+    ["code", "uses-dataset"],
+    ["figure", "uses-dataset"],
+    ["figure", "supports"],
+  ])("rejects %s evidence with the %s relation", (evidenceKind, relationType) => {
+    expect(
+      nodeRelationTrustRecordSchema.safeParse({
+        ...record,
+        subject: { ...record.subject, evidenceKind, relationType },
+      }).success,
+    ).toBe(false);
+  });
+
+  it("accepts immutable cross-repository evidence addressing", () => {
+    expect(
+      nodeRelationTrustRecordSchema.safeParse({
+        ...record,
+        subject: {
+          ...record.subject,
+          evidenceRepository: {
+            githubRepositoryId: "987654321",
+            commitSha: "a".repeat(40),
+          },
+        },
+      }).success,
+    ).toBe(true);
+  });
+
+  it.each([
+    { subjectType: "node", nodeId: "dataset:observations" },
+    {
+      subjectType: "node-relation",
+      subject: { evidenceNodeId: "dataset:observations", evidenceKind: "dataset" },
+    },
+    {
+      subjectType: "node-relation",
+      subject: {
+        claimNodeId: "claim:primary-result",
+        evidenceNodeId: "claim:primary-result",
+        evidenceKind: "dataset",
+        relationType: "uses-dataset",
+      },
+    },
+  ])("has no bare-node or incomplete-relation schema path", (subject) => {
+    expect(
+      trustAssessmentRecordSchema.safeParse({
+        ...record,
+        ...subject,
+      }).success,
+    ).toBe(false);
+  });
+
+  it("keeps legacy claim-citation TRUST records valid", () => {
+    expect(
+      trustAssessmentRecordSchema.safeParse({
+        claimId: "claim-1",
+        citationId: "citation-1",
+        protocolVersion: "trust-poc-1.0",
+        assessorType: "agent",
+        criteria: {},
+      }).success,
+    ).toBe(true);
+  });
+
+  it("does not let a malformed typed node subject fall back to legacy fields", () => {
+    expect(
+      trustAssessmentRecordSchema.safeParse({
+        claimId: "claim-1",
+        citationId: "citation-1",
+        subjectType: "node-relation",
+        subject: { nodeId: "dataset:observations" },
+        protocolVersion: "trust-poc-1.0",
+        assessorType: "agent",
+        criteria: {},
+      }).success,
+    ).toBe(false);
   });
 });

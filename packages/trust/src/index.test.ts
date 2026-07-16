@@ -3,6 +3,7 @@ import {
   ORDINAL_MEAN_METHOD,
   computeAggregate,
   ordinalAtLeast,
+  validateTrustAssessmentRecord,
   validateTrustRecord,
 } from "./index.js";
 import { type TrustRecord } from "@oratlas/contracts";
@@ -28,6 +29,39 @@ describe("validateTrustRecord", () => {
   });
   it("rejects malformed records", () => {
     expect(validateTrustRecord({ claimId: "x" }).ok).toBe(false);
+  });
+  it("accepts relation-scoped node evidence through the combined importer", () => {
+    expect(
+      validateTrustAssessmentRecord({
+        subjectType: "node-relation",
+        subject: {
+          claimNodeId: "claim:primary-result",
+          evidenceNodeId: "code:analysis",
+          evidenceKind: "code",
+          relationType: "uses-code",
+        },
+        protocolVersion: "trust-poc-1.0",
+        assessorType: "agent",
+        criteria: { methodologicalSafeguards: { rating: "moderate" } },
+      }).ok,
+    ).toBe(true);
+  });
+
+  it("does not broaden the legacy-only validator", () => {
+    expect(
+      validateTrustRecord({
+        subjectType: "node-relation",
+        subject: {
+          claimNodeId: "claim:primary-result",
+          evidenceNodeId: "code:analysis",
+          evidenceKind: "code",
+          relationType: "uses-code",
+        },
+        protocolVersion: "trust-poc-1.0",
+        assessorType: "agent",
+        criteria: {},
+      }).ok,
+    ).toBe(false);
   });
 });
 

@@ -1,7 +1,11 @@
 import {
   TRUST_CRITERIA,
+  nodeRelationTrustRecordSchema,
+  trustAssessmentRecordSchema,
   trustRecordSchema,
   type AssessmentReviewStatus,
+  type NodeRelationTrustRecord,
+  type TrustAssessmentRecord,
   type TrustCriterion,
   type TrustOrdinal,
   type TrustRecord,
@@ -11,6 +15,7 @@ import { createHash } from "node:crypto";
 
 export const TRUST_PROTOCOL_VERSION = "trust-poc-1.0";
 export const TRUST_SUBJECT_SCHEMA_VERSION = "oratlas-trust-subject-1";
+export const TRUST_NODE_RELATION_SUBJECT_SCHEMA_VERSION = "oratlas-trust-node-relation-subject-1";
 
 /**
  * TRUST is a transparent, multidimensional assessment of a specific
@@ -30,6 +35,24 @@ export function validateTrustRecord(value: unknown): TrustValidationResult {
   return {
     ok: false,
     errors: parsed.error.issues.map((i) => `${i.path.join(".") || "(root)"}: ${i.message}`),
+  };
+}
+
+export interface TrustAssessmentValidationResult {
+  ok: boolean;
+  record?: TrustAssessmentRecord;
+  errors: string[];
+}
+
+/** Validate the legacy claim-citation or relation-scoped node artifact form. */
+export function validateTrustAssessmentRecord(value: unknown): TrustAssessmentValidationResult {
+  const parsed = trustAssessmentRecordSchema.safeParse(value);
+  if (parsed.success) return { ok: true, record: parsed.data, errors: [] };
+  return {
+    ok: false,
+    errors: parsed.error.issues.map(
+      (issue) => `${issue.path.join(".") || "(root)"}: ${issue.message}`,
+    ),
   };
 }
 
@@ -62,7 +85,7 @@ export interface AggregateResult {
  * Criteria rated `not-assessed`/`not-applicable` are excluded (not treated as
  * zero). Returns null when nothing was assessed.
  */
-export function computeAggregate(record: TrustRecord): AggregateResult {
+export function computeAggregate(record: TrustAssessmentRecord): AggregateResult {
   const assessed: TrustCriterion[] = [];
   const skipped: TrustCriterion[] = [];
   const values: number[] = [];
@@ -107,12 +130,36 @@ export interface NormalizedImportedTrustRecord {
   sourceRelationHumanReviewed: boolean | null;
 }
 
+export type NormalizedImportedNodeRelationTrustRecord = Omit<
+  NormalizedImportedTrustRecord,
+  "record"
+> & { record: NodeRelationTrustRecord };
+
 /** Normalize a repository record without trusting its review assertions. */
 export function normalizeImportedTrustRecord(
   input: TrustRecord,
   sourceRelationHumanReviewed: boolean | null,
 ): NormalizedImportedTrustRecord {
   const record = trustRecordSchema.parse(input);
+  return normalizeImportedRecord(record, sourceRelationHumanReviewed);
+}
+
+/**
+ * Normalize a repository assertion about a claim-to-node evidence relation.
+ * Source review claims are retained as provenance but can never promote the
+ * imported public state.
+ */
+export function normalizeImportedNodeRelationTrustRecord(
+  input: NodeRelationTrustRecord,
+): NormalizedImportedNodeRelationTrustRecord {
+  const record = nodeRelationTrustRecordSchema.parse(input);
+  return normalizeImportedRecord(record, null);
+}
+
+function normalizeImportedRecord<T extends TrustAssessmentRecord>(
+  record: T,
+  sourceRelationHumanReviewed: boolean | null,
+): Omit<NormalizedImportedTrustRecord, "record"> & { record: T } {
   const aggregate = computeAggregate(record);
   const criterionColumns: Partial<Record<TrustCriterion, string>> = {};
   for (const criterion of TRUST_CRITERIA) {
@@ -208,6 +255,36 @@ export interface ReviewedTrustSubjectInput {
     source: string | null;
     url: string | null;
     rawCitationJson: string | null;
+  };
+}
+
+/** Exact immutable claim-to-evidence node relation reviewed by an Atlas editor. */
+export interface ReviewedNodeRelationTrustSubjectInput {
+  assessment: ReviewedTrustSubjectInput["assessment"];
+  relation: {
+    id: string;
+    relationType: string;
+    sourceNodeVersionId: string;
+    targetNodeVersionId: string;
+    provenance: string;
+    status: string;
+    rationale: string | null;
+  };
+  claimNode: {
+    id: string;
+    versionId: string;
+    kind: "claim";
+    title: string;
+    payloadJson: string;
+    provenanceJson: string;
+  };
+  evidenceNode: {
+    id: string;
+    versionId: string;
+    kind: "dataset" | "code" | "figure";
+    title: string;
+    payloadJson: string;
+    provenanceJson: string;
   };
 }
 
@@ -374,6 +451,44 @@ export function createReviewedTrustSubject(input: ReviewedTrustSubjectInput) {
   } as const;
 }
 
+/**
+ * Produce the canonical node-relation subject. Endpoint consistency is checked
+ * here so callers cannot accidentally hash an assessment detached from its
+ * relation or attach it to a bare evidence node.
+ */
+export function createReviewedNodeRelationTrustSubject(
+  input: ReviewedNodeRelationTrustSubjectInput,
+) {
+  if (input.claimNode.kind !== "claim") {
+    throw new TypeError("TRUST node relations must originate at a claim node version.");
+  }
+  if (!(["dataset", "code", "figure"] as const).includes(input.evidenceNode.kind)) {
+    throw new TypeError("TRUST node relation evidence must be dataset, code, or figure.");
+  }
+  if (
+    input.relation.sourceNodeVersionId !== input.claimNode.versionId ||
+    input.relation.targetNodeVersionId !== input.evidenceNode.versionId
+  ) {
+    throw new TypeError("TRUST node relation endpoints must match both immutable node versions.");
+  }
+  const validRelation =
+    input.relation.relationType === "derives-from" ||
+    (input.evidenceNode.kind === "dataset" && input.relation.relationType === "uses-dataset") ||
+    (input.evidenceNode.kind === "code" && input.relation.relationType === "uses-code");
+  if (!validRelation) {
+    throw new TypeError(
+      `TRUST ${input.evidenceNode.kind} evidence cannot use ${input.relation.relationType}.`,
+    );
+  }
+  return {
+    schemaVersion: TRUST_NODE_RELATION_SUBJECT_SCHEMA_VERSION,
+    assessment: input.assessment,
+    relation: input.relation,
+    claimNode: input.claimNode,
+    evidenceNode: input.evidenceNode,
+  } as const;
+}
+
 /** RFC-8785-like deterministic JSON for plain JSON-compatible values. */
 export function canonicalJson(value: unknown): string {
   if (value === null || typeof value === "boolean" || typeof value === "string") {
@@ -402,6 +517,14 @@ export function reviewedTrustSubjectHash(input: ReviewedTrustSubjectInput): stri
     .digest("hex");
 }
 
+export function reviewedNodeRelationTrustSubjectHash(
+  input: ReviewedNodeRelationTrustSubjectInput,
+): string {
+  return createHash("sha256")
+    .update(canonicalJson(createReviewedNodeRelationTrustSubject(input)))
+    .digest("hex");
+}
+
 export type { TrustVerificationState };
 
 export interface TrustVerificationMarker {
@@ -421,9 +544,33 @@ export function resolveTrustVerification(
   marker: TrustVerificationMarker | null | undefined,
 ): ResolvedTrustVerification {
   const currentHash = reviewedTrustSubjectHash(subject);
-  const legacy =
+  return resolveVerificationForHash(
+    currentHash,
     subject.assessment.sourceRecordJson === null ||
-    subject.assessment.reviewStatus !== "unverified-import";
+      subject.assessment.reviewStatus !== "unverified-import",
+    marker,
+  );
+}
+
+/** Node-relation counterpart using the same fail-closed marker semantics. */
+export function resolveNodeRelationTrustVerification(
+  subject: ReviewedNodeRelationTrustSubjectInput,
+  marker: TrustVerificationMarker | null | undefined,
+): ResolvedTrustVerification {
+  const currentHash = reviewedNodeRelationTrustSubjectHash(subject);
+  return resolveVerificationForHash(
+    currentHash,
+    subject.assessment.sourceRecordJson === null ||
+      subject.assessment.reviewStatus !== "unverified-import",
+    marker,
+  );
+}
+
+function resolveVerificationForHash(
+  currentHash: string,
+  legacy: boolean,
+  marker: TrustVerificationMarker | null | undefined,
+): ResolvedTrustVerification {
   if (!marker) {
     return {
       effectiveStatus: "unverified-import",

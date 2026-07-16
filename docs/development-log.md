@@ -449,3 +449,32 @@ TRUST provenance.
   JSON-LD, and temporary-database tests pass, as do all 11 focused browser checks, including axe
   scans of the claim and dataset node pages. The reserved citation DOI regression proves that a
   `10.5555/*` DOI stays unlinked when raw citation metadata is absent or malformed.
+
+## KG-10 — TRUST attachment for non-claim nodes (issue #45)
+
+**Objective:** extend multidimensional TRUST assessment to dataset, code, and figure evidence
+without ever turning TRUST into a score attached to a bare knowledge node.
+
+- Preserved the original claim–citation `trustRecordSchema` and validator unchanged for existing
+  consumers. Added a separately discriminated, strict node-relation record plus a combined import
+  parser that routes every typed record through the new schema and rejects malformed hybrid
+  records instead of falling back to the legacy shape.
+- Required every node assessment to name both the claim and evidence endpoints, evidence kind,
+  and semantic relation. Dataset/code relations use their specific `uses-*` edge or
+  `derives-from`; figures use `derives-from`. Optional cross-repository targets are frozen by
+  numeric GitHub repository ID and commit SHA. No bare-node contract exists.
+- Added node-relation import normalization that retains source assessor, review-status, evidence,
+  and aggregate assertions, but always exposes `unverified-import` and recomputes the advisory
+  aggregate from criterion-level data.
+- Added a canonical node-relation reviewed subject whose SHA-256 covers the raw assessment,
+  complete edge, and both immutable node versions. Endpoint and relation-kind inconsistencies are
+  rejected before hashing. The existing marker semantics are shared: a current Atlas marker may
+  verify the assessment; any covered mutation makes it stale and fails closed.
+- Documented the two subject forms, relation semantics, cross-repository addressing, import
+  provenance, aggregate handling, and hash invalidation behavior in the TRUST model.
+- Verified 40 focused contract/TRUST tests, all 15 workspace typechecks, lint, formatting, schema
+  checks, and diff checks. The repository run passed 487 tests; 10 were skipped and the three
+  pre-existing Windows-only suites that execute the extensionless Prisma shell shim failed with
+  `ENOENT`. The focused tests cover legacy compatibility, bare/incomplete/hybrid rejection,
+  kind/relation compatibility, immutable cross-repository targets, import demotion, canonical
+  hash mutation guards, endpoint validation, and stale/current platform markers.
