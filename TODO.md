@@ -394,7 +394,7 @@ packages: [packages/contracts, packages/knowledge, packages/db, apps/web]
 ```yaml
 id: KG-13
 epic: C
-status: done (issue #55)
+status: in-progress (issue #55)
 depends_on: [KG-12, KG-04]
 size: L
 labels: [web, editorial, db]
