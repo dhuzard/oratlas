@@ -73,6 +73,14 @@ jobs:
       - name: Unit & integration tests
         run: pnpm test
 
+      - name: Grounding evaluation (offline)
+        run: pnpm eval:grounding
+        env:
+          ORATLAS_GROUNDING_EVAL_REAL: ""
+          LLM_PROVIDER: ""
+          LLM_MODEL: ""
+          ANTHROPIC_API_KEY: ""
+
       - name: Set up database (push + seed)
         run: pnpm --filter @oratlas/db db:push && pnpm --filter @oratlas/db db:seed
 

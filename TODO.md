@@ -555,11 +555,11 @@ packages: [docs]
 ```yaml
 id: KG-19
 epic: E
-status: todo
+status: in-progress (issue #56)
 depends_on: [KG-12]
 size: M
 labels: [testing, ci, llm]
-packages: [packages/knowledge, scripts]
+packages: [packages/knowledge, scripts, .github, docs]
 ```
 
 **Scope.**

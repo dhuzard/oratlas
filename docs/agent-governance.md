@@ -54,6 +54,10 @@ not an assertion of scientific correctness.
 - A required `AgentRun` recorder persists `running` before generation and `succeeded` or `failed`
   before return. It records provider/model versions, prompt and packet hashes, exact packet JSON,
   and only validated output JSON. Chain-of-thought and rejected provider text are never retained.
+- The separate [grounding evaluation harness](grounding-evaluation.md) exercises the production
+  prompt builder, parser, and validator against bounded adversarial fixtures. Its offline CI mode
+  reads no provider key and its report never contains packets, prompts, hashes, model output, or
+  `AgentRun` data.
 
 ### Cross-review link proposals
 

@@ -30,7 +30,8 @@
     "ingest": "tsx scripts/ingest.ts",
     "validate-doi": "tsx scripts/validate-doi.ts",
     "atlas-check": "tsx scripts/atlas-check.ts",
-    "atlas-check:json": "tsx scripts/atlas-check.ts --format json"
+    "atlas-check:json": "tsx scripts/atlas-check.ts --format json",
+    "eval:grounding": "tsx scripts/eval-grounding.ts"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
