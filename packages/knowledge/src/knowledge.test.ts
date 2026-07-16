@@ -6,10 +6,10 @@ import {
   buildDiscussionPrompt,
   discussDeterministic,
   discussWithLlm,
+  extractJsonObject,
   type LlmProvider,
 } from "./discuss.js";
 import { proposeCrossReviewLinks } from "./links.js";
-import { extractJsonObject } from "./providers/anthropic.js";
 import { sampleIndex } from "./fixtures.js";
 import { type GroundedAnswer } from "@oratlas/contracts";
 import { tokenize } from "./text.js";
@@ -222,6 +222,13 @@ describe("buildDiscussionPrompt", () => {
   });
 });
 
+describe("extractJsonObject", () => {
+  it("preserves Atlas Discuss fenced/prose compatibility", () => {
+    expect(extractJsonObject('```json\n{"a":1}\n```')).toBe('{"a":1}');
+    expect(extractJsonObject('Sure: {"a":1} done')).toBe('{"a":1}');
+  });
+});
+
 describe("discussDeterministic", () => {
   it("groups matched claims by relation and never fabricates prose", () => {
     const packet = buildEvidencePacket(sampleIndex, "memory consolidation replay", { now });
@@ -246,9 +253,8 @@ function fakeProvider(output: (packetJson: string) => string): LlmProvider {
     name: "fake",
     model: "fake-model",
     modelVersion: "1",
-    promptVersion: "test-1.0",
-    async complete(packetJson) {
-      return output(packetJson);
+    async complete(request) {
+      return output(request.user);
     },
   };
 }
@@ -377,12 +383,5 @@ describe("proposeCrossReviewLinks", () => {
     expect(proposals.some((proposal) => proposal.proposedRelation === "shared-citations")).toBe(
       false,
     );
-  });
-});
-
-describe("extractJsonObject", () => {
-  it("extracts JSON from fenced or prose-wrapped model output", () => {
-    expect(extractJsonObject('```json\n{"a":1}\n```')).toBe('{"a":1}');
-    expect(extractJsonObject('Sure: {"a":1} done')).toBe('{"a":1}');
   });
 });

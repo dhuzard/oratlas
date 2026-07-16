@@ -596,6 +596,8 @@ CREATE TABLE "AgentRun" (
     "modelName" TEXT,
     "modelVersion" TEXT,
     "promptVersion" TEXT,
+    "promptHash" TEXT,
+    "packetHash" TEXT,
     "inputHash" TEXT,
     "inputReferencesJson" TEXT,
     "outputJson" TEXT,

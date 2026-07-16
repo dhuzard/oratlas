@@ -147,6 +147,21 @@ launder an identifier onto another node. Derived tables, canonical JSON, and the
 only through the source-building path. The packet contains no volatile clock, editorial/private
 records, or agent-run fields, and enforces node, edge, identifier, text, and final-byte caps.
 
+`SynthesisWriter` consumes only a revalidated canonical prepared packet. Its static system prompt
+never interpolates repository content; the exact packet JSON is the user-data field of an explicit,
+provider-neutral completion request. Output is strict JSON matching one `SynthesisReviewDocument`
+contract with six fixed ordered sections and bounded plain paragraphs. Citations carry a reference
+id plus its exact node and immutable version owner. The pure acceptance validator scans title,
+summary, and every paragraph for DOI, PMID, and OpenAlex tokens and requires a matching structured
+identifier citation and owning node citation at that site. Unknown, mismatched, duplicate, example,
+reserved `10.5555`, malformed, wrapped, HTML/URL-bearing, or oversized output fails closed.
+
+When no provider is configured, a clock-free bounded template composes byte-identical grounded
+output. Provider errors never trigger fallback. Every attempted generation first persists a running
+`AgentRun`; success or sanitized failure is persisted before control returns. Packet, prompt, and
+document hashes plus a deterministic provider/model generation key make downstream editorial
+idempotency and verification possible without storing prompts, rejected raw responses, or reasoning.
+
 ## Trust boundaries
 
 - All repository content is untrusted: rendered as plain text (React escaping), never as

@@ -83,9 +83,17 @@ export interface LlmProvider {
   readonly name: string;
   readonly model: string;
   readonly modelVersion?: string;
-  readonly promptVersion: string;
-  /** Return raw JSON text; input is the already-canonicalized packet bytes. */
-  complete(packetJson: string): Promise<string>;
+  /** Transport-only JSON completion. Prompt construction belongs to the caller. */
+  complete(request: LlmJsonCompletionRequest): Promise<string>;
+}
+
+export interface LlmJsonCompletionRequest {
+  promptVersion: string;
+  system: string;
+  /** Canonical evidence JSON, treated as inert user data. */
+  user: string;
+  maxTokens: number;
+  maxResponseBytes: number;
 }
 
 export interface LlmDiscussionResult {
@@ -118,7 +126,15 @@ export async function discussWithLlm(
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     let raw: string;
     try {
-      raw = await provider.complete(packetJson);
+      const prompt = buildDiscussionPrompt(packetJson);
+      raw = extractJsonObject(
+        await provider.complete({
+          promptVersion: DISCUSSION_PROMPT_VERSION,
+          ...prompt,
+          maxTokens: 1_500,
+          maxResponseBytes: 65_536,
+        }),
+      );
     } catch (err) {
       lastError = err instanceof Error ? err.message : String(err);
       continue;
@@ -165,7 +181,7 @@ export async function discussWithLlm(
       provider: provider.name,
       model: provider.model,
       modelVersion: provider.modelVersion,
-      promptVersion: provider.promptVersion,
+      promptVersion: DISCUSSION_PROMPT_VERSION,
       attempts: attempt,
       rawRejected: rawRejected.length > 0 ? rawRejected : undefined,
     };
@@ -176,7 +192,7 @@ export async function discussWithLlm(
     provider: provider.name,
     model: provider.model,
     modelVersion: provider.modelVersion,
-    promptVersion: provider.promptVersion,
+    promptVersion: DISCUSSION_PROMPT_VERSION,
     attempts: maxAttempts,
     error: lastError || "Failed to produce a grounded answer.",
     rawRejected: rawRejected.length > 0 ? rawRejected : undefined,
@@ -207,4 +223,14 @@ export function buildDiscussionPrompt(packetJson: string): {
   ].join("\n");
 
   return { system, user: packetJson };
+}
+
+/** Discuss compatibility: tolerate provider prose/fences before its existing strict schema parse. */
+export function extractJsonObject(text: string): string {
+  const fence = /```(?:json)?\s*([\s\S]*?)```/.exec(text);
+  const candidate = fence ? fence[1]! : text;
+  const start = candidate.indexOf("{");
+  const end = candidate.lastIndexOf("}");
+  if (start === -1 || end === -1 || end < start) return candidate.trim();
+  return candidate.slice(start, end + 1);
 }

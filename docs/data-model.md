@@ -33,7 +33,7 @@ suffix, and arrays are JSON-encoded strings. Switching to PostgreSQL is a dataso
 | `ClaimEvidenceRelation`                  | Claim↔citation relation            | `(claimId, citationId, relationType)` unique                                      |
 | `TrustAssessment`                        | Imported TRUST for one relation    | public import state is `unverified-import`; source assertions retained separately |
 | `TrustVerification`                      | Atlas editorial review marker      | one-to-one with assessment; reviewer FK, role snapshot, rationale, subject hash   |
-| `AgentRun`                               | Provenance of an agent action      | model/provider/prompt/input-hash/output                                           |
+| `AgentRun`                               | Provenance of an agent action      | model/provider/prompt + prompt/packet/input hashes; validated output              |
 | `ExecutionPassport`                      | Signed execution provenance        | attestation hash unique; exact commit/tree/workflow; verification revision        |
 | `ExecutionPassportClaim`                 | Passport↔immutable claim binding   | `(passportId, claimId)` unique                                                    |
 | `ExecutionPassportArtifact`              | Exact run input/output descriptor  | `(passportId, entityId)` unique; SHA-256 + byte size                              |

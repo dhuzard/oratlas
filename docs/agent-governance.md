@@ -40,6 +40,21 @@ claims remain provenance only. Atlas `human-reviewed`/`adjudicated` is carried b
 hash-bound editor marker. Even a current marker confirms structural/provenance review only and is
 not an assertion of scientific correctness.
 
+### Long-form synthesis writer
+
+- The writer receives only a canonical, hash-bound graph-native evidence packet. Untrusted node
+  prose is present only in the user-data bytes and can never modify the static system instructions.
+- Model output is accepted only as one strict six-section JSON document. Every citation repeats its
+  exact node/version ownership, and prose identifiers require both their packet identifier reference
+  and owning node reference. Unknown, example, `10.5555`, malformed, or mismatched citations are
+  rejected without persisting or returning the raw response.
+- With no provider, a deterministic bounded template produces the same grounded bytes for the same
+  packet. A configured provider failure is recorded as a sanitized failure and never silently
+  switches to fallback.
+- A required `AgentRun` recorder persists `running` before generation and `succeeded` or `failed`
+  before return. It records provider/model versions, prompt and packet hashes, exact packet JSON,
+  and only validated output JSON. Chain-of-thought and rejected provider text are never retained.
+
 ### Cross-review link proposals
 
 `packages/knowledge` proposes conservative links (shared canonical DOI/PMID/OpenAlex aliases,
