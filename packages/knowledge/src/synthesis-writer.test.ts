@@ -489,6 +489,59 @@ describe("SynthesisWriter pure boundaries", () => {
     }
   });
 
+  it("preserves exact punctuation-ending DOI candidates while allowing sentence punctuation", () => {
+    const groundedDocument = (doi: string, prose: string) => {
+      const input = source();
+      const claim = input.nodes.find((node) => node.id === "claim-a");
+      if (!claim) throw new Error("Missing claim fixture.");
+      claim.identifiers = [{ scheme: "doi", role: "version-doi", value: doi, isExample: false }];
+      const prepared = buildPreparedSubgraphEvidencePacket(input);
+      const document = composeDeterministicSynthesis(prepared);
+      const nodeReference = prepared.packet.references.find(
+        (reference) => reference.kind === "node" && reference.nodeId === "claim-a",
+      )!;
+      const identifierReference = prepared.packet.references.find(
+        (reference) => reference.kind === "identifier" && reference.nodeId === "claim-a",
+      )!;
+      document.sections[0].paragraphs[0] = {
+        text: prose,
+        citations: [nodeReference, identifierReference].map((reference) => ({
+          referenceId: reference.referenceId,
+          nodeId: reference.nodeId,
+          nodeVersionId: reference.nodeVersionId,
+        })),
+      };
+      return { document, packet: prepared.packet };
+    };
+
+    for (const punctuation of [".", ",", ";", ":"] as const) {
+      const exactDoi = `10.1234/foo${punctuation}`;
+      const exact = groundedDocument(exactDoi, `The packet cites ${exactDoi}`);
+      expect(validateSynthesisGrounding(exact.document, exact.packet)).toEqual({
+        ok: true,
+        issues: [],
+      });
+    }
+
+    for (const prose of [
+      "The packet cites 10.1234/foo.",
+      "The packet cites (10.1234/foo), with context.",
+      "The packet cites [10.1234/foo]; with context.",
+      "The packet cites 10.1234/foo: with context.",
+    ]) {
+      const sentence = groundedDocument("10.1234/foo", prose);
+      expect(validateSynthesisGrounding(sentence.document, sentence.packet)).toEqual({
+        ok: true,
+        issues: [],
+      });
+    }
+
+    const fabricated = groundedDocument("10.1234/foo", "Fabricated 10.1234/foo.evil.");
+    expect(validateSynthesisGrounding(fabricated.document, fabricated.packet).issues[0]?.code).toBe(
+      "unstructured-identifier",
+    );
+  });
+
   it("rejects raw output above the byte cap before parsing", () => {
     const prepared = buildPreparedSubgraphEvidencePacket(source());
     expect(() => parseAndValidateSynthesisOutput(" ".repeat(65_537), prepared.packet)).toThrowError(

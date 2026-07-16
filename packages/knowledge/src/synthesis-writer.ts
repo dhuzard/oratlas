@@ -144,10 +144,7 @@ function citationSites(document: SynthesisReviewDocument): CitationSite[] {
 }
 
 function normalizeDoi(value: string): string {
-  return value
-    .normalize("NFKC")
-    .toLowerCase()
-    .replace(/[.,;:]+$/, "");
+  return value.normalize("NFKC").toLowerCase();
 }
 
 interface ProseIdentifier {
