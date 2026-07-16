@@ -6,6 +6,8 @@ export const DATABASE_GUARD_NAMES = [
   "SynthesisDraft_status_check",
   "SynthesisGenerationRequestClaim_status_check",
   "SynthesisDraftMembership_identifier_shape_check",
+  "SynthesisStalenessEvaluation_status_check",
+  "SynthesisRegenerationProposal_status_check",
 ] as const;
 
 export const POSTGRES_DATABASE_GUARD_TRIGGER_NAMES = [
@@ -38,6 +40,16 @@ export const POSTGRES_DATABASE_GUARD_SQL = [
   `ALTER TABLE "SynthesisDraftMembership" ADD CONSTRAINT "SynthesisDraftMembership_identifier_shape_check" CHECK (
     ("kind" = 'node' AND "identifierScheme" IS NULL AND "identifierRole" IS NULL AND "identifierValue" IS NULL)
     OR ("kind" = 'identifier' AND "identifierScheme" IS NOT NULL AND "identifierRole" IS NOT NULL AND "identifierValue" IS NOT NULL)
+  )`,
+  'ALTER TABLE "SynthesisStalenessEvaluation" DROP CONSTRAINT IF EXISTS "SynthesisStalenessEvaluation_status_check"',
+  `ALTER TABLE "SynthesisStalenessEvaluation" ADD CONSTRAINT "SynthesisStalenessEvaluation_status_check" CHECK (
+    "status" IN ('fresh', 'stale') AND "affectedReferenceCount" >= 0
+  )`,
+  'ALTER TABLE "SynthesisRegenerationProposal" DROP CONSTRAINT IF EXISTS "SynthesisRegenerationProposal_status_check"',
+  `ALTER TABLE "SynthesisRegenerationProposal" ADD CONSTRAINT "SynthesisRegenerationProposal_status_check" CHECK (
+    ("status" = 'open' AND "openHeadKey" = "acceptedReviewVersionId" AND "resolvedById" IS NULL AND "resolvedAt" IS NULL)
+    OR ("status" = 'superseded' AND "openHeadKey" IS NULL)
+    OR ("status" IN ('regeneration-requested', 'dismissed') AND "openHeadKey" IS NULL AND "resolvedById" IS NOT NULL AND "resolvedAt" IS NOT NULL AND "resolutionRationale" IS NOT NULL AND "resolutionIdempotencyKey" IS NOT NULL AND "resolutionInputHash" IS NOT NULL)
   )`,
   `CREATE OR REPLACE FUNCTION "oratlas_validate_synthesis_membership_reference"() RETURNS trigger AS $$
   BEGIN
@@ -104,6 +116,14 @@ const sqliteGuardConditions = {
       AND ((m."kind" = 'node' AND NEW."identifierScheme" IS NULL AND NEW."identifierRole" IS NULL AND NEW."identifierValue" IS NULL)
         OR (m."kind" = 'identifier' AND NEW."identifierScheme" IS m."identifierScheme" AND NEW."identifierRole" IS m."identifierRole" AND NEW."identifierValue" IS m."identifierValue"))
   )
+    THEN 1 ELSE 0 END`,
+  SynthesisStalenessEvaluation: `CASE WHEN
+    NEW."status" IN ('fresh', 'stale') AND NEW."affectedReferenceCount" >= 0
+    THEN 1 ELSE 0 END`,
+  SynthesisRegenerationProposal: `CASE WHEN
+    (NEW."status" = 'open' AND NEW."openHeadKey" = NEW."acceptedReviewVersionId" AND NEW."resolvedById" IS NULL AND NEW."resolvedAt" IS NULL)
+    OR (NEW."status" = 'superseded' AND NEW."openHeadKey" IS NULL)
+    OR (NEW."status" IN ('regeneration-requested', 'dismissed') AND NEW."openHeadKey" IS NULL AND NEW."resolvedById" IS NOT NULL AND NEW."resolvedAt" IS NOT NULL AND NEW."resolutionRationale" IS NOT NULL AND NEW."resolutionIdempotencyKey" IS NOT NULL AND NEW."resolutionInputHash" IS NOT NULL)
     THEN 1 ELSE 0 END`,
 } as const;
 

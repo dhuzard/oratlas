@@ -9,6 +9,7 @@ import {
   subgraphEvidenceTrustSchema,
   subgraphEvidencePacketSchema,
   synthesisDraftDecisionSchema,
+  synthesisFreshnessSchema,
   synthesisGenerationRequestSchema,
   synthesisSelectorSchema,
   TRUST_CRITERIA,
@@ -17,6 +18,7 @@ import {
   SYNTHESIS_MATERIALIZATION_POLICY_VERSION,
   SYNTHESIS_PIPELINE_SOFTWARE_ID,
   SYNTHESIS_PIPELINE_SOFTWARE_NAME,
+  SYNTHESIS_STALENESS_POLICY_VERSION,
   type EditorialSynthesisDraft,
   type PublicSynthesisReview,
   type SubgraphEvidenceSource,
@@ -1402,6 +1404,22 @@ export async function decideSynthesisDraft(
             acceptedAt,
           },
         });
+        const supersededRegenerationProposals = await tx.synthesisRegenerationProposal.findMany({
+          where: {
+            reviewId: review.id,
+            status: "open",
+            acceptedReviewVersionId: { not: version.id },
+          },
+          select: { id: true, acceptedReviewVersionId: true },
+        });
+        await tx.synthesisRegenerationProposal.updateMany({
+          where: {
+            reviewId: review.id,
+            status: "open",
+            acceptedReviewVersionId: { not: version.id },
+          },
+          data: { status: "superseded", openHeadKey: null },
+        });
         await tx.synthesisDraft.update({
           where: { id: draft.id },
           data: {
@@ -1451,6 +1469,19 @@ export async function decideSynthesisDraft(
                 ordinal,
               }),
             },
+            ...supersededRegenerationProposals.map((proposal) => ({
+              actorId: currentActor.id,
+              action: "synthesis.regeneration-proposal.superseded",
+              subjectType: "synthesisRegenerationProposal",
+              subjectId: proposal.id,
+              idempotencyKey: `synthesis-staleness:proposal:${proposal.id}:superseded:head:${version.id}`,
+              detailsJson: canonicalJson({
+                cause: "accepted-head-changed",
+                reviewId: review.id,
+                previousAcceptedReviewVersionId: proposal.acceptedReviewVersionId,
+                currentAcceptedReviewVersionId: version.id,
+              }),
+            })),
           ],
         });
         return {
@@ -1484,6 +1515,10 @@ export async function getPublicSynthesisReview(
             },
           },
           synthesisAttributions: { orderBy: { position: "asc" } },
+          synthesisStalenessEvaluations: {
+            orderBy: [{ evaluatedAt: "desc" }, { id: "desc" }],
+            take: 1,
+          },
           synthesisDraft: {
             include: {
               agentRun: true,
@@ -1667,6 +1702,40 @@ export async function getPublicSynthesisReview(
       versionDoi: version.versionDoi ?? undefined,
       conceptDoi: version.conceptDoi ?? undefined,
     },
+    freshness: (() => {
+      const evaluation = version.synthesisStalenessEvaluations[0];
+      if (!evaluation)
+        return {
+          status: "unchecked",
+          policyVersion: SYNTHESIS_STALENESS_POLICY_VERSION,
+          reasonCodes: [],
+          affectedReferenceCount: 0,
+        };
+      try {
+        const parsed = synthesisFreshnessSchema.safeParse({
+          status: evaluation.status,
+          policyVersion: evaluation.policyVersion,
+          evaluatedAt: evaluation.evaluatedAt.toISOString(),
+          reasonCodes: JSON.parse(evaluation.reasonCodesJson),
+          affectedReferenceCount: evaluation.affectedReferenceCount,
+        });
+        return parsed.success
+          ? parsed.data
+          : {
+              status: "unchecked",
+              policyVersion: SYNTHESIS_STALENESS_POLICY_VERSION,
+              reasonCodes: [],
+              affectedReferenceCount: 0,
+            };
+      } catch {
+        return {
+          status: "unchecked",
+          policyVersion: SYNTHESIS_STALENESS_POLICY_VERSION,
+          reasonCodes: [],
+          affectedReferenceCount: 0,
+        };
+      }
+    })(),
   });
   return candidate.success ? candidate.data : null;
 }

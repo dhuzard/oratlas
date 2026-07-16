@@ -99,6 +99,12 @@ describe("synthesis OpenAPI contracts", () => {
       "EditorialSynthesisCitation",
       "PublicSynthesisCitation",
       "PublicSynthesisVersion",
+      "SynthesisFreshness",
+      "SynthesisAffectedReference",
+      "SynthesisStalenessEvaluationResult",
+      "SynthesisStalenessScanResult",
+      "SynthesisRegenerationProposalDecision",
+      "SynthesisRegenerationProposalDecisionResult",
       "EditorialSynthesisDraft",
       "PublicSynthesisReview",
     ]) {
@@ -117,6 +123,7 @@ describe("synthesis OpenAPI contracts", () => {
     expect(publicReview).toContain('$ref: "#/components/schemas/AcceptedSynthesisProvenance"');
     expect(publicReview).toContain('$ref: "#/components/schemas/PublicSynthesisCitation"');
     expect(publicReview).toContain('$ref: "#/components/schemas/PublicSynthesisVersion"');
+    expect(publicReview).toContain('$ref: "#/components/schemas/SynthesisFreshness"');
     expect(publicReview).not.toMatch(/packetJson|selectorJson|agentRunId|requestKey|errorCode/);
   });
 });

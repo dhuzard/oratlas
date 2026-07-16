@@ -69,6 +69,7 @@ model User {
   synthesisDraftsApproved        SynthesisDraft[]                  @relation("synthesisDraftApprover")
   synthesisVersionsApproved      ReviewVersion[]                   @relation("synthesisVersionApprover")
   synthesisAttributions          SynthesisAttributionContributor[] @relation("synthesisAttributionUser")
+  synthesisRegenerationResolved  SynthesisRegenerationProposal[]   @relation("synthesisRegenerationResolver")
 
   @@index([githubLoginNormalized])
 }
@@ -162,13 +163,15 @@ model Review {
   /// Optimistic-concurrency counter for append-only public lifecycle events.
   lifecycleRevision         Int       @default(0)
 
-  currentSnapshot         RepositorySnapshot?    @relation("currentSnapshot", fields: [currentSnapshotId], references: [id])
-  currentSynthesisVersion ReviewVersion?         @relation("currentSynthesisHead", fields: [currentSynthesisVersionId], references: [id])
-  repository              Repository?            @relation(fields: [repositoryId], references: [id])
-  versions                ReviewVersion[]
-  comments                ReviewComment[]
-  lifecycleEvents         ReviewLifecycleEvent[]
-  synthesisDrafts         SynthesisDraft[]
+  currentSnapshot                RepositorySnapshot?             @relation("currentSnapshot", fields: [currentSnapshotId], references: [id])
+  currentSynthesisVersion        ReviewVersion?                  @relation("currentSynthesisHead", fields: [currentSynthesisVersionId], references: [id])
+  repository                     Repository?                     @relation(fields: [repositoryId], references: [id])
+  versions                       ReviewVersion[]
+  comments                       ReviewComment[]
+  lifecycleEvents                ReviewLifecycleEvent[]
+  synthesisDrafts                SynthesisDraft[]
+  synthesisStalenessEvaluations  SynthesisStalenessEvaluation[]
+  synthesisRegenerationProposals SynthesisRegenerationProposal[]
 }
 
 model ReviewVersion {
@@ -236,26 +239,28 @@ model ReviewVersion {
   synthesisLicenseSpdx                  String?
   acceptedPredecessorVersionId          String?
 
-  review                  Review                            @relation(fields: [reviewId], references: [id])
-  snapshot                RepositorySnapshot?               @relation(fields: [snapshotId], references: [id])
-  synthesisDraft          SynthesisDraft?                   @relation(fields: [synthesisDraftId], references: [id])
-  synthesisApprovedBy     User?                             @relation("synthesisVersionApprover", fields: [synthesisApprovedById], references: [id])
-  acceptedPredecessor     ReviewVersion?                    @relation("synthesisVersionPredecessor", fields: [acceptedPredecessorVersionId], references: [id])
-  synthesisSuccessors     ReviewVersion[]                   @relation("synthesisVersionPredecessor")
-  synthesisAttributions   SynthesisAttributionContributor[]
-  currentSynthesisOf      Review?                           @relation("currentSynthesisHead")
-  contributors            ReviewContributor[]
-  identifiers             Identifier[]
-  claims                  Claim[]
-  citations               Citation[]
-  comments                ReviewComment[]
-  sourceSubmission        Submission?                       @relation("VersionSource", fields: [sourceSubmissionId], references: [id])
-  inspectionCapture       InspectionCapture?                @relation(fields: [inspectionCaptureId], references: [id])
-  resultingSubmissions    Submission[]                      @relation("ResultingVersion")
-  lifecycleEvents         ReviewLifecycleEvent[]            @relation("lifecycleTarget")
-  supersededByEvents      ReviewLifecycleEvent[]            @relation("lifecycleSupersededVersion")
-  federationNotifications FederationNotification[]
-  protocolSnapshots       ProtocolSnapshot[]
+  review                         Review                            @relation(fields: [reviewId], references: [id])
+  snapshot                       RepositorySnapshot?               @relation(fields: [snapshotId], references: [id])
+  synthesisDraft                 SynthesisDraft?                   @relation(fields: [synthesisDraftId], references: [id])
+  synthesisApprovedBy            User?                             @relation("synthesisVersionApprover", fields: [synthesisApprovedById], references: [id])
+  acceptedPredecessor            ReviewVersion?                    @relation("synthesisVersionPredecessor", fields: [acceptedPredecessorVersionId], references: [id])
+  synthesisSuccessors            ReviewVersion[]                   @relation("synthesisVersionPredecessor")
+  synthesisAttributions          SynthesisAttributionContributor[]
+  synthesisStalenessEvaluations  SynthesisStalenessEvaluation[]    @relation("synthesisStalenessVersion")
+  synthesisRegenerationProposals SynthesisRegenerationProposal[]   @relation("synthesisRegenerationVersion")
+  currentSynthesisOf             Review?                           @relation("currentSynthesisHead")
+  contributors                   ReviewContributor[]
+  identifiers                    Identifier[]
+  claims                         Claim[]
+  citations                      Citation[]
+  comments                       ReviewComment[]
+  sourceSubmission               Submission?                       @relation("VersionSource", fields: [sourceSubmissionId], references: [id])
+  inspectionCapture              InspectionCapture?                @relation(fields: [inspectionCaptureId], references: [id])
+  resultingSubmissions           Submission[]                      @relation("ResultingVersion")
+  lifecycleEvents                ReviewLifecycleEvent[]            @relation("lifecycleTarget")
+  supersededByEvents             ReviewLifecycleEvent[]            @relation("lifecycleSupersededVersion")
+  federationNotifications        FederationNotification[]
+  protocolSnapshots              ProtocolSnapshot[]
 
   @@unique([reviewId, snapshotId, sourceSelectionKey])
   @@unique([reviewId, synthesisOrdinal])
@@ -1046,6 +1051,7 @@ model SynthesisDraft {
   memberships            SynthesisDraftMembership[]
   citations              SynthesisDraftCitation[]
   generationRequestClaim SynthesisGenerationRequestClaim?
+  stalenessEvaluations   SynthesisStalenessEvaluation[]
 
   @@unique([seriesKey, regenerationOrdinal])
   @@unique([generationKey, regenerationOrdinal])
@@ -1140,6 +1146,67 @@ model SynthesisAttributionContributor {
 
   @@id([reviewVersionId, position])
   @@index([userId])
+}
+
+/// Immutable, bounded comparison of one accepted synthesis head against the
+/// current materialization of its exact stored selector.
+model SynthesisStalenessEvaluation {
+  id                                    String   @id @default(cuid())
+  evaluationKey                         String   @unique
+  policyVersion                         String
+  reviewId                              String
+  acceptedReviewVersionId               String
+  acceptedDraftId                       String
+  seriesKey                             String
+  selectorJson                          String
+  selectorHash                          String
+  acceptedMaterializationPolicyVersion  String
+  evaluatedMaterializationPolicyVersion String
+  acceptedPacketHash                    String
+  acceptedPacketJson                    String
+  evaluatedPacketHash                   String?
+  evaluatedPacketJson                   String?
+  status                                String
+  reasonCodesJson                       String
+  affectedReferencesJson                String
+  affectedReferenceCount                Int
+  affectedReferencesTruncated           Boolean  @default(false)
+  evaluatedAt                           DateTime @default(now())
+
+  review                Review                         @relation(fields: [reviewId], references: [id])
+  acceptedReviewVersion ReviewVersion                  @relation("synthesisStalenessVersion", fields: [acceptedReviewVersionId], references: [id])
+  acceptedDraft         SynthesisDraft                 @relation(fields: [acceptedDraftId], references: [id])
+  proposal              SynthesisRegenerationProposal?
+
+  @@index([acceptedReviewVersionId, evaluatedAt])
+  @@index([reviewId, evaluatedAt])
+}
+
+/// Private editorial proposal only. A nullable unique head key guarantees at
+/// most one open proposal per accepted head on SQLite and PostgreSQL.
+model SynthesisRegenerationProposal {
+  id                       String    @id @default(cuid())
+  evaluationId             String    @unique
+  reviewId                 String
+  acceptedReviewVersionId  String
+  openHeadKey              String?   @unique
+  status                   String    @default("open")
+  revision                 Int       @default(0)
+  resolvedById             String?
+  resolvedAt               DateTime?
+  resolutionRationale      String?
+  resolutionIdempotencyKey String?
+  resolutionInputHash      String?
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
+
+  evaluation            SynthesisStalenessEvaluation @relation(fields: [evaluationId], references: [id])
+  review                Review                       @relation(fields: [reviewId], references: [id])
+  acceptedReviewVersion ReviewVersion                @relation("synthesisRegenerationVersion", fields: [acceptedReviewVersionId], references: [id])
+  resolvedBy            User?                        @relation("synthesisRegenerationResolver", fields: [resolvedById], references: [id])
+
+  @@index([status, createdAt])
+  @@index([reviewId, status])
 }
 
 model DiscussionThread {

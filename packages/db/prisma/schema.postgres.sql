@@ -762,6 +762,53 @@ CREATE TABLE "SynthesisAttributionContributor" (
 );
 
 -- CreateTable
+CREATE TABLE "SynthesisStalenessEvaluation" (
+    "id" TEXT NOT NULL,
+    "evaluationKey" TEXT NOT NULL,
+    "policyVersion" TEXT NOT NULL,
+    "reviewId" TEXT NOT NULL,
+    "acceptedReviewVersionId" TEXT NOT NULL,
+    "acceptedDraftId" TEXT NOT NULL,
+    "seriesKey" TEXT NOT NULL,
+    "selectorJson" TEXT NOT NULL,
+    "selectorHash" TEXT NOT NULL,
+    "acceptedMaterializationPolicyVersion" TEXT NOT NULL,
+    "evaluatedMaterializationPolicyVersion" TEXT NOT NULL,
+    "acceptedPacketHash" TEXT NOT NULL,
+    "acceptedPacketJson" TEXT NOT NULL,
+    "evaluatedPacketHash" TEXT,
+    "evaluatedPacketJson" TEXT,
+    "status" TEXT NOT NULL,
+    "reasonCodesJson" TEXT NOT NULL,
+    "affectedReferencesJson" TEXT NOT NULL,
+    "affectedReferenceCount" INTEGER NOT NULL,
+    "affectedReferencesTruncated" BOOLEAN NOT NULL DEFAULT false,
+    "evaluatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "SynthesisStalenessEvaluation_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "SynthesisRegenerationProposal" (
+    "id" TEXT NOT NULL,
+    "evaluationId" TEXT NOT NULL,
+    "reviewId" TEXT NOT NULL,
+    "acceptedReviewVersionId" TEXT NOT NULL,
+    "openHeadKey" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'open',
+    "revision" INTEGER NOT NULL DEFAULT 0,
+    "resolvedById" TEXT,
+    "resolvedAt" TIMESTAMP(3),
+    "resolutionRationale" TEXT,
+    "resolutionIdempotencyKey" TEXT,
+    "resolutionInputHash" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "SynthesisRegenerationProposal_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "DiscussionThread" (
     "id" TEXT NOT NULL,
     "userId" TEXT,
@@ -1297,6 +1344,27 @@ CREATE UNIQUE INDEX "SynthesisDraftCitation_draftId_occurrenceKey_key" ON "Synth
 CREATE INDEX "SynthesisAttributionContributor_userId_idx" ON "SynthesisAttributionContributor"("userId");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "SynthesisStalenessEvaluation_evaluationKey_key" ON "SynthesisStalenessEvaluation"("evaluationKey");
+
+-- CreateIndex
+CREATE INDEX "SynthesisStalenessEvaluation_acceptedReviewVersionId_evalua_idx" ON "SynthesisStalenessEvaluation"("acceptedReviewVersionId", "evaluatedAt");
+
+-- CreateIndex
+CREATE INDEX "SynthesisStalenessEvaluation_reviewId_evaluatedAt_idx" ON "SynthesisStalenessEvaluation"("reviewId", "evaluatedAt");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "SynthesisRegenerationProposal_evaluationId_key" ON "SynthesisRegenerationProposal"("evaluationId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "SynthesisRegenerationProposal_openHeadKey_key" ON "SynthesisRegenerationProposal"("openHeadKey");
+
+-- CreateIndex
+CREATE INDEX "SynthesisRegenerationProposal_status_createdAt_idx" ON "SynthesisRegenerationProposal"("status", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "SynthesisRegenerationProposal_reviewId_status_idx" ON "SynthesisRegenerationProposal"("reviewId", "status");
+
+-- CreateIndex
 CREATE INDEX "ReviewComment_reviewId_createdAt_idx" ON "ReviewComment"("reviewId", "createdAt");
 
 -- CreateIndex
@@ -1618,6 +1686,27 @@ ALTER TABLE "SynthesisAttributionContributor" ADD CONSTRAINT "SynthesisAttributi
 ALTER TABLE "SynthesisAttributionContributor" ADD CONSTRAINT "SynthesisAttributionContributor_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "SynthesisStalenessEvaluation" ADD CONSTRAINT "SynthesisStalenessEvaluation_reviewId_fkey" FOREIGN KEY ("reviewId") REFERENCES "Review"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "SynthesisStalenessEvaluation" ADD CONSTRAINT "SynthesisStalenessEvaluation_acceptedReviewVersionId_fkey" FOREIGN KEY ("acceptedReviewVersionId") REFERENCES "ReviewVersion"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "SynthesisStalenessEvaluation" ADD CONSTRAINT "SynthesisStalenessEvaluation_acceptedDraftId_fkey" FOREIGN KEY ("acceptedDraftId") REFERENCES "SynthesisDraft"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "SynthesisRegenerationProposal" ADD CONSTRAINT "SynthesisRegenerationProposal_evaluationId_fkey" FOREIGN KEY ("evaluationId") REFERENCES "SynthesisStalenessEvaluation"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "SynthesisRegenerationProposal" ADD CONSTRAINT "SynthesisRegenerationProposal_reviewId_fkey" FOREIGN KEY ("reviewId") REFERENCES "Review"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "SynthesisRegenerationProposal" ADD CONSTRAINT "SynthesisRegenerationProposal_acceptedReviewVersionId_fkey" FOREIGN KEY ("acceptedReviewVersionId") REFERENCES "ReviewVersion"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "SynthesisRegenerationProposal" ADD CONSTRAINT "SynthesisRegenerationProposal_resolvedById_fkey" FOREIGN KEY ("resolvedById") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "DiscussionThread" ADD CONSTRAINT "DiscussionThread_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -1758,6 +1847,20 @@ ALTER TABLE "SynthesisDraftMembership" DROP CONSTRAINT IF EXISTS "SynthesisDraft
 ALTER TABLE "SynthesisDraftMembership" ADD CONSTRAINT "SynthesisDraftMembership_identifier_shape_check" CHECK (
     ("kind" = 'node' AND "identifierScheme" IS NULL AND "identifierRole" IS NULL AND "identifierValue" IS NULL)
     OR ("kind" = 'identifier' AND "identifierScheme" IS NOT NULL AND "identifierRole" IS NOT NULL AND "identifierValue" IS NOT NULL)
+  );
+
+ALTER TABLE "SynthesisStalenessEvaluation" DROP CONSTRAINT IF EXISTS "SynthesisStalenessEvaluation_status_check";
+
+ALTER TABLE "SynthesisStalenessEvaluation" ADD CONSTRAINT "SynthesisStalenessEvaluation_status_check" CHECK (
+    "status" IN ('fresh', 'stale') AND "affectedReferenceCount" >= 0
+  );
+
+ALTER TABLE "SynthesisRegenerationProposal" DROP CONSTRAINT IF EXISTS "SynthesisRegenerationProposal_status_check";
+
+ALTER TABLE "SynthesisRegenerationProposal" ADD CONSTRAINT "SynthesisRegenerationProposal_status_check" CHECK (
+    ("status" = 'open' AND "openHeadKey" = "acceptedReviewVersionId" AND "resolvedById" IS NULL AND "resolvedAt" IS NULL)
+    OR ("status" = 'superseded' AND "openHeadKey" IS NULL)
+    OR ("status" IN ('regeneration-requested', 'dismissed') AND "openHeadKey" IS NULL AND "resolvedById" IS NOT NULL AND "resolvedAt" IS NOT NULL AND "resolutionRationale" IS NOT NULL AND "resolutionIdempotencyKey" IS NOT NULL AND "resolutionInputHash" IS NOT NULL)
   );
 
 CREATE OR REPLACE FUNCTION "oratlas_validate_synthesis_membership_reference"() RETURNS trigger AS $$
