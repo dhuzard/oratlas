@@ -312,7 +312,7 @@ packages: [apps/web, packages/ui]
 ```yaml
 id: KG-10
 epic: B
-status: in-progress (issue #45)
+status: done (PR #46)
 depends_on: [KG-05]
 size: M
 labels: [trust, contracts]
