@@ -97,6 +97,20 @@ export function TrustDisplay({ trust }: { trust: ReviewTrust }) {
           ratings above are authoritative. This is not the probability that the paper is true.
         </p>
       ) : null}
+      {trust.sourceAssertion.aggregateScore !== null ? (
+        <p className="muted" style={{ fontSize: "0.85rem" }}>
+          Repository-supplied source aggregate:{" "}
+          <strong>{trust.sourceAssertion.aggregateScore.toFixed(2)}</strong>
+          {trust.sourceAssertion.aggregateMethod ? (
+            <>
+              {" "}
+              via <span className="mono">{trust.sourceAssertion.aggregateMethod}</span>
+            </>
+          ) : null}
+          . This value is preserved for provenance; Atlas did not compute or verify it, and it is
+          not a probability.
+        </p>
+      ) : null}
       <p className="muted" style={{ fontSize: "0.85rem" }}>
         Atlas review of this record concerns provenance and structural consistency. It is not peer
         review and does not establish scientific correctness.

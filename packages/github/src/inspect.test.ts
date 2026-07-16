@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { inspectRepository, extractDoisFromText } from "./inspect.js";
+import { DEFAULT_LIMITS, inspectRepository, extractDoisFromText } from "./inspect.js";
 import { createFakeTransport } from "./testing.js";
 import {
   CLAIM_NODE_JSON,
@@ -10,6 +10,14 @@ import {
 } from "./fixtures.js";
 
 describe("inspectRepository", () => {
+  it("allows bounded enriched-review artifacts while retaining a shared cap", () => {
+    expect(DEFAULT_LIMITS).toMatchObject({
+      maxFileBytes: 2 * 1024 * 1024,
+      maxTotalBytes: 6 * 1024 * 1024,
+      maxFileCount: 24,
+    });
+  });
+
   it("inspects a template-compatible repository and fetches well-known files", async () => {
     const report = await inspectRepository("example-lab/hippocampal-replay-review", {
       transport: createFakeTransport(templateCompatibleFixture),
