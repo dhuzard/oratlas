@@ -26,11 +26,14 @@ export async function GET() {
     });
     const base = appBaseUrl();
     const events = rows
-      .filter((row) => isExactCommitSha(row.reviewVersion.snapshot.commitSha))
+      .filter(
+        (row) =>
+          row.reviewVersion.snapshot && isExactCommitSha(row.reviewVersion.snapshot.commitSha),
+      )
       .map((row) => ({
         ...lifecycleEventDto(row),
         reviewSlug: row.review.slug,
-        commitSha: row.reviewVersion.snapshot.commitSha,
+        commitSha: row.reviewVersion.snapshot!.commitSha,
         url: `${base}/reviews/${row.review.slug}/versions/${row.reviewVersionId}`,
       }));
     return NextResponse.json(

@@ -103,6 +103,8 @@ function loadedRow(): LoadedTrustAssessment {
             slug: "review",
             repositoryId: null,
             currentSnapshotId: "snapshot-1",
+            synthesisSeriesKey: null,
+            currentSynthesisVersionId: null,
             title: "Review",
             abstract: null,
             reviewType: null,
@@ -133,7 +135,7 @@ function loadedRow(): LoadedTrustAssessment {
         rawCitationJson: null,
       },
     },
-  };
+  } as unknown as LoadedTrustAssessment;
 }
 
 function fakeTransaction(row: LoadedTrustAssessment, casCount = 1) {

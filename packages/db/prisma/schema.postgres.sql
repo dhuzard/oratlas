@@ -68,6 +68,8 @@ CREATE TABLE "Review" (
     "slug" TEXT NOT NULL,
     "repositoryId" TEXT,
     "currentSnapshotId" TEXT,
+    "synthesisSeriesKey" TEXT,
+    "currentSynthesisVersionId" TEXT,
     "title" TEXT NOT NULL,
     "abstract" TEXT,
     "reviewType" TEXT,
@@ -86,7 +88,9 @@ CREATE TABLE "Review" (
 CREATE TABLE "ReviewVersion" (
     "id" TEXT NOT NULL,
     "reviewId" TEXT NOT NULL,
-    "snapshotId" TEXT NOT NULL,
+    "snapshotId" TEXT,
+    "recordSourceType" TEXT NOT NULL DEFAULT 'repository',
+    "synthesisDraftId" TEXT,
     "sourceSubmissionId" TEXT,
     "inspectionCaptureId" TEXT,
     "sourceKind" TEXT,
@@ -109,6 +113,32 @@ CREATE TABLE "ReviewVersion" (
     "publishedAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "publicState" TEXT NOT NULL DEFAULT 'published',
+    "synthesisDocumentJson" TEXT,
+    "synthesisOrdinal" INTEGER,
+    "synthesisGenerationMode" TEXT,
+    "synthesisPipelineName" TEXT,
+    "synthesisPipelineId" TEXT,
+    "synthesisPipelineKind" TEXT,
+    "synthesisPipelineVersion" TEXT,
+    "synthesisProvider" TEXT,
+    "synthesisModel" TEXT,
+    "synthesisModelVersion" TEXT,
+    "synthesisPromptVersion" TEXT,
+    "synthesisPromptHash" TEXT,
+    "synthesisPacketHash" TEXT,
+    "synthesisDocumentHash" TEXT,
+    "synthesisGeneratedAt" TIMESTAMP(3),
+    "synthesisAcceptedAt" TIMESTAMP(3),
+    "synthesisApprovedById" TEXT,
+    "synthesisApproverRole" TEXT,
+    "synthesisApproverDisplayName" TEXT,
+    "synthesisApproverGithubLogin" TEXT,
+    "synthesisChecklistVersion" TEXT,
+    "synthesisAttributionPolicyVersion" TEXT,
+    "synthesisMaterializationPolicyVersion" TEXT,
+    "synthesisRightsStatement" TEXT,
+    "synthesisLicenseSpdx" TEXT,
+    "acceptedPredecessorVersionId" TEXT,
 
     CONSTRAINT "ReviewVersion_pkey" PRIMARY KEY ("id")
 );
@@ -611,6 +641,122 @@ CREATE TABLE "AgentRun" (
 );
 
 -- CreateTable
+CREATE TABLE "SynthesisDraft" (
+    "id" TEXT NOT NULL,
+    "seriesKey" TEXT NOT NULL,
+    "selectorJson" TEXT NOT NULL,
+    "selectorHash" TEXT NOT NULL,
+    "materializationPolicyVersion" TEXT NOT NULL,
+    "generationKey" TEXT NOT NULL,
+    "regenerationOrdinal" INTEGER NOT NULL,
+    "parentDraftId" TEXT,
+    "previousAcceptedDraftId" TEXT,
+    "previousAcceptedOrdinal" INTEGER,
+    "agentRunId" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'pending',
+    "revision" INTEGER NOT NULL DEFAULT 0,
+    "packetJson" TEXT NOT NULL,
+    "packetHash" TEXT NOT NULL,
+    "documentJson" TEXT NOT NULL,
+    "documentHash" TEXT NOT NULL,
+    "generationMode" TEXT NOT NULL,
+    "pipelineSoftwareName" TEXT NOT NULL,
+    "pipelineSoftwareId" TEXT NOT NULL,
+    "pipelineSoftwareKind" TEXT NOT NULL,
+    "pipelineSoftwareVersion" TEXT NOT NULL,
+    "provider" TEXT NOT NULL,
+    "model" TEXT NOT NULL,
+    "modelVersion" TEXT NOT NULL,
+    "promptVersion" TEXT NOT NULL,
+    "promptHash" TEXT NOT NULL,
+    "generatedAt" TIMESTAMP(3) NOT NULL,
+    "acceptedAt" TIMESTAMP(3),
+    "acceptedById" TEXT,
+    "acceptedByRoleSnapshot" TEXT,
+    "acceptedByDisplayName" TEXT,
+    "acceptedByGithubLogin" TEXT,
+    "decisionRationale" TEXT,
+    "checklistJson" TEXT,
+    "checklistVersion" TEXT,
+    "attributionPolicyVersion" TEXT NOT NULL,
+    "rightsStatement" TEXT,
+    "licenseSpdx" TEXT,
+    "reviewId" TEXT,
+    "requestKey" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "SynthesisDraft_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "SynthesisGenerationRequestClaim" (
+    "key" TEXT NOT NULL,
+    "requestKey" TEXT NOT NULL,
+    "selectorJson" TEXT NOT NULL,
+    "selectorHash" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'running',
+    "draftId" TEXT,
+    "agentRunId" TEXT,
+    "errorCode" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "SynthesisGenerationRequestClaim_pkey" PRIMARY KEY ("key")
+);
+
+-- CreateTable
+CREATE TABLE "SynthesisDraftMembership" (
+    "draftId" TEXT NOT NULL,
+    "referenceId" TEXT NOT NULL,
+    "kind" TEXT NOT NULL,
+    "nodeId" TEXT NOT NULL,
+    "nodeVersionId" TEXT NOT NULL,
+    "identifierScheme" TEXT,
+    "identifierRole" TEXT,
+    "identifierValue" TEXT,
+    "position" INTEGER NOT NULL,
+
+    CONSTRAINT "SynthesisDraftMembership_pkey" PRIMARY KEY ("draftId","referenceId")
+);
+
+-- CreateTable
+CREATE TABLE "SynthesisDraftCitation" (
+    "id" TEXT NOT NULL,
+    "draftId" TEXT NOT NULL,
+    "occurrenceKey" TEXT NOT NULL,
+    "location" TEXT NOT NULL,
+    "sectionId" TEXT,
+    "paragraphIndex" INTEGER,
+    "citationIndex" INTEGER NOT NULL,
+    "referenceId" TEXT NOT NULL,
+    "nodeId" TEXT NOT NULL,
+    "nodeVersionId" TEXT NOT NULL,
+    "nodeKind" TEXT NOT NULL,
+    "nodeTitle" TEXT NOT NULL,
+    "identifierScheme" TEXT,
+    "identifierRole" TEXT,
+    "identifierValue" TEXT,
+
+    CONSTRAINT "SynthesisDraftCitation_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "SynthesisAttributionContributor" (
+    "reviewVersionId" TEXT NOT NULL,
+    "position" INTEGER NOT NULL,
+    "kind" TEXT NOT NULL,
+    "displayName" TEXT NOT NULL,
+    "role" TEXT NOT NULL,
+    "softwareVersion" TEXT,
+    "userId" TEXT,
+    "userRoleSnapshot" TEXT,
+    "githubLoginSnapshot" TEXT,
+
+    CONSTRAINT "SynthesisAttributionContributor_pkey" PRIMARY KEY ("reviewVersionId","position")
+);
+
+-- CreateTable
 CREATE TABLE "DiscussionThread" (
     "id" TEXT NOT NULL,
     "userId" TEXT,
@@ -690,6 +836,7 @@ CREATE TABLE "AuditEvent" (
 -- CreateTable
 CREATE TABLE "IdempotencyKey" (
     "key" TEXT NOT NULL,
+    "requestHash" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "IdempotencyKey_pkey" PRIMARY KEY ("key")
@@ -905,6 +1052,15 @@ CREATE UNIQUE INDEX "Review_slug_key" ON "Review"("slug");
 CREATE UNIQUE INDEX "Review_repositoryId_key" ON "Review"("repositoryId");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "Review_synthesisSeriesKey_key" ON "Review"("synthesisSeriesKey");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Review_currentSynthesisVersionId_key" ON "Review"("currentSynthesisVersionId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "ReviewVersion_synthesisDraftId_key" ON "ReviewVersion"("synthesisDraftId");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "ReviewVersion_sourceSubmissionId_key" ON "ReviewVersion"("sourceSubmissionId");
 
 -- CreateIndex
@@ -912,6 +1068,9 @@ CREATE UNIQUE INDEX "ReviewVersion_inspectionCaptureId_key" ON "ReviewVersion"("
 
 -- CreateIndex
 CREATE UNIQUE INDEX "ReviewVersion_reviewId_snapshotId_sourceSelectionKey_key" ON "ReviewVersion"("reviewId", "snapshotId", "sourceSelectionKey");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "ReviewVersion_reviewId_synthesisOrdinal_key" ON "ReviewVersion"("reviewId", "synthesisOrdinal");
 
 -- CreateIndex
 CREATE INDEX "ReviewLifecycleEvent_reviewVersionId_createdAt_idx" ON "ReviewLifecycleEvent"("reviewVersionId", "createdAt");
@@ -1082,6 +1241,57 @@ CREATE INDEX "NodeRelationTrustVerification_status_idx" ON "NodeRelationTrustVer
 CREATE INDEX "NodeRelationTrustVerification_reviewerId_idx" ON "NodeRelationTrustVerification"("reviewerId");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "SynthesisDraft_agentRunId_key" ON "SynthesisDraft"("agentRunId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "SynthesisDraft_requestKey_key" ON "SynthesisDraft"("requestKey");
+
+-- CreateIndex
+CREATE INDEX "SynthesisDraft_status_createdAt_idx" ON "SynthesisDraft"("status", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "SynthesisDraft_seriesKey_status_idx" ON "SynthesisDraft"("seriesKey", "status");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "SynthesisDraft_seriesKey_regenerationOrdinal_key" ON "SynthesisDraft"("seriesKey", "regenerationOrdinal");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "SynthesisDraft_generationKey_regenerationOrdinal_key" ON "SynthesisDraft"("generationKey", "regenerationOrdinal");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "SynthesisGenerationRequestClaim_requestKey_key" ON "SynthesisGenerationRequestClaim"("requestKey");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "SynthesisGenerationRequestClaim_draftId_key" ON "SynthesisGenerationRequestClaim"("draftId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "SynthesisGenerationRequestClaim_agentRunId_key" ON "SynthesisGenerationRequestClaim"("agentRunId");
+
+-- CreateIndex
+CREATE INDEX "SynthesisGenerationRequestClaim_status_updatedAt_idx" ON "SynthesisGenerationRequestClaim"("status", "updatedAt");
+
+-- CreateIndex
+CREATE INDEX "SynthesisDraftMembership_nodeId_nodeVersionId_idx" ON "SynthesisDraftMembership"("nodeId", "nodeVersionId");
+
+-- CreateIndex
+CREATE INDEX "SynthesisDraftMembership_referenceId_idx" ON "SynthesisDraftMembership"("referenceId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "SynthesisDraftMembership_draftId_position_key" ON "SynthesisDraftMembership"("draftId", "position");
+
+-- CreateIndex
+CREATE INDEX "SynthesisDraftCitation_draftId_referenceId_idx" ON "SynthesisDraftCitation"("draftId", "referenceId");
+
+-- CreateIndex
+CREATE INDEX "SynthesisDraftCitation_nodeId_nodeVersionId_idx" ON "SynthesisDraftCitation"("nodeId", "nodeVersionId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "SynthesisDraftCitation_draftId_occurrenceKey_key" ON "SynthesisDraftCitation"("draftId", "occurrenceKey");
+
+-- CreateIndex
+CREATE INDEX "SynthesisAttributionContributor_userId_idx" ON "SynthesisAttributionContributor"("userId");
+
+-- CreateIndex
 CREATE INDEX "ReviewComment_reviewId_createdAt_idx" ON "ReviewComment"("reviewId", "createdAt");
 
 -- CreateIndex
@@ -1157,13 +1367,25 @@ ALTER TABLE "RepositorySnapshot" ADD CONSTRAINT "RepositorySnapshot_repositoryId
 ALTER TABLE "Review" ADD CONSTRAINT "Review_currentSnapshotId_fkey" FOREIGN KEY ("currentSnapshotId") REFERENCES "RepositorySnapshot"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "Review" ADD CONSTRAINT "Review_currentSynthesisVersionId_fkey" FOREIGN KEY ("currentSynthesisVersionId") REFERENCES "ReviewVersion"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "Review" ADD CONSTRAINT "Review_repositoryId_fkey" FOREIGN KEY ("repositoryId") REFERENCES "Repository"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "ReviewVersion" ADD CONSTRAINT "ReviewVersion_reviewId_fkey" FOREIGN KEY ("reviewId") REFERENCES "Review"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "ReviewVersion" ADD CONSTRAINT "ReviewVersion_snapshotId_fkey" FOREIGN KEY ("snapshotId") REFERENCES "RepositorySnapshot"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "ReviewVersion" ADD CONSTRAINT "ReviewVersion_snapshotId_fkey" FOREIGN KEY ("snapshotId") REFERENCES "RepositorySnapshot"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ReviewVersion" ADD CONSTRAINT "ReviewVersion_synthesisDraftId_fkey" FOREIGN KEY ("synthesisDraftId") REFERENCES "SynthesisDraft"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ReviewVersion" ADD CONSTRAINT "ReviewVersion_synthesisApprovedById_fkey" FOREIGN KEY ("synthesisApprovedById") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ReviewVersion" ADD CONSTRAINT "ReviewVersion_acceptedPredecessorVersionId_fkey" FOREIGN KEY ("acceptedPredecessorVersionId") REFERENCES "ReviewVersion"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "ReviewVersion" ADD CONSTRAINT "ReviewVersion_sourceSubmissionId_fkey" FOREIGN KEY ("sourceSubmissionId") REFERENCES "Submission"("id") ON DELETE SET NULL ON UPDATE CASCADE;
@@ -1346,6 +1568,51 @@ ALTER TABLE "NodeRelationTrustVerification" ADD CONSTRAINT "NodeRelationTrustVer
 ALTER TABLE "NodeRelationTrustVerification" ADD CONSTRAINT "NodeRelationTrustVerification_reviewerId_fkey" FOREIGN KEY ("reviewerId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "SynthesisDraft" ADD CONSTRAINT "SynthesisDraft_agentRunId_fkey" FOREIGN KEY ("agentRunId") REFERENCES "AgentRun"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "SynthesisDraft" ADD CONSTRAINT "SynthesisDraft_parentDraftId_fkey" FOREIGN KEY ("parentDraftId") REFERENCES "SynthesisDraft"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "SynthesisDraft" ADD CONSTRAINT "SynthesisDraft_previousAcceptedDraftId_fkey" FOREIGN KEY ("previousAcceptedDraftId") REFERENCES "SynthesisDraft"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "SynthesisDraft" ADD CONSTRAINT "SynthesisDraft_acceptedById_fkey" FOREIGN KEY ("acceptedById") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "SynthesisDraft" ADD CONSTRAINT "SynthesisDraft_reviewId_fkey" FOREIGN KEY ("reviewId") REFERENCES "Review"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "SynthesisGenerationRequestClaim" ADD CONSTRAINT "SynthesisGenerationRequestClaim_draftId_fkey" FOREIGN KEY ("draftId") REFERENCES "SynthesisDraft"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "SynthesisGenerationRequestClaim" ADD CONSTRAINT "SynthesisGenerationRequestClaim_agentRunId_fkey" FOREIGN KEY ("agentRunId") REFERENCES "AgentRun"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "SynthesisDraftMembership" ADD CONSTRAINT "SynthesisDraftMembership_draftId_fkey" FOREIGN KEY ("draftId") REFERENCES "SynthesisDraft"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "SynthesisDraftMembership" ADD CONSTRAINT "SynthesisDraftMembership_nodeId_fkey" FOREIGN KEY ("nodeId") REFERENCES "KnowledgeNode"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "SynthesisDraftMembership" ADD CONSTRAINT "SynthesisDraftMembership_nodeVersionId_fkey" FOREIGN KEY ("nodeVersionId") REFERENCES "KnowledgeNodeVersion"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "SynthesisDraftCitation" ADD CONSTRAINT "SynthesisDraftCitation_draftId_fkey" FOREIGN KEY ("draftId") REFERENCES "SynthesisDraft"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "SynthesisDraftCitation" ADD CONSTRAINT "SynthesisDraftCitation_nodeId_fkey" FOREIGN KEY ("nodeId") REFERENCES "KnowledgeNode"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "SynthesisDraftCitation" ADD CONSTRAINT "SynthesisDraftCitation_nodeVersionId_fkey" FOREIGN KEY ("nodeVersionId") REFERENCES "KnowledgeNodeVersion"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "SynthesisAttributionContributor" ADD CONSTRAINT "SynthesisAttributionContributor_reviewVersionId_fkey" FOREIGN KEY ("reviewVersionId") REFERENCES "ReviewVersion"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "SynthesisAttributionContributor" ADD CONSTRAINT "SynthesisAttributionContributor_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "DiscussionThread" ADD CONSTRAINT "DiscussionThread_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -1450,3 +1717,34 @@ ALTER TABLE "ProtocolDriftProposal" ADD CONSTRAINT "ProtocolDriftProposal_snapsh
 -- AddForeignKey
 ALTER TABLE "ProtocolDriftProposal" ADD CONSTRAINT "ProtocolDriftProposal_resolvedById_fkey" FOREIGN KEY ("resolvedById") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
+
+
+-- Application source unions also have database-level fail-closed guards in production.
+ALTER TABLE "Review" ADD CONSTRAINT "Review_source_union_check" CHECK (
+  (
+    "reviewType" = 'ai-synthesis' AND "repositoryId" IS NULL AND "currentSnapshotId" IS NULL
+    AND "synthesisSeriesKey" IS NOT NULL
+  ) OR (
+    ("reviewType" IS NULL OR "reviewType" <> 'ai-synthesis') AND "synthesisSeriesKey" IS NULL
+    AND "currentSynthesisVersionId" IS NULL
+  )
+);
+
+ALTER TABLE "ReviewVersion" ADD CONSTRAINT "ReviewVersion_source_union_check" CHECK (
+  (
+    "recordSourceType" = 'repository' AND "snapshotId" IS NOT NULL AND "synthesisDraftId" IS NULL
+    AND "synthesisDocumentJson" IS NULL AND "synthesisOrdinal" IS NULL
+  ) OR (
+    "recordSourceType" = 'synthesis' AND "snapshotId" IS NULL AND "synthesisDraftId" IS NOT NULL
+    AND "synthesisDocumentJson" IS NOT NULL AND "synthesisOrdinal" IS NOT NULL
+  )
+);
+
+ALTER TABLE "SynthesisDraft" ADD CONSTRAINT "SynthesisDraft_status_check" CHECK (
+  "status" IN ('pending', 'accepted', 'rejected', 'regeneration-requested')
+);
+
+ALTER TABLE "SynthesisGenerationRequestClaim" ADD CONSTRAINT "SynthesisGenerationRequestClaim_status_check" CHECK (
+  "status" IN ('running', 'completed', 'failed')
+  AND ("status" <> 'completed' OR ("draftId" IS NOT NULL AND "agentRunId" IS NOT NULL))
+);

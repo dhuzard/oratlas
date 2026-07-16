@@ -14,7 +14,7 @@
     "db:push": "prisma db push",
     "db:validate": "prisma validate",
     "db:pg:schema": "tsx scripts/gen-postgres-schema.ts",
-    "db:pg:ddl": "prisma migrate diff --from-empty --to-schema-datamodel prisma/schema.postgres.prisma --script > prisma/schema.postgres.sql",
+    "db:pg:ddl": "prisma migrate diff --from-empty --to-schema-datamodel prisma/schema.postgres.prisma --script > prisma/schema.postgres.sql && tsx scripts/append-postgres-constraints.ts",
     "db:seed": "tsx src/seed/seed.ts",
     "db:backfill-github-logins": "tsx src/backfill-github-logins.ts",
     "db:reconcile-github-repositories": "tsx src/reconcile-github-repositories.ts",

@@ -1666,6 +1666,63 @@ paths:
         "409": { $ref: "#/components/responses/Error" }
         "413": { $ref: "#/components/responses/Error" }
         "429": { $ref: "#/components/responses/Error" }
+  /api/editorial/syntheses/generate:
+    post:
+      summary: Generate one private immutable grounded-synthesis draft
+      description: >
+        Claims a caller request key before provider execution, binds it to one canonical selector,
+        snapshots the exact bounded evidence packet and successful AgentRun, and creates no public review.
+      security: [{ session: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, additionalProperties: false, required: [selector, requestKey] }
+      responses:
+        "200": { description: Private editorial synthesis draft }
+        "400": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "413": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/Error" }
+  /api/editorial/syntheses/{id}/decision:
+    post:
+      summary: Accept, reject, or request regeneration of a private synthesis draft
+      description: >
+        Rechecks the editor role, binds the idempotency key to the canonical decision body, and
+        uses serializable CAS. Only acceptance materializes and advances the public synthesis head.
+      security: [{ session: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              {
+                type: object,
+                additionalProperties: false,
+                required: [action, expectedRevision, idempotencyKey, rationale],
+              }
+      responses:
+        "200": { description: Idempotent editorial decision result }
+        "400": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "413": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/Error" }
+  /api/syntheses/{slug}:
+    get:
+      summary: Read the current editor-accepted AI synthesis from its authoritative head
+      description: >
+        Returns an allowlisted public DTO only after revalidating the linked immutable draft,
+        AgentRun, canonical hashes, citations, attribution, rights, and predecessor lineage.
+      parameters:
+        - { name: slug, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Current accepted synthesis without private packet or run fields }
+        "404": { $ref: "#/components/responses/Error" }
   /api/nodes/{id}/edges:
     get:
       summary: Minimal public confirmed-edge projection for one knowledge node

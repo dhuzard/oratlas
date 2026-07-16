@@ -213,7 +213,7 @@ export async function getReviewDetail(
   const version = requestedVersionId
     ? review.versions.find((candidate) => candidate.id === requestedVersionId)
     : currentVersion;
-  if (!version || !isExactCommitSha(version.snapshot.commitSha)) return null;
+  if (!version || !version.snapshot || !isExactCommitSha(version.snapshot.commitSha)) return null;
 
   const lifecycleEvents = review.lifecycleEvents
     .filter(
@@ -512,6 +512,7 @@ export async function listPublishedSlugs(): Promise<string[]> {
       (row) =>
         row.versions[0] &&
         !isTombstonedState(row.versions[0].publicState) &&
+        row.versions[0].snapshot &&
         isExactCommitSha(row.versions[0].snapshot.commitSha),
     )
     .map((row) => row.slug);

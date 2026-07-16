@@ -65,7 +65,7 @@ export async function getVersionExportContext(
   versionId: string,
 ): Promise<VersionExportContext | null> {
   const version = await loadVersionRow(slug, versionId);
-  if (!version || !isExactCommitSha(version.snapshot.commitSha)) return null;
+  if (!version || !version.snapshot || !isExactCommitSha(version.snapshot.commitSha)) return null;
   const snapshot = version.snapshot;
   const repository = snapshot.repository;
 
@@ -186,6 +186,7 @@ export async function getVersionExportContext(
  * submission capability and is never a public delivery fallback.
  */
 function preservedFilesForVersion(version: VersionRow): PreservedFiles | null {
+  if (!version.snapshot) return null;
   if (!version.snapshot.preservedFilesJson) return null;
   const parsed = preservedFilesSchema.safeParse(
     parseJsonColumn<unknown>(version.snapshot.preservedFilesJson, null),
@@ -202,6 +203,7 @@ function fileDescriptors(
   version: VersionRow,
   preserved: PreservedFiles | null,
 ): PreservedFileDescriptor[] {
+  if (!version.snapshot) return [];
   const out = new Map<string, PreservedFileDescriptor>();
   const report = snapshotStorageReportSchema.safeParse(
     parseJsonColumn<unknown>(version.snapshot.inspectionReportJson, null),
@@ -257,7 +259,7 @@ export async function getPreservedFileContent(
       snapshot: { select: { commitSha: true, preservedFilesJson: true } },
     },
   });
-  if (!version || !isExactCommitSha(version.snapshot.commitSha)) return null;
+  if (!version || !version.snapshot || !isExactCommitSha(version.snapshot.commitSha)) return null;
 
   if (version.snapshot.preservedFilesJson) {
     const parsed = preservedFilesSchema.safeParse(

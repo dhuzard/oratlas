@@ -174,6 +174,7 @@ type DiffVersion = NonNullable<Awaited<ReturnType<typeof loadDiffVersion>>>;
 function canonicalVersion(version: DiffVersion) {
   if (
     !isReadablePublicState(version.publicState) ||
+    !version.snapshot ||
     !isExactCommitSha(version.snapshot.commitSha)
   ) {
     return null;
@@ -244,12 +245,12 @@ export async function getReviewVersionDiff(
     reviewSlug: slug,
     from: {
       versionId: from.id,
-      commitSha: from.snapshot.commitSha,
+      commitSha: from.snapshot!.commitSha,
       checksum: checksum(before),
     },
     to: {
       versionId: to.id,
-      commitSha: to.snapshot.commitSha,
+      commitSha: to.snapshot!.commitSha,
       checksum: checksum(after),
     },
     sections,
