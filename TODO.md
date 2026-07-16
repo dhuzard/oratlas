@@ -288,7 +288,7 @@ packages: [apps/web, packages/knowledge]
 ```yaml
 id: KG-09
 epic: B
-status: in-progress (issue #48)
+status: done (PR #50)
 depends_on: [KG-08]
 size: L
 labels: [web, ui]
