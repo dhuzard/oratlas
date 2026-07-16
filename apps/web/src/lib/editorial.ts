@@ -6,6 +6,7 @@ import {
   type SubmissionValidationReport,
 } from "@oratlas/contracts";
 import { prisma, parseJsonColumn } from "./db";
+import { parseStoredSubmissionPayload, validNodeCandidates } from "./submission-payload";
 
 export interface MetadataDiffRow {
   field: string;
@@ -27,6 +28,18 @@ export interface EditorialSubmission {
   validation?: SubmissionValidationReport;
   metadataDiff: MetadataDiffRow[];
   editorialNote?: string;
+  publicationTargets?: { proseReview: boolean; knowledgeNodes: boolean };
+  nodeCandidates: Array<{
+    id: string;
+    kind: string;
+    title: string;
+    abstract?: string;
+    text?: string;
+    license: string;
+    sourcePath: string;
+    sourcePointer: string;
+    fieldProvenance: Record<string, { file: string; pointer: string; commitSha?: string }>;
+  }>;
 }
 
 const DIFF_FIELDS = [
@@ -55,6 +68,20 @@ export async function listSubmissions(statuses?: string[]): Promise<EditorialSub
       s.validationReportJson,
       undefined,
     );
+    const submittedPayload = parseStoredSubmissionPayload(s.submittedPayloadJson);
+    const nodeCandidates = submittedPayload
+      ? validNodeCandidates(submittedPayload).map((candidate) => ({
+          id: candidate.node.id,
+          kind: candidate.node.kind,
+          title: candidate.node.title,
+          abstract: candidate.node.abstract,
+          text: candidate.node.text,
+          license: candidate.node.license,
+          sourcePath: candidate.sourcePath,
+          sourcePointer: candidate.sourcePointer,
+          fieldProvenance: candidate.fieldProvenance,
+        }))
+      : [];
     const effectiveExtracted = extracted
       ? resolveEffectiveMetadata(extracted, undefined)
       : ({} as Record<string, unknown>);
@@ -90,6 +117,8 @@ export async function listSubmissions(statuses?: string[]): Promise<EditorialSub
       validation,
       metadataDiff,
       editorialNote: s.editorialNote ?? undefined,
+      publicationTargets: submittedPayload?.publicationTargets,
+      nodeCandidates,
     };
   });
 }

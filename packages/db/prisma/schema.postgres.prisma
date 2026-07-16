@@ -314,6 +314,10 @@ model Submission {
   /// Immutable snapshot of the exact payload the submitter finalized.
   submittedPayloadJson       String?
   submittedPayloadHash       String?
+  /// Canonical JSON array of local node ids selected during acceptance.
+  acceptedNodeSelectionJson  String?
+  /// SHA-256 of acceptedNodeSelectionJson for idempotent acceptance retries.
+  acceptedNodeSelectionHash  String?
   submittedAt                DateTime?
   reviewedAt                 DateTime?
   reviewerId                 String?

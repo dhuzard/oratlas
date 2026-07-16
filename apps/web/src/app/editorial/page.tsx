@@ -200,6 +200,8 @@ export default async function EditorialPage({
               <DecisionForm
                 submissionId={s.id}
                 overrideCheckIds={s.validation?.publicationConsistency?.overridableCheckIds ?? []}
+                nodeCandidates={s.nodeCandidates}
+                nodeOnly={s.publicationTargets?.proseReview === false}
               />
             )}
           </Card>

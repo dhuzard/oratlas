@@ -26,6 +26,7 @@ import {
   SubmissionError,
   type EditorialOverrideInput,
 } from "./submissions";
+import { parseStoredSubmissionPayload, validNodeCandidates } from "./submission-payload";
 
 /**
  * Formal editorial-review lifecycle (issue #6). Archive acceptance stays
@@ -442,7 +443,11 @@ export async function issueDecision(
   letter: DecisionLetterBody,
   note?: string,
   overrides: EditorialOverrideInput[] = [],
+  selectedNodeIds: string[] = [],
 ): Promise<IssueDecisionResult> {
+  if (!isEditorRole(actor.role)) {
+    throw new LifecycleError("Only a current editor can issue a decision.", "forbidden");
+  }
   const parsedDecision = roundDecisionSchema.parse(decision);
   const parsedLetter = decisionLetterBodySchema.parse(letter);
   const bodyJson = canonicalJson(parsedLetter);
@@ -468,7 +473,9 @@ export async function issueDecision(
 
   let reviewSlug: string | undefined;
   if (parsedDecision === "accept") {
-    reviewSlug = (await acceptSubmission(round.submissionId, actor.id, note, overrides)).reviewSlug;
+    reviewSlug = (
+      await acceptSubmission(round.submissionId, actor.id, note, overrides, selectedNodeIds)
+    ).reviewSlug;
   } else {
     await decideSubmission(
       round.submissionId,
@@ -813,6 +820,8 @@ export interface RoundDetail {
   viewerIsActiveEditor: boolean;
   viewerHasReported: boolean;
   viewerIsAssignedEditor: boolean;
+  nodeOnly: boolean;
+  nodeCandidates: Array<{ id: string; kind: string; title: string }>;
   reports: ProcessHistoryReport[];
   responses: Array<{ authorLogin: string; body: AuthorResponseBody; submittedAt: string }>;
   decision?: {
@@ -843,6 +852,7 @@ export async function getRoundDetail(
     where: { submissionId_editorId: { submissionId: round.submissionId, editorId: viewerId } },
   });
   const extracted = parseTitle(round.submission.extractedMetadataJson);
+  const payload = parseStoredSubmissionPayload(round.submission.submittedPayloadJson);
   return {
     roundId: round.id,
     roundNumber: round.roundNumber,
@@ -855,6 +865,14 @@ export async function getRoundDetail(
     viewerIsSubmitter: round.submission.submitterId === viewerId,
     viewerIsActiveEditor: assignment?.status === "active",
     viewerIsAssignedEditor: Boolean(assignment),
+    nodeOnly: payload?.publicationTargets.proseReview === false,
+    nodeCandidates: payload
+      ? validNodeCandidates(payload).map((candidate) => ({
+          id: candidate.node.id,
+          kind: candidate.node.kind,
+          title: candidate.node.title,
+        }))
+      : [],
     viewerHasReported: round.reports.some((report) => report.reviewerId === viewerId),
     reports: round.reports.map(mapReportRow).filter(notNull),
     responses: round.responses.map(mapResponseRow).filter(notNull),

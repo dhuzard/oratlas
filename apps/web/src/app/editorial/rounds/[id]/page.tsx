@@ -128,7 +128,11 @@ export default async function RoundPage({ params }: { params: Promise<{ id: stri
       ) : null}
       {canDecide ? (
         <Card>
-          <RoundDecisionForm roundId={round.roundId} />
+          <RoundDecisionForm
+            roundId={round.roundId}
+            nodeCandidates={round.nodeCandidates}
+            nodeOnly={round.nodeOnly}
+          />
         </Card>
       ) : null}
     </article>

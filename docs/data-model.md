@@ -77,11 +77,17 @@ suffix, and arrays are JSON-encoded strings. Switching to PostgreSQL is a dataso
 - Historical UI/API routes resolve the chosen version's own snapshot and evidence. Comments are
   version-scoped and read-only on historical routes; nullable version ids only support legacy rows.
 - `Submission.submittedPayloadJson` is the immutable snapshot of exactly what the submitter
-  finalized; editorial acceptance materializes the review from it.
+  finalized, including the versioned node-extraction report. Editorial acceptance rechecks those
+  candidates against the consumed capture. `acceptedNodeSelectionJson` stores the editor's sorted
+  local-id subset and `acceptedNodeSelectionHash` makes an identical retry idempotent while a
+  different retry conflicts.
 - Acceptance binds `ReviewVersion.sourceSubmissionId` uniquely and stores its public consistency
   report, inspection-capture reference, and capture hash. Transactional compare-and-set and unique
   constraints make retries safe. `(review, snapshot, sourceSelectionKey)` prevents duplicate
   publication of one selection while permitting different refs to the same commit.
+- Selected node candidates materialize as immutable `KnowledgeNodeVersion` rows in that same
+  serializable compare-and-set transaction. Node-only submissions leave both resulting-review
+  fields null; rejected and changes-requested submissions create no public node version.
 
 Source-local claim/citation ids are unique only inside a version. Atlas derives global ids from
 `(reviewVersionId, localId)` and uses canonical DOI/PMID/OpenAlex aliases for work comparison. See

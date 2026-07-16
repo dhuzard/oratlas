@@ -5,15 +5,32 @@ import { useRouter } from "next/navigation";
 export function DecisionForm({
   submissionId,
   overrideCheckIds = [],
+  nodeCandidates = [],
+  nodeOnly = false,
 }: {
   submissionId: string;
   overrideCheckIds?: string[];
+  nodeCandidates?: Array<{
+    id: string;
+    kind: string;
+    title: string;
+    abstract?: string;
+    text?: string;
+    license: string;
+    sourcePath: string;
+    sourcePointer: string;
+    fieldProvenance: Record<string, { file: string; pointer: string; commitSha?: string }>;
+  }>;
+  nodeOnly?: boolean;
 }) {
   const router = useRouter();
   const [note, setNote] = useState("");
   const [loading, setLoading] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [overrideRationales, setOverrideRationales] = useState<Record<string, string>>({});
+  const [selectedNodeIds, setSelectedNodeIds] = useState(() =>
+    nodeCandidates.map((candidate) => candidate.id),
+  );
 
   async function decide(decision: "accept" | "reject" | "request-changes") {
     setLoading(decision);
@@ -33,6 +50,7 @@ export function DecisionForm({
                   rationale: overrideRationales[checkId] ?? "",
                 }))
               : [],
+          selectedNodeIds: decision === "accept" ? selectedNodeIds : [],
         }),
       });
       const data = await res.json();
@@ -42,7 +60,9 @@ export function DecisionForm({
       }
       setMessage(
         decision === "accept"
-          ? `Accepted — published as ${data.reviewSlug}.`
+          ? data.reviewSlug
+            ? `Accepted — published review ${data.reviewSlug} and ${data.nodeVersionIds?.length ?? 0} node(s).`
+            : `Accepted — published ${data.nodeVersionIds?.length ?? 0} node(s).`
           : `Recorded: ${decision.replace(/-/g, " ")}.`,
       );
       router.refresh();
@@ -55,6 +75,39 @@ export function DecisionForm({
 
   return (
     <div>
+      {nodeCandidates.length > 0 ? (
+        <fieldset className="field">
+          <legend>Node candidates to publish</legend>
+          <p className="muted">
+            Selection is verified against the immutable capture. Unselected candidates remain
+            private.
+          </p>
+          {nodeCandidates.map((candidate) => (
+            <label key={candidate.id} style={{ display: "block", marginBottom: "0.8rem" }}>
+              <input
+                type="checkbox"
+                checked={selectedNodeIds.includes(candidate.id)}
+                onChange={(event) =>
+                  setSelectedNodeIds((current) =>
+                    event.target.checked
+                      ? [...current, candidate.id]
+                      : current.filter((id) => id !== candidate.id),
+                  )
+                }
+              />{" "}
+              <strong>{candidate.title}</strong> [{candidate.kind}] · {candidate.id}
+              {candidate.abstract ? <span> — {candidate.abstract}</span> : null}
+              {candidate.text ? <span> — {candidate.text}</span> : null}
+              <small className="mono" style={{ display: "block" }}>
+                {candidate.sourcePath} {candidate.sourcePointer} · {candidate.license}
+              </small>
+              <small className="muted" style={{ display: "block" }}>
+                Provenance: {Object.keys(candidate.fieldProvenance).sort().join(", ") || "record"}
+              </small>
+            </label>
+          ))}
+        </fieldset>
+      ) : null}
       <div className="field">
         <label htmlFor={`note-${submissionId}`}>Editorial note (optional)</label>
         <textarea
@@ -88,6 +141,7 @@ export function DecisionForm({
           onClick={() => decide("accept")}
           disabled={
             loading !== null ||
+            (nodeOnly && selectedNodeIds.length === 0) ||
             overrideCheckIds.some(
               (checkId) => (overrideRationales[checkId]?.trim().length ?? 0) < 20,
             )

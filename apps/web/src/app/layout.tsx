@@ -38,6 +38,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
             <nav className="main-nav" aria-label="Primary">
               <Link href="/archive">Archive</Link>
               <Link href="/claims">Claims</Link>
+              <Link href="/nodes">Nodes</Link>
               <Link href="/synthesis">Contradictions</Link>
               <Link href="/replications">Replications</Link>
               <Link href="/discuss">Discuss</Link>

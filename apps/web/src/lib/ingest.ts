@@ -55,6 +55,7 @@ export async function buildValidationReport(
   edited: EditedMetadata | undefined,
   hasEvidence: boolean,
   hasTrust: boolean,
+  hasPublishableNodes = false,
 ): Promise<SubmissionValidationReport> {
   const effective = resolveEffectiveMetadata(extracted, edited);
 
@@ -117,7 +118,7 @@ export async function buildValidationReport(
 
   // Metadata completeness
   const requiredMissing: string[] = [];
-  if (!effective.title) requiredMissing.push("title");
+  if (!effective.title && !hasPublishableNodes) requiredMissing.push("title");
   if (!effective.repositoryUrl) requiredMissing.push("repositoryUrl");
   const recommendedMissing: string[] = [];
   for (const [key] of Object.entries({

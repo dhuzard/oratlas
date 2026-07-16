@@ -20,6 +20,9 @@ const DB = resolveE2EDatabaseUrl(
   },
   `file:${join(here, "..", "..", "packages", "db", "prisma", "dev.db")}`,
 );
+// E2E fixtures created by the Playwright process and the web server must share
+// the exact resolved database (which already honors explicit caller values).
+process.env.DATABASE_URL = DB;
 
 /**
  * Essential end-to-end tests (spec §21, §22). The web server is started against

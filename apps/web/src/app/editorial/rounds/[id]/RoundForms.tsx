@@ -104,12 +104,23 @@ export function ResponseForm({ roundId }: { roundId: string }) {
   );
 }
 
-export function RoundDecisionForm({ roundId }: { roundId: string }) {
+export function RoundDecisionForm({
+  roundId,
+  nodeCandidates,
+  nodeOnly,
+}: {
+  roundId: string;
+  nodeCandidates: Array<{ id: string; kind: string; title: string }>;
+  nodeOnly: boolean;
+}) {
   const router = useRouter();
   const [letter, setLetter] = useState("");
   const [decision, setDecision] = useState("request-changes");
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [selectedNodeIds, setSelectedNodeIds] = useState(() =>
+    nodeCandidates.map((candidate) => candidate.id),
+  );
 
   return (
     <form
@@ -120,6 +131,7 @@ export function RoundDecisionForm({ roundId }: { roundId: string }) {
         const error = await post(`/api/editorial/rounds/${roundId}/decision`, {
           decision,
           letter: { schemaVersion: "1.0.0", letter },
+          selectedNodeIds: decision === "accept" ? selectedNodeIds : [],
         });
         setBusy(false);
         if (error) setMessage(error);
@@ -140,13 +152,38 @@ export function RoundDecisionForm({ roundId }: { roundId: string }) {
         placeholder="Decision letter"
         style={{ width: "100%" }}
       />
+      {nodeCandidates.length > 0 ? (
+        <fieldset className="field">
+          <legend>Node candidates to publish</legend>
+          {nodeCandidates.map((candidate) => (
+            <label key={candidate.id} style={{ display: "block" }}>
+              <input
+                type="checkbox"
+                checked={selectedNodeIds.includes(candidate.id)}
+                onChange={(event) =>
+                  setSelectedNodeIds((current) =>
+                    event.target.checked
+                      ? [...current, candidate.id]
+                      : current.filter((id) => id !== candidate.id),
+                  )
+                }
+              />{" "}
+              {candidate.title} [{candidate.kind}] · {candidate.id}
+            </label>
+          ))}
+        </fieldset>
+      ) : null}
       <div className="btn-row" style={{ marginTop: "0.4rem" }}>
         <select value={decision} onChange={(event) => setDecision(event.target.value)}>
           <option value="accept">accept</option>
           <option value="request-changes">request changes</option>
           <option value="reject">reject</option>
         </select>
-        <button className="btn" disabled={busy} type="submit">
+        <button
+          className="btn"
+          disabled={busy || (decision === "accept" && nodeOnly && selectedNodeIds.length === 0)}
+          type="submit"
+        >
           Issue decision
         </button>
       </div>
