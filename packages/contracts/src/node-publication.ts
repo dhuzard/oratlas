@@ -102,6 +102,15 @@ export const publicNodeSummarySchema = z
   .strict();
 export type PublicNodeSummary = z.infer<typeof publicNodeSummarySchema>;
 
+export const publicRelatedNodeVersionSchema = publicNodeSummarySchema
+  .omit({ currentVersionId: true, updatedAt: true })
+  .extend({
+    versionId: z.string().min(1),
+    versionCreatedAt: z.string().datetime(),
+  })
+  .strict();
+export type PublicRelatedNodeVersion = z.infer<typeof publicRelatedNodeVersionSchema>;
+
 export const publicNodeEdgeSchema = z
   .object({
     id: z.string().min(1),
@@ -110,7 +119,7 @@ export const publicNodeEdgeSchema = z
     provenance: nodeEdgeProvenanceSchema,
     rationale: z.string().max(4_000).optional(),
     assertedAt: z.string().datetime().optional(),
-    relatedNode: publicNodeSummarySchema,
+    relatedNode: publicRelatedNodeVersionSchema,
   })
   .strict();
 

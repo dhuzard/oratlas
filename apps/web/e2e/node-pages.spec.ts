@@ -26,6 +26,10 @@ test("claim node exposes confirmed edges, scoped TRUST context, and immutable hi
   expect(detail.id).toBe(claim.id);
   expect(detail.edges.every((edge) => edge.provenance !== "proposed-by-agent")).toBe(true);
 
+  const edgesResponse = await request.get(`/api/nodes/${claim.id}/edges`);
+  expect(edgesResponse.ok()).toBeTruthy();
+  expect(edgesResponse.headers()["cache-control"]).toBe("no-store, must-revalidate");
+
   const historyResponse = await request.get(`/api/nodes/${claim.id}/versions`);
   const history = publicNodeVersionListResponseSchema.parse(await historyResponse.json());
   const selected = history.items[0]!;

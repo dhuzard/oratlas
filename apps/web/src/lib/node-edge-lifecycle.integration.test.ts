@@ -100,7 +100,7 @@ describe.sequential("node edge lifecycle integration", () => {
         (edge) => edge.id === legacy.id,
       ),
     ).toBe(false);
-    const wrongTarget = await createNode("wrong-target", "wrong-target", "code", "z");
+    const wrongTarget = await createNode("wrong-target", "wrong-target", "code", "e");
     await prisma.nodeEdge.update({
       where: { id: legacy.id },
       data: {
@@ -115,12 +115,12 @@ describe.sequential("node edge lifecycle integration", () => {
       ),
     ).toBe(false);
 
-    const codeTarget = await createNode("authority-target", "authority-code", "code", "g");
+    const codeTarget = await createNode("authority-target", "authority-code", "code", "f");
     const editorSource = await createNode(
       "authority-source",
       "editor-confirmed-source",
       "claim",
-      "h",
+      "0",
     );
     const userConfirmed = await prisma.nodeEdge.create({
       data: {
@@ -609,8 +609,12 @@ async function createNode(owner: string, localNodeId: string, kind: string, mark
       snapshotId: snapshot.id,
       title: localNodeId,
       license: "CC-BY-4.0",
-      provenanceJson: "{}",
-      payloadJson: "{}",
+      provenanceJson: canonicalJson({ sourcePath: `nodes/${localNodeId}.json` }),
+      payloadJson: canonicalJson(
+        kind === "code"
+          ? { entryPoints: ["src/main.ts"], language: "TypeScript", releaseRef: "v1" }
+          : { statement: `${localNodeId} statement.`, qualifiers: [] },
+      ),
     },
   });
   return { nodeId: node.id, versionId: version.id };

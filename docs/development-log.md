@@ -426,16 +426,24 @@ TRUST provenance.
 - Preserved version, concept, and dataset-artifact DOI roles independently. Each `10.5555/*`
   value is marked and withheld from resolver links and JSON-LD without suppressing a real DOI in
   another role on the same node.
-- Centralized the pre-KG-07 public edge predicate and currently expose confirmed edges only.
-  Outgoing relations bind to the selected immutable source version; incoming graph context is
-  explicitly labelled as independently evolving. TRUST is shown only for an exact linked
-  claim–citation relation in the selected snapshot, never as a node-level score.
+- Reused KG-07's centralized public edge predicate: publication requires confirmed status and
+  provenance, an editorial confirmer who still holds that role, a confirmation timestamp, and an
+  immutable target version owned by the stable target node. Outgoing relations bind the selected
+  source version to that exact confirmed target version; inbound projection is limited to symmetric
+  contradictions whose confirmed target version is the selected version. TRUST is shown only for
+  an exact linked claim–citation relation in the selected snapshot, never as a node-level score.
 - Integrated nodes into archive search with content-type and node-kind filters. Review and node
   candidates are merged, sorted deterministically, and only then paginated, preventing skipped or
   duplicated records at mixed-content page boundaries.
 - Added strict-contract, JSON-LD, temporary-database integration, dynamically discovered browser,
   and axe coverage for payload validation, current/history selection, confirmed/proposed edges,
   TRUST scope, DOI safety, combined pagination, claim and dataset pages, and stable database ids.
+- Bounded public request expansion to 2,000 archive node candidates, 200 listed versions, 200 edges
+  per direction, 200 total claim–citation TRUST relations, and 50 assessments per relation. These
+  are deliberate POC ceilings pending KG-08's database-native graph/search cursors:
+  archive totals and history lists are capped, while an exact older version URL remains resolvable
+  through a bounded point lookup. The standalone edge endpoint is likewise capped at 200 records,
+  uses Node runtime/error handling, and returns an explicit no-store policy.
 - Verified repository lint, all 15 workspace typechecks, JSON schemas, OpenAPI route coverage, and
   the production web build with the required build-only session secret. Nine focused contract,
   JSON-LD, and temporary-database tests pass, as do all 11 focused browser checks, including axe

@@ -5,6 +5,7 @@ import {
   codeNodePayloadSchema,
   datasetNodePayloadSchema,
   figureNodePayloadSchema,
+  knowledgeNodeKindSchema,
   knowledgeNodeProvenanceSchema,
   manifestContributorSchema,
   publicNodeDetailSchema,
@@ -14,19 +15,18 @@ import {
   type PublicNodeDetail,
   type PublicNodeIdentifier,
   type PublicNodeListResponse,
+  type PublicRelatedNodeVersion,
   type PublicNodeSummary,
   type PublicNodeVersion,
 } from "@oratlas/contracts";
 import { nodeFieldProvenanceSchema } from "@oratlas/extractor";
 import { selectPreferredTrustAssessment } from "@oratlas/trust";
 import { prisma } from "./db";
+import {
+  hasOwnedConfirmedTargetVersion,
+  publicConfirmedNodeEdgeWhere,
+} from "./node-edge-publication";
 import { resolveTrustAssessmentRows } from "./trust-provenance";
-
-/**
- * KG-07 replaces this predicate with the shared visibility policy. Keeping it
- * in one place prevents UI/API callers from inventing their own edge rules.
- */
-export const publicNodeEdgeWhere = { status: "confirmed" } as const;
 
 const storedNodeProvenanceSchema = z.union([
   knowledgeNodeProvenanceSchema,
@@ -41,6 +41,15 @@ const storedNodeProvenanceSchema = z.union([
 ]);
 
 const contributorsSchema = z.array(manifestContributorSchema).max(200);
+
+// POC request-work ceilings. Exact historical URLs remain addressable beyond the
+// history window, but archive totals and list/history surfaces intentionally cap
+// their scanned cardinality until KG-08 supplies database-native graph/search cursors.
+const PUBLIC_NODE_SEARCH_LIMIT = 2_000;
+const PUBLIC_NODE_VERSION_LIMIT = 200;
+const PUBLIC_NODE_EDGE_LIMIT = 200;
+const PUBLIC_NODE_TRUST_RELATION_LIMIT = 200;
+const PUBLIC_NODE_TRUST_ASSESSMENT_LIMIT = 50;
 
 function parseJson(value: string, label: string): unknown {
   try {
@@ -126,6 +135,25 @@ function mapVersion(kind: KnowledgeNodeKind, version: StoredVersion): PublicNode
   });
 }
 
+function tryMapVersion(
+  kind: KnowledgeNodeKind,
+  version: StoredVersion,
+): PublicNodeVersion | undefined {
+  try {
+    return mapVersion(kind, version);
+  } catch {
+    return undefined;
+  }
+}
+
+export function tryMapPublicNodeVersion(
+  node: { kind: string },
+  version: StoredVersion,
+): PublicNodeVersion | undefined {
+  const kind = knowledgeNodeKindSchema.safeParse(node.kind);
+  return kind.success ? tryMapVersion(kind.data, version) : undefined;
+}
+
 function nodeSummary(
   node: {
     id: string;
@@ -133,22 +161,49 @@ function nodeSummary(
     kind: string;
     repository: { owner: string; name: string; canonicalUrl: string };
   },
-  version: StoredVersion,
+  version: PublicNodeVersion,
 ): PublicNodeSummary {
   return {
     id: node.id,
     localNodeId: node.localNodeId,
-    kind: node.kind as KnowledgeNodeKind,
+    kind: version.kind,
     title: version.title,
-    abstract: version.abstract ?? undefined,
+    abstract: version.abstract,
     repository: {
       owner: node.repository.owner,
       name: node.repository.name,
       url: node.repository.canonicalUrl,
     },
     currentVersionId: version.id,
-    updatedAt: version.createdAt.toISOString(),
+    updatedAt: version.createdAt,
   };
+}
+
+function relatedNodeVersion(
+  node: {
+    id: string;
+    localNodeId: string;
+    kind: string;
+    repository: { owner: string; name: string; canonicalUrl: string };
+  },
+  version: PublicNodeVersion,
+): PublicRelatedNodeVersion {
+  const summary = nodeSummary(node, version);
+  const { currentVersionId: versionId, updatedAt: versionCreatedAt, ...stableNode } = summary;
+  return { ...stableNode, versionId, versionCreatedAt };
+}
+
+function tryRelatedNodeVersion(
+  node: {
+    id: string;
+    localNodeId: string;
+    kind: string;
+    repository: { owner: string; name: string; canonicalUrl: string };
+  },
+  version: StoredVersion,
+): PublicRelatedNodeVersion | undefined {
+  const mapped = tryMapPublicNodeVersion(node, version);
+  return mapped ? relatedNodeVersion(node, mapped) : undefined;
 }
 
 const versionInclude = { snapshot: { select: { commitSha: true } } } as const;
@@ -187,10 +242,16 @@ export async function listPublicNodeSummaries(
         take: 1,
       },
     },
+    orderBy: { id: "asc" },
+    take: PUBLIC_NODE_SEARCH_LIMIT,
   });
   return rows
-    .filter((row) => row.versions[0])
-    .map((row) => nodeSummary(row, row.versions[0]!))
+    .flatMap((row) => {
+      const storedCurrent = row.versions[0];
+      if (!storedCurrent) return [];
+      const current = tryMapPublicNodeVersion(row, storedCurrent);
+      return current ? [nodeSummary(row, current)] : [];
+    })
     .sort(
       (left, right) =>
         compareCanonical(right.updatedAt, left.updatedAt) ||
@@ -208,65 +269,109 @@ export async function getPublicNode(
     include: {
       repository: { select: { owner: true, name: true, canonicalUrl: true } },
       versions: {
-        include: {
-          ...versionInclude,
-          outgoingEdges: {
-            where: publicNodeEdgeWhere,
-            include: {
-              targetNode: {
-                include: {
-                  repository: { select: { owner: true, name: true, canonicalUrl: true } },
-                  versions: {
-                    include: versionInclude,
-                    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-                    take: 1,
-                  },
-                },
-              },
-            },
-          },
-        },
+        include: versionInclude,
         orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-      },
-      incomingEdges: {
-        where: publicNodeEdgeWhere,
-        include: {
-          sourceNodeVersion: {
-            include: {
-              snapshot: { select: { commitSha: true } },
-              knowledgeNode: {
-                include: {
-                  repository: { select: { owner: true, name: true, canonicalUrl: true } },
-                },
-              },
-            },
-          },
-        },
-      },
-      linkedClaims: {
-        include: {
-          reviewVersion: { include: { review: true } },
-          evidenceRelations: {
-            include: {
-              citation: true,
-              trustAssessments: { include: { verification: true } },
-            },
-          },
-        },
+        take: PUBLIC_NODE_VERSION_LIMIT,
       },
     },
   });
   if (!node || node.versions.length === 0) return null;
-  const kind = node.kind as KnowledgeNodeKind;
-  const selected = selectedVersionId
-    ? node.versions.find((version) => version.id === selectedVersionId)
-    : node.versions[0];
-  if (!selected) return null;
-  const currentVersionId = node.versions[0]!.id;
+  const parsedKind = knowledgeNodeKindSchema.safeParse(node.kind);
+  if (!parsedKind.success) return null;
+  const kind = parsedKind.data;
+  const storedCurrent = node.versions[0]!;
+  const current = tryMapVersion(kind, storedCurrent);
+  // Never fall back to an older valid version when the newest stored version is corrupt.
+  if (!current) return null;
 
-  const outgoing = selected.outgoingEdges.flatMap((edge) => {
-    const relatedVersion = edge.targetNode.versions[0];
-    if (!relatedVersion) return [];
+  let selectedStored = selectedVersionId
+    ? node.versions.find((version) => version.id === selectedVersionId)
+    : storedCurrent;
+  if (!selectedStored && selectedVersionId) {
+    selectedStored =
+      (await prisma.knowledgeNodeVersion.findFirst({
+        where: { id: selectedVersionId, knowledgeNodeId: node.id },
+        include: versionInclude,
+      })) ?? undefined;
+  }
+  if (!selectedStored) return null;
+  const selected =
+    selectedStored.id === storedCurrent.id ? current : tryMapVersion(kind, selectedStored);
+  if (!selected) return null;
+  const currentVersionId = current.id;
+  const historyVersions = node.versions.some((version) => version.id === selectedStored.id)
+    ? node.versions
+    : [...node.versions, selectedStored];
+
+  const [outgoingRows, incomingRows, trustRelations] = await Promise.all([
+    prisma.nodeEdge.findMany({
+      where: { ...publicConfirmedNodeEdgeWhere, sourceNodeVersionId: selectedStored.id },
+      include: {
+        confirmedTargetNodeVersion: {
+          include: {
+            ...versionInclude,
+            knowledgeNode: {
+              include: {
+                repository: { select: { owner: true, name: true, canonicalUrl: true } },
+              },
+            },
+          },
+        },
+      },
+      orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+      take: PUBLIC_NODE_EDGE_LIMIT,
+    }),
+    prisma.nodeEdge.findMany({
+      where: {
+        ...publicConfirmedNodeEdgeWhere,
+        targetNodeId: node.id,
+        confirmedTargetNodeVersionId: selectedStored.id,
+        relationType: "contradicts",
+      },
+      include: {
+        confirmedTargetNodeVersion: { select: { knowledgeNodeId: true } },
+        sourceNodeVersion: {
+          include: {
+            ...versionInclude,
+            knowledgeNode: {
+              include: {
+                repository: { select: { owner: true, name: true, canonicalUrl: true } },
+              },
+            },
+          },
+        },
+      },
+      orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+      take: PUBLIC_NODE_EDGE_LIMIT,
+    }),
+    prisma.claimEvidenceRelation.findMany({
+      where: {
+        claim: {
+          knowledgeNodeId: node.id,
+          reviewVersion: { snapshotId: selectedStored.snapshotId },
+        },
+      },
+      include: {
+        claim: { include: { reviewVersion: { include: { review: true } } } },
+        citation: true,
+        trustAssessments: {
+          include: { verification: true },
+          orderBy: [{ assessedAt: "desc" }, { id: "desc" }],
+          take: PUBLIC_NODE_TRUST_ASSESSMENT_LIMIT,
+        },
+      },
+      orderBy: { id: "asc" },
+      take: PUBLIC_NODE_TRUST_RELATION_LIMIT,
+    }),
+  ]);
+
+  const outgoing = outgoingRows.flatMap((edge) => {
+    if (!hasOwnedConfirmedTargetVersion(edge)) return [];
+    const relatedNode = tryRelatedNodeVersion(
+      edge.confirmedTargetNodeVersion.knowledgeNode,
+      edge.confirmedTargetNodeVersion as StoredVersion,
+    );
+    if (!relatedNode) return [];
     return [
       {
         id: edge.id,
@@ -275,66 +380,89 @@ export async function getPublicNode(
         provenance: edge.provenance,
         rationale: edge.rationale ?? undefined,
         assertedAt: edge.assertedAt?.toISOString(),
-        relatedNode: nodeSummary(edge.targetNode, relatedVersion),
+        relatedNode,
       },
     ];
   });
-  const incoming = node.incomingEdges.map((edge) => ({
-    id: edge.id,
-    direction: "incoming" as const,
-    relationType: edge.relationType,
-    provenance: edge.provenance,
-    rationale: edge.rationale ?? undefined,
-    assertedAt: edge.assertedAt?.toISOString(),
-    relatedNode: nodeSummary(
+  const incoming = incomingRows.flatMap((edge) => {
+    if (!hasOwnedConfirmedTargetVersion(edge)) return [];
+    const relatedNode = tryRelatedNodeVersion(
       edge.sourceNodeVersion.knowledgeNode,
       edge.sourceNodeVersion as StoredVersion,
-    ),
-  }));
+    );
+    if (!relatedNode) return [];
+    return [
+      {
+        id: edge.id,
+        direction: "incoming" as const,
+        relationType: edge.relationType,
+        provenance: edge.provenance,
+        rationale: edge.rationale ?? undefined,
+        assertedAt: edge.assertedAt?.toISOString(),
+        relatedNode,
+      },
+    ];
+  });
 
-  const trustContext = node.linkedClaims
-    .filter((claim) => claim.reviewVersion.snapshotId === selected.snapshotId)
-    .flatMap((claim) =>
-      claim.evidenceRelations.map((relation) => {
-        const preferred = selectPreferredTrustAssessment(
-          relation.trustAssessments.map((assessment) => {
-            const resolved = resolveTrustAssessmentRows(
-              { assessment, relation, claim, citation: relation.citation },
-              assessment.verification,
-            );
-            return {
-              id: assessment.id,
-              effectiveStatus: resolved.effectiveStatus,
-              assessedAt: assessment.assessedAt?.toISOString() ?? null,
-              value: { assessment, resolved },
-            };
-          }),
-        )?.value;
+  const trustContext = trustRelations.map((relation) => {
+    const claim = relation.claim;
+    const preferred = selectPreferredTrustAssessment(
+      relation.trustAssessments.map((assessment) => {
+        const resolved = resolveTrustAssessmentRows(
+          { assessment, relation, claim, citation: relation.citation },
+          assessment.verification,
+        );
         return {
-          claimId: claim.id,
-          claimLocalId: claim.localClaimId,
-          reviewSlug: claim.reviewVersion.review.slug,
-          reviewVersionId: claim.reviewVersion.id,
-          citationId: relation.citation.id,
-          citationLocalId: relation.citation.localCitationId,
-          citationTitle: relation.citation.title ?? undefined,
-          citationDoi: relation.citation.doi ?? undefined,
-          citationIsExample: citationIsExample(
-            relation.citation.doi,
-            relation.citation.rawCitationJson,
-          ),
-          relationType: relation.relationType,
-          trust: preferred
-            ? {
-                reviewStatus: preferred.resolved.effectiveStatus,
-                verificationState: preferred.resolved.state,
-                aggregateScore: preferred.assessment.aggregateScore ?? undefined,
-                aggregateMethod: preferred.assessment.aggregateMethod ?? undefined,
-              }
-            : undefined,
+          id: assessment.id,
+          effectiveStatus: resolved.effectiveStatus,
+          assessedAt: assessment.assessedAt?.toISOString() ?? null,
+          value: { assessment, resolved },
         };
       }),
-    );
+    )?.value;
+    return {
+      claimId: claim.id,
+      claimLocalId: claim.localClaimId,
+      reviewSlug: claim.reviewVersion.review.slug,
+      reviewVersionId: claim.reviewVersion.id,
+      citationId: relation.citation.id,
+      citationLocalId: relation.citation.localCitationId,
+      citationTitle: relation.citation.title ?? undefined,
+      citationDoi: relation.citation.doi ?? undefined,
+      citationIsExample: citationIsExample(
+        relation.citation.doi,
+        relation.citation.rawCitationJson,
+      ),
+      relationType: relation.relationType,
+      trust: preferred
+        ? {
+            reviewStatus: preferred.resolved.effectiveStatus,
+            verificationState: preferred.resolved.state,
+            aggregateScore: preferred.assessment.aggregateScore ?? undefined,
+            aggregateMethod: preferred.assessment.aggregateMethod ?? undefined,
+          }
+        : undefined,
+    };
+  });
+
+  const publicHistoryVersions = historyVersions.flatMap((storedVersion) => {
+    const version =
+      storedVersion.id === current.id
+        ? current
+        : storedVersion.id === selected.id
+          ? selected
+          : tryMapVersion(kind, storedVersion);
+    if (!version) return [];
+    return [
+      {
+        id: version.id,
+        title: version.title,
+        commitSha: version.commitSha,
+        createdAt: version.createdAt,
+        isCurrent: version.id === currentVersionId,
+      },
+    ];
+  });
 
   return publicNodeDetailSchema.parse({
     schemaVersion: "1.0.0",
@@ -346,14 +474,8 @@ export async function getPublicNode(
       name: node.repository.name,
       url: node.repository.canonicalUrl,
     },
-    version: mapVersion(kind, selected),
-    versions: node.versions.map((version) => ({
-      id: version.id,
-      title: version.title,
-      commitSha: version.snapshot.commitSha,
-      createdAt: version.createdAt.toISOString(),
-      isCurrent: version.id === currentVersionId,
-    })),
+    version: selected,
+    versions: publicHistoryVersions,
     edges: [...outgoing, ...incoming].sort(
       (left, right) =>
         compareCanonical(left.direction, right.direction) ||

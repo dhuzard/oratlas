@@ -7,6 +7,7 @@ import { archiveSearchQuerySchema, canonicalJson, type NodeArchiveQuery } from "
 import { type PrismaClient } from "@oratlas/db";
 import type * as NodePublication from "./node-publication";
 import type * as ArchiveSearch from "./archive-search";
+import type * as EdgeLifecycle from "./node-edge-lifecycle";
 
 vi.mock("server-only", () => ({}));
 
@@ -20,9 +21,15 @@ const databaseUrl = `file:./${databasePath.split(/[\\/]/).at(-1)}`;
 let prisma: PrismaClient;
 let nodes: typeof NodePublication;
 let archive: typeof ArchiveSearch;
+let edgeLifecycle: typeof EdgeLifecycle;
 let claimNodeId: string;
 let datasetNodeId: string;
 let oldClaimVersionId: string;
+let confirmedDatasetVersionId: string;
+let currentDatasetVersionId: string;
+let malformedDatasetVersionId: string;
+let corruptOldVersionId: string;
+let malformedRelatedEdgeId: string;
 
 beforeAll(async () => {
   process.env.DATABASE_URL = databaseUrl;
@@ -49,6 +56,7 @@ beforeAll(async () => {
   ({ prisma } = await import("./db"));
   nodes = await import("./node-publication");
   archive = await import("./archive-search");
+  edgeLifecycle = await import("./node-edge-lifecycle");
 
   const repository = await prisma.repository.create({
     data: {
@@ -57,8 +65,15 @@ beforeAll(async () => {
       canonicalUrl: "https://github.com/node-lab/publications",
     },
   });
+  const editor = await prisma.user.create({
+    data: { githubUserId: "node-page-editor", githubLogin: "node-page-editor", role: "EDITOR" },
+  });
+  const reader = await prisma.user.create({
+    data: { githubUserId: "node-page-reader", githubLogin: "node-page-reader", role: "USER" },
+  });
   const oldSnapshot = await snapshot(repository.id, "a", new Date("2025-01-01T00:00:00Z"));
   const currentSnapshot = await snapshot(repository.id, "b", new Date("2026-01-01T00:00:00Z"));
+  const newerSnapshot = await snapshot(repository.id, "c", new Date("2026-02-01T00:00:00Z"));
   const review = await prisma.review.create({
     data: {
       repositoryId: repository.id,
@@ -103,7 +118,7 @@ beforeAll(async () => {
     data: { repositoryId: repository.id, localNodeId: "dataset-delta", kind: "dataset" },
   });
   datasetNodeId = dataset.id;
-  await createVersion(dataset.id, currentSnapshot.id, {
+  const confirmedDatasetVersion = await createVersion(dataset.id, currentSnapshot.id, {
     title: "Delta dataset",
     kind: "dataset",
     payload: {
@@ -117,6 +132,35 @@ beforeAll(async () => {
     isExample: true,
     createdAt: new Date("2026-01-04T00:00:00Z"),
   });
+  confirmedDatasetVersionId = confirmedDatasetVersion.id;
+  const currentDatasetVersion = await createVersion(dataset.id, newerSnapshot.id, {
+    title: "Delta dataset v2",
+    kind: "dataset",
+    payload: {
+      artifactPath: "data/delta-v2.csv",
+      format: "text/csv",
+      sizeBytes: 4096,
+      doi: "10.1234/delta.artifact",
+    },
+    versionDoi: "10.1234/delta.v1",
+    conceptDoi: "10.5555/delta.example-concept",
+    isExample: true,
+    createdAt: new Date("2026-02-02T00:00:00Z"),
+  });
+  currentDatasetVersionId = currentDatasetVersion.id;
+  const malformedDatasetVersion = await prisma.knowledgeNodeVersion.create({
+    data: {
+      knowledgeNodeId: dataset.id,
+      snapshotId: oldSnapshot.id,
+      title: "Malformed dataset history",
+      contributorsJson: canonicalJson([]),
+      license: "CC-BY-4.0",
+      provenanceJson: canonicalJson({ sourcePath: "nodes/dataset-malformed.json" }),
+      payloadJson: canonicalJson({ format: "text/csv", injected: true }),
+      createdAt: new Date("2025-01-03T00:00:00Z"),
+    },
+  });
+  malformedDatasetVersionId = malformedDatasetVersion.id;
 
   const code = await prisma.knowledgeNode.create({
     data: { repositoryId: repository.id, localNodeId: "code-gamma", kind: "code" },
@@ -149,6 +193,9 @@ beforeAll(async () => {
       relationType: "uses-dataset",
       status: "confirmed",
       provenance: "confirmed-by-editor",
+      confirmedTargetNodeVersionId: confirmedDatasetVersion.id,
+      confirmedById: editor.id,
+      confirmedAt: new Date("2026-01-10T00:00:00Z"),
     },
   });
   await prisma.nodeEdge.create({
@@ -167,8 +214,72 @@ beforeAll(async () => {
       relationType: "derives-from",
       status: "confirmed",
       provenance: "confirmed-by-editor",
+      confirmedTargetNodeVersionId: currentClaim.id,
+      confirmedById: editor.id,
+      confirmedAt: new Date("2026-01-10T00:00:00Z"),
     },
   });
+  await prisma.nodeEdge.create({
+    data: {
+      sourceNodeVersionId: codeVersion.id,
+      targetNodeId: claim.id,
+      relationType: "contradicts",
+      status: "confirmed",
+      provenance: "confirmed-by-editor",
+      confirmedTargetNodeVersionId: currentClaim.id,
+      confirmedById: editor.id,
+      confirmedAt: new Date("2026-01-11T00:00:00Z"),
+    },
+  });
+  await prisma.nodeEdge.create({
+    data: {
+      sourceNodeVersionId: figureVersion.id,
+      targetNodeId: claim.id,
+      relationType: "contradicts",
+      status: "confirmed",
+      provenance: "confirmed-by-editor",
+      confirmedTargetNodeVersionId: oldClaim.id,
+      confirmedById: editor.id,
+      confirmedAt: new Date("2026-01-12T00:00:00Z"),
+    },
+  });
+  await prisma.nodeEdge.create({
+    data: {
+      sourceNodeVersionId: currentClaim.id,
+      targetNodeId: code.id,
+      relationType: "uses-code",
+      status: "confirmed",
+      provenance: "confirmed-by-editor",
+      confirmedTargetNodeVersionId: codeVersion.id,
+      confirmedById: reader.id,
+      confirmedAt: new Date("2026-01-13T00:00:00Z"),
+    },
+  });
+  await prisma.nodeEdge.create({
+    data: {
+      sourceNodeVersionId: currentClaim.id,
+      targetNodeId: figure.id,
+      relationType: "derives-from",
+      status: "confirmed",
+      provenance: "confirmed-by-editor",
+      confirmedTargetNodeVersionId: codeVersion.id,
+      confirmedById: editor.id,
+      confirmedAt: new Date("2026-01-14T00:00:00Z"),
+    },
+  });
+  const malformedRelatedEdge = await prisma.nodeEdge.create({
+    data: {
+      sourceNodeVersionId: oldClaim.id,
+      targetNodeId: dataset.id,
+      relationType: "uses-dataset",
+      status: "confirmed",
+      provenance: "confirmed-by-editor",
+      confirmedTargetNodeVersionId: malformedDatasetVersion.id,
+      confirmedById: editor.id,
+      confirmedAt: new Date("2026-01-15T00:00:00Z"),
+    },
+  });
+  malformedRelatedEdgeId = malformedRelatedEdge.id;
 
   const linkedClaim = await prisma.claim.create({
     data: {
@@ -237,6 +348,13 @@ beforeAll(async () => {
   const corrupt = await prisma.knowledgeNode.create({
     data: { repositoryId: repository.id, localNodeId: "corrupt", kind: "claim" },
   });
+  const corruptOld = await createVersion(corrupt.id, oldSnapshot.id, {
+    title: "Previously valid claim",
+    kind: "claim",
+    payload: { statement: "An older valid statement.", qualifiers: [] },
+    createdAt: new Date("2025-01-04T00:00:00Z"),
+  });
+  corruptOldVersionId = corruptOld.id;
   await prisma.knowledgeNodeVersion.create({
     data: {
       knowledgeNodeId: corrupt.id,
@@ -260,10 +378,17 @@ describe("public node query layer", () => {
   it("uses stable dynamic ids, selects current/history, confirmed edges, and relation TRUST", async () => {
     const current = await nodes.getPublicNode(claimNodeId);
     expect(current?.version.title).toBe("Alpha claim");
-    expect(current?.edges.map((edge) => edge.relationType)).toEqual([
-      "derives-from",
-      "uses-dataset",
+    expect(current?.edges.map((edge) => `${edge.direction}:${edge.relationType}`)).toEqual([
+      "incoming:contradicts",
+      "outgoing:uses-dataset",
     ]);
+    const datasetEdge = current?.edges.find((edge) => edge.relationType === "uses-dataset");
+    expect(datasetEdge?.relatedNode).toMatchObject({
+      id: datasetNodeId,
+      title: "Delta dataset",
+      versionId: confirmedDatasetVersionId,
+    });
+    expect(datasetEdge?.relatedNode.versionId).not.toBe(currentDatasetVersionId);
     expect(current?.trustContext).toHaveLength(3);
     expect(
       current?.trustContext.find((context) => context.citationLocalId === "citation-1"),
@@ -275,6 +400,9 @@ describe("public node query layer", () => {
     const historical = await nodes.getPublicNode(claimNodeId, oldClaimVersionId);
     expect(historical?.version.title).toBe("Alpha claim (old)");
     expect(historical?.version.id).toBe(oldClaimVersionId);
+    expect(historical?.edges.map((edge) => `${edge.direction}:${edge.relationType}`)).toEqual([
+      "incoming:contradicts",
+    ]);
     expect(historical?.trustContext).toEqual([]);
   });
 
@@ -289,6 +417,7 @@ describe("public node query layer", () => {
 
   it("keeps DOI roles distinct and marks only 10.5555 identifiers as examples", async () => {
     const dataset = await nodes.getPublicNode(datasetNodeId);
+    expect(dataset?.version.id).toBe(currentDatasetVersionId);
     expect(dataset?.version.identifiers).toEqual([
       {
         scheme: "doi",
@@ -309,11 +438,10 @@ describe("public node query layer", () => {
         isExample: false,
       },
     ]);
-    expect(dataset?.edges).toHaveLength(1);
-    expect(dataset?.edges[0]?.provenance).toBe("confirmed-by-editor");
+    expect(dataset?.edges).toEqual([]);
   });
 
-  it("filters list results before paginating and fails closed on malformed stored payload", async () => {
+  it("filters list results before paginating and withholds a node whose newest version is corrupt", async () => {
     const query: NodeArchiveQuery = { q: "dataset", kind: "dataset", page: 1, pageSize: 1 };
     const result = await nodes.listPublicNodes(query);
     expect(result.total).toBe(1);
@@ -322,7 +450,32 @@ describe("public node query layer", () => {
     const corrupt = await prisma.knowledgeNode.findFirstOrThrow({
       where: { localNodeId: "corrupt" },
     });
-    await expect(nodes.getPublicNode(corrupt.id)).rejects.toThrow();
+    const allNodes = await nodes.listPublicNodes({ page: 1, pageSize: 50 });
+    expect(allNodes.total).toBe(4);
+    expect(allNodes.items.some((node) => node.id === corrupt.id)).toBe(false);
+    const archiveNodes = await archive.searchArchive(
+      archiveSearchQuerySchema.parse({ contentType: "node", page: 1, pageSize: 50 }),
+    );
+    expect(archiveNodes.total).toBe(4);
+    expect(
+      archiveNodes.items.some((item) => item.contentType === "node" && item.node.id === corrupt.id),
+    ).toBe(false);
+    expect(await nodes.getPublicNode(corrupt.id)).toBeNull();
+    expect(await nodes.getPublicNode(corrupt.id, corruptOldVersionId)).toBeNull();
+  });
+
+  it("omits malformed history and related versions without leaking their summaries", async () => {
+    const dataset = await nodes.getPublicNode(datasetNodeId);
+    expect(dataset?.versions.map((version) => version.id)).not.toContain(malformedDatasetVersionId);
+
+    const historicalClaim = await nodes.getPublicNode(claimNodeId, oldClaimVersionId);
+    expect(historicalClaim?.edges.map((edge) => edge.relatedNode.versionId)).not.toContain(
+      malformedDatasetVersionId,
+    );
+    expect(historicalClaim?.edges.map((edge) => edge.relationType)).toEqual(["contradicts"]);
+    expect(
+      (await edgeLifecycle.listConfirmedEdgesForNode(claimNodeId)).map((edge) => edge.id),
+    ).not.toContain(malformedRelatedEdgeId);
   });
 });
 
@@ -334,7 +487,7 @@ describe("combined archive search", () => {
     const second = await archive.searchArchive(
       archiveSearchQuerySchema.parse({ sort: "title", page: 2, pageSize: 2 }),
     );
-    expect(first.total).toBe(6);
+    expect(first.total).toBe(5);
     expect(first.items).toHaveLength(2);
     expect(second.items).toHaveLength(2);
     const keys = [...first.items, ...second.items].map((item) =>

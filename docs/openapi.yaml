@@ -70,6 +70,28 @@ components:
             url: { type: string, format: uri }
         currentVersionId: { type: string }
         updatedAt: { type: string, format: date-time }
+    PublicRelatedNodeVersion:
+      type: object
+      additionalProperties: false
+      required: [id, localNodeId, kind, title, repository, versionId, versionCreatedAt]
+      properties:
+        id: { type: string, description: Stable database KnowledgeNode.id used in public URLs }
+        localNodeId: { type: string }
+        kind: { type: string, enum: [claim, figure, dataset, code] }
+        title: { type: string }
+        abstract: { type: string }
+        repository:
+          type: object
+          additionalProperties: false
+          required: [owner, name, url]
+          properties:
+            owner: { type: string }
+            name: { type: string }
+            url: { type: string, format: uri }
+        versionId:
+          type: string
+          description: Exact immutable version bound when the edge was confirmed
+        versionCreatedAt: { type: string, format: date-time }
     PublicNodeVersionSummary:
       type: object
       additionalProperties: false
@@ -148,7 +170,10 @@ components:
           items: { $ref: "#/components/schemas/PublicNodeVersionSummary" }
         edges:
           type: array
-          description: Confirmed edges only on the pre-KG-07 visibility model.
+          description: >
+            Editorially confirmed edges only. Outgoing summaries use the immutable target version
+            bound at confirmation; inbound projection is limited to symmetric contradictions bound
+            to the selected target version.
           items:
             type: object
             required: [id, direction, relationType, provenance, relatedNode]
@@ -173,7 +198,7 @@ components:
                 { type: string, enum: [asserted-by-author, proposed-by-agent, confirmed-by-editor] }
               rationale: { type: string }
               assertedAt: { type: string, format: date-time }
-              relatedNode: { $ref: "#/components/schemas/PublicNodeSummary" }
+              relatedNode: { $ref: "#/components/schemas/PublicRelatedNodeVersion" }
         trustContext:
           type: array
           description: Relation-scoped claim-citation context; never a bare node-level TRUST score.
@@ -916,6 +941,7 @@ paths:
   /api/search:
     get:
       summary: Search accepted reviews and knowledge nodes with one combined pagination window
+      description: Knowledge-node candidates are deterministically capped at 2,000 in this POC.
       parameters:
         - {
             name: contentType,
@@ -953,7 +979,7 @@ paths:
           }
       responses:
         "200":
-          description: Paginated node summaries
+          description: Paginated node summaries from a deterministic POC scan capped at 2,000 nodes
           content:
             application/json:
               schema:
@@ -986,7 +1012,7 @@ paths:
         - { name: id, in: path, required: true, schema: { type: string } }
       responses:
         "200":
-          description: Version history
+          description: The newest 200 immutable versions; exact older-version URLs remain readable
           content:
             application/json:
               schema:
@@ -997,6 +1023,7 @@ paths:
                   currentVersionId: { type: string }
                   items:
                     type: array
+                    maxItems: 200
                     items: { $ref: "#/components/schemas/PublicNodeVersionSummary" }
         "404": { $ref: "#/components/responses/Error" }
   /api/nodes/{id}/versions/{versionId}:
@@ -1387,7 +1414,8 @@ paths:
       parameters:
         - { name: id, in: path, required: true, schema: { type: string } }
       responses:
-        "200": { description: Bounded list of editor-confirmed typed edges }
+        "200":
+          { description: Bounded list of at most 200 editor-confirmed typed edges; never cached }
   /api/protocols/reviews/{versionId}:
     get:
       summary: Public review-level protocol provenance and neutral reconciliation proposals

@@ -58,7 +58,12 @@ export function NodeView({
                       <Badge tone={edge.relationType === "contradicts" ? "warning" : "neutral"}>
                         {edge.relationType.replace(/-/g, " ")}
                       </Badge>
-                      <Link href={`/nodes/${edge.relatedNode.id}`}>{edge.relatedNode.title}</Link>
+                      <Link
+                        href={`/nodes/${edge.relatedNode.id}/versions/${edge.relatedNode.versionId}`}
+                      >
+                        {edge.relatedNode.title}
+                      </Link>
+                      <Badge>confirmed version</Badge>
                     </div>
                     {edge.rationale ? <p>{edge.rationale}</p> : null}
                     <p className="muted">
