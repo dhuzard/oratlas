@@ -122,7 +122,7 @@ export async function recordReviewLifecycleEvent(
           "bad-request",
         );
       }
-      if (!isExactCommitSha(target.snapshot.commitSha)) {
+      if (!target.snapshot || !isExactCommitSha(target.snapshot.commitSha)) {
         throw new LifecycleError("Target version is not bound to an exact commit.", "bad-request");
       }
       if (input.kind === "correction") {
@@ -147,7 +147,7 @@ export async function recordReviewLifecycleEvent(
             "bad-request",
           );
         }
-        if (!isExactCommitSha(superseded.snapshot.commitSha)) {
+        if (!superseded.snapshot || !isExactCommitSha(superseded.snapshot.commitSha)) {
           throw new LifecycleError("Superseded version lacks an exact commit.", "bad-request");
         }
         if (

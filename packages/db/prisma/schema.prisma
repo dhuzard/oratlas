@@ -35,37 +35,40 @@ model User {
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
 
-  submissions                    Submission[]                    @relation("submitter")
-  editorialDecisions             Submission[]                    @relation("reviewer")
+  submissions                    Submission[]                      @relation("submitter")
+  editorialDecisions             Submission[]                      @relation("reviewer")
   discussionThreads              DiscussionThread[]
   reviewComments                 ReviewComment[]
   auditEvents                    AuditEvent[]
-  trustVerifications             TrustVerification[]             @relation("trustReviewer")
-  nodeRelationTrustVerifications NodeRelationTrustVerification[] @relation("nodeRelationTrustReviewer")
+  trustVerifications             TrustVerification[]               @relation("trustReviewer")
+  nodeRelationTrustVerifications NodeRelationTrustVerification[]   @relation("nodeRelationTrustReviewer")
   inspectionCaptures             InspectionCapture[]
   editorialOverrides             EditorialOverride[]
-  lifecycleEvents                ReviewLifecycleEvent[]          @relation("lifecycleActor")
-  editorAssignments              EditorAssignment[]              @relation("assignmentEditor")
-  assignmentsMade                EditorAssignment[]              @relation("assignmentAssigner")
-  roundsOpened                   ReviewRound[]                   @relation("roundOpener")
-  formalReports                  FormalReviewReport[]            @relation("formalReviewer")
-  authorResponses                AuthorResponse[]                @relation("respondingAuthor")
-  decisionLetters                DecisionLetter[]                @relation("decisionEditor")
-  notifications                  Notification[]                  @relation("notificationUser")
-  statusRecords                  CitationStatusRecord[]          @relation("statusRecorder")
-  proposalsResolved              ClaimUpdateProposal[]           @relation("proposalResolver")
-  protocolSnapshots              ProtocolSnapshot[]              @relation("protocolSnapshotCreator")
-  protocolProposalsResolved      ProtocolDriftProposal[]         @relation("protocolProposalResolver")
-  passportsRegistered            ExecutionPassport[]             @relation("passportRegistrant")
-  passportsVerified              ExecutionPassport[]             @relation("passportVerifier")
-  federationResolved             FederationNotification[]        @relation("federationResolver")
-  replicationBriefsCreated       ReplicationBrief[]              @relation("replicationCreator")
-  replicationBriefsPublished     ReplicationBrief[]              @relation("replicationPublisher")
-  replicationBriefsClaimed       ReplicationBrief[]              @relation("replicationClaimant")
-  replicationBriefsCompleted     ReplicationBrief[]              @relation("replicationCompleter")
-  replicationBriefsWithdrawn     ReplicationBrief[]              @relation("replicationWithdrawer")
-  nodeEdgeProposalsReviewed      NodeEdgeProposal[]              @relation("nodeEdgeProposalReviewer")
-  nodeEdgesConfirmed             NodeEdge[]                      @relation("nodeEdgeConfirmer")
+  lifecycleEvents                ReviewLifecycleEvent[]            @relation("lifecycleActor")
+  editorAssignments              EditorAssignment[]                @relation("assignmentEditor")
+  assignmentsMade                EditorAssignment[]                @relation("assignmentAssigner")
+  roundsOpened                   ReviewRound[]                     @relation("roundOpener")
+  formalReports                  FormalReviewReport[]              @relation("formalReviewer")
+  authorResponses                AuthorResponse[]                  @relation("respondingAuthor")
+  decisionLetters                DecisionLetter[]                  @relation("decisionEditor")
+  notifications                  Notification[]                    @relation("notificationUser")
+  statusRecords                  CitationStatusRecord[]            @relation("statusRecorder")
+  proposalsResolved              ClaimUpdateProposal[]             @relation("proposalResolver")
+  protocolSnapshots              ProtocolSnapshot[]                @relation("protocolSnapshotCreator")
+  protocolProposalsResolved      ProtocolDriftProposal[]           @relation("protocolProposalResolver")
+  passportsRegistered            ExecutionPassport[]               @relation("passportRegistrant")
+  passportsVerified              ExecutionPassport[]               @relation("passportVerifier")
+  federationResolved             FederationNotification[]          @relation("federationResolver")
+  replicationBriefsCreated       ReplicationBrief[]                @relation("replicationCreator")
+  replicationBriefsPublished     ReplicationBrief[]                @relation("replicationPublisher")
+  replicationBriefsClaimed       ReplicationBrief[]                @relation("replicationClaimant")
+  replicationBriefsCompleted     ReplicationBrief[]                @relation("replicationCompleter")
+  replicationBriefsWithdrawn     ReplicationBrief[]                @relation("replicationWithdrawer")
+  nodeEdgeProposalsReviewed      NodeEdgeProposal[]                @relation("nodeEdgeProposalReviewer")
+  nodeEdgesConfirmed             NodeEdge[]                        @relation("nodeEdgeConfirmer")
+  synthesisDraftsApproved        SynthesisDraft[]                  @relation("synthesisDraftApprover")
+  synthesisVersionsApproved      ReviewVersion[]                   @relation("synthesisVersionApprover")
+  synthesisAttributions          SynthesisAttributionContributor[] @relation("synthesisAttributionUser")
 
   @@index([githubLoginNormalized])
 }
@@ -137,84 +140,125 @@ model RepositorySnapshot {
 }
 
 model Review {
-  id                 String    @id @default(cuid())
-  slug               String    @unique
+  id                        String    @id @default(cuid())
+  slug                      String    @unique
   /// Stable repository identity; prevents concurrent duplicate review rows.
-  repositoryId       String?   @unique
-  currentSnapshotId  String?
-  title              String
-  abstract           String?
+  repositoryId              String?   @unique
+  currentSnapshotId         String?
+  /// Authoritative identity/head for ai-synthesis series; absent on repository reviews.
+  synthesisSeriesKey        String?   @unique
+  currentSynthesisVersionId String?   @unique
+  title                     String
+  abstract                  String?
   /// contracts REVIEW_TYPES
-  reviewType         String?
-  licenseSpdx        String?
-  publishedReviewUrl String?
+  reviewType                String?
+  licenseSpdx               String?
+  publishedReviewUrl        String?
   /// published | withdrawn | superseded
-  status             String    @default("published")
-  acceptedAt         DateTime?
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
+  status                    String    @default("published")
+  acceptedAt                DateTime?
+  createdAt                 DateTime  @default(now())
+  updatedAt                 DateTime  @updatedAt
   /// Optimistic-concurrency counter for append-only public lifecycle events.
-  lifecycleRevision  Int       @default(0)
+  lifecycleRevision         Int       @default(0)
 
-  currentSnapshot RepositorySnapshot?    @relation("currentSnapshot", fields: [currentSnapshotId], references: [id])
-  repository      Repository?            @relation(fields: [repositoryId], references: [id])
-  versions        ReviewVersion[]
-  comments        ReviewComment[]
-  lifecycleEvents ReviewLifecycleEvent[]
+  currentSnapshot         RepositorySnapshot?    @relation("currentSnapshot", fields: [currentSnapshotId], references: [id])
+  currentSynthesisVersion ReviewVersion?         @relation("currentSynthesisHead", fields: [currentSynthesisVersionId], references: [id])
+  repository              Repository?            @relation(fields: [repositoryId], references: [id])
+  versions                ReviewVersion[]
+  comments                ReviewComment[]
+  lifecycleEvents         ReviewLifecycleEvent[]
+  synthesisDrafts         SynthesisDraft[]
 }
 
 model ReviewVersion {
-  id                         String    @id @default(cuid())
-  reviewId                   String
-  snapshotId                 String
+  id                                    String    @id @default(cuid())
+  reviewId                              String
+  snapshotId                            String?
+  /// repository | synthesis. Synthesis rows must have no snapshot or fake commit.
+  recordSourceType                      String    @default("repository")
+  synthesisDraftId                      String?   @unique
   /// First submission that materialized this version (idempotency provenance).
-  sourceSubmissionId         String?   @unique
-  inspectionCaptureId        String?   @unique
+  sourceSubmissionId                    String?   @unique
+  inspectionCaptureId                   String?   @unique
   /// Exact source selection accepted for this version.
-  sourceKind                 String?
-  sourceBranch               String?
-  sourceSelectionKey         String?
-  tagObjectSha               String?
-  sourceCreatedAt            DateTime?
-  semanticVersion            String?
-  title                      String
-  abstract                   String?
+  sourceKind                            String?
+  sourceBranch                          String?
+  sourceSelectionKey                    String?
+  tagObjectSha                          String?
+  sourceCreatedAt                       DateTime?
+  semanticVersion                       String?
+  title                                 String
+  abstract                              String?
   /// Effective metadata + provenance for this immutable version.
-  metadataJson               String
-  versionDoi                 String?
-  conceptDoi                 String?
-  zenodoRecordId             String?
-  releaseTag                 String?
-  releaseUrl                 String?
+  metadataJson                          String
+  versionDoi                            String?
+  conceptDoi                            String?
+  zenodoRecordId                        String?
+  releaseTag                            String?
+  releaseUrl                            String?
   /// Public, immutable release/DOI/commit consistency evidence.
-  publicationConsistencyJson String?
+  publicationConsistencyJson            String?
   /// SHA-256 of the exact canonical inspection capture accepted here.
-  capturePayloadHash         String?
+  capturePayloadHash                    String?
   /// True when every DOI/identifier on this version is a synthetic example
   /// (seed/demo data). The UI must not render outbound resolvers for these.
-  isExample                  Boolean   @default(false)
-  publishedAt                DateTime?
-  createdAt                  DateTime  @default(now())
+  isExample                             Boolean   @default(false)
+  publishedAt                           DateTime?
+  createdAt                             DateTime  @default(now())
   /// published | withdrawn | tombstoned. Updated only in the same
   /// transaction that appends an attributable lifecycle event.
-  publicState                String    @default("published")
+  publicState                           String    @default("published")
+  synthesisDocumentJson                 String?
+  synthesisOrdinal                      Int?
+  synthesisGenerationMode               String?
+  synthesisPipelineName                 String?
+  synthesisPipelineId                   String?
+  synthesisPipelineKind                 String?
+  synthesisPipelineVersion              String?
+  synthesisProvider                     String?
+  synthesisModel                        String?
+  synthesisModelVersion                 String?
+  synthesisPromptVersion                String?
+  synthesisPromptHash                   String?
+  synthesisPacketHash                   String?
+  synthesisDocumentHash                 String?
+  synthesisGeneratedAt                  DateTime?
+  synthesisAcceptedAt                   DateTime?
+  synthesisApprovedById                 String?
+  synthesisApproverRole                 String?
+  synthesisApproverDisplayName          String?
+  synthesisApproverGithubLogin          String?
+  synthesisChecklistVersion             String?
+  synthesisAttributionPolicyVersion     String?
+  synthesisMaterializationPolicyVersion String?
+  synthesisRightsStatement              String?
+  synthesisLicenseSpdx                  String?
+  acceptedPredecessorVersionId          String?
 
-  review                  Review                   @relation(fields: [reviewId], references: [id])
-  snapshot                RepositorySnapshot       @relation(fields: [snapshotId], references: [id])
+  review                  Review                            @relation(fields: [reviewId], references: [id])
+  snapshot                RepositorySnapshot?               @relation(fields: [snapshotId], references: [id])
+  synthesisDraft          SynthesisDraft?                   @relation(fields: [synthesisDraftId], references: [id])
+  synthesisApprovedBy     User?                             @relation("synthesisVersionApprover", fields: [synthesisApprovedById], references: [id])
+  acceptedPredecessor     ReviewVersion?                    @relation("synthesisVersionPredecessor", fields: [acceptedPredecessorVersionId], references: [id])
+  synthesisSuccessors     ReviewVersion[]                   @relation("synthesisVersionPredecessor")
+  synthesisAttributions   SynthesisAttributionContributor[]
+  currentSynthesisOf      Review?                           @relation("currentSynthesisHead")
   contributors            ReviewContributor[]
   identifiers             Identifier[]
   claims                  Claim[]
   citations               Citation[]
   comments                ReviewComment[]
-  sourceSubmission        Submission?              @relation("VersionSource", fields: [sourceSubmissionId], references: [id])
-  inspectionCapture       InspectionCapture?       @relation(fields: [inspectionCaptureId], references: [id])
-  resultingSubmissions    Submission[]             @relation("ResultingVersion")
-  lifecycleEvents         ReviewLifecycleEvent[]   @relation("lifecycleTarget")
-  supersededByEvents      ReviewLifecycleEvent[]   @relation("lifecycleSupersededVersion")
+  sourceSubmission        Submission?                       @relation("VersionSource", fields: [sourceSubmissionId], references: [id])
+  inspectionCapture       InspectionCapture?                @relation(fields: [inspectionCaptureId], references: [id])
+  resultingSubmissions    Submission[]                      @relation("ResultingVersion")
+  lifecycleEvents         ReviewLifecycleEvent[]            @relation("lifecycleTarget")
+  supersededByEvents      ReviewLifecycleEvent[]            @relation("lifecycleSupersededVersion")
   federationNotifications FederationNotification[]
   protocolSnapshots       ProtocolSnapshot[]
 
   @@unique([reviewId, snapshotId, sourceSelectionKey])
+  @@unique([reviewId, synthesisOrdinal])
 }
 
 /// Corrections, withdrawals and tombstones are immutable public events. The
@@ -432,12 +476,14 @@ model KnowledgeNode {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  repository            Repository             @relation(fields: [repositoryId], references: [id])
+  repository            Repository                 @relation(fields: [repositoryId], references: [id])
   versions              KnowledgeNodeVersion[]
-  incomingEdges         NodeEdge[]             @relation("targetNode")
-  incomingEdgeProposals NodeEdgeProposal[]     @relation("proposalTargetNode")
+  incomingEdges         NodeEdge[]                 @relation("targetNode")
+  incomingEdgeProposals NodeEdgeProposal[]         @relation("proposalTargetNode")
   linkedClaims          Claim[]
   aliases               NodeAlias[]
+  synthesisMemberships  SynthesisDraftMembership[]
+  synthesisCitations    SynthesisDraftCitation[]
 
   @@unique([repositoryId, localNodeId])
   @@index([kind])
@@ -471,14 +517,16 @@ model KnowledgeNodeVersion {
   isExample           Boolean  @default(false)
   createdAt           DateTime @default(now())
 
-  knowledgeNode     KnowledgeNode      @relation(fields: [knowledgeNodeId], references: [id])
-  snapshot          RepositorySnapshot @relation(fields: [snapshotId], references: [id])
-  sourceSubmission  Submission?        @relation("NodeVersionSource", fields: [sourceSubmissionId], references: [id])
-  inspectionCapture InspectionCapture? @relation("NodeVersionCapture", fields: [inspectionCaptureId], references: [id])
-  outgoingEdges     NodeEdge[]         @relation("sourceNodeVersion")
-  proposedEdgesFrom NodeEdgeProposal[] @relation("proposalSourceVersion")
-  proposedAsTarget  NodeEdgeProposal[] @relation("proposalTargetVersion")
-  confirmedAsTarget NodeEdge[]         @relation("confirmedTargetVersion")
+  knowledgeNode        KnowledgeNode              @relation(fields: [knowledgeNodeId], references: [id])
+  snapshot             RepositorySnapshot         @relation(fields: [snapshotId], references: [id])
+  sourceSubmission     Submission?                @relation("NodeVersionSource", fields: [sourceSubmissionId], references: [id])
+  inspectionCapture    InspectionCapture?         @relation("NodeVersionCapture", fields: [inspectionCaptureId], references: [id])
+  outgoingEdges        NodeEdge[]                 @relation("sourceNodeVersion")
+  proposedEdgesFrom    NodeEdgeProposal[]         @relation("proposalSourceVersion")
+  proposedAsTarget     NodeEdgeProposal[]         @relation("proposalTargetVersion")
+  confirmedAsTarget    NodeEdge[]                 @relation("confirmedTargetVersion")
+  synthesisMemberships SynthesisDraftMembership[]
+  synthesisCitations   SynthesisDraftCitation[]
 
   @@unique([knowledgeNodeId, snapshotId])
   @@index([snapshotId])
@@ -920,6 +968,8 @@ model AgentRun {
   modelName           String?
   modelVersion        String?
   promptVersion       String?
+  promptHash          String?
+  packetHash          String?
   inputHash           String?
   inputReferencesJson String?
   outputJson          String?
@@ -931,8 +981,165 @@ model AgentRun {
   /// unreviewed | approved | rejected
   humanReviewStatus   String    @default("unreviewed")
 
-  discussionMessages DiscussionMessage[]
-  nodeEdgeProposals  NodeEdgeProposal[]
+  discussionMessages       DiscussionMessage[]
+  nodeEdgeProposals        NodeEdgeProposal[]
+  synthesisDraft           SynthesisDraft?
+  synthesisGenerationClaim SynthesisGenerationRequestClaim?
+}
+
+/// Private immutable model output awaiting an explicit editorial decision.
+model SynthesisDraft {
+  id                           String    @id @default(cuid())
+  seriesKey                    String
+  selectorJson                 String
+  selectorHash                 String
+  materializationPolicyVersion String
+  generationKey                String
+  regenerationOrdinal          Int
+  parentDraftId                String?
+  previousAcceptedDraftId      String?
+  previousAcceptedOrdinal      Int?
+  agentRunId                   String    @unique
+  status                       String    @default("pending")
+  revision                     Int       @default(0)
+  packetJson                   String
+  packetHash                   String
+  documentJson                 String
+  documentHash                 String
+  generationMode               String
+  pipelineSoftwareName         String
+  pipelineSoftwareId           String
+  pipelineSoftwareKind         String
+  pipelineSoftwareVersion      String
+  provider                     String
+  model                        String
+  modelVersion                 String
+  promptVersion                String
+  promptHash                   String
+  generatedAt                  DateTime
+  acceptedAt                   DateTime?
+  acceptedById                 String?
+  acceptedByRoleSnapshot       String?
+  acceptedByDisplayName        String?
+  acceptedByGithubLogin        String?
+  decisionRationale            String?
+  checklistJson                String?
+  checklistVersion             String?
+  attributionPolicyVersion     String
+  rightsStatement              String?
+  licenseSpdx                  String?
+  versionDoi                   String?
+  conceptDoi                   String?
+  reviewId                     String?
+  requestKey                   String    @unique
+  createdAt                    DateTime  @default(now())
+  updatedAt                    DateTime  @updatedAt
+
+  agentRun               AgentRun                         @relation(fields: [agentRunId], references: [id])
+  parentDraft            SynthesisDraft?                  @relation("synthesisDraftParent", fields: [parentDraftId], references: [id])
+  childDrafts            SynthesisDraft[]                 @relation("synthesisDraftParent")
+  previousAcceptedDraft  SynthesisDraft?                  @relation("synthesisAcceptedPredecessor", fields: [previousAcceptedDraftId], references: [id])
+  acceptedSuccessors     SynthesisDraft[]                 @relation("synthesisAcceptedPredecessor")
+  acceptedBy             User?                            @relation("synthesisDraftApprover", fields: [acceptedById], references: [id])
+  review                 Review?                          @relation(fields: [reviewId], references: [id])
+  reviewVersion          ReviewVersion?
+  memberships            SynthesisDraftMembership[]
+  citations              SynthesisDraftCitation[]
+  generationRequestClaim SynthesisGenerationRequestClaim?
+
+  @@unique([seriesKey, regenerationOrdinal])
+  @@unique([generationKey, regenerationOrdinal])
+  @@index([status, createdAt])
+  @@index([seriesKey, status])
+}
+
+/// Durable pre-provider ownership claim. A request key is permanently bound to
+/// one canonical selector so retries cannot create orphan or duplicate runs.
+model SynthesisGenerationRequestClaim {
+  key            String    @id
+  requestKey     String    @unique
+  selectorJson   String
+  selectorHash   String
+  status         String    @default("running")
+  leaseToken     String?
+  leaseExpiresAt DateTime?
+  attempt        Int       @default(1)
+  draftId        String?   @unique
+  agentRunId     String?   @unique
+  errorCode      String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  draft    SynthesisDraft? @relation(fields: [draftId], references: [id])
+  agentRun AgentRun?       @relation(fields: [agentRunId], references: [id])
+
+  @@index([status, updatedAt])
+}
+
+model SynthesisDraftMembership {
+  draftId          String
+  referenceId      String
+  kind             String
+  nodeId           String
+  nodeVersionId    String
+  identifierScheme String?
+  identifierRole   String?
+  identifierValue  String?
+  position         Int
+
+  draft       SynthesisDraft       @relation(fields: [draftId], references: [id])
+  node        KnowledgeNode        @relation(fields: [nodeId], references: [id])
+  nodeVersion KnowledgeNodeVersion @relation(fields: [nodeVersionId], references: [id])
+
+  @@id([draftId, referenceId])
+  @@unique([draftId, position])
+  @@index([nodeId, nodeVersionId])
+  @@index([referenceId])
+}
+
+model SynthesisDraftCitation {
+  id               String  @id @default(cuid())
+  draftId          String
+  occurrenceKey    String
+  location         String
+  sectionId        String?
+  paragraphIndex   Int?
+  citationIndex    Int
+  referenceId      String
+  nodeId           String
+  nodeVersionId    String
+  nodeKind         String
+  nodeTitle        String
+  identifierScheme String?
+  identifierRole   String?
+  identifierValue  String?
+
+  draft       SynthesisDraft       @relation(fields: [draftId], references: [id])
+  node        KnowledgeNode        @relation(fields: [nodeId], references: [id])
+  nodeVersion KnowledgeNodeVersion @relation(fields: [nodeVersionId], references: [id])
+
+  @@unique([draftId, occurrenceKey])
+  @@index([draftId, referenceId])
+  @@index([nodeId, nodeVersionId])
+}
+
+/// Public attribution principals for synthesis versions; software is never a Person/User.
+model SynthesisAttributionContributor {
+  reviewVersionId     String
+  position            Int
+  kind                String
+  displayName         String
+  role                String
+  softwareVersion     String?
+  userId              String?
+  userRoleSnapshot    String?
+  githubLoginSnapshot String?
+
+  reviewVersion ReviewVersion @relation(fields: [reviewVersionId], references: [id])
+  user          User?         @relation("synthesisAttributionUser", fields: [userId], references: [id])
+
+  @@id([reviewVersionId, position])
+  @@index([userId])
 }
 
 model DiscussionThread {
@@ -1049,8 +1256,9 @@ model AuditEvent {
 /// A new table keeps populated upgrades safe without adding a unique index
 /// over a legacy nullable column.
 model IdempotencyKey {
-  key       String   @id
-  createdAt DateTime @default(now())
+  key         String   @id
+  requestHash String?
+  createdAt   DateTime @default(now())
 }
 
 /// Editor responsible for a submission, with an explicit conflict-of-interest

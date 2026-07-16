@@ -184,6 +184,7 @@ export async function getPreservedArticle(
   if (
     !version ||
     !isReadablePublicState(version.publicState) ||
+    !version.snapshot ||
     !isExactCommitSha(version.snapshot.commitSha) ||
     !version.snapshot.preservedFilesJson
   ) {

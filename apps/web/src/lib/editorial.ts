@@ -184,12 +184,18 @@ export async function listLifecycleEditorialReviews(): Promise<LifecycleEditoria
   return reviews.map((review) => ({
     slug: review.slug,
     lifecycleRevision: review.lifecycleRevision,
-    versions: review.versions.map((version, index) => ({
-      id: version.id,
-      label: version.semanticVersion ?? version.releaseTag ?? version.title,
-      publicState: version.publicState,
-      commitSha: version.snapshot.commitSha,
-      isCurrent: index === 0,
-    })),
+    versions: review.versions.flatMap((version, index) =>
+      version.snapshot
+        ? [
+            {
+              id: version.id,
+              label: version.semanticVersion ?? version.releaseTag ?? version.title,
+              publicState: version.publicState,
+              commitSha: version.snapshot.commitSha,
+              isCurrent: index === 0,
+            },
+          ]
+        : [],
+    ),
   }));
 }

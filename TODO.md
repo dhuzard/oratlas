@@ -365,11 +365,11 @@ packages: [packages/knowledge, packages/contracts]
 ```yaml
 id: KG-12
 epic: C
-status: todo
+status: done (PR #54)
 depends_on: [KG-11]
 size: L
 labels: [knowledge, llm]
-packages: [packages/knowledge, packages/contracts]
+packages: [packages/contracts, packages/knowledge, packages/db, apps/web]
 ```
 
 **Scope.**
@@ -394,11 +394,11 @@ packages: [packages/knowledge, packages/contracts]
 ```yaml
 id: KG-13
 epic: C
-status: todo
+status: done (PR #58)
 depends_on: [KG-12, KG-04]
 size: L
 labels: [web, editorial, db]
-packages: [apps/web, packages/db]
+packages: [packages/contracts, packages/db, apps/web]
 ```
 
 **Scope.**
@@ -555,11 +555,11 @@ packages: [docs]
 ```yaml
 id: KG-19
 epic: E
-status: todo
+status: done (PR #57)
 depends_on: [KG-12]
 size: M
 labels: [testing, ci, llm]
-packages: [packages/knowledge, scripts]
+packages: [packages/knowledge, scripts, .github, docs]
 ```
 
 **Scope.**

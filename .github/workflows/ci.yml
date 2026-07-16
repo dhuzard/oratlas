@@ -73,6 +73,14 @@ jobs:
       - name: Unit & integration tests
         run: pnpm test
 
+      - name: Grounding evaluation (offline)
+        run: pnpm eval:grounding
+        env:
+          ORATLAS_GROUNDING_EVAL_REAL: ""
+          LLM_PROVIDER: ""
+          LLM_MODEL: ""
+          ANTHROPIC_API_KEY: ""
+
       - name: Set up database (push + seed)
         run: pnpm --filter @oratlas/db db:push && pnpm --filter @oratlas/db db:seed
 
@@ -132,6 +140,14 @@ jobs:
       - name: Push schema to PostgreSQL
         working-directory: packages/db
         run: pnpm exec prisma db push --schema prisma/schema.postgres.prisma --skip-generate
+
+      - name: Apply and verify database-native guards
+        run: pnpm --filter @oratlas/db db:guards
+
+      - name: Exercise database-native guards on PostgreSQL
+        run: pnpm exec vitest run packages/db/src/database-guards.integration.test.ts
+        env:
+          DATABASE_GUARD_TEST_DATABASE_URL: "postgresql://oratlas:oratlas@localhost:5432/oratlas"
 
       - name: Seed PostgreSQL
         run: pnpm --filter @oratlas/db db:seed

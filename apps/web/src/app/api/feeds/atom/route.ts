@@ -38,7 +38,7 @@ export async function GET() {
       },
     });
     const entries: FeedEntryInput[] = versions
-      .filter((version) => isExactCommitSha(version.snapshot.commitSha))
+      .filter((version) => version.snapshot && isExactCommitSha(version.snapshot.commitSha))
       .map((version) => {
         const url = `${base}/reviews/${version.review.slug}/versions/${version.id}`;
         return {
