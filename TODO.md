@@ -341,7 +341,7 @@ packages: [packages/trust, packages/contracts, docs]
 ```yaml
 id: KG-11
 epic: C
-status: in-progress (issue #49)
+status: done (PR #51)
 depends_on: [KG-08]
 size: M
 labels: [knowledge]
