@@ -13,6 +13,7 @@ describe("archive search contracts", () => {
         total: 1,
         page: 1,
         pageSize: 20,
+        synthesisCandidateScan: { limit: 500, limitReached: false },
         items: [
           {
             contentType: "synthesis",
@@ -37,6 +38,7 @@ describe("archive search contracts", () => {
       total: 1,
       page: 1,
       pageSize: 20,
+      synthesisCandidateScan: { limit: 500, limitReached: false },
       items: [
         {
           contentType: "synthesis",

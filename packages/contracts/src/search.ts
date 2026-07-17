@@ -19,6 +19,12 @@ const archiveSynthesisFreshnessSchema = synthesisFreshnessBaseSchema
     }
   });
 
+/**
+ * Deep synthesis integrity reads are capped at one quarter of the 2,000-node
+ * POC scan: each candidate requires substantially more relational validation.
+ */
+export const ARCHIVE_SYNTHESIS_CANDIDATE_SCAN_LIMIT = 500 as const;
+
 /** Archive search query (spec §13, §16). */
 export const archiveSearchQuerySchema = z.object({
   contentType: z.enum(["all", "review", "node", "synthesis"]).optional(),
@@ -45,6 +51,12 @@ export const archiveSearchResponseSchema = z
     total: z.number().int().nonnegative(),
     page: z.number().int().positive(),
     pageSize: z.number().int().positive(),
+    synthesisCandidateScan: z
+      .object({
+        limit: z.literal(ARCHIVE_SYNTHESIS_CANDIDATE_SCAN_LIMIT),
+        limitReached: z.boolean(),
+      })
+      .strict(),
     items: z.array(
       z.discriminatedUnion("contentType", [
         z

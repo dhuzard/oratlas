@@ -1,5 +1,6 @@
 import "server-only";
 import {
+  ARCHIVE_SYNTHESIS_CANDIDATE_SCAN_LIMIT,
   archiveSearchResponseSchema,
   publicSynthesisReviewSchema,
   type ArchiveSearchQuery,
@@ -33,6 +34,12 @@ export interface ArchiveSearchSources {
   index: KnowledgeIndexData;
   nodes: PublicNodeSummary[];
   syntheses: ArchiveSynthesisSource[];
+  synthesisCandidateLimitReached?: boolean;
+}
+
+interface ArchiveSynthesisScan {
+  items: ArchiveSynthesisSource[];
+  limitReached: boolean;
 }
 
 /** Search all public record kinds, merge deterministically, then paginate once. */
@@ -42,7 +49,7 @@ export async function searchArchive(
 ): Promise<ArchiveSearchResponse> {
   const suppliedSources = isArchiveSearchSources(provided) ? provided : undefined;
   const providedIndex = isKnowledgeIndexData(provided) ? provided : undefined;
-  const [index, nodeRows, synthesisRows] = await Promise.all([
+  const [index, nodeRows, synthesisScan] = await Promise.all([
     suppliedSources
       ? Promise.resolve(suppliedSources.index)
       : providedIndex
@@ -56,11 +63,15 @@ export async function searchArchive(
           )
         : listPublicNodeSummaries(query.nodeKind),
     query.contentType === "review" || query.contentType === "node"
-      ? Promise.resolve([])
+      ? Promise.resolve({ items: [], limitReached: false })
       : suppliedSources
-        ? Promise.resolve(suppliedSources.syntheses)
+        ? Promise.resolve({
+            items: suppliedSources.syntheses,
+            limitReached: suppliedSources.synthesisCandidateLimitReached ?? false,
+          })
         : listPublicSynthesisSources(),
   ]);
+  const synthesisRows = synthesisScan.items;
   const reviewRows =
     query.contentType === "node" || query.contentType === "synthesis"
       ? []
@@ -146,6 +157,10 @@ export async function searchArchive(
     total: combined.length,
     page: query.page,
     pageSize: query.pageSize,
+    synthesisCandidateScan: {
+      limit: ARCHIVE_SYNTHESIS_CANDIDATE_SCAN_LIMIT,
+      limitReached: synthesisScan.limitReached,
+    },
     items: combined.slice(start, start + query.pageSize),
   });
 }
@@ -193,11 +208,14 @@ function isKnowledgeIndexData(
   return Boolean(value && "reviews" in value && "claims" in value && "citations" in value);
 }
 
-async function listPublicSynthesisSources(): Promise<ArchiveSynthesisSource[]> {
+async function listPublicSynthesisSources(): Promise<ArchiveSynthesisScan> {
   const output: ArchiveSynthesisSource[] = [];
   const batchSize = 25;
   let cursor: string | undefined;
-  do {
+  let candidateCount = 0;
+  while (candidateCount < ARCHIVE_SYNTHESIS_CANDIDATE_SCAN_LIMIT) {
+    const remaining = ARCHIVE_SYNTHESIS_CANDIDATE_SCAN_LIMIT - candidateCount;
+    const take = Math.min(batchSize, remaining);
     const candidates = await prisma.review.findMany({
       where: {
         reviewType: "ai-synthesis",
@@ -206,19 +224,15 @@ async function listPublicSynthesisSources(): Promise<ArchiveSynthesisSource[]> {
       },
       select: { slug: true },
       orderBy: { slug: "asc" },
-      take: batchSize,
+      take,
       ...(cursor ? { cursor: { slug: cursor }, skip: 1 } : {}),
     });
+    const boundedCandidates = candidates.slice(0, take);
     const publicSyntheses = await Promise.all(
-      candidates.map(async ({ slug }: { slug: string }) => {
-        try {
-          const synthesis = await getPublicSynthesisReview(slug);
-          const parsed = publicSynthesisReviewSchema.safeParse(synthesis);
-          return parsed.success ? parsed.data : null;
-        } catch {
-          // A malformed candidate must not make other public archive rows unavailable.
-          return null;
-        }
+      boundedCandidates.map(async ({ slug }: { slug: string }) => {
+        const synthesis = await getPublicSynthesisReview(slug);
+        const parsed = publicSynthesisReviewSchema.safeParse(synthesis);
+        return parsed.success ? parsed.data : null;
       }),
     );
     for (const synthesis of publicSyntheses) {
@@ -235,7 +249,12 @@ async function listPublicSynthesisSources(): Promise<ArchiveSynthesisSource[]> {
         },
       });
     }
-    cursor = candidates.length === batchSize ? candidates.at(-1)?.slug : undefined;
-  } while (cursor);
-  return output;
+    candidateCount += boundedCandidates.length;
+    if (boundedCandidates.length < take) {
+      return { items: output, limitReached: false };
+    }
+    cursor = boundedCandidates.at(-1)?.slug;
+  }
+  // This means the public request reached its ceiling, not that another row is known to exist.
+  return { items: output, limitReached: true };
 }

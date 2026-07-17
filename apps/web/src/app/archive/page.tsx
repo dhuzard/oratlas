@@ -47,6 +47,12 @@ export default async function ArchivePage({
         {results.total} publication(s){query.q ? ` matching “${query.q}”` : ""}. Acceptance is not
         peer review.
       </p>
+      {results.synthesisCandidateScan.limitReached ? (
+        <p className="notice">
+          AI synthesis discovery reached its {results.synthesisCandidateScan.limit}-candidate
+          request ceiling. The total and pages describe this bounded result set.
+        </p>
+      ) : null}
 
       <div className="grid layout-2">
         <div>
@@ -119,7 +125,7 @@ export default async function ArchivePage({
                           {item.version.versionDoi || item.version.conceptDoi ? (
                             <Badge tone="success">DOI</Badge>
                           ) : (
-                            <Badge>repository-only</Badge>
+                            <Badge>no DOI</Badge>
                           )}
                           {item.freshness.status === "fresh" ? (
                             <Badge tone="success">up to date</Badge>

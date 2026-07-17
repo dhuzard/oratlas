@@ -265,7 +265,7 @@ describe("archive discovery", () => {
     ]);
   });
 
-  it("fails closed per invalid, private, example, or corrupt synthesis candidate", async () => {
+  it("fails closed per invalid, private, example, or stored-corrupt synthesis candidate", async () => {
     mocks.findSynthesisCandidates.mockResolvedValue([
       { slug: "public" },
       { slug: "private" },
@@ -274,7 +274,7 @@ describe("archive discovery", () => {
       { slug: "corrupt" },
     ]);
     mocks.getPublicSynthesisReview.mockImplementation(async (slug: string) => {
-      if (slug === "corrupt") throw new Error("corrupt stored JSON");
+      if (slug === "corrupt") return null;
       if (slug === "invalid-head") {
         return { ...validPublicSynthesis(slug), privateDraftId: "must-not-leak" };
       }
@@ -292,9 +292,10 @@ describe("archive discovery", () => {
     });
     expect(JSON.stringify(result)).not.toContain("privateDraftId");
     expect(JSON.stringify(result)).not.toContain("invalid-head");
+    expect(JSON.stringify(result)).not.toContain("corrupt");
   });
 
-  it("bounds integrity reads while traversing every candidate for truthful totals", async () => {
+  it("bounds concurrent integrity reads while traversing candidates below the ceiling", async () => {
     const firstBatch = Array.from({ length: 25 }, (_, index) => ({
       slug: `synthesis-${String(index).padStart(2, "0")}`,
     }));
@@ -317,6 +318,7 @@ describe("archive discovery", () => {
     );
     expect(result.total).toBe(26);
     expect(result.items).toHaveLength(26);
+    expect(result.synthesisCandidateScan).toEqual({ limit: 500, limitReached: false });
     expect(maximumActive).toBe(25);
     expect(mocks.findSynthesisCandidates).toHaveBeenNthCalledWith(
       2,
@@ -325,6 +327,41 @@ describe("archive discovery", () => {
         skip: 1,
         take: 25,
       }),
+    );
+  });
+
+  it("propagates infrastructure failures instead of returning a false total", async () => {
+    mocks.findSynthesisCandidates.mockResolvedValue([{ slug: "database-dependent" }]);
+    mocks.getPublicSynthesisReview.mockRejectedValue(new Error("database connection lost"));
+
+    await expect(
+      searchArchive(archiveSearchQuerySchema.parse({ contentType: "synthesis" })),
+    ).rejects.toThrow("database connection lost");
+  });
+
+  it("stops at the explicit synthesis candidate scan ceiling", async () => {
+    mocks.findSynthesisCandidates.mockImplementation(
+      async (options: { cursor?: { slug: string }; take: number }) => {
+        const start = options.cursor ? Number(options.cursor.slug.split("-").at(-1)) + 1 : 0;
+        return Array.from({ length: options.take }, (_, offset) => ({
+          slug: `synthesis-${String(start + offset).padStart(3, "0")}`,
+        }));
+      },
+    );
+    mocks.getPublicSynthesisReview.mockImplementation(async (slug: string) =>
+      validPublicSynthesis(slug),
+    );
+
+    const result = await searchArchive(
+      archiveSearchQuerySchema.parse({ contentType: "synthesis", pageSize: 50 }),
+    );
+    expect(result.total).toBe(500);
+    expect(result.items).toHaveLength(50);
+    expect(result.synthesisCandidateScan).toEqual({ limit: 500, limitReached: true });
+    expect(mocks.findSynthesisCandidates).toHaveBeenCalledTimes(20);
+    expect(mocks.getPublicSynthesisReview).toHaveBeenCalledTimes(500);
+    expect(mocks.findSynthesisCandidates).toHaveBeenLastCalledWith(
+      expect.objectContaining({ cursor: { slug: "synthesis-474" }, take: 25 }),
     );
   });
 });
