@@ -581,7 +581,7 @@ packages: [packages/knowledge, scripts, .github, docs]
 ```yaml
 id: KG-20
 epic: E
-status: in-progress (issue #66)
+status: done (PR #70)
 depends_on: [KG-05, KG-09, KG-13, KG-15]
 size: M
 labels: [testing, ci, e2e]
