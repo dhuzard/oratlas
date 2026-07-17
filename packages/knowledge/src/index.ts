@@ -94,6 +94,25 @@ export {
   type SynthesisGenerationResult,
 } from "./synthesis-writer.js";
 export {
+  compareSynthesisGenerations,
+  prepareSynthesisGenerationSnapshot,
+  verifySynthesisGenerationDelta,
+  SynthesisGenerationDeltaError,
+  SYNTHESIS_GENERATION_DELTA_ERROR_CODES,
+  SYNTHESIS_GENERATION_DELTA_LIMITS,
+  SYNTHESIS_GENERATION_DELTA_VERSION,
+  type SynthesisDeltaContradictionReference,
+  type SynthesisDeltaEdgeChange,
+  type SynthesisDeltaEdgeReference,
+  type SynthesisDeltaNodeReassessment,
+  type SynthesisDeltaNodeReference,
+  type SynthesisGenerationDelta,
+  type SynthesisGenerationDeltaErrorCode,
+  type SynthesisGenerationSnapshot,
+  type SynthesisSectionParagraphDelta,
+  type SynthesisSectionTextDelta,
+} from "./synthesis-delta.js";
+export {
   defineGroundingEvalFixture,
   evaluateGroundingFixtures,
   prepareGroundingEvalFixtures,
