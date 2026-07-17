@@ -22,6 +22,7 @@ import {
 } from "@oratlas/contracts";
 import { nodeFieldProvenanceSchema } from "@oratlas/extractor";
 import { selectPreferredTrustAssessment } from "@oratlas/trust";
+import type { PrismaClient } from "@oratlas/db";
 import { prisma } from "./db";
 import {
   hasOwnedConfirmedTargetVersion,
@@ -51,7 +52,8 @@ const contributorsSchema = z.array(manifestContributorSchema).max(200);
 // POC request-work ceilings. Exact historical URLs remain addressable beyond the
 // history window, but archive totals and list/history surfaces intentionally cap
 // their scanned cardinality until KG-08 supplies database-native graph/search cursors.
-const PUBLIC_NODE_SEARCH_LIMIT = 2_000;
+export const PUBLIC_NODE_SEARCH_LIMIT = 2_000;
+const PUBLIC_NODE_SEARCH_BATCH_SIZE = 200;
 const PUBLIC_NODE_VERSION_LIMIT = 200;
 const PUBLIC_NODE_EDGE_LIMIT = 200;
 const PUBLIC_NODE_TRUST_RELATION_LIMIT = 200;
@@ -64,6 +66,13 @@ export type ExactPublicNodeVersionProjection = {
   repository: { owner: string; name: string; url: string };
   version: PublicNodeVersion;
 };
+
+export interface PublicNodeSummaryScan {
+  items: PublicNodeSummary[];
+  scannedCandidateCount: number;
+  candidateLimit: typeof PUBLIC_NODE_SEARCH_LIMIT;
+  candidateLimitReached: boolean;
+}
 
 function parseJson(value: string, label: string): unknown {
   try {
@@ -339,36 +348,76 @@ export async function listPublicNodes(query: NodeArchiveQuery): Promise<PublicNo
 
 export async function listPublicNodeSummaries(
   kind?: KnowledgeNodeKind,
+  client: PrismaClient = prisma,
 ): Promise<PublicNodeSummary[]> {
-  const rows = await prisma.knowledgeNode.findMany({
-    where: {
-      versions: { some: {} },
-      ...(kind ? { kind } : {}),
-    },
-    include: {
-      repository: { select: { owner: true, name: true, canonicalUrl: true } },
-      versions: {
-        include: versionInclude,
-        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-        take: 1,
+  return (await scanPublicNodeSummaries(kind, client)).items;
+}
+
+/**
+ * Deterministically scans a bounded set of stored node identities. The final
+ * page includes one unprojected probe row so callers can distinguish a
+ * complete scan from a raw-candidate ceiling even when corrupt current heads
+ * reduce the number of public summaries.
+ */
+export async function scanPublicNodeSummaries(
+  kind?: KnowledgeNodeKind,
+  client: PrismaClient = prisma,
+): Promise<PublicNodeSummaryScan> {
+  const items: PublicNodeSummary[] = [];
+  let scannedCandidateCount = 0;
+  let cursor: string | undefined;
+  let remaining = PUBLIC_NODE_SEARCH_LIMIT;
+  let candidateLimitReached = false;
+
+  while (remaining > 0) {
+    const pageSize = Math.min(PUBLIC_NODE_SEARCH_BATCH_SIZE, remaining);
+    const isFinalBoundedPage = pageSize === remaining;
+    const page = await client.knowledgeNode.findMany({
+      where: {
+        versions: { some: {} },
+        ...(kind ? { kind } : {}),
       },
-    },
-    orderBy: { id: "asc" },
-    take: PUBLIC_NODE_SEARCH_LIMIT,
-  });
-  return rows
-    .flatMap((row) => {
+      include: {
+        repository: { select: { owner: true, name: true, canonicalUrl: true } },
+        versions: {
+          include: versionInclude,
+          orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+          take: 1,
+        },
+      },
+      orderBy: { id: "asc" },
+      take: pageSize + (isFinalBoundedPage ? 1 : 0),
+      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+    });
+    const acceptedPage = page.slice(0, pageSize);
+    scannedCandidateCount += acceptedPage.length;
+    for (const row of acceptedPage) {
       const storedCurrent = row.versions[0];
-      if (!storedCurrent) return [];
+      if (!storedCurrent) continue;
       const current = tryMapPublicNodeVersion(row, storedCurrent);
-      return current ? [nodeSummary(row, current)] : [];
-    })
-    .sort(
-      (left, right) =>
-        compareCanonical(right.updatedAt, left.updatedAt) ||
-        compareCanonical(left.title, right.title) ||
-        compareCanonical(left.id, right.id),
-    );
+      if (current) items.push(nodeSummary(row, current));
+    }
+    remaining -= acceptedPage.length;
+    if (isFinalBoundedPage) {
+      candidateLimitReached = page.length > acceptedPage.length;
+      break;
+    }
+    if (acceptedPage.length < pageSize) break;
+    cursor = acceptedPage.at(-1)!.id;
+  }
+
+  items.sort(
+    (left, right) =>
+      compareCanonical(right.updatedAt, left.updatedAt) ||
+      compareCanonical(left.title, right.title) ||
+      compareCanonical(left.id, right.id),
+  );
+  return {
+    items,
+    scannedCandidateCount,
+    candidateLimit: PUBLIC_NODE_SEARCH_LIMIT,
+    candidateLimitReached,
+  };
 }
 
 export async function getPublicNode(

@@ -491,7 +491,11 @@ describe("combined archive search", () => {
     expect(first.items).toHaveLength(2);
     expect(second.items).toHaveLength(2);
     const keys = [...first.items, ...second.items].map((item) =>
-      item.contentType === "review" ? `review:${item.slug}` : `node:${item.node.id}`,
+      item.contentType === "review"
+        ? `review:${item.slug}`
+        : item.contentType === "synthesis"
+          ? `synthesis:${item.slug}`
+          : `node:${item.node.id}`,
     );
     expect(new Set(keys).size).toBe(4);
   });

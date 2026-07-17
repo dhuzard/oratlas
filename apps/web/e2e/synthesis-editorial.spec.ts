@@ -188,6 +188,19 @@ test("editor gates generated, rejected, and accepted synthesis drafts", async ({
   );
   await page.setViewportSize({ width: 1280, height: 720 });
 
+  await page.goto("/archive?contentType=synthesis");
+  await expect(page.getByText(draft.document.title, { exact: true })).toBeVisible();
+  await expect(page.getByText("freshness unchecked", { exact: true })).toBeVisible();
+  await page.goto("/archive?contentType=review");
+  await expect(page.getByText(draft.document.title, { exact: true })).toHaveCount(0);
+  await expect(page.getByText(/Hippocampal Replay/).first()).toBeVisible();
+  await page.goto("/archive?contentType=node");
+  await expect(page.getByText(draft.document.title, { exact: true })).toHaveCount(0);
+  await expect(page.getByText(node.versions[0]!.title, { exact: true }).first()).toBeVisible();
+  await page.goto("/coverage");
+  await expect(page.getByRole("heading", { name: "Topic coverage" })).toBeVisible();
+  await expect(page.getByText(node.versions[0]!.title, { exact: true })).toHaveCount(0);
+
   await page.goto("/editorial");
   const freshScanResponse = page.waitForResponse((response) =>
     response.url().includes("/api/editorial/syntheses/staleness/scan"),
@@ -196,6 +209,8 @@ test("editor gates generated, rejected, and accepted synthesis drafts", async ({
   expect((await freshScanResponse).ok()).toBeTruthy();
   await page.goto(`/reviews/${slug}`);
   await expect(page.getByText("Freshness checked")).toBeVisible();
+  await page.goto("/archive?contentType=synthesis");
+  await expect(page.getByText("up to date", { exact: true })).toBeVisible();
 
   const priorVersion = node.versions[0]!;
   const snapshotId = `e2e-synthesis-stale-${Date.now()}`;
@@ -229,6 +244,19 @@ test("editor gates generated, rejected, and accepted synthesis drafts", async ({
     },
   });
 
+  await page.goto("/coverage");
+  const uncoveredVersion = page.getByRole("link", {
+    name: `${priorVersion.title} — newer evidence`,
+  });
+  await expect(uncoveredVersion).toBeVisible();
+  const generationLink = page
+    .locator("article")
+    .filter({ has: uncoveredVersion })
+    .getByRole("link", { name: "Start an editor-gated synthesis from this node →" });
+  await expect(generationLink).toBeVisible();
+  await generationLink.click();
+  await expect(page.getByLabel("Seed node ID")).toHaveValue(node.id);
+
   await page.goto("/editorial");
   const staleScanResponse = page.waitForResponse((response) =>
     response.url().includes("/api/editorial/syntheses/staleness/scan"),
@@ -249,12 +277,17 @@ test("editor gates generated, rejected, and accepted synthesis drafts", async ({
   expect((await proposalDecisionResponse).ok()).toBeTruthy();
   await page.goto(`/reviews/${slug}`);
   await expect(page.getByText("Newer evidence exists")).toBeVisible();
+  await page.goto("/archive?contentType=synthesis");
+  await expect(page.getByText(/^stale · \d+ affected reference/)).toBeVisible();
 
   await prisma.knowledgeNodeVersion.delete({ where: { id: versionId } });
   await prisma.repositorySnapshot.delete({ where: { id: snapshotId } });
+  await page.goto("/coverage");
+  await expect(page.getByText(priorVersion.title, { exact: true })).toHaveCount(0);
   const citation = draft.citations[0];
   expect(citation).toBeTruthy();
   const citationHref = `/nodes/${citation!.nodeId}/versions/${citation!.nodeVersionId}`;
+  await page.goto(`/reviews/${slug}`);
   const citationLink = page
     .locator("#grounding-citations")
     .locator(`a[href="${citationHref}"]`)

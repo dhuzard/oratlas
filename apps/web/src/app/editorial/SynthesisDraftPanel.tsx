@@ -37,8 +37,14 @@ const emptyChecklist: ChecklistState = {
   rightsAndLicenseConfirmed: false,
 };
 
-export function SynthesisDraftPanel({ drafts }: { drafts: EditorialSynthesisDraft[] }) {
-  const [nodeId, setNodeId] = useState("");
+export function SynthesisDraftPanel({
+  drafts,
+  initialSeedNodeId = "",
+}: {
+  drafts: EditorialSynthesisDraft[];
+  initialSeedNodeId?: string;
+}) {
+  const [nodeId, setNodeId] = useState(initialSeedNodeId);
   const [message, setMessage] = useState("");
 
   async function generate() {
@@ -68,7 +74,7 @@ export function SynthesisDraftPanel({ drafts }: { drafts: EditorialSynthesisDraf
   }
 
   return (
-    <section>
+    <section id="synthesis-drafts">
       <h2>AI-written synthesis drafts</h2>
       <p className="muted">
         Generation is private. Nothing becomes public until an editor inspects and explicitly

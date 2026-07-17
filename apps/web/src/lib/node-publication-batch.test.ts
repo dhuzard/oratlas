@@ -3,7 +3,7 @@ import type { PrismaClient } from "@oratlas/db";
 
 vi.mock("server-only", () => ({}));
 
-import { getExactPublicNodeVersions } from "./node-publication";
+import { getExactPublicNodeVersions, scanPublicNodeSummaries } from "./node-publication";
 
 const createdAt = new Date("2026-07-16T10:00:00.000Z");
 
@@ -102,5 +102,49 @@ describe("batch exact public node projection", () => {
     }));
     expect(await getExactPublicNodeVersions(requested, client)).toEqual(new Map());
     expect(findMany).not.toHaveBeenCalled();
+  });
+});
+
+describe("bounded public node summary scan", () => {
+  it("signals an exact raw-candidate boundary when a corrupt head hides a later valid node", async () => {
+    const rows = Array.from({ length: 2_001 }, (_, index) => {
+      const row = nodeRow(index + 1);
+      row.id = `scan-node-${String(index + 1).padStart(4, "0")}`;
+      row.localNodeId = row.id;
+      return row;
+    });
+    rows[499]!.versions[0]!.payloadJson = "{not-json";
+    const justBeyondBoundary = rows[2_000]!;
+    const findMany = vi.fn(
+      async (query: { cursor?: { id: string }; skip?: number; take: number }) => {
+        const cursorIndex = query.cursor
+          ? rows.findIndex((row) => row.id === query.cursor!.id)
+          : -1;
+        const start = cursorIndex + (query.skip ?? 1);
+        return rows.slice(start, start + query.take);
+      },
+    );
+    const client = { knowledgeNode: { findMany } } as unknown as PrismaClient;
+
+    const result = await scanPublicNodeSummaries(undefined, client);
+
+    expect(result).toMatchObject({
+      scannedCandidateCount: 2_000,
+      candidateLimit: 2_000,
+      candidateLimitReached: true,
+    });
+    expect(result.items).toHaveLength(1_999);
+    expect(result.items.some((item) => item.id === rows[499]!.id)).toBe(false);
+    expect(result.items.some((item) => item.id === justBeyondBoundary.id)).toBe(false);
+    expect(findMany).toHaveBeenCalledTimes(10);
+    expect(findMany.mock.calls.every(([query]) => query.take <= 201)).toBe(true);
+  });
+
+  it("propagates candidate-page infrastructure failures", async () => {
+    const failure = new Error("database unavailable");
+    const client = {
+      knowledgeNode: { findMany: vi.fn().mockRejectedValue(failure) },
+    } as unknown as PrismaClient;
+    await expect(scanPublicNodeSummaries(undefined, client)).rejects.toBe(failure);
   });
 });

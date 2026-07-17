@@ -1,9 +1,33 @@
 import { z } from "zod";
 import { publicNodeSummarySchema } from "./node-publication.js";
+import {
+  publicSynthesisVersionSchema,
+  synthesisFreshnessBaseSchema,
+} from "./synthesis-editorial.js";
+
+const archiveSynthesisFreshnessSchema = synthesisFreshnessBaseSchema
+  .pick({ status: true, affectedReferenceCount: true })
+  .superRefine((freshness, context) => {
+    if (
+      (freshness.status === "stale" && freshness.affectedReferenceCount === 0) ||
+      (freshness.status !== "stale" && freshness.affectedReferenceCount !== 0)
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Archive freshness status must match its affected-reference count.",
+      });
+    }
+  });
+
+/**
+ * Deep synthesis integrity reads are capped at one quarter of the 2,000-node
+ * POC scan: each candidate requires substantially more relational validation.
+ */
+export const ARCHIVE_SYNTHESIS_CANDIDATE_SCAN_LIMIT = 500 as const;
 
 /** Archive search query (spec §13, §16). */
 export const archiveSearchQuerySchema = z.object({
-  contentType: z.enum(["all", "review", "node"]).optional(),
+  contentType: z.enum(["all", "review", "node", "synthesis"]).optional(),
   nodeKind: z.enum(["claim", "figure", "dataset", "code"]).optional(),
   q: z.string().max(500).optional(),
   keywords: z.array(z.string().max(100)).max(20).optional(),
@@ -27,6 +51,12 @@ export const archiveSearchResponseSchema = z
     total: z.number().int().nonnegative(),
     page: z.number().int().positive(),
     pageSize: z.number().int().positive(),
+    synthesisCandidateScan: z
+      .object({
+        limit: z.literal(ARCHIVE_SYNTHESIS_CANDIDATE_SCAN_LIMIT),
+        limitReached: z.boolean(),
+      })
+      .strict(),
     items: z.array(
       z.discriminatedUnion("contentType", [
         z
@@ -49,6 +79,18 @@ export const archiveSearchResponseSchema = z
           .object({
             contentType: z.literal("node"),
             node: publicNodeSummarySchema,
+            score: z.number(),
+            sortDate: z.string().datetime(),
+          })
+          .strict(),
+        z
+          .object({
+            contentType: z.literal("synthesis"),
+            slug: z.string().min(1).max(200),
+            title: z.string().min(1).max(300),
+            abstract: z.string().min(1).max(2_000),
+            version: publicSynthesisVersionSchema,
+            freshness: archiveSynthesisFreshnessSchema,
             score: z.number(),
             sortDate: z.string().datetime(),
           })

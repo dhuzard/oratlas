@@ -40,6 +40,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
               <Link href="/claims">Claims</Link>
               <Link href="/nodes">Nodes</Link>
               <Link href="/graph">Graph</Link>
+              <Link href="/coverage">Coverage</Link>
               <Link href="/synthesis">Contradictions</Link>
               <Link href="/replications">Replications</Link>
               <Link href="/discuss">Discuss</Link>
