@@ -62,6 +62,70 @@ describe("compareRoutes", () => {
 });
 
 describe("synthesis OpenAPI contracts", () => {
+  it("keeps archive synthesis discovery and bounded-total semantics in the public contract", () => {
+    const openapi = readFileSync(resolve(process.cwd(), "docs/openapi.yaml"), "utf8");
+    const component = (name: string) => {
+      const start = openapi.indexOf(`    ${name}:`);
+      expect(start, `${name} component`).toBeGreaterThanOrEqual(0);
+      const next = openapi.slice(start + 4).search(/^ {4}[A-Za-z][A-Za-z0-9]+:/m);
+      return next < 0 ? openapi.slice(start) : openapi.slice(start, start + 4 + next);
+    };
+    const pathStart = openapi.indexOf("  /api/search:");
+    expect(pathStart).toBeGreaterThanOrEqual(0);
+    const pathTail = openapi.slice(pathStart + 2);
+    const nextPath = pathTail.search(/^ {2}\/api\//m);
+    const operation =
+      nextPath < 0 ? openapi.slice(pathStart) : openapi.slice(pathStart, pathStart + 2 + nextPath);
+
+    expect(operation).toContain("repository reviews, knowledge nodes, and accepted AI syntheses");
+    expect(operation).toContain("enum: [all, review, node, synthesis]");
+    expect(operation).toContain('$ref: "#/components/schemas/ArchiveSearchResponse"');
+    expect(operation).toContain("strict current-head and integrity validation");
+    expect(operation).toContain("capped at 500");
+
+    for (const schema of [
+      "ArchiveRepositoryReviewResult",
+      "ArchiveNodeResult",
+      "ArchiveSynthesisFreshness",
+      "ArchiveSynthesisResult",
+      "ArchiveSynthesisCandidateScan",
+      "ArchiveSearchResponse",
+    ]) {
+      const shape = component(schema);
+      expect(shape, `${schema} closes its allowlist`).toContain("additionalProperties: false");
+      expect(shape, `${schema} declares required fields`).toContain("required:");
+      expect(shape, `${schema} declares properties`).toContain("properties:");
+    }
+
+    const synthesis = component("ArchiveSynthesisResult");
+    expect(synthesis).toContain("contentType: { const: synthesis }");
+    expect(synthesis).toContain('$ref: "#/components/schemas/PublicSynthesisVersion"');
+    expect(synthesis).toContain('$ref: "#/components/schemas/ArchiveSynthesisFreshness"');
+
+    const freshness = component("ArchiveSynthesisFreshness");
+    expect(freshness).toContain("enum: [unchecked, fresh, stale]");
+    expect(freshness).toContain("affectedReferenceCount");
+    expect(freshness).toContain("maximum: 1201");
+    expect(freshness).toContain("minimum: 1");
+    expect(freshness).toContain("const: 0");
+
+    const version = component("PublicSynthesisVersion");
+    expect(version).toContain("versionDoi:");
+    expect(version).toContain("conceptDoi:");
+    expect(version).toContain('not: { pattern: "^10\\\\.5555/" }');
+    expect(version).toContain("distinct when both are present");
+
+    const scan = component("ArchiveSynthesisCandidateScan");
+    expect(scan).toContain("const: 500");
+    expect(scan).toContain("limitReached:");
+    expect(scan).toContain("totals then describe only the bounded candidate scan");
+
+    const response = component("ArchiveSearchResponse");
+    expect(response).toContain("synthesisCandidateScan");
+    expect(response).toContain("not an asserted global synthesis");
+    expect(response).toContain('$ref: "#/components/schemas/ArchiveSynthesisResult"');
+  });
+
   it("uses reusable concrete request and response schemas", () => {
     const openapi = readFileSync(resolve(process.cwd(), "docs/openapi.yaml"), "utf8");
     const component = (name: string) => {

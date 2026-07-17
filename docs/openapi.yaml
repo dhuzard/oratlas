@@ -70,6 +70,96 @@ components:
             url: { type: string, format: uri }
         currentVersionId: { type: string }
         updatedAt: { type: string, format: date-time }
+    ArchiveRepositoryReviewResult:
+      type: object
+      additionalProperties: false
+      required: [contentType, slug, title, authors, domains, hasDoi, hasTrustData, status, score]
+      properties:
+        contentType: { const: review }
+        slug: { type: string, minLength: 1 }
+        title: { type: string, minLength: 1 }
+        abstract: { type: string }
+        authors: { type: array, items: { type: string } }
+        domains: { type: array, items: { type: string } }
+        hasDoi: { type: boolean }
+        hasTrustData: { type: boolean }
+        compatibilityLevel: { type: string }
+        status: { type: string }
+        score: { type: number }
+        sortDate: { type: string, format: date-time }
+    ArchiveNodeResult:
+      type: object
+      additionalProperties: false
+      required: [contentType, node, score, sortDate]
+      properties:
+        contentType: { const: node }
+        node: { $ref: "#/components/schemas/PublicNodeSummary" }
+        score: { type: number }
+        sortDate: { type: string, format: date-time }
+    ArchiveSynthesisFreshness:
+      type: object
+      additionalProperties: false
+      required: [status, affectedReferenceCount]
+      properties:
+        status: { type: string, enum: [unchecked, fresh, stale] }
+        affectedReferenceCount: { type: integer, minimum: 0, maximum: 1201 }
+      allOf:
+        - if: { properties: { status: { const: stale } }, required: [status] }
+          then: { properties: { affectedReferenceCount: { minimum: 1 } } }
+        - if:
+            {
+              properties: { status: { type: string, enum: [unchecked, fresh] } },
+              required: [status],
+            }
+          then: { properties: { affectedReferenceCount: { const: 0 } } }
+    ArchiveSynthesisResult:
+      type: object
+      additionalProperties: false
+      required: [contentType, slug, title, abstract, version, freshness, score, sortDate]
+      properties:
+        contentType: { const: synthesis }
+        slug: { type: string, minLength: 1, maxLength: 200 }
+        title: { type: string, minLength: 1, maxLength: 300 }
+        abstract: { type: string, minLength: 1, maxLength: 2000 }
+        version: { $ref: "#/components/schemas/PublicSynthesisVersion" }
+        freshness: { $ref: "#/components/schemas/ArchiveSynthesisFreshness" }
+        score: { type: number }
+        sortDate: { type: string, format: date-time }
+    ArchiveSynthesisCandidateScan:
+      type: object
+      additionalProperties: false
+      required: [limit, limitReached]
+      properties:
+        limit:
+          const: 500
+          description: Maximum accepted-synthesis candidates deeply validated by one request.
+        limitReached:
+          type: boolean
+          description: >
+            True when the request evaluated exactly the 500-candidate ceiling. It does not assert
+            that a 501st candidate exists; totals then describe only the bounded candidate scan.
+    ArchiveSearchResponse:
+      type: object
+      additionalProperties: false
+      required: [total, page, pageSize, synthesisCandidateScan, items]
+      properties:
+        total:
+          type: integer
+          minimum: 0
+          description: >
+            Matching validated records within the bounded POC scans. When
+            synthesisCandidateScan.limitReached is true, this is not an asserted global synthesis
+            total; pages describe repository reviews, nodes, and the first 500 synthesis candidates.
+        page: { type: integer, minimum: 1 }
+        pageSize: { type: integer, minimum: 1, maximum: 50 }
+        synthesisCandidateScan: { $ref: "#/components/schemas/ArchiveSynthesisCandidateScan" }
+        items:
+          type: array
+          items:
+            oneOf:
+              - { $ref: "#/components/schemas/ArchiveRepositoryReviewResult" }
+              - { $ref: "#/components/schemas/ArchiveNodeResult" }
+              - { $ref: "#/components/schemas/ArchiveSynthesisResult" }
     PublicRelatedNodeVersion:
       type: object
       additionalProperties: false
@@ -1666,31 +1756,53 @@ paths:
         "415": { $ref: "#/components/responses/Error" }
   /api/search:
     get:
-      summary: Search accepted reviews and knowledge nodes with one combined pagination window
-      description: Knowledge-node candidates are deterministically capped at 2,000 in this POC.
+      summary: Search repository reviews, knowledge nodes, and accepted AI syntheses
+      description: >
+        Merges all public record kinds deterministically before applying one page window.
+        Knowledge-node candidates are capped at 2,000. Accepted AI synthesis candidates receive
+        strict current-head and integrity validation and are capped at 500 per request. The response
+        marks when that synthesis ceiling is reached; its total and pages then describe the bounded
+        result set and do not claim a global synthesis total.
       parameters:
-        - {
-            name: contentType,
-            in: query,
-            schema: { type: string, enum: [all, review, node], default: all },
-          }
+        - name: contentType
+          in: query
+          description: >
+            review means repository-based review; synthesis means editor-accepted AI synthesis.
+          schema: { type: string, enum: [all, review, node, synthesis], default: all }
         - {
             name: nodeKind,
             in: query,
             schema: { type: string, enum: [claim, figure, dataset, code] },
           }
-        - { name: q, in: query, schema: { type: string } }
-        - { name: domain, in: query, schema: { type: string } }
-        - { name: author, in: query, schema: { type: string } }
+        - { name: q, in: query, schema: { type: string, maxLength: 500 } }
+        - { name: domain, in: query, schema: { type: string, maxLength: 100 } }
+        - { name: author, in: query, schema: { type: string, maxLength: 200 } }
         - { name: hasDoi, in: query, schema: { type: boolean } }
         - { name: hasTrustData, in: query, schema: { type: boolean } }
+        - { name: hasEvidenceData, in: query, schema: { type: boolean } }
+        - { name: compatibility, in: query, schema: { type: string, maxLength: 40 } }
+        - name: trustReviewState
+          in: query
+          schema: { type: string, enum: [any, human-reviewed, agent-proposed-only] }
         - {
             name: sort,
             in: query,
-            schema: { type: string, enum: [accepted, updated, title, relevance] },
+            schema:
+              { type: string, enum: [accepted, updated, title, relevance], default: accepted },
+          }
+        - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+        - {
+            name: pageSize,
+            in: query,
+            schema: { type: integer, minimum: 1, maximum: 50, default: 20 },
           }
       responses:
-        "200": { description: Search results }
+        "200":
+          description: Deterministically merged, possibly bounded archive result page
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ArchiveSearchResponse" }
+        "400": { $ref: "#/components/responses/Error" }
   /api/graph:
     get:
       summary: Query a bounded public knowledge subgraph by seed node or topic
