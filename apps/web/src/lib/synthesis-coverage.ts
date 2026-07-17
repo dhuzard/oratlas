@@ -2,7 +2,7 @@ import "server-only";
 import { ARCHIVE_SYNTHESIS_CANDIDATE_SCAN_LIMIT, type PublicNodeSummary } from "@oratlas/contracts";
 import type { PrismaClient } from "@oratlas/db";
 import { prisma } from "./db";
-import { listPublicNodeSummaries, PUBLIC_NODE_SEARCH_LIMIT } from "./node-publication";
+import { PUBLIC_NODE_SEARCH_LIMIT, scanPublicNodeSummaries } from "./node-publication";
 import { getPublicSynthesisReview } from "./synthesis-editorial";
 
 const SYNTHESIS_INTEGRITY_BATCH_SIZE = 25;
@@ -26,6 +26,7 @@ export interface TopicCoverageSnapshot {
   topicStrategy: typeof COVERAGE_TOPIC_STRATEGY;
   bounds: {
     nodeLimit: typeof PUBLIC_NODE_SEARCH_LIMIT;
+    scannedNodeCandidateCount: number;
     nodeLimitReached: boolean;
     synthesisCandidateLimit: typeof ARCHIVE_SYNTHESIS_CANDIDATE_SCAN_LIMIT;
     synthesisCandidateLimitReached: boolean;
@@ -40,7 +41,11 @@ function nodeVersionKey(nodeId: string, nodeVersionId: string): string {
 export function buildTopicCoverageSnapshot(
   suppliedNodes: readonly PublicNodeSummary[],
   coveredNodeVersions: ReadonlySet<string>,
-  synthesisCandidateLimitReached = false,
+  scanBounds: {
+    scannedNodeCandidateCount?: number;
+    nodeLimitReached?: boolean;
+    synthesisCandidateLimitReached?: boolean;
+  } = {},
 ): TopicCoverageSnapshot {
   const nodes = suppliedNodes.slice(0, PUBLIC_NODE_SEARCH_LIMIT);
   const uncovered = nodes.filter(
@@ -78,9 +83,10 @@ export function buildTopicCoverageSnapshot(
     topicStrategy: COVERAGE_TOPIC_STRATEGY,
     bounds: {
       nodeLimit: PUBLIC_NODE_SEARCH_LIMIT,
-      nodeLimitReached: suppliedNodes.length >= PUBLIC_NODE_SEARCH_LIMIT,
+      scannedNodeCandidateCount: scanBounds.scannedNodeCandidateCount ?? suppliedNodes.length,
+      nodeLimitReached: scanBounds.nodeLimitReached ?? false,
       synthesisCandidateLimit: ARCHIVE_SYNTHESIS_CANDIDATE_SCAN_LIMIT,
-      synthesisCandidateLimitReached,
+      synthesisCandidateLimitReached: scanBounds.synthesisCandidateLimitReached ?? false,
     },
   };
 }
@@ -88,8 +94,8 @@ export function buildTopicCoverageSnapshot(
 export async function getTopicCoverage(
   client: PrismaClient = prisma,
 ): Promise<TopicCoverageSnapshot> {
-  const [nodes, candidates] = await Promise.all([
-    listPublicNodeSummaries(undefined, client),
+  const [nodeScan, candidates] = await Promise.all([
+    scanPublicNodeSummaries(undefined, client),
     client.review.findMany({
       where: {
         reviewType: "ai-synthesis",
@@ -154,11 +160,11 @@ export async function getTopicCoverage(
     }
   }
 
-  return buildTopicCoverageSnapshot(
-    nodes,
-    covered,
-    candidates.length === ARCHIVE_SYNTHESIS_CANDIDATE_SCAN_LIMIT,
-  );
+  return buildTopicCoverageSnapshot(nodeScan.items, covered, {
+    scannedNodeCandidateCount: nodeScan.scannedCandidateCount,
+    nodeLimitReached: nodeScan.candidateLimitReached,
+    synthesisCandidateLimitReached: candidates.length === ARCHIVE_SYNTHESIS_CANDIDATE_SCAN_LIMIT,
+  });
 }
 
 function kindLabel(kind: PublicNodeSummary["kind"]): string {

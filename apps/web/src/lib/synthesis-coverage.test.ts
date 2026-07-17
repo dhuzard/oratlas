@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { PublicNodeSummary } from "@oratlas/contracts";
 
 const mocks = vi.hoisted(() => ({
-  listPublicNodeSummaries: vi.fn(),
+  scanPublicNodeSummaries: vi.fn(),
   findSynthesisCandidates: vi.fn(),
   getPublicSynthesisReview: vi.fn(),
 }));
@@ -11,7 +11,7 @@ vi.mock("server-only", () => ({}));
 vi.mock("./db", () => ({ prisma: {} }));
 vi.mock("./node-publication", () => ({
   PUBLIC_NODE_SEARCH_LIMIT: 2_000,
-  listPublicNodeSummaries: mocks.listPublicNodeSummaries,
+  scanPublicNodeSummaries: mocks.scanPublicNodeSummaries,
 }));
 vi.mock("./synthesis-editorial", () => ({
   getPublicSynthesisReview: mocks.getPublicSynthesisReview,
@@ -56,7 +56,12 @@ function candidate(
 describe("topic coverage", () => {
   beforeEach(() => {
     vi.resetAllMocks();
-    mocks.listPublicNodeSummaries.mockResolvedValue([]);
+    mocks.scanPublicNodeSummaries.mockResolvedValue({
+      items: [],
+      scannedCandidateCount: 0,
+      candidateLimit: 2_000,
+      candidateLimitReached: false,
+    });
     mocks.findSynthesisCandidates.mockResolvedValue([]);
   });
 
@@ -79,11 +84,16 @@ describe("topic coverage", () => {
 
   it("counts only valid latest accepted synthesis heads", async () => {
     const client = { review: { findMany: mocks.findSynthesisCandidates } } as never;
-    mocks.listPublicNodeSummaries.mockResolvedValue([
-      node("covered", "covered-v1"),
-      node("historical", "historical-v1"),
-      node("private", "private-v1"),
-    ]);
+    mocks.scanPublicNodeSummaries.mockResolvedValue({
+      items: [
+        node("covered", "covered-v1"),
+        node("historical", "historical-v1"),
+        node("private", "private-v1"),
+      ],
+      scannedCandidateCount: 3,
+      candidateLimit: 2_000,
+      candidateLimitReached: false,
+    });
     mocks.findSynthesisCandidates.mockResolvedValue([
       candidate("valid", "synthesis-v1", [{ nodeId: "covered", nodeVersionId: "covered-v1" }]),
       candidate(
@@ -112,9 +122,12 @@ describe("topic coverage", () => {
 
   it("enforces node and synthesis request ceilings", async () => {
     const client = { review: { findMany: mocks.findSynthesisCandidates } } as never;
-    mocks.listPublicNodeSummaries.mockResolvedValue(
-      Array.from({ length: 2_001 }, (_, index) => node(`node-${index}`, `version-${index}`)),
-    );
+    mocks.scanPublicNodeSummaries.mockResolvedValue({
+      items: Array.from({ length: 1_999 }, (_, index) => node(`node-${index}`, `version-${index}`)),
+      scannedCandidateCount: 2_000,
+      candidateLimit: 2_000,
+      candidateLimitReached: true,
+    });
     mocks.findSynthesisCandidates.mockResolvedValue(
       Array.from({ length: 500 }, (_, index) =>
         candidate(`synthesis-${index}`, `synthesis-version-${index}`, []),
@@ -125,9 +138,10 @@ describe("topic coverage", () => {
     }));
 
     const result = await getTopicCoverage(client);
-    expect(result.scannedNodeCount).toBe(2_000);
+    expect(result.scannedNodeCount).toBe(1_999);
     expect(result.bounds).toMatchObject({
       nodeLimit: 2_000,
+      scannedNodeCandidateCount: 2_000,
       nodeLimitReached: true,
       synthesisCandidateLimit: 500,
       synthesisCandidateLimitReached: true,

@@ -22,7 +22,9 @@ export default async function CoveragePage() {
         <Notice tone="warning" title="Bounded proof-of-concept view">
           This request reached{" "}
           {coverage.bounds.nodeLimitReached
-            ? `the ${coverage.bounds.nodeLimit}-node ceiling`
+            ? `the ${coverage.bounds.nodeLimit}-candidate node scan ceiling ` +
+              `(${coverage.bounds.scannedNodeCandidateCount} stored candidates scanned; ` +
+              `${coverage.scannedNodeCount} valid public heads included)`
             : `the ${coverage.bounds.synthesisCandidateLimit}-synthesis ceiling`}
           . Counts describe the bounded scan.
         </Notice>
