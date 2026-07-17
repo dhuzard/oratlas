@@ -1273,7 +1273,11 @@ describe.sequential("synthesis editorial lifecycle", () => {
     const outcomes = await Promise.allSettled([
       service.decideSynthesisDraft(
         racedDraft.id,
-        { ...acceptance, idempotencyKey: "race-accept-0003" },
+        {
+          ...acceptance,
+          idempotencyKey: "race-accept-0003",
+          versionDoi: "10.5281/zenodo.4234567",
+        },
         actor,
         prisma,
       ),
@@ -1333,7 +1337,11 @@ describe.sequential("synthesis editorial lifecycle", () => {
     );
     await service.decideSynthesisDraft(
       nextDraft.id,
-      { ...acceptance, idempotencyKey: "accept-supersession-0001" },
+      {
+        ...acceptance,
+        idempotencyKey: "accept-supersession-0001",
+        versionDoi: "10.5281/zenodo.5234567",
+      },
       actor,
       prisma,
     );

@@ -8,6 +8,7 @@ import {
   publicSynthesisReviewSchema,
   synthesisRegenerationProposalSchema,
   publicSynthesisVersionBaseSchema,
+  synthesisFreshnessBaseSchema,
   synthesisDraftDecisionSchema,
   SYNTHESIS_ACCEPTANCE_CHECKLIST_VERSION,
   SYNTHESIS_ATTRIBUTION_POLICY_VERSION,
@@ -16,6 +17,7 @@ import {
   SYNTHESIS_PIPELINE_SOFTWARE_NAME,
   SYNTHESIS_PUBLIC_AI_LABEL,
   SYNTHESIS_PUBLIC_CITATION_FIELDS,
+  SYNTHESIS_PUBLIC_FRESHNESS_FIELDS,
   SYNTHESIS_PUBLIC_PRIVATE_FIELD_DENYLIST,
   SYNTHESIS_PUBLIC_PROVENANCE_FIELDS,
   SYNTHESIS_PUBLIC_REVIEW_FIELDS,
@@ -243,6 +245,9 @@ describe("synthesis editorial contracts", () => {
     );
     expect(Object.keys(publicSynthesisVersionBaseSchema.shape)).toEqual(
       SYNTHESIS_PUBLIC_VERSION_FIELDS,
+    );
+    expect(Object.keys(synthesisFreshnessBaseSchema.shape)).toEqual(
+      SYNTHESIS_PUBLIC_FRESHNESS_FIELDS,
     );
     expect(SYNTHESIS_PUBLIC_AI_LABEL).toBe("AI-generated synthesis — editor-accepted");
     expect(SYNTHESIS_PUBLIC_SCOPE_NOTICE).toContain("does not establish peer review");

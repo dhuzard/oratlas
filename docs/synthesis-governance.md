@@ -77,8 +77,8 @@ additional wording cannot imply human authorship or scientific endorsement.
 ## 4. Public allowlist and private denylist
 
 Public serialization is an allowlist, not a redaction pass. The top-level public DTO MUST contain
-only `slug`, `reviewType`, `title`, `abstract`, `document`, `provenance`, `citations`, and `version`.
-Unknown fields MUST be rejected.
+only `slug`, `reviewType`, `title`, `abstract`, `document`, `provenance`, `citations`, `version`, and
+`freshness`. Unknown fields MUST be rejected.
 
 Public `provenance` MUST contain only:
 
@@ -95,6 +95,13 @@ Public citations MAY contain only the strict citation DTO: exact reference, node
 kind; title; occurrence location/ordinal; exact internal node-version link; and optional identifier
 scheme/role/value. Public version data MAY contain only ID, ordinal, current-head status, and
 optional distinct version/concept DOIs.
+
+Public `freshness` MUST contain only `status`, `policyVersion`, optional `evaluatedAt`,
+`reasonCodes`, and `affectedReferenceCount`, validated by the strict freshness contract. It is a
+bounded staleness signal, not a correctness or consensus claim. Freshness observation IDs,
+evaluation keys, stored packet material, proposals, editor decisions, run IDs, and draft IDs MUST
+remain private. Invalid or unverifiable freshness state MUST degrade to `unchecked` rather than
+leaking internal state or making a stale/fresh claim.
 
 The approving editor's GitHub login is intentionally public accountability metadata. Email,
 internal user ID, session data, and other personal data MUST NOT be added to the public DTO.

@@ -9,6 +9,7 @@ import {
   SYNTHESIS_PUBLIC_AI_LABEL,
   SYNTHESIS_PUBLIC_PRIVATE_FIELD_DENYLIST,
   SYNTHESIS_PUBLIC_CITATION_FIELDS,
+  SYNTHESIS_PUBLIC_FRESHNESS_FIELDS,
   SYNTHESIS_PUBLIC_PROVENANCE_FIELDS,
   SYNTHESIS_PUBLIC_REVIEW_FIELDS,
   SYNTHESIS_PUBLIC_SCOPE_NOTICE,
@@ -132,6 +133,9 @@ describe("AI synthesis governance policy drift", () => {
     expect(Object.keys(schemas.PublicSynthesisVersion!.properties)).toEqual(
       SYNTHESIS_PUBLIC_VERSION_FIELDS,
     );
+    expect(Object.keys(schemas.SynthesisFreshness!.properties)).toEqual(
+      SYNTHESIS_PUBLIC_FRESHNESS_FIELDS,
+    );
   });
 
   it("binds the shipped public UI to contract wording and resolves governance links", () => {
@@ -140,6 +144,7 @@ describe("AI synthesis governance policy drift", () => {
     expect(page).toContain("SYNTHESIS_PUBLIC_SCOPE_NOTICE");
     expect(page).not.toContain("AI-written synthesis");
     expect(page).not.toContain("AI-generated, editor-approved");
+    expect(page).toContain("synthesis.freshness.status");
 
     for (const document of [
       "docs/synthesis-governance.md",

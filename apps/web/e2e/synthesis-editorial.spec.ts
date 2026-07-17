@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { SYNTHESIS_PUBLIC_AI_LABEL, SYNTHESIS_PUBLIC_SCOPE_NOTICE } from "@oratlas/contracts";
 
 test("editor gates generated, rejected, and accepted synthesis drafts", async ({ page }) => {
   await page.goto("/signin");
@@ -71,8 +72,8 @@ test("editor gates generated, rejected, and accepted synthesis drafts", async ({
 
   expect(result.reviewSlug).toBe(slug);
   await page.goto(`/reviews/${slug}`);
-  await expect(page.getByText("AI-written synthesis")).toBeVisible();
-  await expect(page.getByText("AI-generated, editor-approved")).toBeVisible();
+  await expect(page.getByText(SYNTHESIS_PUBLIC_AI_LABEL, { exact: true }).first()).toBeVisible();
+  await expect(page.getByText(SYNTHESIS_PUBLIC_SCOPE_NOTICE, { exact: true })).toBeVisible();
   await expect(page.getByText("Freshness not yet checked")).toBeVisible();
 
   await page.goto("/editorial");

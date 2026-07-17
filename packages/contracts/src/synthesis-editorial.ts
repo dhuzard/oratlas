@@ -80,7 +80,7 @@ export type SynthesisStalenessAffectedReference = z.infer<
   typeof synthesisStalenessAffectedReferenceSchema
 >;
 
-export const synthesisFreshnessSchema = z
+export const synthesisFreshnessBaseSchema = z
   .object({
     status: z.enum(["unchecked", "fresh", "stale"]),
     policyVersion: z.literal(SYNTHESIS_STALENESS_POLICY_VERSION),
@@ -90,8 +90,10 @@ export const synthesisFreshnessSchema = z
       .max(SYNTHESIS_STALENESS_REASON_CODES.length),
     affectedReferenceCount: z.number().int().min(0).max(SYNTHESIS_STALENESS_AFFECTED_REFERENCE_MAX),
   })
-  .strict()
-  .superRefine((freshness, context) => {
+  .strict();
+
+export const synthesisFreshnessSchema = synthesisFreshnessBaseSchema.superRefine(
+  (freshness, context) => {
     const expectedReasons = SYNTHESIS_STALENESS_REASON_CODES.filter((reason) =>
       freshness.reasonCodes.includes(reason),
     );
@@ -119,7 +121,8 @@ export const synthesisFreshnessSchema = z
         message: "Freshness status does not match its evaluation summary.",
       });
     }
-  });
+  },
+);
 export type SynthesisFreshness = z.infer<typeof synthesisFreshnessSchema>;
 
 export const synthesisRegenerationProposalDecisionSchema = z
@@ -162,6 +165,7 @@ export const SYNTHESIS_PUBLIC_REVIEW_FIELDS = [
   "provenance",
   "citations",
   "version",
+  "freshness",
 ] as const;
 export const SYNTHESIS_PUBLIC_PROVENANCE_FIELDS = [
   "generationMode",
@@ -204,6 +208,13 @@ export const SYNTHESIS_PUBLIC_VERSION_FIELDS = [
   "isCurrent",
   "versionDoi",
   "conceptDoi",
+] as const;
+export const SYNTHESIS_PUBLIC_FRESHNESS_FIELDS = [
+  "status",
+  "policyVersion",
+  "evaluatedAt",
+  "reasonCodes",
+  "affectedReferenceCount",
 ] as const;
 export const SYNTHESIS_PUBLIC_PRIVATE_FIELD_DENYLIST = [
   "draftId",
