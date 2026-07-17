@@ -588,6 +588,33 @@ describe.sequential("synthesis editorial lifecycle", () => {
       freshness: { status: "stale", reasonCodes: ["materialization-policy-changed"] },
     });
 
+    const missingObservation = await prisma.synthesisStalenessHead.delete({
+      where: { acceptedReviewVersionId: recurringProposal.acceptedReviewVersionId },
+    });
+    expect(await staleness.listSynthesisRegenerationProposals(prisma)).toEqual([]);
+    await expect(
+      staleness.decideSynthesisRegenerationProposal(
+        actor,
+        recurringProposal.id,
+        {
+          action: "dismiss",
+          expectedRevision: 0,
+          idempotencyKey: "missing-observation-conflict-0001",
+          rationale: "The editor cannot decide a proposal whose current observation is missing.",
+        },
+        prisma,
+      ),
+    ).rejects.toMatchObject({ name: "SynthesisStalenessError", code: "conflict" });
+    await prisma.synthesisStalenessHead.create({
+      data: {
+        acceptedReviewVersionId: missingObservation.acceptedReviewVersionId,
+        reviewId: missingObservation.reviewId,
+        currentEvaluationId: missingObservation.currentEvaluationId,
+        revision: missingObservation.revision,
+        observedAt: missingObservation.observedAt,
+      },
+    });
+
     const recurringEvaluation = await prisma.synthesisStalenessEvaluation.findUniqueOrThrow({
       where: { evaluationKey: recurringA.evaluationKey },
     });
@@ -927,7 +954,16 @@ describe.sequential("synthesis editorial lifecycle", () => {
     await expect(
       prisma.synthesisRegenerationProposal.update({
         where: { id: resolvedProposal.id },
-        data: { status: "open" },
+        data: {
+          status: "open",
+          openHeadKey: resolvedProposal.acceptedReviewVersionId,
+        },
+      }),
+    ).rejects.toThrow();
+    await expect(
+      prisma.synthesisRegenerationProposal.update({
+        where: { id: resolvedProposal.id },
+        data: { status: "superseded" },
       }),
     ).rejects.toThrow();
   });

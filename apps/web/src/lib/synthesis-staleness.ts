@@ -681,9 +681,10 @@ export async function listSynthesisRegenerationProposalPage(
       row.review.currentSynthesisVersionId !== row.acceptedReviewVersionId ||
       version.reviewId !== row.reviewId ||
       !draft ||
-      version.synthesisDraftId !== draft?.id ||
+      !observation ||
+      version.synthesisDraftId !== draft.id ||
       version.synthesisMaterializationPolicyVersion !== draft.materializationPolicyVersion ||
-      observation?.reviewId !== row.reviewId ||
+      observation.reviewId !== row.reviewId ||
       observation.acceptedReviewVersionId !== row.acceptedReviewVersionId ||
       observation.currentEvaluationId !== row.evaluation.id
     ) {
@@ -804,29 +805,32 @@ export async function decideSynthesisRegenerationProposal(
         }
         const observation = proposal.acceptedReviewVersion.synthesisStalenessHead;
         const draft = proposal.acceptedReviewVersion.synthesisDraft;
-        const validated =
-          observation && draft
-            ? validateStoredSynthesisStaleness(
-                proposal.evaluation,
-                {
-                  reviewId: proposal.reviewId,
-                  acceptedReviewVersionId: proposal.acceptedReviewVersionId,
-                  acceptedDraftId: draft.id,
-                  seriesKey: draft.seriesKey,
-                  selectorJson: draft.selectorJson,
-                  selectorHash: draft.selectorHash,
-                  materializationPolicyVersion: draft.materializationPolicyVersion,
-                  packetJson: draft.packetJson,
-                  packetHash: draft.packetHash,
-                },
-                observation.observedAt,
-              )
-            : null;
+        if (!observation || !draft) {
+          throw new SynthesisStalenessError(
+            "Proposal evaluation is no longer current.",
+            "conflict",
+          );
+        }
+        const validated = validateStoredSynthesisStaleness(
+          proposal.evaluation,
+          {
+            reviewId: proposal.reviewId,
+            acceptedReviewVersionId: proposal.acceptedReviewVersionId,
+            acceptedDraftId: draft.id,
+            seriesKey: draft.seriesKey,
+            selectorJson: draft.selectorJson,
+            selectorHash: draft.selectorHash,
+            materializationPolicyVersion: draft.materializationPolicyVersion,
+            packetJson: draft.packetJson,
+            packetHash: draft.packetHash,
+          },
+          observation.observedAt,
+        );
         if (
           validated?.freshness.status !== "stale" ||
-          proposal.acceptedReviewVersion.synthesisDraftId !== draft?.id ||
+          proposal.acceptedReviewVersion.synthesisDraftId !== draft.id ||
           proposal.acceptedReviewVersion.reviewId !== proposal.reviewId ||
-          observation?.reviewId !== proposal.reviewId ||
+          observation.reviewId !== proposal.reviewId ||
           observation.currentEvaluationId !== proposal.evaluation.id
         ) {
           throw new SynthesisStalenessError(

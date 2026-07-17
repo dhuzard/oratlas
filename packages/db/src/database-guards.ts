@@ -50,8 +50,8 @@ export const POSTGRES_DATABASE_GUARD_SQL = [
   )`,
   'ALTER TABLE "SynthesisRegenerationProposal" DROP CONSTRAINT IF EXISTS "SynthesisRegenerationProposal_status_check"',
   `ALTER TABLE "SynthesisRegenerationProposal" ADD CONSTRAINT "SynthesisRegenerationProposal_status_check" CHECK (
-    ("status" = 'open' AND "openHeadKey" = "acceptedReviewVersionId" AND "resolvedById" IS NULL AND "resolvedAt" IS NULL)
-    OR ("status" = 'superseded' AND "openHeadKey" IS NULL)
+    ("status" = 'open' AND "openHeadKey" = "acceptedReviewVersionId" AND "resolvedById" IS NULL AND "resolvedAt" IS NULL AND "resolutionRationale" IS NULL AND "resolutionIdempotencyKey" IS NULL AND "resolutionInputHash" IS NULL)
+    OR ("status" = 'superseded' AND "openHeadKey" IS NULL AND "resolvedById" IS NULL AND "resolvedAt" IS NULL AND "resolutionRationale" IS NULL AND "resolutionIdempotencyKey" IS NULL AND "resolutionInputHash" IS NULL)
     OR ("status" IN ('regeneration-requested', 'dismissed') AND "openHeadKey" IS NULL AND "resolvedById" IS NOT NULL AND "resolvedAt" IS NOT NULL AND "resolutionRationale" IS NOT NULL AND "resolutionIdempotencyKey" IS NOT NULL AND "resolutionInputHash" IS NOT NULL)
   )`,
   `CREATE OR REPLACE FUNCTION "oratlas_validate_synthesis_membership_reference"() RETURNS trigger AS $$
@@ -127,8 +127,8 @@ const sqliteGuardConditions = {
       OR (NEW."failureCode" IS NOT NULL AND NEW."failureFingerprint" IS NOT NULL AND NEW."evaluatedPacketJson" IS NULL))
     THEN 1 ELSE 0 END`,
   SynthesisRegenerationProposal: `CASE WHEN
-    (NEW."status" = 'open' AND NEW."openHeadKey" = NEW."acceptedReviewVersionId" AND NEW."resolvedById" IS NULL AND NEW."resolvedAt" IS NULL)
-    OR (NEW."status" = 'superseded' AND NEW."openHeadKey" IS NULL)
+    (NEW."status" = 'open' AND NEW."openHeadKey" = NEW."acceptedReviewVersionId" AND NEW."resolvedById" IS NULL AND NEW."resolvedAt" IS NULL AND NEW."resolutionRationale" IS NULL AND NEW."resolutionIdempotencyKey" IS NULL AND NEW."resolutionInputHash" IS NULL)
+    OR (NEW."status" = 'superseded' AND NEW."openHeadKey" IS NULL AND NEW."resolvedById" IS NULL AND NEW."resolvedAt" IS NULL AND NEW."resolutionRationale" IS NULL AND NEW."resolutionIdempotencyKey" IS NULL AND NEW."resolutionInputHash" IS NULL)
     OR (NEW."status" IN ('regeneration-requested', 'dismissed') AND NEW."openHeadKey" IS NULL AND NEW."resolvedById" IS NOT NULL AND NEW."resolvedAt" IS NOT NULL AND NEW."resolutionRationale" IS NOT NULL AND NEW."resolutionIdempotencyKey" IS NOT NULL AND NEW."resolutionInputHash" IS NOT NULL)
     THEN 1 ELSE 0 END`,
 } as const;
