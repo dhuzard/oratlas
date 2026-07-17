@@ -501,7 +501,7 @@ packages: [apps/web, packages/knowledge]
 ```yaml
 id: KG-17
 epic: D
-status: in-progress (issue #65)
+status: done (PR #68)
 depends_on: [KG-15, KG-14]
 size: M
 labels: [web]
