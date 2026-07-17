@@ -197,6 +197,12 @@ The checklist is an attributable attestation, not a UI convenience. It MUST be b
 decision body, expected revision, idempotency key, editor identity, rationale, checklist version,
 rights statement, license, and optional DOI roles. A model or software agent MUST NOT complete it.
 
+The editorial surface MUST render the complete immutable six-section draft, its paragraphs, and
+citation links before acceptance. It MUST collect each checklist affirmation as an explicit editor
+action and MUST collect editor-controlled license, rights statement, and rationale fields. It MUST
+NOT pre-check affirmations or fabricate boilerplate attestations, and it MUST keep acceptance
+disabled until the complete decision passes the same strict contract used by the API.
+
 - **Accept** MUST revalidate the draft and AgentRun, mark the run human-approved, materialize one
   immutable successor, and atomically advance the public head.
 - **Reject** MUST close the private draft without public materialization.
@@ -205,7 +211,10 @@ rights statement, license, and optional DOI roles. A model or software agent MUS
 
 Rationales are required for accountability but remain private. Acceptance MUST fail on stale
 revision, role loss, invalid checklist, rights/DOI error, broken provenance, duplicate decision, or
-corrupt lineage. An exact idempotent retry MAY return the already-committed outcome; it MUST NOT
+corrupt lineage. Successor acceptance MUST revalidate the current version against its accepted
+draft, validate every stored live DOI pair, and derive the canonical concept DOI from consistent
+accepted history. It MUST NOT advance, heal, change, or drop a corrupt series DOI outside an
+explicit correction flow. An exact idempotent retry MAY return the already-committed outcome; it MUST NOT
 create another version.
 
 ## 9. Fail-closed integrity and privacy

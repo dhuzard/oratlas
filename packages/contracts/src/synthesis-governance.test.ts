@@ -155,6 +155,7 @@ describe("AI synthesis governance policy drift", () => {
   it("binds the shipped public UI to contract wording and resolves governance links", () => {
     const page = read("apps/web/src/app/reviews/[slug]/page.tsx");
     const publicLoader = read("apps/web/src/lib/synthesis-editorial.ts");
+    const editorialPanel = read("apps/web/src/app/editorial/SynthesisDraftPanel.tsx");
     expect(page).toContain("SYNTHESIS_PUBLIC_AI_LABEL");
     expect(page).toContain("SYNTHESIS_PUBLIC_SCOPE_NOTICE");
     expect(page).not.toContain("AI-written synthesis");
@@ -163,6 +164,11 @@ describe("AI synthesis governance policy drift", () => {
     expect(page).toContain("synthesis.freshness.status");
     expect(publicLoader).toContain("version.isExample !== false");
     expect(publicLoader).toContain("isExample: false");
+    expect(editorialPanel).toContain("draft.document.sections.map");
+    expect(editorialPanel).toContain('type="checkbox"');
+    expect(editorialPanel).toContain("synthesisDraftDecisionSchema.safeParse");
+    expect(editorialPanel).not.toContain('licenseSpdx: "CC-BY-4.0"');
+    expect(editorialPanel).not.toMatch(/Reviewed:\s*true/);
 
     for (const document of [
       "docs/synthesis-governance.md",
