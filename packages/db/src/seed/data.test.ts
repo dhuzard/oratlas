@@ -59,5 +59,9 @@ describe("seed knowledge graph", () => {
     expect(doiNodes[0]?.node.versionDoi).toMatch(/^10\.5555\//);
     expect(doiNodes[0]?.node.conceptDoi).toMatch(/^10\.5555\//);
     expect(doiNodes[0]?.node.versionDoi).not.toBe(doiNodes[0]?.node.conceptDoi);
+    const dataset = doiNodes[0]?.node;
+    if (!dataset || dataset.kind !== "dataset")
+      throw new Error("Expected the DOI dataset fixture.");
+    expect(new Set([dataset.versionDoi, dataset.conceptDoi, dataset.payload.doi]).size).toBe(3);
   });
 });

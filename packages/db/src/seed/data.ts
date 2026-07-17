@@ -626,7 +626,7 @@ export const seedKnowledgeNodes: SeedKnowledgeNode[] = [
         artifactPath: "data/replay-sequences.csv",
         format: "text/csv",
         sizeBytes: 42_240,
-        doi: "10.5555/oratlas.node.replay-dataset.v1",
+        doi: "10.5555/oratlas.node.replay-dataset.artifact",
       },
     },
   },

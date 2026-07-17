@@ -10,6 +10,7 @@ import {
   manifestContributorSchema,
   publicNodeDetailSchema,
   publicNodeListResponseSchema,
+  SUBGRAPH_EVIDENCE_LIMITS,
   type KnowledgeNodeKind,
   type NodeArchiveQuery,
   type PublicNodeDetail,
@@ -55,6 +56,14 @@ const PUBLIC_NODE_VERSION_LIMIT = 200;
 const PUBLIC_NODE_EDGE_LIMIT = 200;
 const PUBLIC_NODE_TRUST_RELATION_LIMIT = 200;
 const PUBLIC_NODE_TRUST_ASSESSMENT_LIMIT = 50;
+
+export type ExactPublicNodeVersionProjection = {
+  id: string;
+  localNodeId: string;
+  kind: KnowledgeNodeKind;
+  repository: { owner: string; name: string; url: string };
+  version: PublicNodeVersion;
+};
 
 function parseJson(value: string, label: string): unknown {
   try {
@@ -212,6 +221,103 @@ function tryRelatedNodeVersion(
 }
 
 const versionInclude = { snapshot: { select: { commitSha: true } } } as const;
+
+/**
+ * Batch exact-version availability projection for immutable packet readers.
+ * The newest stored version must still parse before an older exact version can
+ * be served, matching getPublicNode's no-history-fallback publication rule.
+ */
+export async function getExactPublicNodeVersions(
+  requested: readonly { nodeId: string; nodeVersionId: string }[],
+  client = prisma,
+): Promise<Map<string, ExactPublicNodeVersionProjection>> {
+  if (requested.length > SUBGRAPH_EVIDENCE_LIMITS.maxNodes) return new Map();
+  const requestedByNode = new Map<string, string>();
+  for (const item of requested) {
+    const previous = requestedByNode.get(item.nodeId);
+    if (previous && previous !== item.nodeVersionId) return new Map();
+    requestedByNode.set(item.nodeId, item.nodeVersionId);
+  }
+  if (requestedByNode.size !== requested.length) return new Map();
+
+  const rows = await client.knowledgeNode.findMany({
+    where: { id: { in: [...requestedByNode.keys()] } },
+    include: {
+      repository: { select: { owner: true, name: true, canonicalUrl: true } },
+      versions: {
+        include: versionInclude,
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+        take: 1,
+      },
+    },
+    orderBy: { id: "asc" },
+    take: SUBGRAPH_EVIDENCE_LIMITS.maxNodes,
+  });
+  const validRows = new Map<
+    string,
+    {
+      row: (typeof rows)[number];
+      current: PublicNodeVersion;
+      requestedVersionId: string;
+    }
+  >();
+  const historical: Array<{ nodeId: string; nodeVersionId: string }> = [];
+  for (const row of rows) {
+    const requestedVersionId = requestedByNode.get(row.id);
+    const storedCurrent = row.versions[0];
+    if (!requestedVersionId || !storedCurrent) continue;
+    const current = tryMapPublicNodeVersion(row, storedCurrent);
+    if (!current) continue;
+    validRows.set(row.id, { row, current, requestedVersionId });
+    if (current.id !== requestedVersionId) {
+      historical.push({ nodeId: row.id, nodeVersionId: requestedVersionId });
+    }
+  }
+
+  const historicalRows =
+    historical.length === 0
+      ? []
+      : await client.knowledgeNodeVersion.findMany({
+          where: {
+            OR: historical.map((item) => ({
+              id: item.nodeVersionId,
+              knowledgeNodeId: item.nodeId,
+            })),
+          },
+          include: versionInclude,
+          orderBy: { id: "asc" },
+          take: SUBGRAPH_EVIDENCE_LIMITS.maxNodes,
+        });
+  const historicalByKey = new Map(
+    historicalRows.map((version) => [`${version.knowledgeNodeId}\u0000${version.id}`, version]),
+  );
+  const result = new Map<string, ExactPublicNodeVersionProjection>();
+  for (const { row, current, requestedVersionId } of validRows.values()) {
+    const stored =
+      current.id === requestedVersionId
+        ? row.versions[0]!
+        : historicalByKey.get(`${row.id}\u0000${requestedVersionId}`);
+    const version =
+      current.id === requestedVersionId
+        ? current
+        : stored
+          ? tryMapPublicNodeVersion(row, stored)
+          : undefined;
+    if (!version || version.id !== requestedVersionId) continue;
+    result.set(`${row.id}\u0000${version.id}`, {
+      id: row.id,
+      localNodeId: row.localNodeId,
+      kind: version.kind,
+      repository: {
+        owner: row.repository.owner,
+        name: row.repository.name,
+        url: row.repository.canonicalUrl,
+      },
+      version,
+    });
+  }
+  return result;
+}
 
 export async function listPublicNodes(query: NodeArchiveQuery): Promise<PublicNodeListResponse> {
   const rows = await listPublicNodeSummaries(query.kind);

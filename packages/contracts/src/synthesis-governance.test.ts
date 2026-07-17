@@ -154,14 +154,16 @@ describe("AI synthesis governance policy drift", () => {
 
   it("binds the shipped public UI to contract wording and resolves governance links", () => {
     const page = read("apps/web/src/app/reviews/[slug]/page.tsx");
+    const synthesisReader = read("apps/web/src/app/reviews/[slug]/SynthesisReader.tsx");
+    const publicReader = `${page}\n${synthesisReader}`;
     const publicLoader = read("apps/web/src/lib/synthesis-editorial.ts");
     const editorialPanel = read("apps/web/src/app/editorial/SynthesisDraftPanel.tsx");
-    expect(page).toContain("SYNTHESIS_PUBLIC_AI_LABEL");
-    expect(page).toContain("SYNTHESIS_PUBLIC_SCOPE_NOTICE");
-    expect(page).not.toContain("AI-written synthesis");
-    expect(page).not.toContain("AI-generated, editor-approved");
-    expect(page).not.toContain("isExample={false}");
-    expect(page).toContain("synthesis.freshness.status");
+    expect(publicReader).toContain("SYNTHESIS_PUBLIC_AI_LABEL");
+    expect(publicReader).toContain("SYNTHESIS_PUBLIC_SCOPE_NOTICE");
+    expect(publicReader).not.toContain("AI-written synthesis");
+    expect(publicReader).not.toContain("AI-generated, editor-approved");
+    expect(publicReader).not.toContain("isExample={false}");
+    expect(publicReader).toContain("synthesis.freshness.status");
     expect(publicLoader).toContain("version.isExample !== false");
     expect(publicLoader).toContain("isExample: false");
     expect(editorialPanel).toContain("draft.document.sections.map");
