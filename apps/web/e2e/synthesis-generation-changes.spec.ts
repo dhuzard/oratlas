@@ -184,8 +184,16 @@ test("reader links to a structured-first diff between two actually accepted gene
     name: "What changed since accepted version 1",
   });
   await expect(changesLink).toBeVisible();
-  await changesLink.click();
-  await expect(page).toHaveURL("/reviews/" + secondAcceptance.reviewSlug + "/changes");
+  await expect(changesLink).toHaveAttribute(
+    "href",
+    "/reviews/" + secondAcceptance.reviewSlug + "/changes",
+  );
+  await Promise.all([
+    page.waitForURL("/reviews/" + secondAcceptance.reviewSlug + "/changes", {
+      timeout: 15_000,
+    }),
+    changesLink.click(),
+  ]);
   await expect(
     page.getByRole("heading", { name: "What changed between accepted synthesis generations" }),
   ).toBeVisible();

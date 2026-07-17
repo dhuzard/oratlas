@@ -49,9 +49,9 @@ export function SynthesisReader({
         <p className="lead">{synthesis.abstract}</p>
         {synthesis.version.ordinal > 1 ? (
           <p>
-            <Link href={`/reviews/${synthesis.slug}/changes`}>
+            <a href={`/reviews/${synthesis.slug}/changes`}>
               What changed since accepted version {synthesis.version.ordinal - 1}
-            </Link>
+            </a>
           </p>
         ) : null}
       </header>
