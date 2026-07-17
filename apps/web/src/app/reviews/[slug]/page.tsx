@@ -74,7 +74,8 @@ function SynthesisReviewPage({ synthesis }: { synthesis: PublicSynthesisReview }
       <Notice tone="warning" title={SYNTHESIS_PUBLIC_AI_LABEL}>
         {synthesis.provenance.pipelineSoftware.displayName} is the disclosed software agent. Editor{" "}
         {synthesis.provenance.approvingEditor.displayName} accepted this version for publication and
-        is accountable for the editorial decision and checklist. {SYNTHESIS_PUBLIC_SCOPE_NOTICE}
+        is accountable for the editorial decision and checklist.{" "}
+        <span>{SYNTHESIS_PUBLIC_SCOPE_NOTICE}</span>
       </Notice>
       {synthesis.freshness.status === "stale" ? (
         <Notice tone="warning" title="Newer evidence exists">
