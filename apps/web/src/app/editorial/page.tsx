@@ -19,6 +19,8 @@ import { NodeEdgeProposalPanel } from "./NodeEdgeProposalPanel";
 import { listPendingNodeEdgeProposals } from "@/lib/node-edge-lifecycle";
 import { listEditorialSynthesisDrafts } from "@/lib/synthesis-editorial";
 import { SynthesisDraftPanel } from "./SynthesisDraftPanel";
+import { listSynthesisRegenerationProposalPage } from "@/lib/synthesis-staleness";
+import { SynthesisStalenessPanel } from "./SynthesisStalenessPanel";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Editorial dashboard" };
@@ -69,6 +71,12 @@ export default async function EditorialPage({
   const openProtocolProposals = await listOpenProtocolProposals();
   const nodeEdgeProposals = await listPendingNodeEdgeProposals();
   const synthesisDrafts = await listEditorialSynthesisDrafts();
+  const requestedSynthesisCursor = Array.isArray(params.synthesisCursor)
+    ? params.synthesisCursor[0]
+    : params.synthesisCursor;
+  const synthesisProposalPage = await listSynthesisRegenerationProposalPage(undefined, {
+    cursor: requestedSynthesisCursor,
+  });
 
   return (
     <div>
@@ -83,6 +91,10 @@ export default async function EditorialPage({
       </p>
 
       <SynthesisDraftPanel drafts={synthesisDrafts} />
+      <SynthesisStalenessPanel
+        proposals={synthesisProposalPage.proposals}
+        nextCursor={synthesisProposalPage.nextCursor}
+      />
 
       <h2>Pending submissions ({pending.length})</h2>
       {pending.length === 0 ? (

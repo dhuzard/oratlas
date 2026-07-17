@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   editorialSynthesisDraftSchema,
   publicSynthesisReviewSchema,
+  synthesisRegenerationProposalSchema,
   synthesisDraftDecisionSchema,
   SYNTHESIS_ACCEPTANCE_CHECKLIST_VERSION,
   SYNTHESIS_ATTRIBUTION_POLICY_VERSION,
@@ -133,6 +134,12 @@ describe("synthesis editorial contracts", () => {
       },
       citations: [],
       version: { id: "version-1", ordinal: 1, isCurrent: true },
+      freshness: {
+        status: "unchecked",
+        policyVersion: "synthesis-staleness/1.0.0",
+        reasonCodes: [],
+        affectedReferenceCount: 0,
+      },
     };
     expect(publicSynthesisReviewSchema.safeParse(publicValue).success).toBe(true);
     for (const field of [
@@ -151,5 +158,43 @@ describe("synthesis editorial contracts", () => {
       delete missing.provenance[field];
       expect(publicSynthesisReviewSchema.safeParse(missing).success, field).toBe(false);
     }
+  });
+
+  it("fails closed for malformed or non-canonical regeneration proposal summaries", () => {
+    const proposal = {
+      id: "proposal-1",
+      revision: 0,
+      status: "open",
+      reviewSlug: "synthesis-1",
+      reviewTitle: "A grounded synthesis",
+      acceptedReviewVersionId: "version-1",
+      evaluationKey: hash,
+      reasonCodes: ["node-head-changed"],
+      affectedReferences: [
+        {
+          kind: "node",
+          id: "node-1",
+          change: "changed",
+          previousVersionId: "node-1-v1",
+          currentVersionId: "node-1-v2",
+        },
+      ],
+      affectedReferenceCount: 1,
+      affectedReferencesTruncated: false,
+      createdAt: "2026-07-16T11:00:00.000Z",
+    };
+    expect(synthesisRegenerationProposalSchema.safeParse(proposal).success).toBe(true);
+    expect(
+      synthesisRegenerationProposalSchema.safeParse({
+        ...proposal,
+        reasonCodes: ["membership-added", "node-head-changed"],
+      }).success,
+    ).toBe(false);
+    expect(
+      synthesisRegenerationProposalSchema.safeParse({
+        ...proposal,
+        affectedReferenceCount: 2,
+      }).success,
+    ).toBe(false);
   });
 });

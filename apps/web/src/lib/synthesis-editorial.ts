@@ -17,6 +17,7 @@ import {
   SYNTHESIS_MATERIALIZATION_POLICY_VERSION,
   SYNTHESIS_PIPELINE_SOFTWARE_ID,
   SYNTHESIS_PIPELINE_SOFTWARE_NAME,
+  SYNTHESIS_STALENESS_POLICY_VERSION,
   type EditorialSynthesisDraft,
   type PublicSynthesisReview,
   type SubgraphEvidenceSource,
@@ -39,6 +40,7 @@ import {
   type PreparedSubgraphEvidencePacket,
   type SynthesisGenerationResult,
 } from "@oratlas/knowledge";
+import { validateStoredSynthesisStaleness } from "./synthesis-staleness-integrity";
 import type { SessionUser } from "./auth";
 import { prisma } from "./db";
 import { publicConfirmedNodeEdgeWhere } from "./node-edge-publication";
@@ -1402,6 +1404,22 @@ export async function decideSynthesisDraft(
             acceptedAt,
           },
         });
+        const supersededRegenerationProposals = await tx.synthesisRegenerationProposal.findMany({
+          where: {
+            reviewId: review.id,
+            status: "open",
+            acceptedReviewVersionId: { not: version.id },
+          },
+          select: { id: true, acceptedReviewVersionId: true },
+        });
+        await tx.synthesisRegenerationProposal.updateMany({
+          where: {
+            reviewId: review.id,
+            status: "open",
+            acceptedReviewVersionId: { not: version.id },
+          },
+          data: { status: "superseded", openHeadKey: null },
+        });
         await tx.synthesisDraft.update({
           where: { id: draft.id },
           data: {
@@ -1451,6 +1469,19 @@ export async function decideSynthesisDraft(
                 ordinal,
               }),
             },
+            ...supersededRegenerationProposals.map((proposal) => ({
+              actorId: currentActor.id,
+              action: "synthesis.regeneration-proposal.superseded",
+              subjectType: "synthesisRegenerationProposal",
+              subjectId: proposal.id,
+              idempotencyKey: `synthesis-staleness:proposal:${proposal.id}:superseded:head:${version.id}`,
+              detailsJson: canonicalJson({
+                cause: "accepted-head-changed",
+                reviewId: review.id,
+                previousAcceptedReviewVersionId: proposal.acceptedReviewVersionId,
+                currentAcceptedReviewVersionId: version.id,
+              }),
+            })),
           ],
         });
         return {
@@ -1484,6 +1515,9 @@ export async function getPublicSynthesisReview(
             },
           },
           synthesisAttributions: { orderBy: { position: "asc" } },
+          synthesisStalenessHead: {
+            include: { currentEvaluation: true },
+          },
           synthesisDraft: {
             include: {
               agentRun: true,
@@ -1667,6 +1701,38 @@ export async function getPublicSynthesisReview(
       versionDoi: version.versionDoi ?? undefined,
       conceptDoi: version.conceptDoi ?? undefined,
     },
+    freshness: (() => {
+      const observation = version.synthesisStalenessHead;
+      const unchecked = {
+        status: "unchecked" as const,
+        policyVersion: SYNTHESIS_STALENESS_POLICY_VERSION,
+        reasonCodes: [],
+        affectedReferenceCount: 0,
+      };
+      if (
+        !observation ||
+        observation.reviewId !== review.id ||
+        observation.acceptedReviewVersionId !== version.id ||
+        observation.currentEvaluationId !== observation.currentEvaluation.id
+      )
+        return unchecked;
+      const validated = validateStoredSynthesisStaleness(
+        observation.currentEvaluation,
+        {
+          reviewId: review.id,
+          acceptedReviewVersionId: version.id,
+          acceptedDraftId: draft.id,
+          seriesKey: draft.seriesKey,
+          selectorJson: draft.selectorJson,
+          selectorHash: draft.selectorHash,
+          materializationPolicyVersion: draft.materializationPolicyVersion,
+          packetJson: draft.packetJson,
+          packetHash: draft.packetHash,
+        },
+        observation.observedAt,
+      );
+      return validated?.freshness ?? unchecked;
+    })(),
   });
   return candidate.success ? candidate.data : null;
 }

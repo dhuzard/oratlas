@@ -9,9 +9,177 @@ export const SYNTHESIS_ATTRIBUTION_POLICY_VERSION = "synthesis-attribution/1.0.0
 export const SYNTHESIS_ACCEPTANCE_CHECKLIST_VERSION = "synthesis-checklist/1.0.0" as const;
 export const SYNTHESIS_PIPELINE_SOFTWARE_NAME = "Open Review Atlas Synthesis Writer" as const;
 export const SYNTHESIS_PIPELINE_SOFTWARE_ID = "software:oratlas-synthesis-writer" as const;
+export const SYNTHESIS_STALENESS_POLICY_VERSION = "synthesis-staleness/1.0.0" as const;
+/** Two disjoint max-size packets (100 nodes + 500 edges each), plus policy drift. */
+export const SYNTHESIS_STALENESS_AFFECTED_REFERENCE_MAX = 1_201 as const;
+
+export const SYNTHESIS_STALENESS_REASON_CODES = [
+  "materialization-policy-changed",
+  "node-head-changed",
+  "membership-added",
+  "membership-removed",
+  "confirmed-edge-added",
+  "confirmed-edge-removed",
+  "confirmed-edge-changed",
+  "trust-changed",
+  "packet-content-changed",
+  "materialization-failed",
+] as const;
+export const synthesisStalenessReasonCodeSchema = z.enum(SYNTHESIS_STALENESS_REASON_CODES);
+export type SynthesisStalenessReasonCode = z.infer<typeof synthesisStalenessReasonCodeSchema>;
+
+export const synthesisStalenessAffectedReferenceSchema = z
+  .object({
+    kind: z.enum(["node", "edge", "trust", "policy"]),
+    id: z.string().min(1).max(200),
+    change: z.enum(["added", "removed", "changed"]),
+    previousVersionId: z.string().min(1).max(200).optional(),
+    currentVersionId: z.string().min(1).max(200).optional(),
+  })
+  .strict()
+  .superRefine((reference, context) => {
+    const validNodeVersions =
+      reference.kind === "node" &&
+      (reference.change === "added"
+        ? !reference.previousVersionId && !!reference.currentVersionId
+        : reference.change === "removed"
+          ? !!reference.previousVersionId && !reference.currentVersionId
+          : !!reference.previousVersionId && !!reference.currentVersionId);
+    const validOther =
+      reference.kind !== "node" &&
+      reference.previousVersionId === undefined &&
+      reference.currentVersionId === undefined;
+    if (!validNodeVersions && !validOther) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Only node references carry exact old/new version identity.",
+      });
+    }
+  });
+export type SynthesisStalenessAffectedReference = z.infer<
+  typeof synthesisStalenessAffectedReferenceSchema
+>;
+
+export const synthesisFreshnessSchema = z
+  .object({
+    status: z.enum(["unchecked", "fresh", "stale"]),
+    policyVersion: z.literal(SYNTHESIS_STALENESS_POLICY_VERSION),
+    evaluatedAt: z.string().datetime().optional(),
+    reasonCodes: z
+      .array(synthesisStalenessReasonCodeSchema)
+      .max(SYNTHESIS_STALENESS_REASON_CODES.length),
+    affectedReferenceCount: z.number().int().min(0).max(SYNTHESIS_STALENESS_AFFECTED_REFERENCE_MAX),
+  })
+  .strict()
+  .superRefine((freshness, context) => {
+    const expectedReasons = SYNTHESIS_STALENESS_REASON_CODES.filter((reason) =>
+      freshness.reasonCodes.includes(reason),
+    );
+    if (
+      expectedReasons.length !== freshness.reasonCodes.length ||
+      expectedReasons.some((reason, index) => reason !== freshness.reasonCodes[index])
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["reasonCodes"],
+        message: "Freshness reason codes must be unique and canonically ordered.",
+      });
+    }
+    if (
+      (freshness.status === "unchecked" &&
+        (freshness.evaluatedAt !== undefined ||
+          freshness.reasonCodes.length !== 0 ||
+          freshness.affectedReferenceCount !== 0)) ||
+      (freshness.status === "fresh" && freshness.reasonCodes.length !== 0) ||
+      (freshness.status === "stale" && freshness.reasonCodes.length === 0) ||
+      (freshness.status !== "unchecked" && freshness.evaluatedAt === undefined)
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Freshness status does not match its evaluation summary.",
+      });
+    }
+  });
+export type SynthesisFreshness = z.infer<typeof synthesisFreshnessSchema>;
+
+export const synthesisRegenerationProposalDecisionSchema = z
+  .object({
+    action: z.enum(["request-regeneration", "dismiss"]),
+    expectedRevision: z.number().int().min(0).max(1_000_000_000),
+    idempotencyKey: z.string().trim().min(8).max(200),
+    rationale: z.string().trim().min(10).max(4_000),
+  })
+  .strict();
+export type SynthesisRegenerationProposalDecision = z.infer<
+  typeof synthesisRegenerationProposalDecisionSchema
+>;
+
+export const synthesisStalenessScanRequestSchema = z
+  .object({
+    cursor: z.string().min(1).max(200).optional(),
+    limit: z.number().int().min(1).max(100).default(100),
+  })
+  .strict();
+export const synthesisStalenessScanFailureSchema = z
+  .object({
+    code: z.literal("evaluation-failed"),
+    reviewSlug: z
+      .string()
+      .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
+      .max(200)
+      .optional(),
+  })
+  .strict();
 
 const boundedId = z.string().trim().min(1).max(200);
 const sha256 = z.string().regex(/^[0-9a-f]{64}$/);
+
+export const synthesisRegenerationProposalSchema = z
+  .object({
+    id: boundedId,
+    revision: z.number().int().min(0).max(1_000_000_000),
+    status: z.literal("open"),
+    reviewSlug: z.string().trim().min(1).max(200),
+    reviewTitle: z.string().trim().min(1).max(300),
+    acceptedReviewVersionId: boundedId,
+    evaluationKey: sha256,
+    reasonCodes: z
+      .array(synthesisStalenessReasonCodeSchema)
+      .min(1)
+      .max(SYNTHESIS_STALENESS_REASON_CODES.length),
+    affectedReferences: z.array(synthesisStalenessAffectedReferenceSchema).max(100),
+    affectedReferenceCount: z.number().int().min(0).max(SYNTHESIS_STALENESS_AFFECTED_REFERENCE_MAX),
+    affectedReferencesTruncated: z.boolean(),
+    createdAt: z.string().datetime(),
+  })
+  .strict()
+  .superRefine((proposal, context) => {
+    const expectedReasons = SYNTHESIS_STALENESS_REASON_CODES.filter((reason) =>
+      proposal.reasonCodes.includes(reason),
+    );
+    if (
+      expectedReasons.length !== proposal.reasonCodes.length ||
+      expectedReasons.some((reason, index) => reason !== proposal.reasonCodes[index])
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["reasonCodes"],
+        message: "Proposal reason codes must be unique and canonically ordered.",
+      });
+    }
+    if (
+      proposal.affectedReferencesTruncated
+        ? proposal.affectedReferenceCount <= proposal.affectedReferences.length
+        : proposal.affectedReferenceCount !== proposal.affectedReferences.length
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["affectedReferenceCount"],
+        message: "Proposal affected-reference count must match its bounded summary.",
+      });
+    }
+  });
+export type SynthesisRegenerationProposal = z.infer<typeof synthesisRegenerationProposalSchema>;
 
 export const synthesisSeriesSelectionSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("seed"), nodeId: boundedId }).strict(),
@@ -256,6 +424,7 @@ export const publicSynthesisReviewSchema = z
         conceptDoi: doiSchema.optional(),
       })
       .strict(),
+    freshness: synthesisFreshnessSchema,
   })
   .strict();
 export type PublicSynthesisReview = z.infer<typeof publicSynthesisReviewSchema>;

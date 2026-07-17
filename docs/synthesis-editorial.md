@@ -33,3 +33,7 @@ Prisma schema application is followed by database-native guards on both SQLite a
 These enforce source unions, lifecycle/lease states, and identifier-reference shapes even for direct
 database writes. PostgreSQL CI introspects the installed constraints/triggers and exercises rejected
 invalid writes.
+
+Accepted heads are monitored by the bounded, proposal-only workflow documented in
+[synthesis-staleness.md](./synthesis-staleness.md). Freshness evaluation never generates or publishes
+content.

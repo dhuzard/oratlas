@@ -10,6 +10,9 @@ test("editor gates generated, rejected, and accepted synthesis drafts", async ({
   const node = await prisma.knowledgeNode.findFirstOrThrow({
     where: { kind: "figure", versions: { some: {} } },
     orderBy: { id: "asc" },
+    include: {
+      versions: { orderBy: [{ createdAt: "desc" }, { id: "desc" }], take: 1 },
+    },
   });
   await page.getByLabel("Seed node ID").fill(node.id);
   const generationResponse = page.waitForResponse(
@@ -70,6 +73,72 @@ test("editor gates generated, rejected, and accepted synthesis drafts", async ({
   await page.goto(`/reviews/${slug}`);
   await expect(page.getByText("AI-written synthesis")).toBeVisible();
   await expect(page.getByText("AI-generated, editor-approved")).toBeVisible();
+  await expect(page.getByText("Freshness not yet checked")).toBeVisible();
+
+  await page.goto("/editorial");
+  const freshScanResponse = page.waitForResponse((response) =>
+    response.url().includes("/api/editorial/syntheses/staleness/scan"),
+  );
+  await page.getByRole("button", { name: "Scan accepted syntheses" }).click();
+  expect((await freshScanResponse).ok()).toBeTruthy();
+  await page.goto(`/reviews/${slug}`);
+  await expect(page.getByText("Freshness checked")).toBeVisible();
+
+  const priorVersion = node.versions[0]!;
+  const snapshotId = `e2e-synthesis-stale-${Date.now()}`;
+  const versionId = `${snapshotId}-version`;
+  const commitSha = "d".repeat(40);
+  await prisma.repositorySnapshot.create({
+    data: {
+      id: snapshotId,
+      repositoryId: node.repositoryId,
+      commitSha,
+      inspectionStatus: "succeeded",
+      inspectionReportJson: "{}",
+      contentHash: "e".repeat(64),
+    },
+  });
+  const provenance = JSON.parse(priorVersion.provenanceJson) as Record<string, unknown>;
+  await prisma.knowledgeNodeVersion.create({
+    data: {
+      id: versionId,
+      knowledgeNodeId: node.id,
+      snapshotId,
+      title: `${priorVersion.title} — newer evidence`,
+      abstract: priorVersion.abstract,
+      text: priorVersion.text,
+      contributorsJson: priorVersion.contributorsJson,
+      license: priorVersion.license,
+      provenanceJson: JSON.stringify({ ...provenance, commitSha }),
+      payloadJson: priorVersion.payloadJson,
+      isExample: priorVersion.isExample,
+      createdAt: new Date(Date.now() + 1_000),
+    },
+  });
+
+  await page.goto("/editorial");
+  const staleScanResponse = page.waitForResponse((response) =>
+    response.url().includes("/api/editorial/syntheses/staleness/scan"),
+  );
+  await page.getByRole("button", { name: "Scan accepted syntheses" }).click();
+  expect((await staleScanResponse).ok()).toBeTruthy();
+  await page.reload();
+  const proposal = page.locator("article[data-staleness-proposal]").filter({
+    hasText: "node-head-changed",
+  });
+  await expect(proposal).toBeVisible();
+  const proposalDecisionResponse = page.waitForResponse(
+    (response) =>
+      response.url().includes("/api/editorial/syntheses/staleness/") &&
+      response.url().endsWith("/decision"),
+  );
+  await proposal.getByRole("button", { name: "Request private regeneration" }).click();
+  expect((await proposalDecisionResponse).ok()).toBeTruthy();
+  await page.goto(`/reviews/${slug}`);
+  await expect(page.getByText("Newer evidence exists")).toBeVisible();
+
+  await prisma.knowledgeNodeVersion.delete({ where: { id: versionId } });
+  await prisma.repositorySnapshot.delete({ where: { id: snapshotId } });
   const citation = draft.citations[0];
   expect(citation).toBeTruthy();
   const citationHref = `/nodes/${citation!.nodeId}/versions/${citation!.nodeVersionId}`;
