@@ -47,6 +47,13 @@ export function SynthesisReader({
         </div>
         <h1>{synthesis.title}</h1>
         <p className="lead">{synthesis.abstract}</p>
+        {synthesis.version.ordinal > 1 ? (
+          <p>
+            <a href={`/reviews/${synthesis.slug}/changes`}>
+              What changed since accepted version {synthesis.version.ordinal - 1}
+            </a>
+          </p>
+        ) : null}
       </header>
 
       <div className="synthesis-mobile-disclosure" aria-label="Persistent AI disclosure">

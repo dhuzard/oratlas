@@ -478,7 +478,7 @@ packages: [apps/web, packages/ui]
 ```yaml
 id: KG-16
 epic: D
-status: todo
+status: done (PR #69)
 depends_on: [KG-15]
 size: M
 labels: [web, knowledge]
