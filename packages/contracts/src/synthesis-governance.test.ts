@@ -25,15 +25,29 @@ function read(relativePath: string): string {
   return readFileSync(resolve(root, relativePath), "utf8");
 }
 
+function markdownHeadingSlug(heading: string): string {
+  return heading
+    .toLowerCase()
+    .replace(/[`*_~]/g, "")
+    .replace(/[^\p{L}\p{N}\s-]/gu, "")
+    .trim()
+    .replace(/\s+/g, "-");
+}
+
 function expectLocalMarkdownLinksResolve(relativePath: string): void {
   const absolutePath = resolve(root, relativePath);
   const markdown = readFileSync(absolutePath, "utf8");
   for (const match of markdown.matchAll(/\[[^\]]+\]\(([^)]+)\)/g)) {
-    const target = match[1]!.split("#", 1)[0]!;
-    if (!target || /^(?:https?:|mailto:)/.test(target)) continue;
-    expect(existsSync(resolve(dirname(absolutePath), target)), `${relativePath}: ${target}`).toBe(
-      true,
-    );
+    const [target, fragment] = match[1]!.split("#", 2);
+    if (/^(?:https?:|mailto:)/.test(target!)) continue;
+    const targetPath = target ? resolve(dirname(absolutePath), target) : absolutePath;
+    expect(existsSync(targetPath), `${relativePath}: ${target}`).toBe(true);
+    if (fragment && targetPath.endsWith(".md")) {
+      const headingSlugs = [
+        ...readFileSync(targetPath, "utf8").matchAll(/^#{1,6}\s+(.+?)\s*#*$/gm),
+      ].map((heading) => markdownHeadingSlug(heading[1]!));
+      expect(headingSlugs, `${relativePath}: #${fragment}`).toContain(decodeURIComponent(fragment));
+    }
   }
 }
 
@@ -140,11 +154,15 @@ describe("AI synthesis governance policy drift", () => {
 
   it("binds the shipped public UI to contract wording and resolves governance links", () => {
     const page = read("apps/web/src/app/reviews/[slug]/page.tsx");
+    const publicLoader = read("apps/web/src/lib/synthesis-editorial.ts");
     expect(page).toContain("SYNTHESIS_PUBLIC_AI_LABEL");
     expect(page).toContain("SYNTHESIS_PUBLIC_SCOPE_NOTICE");
     expect(page).not.toContain("AI-written synthesis");
     expect(page).not.toContain("AI-generated, editor-approved");
+    expect(page).not.toContain("isExample={false}");
     expect(page).toContain("synthesis.freshness.status");
+    expect(publicLoader).toContain("version.isExample !== false");
+    expect(publicLoader).toContain("isExample: false");
 
     for (const document of [
       "docs/synthesis-governance.md",

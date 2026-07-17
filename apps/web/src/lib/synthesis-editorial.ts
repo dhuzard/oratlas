@@ -1387,6 +1387,7 @@ export async function decideSynthesisDraft(
             title: integrity.document.title,
             abstract: integrity.document.summary,
             metadataJson: canonicalJson({ reviewType: "ai-synthesis", license: input.licenseSpdx }),
+            isExample: false,
             publishedAt: acceptedAt,
             synthesisDocumentJson: draft.documentJson,
             synthesisOrdinal: ordinal,
@@ -1594,6 +1595,7 @@ export async function getPublicSynthesisReview(
     version.reviewId !== review.id ||
     version.recordSourceType !== "synthesis" ||
     version.snapshotId ||
+    version.isExample !== false ||
     version.publicState !== "published" ||
     !version.synthesisDraft ||
     version.synthesisDraft.status !== "accepted" ||

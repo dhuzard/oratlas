@@ -1030,6 +1030,9 @@ describe.sequential("synthesis editorial lifecycle", () => {
     const versionId = review.currentSynthesisVersionId!;
     const version = await prisma.reviewVersion.findUniqueOrThrow({ where: { id: versionId } });
     const draft = await prisma.synthesisDraft.findFirstOrThrow({ where: { reviewId: review.id } });
+    await prisma.reviewVersion.update({ where: { id: versionId }, data: { isExample: true } });
+    expect(await service.getPublicSynthesisReview(review.slug, prisma)).toBeNull();
+    await prisma.reviewVersion.update({ where: { id: versionId }, data: { isExample: false } });
     for (const { data, restore } of [
       {
         data: { synthesisProvider: null },

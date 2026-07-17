@@ -175,6 +175,10 @@ Atlas MUST NOT mint, reserve, or pretend to create a DOI.
   scientific endorsement. Without a DOI, the stable Atlas version URL remains authoritative.
 - `10.5555/*` and any identifier marked as an example are documentation fixtures. They MUST NOT be
   accepted as live synthesis identifiers, resolved outward, or rendered as clickable DOI links.
+- An accepted public synthesis `ReviewVersion` MUST have `isExample=false`. If stored corruption
+  marks it as example data, the public synthesis projection MUST fail closed (API and reader 404)
+  before rendering any DOI; the UI MUST NOT override that integrity decision with a hardcoded
+  non-example flag.
 - A correction MUST receive its own version DOI if a DOI is assigned; it MAY retain the series
   concept DOI. An existing accepted version DOI MUST never be rewritten or reassigned.
 

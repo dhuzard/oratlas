@@ -15,7 +15,7 @@ public synthesis route, preserve the immutable accepted record and audit evidenc
 ADMIN and the publication-rights owner, and publish an honest incident notice through an available
 operational channel. Operators MUST NOT silently delete or mutate an accepted synthesis. Restoration
 requires editor re-review or an immutable corrected successor; see
-[AI-written synthesis governance](../synthesis-governance.md#11-incidents-corrections-and-withdrawal).
+[AI-written synthesis governance](../synthesis-governance.md#10-corrections-withdrawals-and-incidents).
 
 A takedown or privacy request is actioned by tombstoning the affected article version. A
 tombstoned article **fails closed**:

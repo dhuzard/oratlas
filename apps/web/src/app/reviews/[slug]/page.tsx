@@ -123,11 +123,11 @@ function SynthesisReviewPage({ synthesis }: { synthesis: PublicSynthesisReview }
           items={[
             {
               term: "Version DOI",
-              value: <DoiValue value={synthesis.version.versionDoi} isExample={false} />,
+              value: <DoiValue value={synthesis.version.versionDoi} />,
             },
             {
               term: "Concept DOI",
-              value: <DoiValue value={synthesis.version.conceptDoi} isExample={false} />,
+              value: <DoiValue value={synthesis.version.conceptDoi} />,
             },
           ]}
         />
@@ -140,7 +140,7 @@ function SynthesisReviewPage({ synthesis }: { synthesis: PublicSynthesisReview }
   );
 }
 
-function DoiValue({ value, isExample }: { value?: string; isExample: boolean }) {
+function DoiValue({ value, isExample = false }: { value?: string; isExample?: boolean }) {
   if (!value) return <span className="muted">—</span>;
   if (isExample) {
     return (
