@@ -20,13 +20,20 @@ export default async function CoveragePage() {
 
       {coverage.bounds.nodeLimitReached || coverage.bounds.synthesisCandidateLimitReached ? (
         <Notice tone="warning" title="Bounded proof-of-concept view">
-          This request reached{" "}
-          {coverage.bounds.nodeLimitReached
-            ? `the ${coverage.bounds.nodeLimit}-candidate node scan ceiling ` +
-              `(${coverage.bounds.scannedNodeCandidateCount} stored candidates scanned; ` +
-              `${coverage.scannedNodeCount} valid public heads included)`
-            : `the ${coverage.bounds.synthesisCandidateLimit}-synthesis ceiling`}
-          . Counts describe the bounded scan.
+          <p>This request reached:</p>
+          <ul>
+            {coverage.bounds.nodeLimitReached ? (
+              <li>
+                {`the ${coverage.bounds.nodeLimit}-candidate node scan ceiling ` +
+                  `(${coverage.bounds.scannedNodeCandidateCount} stored candidates scanned; ` +
+                  `${coverage.scannedNodeCount} valid public heads included)`}
+              </li>
+            ) : null}
+            {coverage.bounds.synthesisCandidateLimitReached ? (
+              <li>{`the ${coverage.bounds.synthesisCandidateLimit}-synthesis ceiling`}</li>
+            ) : null}
+          </ul>
+          <p>Counts describe the bounded scan.</p>
         </Notice>
       ) : null}
 
