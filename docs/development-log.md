@@ -660,3 +660,32 @@ boundaries normative and machine-checkable for AI-generated synthesis reviews.
   public validation so future policy bumps cannot silently reinterpret or 404 older accepted
   versions. Contract tests cover terminology, versions, allowlists, forbidden private fields, and
   checklist dispatch; OpenAPI and governance cross-links carry the same policy.
+
+## KG-20 — Full-pipeline e2e and CI coverage (issue #66)
+
+**Objective:** prove the causal publication model in one bounded, offline browser journey without
+introducing a test-only production route or granting an agent publication authority.
+
+- Extended the node-publication Playwright journey through the real `POST /api/inspect` route and
+  production `createInspectionCapture` persistence. A Node preload intercepts only outbound
+  `api.github.com` calls below that route and serves bounded repository, commit, tree, file,
+  manifest, node, and edge responses; the test verifies the response extraction and canonical
+  persisted capture bytes for both source revisions, without a production backdoor.
+- Proved submitter finalization leaves the first node set private before the first editorial
+  acceptance, then exercises the real accept route and public projection.
+- Added a canonical succeeded external-agent run at the existing node-edge proposal boundary. The
+  proposal remains private until the signed-in editor checks its exact endpoints and evidence and
+  confirms the public edge through the normal editorial API and UI; the journey asserts the exact
+  confirmed source/target versions in storage, the public version API and UI, and the synthesis
+  evidence packet.
+- Generated a deterministic fallback synthesis from the newly published graph, exercised every
+  required human acceptance affirmation, published it through the real synthesis decision route,
+  and drilled from its public reader to an exact immutable cited node version.
+- Submitted a second real inspection capture for the same immutable GitHub repository identity via
+  an explicit tag resolving to a second commit. Editorial acceptance advances the source node head
+  from the exact v1 version/commit to the exact v2 version/commit and publishes a genuinely new code
+  node; the coverage UI proves that new head is uncovered.
+- Completed the causal loop by scanning accepted syntheses, inspecting the resulting private
+  node-head-change proposal with its exact old/new node-version IDs, requesting regeneration as an
+  editor, and verifying the public reader and archive stale disclosures. CI explicitly clears
+  provider, model, and API-key variables so the journey stays offline and deterministic.

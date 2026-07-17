@@ -198,3 +198,6 @@ jobs:
         run: pnpm --filter @oratlas/web test:e2e
         env:
           PLAYWRIGHT_CHROMIUM: ""
+          LLM_PROVIDER: ""
+          LLM_MODEL: ""
+          ANTHROPIC_API_KEY: ""
