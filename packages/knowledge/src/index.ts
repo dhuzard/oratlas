@@ -106,11 +106,15 @@ export {
   type SynthesisDeltaEdgeReference,
   type SynthesisDeltaNodeReassessment,
   type SynthesisDeltaNodeReference,
+  type SynthesisCitationListDelta,
   type SynthesisGenerationDelta,
   type SynthesisGenerationDeltaErrorCode,
   type SynthesisGenerationSnapshot,
+  type SynthesisParagraphCitationDelta,
+  type SynthesisSecondaryDocumentDelta,
   type SynthesisSectionParagraphDelta,
   type SynthesisSectionTextDelta,
+  type SynthesisTextReplacement,
 } from "./synthesis-delta.js";
 export {
   defineGroundingEvalFixture,

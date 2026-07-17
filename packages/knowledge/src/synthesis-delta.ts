@@ -7,6 +7,7 @@ import {
   type SubgraphEvidenceEdge,
   type SubgraphEvidencePacket,
   type SubgraphEvidenceReference,
+  type SynthesisReviewCitation,
   type SynthesisReviewDocument,
 } from "@oratlas/contracts";
 import type { PreparedSubgraphEvidencePacket } from "./subgraph-evidence.js";
@@ -20,6 +21,7 @@ export const SYNTHESIS_GENERATION_DELTA_LIMITS = {
   maxEdgeChanges: 1_000,
   maxContradictionChanges: 1_000,
   maxSectionParagraphChanges: 144,
+  maxParagraphCitationChanges: 72,
   maxCanonicalBytes: 524_288,
 } as const;
 
@@ -28,6 +30,7 @@ export const SYNTHESIS_GENERATION_DELTA_ERROR_CODES = [
   "integrity-mismatch",
   "ambiguous-reference",
   "ambiguous-edge",
+  "immutable-node-drift",
   "overflow",
 ] as const;
 export type SynthesisGenerationDeltaErrorCode =
@@ -98,6 +101,28 @@ export interface SynthesisSectionTextDelta {
   paragraphChanges: SynthesisSectionParagraphDelta[];
 }
 
+export interface SynthesisTextReplacement {
+  previous: string;
+  current: string;
+}
+
+export interface SynthesisCitationListDelta {
+  previous: SynthesisReviewCitation[];
+  current: SynthesisReviewCitation[];
+}
+
+export interface SynthesisParagraphCitationDelta extends SynthesisCitationListDelta {
+  sectionId: SynthesisReviewDocument["sections"][number]["id"];
+  paragraphIndex: number;
+}
+
+export interface SynthesisSecondaryDocumentDelta {
+  title?: SynthesisTextReplacement;
+  summary?: SynthesisTextReplacement;
+  topLevelCitations?: SynthesisCitationListDelta;
+  paragraphCitations: SynthesisParagraphCitationDelta[];
+}
+
 export interface SynthesisGenerationDelta {
   schemaVersion: typeof SYNTHESIS_GENERATION_DELTA_VERSION;
   previous: { packetHash: string; documentHash: string };
@@ -117,6 +142,7 @@ export interface SynthesisGenerationDelta {
     resolved: SynthesisDeltaContradictionReference[];
   };
   sectionText: SynthesisSectionTextDelta[];
+  secondaryDocument: SynthesisSecondaryDocumentDelta;
   isNoop: boolean;
   checksum: string;
 }
@@ -387,6 +413,49 @@ function sectionTextDelta(
   return result;
 }
 
+function citationListDelta(
+  previous: SynthesisReviewCitation[],
+  current: SynthesisReviewCitation[],
+): SynthesisCitationListDelta | undefined {
+  return canonicalJson(previous) === canonicalJson(current)
+    ? undefined
+    : { previous: [...previous], current: [...current] };
+}
+
+function secondaryDocumentDelta(
+  previous: SynthesisReviewDocument,
+  current: SynthesisReviewDocument,
+): SynthesisSecondaryDocumentDelta {
+  const paragraphCitations: SynthesisParagraphCitationDelta[] = [];
+  for (let sectionIndex = 0; sectionIndex < previous.sections.length; sectionIndex += 1) {
+    const oldSection = previous.sections[sectionIndex]!;
+    const newSection = current.sections[sectionIndex]!;
+    const length = Math.max(oldSection.paragraphs.length, newSection.paragraphs.length);
+    for (let paragraphIndex = 0; paragraphIndex < length; paragraphIndex += 1) {
+      const previousCitations = oldSection.paragraphs[paragraphIndex]?.citations ?? [];
+      const currentCitations = newSection.paragraphs[paragraphIndex]?.citations ?? [];
+      const citations = citationListDelta(previousCitations, currentCitations);
+      if (citations) {
+        paragraphCitations.push({
+          sectionId: oldSection.id,
+          paragraphIndex,
+          ...citations,
+        });
+      }
+    }
+  }
+  const result: SynthesisSecondaryDocumentDelta = { paragraphCitations };
+  if (previous.title !== current.title) {
+    result.title = { previous: previous.title, current: current.title };
+  }
+  if (previous.summary !== current.summary) {
+    result.summary = { previous: previous.summary, current: current.summary };
+  }
+  const topLevelCitations = citationListDelta(previous.citations, current.citations);
+  if (topLevelCitations) result.topLevelCitations = topLevelCitations;
+  return result;
+}
+
 function assertDeltaBounds(delta: DeltaWithoutChecksum): void {
   const nodeChanges =
     delta.nodes.added.length + delta.nodes.removed.length + delta.nodes.reassessed.length;
@@ -400,11 +469,13 @@ function assertDeltaBounds(delta: DeltaWithoutChecksum): void {
     (sum, section) => sum + section.paragraphChanges.length,
     0,
   );
+  const paragraphCitationChanges = delta.secondaryDocument.paragraphCitations.length;
   if (
     nodeChanges > SYNTHESIS_GENERATION_DELTA_LIMITS.maxNodeChanges ||
     edgeChanges > SYNTHESIS_GENERATION_DELTA_LIMITS.maxEdgeChanges ||
     contradictionChanges > SYNTHESIS_GENERATION_DELTA_LIMITS.maxContradictionChanges ||
     paragraphChanges > SYNTHESIS_GENERATION_DELTA_LIMITS.maxSectionParagraphChanges ||
+    paragraphCitationChanges > SYNTHESIS_GENERATION_DELTA_LIMITS.maxParagraphCitationChanges ||
     Buffer.byteLength(canonicalJson(delta), "utf8") >
       SYNTHESIS_GENERATION_DELTA_LIMITS.maxCanonicalBytes
   ) {
@@ -424,6 +495,18 @@ export function compareSynthesisGenerations(
   const current = assertSnapshot(currentValue);
   const previousNodes = new Map(previous.packet.nodes.map((node) => [node.id, node]));
   const currentNodes = new Map(current.packet.nodes.map((node) => [node.id, node]));
+  for (const [nodeId, oldNode] of previousNodes) {
+    const newNode = currentNodes.get(nodeId);
+    if (
+      newNode?.versionId === oldNode.versionId &&
+      canonicalJson(oldNode) !== canonicalJson(newNode)
+    ) {
+      throw new SynthesisGenerationDeltaError(
+        "immutable-node-drift",
+        "One immutable node identity has conflicting canonical content.",
+      );
+    }
+  }
   const added = [...currentNodes.keys()]
     .filter((nodeId) => !previousNodes.has(nodeId))
     .sort(compare)
@@ -508,6 +591,7 @@ export function compareSynthesisGenerations(
     .sort(compare)
     .map((key) => contradictionReference(previousContradictions.get(key)!));
   const sectionText = sectionTextDelta(previous.document, current.document);
+  const secondaryDocument = secondaryDocumentDelta(previous.document, current.document);
   const isNoop =
     added.length === 0 &&
     removed.length === 0 &&
@@ -517,7 +601,13 @@ export function compareSynthesisGenerations(
     edgesChanged.length === 0 &&
     opened.length === 0 &&
     resolved.length === 0 &&
-    sectionText.length === 0;
+    sectionText.length === 0 &&
+    !secondaryDocument.title &&
+    !secondaryDocument.summary &&
+    !secondaryDocument.topLevelCitations &&
+    secondaryDocument.paragraphCitations.length === 0 &&
+    previous.packetHash === current.packetHash &&
+    previous.documentHash === current.documentHash;
   const delta: DeltaWithoutChecksum = {
     schemaVersion: SYNTHESIS_GENERATION_DELTA_VERSION,
     previous: { packetHash: previous.packetHash, documentHash: previous.documentHash },
@@ -526,6 +616,7 @@ export function compareSynthesisGenerations(
     confirmedEdges: { added: edgesAdded, removed: edgesRemoved, changed: edgesChanged },
     contradictions: { opened, resolved },
     sectionText,
+    secondaryDocument,
     isNoop,
   };
   assertDeltaBounds(delta);

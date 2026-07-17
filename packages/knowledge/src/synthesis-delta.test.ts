@@ -274,6 +274,7 @@ describe("synthesis generation delta", () => {
       confirmedEdges: { added: [], removed: [], changed: [] },
       contradictions: { opened: [], resolved: [] },
       sectionText: [],
+      secondaryDocument: { paragraphCitations: [] },
       isNoop: true,
     });
     expect(delta.checksum).toMatch(/^[0-9a-f]{64}$/);
@@ -290,7 +291,7 @@ describe("synthesis generation delta", () => {
     const secondDelta = compareSynthesisGenerations(second, first);
     expect(canonicalJson(firstDelta)).toBe(canonicalJson(secondDelta));
     expect(firstDelta.checksum).toBe(
-      "d67615a7b5fa3009263373ee514c19da1da4aae6b8f263b45b1078800bc92bfc",
+      "e2d11fdddf31804aab1eecff45da33c3ea528ce3082f61deb2bbcf996b7540bb",
     );
   });
 
@@ -326,6 +327,114 @@ describe("synthesis generation delta", () => {
     ]);
     expect(delta.confirmedEdges.added).toEqual([]);
     expect(delta.confirmedEdges.removed).toEqual([]);
+  });
+
+  it("fails closed when one exact immutable node identity drifts", () => {
+    const generation = snapshot([node("node-a")], []);
+    const cases: Array<{
+      label: string;
+      mutate: (packet: SynthesisGenerationSnapshot["packet"]) => void;
+    }> = [
+      {
+        label: "title",
+        mutate: (packet) => {
+          packet.nodes[0]!.title = "Conflicting immutable title";
+        },
+      },
+      {
+        label: "payload",
+        mutate: (packet) => {
+          const claim = packet.nodes[0]!;
+          if (claim.kind !== "claim") throw new Error("Expected claim fixture.");
+          claim.payload.statement = "Conflicting immutable statement.";
+        },
+      },
+      {
+        label: "commit",
+        mutate: (packet) => {
+          packet.nodes[0]!.commitSha = "f".repeat(40);
+        },
+      },
+      {
+        label: "provenance",
+        mutate: (packet) => {
+          packet.nodes[0]!.provenance.sourcePath = "knowledge/conflicting.json";
+        },
+      },
+    ];
+    for (const testCase of cases) {
+      const packet = structuredClone(generation.packet);
+      testCase.mutate(packet);
+      expectCode(
+        () => compareSynthesisGenerations(generation, rehash(generation, { packet })),
+        "immutable-node-drift",
+      );
+    }
+  });
+
+  it("represents title, summary, and citation-attribution-only document changes", () => {
+    const generation = snapshot([node("node-a")], []);
+    const reference = generation.packet.references.find((candidate) => candidate.kind === "node")!;
+    const citation = {
+      referenceId: reference.referenceId,
+      nodeId: reference.nodeId,
+      nodeVersionId: reference.nodeVersionId,
+    };
+
+    const changedTitle = structuredClone(generation.document);
+    changedTitle.title = "A changed bounded synthesis";
+    const titleDelta = compareSynthesisGenerations(
+      generation,
+      rehash(generation, { document: changedTitle }),
+    );
+    expect(titleDelta.secondaryDocument.title).toEqual({
+      previous: "Bounded synthesis",
+      current: "A changed bounded synthesis",
+    });
+    expect(titleDelta.sectionText).toEqual([]);
+    expect(titleDelta.isNoop).toBe(false);
+
+    const changedSummary = structuredClone(generation.document);
+    changedSummary.summary = "A different deterministic summary of the bounded evidence.";
+    const summaryDelta = compareSynthesisGenerations(
+      generation,
+      rehash(generation, { document: changedSummary }),
+    );
+    expect(summaryDelta.secondaryDocument.summary).toEqual({
+      previous: "A deterministic review of the bounded evidence.",
+      current: "A different deterministic summary of the bounded evidence.",
+    });
+    expect(summaryDelta.isNoop).toBe(false);
+
+    const changedTopLevelCitations = structuredClone(generation.document);
+    changedTopLevelCitations.citations = [citation];
+    const topLevelDelta = compareSynthesisGenerations(
+      generation,
+      rehash(generation, { document: changedTopLevelCitations }),
+    );
+    expect(topLevelDelta.secondaryDocument.topLevelCitations).toEqual({
+      previous: [],
+      current: [citation],
+    });
+    expect(topLevelDelta.isNoop).toBe(false);
+
+    const changedParagraphCitations = structuredClone(generation.document);
+    changedParagraphCitations.sections[2].paragraphs[0]!.citations = [citation];
+    const paragraphSnapshot = rehash(generation, { document: changedParagraphCitations });
+    const paragraphDelta = compareSynthesisGenerations(generation, paragraphSnapshot);
+    expect(paragraphDelta.secondaryDocument.paragraphCitations).toEqual([
+      {
+        sectionId: "agreements",
+        paragraphIndex: 0,
+        previous: [],
+        current: [citation],
+      },
+    ]);
+    expect(paragraphDelta.sectionText).toEqual([]);
+    expect(paragraphDelta.isNoop).toBe(false);
+    expect(compareSynthesisGenerations(generation, paragraphSnapshot).checksum).toBe(
+      paragraphDelta.checksum,
+    );
   });
 
   it("fails closed on forged references and ambiguous exact edges", () => {
