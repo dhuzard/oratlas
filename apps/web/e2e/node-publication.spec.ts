@@ -1,12 +1,38 @@
 import { createHash, randomBytes } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import { test, expect } from "@playwright/test";
-import { canonicalJson } from "@oratlas/contracts";
+import {
+  canonicalJson,
+  subgraphEvidencePacketSchema,
+  synthesisStalenessAffectedReferenceSchema,
+} from "@oratlas/contracts";
 
 const firstCommitSha = "d".repeat(40);
 const firstTreeSha = "e".repeat(40);
 const secondCommitSha = "f".repeat(40);
 const secondTreeSha = "a".repeat(40);
+const followUpTag = "follow-up-v2";
+const firstSourceTitle = 'Escaped <script>alert("node")</script>';
+const followUpSourceTitle = "E2E causal source head v2";
+const followUpNewNodeTitle = "E2E follow-up analysis code";
+
+interface InspectionResponse {
+  captureToken: string;
+  capturePayloadHash: string;
+  selectedSource: {
+    kind: string;
+    commitSha: string;
+    treeSha: string;
+    releaseTag?: string;
+  };
+  nodeExtraction: {
+    manifest: { path: string; status: string };
+    nodes: Array<{ node?: { id: string; title: string } }>;
+    edges: Array<{
+      edge?: { sourceNodeId: string; targetNodeId: string; relationType: string };
+    }>;
+  };
+}
 
 test("submitter finalizes a node-only capture and an editor publishes its nodes", async ({
   page,
@@ -16,7 +42,9 @@ test("submitter finalizes a node-only capture and an editor publishes its nodes"
   const unique = `${Date.now()}-${randomBytes(4).toString("hex")}`;
   const repositoryName = `node-e2e-${unique}`;
   const repositoryUrl = `https://github.com/e2e-lab/${repositoryName}`;
-  const githubRepositoryId = `${Date.now()}${randomBytes(4).readUInt32BE()}`;
+  const githubRepositoryId = String(
+    Number.parseInt(createHash("sha256").update(repositoryName).digest("hex").slice(0, 12), 16),
+  );
 
   await page.goto("/signin");
   await page.getByRole("button", { name: /Sign in as submitter/ }).click();
@@ -27,47 +55,81 @@ test("submitter finalizes a node-only capture and an editor publishes its nodes"
   const submitter = await prisma.user.findUniqueOrThrow({
     where: { githubUserId: "mock:atlas-submitter" },
   });
-  const token = randomBytes(32).toString("base64url");
-  const fixture = captureFixture(repositoryName, repositoryUrl, {
-    githubRepositoryId,
+
+  await page.getByLabel("Public GitHub repository URL").fill(repositoryUrl);
+  const firstInspectionResponse = page.waitForResponse(
+    (response) => response.url().includes("/api/inspect") && response.request().method() === "POST",
+  );
+  await page.getByRole("button", { name: "Inspect repository" }).click();
+  const firstInspectionHttp = await firstInspectionResponse;
+  expect(firstInspectionHttp.ok(), await firstInspectionHttp.text()).toBeTruthy();
+  const firstInspection = (await firstInspectionHttp.json()) as InspectionResponse;
+  expect(firstInspection.selectedSource).toMatchObject({
+    kind: "default-branch",
     commitSha: firstCommitSha,
     treeSha: firstTreeSha,
   });
-  const payloadJson = canonicalJson(fixture.payload);
-  const payloadHash = sha256(payloadJson);
-  await prisma.inspectionCapture.create({
-    data: {
-      tokenHash: sha256(token),
-      payloadJson,
-      payloadHash,
-      githubRepositoryId: fixture.payload.report.githubRepositoryId!,
-      canonicalUrlAtCapture: repositoryUrl,
-      inspectedByUserId: submitter.id,
-      commitSha: firstCommitSha,
-      expiresAt: new Date(Date.now() + 30 * 60_000),
-    },
+  expect(firstInspection.nodeExtraction.manifest).toMatchObject({
+    path: "node-manifest.json",
+    status: "ok",
   });
-  let activeCapture = { fixture, token, payloadHash };
-
-  await page.route("**/api/inspect", async (route) => {
-    const active = activeCapture;
-    await route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify(
-        inspectionResponse(active.fixture, active.token, active.payloadHash, repositoryUrl),
-      ),
-    });
+  expect(firstInspection.nodeExtraction.nodes).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        node: expect.objectContaining({ id: "claim:e2e", title: firstSourceTitle }),
+      }),
+      expect.objectContaining({ node: expect.objectContaining({ id: "dataset:e2e" }) }),
+    ]),
+  );
+  expect(firstInspection.nodeExtraction.edges).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        edge: expect.objectContaining({
+          sourceNodeId: "claim:e2e",
+          targetNodeId: "dataset:e2e",
+          relationType: "uses-dataset",
+        }),
+      }),
+    ]),
+  );
+  const firstCapture = await prisma.inspectionCapture.findUniqueOrThrow({
+    where: { tokenHash: sha256(firstInspection.captureToken) },
   });
-
-  await page.getByLabel("Public GitHub repository URL").fill(repositoryUrl);
-  await page.getByRole("button", { name: "Inspect repository" }).click();
+  expect(firstCapture).toMatchObject({
+    payloadHash: firstInspection.capturePayloadHash,
+    githubRepositoryId,
+    canonicalUrlAtCapture: repositoryUrl,
+    inspectedByUserId: submitter.id,
+    commitSha: firstCommitSha,
+  });
+  expect(sha256(firstCapture.payloadJson)).toBe(firstCapture.payloadHash);
+  expect(canonicalJson(JSON.parse(firstCapture.payloadJson))).toBe(firstCapture.payloadJson);
+  const firstCapturePayload = JSON.parse(firstCapture.payloadJson) as {
+    report: {
+      selectedSource: { commitSha: string; treeSha: string };
+      files: Record<string, string>;
+    };
+    extraction: { nodeExtraction: InspectionResponse["nodeExtraction"] };
+  };
+  expect(firstCapturePayload.report.selectedSource).toMatchObject({
+    commitSha: firstCommitSha,
+    treeSha: firstTreeSha,
+  });
+  expect(Object.keys(firstCapturePayload.report.files)).toEqual(
+    expect.arrayContaining([
+      "node-manifest.json",
+      "nodes/claim.json",
+      "nodes/dataset.json",
+      "nodes/edges.jsonl",
+    ]),
+  );
+  expect(firstCapturePayload.extraction.nodeExtraction).toEqual(firstInspection.nodeExtraction);
   await expect(page.getByRole("heading", { name: "Review extracted metadata" })).toBeVisible();
   await page.getByRole("button", { name: "Continue to node candidates" }).click();
   await expect(
     page.getByRole("heading", { name: "Review extracted node candidates" }),
   ).toBeVisible();
-  await expect(page.getByText(fixture.title)).toBeVisible();
+  await expect(page.getByText(firstSourceTitle)).toBeVisible();
   await page.getByRole("button", { name: "Continue to validation" }).click();
   const submissionResponse = page.waitForResponse(
     (response) =>
@@ -78,6 +140,13 @@ test("submitter finalizes a node-only capture and an editor publishes its nodes"
   expect(finalizedResponse.ok()).toBeTruthy();
   const finalized = (await finalizedResponse.json()) as { submissionId: string };
   await expect(page.getByRole("heading", { name: "Submission received" })).toBeVisible();
+  await page.goto("/nodes");
+  await expect(page.locator("article.card").filter({ hasText: repositoryName })).toHaveCount(0);
+  expect(
+    await prisma.knowledgeNode.count({
+      where: { repository: { canonicalUrl: repositoryUrl } },
+    }),
+  ).toBe(0);
   const forbiddenStatus = await page.evaluate(async (submissionId) => {
     const response = await fetch("/api/editorial/decision", {
       method: "POST",
@@ -108,7 +177,7 @@ test("submitter finalizes a node-only capture and an editor publishes its nodes"
   });
   expect(oversizedStatus).toBe(413);
   const submissionCard = editorPage.locator("article.card").filter({ hasText: repositoryName });
-  await expect(submissionCard.getByText(fixture.title).last()).toBeVisible();
+  await expect(submissionCard.getByText(firstSourceTitle).last()).toBeVisible();
   await expect(submissionCard.getByRole("checkbox").last()).toBeChecked();
   const decisionResponse = editorPage.waitForResponse(
     (response) =>
@@ -173,7 +242,7 @@ test("submitter finalizes a node-only capture and an editor publishes its nodes"
 
   await editorPage.goto("/nodes");
   const publicNode = editorPage.locator("article.card").filter({ hasText: repositoryName });
-  await expect(publicNode.getByText(fixture.title)).toBeVisible();
+  await expect(publicNode.getByText(firstSourceTitle)).toBeVisible();
   await expect(editorPage.locator('img[src="x"]')).toHaveCount(0);
 
   const sourceIdentity = await prisma.knowledgeNode.findFirstOrThrow({
@@ -274,17 +343,65 @@ test("submitter finalizes a node-only capture and an editor publishes its nodes"
   );
   await agentProposalCard.getByRole("button", { name: "Confirm edge" }).click();
   expect((await agentDecisionResponse).ok()).toBeTruthy();
-  expect(
-    await prisma.nodeEdge.count({
-      where: {
-        sourceNodeVersionId: sourceVersion.id,
-        targetNodeId: datasetIdentity.id,
-        relationType: "supports",
-        status: "confirmed",
-        provenance: "confirmed-by-editor",
-      },
+  const confirmedAgentProposal = await prisma.nodeEdgeProposal.findUniqueOrThrow({
+    where: { id: agentProposal.proposalId },
+    include: { confirmedEdge: true },
+  });
+  expect(confirmedAgentProposal).toMatchObject({
+    status: "confirmed",
+    sourceNodeVersionId: sourceVersion.id,
+    targetNodeVersionId: datasetVersion.id,
+    reviewedAt: expect.any(Date),
+    confirmedEdgeId: expect.any(String),
+  });
+  const supportsEdge = confirmedAgentProposal.confirmedEdge!;
+  expect(supportsEdge).toMatchObject({
+    sourceNodeVersionId: sourceVersion.id,
+    targetNodeId: datasetIdentity.id,
+    confirmedTargetNodeVersionId: datasetVersion.id,
+    relationType: "supports",
+    status: "confirmed",
+    provenance: "confirmed-by-editor",
+    confirmedById: expect.any(String),
+    confirmedAt: expect.any(Date),
+  });
+
+  const sourceVersionResponse = await editorPage.request.get(
+    `/api/nodes/${sourceIdentity.id}/versions/${sourceVersion.id}`,
+  );
+  expect(sourceVersionResponse.ok()).toBeTruthy();
+  const sourceVersionPublic = (await sourceVersionResponse.json()) as {
+    edges: Array<{
+      id: string;
+      direction: string;
+      relationType: string;
+      provenance: string;
+      relatedNode: { id: string; versionId: string };
+    }>;
+  };
+  expect(sourceVersionPublic.edges).toContainEqual(
+    expect.objectContaining({
+      id: supportsEdge.id,
+      direction: "outgoing",
+      relationType: "supports",
+      provenance: "confirmed-by-editor",
+      relatedNode: expect.objectContaining({
+        id: datasetIdentity.id,
+        versionId: datasetVersion.id,
+      }),
     }),
-  ).toBe(1);
+  );
+  await editorPage.goto(`/nodes/${sourceIdentity.id}/versions/${sourceVersion.id}`);
+  const supportsRelation = editorPage
+    .locator(".node-relation-list > li")
+    .filter({ hasText: "supports" })
+    .filter({
+      has: editorPage.locator(
+        `a[href="/nodes/${datasetIdentity.id}/versions/${datasetVersion.id}"]`,
+      ),
+    });
+  await expect(supportsRelation).toBeVisible();
+  await expect(supportsRelation).toContainText("confirmed by editor");
 
   await editorPage.goto("/editorial");
   await editorPage.getByLabel("Seed node ID").fill(sourceIdentity.id);
@@ -325,6 +442,19 @@ test("submitter finalizes a node-only capture and an editor publishes its nodes"
     modelProvider: "deterministic",
     modelName: "bounded-template-1.0",
   });
+  const synthesisPacket = subgraphEvidencePacketSchema.parse(JSON.parse(synthesisDraft.packetJson));
+  expect(synthesisPacket.edges).toContainEqual(
+    expect.objectContaining({
+      id: supportsEdge.id,
+      sourceNodeId: sourceIdentity.id,
+      sourceVersionId: sourceVersion.id,
+      targetNodeId: datasetIdentity.id,
+      targetVersionId: datasetVersion.id,
+      relationType: "supports",
+      status: "confirmed",
+      provenance: "confirmed-by-editor",
+    }),
+  );
   const privateSlug = `synthesis-${synthesisDraft.seriesKey.slice(0, 20)}`;
   expect((await editorPage.request.get(`/api/syntheses/${privateSlug}`)).status()).toBe(404);
   expect((await editorPage.request.get(`/reviews/${privateSlug}`)).status()).toBe(404);
@@ -351,7 +481,10 @@ test("submitter finalizes a node-only capture and an editor publishes its nodes"
   await acceptSynthesis.click();
   const synthesisDecision = await synthesisDecisionResponse;
   expect(synthesisDecision.ok(), await synthesisDecision.text()).toBeTruthy();
-  const acceptedSynthesis = (await synthesisDecision.json()) as { reviewSlug: string };
+  const acceptedSynthesis = (await synthesisDecision.json()) as {
+    reviewSlug: string;
+    reviewVersionId: string;
+  };
 
   await editorPage.goto(`/reviews/${acceptedSynthesis.reviewSlug}`);
   await expect(editorPage.getByRole("heading", { name: draft.document.title })).toBeVisible();
@@ -370,41 +503,71 @@ test("submitter finalizes a node-only capture and an editor publishes its nodes"
   ]);
   await expect(editorPage.getByRole("heading", { name: /Escaped|observations/ })).toBeVisible();
 
-  const followUpFixture = captureFixture(repositoryName, repositoryUrl, {
-    githubRepositoryId,
-    commitSha: secondCommitSha,
-    treeSha: secondTreeSha,
-    followUp: true,
-  });
-  const followUpToken = randomBytes(32).toString("base64url");
-  const followUpPayloadJson = canonicalJson(followUpFixture.payload);
-  const followUpPayloadHash = sha256(followUpPayloadJson);
-  await prisma.inspectionCapture.create({
-    data: {
-      tokenHash: sha256(followUpToken),
-      payloadJson: followUpPayloadJson,
-      payloadHash: followUpPayloadHash,
-      githubRepositoryId,
-      canonicalUrlAtCapture: repositoryUrl,
-      inspectedByUserId: submitter.id,
-      commitSha: secondCommitSha,
-      expiresAt: new Date(Date.now() + 30 * 60_000),
-    },
-  });
-  activeCapture = {
-    fixture: followUpFixture,
-    token: followUpToken,
-    payloadHash: followUpPayloadHash,
-  };
-
   await page.goto("/submit");
   await page.getByLabel("Public GitHub repository URL").fill(repositoryUrl);
+  await page.getByLabel("Source to capture").selectOption("tag");
+  await page.getByLabel("Exact tag").fill(followUpTag);
+  const followUpInspectionResponse = page.waitForResponse(
+    (response) => response.url().includes("/api/inspect") && response.request().method() === "POST",
+  );
   await page.getByRole("button", { name: "Inspect repository" }).click();
+  const followUpInspectionHttp = await followUpInspectionResponse;
+  expect(followUpInspectionHttp.ok(), await followUpInspectionHttp.text()).toBeTruthy();
+  const followUpInspection = (await followUpInspectionHttp.json()) as InspectionResponse;
+  expect(followUpInspection.selectedSource).toMatchObject({
+    kind: "tag",
+    commitSha: secondCommitSha,
+    treeSha: secondTreeSha,
+    releaseTag: followUpTag,
+  });
+  expect(followUpInspection.nodeExtraction.manifest).toMatchObject({
+    path: "node-manifest.json",
+    status: "ok",
+  });
+  expect(followUpInspection.nodeExtraction.nodes).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        node: expect.objectContaining({ id: "claim:e2e", title: followUpSourceTitle }),
+      }),
+      expect.objectContaining({
+        node: expect.objectContaining({ id: "code:e2e-followup", title: followUpNewNodeTitle }),
+      }),
+    ]),
+  );
+  const followUpCapture = await prisma.inspectionCapture.findUniqueOrThrow({
+    where: { tokenHash: sha256(followUpInspection.captureToken) },
+  });
+  expect(followUpCapture).toMatchObject({
+    payloadHash: followUpInspection.capturePayloadHash,
+    githubRepositoryId,
+    canonicalUrlAtCapture: repositoryUrl,
+    inspectedByUserId: submitter.id,
+    commitSha: secondCommitSha,
+  });
+  expect(sha256(followUpCapture.payloadJson)).toBe(followUpCapture.payloadHash);
+  expect(canonicalJson(JSON.parse(followUpCapture.payloadJson))).toBe(followUpCapture.payloadJson);
+  const followUpCapturePayload = JSON.parse(followUpCapture.payloadJson) as {
+    report: {
+      selectedSource: { commitSha: string; treeSha: string };
+      files: Record<string, string>;
+    };
+    extraction: { nodeExtraction: InspectionResponse["nodeExtraction"] };
+  };
+  expect(followUpCapturePayload.report.selectedSource).toMatchObject({
+    commitSha: secondCommitSha,
+    treeSha: secondTreeSha,
+  });
+  expect(Object.keys(followUpCapturePayload.report.files)).toEqual(
+    expect.arrayContaining(["node-manifest.json", "nodes/claim.json", "nodes/follow-up-code.json"]),
+  );
+  expect(followUpCapturePayload.extraction.nodeExtraction).toEqual(
+    followUpInspection.nodeExtraction,
+  );
   await expect(page.getByRole("heading", { name: "Review extracted metadata" })).toBeVisible();
   await expect(page.getByText(secondCommitSha)).toBeVisible();
   await page.getByRole("button", { name: "Continue to node candidates" }).click();
-  await expect(page.getByText(followUpFixture.title, { exact: true })).toBeVisible();
-  await expect(page.getByText(followUpFixture.newNodeTitle, { exact: true })).toBeVisible();
+  await expect(page.getByText(followUpSourceTitle, { exact: true })).toBeVisible();
+  await expect(page.getByText(followUpNewNodeTitle, { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Continue to validation" }).click();
   const followUpSubmissionResponse = page.waitForResponse(
     (response) =>
@@ -418,8 +581,19 @@ test("submitter finalizes a node-only capture and an editor publishes its nodes"
     await prisma.submission.findUniqueOrThrow({ where: { id: followUpSubmission.submissionId } }),
   ).toMatchObject({ status: "pending-editorial-review" });
   await page.goto("/nodes");
-  await expect(page.getByText(followUpFixture.title, { exact: true })).toHaveCount(0);
-  await expect(page.getByText(followUpFixture.newNodeTitle, { exact: true })).toHaveCount(0);
+  await expect(page.locator("article.card").filter({ hasText: repositoryName })).toHaveCount(2);
+  await expect(
+    page
+      .locator("article.card")
+      .filter({ hasText: repositoryName })
+      .getByText(followUpSourceTitle, { exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    page
+      .locator("article.card")
+      .filter({ hasText: repositoryName })
+      .getByText(followUpNewNodeTitle, { exact: true }),
+  ).toHaveCount(0);
 
   await editorPage.goto("/editorial");
   const followUpCard = editorPage
@@ -427,10 +601,10 @@ test("submitter finalizes a node-only capture and an editor publishes its nodes"
     .filter({ hasText: repositoryName })
     .filter({ hasText: secondCommitSha });
   await expect(
-    followUpCard.locator("strong").getByText(followUpFixture.title, { exact: true }),
+    followUpCard.locator("strong").getByText(followUpSourceTitle, { exact: true }),
   ).toBeVisible();
   await expect(
-    followUpCard.locator("strong").getByText(followUpFixture.newNodeTitle, { exact: true }),
+    followUpCard.locator("strong").getByText(followUpNewNodeTitle, { exact: true }),
   ).toBeVisible();
   const followUpDecisionResponse = editorPage.waitForResponse(
     (response) =>
@@ -446,8 +620,12 @@ test("submitter finalizes a node-only capture and an editor publishes its nodes"
     },
   });
   expect(updatedSource.versions).toHaveLength(2);
-  expect(updatedSource.versions[0]).toMatchObject({
-    title: followUpFixture.title,
+  const sourceVersionV2 = updatedSource.versions.find(
+    (version) => version.snapshot.commitSha === secondCommitSha,
+  );
+  if (!sourceVersionV2) throw new Error("Expected the accepted follow-up commit to create v2.");
+  expect(sourceVersionV2).toMatchObject({
+    title: followUpSourceTitle,
     snapshot: { commitSha: secondCommitSha },
   });
   const newNode = await prisma.knowledgeNode.findFirstOrThrow({
@@ -458,11 +636,18 @@ test("submitter finalizes a node-only capture and an editor publishes its nodes"
   expect(newNode.versions[0]).toMatchObject({ snapshot: { commitSha: secondCommitSha } });
 
   await editorPage.goto("/nodes");
-  await expect(editorPage.getByText(followUpFixture.title, { exact: true })).toBeVisible();
-  await expect(editorPage.getByText(followUpFixture.newNodeTitle, { exact: true })).toBeVisible();
+  const currentRepositoryNodes = editorPage.locator("article.card").filter({
+    hasText: repositoryName,
+  });
+  await expect(
+    currentRepositoryNodes.getByText(followUpSourceTitle, { exact: true }),
+  ).toBeVisible();
+  await expect(
+    currentRepositoryNodes.getByText(followUpNewNodeTitle, { exact: true }),
+  ).toBeVisible();
   await editorPage.goto("/coverage");
   const uncoveredNode = editorPage.getByRole("link", {
-    name: followUpFixture.newNodeTitle,
+    name: followUpNewNodeTitle,
   });
   await expect(uncoveredNode).toBeVisible();
   await expect(
@@ -480,6 +665,28 @@ test("submitter finalizes a node-only capture and an editor publishes its nodes"
   );
   await editorPage.getByRole("button", { name: "Scan accepted syntheses" }).click();
   expect((await staleScanResponse).ok()).toBeTruthy();
+  const stalenessProposal = await prisma.synthesisRegenerationProposal.findFirstOrThrow({
+    where: {
+      acceptedReviewVersionId: acceptedSynthesis.reviewVersionId,
+      status: "open",
+    },
+    include: { evaluation: true },
+  });
+  expect(stalenessProposal.evaluation).toMatchObject({
+    acceptedReviewVersionId: acceptedSynthesis.reviewVersionId,
+    status: "stale",
+  });
+  expect(JSON.parse(stalenessProposal.evaluation.reasonCodesJson)).toContain("node-head-changed");
+  const affectedReferences = synthesisStalenessAffectedReferenceSchema
+    .array()
+    .parse(JSON.parse(stalenessProposal.evaluation.affectedReferencesJson));
+  expect(affectedReferences).toContainEqual({
+    kind: "node",
+    id: sourceIdentity.id,
+    change: "changed",
+    previousVersionId: sourceVersion.id,
+    currentVersionId: sourceVersionV2.id,
+  });
   await editorPage.reload();
   const staleProposal = editorPage
     .locator("article[data-staleness-proposal]")
@@ -488,6 +695,19 @@ test("submitter finalizes a node-only capture and an editor publishes its nodes"
     })
     .filter({ hasText: "node-head-changed" });
   await expect(staleProposal).toBeVisible();
+  await staleProposal.getByText("Inspect bounded affected references").click();
+  const exactSourceDelta = staleProposal.locator("li").filter({
+    hasText: `node ${sourceIdentity.id} · changed`,
+  });
+  await expect(exactSourceDelta).toBeVisible();
+  await expect(
+    exactSourceDelta.locator(`a[href="/nodes/${sourceIdentity.id}/versions/${sourceVersion.id}"]`),
+  ).toBeVisible();
+  await expect(
+    exactSourceDelta.locator(
+      `a[href="/nodes/${sourceIdentity.id}/versions/${sourceVersionV2.id}"]`,
+    ),
+  ).toBeVisible();
   const staleDecisionResponse = editorPage.waitForResponse(
     (response) =>
       response.url().includes("/api/editorial/syntheses/staleness/") &&
@@ -507,274 +727,6 @@ test("submitter finalizes a node-only capture and an editor publishes its nodes"
   await editorContext.close();
   await prisma.$disconnect();
 });
-
-function captureFixture(
-  repositoryName: string,
-  repositoryUrl: string,
-  options: {
-    githubRepositoryId: string;
-    commitSha: string;
-    treeSha: string;
-    followUp?: boolean;
-  },
-) {
-  const { githubRepositoryId, commitSha, treeSha, followUp = false } = options;
-  const title = followUp ? "E2E causal source head v2" : 'Escaped <script>alert("node")</script>';
-  const newNodeTitle = "E2E follow-up analysis code";
-  const inspectedAt = new Date().toISOString();
-  const absent = { detected: false, evidence: [] as string[] };
-  const report = {
-    schemaVersion: "1.0.0" as const,
-    repo: {
-      host: "github.com" as const,
-      owner: "e2e-lab",
-      name: repositoryName,
-      canonicalUrl: repositoryUrl,
-    },
-    inspectedAt,
-    status: "succeeded" as const,
-    githubRepositoryId,
-    defaultBranch: "main",
-    latestCommitSha: commitSha,
-    topics: [],
-    releases: [],
-    tags: [],
-    selectedSource: {
-      kind: "default-branch" as const,
-      branch: "main",
-      commitSha,
-      treeSha,
-    },
-    tree: [],
-    treeTruncated: false,
-    files: {},
-    warnings: [],
-    limits: {
-      maxFileBytes: 512_000,
-      maxTotalBytes: 3_000_000,
-      maxFileCount: 24,
-      totalBytesFetched: 0,
-      filesFetched: 0,
-    },
-  };
-  const provenance = {
-    source: "repository-metadata" as const,
-    commitSha,
-    extractorVersion: "e2e",
-    extractedAt: inspectedAt,
-    confidence: 1,
-    warnings: [],
-  };
-  const compatibility = {
-    schemaVersion: "1.0.0" as const,
-    templateForkDetected: absent,
-    templateFilesDetected: absent,
-    mystProjectDetected: absent,
-    bibliographyDetected: absent,
-    reviewContentDetected: absent,
-    provenanceDetected: absent,
-    trustDataDetected: absent,
-    releaseDetected: absent,
-    doiDetected: absent,
-    overallCompatibility: "compatible" as const,
-    levelRationale: ["Valid node declaration detected."],
-    blockingErrors: [],
-    warnings: [],
-    recommendations: [],
-  };
-  const secondNode = followUp
-    ? {
-        status: "ok" as const,
-        sourcePath: "nodes/publications.json",
-        sourcePointer: "/1",
-        declaredId: "code:e2e-followup",
-        node: {
-          id: "code:e2e-followup",
-          kind: "code" as const,
-          title: newNodeTitle,
-          contributors: [{ displayName: "E2E Researcher" }],
-          license: "CC-BY-4.0",
-          provenance: { sourcePath: "nodes/publications.json", repositoryUrl, commitSha },
-          payload: {
-            entryPoints: ["src/follow-up.ts"],
-            language: "TypeScript",
-            releaseRef: "v2.0.0",
-          },
-        },
-        fieldProvenance: {},
-        doiReferences: [],
-        issues: [],
-      }
-    : {
-        status: "ok" as const,
-        sourcePath: "nodes/publications.json",
-        sourcePointer: "/1",
-        declaredId: "dataset:e2e",
-        node: {
-          id: "dataset:e2e",
-          kind: "dataset" as const,
-          title: "E2E observations",
-          contributors: [{ displayName: "E2E Researcher" }],
-          license: "CC-BY-4.0",
-          provenance: { sourcePath: "nodes/publications.json", repositoryUrl, commitSha },
-          payload: { artifactPath: "data/observations.csv", format: "text/csv", sizeBytes: 42 },
-        },
-        fieldProvenance: {},
-        doiReferences: [],
-        issues: [],
-      };
-  const edges = followUp
-    ? []
-    : [
-        {
-          status: "ok" as const,
-          sourcePath: "nodes/edges.jsonl",
-          sourcePointer: "line:1",
-          edge: {
-            sourceNodeId: "claim:e2e",
-            targetNodeId: "dataset:e2e",
-            relationType: "uses-dataset" as const,
-            rationale: "The claim uses the captured observations.",
-          },
-          issues: [],
-        },
-        {
-          status: "ok" as const,
-          sourcePath: "nodes/edges.jsonl",
-          sourcePointer: "line:2",
-          edge: {
-            sourceNodeId: "claim:e2e",
-            targetNodeId: "dataset:e2e",
-            relationType: "derives-from" as const,
-            rationale: "A second proposal exercises rejection.",
-          },
-          issues: [],
-        },
-      ];
-  const nodeExtraction = {
-    schemaVersion: "1.0.0" as const,
-    extractorVersion: "e2e",
-    commitSha,
-    manifest: { path: "node-manifest.json" as const, status: "ok" as const, errors: [] },
-    nodes: [
-      {
-        status: "ok" as const,
-        sourcePath: "nodes/publications.json",
-        sourcePointer: "/0",
-        declaredId: "claim:e2e",
-        node: {
-          id: "claim:e2e",
-          kind: "claim" as const,
-          title,
-          text: followUp
-            ? "The second immutable source head adds a causal follow-up result."
-            : 'Literal markup: <img src=x onerror="alert(1)">',
-          contributors: [{ displayName: "E2E Researcher" }],
-          license: "CC-BY-4.0",
-          provenance: { sourcePath: "nodes/publications.json", repositoryUrl, commitSha },
-          payload: {
-            statement: followUp
-              ? "The follow-up source head reports a causal update."
-              : "The e2e node is safely rendered.",
-            qualifiers: [],
-          },
-        },
-        fieldProvenance: {
-          title: {
-            source: "node-record" as const,
-            file: "nodes/publications.json",
-            pointer: "/0/title",
-            commitSha,
-            extractorVersion: "e2e",
-            confidence: 1 as const,
-          },
-        },
-        doiReferences: [],
-        issues: [],
-      },
-      secondNode,
-    ],
-    edges,
-    counts: {
-      ok: 2,
-      invalid: 0,
-      skipped: 0,
-      edgesOk: edges.length,
-      edgesInvalid: 0,
-      edgesSkipped: 0,
-    },
-    errors: [],
-    warnings: [],
-  };
-  const validation = {
-    schemaVersion: "1.0.0" as const,
-    hardErrors: [],
-    warnings: [],
-    releaseValidation: { releaseDetected: false, details: ["Repository-only node submission."] },
-    metadataCompleteness: { requiredMissing: [], recommendedMissing: [], score: 1 },
-    compatibilityLevel: "compatible" as const,
-    evidenceDataAvailable: false,
-    trustDataAvailable: false,
-    validatedAt: inspectedAt,
-  };
-  return {
-    title,
-    newNodeTitle,
-    payload: {
-      schemaVersion: "1.1.0" as const,
-      report,
-      extraction: {
-        metadata: {
-          extractorVersion: "e2e",
-          extractedAt: inspectedAt,
-          commitSha,
-          fields: {
-            title: { value: title, provenance },
-            repositoryUrl: { value: repositoryUrl, provenance },
-            commitSha: { value: commitSha, provenance },
-          },
-          warnings: [],
-        },
-        manifestPresent: false,
-        knowledge: { claims: [], citations: [], relations: [], trust: [], warnings: [] },
-        nodeExtraction,
-        compatibility,
-      },
-      validation,
-    },
-  };
-}
-
-function inspectionResponse(
-  fixture: ReturnType<typeof captureFixture>,
-  token: string,
-  payloadHash: string,
-  repositoryUrl: string,
-) {
-  return {
-    repo: fixture.payload.report.repo,
-    selectedSource: fixture.payload.report.selectedSource,
-    captureToken: token,
-    captureExpiresAt: new Date(Date.now() + 30 * 60_000).toISOString(),
-    capturePayloadHash: payloadHash,
-    inspectionStatus: "succeeded",
-    inspectionWarnings: [],
-    extractedMetadata: fixture.payload.extraction.metadata,
-    effectiveMetadata: {
-      title: fixture.title,
-      repositoryUrl,
-      commitSha: fixture.payload.report.selectedSource.commitSha,
-      authors: [],
-      keywords: [],
-      domains: [],
-    },
-    compatibility: fixture.payload.extraction.compatibility,
-    validation: fixture.payload.validation,
-    knowledgeCounts: { claims: 0, citations: 0, relations: 0, trust: 0 },
-    nodeExtraction: fixture.payload.extraction.nodeExtraction,
-    publicationTargets: { proseReview: false, knowledgeNodes: true },
-  };
-}
 
 function stableNodeVersionKey(
   githubRepositoryId: string,

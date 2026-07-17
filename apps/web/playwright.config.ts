@@ -1,10 +1,18 @@
 import { defineConfig, devices } from "@playwright/test";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { dirname, join } from "node:path";
 import { existsSync } from "node:fs";
 import { resolveE2EDatabaseUrl } from "./src/lib/e2e-database-url";
 
 const here = dirname(fileURLToPath(import.meta.url));
+const githubFixturePreload = pathToFileURL(join(here, "e2e", "github-inspection-fixture.ts")).href;
+const nodeOptions = [
+  process.env.NODE_OPTIONS?.trim(),
+  "--import=tsx",
+  `--import=${githubFixturePreload}`,
+]
+  .filter(Boolean)
+  .join(" ");
 
 // Prefer an explicitly configured browser, then a pre-installed Chromium (as in
 // this sandbox), otherwise fall back to Playwright's managed browser (CI).
@@ -59,6 +67,8 @@ export default defineConfig({
       DATABASE_URL: DB,
       SESSION_SECRET: "e2e-session-secret",
       AUTH_MOCK: "1",
+      NODE_OPTIONS: nodeOptions,
+      ORATLAS_E2E_GITHUB_FIXTURE: "1",
       // Same-origin mutation checks compare the Origin header against this
       // configured origin, so it must match the port the e2e server uses.
       NEXT_PUBLIC_BASE_URL: `http://localhost:${PORT}`,
