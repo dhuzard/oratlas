@@ -278,7 +278,8 @@ test("editor gates generated, rejected, and accepted synthesis drafts", async ({
   await page.goto(`/reviews/${slug}`);
   await expect(page.getByText("Newer evidence exists")).toBeVisible();
   await page.goto("/archive?contentType=synthesis");
-  await expect(page.getByText(/^stale · \d+ affected reference/)).toBeVisible();
+  const staleSynthesis = page.locator("article.card").filter({ hasText: draft.document.title });
+  await expect(staleSynthesis.getByText(/^stale · \d+ affected reference/)).toBeVisible();
 
   await prisma.knowledgeNodeVersion.delete({ where: { id: versionId } });
   await prisma.repositorySnapshot.delete({ where: { id: snapshotId } });
