@@ -13,7 +13,7 @@ export interface E2EDatabaseEnvironment {
 function isPortableDatabaseUrl(url: string): boolean {
   if (!url.startsWith("file:")) return true;
   const path = url.slice("file:".length);
-  return path.startsWith("/");
+  return path.startsWith("/") || /^[A-Za-z]:[\\/]/.test(path);
 }
 
 /** Resolve the database shared by CI seeding and the Playwright web server. */

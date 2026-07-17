@@ -22,6 +22,12 @@ describe("resolveE2EDatabaseUrl", () => {
     ).toBe("file:/workspace/packages/db/prisma/ci.db");
   });
 
+  it("accepts an explicit absolute Windows drive database URL", () => {
+    expect(resolveE2EDatabaseUrl({ E2E_DATABASE_URL: "file:C:/workspace/e2e.db" }, fallback)).toBe(
+      "file:C:/workspace/e2e.db",
+    );
+  });
+
   it("uses the deterministic default when neither environment value is set", () => {
     expect(resolveE2EDatabaseUrl({}, fallback)).toBe(fallback);
   });

@@ -293,4 +293,13 @@ describe("public synthesis generation diff loader", () => {
       ),
     ).resolves.toBeNull();
   });
+
+  it("propagates operational database failures instead of disguising them as not found", async () => {
+    const operational = new Error("database unavailable");
+    const database = client([]);
+    vi.mocked(database.review.findUnique).mockRejectedValue(operational);
+    await expect(getPublicSynthesisGenerationDiff(review.slug, {}, database)).rejects.toBe(
+      operational,
+    );
+  });
 });

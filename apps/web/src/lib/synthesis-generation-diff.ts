@@ -3,6 +3,7 @@ import type { PrismaClient } from "@oratlas/db";
 import { canonicalJson, synthesisReviewDocumentSchema } from "@oratlas/contracts";
 import {
   compareSynthesisGenerations,
+  SynthesisGenerationDeltaError,
   type SynthesisGenerationDelta,
   type SynthesisGenerationSnapshot,
 } from "@oratlas/knowledge";
@@ -170,83 +171,85 @@ export async function getPublicSynthesisGenerationDiff(
   const requestedTo = requestedVersionId(selection.toVersionId);
   if (requestedFrom === null || requestedTo === null) return null;
 
-  try {
-    const [review, publicCurrent] = await Promise.all([
-      loadReview(client, slug),
-      getPublicSynthesisReview(slug, client),
-    ]);
-    if (
-      !review ||
-      !publicCurrent ||
-      review.status !== "published" ||
-      review.reviewType !== "ai-synthesis" ||
-      review.repositoryId !== null ||
-      review.currentSnapshotId !== null ||
-      !review.synthesisSeriesKey ||
-      !review.currentSynthesisVersionId ||
-      publicCurrent.version.id !== review.currentSynthesisVersionId
-    )
-      return null;
-
-    const toId = requestedTo ?? review.currentSynthesisVersionId;
-    const to = await loadVersion(client, toId);
-    if (
-      !to ||
-      to.reviewId !== review.id ||
-      !to.acceptedPredecessorVersionId ||
-      !to.synthesisOrdinal ||
-      to.synthesisOrdinal > publicCurrent.version.ordinal
-    )
-      return null;
-    const fromId = requestedFrom ?? to.acceptedPredecessorVersionId;
-    if (fromId === toId || to.acceptedPredecessorVersionId !== fromId) return null;
-    const from = await loadVersion(client, fromId);
-    if (!from || from.reviewId !== review.id) return null;
-
-    const fromDraft = from.synthesisDraft;
-    const toDraft = to.synthesisDraft;
-    if (
-      !fromDraft ||
-      !toDraft ||
-      from.synthesisOrdinal === null ||
-      to.synthesisOrdinal !== from.synthesisOrdinal + 1 ||
-      to.acceptedPredecessor?.id !== from.id ||
-      to.acceptedPredecessor.reviewId !== review.id ||
-      to.acceptedPredecessor.recordSourceType !== "synthesis" ||
-      to.acceptedPredecessor.publicState !== "published" ||
-      to.acceptedPredecessor.synthesisOrdinal !== from.synthesisOrdinal ||
-      to.acceptedPredecessor.synthesisDraftId !== fromDraft.id ||
-      toDraft.previousAcceptedDraftId !== fromDraft.id ||
-      toDraft.previousAcceptedOrdinal !== from.synthesisOrdinal ||
-      fromDraft.seriesKey !== toDraft.seriesKey ||
-      fromDraft.seriesKey !== review.synthesisSeriesKey ||
-      (from.synthesisOrdinal === 1
-        ? from.acceptedPredecessorVersionId !== null ||
-          fromDraft.previousAcceptedDraftId !== null ||
-          fromDraft.previousAcceptedOrdinal !== null
-        : !from.acceptedPredecessorVersionId ||
-          !from.acceptedPredecessor ||
-          from.acceptedPredecessor.reviewId !== review.id ||
-          from.acceptedPredecessor.recordSourceType !== "synthesis" ||
-          from.acceptedPredecessor.publicState !== "published" ||
-          from.acceptedPredecessor.synthesisOrdinal !== from.synthesisOrdinal - 1 ||
-          from.acceptedPredecessor.synthesisDraftId !== fromDraft.previousAcceptedDraftId ||
-          fromDraft.previousAcceptedOrdinal !== from.synthesisOrdinal - 1)
-    )
-      return null;
-
-    const previous = parseSnapshot(from, review);
-    const current = parseSnapshot(to, review);
-    if (!previous || !current) return null;
-    const delta = compareSynthesisGenerations(previous, current);
-    return {
-      slug: review.slug,
-      title: publicCurrent.title,
-      from: versionMetadata(from),
-      to: versionMetadata(to),
-      delta,
-    };
-  } catch {
+  const [review, publicCurrent] = await Promise.all([
+    loadReview(client, slug),
+    getPublicSynthesisReview(slug, client),
+  ]);
+  if (
+    !review ||
+    !publicCurrent ||
+    review.status !== "published" ||
+    review.reviewType !== "ai-synthesis" ||
+    review.repositoryId !== null ||
+    review.currentSnapshotId !== null ||
+    !review.synthesisSeriesKey ||
+    !review.currentSynthesisVersionId ||
+    publicCurrent.version.id !== review.currentSynthesisVersionId
+  )
     return null;
+
+  const toId = requestedTo ?? review.currentSynthesisVersionId;
+  const to = await loadVersion(client, toId);
+  if (
+    !to ||
+    to.reviewId !== review.id ||
+    !to.acceptedPredecessorVersionId ||
+    !to.synthesisOrdinal ||
+    to.synthesisOrdinal > publicCurrent.version.ordinal
+  )
+    return null;
+  const fromId = requestedFrom ?? to.acceptedPredecessorVersionId;
+  if (fromId === toId || to.acceptedPredecessorVersionId !== fromId) return null;
+  const from = await loadVersion(client, fromId);
+  if (!from || from.reviewId !== review.id) return null;
+
+  const fromDraft = from.synthesisDraft;
+  const toDraft = to.synthesisDraft;
+  if (
+    !fromDraft ||
+    !toDraft ||
+    from.synthesisOrdinal === null ||
+    to.synthesisOrdinal !== from.synthesisOrdinal + 1 ||
+    to.acceptedPredecessor?.id !== from.id ||
+    to.acceptedPredecessor.reviewId !== review.id ||
+    to.acceptedPredecessor.recordSourceType !== "synthesis" ||
+    to.acceptedPredecessor.publicState !== "published" ||
+    to.acceptedPredecessor.synthesisOrdinal !== from.synthesisOrdinal ||
+    to.acceptedPredecessor.synthesisDraftId !== fromDraft.id ||
+    toDraft.previousAcceptedDraftId !== fromDraft.id ||
+    toDraft.previousAcceptedOrdinal !== from.synthesisOrdinal ||
+    fromDraft.seriesKey !== toDraft.seriesKey ||
+    fromDraft.seriesKey !== review.synthesisSeriesKey ||
+    (from.synthesisOrdinal === 1
+      ? from.acceptedPredecessorVersionId !== null ||
+        fromDraft.previousAcceptedDraftId !== null ||
+        fromDraft.previousAcceptedOrdinal !== null
+      : !from.acceptedPredecessorVersionId ||
+        !from.acceptedPredecessor ||
+        from.acceptedPredecessor.reviewId !== review.id ||
+        from.acceptedPredecessor.recordSourceType !== "synthesis" ||
+        from.acceptedPredecessor.publicState !== "published" ||
+        from.acceptedPredecessor.synthesisOrdinal !== from.synthesisOrdinal - 1 ||
+        from.acceptedPredecessor.synthesisDraftId !== fromDraft.previousAcceptedDraftId ||
+        fromDraft.previousAcceptedOrdinal !== from.synthesisOrdinal - 1)
+  )
+    return null;
+
+  const previous = parseSnapshot(from, review);
+  const current = parseSnapshot(to, review);
+  if (!previous || !current) return null;
+  let delta: SynthesisGenerationDelta;
+  try {
+    delta = compareSynthesisGenerations(previous, current);
+  } catch (error) {
+    if (error instanceof SynthesisGenerationDeltaError) return null;
+    throw error;
   }
+  return {
+    slug: review.slug,
+    title: publicCurrent.title,
+    from: versionMetadata(from),
+    to: versionMetadata(to),
+    delta,
+  };
 }
