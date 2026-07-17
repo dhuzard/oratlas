@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { SYNTHESIS_PUBLIC_AI_LABEL, SYNTHESIS_PUBLIC_SCOPE_NOTICE } from "@oratlas/contracts";
 
 test("editor gates generated, rejected, and accepted synthesis drafts", async ({ page }) => {
   await page.goto("/signin");
@@ -52,6 +53,9 @@ test("editor gates generated, rejected, and accepted synthesis drafts", async ({
   const rejectionResponse = page.waitForResponse((response) =>
     response.url().includes(`/api/editorial/syntheses/${rejectedDraft.id}/decision`),
   );
+  await rejectedCard
+    .getByLabel("Editorial rationale")
+    .fill("The draft requires a different editorial outcome before it can be published.");
   await rejectedCard.getByRole("button", { name: "Reject" }).click();
   const rejected = await rejectionResponse;
   expect(rejected.ok(), await rejected.text()).toBeTruthy();
@@ -60,19 +64,40 @@ test("editor gates generated, rejected, and accepted synthesis drafts", async ({
 
   const card = page.locator(`article[data-draft-id="${draft.id}"]`);
   await expect(card).toContainText("pending");
+  for (const sectionTitle of [
+    "Background",
+    "State of knowledge",
+    "Agreements",
+    "Contradictions and open questions",
+    "Data and code availability",
+    "Limitations",
+  ]) {
+    await expect(card.getByRole("heading", { name: sectionTitle, exact: true })).toBeVisible();
+  }
+  const acceptButton = card.getByRole("button", { name: "Accept and publish" });
+  await expect(acceptButton).toBeDisabled();
+  for (const checkbox of await card.getByRole("checkbox").all()) await checkbox.check();
+  await card.getByLabel("SPDX license expression").fill("CC-BY-4.0");
+  await card
+    .getByLabel("Rights statement")
+    .fill("The editor confirms publication rights for this grounded synthesis.");
+  await card
+    .getByLabel("Editorial rationale")
+    .fill("The editor reviewed the complete immutable draft and all required publication checks.");
+  await expect(acceptButton).toBeEnabled();
   const decisionResponse = page.waitForResponse(
     (response) =>
       response.url().includes("/api/editorial/syntheses/") && response.url().endsWith("/decision"),
   );
-  await card.getByRole("button", { name: "Accept and publish" }).click();
+  await acceptButton.click();
   const accepted = await decisionResponse;
   expect(accepted.ok(), await accepted.text()).toBeTruthy();
   const result = (await accepted.json()) as { reviewSlug: string };
 
   expect(result.reviewSlug).toBe(slug);
   await page.goto(`/reviews/${slug}`);
-  await expect(page.getByText("AI-written synthesis")).toBeVisible();
-  await expect(page.getByText("AI-generated, editor-approved")).toBeVisible();
+  await expect(page.getByText(SYNTHESIS_PUBLIC_AI_LABEL, { exact: true }).first()).toBeVisible();
+  await expect(page.getByText(SYNTHESIS_PUBLIC_SCOPE_NOTICE, { exact: true })).toBeVisible();
   await expect(page.getByText("Freshness not yet checked")).toBeVisible();
 
   await page.goto("/editorial");

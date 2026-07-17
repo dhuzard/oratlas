@@ -10,7 +10,9 @@ The platform inspects the repository, extracts metadata deterministically, valid
 Zenodo DOIs, and — after an editorial decision — publishes an immutable, versioned review record
 with claims, citations, claim-level TRUST assessments, and a grounded cross-review discussion
 assistant (Atlas Discuss), plus human-published replication briefs from transparent evidence-gap
-triage.
+triage. Claims, figures, datasets, and code are first-class immutable graph nodes; bounded node
+subgraphs can generate private AI synthesis drafts that become public only after explicit editor
+acceptance under the [AI synthesis governance policy](docs/synthesis-governance.md).
 
 > **This platform does not perform peer review** and does not present AI-generated conclusions as
 > established scientific consensus. See [What the platform does not verify](#what-the-platform-does-not-verify).
@@ -27,6 +29,8 @@ The POC ships a restrained, scholarly server-rendered interface:
 - **Submission wizard** — repository → inspect → editable metadata (with per-field provenance) →
   validation → submit.
 - **Atlas Discuss** — grounded cross-review discussion.
+- **AI synthesis review** — editor-accepted, software-generated long-form review with exact
+  node-version citations, public generation/editor provenance, rights, and immutable lineage.
 - **Replication Marketplace** — deterministic evidence-gap triage and human-published, scoped
   replication briefs with attributable claiming/completion. See
   [`docs/replication-marketplace.md`](docs/replication-marketplace.md).
@@ -217,6 +221,9 @@ Zenodo access token.
 - **Replication briefs are editorial opportunities, not promises or truth scores.** Atlas does not
   rank researchers, predict outcomes, execute studies, initiate payments, or automatically
   publish briefs; a completion record is not an endorsement of the reported result.
+- **AI synthesis acceptance is curation, not human authorship or scientific endorsement.** The
+  synthesis writer is disclosed as software; the named editor is accountable for the publication
+  decision/checklist. Acceptance does not establish peer review, correctness, consensus, or TRUST.
 
 A full inventory of limitations lives in [`docs/poc-limitations.md`](docs/poc-limitations.md).
 
@@ -242,6 +249,8 @@ A full inventory of limitations lives in [`docs/poc-limitations.md`](docs/poc-li
 | [`docs/preservation-and-exports.md`](docs/preservation-and-exports.md)         | Standards exports and preservation artifacts              |
 | [`docs/editorial-governance.md`](docs/editorial-governance.md)                 | Roles, decisions, overrides, audit                        |
 | [`docs/agent-governance.md`](docs/agent-governance.md)                         | How automated agents are bounded and supervised           |
+| [`docs/synthesis-governance.md`](docs/synthesis-governance.md)                 | Normative AI attribution, disclosure, rights, incidents   |
+| [`docs/synthesis-editorial.md`](docs/synthesis-editorial.md)                   | Private draft and editor-acceptance lifecycle             |
 | [`docs/deployment.md`](docs/deployment.md)                                     | Production deployment                                     |
 | [`docs/operations/`](docs/operations/README.md)                                | Backups, observability, Postgres, privacy & takedown      |
 | [`docs/poc-limitations.md`](docs/poc-limitations.md)                           | What the POC deliberately does not do                     |

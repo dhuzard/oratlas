@@ -33,6 +33,11 @@ knowledge-consensus engine.
   reinspection. This deliberately favors source integrity over long-lived browser drafts.
 - **Example data is synthetic.** Seed DOIs (`10.5555/…`) do not resolve and are flagged; do not
   mistake them for real deposits.
+- **AI synthesis withdrawal is not yet a dedicated public lifecycle.** Accepted syntheses support
+  immutable corrected successors, but the POC has no synthesis-specific withdrawal/tombstone
+  transition or reader UI. A suspected privacy, rights, integrity, or scientific incident must be
+  failed closed and handled by controlled operators without silently deleting or mutating the
+  accepted version. See the [normative synthesis policy](synthesis-governance.md).
 
 ## What the platform explicitly does not verify
 
@@ -47,6 +52,10 @@ knowledge-consensus engine.
 - Several reviews citing the same primary source are **not independent replication**.
 - A validated Atlas Discuss evidence edge proves that the answer points to a recorded relation; it
   does **not** prove that the claim or cited study is scientifically correct.
+- An editor-accepted AI synthesis is **not peer review, scientific correctness, consensus, truth
+  adjudication, or a blanket TRUST assessment**. The software agent is not a person; the named
+  editor is accountable for curation and the acceptance checklist, not attributed as the author of
+  generated prose.
 
 ## Suggested next production steps
 

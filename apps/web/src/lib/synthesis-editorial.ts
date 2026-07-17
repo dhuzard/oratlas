@@ -4,8 +4,9 @@ import { Prisma, type PrismaClient } from "@oratlas/db";
 import {
   canonicalJson,
   editorialSynthesisDraftSchema,
+  isSupportedSynthesisAcceptanceChecklist,
+  liveSynthesisDoiPairSchema,
   publicSynthesisReviewSchema,
-  synthesisAcceptanceChecklistSchema,
   subgraphEvidenceTrustSchema,
   subgraphEvidencePacketSchema,
   synthesisDraftDecisionSchema,
@@ -1059,10 +1060,8 @@ function draftProvenance(row: LoadedDraft) {
     packetHash: row.packetHash,
     documentHash: row.documentHash,
     generatedAt: row.generatedAt.toISOString(),
-    attributionPolicyVersion:
-      row.attributionPolicyVersion as typeof SYNTHESIS_ATTRIBUTION_POLICY_VERSION,
-    materializationPolicyVersion:
-      row.materializationPolicyVersion as typeof SYNTHESIS_MATERIALIZATION_POLICY_VERSION,
+    attributionPolicyVersion: row.attributionPolicyVersion,
+    materializationPolicyVersion: row.materializationPolicyVersion,
   };
 }
 
@@ -1265,6 +1264,17 @@ export async function decideSynthesisDraft(
                 synthesisOrdinal: true,
                 synthesisDraftId: true,
                 acceptedPredecessorVersionId: true,
+                versionDoi: true,
+                conceptDoi: true,
+                synthesisDraft: {
+                  select: {
+                    id: true,
+                    status: true,
+                    reviewId: true,
+                    versionDoi: true,
+                    conceptDoi: true,
+                  },
+                },
               },
             },
           },
@@ -1294,8 +1304,115 @@ export async function decideSynthesisDraft(
             "conflict",
           );
         }
+        let canonicalSeriesConceptDoi: string | null = null;
+        if (existingReview && previousVersion) {
+          const acceptedHistory = await tx.reviewVersion.findMany({
+            where: { reviewId: existingReview.id, recordSourceType: "synthesis" },
+            orderBy: { synthesisOrdinal: "asc" },
+            select: {
+              id: true,
+              synthesisOrdinal: true,
+              versionDoi: true,
+              conceptDoi: true,
+              synthesisDraft: {
+                select: {
+                  id: true,
+                  status: true,
+                  reviewId: true,
+                  versionDoi: true,
+                  conceptDoi: true,
+                },
+              },
+            },
+          });
+          const historicalConcepts = new Set<string>();
+          if (acceptedHistory.at(-1)?.id !== previousVersion.id) {
+            throw new SynthesisEditorialError(
+              "Current synthesis head is not the latest accepted series version.",
+              "conflict",
+            );
+          }
+          for (const acceptedVersion of acceptedHistory) {
+            const acceptedDraft = acceptedVersion.synthesisDraft;
+            const doiPair = liveSynthesisDoiPairSchema.safeParse({
+              versionDoi: acceptedVersion.versionDoi ?? undefined,
+              conceptDoi: acceptedVersion.conceptDoi ?? undefined,
+            });
+            if (
+              !acceptedVersion.synthesisOrdinal ||
+              !acceptedDraft ||
+              acceptedDraft.status !== "accepted" ||
+              acceptedDraft.reviewId !== existingReview.id ||
+              acceptedVersion.versionDoi !== acceptedDraft.versionDoi ||
+              acceptedVersion.conceptDoi !== acceptedDraft.conceptDoi ||
+              !doiPair.success ||
+              (doiPair.data.versionDoi ?? null) !== acceptedVersion.versionDoi ||
+              (doiPair.data.conceptDoi ?? null) !== acceptedVersion.conceptDoi
+            ) {
+              throw new SynthesisEditorialError(
+                "Accepted synthesis DOI lineage is corrupt.",
+                "conflict",
+              );
+            }
+            if (acceptedVersion.conceptDoi) historicalConcepts.add(acceptedVersion.conceptDoi);
+          }
+          if (historicalConcepts.size > 1) {
+            throw new SynthesisEditorialError(
+              "Accepted synthesis history has inconsistent concept DOI roles.",
+              "conflict",
+            );
+          }
+          canonicalSeriesConceptDoi = historicalConcepts.values().next().value ?? null;
+          if ((previousVersion.conceptDoi ?? null) !== canonicalSeriesConceptDoi) {
+            throw new SynthesisEditorialError(
+              "Current synthesis head does not match the canonical series concept DOI.",
+              "conflict",
+            );
+          }
+        }
         const ordinal = (previousVersion?.synthesisOrdinal ?? 0) + 1;
         const slug = slugForSeries(draft.seriesKey);
+        if (previousVersion && canonicalSeriesConceptDoi !== (input.conceptDoi ?? null)) {
+          throw new SynthesisEditorialError(
+            "Concept DOI must remain stable for the synthesis series.",
+            "conflict",
+          );
+        }
+        if (input.versionDoi) {
+          const reused = await tx.reviewVersion.findFirst({
+            where: {
+              recordSourceType: "synthesis",
+              OR: [{ versionDoi: input.versionDoi }, { conceptDoi: input.versionDoi }],
+            },
+            select: { id: true },
+          });
+          if (reused) {
+            throw new SynthesisEditorialError(
+              "Version DOI is already assigned to a synthesis identifier.",
+              "conflict",
+            );
+          }
+        }
+        if (input.conceptDoi) {
+          const crossRole = await tx.reviewVersion.findFirst({
+            where: { recordSourceType: "synthesis", versionDoi: input.conceptDoi },
+            select: { id: true },
+          });
+          const otherSeries = await tx.reviewVersion.findFirst({
+            where: {
+              recordSourceType: "synthesis",
+              conceptDoi: input.conceptDoi,
+              ...(existingReview ? { reviewId: { not: existingReview.id } } : {}),
+            },
+            select: { id: true },
+          });
+          if (crossRole || otherSeries) {
+            throw new SynthesisEditorialError(
+              "Concept DOI is already assigned to another synthesis role or series.",
+              "conflict",
+            );
+          }
+        }
         let review = existingReview;
         if (!review) {
           review = await tx.review.create({
@@ -1318,6 +1435,17 @@ export async function decideSynthesisDraft(
                   synthesisOrdinal: true,
                   synthesisDraftId: true,
                   acceptedPredecessorVersionId: true,
+                  versionDoi: true,
+                  conceptDoi: true,
+                  synthesisDraft: {
+                    select: {
+                      id: true,
+                      status: true,
+                      reviewId: true,
+                      versionDoi: true,
+                      conceptDoi: true,
+                    },
+                  },
                 },
               },
             },
@@ -1343,6 +1471,7 @@ export async function decideSynthesisDraft(
             title: integrity.document.title,
             abstract: integrity.document.summary,
             metadataJson: canonicalJson({ reviewType: "ai-synthesis", license: input.licenseSpdx }),
+            isExample: false,
             publishedAt: acceptedAt,
             synthesisDocumentJson: draft.documentJson,
             synthesisOrdinal: ordinal,
@@ -1550,6 +1679,7 @@ export async function getPublicSynthesisReview(
     version.reviewId !== review.id ||
     version.recordSourceType !== "synthesis" ||
     version.snapshotId ||
+    version.isExample !== false ||
     version.publicState !== "published" ||
     !version.synthesisDraft ||
     version.synthesisDraft.status !== "accepted" ||
@@ -1565,9 +1695,12 @@ export async function getPublicSynthesisReview(
   try {
     integrity = assertDraftIntegrity(draft);
     checklistIsValid =
-      draft.checklistVersion === SYNTHESIS_ACCEPTANCE_CHECKLIST_VERSION &&
+      draft.checklistVersion !== null &&
       draft.checklistJson !== null &&
-      synthesisAcceptanceChecklistSchema.safeParse(JSON.parse(draft.checklistJson)).success;
+      isSupportedSynthesisAcceptanceChecklist(
+        draft.checklistVersion,
+        JSON.parse(draft.checklistJson),
+      );
   } catch {
     return null;
   }

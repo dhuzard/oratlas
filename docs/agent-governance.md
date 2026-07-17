@@ -42,6 +42,10 @@ not an assertion of scientific correctness.
 
 ### Long-form synthesis writer
 
+The normative policy is [AI synthesis governance and attribution](synthesis-governance.md). Its
+software-agent authorship, editor-accountability, public/private disclosure, and incident rules are
+mandatory for every accepted synthesis version.
+
 - The writer receives only a canonical, hash-bound graph-native evidence packet. Untrusted node
   prose is present only in the user-data bytes and can never modify the static system instructions.
 - Model output is accepted only as one strict six-section JSON document. Every citation repeats its
@@ -58,6 +62,9 @@ not an assertion of scientific correctness.
   prompt builder, parser, and validator against bounded adversarial fixtures. Its offline CI mode
   reads no provider key and its report never contains packets, prompts, hashes, model output, or
   `AgentRun` data.
+- Generation and regeneration create private drafts only. The software agent is not a `Person` and
+  cannot complete the editorial checklist or publish. Only an authenticated editor can accept a
+  version; that curation decision is not peer review, scientific correctness, consensus, or TRUST.
 
 ### Cross-review link proposals
 

@@ -314,6 +314,111 @@ describe.sequential("synthesis editorial lifecycle", () => {
     ).rejects.toMatchObject({ code: "conflict" });
   });
 
+  it("rejects synthesis DOI reuse across versions, roles, and series", async () => {
+    const successor = await service.generateSynthesisDraft(
+      { selector, requestKey: "generation-doi-successor-0001" },
+      { client: prisma, actor, loadPacket: async () => prepared() },
+    );
+    await expect(
+      service.decideSynthesisDraft(
+        successor.id,
+        {
+          ...acceptance,
+          idempotencyKey: "doi-successor-concept-change-0001",
+          versionDoi: "10.5281/zenodo.2234567",
+          conceptDoi: "10.5281/zenodo.2234500",
+        },
+        actor,
+        prisma,
+      ),
+    ).rejects.toMatchObject({ code: "conflict" });
+    await expect(
+      service.decideSynthesisDraft(
+        successor.id,
+        { ...acceptance, idempotencyKey: "doi-successor-version-reuse-0001" },
+        actor,
+        prisma,
+      ),
+    ).rejects.toMatchObject({ code: "conflict" });
+
+    const existingSeries = await prisma.review.findUniqueOrThrow({
+      where: { synthesisSeriesKey: service.synthesisSeriesKey(selector) },
+    });
+    const currentVersionId = existingSeries.currentSynthesisVersionId!;
+    for (const corruption of [
+      {
+        stored: { conceptDoi: "10.5281/zenodo.corrupt-concept" },
+        decision: {
+          conceptDoi: "10.5281/zenodo.corrupt-concept",
+          versionDoi: "10.5281/zenodo.6234567",
+        },
+        key: "doi-corrupt-current-concept-change-0001",
+      },
+      {
+        stored: { conceptDoi: null },
+        decision: { conceptDoi: undefined, versionDoi: "10.5281/zenodo.7234567" },
+        key: "doi-corrupt-current-concept-drop-0001",
+      },
+      {
+        stored: { versionDoi: "10.5281/zenodo.corrupt-version" },
+        decision: {
+          conceptDoi: acceptance.conceptDoi,
+          versionDoi: "10.5281/zenodo.8234567",
+        },
+        key: "doi-corrupt-current-version-mismatch-0001",
+      },
+    ]) {
+      await prisma.reviewVersion.update({
+        where: { id: currentVersionId },
+        data: corruption.stored,
+      });
+      await expect(
+        service.decideSynthesisDraft(
+          successor.id,
+          { ...acceptance, ...corruption.decision, idempotencyKey: corruption.key },
+          actor,
+          prisma,
+        ),
+      ).rejects.toMatchObject({ code: "conflict" });
+      await prisma.reviewVersion.update({
+        where: { id: currentVersionId },
+        data: {
+          versionDoi: acceptance.versionDoi.toLowerCase(),
+          conceptDoi: acceptance.conceptDoi.toLowerCase(),
+        },
+      });
+    }
+
+    const crossSeriesSelector = {
+      ...selector,
+      selection: { kind: "seed" as const, nodeId: "claim-reject" },
+    };
+    const crossSeries = await service.generateSynthesisDraft(
+      { selector: crossSeriesSelector, requestKey: "generation-doi-cross-series-0001" },
+      { client: prisma, actor, loadPacket: async () => prepared("claim-reject") },
+    );
+    await expect(
+      service.decideSynthesisDraft(
+        crossSeries.id,
+        { ...acceptance, idempotencyKey: "doi-cross-series-version-reuse-0001" },
+        actor,
+        prisma,
+      ),
+    ).rejects.toMatchObject({ code: "conflict" });
+    await expect(
+      service.decideSynthesisDraft(
+        crossSeries.id,
+        {
+          ...acceptance,
+          idempotencyKey: "doi-cross-series-concept-reuse-0001",
+          versionDoi: "10.5281/zenodo.3234567",
+        },
+        actor,
+        prisma,
+      ),
+    ).rejects.toMatchObject({ code: "conflict" });
+  });
+
   it("reclaims a stale pre-recorder lease without leaving an orphan run", async () => {
     let clock = new Date("2026-07-16T12:00:00.000Z");
     let providerCalls = 0;
@@ -973,6 +1078,9 @@ describe.sequential("synthesis editorial lifecycle", () => {
     const versionId = review.currentSynthesisVersionId!;
     const version = await prisma.reviewVersion.findUniqueOrThrow({ where: { id: versionId } });
     const draft = await prisma.synthesisDraft.findFirstOrThrow({ where: { reviewId: review.id } });
+    await prisma.reviewVersion.update({ where: { id: versionId }, data: { isExample: true } });
+    expect(await service.getPublicSynthesisReview(review.slug, prisma)).toBeNull();
+    await prisma.reviewVersion.update({ where: { id: versionId }, data: { isExample: false } });
     for (const { data, restore } of [
       {
         data: { synthesisProvider: null },
@@ -1216,7 +1324,11 @@ describe.sequential("synthesis editorial lifecycle", () => {
     const outcomes = await Promise.allSettled([
       service.decideSynthesisDraft(
         racedDraft.id,
-        { ...acceptance, idempotencyKey: "race-accept-0003" },
+        {
+          ...acceptance,
+          idempotencyKey: "race-accept-0003",
+          versionDoi: "10.5281/zenodo.4234567",
+        },
         actor,
         prisma,
       ),
@@ -1276,7 +1388,11 @@ describe.sequential("synthesis editorial lifecycle", () => {
     );
     await service.decideSynthesisDraft(
       nextDraft.id,
-      { ...acceptance, idempotencyKey: "accept-supersession-0001" },
+      {
+        ...acceptance,
+        idempotencyKey: "accept-supersession-0001",
+        versionDoi: "10.5281/zenodo.5234567",
+      },
       actor,
       prisma,
     );

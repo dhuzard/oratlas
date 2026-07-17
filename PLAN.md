@@ -9,7 +9,9 @@ Authors do not upload manuscripts. They submit a public GitHub repository URL; t
 platform inspects the repository, extracts metadata deterministically, validates optional
 Zenodo DOIs, and — after an editorial decision — publishes an immutable, versioned review
 record with claims, citations, claim-level TRUST assessments, and a grounded cross-review
-discussion assistant.
+discussion assistant. The graph also stores immutable claim, figure, dataset, and code nodes.
+Bounded subgraphs may produce AI-generated long-form synthesis drafts, but those drafts remain
+private until an accountable editor accepts them under `docs/synthesis-governance.md`.
 
 ## Reference template findings (inspected 2026-07-10)
 
@@ -65,4 +67,5 @@ syntheses consumed by humans — is specified as an agent-ready backlog in `TODO
 
 File uploads, private repositories, DOI minting, full peer-review management, manuscript
 editing, billing, SSO, social networking, autonomous publication, automated
-knowledge-consensus. See `docs/poc-limitations.md`.
+knowledge-consensus, fabricated human authorship for software agents, and AI adjudication of
+scientific truth/TRUST. See `docs/poc-limitations.md` and `docs/synthesis-governance.md`.
