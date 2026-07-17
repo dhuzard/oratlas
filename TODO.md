@@ -452,7 +452,7 @@ packages: [packages/knowledge, scripts, apps/web]
 ```yaml
 id: KG-15
 epic: D
-status: todo
+status: in-progress (issue #63)
 depends_on: [KG-13]
 size: L
 labels: [web, ui]

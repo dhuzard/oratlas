@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import AxeBuilder from "@axe-core/playwright";
 import { SYNTHESIS_PUBLIC_AI_LABEL, SYNTHESIS_PUBLIC_SCOPE_NOTICE } from "@oratlas/contracts";
 
 test("editor gates generated, rejected, and accepted synthesis drafts", async ({ page }) => {
@@ -9,7 +10,14 @@ test("editor gates generated, rejected, and accepted synthesis drafts", async ({
   const { getPrisma } = await import("@oratlas/db");
   const prisma = getPrisma();
   const node = await prisma.knowledgeNode.findFirstOrThrow({
-    where: { kind: "figure", versions: { some: {} } },
+    where: { localNodeId: "replay-boundary-claim", versions: { some: {} } },
+    orderBy: { id: "asc" },
+    include: {
+      versions: { orderBy: [{ createdAt: "desc" }, { id: "desc" }], take: 1 },
+    },
+  });
+  const opposingNode = await prisma.knowledgeNode.findFirstOrThrow({
+    where: { localNodeId: "replay-consolidation-claim", versions: { some: {} } },
     orderBy: { id: "asc" },
     include: {
       versions: { orderBy: [{ createdAt: "desc" }, { id: "desc" }], take: 1 },
@@ -28,8 +36,18 @@ test("editor gates generated, rejected, and accepted synthesis drafts", async ({
     id: string;
     seriesKey: string;
     document: { title: string };
-    citations: Array<{ href?: string; nodeId: string; nodeVersionId: string }>;
+    citations: Array<{ href?: string; nodeId: string; nodeVersionId: string; title: string }>;
+    provenance: { packetHash: string; model: string };
   };
+  expect(draft.citations).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({ nodeId: node.id, nodeVersionId: node.versions[0]!.id }),
+      expect.objectContaining({
+        nodeId: opposingNode.id,
+        nodeVersionId: opposingNode.versions[0]!.id,
+      }),
+    ]),
+  );
   const slug = `synthesis-${draft.seriesKey.slice(0, 20)}`;
   expect((await page.request.get(`/api/syntheses/${slug}`)).status()).toBe(404);
   expect((await page.request.get(`/reviews/${slug}`)).status()).toBe(404);
@@ -99,6 +117,47 @@ test("editor gates generated, rejected, and accepted synthesis drafts", async ({
   await expect(page.getByText(SYNTHESIS_PUBLIC_AI_LABEL, { exact: true }).first()).toBeVisible();
   await expect(page.getByText(SYNTHESIS_PUBLIC_SCOPE_NOTICE, { exact: true })).toBeVisible();
   await expect(page.getByText("Freshness not yet checked")).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "In this synthesis" })).toBeVisible();
+  const disclosure = page.getByRole("complementary", {
+    name: "Article navigation and disclosure",
+  });
+  await expect(disclosure).toContainText(draft.provenance.model);
+  await expect(disclosure).toContainText(draft.provenance.packetHash);
+  await expect(page.getByRole("complementary", { name: "Disputed evidence" })).toBeVisible();
+
+  const firstCitation = page.locator("details.synthesis-citation").first();
+  await firstCitation.locator("summary").click();
+  const evidenceLink = firstCitation.getByRole("link", { name: "Open exact evidence node" });
+  const evidenceHref = await evidenceLink.getAttribute("href");
+  expect(
+    draft.citations.some(
+      (citation) => evidenceHref === `/nodes/${citation.nodeId}/versions/${citation.nodeVersionId}`,
+    ),
+  ).toBe(true);
+  expect(evidenceHref).toBeTruthy();
+  await expect(firstCitation.getByText(/TRUST is relation-scoped context/i)).toBeVisible();
+  const accessibility = await new AxeBuilder({ page })
+    .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+    .analyze();
+  expect(
+    accessibility.violations.filter(
+      (violation) => violation.impact === "serious" || violation.impact === "critical",
+    ),
+  ).toEqual([]);
+  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+  await expect(disclosure).toBeVisible();
+  await evidenceLink.click();
+  await expect(page).toHaveURL(new RegExp(`${evidenceHref!}$`));
+  await page.goto(`/reviews/${slug}`);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+  const persistentMobileDisclosure = page.getByLabel("Persistent AI disclosure");
+  await expect(persistentMobileDisclosure).toBeVisible();
+  await expect(persistentMobileDisclosure).toContainText(draft.provenance.packetHash);
+  expect(
+    await persistentMobileDisclosure.evaluate((element) => getComputedStyle(element).position),
+  ).toBe("sticky");
+  await page.setViewportSize({ width: 1280, height: 720 });
 
   await page.goto("/editorial");
   const freshScanResponse = page.waitForResponse((response) =>
@@ -167,7 +226,10 @@ test("editor gates generated, rejected, and accepted synthesis drafts", async ({
   const citation = draft.citations[0];
   expect(citation).toBeTruthy();
   const citationHref = `/nodes/${citation!.nodeId}/versions/${citation!.nodeVersionId}`;
-  const citationLink = page.locator(`a[href="${citationHref}"]`).first();
+  const citationLink = page
+    .locator("#grounding-citations")
+    .locator(`a[href="${citationHref}"]`)
+    .first();
   await expect(citationLink).toBeVisible();
   await citationLink.click();
   await expect(page).toHaveURL(new RegExp(`${citationHref.replaceAll("/", "\\/")}$`));

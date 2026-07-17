@@ -18,11 +18,8 @@ import { listExecutionPassportsForVersion } from "@/lib/execution-passports";
 import { getPublicProtocolSummary } from "@/lib/protocol-drift";
 import { ArticleReader } from "./ArticleReader";
 import { getPublicSynthesisReview } from "@/lib/synthesis-editorial";
-import {
-  SYNTHESIS_PUBLIC_AI_LABEL,
-  SYNTHESIS_PUBLIC_SCOPE_NOTICE,
-  type PublicSynthesisReview,
-} from "@oratlas/contracts";
+import { loadSynthesisReadingContext } from "@/lib/synthesis-reading";
+import { SynthesisReader } from "./SynthesisReader";
 
 export const dynamic = "force-dynamic";
 
@@ -62,85 +59,6 @@ export async function generateMetadata({
   };
 }
 
-function SynthesisReviewPage({ synthesis }: { synthesis: PublicSynthesisReview }) {
-  return (
-    <article>
-      <div className="btn-row">
-        <Badge tone="warning">{SYNTHESIS_PUBLIC_AI_LABEL}</Badge>
-        <StatusPill status="editor-accepted" />
-      </div>
-      <h1>{synthesis.title}</h1>
-      <p className="lead">{synthesis.abstract}</p>
-      <Notice tone="warning" title={SYNTHESIS_PUBLIC_AI_LABEL}>
-        {synthesis.provenance.pipelineSoftware.displayName} is the disclosed software agent. Editor{" "}
-        {synthesis.provenance.approvingEditor.displayName} accepted this version for publication and
-        is accountable for the editorial decision and checklist.{" "}
-        <span>{SYNTHESIS_PUBLIC_SCOPE_NOTICE}</span>
-      </Notice>
-      {synthesis.freshness.status === "stale" ? (
-        <Notice tone="warning" title="Newer evidence exists">
-          A bounded freshness check found {synthesis.freshness.affectedReferenceCount} affected
-          references. This accepted synthesis may not reflect the latest graph evidence.
-        </Notice>
-      ) : synthesis.freshness.status === "fresh" ? (
-        <p>
-          <Badge tone="success">Freshness checked</Badge>
-        </p>
-      ) : (
-        <p>
-          <Badge tone="neutral">Freshness not yet checked</Badge>
-        </p>
-      )}
-      {synthesis.document.sections.map((section) => (
-        <section key={section.id}>
-          <h2>{section.title}</h2>
-          {section.paragraphs.map((paragraph, index) => (
-            <p key={index}>{paragraph.text}</p>
-          ))}
-        </section>
-      ))}
-      <Card>
-        <h2>Grounding citations</h2>
-        <ol>
-          {synthesis.citations.map((citation) => (
-            <li key={`${citation.location}:${citation.occurrenceOrdinal}`}>
-              <Link href={citation.href}>{citation.title}</Link>{" "}
-              <span className="muted">({citation.location})</span>
-            </li>
-          ))}
-        </ol>
-      </Card>
-      <Card>
-        <h2>Provenance and rights</h2>
-        <p>
-          Accepted {new Date(synthesis.provenance.acceptedAt).toLocaleDateString()} · version{" "}
-          {synthesis.version.ordinal}
-        </p>
-        <p>{synthesis.provenance.rightsStatement}</p>
-        <p>
-          License: <span className="mono">{synthesis.provenance.licenseSpdx}</span>
-        </p>
-        <DefinitionList
-          items={[
-            {
-              term: "Version DOI",
-              value: <DoiValue value={synthesis.version.versionDoi} />,
-            },
-            {
-              term: "Concept DOI",
-              value: <DoiValue value={synthesis.version.conceptDoi} />,
-            },
-          ]}
-        />
-        <p className="mono muted">
-          Model {synthesis.provenance.provider}/{synthesis.provenance.model} · document SHA-256{" "}
-          {synthesis.provenance.documentHash}
-        </p>
-      </Card>
-    </article>
-  );
-}
-
 function DoiValue({ value, isExample = false }: { value?: string; isExample?: boolean }) {
   if (!value) return <span className="muted">—</span>;
   if (isExample) {
@@ -164,7 +82,20 @@ export default async function ReviewPage({
 }) {
   const { slug, versionId } = await params;
   const synthesis = versionId ? null : await getPublicSynthesisReview(slug);
-  if (synthesis) return <SynthesisReviewPage synthesis={synthesis} />;
+  if (synthesis) {
+    const [reading, requestHeaders] = await Promise.all([
+      loadSynthesisReadingContext(synthesis),
+      headers(),
+    ]);
+    if (!reading) notFound();
+    return (
+      <SynthesisReader
+        synthesis={synthesis}
+        reading={reading}
+        nonce={requestHeaders.get("x-nonce") ?? undefined}
+      />
+    );
+  }
   const review = await getReviewDetail(slug, versionId);
   if (!review) notFound();
   const isHistoricalRoute = Boolean(versionId);
