@@ -11,6 +11,7 @@ import {
   synthesisFreshnessBaseSchema,
   synthesisDraftDecisionSchema,
   SYNTHESIS_ACCEPTANCE_CHECKLIST_VERSION,
+  SYNTHESIS_ACCEPTANCE_CHECKLIST_SCHEMAS,
   SYNTHESIS_ATTRIBUTION_POLICY_VERSION,
   SYNTHESIS_MATERIALIZATION_POLICY_VERSION,
   SYNTHESIS_PIPELINE_SOFTWARE_ID,
@@ -26,6 +27,7 @@ import {
   SYNTHESIS_SUPPORTED_ACCEPTANCE_CHECKLIST_VERSIONS,
   SYNTHESIS_SUPPORTED_ATTRIBUTION_POLICY_VERSIONS,
   SYNTHESIS_SUPPORTED_MATERIALIZATION_POLICY_VERSIONS,
+  synthesisAcceptanceChecklistSchema,
 } from "./synthesis-editorial.js";
 import {
   SYNTHESIS_REVIEW_SCHEMA_VERSION,
@@ -269,6 +271,12 @@ describe("synthesis editorial contracts", () => {
     expect(SYNTHESIS_SUPPORTED_ACCEPTANCE_CHECKLIST_VERSIONS).toContain(
       "synthesis-checklist/1.0.0",
     );
+    expect(Object.keys(SYNTHESIS_ACCEPTANCE_CHECKLIST_SCHEMAS)).toEqual([
+      "synthesis-checklist/1.0.0",
+    ]);
+    expect(SYNTHESIS_ACCEPTANCE_CHECKLIST_SCHEMAS["synthesis-checklist/1.0.0"]).toBe(
+      synthesisAcceptanceChecklistSchema,
+    );
     expect(
       isSupportedSynthesisAcceptanceChecklist(SYNTHESIS_ACCEPTANCE_CHECKLIST_VERSION, {
         groundingAndCitationsReviewed: true,
@@ -280,6 +288,18 @@ describe("synthesis editorial contracts", () => {
       }),
     ).toBe(true);
     expect(isSupportedSynthesisAcceptanceChecklist("synthesis-checklist/999.0.0", {})).toBe(false);
+
+    // This literal historical dispatch must remain valid even after CURRENT advances to a newer key.
+    expect(
+      isSupportedSynthesisAcceptanceChecklist("synthesis-checklist/1.0.0", {
+        groundingAndCitationsReviewed: true,
+        contradictionAndNonConsensusFramingReviewed: true,
+        attributionAndAiDisclosureReviewed: true,
+        limitationsReviewed: true,
+        privacyAndInjectionLeakageReviewed: true,
+        rightsAndLicenseConfirmed: true,
+      }),
+    ).toBe(true);
 
     for (const field of SYNTHESIS_PUBLIC_PRIVATE_FIELD_DENYLIST) {
       expect(

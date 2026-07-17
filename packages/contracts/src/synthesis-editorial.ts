@@ -12,9 +12,6 @@ export const SYNTHESIS_SUPPORTED_MATERIALIZATION_POLICY_VERSIONS = [
 export const SYNTHESIS_SUPPORTED_ATTRIBUTION_POLICY_VERSIONS = [
   "synthesis-attribution/1.0.0",
 ] as const;
-export const SYNTHESIS_SUPPORTED_ACCEPTANCE_CHECKLIST_VERSIONS = [
-  "synthesis-checklist/1.0.0",
-] as const;
 export const SYNTHESIS_MATERIALIZATION_POLICY_VERSION =
   SYNTHESIS_SUPPORTED_MATERIALIZATION_POLICY_VERSIONS[
     SYNTHESIS_SUPPORTED_MATERIALIZATION_POLICY_VERSIONS.length - 1
@@ -22,10 +19,6 @@ export const SYNTHESIS_MATERIALIZATION_POLICY_VERSION =
 export const SYNTHESIS_ATTRIBUTION_POLICY_VERSION =
   SYNTHESIS_SUPPORTED_ATTRIBUTION_POLICY_VERSIONS[
     SYNTHESIS_SUPPORTED_ATTRIBUTION_POLICY_VERSIONS.length - 1
-  ]!;
-export const SYNTHESIS_ACCEPTANCE_CHECKLIST_VERSION =
-  SYNTHESIS_SUPPORTED_ACCEPTANCE_CHECKLIST_VERSIONS[
-    SYNTHESIS_SUPPORTED_ACCEPTANCE_CHECKLIST_VERSIONS.length - 1
   ]!;
 export const SYNTHESIS_PIPELINE_SOFTWARE_NAME = "Open Review Atlas Synthesis Writer" as const;
 export const SYNTHESIS_PIPELINE_SOFTWARE_ID = "software:oratlas-synthesis-writer" as const;
@@ -409,13 +402,28 @@ export const synthesisAcceptanceChecklistSchema = z
   })
   .strict();
 
+/** Immutable, append-only persisted-version dispatch. Historical keys must never be removed. */
+export const SYNTHESIS_ACCEPTANCE_CHECKLIST_SCHEMAS = Object.freeze({
+  "synthesis-checklist/1.0.0": synthesisAcceptanceChecklistSchema,
+});
+export const SYNTHESIS_SUPPORTED_ACCEPTANCE_CHECKLIST_VERSIONS = Object.freeze(
+  Object.keys(SYNTHESIS_ACCEPTANCE_CHECKLIST_SCHEMAS),
+) as readonly [keyof typeof SYNTHESIS_ACCEPTANCE_CHECKLIST_SCHEMAS];
+export const SYNTHESIS_ACCEPTANCE_CHECKLIST_VERSION =
+  SYNTHESIS_SUPPORTED_ACCEPTANCE_CHECKLIST_VERSIONS[
+    SYNTHESIS_SUPPORTED_ACCEPTANCE_CHECKLIST_VERSIONS.length - 1
+  ]!;
+
 export function isSupportedSynthesisAcceptanceChecklist(version: string, value: unknown): boolean {
-  switch (version) {
-    case SYNTHESIS_ACCEPTANCE_CHECKLIST_VERSION:
-      return synthesisAcceptanceChecklistSchema.safeParse(value).success;
-    default:
-      return false;
-  }
+  const schema = Object.prototype.hasOwnProperty.call(
+    SYNTHESIS_ACCEPTANCE_CHECKLIST_SCHEMAS,
+    version,
+  )
+    ? SYNTHESIS_ACCEPTANCE_CHECKLIST_SCHEMAS[
+        version as keyof typeof SYNTHESIS_ACCEPTANCE_CHECKLIST_SCHEMAS
+      ]
+    : undefined;
+  return schema?.safeParse(value).success ?? false;
 }
 
 export const synthesisDraftDecisionSchema = z
