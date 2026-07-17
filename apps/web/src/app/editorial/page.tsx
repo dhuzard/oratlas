@@ -53,6 +53,9 @@ export default async function EditorialPage({
   const audit = await listAuditEvents(30);
   const lifecycleReviews = await listLifecycleEditorialReviews();
   const params = (await searchParams) ?? {};
+  const requestedSynthesisSeedNodeId = Array.isArray(params.synthesisSeedNodeId)
+    ? params.synthesisSeedNodeId[0]
+    : params.synthesisSeedNodeId;
   const requestedTrustFilter = Array.isArray(params.trustFilter)
     ? params.trustFilter[0]
     : params.trustFilter;
@@ -90,7 +93,10 @@ export default async function EditorialPage({
         <a href="/editorial/replications">Manage replication briefs →</a>
       </p>
 
-      <SynthesisDraftPanel drafts={synthesisDrafts} />
+      <SynthesisDraftPanel
+        drafts={synthesisDrafts}
+        initialSeedNodeId={requestedSynthesisSeedNodeId?.slice(0, 200)}
+      />
       <SynthesisStalenessPanel
         proposals={synthesisProposalPage.proposals}
         nextCursor={synthesisProposalPage.nextCursor}

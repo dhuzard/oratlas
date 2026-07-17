@@ -22,6 +22,7 @@ import {
 } from "@oratlas/contracts";
 import { nodeFieldProvenanceSchema } from "@oratlas/extractor";
 import { selectPreferredTrustAssessment } from "@oratlas/trust";
+import type { PrismaClient } from "@oratlas/db";
 import { prisma } from "./db";
 import {
   hasOwnedConfirmedTargetVersion,
@@ -51,7 +52,7 @@ const contributorsSchema = z.array(manifestContributorSchema).max(200);
 // POC request-work ceilings. Exact historical URLs remain addressable beyond the
 // history window, but archive totals and list/history surfaces intentionally cap
 // their scanned cardinality until KG-08 supplies database-native graph/search cursors.
-const PUBLIC_NODE_SEARCH_LIMIT = 2_000;
+export const PUBLIC_NODE_SEARCH_LIMIT = 2_000;
 const PUBLIC_NODE_VERSION_LIMIT = 200;
 const PUBLIC_NODE_EDGE_LIMIT = 200;
 const PUBLIC_NODE_TRUST_RELATION_LIMIT = 200;
@@ -339,8 +340,9 @@ export async function listPublicNodes(query: NodeArchiveQuery): Promise<PublicNo
 
 export async function listPublicNodeSummaries(
   kind?: KnowledgeNodeKind,
+  client: PrismaClient = prisma,
 ): Promise<PublicNodeSummary[]> {
-  const rows = await prisma.knowledgeNode.findMany({
+  const rows = await client.knowledgeNode.findMany({
     where: {
       versions: { some: {} },
       ...(kind ? { kind } : {}),
