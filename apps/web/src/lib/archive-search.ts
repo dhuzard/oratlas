@@ -1,8 +1,11 @@
 import "server-only";
 import {
   archiveSearchResponseSchema,
+  publicSynthesisReviewSchema,
   type ArchiveSearchQuery,
   type ArchiveSearchResponse,
+  type PublicNodeSummary,
+  type PublicSynthesisReview,
 } from "@oratlas/contracts";
 import {
   InProcessSearchProvider,
@@ -13,18 +16,53 @@ import {
 } from "@oratlas/knowledge";
 import { buildKnowledgeIndex } from "./index-builder";
 import { listPublicNodeSummaries } from "./node-publication";
+import { prisma } from "./db";
+import { getPublicSynthesisReview } from "./synthesis-editorial";
 
-/** Search reviews and nodes first, merge deterministically, then paginate once. */
+export interface ArchiveSynthesisSource {
+  slug: string;
+  title: string;
+  abstract: string;
+  version: PublicSynthesisReview["version"];
+  acceptedAt: string;
+  freshness: Pick<PublicSynthesisReview["freshness"], "status" | "affectedReferenceCount">;
+}
+
+/** Explicit sources keep the deterministic three-way merge independently testable. */
+export interface ArchiveSearchSources {
+  index: KnowledgeIndexData;
+  nodes: PublicNodeSummary[];
+  syntheses: ArchiveSynthesisSource[];
+}
+
+/** Search all public record kinds, merge deterministically, then paginate once. */
 export async function searchArchive(
   query: ArchiveSearchQuery,
-  providedIndex?: KnowledgeIndexData,
+  provided?: KnowledgeIndexData | ArchiveSearchSources,
 ): Promise<ArchiveSearchResponse> {
-  const [index, nodeRows] = await Promise.all([
-    providedIndex ? Promise.resolve(providedIndex) : buildKnowledgeIndex(),
-    query.contentType === "review" ? Promise.resolve([]) : listPublicNodeSummaries(query.nodeKind),
+  const suppliedSources = isArchiveSearchSources(provided) ? provided : undefined;
+  const providedIndex = isKnowledgeIndexData(provided) ? provided : undefined;
+  const [index, nodeRows, synthesisRows] = await Promise.all([
+    suppliedSources
+      ? Promise.resolve(suppliedSources.index)
+      : providedIndex
+        ? Promise.resolve(providedIndex)
+        : buildKnowledgeIndex(),
+    query.contentType === "review" || query.contentType === "synthesis"
+      ? Promise.resolve([])
+      : suppliedSources
+        ? Promise.resolve(
+            suppliedSources.nodes.filter((node) => !query.nodeKind || node.kind === query.nodeKind),
+          )
+        : listPublicNodeSummaries(query.nodeKind),
+    query.contentType === "review" || query.contentType === "node"
+      ? Promise.resolve([])
+      : suppliedSources
+        ? Promise.resolve(suppliedSources.syntheses)
+        : listPublicSynthesisSources(),
   ]);
   const reviewRows =
-    query.contentType === "node"
+    query.contentType === "node" || query.contentType === "synthesis"
       ? []
       : new InProcessSearchProvider(index).searchReviews({
           ...query,
@@ -69,7 +107,22 @@ export async function searchArchive(
     score: review.score,
     sortDate: query.sort === "updated" ? review.updatedAt : review.acceptedAt,
   }));
-  const combined = [...reviews, ...nodes].sort((left, right) => {
+  const syntheses = synthesisRows
+    .map((synthesis) => ({
+      contentType: "synthesis" as const,
+      slug: synthesis.slug,
+      title: synthesis.title,
+      abstract: synthesis.abstract,
+      version: synthesis.version,
+      freshness: synthesis.freshness,
+      score:
+        qTokens.length > 0
+          ? lexicalScore(qTokens, tokenSet(`${synthesis.title} ${synthesis.abstract}`))
+          : 0,
+      sortDate: synthesis.acceptedAt,
+    }))
+    .filter((synthesis) => !hasQuery || synthesis.score > 0);
+  const combined = [...reviews, ...nodes, ...syntheses].sort((left, right) => {
     if (query.sort === "title")
       return (
         compareCanonical(titleOf(left), titleOf(right)) ||
@@ -100,11 +153,13 @@ export async function searchArchive(
 type ArchiveItem = ArchiveSearchResponse["items"][number];
 
 function titleOf(item: ArchiveItem): string {
-  return item.contentType === "review" ? item.title : item.node.title;
+  return item.contentType === "node" ? item.node.title : item.title;
 }
 
 function keyOf(item: ArchiveItem): string {
-  return item.contentType === "review" ? `review:${item.slug}` : `node:${item.node.id}`;
+  if (item.contentType === "review") return `review:${item.slug}`;
+  if (item.contentType === "synthesis") return `synthesis:${item.slug}`;
+  return `node:${item.node.id}`;
 }
 
 function dateOf(item: ArchiveItem): string {
@@ -124,4 +179,63 @@ function compareCanonical(left: string, right: string): number {
         : left > right
           ? 1
           : 0;
+}
+
+function isArchiveSearchSources(
+  value: KnowledgeIndexData | ArchiveSearchSources | undefined,
+): value is ArchiveSearchSources {
+  return Boolean(value && "index" in value && "nodes" in value && "syntheses" in value);
+}
+
+function isKnowledgeIndexData(
+  value: KnowledgeIndexData | ArchiveSearchSources | undefined,
+): value is KnowledgeIndexData {
+  return Boolean(value && "reviews" in value && "claims" in value && "citations" in value);
+}
+
+async function listPublicSynthesisSources(): Promise<ArchiveSynthesisSource[]> {
+  const output: ArchiveSynthesisSource[] = [];
+  const batchSize = 25;
+  let cursor: string | undefined;
+  do {
+    const candidates = await prisma.review.findMany({
+      where: {
+        reviewType: "ai-synthesis",
+        status: "published",
+        currentSynthesisVersionId: { not: null },
+      },
+      select: { slug: true },
+      orderBy: { slug: "asc" },
+      take: batchSize,
+      ...(cursor ? { cursor: { slug: cursor }, skip: 1 } : {}),
+    });
+    const publicSyntheses = await Promise.all(
+      candidates.map(async ({ slug }: { slug: string }) => {
+        try {
+          const synthesis = await getPublicSynthesisReview(slug);
+          const parsed = publicSynthesisReviewSchema.safeParse(synthesis);
+          return parsed.success ? parsed.data : null;
+        } catch {
+          // A malformed candidate must not make other public archive rows unavailable.
+          return null;
+        }
+      }),
+    );
+    for (const synthesis of publicSyntheses) {
+      if (!synthesis) continue;
+      output.push({
+        slug: synthesis.slug,
+        title: synthesis.title,
+        abstract: synthesis.abstract,
+        version: synthesis.version,
+        acceptedAt: synthesis.provenance.acceptedAt,
+        freshness: {
+          status: synthesis.freshness.status,
+          affectedReferenceCount: synthesis.freshness.affectedReferenceCount,
+        },
+      });
+    }
+    cursor = candidates.length === batchSize ? candidates.at(-1)?.slug : undefined;
+  } while (cursor);
+  return output;
 }

@@ -59,7 +59,11 @@ export default async function ArchivePage({
               {results.items.map((item) => (
                 <li
                   key={
-                    item.contentType === "review" ? `review:${item.slug}` : `node:${item.node.id}`
+                    item.contentType === "review"
+                      ? `review:${item.slug}`
+                      : item.contentType === "synthesis"
+                        ? `synthesis:${item.slug}`
+                        : `node:${item.node.id}`
                   }
                   className="review-item"
                 >
@@ -89,7 +93,7 @@ export default async function ArchivePage({
                           <p className="muted">{item.authors.join(", ")}</p>
                         ) : null}
                       </>
-                    ) : (
+                    ) : item.contentType === "node" ? (
                       <>
                         <h2 style={{ fontSize: "1.2rem", margin: "0 0 0.3rem" }}>
                           <Link href={`/nodes/${item.node.id}`}>{item.node.title}</Link>
@@ -103,6 +107,33 @@ export default async function ArchivePage({
                           {item.node.repository.owner}/{item.node.repository.name} ·{" "}
                           <span className="mono">{item.node.localNodeId}</span>
                         </p>
+                      </>
+                    ) : (
+                      <>
+                        <h2 style={{ fontSize: "1.2rem", margin: "0 0 0.3rem" }}>
+                          <Link href={`/reviews/${item.slug}`}>{item.title}</Link>
+                        </h2>
+                        <div className="meta">
+                          <Badge>AI synthesis</Badge>
+                          <Badge>editor-accepted</Badge>
+                          {item.version.versionDoi || item.version.conceptDoi ? (
+                            <Badge tone="success">DOI</Badge>
+                          ) : (
+                            <Badge>repository-only</Badge>
+                          )}
+                          {item.freshness.status === "fresh" ? (
+                            <Badge tone="success">up to date</Badge>
+                          ) : item.freshness.status === "stale" ? (
+                            <Badge tone="warning">
+                              stale · {item.freshness.affectedReferenceCount} affected reference
+                              {item.freshness.affectedReferenceCount === 1 ? "" : "s"}
+                            </Badge>
+                          ) : (
+                            <Badge>freshness unchecked</Badge>
+                          )}
+                        </div>
+                        <p>{truncate(item.abstract)}</p>
+                        <p className="muted">Accepted synthesis version {item.version.ordinal}</p>
                       </>
                     )}
                   </Card>
@@ -127,7 +158,9 @@ export default async function ArchivePage({
 
         <aside>
           <Card title="Filters">
-            <p className="muted">Author, domain, DOI, TRUST, and compatibility filter reviews.</p>
+            <p className="muted">
+              Author, domain, DOI, TRUST, and compatibility filter repository reviews.
+            </p>
             <form method="get" className="filters">
               <div className="field">
                 <label htmlFor="contentType">Content type</label>
@@ -136,9 +169,10 @@ export default async function ArchivePage({
                   name="contentType"
                   defaultValue={query.contentType ?? "all"}
                 >
-                  <option value="all">Reviews and nodes</option>
-                  <option value="review">Reviews</option>
-                  <option value="node">Nodes</option>
+                  <option value="all">Repository reviews, nodes, and AI syntheses</option>
+                  <option value="review">Repository reviews</option>
+                  <option value="node">Knowledge nodes</option>
+                  <option value="synthesis">Accepted AI syntheses</option>
                 </select>
               </div>
               <div className="field">
