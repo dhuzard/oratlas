@@ -54,6 +54,12 @@ export function SynthesisReader({
         <span>
           {generatedDate} · {synthesis.provenance.provider}/{synthesis.provenance.model}
         </span>
+        <span>
+          {synthesis.provenance.pipelineSoftware.displayName} is the disclosed software agent.
+          Editor {synthesis.provenance.approvingEditor.displayName} accepted this version and is
+          accountable for the publication decision and checklist.
+        </span>
+        <span>Canonical scope: {SYNTHESIS_PUBLIC_SCOPE_NOTICE}</span>
         <span className="mono">packet {synthesis.provenance.packetHash}</span>
       </div>
 
@@ -125,16 +131,24 @@ export function SynthesisReader({
                 ))}
               </>
             );
-            return disputed ? (
-              <aside className="synthesis-disputed" aria-label="Disputed evidence" key={section.id}>
-                <p className="synthesis-callout-label">
-                  <Badge tone="warning">Disputed</Badge> Confirmed contradiction in the cited graph
-                </p>
+            return (
+              <section
+                className={disputed ? "synthesis-section synthesis-disputed" : "synthesis-section"}
+                key={section.id}
+              >
                 {content}
-              </aside>
-            ) : (
-              <section className="synthesis-section" key={section.id}>
-                {content}
+                {disputed ? (
+                  <aside
+                    className="synthesis-dispute-note"
+                    aria-label="Disputed evidence"
+                    role="note"
+                  >
+                    <p className="synthesis-callout-label">
+                      <Badge tone="warning">Disputed</Badge> Confirmed contradiction in the cited
+                      graph. Open the inline citations for exact immutable endpoints and provenance.
+                    </p>
+                  </aside>
+                ) : null}
               </section>
             );
           })}
@@ -230,10 +244,31 @@ function SynthesisParagraph({
   citationNumber: Map<string, number>;
 }) {
   return (
-    <div className="synthesis-paragraph">
-      <span>{paragraph.text}</span>
+    <div className="synthesis-paragraph-block">
+      <p className="synthesis-paragraph">
+        {paragraph.text}
+        {paragraph.citations.length > 0 ? (
+          <span className="synthesis-inline-citations" aria-label="Inline citations">
+            {paragraph.citations.map((citation) => {
+              const context = contexts.get(citation.referenceId)!;
+              const number = citationNumber.get(citation.referenceId)!;
+              return (
+                <sup key={citation.referenceId}>
+                  <Link
+                    className="synthesis-inline-citation-link"
+                    href={`/nodes/${context.nodeId}/versions/${context.nodeVersionId}`}
+                    aria-label={`Citation ${number}: open exact ${context.nodeKind} evidence node`}
+                  >
+                    [{number}]
+                  </Link>
+                </sup>
+              );
+            })}
+          </span>
+        ) : null}
+      </p>
       {paragraph.citations.length > 0 ? (
-        <div className="synthesis-inline-citations" aria-label="Citations">
+        <div className="synthesis-citation-disclosures" aria-label="Citation context">
           {paragraph.citations.map((citation, occurrenceIndex) => {
             const context = contexts.get(citation.referenceId)!;
             const number = citationNumber.get(citation.referenceId)!;
@@ -243,7 +278,7 @@ function SynthesisParagraph({
                 key={`${citation.referenceId}:${occurrenceIndex}`}
               >
                 <summary aria-label={`Citation ${number}: ${context.nodeKind} evidence details`}>
-                  [{number}]
+                  Citation [{number}] details
                 </summary>
                 <div className="synthesis-citation-panel">
                   <p>

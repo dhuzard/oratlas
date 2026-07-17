@@ -123,7 +123,20 @@ test("editor gates generated, rejected, and accepted synthesis drafts", async ({
   });
   await expect(disclosure).toContainText(draft.provenance.model);
   await expect(disclosure).toContainText(draft.provenance.packetHash);
-  await expect(page.getByRole("complementary", { name: "Disputed evidence" })).toBeVisible();
+  const contradictionSection = page.locator("#contradictions-and-open-questions").locator("..");
+  await expect(contradictionSection.getByRole("note", { name: "Disputed evidence" })).toBeVisible();
+  await expect(contradictionSection.locator("p.synthesis-paragraph")).not.toHaveCount(0);
+
+  const inlineCitation = page.locator("a.synthesis-inline-citation-link").first();
+  const inlineHref = await inlineCitation.getAttribute("href");
+  expect(
+    draft.citations.some(
+      (citation) => inlineHref === `/nodes/${citation.nodeId}/versions/${citation.nodeVersionId}`,
+    ),
+  ).toBe(true);
+  await inlineCitation.click();
+  await expect(page).toHaveURL(new RegExp(`${inlineHref!}$`));
+  await page.goto(`/reviews/${slug}`);
 
   const firstCitation = page.locator("details.synthesis-citation").first();
   await firstCitation.locator("summary").click();
@@ -154,9 +167,25 @@ test("editor gates generated, rejected, and accepted synthesis drafts", async ({
   const persistentMobileDisclosure = page.getByLabel("Persistent AI disclosure");
   await expect(persistentMobileDisclosure).toBeVisible();
   await expect(persistentMobileDisclosure).toContainText(draft.provenance.packetHash);
+  await expect(persistentMobileDisclosure).toContainText(SYNTHESIS_PUBLIC_SCOPE_NOTICE);
+  await expect(persistentMobileDisclosure).toContainText(/disclosed software agent/i);
+  await expect(persistentMobileDisclosure).toContainText(
+    /accountable for the publication decision/i,
+  );
   expect(
     await persistentMobileDisclosure.evaluate((element) => getComputedStyle(element).position),
   ).toBe("sticky");
+  const mobileCitation = page.locator("details.synthesis-citation").first();
+  await mobileCitation.locator("summary").click();
+  const mobilePanel = mobileCitation.locator(".synthesis-citation-panel");
+  await expect(mobilePanel).toBeVisible();
+  const panelBounds = await mobilePanel.boundingBox();
+  expect(panelBounds).not.toBeNull();
+  expect(panelBounds!.x).toBeGreaterThanOrEqual(0);
+  expect(panelBounds!.x + panelBounds!.width).toBeLessThanOrEqual(390);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
+    true,
+  );
   await page.setViewportSize({ width: 1280, height: 720 });
 
   await page.goto("/editorial");

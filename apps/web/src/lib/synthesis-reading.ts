@@ -1,6 +1,18 @@
 import "server-only";
-import { type PublicSynthesisReview } from "@oratlas/contracts";
-import { getPublicNode } from "./node-publication";
+import { createHash } from "node:crypto";
+import {
+  canonicalJson,
+  subgraphEvidencePacketSchema,
+  SUBGRAPH_EVIDENCE_LIMITS,
+  type PublicSynthesisReview,
+  type SubgraphEvidencePacket,
+} from "@oratlas/contracts";
+import { type PrismaClient } from "@oratlas/db";
+import { prisma } from "./db";
+import {
+  getExactPublicNodeVersions,
+  type ExactPublicNodeVersionProjection,
+} from "./node-publication";
 
 export type SynthesisCitationReadingContext = {
   referenceId: string;
@@ -32,149 +44,289 @@ export type SynthesisReadingContext = {
   disputedReferenceIds: Set<string>;
 };
 
-const MAX_PUBLIC_CITATION_OCCURRENCES = 2_000;
-const MAX_PUBLIC_CITATION_REFERENCES = 256;
+type ExactNodeLoader = typeof getExactPublicNodeVersions;
 
 function compare(left: string, right: string) {
   return left < right ? -1 : left > right ? 1 : 0;
 }
 
-/**
- * Enrich accepted citation references exclusively through the public node projection.
- * If an exact immutable citation cannot be projected, the reading page fails closed.
- */
-export async function loadSynthesisReadingContext(
+function digest(value: string) {
+  return createHash("sha256").update(value, "utf8").digest("hex");
+}
+
+async function loadAcceptedPacket(
   synthesis: PublicSynthesisReview,
-): Promise<SynthesisReadingContext | null> {
-  if (synthesis.citations.length > MAX_PUBLIC_CITATION_OCCURRENCES) return null;
-  const unique = new Map<string, PublicSynthesisReview["citations"][number]>();
+  client: PrismaClient,
+): Promise<SubgraphEvidencePacket | null> {
+  const review = await client.review.findFirst({
+    where: {
+      slug: synthesis.slug,
+      reviewType: "ai-synthesis",
+      status: "published",
+      currentSynthesisVersionId: synthesis.version.id,
+    },
+    select: {
+      id: true,
+      slug: true,
+      reviewType: true,
+      status: true,
+      currentSynthesisVersionId: true,
+      currentSynthesisVersion: {
+        select: {
+          id: true,
+          reviewId: true,
+          recordSourceType: true,
+          publicState: true,
+          isExample: true,
+          synthesisDraftId: true,
+          synthesisPacketHash: true,
+          synthesisDocumentHash: true,
+          synthesisDraft: {
+            select: {
+              id: true,
+              reviewId: true,
+              status: true,
+              packetJson: true,
+              packetHash: true,
+              documentHash: true,
+            },
+          },
+        },
+      },
+    },
+  });
+  const version = review?.currentSynthesisVersion;
+  const draft = version?.synthesisDraft;
+  if (
+    !review ||
+    review.slug !== synthesis.slug ||
+    review.reviewType !== "ai-synthesis" ||
+    review.status !== "published" ||
+    review.currentSynthesisVersionId !== synthesis.version.id ||
+    !version ||
+    version.id !== synthesis.version.id ||
+    version.reviewId !== review.id ||
+    version.recordSourceType !== "synthesis" ||
+    version.publicState !== "published" ||
+    version.isExample !== false ||
+    !draft ||
+    version.synthesisDraftId !== draft.id ||
+    draft.reviewId !== review.id ||
+    draft.status !== "accepted" ||
+    version.synthesisPacketHash !== synthesis.provenance.packetHash ||
+    version.synthesisPacketHash !== draft.packetHash ||
+    version.synthesisDocumentHash !== synthesis.provenance.documentHash ||
+    version.synthesisDocumentHash !== draft.documentHash ||
+    digest(draft.packetJson) !== draft.packetHash
+  ) {
+    return null;
+  }
+  let value: unknown;
+  try {
+    value = JSON.parse(draft.packetJson) as unknown;
+  } catch {
+    return null;
+  }
+  const parsed = subgraphEvidencePacketSchema.safeParse(value);
+  if (!parsed.success || canonicalJson(parsed.data) !== draft.packetJson) return null;
+  return parsed.data;
+}
+
+function citationBindings(synthesis: PublicSynthesisReview, packet: SubgraphEvidencePacket) {
+  if (
+    synthesis.citations.length > 2_000 ||
+    packet.nodes.length > SUBGRAPH_EVIDENCE_LIMITS.maxNodes
+  ) {
+    return null;
+  }
+  const references = new Map(
+    packet.references.map((reference) => [reference.referenceId, reference]),
+  );
+  const nodes = new Map(packet.nodes.map((node) => [node.id, node]));
+  const citations = new Map<string, PublicSynthesisReview["citations"][number]>();
   for (const citation of synthesis.citations) {
-    const previous = unique.get(citation.referenceId);
+    const previous = citations.get(citation.referenceId);
     if (
       previous &&
       (previous.nodeId !== citation.nodeId ||
         previous.nodeVersionId !== citation.nodeVersionId ||
         previous.nodeKind !== citation.nodeKind ||
         previous.title !== citation.title ||
-        previous.href !== citation.href)
+        previous.href !== citation.href ||
+        previous.identifierScheme !== citation.identifierScheme ||
+        previous.identifierRole !== citation.identifierRole ||
+        previous.identifierValue !== citation.identifierValue)
     ) {
       return null;
     }
-    unique.set(citation.referenceId, citation);
-  }
-  if (unique.size > MAX_PUBLIC_CITATION_REFERENCES) return null;
-  const loaded = await Promise.all(
-    [...unique.values()]
-      .sort((left, right) => compare(left.referenceId, right.referenceId))
-      .map(async (citation) => ({
-        citation,
-        node: await getPublicNode(citation.nodeId, citation.nodeVersionId),
-      })),
-  );
-  const citedVersions = new Set(
-    synthesis.citations.map((citation) => `${citation.nodeId}:${citation.nodeVersionId}`),
-  );
-  const citations = new Map<string, SynthesisCitationReadingContext>();
-  const disputedReferenceIds = new Set<string>();
-
-  for (const { citation, node } of loaded) {
+    const reference = references.get(citation.referenceId);
+    const node = nodes.get(citation.nodeId);
     if (
+      !reference ||
+      reference.nodeId !== citation.nodeId ||
+      reference.nodeVersionId !== citation.nodeVersionId ||
       !node ||
-      node.id !== citation.nodeId ||
-      node.version.id !== citation.nodeVersionId ||
+      node.versionId !== citation.nodeVersionId ||
       node.kind !== citation.nodeKind ||
-      node.version.title !== citation.title
+      node.title !== citation.title ||
+      node.isExample !== false ||
+      citation.href !== `/nodes/${node.id}/versions/${node.versionId}` ||
+      (reference.kind === "node" &&
+        (citation.identifierScheme !== undefined ||
+          citation.identifierRole !== undefined ||
+          citation.identifierValue !== undefined)) ||
+      (reference.kind === "identifier" &&
+        (citation.identifierScheme !== reference.scheme ||
+          citation.identifierRole !== reference.role ||
+          citation.identifierValue !== reference.value))
     ) {
       return null;
     }
+    citations.set(citation.referenceId, citation);
+  }
+  if (
+    citations.size >
+    SUBGRAPH_EVIDENCE_LIMITS.maxNodes + SUBGRAPH_EVIDENCE_LIMITS.maxIdentifiers
+  ) {
+    return null;
+  }
+  return { citations, nodes };
+}
 
-    const disputes = node.edges
+function samePublicPacketNode(
+  projection: ExactPublicNodeVersionProjection,
+  packetNode: SubgraphEvidencePacket["nodes"][number],
+) {
+  const publicNode = {
+    id: projection.id,
+    localNodeId: projection.localNodeId,
+    repository: projection.repository,
+    versionId: projection.version.id,
+    snapshotId: projection.version.snapshotId,
+    commitSha: projection.version.commitSha,
+    kind: projection.version.kind,
+    title: projection.version.title,
+    abstract: projection.version.abstract,
+    text: projection.version.text,
+    contributors: projection.version.contributors,
+    license: projection.version.license,
+    provenance: projection.version.provenance,
+    payload: projection.version.payload,
+    identifiers: projection.version.identifiers,
+    isExample: projection.version.isExample,
+    createdAt: projection.version.createdAt,
+  };
+  return (
+    projection.kind === projection.version.kind &&
+    publicNode.isExample === false &&
+    packetNode.isExample === false &&
+    canonicalJson(publicNode) === canonicalJson(packetNode)
+  );
+}
+
+/**
+ * Re-verifies the exact accepted private packet, then exposes only bounded
+ * public-safe display context. Packet bytes never leave this server module.
+ */
+export async function loadSynthesisReadingContext(
+  synthesis: PublicSynthesisReview,
+  client: PrismaClient = prisma,
+  exactNodeLoader: ExactNodeLoader = getExactPublicNodeVersions,
+): Promise<SynthesisReadingContext | null> {
+  const packet = await loadAcceptedPacket(synthesis, client);
+  if (!packet) return null;
+  const bindings = citationBindings(synthesis, packet);
+  if (!bindings) return null;
+  const requested = [
+    ...new Map(
+      [...bindings.citations.values()].map((citation) => [
+        citation.nodeId,
+        { nodeId: citation.nodeId, nodeVersionId: citation.nodeVersionId },
+      ]),
+    ).values(),
+  ];
+  const projected = await exactNodeLoader(requested, client);
+  if (projected.size !== requested.length) return null;
+  for (const request of requested) {
+    const packetNode = bindings.nodes.get(request.nodeId);
+    if (!packetNode || packetNode.versionId !== request.nodeVersionId) return null;
+    const projection = projected.get(`${packetNode.id}\u0000${packetNode.versionId}`);
+    if (!projection || !samePublicPacketNode(projection, packetNode)) return null;
+  }
+
+  const citedVersions = new Set(
+    [...bindings.citations.values()].map(
+      (citation) => `${citation.nodeId}\u0000${citation.nodeVersionId}`,
+    ),
+  );
+  const contexts = new Map<string, SynthesisCitationReadingContext>();
+  const disputedReferenceIds = new Set<string>();
+  for (const [referenceId, citation] of [...bindings.citations].sort(([left], [right]) =>
+    compare(left, right),
+  )) {
+    const node = bindings.nodes.get(citation.nodeId)!;
+    const trust = packet.edges
       .filter(
         (edge) =>
-          edge.relationType === "contradicts" &&
-          citedVersions.has(`${edge.relatedNode.id}:${edge.relatedNode.versionId}`),
+          edge.trust &&
+          ((edge.sourceNodeId === node.id && edge.sourceVersionId === node.versionId) ||
+            (edge.targetNodeId === node.id && edge.targetVersionId === node.versionId)),
       )
       .map((edge) => ({
-        relatedNodeId: edge.relatedNode.id,
-        relatedNodeVersionId: edge.relatedNode.versionId,
-        relatedTitle: edge.relatedNode.title,
-        provenance: edge.provenance,
+        subject: `packet relation ${edge.relationType.replace(/-/g, " ")}`,
+        reviewStatus: edge.trust!.reviewStatus,
+        verificationState: edge.trust!.verificationState,
       }))
-      .filter(
-        (dispute, index, values) =>
-          values.findIndex(
-            (candidate) =>
-              candidate.relatedNodeId === dispute.relatedNodeId &&
-              candidate.relatedNodeVersionId === dispute.relatedNodeVersionId &&
-              candidate.provenance === dispute.provenance,
-          ) === index,
-      )
-      .sort(
-        (left, right) =>
-          compare(left.relatedNodeId, right.relatedNodeId) ||
-          compare(left.relatedNodeVersionId, right.relatedNodeVersionId) ||
-          compare(left.provenance, right.provenance),
-      );
-    if (disputes.length > 0) disputedReferenceIds.add(citation.referenceId);
-
-    const trust = [
-      ...node.trustContext.flatMap((entry) =>
-        entry.trust
-          ? [
-              {
-                subject: `claim–citation ${entry.relationType.replace(/-/g, " ")}`,
-                reviewStatus: entry.trust.reviewStatus,
-                verificationState: entry.trust.verificationState,
-              },
-            ]
-          : [],
-      ),
-      ...node.edges.flatMap((edge) =>
-        edge.trust
-          ? [
-              {
-                subject: `node relation ${edge.relationType.replace(/-/g, " ")}`,
-                reviewStatus: edge.trust.reviewStatus,
-                verificationState: edge.trust.verificationState,
-              },
-            ]
-          : [],
-      ),
-    ]
-      .filter(
-        (entry, index, values) =>
-          values.findIndex(
-            (candidate) =>
-              candidate.subject === entry.subject &&
-              candidate.reviewStatus === entry.reviewStatus &&
-              candidate.verificationState === entry.verificationState,
-          ) === index,
-      )
       .sort(
         (left, right) =>
           compare(left.subject, right.subject) ||
           compare(left.reviewStatus, right.reviewStatus) ||
           compare(left.verificationState, right.verificationState),
       );
-
-    citations.set(citation.referenceId, {
-      referenceId: citation.referenceId,
-      nodeId: citation.nodeId,
-      nodeVersionId: citation.nodeVersionId,
-      nodeKind: citation.nodeKind,
+    const disputes = packet.contradictions
+      .flatMap((pair) => {
+        const isLeft = pair.left.nodeId === node.id && pair.left.versionId === node.versionId;
+        const isRight = pair.right.nodeId === node.id && pair.right.versionId === node.versionId;
+        if (!isLeft && !isRight) return [];
+        const related = isLeft ? pair.right : pair.left;
+        if (!citedVersions.has(`${related.nodeId}\u0000${related.versionId}`)) return [];
+        const relatedNode = bindings.nodes.get(related.nodeId);
+        if (!relatedNode || relatedNode.versionId !== related.versionId) return [];
+        return [
+          {
+            relatedNodeId: related.nodeId,
+            relatedNodeVersionId: related.versionId,
+            relatedTitle: relatedNode.title,
+            provenance: pair.provenance
+              .map((entry) => `${entry.provenance} at ${entry.confirmedAt}`)
+              .sort(compare)
+              .join("; "),
+          },
+        ];
+      })
+      .sort(
+        (left, right) =>
+          compare(left.relatedNodeId, right.relatedNodeId) ||
+          compare(left.relatedNodeVersionId, right.relatedNodeVersionId),
+      );
+    if (disputes.length > 0) disputedReferenceIds.add(referenceId);
+    contexts.set(referenceId, {
+      referenceId,
+      nodeId: node.id,
+      nodeVersionId: node.versionId,
+      nodeKind: node.kind,
       repository: node.repository,
       provenance: {
-        commitSha: node.version.commitSha,
-        sourcePath: node.version.provenance.sourcePath,
-        sourcePointer: node.version.provenance.sourcePointer,
-        license: node.version.license,
+        commitSha: node.commitSha,
+        sourcePath: node.provenance.sourcePath,
+        sourcePointer: node.provenance.sourcePointer,
+        license: node.license,
       },
       trust,
       disputes,
     });
   }
-
-  return { citations, disputedReferenceIds };
+  return { citations: contexts, disputedReferenceIds };
 }
 
 export function buildSynthesisJsonLd(synthesis: PublicSynthesisReview) {
