@@ -1344,6 +1344,113 @@ components:
         isCurrent: { type: boolean }
         versionDoi: { type: string, pattern: "^10\\.[0-9]{4,9}/\\S+$" }
         conceptDoi: { type: string, pattern: "^10\\.[0-9]{4,9}/\\S+$" }
+    SynthesisStalenessReasonCode:
+      type: string
+      enum:
+        [
+          materialization-policy-changed,
+          node-head-changed,
+          membership-added,
+          membership-removed,
+          confirmed-edge-added,
+          confirmed-edge-removed,
+          confirmed-edge-changed,
+          trust-changed,
+          packet-content-changed,
+          materialization-failed,
+        ]
+    SynthesisFreshness:
+      type: object
+      additionalProperties: false
+      required: [status, policyVersion, reasonCodes, affectedReferenceCount]
+      properties:
+        status: { type: string, enum: [unchecked, fresh, stale] }
+        policyVersion: { const: synthesis-staleness/1.0.0 }
+        evaluatedAt: { type: string, format: date-time }
+        reasonCodes:
+          type: array
+          uniqueItems: true
+          maxItems: 10
+          items: { $ref: "#/components/schemas/SynthesisStalenessReasonCode" }
+        affectedReferenceCount: { type: integer, minimum: 0, maximum: 1201 }
+    SynthesisAffectedReference:
+      type: object
+      additionalProperties: false
+      required: [kind, id, change]
+      properties:
+        kind: { type: string, enum: [node, edge, trust, policy] }
+        id: { type: string, minLength: 1, maxLength: 200 }
+        change: { type: string, enum: [added, removed, changed] }
+        previousVersionId: { type: string, minLength: 1, maxLength: 200 }
+        currentVersionId: { type: string, minLength: 1, maxLength: 200 }
+    SynthesisStalenessEvaluationResult:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          evaluationKey,
+          reviewSlug,
+          acceptedReviewVersionId,
+          status,
+          reasonCodes,
+          affectedReferences,
+          affectedReferenceCount,
+          affectedReferencesTruncated,
+        ]
+      properties:
+        evaluationKey: { type: string, pattern: "^[0-9a-f]{64}$" }
+        reviewSlug: { type: string, minLength: 1, maxLength: 200 }
+        acceptedReviewVersionId: { type: string, minLength: 1, maxLength: 200 }
+        status: { type: string, enum: [fresh, stale] }
+        reasonCodes:
+          type: array
+          uniqueItems: true
+          items: { $ref: "#/components/schemas/SynthesisStalenessReasonCode" }
+        affectedReferences:
+          type: array
+          maxItems: 100
+          items: { $ref: "#/components/schemas/SynthesisAffectedReference" }
+        affectedReferenceCount: { type: integer, minimum: 0, maximum: 1201 }
+        affectedReferencesTruncated: { type: boolean }
+    SynthesisStalenessScanResult:
+      type: object
+      additionalProperties: false
+      required: [scanned, succeeded, failed, results, failures]
+      properties:
+        scanned: { type: integer, minimum: 0, maximum: 100 }
+        succeeded: { type: integer, minimum: 0, maximum: 100 }
+        failed: { type: integer, minimum: 0, maximum: 100 }
+        nextCursor: { type: string, minLength: 1, maxLength: 200 }
+        results:
+          type: array
+          maxItems: 100
+          items: { $ref: "#/components/schemas/SynthesisStalenessEvaluationResult" }
+        failures:
+          type: array
+          maxItems: 100
+          items:
+            type: object
+            additionalProperties: false
+            required: [code]
+            properties:
+              code: { const: evaluation-failed }
+              reviewSlug: { type: string, pattern: "^[a-z0-9]+(?:-[a-z0-9]+)*$", maxLength: 200 }
+    SynthesisRegenerationProposalDecision:
+      type: object
+      additionalProperties: false
+      required: [action, expectedRevision, idempotencyKey, rationale]
+      properties:
+        action: { type: string, enum: [request-regeneration, dismiss] }
+        expectedRevision: { type: integer, minimum: 0, maximum: 1000000000 }
+        idempotencyKey: { type: string, minLength: 8, maxLength: 200 }
+        rationale: { type: string, minLength: 10, maxLength: 4000 }
+    SynthesisRegenerationProposalDecisionResult:
+      type: object
+      additionalProperties: false
+      required: [status, revision]
+      properties:
+        status: { type: string, enum: [regeneration-requested, dismissed] }
+        revision: { type: integer, minimum: 1 }
     EditorialSynthesisDraft:
       type: object
       additionalProperties: false
@@ -1387,7 +1494,8 @@ components:
     PublicSynthesisReview:
       type: object
       additionalProperties: false
-      required: [slug, reviewType, title, abstract, document, provenance, citations, version]
+      required:
+        [slug, reviewType, title, abstract, document, provenance, citations, version, freshness]
       properties:
         slug: { type: string }
         reviewType: { const: ai-synthesis }
@@ -1399,6 +1507,7 @@ components:
           type: array
           items: { $ref: "#/components/schemas/PublicSynthesisCitation" }
         version: { $ref: "#/components/schemas/PublicSynthesisVersion" }
+        freshness: { $ref: "#/components/schemas/SynthesisFreshness" }
 paths:
   /api/health:
     get:
@@ -1952,6 +2061,7 @@ paths:
       responses:
         "200": { description: Registered with status execution-attested }
         "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
         "403": { $ref: "#/components/responses/Error" }
         "409": { $ref: "#/components/responses/Error" }
         "429": { $ref: "#/components/responses/Error" }
@@ -1973,6 +2083,7 @@ paths:
       responses:
         "200": { description: Verification revision recorded }
         "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
         "403": { $ref: "#/components/responses/Error" }
         "404": { $ref: "#/components/responses/Error" }
         "409": { $ref: "#/components/responses/Error" }
@@ -2104,6 +2215,61 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/SynthesisDecisionResult" }
         "400": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "413": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/Error" }
+  /api/editorial/syntheses/staleness/scan:
+    post:
+      summary: Evaluate accepted synthesis heads and create private regeneration proposals
+      description: >
+        Bounded deterministic scan of each exact accepted selector and packet. It records immutable
+        evaluations and deduplicated private proposals but never calls a provider, creates a draft,
+        or publishes a review.
+      security: [{ session: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                cursor: { type: string, minLength: 1, maxLength: 200 }
+                limit: { type: integer, minimum: 1, maximum: 100, default: 100 }
+      responses:
+        "200":
+          description: Bounded allowlisted scan results
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SynthesisStalenessScanResult" }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "413": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/Error" }
+  /api/editorial/syntheses/staleness/{id}/decision:
+    post:
+      summary: Request private regeneration or dismiss one current proposal
+      description: Rechecks the accepted head and editor role and applies idempotent revision CAS. No generation occurs.
+      security: [{ session: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SynthesisRegenerationProposalDecision" }
+      responses:
+        "200":
+          description: Idempotent proposal decision
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SynthesisRegenerationProposalDecisionResult" }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
         "403": { $ref: "#/components/responses/Error" }
         "404": { $ref: "#/components/responses/Error" }
         "409": { $ref: "#/components/responses/Error" }

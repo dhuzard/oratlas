@@ -99,6 +99,12 @@ describe("synthesis OpenAPI contracts", () => {
       "EditorialSynthesisCitation",
       "PublicSynthesisCitation",
       "PublicSynthesisVersion",
+      "SynthesisFreshness",
+      "SynthesisAffectedReference",
+      "SynthesisStalenessEvaluationResult",
+      "SynthesisStalenessScanResult",
+      "SynthesisRegenerationProposalDecision",
+      "SynthesisRegenerationProposalDecisionResult",
       "EditorialSynthesisDraft",
       "PublicSynthesisReview",
     ]) {
@@ -117,6 +123,25 @@ describe("synthesis OpenAPI contracts", () => {
     expect(publicReview).toContain('$ref: "#/components/schemas/AcceptedSynthesisProvenance"');
     expect(publicReview).toContain('$ref: "#/components/schemas/PublicSynthesisCitation"');
     expect(publicReview).toContain('$ref: "#/components/schemas/PublicSynthesisVersion"');
+    expect(publicReview).toContain('$ref: "#/components/schemas/SynthesisFreshness"');
     expect(publicReview).not.toMatch(/packetJson|selectorJson|agentRunId|requestKey|errorCode/);
+  });
+
+  it("documents the shared authenticated mutation failure surface for staleness routes", () => {
+    const openapi = readFileSync(resolve(process.cwd(), "docs/openapi.yaml"), "utf8");
+    for (const path of [
+      "/api/editorial/syntheses/staleness/scan",
+      "/api/editorial/syntheses/staleness/{id}/decision",
+    ]) {
+      const start = openapi.indexOf(`  ${path}:`);
+      expect(start).toBeGreaterThanOrEqual(0);
+      const tail = openapi.slice(start + 2);
+      const next = tail.search(/^ {2}\/api\//m);
+      const operation = next < 0 ? openapi.slice(start) : openapi.slice(start, start + 2 + next);
+      expect(operation).toContain("security: [{ session: [] }]");
+      for (const status of ["400", "401", "403", "413", "429"]) {
+        expect(operation).toContain(`"${status}":`);
+      }
+    }
   });
 });

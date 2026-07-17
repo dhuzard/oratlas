@@ -72,6 +72,20 @@ function SynthesisReviewPage({ synthesis }: { synthesis: PublicSynthesisReview }
         accepted by editor {synthesis.provenance.approvingEditor.displayName}. It is a grounded
         synthesis, not an independent peer-review verdict.
       </Notice>
+      {synthesis.freshness.status === "stale" ? (
+        <Notice tone="warning" title="Newer evidence exists">
+          A bounded freshness check found {synthesis.freshness.affectedReferenceCount} affected
+          references. This accepted synthesis may not reflect the latest graph evidence.
+        </Notice>
+      ) : synthesis.freshness.status === "fresh" ? (
+        <p>
+          <Badge tone="success">Freshness checked</Badge>
+        </p>
+      ) : (
+        <p>
+          <Badge tone="neutral">Freshness not yet checked</Badge>
+        </p>
+      )}
       {synthesis.document.sections.map((section) => (
         <section key={section.id}>
           <h2>{section.title}</h2>

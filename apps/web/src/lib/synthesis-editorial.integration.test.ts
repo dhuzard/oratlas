@@ -4,9 +4,11 @@ import { createRequire } from "node:module";
 import { dirname, resolve } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import { ZodError } from "zod";
 import { applyDatabaseGuards, SQLITE_DATABASE_GUARD_NAMES, type PrismaClient } from "@oratlas/db";
 import type { SessionUser } from "./auth";
 import type * as Editorial from "./synthesis-editorial";
+import type * as Staleness from "./synthesis-staleness";
 import {
   buildPreparedSubgraphEvidencePacket,
   composeDeterministicSynthesis,
@@ -26,6 +28,7 @@ const databasePath = resolve(process.cwd(), "packages/db/prisma", fileName);
 const databaseUrl = `file:./${fileName}`;
 let prisma: PrismaClient;
 let service: typeof Editorial;
+let staleness: typeof Staleness;
 let actor: SessionUser;
 
 function prepared(nodeId = "claim") {
@@ -121,6 +124,7 @@ beforeAll(async () => {
   ({ prisma } = await import("./db"));
   await applyDatabaseGuards(prisma, "sqlite");
   service = await import("./synthesis-editorial");
+  staleness = await import("./synthesis-staleness");
   const user = await prisma.user.create({
     data: { githubLogin: "editor", displayName: "Atlas Editor", role: "EDITOR" },
   });
@@ -159,10 +163,12 @@ beforeAll(async () => {
       knowledgeNodeId: "claim",
       snapshotId: "snapshot-v1",
       title: "A grounded claim",
-      contributorsJson: "[]",
+      contributorsJson: '[{"displayName":"Reviewer"}]',
       license: "CC-BY-4.0",
-      provenanceJson: "{}",
+      provenanceJson:
+        '{"sourcePath":"knowledge/claim.json","repositoryUrl":"https://github.com/atlas/review","commitSha":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}',
       payloadJson: '{"statement":"A grounded claim.","qualifiers":[]}',
+      createdAt: new Date("2026-01-01T00:00:00.000Z"),
     },
   });
   await prisma.knowledgeNode.create({
@@ -179,10 +185,12 @@ beforeAll(async () => {
       knowledgeNodeId: "claim-reject",
       snapshotId: "snapshot-v1",
       title: "A grounded claim",
-      contributorsJson: "[]",
+      contributorsJson: '[{"displayName":"Reviewer"}]',
       license: "CC-BY-4.0",
-      provenanceJson: "{}",
+      provenanceJson:
+        '{"sourcePath":"knowledge/claim.json","repositoryUrl":"https://github.com/atlas/review","commitSha":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}',
       payloadJson: '{"statement":"A grounded claim.","qualifiers":[]}',
+      createdAt: new Date("2026-01-01T00:00:00.000Z"),
     },
   });
 }, 60_000);
@@ -353,6 +361,413 @@ describe.sequential("synthesis editorial lifecycle", () => {
         where: { requestKey: input.requestKey },
       }),
     ).toMatchObject({ status: "completed", attempt: 2 });
+  });
+
+  it("evaluates an unchanged accepted head as fresh without generating or publishing", async () => {
+    const review = await prisma.review.findFirstOrThrow({ where: { reviewType: "ai-synthesis" } });
+    const before = {
+      runs: await prisma.agentRun.count(),
+      drafts: await prisma.synthesisDraft.count(),
+      versions: await prisma.reviewVersion.count(),
+    };
+    const first = await staleness.evaluateSynthesisHead(review.id, { client: prisma });
+    const repeated = await staleness.evaluateSynthesisHead(review.id, { client: prisma });
+    expect(first).toMatchObject({ status: "fresh", reasonCodes: [], affectedReferenceCount: 0 });
+    expect(repeated.evaluationKey).toBe(first.evaluationKey);
+    expect(await prisma.synthesisStalenessEvaluation.count()).toBe(1);
+    expect(await prisma.synthesisRegenerationProposal.count()).toBe(0);
+    expect({
+      runs: await prisma.agentRun.count(),
+      drafts: await prisma.synthesisDraft.count(),
+      versions: await prisma.reviewVersion.count(),
+    }).toEqual(before);
+    expect(await service.getPublicSynthesisReview(review.slug, prisma)).toMatchObject({
+      freshness: { status: "fresh", reasonCodes: [], affectedReferenceCount: 0 },
+    });
+  });
+
+  it("creates one private policy-drift proposal and resolves it idempotently", async () => {
+    const review = await prisma.review.findFirstOrThrow({ where: { reviewType: "ai-synthesis" } });
+    const draftCount = await prisma.synthesisDraft.count();
+    const evaluation = await staleness.evaluateSynthesisHead(review.id, {
+      client: prisma,
+      materializationPolicyVersion: "synthesis-materialization/2.0.0",
+    });
+    expect(evaluation).toMatchObject({
+      status: "stale",
+      reasonCodes: ["materialization-policy-changed"],
+    });
+    const proposal = (await staleness.listSynthesisRegenerationProposals(prisma))[0]!;
+    expect(proposal.reasonCodes).toEqual(["materialization-policy-changed"]);
+    const decision = {
+      action: "request-regeneration" as const,
+      expectedRevision: 0,
+      idempotencyKey: "staleness-policy-decision-0001",
+      rationale: "The editor requests a new private synthesis draft under the current policy.",
+    };
+    const resolved = await staleness.decideSynthesisRegenerationProposal(
+      actor,
+      proposal.id,
+      decision,
+      prisma,
+    );
+    expect(
+      await staleness.decideSynthesisRegenerationProposal(actor, proposal.id, decision, prisma),
+    ).toEqual(resolved);
+    expect(resolved).toEqual({ status: "regeneration-requested", revision: 1 });
+    await staleness.evaluateSynthesisHead(review.id, {
+      client: prisma,
+      materializationPolicyVersion: "synthesis-materialization/2.0.0",
+    });
+    expect(await prisma.synthesisRegenerationProposal.count({ where: { status: "open" } })).toBe(0);
+    expect(await prisma.synthesisDraft.count()).toBe(draftCount);
+  });
+
+  it("deduplicates concurrent node-head drift scans and supersedes the proposal when fresh", async () => {
+    const review = await prisma.review.findFirstOrThrow({ where: { reviewType: "ai-synthesis" } });
+    await prisma.repositorySnapshot.create({
+      data: {
+        id: "snapshot-stale-v2",
+        repositoryId: "repository-v1",
+        commitSha: "c".repeat(40),
+        inspectionStatus: "succeeded",
+        inspectionReportJson: "{}",
+        contentHash: "d".repeat(64),
+      },
+    });
+    await prisma.knowledgeNodeVersion.create({
+      data: {
+        id: "claim-v2",
+        knowledgeNodeId: "claim",
+        snapshotId: "snapshot-stale-v2",
+        title: "A changed grounded claim",
+        contributorsJson: '[{"displayName":"Reviewer"}]',
+        license: "CC-BY-4.0",
+        provenanceJson: canonicalJson({
+          sourcePath: "knowledge/claim.json",
+          repositoryUrl: "https://github.com/atlas/review",
+          commitSha: "c".repeat(40),
+        }),
+        payloadJson: '{"statement":"A changed grounded claim.","qualifiers":[]}',
+        createdAt: new Date("2026-02-01T00:00:00.000Z"),
+      },
+    });
+    const results = await Promise.all([
+      staleness.evaluateSynthesisHead(review.id, { client: prisma }),
+      staleness.evaluateSynthesisHead(review.id, { client: prisma }),
+    ]);
+    expect(results[0]).toMatchObject({ status: "stale", reasonCodes: ["node-head-changed"] });
+    expect(results[1]!.evaluationKey).toBe(results[0]!.evaluationKey);
+    expect(await prisma.synthesisRegenerationProposal.count({ where: { status: "open" } })).toBe(1);
+    const openProposal = await prisma.synthesisRegenerationProposal.findFirstOrThrow({
+      where: { status: "open" },
+      include: { evaluation: true },
+    });
+    expect(
+      await prisma.auditEvent.count({
+        where: {
+          action: "synthesis.staleness-evaluated",
+          subjectId: openProposal.evaluationId,
+        },
+      }),
+    ).toBe(1);
+    expect(
+      await prisma.auditEvent.count({
+        where: {
+          action: "synthesis.regeneration-proposal.created",
+          subjectId: openProposal.id,
+        },
+      }),
+    ).toBe(1);
+    await prisma.synthesisStalenessEvaluation.update({
+      where: { id: openProposal.evaluationId },
+      data: { reasonCodesJson: '["private-or-corrupt-reason"]' },
+    });
+    expect(await staleness.listSynthesisRegenerationProposals(prisma)).toEqual([]);
+    await prisma.synthesisStalenessEvaluation.update({
+      where: { id: openProposal.evaluationId },
+      data: { reasonCodesJson: openProposal.evaluation.reasonCodesJson },
+    });
+    expect(await service.getPublicSynthesisReview(review.slug, prisma)).toMatchObject({
+      freshness: { status: "stale", reasonCodes: ["node-head-changed"] },
+    });
+
+    await prisma.knowledgeNodeVersion.delete({ where: { id: "claim-v2" } });
+    await prisma.repositorySnapshot.delete({ where: { id: "snapshot-stale-v2" } });
+    const fresh = await staleness.evaluateSynthesisHead(review.id, { client: prisma });
+    expect(fresh.status).toBe("fresh");
+    expect(await prisma.synthesisRegenerationProposal.count({ where: { status: "open" } })).toBe(0);
+    expect(
+      await prisma.synthesisRegenerationProposal.count({ where: { status: "superseded" } }),
+    ).toBeGreaterThanOrEqual(1);
+    expect(
+      await prisma.auditEvent.count({
+        where: {
+          action: "synthesis.regeneration-proposal.superseded",
+          subjectId: openProposal.id,
+        },
+      }),
+    ).toBe(1);
+    expect(await service.getPublicSynthesisReview(review.slug, prisma)).toMatchObject({
+      freshness: { status: "fresh", reasonCodes: [] },
+    });
+  });
+
+  it("reopens a recurring stale A state after A-to-B-to-A without duplicating repeats", async () => {
+    const review = await prisma.review.findFirstOrThrow({ where: { reviewType: "ai-synthesis" } });
+    const policy = "synthesis-materialization/2.0.0";
+    const firstA = await staleness.evaluateSynthesisHead(review.id, {
+      client: prisma,
+      materializationPolicyVersion: policy,
+    });
+    const firstProposal = (await staleness.listSynthesisRegenerationProposals(prisma))[0]!;
+    const sharedKey = "same-key-across-recurring-proposals";
+    await staleness.decideSynthesisRegenerationProposal(
+      actor,
+      firstProposal.id,
+      {
+        action: "dismiss",
+        expectedRevision: 0,
+        idempotencyKey: sharedKey,
+        rationale: "The editor records the first occurrence before checking the next graph state.",
+      },
+      prisma,
+    );
+
+    await prisma.repositorySnapshot.create({
+      data: {
+        id: "snapshot-oscillation-v2",
+        repositoryId: "repository-v1",
+        commitSha: "7".repeat(40),
+        inspectionStatus: "succeeded",
+        inspectionReportJson: "{}",
+        contentHash: "8".repeat(64),
+      },
+    });
+    await prisma.knowledgeNodeVersion.create({
+      data: {
+        id: "claim-oscillation-v2",
+        knowledgeNodeId: "claim",
+        snapshotId: "snapshot-oscillation-v2",
+        title: "Temporary oscillating evidence",
+        contributorsJson: '[{"displayName":"Reviewer"}]',
+        license: "CC-BY-4.0",
+        provenanceJson: canonicalJson({
+          sourcePath: "knowledge/claim.json",
+          repositoryUrl: "https://github.com/atlas/review",
+          commitSha: "7".repeat(40),
+        }),
+        payloadJson: '{"statement":"Temporary oscillating evidence.","qualifiers":[]}',
+        createdAt: new Date("2026-02-15T00:00:00.000Z"),
+      },
+    });
+    const stateB = await staleness.evaluateSynthesisHead(review.id, {
+      client: prisma,
+      materializationPolicyVersion: policy,
+    });
+    const middleProposal = (await staleness.listSynthesisRegenerationProposals(prisma))[0]!;
+    expect(stateB.evaluationKey).not.toBe(firstA.evaluationKey);
+
+    await prisma.knowledgeNodeVersion.delete({ where: { id: "claim-oscillation-v2" } });
+    await prisma.repositorySnapshot.delete({ where: { id: "snapshot-oscillation-v2" } });
+    const recurringA = await staleness.evaluateSynthesisHead(review.id, {
+      client: prisma,
+      materializationPolicyVersion: policy,
+    });
+    expect(recurringA.evaluationKey).toBe(firstA.evaluationKey);
+    const recurringProposal = (await staleness.listSynthesisRegenerationProposals(prisma))[0]!;
+    expect(recurringProposal.id).not.toBe(firstProposal.id);
+    expect(recurringProposal.id).not.toBe(middleProposal.id);
+    expect(await prisma.synthesisRegenerationProposal.count({ where: { status: "open" } })).toBe(1);
+    expect(
+      await prisma.synthesisRegenerationProposal.findUniqueOrThrow({
+        where: { id: middleProposal.id },
+      }),
+    ).toMatchObject({ status: "superseded" });
+    expect(await service.getPublicSynthesisReview(review.slug, prisma)).toMatchObject({
+      freshness: { status: "stale", reasonCodes: ["materialization-policy-changed"] },
+    });
+
+    const missingObservation = await prisma.synthesisStalenessHead.delete({
+      where: { acceptedReviewVersionId: recurringProposal.acceptedReviewVersionId },
+    });
+    expect(await staleness.listSynthesisRegenerationProposals(prisma)).toEqual([]);
+    await expect(
+      staleness.decideSynthesisRegenerationProposal(
+        actor,
+        recurringProposal.id,
+        {
+          action: "dismiss",
+          expectedRevision: 0,
+          idempotencyKey: "missing-observation-conflict-0001",
+          rationale: "The editor cannot decide a proposal whose current observation is missing.",
+        },
+        prisma,
+      ),
+    ).rejects.toMatchObject({ name: "SynthesisStalenessError", code: "conflict" });
+    await prisma.synthesisStalenessHead.create({
+      data: {
+        acceptedReviewVersionId: missingObservation.acceptedReviewVersionId,
+        reviewId: missingObservation.reviewId,
+        currentEvaluationId: missingObservation.currentEvaluationId,
+        revision: missingObservation.revision,
+        observedAt: missingObservation.observedAt,
+      },
+    });
+
+    const recurringEvaluation = await prisma.synthesisStalenessEvaluation.findUniqueOrThrow({
+      where: { evaluationKey: recurringA.evaluationKey },
+    });
+    await prisma.synthesisStalenessEvaluation.update({
+      where: { id: recurringEvaluation.id },
+      data: {
+        status: "fresh",
+        reasonCodesJson: "[]",
+        affectedReferencesJson: "[]",
+        affectedReferenceCount: 0,
+        affectedReferencesTruncated: false,
+      },
+    });
+    expect(await service.getPublicSynthesisReview(review.slug, prisma)).toMatchObject({
+      freshness: { status: "unchecked" },
+    });
+    expect(await staleness.listSynthesisRegenerationProposals(prisma)).toEqual([]);
+    await expect(
+      staleness.decideSynthesisRegenerationProposal(
+        actor,
+        recurringProposal.id,
+        {
+          action: "dismiss",
+          expectedRevision: 0,
+          idempotencyKey: sharedKey,
+          rationale: "The editor refuses a coherently rewritten but hash-mismatched evaluation.",
+        },
+        prisma,
+      ),
+    ).rejects.toMatchObject({ code: "conflict" });
+    await prisma.synthesisStalenessEvaluation.update({
+      where: { id: recurringEvaluation.id },
+      data: {
+        status: recurringEvaluation.status,
+        reasonCodesJson: recurringEvaluation.reasonCodesJson,
+        affectedReferencesJson: recurringEvaluation.affectedReferencesJson,
+        affectedReferenceCount: recurringEvaluation.affectedReferenceCount,
+        affectedReferencesTruncated: recurringEvaluation.affectedReferencesTruncated,
+      },
+    });
+
+    const version = await prisma.reviewVersion.findUniqueOrThrow({
+      where: { id: review.currentSynthesisVersionId! },
+    });
+    await prisma.reviewVersion.update({
+      where: { id: version.id },
+      data: { synthesisProvider: null },
+    });
+    expect(await staleness.listSynthesisRegenerationProposals(prisma)).toEqual([]);
+    await expect(
+      staleness.decideSynthesisRegenerationProposal(
+        actor,
+        recurringProposal.id,
+        {
+          action: "dismiss",
+          expectedRevision: 0,
+          idempotencyKey: sharedKey,
+          rationale: "The editor dismisses the recurring state after a complete baseline recheck.",
+        },
+        prisma,
+      ),
+    ).rejects.toMatchObject({ code: "conflict" });
+    await prisma.reviewVersion.update({
+      where: { id: version.id },
+      data: { synthesisProvider: version.synthesisProvider },
+    });
+    await staleness.decideSynthesisRegenerationProposal(
+      actor,
+      recurringProposal.id,
+      {
+        action: "dismiss",
+        expectedRevision: 0,
+        idempotencyKey: sharedKey,
+        rationale: "The editor dismisses the recurring state after a complete baseline recheck.",
+      },
+      prisma,
+    );
+    expect(
+      await prisma.auditEvent.findMany({
+        where: { idempotencyKey: { contains: sharedKey } },
+        select: { idempotencyKey: true },
+      }),
+    ).toHaveLength(2);
+    expect(
+      await prisma.auditEvent.count({
+        where: { action: "synthesis.staleness-observed", subjectId: version.id },
+      }),
+    ).toBeGreaterThanOrEqual(5);
+  });
+
+  it("fails closed with a bounded reason when current materialization is invalid", async () => {
+    const review = await prisma.review.findFirstOrThrow({ where: { reviewType: "ai-synthesis" } });
+    await prisma.knowledgeNode.update({ where: { id: "claim" }, data: { kind: "figure" } });
+    const failed = await staleness.evaluateSynthesisHead(review.id, { client: prisma });
+    expect(failed).toMatchObject({
+      status: "stale",
+      reasonCodes: ["materialization-failed"],
+      affectedReferences: [
+        {
+          kind: "policy",
+          id: "materialization:selection-unavailable",
+          change: "changed",
+        },
+      ],
+    });
+    const failureEvaluation = await prisma.synthesisStalenessEvaluation.findUniqueOrThrow({
+      where: { evaluationKey: failed.evaluationKey },
+    });
+    expect(failureEvaluation.evaluatedPacketJson).toBeNull();
+    expect(failureEvaluation.reasonCodesJson).not.toContain("error");
+    await prisma.knowledgeNode.update({ where: { id: "claim" }, data: { kind: "claim" } });
+    expect((await staleness.evaluateSynthesisHead(review.id, { client: prisma })).status).toBe(
+      "fresh",
+    );
+  });
+
+  it("fingerprints distinct safe materialization failure classes and deduplicates exact retries", async () => {
+    const review = await prisma.review.findFirstOrThrow({ where: { reviewType: "ai-synthesis" } });
+    const invalid = await staleness.evaluateSynthesisHead(review.id, {
+      client: prisma,
+      loadPacket: async () => {
+        throw new ZodError([]);
+      },
+    });
+    const invalidRepeat = await staleness.evaluateSynthesisHead(review.id, {
+      client: prisma,
+      loadPacket: async () => {
+        throw new ZodError([]);
+      },
+    });
+    expect(invalidRepeat.evaluationKey).toBe(invalid.evaluationKey);
+    expect(await prisma.synthesisRegenerationProposal.count({ where: { status: "open" } })).toBe(1);
+    const unavailable = await staleness.evaluateSynthesisHead(review.id, {
+      client: prisma,
+      loadPacket: async () => {
+        throw new service.SynthesisEditorialError("safe-test-failure", "not-found");
+      },
+    });
+    expect(unavailable.evaluationKey).not.toBe(invalid.evaluationKey);
+    const stored = await prisma.synthesisStalenessEvaluation.findMany({
+      where: { evaluationKey: { in: [invalid.evaluationKey, unavailable.evaluationKey] } },
+      orderBy: { failureCode: "asc" },
+    });
+    expect(stored.map((evaluation) => evaluation.failureCode)).toEqual([
+      "invalid-materialization",
+      "selection-unavailable",
+    ]);
+    expect(
+      stored.every((evaluation) => /^[0-9a-f]{64}$/.test(evaluation.failureFingerprint!)),
+    ).toBe(true);
+    expect((await staleness.evaluateSynthesisHead(review.id, { client: prisma })).status).toBe(
+      "fresh",
+    );
   });
 
   it("expires a stale bound running run and retries with a new atomic run", async () => {
@@ -526,6 +941,31 @@ describe.sequential("synthesis editorial lifecycle", () => {
         },
       }),
     ).rejects.toThrow();
+    const evaluation = await prisma.synthesisStalenessEvaluation.findFirstOrThrow();
+    await expect(
+      prisma.synthesisStalenessEvaluation.update({
+        where: { id: evaluation.id },
+        data: { status: "invalid" },
+      }),
+    ).rejects.toThrow();
+    const resolvedProposal = await prisma.synthesisRegenerationProposal.findFirstOrThrow({
+      where: { status: "regeneration-requested" },
+    });
+    await expect(
+      prisma.synthesisRegenerationProposal.update({
+        where: { id: resolvedProposal.id },
+        data: {
+          status: "open",
+          openHeadKey: resolvedProposal.acceptedReviewVersionId,
+        },
+      }),
+    ).rejects.toThrow();
+    await expect(
+      prisma.synthesisRegenerationProposal.update({
+        where: { id: resolvedProposal.id },
+        data: { status: "superseded" },
+      }),
+    ).rejects.toThrow();
   });
 
   it("fails public reads closed for corrupt provenance, attribution, hash, and citations", async () => {
@@ -552,6 +992,9 @@ describe.sequential("synthesis editorial lifecycle", () => {
     ]) {
       await prisma.reviewVersion.update({ where: { id: versionId }, data });
       expect(await service.getPublicSynthesisReview(review.slug, prisma)).toBeNull();
+      await expect(
+        staleness.evaluateSynthesisHead(review.id, { client: prisma }),
+      ).rejects.toMatchObject({ code: "conflict" });
       await prisma.reviewVersion.update({ where: { id: versionId }, data: restore });
     }
     const attribution = await prisma.synthesisAttributionContributor.findFirstOrThrow({
@@ -619,6 +1062,80 @@ describe.sequential("synthesis editorial lifecycle", () => {
     await prisma.agentRun.update({
       where: { id: draft.agentRunId },
       data: { humanReviewStatus: "approved" },
+    });
+    const observation = await prisma.synthesisStalenessHead.findUniqueOrThrow({
+      where: { acceptedReviewVersionId: versionId },
+      include: { currentEvaluation: true },
+    });
+    const freshness = observation.currentEvaluation;
+    for (const mutation of [
+      { reasonCodesJson: '["private-run-id"]' },
+      { seriesKey: "f".repeat(64) },
+      { acceptedPacketHash: "f".repeat(64) },
+      { policyVersion: "synthesis-staleness/forged" },
+    ]) {
+      await prisma.synthesisStalenessEvaluation.update({
+        where: { id: freshness.id },
+        data: mutation,
+      });
+      const failClosedFreshness = await service.getPublicSynthesisReview(review.slug, prisma);
+      expect(failClosedFreshness).toMatchObject({ freshness: { status: "unchecked" } });
+      expect(JSON.stringify(failClosedFreshness)).not.toContain(freshness.id);
+      await prisma.synthesisStalenessEvaluation.update({
+        where: { id: freshness.id },
+        data: {
+          reasonCodesJson: freshness.reasonCodesJson,
+          seriesKey: freshness.seriesKey,
+          acceptedPacketHash: freshness.acceptedPacketHash,
+          policyVersion: freshness.policyVersion,
+        },
+      });
+    }
+    const forgedProposal = await prisma.synthesisRegenerationProposal.create({
+      data: {
+        evaluationId: freshness.id,
+        reviewId: review.id,
+        acceptedReviewVersionId: versionId,
+        openHeadKey: versionId,
+      },
+    });
+    await prisma.synthesisStalenessEvaluation.update({
+      where: { id: freshness.id },
+      data: {
+        status: "stale",
+        reasonCodesJson: '["materialization-policy-changed"]',
+        affectedReferencesJson: '[{"change":"changed","id":"forged-policy","kind":"policy"}]',
+        affectedReferenceCount: 1,
+        affectedReferencesTruncated: false,
+      },
+    });
+    expect(await service.getPublicSynthesisReview(review.slug, prisma)).toMatchObject({
+      freshness: { status: "unchecked" },
+    });
+    expect(await staleness.listSynthesisRegenerationProposals(prisma)).toEqual([]);
+    await expect(
+      staleness.decideSynthesisRegenerationProposal(
+        actor,
+        forgedProposal.id,
+        {
+          action: "dismiss",
+          expectedRevision: 0,
+          idempotencyKey: "forged-false-stale-decision",
+          rationale: "The editor must not act on a coherently rewritten freshness evaluation.",
+        },
+        prisma,
+      ),
+    ).rejects.toMatchObject({ code: "conflict" });
+    await prisma.synthesisRegenerationProposal.delete({ where: { id: forgedProposal.id } });
+    await prisma.synthesisStalenessEvaluation.update({
+      where: { id: freshness.id },
+      data: {
+        status: freshness.status,
+        reasonCodesJson: freshness.reasonCodesJson,
+        affectedReferencesJson: freshness.affectedReferencesJson,
+        affectedReferenceCount: freshness.affectedReferenceCount,
+        affectedReferencesTruncated: freshness.affectedReferencesTruncated,
+      },
     });
     const citation = await prisma.synthesisDraftCitation.findFirstOrThrow({
       where: { draftId: draft.id },
@@ -717,5 +1234,107 @@ describe.sequential("synthesis editorial lifecycle", () => {
     ]);
     expect(outcomes.filter((outcome) => outcome.status === "fulfilled")).toHaveLength(1);
     expect(outcomes.filter((outcome) => outcome.status === "rejected")).toHaveLength(1);
+  });
+
+  it("atomically supersedes an obsolete open proposal when a newer head is accepted", async () => {
+    const review = await prisma.review.findFirstOrThrow({ where: { reviewType: "ai-synthesis" } });
+    await prisma.repositorySnapshot.create({
+      data: {
+        id: "snapshot-supersession-v2",
+        repositoryId: "repository-v1",
+        commitSha: "e".repeat(40),
+        inspectionStatus: "succeeded",
+        inspectionReportJson: "{}",
+        contentHash: "f".repeat(64),
+      },
+    });
+    await prisma.knowledgeNodeVersion.create({
+      data: {
+        id: "claim-supersession-v2",
+        knowledgeNodeId: "claim",
+        snapshotId: "snapshot-supersession-v2",
+        title: "New evidence before a synthesis acceptance",
+        contributorsJson: '[{"displayName":"Reviewer"}]',
+        license: "CC-BY-4.0",
+        provenanceJson: canonicalJson({
+          sourcePath: "knowledge/claim.json",
+          repositoryUrl: "https://github.com/atlas/review",
+          commitSha: "e".repeat(40),
+        }),
+        payloadJson: '{"statement":"New evidence.","qualifiers":[]}',
+        createdAt: new Date("2026-03-01T00:00:00.000Z"),
+      },
+    });
+    await staleness.evaluateSynthesisHead(review.id, { client: prisma });
+    expect(await prisma.synthesisRegenerationProposal.count({ where: { status: "open" } })).toBe(1);
+    const obsoleteProposal = await prisma.synthesisRegenerationProposal.findFirstOrThrow({
+      where: { status: "open" },
+    });
+    const nextDraft = await service.generateSynthesisDraft(
+      { selector, requestKey: "generation-supersession-0001" },
+      { client: prisma, actor, loadPacket: async () => prepared() },
+    );
+    await service.decideSynthesisDraft(
+      nextDraft.id,
+      { ...acceptance, idempotencyKey: "accept-supersession-0001" },
+      actor,
+      prisma,
+    );
+    expect(await prisma.synthesisRegenerationProposal.count({ where: { status: "open" } })).toBe(0);
+    expect(
+      await prisma.synthesisRegenerationProposal.count({ where: { status: "superseded" } }),
+    ).toBeGreaterThanOrEqual(1);
+    expect(
+      await prisma.auditEvent.findFirst({
+        where: {
+          action: "synthesis.regeneration-proposal.superseded",
+          subjectId: obsoleteProposal.id,
+        },
+      }),
+    ).toMatchObject({ actorId: actor.id });
+    await prisma.knowledgeNodeVersion.delete({ where: { id: "claim-supersession-v2" } });
+    await prisma.repositorySnapshot.delete({ where: { id: "snapshot-supersession-v2" } });
+  });
+
+  it("continues a paged scan after one corrupt head and audits the bounded failure", async () => {
+    const secondSelector = {
+      ...selector,
+      selection: { kind: "seed" as const, nodeId: "claim-reject" },
+    };
+    const draft = await service.generateSynthesisDraft(
+      { selector: secondSelector, requestKey: "generation-scan-isolation-0001" },
+      { client: prisma, actor, loadPacket: async () => prepared("claim-reject") },
+    );
+    await service.decideSynthesisDraft(
+      draft.id,
+      {
+        ...acceptance,
+        idempotencyKey: "accept-scan-isolation-0001",
+        versionDoi: "10.5281/zenodo.2234567",
+        conceptDoi: "10.5281/zenodo.2234500",
+      },
+      actor,
+      prisma,
+    );
+    const corruptReview = await prisma.review.findUniqueOrThrow({
+      where: { synthesisSeriesKey: service.synthesisSeriesKey(selector) },
+      include: { currentSynthesisVersion: true },
+    });
+    await prisma.reviewVersion.update({
+      where: { id: corruptReview.currentSynthesisVersionId! },
+      data: { synthesisProvider: null },
+    });
+    const scan = await staleness.scanAcceptedSyntheses({ client: prisma, actor, limit: 100 });
+    expect(scan).toMatchObject({ scanned: 2, succeeded: 1, failed: 1 });
+    expect(scan.failures).toEqual([{ code: "evaluation-failed", reviewSlug: corruptReview.slug }]);
+    expect(
+      await prisma.auditEvent.findFirst({
+        where: { action: "synthesis.staleness-scan-failed", subjectId: corruptReview.id },
+      }),
+    ).toMatchObject({ actorId: actor.id });
+    await prisma.reviewVersion.update({
+      where: { id: corruptReview.currentSynthesisVersionId! },
+      data: { synthesisProvider: corruptReview.currentSynthesisVersion!.synthesisProvider },
+    });
   });
 });

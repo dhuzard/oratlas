@@ -20,6 +20,7 @@ import { SubmissionError } from "./submissions";
 import { ReplicationMarketplaceError } from "./replication-marketplace";
 import { NodeEdgeLifecycleError } from "./node-edge-lifecycle";
 import { SynthesisEditorialError } from "./synthesis-editorial";
+import { SynthesisStalenessError } from "./synthesis-staleness";
 
 /**
  * Shared plumbing for cookie-authenticated lifecycle mutations: same-origin
@@ -67,6 +68,7 @@ export async function handleLifecyclePost<Schema extends z.ZodTypeAny>(
     if (err instanceof NodeEdgeLifecycleError) return errorResponse(err.code, err.message);
     if (err instanceof ExecutionPassportError) return errorResponse(err.code, err.message);
     if (err instanceof SynthesisEditorialError) return errorResponse(err.code, err.message);
+    if (err instanceof SynthesisStalenessError) return errorResponse(err.code, err.message);
     if (err instanceof z.ZodError) return errorResponse("bad-request", "Invalid request payload.");
     if (err instanceof BodyTooLargeError)
       return errorResponse("payload-too-large", "Request body too large.");
