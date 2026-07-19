@@ -1,5 +1,11 @@
 # Agent backlog — node-first publication & AI-written reviews
 
+> **Superseded (2026-07-19).** Every item in this backlog (KG-01…KG-20) has shipped. This file
+> is retained as the historical record of that phase. The **canonical, active backlog is
+> [`ORATLAS_BACKLOG.md`](ORATLAS_BACKLOG.md)**; open governance questions live in
+> [`ORATLAS_DECISIONS.md`](ORATLAS_DECISIONS.md) and upstream coupling in
+> [`CROSS_REPO_DEPENDENCIES.md`](CROSS_REPO_DEPENDENCIES.md). Do not add or claim items here.
+
 This is the machine-consumable todo list for the autonomous agent team (auto-issue and PR
 loops). It describes the work needed to evolve Open Review Atlas from a repo-based review
 archive (PLAN.md, all PR-00…PR-10 slices shipped) toward the target model:
