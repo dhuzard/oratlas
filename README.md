@@ -262,7 +262,8 @@ A full inventory of limitations lives in [`docs/poc-limitations.md`](docs/poc-li
 
 ## Contributing
 
-See [`CONTRIBUTING.md`](CONTRIBUTING.md) for development workflow and expectations,
+See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the canonical backlog workflow and development
+expectations,
 [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) for community standards, and
 [`SECURITY.md`](SECURITY.md) for how to report vulnerabilities.
 
