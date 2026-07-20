@@ -92,6 +92,37 @@ export function NodeView({
           </Card>
 
           {node.kind === "claim" ? (
+            <Card title={`Also asserted in (${node.sameClaims.length})`}>
+              <p className="muted">
+                Editor-confirmed identity links connect separate stable claims. Evidence and TRUST
+                assessments remain scoped to their original claim–citation relations.
+              </p>
+              {node.sameClaims.length === 0 ? (
+                <p className="muted">No cross-review same-claim identity has been confirmed.</p>
+              ) : (
+                <ul>
+                  {node.sameClaims.map((sameClaim) => (
+                    <li key={sameClaim.proposalId}>
+                      <Link href={`/nodes/${sameClaim.nodeId}`}>{sameClaim.title}</Link> —{" "}
+                      {sameClaim.repository.owner}/{sameClaim.repository.name}
+                      {sameClaim.reviewAssertions.map((assertion) => (
+                        <span key={`${assertion.versionId}:${assertion.localClaimId}`}>
+                          {" · "}
+                          <Link
+                            href={`/claims/${assertion.versionId}/${encodeURIComponent(assertion.localClaimId)}`}
+                          >
+                            {assertion.reviewTitle}
+                          </Link>
+                        </span>
+                      ))}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Card>
+          ) : null}
+
+          {node.kind === "claim" ? (
             <Card title={`Claim–citation TRUST context (${node.trustContext.length})`}>
               <p className="muted">
                 TRUST belongs to each exact claim–citation relation. It is not a score for this node

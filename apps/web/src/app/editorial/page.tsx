@@ -21,6 +21,8 @@ import { listEditorialSynthesisDrafts } from "@/lib/synthesis-editorial";
 import { SynthesisDraftPanel } from "./SynthesisDraftPanel";
 import { listSynthesisRegenerationProposalPage } from "@/lib/synthesis-staleness";
 import { SynthesisStalenessPanel } from "./SynthesisStalenessPanel";
+import { NodeIdentityProposalPanel } from "./NodeIdentityProposalPanel";
+import { listPendingNodeIdentityProposals } from "@/lib/node-identity-lifecycle";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Editorial dashboard" };
@@ -73,6 +75,7 @@ export default async function EditorialPage({
   const federationQueue = await listFederationQueue();
   const openProtocolProposals = await listOpenProtocolProposals();
   const nodeEdgeProposals = await listPendingNodeEdgeProposals();
+  const nodeIdentityProposals = await listPendingNodeIdentityProposals();
   const synthesisDrafts = await listEditorialSynthesisDrafts();
   const requestedSynthesisCursor = Array.isArray(params.synthesisCursor)
     ? params.synthesisCursor[0]
@@ -382,6 +385,14 @@ export default async function EditorialPage({
         confirms them. Confirmation records structural editorial review, not scientific truth.
       </p>
       <NodeEdgeProposalPanel proposals={nodeEdgeProposals} />
+
+      <h2>Same-claim proposals ({nodeIdentityProposals.length})</h2>
+      <p className="muted">
+        Deterministic text and alias signals only propose identity. An editor may confirm an “also
+        asserted in” relationship, but claims, nodes, and protocol-scoped TRUST assessments remain
+        separate.
+      </p>
+      <NodeIdentityProposalPanel proposals={nodeIdentityProposals} />
 
       <h2>Evidence monitoring</h2>
       <Card>

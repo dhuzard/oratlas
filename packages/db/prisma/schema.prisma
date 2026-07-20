@@ -65,6 +65,7 @@ model User {
   replicationBriefsCompleted     ReplicationBrief[]                @relation("replicationCompleter")
   replicationBriefsWithdrawn     ReplicationBrief[]                @relation("replicationWithdrawer")
   nodeEdgeProposalsReviewed      NodeEdgeProposal[]                @relation("nodeEdgeProposalReviewer")
+  nodeIdentityProposalsReviewed  NodeIdentityProposal[]            @relation("nodeIdentityProposalReviewer")
   nodeEdgesConfirmed             NodeEdge[]                        @relation("nodeEdgeConfirmer")
   synthesisDraftsApproved        SynthesisDraft[]                  @relation("synthesisDraftApprover")
   synthesisVersionsApproved      ReviewVersion[]                   @relation("synthesisVersionApprover")
@@ -489,6 +490,8 @@ model KnowledgeNode {
   incomingEdgeProposals NodeEdgeProposal[]         @relation("proposalTargetNode")
   linkedClaims          Claim[]
   aliases               NodeAlias[]
+  identityProposalsFrom NodeIdentityProposal[]     @relation("identityProposalSource")
+  identityProposalsTo   NodeIdentityProposal[]     @relation("identityProposalTarget")
   synthesisMemberships  SynthesisDraftMembership[]
   synthesisCitations    SynthesisDraftCitation[]
 
@@ -636,6 +639,39 @@ model NodeAlias {
 
   @@unique([knowledgeNodeId, scheme, role, value])
   @@index([scheme, value])
+}
+
+/// A deterministic cross-repository identity suggestion. Confirming this row
+/// publishes an "also asserted in" relationship; it never merges stable nodes
+/// or combines their protocol-scoped assessments.
+model NodeIdentityProposal {
+  id                String    @id
+  /// same-work | same-claim (C01 currently persists same-claim only)
+  kind              String
+  sourceNodeId      String
+  targetNodeId      String
+  signalsJson       String
+  sharedAliasesJson String    @default("[]")
+  sourceTextHash    String?
+  targetTextHash    String?
+  textSimilarity    Float?
+  methodVersion     String
+  /// proposed | confirmed | rejected
+  status            String    @default("proposed")
+  revision          Int       @default(0)
+  reviewedById      String?
+  reviewedAt        DateTime?
+  reviewNote        String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  sourceNode KnowledgeNode @relation("identityProposalSource", fields: [sourceNodeId], references: [id], onDelete: Restrict)
+  targetNode KnowledgeNode @relation("identityProposalTarget", fields: [targetNodeId], references: [id], onDelete: Restrict)
+  reviewedBy User?         @relation("nodeIdentityProposalReviewer", fields: [reviewedById], references: [id], onDelete: Restrict)
+
+  @@index([status, createdAt])
+  @@index([sourceNodeId, status])
+  @@index([targetNodeId, status])
 }
 
 /// A human-editor-published replication opportunity. Triage snapshots are

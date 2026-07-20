@@ -13,6 +13,7 @@ import { type Prisma } from "@oratlas/db";
 import { prisma } from "./db";
 import { withSqliteRetry as sharedWithSqliteRetry } from "./db-retry";
 import { isReadablePublicState } from "./review-lifecycle";
+import { getPublicNode } from "./node-publication";
 import {
   listExecutionPassportsForClaim,
   type PublicExecutionPassport,
@@ -375,6 +376,15 @@ export interface ClaimPassport {
   alerts: ProposalRow[];
   executionPassports: PublicExecutionPassport[];
   protocolDrift: ProtocolDriftSummary;
+  alsoAssertedIn: Array<{
+    proposalId: string;
+    nodeId: string;
+    title: string;
+    reviewSlug: string;
+    reviewTitle: string;
+    versionId: string;
+    localClaimId: string;
+  }>;
 }
 
 /**
@@ -420,6 +430,7 @@ export async function getClaimPassport(
 
   const protocolDrift = await getPublicProtocolSummary(version.id, claim.localClaimId);
   if (!protocolDrift) return null;
+  const publicNode = claim.knowledgeNodeId ? await getPublicNode(claim.knowledgeNodeId) : null;
 
   return {
     claimId: globalClaimId(version.id, claim.localClaimId),
@@ -458,6 +469,14 @@ export async function getClaimPassport(
     alerts: claim.updateProposals.map(proposalDto),
     executionPassports,
     protocolDrift,
+    alsoAssertedIn: (publicNode?.sameClaims ?? []).flatMap((sameClaim) =>
+      sameClaim.reviewAssertions.map((assertion) => ({
+        proposalId: sameClaim.proposalId,
+        nodeId: sameClaim.nodeId,
+        title: sameClaim.title,
+        ...assertion,
+      })),
+    ),
   };
 }
 

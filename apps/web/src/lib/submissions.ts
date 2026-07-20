@@ -33,6 +33,7 @@ import {
   type SubmissionPayload,
 } from "./submission-payload";
 import { materializeAuthorEdgeProposals } from "./node-edge-lifecycle";
+import { materializeSameClaimProposals } from "./node-identity-lifecycle";
 
 export type { SubmissionPayload } from "./submission-payload";
 
@@ -529,6 +530,13 @@ export async function acceptSubmission(
             reviewerId,
             reviewVersionId,
           );
+          const publishedNodeIds = (
+            await tx.knowledgeNodeVersion.findMany({
+              where: { id: { in: nodeVersionIds } },
+              select: { knowledgeNodeId: true },
+            })
+          ).map((version) => version.knowledgeNodeId);
+          const identityProposalIds = await materializeSameClaimProposals(tx, publishedNodeIds);
           const nodeTrustRecords = payload.knowledge.trust.filter(
             (record): record is NodeRelationTrustRecord => "subjectType" in record,
           );
@@ -590,6 +598,7 @@ export async function acceptSubmission(
                 reviewVersionId,
                 selectedNodeIds: requestedSelection,
                 nodeVersionIds,
+                identityProposalIds,
                 edgeProposalIds,
                 nodeTrustAssessmentIds,
                 overrideCheckIds: validatedOverrides.map((entry) => entry.checkId),
