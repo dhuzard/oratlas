@@ -695,8 +695,9 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-L02 — Contributor guide for this backlog and agent workflow
 
-- **Status:** backlog · **Priority:** P2 · **Size:** S · **Agent:** yes
-- **Packages:** repo root · **External dep:** none · **Issue/PR:** none
+- **Status:** review · **Priority:** P2 · **Size:** S · **Agent:** yes
+- **Packages:** repo root · **External dep:** none · **Issue/PR:**
+  [#81](https://github.com/dhuzard/oratlas/pull/81)
 - **Goal:** CONTRIBUTING.md predates this tracker. Add the backlog workflow (one item = one
   branch = one PR, status field updates, verification bar) and the agent rules below so human
   and agent contributors follow the same loop.
