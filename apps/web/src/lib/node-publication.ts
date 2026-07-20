@@ -34,6 +34,10 @@ import {
   resolveTrustAssessmentRows,
   selectPreferredPublicNodeRelationTrustAssessment,
 } from "./trust-provenance";
+import {
+  compatibilityReportFromStoredJson,
+  type StoredCompatibilityReport,
+} from "./compatibility-report";
 
 const storedNodeProvenanceSchema = z.union([
   knowledgeNodeProvenanceSchema,
@@ -73,6 +77,10 @@ export interface PublicNodeSummaryScan {
   candidateLimit: typeof PUBLIC_NODE_SEARCH_LIMIT;
   candidateLimitReached: boolean;
 }
+
+export type PublicNodeDetailProjection = PublicNodeDetail & {
+  compatibilityReport?: StoredCompatibilityReport;
+};
 
 function parseJson(value: string, label: string): unknown {
   try {
@@ -117,6 +125,7 @@ function identifiersFor(
 type StoredVersion = {
   id: string;
   snapshotId: string;
+  sourceSubmissionId: string | null;
   title: string;
   abstract: string | null;
   text: string | null;
@@ -423,7 +432,7 @@ export async function scanPublicNodeSummaries(
 export async function getPublicNode(
   id: string,
   selectedVersionId?: string,
-): Promise<PublicNodeDetail | null> {
+): Promise<PublicNodeDetailProjection | null> {
   const node = await prisma.knowledgeNode.findUnique({
     where: { id },
     include: {
@@ -463,67 +472,86 @@ export async function getPublicNode(
     ? node.versions
     : [...node.versions, selectedStored];
 
-  const [outgoingRows, incomingRows, trustRelations] = await Promise.all([
-    prisma.nodeEdge.findMany({
-      where: { ...publicConfirmedNodeEdgeWhere, sourceNodeVersionId: selectedStored.id },
-      include: {
-        confirmedTargetNodeVersion: {
-          include: {
-            ...versionInclude,
-            knowledgeNode: {
-              include: {
-                repository: { select: { owner: true, name: true, canonicalUrl: true } },
+  const [outgoingRows, incomingRows, trustRelations, sourceSubmission, compatibilitySource] =
+    await Promise.all([
+      prisma.nodeEdge.findMany({
+        where: { ...publicConfirmedNodeEdgeWhere, sourceNodeVersionId: selectedStored.id },
+        include: {
+          confirmedTargetNodeVersion: {
+            include: {
+              ...versionInclude,
+              knowledgeNode: {
+                include: {
+                  repository: { select: { owner: true, name: true, canonicalUrl: true } },
+                },
               },
             },
           },
         },
-      },
-      orderBy: [{ createdAt: "asc" }, { id: "asc" }],
-      take: PUBLIC_NODE_EDGE_LIMIT,
-    }),
-    prisma.nodeEdge.findMany({
-      where: {
-        ...publicConfirmedNodeEdgeWhere,
-        targetNodeId: node.id,
-        confirmedTargetNodeVersionId: selectedStored.id,
-        relationType: "contradicts",
-      },
-      include: {
-        confirmedTargetNodeVersion: { select: { knowledgeNodeId: true } },
-        sourceNodeVersion: {
-          include: {
-            ...versionInclude,
-            knowledgeNode: {
-              include: {
-                repository: { select: { owner: true, name: true, canonicalUrl: true } },
+        orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+        take: PUBLIC_NODE_EDGE_LIMIT,
+      }),
+      prisma.nodeEdge.findMany({
+        where: {
+          ...publicConfirmedNodeEdgeWhere,
+          targetNodeId: node.id,
+          confirmedTargetNodeVersionId: selectedStored.id,
+          relationType: "contradicts",
+        },
+        include: {
+          confirmedTargetNodeVersion: { select: { knowledgeNodeId: true } },
+          sourceNodeVersion: {
+            include: {
+              ...versionInclude,
+              knowledgeNode: {
+                include: {
+                  repository: { select: { owner: true, name: true, canonicalUrl: true } },
+                },
               },
             },
           },
         },
-      },
-      orderBy: [{ createdAt: "asc" }, { id: "asc" }],
-      take: PUBLIC_NODE_EDGE_LIMIT,
-    }),
-    prisma.claimEvidenceRelation.findMany({
-      where: {
-        claim: {
-          knowledgeNodeId: node.id,
-          reviewVersion: { snapshotId: selectedStored.snapshotId },
+        orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+        take: PUBLIC_NODE_EDGE_LIMIT,
+      }),
+      prisma.claimEvidenceRelation.findMany({
+        where: {
+          claim: {
+            knowledgeNodeId: node.id,
+            reviewVersion: { snapshotId: selectedStored.snapshotId },
+          },
         },
-      },
-      include: {
-        claim: { include: { reviewVersion: { include: { review: true } } } },
-        citation: true,
-        trustAssessments: {
-          include: { verification: true },
-          orderBy: [{ assessedAt: "desc" }, { id: "desc" }],
-          take: PUBLIC_NODE_TRUST_ASSESSMENT_LIMIT,
+        include: {
+          claim: { include: { reviewVersion: { include: { review: true } } } },
+          citation: true,
+          trustAssessments: {
+            include: { verification: true },
+            orderBy: [{ assessedAt: "desc" }, { id: "desc" }],
+            take: PUBLIC_NODE_TRUST_ASSESSMENT_LIMIT,
+          },
         },
-      },
-      orderBy: { id: "asc" },
-      take: PUBLIC_NODE_TRUST_RELATION_LIMIT,
-    }),
-  ]);
+        orderBy: { id: "asc" },
+        take: PUBLIC_NODE_TRUST_RELATION_LIMIT,
+      }),
+      selectedStored.sourceSubmissionId
+        ? prisma.submission.findUnique({
+            where: { id: selectedStored.sourceSubmissionId },
+            select: { submittedPayloadJson: true },
+          })
+        : Promise.resolve(null),
+      prisma.reviewVersion.findFirst({
+        where: {
+          snapshotId: selectedStored.snapshotId,
+          publicState: { in: ["published", "withdrawn"] },
+          review: { status: "published" },
+        },
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+        select: {
+          metadataJson: true,
+          snapshot: { select: { inspectionReportJson: true } },
+        },
+      }),
+    ]);
 
   const publicEdgeIds = [...outgoingRows, ...incomingRows].map((edge) => edge.id);
   const nodeTrustByEdge = new Map<
@@ -669,7 +697,7 @@ export async function getPublicNode(
     ];
   });
 
-  return publicNodeDetailSchema.parse({
+  const detail = publicNodeDetailSchema.parse({
     schemaVersion: "1.0.0",
     id: node.id,
     localNodeId: node.localNodeId,
@@ -689,6 +717,15 @@ export async function getPublicNode(
     ),
     trustContext,
   });
+  return {
+    ...detail,
+    compatibilityReport:
+      compatibilityReportFromStoredJson(sourceSubmission?.submittedPayloadJson) ??
+      compatibilityReportFromStoredJson(
+        compatibilitySource?.metadataJson,
+        compatibilitySource?.snapshot?.inspectionReportJson,
+      ),
+  };
 }
 
 function citationIsExample(doi: string | null, raw: string | null): boolean {

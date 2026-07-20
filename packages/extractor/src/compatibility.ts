@@ -1,10 +1,14 @@
 import {
+  type ArtifactCompatibilityReport,
+  type ArtifactOutcome,
+  type ArtifactOutcomeIssue,
+  type ArtifactSourceOutcome,
   type CompatibilityLevel,
-  type CompatibilityReport,
   type CompatibilitySignal,
   type InspectionReport,
+  validateNodeManifest,
 } from "@oratlas/contracts";
-import { type ExtractedKnowledge } from "./knowledge.js";
+import { type ExtractedKnowledge, type KnowledgeArtifactOutcomes } from "./knowledge.js";
 import { type NodeExtractionReport } from "./nodes.js";
 
 const TEMPLATE_FULL_NAME = "allenneuraldynamics/computationalreviewtemplate";
@@ -24,7 +28,8 @@ export function assessCompatibility(
   knowledge: ExtractedKnowledge,
   manifestPresent: boolean,
   nodeExtraction?: NodeExtractionReport,
-): CompatibilityReport {
+  knowledgeArtifactOutcomes?: KnowledgeArtifactOutcomes,
+): ArtifactCompatibilityReport {
   if (report.status === "failed") {
     return inspectionFailed(report.error ?? "Inspection failed.");
   }
@@ -204,7 +209,7 @@ export function assessCompatibility(
   }
 
   return {
-    schemaVersion: "1.0.0",
+    schemaVersion: "1.1.0",
     templateForkDetected,
     templateFilesDetected,
     mystProjectDetected,
@@ -219,13 +224,24 @@ export function assessCompatibility(
     blockingErrors,
     warnings,
     recommendations,
+    artifactOutcomes: {
+      ...(knowledgeArtifactOutcomes ?? emptyKnowledgeArtifactOutcomes()),
+      nodes: nodeArtifactOutcome(report, nodeExtraction, "nodes"),
+      edges: nodeArtifactOutcome(report, nodeExtraction, "edges"),
+    },
   };
 }
 
-function inspectionFailed(error: string): CompatibilityReport {
+function inspectionFailed(error: string): ArtifactCompatibilityReport {
   const empty = signal(false, []);
+  const unavailable = (): ArtifactOutcome => ({
+    status: "skipped",
+    loadedCount: 0,
+    skippedCount: null,
+    sources: [],
+  });
   return {
-    schemaVersion: "1.0.0",
+    schemaVersion: "1.1.0",
     templateForkDetected: empty,
     templateFilesDetected: empty,
     mystProjectDetected: empty,
@@ -240,5 +256,179 @@ function inspectionFailed(error: string): CompatibilityReport {
     blockingErrors: [error],
     warnings: [],
     recommendations: [],
+    artifactOutcomes: {
+      claims: unavailable(),
+      citations: unavailable(),
+      relations: unavailable(),
+      trust: unavailable(),
+      nodes: unavailable(),
+      edges: unavailable(),
+    },
   };
+}
+
+function notDeclared(): ArtifactOutcome {
+  return { status: "not-declared", loadedCount: 0, skippedCount: 0, sources: [] };
+}
+
+function emptyKnowledgeArtifactOutcomes(): KnowledgeArtifactOutcomes {
+  return {
+    claims: notDeclared(),
+    citations: notDeclared(),
+    relations: notDeclared(),
+    trust: notDeclared(),
+  };
+}
+
+function nodeArtifactOutcome(
+  report: InspectionReport,
+  extraction: NodeExtractionReport | undefined,
+  kind: "nodes" | "edges",
+): ArtifactOutcome {
+  const manifestFile = report.files["node-manifest.json"];
+  const manifestInTree = report.tree.some((entry) => entry.path === "node-manifest.json");
+  if (!manifestFile && !manifestInTree) return notDeclared();
+
+  if (!extraction || extraction.manifest.status !== "ok" || manifestFile?.content === undefined) {
+    const invalid = extraction?.manifest.status === "invalid";
+    const issues = boundedNodeIssues(extraction, [
+      {
+        code: invalid ? "manifest-invalid" : "manifest-not-fetched",
+        message: invalid
+          ? "node-manifest.json is invalid; artifact declarations could not be processed."
+          : "node-manifest.json was not fetched within the inspection budget.",
+      },
+    ]);
+    const source: ArtifactSourceOutcome = {
+      status: invalid ? "invalid" : "skipped",
+      path: "node-manifest.json",
+      discovery: "declared",
+      loadedCount: 0,
+      skippedCount: null,
+      issues,
+    };
+    return {
+      status: source.status,
+      loadedCount: 0,
+      skippedCount: null,
+      sources: [source],
+    };
+  }
+
+  let paths: string[] = [];
+  try {
+    const validation = validateNodeManifest(JSON.parse(manifestFile.content));
+    if (!validation.ok || !validation.manifest) return invalidNodeManifestOutcome(extraction);
+    const source = kind === "nodes" ? validation.manifest.nodes : validation.manifest.edges;
+    if (!source) return notDeclared();
+    paths = source.format === "json" ? source.files : [source.path];
+  } catch {
+    return invalidNodeManifestOutcome(extraction);
+  }
+
+  const records = kind === "nodes" ? extraction.nodes : extraction.edges;
+  const sources = paths.map((path): ArtifactSourceOutcome => {
+    const matching = records.filter((record) => record.sourcePath === path);
+    const loadedCount = matching.filter((record) => record.status === "ok").length;
+    const invalidCount = matching.filter((record) => record.status === "invalid").length;
+    const skippedRecords = matching.filter((record) => record.status === "skipped");
+    const hasUnknownSkippedCount = matching.some((record) =>
+      record.issues.some((issue) =>
+        ["source-not-fetched", "source-missing", "source-oversized"].includes(issue.code),
+      ),
+    );
+    const skippedCount = hasUnknownSkippedCount
+      ? null
+      : invalidCount +
+        skippedRecords.reduce((total, record) => total + (record.skippedRecordCount ?? 1), 0);
+    const issues = matching
+      .flatMap((record) => record.issues)
+      .slice(0, 200)
+      .map((issue) => ({ code: issue.code, message: issue.message }));
+    const file = report.files[path];
+    if (
+      hasUnknownSkippedCount ||
+      (matching.length === 0 && (!file || file.content === undefined || file.truncated))
+    ) {
+      return {
+        status: "skipped",
+        path,
+        discovery: "declared",
+        loadedCount: 0,
+        skippedCount: null,
+        issues: [
+          {
+            code: file?.truncated ? "source-truncated" : "source-not-fetched",
+            message: `Declared ${kind} source '${path}' was unavailable for extraction.`,
+          },
+        ],
+      };
+    }
+    if (loadedCount > 0 || matching.length === 0) {
+      return {
+        status: "loaded",
+        path,
+        discovery: "declared",
+        loadedCount,
+        skippedCount,
+        issues,
+      };
+    }
+    return {
+      status: invalidCount > 0 ? "invalid" : "skipped",
+      path,
+      discovery: "declared",
+      loadedCount: 0,
+      skippedCount,
+      issues:
+        issues.length > 0
+          ? issues
+          : [{ code: "records-skipped", message: `Declared ${kind} records were skipped.` }],
+    };
+  });
+  const status = sources.some((source) => source.status === "loaded")
+    ? "loaded"
+    : sources.some((source) => source.status === "invalid")
+      ? "invalid"
+      : "skipped";
+  return {
+    status,
+    loadedCount: sources.reduce((total, source) => total + source.loadedCount, 0),
+    skippedCount: sources.some((source) => source.skippedCount === null)
+      ? null
+      : sources.reduce((total, source) => total + (source.skippedCount ?? 0), 0),
+    sources,
+  };
+}
+
+function invalidNodeManifestOutcome(extraction: NodeExtractionReport): ArtifactOutcome {
+  const issues = boundedNodeIssues(extraction, [
+    { code: "manifest-invalid", message: "node-manifest.json is invalid." },
+  ]);
+  return {
+    status: "invalid",
+    loadedCount: 0,
+    skippedCount: null,
+    sources: [
+      {
+        status: "invalid",
+        path: "node-manifest.json",
+        discovery: "declared",
+        loadedCount: 0,
+        skippedCount: null,
+        issues,
+      },
+    ],
+  };
+}
+
+function boundedNodeIssues(
+  extraction: NodeExtractionReport | undefined,
+  fallback: ArtifactOutcomeIssue[],
+): ArtifactOutcomeIssue[] {
+  const issues = extraction?.errors.slice(0, 200).map((issue) => ({
+    code: issue.code,
+    message: issue.message,
+  }));
+  return issues && issues.length > 0 ? issues : fallback;
 }

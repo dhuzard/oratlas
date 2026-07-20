@@ -3,7 +3,12 @@ import { createRequire } from "node:module";
 import { dirname, resolve } from "node:path";
 import { existsSync, rmSync } from "node:fs";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { archiveSearchQuerySchema, canonicalJson, type NodeArchiveQuery } from "@oratlas/contracts";
+import {
+  archiveSearchQuerySchema,
+  canonicalJson,
+  type CompatibilityReport,
+  type NodeArchiveQuery,
+} from "@oratlas/contracts";
 import { type PrismaClient } from "@oratlas/db";
 import type * as NodePublication from "./node-publication";
 import type * as ArchiveSearch from "./archive-search";
@@ -112,6 +117,19 @@ beforeAll(async () => {
     kind: "claim",
     payload: { statement: "The current statement.", qualifiers: ["Bounded scope."] },
     createdAt: new Date("2026-01-03T00:00:00Z"),
+  });
+  const nodeOnlySource = await prisma.submission.create({
+    data: {
+      submitterId: reader.id,
+      repositoryId: repository.id,
+      snapshotId: currentSnapshot.id,
+      status: "accepted",
+      submittedPayloadJson: canonicalJson({ compatibilityReport: nodeArtifactReport() }),
+    },
+  });
+  await prisma.knowledgeNodeVersion.update({
+    where: { id: currentClaim.id },
+    data: { sourceSubmissionId: nodeOnlySource.id },
   });
 
   const dataset = await prisma.knowledgeNode.create({
@@ -390,6 +408,10 @@ describe("public node query layer", () => {
     });
     expect(datasetEdge?.relatedNode.versionId).not.toBe(currentDatasetVersionId);
     expect(current?.trustContext).toHaveLength(3);
+    expect(current?.compatibilityReport).toMatchObject({
+      schemaVersion: "1.1.0",
+      artifactOutcomes: { nodes: { status: "loaded", loadedCount: 1 } },
+    });
     expect(
       current?.trustContext.find((context) => context.citationLocalId === "citation-1"),
     ).toMatchObject({
@@ -561,4 +583,53 @@ async function createVersion(
       createdAt: input.createdAt,
     },
   });
+}
+
+function nodeArtifactReport(): Extract<CompatibilityReport, { schemaVersion: "1.1.0" }> {
+  const absent = { detected: false, evidence: [] };
+  const notDeclared = {
+    status: "not-declared" as const,
+    loadedCount: 0 as const,
+    skippedCount: 0 as const,
+    sources: [],
+  };
+  return {
+    schemaVersion: "1.1.0",
+    templateForkDetected: absent,
+    templateFilesDetected: absent,
+    mystProjectDetected: absent,
+    bibliographyDetected: absent,
+    reviewContentDetected: absent,
+    provenanceDetected: absent,
+    trustDataDetected: absent,
+    releaseDetected: absent,
+    doiDetected: absent,
+    overallCompatibility: "compatible",
+    levelRationale: ["Node-only publication fixture."],
+    blockingErrors: [],
+    warnings: [],
+    recommendations: [],
+    artifactOutcomes: {
+      claims: notDeclared,
+      citations: notDeclared,
+      relations: notDeclared,
+      trust: notDeclared,
+      nodes: {
+        status: "loaded",
+        loadedCount: 1,
+        skippedCount: 0,
+        sources: [
+          {
+            path: "knowledge/oratlas/nodes.jsonl",
+            discovery: "declared",
+            status: "loaded",
+            loadedCount: 1,
+            skippedCount: 0,
+            issues: [],
+          },
+        ],
+      },
+      edges: notDeclared,
+    },
+  };
 }

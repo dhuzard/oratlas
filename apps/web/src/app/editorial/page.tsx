@@ -21,6 +21,7 @@ import { listEditorialSynthesisDrafts } from "@/lib/synthesis-editorial";
 import { SynthesisDraftPanel } from "./SynthesisDraftPanel";
 import { listSynthesisRegenerationProposalPage } from "@/lib/synthesis-staleness";
 import { SynthesisStalenessPanel } from "./SynthesisStalenessPanel";
+import { ArtifactOutcomes } from "@/components/ArtifactOutcomes";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Editorial dashboard" };
@@ -180,6 +181,11 @@ export default async function EditorialPage({
                 ) : null}
               </div>
             ) : null}
+
+            <details>
+              <summary>Per-artifact compatibility</summary>
+              <ArtifactOutcomes report={s.compatibilityReport} />
+            </details>
 
             <details>
               <summary>

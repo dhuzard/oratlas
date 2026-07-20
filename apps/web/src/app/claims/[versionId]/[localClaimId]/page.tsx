@@ -4,6 +4,7 @@ import { type Metadata } from "next";
 import { Badge, Card, DefinitionList, Notice, StatusPill } from "@oratlas/ui";
 import { getClaimPassport } from "@/lib/claim-monitoring";
 import { getClaimIndependence } from "@/lib/synthesis";
+import { ArtifactOutcomes } from "@/components/ArtifactOutcomes";
 
 export const dynamic = "force-dynamic";
 
@@ -74,6 +75,17 @@ export default async function ClaimPassportPage({
             },
             { term: "Section", value: passport.section ?? <span className="muted">—</span> },
           ]}
+        />
+      </Card>
+
+      <Card title="Source artifact context">
+        <p className="muted">
+          Repository-level inspection context. The evidence count below remains specific to this
+          claim.
+        </p>
+        <ArtifactOutcomes
+          report={passport.compatibilityReport}
+          only={["claims", "citations", "relations", "trust"]}
         />
       </Card>
 

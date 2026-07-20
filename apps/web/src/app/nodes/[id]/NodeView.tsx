@@ -1,12 +1,14 @@
 import Link from "next/link";
 import { Badge, Card, DefinitionList, Notice } from "@oratlas/ui";
 import { type PublicNodeDetail, type PublicNodeVersion } from "@oratlas/contracts";
+import type { PublicNodeDetailProjection } from "@/lib/node-publication";
+import { ArtifactOutcomes } from "@/components/ArtifactOutcomes";
 
 export function NodeView({
   node,
   historical = false,
 }: {
-  node: PublicNodeDetail;
+  node: PublicNodeDetailProjection;
   historical?: boolean;
 }) {
   const version = node.version;
@@ -35,6 +37,14 @@ export function NodeView({
           Explore this node’s graph
         </Link>
       </p>
+
+      <Card title="Source artifact context">
+        <p className="muted">
+          Repository-level inspection context. The relation and TRUST empty states below remain
+          specific to this node version.
+        </p>
+        <ArtifactOutcomes report={node.compatibilityReport} only={["nodes", "edges", "trust"]} />
+      </Card>
 
       <div className="grid layout-2">
         <div>

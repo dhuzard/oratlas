@@ -14,6 +14,10 @@ import { prisma } from "./db";
 import { withSqliteRetry as sharedWithSqliteRetry } from "./db-retry";
 import { isReadablePublicState } from "./review-lifecycle";
 import {
+  compatibilityReportFromStoredJson,
+  type StoredCompatibilityReport,
+} from "./compatibility-report";
+import {
   listExecutionPassportsForClaim,
   type PublicExecutionPassport,
 } from "./execution-passports";
@@ -353,6 +357,7 @@ export interface ClaimPassport {
   semanticVersion?: string;
   publishedAt?: string;
   isExample: boolean;
+  compatibilityReport?: StoredCompatibilityReport;
   evidence: Array<{
     relationType: string;
     supportDirection?: string;
@@ -389,7 +394,12 @@ export async function getClaimPassport(
   const claim = await prisma.claim.findFirst({
     where: { reviewVersionId: versionId, localClaimId },
     include: {
-      reviewVersion: { include: { review: { include: { versions: true } } } },
+      reviewVersion: {
+        include: {
+          snapshot: { select: { inspectionReportJson: true } },
+          review: { include: { versions: true } },
+        },
+      },
       evidenceRelations: {
         include: { citation: true, trustAssessments: { select: { id: true } } },
       },
@@ -435,6 +445,10 @@ export async function getClaimPassport(
     semanticVersion: version.semanticVersion ?? undefined,
     publishedAt: version.publishedAt?.toISOString(),
     isExample: version.isExample,
+    compatibilityReport: compatibilityReportFromStoredJson(
+      version.metadataJson,
+      version.snapshot?.inspectionReportJson,
+    ),
     evidence: claim.evidenceRelations.map((relation) => ({
       relationType: relation.relationType,
       supportDirection: relation.supportDirection ?? undefined,

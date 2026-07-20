@@ -7,6 +7,10 @@ import {
   relationRecordSchema,
   trustAssessmentRecordSchema,
   validateNodeManifest,
+  type ArtifactOutcome,
+  type ArtifactOutcomeIssue,
+  type ArtifactOutcomes,
+  type ArtifactSourceOutcome,
   type CitationRecord,
   type ClaimRecord,
   type InspectionReport,
@@ -24,86 +28,283 @@ export interface ExtractedKnowledge {
   warnings: string[];
 }
 
-/**
- * Ingest knowledge artifacts (claims/citations/relations/trust JSONL) from the
- * inspection report, guided by manifest artifact paths when present. All paths
- * are re-checked for safety even though the manifest schema already validated
- * them (defence in depth).
- */
+export type KnowledgeArtifactOutcomes = Pick<
+  ArtifactOutcomes,
+  "claims" | "citations" | "relations" | "trust"
+>;
+
+export interface KnowledgeExtractionResult {
+  knowledge: ExtractedKnowledge;
+  artifactOutcomes: KnowledgeArtifactOutcomes;
+}
+
+interface SourceSpec {
+  path: string;
+  discovery: "declared" | "discovered";
+}
+
+interface MutableSourceOutcome {
+  path: string;
+  discovery: "declared" | "discovered";
+  status: "loaded" | "skipped" | "invalid";
+  loadedCount: number;
+  skippedCount: number | null;
+  issues: ArtifactOutcomeIssue[];
+}
+
+interface TaggedRecord<T> {
+  value: T;
+  source: MutableSourceOutcome;
+}
+
+/** Back-compatible convenience API; detailed outcomes are available from the companion API. */
 export function extractKnowledge(
   report: InspectionReport,
   manifest?: ReviewManifest,
   nodeExtraction?: NodeExtractionReport,
 ): ExtractedKnowledge {
-  const warnings: string[] = [];
-
-  const claimsPath = pickPath(report, manifest?.artifacts?.claims, ["claim"]);
-  const citationsPath = pickPath(report, manifest?.artifacts?.citations, ["citation"]);
-  const relationsPath = pickPath(report, manifest?.artifacts?.relations, ["relation"]);
-  const declaredTrustPaths = [
-    nodeManifestTrustPath(report),
-    manifest?.artifacts?.trustAssessments,
-  ].filter((path): path is string => Boolean(path));
-  const trustPaths =
-    declaredTrustPaths.length > 0
-      ? [...new Set(declaredTrustPaths)]
-      : [pickPath(report, undefined, ["trust"])].filter((path): path is string => Boolean(path));
-
-  const claims = readJsonl(report, claimsPath, claimRecordSchema, warnings, "claims");
-  const citations = readJsonl(report, citationsPath, citationRecordSchema, warnings, "citations");
-  const relations = readJsonl(report, relationsPath, relationRecordSchema, warnings, "relations");
-  const trust = trustPaths.flatMap((path) =>
-    readJsonl(report, path, trustAssessmentRecordSchema, warnings, "trust"),
-  );
-
-  // Referential integrity: drop relations pointing at unknown claims/citations.
-  const claimIds = new Set(claims.map((c) => c.id));
-  const citationIds = new Set(citations.map((c) => c.id));
-  const validRelations = relations.filter((r) => {
-    const ok = claimIds.has(r.claimId) && citationIds.has(r.citationId);
-    if (!ok) {
-      warnings.push(
-        `Dropped relation ${r.claimId}→${r.citationId}: references an unknown claim or citation.`,
-      );
-    }
-    return ok;
-  });
-
-  const validTrust = trust.filter((t) => {
-    if ("subjectType" in t) {
-      return validateNodeRelationTrustSubject(t, nodeExtraction, warnings);
-    }
-    const ok = claimIds.has(t.claimId) && citationIds.has(t.citationId);
-    if (!ok) {
-      warnings.push(
-        `Dropped TRUST record ${t.claimId}→${t.citationId}: references an unknown claim or citation.`,
-      );
-    }
-    return ok;
-  });
-
-  return { claims, citations, relations: validRelations, trust: validTrust, warnings };
+  return extractKnowledgeWithOutcomes(report, manifest, nodeExtraction).knowledge;
 }
 
-function nodeManifestTrustPath(report: InspectionReport): string | undefined {
+/** Extract knowledge and the immutable, per-artifact processing outcomes used by compatibility. */
+export function extractKnowledgeWithOutcomes(
+  report: InspectionReport,
+  manifest?: ReviewManifest,
+  nodeExtraction?: NodeExtractionReport,
+): KnowledgeExtractionResult {
+  const warnings: string[] = [];
+  const claimsSource = resolveSource(report, manifest?.artifacts?.claims, ["claim"]);
+  const citationsSource = resolveSource(report, manifest?.artifacts?.citations, ["citation"]);
+  const relationsSource = resolveSource(report, manifest?.artifacts?.relations, ["relation"]);
+
+  const trustSpecs = uniqueSources([
+    ...nodeManifestTrustSources(report),
+    ...(manifest?.artifacts?.trustAssessments
+      ? [{ path: manifest.artifacts.trustAssessments, discovery: "declared" as const }]
+      : []),
+  ]);
+  const trustSources =
+    trustSpecs.length > 0
+      ? trustSpecs
+      : [resolveSource(report, undefined, ["trust"])].filter(
+          (source): source is SourceSpec => source !== undefined,
+        );
+
+  const claimsRead = readJsonl(report, claimsSource, claimRecordSchema, warnings, "claims");
+  const citationsRead = readJsonl(
+    report,
+    citationsSource,
+    citationRecordSchema,
+    warnings,
+    "citations",
+  );
+  const relationsRead = readJsonl(
+    report,
+    relationsSource,
+    relationRecordSchema,
+    warnings,
+    "relations",
+  );
+  const trustReads = trustSources.map((source) =>
+    readJsonl(report, source, trustAssessmentRecordSchema, warnings, "trust"),
+  );
+
+  const claims = claimsRead.records.map((record) => record.value);
+  const citations = citationsRead.records.map((record) => record.value);
+  const claimIds = new Set(claims.map((claim) => claim.id));
+  const citationIds = new Set(citations.map((citation) => citation.id));
+
+  const relations = relationsRead.records.flatMap((record) => {
+    if (claimIds.has(record.value.claimId) && citationIds.has(record.value.citationId)) {
+      return [record.value];
+    }
+    dropRecord(
+      record.source,
+      "relation-reference-missing",
+      `Dropped relation ${record.value.claimId}→${record.value.citationId}: references an unknown claim or citation.`,
+      warnings,
+    );
+    return [];
+  });
+
+  const trust: TrustAssessmentRecord[] = [];
+  for (const record of trustReads.flatMap((read) => read.records)) {
+    if ("subjectType" in record.value) {
+      const issue = nodeRelationTrustIssue(record.value, nodeExtraction);
+      if (!issue) trust.push(record.value);
+      else dropRecord(record.source, issue.code, issue.message, warnings);
+      continue;
+    }
+    if (claimIds.has(record.value.claimId) && citationIds.has(record.value.citationId)) {
+      trust.push(record.value);
+      continue;
+    }
+    dropRecord(
+      record.source,
+      "trust-reference-missing",
+      `Dropped TRUST record ${record.value.claimId}→${record.value.citationId}: references an unknown claim or citation.`,
+      warnings,
+    );
+  }
+
+  const knowledge = { claims, citations, relations, trust, warnings };
+  return {
+    knowledge,
+    artifactOutcomes: {
+      claims: aggregateOutcome(claimsRead.source ? [claimsRead.source] : []),
+      citations: aggregateOutcome(citationsRead.source ? [citationsRead.source] : []),
+      relations: aggregateOutcome(relationsRead.source ? [relationsRead.source] : []),
+      trust: aggregateOutcome(trustReads.flatMap((read) => (read.source ? [read.source] : []))),
+    },
+  };
+}
+
+function resolveSource(
+  report: InspectionReport,
+  manifestPath: string | undefined,
+  keywords: string[],
+): SourceSpec | undefined {
+  if (manifestPath && isSafeRepoRelativePath(manifestPath)) {
+    // A declaration is authoritative even when its bytes are absent. Never substitute a heuristic.
+    return { path: manifestPath, discovery: "declared" };
+  }
+  const paths = new Set([...report.tree.map((entry) => entry.path), ...Object.keys(report.files)]);
+  for (const path of [...paths].sort()) {
+    const lower = path.toLowerCase();
+    if (lower.endsWith(".jsonl") && keywords.some((keyword) => lower.includes(keyword))) {
+      return { path, discovery: "discovered" };
+    }
+  }
+  return undefined;
+}
+
+function nodeManifestTrustSources(report: InspectionReport): SourceSpec[] {
   const content = report.files["node-manifest.json"]?.content;
-  if (!content) return undefined;
+  if (content === undefined) return [];
   try {
     const validation = validateNodeManifest(JSON.parse(content));
-    return validation.ok ? validation.manifest?.trustAssessments?.path : undefined;
+    const path = validation.ok ? validation.manifest?.trustAssessments?.path : undefined;
+    return path ? [{ path, discovery: "declared" }] : [];
   } catch {
-    return undefined;
+    return [];
   }
 }
 
-function validateNodeRelationTrustSubject(
+function uniqueSources(sources: SourceSpec[]): SourceSpec[] {
+  const byPath = new Map<string, SourceSpec>();
+  for (const source of sources) {
+    const prior = byPath.get(source.path);
+    if (!prior || source.discovery === "declared") byPath.set(source.path, source);
+  }
+  return [...byPath.values()];
+}
+
+function readJsonl<S extends z.ZodTypeAny>(
+  report: InspectionReport,
+  spec: SourceSpec | undefined,
+  schema: S,
+  warnings: string[],
+  label: string,
+): { records: Array<TaggedRecord<z.infer<S>>>; source?: MutableSourceOutcome } {
+  if (!spec) return { records: [] };
+  const file = report.files[spec.path];
+  if (!file || file.content === undefined || file.truncated) {
+    const exists = report.tree.some((entry) => entry.path === spec.path);
+    const code = file?.truncated
+      ? "source-truncated"
+      : exists
+        ? "source-not-fetched"
+        : "source-missing";
+    const message = file?.truncated
+      ? `${label}: ${spec.path} was skipped because captured content was truncated.`
+      : exists
+        ? `${label}: ${spec.path} was not fetched within the inspection budget.`
+        : `${label}: declared source ${spec.path} does not exist in the inspected tree.`;
+    warnings.push(message);
+    return {
+      records: [],
+      source: {
+        ...spec,
+        status: "skipped",
+        loadedCount: 0,
+        skippedCount: null,
+        issues: [{ code, message }],
+      },
+    };
+  }
+
+  const parsed = parseJsonlArtifact(file.content, schema);
+  const skippedCount = parsed.errors.length + parsed.truncatedCount;
+  const issues: ArtifactOutcomeIssue[] = parsed.errors.slice(0, 199).map((error) => ({
+    code: "record-invalid",
+    message: error.message.slice(0, 2_000),
+    line: error.line,
+  }));
+  if (parsed.truncated) {
+    issues.push({
+      code: "record-cap-reached",
+      message: `${parsed.truncatedCount} record(s) after the cap were skipped.`,
+    });
+  }
+  if (parsed.errors.length > 0) {
+    warnings.push(
+      `${label}: ${parsed.errors.length} invalid line(s) skipped in ${spec.path} (first: line ${parsed.errors[0]?.line}).`,
+    );
+  }
+  if (parsed.truncated) warnings.push(`${label}: ${spec.path} truncated at record cap.`);
+
+  const source: MutableSourceOutcome = {
+    ...spec,
+    status: parsed.records.length === 0 && skippedCount > 0 ? "invalid" : "loaded",
+    loadedCount: parsed.records.length,
+    skippedCount,
+    issues,
+  };
+  return { records: parsed.records.map((value) => ({ value, source })), source };
+}
+
+function dropRecord(
+  source: MutableSourceOutcome,
+  code: string,
+  message: string,
+  warnings: string[],
+): void {
+  source.loadedCount -= 1;
+  source.skippedCount = (source.skippedCount ?? 0) + 1;
+  if (source.issues.length < 200) source.issues.push({ code, message: message.slice(0, 2_000) });
+  if (source.loadedCount === 0) source.status = "invalid";
+  warnings.push(message);
+}
+
+function aggregateOutcome(sources: MutableSourceOutcome[]): ArtifactOutcome {
+  if (sources.length === 0) {
+    return { status: "not-declared", loadedCount: 0, skippedCount: 0, sources: [] };
+  }
+  const status = sources.some((source) => source.status === "loaded")
+    ? "loaded"
+    : sources.some((source) => source.status === "invalid")
+      ? "invalid"
+      : "skipped";
+  const skippedCount = sources.some((source) => source.skippedCount === null)
+    ? null
+    : sources.reduce((total, source) => total + (source.skippedCount ?? 0), 0);
+  return {
+    status,
+    loadedCount: sources.reduce((total, source) => total + source.loadedCount, 0),
+    skippedCount,
+    sources: sources as ArtifactSourceOutcome[],
+  };
+}
+
+function nodeRelationTrustIssue(
   record: Extract<TrustAssessmentRecord, { subjectType: "node-relation" }>,
   nodeExtraction: NodeExtractionReport | undefined,
-  warnings: string[],
-): boolean {
+): ArtifactOutcomeIssue | undefined {
   if (!nodeExtraction) {
-    warnings.push("Dropped node-relation TRUST record: node extraction context is unavailable.");
-    return false;
+    return {
+      code: "node-context-unavailable",
+      message: "Dropped node-relation TRUST record: node extraction context is unavailable.",
+    };
   }
   const nodes = new Map(
     nodeExtraction.nodes
@@ -112,18 +313,18 @@ function validateNodeRelationTrustSubject(
   );
   const claim = nodes.get(record.subject.claimNodeId);
   if (!claim || claim.kind !== "claim") {
-    warnings.push(
-      `Dropped node-relation TRUST record ${record.subject.claimNodeId}→${record.subject.evidenceNodeId}: the claim node was not extracted exactly.`,
-    );
-    return false;
+    return {
+      code: "trust-claim-node-missing",
+      message: `Dropped node-relation TRUST record ${record.subject.claimNodeId}→${record.subject.evidenceNodeId}: the claim node was not extracted exactly.`,
+    };
   }
   if (!record.subject.evidenceRepository) {
     const evidence = nodes.get(record.subject.evidenceNodeId);
     if (!evidence || evidence.kind !== record.subject.evidenceKind) {
-      warnings.push(
-        `Dropped node-relation TRUST record ${record.subject.claimNodeId}→${record.subject.evidenceNodeId}: the local evidence node kind does not match.`,
-      );
-      return false;
+      return {
+        code: "trust-evidence-node-mismatch",
+        message: `Dropped node-relation TRUST record ${record.subject.claimNodeId}→${record.subject.evidenceNodeId}: the local evidence node kind does not match.`,
+      };
     }
   }
   const matches = nodeExtraction.edges.filter(
@@ -135,12 +336,12 @@ function validateNodeRelationTrustSubject(
       sameTargetRepository(entry.edge.targetRepository, record.subject.evidenceRepository),
   );
   if (matches.length !== 1) {
-    warnings.push(
-      `Dropped node-relation TRUST record ${record.subject.claimNodeId}→${record.subject.evidenceNodeId}: expected one exact author edge declaration, found ${matches.length}.`,
-    );
-    return false;
+    return {
+      code: "trust-edge-not-exact",
+      message: `Dropped node-relation TRUST record ${record.subject.claimNodeId}→${record.subject.evidenceNodeId}: expected one exact author edge declaration, found ${matches.length}.`,
+    };
   }
-  return true;
+  return undefined;
 }
 
 function sameTargetRepository(
@@ -149,42 +350,4 @@ function sameTargetRepository(
 ): boolean {
   if (!left || !right) return left === right;
   return left.githubRepositoryId === right.githubRepositoryId && left.commitSha === right.commitSha;
-}
-
-function pickPath(
-  report: InspectionReport,
-  manifestPath: string | undefined,
-  keywords: string[],
-): string | undefined {
-  if (manifestPath && isSafeRepoRelativePath(manifestPath) && report.files[manifestPath]?.content) {
-    return manifestPath;
-  }
-  // Fall back to a discovered file matching the keyword.
-  for (const [path, file] of Object.entries(report.files)) {
-    const lower = path.toLowerCase();
-    if (file.content && lower.endsWith(".jsonl") && keywords.some((k) => lower.includes(k))) {
-      return path;
-    }
-  }
-  return undefined;
-}
-
-function readJsonl<S extends z.ZodTypeAny>(
-  report: InspectionReport,
-  path: string | undefined,
-  schema: S,
-  warnings: string[],
-  label: string,
-): z.infer<S>[] {
-  if (!path) return [];
-  const content = report.files[path]?.content;
-  if (!content) return [];
-  const result = parseJsonlArtifact(content, schema);
-  if (result.errors.length > 0) {
-    warnings.push(
-      `${label}: ${result.errors.length} invalid line(s) skipped in ${path} (first: line ${result.errors[0]?.line}).`,
-    );
-  }
-  if (result.truncated) warnings.push(`${label}: ${path} truncated at record cap.`);
-  return result.records;
 }

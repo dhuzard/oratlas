@@ -47,6 +47,13 @@ describe("runExtraction — template-compatible repository", () => {
     expect(result.knowledge.citations).toHaveLength(2);
     expect(result.knowledge.relations).toHaveLength(2);
     expect(result.knowledge.trust).toHaveLength(1);
+    expect(result.compatibility.schemaVersion).toBe("1.1.0");
+    expect(result.compatibility.artifactOutcomes).toMatchObject({
+      claims: { status: "loaded", loadedCount: 2 },
+      citations: { status: "loaded", loadedCount: 2 },
+      relations: { status: "loaded", loadedCount: 2 },
+      trust: { status: "loaded", loadedCount: 1 },
+    });
   });
 
   it("classifies as compatible or verified-template with explained signals", async () => {
