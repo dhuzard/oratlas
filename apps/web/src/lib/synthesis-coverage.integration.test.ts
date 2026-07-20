@@ -25,6 +25,7 @@ let editorial: typeof Editorial;
 let actor: SessionUser;
 let repositoryId: string;
 let snapshotId: string;
+let sourceReviewId: string;
 
 beforeAll(async () => {
   process.env.DATABASE_URL = databaseUrl;
@@ -89,6 +90,25 @@ beforeAll(async () => {
     },
   });
   snapshotId = snapshot.id;
+  const sourceReview = await prisma.review.create({
+    data: {
+      repositoryId,
+      currentSnapshotId: snapshot.id,
+      slug: "coverage-source-review",
+      title: "Coverage source review",
+      status: "published",
+    },
+  });
+  sourceReviewId = sourceReview.id;
+  await prisma.reviewVersion.create({
+    data: {
+      reviewId: sourceReview.id,
+      snapshotId: snapshot.id,
+      title: "Coverage source review",
+      metadataJson: "{}",
+      publicState: "published",
+    },
+  });
 }, 60_000);
 
 afterAll(async () => {
@@ -280,6 +300,15 @@ describe.sequential("synthesis topic coverage integration", () => {
         inspectionStatus: "succeeded",
         inspectionReportJson: "{}",
         contentHash: "d".repeat(64),
+      },
+    });
+    await prisma.reviewVersion.create({
+      data: {
+        reviewId: sourceReviewId,
+        snapshotId: newerSnapshot.id,
+        title: "Coverage source review update",
+        metadataJson: "{}",
+        publicState: "published",
       },
     });
     await createVersion(

@@ -118,6 +118,20 @@ beforeAll(async () => {
       publicState: "published",
     },
   });
+  for (const [snapshotId, title] of [
+    [target.snapshotId, "Graph review dataset"],
+    [code.snapshotId, "Graph review code"],
+  ] as const) {
+    await prisma.reviewVersion.create({
+      data: {
+        reviewId: review.id,
+        snapshotId,
+        title,
+        metadataJson: "{}",
+        publicState: "published",
+      },
+    });
+  }
   const claim = await prisma.claim.create({
     data: {
       reviewVersionId: reviewVersion.id,
@@ -474,10 +488,108 @@ describe.sequential("public graph query", () => {
     ).toEqual([]);
   });
 
+  it("withholds graph nodes and edges until one readable published review authorizes their snapshot", async () => {
+    const hidden = await createNode(repositoryId, "hidden-graph-target", "claim", "f", {
+      statement: "This graph node is not public without snapshot authority.",
+      qualifiers: [],
+    });
+    const hiddenEdge = await prisma.nodeEdge.create({
+      data: {
+        sourceNodeVersionId: sourceVersionId,
+        targetNodeId: hidden.nodeId,
+        relationType: "supports",
+        status: "confirmed",
+        provenance: "confirmed-by-editor",
+        confirmedTargetNodeVersionId: hidden.versionId,
+        confirmedById: editorId,
+        confirmedAt: new Date("2026-03-10T00:00:00Z"),
+      },
+    });
+    const assertHidden = async () => {
+      await expect(query({ seed: hidden.nodeId, depth: 0 })).rejects.toMatchObject({
+        code: "not-found",
+      });
+      const fromPublicSource = await query({ seed: sourceNodeId, depth: 1 });
+      expect(fromPublicSource.nodes.map((node) => node.id)).not.toContain(hidden.nodeId);
+      expect(fromPublicSource.edges.map((edge) => edge.id)).not.toContain(hiddenEdge.id);
+    };
+
+    await assertHidden();
+
+    const nodeOnlySubmission = await prisma.submission.create({
+      data: {
+        submitterId: editorId,
+        repositoryId,
+        snapshotId: hidden.snapshotId,
+        status: "accepted",
+        acceptedNodeSelectionJson: canonicalJson(["hidden-graph-target"]),
+      },
+    });
+    await prisma.knowledgeNodeVersion.update({
+      where: { id: hidden.versionId },
+      data: { sourceSubmissionId: nodeOnlySubmission.id },
+    });
+    const nodeOnlyVisible = await query({ seed: sourceNodeId, depth: 1 });
+    expect(nodeOnlyVisible.nodes.map((node) => node.id)).toContain(hidden.nodeId);
+    expect(nodeOnlyVisible.edges.map((edge) => edge.id)).toContain(hiddenEdge.id);
+
+    const tombstonedReview = await prisma.review.create({
+      data: { slug: "graph-hidden-tombstoned", title: "Hidden graph", status: "published" },
+    });
+    const tombstonedVersion = await prisma.reviewVersion.create({
+      data: {
+        reviewId: tombstonedReview.id,
+        snapshotId: hidden.snapshotId,
+        title: "Hidden graph",
+        metadataJson: "{}",
+        publicState: "tombstoned",
+      },
+    });
+    await prisma.submission.update({
+      where: { id: nodeOnlySubmission.id },
+      data: { resultingReviewVersionId: tombstonedVersion.id },
+    });
+    await assertHidden();
+
+    const readableReview = await prisma.review.create({
+      data: { slug: "graph-hidden-readable", title: "Readable graph", status: "published" },
+    });
+    const readableVersion = await prisma.reviewVersion.create({
+      data: {
+        reviewId: readableReview.id,
+        snapshotId: hidden.snapshotId,
+        title: "Readable graph",
+        metadataJson: "{}",
+        publicState: "published",
+      },
+    });
+    const visible = await query({ seed: sourceNodeId, depth: 1 });
+    expect(visible.nodes.map((node) => node.id)).toContain(hidden.nodeId);
+    expect(visible.edges.map((edge) => edge.id)).toContain(hiddenEdge.id);
+
+    await prisma.reviewVersion.update({
+      where: { id: readableVersion.id },
+      data: { publicState: "tombstoned" },
+    });
+    await assertHidden();
+  });
+
   it("returns typed errors instead of truncating traversal and topic scans", async () => {
     const overflow = await createNode(repositoryId, "overflow-source", "claim", "d", {
       statement: "Overflow source.",
       qualifiers: [],
+    });
+    const overflowReview = await prisma.review.create({
+      data: { slug: "graph-overflow", title: "Graph overflow", status: "published" },
+    });
+    await prisma.reviewVersion.create({
+      data: {
+        reviewId: overflowReview.id,
+        snapshotId: overflow.snapshotId,
+        title: "Graph overflow",
+        metadataJson: "{}",
+        publicState: "published",
+      },
     });
     const targetNodes = Array.from({ length: 501 }, (_, index) => ({
       id: `overflow-node-${index.toString().padStart(3, "0")}`,
@@ -527,6 +639,21 @@ describe.sequential("public graph query", () => {
     }));
     for (let index = 0; index < extraNodes.length; index += 100) {
       await prisma.knowledgeNode.createMany({ data: extraNodes.slice(index, index + 100) });
+    }
+    const extraVersions = extraNodes.map((node, index) => ({
+      id: `topic-overflow-version-${index.toString().padStart(3, "0")}`,
+      knowledgeNodeId: node.id,
+      snapshotId: overflow.snapshotId,
+      title: `Topic overflow ${index}`,
+      contributorsJson: "[]",
+      license: "CC-BY-4.0",
+      provenanceJson: canonicalJson({ sourcePath: `nodes/topic-overflow-${index}.json` }),
+      payloadJson: canonicalJson({ statement: `Topic overflow ${index}.`, qualifiers: [] }),
+    }));
+    for (let index = 0; index < extraVersions.length; index += 50) {
+      await prisma.knowledgeNodeVersion.createMany({
+        data: extraVersions.slice(index, index + 50),
+      });
     }
     await expect(query({ q: "overflow", depth: 0 })).rejects.toThrow("1,000-node scan bound");
   }, 60_000);

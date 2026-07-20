@@ -643,6 +643,24 @@ async function createNode(owner: string, localNodeId: string, kind: string, mark
       contentHash: marker.repeat(64),
     },
   });
+  const review = await prisma.review.create({
+    data: {
+      repositoryId: repository.id,
+      currentSnapshotId: snapshot.id,
+      slug: `${owner}-${localNodeId}-public`,
+      title: `${localNodeId} publication authority`,
+      status: "published",
+    },
+  });
+  await prisma.reviewVersion.create({
+    data: {
+      reviewId: review.id,
+      snapshotId: snapshot.id,
+      title: `${localNodeId} publication authority`,
+      metadataJson: "{}",
+      publicState: "published",
+    },
+  });
   const node = await prisma.knowledgeNode.create({
     data: { repositoryId: repository.id, localNodeId, kind },
   });

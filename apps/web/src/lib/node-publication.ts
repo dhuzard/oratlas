@@ -35,6 +35,7 @@ import {
 } from "./trust-provenance";
 import { trustCriterionProfileFromJson } from "./trust-profile";
 import { isReadablePublicState } from "./review-lifecycle";
+import { readablePublicNodeVersionWhere } from "./public-snapshot-visibility";
 
 const storedNodeProvenanceSchema = z.union([
   knowledgeNodeProvenanceSchema,
@@ -250,10 +251,14 @@ export async function getExactPublicNodeVersions(
   if (requestedByNode.size !== requested.length) return new Map();
 
   const rows = await client.knowledgeNode.findMany({
-    where: { id: { in: [...requestedByNode.keys()] } },
+    where: {
+      id: { in: [...requestedByNode.keys()] },
+      versions: { some: readablePublicNodeVersionWhere },
+    },
     include: {
       repository: { select: { owner: true, name: true, canonicalUrl: true } },
       versions: {
+        where: readablePublicNodeVersionWhere,
         include: versionInclude,
         orderBy: [{ createdAt: "desc" }, { id: "desc" }],
         take: 1,
@@ -291,6 +296,7 @@ export async function getExactPublicNodeVersions(
             OR: historical.map((item) => ({
               id: item.nodeVersionId,
               knowledgeNodeId: item.nodeId,
+              ...readablePublicNodeVersionWhere,
             })),
           },
           include: versionInclude,
@@ -374,12 +380,13 @@ export async function scanPublicNodeSummaries(
     const isFinalBoundedPage = pageSize === remaining;
     const page = await client.knowledgeNode.findMany({
       where: {
-        versions: { some: {} },
+        versions: { some: readablePublicNodeVersionWhere },
         ...(kind ? { kind } : {}),
       },
       include: {
         repository: { select: { owner: true, name: true, canonicalUrl: true } },
         versions: {
+          where: readablePublicNodeVersionWhere,
           include: versionInclude,
           orderBy: [{ createdAt: "desc" }, { id: "desc" }],
           take: 1,
@@ -425,10 +432,14 @@ export async function getPublicNode(
   selectedVersionId?: string,
 ): Promise<PublicNodeDetail | null> {
   const node = await prisma.knowledgeNode.findUnique({
-    where: { id },
+    where: {
+      id,
+      versions: { some: readablePublicNodeVersionWhere },
+    },
     include: {
       repository: { select: { owner: true, name: true, canonicalUrl: true } },
       versions: {
+        where: readablePublicNodeVersionWhere,
         include: versionInclude,
         orderBy: [{ createdAt: "desc" }, { id: "desc" }],
         take: PUBLIC_NODE_VERSION_LIMIT,
@@ -450,7 +461,11 @@ export async function getPublicNode(
   if (!selectedStored && selectedVersionId) {
     selectedStored =
       (await prisma.knowledgeNodeVersion.findFirst({
-        where: { id: selectedVersionId, knowledgeNodeId: node.id },
+        where: {
+          id: selectedVersionId,
+          knowledgeNodeId: node.id,
+          ...readablePublicNodeVersionWhere,
+        },
         include: versionInclude,
       })) ?? undefined;
   }
@@ -465,7 +480,12 @@ export async function getPublicNode(
 
   const [outgoingRows, incomingRows, trustRelations, identityRows] = await Promise.all([
     prisma.nodeEdge.findMany({
-      where: { ...publicConfirmedNodeEdgeWhere, sourceNodeVersionId: selectedStored.id },
+      where: {
+        ...publicConfirmedNodeEdgeWhere,
+        sourceNodeVersionId: selectedStored.id,
+        sourceNodeVersion: readablePublicNodeVersionWhere,
+        confirmedTargetNodeVersion: readablePublicNodeVersionWhere,
+      },
       include: {
         confirmedTargetNodeVersion: {
           include: {
@@ -484,6 +504,8 @@ export async function getPublicNode(
     prisma.nodeEdge.findMany({
       where: {
         ...publicConfirmedNodeEdgeWhere,
+        sourceNodeVersion: readablePublicNodeVersionWhere,
+        confirmedTargetNodeVersion: readablePublicNodeVersionWhere,
         targetNodeId: node.id,
         confirmedTargetNodeVersionId: selectedStored.id,
         relationType: "contradicts",
@@ -508,7 +530,11 @@ export async function getPublicNode(
       where: {
         claim: {
           knowledgeNodeId: node.id,
-          reviewVersion: { snapshotId: selectedStored.snapshotId },
+          reviewVersion: {
+            snapshotId: selectedStored.snapshotId,
+            publicState: { in: ["published", "withdrawn"] },
+            review: { status: "published" },
+          },
         },
       },
       include: {

@@ -1,6 +1,11 @@
 import { type DoiCheck, type DoiValidationReport } from "@oratlas/contracts";
 import { isExampleDoi, isZenodoDoi, normalizeDoi, zenodoRecordIdFromDoi } from "./normalize.js";
-import { createFetchResolver, type DoiResolver, type ZenodoRecord } from "./client.js";
+import {
+  createFetchResolver,
+  safeDoiResolutionUrl,
+  type DoiResolver,
+  type ZenodoRecord,
+} from "./client.js";
 
 export interface ValidateDoiInput {
   doi: string;
@@ -105,14 +110,15 @@ export async function validateDoi(
 
   // 1. Resolution
   const resolution = await resolver.resolveDoi(norm.doi);
+  const resolvedUrl = safeDoiResolutionUrl(resolution.resolvedUrl);
   if (resolution.resolves) {
     checks.push({
       id: "resolution",
       description: "DOI resolves via doi.org",
       outcome: "pass",
-      details: resolution.resolvedUrl ? `Resolves to ${resolution.resolvedUrl}` : undefined,
+      details: resolvedUrl ? `Resolves to ${resolvedUrl}` : undefined,
     });
-    base.resolvedUrl = resolution.resolvedUrl;
+    base.resolvedUrl = resolvedUrl;
   } else {
     checks.push({
       id: "resolution",

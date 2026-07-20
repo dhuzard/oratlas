@@ -66,6 +66,20 @@ describe("validateDoi", () => {
     expect(report.errors.join(" ")).toContain("does not resolve");
   });
 
+  it("does not expose an unsafe resolution URL returned by an injected resolver", async () => {
+    const resolver = resolverWith(null, true);
+    resolver.resolveDoi = async () => ({
+      resolves: true,
+      status: 302,
+      resolvedUrl: "https://127.0.0.1/internal",
+    });
+
+    const report = await validateDoi({ doi: "10.1234/example" }, { resolver, now });
+
+    expect(report.resolvedUrl).toBeUndefined();
+    expect(report.checks.find((check) => check.id === "resolution")?.details).toBeUndefined();
+  });
+
   it("validates a matching Zenodo DOI with high confidence", async () => {
     const report = await validateDoi(
       {

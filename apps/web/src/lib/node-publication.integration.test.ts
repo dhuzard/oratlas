@@ -95,6 +95,22 @@ beforeAll(async () => {
       createdAt: new Date("2026-01-02T00:00:00Z"),
     },
   });
+  for (const [snapshotId, title, createdAt] of [
+    [oldSnapshot.id, "Beta review history", new Date("2025-01-02T00:00:00Z")],
+    [newerSnapshot.id, "Beta review update", new Date("2026-02-02T00:00:00Z")],
+  ] as const) {
+    await prisma.reviewVersion.create({
+      data: {
+        reviewId: review.id,
+        snapshotId,
+        title,
+        metadataJson: canonicalJson({ keywords: [], domains: [] }),
+        publicState: "published",
+        publishedAt: createdAt,
+        createdAt,
+      },
+    });
+  }
 
   const claim = await prisma.knowledgeNode.create({
     data: { repositoryId: repository.id, localNodeId: "claim-alpha", kind: "claim" },
@@ -476,6 +492,118 @@ describe("public node query layer", () => {
     expect(
       (await edgeLifecycle.listConfirmedEdgesForNode(claimNodeId)).map((edge) => edge.id),
     ).not.toContain(malformedRelatedEdgeId);
+  });
+
+  it("allows accepted node-only versions but makes review-backed versions obey tombstones", async () => {
+    const repository = await prisma.repository.findFirstOrThrow({ where: { owner: "node-lab" } });
+    const hiddenSnapshot = await snapshot(repository.id, "f", new Date("2026-03-01T00:00:00Z"));
+    const hiddenNode = await prisma.knowledgeNode.create({
+      data: { repositoryId: repository.id, localNodeId: "claim-visibility-guard", kind: "claim" },
+    });
+    const hiddenVersion = await createVersion(hiddenNode.id, hiddenSnapshot.id, {
+      title: "Visibility guard claim",
+      kind: "claim",
+      payload: { statement: "This content requires publication authority.", qualifiers: [] },
+      createdAt: new Date("2026-03-02T00:00:00Z"),
+    });
+    const exactKey = `${hiddenNode.id}\u0000${hiddenVersion.id}`;
+    const assertHidden = async () => {
+      expect(await nodes.getPublicNode(hiddenNode.id)).toBeNull();
+      expect(await nodes.getPublicNode(hiddenNode.id, hiddenVersion.id)).toBeNull();
+      expect(
+        (await nodes.listPublicNodes({ q: "visibility guard", page: 1, pageSize: 10 })).items,
+      ).toEqual([]);
+      expect(
+        (
+          await nodes.getExactPublicNodeVersions([
+            { nodeId: hiddenNode.id, nodeVersionId: hiddenVersion.id },
+          ])
+        ).has(exactKey),
+      ).toBe(false);
+    };
+
+    await assertHidden();
+
+    const submitter = await prisma.user.findFirstOrThrow({
+      where: { githubLogin: "node-page-reader" },
+    });
+    const nodeOnlySubmission = await prisma.submission.create({
+      data: {
+        submitterId: submitter.id,
+        repositoryId: repository.id,
+        snapshotId: hiddenSnapshot.id,
+        status: "accepted",
+        acceptedNodeSelectionJson: canonicalJson([hiddenNode.localNodeId]),
+      },
+    });
+    await prisma.knowledgeNodeVersion.update({
+      where: { id: hiddenVersion.id },
+      data: { sourceSubmissionId: nodeOnlySubmission.id },
+    });
+    expect((await nodes.getPublicNode(hiddenNode.id))?.version.id).toBe(hiddenVersion.id);
+    expect(
+      (
+        await nodes.getExactPublicNodeVersions([
+          { nodeId: hiddenNode.id, nodeVersionId: hiddenVersion.id },
+        ])
+      ).has(exactKey),
+    ).toBe(true);
+
+    const tombstonedReview = await prisma.review.create({
+      data: { slug: "visibility-tombstoned", title: "Tombstoned authority", status: "published" },
+    });
+    const tombstonedVersion = await prisma.reviewVersion.create({
+      data: {
+        reviewId: tombstonedReview.id,
+        snapshotId: hiddenSnapshot.id,
+        title: "Tombstoned authority",
+        metadataJson: "{}",
+        publicState: "tombstoned",
+      },
+    });
+    await prisma.submission.update({
+      where: { id: nodeOnlySubmission.id },
+      data: { resultingReviewVersionId: tombstonedVersion.id },
+    });
+    await assertHidden();
+
+    const readableReview = await prisma.review.create({
+      data: { slug: "visibility-readable", title: "Readable authority", status: "published" },
+    });
+    const readableVersion = await prisma.reviewVersion.create({
+      data: {
+        reviewId: readableReview.id,
+        snapshotId: hiddenSnapshot.id,
+        title: "Readable authority",
+        metadataJson: "{}",
+        publicState: "published",
+      },
+    });
+    expect((await nodes.getPublicNode(hiddenNode.id))?.version.id).toBe(hiddenVersion.id);
+    expect(
+      (await nodes.listPublicNodes({ q: "visibility guard", page: 1, pageSize: 10 })).items.map(
+        (item) => item.id,
+      ),
+    ).toEqual([hiddenNode.id]);
+    expect(
+      (
+        await nodes.getExactPublicNodeVersions([
+          { nodeId: hiddenNode.id, nodeVersionId: hiddenVersion.id },
+        ])
+      ).has(exactKey),
+    ).toBe(true);
+
+    await prisma.reviewVersion.update({
+      where: { id: readableVersion.id },
+      data: { publicState: "withdrawn" },
+    });
+    expect((await nodes.getPublicNode(hiddenNode.id))?.version.id).toBe(hiddenVersion.id);
+
+    await prisma.reviewVersion.update({
+      where: { id: readableVersion.id },
+      data: { publicState: "tombstoned" },
+    });
+    await assertHidden();
   });
 });
 

@@ -140,6 +140,7 @@ test("reader links to a structured-first diff between two actually accepted gene
 
   const commitSha = createHash("sha1").update(unique).digest("hex");
   const secondSnapshotId = unique + "-snapshot";
+  const editor = await prisma.user.findFirstOrThrow({ where: { role: "EDITOR" } });
   await prisma.repositorySnapshot.create({
     data: {
       id: secondSnapshotId,
@@ -150,11 +151,24 @@ test("reader links to a structured-first diff between two actually accepted gene
       contentHash: createHash("sha256").update(unique).digest("hex"),
     },
   });
+  const secondSourceSubmission = await prisma.submission.create({
+    data: {
+      submitterId: editor.id,
+      reviewerId: editor.id,
+      repositoryId: repository.id,
+      snapshotId: secondSnapshotId,
+      status: "accepted",
+      acceptedNodeSelectionJson: JSON.stringify([unique]),
+      submittedAt: new Date(),
+      reviewedAt: new Date(),
+    },
+  });
   await prisma.knowledgeNodeVersion.create({
     data: {
       id: secondVersionId,
       knowledgeNodeId: nodeId,
       snapshotId: secondSnapshotId,
+      sourceSubmissionId: secondSourceSubmission.id,
       title: "Second accepted generation evidence",
       abstract: "The bounded evidence changed for the next synthesis.",
       text: "The second immutable evidence version materially updates the synthesis.",

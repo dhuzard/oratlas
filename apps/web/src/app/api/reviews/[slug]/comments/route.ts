@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createCommentInputSchema } from "@oratlas/contracts";
-import { requireUser } from "@/lib/auth";
+import { getServerEnv, requireUser } from "@/lib/auth";
 import { CommentError, createReviewComment, listReviewComments } from "@/lib/comments";
 import {
   BadJsonError,
@@ -10,6 +10,7 @@ import {
   readJsonBody,
 } from "@/lib/api";
 import { rateLimit, clientKey } from "@/lib/rate-limit";
+import { validateSameOriginJsonRequest } from "@/lib/mutation-request";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -29,6 +30,13 @@ export async function GET(_request: Request, { params }: { params: Promise<{ slu
 /** Post a comment or reply. Sign-in required. */
 export async function POST(request: Request, { params }: { params: Promise<{ slug: string }> }) {
   try {
+    const integrity = validateSameOriginJsonRequest(request, getServerEnv().NEXT_PUBLIC_BASE_URL);
+    if (!integrity.ok) {
+      return errorResponse(
+        integrity.status === 415 ? "bad-request" : "forbidden",
+        integrity.message,
+      );
+    }
     const user = await requireUser();
     const limit = rateLimit(clientKey(request.headers, `comment:${user.id}`), 10, 60_000);
     if (!limit.ok) return errorResponse("rate-limited", "Too many comments. Try again shortly.");

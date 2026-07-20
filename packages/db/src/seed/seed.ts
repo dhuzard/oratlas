@@ -398,6 +398,7 @@ interface SeedNodeRepositoryBinding {
   snapshotId: string;
   githubRepositoryId: string;
   commitSha: string;
+  sourceSubmissionId?: string;
 }
 
 async function seedKnowledgeGraph(
@@ -424,6 +425,7 @@ async function seedKnowledgeGraph(
       data: {
         knowledgeNodeId: identity.id,
         snapshotId: binding.snapshotId,
+        sourceSubmissionId: binding.sourceSubmissionId,
         title: node.title,
         abstract: node.abstract,
         text: node.text,
@@ -681,11 +683,31 @@ async function main() {
       }),
     },
   });
+  const replicationNodeSelectionJson = canonicalJson(
+    seedKnowledgeNodes
+      .filter((fixture) => fixture.repositoryKey === "replication-lab")
+      .map((fixture) => fixture.node.id)
+      .sort(),
+  );
+  const replicationSubmission = await prisma.submission.create({
+    data: {
+      submitterId: users.get("atlas-submitter")!,
+      reviewerId: users.get("atlas-editor")!,
+      repositoryId: replicationRepo.id,
+      snapshotId: replicationSnapshot.id,
+      status: "accepted",
+      acceptedNodeSelectionJson: replicationNodeSelectionJson,
+      acceptedNodeSelectionHash: sha256(replicationNodeSelectionJson),
+      submittedAt: new Date(),
+      reviewedAt: new Date(),
+    },
+  });
   nodeRepositories.set("replication-lab", {
     repositoryId: replicationRepo.id,
     snapshotId: replicationSnapshot.id,
     githubRepositoryId: replicationRepo.githubRepositoryId!,
     commitSha: replicationSnapshot.commitSha,
+    sourceSubmissionId: replicationSubmission.id,
   });
 
   await seedKnowledgeGraph(nodeRepositories, claimIdsBySlug, users.get("atlas-editor")!);

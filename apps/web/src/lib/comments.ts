@@ -295,30 +295,35 @@ export async function createReviewComment(
 
 /** Remove a comment. Allowed for its author or an editor; the row is kept. */
 export async function removeReviewComment(commentId: string, actor: SessionUser): Promise<void> {
-  const comment = await prisma.reviewComment.findUnique({
-    where: { id: commentId },
-    select: { id: true, authorId: true, status: true, review: { select: { slug: true } } },
-  });
-  if (!comment) throw new CommentError("Comment not found.", "not-found");
-  if (comment.authorId !== actor.id && !isEditor(actor)) {
-    throw new CommentError("Only the author or an editor can remove a comment.", "forbidden");
-  }
-  if (comment.status === "removed") return;
+  await prisma.$transaction(async (tx) => {
+    const comment = await tx.reviewComment.findUnique({
+      where: { id: commentId },
+      select: { id: true, authorId: true, status: true, review: { select: { slug: true } } },
+    });
+    if (!comment) throw new CommentError("Comment not found.", "not-found");
+    if (comment.authorId !== actor.id && !isEditor(actor)) {
+      throw new CommentError("Only the author or an editor can remove a comment.", "forbidden");
+    }
+    if (comment.status === "removed") return;
 
-  await prisma.reviewComment.update({
-    where: { id: comment.id },
-    data: { status: "removed", removedById: actor.id, removedAt: new Date() },
-  });
-  await prisma.auditEvent.create({
-    data: {
-      actorId: actor.id,
-      action: "comment.removed",
-      subjectType: "reviewComment",
-      subjectId: comment.id,
-      detailsJson: JSON.stringify({
-        reviewSlug: comment.review.slug,
-        removedBy: comment.authorId === actor.id ? "author" : "editor",
-      }),
-    },
+    const changed = await tx.reviewComment.updateMany({
+      where: { id: comment.id, status: "visible" },
+      data: { status: "removed", removedById: actor.id, removedAt: new Date() },
+    });
+    // A concurrent remover already committed the one attributable transition.
+    if (changed.count !== 1) return;
+
+    await tx.auditEvent.create({
+      data: {
+        actorId: actor.id,
+        action: "comment.removed",
+        subjectType: "reviewComment",
+        subjectId: comment.id,
+        detailsJson: JSON.stringify({
+          reviewSlug: comment.review.slug,
+          removedBy: comment.authorId === actor.id ? "author" : "editor",
+        }),
+      },
+    });
   });
 }
