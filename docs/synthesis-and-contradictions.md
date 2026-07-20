@@ -14,6 +14,11 @@ analysis (`derivedFromDois`) of the other. Independent evidence is then counted 
 families, never raw citations, so ten papers reanalysing one dataset count as one
 independent line of evidence.
 
+This applies equally to graph-native nodes and legacy claim–citation reviews. Citation row IDs are
+version-scoped, but canonical DOI, PMID, and OpenAlex aliases are compared across review versions.
+Two legacy reviews citing the same work therefore expose that work in `sharedWorkKeys` and count it
+as one evidence family; separate archive rows never imply independent replication.
+
 ## Circular citations
 
 A citation whose DOI resolves to an archived (non-example) review version points back
