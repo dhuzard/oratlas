@@ -643,7 +643,7 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-K02 — Fixture-capture tooling for frozen external repositories
 
-- **Status:** backlog · **Priority:** P1 · **Size:** S · **Agent:** yes
+- **Status:** in-progress · **Priority:** P1 · **Size:** S · **Agent:** yes
 - **Packages:** `scripts`, test fixtures · **External dep:** any pinned external repo ·
   **Issue/PR:** generalizes the KG-20 interception pattern
 - **Goal:** ORA-A03 needs to freeze a real repository deterministically; future reference

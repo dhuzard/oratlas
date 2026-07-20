@@ -32,6 +32,7 @@
     "validate-doi": "tsx scripts/validate-doi.ts",
     "atlas-check": "tsx scripts/atlas-check.ts",
     "atlas-check:json": "tsx scripts/atlas-check.ts --format json",
+    "capture:fixture": "tsx scripts/capture-github-fixture.ts",
     "eval:grounding": "pnpm --silent exec tsx scripts/eval-grounding.ts",
     "refresh:syntheses": "tsx --conditions=react-server scripts/refresh-syntheses.ts",
     "release:notes": "tsx scripts/release-notes.ts"

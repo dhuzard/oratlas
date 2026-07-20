@@ -27,3 +27,10 @@ export {
   type InMemoryJobQueueOptions,
 } from "./job-queue.js";
 export { createFakeTransport, type FakeRepoFixture } from "./testing.js";
+export {
+  capturedFixtureFromInspection,
+  capturedFixtureOutputFiles,
+  createCapturedFixtureTransport,
+  verifyCapturedFixture,
+  type CapturedRepositoryFixture,
+} from "./capture-fixture.js";
