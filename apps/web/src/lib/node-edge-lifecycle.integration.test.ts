@@ -346,6 +346,49 @@ describe.sequential("node edge lifecycle integration", () => {
     ).toEqual([confirmed.edgeId]);
   });
 
+  it("rolls back the public edge, decision, idempotency claim, and audit on a late crash", async () => {
+    const proposal = await lifecycle.createAgentNodeEdgeProposal(
+      proposalInput((await createAgentRun("supports")).id, "supports"),
+    );
+    const triggerName = "b01_abort_node_edge_audit";
+    await prisma.$executeRawUnsafe(`
+      CREATE TRIGGER ${triggerName}
+      BEFORE INSERT ON "AuditEvent"
+      WHEN NEW."action" = 'node-edge.confirmed'
+      BEGIN
+        SELECT RAISE(ABORT, 'ORA-B01 injected late transaction crash');
+      END
+    `);
+    try {
+      await expect(
+        lifecycle.decideNodeEdgeProposal(editor, proposal.proposalId, {
+          decision: "confirm",
+          expectedRevision: 0,
+          note: "This decision must disappear with its failed audit write.",
+        }),
+      ).rejects.toBeTruthy();
+    } finally {
+      await prisma.$executeRawUnsafe(`DROP TRIGGER IF EXISTS ${triggerName}`);
+    }
+
+    expect(
+      await prisma.nodeEdgeProposal.findUniqueOrThrow({ where: { id: proposal.proposalId } }),
+    ).toMatchObject({ status: "proposed", revision: 0, confirmedEdgeId: null });
+    expect(
+      await prisma.nodeEdge.count({ where: { proposals: { some: { id: proposal.proposalId } } } }),
+    ).toBe(0);
+    expect(
+      await prisma.idempotencyKey.count({
+        where: { key: `node-edge.confirmed:${proposal.proposalId}:1` },
+      }),
+    ).toBe(0);
+    expect(
+      await prisma.auditEvent.count({
+        where: { action: "node-edge.confirmed", subjectId: proposal.proposalId },
+      }),
+    ).toBe(0);
+  });
+
   it("canonicalizes a reciprocal contradiction onto the existing edge", async () => {
     const reverseCandidate = proposalCandidate("contradicts", true);
     const run = await createAgentRun("contradicts", reverseCandidate);

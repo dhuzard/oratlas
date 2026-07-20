@@ -282,6 +282,16 @@ describe.sequential("atomic publication integration", () => {
         where: { idempotencyKey: `submission.accepted:${submission.submissionId}` },
       }),
     ).toBe(1);
+    await expect(
+      runtime.acceptSubmission(
+        submission.submissionId,
+        editorId,
+        "A changed note must not reuse the acceptance operation.",
+      ),
+    ).rejects.toMatchObject({ code: "conflict" });
+    await expect(
+      runtime.acceptSubmission(submission.submissionId, otherUserId),
+    ).rejects.toMatchObject({ code: "conflict" });
   });
 
   it("allows only one terminal result in an accept-versus-reject race", async () => {

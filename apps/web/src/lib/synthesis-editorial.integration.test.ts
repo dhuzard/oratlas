@@ -314,6 +314,64 @@ describe.sequential("synthesis editorial lifecycle", () => {
     ).rejects.toMatchObject({ code: "conflict" });
   });
 
+  it("rolls back every public synthesis write when the final audit insert crashes", async () => {
+    const crashSelector = {
+      ...selector,
+      selection: { kind: "seed" as const, nodeId: "claim-reject" },
+      depth: 2,
+    };
+    const draft = await service.generateSynthesisDraft(
+      { selector: crashSelector, requestKey: "generation-transaction-crash-0001" },
+      { client: prisma, actor, loadPacket: async () => prepared("claim-reject") },
+    );
+    const decision = {
+      ...acceptance,
+      idempotencyKey: "accept-transaction-crash-0001",
+      versionDoi: "10.5281/zenodo.6234567",
+      conceptDoi: "10.5281/zenodo.6234500",
+    };
+    const operationKey = `synthesis-decision:${draft.id}:${decision.idempotencyKey}`;
+    const triggerName = "b01_abort_synthesis_audit";
+    await prisma.$executeRawUnsafe(`
+      CREATE TRIGGER ${triggerName}
+      BEFORE INSERT ON "AuditEvent"
+      WHEN NEW."action" = 'synthesis.draft.accepted'
+      BEGIN
+        SELECT RAISE(ABORT, 'ORA-B01 injected late transaction crash');
+      END
+    `);
+    try {
+      await expect(
+        service.decideSynthesisDraft(draft.id, decision, actor, prisma),
+      ).rejects.toBeTruthy();
+    } finally {
+      await prisma.$executeRawUnsafe(`DROP TRIGGER IF EXISTS ${triggerName}`);
+    }
+
+    expect(
+      await prisma.synthesisDraft.findUniqueOrThrow({ where: { id: draft.id } }),
+    ).toMatchObject({
+      status: "pending",
+      revision: 0,
+      reviewId: null,
+      acceptedAt: null,
+    });
+    expect(
+      await prisma.review.findUnique({
+        where: { synthesisSeriesKey: service.synthesisSeriesKey(crashSelector) },
+      }),
+    ).toBeNull();
+    expect(await prisma.reviewVersion.count({ where: { synthesisDraftId: draft.id } })).toBe(0);
+    expect(await prisma.idempotencyKey.count({ where: { key: operationKey } })).toBe(0);
+    expect(
+      await prisma.auditEvent.count({
+        where: {
+          OR: [{ idempotencyKey: operationKey }, { idempotencyKey: `${operationKey}:published` }],
+        },
+      }),
+    ).toBe(0);
+  });
+
   it("rejects synthesis DOI reuse across versions, roles, and series", async () => {
     const successor = await service.generateSynthesisDraft(
       { selector, requestKey: "generation-doi-successor-0001" },

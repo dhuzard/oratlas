@@ -1,5 +1,6 @@
 import "server-only";
 import {
+  canonicalJson,
   isExactCommitSha,
   type PublicLifecycleEvent,
   type ReviewLifecycleKind,
@@ -7,6 +8,7 @@ import {
   type ReviewVersionPublicState,
 } from "@oratlas/contracts";
 import { prisma } from "./db";
+import { sha256 } from "./hash";
 
 export class LifecycleError extends Error {
   constructor(
@@ -81,137 +83,166 @@ export async function recordReviewLifecycleEvent(
   actorId: string,
 ): Promise<{ event: PublicLifecycleEvent; revision: number }> {
   try {
-    return await prisma.$transaction(async (tx) => {
-      const review = await tx.review.findUnique({
-        where: { slug: input.reviewSlug },
-        select: {
-          id: true,
-          status: true,
-          currentSnapshotId: true,
-          lifecycleRevision: true,
-          versions: {
-            orderBy: { createdAt: "desc" },
-            select: {
-              id: true,
-              snapshotId: true,
-              publicState: true,
-              publishedAt: true,
-              createdAt: true,
-              snapshot: { select: { commitSha: true } },
+    return await prisma.$transaction(
+      async (tx) => {
+        const review = await tx.review.findUnique({
+          where: { slug: input.reviewSlug },
+          select: {
+            id: true,
+            status: true,
+            currentSnapshotId: true,
+            lifecycleRevision: true,
+            versions: {
+              orderBy: { createdAt: "desc" },
+              select: {
+                id: true,
+                snapshotId: true,
+                publicState: true,
+                publishedAt: true,
+                createdAt: true,
+                snapshot: { select: { commitSha: true } },
+              },
             },
           },
-        },
-      });
-      if (!review) throw new LifecycleError("Review not found.", "not-found");
-      if (review.status !== "published") {
-        throw new LifecycleError("Lifecycle events require a published review.", "bad-request");
-      }
-      if (review.lifecycleRevision !== input.expectedRevision) {
-        throw new LifecycleError(
-          `Lifecycle changed; reload and retry at revision ${review.lifecycleRevision}.`,
-          "conflict",
-        );
-      }
-      const target = review.versions.find((version) => version.id === input.reviewVersionId);
-      if (!target) {
-        throw new LifecycleError("Target version does not belong to this review.", "bad-request");
-      }
-      if (!target.publishedAt || target.publicState !== "published") {
-        throw new LifecycleError(
-          "Lifecycle events require a currently published target version.",
-          "bad-request",
-        );
-      }
-      if (!target.snapshot || !isExactCommitSha(target.snapshot.commitSha)) {
-        throw new LifecycleError("Target version is not bound to an exact commit.", "bad-request");
-      }
-      if (input.kind === "correction") {
-        const current = review.versions[0];
-        if (
-          !current ||
-          current.id !== target.id ||
-          !review.currentSnapshotId ||
-          target.snapshotId !== review.currentSnapshotId
-        ) {
-          throw new LifecycleError(
-            "A correction must target the current published version.",
-            "bad-request",
-          );
-        }
-        const superseded = review.versions.find(
-          (version) => version.id === input.supersedesVersionId,
-        );
-        if (!superseded) {
-          throw new LifecycleError(
-            "The superseded version must belong to the same review.",
-            "bad-request",
-          );
-        }
-        if (!superseded.snapshot || !isExactCommitSha(superseded.snapshot.commitSha)) {
-          throw new LifecycleError("Superseded version lacks an exact commit.", "bad-request");
-        }
-        if (
-          !superseded.publishedAt ||
-          !isReadablePublicState(superseded.publicState) ||
-          superseded.createdAt.getTime() >= target.createdAt.getTime()
-        ) {
-          throw new LifecycleError(
-            "A correction must supersede a readable, chronologically prior version.",
-            "bad-request",
-          );
-        }
-      }
-
-      const nextRevision = review.lifecycleRevision + 1;
-      const claimed = await tx.review.updateMany({
-        where: {
-          id: review.id,
-          lifecycleRevision: input.expectedRevision,
-          currentSnapshotId: review.currentSnapshotId,
-        },
-        data: { lifecycleRevision: nextRevision },
-      });
-      if (claimed.count !== 1) {
-        throw new LifecycleError("Lifecycle changed concurrently; reload and retry.", "conflict");
-      }
-
-      if (input.kind === "withdrawal" || input.kind === "tombstone") {
-        await tx.reviewVersion.update({
-          where: { id: target.id },
-          data: { publicState: input.kind === "withdrawal" ? "withdrawn" : "tombstoned" },
         });
-      }
+        if (!review) throw new LifecycleError("Review not found.", "not-found");
+        const nextRevision = input.expectedRevision + 1;
+        const operationKey = `review-lifecycle:${review.id}:${nextRevision}`;
+        const operationHash = sha256(canonicalJson({ actorId, input }));
+        const priorClaim = await tx.idempotencyKey.findUnique({ where: { key: operationKey } });
+        if (priorClaim) {
+          if (priorClaim.requestHash !== operationHash) {
+            throw new LifecycleError(
+              "Lifecycle revision is bound to a different mutation payload.",
+              "conflict",
+            );
+          }
+          const priorEvent = await tx.reviewLifecycleEvent.findUnique({
+            where: { reviewId_revision: { reviewId: review.id, revision: nextRevision } },
+            include: { actor: true },
+          });
+          if (!priorEvent) {
+            throw new LifecycleError("Lifecycle idempotency record is incomplete.", "conflict");
+          }
+          return { event: lifecycleEventDto(priorEvent), revision: nextRevision };
+        }
+        if (review.status !== "published") {
+          throw new LifecycleError("Lifecycle events require a published review.", "bad-request");
+        }
+        if (review.lifecycleRevision !== input.expectedRevision) {
+          throw new LifecycleError(
+            `Lifecycle changed; reload and retry at revision ${review.lifecycleRevision}.`,
+            "conflict",
+          );
+        }
+        const target = review.versions.find((version) => version.id === input.reviewVersionId);
+        if (!target) {
+          throw new LifecycleError("Target version does not belong to this review.", "bad-request");
+        }
+        if (!target.publishedAt || target.publicState !== "published") {
+          throw new LifecycleError(
+            "Lifecycle events require a currently published target version.",
+            "bad-request",
+          );
+        }
+        if (!target.snapshot || !isExactCommitSha(target.snapshot.commitSha)) {
+          throw new LifecycleError(
+            "Target version is not bound to an exact commit.",
+            "bad-request",
+          );
+        }
+        if (input.kind === "correction") {
+          const current = review.versions[0];
+          if (
+            !current ||
+            current.id !== target.id ||
+            !review.currentSnapshotId ||
+            target.snapshotId !== review.currentSnapshotId
+          ) {
+            throw new LifecycleError(
+              "A correction must target the current published version.",
+              "bad-request",
+            );
+          }
+          const superseded = review.versions.find(
+            (version) => version.id === input.supersedesVersionId,
+          );
+          if (!superseded) {
+            throw new LifecycleError(
+              "The superseded version must belong to the same review.",
+              "bad-request",
+            );
+          }
+          if (!superseded.snapshot || !isExactCommitSha(superseded.snapshot.commitSha)) {
+            throw new LifecycleError("Superseded version lacks an exact commit.", "bad-request");
+          }
+          if (
+            !superseded.publishedAt ||
+            !isReadablePublicState(superseded.publicState) ||
+            superseded.createdAt.getTime() >= target.createdAt.getTime()
+          ) {
+            throw new LifecycleError(
+              "A correction must supersede a readable, chronologically prior version.",
+              "bad-request",
+            );
+          }
+        }
 
-      const event = await tx.reviewLifecycleEvent.create({
-        data: {
-          reviewId: review.id,
-          reviewVersionId: target.id,
-          actorId,
-          kind: input.kind,
-          reason: input.reason,
-          supersedesVersionId: input.kind === "correction" ? input.supersedesVersionId : undefined,
-          revision: nextRevision,
-        },
-        include: { actor: true },
-      });
-      await tx.auditEvent.create({
-        data: {
-          actorId,
-          action: `review.${input.kind}`,
-          subjectType: "reviewVersion",
-          subjectId: target.id,
-          idempotencyKey: `review-lifecycle:${review.id}:${nextRevision}`,
-          detailsJson: JSON.stringify({
-            reviewSlug: input.reviewSlug,
+        await tx.idempotencyKey.create({
+          data: { key: operationKey, requestHash: operationHash },
+        });
+        const claimed = await tx.review.updateMany({
+          where: {
+            id: review.id,
+            lifecycleRevision: input.expectedRevision,
+            currentSnapshotId: review.currentSnapshotId,
+          },
+          data: { lifecycleRevision: nextRevision },
+        });
+        if (claimed.count !== 1) {
+          throw new LifecycleError("Lifecycle changed concurrently; reload and retry.", "conflict");
+        }
+
+        if (input.kind === "withdrawal" || input.kind === "tombstone") {
+          await tx.reviewVersion.update({
+            where: { id: target.id },
+            data: { publicState: input.kind === "withdrawal" ? "withdrawn" : "tombstoned" },
+          });
+        }
+
+        const event = await tx.reviewLifecycleEvent.create({
+          data: {
+            reviewId: review.id,
             reviewVersionId: target.id,
-            supersedesVersionId: event.supersedesVersionId,
+            actorId,
+            kind: input.kind,
             reason: input.reason,
-            lifecycleRevision: nextRevision,
-          }),
-        },
-      });
-      return { event: lifecycleEventDto(event), revision: nextRevision };
-    });
+            supersedesVersionId:
+              input.kind === "correction" ? input.supersedesVersionId : undefined,
+            revision: nextRevision,
+          },
+          include: { actor: true },
+        });
+        await tx.auditEvent.create({
+          data: {
+            actorId,
+            action: `review.${input.kind}`,
+            subjectType: "reviewVersion",
+            subjectId: target.id,
+            idempotencyKey: operationKey,
+            detailsJson: JSON.stringify({
+              reviewSlug: input.reviewSlug,
+              reviewVersionId: target.id,
+              supersedesVersionId: event.supersedesVersionId,
+              reason: input.reason,
+              lifecycleRevision: nextRevision,
+            }),
+          },
+        });
+        return { event: lifecycleEventDto(event), revision: nextRevision };
+      },
+      { maxWait: 5_000, timeout: 15_000, isolationLevel: "Serializable" },
+    );
   } catch (error) {
     if (error instanceof LifecycleError) throw error;
     const code =

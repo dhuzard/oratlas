@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, rmSync } from "node:fs";
-import { resolve } from "node:path";
+import { createRequire } from "node:module";
+import { dirname, resolve } from "node:path";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { type PrismaClient } from "@oratlas/db";
 import { type getReviewDetail } from "./reviews";
@@ -14,8 +15,9 @@ import { type runDiscussion } from "./discuss";
 
 vi.mock("server-only", () => ({}));
 
-const databasePath = `/tmp/oratlas-lifecycle-${process.pid}-${Date.now()}.db`;
-const databaseUrl = `file://${databasePath}`;
+const databaseFileName = `.tmp-oratlas-lifecycle-${process.pid}-${Date.now()}.db`;
+const databasePath = resolve(process.cwd(), "packages/db/prisma", databaseFileName);
+const databaseUrl = `file:./${databaseFileName}`;
 const commit1 = "1".repeat(40);
 const commit2 = "2".repeat(40);
 const tree1 = "a".repeat(40);
@@ -63,9 +65,14 @@ beforeAll(async () => {
   process.env.DATABASE_URL = databaseUrl;
   process.env.NEXT_PUBLIC_BASE_URL = "http://localhost:3000";
   process.env.AUTH_MOCK = "1";
+  const require = createRequire(import.meta.url);
+  const prismaPackage = require.resolve("prisma/package.json", {
+    paths: [resolve(process.cwd(), "packages/db")],
+  });
+  const prismaCli = resolve(dirname(prismaPackage), "build/index.js");
   execFileSync(
-    resolve(process.cwd(), "packages/db/node_modules/.bin/prisma"),
-    ["db", "push", "--schema", "packages/db/prisma/schema.prisma", "--skip-generate"],
+    process.execPath,
+    [prismaCli, "db", "push", "--schema", "packages/db/prisma/schema.prisma", "--skip-generate"],
     {
       env: { ...process.env, DATABASE_URL: databaseUrl, RUST_LOG: "info" },
       stdio: "pipe",
@@ -486,19 +493,26 @@ describe.sequential("article lifecycle public boundaries", () => {
       data: { createdAt: new Date("2026-07-01T00:00:00.000Z") },
     });
 
-    const result = await runtime.lifecycle.recordReviewLifecycleEvent(
-      {
-        reviewSlug: "sensitive-review",
-        reviewVersionId: version2Id,
-        supersedesVersionId: version1Id,
-        kind: "correction",
-        reason: "The current version corrects the prior archived scholarly record.",
-        expectedRevision: 0,
-      },
-      editorId,
-    );
+    const correction = {
+      reviewSlug: "sensitive-review",
+      reviewVersionId: version2Id,
+      supersedesVersionId: version1Id,
+      kind: "correction" as const,
+      reason: "The current version corrects the prior archived scholarly record.",
+      expectedRevision: 0,
+    };
+    const result = await runtime.lifecycle.recordReviewLifecycleEvent(correction, editorId);
     expect(result.revision).toBe(1);
     expect(result.event.actorLogin).toBe("lifecycle-editor");
+    expect(await runtime.lifecycle.recordReviewLifecycleEvent(correction, editorId)).toEqual(
+      result,
+    );
+    await expect(
+      runtime.lifecycle.recordReviewLifecycleEvent(
+        { ...correction, reason: "A changed reason cannot reuse this lifecycle revision." },
+        editorId,
+      ),
+    ).rejects.toMatchObject({ code: "conflict" });
     const prior = await runtime.reviews.getReviewDetail("sensitive-review", version1Id);
     expect(prior?.lifecycleEvents[0]?.reviewVersionId).toBe(version2Id);
     const commentBeforeTombstone = await runtime.comments.createReviewComment(
@@ -628,6 +642,56 @@ describe.sequential("article lifecycle public boundaries", () => {
     ]);
     expect(JSON.stringify(discussion)).not.toContain(secretClaim);
   }, 30_000);
+
+  it("rolls back the public lifecycle state, event, idempotency claim, and audit on a late crash", async () => {
+    const invalidVersion = await runtime.prisma.reviewVersion.findFirstOrThrow({
+      where: { review: { slug: "invalid-review" } },
+    });
+    const triggerName = "b01_abort_lifecycle_audit";
+    await runtime.prisma.$executeRawUnsafe(`
+      CREATE TRIGGER ${triggerName}
+      BEFORE INSERT ON "AuditEvent"
+      WHEN NEW."action" = 'review.withdrawal'
+      BEGIN
+        SELECT RAISE(ABORT, 'ORA-B01 injected late transaction crash');
+      END
+    `);
+    try {
+      await expect(
+        runtime.lifecycle.recordReviewLifecycleEvent(
+          {
+            reviewSlug: "invalid-review",
+            reviewVersionId: invalidVersion.id,
+            kind: "withdrawal",
+            expectedRevision: 0,
+            reason: "This lifecycle mutation must roll back with its failed audit write.",
+          },
+          editorId,
+        ),
+      ).rejects.toBeTruthy();
+    } finally {
+      await runtime.prisma.$executeRawUnsafe(`DROP TRIGGER IF EXISTS ${triggerName}`);
+    }
+
+    const review = await runtime.prisma.review.findUniqueOrThrow({
+      where: { slug: "invalid-review" },
+      include: { versions: true, lifecycleEvents: true },
+    });
+    expect(review).toMatchObject({ lifecycleRevision: 0, status: "published" });
+    expect(review.versions).toHaveLength(1);
+    expect(review.versions[0]).toMatchObject({ publicState: "published" });
+    expect(review.lifecycleEvents).toHaveLength(0);
+    expect(
+      await runtime.prisma.idempotencyKey.count({
+        where: { key: `review-lifecycle:${review.id}:1` },
+      }),
+    ).toBe(0);
+    expect(
+      await runtime.prisma.auditEvent.count({
+        where: { action: "review.withdrawal", subjectId: invalidVersion.id },
+      }),
+    ).toBe(0);
+  });
 
   it("allows exactly one of two concurrent lifecycle writers", async () => {
     const common = {
