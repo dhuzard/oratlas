@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   ORDINAL_MEAN_METHOD,
   assessmentSourceIdentity,
+  assertSingleAssessmentProtocol,
   computeAggregate,
   ordinalAtLeast,
   validateTrustAssessmentRecord,
@@ -88,9 +89,55 @@ describe("computeAggregate", () => {
 
 describe("ordinalAtLeast", () => {
   it("compares ordinals and treats non-values as false", () => {
-    expect(ordinalAtLeast("high", "moderate")).toBe(true);
-    expect(ordinalAtLeast("low", "high")).toBe(false);
-    expect(ordinalAtLeast("not-assessed", "low")).toBe(false);
+    const rating = (value: Parameters<typeof ordinalAtLeast>[0]["rating"]) => ({
+      protocolVersion: "trust-poc-1.0",
+      rating: value,
+    });
+    expect(ordinalAtLeast(rating("high"), rating("moderate"))).toBe(true);
+    expect(ordinalAtLeast(rating("low"), rating("high"))).toBe(false);
+    expect(ordinalAtLeast(rating("not-assessed"), rating("low"))).toBe(false);
+  });
+
+  it("refuses ordinal translation between protocol versions", () => {
+    expect(() =>
+      ordinalAtLeast(
+        { protocolVersion: "trust-poc-1.0", rating: "high" },
+        { protocolVersion: "trust-poc-1.1", rating: "moderate" },
+      ),
+    ).toThrow("comparison requires one exact TRUST protocol version");
+  });
+});
+
+describe("assertSingleAssessmentProtocol", () => {
+  it.each(["aggregation", "disagreement"] as const)(
+    "fails closed for mixed protocol %s",
+    (operation) => {
+      expect(() =>
+        assertSingleAssessmentProtocol(operation, [
+          { protocolVersion: "trust-poc-1.0" },
+          { protocolVersion: "trust-poc-1.0 " },
+        ]),
+      ).toThrow(`${operation} requires one exact TRUST protocol version`);
+    },
+  );
+
+  it("uses exact opaque identity and accepts empty, single, and identical sets", () => {
+    expect(assertSingleAssessmentProtocol("selection", [])).toBeUndefined();
+    expect(
+      assertSingleAssessmentProtocol("selection", [{ protocolVersion: "TRUST-PoC-1.0" }]),
+    ).toBe("TRUST-PoC-1.0");
+    expect(
+      assertSingleAssessmentProtocol("selection", [
+        { protocolVersion: "trust-poc-1.0" },
+        { protocolVersion: "trust-poc-1.0" },
+      ]),
+    ).toBe("trust-poc-1.0");
+    expect(() =>
+      assertSingleAssessmentProtocol("selection", [
+        { protocolVersion: "trust-poc-1.0" },
+        { protocolVersion: "TRUST-POC-1.0" },
+      ]),
+    ).toThrow();
   });
 });
 

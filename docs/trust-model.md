@@ -62,6 +62,20 @@ ordinal criteria only — `not-assessed`/`not-applicable` are excluded, never co
 The criterion-level record is always authoritative. The UI never shows an aggregate without
 accessible criterion detail and the aggregate method.
 
+## Protocol identity and crosswalk prohibition
+
+`TRUST` is the fixed protocol family name in this implementation. Each assessment's
+`protocolVersion` is an opaque version identity: equality means exact, case-sensitive string
+equality. Atlas does not trim it, apply semantic-version compatibility, group near versions, or
+translate ordinal ratings between versions.
+
+Every operation over more than one assessment—selection, comparison, aggregation, disagreement
+detection, and future adjudication—must call the shared `assertSingleAssessmentProtocol` guard
+before inspecting ratings or status. Mixed versions fail closed. Displaying assessments from
+different versions side by side is allowed because display is not a comparison or translation.
+Any future crosswalk must be a separately governed editorial artifact; it cannot be inferred in
+code from similar names, criteria, or version numbers.
+
 ## Repository assertions and platform verification
 
 ### Multiple assessments on one relation
