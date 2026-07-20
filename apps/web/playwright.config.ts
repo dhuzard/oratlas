@@ -41,8 +41,10 @@ export default defineConfig({
   fullyParallel: false,
   workers: 1,
   timeout: 60_000,
-  retries: 0,
-  reporter: process.env.CI ? "line" : "list",
+  retries: process.env.CI ? 1 : 0,
+  reporter: process.env.CI
+    ? [["line"], ["json", { outputFile: "test-results/e2e-results.json" }]]
+    : "list",
   use: {
     baseURL: `http://localhost:${PORT}`,
     trace: "on-first-retry",

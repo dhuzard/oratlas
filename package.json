@@ -18,6 +18,7 @@
     "typecheck": "pnpm -r --no-bail typecheck",
     "test": "vitest run",
     "test:e2e": "pnpm --filter @oratlas/web test:e2e",
+    "e2e:budget": "tsx scripts/check-e2e-budget.ts apps/web/test-results/e2e-results.json",
     "db:push": "pnpm --filter @oratlas/db db:push",
     "db:seed": "pnpm --filter @oratlas/db db:seed",
     "db:reset": "pnpm --filter @oratlas/db db:reset",
