@@ -410,8 +410,9 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-E03 — Keep discussion visibly separate from formal assessment
 
-- **Status:** backlog · **Priority:** P1 · **Size:** S · **Agent:** yes
-- **Packages:** `apps/web`, `packages/ui` · **External dep:** none · **Issue/PR:** none
+- **Status:** review · **Priority:** P1 · **Size:** S · **Agent:** yes
+- **Packages:** `apps/web`, `packages/ui` · **External dep:** none · **Issue/PR:**
+  [#87](https://github.com/dhuzard/oratlas/pull/87)
 - **Goal:** Three registers now coexist on a review: formal assessments (TRUST), formal
   challenges (ORA-E01), and open discussion (comments, Atlas Discuss). Audit and enforce that
   the UI never lets discussion visually or structurally bleed into assessment — distinct
