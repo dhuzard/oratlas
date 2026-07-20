@@ -95,8 +95,9 @@ export function ChallengesSection({
     >
       <h2 id="formal-challenges-title">Formal challenges</h2>
       <p className="muted">
-        Attributed objections to exact immutable subjects. Challenges do not change claims,
-        relations, assessments, or establish scientific truth.
+        Unlike open discussion, a challenge is an attributed, immutable formal objection to an exact
+        subject. Filing one does not change claims, relations, TRUST assessments, editorial
+        decisions, the archived review, or establish scientific truth.
       </p>
       {list.challenges.length === 0 ? (
         <p className="muted">No formal challenges have been filed for this version.</p>
