@@ -275,10 +275,10 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-D01 — Multiple-assessment contract (coexistence without overwrite)
 
-- **Status:** in-progress · **Priority:** P1 · **Size:** M · **Agent:** conditional (contract
+- **Status:** review · **Priority:** P1 · **Size:** M · **Agent:** conditional (contract
   semantics need one maintainer review; no open governance question blocks coexistence itself)
 - **Packages:** `packages/contracts`, `packages/trust`, `packages/db`, `apps/web` ·
-  **External dep:** none · **Issue/PR:** none
+  **External dep:** none · **Issue/PR:** #95
 - **Goal:** `TrustAssessment` has no uniqueness on its relation, so multiple rows can exist,
   but nothing defines their semantics: reads and displays assume effectively one assessment
   per relation. Define the contract: several assessments per relation (different assessors,
