@@ -425,8 +425,9 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-E04 — Atlas Discuss improvements
 
-- **Status:** backlog · **Priority:** P2 · **Size:** M · **Agent:** yes
-- **Packages:** `packages/knowledge`, `apps/web` · **External dep:** none · **Issue/PR:** none
+- **Status:** review · **Priority:** P2 · **Size:** M · **Agent:** yes
+- **Packages:** `packages/knowledge`, `apps/web` · **External dep:** none · **Issue/PR:**
+  [#90](https://github.com/dhuzard/oratlas/pull/90)
 - **Goal:** Incremental quality on the grounded discussion assistant: citations that deep-link
   into claim passports/node pages, answer provenance (packet hash) surfaced to readers, and
   graceful degraded mode messaging when only the deterministic composer is available.
