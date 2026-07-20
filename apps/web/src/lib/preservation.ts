@@ -9,6 +9,7 @@ import {
   type PreservedFileDescriptor,
   type PreservedFiles,
 } from "@oratlas/contracts";
+import { PLATFORM_VERSION } from "@oratlas/config";
 import {
   swhidArchiveUrl,
   swhidForDirectory,
@@ -82,6 +83,7 @@ export async function getVersionExportContext(
   }));
 
   const exportInput: VersionExportInput = {
+    platformVersion: PLATFORM_VERSION,
     slug: version.review.slug,
     versionId: version.id,
     title: version.title,
@@ -105,6 +107,7 @@ export async function getVersionExportContext(
   };
 
   const provInput: ProvExportInput = {
+    platformVersion: PLATFORM_VERSION,
     canonicalUrl,
     versionId: version.id,
     title: version.title,
@@ -144,6 +147,7 @@ export async function getVersionExportContext(
 
   const manifest: PreservationManifest = preservationManifestSchema.parse({
     schemaVersion: "1.0.0",
+    platformVersion: PLATFORM_VERSION,
     review: { slug: version.review.slug, title: version.title },
     version: {
       id: version.id,

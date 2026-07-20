@@ -54,6 +54,7 @@ export type PreservedFileDescriptor = z.infer<typeof preservedFileDescriptorSche
 /** Public preservation manifest for one immutable version. */
 export const preservationManifestSchema = z.object({
   schemaVersion: z.literal("1.0.0"),
+  platformVersion: z.string().min(1),
   review: z.object({ slug: z.string(), title: z.string() }),
   version: z.object({
     id: z.string(),

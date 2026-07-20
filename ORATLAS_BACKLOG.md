@@ -224,7 +224,7 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-B02 — Platform release versioning and changelog
 
-- **Status:** backlog · **Priority:** P2 · **Size:** S · **Agent:** yes
+- **Status:** review · **Priority:** P2 · **Size:** S · **Agent:** yes
 - **Packages:** repo root, `docs` · **External dep:** none · **Issue/PR:** none
 - **Goal:** The archive asserts immutability of scholarly records, but the platform itself has
   no tagged releases or changelog, making "which code produced this record" harder to answer

@@ -80,6 +80,7 @@ export function jats(input: VersionExportInput): string {
   }
   lines.push(`      <custom-meta-group>`);
   const customMeta: Array<[string, string]> = [
+    ["oratlas-platform-version", input.platformVersion],
     ["source-repository", input.repositoryUrl],
     ["source-commit", input.commitSha],
   ];

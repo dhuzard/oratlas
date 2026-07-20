@@ -689,3 +689,14 @@ introducing a test-only production route or granting an agent publication author
   node-head-change proposal with its exact old/new node-version IDs, requesting regeneration as an
   editor, and verifying the public reader and archive stale disclosures. CI explicitly clears
   provider, model, and API-key variables so the journey stays offline and deterministic.
+
+## ORA-B02 — Platform release versioning and changelog
+
+- Made the root package version the platform provenance source and added one database-client query
+  extension that stamps direct, bulk, returned-bulk, and transactional audit writes. Historical
+  audit rows remain nullable and are not backfilled.
+- Added the generator platform version to every public `/export/` representation and exposed audit
+  versions in the editorial log, with `legacy` reserved for pre-versioning rows.
+- Added a Keep a Changelog record and a tag-gated release workflow that validates tag/version/main
+  ancestry, verifies the tagged source, and creates a GitHub Release from the exact changelog entry.
+  The first annotated tag remains an explicit post-merge maintainer action.

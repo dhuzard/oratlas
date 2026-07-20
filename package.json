@@ -32,7 +32,8 @@
     "atlas-check": "tsx scripts/atlas-check.ts",
     "atlas-check:json": "tsx scripts/atlas-check.ts --format json",
     "eval:grounding": "pnpm --silent exec tsx scripts/eval-grounding.ts",
-    "refresh:syntheses": "tsx --conditions=react-server scripts/refresh-syntheses.ts"
+    "refresh:syntheses": "tsx --conditions=react-server scripts/refresh-syntheses.ts",
+    "release:notes": "tsx scripts/release-notes.ts"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",

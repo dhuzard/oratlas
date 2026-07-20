@@ -1,5 +1,6 @@
 import "server-only";
 import { docmap, type DocmapInput, type DocmapRoundInput } from "@oratlas/exports";
+import { PLATFORM_VERSION } from "@oratlas/config";
 import { appBaseUrl } from "./base-url";
 import { prisma } from "./db";
 import { getProcessHistory } from "./editorial-lifecycle";
@@ -52,6 +53,7 @@ export async function getDocmapForVersion(
 
   const first = history[0];
   const input: DocmapInput = {
+    platformVersion: PLATFORM_VERSION,
     id: `${context.exportInput.canonicalUrl}/export/docmap`,
     publisherName: "Open Review Atlas",
     publisherUrl: appBaseUrl(),

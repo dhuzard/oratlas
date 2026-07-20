@@ -25,6 +25,7 @@
     "schema": "prisma/schema.prisma"
   },
   "dependencies": {
+    "@oratlas/config": "workspace:*",
     "@oratlas/contracts": "workspace:*",
     "@oratlas/trust": "workspace:*",
     "@prisma/client": "^6.8.0",

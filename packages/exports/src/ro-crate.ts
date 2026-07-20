@@ -41,6 +41,7 @@ export function roCrate(input: RoCrateInput): { "@context": string; "@graph": Js
     "@type": "CreativeWork",
     conformsTo: { "@id": "https://w3id.org/ro/crate/1.1" },
     about: { "@id": "./" },
+    mentions: { "@id": "#oratlas-platform" },
   });
 
   const identifiers: string[] = [version.canonicalUrl];
@@ -89,6 +90,13 @@ export function roCrate(input: RoCrateInput): { "@context": string; "@graph": Js
     "@id": "#open-review-atlas",
     "@type": "Organization",
     name: "Open Review Atlas",
+  });
+
+  graph.push({
+    "@id": "#oratlas-platform",
+    "@type": "SoftwareApplication",
+    name: "Open Review Atlas",
+    softwareVersion: version.platformVersion,
   });
 
   version.contributors.forEach((contributor, index) => {
