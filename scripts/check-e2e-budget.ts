@@ -76,5 +76,8 @@ async function main(): Promise<void> {
 }
 
 if (process.argv[1]?.endsWith("check-e2e-budget.ts")) {
-  await main();
+  void main().catch((error: unknown) => {
+    console.error(error);
+    process.exitCode = 1;
+  });
 }
