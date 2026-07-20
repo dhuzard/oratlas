@@ -4,6 +4,7 @@ import { type Metadata } from "next";
 import { Badge, Card, DefinitionList, Notice, StatusPill } from "@oratlas/ui";
 import { getClaimPassport } from "@/lib/claim-monitoring";
 import { getClaimIndependence } from "@/lib/synthesis";
+import { TrustVerificationBadge } from "@/components/TrustVerificationBadge";
 
 export const dynamic = "force-dynamic";
 
@@ -102,7 +103,14 @@ export default async function ClaimPassportPage({
               {relation.sourceLocation ? (
                 <span className="mono muted">@ {relation.sourceLocation}</span>
               ) : null}
-              {relation.hasTrustAssessment ? <Badge>TRUST assessed</Badge> : null}
+              {relation.trust ? (
+                <>
+                  <TrustVerificationBadge state={relation.trust.verificationState} />
+                  <span className="mono muted">protocol {relation.trust.protocolVersion}</span>
+                </>
+              ) : relation.hasTrustAssessment ? (
+                <TrustVerificationBadge state="legacy-unknown" />
+              ) : null}
             </div>
           ))
         )}

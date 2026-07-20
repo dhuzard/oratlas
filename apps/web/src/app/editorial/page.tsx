@@ -21,6 +21,7 @@ import { listEditorialSynthesisDrafts } from "@/lib/synthesis-editorial";
 import { SynthesisDraftPanel } from "./SynthesisDraftPanel";
 import { listSynthesisRegenerationProposalPage } from "@/lib/synthesis-staleness";
 import { SynthesisStalenessPanel } from "./SynthesisStalenessPanel";
+import { TrustVerificationBadge } from "@/components/TrustVerificationBadge";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Editorial dashboard" };
@@ -285,17 +286,7 @@ export default async function EditorialPage({
         trustQueue.map((item) => (
           <Card as="article" key={item.assessmentId}>
             <div className="btn-row">
-              <ProvenanceBadge
-                kind={
-                  item.verificationState === "platform-verified"
-                    ? "human-reviewed"
-                    : item.verificationState === "unverified-import"
-                      ? "repository-fact"
-                      : "warning"
-                }
-              >
-                {item.verificationState.replaceAll("-", " ")}
-              </ProvenanceBadge>
+              <TrustVerificationBadge state={item.verificationState} />
               <a href={item.subjectHref} className="mono">
                 {item.subjectLabel}
               </a>

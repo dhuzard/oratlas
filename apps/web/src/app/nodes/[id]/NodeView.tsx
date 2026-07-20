@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Badge, Card, DefinitionList, Notice } from "@oratlas/ui";
 import { type PublicNodeDetail, type PublicNodeVersion } from "@oratlas/contracts";
+import { TrustVerificationBadge } from "@/components/TrustVerificationBadge";
 
 export function NodeView({
   node,
@@ -78,12 +79,15 @@ export function NodeView({
                       {edge.assertedAt ? ` · ${edge.assertedAt.slice(0, 10)}` : ""}
                     </p>
                     {edge.trust ? (
-                      <p className="muted">
-                        Relation TRUST: {edge.trust.reviewStatus.replace(/-/g, " ")} ·{" "}
-                        {edge.trust.verificationState.replace(/-/g, " ")} · protocol{" "}
-                        {edge.trust.protocolVersion}. This compact view omits the aggregate because
-                        criterion detail is not displayed here.
-                      </p>
+                      <div className="btn-row">
+                        <span className="muted">Relation TRUST:</span>
+                        <TrustVerificationBadge state={edge.trust.verificationState} />
+                        <span className="mono muted">protocol {edge.trust.protocolVersion}</span>
+                        <span className="muted">
+                          This compact view omits the aggregate because criterion detail is not
+                          displayed here.
+                        </span>
+                      </div>
                     ) : null}
                   </li>
                 ))}
@@ -125,14 +129,15 @@ export function NodeView({
                         </p>
                       ) : null}
                       {context.trust ? (
-                        <p className="muted">
-                          {context.trust.reviewStatus.replace(/-/g, " ")} ·{" "}
-                          {context.trust.verificationState.replace(/-/g, " ")}
-                          {context.trust.aggregateScore !== undefined &&
-                          context.trust.aggregateMethod
-                            ? ` · relation aggregate ${context.trust.aggregateScore.toFixed(2)} (${context.trust.aggregateMethod})`
-                            : ""}
-                        </p>
+                        <div className="btn-row">
+                          <TrustVerificationBadge state={context.trust.verificationState} />
+                          <span className="muted">
+                            {context.trust.aggregateScore !== undefined &&
+                            context.trust.aggregateMethod
+                              ? ` · relation aggregate ${context.trust.aggregateScore.toFixed(2)} (${context.trust.aggregateMethod})`
+                              : ""}
+                          </span>
+                        </div>
                       ) : (
                         <p className="muted">No TRUST assessment on this relation.</p>
                       )}

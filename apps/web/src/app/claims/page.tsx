@@ -3,7 +3,7 @@ import { Card, Badge } from "@oratlas/ui";
 import { InProcessSearchProvider } from "@oratlas/knowledge";
 import { CLAIM_EVIDENCE_RELATION_TYPES, CLAIM_TYPES } from "@oratlas/contracts";
 import { buildKnowledgeIndex } from "@/lib/index-builder";
-import { ProvenanceBadge } from "@oratlas/ui";
+import { TrustVerificationBadge } from "@/components/TrustVerificationBadge";
 
 export const dynamic = "force-dynamic";
 
@@ -60,19 +60,15 @@ export default async function ClaimsPage({
                     {contradict > 0 ? (
                       <Badge tone="warning">{contradict} contradicting</Badge>
                     ) : null}
-                    {claim.relations.some(
-                      (r) =>
-                        r.trust?.reviewStatus === "human-reviewed" ||
-                        r.trust?.reviewStatus === "adjudicated",
-                    ) ? (
-                      <ProvenanceBadge kind="human-reviewed">
-                        Atlas structurally reviewed
-                      </ProvenanceBadge>
-                    ) : claim.relations.some((r) => r.trust) ? (
-                      <ProvenanceBadge kind="repository-fact">
-                        Repository TRUST assertion
-                      </ProvenanceBadge>
-                    ) : null}
+                    {[
+                      ...new Set(
+                        claim.relations.flatMap((relation) =>
+                          relation.trust ? [relation.trust.verificationState] : [],
+                        ),
+                      ),
+                    ].map((state) => (
+                      <TrustVerificationBadge key={state} state={state} />
+                    ))}
                   </div>
                   <p className="muted" style={{ margin: "0.4rem 0 0" }}>
                     from{" "}

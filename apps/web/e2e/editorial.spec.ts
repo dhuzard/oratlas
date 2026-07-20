@@ -22,6 +22,11 @@ test.describe("Editorial workflow (mock auth)", () => {
     await page.goto("/signin");
     await page.getByRole("button", { name: /Sign in as editor/ }).click();
     await expect(page).toHaveURL(/\/editorial/);
+    await expect(
+      page
+        .getByText(/Atlas structurally verified|Repository\/source-native — not verified by Atlas/)
+        .first(),
+    ).toBeVisible();
 
     const pending = page
       .locator("article.card")

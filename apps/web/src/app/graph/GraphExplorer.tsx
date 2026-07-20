@@ -8,6 +8,7 @@ import {
   type PublicGraphResponse,
 } from "@oratlas/contracts";
 import { graphHref, graphNodeVersionHref, relationPresentation } from "./graph-presentation";
+import { TrustVerificationBadge } from "@/components/TrustVerificationBadge";
 
 export function GraphLanding() {
   return (
@@ -131,10 +132,14 @@ export function GraphExplorer({
                   {edge.status === "confirmed"
                     ? `Confirmed by an editor · ${edge.confirmedAt.slice(0, 10)}`
                     : `${edge.provenance.replace(/-/g, " ")} · proposed ${edge.proposedAt.slice(0, 10)}`}
-                  {edge.status === "confirmed" && edge.trust
-                    ? ` · relation TRUST: ${edge.trust.reviewStatus.replace(/-/g, " ")}, ${edge.trust.verificationState.replace(/-/g, " ")}`
-                    : ""}
                 </p>
+                {edge.status === "confirmed" && edge.trust ? (
+                  <div className="btn-row">
+                    <span className="muted">Relation TRUST:</span>
+                    <TrustVerificationBadge state={edge.trust.verificationState} />
+                    <span className="mono muted">protocol {edge.trust.protocolVersion}</span>
+                  </div>
+                ) : null}
               </li>
             );
           })}

@@ -512,7 +512,7 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-H01 — Verify source-native vs ORAtlas-native separation end-to-end in the UI
 
-- **Status:** ready · **Priority:** P1 · **Size:** S · **Agent:** yes
+- **Status:** in-progress · **Priority:** P1 · **Size:** S · **Agent:** yes
 - **Packages:** `apps/web` · **External dep:** none · **Issue/PR:** builds on PR #11,
   `docs/trust-model.md`
 - **Goal:** The separation (imported = `unverified-import`, platform markers separate,

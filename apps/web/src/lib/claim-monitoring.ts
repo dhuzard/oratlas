@@ -6,10 +6,12 @@ import {
   claimDomAnchor,
   globalClaimId,
   proposalResolutionSchema,
+  type AssessmentReviewStatus,
   type CitationStatusInput,
   type ProposalResolution,
 } from "@oratlas/contracts";
 import { type Prisma } from "@oratlas/db";
+import { selectPreferredTrustAssessment, type TrustVerificationState } from "@oratlas/trust";
 import { prisma } from "./db";
 import { withSqliteRetry as sharedWithSqliteRetry } from "./db-retry";
 import { isReadablePublicState } from "./review-lifecycle";
@@ -18,6 +20,7 @@ import {
   type PublicExecutionPassport,
 } from "./execution-passports";
 import { getPublicProtocolSummary, type ProtocolDriftSummary } from "./protocol-drift";
+import { resolveTrustAssessmentRows } from "./trust-provenance";
 
 /**
  * Evidence monitoring and claim passports (issue #3). A registered signal
@@ -363,6 +366,12 @@ export interface ClaimPassport {
     citationDoi?: string;
     citationIsExample: boolean;
     hasTrustAssessment: boolean;
+    trust?: {
+      assessmentId: string;
+      protocolVersion: string;
+      reviewStatus: AssessmentReviewStatus;
+      verificationState: TrustVerificationState;
+    };
   }>;
   lineage: Array<{
     versionId: string;
@@ -391,7 +400,7 @@ export async function getClaimPassport(
     include: {
       reviewVersion: { include: { review: { include: { versions: true } } } },
       evidenceRelations: {
-        include: { citation: true, trustAssessments: { select: { id: true } } },
+        include: { citation: true, trustAssessments: { include: { verification: true } } },
       },
       updateProposals: { include: PROPOSAL_INCLUDE },
     },
@@ -435,16 +444,39 @@ export async function getClaimPassport(
     semanticVersion: version.semanticVersion ?? undefined,
     publishedAt: version.publishedAt?.toISOString(),
     isExample: version.isExample,
-    evidence: claim.evidenceRelations.map((relation) => ({
-      relationType: relation.relationType,
-      supportDirection: relation.supportDirection ?? undefined,
-      sourceLocation: relation.sourceLocation ?? undefined,
-      citationLocalId: relation.citation.localCitationId,
-      citationTitle: relation.citation.title ?? undefined,
-      citationDoi: relation.citation.doi ?? undefined,
-      citationIsExample: isExampleCitation(relation.citation.rawCitationJson),
-      hasTrustAssessment: relation.trustAssessments.length > 0,
-    })),
+    evidence: claim.evidenceRelations.map((relation) => {
+      const preferred = selectPreferredTrustAssessment(
+        relation.trustAssessments.map((assessment) => {
+          const resolved = resolveTrustAssessmentRows(
+            { assessment, relation, claim, citation: relation.citation },
+            assessment.verification,
+          );
+          return {
+            id: assessment.id,
+            protocolVersion: assessment.protocolVersion,
+            effectiveStatus: resolved.effectiveStatus,
+            assessedAt: assessment.assessedAt?.toISOString() ?? null,
+            value: {
+              assessmentId: assessment.id,
+              protocolVersion: assessment.protocolVersion,
+              reviewStatus: resolved.effectiveStatus,
+              verificationState: resolved.state,
+            },
+          };
+        }),
+      )?.value;
+      return {
+        relationType: relation.relationType,
+        supportDirection: relation.supportDirection ?? undefined,
+        sourceLocation: relation.sourceLocation ?? undefined,
+        citationLocalId: relation.citation.localCitationId,
+        citationTitle: relation.citation.title ?? undefined,
+        citationDoi: relation.citation.doi ?? undefined,
+        citationIsExample: isExampleCitation(relation.citation.rawCitationJson),
+        hasTrustAssessment: relation.trustAssessments.length > 0,
+        trust: preferred,
+      };
+    }),
     lineage: lineageVersions
       .filter((candidate) => textByVersion.has(candidate.id))
       .map((candidate) => ({

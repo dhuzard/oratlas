@@ -7,6 +7,7 @@ import {
   type SynthesisReviewParagraph,
 } from "@oratlas/contracts";
 import { serializeJsonForHtml } from "@/lib/json-for-html";
+import { TrustVerificationBadge } from "@/components/TrustVerificationBadge";
 import {
   buildSynthesisJsonLd,
   type SynthesisCitationReadingContext,
@@ -314,8 +315,8 @@ function SynthesisParagraph({
                         <li
                           key={`${trust.subject}:${trust.reviewStatus}:${trust.verificationState}:${index}`}
                         >
-                          TRUST: {trust.subject} · {trust.reviewStatus.replace(/-/g, " ")} ·{" "}
-                          {trust.verificationState.replace(/-/g, " ")}
+                          TRUST: {trust.subject} ·{" "}
+                          <TrustVerificationBadge state={trust.verificationState} />
                         </li>
                       ))}
                     </ul>
