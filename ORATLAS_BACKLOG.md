@@ -185,9 +185,9 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-A05 — Verify end-to-end identity preservation (repo id, release, tag object, commit, tree)
 
-- **Status:** in-progress · **Priority:** P0 · **Size:** S · **Agent:** yes
+- **Status:** review · **Priority:** P0 · **Size:** S · **Agent:** yes
 - **Packages:** `packages/db`, `packages/github`, `packages/extractor` · **External dep:** none
-  · **Issue/PR:** builds on PR #13
+  · **Issue/PR:** [#74](https://github.com/dhuzard/oratlas/pull/74), builds on PR #13
 - **Goal:** Pinning is implemented (immutable GitHub repository id, source-selection key,
   tag object, commit SHA, capture hashes). This is an audit item: confirm the **tree** identity
   is either captured or derivable for every published version, and that no path (legacy rows,
