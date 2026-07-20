@@ -209,6 +209,8 @@ export function CommentsSection({
     try {
       const res = await fetch(`/api/comments/${encodeURIComponent(commentId)}`, {
         method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: "{}",
       });
       const data = await res.json();
       if (!res.ok) {

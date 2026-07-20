@@ -112,7 +112,7 @@ export async function inspectRepository(
   // 1. Repository metadata
   const repoRes = await transport.request(`/repos/${ref.owner}/${ref.name}`);
   if (repoRes.status === 404) {
-    return failedReport(ref, now, "Repository not found or is private.", limits);
+    return failedReport(ref, now, "Repository is not publicly available.", limits);
   }
   if (repoRes.status === 403) {
     return failedReport(ref, now, "GitHub API access forbidden (rate limit or blocked).", limits);
@@ -122,7 +122,7 @@ export async function inspectRepository(
   }
   const repo = repoRes.json as Record<string, unknown>;
   if (repo.private === true) {
-    return failedReport(ref, now, "Private repositories are not supported.", limits);
+    return failedReport(ref, now, "Repository is not publicly available.", limits);
   }
 
   const resolvedOwner =

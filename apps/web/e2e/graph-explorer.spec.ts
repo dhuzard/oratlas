@@ -74,7 +74,7 @@ test("keyboard navigation opens an immutable node version", async ({ page, reque
     .first();
   await exact.focus();
   await expect(exact).toBeFocused();
-  await page.keyboard.press("Enter");
+  await exact.press("Enter");
   await expect(page).toHaveURL(
     new RegExp(`/nodes/${edge.sourceNodeId}/versions/${edge.sourceVersionId}$`),
   );
@@ -121,6 +121,7 @@ test.describe("hostile stored text", () => {
     node: "kg09-hostile-node",
     version: "kg09-hostile-version",
     edge: "kg09-hostile-edge",
+    submission: "kg09-hostile-submission",
   };
   const hostile = `<script>private-token</script><img src=x onerror=alert(1)>`;
 
@@ -140,11 +141,23 @@ test.describe("hostile stored text", () => {
         kind: "claim",
       },
     });
+    await prisma.submission.create({
+      data: {
+        id: ids.submission,
+        submitterId: editor.id,
+        reviewerId: editor.id,
+        repositoryId: target.repositoryId,
+        snapshotId: snapshot.id,
+        status: "accepted",
+        acceptedNodeSelectionJson: JSON.stringify([ids.node]),
+      },
+    });
     await prisma.knowledgeNodeVersion.create({
       data: {
         id: ids.version,
         knowledgeNodeId: ids.node,
         snapshotId: snapshot.id,
+        sourceSubmissionId: ids.submission,
         title: hostile,
         contributorsJson: "[]",
         license: "CC-BY-4.0",
@@ -172,6 +185,7 @@ test.describe("hostile stored text", () => {
     await prisma.nodeEdge.deleteMany({ where: { id: ids.edge } });
     await prisma.knowledgeNodeVersion.deleteMany({ where: { knowledgeNodeId: ids.node } });
     await prisma.knowledgeNode.deleteMany({ where: { id: ids.node } });
+    await prisma.submission.deleteMany({ where: { id: ids.submission } });
   });
 
   test("React escapes hostile titles and rationales into inert text", async ({ page }) => {

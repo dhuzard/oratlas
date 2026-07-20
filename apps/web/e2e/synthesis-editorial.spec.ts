@@ -216,6 +216,7 @@ test("editor gates generated, rejected, and accepted synthesis drafts", async ({
   const snapshotId = `e2e-synthesis-stale-${Date.now()}`;
   const versionId = `${snapshotId}-version`;
   const commitSha = "d".repeat(40);
+  const editor = await prisma.user.findFirstOrThrow({ where: { role: "EDITOR" } });
   await prisma.repositorySnapshot.create({
     data: {
       id: snapshotId,
@@ -226,12 +227,25 @@ test("editor gates generated, rejected, and accepted synthesis drafts", async ({
       contentHash: "e".repeat(64),
     },
   });
+  const sourceSubmission = await prisma.submission.create({
+    data: {
+      submitterId: editor.id,
+      reviewerId: editor.id,
+      repositoryId: node.repositoryId,
+      snapshotId,
+      status: "accepted",
+      acceptedNodeSelectionJson: JSON.stringify([node.localNodeId]),
+      submittedAt: new Date(),
+      reviewedAt: new Date(),
+    },
+  });
   const provenance = JSON.parse(priorVersion.provenanceJson) as Record<string, unknown>;
   await prisma.knowledgeNodeVersion.create({
     data: {
       id: versionId,
       knowledgeNodeId: node.id,
       snapshotId,
+      sourceSubmissionId: sourceSubmission.id,
       title: `${priorVersion.title} — newer evidence`,
       abstract: priorVersion.abstract,
       text: priorVersion.text,

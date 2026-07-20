@@ -745,3 +745,21 @@ introducing a test-only production route or granting an agent publication author
   relationship loading, with immutable review-version links, public and
   editorial controls, OpenAPI contracts, and SQLite/PostgreSQL/service/e2e coverage for the complete
   file → respond → moderate → tombstone → resolve exchange.
+
+## ORA-J01 — Security and immutable-publication audit
+
+**Objective:** re-verify the platform's authorization, immutability, untrusted-input, network, audit,
+and tombstone boundaries and pin every verified property with code evidence or regression tests.
+
+- Published the evidence checklist in `docs/security-audit-2026-07.md` and refreshed `SECURITY.md`
+  to state the exact browser-mutation, server-to-server, and streamed response-limit boundaries.
+- Added bounded streaming reads and exact trusted-service origin validation to GitHub and Zenodo
+  transports; redirects fail closed and oversized declared or streamed responses are cancelled
+  before full buffering.
+- Applied the canonical same-origin JSON guard to comment creation/removal and made removal plus its
+  audit record one transaction with a visible-status compare-and-set.
+- Closed the tombstone projection gap for repository-derived nodes and graph data: a version is
+  public only while a published, non-tombstoned review authorizes its snapshot or its own accepted
+  node-only submission provides independent publication authority.
+- Added focused regression coverage for transport caps/origins/redirects, comment mutation
+  integrity and races, and node/graph tombstone behavior.

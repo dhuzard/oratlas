@@ -27,6 +27,7 @@ import {
   publicConfirmedNodeEdgeWhere,
 } from "./node-edge-publication";
 import { tryMapPublicNodeVersion } from "./node-publication";
+import { readablePublicNodeVersionWhere } from "./public-snapshot-visibility";
 
 const GRAPH_SEARCH_SCAN_LIMIT = 1_000;
 const GRAPH_MAX_CANDIDATE_EDGES = 500;
@@ -66,12 +67,16 @@ type GraphNodeRow = Omit<Awaited<ReturnType<typeof loadSeedRows>>[number], "vers
 
 async function loadSeedRows(ids?: string[]) {
   return prisma.knowledgeNode.findMany({
-    where: ids ? { id: { in: ids } } : undefined,
+    where: {
+      ...(ids ? { id: { in: ids } } : {}),
+      versions: { some: readablePublicNodeVersionWhere },
+    },
     orderBy: { id: "asc" },
     ...(ids ? {} : { take: GRAPH_SEARCH_SCAN_LIMIT + 1 }),
     include: {
       repository: { select: repositorySelect },
       versions: {
+        where: readablePublicNodeVersionWhere,
         orderBy: [{ createdAt: "desc" }, { id: "desc" }],
         take: 1,
         include: versionInclude,
@@ -166,6 +171,8 @@ async function loadEdges(frontier: string[], query: PublicGraphQuery) {
   return prisma.nodeEdge.findMany({
     where: {
       ...publicConfirmedNodeEdgeWhere,
+      sourceNodeVersion: readablePublicNodeVersionWhere,
+      confirmedTargetNodeVersion: readablePublicNodeVersionWhere,
       ...(query.relationType ? { relationType: query.relationType } : {}),
       OR: [
         { sourceNodeVersion: { knowledgeNodeId: { in: frontier } } },
@@ -191,6 +198,8 @@ async function loadProposals(frontier: string[], query: PublicGraphQuery) {
   return prisma.nodeEdgeProposal.findMany({
     where: {
       status: "proposed",
+      sourceNodeVersion: readablePublicNodeVersionWhere,
+      targetNodeVersion: readablePublicNodeVersionWhere,
       ...(query.relationType ? { relationType: query.relationType } : {}),
       OR: [
         { sourceNodeVersion: { knowledgeNodeId: { in: frontier } } },
