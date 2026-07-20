@@ -660,8 +660,9 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-K03 — E2E wall-time and flake budget
 
-- **Status:** backlog · **Priority:** P2 · **Size:** S · **Agent:** yes
-- **Packages:** `apps/web`, `.github` · **External dep:** none · **Issue/PR:** none
+- **Status:** review · **Priority:** P2 · **Size:** S · **Agent:** yes
+- **Packages:** `apps/web`, `.github` · **External dep:** none · **Issue/PR:**
+  [#83](https://github.com/dhuzard/oratlas/pull/83)
 - **Goal:** The Playwright surface has grown (KG-20 journey + suites). Measure wall time,
   set a budget, deduplicate overlapping journeys, and track flakes before they normalize.
 - **Scope:** Timing report; seed reuse; retire redundant specs only with coverage proof.
