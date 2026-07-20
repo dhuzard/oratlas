@@ -14,6 +14,12 @@ test.describe("Independence-aware synthesis", () => {
     expect(scopeDiff).toBeDefined();
     expect(scopeDiff.sharedFamilyCount).toBe(1);
     expect(scopeDiff.differingScopeFields).toContain("population");
+    for (const endpoint of [scopeDiff.a, scopeDiff.b]) {
+      expect(endpoint.claimId).toMatch(/^oratlas:claim:v1:/);
+      expect(endpoint.passportPath).toMatch(/^\/claims\/[^/]+\/[^/]+$/);
+      const passport = await request.get(endpoint.passportPath);
+      expect(passport.ok()).toBeTruthy();
+    }
   });
 
   test("contradiction map page renders", async ({ page }) => {

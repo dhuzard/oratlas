@@ -48,6 +48,11 @@ digit-bearing); low-entropy labels like "controls" never union unrelated works.
 - Each claim passport shows an independence summary (supporting/opposing works vs
   independent families, shared works, circular citations) and its contradictions.
 
+Legacy prose-review claims participate through their stored typed claim–citation relations. Their
+version-scoped claim IDs and passport links are preserved in contradiction rows; optional graph-node
+backlinks and link proposals do not replace, merge, or infer those relations. Only an explicit typed
+`supports`, `partially-supports`, or `contradicts` relation contributes a direction.
+
 Comparison is over the current version of each review; passports of superseded
 versions therefore render no independence card.
 
