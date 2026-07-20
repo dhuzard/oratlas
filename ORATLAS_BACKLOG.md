@@ -258,8 +258,9 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-C02 — Evidence-independence audit for imported claim–citation reviews
 
-- **Status:** backlog · **Priority:** P2 · **Size:** S · **Agent:** yes
+- **Status:** review · **Priority:** P2 · **Size:** S · **Agent:** yes
 - **Packages:** `packages/knowledge` · **External dep:** none · **Issue/PR:** builds on PR #21
+  and [#84](https://github.com/dhuzard/oratlas/pull/84)
 - **Goal:** Independence-aware synthesis and shared-dataset detection shipped for the graph
   (PR #21). Audit that legacy claim–citation reviews get the same shared-source detection
   (same DOI/dataset cited across relations) in contradiction and synthesis views, and close
