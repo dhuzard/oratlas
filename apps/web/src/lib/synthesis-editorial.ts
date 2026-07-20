@@ -1625,56 +1625,64 @@ export async function decideSynthesisDraft(
   );
 }
 
+const publicSynthesisVersionInclude = Prisma.validator<Prisma.ReviewVersionInclude>()({
+  acceptedPredecessor: {
+    select: {
+      id: true,
+      reviewId: true,
+      recordSourceType: true,
+      synthesisOrdinal: true,
+      synthesisDraftId: true,
+    },
+  },
+  synthesisAttributions: { orderBy: { position: "asc" } },
+  synthesisStalenessHead: {
+    include: { currentEvaluation: true },
+  },
+  synthesisDraft: {
+    include: {
+      agentRun: true,
+      acceptedBy: { select: { githubLogin: true, displayName: true, role: true } },
+      memberships: {
+        orderBy: { position: "asc" },
+        include: { nodeVersion: { select: { knowledgeNodeId: true } } },
+      },
+      citations: {
+        orderBy: [{ location: "asc" }, { citationIndex: "asc" }],
+        include: { nodeVersion: { select: { knowledgeNodeId: true } } },
+      },
+      reviewVersion: { select: { id: true, synthesisOrdinal: true } },
+    },
+  },
+});
+
 export async function getPublicSynthesisReview(
   slug: string,
   client: PrismaClient = prisma,
+  requestedVersionId?: string,
 ): Promise<PublicSynthesisReview | null> {
   const review = await client.review.findUnique({
     where: { slug },
     include: {
-      currentSynthesisVersion: {
-        include: {
-          acceptedPredecessor: {
-            select: {
-              id: true,
-              reviewId: true,
-              recordSourceType: true,
-              synthesisOrdinal: true,
-              synthesisDraftId: true,
-            },
-          },
-          synthesisAttributions: { orderBy: { position: "asc" } },
-          synthesisStalenessHead: {
-            include: { currentEvaluation: true },
-          },
-          synthesisDraft: {
-            include: {
-              agentRun: true,
-              acceptedBy: { select: { githubLogin: true, displayName: true, role: true } },
-              memberships: {
-                orderBy: { position: "asc" },
-                include: { nodeVersion: { select: { knowledgeNodeId: true } } },
-              },
-              citations: {
-                orderBy: [{ location: "asc" }, { citationIndex: "asc" }],
-                include: { nodeVersion: { select: { knowledgeNodeId: true } } },
-              },
-              reviewVersion: { select: { id: true, synthesisOrdinal: true } },
-            },
-          },
-        },
+      currentSynthesisVersion: { include: publicSynthesisVersionInclude },
+      versions: {
+        where: { id: requestedVersionId ?? "__current-synthesis-only__" },
+        take: 1,
+        include: publicSynthesisVersionInclude,
       },
     },
   });
   if (!review) return null;
-  const version = review.currentSynthesisVersion;
+  const version = requestedVersionId ? review.versions[0] : review.currentSynthesisVersion;
+  const isCurrent = review.currentSynthesisVersionId === version?.id;
   if (
     review.reviewType !== "ai-synthesis" ||
     review.status !== "published" ||
     review.repositoryId ||
     review.currentSnapshotId ||
     review.synthesisSeriesKey !== version?.synthesisDraft?.seriesKey ||
-    review.currentSynthesisVersionId !== version?.id ||
+    (!requestedVersionId && !isCurrent) ||
+    (requestedVersionId && version?.id !== requestedVersionId) ||
     !version ||
     version.reviewId !== review.id ||
     version.recordSourceType !== "synthesis" ||
@@ -1830,7 +1838,7 @@ export async function getPublicSynthesisReview(
     version: {
       id: version.id,
       ordinal,
-      isCurrent: true,
+      isCurrent,
       versionDoi: version.versionDoi ?? undefined,
       conceptDoi: version.conceptDoi ?? undefined,
     },
@@ -1868,4 +1876,13 @@ export async function getPublicSynthesisReview(
     })(),
   });
   return candidate.success ? candidate.data : null;
+}
+
+/** Load one immutable accepted synthesis version without falling back to the current head. */
+export function getPublicSynthesisReviewVersion(
+  slug: string,
+  versionId: string,
+  client: PrismaClient = prisma,
+) {
+  return getPublicSynthesisReview(slug, client, versionId);
 }

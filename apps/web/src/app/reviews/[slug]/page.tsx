@@ -525,8 +525,12 @@ export default async function ReviewPage({
                         <em>Qualification:</em> {claim.qualification}
                       </p>
                     ) : null}
-                    {claim.relations.map((rel, i) => (
-                      <div className="relation-row" key={i}>
+                    {claim.relations.map((rel) => (
+                      <div
+                        className="relation-row deep-link-target"
+                        id={`relation-${rel.id}`}
+                        key={rel.id}
+                      >
                         <Badge tone={rel.relationType === "contradicts" ? "warning" : "neutral"}>
                           {rel.relationType.replace(/-/g, " ")}
                         </Badge>
@@ -544,7 +548,7 @@ export default async function ReviewPage({
                           ) : null}
                         </span>
                         {rel.trust ? (
-                          <details>
+                          <details id={`assessment-${rel.trust.id}`} className="deep-link-target">
                             <summary>TRUST assessment</summary>
                             <TrustDisplay trust={rel.trust} />
                           </details>
@@ -585,7 +589,11 @@ export default async function ReviewPage({
                   </thead>
                   <tbody>
                     {review.citations.map((c) => (
-                      <tr key={c.localCitationId}>
+                      <tr
+                        className="deep-link-target"
+                        id={`citation-${c.localCitationId}`}
+                        key={c.localCitationId}
+                      >
                         <td>{c.title ?? c.localCitationId}</td>
                         <td>{c.year ?? "—"}</td>
                         <td>

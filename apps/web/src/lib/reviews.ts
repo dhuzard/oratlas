@@ -30,6 +30,7 @@ export interface ReviewCriterion {
 }
 
 export interface ReviewTrust {
+  id: string;
   assessorType: string;
   reviewStatus: string;
   verificationState: TrustVerificationState;
@@ -55,6 +56,7 @@ export interface ReviewTrust {
 }
 
 export interface ReviewRelation {
+  id: string;
   relationType: string;
   citationLocalId: string;
   citationTitle?: string;
@@ -301,6 +303,7 @@ export async function getReviewDetail(
         const limitationList = parseJsonColumn<string[]>(trustRow.assessment.limitationsJson, []);
         for (const l of limitationList) limitations.add(l);
         trust = {
+          id: trustRow.assessment.id,
           assessorType: trustRow.assessment.assessorType,
           reviewStatus: trustRow.resolved.effectiveStatus,
           verificationState: trustRow.resolved.state,
@@ -328,6 +331,7 @@ export async function getReviewDetail(
         };
       }
       return {
+        id: rel.id,
         relationType: rel.relationType,
         citationLocalId: rel.citation.localCitationId,
         citationTitle: rel.citation.title ?? undefined,

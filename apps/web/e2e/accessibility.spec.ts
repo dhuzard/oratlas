@@ -15,6 +15,7 @@ const PAGES: Array<{ name: string; path: string }> = [
   { name: "contradiction map", path: "/synthesis" },
   { name: "replication marketplace", path: "/replications" },
   { name: "claim explorer", path: "/claims" },
+  { name: "topic coverage", path: "/coverage" },
 ];
 
 for (const { name, path } of PAGES) {
@@ -39,6 +40,17 @@ for (const { name, path } of PAGES) {
     ).toEqual([]);
   });
 }
+
+test("topic coverage supports keyboard navigation at a narrow viewport", async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 740 });
+  await page.goto("/coverage");
+  const exactNode = page.locator('a[href^="/nodes/"][href*="/versions/"]').first();
+  await exactNode.focus();
+  await expect(exactNode).toBeFocused();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/\/nodes\/[^/]+\/versions\/[^/]+$/);
+});
 
 for (const kind of ["claim", "dataset"] as const) {
   test(`${kind} node page has no serious or critical accessibility violations`, async ({

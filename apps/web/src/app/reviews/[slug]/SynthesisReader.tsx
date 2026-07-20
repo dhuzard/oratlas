@@ -47,6 +47,12 @@ export function SynthesisReader({
         </div>
         <h1>{synthesis.title}</h1>
         <p className="lead">{synthesis.abstract}</p>
+        <p>
+          <Link href={`/reviews/${synthesis.slug}/syntheses/${synthesis.version.id}`}>
+            Permanent link to accepted version {synthesis.version.ordinal}
+          </Link>
+          {synthesis.version.isCurrent ? " · current version" : " · historical version"}
+        </p>
         {synthesis.version.ordinal > 1 ? (
           <p>
             <a href={`/reviews/${synthesis.slug}/changes`}>
