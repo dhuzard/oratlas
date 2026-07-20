@@ -20,7 +20,21 @@ test.describe("Atlas Discuss — deterministic mode", () => {
     await page.goto("/discuss");
     await askQuestion(page, "hippocampal replay memory consolidation");
     await expect(page.getByText(/Deterministic/).first()).toBeVisible();
+    await expect(
+      page.locator(".notice-info").getByText(/No LLM provider is configured/i),
+    ).toBeVisible();
     await expect(page.getByText(/not independent replication/i)).toBeVisible();
+    await expect(page.getByTestId("discussion-packet-hash")).toHaveText(/^[a-f0-9]{64}$/);
+    const references = page.getByRole("heading", { name: "Grounding references" }).locator("..");
+    const passport = references
+      .getByRole("listitem")
+      .filter({ hasText: "(citation)" })
+      .first()
+      .getByRole("link");
+    await expect(passport).toHaveAttribute("href", /^\/claims\//);
+    const href = await passport.getAttribute("href");
+    const response = await page.request.get(href!);
+    expect(response.ok()).toBeTruthy();
   });
 
   test("reports insufficient evidence for unrelated questions", async ({ page }) => {
