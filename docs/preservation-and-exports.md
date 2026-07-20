@@ -44,6 +44,8 @@ At submission time the platform stores, per accepted version:
 
 All exporters live in the framework-free `@oratlas/exports` package and take plain typed
 inputs; the web app maps database rows into those inputs in `apps/web/src/lib/preservation.ts`.
+Every `/export/` representation identifies the ORAtlas platform release that generated it. This
+field is additive and describes the exporter code, not the independently versioned review content.
 
 ## Archival identifiers (SWHID)
 

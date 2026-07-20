@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { provJsonLd } from "./prov.js";
 
 const base = {
+  platformVersion: "0.1.0",
   canonicalUrl: "https://atlas.example.org/reviews/sample-review/versions/v-1",
   versionId: "v-1",
   title: "A Sample Review",
@@ -34,6 +35,7 @@ describe("provJsonLd", () => {
     const version = byId(graph, `${base.canonicalUrl}#version`)!;
     expect(version["prov:wasDerivedFrom"]).toEqual({ "@id": `${base.canonicalUrl}#submission` });
     expect(version["prov:wasGeneratedBy"]).toEqual({ "@id": `${base.canonicalUrl}#acceptance` });
+    expect(version["oratlas:exportedByPlatformVersion"]).toBe("0.1.0");
     const acceptance = byId(graph, `${base.canonicalUrl}#acceptance`)!;
     expect(acceptance["prov:wasAssociatedWith"]).toEqual({ "@id": `${base.canonicalUrl}#editor` });
   });

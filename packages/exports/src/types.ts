@@ -14,6 +14,8 @@ export interface ExportContributor {
 }
 
 export interface VersionExportInput {
+  /** ORAtlas platform release that generated this export. */
+  platformVersion: string;
   slug: string;
   versionId: string;
   title: string;

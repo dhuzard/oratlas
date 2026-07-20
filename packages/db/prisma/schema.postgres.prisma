@@ -1338,6 +1338,8 @@ model AuditEvent {
   detailsJson    String   @default("{}")
   /// Optional deterministic key for retry-safe transactional events.
   idempotencyKey String?
+  /// ORAtlas platform release that emitted this event. Null only on historical rows.
+  platformVersion String?
   createdAt      DateTime @default(now())
 
   actor User? @relation(fields: [actorId], references: [id])

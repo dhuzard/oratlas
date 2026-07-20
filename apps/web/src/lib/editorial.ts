@@ -129,6 +129,7 @@ export interface AuditRow {
   subjectId: string;
   actorLogin?: string;
   createdAt: string;
+  platformVersion?: string;
   details: unknown;
 }
 
@@ -144,6 +145,7 @@ export async function listAuditEvents(limit = 50): Promise<AuditRow[]> {
     subjectId: e.subjectId,
     actorLogin: e.actor?.githubLogin,
     createdAt: e.createdAt.toISOString(),
+    platformVersion: e.platformVersion ?? undefined,
     details: parseJsonColumn<unknown>(e.detailsJson, {}),
   }));
 }

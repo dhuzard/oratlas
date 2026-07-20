@@ -3,6 +3,7 @@ import { roCrate } from "./ro-crate.js";
 import { type VersionExportInput } from "./types.js";
 
 const version: VersionExportInput = {
+  platformVersion: "0.1.0",
   slug: "sample-review",
   versionId: "v-1",
   title: "A Sample Review",
@@ -51,6 +52,7 @@ describe("roCrate", () => {
     expect(truncated.disambiguatingDescription).toContain("truncated");
     expect(String(root.disambiguatingDescription)).toContain("1".repeat(64));
     expect(String(root.disambiguatingDescription)).toContain("2".repeat(64));
+    expect(findEntity(crate["@graph"], "#oratlas-platform")?.softwareVersion).toBe("0.1.0");
   });
 
   it("percent-encodes file paths into valid URI-reference @ids", () => {

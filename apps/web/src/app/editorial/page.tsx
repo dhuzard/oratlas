@@ -426,6 +426,7 @@ export default async function EditorialPage({
               <th>When</th>
               <th>Actor</th>
               <th>Action</th>
+              <th>Platform</th>
               <th>Subject</th>
             </tr>
           </thead>
@@ -435,6 +436,7 @@ export default async function EditorialPage({
                 <td className="muted">{e.createdAt.replace("T", " ").slice(0, 19)}</td>
                 <td>{e.actorLogin ?? "system"}</td>
                 <td className="mono">{e.action}</td>
+                <td className="mono muted">{e.platformVersion ?? "legacy"}</td>
                 <td className="muted">
                   {e.subjectType}:{e.subjectId.slice(0, 8)}
                 </td>

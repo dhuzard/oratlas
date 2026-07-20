@@ -23,6 +23,7 @@ export interface DocmapRoundInput {
 }
 
 export interface DocmapInput {
+  platformVersion: string;
   /** Stable docmap IRI (the export URL). */
   id: string;
   publisherName: string;
@@ -150,7 +151,11 @@ export function docmap(input: DocmapInput): JsonObject {
     "@context": "https://w3id.org/docmaps/context.jsonld",
     type: "docmap",
     id: input.id,
-    publisher: { name: input.publisherName, url: input.publisherUrl },
+    publisher: {
+      name: input.publisherName,
+      url: input.publisherUrl,
+      "platform-version": input.platformVersion,
+    },
     created: input.created,
     updated: input.updated,
     "first-step": stepIds[0],

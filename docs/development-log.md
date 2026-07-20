@@ -721,3 +721,14 @@ SQLite integration tests exercise every row, including deterministic `RAISE(ABOR
 the last audit write. The same provider-sensitive concurrency matrix will run against PostgreSQL
 under ORA-K01; the transaction and CAS invariants are provider-independent, but PostgreSQL remains
 the authoritative proof for its serialization-error behavior.
+
+## ORA-B02 — Platform release versioning and changelog
+
+- Made the root package version the platform provenance source and added one database-client query
+  extension that stamps direct, bulk, returned-bulk, and transactional audit writes. Historical
+  audit rows remain nullable and are not backfilled.
+- Added the generator platform version to every public `/export/` representation and exposed audit
+  versions in the editorial log, with `legacy` reserved for pre-versioning rows.
+- Added a Keep a Changelog record and a tag-gated release workflow that validates tag/version/main
+  ancestry, verifies the tagged source, and creates a GitHub Release from the exact changelog entry.
+  The first annotated tag remains an explicit post-merge maintainer action.

@@ -3,6 +3,7 @@ import { jats } from "./jats.js";
 import { type VersionExportInput } from "./types.js";
 
 const base: VersionExportInput = {
+  platformVersion: "0.1.0",
   slug: "sample-review",
   versionId: "v-1",
   title: "A Sample Review",
@@ -27,6 +28,8 @@ describe("jats", () => {
     expect(xml).toContain("<surname>Lovelace</surname>");
     expect(xml).toContain("<license-p>CC-BY-4.0</license-p>");
     expect(xml).toContain("<meta-name>source-commit</meta-name>");
+    expect(xml).toContain("<meta-name>oratlas-platform-version</meta-name>");
+    expect(xml).toContain("<meta-value>0.1.0</meta-value>");
     expect(xml).toContain(`<meta-value>${"a".repeat(40)}</meta-value>`);
     expect(xml).toContain(`self-uri xlink:href="${base.canonicalUrl}"`);
   });
