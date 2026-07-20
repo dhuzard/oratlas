@@ -512,9 +512,9 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-H01 — Verify source-native vs ORAtlas-native separation end-to-end in the UI
 
-- **Status:** in-progress · **Priority:** P1 · **Size:** S · **Agent:** yes
+- **Status:** review · **Priority:** P1 · **Size:** S · **Agent:** yes
 - **Packages:** `apps/web` · **External dep:** none · **Issue/PR:** builds on PR #11,
-  `docs/trust-model.md`
+  `docs/trust-model.md`, [#76](https://github.com/dhuzard/oratlas/pull/76)
 - **Goal:** The separation (imported = `unverified-import`, platform markers separate,
   fail-closed) is implemented server-side. Lock it in at the presentation layer: every place
   an assessment appears (review page, node view, edge API consumers, claim passports,
