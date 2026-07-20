@@ -470,8 +470,10 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-F03 — Editorial-data visibility audit (public vs private)
 
-- **Status:** backlog · **Priority:** P1 · **Size:** S · **Agent:** yes
-- **Packages:** `apps/web` · **External dep:** none · **Issue/PR:** none
+- **Status:** blocked (`ORATLAS_DECISIONS.md` §9) · **Priority:** P1 · **Size:** S ·
+  **Agent:** yes
+- **Packages:** `apps/web` · **External dep:** none · **Issue/PR:**
+  [#89](https://github.com/dhuzard/oratlas/pull/89)
 - **Goal:** The synthesis governance work established a strict public allowlist/private
   denylist for synthesis records. Audit the same property for the rest of the editorial
   surface: submission notes, overrides, rejected/changes-requested payloads, capture bytes,
