@@ -237,6 +237,7 @@ A full inventory of limitations lives in [`docs/poc-limitations.md`](docs/poc-li
 | [`docs/article-lifecycle.md`](docs/article-lifecycle.md)                       | Article reader, version diff, corrections, tombstones     |
 | [`docs/doi-and-versioning.md`](docs/doi-and-versioning.md)                     | Version vs concept DOI, validation report semantics       |
 | [`docs/trust-model.md`](docs/trust-model.md)                                   | TRUST dimensions, relation-level attachment, aggregation  |
+| [`docs/assessment-protocol-interoperability.md`](docs/assessment-protocol-interoperability.md) | Source-protocol preservation and non-crosswalk rules       |
 | [`docs/evidence-identity.md`](docs/evidence-identity.md)                       | Evidence identifiers and structural grounding             |
 | [`docs/review-manifest.md`](docs/review-manifest.md)                           | Optional `review-manifest.json` format                    |
 | [`docs/atlas-check.md`](docs/atlas-check.md)                                   | Deterministic evidence CI rule catalog                    |
