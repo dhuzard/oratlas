@@ -6,15 +6,17 @@ export function notesForVersion(changelog: string, version: string): string {
   if (!/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(version)) {
     throw new Error(`Invalid release version '${version}'.`);
   }
-  const heading = new RegExp(
-    `^## \\[${version.replace(/\./g, "\\.")}\\] - \\d{4}-\\d{2}-\\d{2}$`,
-    "m",
-  );
-  const match = heading.exec(changelog);
-  if (!match) throw new Error(`CHANGELOG.md has no dated [${version}] section.`);
-  const start = match.index;
+  const headingPrefix = `## [${version}] - `;
+  const heading = changelog
+    .split(/\r?\n/)
+    .find(
+      (line) =>
+        line.startsWith(headingPrefix) && /^## \[[0-9A-Za-z.-]+\] - \d{4}-\d{2}-\d{2}$/.test(line),
+    );
+  if (!heading) throw new Error(`CHANGELOG.md has no dated [${version}] section.`);
+  const start = changelog.indexOf(heading);
   const boundaries = ["\n## [", "\n[Unreleased]:"]
-    .map((marker) => changelog.indexOf(marker, start + match[0].length))
+    .map((marker) => changelog.indexOf(marker, start + heading.length))
     .filter((index) => index !== -1);
   const next = boundaries.length > 0 ? Math.min(...boundaries) : -1;
   return changelog.slice(start, next === -1 ? changelog.length : next).trim() + "\n";
