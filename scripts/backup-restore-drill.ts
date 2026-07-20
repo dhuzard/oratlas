@@ -19,7 +19,7 @@ const require = createRequire(import.meta.url);
 export const PUBLIC_API_PATHS = [
   "/api/reviews/hippocampal-replay-computational-review",
   "/api/nodes?page=1&pageSize=5",
-  "/api/graph?depth=1&limit=10",
+  "/api/graph?q=replay&depth=1&limit=10",
 ] as const;
 
 export function assertInside(parent: string, candidate: string): void {
