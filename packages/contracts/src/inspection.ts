@@ -116,6 +116,35 @@ export const compatibilitySignalSchema = z.object({
 });
 export type CompatibilitySignal = z.infer<typeof compatibilitySignalSchema>;
 
+/** Availability of one independently consumable repository capability. */
+export const facetCompatibilityStatusSchema = z.enum([
+  "available",
+  "partial",
+  "unavailable",
+  "unknown",
+]);
+export type FacetCompatibilityStatus = z.infer<typeof facetCompatibilityStatusSchema>;
+
+export const facetCompatibilitySchema = z
+  .object({
+    status: facetCompatibilityStatusSchema,
+    /** Deterministic, human-readable facts supporting this facet status. */
+    evidence: z.array(z.string().min(1)).min(1),
+  })
+  .strict();
+export type FacetCompatibility = z.infer<typeof facetCompatibilitySchema>;
+
+export const facetCompatibilityReportSchema = z
+  .object({
+    article: facetCompatibilitySchema,
+    citations: facetCompatibilitySchema,
+    evidencePackage: facetCompatibilitySchema,
+    claimGraph: facetCompatibilitySchema,
+    assessments: facetCompatibilitySchema,
+  })
+  .strict();
+export type FacetCompatibilityReport = z.infer<typeof facetCompatibilityReportSchema>;
+
 export const compatibilityReportSchema = z.object({
   schemaVersion: z.literal("1.0.0"),
   templateForkDetected: compatibilitySignalSchema,
@@ -127,6 +156,11 @@ export const compatibilityReportSchema = z.object({
   trustDataDetected: compatibilitySignalSchema,
   releaseDetected: compatibilitySignalSchema,
   doiDetected: compatibilitySignalSchema,
+  /**
+   * Independently derived capability statuses. Optional only so immutable
+   * reports captured before this additive field existed remain readable.
+   */
+  facets: facetCompatibilityReportSchema.optional(),
   overallCompatibility: compatibilityLevelSchema,
   /** Why the repository received its level, in plain language. */
   levelRationale: z.array(z.string()),

@@ -2,6 +2,8 @@ import {
   type CompatibilityLevel,
   type CompatibilityReport,
   type CompatibilitySignal,
+  type FacetCompatibility,
+  type FacetCompatibilityReport,
   type InspectionReport,
 } from "@oratlas/contracts";
 import { type ExtractedKnowledge } from "./knowledge.js";
@@ -11,6 +13,10 @@ const TEMPLATE_FULL_NAME = "allenneuraldynamics/computationalreviewtemplate";
 
 function signal(detected: boolean, evidence: string[]): CompatibilitySignal {
   return { detected, evidence };
+}
+
+function facet(status: FacetCompatibility["status"], ...evidence: string[]): FacetCompatibility {
+  return { status, evidence };
 }
 
 /**
@@ -135,6 +141,16 @@ export function assessCompatibility(
   const legacyKnowledgeArtifacts = knowledge.claims.length > 0 || knowledge.citations.length > 0;
   const knowledgeArtifacts = legacyKnowledgeArtifacts || validNodeDeclarations;
 
+  const facets = assessFacets({
+    manifestPresent,
+    mystProjectDetected,
+    bibliographyDetected,
+    reviewContentDetected,
+    provenanceDetected,
+    knowledge,
+    nodeExtraction,
+  });
+
   // --- Level decision (transparent) ---
   const rationale: string[] = [];
   const warnings: string[] = [];
@@ -214,6 +230,7 @@ export function assessCompatibility(
     trustDataDetected,
     releaseDetected,
     doiDetected,
+    facets,
     overallCompatibility: level,
     levelRationale: rationale,
     blockingErrors,
@@ -235,10 +252,109 @@ function inspectionFailed(error: string): CompatibilityReport {
     trustDataDetected: empty,
     releaseDetected: empty,
     doiDetected: empty,
+    facets: {
+      article: facet("unknown", "Article compatibility is unknown because inspection failed."),
+      citations: facet("unknown", "Citation compatibility is unknown because inspection failed."),
+      evidencePackage: facet(
+        "unknown",
+        "Evidence-package compatibility is unknown because inspection failed.",
+      ),
+      claimGraph: facet(
+        "unknown",
+        "Claim-graph compatibility is unknown because inspection failed.",
+      ),
+      assessments: facet(
+        "unknown",
+        "Assessment compatibility is unknown because inspection failed.",
+      ),
+    },
     overallCompatibility: "inspection-failed",
     levelRationale: ["Inspection failed; compatibility could not be assessed."],
     blockingErrors: [error],
     warnings: [],
     recommendations: [],
   };
+}
+
+interface FacetInputs {
+  manifestPresent: boolean;
+  mystProjectDetected: CompatibilitySignal;
+  bibliographyDetected: CompatibilitySignal;
+  reviewContentDetected: CompatibilitySignal;
+  provenanceDetected: CompatibilitySignal;
+  knowledge: ExtractedKnowledge;
+  nodeExtraction?: NodeExtractionReport;
+}
+
+/**
+ * Derive independent capability availability from already validated extraction
+ * outputs. These rules do not affect the legacy scalar acceptance decision.
+ */
+function assessFacets(input: FacetInputs): FacetCompatibilityReport {
+  const { knowledge, nodeExtraction } = input;
+  const validNodes = nodeExtraction?.counts.ok ?? 0;
+  const validEdges = nodeExtraction?.counts.edgesOk ?? 0;
+
+  const article = input.reviewContentDetected.detected
+    ? facet("available", ...input.reviewContentDetected.evidence)
+    : input.mystProjectDetected.detected || input.manifestPresent
+      ? facet(
+          "partial",
+          input.mystProjectDetected.detected
+            ? "A MyST project was found, but no review prose was detected."
+            : "A review manifest was parsed, but no review prose was detected.",
+        )
+      : facet("unavailable", "No review prose or article structure was detected.");
+
+  const citations =
+    input.bibliographyDetected.detected || knowledge.citations.length > 0
+      ? facet(
+          "available",
+          ...(input.bibliographyDetected.detected ? input.bibliographyDetected.evidence : []),
+          ...(knowledge.citations.length > 0
+            ? [`${knowledge.citations.length} structured citation record(s) parsed.`]
+            : []),
+        )
+      : facet("unavailable", "No bibliography or structured citation records were detected.");
+
+  const evidenceAvailable = knowledge.claims.length > 0 && knowledge.citations.length > 0;
+  const evidenceParts =
+    knowledge.claims.length > 0 ||
+    knowledge.citations.length > 0 ||
+    knowledge.relations.length > 0 ||
+    input.provenanceDetected.detected ||
+    input.manifestPresent;
+  const evidencePackage = evidenceAvailable
+    ? facet(
+        "available",
+        `${knowledge.claims.length} claim record(s) and ${knowledge.citations.length} citation record(s) form a usable evidence package.`,
+        `${knowledge.relations.length} valid claim–citation relation(s) parsed.`,
+      )
+    : evidenceParts
+      ? facet(
+          "partial",
+          `Evidence-package inputs are incomplete: ${knowledge.claims.length} claim(s), ${knowledge.citations.length} citation(s), and ${knowledge.relations.length} relation(s) parsed.`,
+        )
+      : facet("unavailable", "No evidence-package inputs were detected.");
+
+  const graphConnected = knowledge.relations.length > 0 || validEdges > 0;
+  const graphNodes = knowledge.claims.length > 0 || validNodes > 0;
+  const claimGraph = graphConnected
+    ? facet(
+        "available",
+        `${knowledge.claims.length} claim record(s), ${knowledge.relations.length} claim–citation relation(s), ${validNodes} valid node(s), and ${validEdges} valid node edge(s) parsed.`,
+      )
+    : graphNodes
+      ? facet(
+          "partial",
+          `${knowledge.claims.length} claim record(s) and ${validNodes} valid node(s) parsed, but no valid relations or edges were found.`,
+        )
+      : facet("unavailable", "No valid claims, knowledge nodes, relations, or edges were found.");
+
+  const assessments =
+    knowledge.trust.length > 0
+      ? facet("available", `${knowledge.trust.length} TRUST assessment record(s) parsed.`)
+      : facet("unavailable", "No TRUST assessment records were found.");
+
+  return { article, citations, evidencePackage, claimGraph, assessments };
 }
