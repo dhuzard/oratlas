@@ -184,6 +184,15 @@ export const nodeIdentityProposalSchema = z
   .strict();
 export type NodeIdentityProposal = z.infer<typeof nodeIdentityProposalSchema>;
 
+export const nodeIdentityDecisionSchema = z
+  .object({
+    decision: z.enum(["confirm", "reject"]),
+    expectedRevision: z.number().int().nonnegative(),
+    note: z.string().trim().min(10).max(2_000),
+  })
+  .strict();
+export type NodeIdentityDecision = z.infer<typeof nodeIdentityDecisionSchema>;
+
 export const nodeIdentityProposalReportSchema = z
   .object({
     schemaVersion: z.literal("1.0.0"),

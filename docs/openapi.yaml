@@ -196,7 +196,18 @@ components:
       type: object
       additionalProperties: false
       required:
-        [schemaVersion, id, localNodeId, kind, repository, version, versions, edges, trustContext]
+        [
+          schemaVersion,
+          id,
+          localNodeId,
+          kind,
+          repository,
+          version,
+          versions,
+          edges,
+          sameClaims,
+          trustContext,
+        ]
       properties:
         schemaVersion: { const: 1.0.0 }
         id: { type: string }
@@ -306,6 +317,37 @@ components:
                     type: string
                     enum: [platform-verified, unverified-import, stale-verification, legacy-unknown]
               relatedNode: { $ref: "#/components/schemas/PublicRelatedNodeVersion" }
+        sameClaims:
+          type: array
+          description: >
+            Editor-confirmed “also asserted in” identities. Stable nodes and relation-scoped
+            assessments remain separate; proposed and rejected identities are never public.
+          items:
+            type: object
+            additionalProperties: false
+            required: [proposalId, nodeId, localNodeId, title, repository, reviewAssertions]
+            properties:
+              proposalId: { type: string, pattern: "^nip_[0-9a-f]{64}$" }
+              nodeId: { type: string }
+              localNodeId: { type: string }
+              title: { type: string }
+              repository:
+                type: object
+                required: [owner, name, url]
+                properties:
+                  owner: { type: string }
+                  name: { type: string }
+                  url: { type: string, format: uri }
+              reviewAssertions:
+                type: array
+                items:
+                  type: object
+                  required: [reviewSlug, reviewTitle, versionId, localClaimId]
+                  properties:
+                    reviewSlug: { type: string }
+                    reviewTitle: { type: string }
+                    versionId: { type: string }
+                    localClaimId: { type: string }
         trustContext:
           type: array
           description: Relation-scoped claim-citation context; never a bare node-level TRUST score.
@@ -584,6 +626,14 @@ components:
         decision: { type: string, enum: [confirm, reject, supersede] }
         expectedRevision: { type: integer, minimum: 0 }
         note: { type: string, minLength: 10, maxLength: 4000 }
+    NodeIdentityDecision:
+      type: object
+      additionalProperties: false
+      required: [decision, expectedRevision, note]
+      properties:
+        decision: { type: string, enum: [confirm, reject] }
+        expectedRevision: { type: integer, minimum: 0 }
+        note: { type: string, minLength: 10, maxLength: 2000 }
     ProtocolEvidence:
       type: object
       additionalProperties: false
@@ -2299,6 +2349,28 @@ paths:
         content:
           application/json:
             schema: { $ref: "#/components/schemas/NodeEdgeDecision" }
+      responses:
+        "200": { description: CAS decision result; exact retries are idempotent }
+        "400": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "413": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/Error" }
+  /api/editorial/node-identity-proposals/{id}/decision:
+    post:
+      summary: Confirm or reject one deterministic same-claim proposal
+      description: >
+        Requires a current editor/admin and optimistic revision. Confirmation publishes only an
+        “also asserted in” identity; it never merges nodes or combines protocol-scoped TRUST data.
+      security: [{ session: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/NodeIdentityDecision" }
       responses:
         "200": { description: CAS decision result; exact retries are idempotent }
         "400": { $ref: "#/components/responses/Error" }

@@ -21,6 +21,7 @@ import { ReplicationMarketplaceError } from "./replication-marketplace";
 import { NodeEdgeLifecycleError } from "./node-edge-lifecycle";
 import { SynthesisEditorialError } from "./synthesis-editorial";
 import { SynthesisStalenessError } from "./synthesis-staleness";
+import { NodeIdentityLifecycleError } from "./node-identity-lifecycle";
 
 /**
  * Shared plumbing for cookie-authenticated lifecycle mutations: same-origin
@@ -66,6 +67,7 @@ export async function handleLifecyclePost<Schema extends z.ZodTypeAny>(
     if (err instanceof SubmissionError) return errorResponse(err.code, err.message);
     if (err instanceof ReplicationMarketplaceError) return errorResponse(err.code, err.message);
     if (err instanceof NodeEdgeLifecycleError) return errorResponse(err.code, err.message);
+    if (err instanceof NodeIdentityLifecycleError) return errorResponse(err.code, err.message);
     if (err instanceof ExecutionPassportError) return errorResponse(err.code, err.message);
     if (err instanceof SynthesisEditorialError) return errorResponse(err.code, err.message);
     if (err instanceof SynthesisStalenessError) return errorResponse(err.code, err.message);

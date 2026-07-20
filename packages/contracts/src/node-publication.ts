@@ -200,6 +200,26 @@ export const publicNodeTrustContextSchema = z
   })
   .strict();
 
+export const publicSameClaimSchema = z
+  .object({
+    proposalId: z.string().regex(/^nip_[0-9a-f]{64}$/),
+    nodeId: z.string().min(1),
+    localNodeId: z.string().min(1),
+    title: z.string().min(1),
+    repository: z.object({ owner: z.string(), name: z.string(), url: httpsUrlSchema }).strict(),
+    reviewAssertions: z.array(
+      z
+        .object({
+          reviewSlug: z.string().min(1),
+          reviewTitle: z.string().min(1),
+          versionId: z.string().min(1),
+          localClaimId: z.string().min(1),
+        })
+        .strict(),
+    ),
+  })
+  .strict();
+
 export const publicNodeDetailSchema = z
   .object({
     schemaVersion: z.literal("1.0.0"),
@@ -210,6 +230,7 @@ export const publicNodeDetailSchema = z
     version: publicNodeVersionSchema,
     versions: z.array(publicNodeVersionSummarySchema).min(1),
     edges: z.array(publicNodeEdgeSchema),
+    sameClaims: z.array(publicSameClaimSchema),
     trustContext: z.array(publicNodeTrustContextSchema),
   })
   .strict();

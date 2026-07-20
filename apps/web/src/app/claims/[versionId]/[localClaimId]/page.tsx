@@ -78,6 +78,29 @@ export default async function ClaimPassportPage({
         />
       </Card>
 
+      <Card title={`Also asserted in (${passport.alsoAssertedIn.length})`}>
+        <p className="muted">
+          These links were confirmed by an editor from deterministic same-claim proposals. They do
+          not merge claims or carry TRUST assessments between review protocols.
+        </p>
+        {passport.alsoAssertedIn.length === 0 ? (
+          <p className="muted">No cross-review same-claim identity has been confirmed.</p>
+        ) : (
+          <ul>
+            {passport.alsoAssertedIn.map((assertion) => (
+              <li key={`${assertion.proposalId}:${assertion.versionId}:${assertion.localClaimId}`}>
+                <Link
+                  href={`/claims/${assertion.versionId}/${encodeURIComponent(assertion.localClaimId)}`}
+                >
+                  {assertion.reviewTitle}: {assertion.title}
+                </Link>{" "}
+                <span className="muted">(separate claim node)</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
+
       <Card title={`Evidence (${passport.evidence.length})`}>
         {passport.evidence.length === 0 ? (
           <p className="muted">No evidence relations were extracted for this claim.</p>

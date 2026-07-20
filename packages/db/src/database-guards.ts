@@ -8,6 +8,7 @@ export const DATABASE_GUARD_NAMES = [
   "SynthesisDraftMembership_identifier_shape_check",
   "SynthesisStalenessEvaluation_status_check",
   "SynthesisRegenerationProposal_status_check",
+  "NodeIdentityProposal_status_check",
 ] as const;
 
 export const POSTGRES_DATABASE_GUARD_TRIGGER_NAMES = [
@@ -53,6 +54,12 @@ export const POSTGRES_DATABASE_GUARD_SQL = [
     ("status" = 'open' AND "openHeadKey" = "acceptedReviewVersionId" AND "resolvedById" IS NULL AND "resolvedAt" IS NULL AND "resolutionRationale" IS NULL AND "resolutionIdempotencyKey" IS NULL AND "resolutionInputHash" IS NULL)
     OR ("status" = 'superseded' AND "openHeadKey" IS NULL AND "resolvedById" IS NULL AND "resolvedAt" IS NULL AND "resolutionRationale" IS NULL AND "resolutionIdempotencyKey" IS NULL AND "resolutionInputHash" IS NULL)
     OR ("status" IN ('regeneration-requested', 'dismissed') AND "openHeadKey" IS NULL AND "resolvedById" IS NOT NULL AND "resolvedAt" IS NOT NULL AND "resolutionRationale" IS NOT NULL AND "resolutionIdempotencyKey" IS NOT NULL AND "resolutionInputHash" IS NOT NULL)
+  )`,
+  'ALTER TABLE "NodeIdentityProposal" DROP CONSTRAINT IF EXISTS "NodeIdentityProposal_status_check"',
+  `ALTER TABLE "NodeIdentityProposal" ADD CONSTRAINT "NodeIdentityProposal_status_check" CHECK (
+    "kind" = 'same-claim' AND "sourceNodeId" <> "targetNodeId" AND "revision" >= 0
+    AND (("status" = 'proposed' AND "revision" = 0 AND "reviewedById" IS NULL AND "reviewedAt" IS NULL AND "reviewNote" IS NULL)
+      OR ("status" IN ('confirmed', 'rejected') AND "revision" >= 1 AND "reviewedById" IS NOT NULL AND "reviewedAt" IS NOT NULL AND "reviewNote" IS NOT NULL))
   )`,
   `CREATE OR REPLACE FUNCTION "oratlas_validate_synthesis_membership_reference"() RETURNS trigger AS $$
   BEGIN
@@ -130,6 +137,11 @@ const sqliteGuardConditions = {
     (NEW."status" = 'open' AND NEW."openHeadKey" = NEW."acceptedReviewVersionId" AND NEW."resolvedById" IS NULL AND NEW."resolvedAt" IS NULL AND NEW."resolutionRationale" IS NULL AND NEW."resolutionIdempotencyKey" IS NULL AND NEW."resolutionInputHash" IS NULL)
     OR (NEW."status" = 'superseded' AND NEW."openHeadKey" IS NULL AND NEW."resolvedById" IS NULL AND NEW."resolvedAt" IS NULL AND NEW."resolutionRationale" IS NULL AND NEW."resolutionIdempotencyKey" IS NULL AND NEW."resolutionInputHash" IS NULL)
     OR (NEW."status" IN ('regeneration-requested', 'dismissed') AND NEW."openHeadKey" IS NULL AND NEW."resolvedById" IS NOT NULL AND NEW."resolvedAt" IS NOT NULL AND NEW."resolutionRationale" IS NOT NULL AND NEW."resolutionIdempotencyKey" IS NOT NULL AND NEW."resolutionInputHash" IS NOT NULL)
+    THEN 1 ELSE 0 END`,
+  NodeIdentityProposal: `CASE WHEN
+    NEW."kind" = 'same-claim' AND NEW."sourceNodeId" <> NEW."targetNodeId" AND NEW."revision" >= 0
+    AND ((NEW."status" = 'proposed' AND NEW."revision" = 0 AND NEW."reviewedById" IS NULL AND NEW."reviewedAt" IS NULL AND NEW."reviewNote" IS NULL)
+      OR (NEW."status" IN ('confirmed', 'rejected') AND NEW."revision" >= 1 AND NEW."reviewedById" IS NOT NULL AND NEW."reviewedAt" IS NOT NULL AND NEW."reviewNote" IS NOT NULL))
     THEN 1 ELSE 0 END`,
 } as const;
 
