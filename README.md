@@ -229,33 +229,34 @@ A full inventory of limitations lives in [`docs/poc-limitations.md`](docs/poc-li
 
 ## Documentation
 
-| Document                                                                       | Contents                                                  |
-| ------------------------------------------------------------------------------ | --------------------------------------------------------- |
-| [`docs/architecture.md`](docs/architecture.md)                                 | Monorepo layout, package boundaries, swappable interfaces |
-| [`docs/data-model.md`](docs/data-model.md)                                     | Prisma schema walkthrough                                 |
-| [`docs/submission-workflow.md`](docs/submission-workflow.md)                   | UI flow, capture capability, editorial pipeline           |
-| [`docs/article-lifecycle.md`](docs/article-lifecycle.md)                       | Article reader, version diff, corrections, tombstones     |
-| [`docs/doi-and-versioning.md`](docs/doi-and-versioning.md)                     | Version vs concept DOI, validation report semantics       |
-| [`docs/trust-model.md`](docs/trust-model.md)                                   | TRUST dimensions, relation-level attachment, aggregation  |
-| [`docs/evidence-identity.md`](docs/evidence-identity.md)                       | Evidence identifiers and structural grounding             |
-| [`docs/review-manifest.md`](docs/review-manifest.md)                           | Optional `review-manifest.json` format                    |
-| [`docs/atlas-check.md`](docs/atlas-check.md)                                   | Deterministic evidence CI rule catalog                    |
-| [`docs/living-review.md`](docs/living-review.md)                               | Claim passports and living-review monitoring              |
-| [`docs/synthesis-and-contradictions.md`](docs/synthesis-and-contradictions.md) | Independence-aware synthesis and contradiction maps       |
-| [`docs/replication-marketplace.md`](docs/replication-marketplace.md)           | Evidence-gap triage and replication briefs                |
-| [`docs/protocol-drift-radar.md`](docs/protocol-drift-radar.md)                 | Protocol-registry snapshot comparison                     |
-| [`docs/execution-passports.md`](docs/execution-passports.md)                   | Offline signed workflow-run provenance verification       |
-| [`docs/federation.md`](docs/federation.md)                                     | COAR Notify review exchange                               |
-| [`docs/preservation-and-exports.md`](docs/preservation-and-exports.md)         | Standards exports and preservation artifacts              |
-| [`docs/editorial-governance.md`](docs/editorial-governance.md)                 | Roles, decisions, overrides, audit                        |
-| [`docs/agent-governance.md`](docs/agent-governance.md)                         | How automated agents are bounded and supervised           |
-| [`docs/synthesis-governance.md`](docs/synthesis-governance.md)                 | Normative AI attribution, disclosure, rights, incidents   |
-| [`docs/synthesis-editorial.md`](docs/synthesis-editorial.md)                   | Private draft and editor-acceptance lifecycle             |
-| [`docs/deployment.md`](docs/deployment.md)                                     | Production deployment                                     |
-| [`docs/operations/`](docs/operations/README.md)                                | Backups, observability, Postgres, privacy & takedown      |
-| [`docs/poc-limitations.md`](docs/poc-limitations.md)                           | What the POC deliberately does not do                     |
-| [`docs/openapi.yaml`](docs/openapi.yaml)                                       | API description                                           |
-| [`PLAN.md`](PLAN.md)                                                           | Implementation plan and backlog                           |
+| Document                                                                                       | Contents                                                  |
+| ---------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| [`docs/architecture.md`](docs/architecture.md)                                                 | Monorepo layout, package boundaries, swappable interfaces |
+| [`docs/data-model.md`](docs/data-model.md)                                                     | Prisma schema walkthrough                                 |
+| [`docs/submission-workflow.md`](docs/submission-workflow.md)                                   | UI flow, capture capability, editorial pipeline           |
+| [`docs/article-lifecycle.md`](docs/article-lifecycle.md)                                       | Article reader, version diff, corrections, tombstones     |
+| [`docs/doi-and-versioning.md`](docs/doi-and-versioning.md)                                     | Version vs concept DOI, validation report semantics       |
+| [`docs/trust-model.md`](docs/trust-model.md)                                                   | TRUST dimensions, relation-level attachment, aggregation  |
+| [`docs/assessment-protocol-interoperability.md`](docs/assessment-protocol-interoperability.md) | Source-protocol preservation and non-crosswalk rules      |
+| [`docs/evidence-identity.md`](docs/evidence-identity.md)                                       | Evidence identifiers and structural grounding             |
+| [`docs/review-manifest.md`](docs/review-manifest.md)                                           | Optional `review-manifest.json` format                    |
+| [`docs/atlas-check.md`](docs/atlas-check.md)                                                   | Deterministic evidence CI rule catalog                    |
+| [`docs/living-review.md`](docs/living-review.md)                                               | Claim passports and living-review monitoring              |
+| [`docs/synthesis-and-contradictions.md`](docs/synthesis-and-contradictions.md)                 | Independence-aware synthesis and contradiction maps       |
+| [`docs/replication-marketplace.md`](docs/replication-marketplace.md)                           | Evidence-gap triage and replication briefs                |
+| [`docs/protocol-drift-radar.md`](docs/protocol-drift-radar.md)                                 | Protocol-registry snapshot comparison                     |
+| [`docs/execution-passports.md`](docs/execution-passports.md)                                   | Offline signed workflow-run provenance verification       |
+| [`docs/federation.md`](docs/federation.md)                                                     | COAR Notify review exchange                               |
+| [`docs/preservation-and-exports.md`](docs/preservation-and-exports.md)                         | Standards exports and preservation artifacts              |
+| [`docs/editorial-governance.md`](docs/editorial-governance.md)                                 | Roles, decisions, overrides, audit                        |
+| [`docs/agent-governance.md`](docs/agent-governance.md)                                         | How automated agents are bounded and supervised           |
+| [`docs/synthesis-governance.md`](docs/synthesis-governance.md)                                 | Normative AI attribution, disclosure, rights, incidents   |
+| [`docs/synthesis-editorial.md`](docs/synthesis-editorial.md)                                   | Private draft and editor-acceptance lifecycle             |
+| [`docs/deployment.md`](docs/deployment.md)                                                     | Production deployment                                     |
+| [`docs/operations/`](docs/operations/README.md)                                                | Backups, observability, Postgres, privacy & takedown      |
+| [`docs/poc-limitations.md`](docs/poc-limitations.md)                                           | What the POC deliberately does not do                     |
+| [`docs/openapi.yaml`](docs/openapi.yaml)                                                       | API description                                           |
+| [`PLAN.md`](PLAN.md)                                                                           | Implementation plan and backlog                           |
 
 ## Contributing
 
