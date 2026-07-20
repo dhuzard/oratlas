@@ -543,6 +543,9 @@ CREATE TABLE "TrustAssessment" (
     "sourceAggregateScore" DOUBLE PRECISION,
     "sourceAggregateMethod" TEXT,
     "sourceRelationHumanReviewed" BOOLEAN,
+    "sourceRecordHash" TEXT,
+    "sourceLineageKey" TEXT,
+    "supersedesAssessmentId" TEXT,
     "revision" INTEGER NOT NULL DEFAULT 0,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -596,6 +599,9 @@ CREATE TABLE "NodeRelationTrustAssessment" (
     "sourceEvidenceJson" TEXT,
     "sourceAggregateScore" DOUBLE PRECISION,
     "sourceAggregateMethod" TEXT,
+    "sourceRecordHash" TEXT,
+    "sourceLineageKey" TEXT,
+    "supersedesAssessmentId" TEXT,
     "revision" INTEGER NOT NULL DEFAULT 0,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -1282,6 +1288,12 @@ CREATE UNIQUE INDEX "ClaimEvidenceRelation_claimId_citationId_relationType_key" 
 CREATE INDEX "TrustAssessment_reviewStatus_idx" ON "TrustAssessment"("reviewStatus");
 
 -- CreateIndex
+CREATE INDEX "TrustAssessment_claimEvidenceRelationId_sourceLineageKey_idx" ON "TrustAssessment"("claimEvidenceRelationId", "sourceLineageKey");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "TrustAssessment_claimEvidenceRelationId_sourceRecordHash_key" ON "TrustAssessment"("claimEvidenceRelationId", "sourceRecordHash");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "TrustVerification_trustAssessmentId_key" ON "TrustVerification"("trustAssessmentId");
 
 -- CreateIndex
@@ -1295,6 +1307,12 @@ CREATE INDEX "NodeRelationTrustAssessment_nodeEdgeProposalId_idx" ON "NodeRelati
 
 -- CreateIndex
 CREATE INDEX "NodeRelationTrustAssessment_reviewStatus_idx" ON "NodeRelationTrustAssessment"("reviewStatus");
+
+-- CreateIndex
+CREATE INDEX "NodeRelationTrustAssessment_nodeEdgeProposalId_sourceLineag_idx" ON "NodeRelationTrustAssessment"("nodeEdgeProposalId", "sourceLineageKey");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "NodeRelationTrustAssessment_nodeEdgeProposalId_sourceRecord_key" ON "NodeRelationTrustAssessment"("nodeEdgeProposalId", "sourceRecordHash");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "NodeRelationTrustVerification_nodeRelationTrustAssessmentId_key" ON "NodeRelationTrustVerification"("nodeRelationTrustAssessmentId");
@@ -1645,6 +1663,9 @@ ALTER TABLE "ClaimEvidenceRelation" ADD CONSTRAINT "ClaimEvidenceRelation_citati
 ALTER TABLE "TrustAssessment" ADD CONSTRAINT "TrustAssessment_claimEvidenceRelationId_fkey" FOREIGN KEY ("claimEvidenceRelationId") REFERENCES "ClaimEvidenceRelation"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "TrustAssessment" ADD CONSTRAINT "TrustAssessment_supersedesAssessmentId_fkey" FOREIGN KEY ("supersedesAssessmentId") REFERENCES "TrustAssessment"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "TrustVerification" ADD CONSTRAINT "TrustVerification_trustAssessmentId_fkey" FOREIGN KEY ("trustAssessmentId") REFERENCES "TrustAssessment"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -1652,6 +1673,9 @@ ALTER TABLE "TrustVerification" ADD CONSTRAINT "TrustVerification_reviewerId_fke
 
 -- AddForeignKey
 ALTER TABLE "NodeRelationTrustAssessment" ADD CONSTRAINT "NodeRelationTrustAssessment_nodeEdgeProposalId_fkey" FOREIGN KEY ("nodeEdgeProposalId") REFERENCES "NodeEdgeProposal"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "NodeRelationTrustAssessment" ADD CONSTRAINT "NodeRelationTrustAssessment_supersedesAssessmentId_fkey" FOREIGN KEY ("supersedesAssessmentId") REFERENCES "NodeRelationTrustAssessment"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "NodeRelationTrustVerification" ADD CONSTRAINT "NodeRelationTrustVerification_nodeRelationTrustAssessmentI_fkey" FOREIGN KEY ("nodeRelationTrustAssessmentId") REFERENCES "NodeRelationTrustAssessment"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

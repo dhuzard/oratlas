@@ -21,7 +21,7 @@ import {
   type PublicNodeVersion,
 } from "@oratlas/contracts";
 import { nodeFieldProvenanceSchema } from "@oratlas/extractor";
-import { selectPreferredTrustAssessment } from "@oratlas/trust";
+import { orderTrustAssessments } from "@oratlas/trust";
 import type { PrismaClient } from "@oratlas/db";
 import { prisma } from "./db";
 import {
@@ -32,7 +32,7 @@ import {
   loadedNodeRelationTrustInclude,
   PUBLIC_NODE_RELATION_TRUST_GLOBAL_LIMIT,
   resolveTrustAssessmentRows,
-  selectPreferredPublicNodeRelationTrustAssessment,
+  projectPublicNodeRelationTrustAssessments,
 } from "./trust-provenance";
 
 const storedNodeProvenanceSchema = z.union([
@@ -531,11 +531,14 @@ export async function getPublicNode(
     {
       assessmentId: string;
       protocolVersion: string;
+      assessorType: string;
+      assessorId?: string;
+      assessedAt?: string;
       reviewStatus:
         "unverified-import" | "agent-proposed" | "human-reviewed" | "adjudicated" | "superseded";
       verificationState:
         "platform-verified" | "unverified-import" | "stale-verification" | "legacy-unknown";
-    }
+    }[]
   >();
   if (publicEdgeIds.length > 0) {
     const trustRows = await prisma.nodeRelationTrustAssessment.findMany({
@@ -561,9 +564,7 @@ export async function getPublicNode(
         candidates.set(edgeId, list);
       }
       for (const [edgeId, values] of candidates) {
-        const preferred = selectPreferredPublicNodeRelationTrustAssessment(values);
-        if (!preferred) continue;
-        nodeTrustByEdge.set(edgeId, preferred);
+        nodeTrustByEdge.set(edgeId, projectPublicNodeRelationTrustAssessments(values));
       }
     }
   }
@@ -583,7 +584,7 @@ export async function getPublicNode(
         provenance: edge.provenance,
         rationale: edge.rationale ?? undefined,
         assertedAt: edge.assertedAt?.toISOString(),
-        trust: nodeTrustByEdge.get(edge.id),
+        trustAssessments: nodeTrustByEdge.get(edge.id) ?? [],
         relatedNode,
       },
     ];
@@ -603,7 +604,7 @@ export async function getPublicNode(
         provenance: edge.provenance,
         rationale: edge.rationale ?? undefined,
         assertedAt: edge.assertedAt?.toISOString(),
-        trust: nodeTrustByEdge.get(edge.id),
+        trustAssessments: nodeTrustByEdge.get(edge.id) ?? [],
         relatedNode,
       },
     ];
@@ -611,7 +612,7 @@ export async function getPublicNode(
 
   const trustContext = trustRelations.map((relation) => {
     const claim = relation.claim;
-    const preferred = selectPreferredTrustAssessment(
+    const assessments = orderTrustAssessments(
       relation.trustAssessments.map((assessment) => {
         const resolved = resolveTrustAssessmentRows(
           { assessment, relation, claim, citation: relation.citation },
@@ -619,12 +620,14 @@ export async function getPublicNode(
         );
         return {
           id: assessment.id,
-          effectiveStatus: resolved.effectiveStatus,
           assessedAt: assessment.assessedAt?.toISOString() ?? null,
+          assessorType: assessment.assessorType,
+          assessorId: assessment.assessorId,
+          protocolVersion: assessment.protocolVersion,
           value: { assessment, resolved },
         };
       }),
-    )?.value;
+    ).map(({ value }) => value);
     return {
       claimId: claim.id,
       claimLocalId: claim.localClaimId,
@@ -639,14 +642,17 @@ export async function getPublicNode(
         relation.citation.rawCitationJson,
       ),
       relationType: relation.relationType,
-      trust: preferred
-        ? {
-            reviewStatus: preferred.resolved.effectiveStatus,
-            verificationState: preferred.resolved.state,
-            aggregateScore: preferred.assessment.aggregateScore ?? undefined,
-            aggregateMethod: preferred.assessment.aggregateMethod ?? undefined,
-          }
-        : undefined,
+      trustAssessments: assessments.map(({ assessment, resolved }) => ({
+        assessmentId: assessment.id,
+        protocolVersion: assessment.protocolVersion,
+        assessorType: assessment.assessorType,
+        assessorId: assessment.assessorId ?? undefined,
+        assessedAt: assessment.assessedAt?.toISOString(),
+        reviewStatus: resolved.effectiveStatus,
+        verificationState: resolved.state,
+        aggregateScore: assessment.aggregateScore ?? undefined,
+        aggregateMethod: assessment.aggregateMethod ?? undefined,
+      })),
     };
   });
 

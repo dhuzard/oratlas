@@ -1,5 +1,7 @@
 import { createHash } from "node:crypto";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { renderToStaticMarkup } from "react-dom/server";
+import { createElement } from "react";
 
 const database = vi.hoisted(() => ({
   indexReviews: [] as unknown[],
@@ -33,6 +35,7 @@ import {
 } from "@oratlas/trust";
 import { buildKnowledgeIndex } from "./index-builder.js";
 import { getReviewDetail } from "./reviews.js";
+import { TrustDisplay } from "../components/TrustDisplay.js";
 
 const now = new Date("2026-07-01T00:00:00.000Z");
 const expectedStates: TrustVerificationState[] = [
@@ -292,6 +295,39 @@ beforeEach(() => {
 });
 
 describe("versioned evidence and TRUST integration", () => {
+  it("returns and renders every assessment in deterministic non-rating order", async () => {
+    const fixture = buildDatabaseFixture();
+    const relation = fixture.detailReview.versions[0]!.claims[0]!.evidenceRelations[0]!;
+    const first = relation.trustAssessments[0]!;
+    relation.trustAssessments.push({
+      ...structuredClone(first),
+      id: "assessment-second",
+      protocolVersion: "trust-independent-2.0",
+      assessorType: "human",
+      assessorId: "second-reviewer",
+      assessedAt: new Date("2026-07-03T00:00:00.000Z"),
+      verification: null,
+    });
+    database.detailReview = fixture.detailReview;
+
+    const detail = await getReviewDetail("trust-history");
+    const output = detail?.claims[0]?.relations[0];
+    expect(output?.trust).toBeUndefined();
+    expect(output?.trusts.map((assessment) => assessment.assessmentId)).toEqual([
+      first.id,
+      "assessment-second",
+    ]);
+    expect(output?.trusts.map((assessment) => assessment.verificationState)).toEqual([
+      "platform-verified",
+      "unverified-import",
+    ]);
+    const html = output?.trusts.map((trust) =>
+      renderToStaticMarkup(createElement(TrustDisplay, { trust })),
+    );
+    expect(html?.join(" ")).toContain("second-reviewer");
+    expect(html?.join(" ")).toContain("trust-independent-2.0");
+  });
+
   it("carries all fail-closed verification states into exact globally-scoped packets", async () => {
     const index = await buildKnowledgeIndex();
     const packet = buildEvidencePacket(index, "evidence", {

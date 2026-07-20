@@ -61,7 +61,9 @@ export interface IndexedTrust {
 export interface IndexedRelation {
   citationId: string;
   relationType: ClaimEvidenceRelationType;
+  /** Legacy in-memory fixtures; new database indexes use trustAssessments. */
   trust?: IndexedTrust;
+  trustAssessments?: IndexedTrust[];
 }
 
 export interface IndexedClaim {

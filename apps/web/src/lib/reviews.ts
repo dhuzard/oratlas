@@ -1,7 +1,7 @@
 import "server-only";
 import {
   computeAggregate,
-  selectPreferredTrustAssessment,
+  orderTrustAssessments,
   TRUST_CRITERIA,
   type TrustRecord,
   type TrustVerificationState,
@@ -30,7 +30,10 @@ export interface ReviewCriterion {
 }
 
 export interface ReviewTrust {
+  assessmentId: string;
   assessorType: string;
+  assessorId?: string;
+  assessedAt?: string;
   reviewStatus: string;
   verificationState: TrustVerificationState;
   protocolVersion: string;
@@ -52,6 +55,7 @@ export interface ReviewTrust {
     reviewerRoleSnapshot: string;
     rationale: string;
   };
+  supersedesAssessmentId?: string;
 }
 
 export interface ReviewRelation {
@@ -61,7 +65,9 @@ export interface ReviewRelation {
   citationDoi?: string;
   citationIsExample: boolean;
   humanReviewed: boolean;
+  /** Backward-compatible singleton projection; absent whenever a set has multiple rows. */
   trust?: ReviewTrust;
+  trusts: ReviewTrust[];
 }
 
 export interface ReviewClaim {
@@ -280,7 +286,7 @@ export async function getReviewDetail(
     claimType: claim.claimType ?? undefined,
     qualification: claim.qualification ?? undefined,
     relations: claim.evidenceRelations.map((rel) => {
-      const trustRow = selectPreferredTrustAssessment(
+      const trustRows = orderTrustAssessments(
         rel.trustAssessments.map((assessment) => {
           const resolved = resolveTrustAssessmentRows(
             { assessment, relation: rel, claim, citation: rel.citation },
@@ -288,20 +294,23 @@ export async function getReviewDetail(
           );
           return {
             id: assessment.id,
-            effectiveStatus: resolved.effectiveStatus,
             assessedAt: assessment.assessedAt?.toISOString() ?? null,
+            assessorType: assessment.assessorType,
+            assessorId: assessment.assessorId,
+            protocolVersion: assessment.protocolVersion,
             value: { assessment, resolved },
           };
         }),
-      )?.value;
-      let trust: ReviewTrust | undefined;
-      if (trustRow) {
+      ).map(({ value: trustRow }): ReviewTrust => {
         const record = toTrustRecord(trustRow.assessment);
         const agg = computeAggregate(record);
         const limitationList = parseJsonColumn<string[]>(trustRow.assessment.limitationsJson, []);
         for (const l of limitationList) limitations.add(l);
-        trust = {
+        return {
+          assessmentId: trustRow.assessment.id,
           assessorType: trustRow.assessment.assessorType,
+          assessorId: trustRow.assessment.assessorId ?? undefined,
+          assessedAt: trustRow.assessment.assessedAt?.toISOString(),
           reviewStatus: trustRow.resolved.effectiveStatus,
           verificationState: trustRow.resolved.state,
           protocolVersion: trustRow.assessment.protocolVersion,
@@ -325,8 +334,9 @@ export async function getReviewDetail(
                 rationale: trustRow.assessment.verification.rationale,
               }
             : undefined,
+          supersedesAssessmentId: trustRow.assessment.supersedesAssessmentId ?? undefined,
         };
-      }
+      });
       return {
         relationType: rel.relationType,
         citationLocalId: rel.citation.localCitationId,
@@ -335,7 +345,8 @@ export async function getReviewDetail(
         citationIsExample: isExampleCitation(rel.citation.rawCitationJson),
         // Legacy/source relation flags never become a platform assertion.
         humanReviewed: false,
-        trust,
+        trust: trustRows.length === 1 ? trustRows[0] : undefined,
+        trusts: trustRows,
       };
     }),
   }));

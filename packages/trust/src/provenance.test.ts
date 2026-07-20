@@ -9,7 +9,7 @@ import {
   resolveTrustVerification,
   reviewedNodeRelationTrustSubjectHash,
   reviewedTrustSubjectHash,
-  selectPreferredTrustAssessment,
+  orderTrustAssessments,
   trustSubjectInputFromDatabaseParts,
   type ReviewedTrustSubjectInput,
   type ReviewedNodeRelationTrustSubjectInput,
@@ -260,18 +260,34 @@ describe("TRUST reviewed-subject integrity", () => {
     expect(reviewedTrustSubjectHash(changed)).not.toBe(reviewedTrustSubjectHash(original));
   });
 
-  it("uses verification state, timestamp, then id for deterministic precedence", () => {
+  it("orders every assessment without using verification or rating precedence", () => {
     const candidates = [
       {
         id: "b",
-        effectiveStatus: "unverified-import" as const,
         assessedAt: "2026-02-01",
+        assessorType: "agent",
+        assessorId: null,
+        protocolVersion: "trust-1",
         value: 1,
       },
-      { id: "z", effectiveStatus: "human-reviewed" as const, assessedAt: "2026-01-01", value: 2 },
-      { id: "a", effectiveStatus: "human-reviewed" as const, assessedAt: "2026-01-01", value: 3 },
+      {
+        id: "z",
+        assessedAt: "2026-01-01",
+        assessorType: "human",
+        assessorId: "z",
+        protocolVersion: "trust-1",
+        value: 2,
+      },
+      {
+        id: "a",
+        assessedAt: "2026-01-01",
+        assessorType: "human",
+        assessorId: "a",
+        protocolVersion: "trust-1",
+        value: 3,
+      },
     ];
-    expect(selectPreferredTrustAssessment(candidates)?.value).toBe(3);
+    expect(orderTrustAssessments(candidates).map(({ value }) => value)).toEqual([3, 2, 1]);
   });
 
   it("keeps hashes independent of Prisma include/query shape", () => {

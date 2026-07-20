@@ -12,10 +12,6 @@ import {
   type SnapshotStorageReport,
 } from "@oratlas/contracts";
 import { assertKnowledgeNodeMaterializationBinding, type Prisma } from "@oratlas/db";
-import {
-  normalizeImportedNodeRelationTrustRecord,
-  normalizeImportedTrustRecord,
-} from "@oratlas/trust";
 import { isExampleDoi } from "@oratlas/zenodo";
 import { prisma, parseJsonColumn } from "./db";
 import { prismaCode, uniqueTargets, withSqliteRetry as sharedWithSqliteRetry } from "./db-retry";
@@ -33,6 +29,7 @@ import {
   type SubmissionPayload,
 } from "./submission-payload";
 import { materializeAuthorEdgeProposals } from "./node-edge-lifecycle";
+import { ingestNodeRelationTrustAssessment, ingestTrustAssessment } from "./assessment-ingestion";
 
 export type { SubmissionPayload } from "./submission-payload";
 
@@ -1366,31 +1363,7 @@ async function materializeKnowledge(
     const pair = `${trust.claimId}|${trust.citationId}`;
     const relationId = relationIdByPair.get(pair);
     if (!relationId) continue;
-    const imported = normalizeImportedTrustRecord(trust, sourceReviewByPair.get(pair) ?? null);
-    await tx.trustAssessment.create({
-      data: {
-        claimEvidenceRelationId: relationId,
-        protocolVersion: imported.record.protocolVersion,
-        assessorType: imported.record.assessorType,
-        assessorId: imported.record.assessorId,
-        assessedAt: imported.record.assessedAt ? new Date(imported.record.assessedAt) : null,
-        ...imported.criterionColumns,
-        limitationsJson: imported.limitationsJson,
-        evidenceJson: imported.evidenceJson,
-        aggregateScore: imported.aggregateScore,
-        aggregateMethod: imported.aggregateMethod,
-        reviewStatus: imported.reviewStatus,
-        sourceRecordJson: imported.sourceRecordJson,
-        sourceReviewStatus: imported.sourceReviewStatus,
-        sourceAssessorType: imported.sourceAssessorType,
-        sourceAssessorId: imported.sourceAssessorId,
-        sourceAssessedAt: imported.sourceAssessedAt ? new Date(imported.sourceAssessedAt) : null,
-        sourceEvidenceJson: imported.sourceEvidenceJson,
-        sourceAggregateScore: imported.sourceAggregateScore,
-        sourceAggregateMethod: imported.sourceAggregateMethod,
-        sourceRelationHumanReviewed: imported.sourceRelationHumanReviewed,
-      },
-    });
+    await ingestTrustAssessment(tx, relationId, trust, sourceReviewByPair.get(pair) ?? null);
   }
 }
 
@@ -1464,30 +1437,7 @@ async function materializeNodeRelationTrustAssessments(
         "conflict",
       );
     }
-    const imported = normalizeImportedNodeRelationTrustRecord(record);
-    const row = await tx.nodeRelationTrustAssessment.create({
-      data: {
-        nodeEdgeProposalId: matches[0]!.id,
-        protocolVersion: imported.record.protocolVersion,
-        assessorType: imported.record.assessorType,
-        assessorId: imported.record.assessorId,
-        assessedAt: imported.record.assessedAt ? new Date(imported.record.assessedAt) : null,
-        ...imported.criterionColumns,
-        limitationsJson: imported.limitationsJson,
-        evidenceJson: imported.evidenceJson,
-        aggregateScore: imported.aggregateScore,
-        aggregateMethod: imported.aggregateMethod,
-        reviewStatus: imported.reviewStatus,
-        sourceRecordJson: imported.sourceRecordJson,
-        sourceReviewStatus: imported.sourceReviewStatus,
-        sourceAssessorType: imported.sourceAssessorType,
-        sourceAssessorId: imported.sourceAssessorId,
-        sourceAssessedAt: imported.sourceAssessedAt ? new Date(imported.sourceAssessedAt) : null,
-        sourceEvidenceJson: imported.sourceEvidenceJson,
-        sourceAggregateScore: imported.sourceAggregateScore,
-        sourceAggregateMethod: imported.sourceAggregateMethod,
-      },
-    });
+    const row = await ingestNodeRelationTrustAssessment(tx, matches[0]!.id, record);
     created.push(row.id);
   }
   return created;

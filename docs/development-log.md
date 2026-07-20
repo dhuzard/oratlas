@@ -689,3 +689,12 @@ introducing a test-only production route or granting an agent publication author
   node-head-change proposal with its exact old/new node-version IDs, requesting regeneration as an
   editor, and verifying the public reader and archive stale disclosures. CI explicitly clears
   provider, model, and API-key variables so the journey stays offline and deterministic.
+
+## 2026-07-20 — ORA-D01 multiple-assessment contract
+
+- Replaced status/rating-based preferred-assessment selection with deterministic complete-set
+  ordering that uses only time and provenance identifiers.
+- Added append-only source lineage and exact-record idempotency to both TRUST assessment models.
+- Projected every assessment (with assessor and protocol) through review, node, graph, search,
+  discussion, and synthesis surfaces while retaining explicit singleton compatibility for older
+  serialized packets.

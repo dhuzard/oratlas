@@ -27,6 +27,9 @@ export function TrustDisplay({ trust }: { trust: ReviewTrust }) {
           </ProvenanceBadge>
         )}
         <span className="muted">protocol {trust.protocolVersion}</span>
+        <span className="muted">
+          assessor {trust.assessorId ?? trust.sourceAssertion.assessorId ?? trust.assessorType}
+        </span>
       </div>
 
       <p className="muted" style={{ fontSize: "0.85rem" }}>
@@ -38,6 +41,13 @@ export function TrustDisplay({ trust }: { trust: ReviewTrust }) {
           : ""}
         . Repository labels are preserved as provenance and do not become Atlas verification.
       </p>
+
+      {trust.supersedesAssessmentId ? (
+        <p className="muted" style={{ fontSize: "0.85rem" }}>
+          Source revision of assessment <span className="mono">{trust.supersedesAssessmentId}</span>
+          ; both records remain visible.
+        </p>
+      ) : null}
 
       {platformVerified && trust.platformVerification ? (
         <p className="muted" style={{ fontSize: "0.85rem" }}>

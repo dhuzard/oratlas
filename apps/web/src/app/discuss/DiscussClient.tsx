@@ -17,6 +17,12 @@ interface EvidenceClaim {
         "platform-verified" | "unverified-import" | "stale-verification" | "legacy-unknown";
       notableCriteria: string[];
     };
+    trustAssessments?: Array<{
+      reviewStatus: string;
+      verificationState:
+        "platform-verified" | "unverified-import" | "stale-verification" | "legacy-unknown";
+      notableCriteria: string[];
+    }>;
   }>;
 }
 
@@ -203,7 +209,9 @@ function DeterministicView({ result }: { result: DeterministicResult }) {
 function trustSummary(claim: EvidenceClaim): string {
   const states = new Set(
     claim.relations.flatMap((relation) =>
-      relation.trust ? [relation.trust.verificationState] : [],
+      (relation.trustAssessments ?? (relation.trust ? [relation.trust] : [])).map(
+        (assessment) => assessment.verificationState,
+      ),
     ),
   );
   if (states.has("platform-verified")) return " · Atlas-reviewed TRUST structure";

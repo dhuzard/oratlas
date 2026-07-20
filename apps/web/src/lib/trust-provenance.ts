@@ -9,7 +9,7 @@ import {
   nodeRelationTrustSubjectInputFromDatabaseRows,
   resolveNodeRelationTrustVerification,
   resolveTrustVerification,
-  selectPreferredTrustAssessment,
+  orderTrustAssessments,
   trustSubjectInputFromDatabaseRows,
   type DatabaseTrustSubjectRows,
   type ReviewedNodeRelationAssessmentInput,
@@ -66,6 +66,7 @@ export const PUBLIC_NODE_RELATION_TRUST_PER_KEY_LIMIT = 50;
 
 export interface PublicNodeRelationTrustSummary extends PublicGraphTrust {
   assessmentId: string;
+  assessorType: string;
 }
 
 export interface ResolvedTrustAssessment extends ResolvedTrustVerification {
@@ -154,20 +155,24 @@ export function resolveLoadedNodeRelationTrustAssessment(
 }
 
 /**
- * Resolve one bounded exact-relation group into its preferred anonymous summary.
+ * Resolve one bounded exact-relation group into its complete anonymous assessment set.
  * Persisted review labels are never projected without reconstructing the subject.
  */
-export function selectPreferredPublicNodeRelationTrustAssessment(
+export function projectPublicNodeRelationTrustAssessments(
   rows: readonly LoadedNodeRelationTrustAssessment[],
-): PublicNodeRelationTrustSummary | undefined {
-  if (rows.length > PUBLIC_NODE_RELATION_TRUST_PER_KEY_LIMIT) return undefined;
+): PublicNodeRelationTrustSummary[] {
+  if (rows.length > PUBLIC_NODE_RELATION_TRUST_PER_KEY_LIMIT) return [];
 
   const candidates = rows.flatMap((row) => {
     try {
       const resolved = resolveLoadedNodeRelationTrustAssessment(row);
       if (!resolved.authoritative) return [];
       const parsed = publicGraphTrustSchema.safeParse({
+        assessmentId: row.id,
         protocolVersion: row.protocolVersion,
+        assessorType: row.assessorType,
+        assessorId: row.assessorId ?? undefined,
+        assessedAt: row.assessedAt?.toISOString(),
         reviewStatus: resolved.effectiveStatus,
         verificationState: resolved.state,
       });
@@ -175,9 +180,15 @@ export function selectPreferredPublicNodeRelationTrustAssessment(
       return [
         {
           id: row.id,
-          effectiveStatus: resolved.effectiveStatus,
           assessedAt: row.assessedAt?.toISOString() ?? null,
-          value: { assessmentId: row.id, ...parsed.data },
+          assessorType: row.assessorType,
+          assessorId: row.assessorId,
+          protocolVersion: row.protocolVersion,
+          value: {
+            ...parsed.data,
+            assessmentId: row.id,
+            assessorType: row.assessorType,
+          },
         },
       ];
     } catch {
@@ -186,7 +197,7 @@ export function selectPreferredPublicNodeRelationTrustAssessment(
     }
   });
 
-  return selectPreferredTrustAssessment(candidates)?.value;
+  return orderTrustAssessments(candidates).map(({ value }) => value);
 }
 
 function mapNodeAssessment(

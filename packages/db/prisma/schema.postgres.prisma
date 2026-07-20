@@ -868,6 +868,9 @@ model TrustAssessment {
   sourceAggregateScore        Float?
   sourceAggregateMethod       String?
   sourceRelationHumanReviewed Boolean?
+  sourceRecordHash            String?
+  sourceLineageKey            String?
+  supersedesAssessmentId      String?
 
   /// Incremented by editorial verification writes for optimistic concurrency.
   revision  Int      @default(0)
@@ -876,8 +879,12 @@ model TrustAssessment {
 
   relation     ClaimEvidenceRelation @relation(fields: [claimEvidenceRelationId], references: [id])
   verification TrustVerification?
+  supersedes   TrustAssessment?      @relation("TrustAssessmentSupersession", fields: [supersedesAssessmentId], references: [id])
+  supersededBy TrustAssessment[]     @relation("TrustAssessmentSupersession")
 
+  @@unique([claimEvidenceRelationId, sourceRecordHash])
   @@index([reviewStatus])
+  @@index([claimEvidenceRelationId, sourceLineageKey])
 }
 
 /// Platform-owned review marker. This is deliberately separate from the
@@ -931,14 +938,17 @@ model NodeRelationTrustAssessment {
   reviewStatus    String  @default("unverified-import")
 
   /// Exact strict parsed repository record, including the relation subject.
-  sourceRecordJson      String
-  sourceReviewStatus    String
-  sourceAssessorType    String
-  sourceAssessorId      String?
-  sourceAssessedAt      DateTime?
-  sourceEvidenceJson    String?
-  sourceAggregateScore  Float?
-  sourceAggregateMethod String?
+  sourceRecordJson       String
+  sourceReviewStatus     String
+  sourceAssessorType     String
+  sourceAssessorId       String?
+  sourceAssessedAt       DateTime?
+  sourceEvidenceJson     String?
+  sourceAggregateScore   Float?
+  sourceAggregateMethod  String?
+  sourceRecordHash       String?
+  sourceLineageKey       String?
+  supersedesAssessmentId String?
 
   revision  Int      @default(0)
   createdAt DateTime @default(now())
@@ -946,9 +956,13 @@ model NodeRelationTrustAssessment {
 
   proposal     NodeEdgeProposal               @relation(fields: [nodeEdgeProposalId], references: [id])
   verification NodeRelationTrustVerification?
+  supersedes   NodeRelationTrustAssessment?   @relation("NodeRelationTrustAssessmentSupersession", fields: [supersedesAssessmentId], references: [id])
+  supersededBy NodeRelationTrustAssessment[]  @relation("NodeRelationTrustAssessmentSupersession")
 
+  @@unique([nodeEdgeProposalId, sourceRecordHash])
   @@index([nodeEdgeProposalId])
   @@index([reviewStatus])
+  @@index([nodeEdgeProposalId, sourceLineageKey])
 }
 
 /// Platform marker for a node-relation assessment. Kept separate from legacy

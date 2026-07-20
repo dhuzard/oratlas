@@ -543,10 +543,17 @@ export default async function ReviewPage({
                             )
                           ) : null}
                         </span>
-                        {rel.trust ? (
+                        {rel.trusts.length > 0 ? (
                           <details>
-                            <summary>TRUST assessment</summary>
-                            <TrustDisplay trust={rel.trust} />
+                            <summary>TRUST assessments ({rel.trusts.length})</summary>
+                            {rel.trusts.map((trust) => (
+                              <section
+                                key={trust.assessmentId}
+                                aria-label={`TRUST assessment ${trust.assessmentId}`}
+                              >
+                                <TrustDisplay trust={trust} />
+                              </section>
+                            ))}
                           </details>
                         ) : (
                           <span className="muted">no TRUST assessment</span>

@@ -383,12 +383,12 @@ export async function queryPublicGraph(
     for (const mapped of mappedRows) {
       const rawTrust = trustRows.get(graphTrustLookupKey(trustKeyForEdge(mapped.edge)));
       const parsedTrust =
-        rawTrust === undefined ? undefined : publicGraphTrustSchema.safeParse(rawTrust);
-      const trust = parsedTrust?.success ? parsedTrust.data : undefined;
-      if (query.hasTrust !== undefined && Boolean(trust) !== query.hasTrust) continue;
+        rawTrust === undefined ? undefined : publicGraphTrustSchema.array().safeParse(rawTrust);
+      const trust = parsedTrust?.success ? parsedTrust.data : [];
+      if (query.hasTrust !== undefined && trust.length > 0 !== query.hasTrust) continue;
       const edgeWithTrust =
-        mapped.edge.status === "confirmed" && trust
-          ? publicGraphEdgeSchema.safeParse({ ...mapped.edge, trust })
+        mapped.edge.status === "confirmed"
+          ? publicGraphEdgeSchema.safeParse({ ...mapped.edge, trustAssessments: trust })
           : publicGraphEdgeSchema.safeParse(mapped.edge);
       if (
         !edgeWithTrust.success ||

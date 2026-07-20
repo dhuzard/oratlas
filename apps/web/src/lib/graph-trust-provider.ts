@@ -9,7 +9,7 @@ import {
 import {
   loadedNodeRelationTrustInclude,
   PUBLIC_NODE_RELATION_TRUST_GLOBAL_LIMIT,
-  selectPreferredPublicNodeRelationTrustAssessment,
+  projectPublicNodeRelationTrustAssessments,
   type LoadedNodeRelationTrustAssessment,
 } from "./trust-provenance";
 
@@ -60,10 +60,8 @@ export function projectGraphTrustRows(
 
   const result = new Map<string, unknown>();
   for (const [key, group] of groups) {
-    const selected = selectPreferredPublicNodeRelationTrustAssessment(group);
-    if (!selected) continue;
-    const { assessmentId: _assessmentId, ...compact } = selected;
-    const parsed = publicGraphTrustSchema.safeParse(compact);
+    const assessments = projectPublicNodeRelationTrustAssessments(group);
+    const parsed = publicGraphTrustSchema.array().safeParse(assessments);
     if (parsed.success) result.set(key, parsed.data);
   }
   return result;

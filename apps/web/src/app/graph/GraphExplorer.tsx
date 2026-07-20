@@ -131,8 +131,8 @@ export function GraphExplorer({
                   {edge.status === "confirmed"
                     ? `Confirmed by an editor · ${edge.confirmedAt.slice(0, 10)}`
                     : `${edge.provenance.replace(/-/g, " ")} · proposed ${edge.proposedAt.slice(0, 10)}`}
-                  {edge.status === "confirmed" && edge.trust
-                    ? ` · relation TRUST: ${edge.trust.reviewStatus.replace(/-/g, " ")}, ${edge.trust.verificationState.replace(/-/g, " ")}`
+                  {edge.status === "confirmed" && (edge.trustAssessments?.length ?? 0) > 0
+                    ? ` · relation TRUST: ${edge.trustAssessments!.length} assessment${edge.trustAssessments!.length === 1 ? "" : "s"} (${edge.trustAssessments!.map((assessment) => `${assessment.assessorId ?? assessment.assessorType}, ${assessment.protocolVersion}`).join("; ")})`
                     : ""}
                 </p>
               </li>

@@ -275,7 +275,7 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-D01 — Multiple-assessment contract (coexistence without overwrite)
 
-- **Status:** ready · **Priority:** P1 · **Size:** M · **Agent:** conditional (contract
+- **Status:** in-progress · **Priority:** P1 · **Size:** M · **Agent:** conditional (contract
   semantics need one maintainer review; no open governance question blocks coexistence itself)
 - **Packages:** `packages/contracts`, `packages/trust`, `packages/db`, `apps/web` ·
   **External dep:** none · **Issue/PR:** none
