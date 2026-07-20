@@ -689,3 +689,39 @@ introducing a test-only production route or granting an agent publication author
   node-head-change proposal with its exact old/new node-version IDs, requesting regeneration as an
   editor, and verifying the public reader and archive stale disclosures. CI explicitly clears
   provider, model, and API-key variables so the journey stays offline and deterministic.
+
+## ORA-A05 — Publication identity preservation audit
+
+**Objective:** trace the immutable source identity tuple through every repository-backed
+publication path without changing application behavior or rewriting historical rows.
+
+| Path                                            | Repository identity                                                   | Selection identity                                                               | Commit/tree identity                                                                                        | Capture/content identity                                                                                                     |
+| ----------------------------------------------- | --------------------------------------------------------------------- | -------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Inspection                                      | `InspectionReport.githubRepositoryId`                                 | `selectedSource.kind`, branch/release, optional annotated-tag object             | required `selectedSource.commitSha` and `treeSha`                                                           | canonical `InspectionCapture.payloadHash`                                                                                    |
+| Submission + snapshot                           | `Submission.repositoryId` → immutable `Repository.githubRepositoryId` | source kind/branch/key, release fields, tag-object SHA copied to `Submission`    | commit and tree copied to `RepositorySnapshot`                                                              | submitted payload binds the capture hash; snapshot content hash binds repository id, commit, tree, and captured-file hashes  |
+| Prose review version                            | source submission/capture foreign keys                                | source kind/branch/key, release fields, tag-object SHA copied to `ReviewVersion` | immutable snapshot foreign key supplies commit and tree                                                     | `ReviewVersion.capturePayloadHash`                                                                                           |
+| Knowledge-node version                          | node repository plus source submission/capture foreign keys           | inherited from the immutable source submission                                   | immutable snapshot foreign key supplies commit and tree                                                     | `KnowledgeNodeVersion.capturePayloadHash`; materialization binding checks repository, snapshot, capture, and commit equality |
+| Author edge proposal / node-relation assessment | source repository GitHub id and submission/capture ids                | inherited from the accepted node version                                         | source commit stored on provenance records; tree remains derivable through the source node version snapshot | capture payload hash stored on the proposal and checked during materialization                                               |
+| Reconciliation                                  | duplicate repositories grouped by GitHub repository id                | version rows retain their selection fields                                       | snapshots are currently merged by commit SHA                                                                | node versions are compared across all semantic provenance fields before deduplication                                        |
+
+Synthesis versions are derived editorial publications rather than direct repository captures.
+They bind exact accepted review/node version ids and packet/content hashes; the source repository
+tuple remains reachable through those immutable inputs instead of being copied as a second,
+potentially divergent identity record.
+
+Regression coverage now pins both selection orders for one commit (default branch and annotated
+release) and asserts repository linkage, selection key, tag-object SHA, commit SHA, tree SHA,
+inspection-capture linkage, and capture hash on the resulting immutable review versions. Existing
+node-only acceptance coverage separately asserts source capture ids/hashes and snapshot linkage.
+
+Two fail-closed gaps were found and intentionally not changed in this audit-only item:
+
+- Repository reconciliation treats equal repository id + commit SHA as sufficient to merge two
+  snapshots. It does not first compare the already-present `sourceTreeSha`, `contentHash`, or
+  preserved-file manifest. A follow-up should reject the reconciliation transaction when any of
+  those immutable values differ; no additive schema field is needed.
+- Historical `ReviewVersion` and `KnowledgeNodeVersion` rows can reference legacy snapshots whose
+  nullable `sourceTreeSha` is absent, and current readers expose the tree as optional rather than
+  withholding the publication. A policy decision is required before making those already-public
+  records fail closed. The tree field exists, so this is a legacy-data policy/migration question,
+  not a schema-shape gap.
