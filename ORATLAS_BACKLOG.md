@@ -601,8 +601,8 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-J02 — Backup/restore and disaster-recovery drill
 
-- **Status:** backlog · **Priority:** P2 · **Size:** S · **Agent:** yes
-- **Packages:** `scripts`, `docs/operations` · **External dep:** none · **Issue/PR:** builds
+- **Status:** review · **Priority:** P2 · **Size:** S · **Agent:** yes
+- **Packages:** `scripts`, `docs/operations` · **External dep:** none · **Issue/PR:** #82; builds
   on `scripts/backup.ts`/`restore.ts`
 - **Goal:** Scripts and docs exist; prove them. A CI job that backs up a seeded database,
   destroys it, restores, and byte-compares public API output before/after.
