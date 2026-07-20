@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, rmSync } from "node:fs";
-import { resolve } from "node:path";
+import { createRequire } from "node:module";
+import { dirname, resolve } from "node:path";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { type PrismaClient } from "@oratlas/db";
 import { type getReviewDetail } from "./reviews";
@@ -8,14 +9,19 @@ import { type createReviewComment, type listReviewComments } from "./comments";
 import { type getPreservedArticle } from "./article-reader";
 import { type getPreservedFileContent, type getVersionExportContext } from "./preservation";
 import { type getReviewVersionDiff } from "./version-diff";
+import { type getProcessHistory } from "./editorial-lifecycle";
 import { type getReviewLifecycle, type recordReviewLifecycleEvent } from "./review-lifecycle";
 import { type buildKnowledgeIndex } from "./index-builder";
 import { type runDiscussion } from "./discuss";
 
 vi.mock("server-only", () => ({}));
 
-const databasePath = `/tmp/oratlas-lifecycle-${process.pid}-${Date.now()}.db`;
-const databaseUrl = `file://${databasePath}`;
+const databasePath = resolve(
+  process.cwd(),
+  "packages/db/prisma",
+  `.tmp-oratlas-lifecycle-${process.pid}-${Date.now()}.db`,
+);
+const databaseUrl = `file:./${databasePath.split(/[\\/]/).at(-1)}`;
 const commit1 = "1".repeat(40);
 const commit2 = "2".repeat(40);
 const tree1 = "a".repeat(40);
@@ -26,6 +32,12 @@ const secretAuthor = "Sensitive Author";
 const secretClaim = "Sensitive claim that must never reach a public boundary.";
 const secretCitation = "Sensitive citation title";
 const secretComment = "Sensitive community comment";
+const privateCapturePayload = "PRIVATE_CAPTURE_BYTES_SENTINEL_F03";
+const privateCaptureTokenHash = "PRIVATE_CAPTURE_TOKEN_HASH_SENTINEL_F03";
+const unequivocallyPrivateEditorialSentinels = [
+  privateCapturePayload,
+  privateCaptureTokenHash,
+] as const;
 const article = `# ${secretTitle}\n\n${secretAbstract}\n\n<script>alert('never active')</script>\n`;
 const priorTitle = "Earlier public scholarly title";
 const priorAbstract = "Earlier public abstract.";
@@ -45,6 +57,7 @@ type Runtime = {
   };
   diff: { getReviewVersionDiff: typeof getReviewVersionDiff };
   lifecycle: {
+    getProcessHistory: typeof getProcessHistory;
     getReviewLifecycle: typeof getReviewLifecycle;
     recordReviewLifecycleEvent: typeof recordReviewLifecycleEvent;
   };
@@ -63,9 +76,20 @@ beforeAll(async () => {
   process.env.DATABASE_URL = databaseUrl;
   process.env.NEXT_PUBLIC_BASE_URL = "http://localhost:3000";
   process.env.AUTH_MOCK = "1";
+  const require = createRequire(import.meta.url);
+  const prismaPackage = require.resolve("prisma/package.json", {
+    paths: [resolve(process.cwd(), "packages/db")],
+  });
   execFileSync(
-    resolve(process.cwd(), "packages/db/node_modules/.bin/prisma"),
-    ["db", "push", "--schema", "packages/db/prisma/schema.prisma", "--skip-generate"],
+    process.execPath,
+    [
+      resolve(dirname(prismaPackage), "build/index.js"),
+      "db",
+      "push",
+      "--schema",
+      "packages/db/prisma/schema.prisma",
+      "--skip-generate",
+    ],
     {
       env: { ...process.env, DATABASE_URL: databaseUrl, RUST_LOG: "info" },
       stdio: "pipe",
@@ -79,7 +103,10 @@ beforeAll(async () => {
     articleReader: await import("./article-reader"),
     preservation: await import("./preservation"),
     diff: await import("./version-diff"),
-    lifecycle: await import("./review-lifecycle"),
+    lifecycle: {
+      ...(await import("./review-lifecycle")),
+      getProcessHistory: (await import("./editorial-lifecycle")).getProcessHistory,
+    },
     indexBuilder: await import("./index-builder"),
     discuss: await import("./discuss"),
   };
@@ -89,6 +116,9 @@ beforeAll(async () => {
   });
   const commenter = await prisma.user.create({
     data: { githubUserId: "lifecycle-commenter", githubLogin: "lifecycle-commenter" },
+  });
+  const submitter = await prisma.user.create({
+    data: { githubUserId: "lifecycle-submitter", githubLogin: "lifecycle-submitter" },
   });
   editorId = editor.id;
   commenterId = commenter.id;
@@ -169,6 +199,50 @@ beforeAll(async () => {
   });
   version1Id = version1.id;
   version2Id = version2.id;
+
+  // Deliberately place unmistakable private values next to a public version. Public
+  // serializers may expose bounded provenance (ids, logins and hashes), but never
+  // capability tokens or the raw inspection payload bytes guarded by those tokens.
+  const inspectionCapture = await prisma.inspectionCapture.create({
+    data: {
+      tokenHash: privateCaptureTokenHash,
+      payloadJson: JSON.stringify({ privateCapturePayload }),
+      payloadHash: "f".repeat(64),
+      githubRepositoryId: "f03-private-capture",
+      canonicalUrlAtCapture: repository.canonicalUrl,
+      inspectedByUserId: submitter.id,
+      commitSha: commit2,
+      expiresAt: new Date("2030-01-01T00:00:00.000Z"),
+      consumedAt: new Date("2026-07-02T00:00:00.000Z"),
+    },
+  });
+  const sourceSubmission = await prisma.submission.create({
+    data: {
+      submitterId: submitter.id,
+      repositoryId: repository.id,
+      snapshotId: snapshot2.id,
+      inspectionCaptureId: inspectionCapture.id,
+      status: "accepted",
+      editedMetadataJson: JSON.stringify({ title: secretTitle }),
+      validationReportJson: JSON.stringify({ status: "valid" }),
+      submittedPayloadJson: JSON.stringify({ title: secretTitle }),
+      submittedPayloadHash: "e".repeat(64),
+      submittedAt: new Date("2026-07-02T00:00:00.000Z"),
+      reviewedAt: new Date("2026-07-02T00:00:00.000Z"),
+      reviewerId: editor.id,
+      editorialNote: "Current editorial-note visibility is intentionally not asserted by F03.",
+      resultingReviewId: review.id,
+      resultingReviewVersionId: version2.id,
+    },
+  });
+  await prisma.reviewVersion.update({
+    where: { id: version2.id },
+    data: {
+      sourceSubmissionId: sourceSubmission.id,
+      inspectionCaptureId: inspectionCapture.id,
+      capturePayloadHash: inspectionCapture.payloadHash,
+    },
+  });
 
   const person = await prisma.person.create({ data: { displayName: secretAuthor } });
   await prisma.reviewContributor.create({
@@ -292,6 +366,43 @@ afterAll(async () => {
 });
 
 describe.sequential("article lifecycle public boundaries", () => {
+  it("keeps private inspection-capability sentinels out of bounded public serializers", async () => {
+    const [{ GET: reviewGet }, detail, exportContext, diff, index, processHistory] =
+      await Promise.all([
+        import("../app/api/reviews/[slug]/route"),
+        runtime.reviews.getReviewDetail("sensitive-review", version2Id),
+        runtime.preservation.getVersionExportContext("sensitive-review", version2Id),
+        runtime.diff.getReviewVersionDiff("sensitive-review", version1Id, version2Id),
+        runtime.indexBuilder.buildKnowledgeIndex(),
+        runtime.lifecycle.getProcessHistory(
+          (
+            await runtime.prisma.reviewVersion.findUniqueOrThrow({
+              where: { id: version2Id },
+              select: { sourceSubmissionId: true },
+            })
+          ).sourceSubmissionId!,
+        ),
+      ]);
+    const reviewResponse = await reviewGet(new Request("http://localhost/review"), {
+      params: Promise.resolve({ slug: "sensitive-review" }),
+    });
+    expect(reviewResponse.status).toBe(200);
+
+    const publicSerializations = [
+      JSON.stringify(detail),
+      JSON.stringify(exportContext),
+      JSON.stringify(diff),
+      JSON.stringify(index),
+      JSON.stringify(processHistory),
+      await reviewResponse.text(),
+    ];
+    for (const serialized of publicSerializations) {
+      for (const sentinel of unequivocallyPrivateEditorialSentinels) {
+        expect(serialized).not.toContain(sentinel);
+      }
+    }
+  });
+
   it("reads the article and computes deterministic archived diffs without upstream access", async () => {
     const document = await runtime.articleReader.getPreservedArticle(
       "sensitive-review",

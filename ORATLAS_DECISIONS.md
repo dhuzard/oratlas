@@ -79,10 +79,33 @@ None of these is decided by this file's existence.
 
 - **Current state:** Synthesis records have a strict public allowlist / private denylist;
   other editorial data (submission notes, override rationales, moderation rationales) has
-  conventions but no single ratified boundary document.
-- **Open question:** Ratify one boundary: which editorial records are public (accountability)
-  vs private (candor), including challenge-moderation and adjudication rationales, and
-  retention rules under takedown (`docs/operations/privacy-and-takedown.md`).
+  conventions but no single ratified boundary document. The endpoint inventory and current
+  behavior are recorded in `docs/editorial-visibility-audit.md`; that inventory does not
+  ratify the conventions.
+- **Choices requiring an explicit decision:**
+  1. For submissions, decide separately whether status/timestamps, submitted and edited
+     payloads, validation diagnostics, editor notes, rejection/change-request reasons, and
+     accepted override check ids/rationales are public, participant-only, editor-only, or
+     published only after acceptance.
+  2. For formal review rounds, ratify whether reviewer identity/ORCID, recommendation, report
+     body, author response, decision-letter body, editor identity, and COI statement are public;
+     specify whether open rounds are embargoed and what event lifts the embargo.
+  3. For public lifecycle and update records, ratify the visibility of correction/withdrawal/
+     tombstone reasons, citation-status notes and resolution notes, replication withdrawal
+     reasons, node-edge proposal rationales, and protocol-proposal resolution rationales.
+  4. For community moderation and future challenge workflows, decide whether removed bodies,
+     remover identity, removal/moderation rationale, challenge evidence, adjudicator identity,
+     and adjudication rationale are public, redacted, participant-only, or editor-only.
+  5. Decide whether COAR Notify activity ids are intentionally discoverable public objects or
+     capability-like links, and which received headers/origin metadata may accompany them.
+  6. Define audience changes after correction, withdrawal, tombstone, account deletion, and
+     legal/privacy takedown, plus retention and export rules under
+     `docs/operations/privacy-and-takedown.md`.
+  7. Require one versioned public allowlist/private denylist (or an equally explicit policy)
+     per ratified record family, including treatment of legacy rows and malformed data.
+- **Invariant not awaiting a decision:** Expiring inspection capability tokens and raw
+  `InspectionCapture.payloadJson` bytes are server-only. Public provenance may expose the
+  already-established payload hash, but never the token or source bytes.
 - **Depends on it:** ORA-F03 closure criteria, ORA-E02 moderation display, ORA-J01 leakage
   definitions.
 
