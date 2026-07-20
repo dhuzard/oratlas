@@ -581,10 +581,10 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-J01 — Security and immutable-publication audit (standing P0)
 
-- **Status:** in-progress · **Priority:** P0 · **Size:** M · **Agent:** yes (audit + regression
+- **Status:** review · **Priority:** P0 · **Size:** M · **Agent:** yes (audit + regression
   tests; exploit-fixing PRs separately, smallest-first)
 - **Packages:** all, focus `apps/web`, `packages/github`, `packages/db` · **External dep:**
-  none · **Issue/PR:** builds on PRs #9, #10, #11
+  none · **Issue/PR:** PR #72; builds on PRs #9, #10, #11
 - **Goal:** A single sweep re-verifying, with tests, the full defensive posture:
   authorization matrix per route (role snapshots vs current role), same-origin + Fetch
   Metadata enforcement on every mutation, optimistic-concurrency coverage (every revision/CAS
