@@ -132,9 +132,6 @@ export function NodeView({
                             {assessment.protocolVersion} ·{" "}
                             {assessment.reviewStatus.replace(/-/g, " ")} ·{" "}
                             {assessment.verificationState.replace(/-/g, " ")}
-                            {assessment.aggregateScore !== undefined && assessment.aggregateMethod
-                              ? ` · relation aggregate ${assessment.aggregateScore.toFixed(2)} (${assessment.aggregateMethod})`
-                              : ""}
                           </p>
                         ))
                       ) : (
