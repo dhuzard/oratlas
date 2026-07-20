@@ -324,9 +324,9 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-D03 — Assessment profile display without a mandatory aggregate
 
-- **Status:** backlog · **Priority:** P1 · **Size:** S · **Agent:** yes
+- **Status:** review · **Priority:** P1 · **Size:** S · **Agent:** yes
 - **Packages:** `apps/web`, `packages/ui` · **External dep:** none · **Issue/PR:** builds on
-  PR-05, `docs/trust-model.md`
+  PR-05, `docs/trust-model.md`, [#80](https://github.com/dhuzard/oratlas/pull/80)
 - **Goal:** Aggregates are already optional/advisory/method-labelled. Verify and harden the
   display contract: a criterion profile (all ten criteria with rating + status, including
   explicit `not-assessed`) renders fully and legibly when no aggregate exists, and no view
