@@ -207,8 +207,8 @@ At most five items, ordered. Rationale and dependencies:
 ### ORA-B01 — Transactional-publication audit across review, node, and synthesis acceptance
 
 - **Status:** review · **Priority:** P0 · **Size:** S · **Agent:** yes
-- **Packages:** `apps/web`, `packages/db` · **External dep:** none · **Issue/PR:** builds on
-  PRs #13, #16, #17, KG-04, KG-13
+- **Packages:** `apps/web`, `packages/db` · **External dep:** none · **Issue/PR:**
+  [#78](https://github.com/dhuzard/oratlas/pull/78); builds on PRs #13, #16, #17, KG-04, KG-13
 - **Goal:** Acceptance paths use serializable compare-and-set, idempotency keys, and unique
   constraints. Audit that **no** acceptance path (prose review, node selection, node-edge
   confirmation, synthesis decision, lifecycle events) can leave partially-public state under
