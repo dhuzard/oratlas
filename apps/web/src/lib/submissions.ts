@@ -333,6 +333,7 @@ export interface AcceptanceResult {
 async function readAcceptedResult(
   submissionId: string,
   selectionHash: string,
+  operationHash: string,
 ): Promise<AcceptanceResult | null> {
   const submission = await prisma.submission.findUnique({
     where: { id: submissionId },
@@ -352,6 +353,16 @@ async function readAcceptedResult(
   if (storedSelectionHash !== selectionHash) {
     throw new SubmissionError(
       "Submission was already accepted with a different node selection.",
+      "conflict",
+    );
+  }
+  const claim = await prisma.idempotencyKey.findUnique({
+    where: { key: `submission.accepted:${submissionId}` },
+    select: { requestHash: true },
+  });
+  if (claim?.requestHash !== operationHash) {
+    throw new SubmissionError(
+      "Submission acceptance is bound to a different editor decision payload.",
       "conflict",
     );
   }
@@ -391,243 +402,275 @@ export function acceptSubmission(
   overrides: EditorialOverrideInput[] | undefined,
   selectedNodeIds: string[],
 ): Promise<AcceptanceResult>;
+export function acceptSubmission(
+  submissionId: string,
+  reviewerId: string,
+  note: string | undefined,
+  overrides: EditorialOverrideInput[] | undefined,
+  selectedNodeIds: string[],
+  transactionClient: Prisma.TransactionClient,
+  formalRoundId: string,
+): Promise<AcceptanceResult>;
 export async function acceptSubmission(
   submissionId: string,
   reviewerId: string,
   note?: string,
   overrides: EditorialOverrideInput[] = [],
   selectedNodeIds: string[] = [],
+  transactionClient?: Prisma.TransactionClient,
+  formalRoundId?: string,
 ): Promise<AcceptanceResult> {
   const requestedSelection = normalizeRequestedSelection(selectedNodeIds);
   const selectionJson = canonicalJson(requestedSelection);
   const selectionHash = sha256(selectionJson);
-  const run = () =>
-    withSqliteRetry(() =>
-      prisma.$transaction(
-        async (tx) => {
-          const submission = await tx.submission.findUnique({
-            where: { id: submissionId },
-            include: { repository: true, snapshot: true, inspectionCapture: true },
-          });
-          if (!submission) throw new SubmissionError("Submission not found.");
-          const payload = parseStoredSubmissionPayload(submission.submittedPayloadJson);
-          if (!payload) {
-            throw new SubmissionError(
-              "Submission payload is missing or non-canonical.",
-              "conflict",
-            );
-          }
-          if (sha256(submission.submittedPayloadJson!) !== submission.submittedPayloadHash) {
-            throw new SubmissionError("Submission payload integrity check failed.", "conflict");
-          }
-          const candidates = validNodeCandidates(payload);
-          validateRequestedSelection(
-            requestedSelection,
-            candidates.map((entry) => entry.node.id),
-          );
-          if (!payload.publicationTargets.proseReview && requestedSelection.length === 0) {
-            throw new SubmissionError(
-              "A node-only submission must publish at least one node candidate.",
-              "conflict",
-            );
-          }
-          if (submission.status === "accepted") {
-            const storedJson = submission.acceptedNodeSelectionJson ?? canonicalJson([]);
-            const storedHash = submission.acceptedNodeSelectionHash ?? sha256(storedJson);
-            if (storedHash !== selectionHash) {
-              throw new SubmissionError(
-                "Submission was already accepted with a different node selection.",
-                "conflict",
-              );
-            }
-            return acceptedResultInTransaction(tx, submission.id, storedJson, true);
-          }
-          if (!submission.snapshotId || !submission.snapshot) {
-            throw new SubmissionError("Submission has no snapshot to publish.");
-          }
-          if (
-            payload.schemaVersion === "1.1.0" &&
-            (!submission.inspectionCaptureId || !submission.inspectionCapture)
-          ) {
-            throw new SubmissionError("Submission has no inspection capture to publish.");
-          }
-          if (!isDecidableStatus(submission.status)) {
-            throw new SubmissionError(
-              `Submission is already ${submission.status}; acceptance cannot replace that decision.`,
-              "conflict",
-            );
-          }
-          if (submission.inspectionCapture) {
-            const captured = verifyStoredCaptureForAcceptance(submission.inspectionCapture);
-            if (
-              payload.capturePayloadHash !== submission.inspectionCapture.payloadHash ||
-              (payload.publicationTargets.knowledgeNodes &&
-                canonicalJson(payload.nodeExtraction) !==
-                  canonicalJson(captured.extraction.nodeExtraction)) ||
-              (payload.nodeExtraction.commitSha !== undefined &&
-                payload.nodeExtraction.commitSha !== submission.snapshot.commitSha)
-            ) {
-              throw new SubmissionError(
-                "Submitted node candidates do not match the immutable inspection capture.",
-                "conflict",
-              );
-            }
-          }
-          if (payload.validation.hardErrors.length > 0) {
-            throw new SubmissionError("Non-overridable automated checks still fail.", "conflict");
-          }
-          const consistency = payload.validation.publicationConsistency;
-          const validatedOverrides = validateOverrides(consistency, overrides);
-
-          const claimed = await tx.submission.updateMany({
-            where: { id: submission.id, status: submission.status },
-            data: {
-              status: "accepted",
-              reviewerId,
-              reviewedAt: new Date(),
-              editorialNote: note,
-              acceptedNodeSelectionJson: selectionJson,
-              acceptedNodeSelectionHash: selectionHash,
-            },
-          });
-          if (claimed.count !== 1) {
-            throw new DecisionRaceError();
-          }
-
-          for (const override of validatedOverrides) {
-            await tx.editorialOverride.create({
-              data: {
-                submissionId: submission.id,
-                checkId: override.checkId,
-                rationale: override.rationale,
-                editorId: reviewerId,
-              },
-            });
-          }
-
-          let reviewSlug: string | undefined;
-          let reviewId: string | undefined;
-          let reviewVersionId: string | undefined;
-          if (payload.publicationTargets.proseReview) {
-            const materializedReview = await materializeReviewPublication(
-              tx,
-              submission,
-              payload,
-              consistency,
-            );
-            reviewSlug = materializedReview.slug;
-            reviewId = materializedReview.reviewId;
-            reviewVersionId = materializedReview.versionId;
-          }
-
-          const selected = new Set(requestedSelection);
-          const selectedCandidates = candidates.filter((entry) => selected.has(entry.node.id));
-          const nodeVersionIds = await materializeKnowledgeNodes(
-            tx,
-            submission,
-            selectedCandidates,
-            reviewerId,
-            reviewVersionId,
-          );
-          const nodeTrustRecords = payload.knowledge.trust.filter(
-            (record): record is NodeRelationTrustRecord => "subjectType" in record,
-          );
-          let edgeProposalIds: string[] = [];
-          let nodeTrustAssessmentIds: string[] = [];
-          if (
-            submission.inspectionCaptureId &&
-            submission.inspectionCapture &&
-            nodeVersionIds.length > 0
-          ) {
-            const selectedVersions = await tx.knowledgeNodeVersion.findMany({
-              where: { id: { in: nodeVersionIds } },
-              include: { knowledgeNode: true },
-            });
-            edgeProposalIds = await materializeAuthorEdgeProposals(tx, {
-              submissionId: submission.id,
-              submitterId: submission.submitterId,
-              inspectionCaptureId: submission.inspectionCaptureId,
-              capturePayloadHash: submission.inspectionCapture.payloadHash,
-              sourceRepositoryGithubId: submission.repository.githubRepositoryId,
-              sourceCommitSha: submission.snapshot.commitSha,
-              edges: payload.nodeExtraction.edges,
-              selectedVersions: selectedVersions.map((version) => ({
-                id: version.id,
-                knowledgeNodeId: version.knowledgeNodeId,
-                localNodeId: version.knowledgeNode.localNodeId,
-                kind: version.knowledgeNode.kind,
-              })),
-            });
-            nodeTrustAssessmentIds = await materializeNodeRelationTrustAssessments(
-              tx,
-              nodeTrustRecords,
-              edgeProposalIds,
-              {
-                submissionId: submission.id,
-                inspectionCaptureId: submission.inspectionCaptureId,
-                sourceRepositoryGithubId: submission.repository.githubRepositoryId,
-                sourceCommitSha: submission.snapshot.commitSha,
-              },
-            );
-          }
-
-          if (reviewId && reviewVersionId) {
-            await tx.submission.update({
-              where: { id: submission.id },
-              data: { resultingReviewId: reviewId, resultingReviewVersionId: reviewVersionId },
-            });
-          }
-          await claimIdempotency(tx, `submission.accepted:${submission.id}`);
-          await tx.auditEvent.create({
-            data: {
-              actorId: reviewerId,
-              action: "submission.accepted",
-              subjectType: "submission",
-              subjectId: submission.id,
-              idempotencyKey: `submission.accepted:${submission.id}`,
-              detailsJson: canonicalJson({
-                reviewSlug,
-                reviewVersionId,
-                selectedNodeIds: requestedSelection,
-                nodeVersionIds,
-                edgeProposalIds,
-                nodeTrustAssessmentIds,
-                overrideCheckIds: validatedOverrides.map((entry) => entry.checkId),
-              }),
-            },
-          });
-          if (reviewId && reviewVersionId) {
-            await claimIdempotency(tx, `review.published:${submission.id}`);
-            await tx.auditEvent.create({
-              data: {
-                actorId: reviewerId,
-                action: "review.published",
-                subjectType: "review",
-                subjectId: reviewId,
-                idempotencyKey: `review.published:${submission.id}`,
-                detailsJson: canonicalJson({
-                  versionId: reviewVersionId,
-                  capturePayloadHash: payload.capturePayloadHash,
-                }),
-              },
-            });
-          }
-          return {
-            reviewSlug,
-            nodeVersionIds,
-            selectedNodeIds: requestedSelection,
-            idempotent: false,
-          };
-        },
-        { maxWait: 5_000, timeout: 15_000, isolationLevel: "Serializable" },
-      ),
+  const operation = async (tx: Prisma.TransactionClient) => {
+    const submission = await tx.submission.findUnique({
+      where: { id: submissionId },
+      include: { repository: true, snapshot: true, inspectionCapture: true },
+    });
+    if (!submission) throw new SubmissionError("Submission not found.");
+    const payload = parseStoredSubmissionPayload(submission.submittedPayloadJson);
+    if (!payload) {
+      throw new SubmissionError("Submission payload is missing or non-canonical.", "conflict");
+    }
+    if (sha256(submission.submittedPayloadJson!) !== submission.submittedPayloadHash) {
+      throw new SubmissionError("Submission payload integrity check failed.", "conflict");
+    }
+    const candidates = validNodeCandidates(payload);
+    validateRequestedSelection(
+      requestedSelection,
+      candidates.map((entry) => entry.node.id),
     );
+    if (!payload.publicationTargets.proseReview && requestedSelection.length === 0) {
+      throw new SubmissionError(
+        "A node-only submission must publish at least one node candidate.",
+        "conflict",
+      );
+    }
+    const consistency = payload.validation.publicationConsistency;
+    const validatedOverrides = validateOverrides(consistency, overrides);
+    const operationHash = acceptanceOperationHash(
+      reviewerId,
+      note,
+      validatedOverrides,
+      requestedSelection,
+    );
+    await assertFormalRoundDecisionScope(tx, submission.id, formalRoundId);
+    if (submission.status === "accepted") {
+      const storedJson = submission.acceptedNodeSelectionJson ?? canonicalJson([]);
+      const storedHash = submission.acceptedNodeSelectionHash ?? sha256(storedJson);
+      if (storedHash !== selectionHash) {
+        throw new SubmissionError(
+          "Submission was already accepted with a different node selection.",
+          "conflict",
+        );
+      }
+      await assertIdempotencyBinding(
+        tx,
+        `submission.accepted:${submission.id}`,
+        operationHash,
+        "Submission acceptance is bound to a different editor decision payload.",
+      );
+      return acceptedResultInTransaction(tx, submission.id, storedJson, true);
+    }
+    if (!submission.snapshotId || !submission.snapshot) {
+      throw new SubmissionError("Submission has no snapshot to publish.");
+    }
+    if (
+      payload.schemaVersion === "1.1.0" &&
+      (!submission.inspectionCaptureId || !submission.inspectionCapture)
+    ) {
+      throw new SubmissionError("Submission has no inspection capture to publish.");
+    }
+    if (!isDecidableStatus(submission.status)) {
+      throw new SubmissionError(
+        `Submission is already ${submission.status}; acceptance cannot replace that decision.`,
+        "conflict",
+      );
+    }
+    if (submission.inspectionCapture) {
+      const captured = verifyStoredCaptureForAcceptance(submission.inspectionCapture);
+      if (
+        payload.capturePayloadHash !== submission.inspectionCapture.payloadHash ||
+        (payload.publicationTargets.knowledgeNodes &&
+          canonicalJson(payload.nodeExtraction) !==
+            canonicalJson(captured.extraction.nodeExtraction)) ||
+        (payload.nodeExtraction.commitSha !== undefined &&
+          payload.nodeExtraction.commitSha !== submission.snapshot.commitSha)
+      ) {
+        throw new SubmissionError(
+          "Submitted node candidates do not match the immutable inspection capture.",
+          "conflict",
+        );
+      }
+    }
+    if (payload.validation.hardErrors.length > 0) {
+      throw new SubmissionError("Non-overridable automated checks still fail.", "conflict");
+    }
+    const claimed = await tx.submission.updateMany({
+      where: { id: submission.id, status: submission.status },
+      data: {
+        status: "accepted",
+        reviewerId,
+        reviewedAt: new Date(),
+        editorialNote: note,
+        acceptedNodeSelectionJson: selectionJson,
+        acceptedNodeSelectionHash: selectionHash,
+      },
+    });
+    if (claimed.count !== 1) {
+      throw new DecisionRaceError();
+    }
+
+    for (const override of validatedOverrides) {
+      await tx.editorialOverride.create({
+        data: {
+          submissionId: submission.id,
+          checkId: override.checkId,
+          rationale: override.rationale,
+          editorId: reviewerId,
+        },
+      });
+    }
+
+    let reviewSlug: string | undefined;
+    let reviewId: string | undefined;
+    let reviewVersionId: string | undefined;
+    if (payload.publicationTargets.proseReview) {
+      const materializedReview = await materializeReviewPublication(
+        tx,
+        submission,
+        payload,
+        consistency,
+      );
+      reviewSlug = materializedReview.slug;
+      reviewId = materializedReview.reviewId;
+      reviewVersionId = materializedReview.versionId;
+    }
+
+    const selected = new Set(requestedSelection);
+    const selectedCandidates = candidates.filter((entry) => selected.has(entry.node.id));
+    const nodeVersionIds = await materializeKnowledgeNodes(
+      tx,
+      submission,
+      selectedCandidates,
+      reviewerId,
+      reviewVersionId,
+    );
+    const nodeTrustRecords = payload.knowledge.trust.filter(
+      (record): record is NodeRelationTrustRecord => "subjectType" in record,
+    );
+    let edgeProposalIds: string[] = [];
+    let nodeTrustAssessmentIds: string[] = [];
+    if (
+      submission.inspectionCaptureId &&
+      submission.inspectionCapture &&
+      nodeVersionIds.length > 0
+    ) {
+      const selectedVersions = await tx.knowledgeNodeVersion.findMany({
+        where: { id: { in: nodeVersionIds } },
+        include: { knowledgeNode: true },
+      });
+      edgeProposalIds = await materializeAuthorEdgeProposals(tx, {
+        submissionId: submission.id,
+        submitterId: submission.submitterId,
+        inspectionCaptureId: submission.inspectionCaptureId,
+        capturePayloadHash: submission.inspectionCapture.payloadHash,
+        sourceRepositoryGithubId: submission.repository.githubRepositoryId,
+        sourceCommitSha: submission.snapshot.commitSha,
+        edges: payload.nodeExtraction.edges,
+        selectedVersions: selectedVersions.map((version) => ({
+          id: version.id,
+          knowledgeNodeId: version.knowledgeNodeId,
+          localNodeId: version.knowledgeNode.localNodeId,
+          kind: version.knowledgeNode.kind,
+        })),
+      });
+      nodeTrustAssessmentIds = await materializeNodeRelationTrustAssessments(
+        tx,
+        nodeTrustRecords,
+        edgeProposalIds,
+        {
+          submissionId: submission.id,
+          inspectionCaptureId: submission.inspectionCaptureId,
+          sourceRepositoryGithubId: submission.repository.githubRepositoryId,
+          sourceCommitSha: submission.snapshot.commitSha,
+        },
+      );
+    }
+
+    if (reviewId && reviewVersionId) {
+      await tx.submission.update({
+        where: { id: submission.id },
+        data: { resultingReviewId: reviewId, resultingReviewVersionId: reviewVersionId },
+      });
+    }
+    await claimIdempotency(tx, `submission.accepted:${submission.id}`, operationHash);
+    await tx.auditEvent.create({
+      data: {
+        actorId: reviewerId,
+        action: "submission.accepted",
+        subjectType: "submission",
+        subjectId: submission.id,
+        idempotencyKey: `submission.accepted:${submission.id}`,
+        detailsJson: canonicalJson({
+          reviewSlug,
+          reviewVersionId,
+          selectedNodeIds: requestedSelection,
+          nodeVersionIds,
+          edgeProposalIds,
+          nodeTrustAssessmentIds,
+          overrideCheckIds: validatedOverrides.map((entry) => entry.checkId),
+        }),
+      },
+    });
+    if (reviewId && reviewVersionId) {
+      await claimIdempotency(tx, `review.published:${submission.id}`);
+      await tx.auditEvent.create({
+        data: {
+          actorId: reviewerId,
+          action: "review.published",
+          subjectType: "review",
+          subjectId: reviewId,
+          idempotencyKey: `review.published:${submission.id}`,
+          detailsJson: canonicalJson({
+            versionId: reviewVersionId,
+            capturePayloadHash: payload.capturePayloadHash,
+          }),
+        },
+      });
+    }
+    return {
+      reviewSlug,
+      nodeVersionIds,
+      selectedNodeIds: requestedSelection,
+      idempotent: false,
+    };
+  };
+  const run = () =>
+    transactionClient
+      ? operation(transactionClient)
+      : withSqliteRetry(() =>
+          prisma.$transaction(operation, {
+            maxWait: 5_000,
+            timeout: 15_000,
+            isolationLevel: "Serializable",
+          }),
+        );
+
+  if (transactionClient) return run();
 
   for (let uniqueAttempt = 0; ; uniqueAttempt += 1) {
     try {
       return await run();
     } catch (error) {
-      const accepted = await readAcceptedResult(submissionId, selectionHash);
+      const operationHash = acceptanceOperationHash(
+        reviewerId,
+        note,
+        overrides,
+        requestedSelection,
+      );
+      const accepted = await readAcceptedResult(submissionId, selectionHash, operationHash);
       if (accepted) return accepted;
       if (error instanceof DecisionRaceError) throw error;
       if (prismaCode(error) === "P2002") {
@@ -652,6 +695,26 @@ export async function acceptSubmission(
   }
 }
 
+export function acceptSubmissionInTransaction(
+  tx: Prisma.TransactionClient,
+  submissionId: string,
+  reviewerId: string,
+  note: string | undefined,
+  overrides: EditorialOverrideInput[],
+  selectedNodeIds: string[],
+  formalRoundId: string,
+): Promise<AcceptanceResult> {
+  return acceptSubmission(
+    submissionId,
+    reviewerId,
+    note,
+    overrides,
+    selectedNodeIds,
+    tx,
+    formalRoundId,
+  );
+}
+
 type SubmissionForAcceptance = Prisma.SubmissionGetPayload<{
   include: { repository: true; snapshot: true; inspectionCapture: true };
 }>;
@@ -668,6 +731,61 @@ function normalizeRequestedSelection(selectedNodeIds: string[]): string[] {
     throw new SubmissionError("Selected node ids must be unique.");
   }
   return normalized.sort((a, b) => a.localeCompare(b));
+}
+
+function acceptanceOperationHash(
+  reviewerId: string,
+  note: string | undefined,
+  overrides: EditorialOverrideInput[],
+  selectedNodeIds: string[],
+): string {
+  return sha256(
+    canonicalJson({
+      reviewerId,
+      note: note ?? null,
+      overrides: [...overrides].sort(
+        (left, right) =>
+          left.checkId.localeCompare(right.checkId) ||
+          left.rationale.localeCompare(right.rationale),
+      ),
+      selectedNodeIds,
+    }),
+  );
+}
+
+async function assertFormalRoundDecisionScope(
+  tx: Prisma.TransactionClient,
+  submissionId: string,
+  formalRoundId?: string,
+): Promise<void> {
+  const openRound = await tx.reviewRound.findFirst({
+    where: { submissionId, status: "open" },
+    select: { id: true },
+  });
+  if (formalRoundId) {
+    if (openRound?.id !== formalRoundId) {
+      throw new SubmissionError("The formal review round is no longer open.", "conflict");
+    }
+    return;
+  }
+  if (openRound) {
+    throw new SubmissionError(
+      "This submission has an open formal review round; issue its decision with a decision letter.",
+      "conflict",
+    );
+  }
+}
+
+async function assertIdempotencyBinding(
+  tx: Prisma.TransactionClient,
+  key: string,
+  requestHash: string,
+  conflictMessage: string,
+): Promise<void> {
+  const claim = await tx.idempotencyKey.findUnique({ where: { key } });
+  if (claim?.requestHash !== requestHash) {
+    throw new SubmissionError(conflictMessage, "conflict");
+  }
 }
 
 function validateRequestedSelection(selection: string[], candidateIds: string[]): void {
@@ -952,43 +1070,69 @@ export async function decideSubmission(
   reviewerId: string,
   decision: "reject" | "request-changes",
   note?: string,
+  transactionClient?: Prisma.TransactionClient,
+  formalRoundId?: string,
 ): Promise<{ idempotent: boolean }> {
   const status = decision === "reject" ? "rejected" : "changes-requested";
-  return withSqliteRetry(() =>
-    prisma.$transaction(
-      async (tx) => {
-        const current = await tx.submission.findUnique({ where: { id: submissionId } });
-        if (!current) throw new SubmissionError("Submission not found.");
-        if (current.status === status) return { idempotent: true };
-        if (!isDecidableStatus(current.status)) {
-          throw new SubmissionError(
-            `Submission is already ${current.status}; this decision cannot replace it.`,
-            "conflict",
-          );
-        }
-        const changed = await tx.submission.updateMany({
-          where: { id: submissionId, status: current.status },
-          data: { status, reviewerId, reviewedAt: new Date(), editorialNote: note },
-        });
-        if (changed.count !== 1) {
-          throw new SubmissionError("Submission decision changed concurrently.", "conflict");
-        }
-        await claimIdempotency(tx, `submission.${decision}:${submissionId}`);
-        await tx.auditEvent.create({
-          data: {
-            actorId: reviewerId,
-            action: `submission.${decision}`,
-            subjectType: "submission",
-            subjectId: submissionId,
-            idempotencyKey: `submission.${decision}:${submissionId}`,
-            detailsJson: canonicalJson({ note }),
-          },
-        });
-        return { idempotent: false };
+  const operationHash = sha256(canonicalJson({ reviewerId, decision, note: note ?? null }));
+  const operation = async (tx: Prisma.TransactionClient) => {
+    const current = await tx.submission.findUnique({ where: { id: submissionId } });
+    if (!current) throw new SubmissionError("Submission not found.");
+    await assertFormalRoundDecisionScope(tx, submissionId, formalRoundId);
+    if (current.status === status) {
+      await assertIdempotencyBinding(
+        tx,
+        `submission.${decision}:${submissionId}`,
+        operationHash,
+        "Submission decision is bound to a different editor decision payload.",
+      );
+      return { idempotent: true };
+    }
+    if (!isDecidableStatus(current.status)) {
+      throw new SubmissionError(
+        `Submission is already ${current.status}; this decision cannot replace it.`,
+        "conflict",
+      );
+    }
+    const changed = await tx.submission.updateMany({
+      where: { id: submissionId, status: current.status },
+      data: { status, reviewerId, reviewedAt: new Date(), editorialNote: note },
+    });
+    if (changed.count !== 1) {
+      throw new SubmissionError("Submission decision changed concurrently.", "conflict");
+    }
+    await claimIdempotency(tx, `submission.${decision}:${submissionId}`, operationHash);
+    await tx.auditEvent.create({
+      data: {
+        actorId: reviewerId,
+        action: `submission.${decision}`,
+        subjectType: "submission",
+        subjectId: submissionId,
+        idempotencyKey: `submission.${decision}:${submissionId}`,
+        detailsJson: canonicalJson({ note }),
       },
-      { maxWait: 5_000, timeout: 15_000, isolationLevel: "Serializable" },
-    ),
+    });
+    return { idempotent: false };
+  };
+  if (transactionClient) return operation(transactionClient);
+  return withSqliteRetry(() =>
+    prisma.$transaction(operation, {
+      maxWait: 5_000,
+      timeout: 15_000,
+      isolationLevel: "Serializable",
+    }),
   );
+}
+
+export function decideSubmissionInTransaction(
+  tx: Prisma.TransactionClient,
+  submissionId: string,
+  reviewerId: string,
+  decision: "reject" | "request-changes",
+  note: string | undefined,
+  formalRoundId: string,
+): Promise<{ idempotent: boolean }> {
+  return decideSubmission(submissionId, reviewerId, decision, note, tx, formalRoundId);
 }
 
 type CaptureRow = {
@@ -1553,6 +1697,10 @@ function uniqueTargetLabel(error: unknown): string {
   return uniqueTargets(error).join(", ") || "unknown unique target";
 }
 
-async function claimIdempotency(tx: Prisma.TransactionClient, key: string): Promise<void> {
-  await tx.idempotencyKey.create({ data: { key } });
+async function claimIdempotency(
+  tx: Prisma.TransactionClient,
+  key: string,
+  requestHash?: string,
+): Promise<void> {
+  await tx.idempotencyKey.create({ data: { key, requestHash } });
 }

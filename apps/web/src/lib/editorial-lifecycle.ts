@@ -21,8 +21,8 @@ import { prisma } from "./db";
 import { prismaCode, withSqliteRetry as sharedWithSqliteRetry } from "./db-retry";
 import { sha256 } from "./hash";
 import {
-  acceptSubmission,
-  decideSubmission,
+  acceptSubmissionInTransaction,
+  decideSubmissionInTransaction,
   SubmissionError,
   type EditorialOverrideInput,
 } from "./submissions";
@@ -92,8 +92,11 @@ async function audit(
   subjectId: string,
   details: Record<string, unknown>,
   idempotencyKey?: string,
+  requestHash?: string,
 ): Promise<void> {
-  if (idempotencyKey) await tx.idempotencyKey.create({ data: { key: idempotencyKey } });
+  if (idempotencyKey) {
+    await tx.idempotencyKey.create({ data: { key: idempotencyKey, requestHash } });
+  }
   await tx.auditEvent.create({
     data: {
       actorId,
@@ -430,11 +433,10 @@ export interface IssueDecisionResult {
 }
 
 /**
- * Close a round with a decision letter and apply the archive decision. The
- * archive transition (accept / reject / request-changes) runs first through
- * the existing idempotent submission machinery; the letter + round closure
- * commit transactionally afterwards, so a retry after a partial failure
- * converges without double-applying either side.
+ * Close a round with a decision letter and apply the archive decision in one
+ * serializable transaction. Publication, the immutable letter, round closure,
+ * assignment updates, audit records, and notification either all commit or
+ * all roll back.
  */
 export async function issueDecision(
   actor: Actor,
@@ -452,44 +454,103 @@ export async function issueDecision(
   const parsedLetter = decisionLetterBodySchema.parse(letter);
   const bodyJson = canonicalJson(parsedLetter);
   const bodyHash = sha256(bodyJson);
+  const operationKey = `editorial.decision-issued:${roundId}`;
+  const operationHash = sha256(
+    canonicalJson({
+      actorId: actor.id,
+      decision: parsedDecision,
+      letter: parsedLetter,
+      note: note ?? null,
+      overrides: [...overrides].sort(
+        (left, right) =>
+          left.checkId.localeCompare(right.checkId) ||
+          left.rationale.localeCompare(right.rationale),
+      ),
+      selectedNodeIds: [...selectedNodeIds].sort((left, right) => left.localeCompare(right)),
+    }),
+  );
 
-  const round = await prisma.reviewRound.findUnique({
-    where: { id: roundId },
-    include: { submission: true, decisionLetter: true },
-  });
-  if (!round) throw new LifecycleError("Review round not found.", "not-found");
-  if (round.status !== "open" || round.decisionLetter) {
-    throw new LifecycleError("This round already has a decision.", "conflict");
-  }
-  const assignment = await prisma.editorAssignment.findUnique({
-    where: { submissionId_editorId: { submissionId: round.submissionId, editorId: actor.id } },
-  });
-  if (assignment?.status !== "active") {
-    throw new LifecycleError(
-      "Only an actively assigned, non-recused editor can issue a decision.",
-      "forbidden",
-    );
-  }
-
-  let reviewSlug: string | undefined;
-  if (parsedDecision === "accept") {
-    reviewSlug = (
-      await acceptSubmission(round.submissionId, actor.id, note, overrides, selectedNodeIds)
-    ).reviewSlug;
-  } else {
-    await decideSubmission(
-      round.submissionId,
-      actor.id,
-      parsedDecision === "reject" ? "reject" : "request-changes",
-      note,
-    );
-  }
-
-  await withRetry(() =>
+  return withRetry(() =>
     prisma.$transaction(
       async (tx) => {
-        const existing = await tx.decisionLetter.findUnique({ where: { roundId } });
-        if (existing) return; // idempotent retry
+        const currentActor = await tx.user.findUnique({
+          where: { id: actor.id },
+          select: { role: true },
+        });
+        if (!currentActor || !isEditorRole(currentActor.role)) {
+          throw new LifecycleError("Only a current editor can issue a decision.", "forbidden");
+        }
+        const round = await tx.reviewRound.findUnique({
+          where: { id: roundId },
+          include: { submission: true, decisionLetter: true },
+        });
+        if (!round) throw new LifecycleError("Review round not found.", "not-found");
+        const priorClaim = await tx.idempotencyKey.findUnique({ where: { key: operationKey } });
+        if (priorClaim) {
+          if (priorClaim.requestHash !== operationHash) {
+            throw new LifecycleError(
+              "This round decision is bound to a different payload.",
+              "conflict",
+            );
+          }
+          if (
+            round.status !== "decided" ||
+            round.decisionLetter?.editorId !== actor.id ||
+            round.decisionLetter.decision !== parsedDecision ||
+            round.decisionLetter.bodyHash !== bodyHash
+          ) {
+            throw new LifecycleError(
+              "Round decision idempotency record is incomplete.",
+              "conflict",
+            );
+          }
+          const review = round.submission.resultingReviewId
+            ? await tx.review.findUnique({
+                where: { id: round.submission.resultingReviewId },
+                select: { slug: true },
+              })
+            : null;
+          return { decision: parsedDecision, reviewSlug: review?.slug };
+        }
+        if (round.status !== "open" || round.decisionLetter) {
+          throw new LifecycleError("This round already has a decision.", "conflict");
+        }
+        const assignment = await tx.editorAssignment.findUnique({
+          where: {
+            submissionId_editorId: { submissionId: round.submissionId, editorId: actor.id },
+          },
+        });
+        if (assignment?.status !== "active") {
+          throw new LifecycleError(
+            "Only an actively assigned, non-recused editor can issue a decision.",
+            "forbidden",
+          );
+        }
+
+        let reviewSlug: string | undefined;
+        if (parsedDecision === "accept") {
+          reviewSlug = (
+            await acceptSubmissionInTransaction(
+              tx,
+              round.submissionId,
+              actor.id,
+              note,
+              overrides,
+              selectedNodeIds,
+              round.id,
+            )
+          ).reviewSlug;
+        } else {
+          await decideSubmissionInTransaction(
+            tx,
+            round.submissionId,
+            actor.id,
+            parsedDecision === "reject" ? "reject" : "request-changes",
+            note,
+            round.id,
+          );
+        }
+
         await tx.decisionLetter.create({
           data: { roundId, editorId: actor.id, decision: parsedDecision, bodyJson, bodyHash },
         });
@@ -513,7 +574,8 @@ export async function issueDecision(
           "review-round",
           roundId,
           { decision: parsedDecision, bodyHash, reviewSlug },
-          `editorial.decision-issued:${roundId}`,
+          operationKey,
+          operationHash,
         );
         await notify(
           tx,
@@ -523,11 +585,11 @@ export async function issueDecision(
           roundId,
           { decision: parsedDecision },
         );
+        return { decision: parsedDecision, reviewSlug };
       },
       { maxWait: 5_000, timeout: 15_000, isolationLevel: "Serializable" },
     ),
   );
-  return { decision: parsedDecision, reviewSlug };
 }
 
 /** Attach or clear the signed-in user's ORCID. Always recorded unverified. */

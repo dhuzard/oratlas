@@ -13,7 +13,7 @@ import {
 import { createEmptyNodeExtractionReport, type FullExtraction } from "@oratlas/extractor";
 import { type PrismaClient } from "@oratlas/db";
 import { type createInspectionCapture } from "./inspection-captures";
-import { type createSubmission } from "./submissions";
+import { type acceptSubmission, type createSubmission } from "./submissions";
 import type * as Lifecycle from "./editorial-lifecycle";
 import { type getDocmapForVersion } from "./editorial-docmap";
 
@@ -29,6 +29,7 @@ type Runtime = {
   prisma: PrismaClient;
   createInspectionCapture: typeof createInspectionCapture;
   createSubmission: typeof createSubmission;
+  acceptSubmission: typeof acceptSubmission;
   lifecycle: typeof Lifecycle;
   getDocmapForVersion: typeof getDocmapForVersion;
 };
@@ -71,6 +72,7 @@ beforeAll(async () => {
     prisma,
     createInspectionCapture: captures.createInspectionCapture,
     createSubmission: submissions.createSubmission,
+    acceptSubmission: submissions.acceptSubmission,
     lifecycle,
     getDocmapForVersion: docmapLib.getDocmapForVersion,
   };
@@ -119,6 +121,77 @@ async function newSubmission(
 }
 
 describe.sequential("formal editorial-review lifecycle", () => {
+  it("keeps formal decisions atomic and blocks the direct-decision bypass", async () => {
+    const submission = await newSubmission(submitter.id, "atomic-formal-decision", "900");
+    await runtime.lifecycle.assignEditor(editor, submission.submissionId, editor.id, {
+      declared: false,
+      statement: "",
+    });
+    const round = await runtime.lifecycle.openReviewRound(editor, submission.submissionId);
+
+    await expect(
+      runtime.acceptSubmission(submission.submissionId, editor.id),
+    ).rejects.toMatchObject({ code: "conflict" });
+    expect(
+      await runtime.prisma.submission.findUniqueOrThrow({
+        where: { id: submission.submissionId },
+      }),
+    ).toMatchObject({ status: "pending-editorial-review", resultingReviewVersionId: null });
+
+    const triggerName = "b01_abort_formal_decision_audit";
+    await runtime.prisma.$executeRawUnsafe(`
+      CREATE TRIGGER ${triggerName}
+      BEFORE INSERT ON "AuditEvent"
+      WHEN NEW."action" = 'editorial.decision-issued'
+      BEGIN
+        SELECT RAISE(ABORT, 'ORA-B01 injected late transaction crash');
+      END
+    `);
+    try {
+      await expect(
+        runtime.lifecycle.issueDecision(
+          editor,
+          round.roundId,
+          "accept",
+          {
+            schemaVersion: "1.0.0",
+            letter: "This acceptance must not survive without its formal audit record.",
+          },
+          "All formal review requirements were satisfied.",
+        ),
+      ).rejects.toBeTruthy();
+    } finally {
+      await runtime.prisma.$executeRawUnsafe(`DROP TRIGGER IF EXISTS ${triggerName}`);
+    }
+
+    expect(
+      await runtime.prisma.submission.findUniqueOrThrow({
+        where: { id: submission.submissionId },
+      }),
+    ).toMatchObject({ status: "pending-editorial-review", resultingReviewVersionId: null });
+    expect(
+      await runtime.prisma.reviewVersion.count({
+        where: { sourceSubmissionId: submission.submissionId },
+      }),
+    ).toBe(0);
+    expect(
+      await runtime.prisma.reviewRound.findUniqueOrThrow({ where: { id: round.roundId } }),
+    ).toMatchObject({ status: "open", decidedAt: null });
+    expect(await runtime.prisma.decisionLetter.count({ where: { roundId: round.roundId } })).toBe(
+      0,
+    );
+    expect(
+      await runtime.prisma.auditEvent.count({
+        where: {
+          OR: [
+            { idempotencyKey: `submission.accepted:${submission.submissionId}` },
+            { idempotencyKey: `editorial.decision-issued:${round.roundId}` },
+          ],
+        },
+      }),
+    ).toBe(0);
+  });
+
   it("traverses review rounds with an immutable, attributable public process history", async () => {
     const { lifecycle } = runtime;
     const first = await newSubmission(submitter.id, "lifecycle-review", "901");
@@ -221,6 +294,12 @@ describe.sequential("formal editorial-review lifecycle", () => {
       letter: "The revision addresses every concern from round one. Accepted.",
     });
     expect(decision2.reviewSlug).toBeDefined();
+    expect(
+      await lifecycle.issueDecision(editor, round2.roundId, "accept", {
+        schemaVersion: "1.0.0",
+        letter: "The revision addresses every concern from round one. Accepted.",
+      }),
+    ).toEqual(decision2);
 
     // Public process history spans the revision lineage, oldest first, with
     // verifiable hashes and attributable actors.
