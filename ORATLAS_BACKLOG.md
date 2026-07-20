@@ -627,7 +627,7 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-K01 — Postgres CI matrix
 
-- **Status:** backlog · **Priority:** P1 · **Size:** M · **Agent:** yes
+- **Status:** review · **Priority:** P1 · **Size:** M · **Agent:** yes
 - **Packages:** `.github`, `packages/db` · **External dep:** none · **Issue/PR:** builds on
   PR #22
 - **Goal:** CI's existing `postgres` job already proves schema generation, push, and seed
