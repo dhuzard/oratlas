@@ -44,6 +44,17 @@ export const evidenceClaimSchema = z.object({
             notableCriteria: z.array(z.string()).default([]),
           })
           .optional(),
+        trustAssessments: z
+          .array(
+            z.object({
+              reviewStatus: assessmentReviewStatusSchema,
+              verificationState: trustVerificationStateSchema,
+              aggregateScore: z.number().min(0).max(1).optional(),
+              aggregateMethod: z.string().optional(),
+              notableCriteria: z.array(z.string()).default([]),
+            }),
+          )
+          .optional(),
       }),
     )
     .default([]),

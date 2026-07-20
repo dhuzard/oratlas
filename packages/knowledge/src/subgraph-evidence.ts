@@ -192,15 +192,22 @@ function normalizeNode(node: SubgraphEvidenceNode): SubgraphEvidenceNode {
 }
 
 function normalizeEdge(edge: SubgraphEvidenceEdge): SubgraphEvidenceEdge {
-  if (!edge.trust) return edge;
   return {
     ...edge,
-    trust: {
-      ...edge.trust,
-      criteria: [...edge.trust.criteria].sort((left, right) =>
+    trust: edge.trust
+      ? {
+          ...edge.trust,
+          criteria: [...edge.trust.criteria].sort((left, right) =>
+            compare(left.criterion, right.criterion),
+          ),
+        }
+      : undefined,
+    trustAssessments: edge.trustAssessments?.map((assessment) => ({
+      ...assessment,
+      criteria: [...assessment.criteria].sort((left, right) =>
         compare(left.criterion, right.criterion),
       ),
-    },
+    })),
   };
 }
 
@@ -329,7 +336,10 @@ function validateGraph(source: SubgraphEvidenceSource): void {
     "edge id",
   );
   assertUnique(
-    source.edges.flatMap((edge) => (edge.trust ? [edge.trust.assessmentId] : [])),
+    source.edges.flatMap((edge) => [
+      ...(edge.trust ? [edge.trust.assessmentId] : []),
+      ...(edge.trustAssessments ?? []).map((assessment) => assessment.assessmentId),
+    ]),
     "TRUST assessment ownership",
   );
   assertUnique(
@@ -403,20 +413,22 @@ function validateGraph(source: SubgraphEvidenceSource): void {
         "An edge is not bound to the supplied exact node versions.",
       );
     }
-    if (
-      edge.trust &&
-      (edge.trust.subject.sourceNodeId !== edge.sourceNodeId ||
-        edge.trust.subject.sourceVersionId !== edge.sourceVersionId ||
-        edge.trust.subject.targetNodeId !== edge.targetNodeId ||
-        edge.trust.subject.targetVersionId !== edge.targetVersionId ||
-        edge.trust.subject.relationType !== edge.relationType)
-    ) {
-      throw new SubgraphEvidenceBuildError(
-        "ownership-mismatch",
-        "A TRUST summary is not bound to its owning exact edge.",
-      );
+    const assessments = edge.trustAssessments ?? (edge.trust ? [edge.trust] : []);
+    for (const assessment of assessments) {
+      if (
+        assessment.subject.sourceNodeId !== edge.sourceNodeId ||
+        assessment.subject.sourceVersionId !== edge.sourceVersionId ||
+        assessment.subject.targetNodeId !== edge.targetNodeId ||
+        assessment.subject.targetVersionId !== edge.targetVersionId ||
+        assessment.subject.relationType !== edge.relationType
+      ) {
+        throw new SubgraphEvidenceBuildError(
+          "ownership-mismatch",
+          "A TRUST summary is not bound to its owning exact edge.",
+        );
+      }
     }
-    if (edge.trust) {
+    if (assessments.length > 0) {
       const expectedRelation =
         targetNode.kind === "dataset"
           ? "uses-dataset"

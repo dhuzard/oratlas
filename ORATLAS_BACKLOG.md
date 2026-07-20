@@ -274,8 +274,9 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-D01 — Multiple-assessment contract (coexistence without overwrite)
 
-- **Status:** ready · **Priority:** P1 · **Size:** M · **Agent:** yes (identity, replay,
-  singleton, supersession, and ordering contract ratified in `ORATLAS_DECISIONS.md` §11)
+- **Status:** review (integration train 2) · **Priority:** P1 · **Size:** M · **Agent:** yes
+  (identity, replay, singleton, supersession, and ordering contract ratified in
+  `ORATLAS_DECISIONS.md` §11)
 - **Packages:** `packages/contracts`, `packages/trust`, `packages/db`, `apps/web` ·
   **External dep:** none · **Issue/PR:** none
 - **Goal:** `TrustAssessment` has no uniqueness on its relation, so multiple rows can exist,

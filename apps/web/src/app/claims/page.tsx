@@ -60,15 +60,19 @@ export default async function ClaimsPage({
                     {contradict > 0 ? (
                       <Badge tone="warning">{contradict} contradicting</Badge>
                     ) : null}
-                    {claim.relations.some(
-                      (r) =>
-                        r.trust?.reviewStatus === "human-reviewed" ||
-                        r.trust?.reviewStatus === "adjudicated",
+                    {claim.relations.some((r) =>
+                      (r.trustAssessments ?? (r.trust ? [r.trust] : [])).some(
+                        (assessment) =>
+                          assessment.reviewStatus === "human-reviewed" ||
+                          assessment.reviewStatus === "adjudicated",
+                      ),
                     ) ? (
                       <ProvenanceBadge kind="human-reviewed">
                         Atlas structurally reviewed
                       </ProvenanceBadge>
-                    ) : claim.relations.some((r) => r.trust) ? (
+                    ) : claim.relations.some(
+                        (r) => (r.trustAssessments?.length ?? 0) > 0 || r.trust !== undefined,
+                      ) ? (
                       <ProvenanceBadge kind="repository-fact">
                         Repository TRUST assertion
                       </ProvenanceBadge>

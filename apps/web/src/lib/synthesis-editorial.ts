@@ -53,7 +53,7 @@ import {
   PUBLIC_NODE_RELATION_TRUST_PER_KEY_LIMIT,
   resolveLoadedNodeRelationTrustAssessment,
 } from "./trust-provenance";
-import { selectPreferredTrustAssessment } from "@oratlas/trust";
+import { orderTrustAssessments } from "@oratlas/trust";
 
 const SYNTHESIS_TOPIC_SCAN_LIMIT = 1_000;
 const SYNTHESIS_TRANSACTION_ATTEMPTS = 3;
@@ -152,7 +152,10 @@ async function loadAuthoritativeTrustByEdge(
   client: PrismaClient,
   selectedEdges: SubgraphEvidenceSource["edges"],
 ) {
-  const result = new Map<string, NonNullable<SubgraphEvidenceSource["edges"][number]["trust"]>>();
+  const result = new Map<
+    string,
+    NonNullable<SubgraphEvidenceSource["edges"][number]["trustAssessments"]>
+  >();
   if (selectedEdges.length === 0) return result;
   const rows = await client.nodeRelationTrustAssessment.findMany({
     where: {
@@ -183,11 +186,11 @@ async function loadAuthoritativeTrustByEdge(
         "TRUST selection exceeds the authoritative per-relation bound.",
       );
     }
-    const preferred = selectPreferredTrustAssessment(
+    const assessments = orderTrustAssessments(
       candidates.flatMap((row) => {
         try {
           const resolved = resolveLoadedNodeRelationTrustAssessment(row);
-          if (!resolved.authoritative || resolved.state !== "platform-verified") return [];
+          if (!resolved.authoritative) return [];
           const criteria = TRUST_CRITERIA.flatMap((criterion) => {
             const encoded = resolved.subject.assessment.criteriaJson[criterion];
             if (!encoded) return [];
@@ -226,8 +229,10 @@ async function loadAuthoritativeTrustByEdge(
           return [
             {
               id: row.id,
-              effectiveStatus: resolved.effectiveStatus,
               assessedAt: row.assessedAt?.toISOString() ?? null,
+              assessorType: row.assessorType,
+              assessorId: row.assessorId,
+              protocolVersion: row.protocolVersion,
               value: value.data,
             },
           ];
@@ -235,8 +240,8 @@ async function loadAuthoritativeTrustByEdge(
           return [];
         }
       }),
-    )?.value;
-    if (preferred) result.set(edge.id, preferred);
+    ).map(({ value }) => value);
+    result.set(edge.id, assessments);
   }
   return result;
 }
@@ -384,7 +389,10 @@ export async function loadPreparedSynthesisPacket(
         .map((edge) => edge.id),
     },
     nodes: selectedNodes,
-    edges: selectedEdges.map((edge) => ({ ...edge, trust: trustByEdge.get(edge.id) })),
+    edges: selectedEdges.map((edge) => ({
+      ...edge,
+      trustAssessments: trustByEdge.get(edge.id) ?? [],
+    })),
   };
   return buildPreparedSubgraphEvidencePacket(source);
 }

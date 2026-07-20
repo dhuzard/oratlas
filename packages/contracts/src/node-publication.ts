@@ -128,6 +128,19 @@ export const publicNodeEdgeSchema = z
       })
       .strict()
       .optional(),
+    trustAssessments: z.array(
+      z
+        .object({
+          assessmentId: z.string().min(1),
+          protocolVersion: z.string().min(1).max(40),
+          assessorType: z.string().min(1).max(40),
+          assessorId: z.string().min(1).max(200).optional(),
+          assessedAt: z.string().datetime().optional(),
+          reviewStatus: assessmentReviewStatusSchema,
+          verificationState: trustVerificationStateSchema,
+        })
+        .strict(),
+    ),
     relatedNode: publicRelatedNodeVersionSchema,
   })
   .strict();
@@ -153,6 +166,21 @@ export const publicNodeTrustContextSchema = z
       })
       .strict()
       .optional(),
+    trustAssessments: z.array(
+      z
+        .object({
+          assessmentId: z.string().min(1),
+          protocolVersion: z.string().min(1).max(40),
+          assessorType: z.string().min(1).max(40),
+          assessorId: z.string().min(1).max(200).optional(),
+          assessedAt: z.string().datetime().optional(),
+          reviewStatus: assessmentReviewStatusSchema,
+          verificationState: trustVerificationStateSchema,
+          aggregateScore: z.number().min(0).max(1).optional(),
+          aggregateMethod: z.string().optional(),
+        })
+        .strict(),
+    ),
   })
   .strict();
 

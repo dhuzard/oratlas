@@ -820,33 +820,64 @@ function resolveVerificationForHash(
   };
 }
 
-export interface PublicTrustCandidate<T = unknown> {
+export interface PublicTrustAssessment<T = unknown> {
   id: string;
-  effectiveStatus: AssessmentReviewStatus;
   assessedAt: string | null;
+  assessorType: string;
+  assessorId: string | null;
+  protocolVersion: string;
   value: T;
 }
 
-const STATUS_PRECEDENCE: Record<AssessmentReviewStatus, number> = {
-  adjudicated: 5,
-  "human-reviewed": 4,
-  "unverified-import": 3,
-  "agent-proposed": 2,
-  superseded: 1,
-};
-
-/** Stable choice when a relation carries multiple assessments. */
-export function selectPreferredTrustAssessment<T>(
-  candidates: PublicTrustCandidate<T>[],
-): PublicTrustCandidate<T> | undefined {
-  return [...candidates].sort((left, right) => {
-    const status =
-      STATUS_PRECEDENCE[right.effectiveStatus] - STATUS_PRECEDENCE[left.effectiveStatus];
-    if (status !== 0) return status;
-    const time = (right.assessedAt ?? "").localeCompare(left.assessedAt ?? "");
+/**
+ * Stable display order for a complete assessment set. The ordering deliberately
+ * excludes ratings, aggregate values, review status, and verification state so
+ * that position can never imply that one assessment won.
+ */
+export function orderTrustAssessments<T>(
+  assessments: readonly PublicTrustAssessment<T>[],
+): PublicTrustAssessment<T>[] {
+  return [...assessments].sort((left, right) => {
+    const time = (left.assessedAt ?? "").localeCompare(right.assessedAt ?? "");
     if (time !== 0) return time;
+    const assessorType = left.assessorType.localeCompare(right.assessorType);
+    if (assessorType !== 0) return assessorType;
+    const assessorId = (left.assessorId ?? "").localeCompare(right.assessorId ?? "");
+    if (assessorId !== 0) return assessorId;
+    const protocol = left.protocolVersion.localeCompare(right.protocolVersion);
+    if (protocol !== 0) return protocol;
     return left.id.localeCompare(right.id);
-  })[0];
+  });
+}
+
+export interface AssessmentSourceIdentity {
+  sourceRecordHash: string;
+  sourceLineageKey: string;
+}
+
+/**
+ * Identity used by database ingestion. Exact canonical source bytes are
+ * idempotent; a changed record from the same subject/assessor/protocol lineage
+ * is a new assessment that may point back to the preceding row.
+ */
+export function assessmentSourceIdentity(record: TrustAssessmentRecord): AssessmentSourceIdentity {
+  const parsed = trustAssessmentRecordSchema.parse(record);
+  const sourceRecordHash = createHash("sha256").update(canonicalJson(parsed)).digest("hex");
+  const subject =
+    "subjectType" in parsed
+      ? parsed.subject
+      : { claimId: parsed.claimId, citationId: parsed.citationId };
+  const sourceLineageKey = createHash("sha256")
+    .update(
+      canonicalJson({
+        subject,
+        assessorType: parsed.assessorType,
+        assessorId: parsed.assessorId ?? null,
+        protocolVersion: parsed.protocolVersion,
+      }),
+    )
+    .digest("hex");
+  return { sourceRecordHash, sourceLineageKey };
 }
 
 export { TRUST_CRITERIA };
