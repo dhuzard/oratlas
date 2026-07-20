@@ -674,8 +674,9 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-L01 — Reconcile planning and status documentation with implementation
 
-- **Status:** ready · **Priority:** P1 · **Size:** S · **Agent:** yes
-- **Packages:** repo root, `docs` · **External dep:** none · **Issue/PR:** none
+- **Status:** review · **Priority:** P1 · **Size:** S · **Agent:** yes
+- **Packages:** repo root, `docs` · **External dep:** none · **Issue/PR:**
+  [#88](https://github.com/dhuzard/oratlas/pull/88)
 - **Goal:** `PLAN.md` still frames KG-01…KG-20 as "the next phase"; `TODO.md` is a completed
   tracker that reads as active; README should point newcomers at the current model and this
   backlog. Bring the narrative docs in line with shipped reality and this file (partially done
