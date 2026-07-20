@@ -112,9 +112,9 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-A02 — Report absent optional artifacts instead of empty successful features
 
-- **Status:** in-progress · **Priority:** P0 · **Size:** M · **Agent:** yes
+- **Status:** review · **Priority:** P0 · **Size:** M · **Agent:** yes
 - **Packages:** `packages/extractor`, `packages/contracts`, `apps/web` · **External dep:** none
-  · **Issue/PR:** none
+  · **Issue/PR:** [#73](https://github.com/dhuzard/oratlas/pull/73)
 - **Goal:** "No claims were extracted for this review" (`apps/web/src/app/reviews/[slug]/page.tsx:488`)
   currently renders identically whether the repository never declared a claims artifact, declared
   one that failed validation, or declared one that legitimately contained zero records. That
