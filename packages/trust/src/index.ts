@@ -190,10 +190,37 @@ function normalizeImportedRecord<T extends TrustAssessmentRecord>(
   };
 }
 
-/** Ordinal comparison helper for filtering (e.g. "at least moderate"). */
-export function ordinalAtLeast(rating: TrustOrdinal, threshold: TrustOrdinal): boolean {
-  const a = ORDINAL_VALUES[rating];
-  const b = ORDINAL_VALUES[threshold];
+export type CrossAssessmentOperation = "selection" | "aggregation" | "comparison" | "disagreement";
+
+/**
+ * TRUST is the fixed protocol family; its version is an opaque exact string.
+ * No caller may compare, select, aggregate, or adjudicate across versions
+ * unless an explicit editorial crosswalk is introduced in the future.
+ */
+export function assertSingleAssessmentProtocol(
+  operation: CrossAssessmentOperation,
+  assessments: readonly { protocolVersion: string }[],
+): string | undefined {
+  const protocolVersion = assessments[0]?.protocolVersion;
+  if (assessments.some((assessment) => assessment.protocolVersion !== protocolVersion)) {
+    throw new Error(`${operation} requires one exact TRUST protocol version.`);
+  }
+  return protocolVersion;
+}
+
+export interface ProtocolTrustOrdinal {
+  protocolVersion: string;
+  rating: TrustOrdinal;
+}
+
+/** Protocol-aware ordinal comparison helper (e.g. "at least moderate"). */
+export function ordinalAtLeast(
+  rating: ProtocolTrustOrdinal,
+  threshold: ProtocolTrustOrdinal,
+): boolean {
+  assertSingleAssessmentProtocol("comparison", [rating, threshold]);
+  const a = ORDINAL_VALUES[rating.rating];
+  const b = ORDINAL_VALUES[threshold.rating];
   if (a === null || b === null) return false;
   return a >= b;
 }
@@ -822,6 +849,7 @@ function resolveVerificationForHash(
 
 export interface PublicTrustCandidate<T = unknown> {
   id: string;
+  protocolVersion: string;
   effectiveStatus: AssessmentReviewStatus;
   assessedAt: string | null;
   value: T;
@@ -839,6 +867,7 @@ const STATUS_PRECEDENCE: Record<AssessmentReviewStatus, number> = {
 export function selectPreferredTrustAssessment<T>(
   candidates: PublicTrustCandidate<T>[],
 ): PublicTrustCandidate<T> | undefined {
+  assertSingleAssessmentProtocol("selection", candidates);
   return [...candidates].sort((left, right) => {
     const status =
       STATUS_PRECEDENCE[right.effectiveStatus] - STATUS_PRECEDENCE[left.effectiveStatus];

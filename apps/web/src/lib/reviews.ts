@@ -288,6 +288,7 @@ export async function getReviewDetail(
           );
           return {
             id: assessment.id,
+            protocolVersion: assessment.protocolVersion,
             effectiveStatus: resolved.effectiveStatus,
             assessedAt: assessment.assessedAt?.toISOString() ?? null,
             value: { assessment, resolved },

@@ -342,7 +342,7 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-D04 — Protocol-crosswalk guard: never translate between assessment protocols
 
-- **Status:** backlog · **Priority:** P0 · **Size:** S · **Agent:** yes
+- **Status:** in-progress · **Priority:** P0 · **Size:** S · **Agent:** yes
 - **Packages:** `packages/trust`, `packages/contracts`, `docs` · **External dep:**
   `Neuronautix/ComputationalReviewTemplate_trust-knowledge` (protocol identity semantics) ·
   **Issue/PR:** none

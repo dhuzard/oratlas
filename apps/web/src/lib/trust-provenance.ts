@@ -175,6 +175,7 @@ export function selectPreferredPublicNodeRelationTrustAssessment(
       return [
         {
           id: row.id,
+          protocolVersion: row.protocolVersion,
           effectiveStatus: resolved.effectiveStatus,
           assessedAt: row.assessedAt?.toISOString() ?? null,
           value: { assessmentId: row.id, ...parsed.data },

@@ -226,6 +226,7 @@ async function loadAuthoritativeTrustByEdge(
           return [
             {
               id: row.id,
+              protocolVersion: row.protocolVersion,
               effectiveStatus: resolved.effectiveStatus,
               assessedAt: row.assessedAt?.toISOString() ?? null,
               value: value.data,

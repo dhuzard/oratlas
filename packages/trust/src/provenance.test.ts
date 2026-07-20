@@ -264,14 +264,49 @@ describe("TRUST reviewed-subject integrity", () => {
     const candidates = [
       {
         id: "b",
+        protocolVersion: "trust-poc-1.0",
         effectiveStatus: "unverified-import" as const,
         assessedAt: "2026-02-01",
         value: 1,
       },
-      { id: "z", effectiveStatus: "human-reviewed" as const, assessedAt: "2026-01-01", value: 2 },
-      { id: "a", effectiveStatus: "human-reviewed" as const, assessedAt: "2026-01-01", value: 3 },
+      {
+        id: "z",
+        protocolVersion: "trust-poc-1.0",
+        effectiveStatus: "human-reviewed" as const,
+        assessedAt: "2026-01-01",
+        value: 2,
+      },
+      {
+        id: "a",
+        protocolVersion: "trust-poc-1.0",
+        effectiveStatus: "human-reviewed" as const,
+        assessedAt: "2026-01-01",
+        value: 3,
+      },
     ];
     expect(selectPreferredTrustAssessment(candidates)?.value).toBe(3);
+  });
+
+  it("refuses to choose between different TRUST protocol versions", () => {
+    const candidates = [
+      {
+        id: "a",
+        protocolVersion: "trust-poc-1.0",
+        effectiveStatus: "human-reviewed" as const,
+        assessedAt: "2026-01-01",
+        value: 1,
+      },
+      {
+        id: "b",
+        protocolVersion: "trust-poc-1.1",
+        effectiveStatus: "human-reviewed" as const,
+        assessedAt: "2026-01-02",
+        value: 2,
+      },
+    ];
+    expect(() => selectPreferredTrustAssessment(candidates)).toThrow(
+      "selection requires one exact TRUST protocol version",
+    );
   });
 
   it("keeps hashes independent of Prisma include/query shape", () => {
