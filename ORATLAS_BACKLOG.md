@@ -644,9 +644,9 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-K02 — Fixture-capture tooling for frozen external repositories
 
-- **Status:** in-progress · **Priority:** P1 · **Size:** S · **Agent:** yes
+- **Status:** review · **Priority:** P1 · **Size:** S · **Agent:** yes
 - **Packages:** `scripts`, test fixtures · **External dep:** any pinned external repo ·
-  **Issue/PR:** generalizes the KG-20 interception pattern
+  **Issue/PR:** [#77](https://github.com/dhuzard/oratlas/pull/77), generalizes the KG-20 interception pattern
 - **Goal:** ORA-A03 needs to freeze a real repository deterministically; future reference
   reviews will too. Provide one reusable capture script: given `owner/repo` + commit/release,
   fetch the bounded file set the inspector would read, write hashed fixture bytes, and emit
