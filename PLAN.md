@@ -43,7 +43,7 @@ TypeScript pnpm monorepo:
 
 Full details: `docs/architecture.md`.
 
-## Implementation backlog
+## Shipped implementation plan
 
 1. **PR-00 Repository initialization** — pnpm workspace, TS/ESLint/Prettier/Vitest config, `.env.example`, PLAN, docs skeleton, dev log.
 2. **PR-01 Shared contracts and schemas** — Zod schemas for manifest, inspection & compatibility reports, DOI validation results, submission statuses, TRUST enums, discussion answers; `review-manifest.schema.json`; artifact-path safety; tests.
@@ -59,9 +59,13 @@ Full details: `docs/architecture.md`.
 
 Progress and outcomes per slice are recorded in `docs/development-log.md`.
 
-All PR-00…PR-10 slices above have shipped. The next phase — node-first publication (claims,
-figures, datasets, code as first-class knowledge-graph nodes) and AI-written long-form
-syntheses consumed by humans — is specified as an agent-ready backlog in `TODO.md` (KG-01…KG-20).
+All PR-00…PR-10 slices above have shipped. The later KG-01…KG-20 node-first publication and
+AI-synthesis phase has also shipped; [`TODO.md`](TODO.md) is retained only as that phase's historical
+record.
+
+Current work is tracked exclusively in [`ORATLAS_BACKLOG.md`](ORATLAS_BACKLOG.md), with unresolved
+governance and scientific questions in [`ORATLAS_DECISIONS.md`](ORATLAS_DECISIONS.md) and pinned
+upstream coupling in [`CROSS_REPO_DEPENDENCIES.md`](CROSS_REPO_DEPENDENCIES.md).
 
 ## Non-goals (POC boundary)
 

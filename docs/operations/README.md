@@ -27,4 +27,6 @@ pull request:
 - **Security & governance** — dependency review, CodeQL and pinned actions (see
   the repository governance workstream).
 
-Refs #7.
+These runbooks delivered the implemented parts of the now-closed production-readiness umbrella
+[issue #7](https://github.com/dhuzard/oratlas/issues/7). Deferred items are stated explicitly in
+their owning runbook or the canonical backlog; the closed umbrella is not an active tracker.
