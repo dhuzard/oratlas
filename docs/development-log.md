@@ -689,3 +689,15 @@ introducing a test-only production route or granting an agent publication author
   node-head-change proposal with its exact old/new node-version IDs, requesting regeneration as an
   editor, and verifying the public reader and archive stale disclosures. CI explicitly clears
   provider, model, and API-key variables so the journey stays offline and deterministic.
+
+## ORA-L01 — Planning and status documentation reconciliation
+
+**Objective:** make the repository's narrative point to the canonical current tracker without
+rewriting the historical implementation record.
+
+- Marked PR-00…PR-10 and KG-01…KG-20 as shipped phases, retained `TODO.md` as history, and linked
+  `ORATLAS_BACKLOG.md`, `ORATLAS_DECISIONS.md`, and `CROSS_REPO_DEPENDENCIES.md` from the current plan.
+- Added the active backlog and decision register to the README documentation index.
+- Verified that references #3, #7, #56, #60, and #66 are real, closed repository issues rather than
+  PR-number drift. Documentation now labels them as closed implementation/umbrella records and
+  names work that remains deferred instead of saying a closed issue has yet to land.
