@@ -25,7 +25,7 @@ only in local capture scripts (ORA-K02).
 ## 2. Neuronautix/ComputationalReviewTemplate_trust-knowledge — native TRUST methodology
 
 - **Role:** Owns the native Computational Review TRUST methodology. ORAtlas owns the
-  *archival representation* of TRUST records (criteria, statuses, provenance, verification
+  _archival representation_ of TRUST records (criteria, statuses, provenance, verification
   markers), never the methodology, its rubric text, or its scoring guidance.
 - **What ORAtlas consumes:** the record semantics behind `TRUST_CRITERIA`
   (`packages/contracts`), `protocolVersion` identity, and the JSONL record forms documented
@@ -45,13 +45,13 @@ only in local capture scripts (ORA-K02).
   mention. The integration is entirely outstanding.
 - **Pin:** _not yet chosen._ To be recorded here when ORA-A03 starts, as:
 
-  | Field | Value |
-  | --- | --- |
-  | GitHub repository id (immutable) | TBD |
-  | Release tag | TBD |
-  | Commit SHA | TBD |
-  | Tree hash | TBD |
-  | Fixture manifest SHA-256 | TBD |
+  | Field                            | Value |
+  | -------------------------------- | ----- |
+  | GitHub repository id (immutable) | TBD   |
+  | Release tag                      | TBD   |
+  | Commit SHA                       | TBD   |
+  | Tree hash                        | TBD   |
+  | Fixture manifest SHA-256         | TBD   |
 
 - **Rules:** the fixture is captured once at the pin via the ORA-K02 script and checked in;
   CI never contacts the live repository; updating the pin is a deliberate, reviewed re-capture

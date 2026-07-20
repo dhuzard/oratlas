@@ -34,22 +34,22 @@ The following areas from the platform charter are **implemented and verified** i
 `main`; new backlog items must not duplicate them. Evidence: `docs/development-log.md`, merged
 PRs, and the cited code.
 
-| Area | Evidence |
-| --- | --- |
-| Exact repository / release / tag-object / commit pinning; atomic inspection captures with SHA-256 payload hashes | PR #13; `InspectionCapture`, `RepositorySnapshot` (`packages/db/prisma/schema.prisma`), `docs/data-model.md` |
-| Immutable versions, append-only lifecycle, corrections/withdrawals, safe tombstones | PRs #15, #16, #17; `ReviewLifecycleEvent`, `docs/article-lifecycle.md` |
-| Transactional acceptance (serializable compare-and-set, idempotency keys, unique constraints) | `IdempotencyKey`, acceptance transactions, `docs/data-model.md` |
-| Source-native vs ORAtlas-native assessment separation: imports are publicly `unverified-import`; a separate hash-guarded `TrustVerification` marker fails closed on any mutation | PR #11; `docs/trust-model.md`, `TrustAssessment`/`TrustVerification` |
-| Original assessment unit preserved: TRUST attaches only to a claim–evidence relation (claim–citation or node-relation); no bare-node form exists | `packages/trust`, `nodeRelationTrustRecordSchema`, `docs/trust-model.md` |
-| `not-assessed` / `not-applicable` excluded from aggregates, never counted as zero; aggregates optional, advisory, and method-labelled | `packages/trust/src/index.ts` (`ordinal-mean-1.0`) |
-| Knowledge nodes, typed edges, propose→confirm lifecycle, graph API/explorer | KG-01…KG-10 (PRs #31–#50) |
-| Grounded AI synthesis with editorial gate, packet hashes, staleness, diffs, coverage, governance policy, grounding-eval CI, full-pipeline e2e | KG-11…KG-20 (PRs #51–#70), `docs/synthesis-*.md` |
-| Contradiction maps and evidence-independence–aware synthesis (shared-dataset awareness) | PR #21, `docs/synthesis-and-contradictions.md` |
-| Claim passports, lineage, citation-status evidence monitoring | PR #20, `docs/living-review.md` |
-| Scholarly exports and COAR Notify federation | PRs #15, #26; `packages/exports`, `packages/federation`, `docs/preservation-and-exports.md`, `docs/federation.md` |
-| Execution Passports (offline-verified, `execution-attested` only), Atlas Check CI, Protocol Drift Radar, Replication Marketplace | PRs #23–#27 |
-| SSRF-safe inspection, bounded fetches, escaped-text-only rendering, example-DOI flagging, same-origin mutation guards, audit trail, rate limits | PR-03, PRs #9, #10; `packages/github`, `apps/web/src/lib/mutation-request.ts` |
-| Ops: Postgres portability + generated DDL, workers, observability, backup/restore, privacy/takedown | PR #22; `docs/operations/` |
+| Area                                                                                                                                                                             | Evidence                                                                                                          |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| Exact repository / release / tag-object / commit pinning; atomic inspection captures with SHA-256 payload hashes                                                                 | PR #13; `InspectionCapture`, `RepositorySnapshot` (`packages/db/prisma/schema.prisma`), `docs/data-model.md`      |
+| Immutable versions, append-only lifecycle, corrections/withdrawals, safe tombstones                                                                                              | PRs #15, #16, #17; `ReviewLifecycleEvent`, `docs/article-lifecycle.md`                                            |
+| Transactional acceptance (serializable compare-and-set, idempotency keys, unique constraints)                                                                                    | `IdempotencyKey`, acceptance transactions, `docs/data-model.md`                                                   |
+| Source-native vs ORAtlas-native assessment separation: imports are publicly `unverified-import`; a separate hash-guarded `TrustVerification` marker fails closed on any mutation | PR #11; `docs/trust-model.md`, `TrustAssessment`/`TrustVerification`                                              |
+| Original assessment unit preserved: TRUST attaches only to a claim–evidence relation (claim–citation or node-relation); no bare-node form exists                                 | `packages/trust`, `nodeRelationTrustRecordSchema`, `docs/trust-model.md`                                          |
+| `not-assessed` / `not-applicable` excluded from aggregates, never counted as zero; aggregates optional, advisory, and method-labelled                                            | `packages/trust/src/index.ts` (`ordinal-mean-1.0`)                                                                |
+| Knowledge nodes, typed edges, propose→confirm lifecycle, graph API/explorer                                                                                                      | KG-01…KG-10 (PRs #31–#50)                                                                                         |
+| Grounded AI synthesis with editorial gate, packet hashes, staleness, diffs, coverage, governance policy, grounding-eval CI, full-pipeline e2e                                    | KG-11…KG-20 (PRs #51–#70), `docs/synthesis-*.md`                                                                  |
+| Contradiction maps and evidence-independence–aware synthesis (shared-dataset awareness)                                                                                          | PR #21, `docs/synthesis-and-contradictions.md`                                                                    |
+| Claim passports, lineage, citation-status evidence monitoring                                                                                                                    | PR #20, `docs/living-review.md`                                                                                   |
+| Scholarly exports and COAR Notify federation                                                                                                                                     | PRs #15, #26; `packages/exports`, `packages/federation`, `docs/preservation-and-exports.md`, `docs/federation.md` |
+| Execution Passports (offline-verified, `execution-attested` only), Atlas Check CI, Protocol Drift Radar, Replication Marketplace                                                 | PRs #23–#27                                                                                                       |
+| SSRF-safe inspection, bounded fetches, escaped-text-only rendering, example-DOI flagging, same-origin mutation guards, audit trail, rate limits                                  | PR-03, PRs #9, #10; `packages/github`, `apps/web/src/lib/mutation-request.ts`                                     |
+| Ops: Postgres portability + generated DDL, workers, observability, backup/restore, privacy/takedown                                                                              | PR #22; `docs/operations/`                                                                                        |
 
 Charter areas listed as "required" that the table above covers (identity preservation,
 non-transactional-publication prevention, source/native separation, assessment-unit
@@ -631,12 +631,12 @@ At most five items, ordered. Rationale and dependencies:
 - **Status:** backlog · **Priority:** P1 · **Size:** M · **Agent:** yes
 - **Packages:** `.github`, `packages/db` · **External dep:** none · **Issue/PR:** builds on
   PR #22
-- **Goal:** The schema is written Postgres-portable and DDL is generated, but if CI runs
-  SQLite-only, portability is asserted rather than proven. Run the unit/integration suite
-  (and at least the acceptance-transaction tests, which are serialization-sensitive) against
-  Postgres in CI.
-- **Scope:** CI service container; test bootstrap; document divergence policy (SQLite dev
-  remains supported).
+- **Goal:** CI's existing `postgres` job already proves schema generation, push, and seed
+  against a real Postgres 16 service on every PR. The remaining gap: the unit/integration
+  test suite — in particular the serialization-sensitive acceptance-transaction tests — still
+  runs on SQLite only. Run those suites against Postgres in CI.
+- **Scope:** Extend the existing `postgres` job (or a sibling) with test execution; test
+  bootstrap against `DATABASE_URL`; document divergence policy (SQLite dev remains supported).
 - **Non-goals:** No dropping SQLite for dev; no migration of dev workflow.
 - **Dependencies:** none; unblocks stronger ORA-B01 concurrency tests.
 - **Acceptance criteria:** Green Postgres job in `ci.yml`; serializable-transaction tests run
@@ -744,7 +744,7 @@ At most five items, ordered. Rationale and dependencies:
    on ambiguity rather than choosing a scholarly record.
 8. **Add tests for contracts, migrations, permissions, and public behavior** in every PR that
    touches them. Verification bar: `pnpm lint && pnpm typecheck && pnpm test &&
-   pnpm schema:check`, plus `pnpm --filter @oratlas/web build`, plus e2e when `apps/web`
+pnpm schema:check`, plus `pnpm --filter @oratlas/web build`, plus e2e when `apps/web`
    changes.
 9. **Use frozen fixtures for deterministic tests.** No live network in CI, ever.
 10. **Mark work `blocked` when governance or scientific judgment is required** and record the
