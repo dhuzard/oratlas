@@ -245,3 +245,7 @@ jobs:
           LLM_PROVIDER: ""
           LLM_MODEL: ""
           ANTHROPIC_API_KEY: ""
+
+      - name: Enforce E2E wall-time and flake budget
+        if: always()
+        run: pnpm e2e:budget
