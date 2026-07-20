@@ -342,10 +342,10 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-D04 — Protocol-crosswalk guard: never translate between assessment protocols
 
-- **Status:** in-progress · **Priority:** P0 · **Size:** S · **Agent:** yes
+- **Status:** review · **Priority:** P0 · **Size:** S · **Agent:** yes
 - **Packages:** `packages/trust`, `packages/contracts`, `docs` · **External dep:**
   `Neuronautix/ComputationalReviewTemplate_trust-knowledge` (protocol identity semantics) ·
-  **Issue/PR:** none
+  **Issue/PR:** [#75](https://github.com/dhuzard/oratlas/pull/75)
 - **Goal:** `protocolVersion` is stored per assessment, but nothing structurally prevents a
   future feature from comparing, averaging, or converting ratings across different protocols.
   Make "no invented crosswalk" an enforced, tested property, not just a convention.
