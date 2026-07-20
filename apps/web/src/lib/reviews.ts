@@ -8,7 +8,6 @@ import {
 import {
   canonicalWorkAliases,
   claimDomAnchor,
-  compatibilityReportSchema,
   findWorkIdentifierConflicts,
   globalCitationId,
   globalClaimId,
@@ -23,6 +22,10 @@ import { toTrustRecord } from "./index-builder";
 import { resolveTrustAssessmentRows } from "./trust-provenance";
 import { trustCriterionProfile } from "./trust-profile";
 import { isTombstonedState, lifecycleEventDto } from "./review-lifecycle";
+import {
+  compatibilityReportFromStoredJson,
+  type StoredCompatibilityReport,
+} from "./compatibility-report";
 
 export interface ReviewCriterion {
   criterion: string;
@@ -104,7 +107,7 @@ export interface ReviewDetail {
   keywords: string[];
   domains: string[];
   compatibilityLevel?: string;
-  compatibilityReport?: unknown;
+  compatibilityReport?: StoredCompatibilityReport;
   compatibilityFacets?: FacetCompatibilityReport;
   contributors: Array<{
     displayName: string;
@@ -277,12 +280,10 @@ export async function getReviewDetail(
     reviewType?: string;
     license?: string;
   }>(version.metadataJson, {});
-  const legacyInspectionReport = snapshot
-    ? parseJsonColumn<{ compatibilityReport?: unknown }>(snapshot.inspectionReportJson, {})
-    : {};
-  const compatibilityReport =
-    meta.compatibilityReport ?? legacyInspectionReport.compatibilityReport;
-  const parsedCompatibilityReport = compatibilityReportSchema.safeParse(compatibilityReport);
+  const compatibilityReport = compatibilityReportFromStoredJson(
+    version.metadataJson,
+    snapshot.inspectionReportJson,
+  );
 
   const limitations = new Set<string>();
   const claims: ReviewClaim[] = version.claims.map((claim) => ({
@@ -406,9 +407,7 @@ export async function getReviewDetail(
     domains: meta.domains ?? [],
     compatibilityLevel: meta.compatibilityLevel,
     compatibilityReport,
-    compatibilityFacets: parsedCompatibilityReport.success
-      ? parsedCompatibilityReport.data.facets
-      : undefined,
+    compatibilityFacets: compatibilityReport?.facets,
     contributors: version.contributors.map((c) => ({
       displayName: c.person.displayName,
       orcid: c.person.orcid ?? undefined,

@@ -205,6 +205,8 @@ export interface JsonlParseResult<T> {
   records: T[];
   errors: Array<{ line: number; message: string }>;
   truncated: boolean;
+  /** Exact number of non-empty records skipped after the valid-record cap. */
+  truncatedCount: number;
 }
 
 /**
@@ -220,11 +222,13 @@ export function parseJsonlArtifact<S extends z.ZodTypeAny>(
   const errors: Array<{ line: number; message: string }> = [];
   const lines = content.split(/\r?\n/);
   let truncated = false;
+  let truncatedCount = 0;
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]?.trim();
     if (!line) continue;
     if (records.length >= maxRecords) {
       truncated = true;
+      truncatedCount = lines.slice(i).filter((candidate) => candidate.trim().length > 0).length;
       break;
     }
     try {
@@ -243,5 +247,5 @@ export function parseJsonlArtifact<S extends z.ZodTypeAny>(
       errors.push({ line: i + 1, message: "Invalid JSON" });
     }
   }
-  return { records, errors, truncated };
+  return { records, errors, truncated, truncatedCount };
 }

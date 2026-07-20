@@ -28,6 +28,7 @@ import { listPendingNodeIdentityProposals } from "@/lib/node-identity-lifecycle"
 import { listOpenChallengePage } from "@/lib/challenges";
 import { ChallengeQueuePanel } from "./ChallengeQueuePanel";
 import { CompatibilityFacets } from "@/components/CompatibilityFacets";
+import { ArtifactOutcomes } from "@/components/ArtifactOutcomes";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Editorial dashboard" };
@@ -200,6 +201,11 @@ export default async function EditorialPage({
                 ) : null}
               </div>
             ) : null}
+
+            <details>
+              <summary>Per-artifact compatibility</summary>
+              <ArtifactOutcomes report={s.compatibilityReport} />
+            </details>
 
             <details>
               <summary>

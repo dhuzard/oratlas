@@ -22,6 +22,7 @@ describe("parseJsonlArtifact", () => {
     expect(result.errors[0]?.line).toBe(2);
     expect(result.errors[1]?.line).toBe(4);
     expect(result.truncated).toBe(false);
+    expect(result.truncatedCount).toBe(0);
   });
 
   it("caps record count", () => {
@@ -31,6 +32,7 @@ describe("parseJsonlArtifact", () => {
     const result = parseJsonlArtifact(content, claimRecordSchema, 3);
     expect(result.records).toHaveLength(3);
     expect(result.truncated).toBe(true);
+    expect(result.truncatedCount).toBe(7);
   });
 });
 

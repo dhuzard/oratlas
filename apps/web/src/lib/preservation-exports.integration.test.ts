@@ -559,10 +559,16 @@ function fullExtraction(name = "preserved-review"): FullExtraction {
   };
 }
 
-function compatibilityReport(): CompatibilityReport {
+function compatibilityReport(): Extract<CompatibilityReport, { schemaVersion: "1.1.0" }> {
   const absent = { detected: false, evidence: [] };
+  const notDeclared = {
+    status: "not-declared" as const,
+    loadedCount: 0 as const,
+    skippedCount: 0 as const,
+    sources: [],
+  };
   return {
-    schemaVersion: "1.0.0",
+    schemaVersion: "1.1.0",
     templateForkDetected: absent,
     templateFilesDetected: absent,
     mystProjectDetected: absent,
@@ -577,6 +583,14 @@ function compatibilityReport(): CompatibilityReport {
     blockingErrors: [],
     warnings: [],
     recommendations: [],
+    artifactOutcomes: {
+      claims: notDeclared,
+      citations: notDeclared,
+      relations: notDeclared,
+      trust: notDeclared,
+      nodes: notDeclared,
+      edges: notDeclared,
+    },
   };
 }
 

@@ -36,6 +36,14 @@ import {
 import { trustCriterionProfileFromJson } from "./trust-profile";
 import { isReadablePublicState } from "./review-lifecycle";
 import { readablePublicNodeVersionWhere } from "./public-snapshot-visibility";
+import {
+  compatibilityReportFromStoredJson,
+  type StoredCompatibilityReport,
+} from "./compatibility-report";
+
+export type PublicNodeDetailProjection = PublicNodeDetail & {
+  compatibilityReport?: StoredCompatibilityReport;
+};
 
 const storedNodeProvenanceSchema = z.union([
   knowledgeNodeProvenanceSchema,
@@ -430,7 +438,7 @@ export async function scanPublicNodeSummaries(
 export async function getPublicNode(
   id: string,
   selectedVersionId?: string,
-): Promise<PublicNodeDetail | null> {
+): Promise<PublicNodeDetailProjection | null> {
   const node = await prisma.knowledgeNode.findUnique({
     where: {
       id,
@@ -478,7 +486,14 @@ export async function getPublicNode(
     ? node.versions
     : [...node.versions, selectedStored];
 
-  const [outgoingRows, incomingRows, trustRelations, identityRows] = await Promise.all([
+  const [
+    outgoingRows,
+    incomingRows,
+    trustRelations,
+    identityRows,
+    sourceSubmission,
+    compatibilitySource,
+  ] = await Promise.all([
     prisma.nodeEdge.findMany({
       where: {
         ...publicConfirmedNodeEdgeWhere,
@@ -582,6 +597,24 @@ export async function getPublicNode(
       },
       orderBy: { id: "asc" },
       take: PUBLIC_NODE_EDGE_LIMIT,
+    }),
+    selectedStored.sourceSubmissionId
+      ? prisma.submission.findUnique({
+          where: { id: selectedStored.sourceSubmissionId },
+          select: { submittedPayloadJson: true },
+        })
+      : Promise.resolve(null),
+    prisma.reviewVersion.findFirst({
+      where: {
+        snapshotId: selectedStored.snapshotId,
+        publicState: { in: ["published", "withdrawn"] },
+        review: { status: "published" },
+      },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      select: {
+        metadataJson: true,
+        snapshot: { select: { inspectionReportJson: true } },
+      },
     }),
   ]);
 
@@ -820,7 +853,7 @@ export async function getPublicNode(
     ];
   });
 
-  return publicNodeDetailSchema.parse({
+  const detail = publicNodeDetailSchema.parse({
     schemaVersion: "1.0.0",
     id: node.id,
     localNodeId: node.localNodeId,
@@ -841,6 +874,15 @@ export async function getPublicNode(
     sameClaims,
     trustContext,
   });
+  return {
+    ...detail,
+    compatibilityReport:
+      compatibilityReportFromStoredJson(sourceSubmission?.submittedPayloadJson) ??
+      compatibilityReportFromStoredJson(
+        compatibilitySource?.metadataJson,
+        compatibilitySource?.snapshot?.inspectionReportJson,
+      ),
+  };
 }
 
 function citationIsExample(doi: string | null, raw: string | null): boolean {

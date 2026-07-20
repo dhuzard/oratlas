@@ -8,6 +8,7 @@ import {
 } from "@oratlas/contracts";
 import { prisma, parseJsonColumn } from "./db";
 import { parseStoredSubmissionPayload, validNodeCandidates } from "./submission-payload";
+import type { StoredCompatibilityReport } from "./compatibility-report";
 
 export interface MetadataDiffRow {
   field: string;
@@ -28,6 +29,7 @@ export interface EditorialSubmission {
   capturePayloadHash?: string;
   validation?: SubmissionValidationReport;
   compatibilityFacets?: FacetCompatibilityReport;
+  compatibilityReport?: StoredCompatibilityReport;
   metadataDiff: MetadataDiffRow[];
   editorialNote?: string;
   publicationTargets?: { proseReview: boolean; knowledgeNodes: boolean };
@@ -118,6 +120,8 @@ export async function listSubmissions(statuses?: string[]): Promise<EditorialSub
       capturePayloadHash: s.inspectionCapture?.payloadHash,
       validation,
       compatibilityFacets: submittedPayload?.compatibilityReport.facets,
+      compatibilityReport: submittedPayload?.compatibilityReport as
+        StoredCompatibilityReport | undefined,
       metadataDiff,
       editorialNote: s.editorialNote ?? undefined,
       publicationTargets: submittedPayload?.publicationTargets,

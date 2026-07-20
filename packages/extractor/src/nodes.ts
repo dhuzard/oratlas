@@ -62,6 +62,8 @@ export const extractedNodeRecordSchema = z
     fieldProvenance: z.record(z.string(), nodeFieldProvenanceSchema),
     doiReferences: z.array(nodeDoiReferenceSchema),
     issues: z.array(nodeExtractionIssueSchema),
+    /** Exact number of source rows represented by a single skipped sentinel. */
+    skippedRecordCount: z.number().int().positive().optional(),
   })
   .strict();
 export type ExtractedNodeRecord = z.infer<typeof extractedNodeRecordSchema>;
@@ -73,6 +75,7 @@ export const extractedEdgeRecordSchema = z
     sourcePointer: z.string().min(1).max(512),
     edge: repositoryNodeEdgeDeclarationSchema.optional(),
     issues: z.array(nodeExtractionIssueSchema),
+    skippedRecordCount: z.number().int().positive().optional(),
   })
   .strict();
 export type ExtractedEdgeRecord = z.infer<typeof extractedEdgeRecordSchema>;
@@ -115,6 +118,7 @@ interface RawRecord {
   sourcePointer: string;
   value?: unknown;
   issue?: NodeExtractionIssue;
+  skippedRecordCount?: number;
 }
 
 /**
@@ -249,13 +253,17 @@ function readSource(report: InspectionReport, source: NodeManifestSource): RawRe
     if (!line) continue;
     const pointer = `line:${index + 1}`;
     if (recordCount >= MAX_NODE_SOURCE_FILES) {
+      const skippedRecordCount = lines
+        .slice(index)
+        .filter((candidate) => candidate.trim().length > 0).length;
       records.push({
         sourcePath: source.path,
         sourcePointer: pointer,
         issue: warning(
           "record-cap-reached",
-          `Records after the ${MAX_NODE_SOURCE_FILES}-record cap were skipped.`,
+          `${skippedRecordCount} record(s) after the ${MAX_NODE_SOURCE_FILES}-record cap were skipped.`,
         ),
+        skippedRecordCount,
       });
       break;
     }
@@ -463,6 +471,7 @@ function nodeFailure(
     fieldProvenance: {},
     doiReferences: [],
     issues: allIssues,
+    skippedRecordCount: record.skippedRecordCount,
   };
 }
 
@@ -519,6 +528,7 @@ function edgeFailure(record: RawRecord, issues: NodeExtractionIssue[] = []): Ext
     sourcePath: record.sourcePath,
     sourcePointer: record.sourcePointer,
     issues: allIssues,
+    skippedRecordCount: record.skippedRecordCount,
   };
 }
 
@@ -634,10 +644,14 @@ function countRecords(
   return {
     ok: nodes.filter((record) => record.status === "ok").length,
     invalid: nodes.filter((record) => record.status === "invalid").length,
-    skipped: nodes.filter((record) => record.status === "skipped").length,
+    skipped: nodes
+      .filter((record) => record.status === "skipped")
+      .reduce((total, record) => total + (record.skippedRecordCount ?? 1), 0),
     edgesOk: edges.filter((record) => record.status === "ok").length,
     edgesInvalid: edges.filter((record) => record.status === "invalid").length,
-    edgesSkipped: edges.filter((record) => record.status === "skipped").length,
+    edgesSkipped: edges
+      .filter((record) => record.status === "skipped")
+      .reduce((total, record) => total + (record.skippedRecordCount ?? 1), 0),
   };
 }
 

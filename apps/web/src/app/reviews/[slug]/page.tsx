@@ -28,6 +28,7 @@ import { getPublicSynthesisReview } from "@/lib/synthesis-editorial";
 import { loadSynthesisReadingContext } from "@/lib/synthesis-reading";
 import { SynthesisReader } from "./SynthesisReader";
 import { CompatibilityFacets } from "@/components/CompatibilityFacets";
+import { ArtifactOutcomes } from "@/components/ArtifactOutcomes";
 
 export const dynamic = "force-dynamic";
 
@@ -219,6 +220,14 @@ export default async function ReviewPage({
         ) : null}
         {review.version.isExample ? <Badge tone="warning">example data</Badge> : null}
       </div>
+
+      <Card title="Source artifact outcomes">
+        <p className="muted">
+          Inspection results for the accepted repository snapshot. These describe source artifacts,
+          not whether this particular review has claims or relations.
+        </p>
+        <ArtifactOutcomes report={review.compatibilityReport} />
+      </Card>
 
       {isHistoricalRoute ? (
         <Notice tone="info" title="Immutable historical version">
