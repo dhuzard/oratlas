@@ -71,3 +71,9 @@ versions, whose synthetic object ids do not exist in any archive.
 - **Exports are pure functions of stored rows.** The PROV chain (repository state →
   inspection capture → submission → accepted version) reflects the actual pipeline and embeds
   the stored integrity hashes.
+- **Discussion and challenges are separate registers.** Open comments, Atlas Discuss output, and
+  current challenge records are outside the baseline BibTeX, JATS, RO-Crate, PROV, and package
+  manifest contracts. No challenge status qualifies for those exports today. Any future export of
+  a resolved challenge requires an explicit, versioned contract defining its resolution,
+  provenance, authority, and representation; exporters must not infer that contract from lifecycle
+  status alone.

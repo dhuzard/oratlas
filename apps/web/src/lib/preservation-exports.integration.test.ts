@@ -14,6 +14,7 @@ import { type PrismaClient } from "@oratlas/db";
 import { type createInspectionCapture } from "./inspection-captures";
 import { type acceptSubmission, type createSubmission } from "./submissions";
 import { type getPreservedFileContent, type getVersionExportContext } from "./preservation";
+import { type createChallenge, type listChallengeSubjectOptions } from "./challenges";
 
 vi.mock("server-only", () => ({}));
 
@@ -31,6 +32,8 @@ type Runtime = {
   acceptSubmission: typeof acceptSubmission;
   getVersionExportContext: typeof getVersionExportContext;
   getPreservedFileContent: typeof getPreservedFileContent;
+  createChallenge: typeof createChallenge;
+  listChallengeSubjectOptions: typeof listChallengeSubjectOptions;
 };
 
 let runtime: Runtime;
@@ -40,8 +43,15 @@ let editorId: string;
 beforeAll(async () => {
   process.env.DATABASE_URL = databaseUrl;
   execFileSync(
-    resolve(process.cwd(), "packages/db/node_modules/.bin/prisma"),
-    ["db", "push", "--schema", "packages/db/prisma/schema.prisma", "--skip-generate"],
+    process.execPath,
+    [
+      resolve(process.cwd(), "packages/db/node_modules/prisma/build/index.js"),
+      "db",
+      "push",
+      "--schema",
+      "packages/db/prisma/schema.prisma",
+      "--skip-generate",
+    ],
     {
       env: { ...process.env, DATABASE_URL: databaseUrl, RUST_LOG: "info" },
       stdio: "pipe",
@@ -51,6 +61,7 @@ beforeAll(async () => {
   const captures = await import("./inspection-captures");
   const submissions = await import("./submissions");
   const preservation = await import("./preservation");
+  const challenges = await import("./challenges");
   runtime = {
     prisma,
     createInspectionCapture: captures.createInspectionCapture,
@@ -58,6 +69,8 @@ beforeAll(async () => {
     acceptSubmission: submissions.acceptSubmission,
     getVersionExportContext: preservation.getVersionExportContext,
     getPreservedFileContent: preservation.getPreservedFileContent,
+    createChallenge: challenges.createChallenge,
+    listChallengeSubjectOptions: challenges.listChallengeSubjectOptions,
   };
   const submitter = await prisma.user.create({
     data: { githubUserId: "pres-submitter", githubLogin: "pres-submitter", role: "USER" },
@@ -101,6 +114,47 @@ describe.sequential("preservation and standards exports", () => {
       include: { versions: true },
     });
     const versionId = review.versions[0]!.id;
+    const discussionSentinel = "OPEN-DISCUSSION-MUST-NOT-ENTER-SCHOLARLY-EXPORTS";
+    await runtime.prisma.reviewComment.create({
+      data: {
+        reviewId: review.id,
+        reviewVersionId: versionId,
+        authorId: submitterId,
+        kind: "concern",
+        body: discussionSentinel,
+      },
+    });
+    const challengeSentinel = "OPEN-CHALLENGE-WITHOUT-EXPORT-CONTRACT-MUST-NOT-ENTER-EXPORTS";
+    await runtime.prisma.claim.create({
+      data: {
+        reviewVersionId: versionId,
+        localClaimId: "e03-export-subject",
+        text: "A bounded subject used to verify challenge export isolation.",
+        normalizedText: "a bounded subject used to verify challenge export isolation",
+      },
+    });
+    const challengeSubject = (await runtime.listChallengeSubjectOptions(versionId)).find(
+      ({ subject }) => subject.type === "claim",
+    );
+    expect(challengeSubject).toBeDefined();
+    await runtime.createChallenge(
+      accepted.reviewSlug,
+      {
+        id: submitterId,
+        githubLogin: "pres-submitter",
+        displayName: null,
+        avatarUrl: null,
+        profileUrl: null,
+        role: "USER",
+      },
+      {
+        reviewVersionId: versionId,
+        subject: challengeSubject!.subject,
+        canonicalSubjectHash: challengeSubject!.canonicalSubjectHash,
+        grounds: "methodology",
+        body: challengeSentinel,
+      },
+    );
 
     // Simulate upstream deletion: nothing in the export path may consult the
     // network, so exports must be derivable purely from stored rows.
@@ -141,6 +195,23 @@ describe.sequential("preservation and standards exports", () => {
     const serializedProv = JSON.stringify(prov);
     expect(serializedProv).toContain(capability.payloadHash);
     expect(serializedProv).toContain("pres-editor");
+    const exportsByFormat = {
+      bibtex: bib,
+      jats: jatsXml,
+      roCrate: JSON.stringify(crate),
+      prov: serializedProv,
+      manifest: JSON.stringify(manifest),
+    };
+    for (const sentinel of [discussionSentinel, challengeSentinel]) {
+      expect(
+        Object.fromEntries(
+          Object.entries(exportsByFormat).map(([format, value]) => [
+            format,
+            value.includes(sentinel),
+          ]),
+        ),
+      ).toEqual({ bibtex: false, jats: false, roCrate: false, prov: false, manifest: false });
+    }
   }, 30_000);
 
   it("keeps preserved content durable after the ephemeral capture row is deleted", async () => {

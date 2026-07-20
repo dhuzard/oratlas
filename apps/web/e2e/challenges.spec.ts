@@ -7,13 +7,41 @@ const prisma = getPrisma();
 
 test.describe("Formal challenge register", () => {
   test("is visibly separate from assessments and open discussion", async ({ page }) => {
+    const existingAssessment = await prisma.trustAssessment.findFirstOrThrow({
+      where: {
+        relation: {
+          claim: { reviewVersion: { review: { slug: REVIEW_SLUG } } },
+        },
+      },
+    });
+    const secondAssessment = await prisma.trustAssessment.create({
+      data: {
+        claimEvidenceRelationId: existingAssessment.claimEvidenceRelationId,
+        protocolVersion: "trust-v1-e03-second-assessment",
+        assessorType: "human",
+        assessorId: "e03-independent-assessor",
+        assessedAt: new Date("2026-07-20T00:00:00.000Z"),
+        entailment: JSON.stringify({
+          rating: "moderate",
+          status: "assessed",
+          rationale: "E03 multi-assessment rendering sentinel",
+        }),
+        sourceRecordHash: "e03-independent-assessment",
+      },
+    });
+
     await page.goto(REVIEW);
     const section = page.locator('[data-register="formal-challenge"]');
     await expect(section.getByRole("heading", { name: "Formal challenges" })).toBeVisible();
-    await expect(section).toContainText("do not change claims, relations, assessments");
+    await expect(section).toContainText("Unlike open discussion");
+    await expect(section).toContainText("does not change claims, relations, TRUST assessments");
     await expect(section.getByRole("link", { name: /Sign in/ })).toBeVisible();
     await expect(page.locator('[data-register="open-discussion"]')).toHaveCount(1);
-    await expect(page.getByText(/TRUST assessments/).first()).toBeVisible();
+    const formalAssessment = page
+      .locator('[data-register="formal-assessment"]')
+      .filter({ has: page.locator(`[data-assessment-id="${secondAssessment.id}"]`) });
+    await expect(formalAssessment.getByText(/Formal TRUST assessments \(2\)/)).toBeVisible();
+    await expect(formalAssessment.locator("section[data-assessment-id]")).toHaveCount(2);
 
     const unauthorizedStatus = await page.evaluate(async () => {
       const response = await fetch("/api/reviews/example/versions/example/challenges", {
@@ -60,6 +88,15 @@ test.describe("Formal challenge register", () => {
 
     await expect(section.getByText(body)).toBeVisible();
     await expect(section.locator("img")).toHaveCount(0);
+    await expect(page.locator('[data-register="open-discussion"]', { hasText: body })).toHaveCount(
+      0,
+    );
+    await expect(
+      page.locator('[data-register="formal-assessment"]', { hasText: body }),
+    ).toHaveCount(0);
+    await expect(page.locator('[data-register="formal-editorial"]', { hasText: body })).toHaveCount(
+      0,
+    );
     const subjectLink = section.locator(`#challenge-${id}`).getByRole("link");
     const href = await subjectLink.getAttribute("href");
     expect(href).toMatch(/\/reviews\/.*\/versions\/.*#claim-subject-/);

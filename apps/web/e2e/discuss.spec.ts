@@ -18,6 +18,12 @@ async function askQuestion(page: Page, question: string) {
 test.describe("Atlas Discuss — deterministic mode", () => {
   test("returns a grounded evidence summary without an LLM key", async ({ page }) => {
     await page.goto("/discuss");
+    await expect(page.locator('[data-register="open-discussion"]')).toContainText(
+      /not a formal challenge.*neither creates nor changes a TRUST assessment/i,
+    );
+    await expect(page.locator('[data-register="open-discussion"]')).toContainText(
+      /immutable archive/i,
+    );
     await askQuestion(page, "hippocampal replay memory consolidation");
     await expect(page.getByText(/Deterministic/).first()).toBeVisible();
     await expect(page.getByText(/not independent replication/i)).toBeVisible();

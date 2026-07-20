@@ -25,6 +25,11 @@ export default async function DiscussPage({
           ? " An LLM provider is configured; answers are generated and then validated so every referenced identifier exists in the evidence."
           : " No LLM provider is configured, so responses are deterministic structured evidence summaries rather than generated prose."}
       </p>
+      <p className="notice notice-info" data-register="open-discussion">
+        Atlas Discuss output is open discussion, not a formal challenge. It neither creates nor
+        changes a TRUST assessment, formal review report, challenge record, editorial decision, or
+        immutable archive.
+      </p>
       <DiscussClient initialReview={review} />
     </div>
   );
