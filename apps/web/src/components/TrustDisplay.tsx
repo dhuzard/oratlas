@@ -1,4 +1,4 @@
-import { ProvenanceBadge } from "@oratlas/ui";
+import { ProvenanceBadge, TrustCriterionProfile } from "@oratlas/ui";
 import { type ReviewTrust } from "@/lib/reviews";
 
 /**
@@ -62,30 +62,7 @@ export function TrustDisplay({ trust }: { trust: ReviewTrust }) {
         </p>
       ) : null}
 
-      {trust.criteria.length === 0 ? (
-        <p className="muted">No criterion-level assessments recorded.</p>
-      ) : (
-        <div className="trust-grid" role="table" aria-label="TRUST criteria">
-          <div className="trust-criterion" role="row" style={{ fontWeight: 600 }}>
-            <span role="columnheader">Criterion</span>
-            <span role="columnheader">Rating</span>
-            <span role="columnheader">Rationale</span>
-          </div>
-          {trust.criteria.map((c) => (
-            <div className="trust-criterion" role="row" key={c.criterion}>
-              <span role="cell">{humanizeCriterion(c.criterion)}</span>
-              <span role="cell" className={`ordinal ordinal-${c.rating}`}>
-                {c.status === "assessed"
-                  ? c.rating.replace(/-/g, " ")
-                  : c.status.replace(/-/g, " ")}
-              </span>
-              <span role="cell" className="muted">
-                {c.rationale ?? "—"}
-              </span>
-            </div>
-          ))}
-        </div>
-      )}
+      <TrustCriterionProfile criteria={trust.criteria} />
 
       {trust.limitations.length > 0 ? (
         <div>
@@ -100,25 +77,26 @@ export function TrustDisplay({ trust }: { trust: ReviewTrust }) {
         </div>
       ) : null}
 
-      {trust.aggregateScore !== undefined && trust.aggregateScore !== null ? (
+      {trust.aggregateScore !== undefined &&
+      trust.aggregateScore !== null &&
+      trust.aggregateMethod ? (
         <p className="muted" style={{ fontSize: "0.85rem" }}>
           Atlas-computed aggregate: <strong>{trust.aggregateScore.toFixed(2)}</strong> via{" "}
           <span className="mono">{trust.aggregateMethod}</span> — advisory only; the criterion
           ratings above are authoritative. This is not the probability that the paper is true.
         </p>
       ) : null}
-      {trust.sourceAssertion.aggregateScore !== null ? (
+      {trust.sourceAssertion.aggregateScore !== null && trust.sourceAssertion.aggregateMethod ? (
         <p className="muted" style={{ fontSize: "0.85rem" }}>
           Repository-supplied source aggregate:{" "}
-          <strong>{trust.sourceAssertion.aggregateScore.toFixed(2)}</strong>
-          {trust.sourceAssertion.aggregateMethod ? (
-            <>
-              {" "}
-              via <span className="mono">{trust.sourceAssertion.aggregateMethod}</span>
-            </>
-          ) : null}
-          . This value is preserved for provenance; Atlas did not compute or verify it, and it is
-          not a probability.
+          <strong>{trust.sourceAssertion.aggregateScore.toFixed(2)}</strong> via{" "}
+          <span className="mono">{trust.sourceAssertion.aggregateMethod}</span>. This value is
+          preserved for provenance; Atlas did not compute or verify it, and it is not a probability.
+        </p>
+      ) : trust.sourceAssertion.aggregateScore !== null ? (
+        <p className="muted" style={{ fontSize: "0.85rem" }}>
+          The repository supplied an aggregate without an aggregation method, so the value is
+          withheld. Criterion-level assertions remain available above.
         </p>
       ) : null}
       <p className="muted" style={{ fontSize: "0.85rem" }}>
@@ -127,11 +105,4 @@ export function TrustDisplay({ trust }: { trust: ReviewTrust }) {
       </p>
     </div>
   );
-}
-
-function humanizeCriterion(key: string): string {
-  return key
-    .replace(/([A-Z])/g, " $1")
-    .replace(/^./, (c) => c.toUpperCase())
-    .trim();
 }

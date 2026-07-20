@@ -102,7 +102,7 @@ export default async function ClaimPassportPage({
               {relation.sourceLocation ? (
                 <span className="mono muted">@ {relation.sourceLocation}</span>
               ) : null}
-              {relation.hasTrustAssessment ? <Badge>TRUST assessed</Badge> : null}
+              {relation.hasTrustAssessment ? <Badge>TRUST record</Badge> : null}
             </div>
           ))
         )}

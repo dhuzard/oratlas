@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { type Metadata } from "next";
-import { Card, Notice, StatusPill, ProvenanceBadge } from "@oratlas/ui";
+import { Card, Notice, StatusPill, ProvenanceBadge, TrustCriterionProfile } from "@oratlas/ui";
 import { getCurrentUser, isEditor } from "@/lib/auth";
 import { listAuditEvents, listLifecycleEditorialReviews, listSubmissions } from "@/lib/editorial";
 import { listTrustEditorialQueue, type TrustQueueFilter } from "@/lib/trust-provenance";
@@ -314,7 +314,6 @@ export default async function EditorialPage({
                     <th>Provenance</th>
                     <th>Status</th>
                     <th>Assessor</th>
-                    <th>Aggregate</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -322,25 +321,19 @@ export default async function EditorialPage({
                     <td>Repository assertion</td>
                     <td>{item.sourceReviewStatus ?? "not supplied"}</td>
                     <td>{item.sourceAssessorType ?? "not supplied"}</td>
-                    <td>
-                      {item.subjectType === "node-relation"
-                        ? "omitted for relation TRUST"
-                        : (item.sourceAggregateScore ?? "null / not supplied")}
-                    </td>
                   </tr>
                   <tr>
                     <td>Atlas-computed public value</td>
                     <td>{item.effectiveStatus.replaceAll("-", " ")}</td>
                     <td>{item.reviewerLogin ?? "not reviewed"}</td>
-                    <td>
-                      {item.subjectType === "node-relation"
-                        ? "omitted for relation TRUST"
-                        : (item.computedAggregateScore ?? "not computable")}
-                    </td>
                   </tr>
                 </tbody>
               </table>
             </div>
+            <TrustCriterionProfile
+              criteria={item.criteria}
+              label={`TRUST criteria for ${item.subjectLabel}`}
+            />
             {item.rationale ? (
               <p className="muted">
                 Existing marker ({item.reviewerRoleSnapshot}): {item.rationale}

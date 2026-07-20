@@ -17,7 +17,9 @@ import {
   type ResolvedTrustVerification,
 } from "@oratlas/trust";
 import { type Prisma } from "@oratlas/db";
+import { type TrustCriterionProfileRow } from "@oratlas/ui";
 import { prisma } from "./db";
+import { trustCriterionProfileFromJson } from "./trust-profile";
 
 const loadedTrustInclude = {
   verification: { include: { reviewer: true } },
@@ -556,8 +558,7 @@ export interface TrustQueueItem {
   sourceReviewStatus?: string;
   sourceAssessorType?: string;
   sourceRelationHumanReviewed?: boolean;
-  sourceAggregateScore: number | null;
-  computedAggregateScore: number | null;
+  criteria: TrustCriterionProfileRow[];
   effectiveStatus: string;
   verificationState: ResolvedTrustVerification["state"];
   reviewerLogin?: string;
@@ -599,8 +600,7 @@ export async function listTrustEditorialQueue(
       sourceReviewStatus: row.sourceReviewStatus ?? undefined,
       sourceAssessorType: row.sourceAssessorType ?? undefined,
       sourceRelationHumanReviewed: row.sourceRelationHumanReviewed ?? undefined,
-      sourceAggregateScore: row.sourceAggregateScore,
-      computedAggregateScore: row.aggregateScore,
+      criteria: trustCriterionProfileFromJson(resolved.subject.assessment.criteriaJson),
       effectiveStatus: resolved.effectiveStatus,
       verificationState: resolved.state,
       reviewerLogin: row.verification?.reviewer.githubLogin,
@@ -626,8 +626,7 @@ export async function listTrustEditorialQueue(
         relationType: row.proposal.relationType,
         sourceReviewStatus: row.sourceReviewStatus,
         sourceAssessorType: row.sourceAssessorType,
-        sourceAggregateScore: row.sourceAggregateScore,
-        computedAggregateScore: null,
+        criteria: trustCriterionProfileFromJson(resolved.subject.assessment.criteriaJson),
         effectiveStatus: resolved.effectiveStatus,
         verificationState: resolved.state,
         reviewerLogin: row.verification?.reviewer.githubLogin,
@@ -650,8 +649,18 @@ export async function listTrustEditorialQueue(
         relationType: row.proposal.relationType,
         sourceReviewStatus: row.sourceReviewStatus,
         sourceAssessorType: row.sourceAssessorType,
-        sourceAggregateScore: row.sourceAggregateScore,
-        computedAggregateScore: null,
+        criteria: trustCriterionProfileFromJson({
+          identityIntegrity: row.identityIntegrity,
+          entailment: row.entailment,
+          sourceAccess: row.sourceAccess,
+          populationRelevance: row.populationRelevance,
+          interventionExposureRelevance: row.interventionExposureRelevance,
+          outcomeRelevance: row.outcomeRelevance,
+          methodologicalSafeguards: row.methodologicalSafeguards,
+          statisticalSafeguards: row.statisticalSafeguards,
+          replicationConvergence: row.replicationConvergence,
+          conflictDependency: row.conflictDependency,
+        }),
         effectiveStatus: "unverified-import",
         verificationState: "stale-verification",
         revision: row.revision,

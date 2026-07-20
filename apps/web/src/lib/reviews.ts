@@ -2,7 +2,6 @@ import "server-only";
 import {
   computeAggregate,
   orderTrustAssessments,
-  TRUST_CRITERIA,
   type TrustRecord,
   type TrustVerificationState,
 } from "@oratlas/trust";
@@ -20,6 +19,7 @@ import {
 import { prisma, parseJsonColumn } from "./db";
 import { toTrustRecord } from "./index-builder";
 import { resolveTrustAssessmentRows } from "./trust-provenance";
+import { trustCriterionProfile } from "./trust-profile";
 import { isTombstonedState, lifecycleEventDto } from "./review-lifecycle";
 
 export interface ReviewCriterion {
@@ -483,18 +483,7 @@ export async function getReviewDetail(
 }
 
 function criteriaList(record: TrustRecord): ReviewCriterion[] {
-  const out: ReviewCriterion[] = [];
-  for (const criterion of TRUST_CRITERIA) {
-    const entry = record.criteria[criterion];
-    if (!entry) continue;
-    out.push({
-      criterion,
-      rating: entry.rating,
-      status: entry.status ?? "assessed",
-      rationale: entry.rationale,
-    });
-  }
-  return out;
+  return trustCriterionProfile(record.criteria);
 }
 
 function isExampleCitation(rawJson: string | null): boolean {

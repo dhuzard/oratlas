@@ -18,7 +18,7 @@ test("claim node exposes confirmed edges, scoped TRUST context, and immutable hi
   await expect(
     page.getByText("TRUST belongs to each exact claim–citation relation."),
   ).toBeVisible();
-  await expect(page.getByText(/relation aggregate/).first()).toBeVisible();
+  await expect(page.getByText(/relation aggregate/)).toHaveCount(0);
 
   const detailResponse = await request.get(`/api/nodes/${claim.id}`);
   expect(detailResponse.ok()).toBeTruthy();
