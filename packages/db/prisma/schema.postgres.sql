@@ -377,6 +377,29 @@ CREATE TABLE "NodeAlias" (
 );
 
 -- CreateTable
+CREATE TABLE "NodeIdentityProposal" (
+    "id" TEXT NOT NULL,
+    "kind" TEXT NOT NULL,
+    "sourceNodeId" TEXT NOT NULL,
+    "targetNodeId" TEXT NOT NULL,
+    "signalsJson" TEXT NOT NULL,
+    "sharedAliasesJson" TEXT NOT NULL DEFAULT '[]',
+    "sourceTextHash" TEXT,
+    "targetTextHash" TEXT,
+    "textSimilarity" DOUBLE PRECISION,
+    "methodVersion" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'proposed',
+    "revision" INTEGER NOT NULL DEFAULT 0,
+    "reviewedById" TEXT,
+    "reviewedAt" TIMESTAMP(3),
+    "reviewNote" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "NodeIdentityProposal_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "ReplicationBrief" (
     "id" TEXT NOT NULL,
     "requestKey" TEXT NOT NULL,
@@ -1228,6 +1251,15 @@ CREATE INDEX "NodeAlias_scheme_value_idx" ON "NodeAlias"("scheme", "value");
 CREATE UNIQUE INDEX "NodeAlias_knowledgeNodeId_scheme_role_value_key" ON "NodeAlias"("knowledgeNodeId", "scheme", "role", "value");
 
 -- CreateIndex
+CREATE INDEX "NodeIdentityProposal_status_createdAt_idx" ON "NodeIdentityProposal"("status", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "NodeIdentityProposal_sourceNodeId_status_idx" ON "NodeIdentityProposal"("sourceNodeId", "status");
+
+-- CreateIndex
+CREATE INDEX "NodeIdentityProposal_targetNodeId_status_idx" ON "NodeIdentityProposal"("targetNodeId", "status");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "ReplicationBrief_requestKey_key" ON "ReplicationBrief"("requestKey");
 
 -- CreateIndex
@@ -1597,6 +1629,15 @@ ALTER TABLE "NodeEdgeProposal" ADD CONSTRAINT "NodeEdgeProposal_confirmedEdgeId_
 ALTER TABLE "NodeAlias" ADD CONSTRAINT "NodeAlias_knowledgeNodeId_fkey" FOREIGN KEY ("knowledgeNodeId") REFERENCES "KnowledgeNode"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "NodeIdentityProposal" ADD CONSTRAINT "NodeIdentityProposal_sourceNodeId_fkey" FOREIGN KEY ("sourceNodeId") REFERENCES "KnowledgeNode"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "NodeIdentityProposal" ADD CONSTRAINT "NodeIdentityProposal_targetNodeId_fkey" FOREIGN KEY ("targetNodeId") REFERENCES "KnowledgeNode"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "NodeIdentityProposal" ADD CONSTRAINT "NodeIdentityProposal_reviewedById_fkey" FOREIGN KEY ("reviewedById") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "ReplicationBrief" ADD CONSTRAINT "ReplicationBrief_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -1892,6 +1933,14 @@ ALTER TABLE "SynthesisRegenerationProposal" ADD CONSTRAINT "SynthesisRegeneratio
     ("status" = 'open' AND "openHeadKey" = "acceptedReviewVersionId" AND "resolvedById" IS NULL AND "resolvedAt" IS NULL AND "resolutionRationale" IS NULL AND "resolutionIdempotencyKey" IS NULL AND "resolutionInputHash" IS NULL)
     OR ("status" = 'superseded' AND "openHeadKey" IS NULL AND "resolvedById" IS NULL AND "resolvedAt" IS NULL AND "resolutionRationale" IS NULL AND "resolutionIdempotencyKey" IS NULL AND "resolutionInputHash" IS NULL)
     OR ("status" IN ('regeneration-requested', 'dismissed') AND "openHeadKey" IS NULL AND "resolvedById" IS NOT NULL AND "resolvedAt" IS NOT NULL AND "resolutionRationale" IS NOT NULL AND "resolutionIdempotencyKey" IS NOT NULL AND "resolutionInputHash" IS NOT NULL)
+  );
+
+ALTER TABLE "NodeIdentityProposal" DROP CONSTRAINT IF EXISTS "NodeIdentityProposal_status_check";
+
+ALTER TABLE "NodeIdentityProposal" ADD CONSTRAINT "NodeIdentityProposal_status_check" CHECK (
+    "kind" = 'same-claim' AND "sourceNodeId" <> "targetNodeId" AND "revision" >= 0
+    AND (("status" = 'proposed' AND "revision" = 0 AND "reviewedById" IS NULL AND "reviewedAt" IS NULL AND "reviewNote" IS NULL)
+      OR ("status" IN ('confirmed', 'rejected') AND "revision" >= 1 AND "reviewedById" IS NOT NULL AND "reviewedAt" IS NOT NULL AND "reviewNote" IS NOT NULL))
   );
 
 CREATE OR REPLACE FUNCTION "oratlas_validate_synthesis_membership_reference"() RETURNS trigger AS $$
