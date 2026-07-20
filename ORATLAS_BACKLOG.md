@@ -486,9 +486,9 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-G01 — Contradiction-map coverage audit for legacy claim–citation reviews
 
-- **Status:** backlog · **Priority:** P2 · **Size:** S · **Agent:** yes
+- **Status:** review · **Priority:** P2 · **Size:** S · **Agent:** yes
 - **Packages:** `packages/knowledge`, `apps/web` · **External dep:** none · **Issue/PR:**
-  builds on PR #21
+  builds on PR #21 and [#85](https://github.com/dhuzard/oratlas/pull/85)
 - **Goal:** Contradiction maps shipped graph-first. Verify legacy prose-review claims
   (via their optional node backlinks and link proposals) participate; document or close gaps.
 - **Scope:** Audit + tests; deterministic rules only.
