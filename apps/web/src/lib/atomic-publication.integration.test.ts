@@ -692,8 +692,14 @@ describe.sequential("atomic publication integration", () => {
     expect(queuedBefore).toMatchObject({
       canVerify: false,
       subjectHref: `/nodes/${sourceNodeId}/versions/${assessment.proposal.sourceNodeVersionId}`,
-      computedAggregateScore: null,
     });
+    expect(queuedBefore?.criteria).toHaveLength(10);
+    expect(
+      queuedBefore?.criteria.find((criterion) => criterion.criterion === "sourceAccess"),
+    ).toMatchObject({ rating: "high", status: "assessed" });
+    expect(
+      queuedBefore?.criteria.filter((criterion) => criterion.status === "not-supplied"),
+    ).toHaveLength(9);
 
     const confirmed = await lifecycle.decideNodeEdgeProposal(
       { id: editorId, role: "EDITOR" },
