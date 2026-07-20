@@ -629,8 +629,8 @@ At most five items, ordered. Rationale and dependencies:
 ### ORA-K01 — Postgres CI matrix
 
 - **Status:** review · **Priority:** P1 · **Size:** M · **Agent:** yes
-- **Packages:** `.github`, `packages/db` · **External dep:** none · **Issue/PR:** builds on
-  PR #22
+- **Packages:** `.github`, `packages/db` · **External dep:** none · **Issue/PR:**
+  [#79](https://github.com/dhuzard/oratlas/pull/79); builds on PR #22
 - **Goal:** CI's existing `postgres` job already proves schema generation, push, and seed
   against a real Postgres 16 service on every PR. The remaining gap: the unit/integration
   test suite — in particular the serialization-sensitive acceptance-transaction tests — still
