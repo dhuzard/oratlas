@@ -531,8 +531,8 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-H02 — Deep-link, accessibility, and responsive audit
 
-- **Status:** backlog · **Priority:** P1 · **Size:** M · **Agent:** yes
-- **Packages:** `apps/web`, `packages/ui` · **External dep:** none · **Issue/PR:** none
+- **Status:** review · **Priority:** P1 · **Size:** M · **Agent:** yes
+- **Packages:** `apps/web`, `packages/ui` · **External dep:** none · **Issue/PR:** [#86](https://github.com/dhuzard/oratlas/pull/86)
 - **Goal:** Claim passports gave claims stable URLs. Verify every scholarly object renders at
   a stable, documented deep link (review version, claim, citation, relation+assessment, node
   version, edge, synthesis version, challenge once ORA-E01 lands), and pass an accessibility +
