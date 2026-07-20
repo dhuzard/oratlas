@@ -241,9 +241,9 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-C01 — Cross-review same-claim proposals surfaced end-to-end
 
-- **Status:** backlog · **Priority:** P2 · **Size:** M · **Agent:** yes
+- **Status:** review · **Priority:** P2 · **Size:** M · **Agent:** yes
 - **Packages:** `packages/knowledge`, `apps/web` · **External dep:** none · **Issue/PR:**
-  builds on KG-06 (PR #38)
+  [PR #91](https://github.com/dhuzard/oratlas/pull/91), builds on KG-06 (PR #38)
 - **Goal:** Deterministic same-claim detection (alias + normalized-text hash) exists and emits
   proposals. Verify, and where missing complete, the loop: proposals visible in the editorial
   dashboard, confirmable/rejectable with audit, and confirmed identity visible on claim
