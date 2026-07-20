@@ -184,7 +184,7 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-A05 — Verify end-to-end identity preservation (repo id, release, tag object, commit, tree)
 
-- **Status:** backlog · **Priority:** P0 · **Size:** S · **Agent:** yes
+- **Status:** in-progress · **Priority:** P0 · **Size:** S · **Agent:** yes
 - **Packages:** `packages/db`, `packages/github`, `packages/extractor` · **External dep:** none
   · **Issue/PR:** builds on PR #13
 - **Goal:** Pinning is implemented (immutable GitHub repository id, source-selection key,

@@ -1371,6 +1371,7 @@ async function capture(options: {
   capturedAt?: Date;
   sourceKind?: "default-branch" | "tag" | "release";
   releaseTag?: string;
+  tagObjectSha?: string;
   metadataCommitSha?: string;
   knowledge?: FullExtraction["knowledge"];
   nodeExtraction?: NodeExtractionReport;
@@ -1385,6 +1386,7 @@ async function capture(options: {
     githubRepositoryId: options.githubRepositoryId,
     sourceKind,
     releaseTag: options.releaseTag,
+    tagObjectSha: options.tagObjectSha,
   });
   const extraction = fullExtraction(
     report,
@@ -1414,6 +1416,7 @@ function inspectionReport(options: {
   githubRepositoryId: string;
   sourceKind: "default-branch" | "tag" | "release";
   releaseTag?: string;
+  tagObjectSha?: string;
 }): InspectionReport {
   const releaseTag =
     options.sourceKind === "default-branch" ? undefined : (options.releaseTag ?? "v1");
@@ -1437,6 +1440,7 @@ function inspectionReport(options: {
       kind: options.sourceKind,
       commitSha: commitA,
       treeSha: treeA,
+      ...(options.tagObjectSha ? { tagObjectSha: options.tagObjectSha } : {}),
       ...(options.sourceKind === "default-branch" ? { branch: "main" } : { releaseTag }),
     },
     tree: [],
@@ -1575,12 +1579,14 @@ async function assertSameCommitSelectionOrder(
   order: Array<"default-branch" | "release">,
 ): Promise<void> {
   const githubRepositoryId = nextRepoId();
+  const annotatedTagObjectSha = "e".repeat(40);
   const acceptedVersionIds: string[] = [];
   for (const sourceKind of order) {
     const capability = await capture({
       githubRepositoryId,
       sourceKind,
       releaseTag: sourceKind === "release" ? "v1" : undefined,
+      tagObjectSha: sourceKind === "release" ? annotatedTagObjectSha : undefined,
     });
     const submission = await runtime.createSubmission({
       inspectionToken: capability.token,
@@ -1596,12 +1602,29 @@ async function assertSameCommitSelectionOrder(
     where: { id: { in: acceptedVersionIds } },
     include: { snapshot: true },
   });
+  const repository = await runtime.prisma.repository.findUniqueOrThrow({
+    where: { githubRepositoryId },
+  });
   expect(versions).toHaveLength(2);
   expect(new Set(versions.map((version) => version.snapshotId)).size).toBe(1);
   expect(new Set(versions.map((version) => version.sourceKind))).toEqual(
     new Set(["default-branch", "release"]),
   );
   expect(versions.every((version) => version.inspectionCaptureId)).toBe(true);
+  expect(versions.every((version) => version.capturePayloadHash)).toBe(true);
+  expect(versions.every((version) => version.snapshot?.commitSha === commitA)).toBe(true);
+  expect(versions.every((version) => version.snapshot?.sourceTreeSha === treeA)).toBe(true);
+  expect(versions.every((version) => version.snapshot?.repositoryId === repository.id)).toBe(true);
+  expect(versions.find((version) => version.sourceKind === "default-branch")).toMatchObject({
+    sourceBranch: "main",
+    sourceSelectionKey: "default-branch:main",
+    tagObjectSha: null,
+  });
+  expect(versions.find((version) => version.sourceKind === "release")).toMatchObject({
+    releaseTag: "v1",
+    sourceSelectionKey: "release:v1",
+    tagObjectSha: annotatedTagObjectSha,
+  });
   expect(versions.every((version) => version.snapshot?.sourceKind === null)).toBe(true);
   expect(versions.every((version) => version.snapshot?.releaseTag === null)).toBe(true);
 }
