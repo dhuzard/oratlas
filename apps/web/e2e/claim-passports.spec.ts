@@ -20,12 +20,20 @@ test.describe("Claim passports & evidence monitoring", () => {
   }) => {
     const detail = await request.get("/api/reviews/hippocampal-replay-computational-review");
     const review = await detail.json();
-    const claim = review.claims[0];
+    const claim = review.claims.find((candidate: { relations: Array<{ trust?: unknown }> }) =>
+      candidate.relations.some((relation) => relation.trust),
+    );
+    expect(claim).toBeDefined();
 
     await page.goto(`/claims/${review.version.id}/${encodeURIComponent(claim.localClaimId)}`);
     await expect(page.getByRole("heading", { name: "Identity" })).toBeVisible();
     await expect(page.getByText("claim passport").first()).toBeVisible();
     await expect(page.getByRole("heading", { name: /Lineage across versions/ })).toBeVisible();
+    await expect(
+      page
+        .getByText(/Atlas structurally verified|Repository\/source-native — not verified by Atlas/)
+        .first(),
+    ).toBeVisible();
 
     const passport = await request.get(
       `/api/claims/${review.version.id}/${encodeURIComponent(claim.localClaimId)}`,
@@ -34,6 +42,7 @@ test.describe("Claim passports & evidence monitoring", () => {
     const body = await passport.json();
     expect(body.localClaimId).toBe(claim.localClaimId);
     expect(body.claimId).toContain("oratlas:claim:v1:");
+    expect(body.evidence.some((relation: { trust?: unknown }) => relation.trust)).toBe(true);
 
     const unknown = await request.get(`/api/claims/${review.version.id}/no-such-claim`);
     expect(unknown.status()).toBe(404);

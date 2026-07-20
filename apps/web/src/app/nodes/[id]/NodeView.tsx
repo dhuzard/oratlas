@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Badge, Card, DefinitionList, Notice, TrustCriterionProfile } from "@oratlas/ui";
 import { TRUST_CRITERIA, type PublicNodeDetail, type PublicNodeVersion } from "@oratlas/contracts";
+import { TrustVerificationBadge } from "@/components/TrustVerificationBadge";
 
 export function NodeView({
   node,
@@ -86,9 +87,9 @@ export function NodeView({
                         <p className="muted">
                           Relation TRUST: assessor{" "}
                           {assessment.assessorId ?? assessment.assessorType} ·{" "}
-                          {assessment.reviewStatus.replace(/-/g, " ")} ·{" "}
-                          {assessment.verificationState.replace(/-/g, " ")} · protocol{" "}
-                          {assessment.protocolVersion}
+                          {assessment.reviewStatus.replace(/-/g, " ")} · protocol{" "}
+                          {assessment.protocolVersion}{" "}
+                          <TrustVerificationBadge state={assessment.verificationState} />
                         </p>
                         <TrustCriterionProfile
                           criteria={assessment.criteria}
@@ -145,8 +146,8 @@ export function NodeView({
                             <p className="muted">
                               assessor {assessment.assessorId ?? assessment.assessorType} · protocol{" "}
                               {assessment.protocolVersion} ·{" "}
-                              {assessment.reviewStatus.replace(/-/g, " ")} ·{" "}
-                              {assessment.verificationState.replace(/-/g, " ")}
+                              {assessment.reviewStatus.replace(/-/g, " ")}{" "}
+                              <TrustVerificationBadge state={assessment.verificationState} />
                             </p>
                             <TrustCriterionProfile
                               criteria={assessment.criteria}

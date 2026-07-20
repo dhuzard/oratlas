@@ -8,6 +8,7 @@ import {
   type PublicGraphResponse,
 } from "@oratlas/contracts";
 import { graphHref, graphNodeVersionHref, relationPresentation } from "./graph-presentation";
+import { TrustVerificationBadge } from "@/components/TrustVerificationBadge";
 
 export function GraphLanding() {
   return (
@@ -139,6 +140,13 @@ export function GraphExplorer({
                     ? ` · relation TRUST: ${trustAssessments.length} assessment${trustAssessments.length === 1 ? "" : "s"} (${trustAssessments.map((assessment) => `${assessment.assessorId ?? assessment.assessorType ?? "not supplied (legacy)"}, ${assessment.protocolVersion}`).join("; ")})`
                     : ""}
                 </p>
+                {trustAssessments.map((assessment) => (
+                  <div className="btn-row" key={assessment.assessmentId}>
+                    <span className="muted">Relation TRUST:</span>
+                    <TrustVerificationBadge state={assessment.verificationState} />
+                    <span className="mono muted">protocol {assessment.protocolVersion}</span>
+                  </div>
+                ))}
               </li>
             );
           })}

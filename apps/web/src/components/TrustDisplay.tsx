@@ -1,5 +1,6 @@
-import { ProvenanceBadge, TrustCriterionProfile } from "@oratlas/ui";
+import { TrustCriterionProfile } from "@oratlas/ui";
 import { type ReviewTrust } from "@/lib/reviews";
+import { TrustVerificationBadge } from "./TrustVerificationBadge";
 
 /**
  * Renders a TRUST assessment for a claim–citation relation. Never shows an
@@ -11,21 +12,7 @@ export function TrustDisplay({ trust }: { trust: ReviewTrust }) {
   return (
     <div className="trust-block">
       <div className="btn-row" style={{ marginBottom: "0.4rem" }}>
-        {platformVerified ? (
-          <ProvenanceBadge kind="human-reviewed">
-            {trust.reviewStatus === "adjudicated"
-              ? "Atlas structurally adjudicated"
-              : "Atlas structurally reviewed"}
-          </ProvenanceBadge>
-        ) : trust.verificationState === "stale-verification" ? (
-          <ProvenanceBadge kind="warning">Atlas verification is stale</ProvenanceBadge>
-        ) : trust.verificationState === "legacy-unknown" ? (
-          <ProvenanceBadge kind="warning">Legacy provenance unknown</ProvenanceBadge>
-        ) : (
-          <ProvenanceBadge kind="repository-fact">
-            Repository assertion — not verified by Atlas
-          </ProvenanceBadge>
-        )}
+        <TrustVerificationBadge state={trust.verificationState} />
         <span className="muted">protocol {trust.protocolVersion}</span>
         <span className="muted">
           assessor {trust.assessorId ?? trust.sourceAssertion.assessorId ?? trust.assessorType}

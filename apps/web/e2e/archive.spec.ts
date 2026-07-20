@@ -29,6 +29,21 @@ test.describe("Public archive browsing", () => {
     await expect(page.getByText(/contradicts/i).first()).toBeVisible();
     // TRUST assessment is available.
     await expect(page.getByText(/TRUST assessment/i).first()).toBeVisible();
+    await page.locator("details").evaluateAll((details) => {
+      for (const detail of details) detail.open = true;
+    });
+    await expect(
+      page
+        .locator('[data-prov="human-reviewed"]:visible')
+        .filter({ hasText: "Atlas structurally verified" })
+        .first(),
+    ).toBeVisible();
+    await expect(
+      page
+        .locator('[data-prov="repository-fact"]:visible')
+        .filter({ hasText: "Repository/source-native — not verified by Atlas" })
+        .first(),
+    ).toBeVisible();
   });
 
   test("claim explorer finds a contradicting claim", async ({ page }) => {

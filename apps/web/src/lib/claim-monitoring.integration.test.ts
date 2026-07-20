@@ -56,7 +56,18 @@ const knowledge: FullExtraction["knowledge"] = {
     },
     { claimId: "claim-miss", citationId: "cit-clean", relationType: "supports" },
   ],
-  trust: [],
+  trust: [
+    {
+      claimId: "claim-hit",
+      citationId: "cit-retracted",
+      protocolVersion: "trust-poc-1.0",
+      assessorType: "agent",
+      assessorId: "repository-agent",
+      assessedAt: nowIso,
+      criteria: { sourceAccess: { rating: "high", status: "assessed" } },
+      reviewStatus: "agent-proposed",
+    },
+  ],
   warnings: [],
 };
 
@@ -170,6 +181,12 @@ describe.sequential("claim monitoring and passports", () => {
     expect(passport).not.toBeNull();
     expect(passport!.evidence).toHaveLength(1);
     expect(passport!.evidence[0]!.sourceLocation).toBe("content/review.md#L42");
+    expect(passport!.evidence[0]!.trust).toEqual({
+      assessmentId: expect.any(String),
+      protocolVersion: "trust-poc-1.0",
+      reviewStatus: "unverified-import",
+      verificationState: "unverified-import",
+    });
     expect(passport!.alerts.filter((alert) => alert.status === "open")).toHaveLength(1);
     expect(passport!.lineage).toHaveLength(1);
     expect(passport!.lineage[0]!.isThisVersion).toBe(true);

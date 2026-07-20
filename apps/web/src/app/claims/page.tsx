@@ -3,7 +3,7 @@ import { Card, Badge } from "@oratlas/ui";
 import { InProcessSearchProvider } from "@oratlas/knowledge";
 import { CLAIM_EVIDENCE_RELATION_TYPES, CLAIM_TYPES } from "@oratlas/contracts";
 import { buildKnowledgeIndex } from "@/lib/index-builder";
-import { ProvenanceBadge } from "@oratlas/ui";
+import { TrustVerificationBadge } from "@/components/TrustVerificationBadge";
 
 export const dynamic = "force-dynamic";
 
@@ -60,23 +60,16 @@ export default async function ClaimsPage({
                     {contradict > 0 ? (
                       <Badge tone="warning">{contradict} contradicting</Badge>
                     ) : null}
-                    {claim.relations.some((r) =>
-                      (r.trustAssessments ?? (r.trust ? [r.trust] : [])).some(
-                        (assessment) =>
-                          assessment.reviewStatus === "human-reviewed" ||
-                          assessment.reviewStatus === "adjudicated",
+                    {claim.relations.flatMap((relation) =>
+                      (relation.trustAssessments ?? (relation.trust ? [relation.trust] : [])).map(
+                        (assessment) => (
+                          <TrustVerificationBadge
+                            key={assessment.assessmentId}
+                            state={assessment.verificationState}
+                          />
+                        ),
                       ),
-                    ) ? (
-                      <ProvenanceBadge kind="human-reviewed">
-                        Atlas structurally reviewed
-                      </ProvenanceBadge>
-                    ) : claim.relations.some(
-                        (r) => (r.trustAssessments?.length ?? 0) > 0 || r.trust !== undefined,
-                      ) ? (
-                      <ProvenanceBadge kind="repository-fact">
-                        Repository TRUST assertion
-                      </ProvenanceBadge>
-                    ) : null}
+                    )}
                   </div>
                   <p className="muted" style={{ margin: "0.4rem 0 0" }}>
                     from{" "}
