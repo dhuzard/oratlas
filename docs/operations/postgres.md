@@ -65,6 +65,24 @@ Two jobs in the `CI` workflow keep Postgres support honest on every pull request
   direct writes, and seeds against a real PostgreSQL service on every PR, so a change that only works
   on SQLite cannot merge.
 
+### Test-matrix policy and budget
+
+SQLite remains the complete local and default CI test provider. The PostgreSQL job reruns only
+provider-sensitive persistence and concurrency suites against Postgres 16; pure contract, rendering,
+and offline extraction tests are not duplicated. Both providers must implement identical behavior.
+Provider-specific database bootstrap is allowed, but provider-specific product semantics are not.
+
+`atomic-publication.integration.test.ts` is shared by both providers. Under the normal test job it
+creates an isolated temporary SQLite database. When `DATABASE_URL` is an external PostgreSQL URL it
+uses that already-provisioned database instead, allowing the same serializable acceptance,
+double-submit, and conflicting-decision races to run without a copied Postgres-only suite. CI gives
+this suite its own `atomic_publication` schema so fixed fixture identities cannot collide with seed,
+federation, or Execution Passport tests.
+
+The PostgreSQL job has a 20-minute hard timeout. New provider-sensitive serialization or constraint
+coverage belongs in a shared provider-aware suite and should be added to the targeted Postgres list;
+do not run the entire SQLite-oriented Vitest corpus under a PostgreSQL-generated client.
+
 ## Caveat
 
 `db:reset` (delete the file, re-push, re-seed) is **SQLite/dev only**. It has no Postgres

@@ -162,6 +162,14 @@ jobs:
         env:
           EXECUTION_PASSPORT_TEST_DATABASE_URL: "postgresql://oratlas:oratlas@localhost:5432/oratlas"
 
+      - name: Exercise serializable publication races on PostgreSQL
+        run: |
+          pnpm --filter @oratlas/db exec prisma db push --schema prisma/schema.postgres.prisma --skip-generate
+          pnpm --filter @oratlas/db db:guards
+          pnpm exec vitest run apps/web/src/lib/atomic-publication.integration.test.ts
+        env:
+          DATABASE_URL: "postgresql://oratlas:oratlas@localhost:5432/oratlas?schema=atomic_publication"
+
   e2e:
     runs-on: ubuntu-latest
     timeout-minutes: 20
