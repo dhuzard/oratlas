@@ -8,7 +8,7 @@
  *
  * Node built-ins only. Never deletes anything.
  */
-import { copyFileSync, existsSync, mkdirSync, realpathSync } from "node:fs";
+import { constants, copyFileSync, existsSync, mkdirSync, realpathSync } from "node:fs";
 import { dirname, basename, isAbsolute, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -23,6 +23,20 @@ export function filePathFromUrl(url: string): string {
   let p = url.replace(/^file:/, "");
   p = p.replace(/^\/\/(?=\/)/, ""); // file:///abs -> /abs
   return p;
+}
+
+/** Resolve an optional deterministic destination passed as `--output <path>`. */
+export function backupOutputFromArgs(args: string[], defaultTarget: string): string {
+  const outputIndex = args.indexOf("--output");
+  if (outputIndex === -1) return defaultTarget;
+  const value = args[outputIndex + 1];
+  if (!value || value.startsWith("--")) {
+    throw new Error("--output requires a filesystem path");
+  }
+  if (args.indexOf("--output", outputIndex + 1) !== -1) {
+    throw new Error("--output may only be specified once");
+  }
+  return isAbsolute(value) ? value : resolve(process.cwd(), value);
 }
 
 function main(): void {
@@ -47,11 +61,20 @@ function main(): void {
     process.exit(1);
   }
 
-  const backupsDir = join(repoRoot, "backups");
-  mkdirSync(backupsDir, { recursive: true });
-
-  const target = join(backupsDir, `${basename(dbPath)}.${utcStamp()}.bak`);
-  copyFileSync(dbPath, target);
+  const defaultTarget = join(repoRoot, "backups", `${basename(dbPath)}.${utcStamp()}.bak`);
+  let target: string;
+  try {
+    target = backupOutputFromArgs(process.argv.slice(2), defaultTarget);
+  } catch (error) {
+    console.error(`✗ ${error instanceof Error ? error.message : String(error)}`);
+    process.exit(1);
+  }
+  if (resolve(target) === resolve(dbPath)) {
+    console.error("✗ Backup destination must differ from the live database path.");
+    process.exit(1);
+  }
+  mkdirSync(dirname(target), { recursive: true });
+  copyFileSync(dbPath, target, constants.COPYFILE_EXCL);
 
   console.info(`✓ Backed up SQLite database`);
   console.info(`  from: ${dbPath}`);
