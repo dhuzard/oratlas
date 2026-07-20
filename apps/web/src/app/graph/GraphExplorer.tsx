@@ -113,7 +113,11 @@ export function GraphExplorer({
                 ? (edge.trustAssessments ?? (edge.trust ? [edge.trust] : []))
                 : [];
             return (
-              <li className={presentation.className} key={edge.id}>
+              <li
+                className={`${presentation.className} deep-link-target`}
+                id={`edge-${edge.id}`}
+                key={edge.id}
+              >
                 <div className="graph-edge-heading">
                   <span className="graph-status-symbol" aria-hidden="true">
                     {presentation.statusSymbol}

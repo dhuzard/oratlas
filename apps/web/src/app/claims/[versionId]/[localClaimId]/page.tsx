@@ -82,8 +82,12 @@ export default async function ClaimPassportPage({
         {passport.evidence.length === 0 ? (
           <p className="muted">No evidence relations were extracted for this claim.</p>
         ) : (
-          passport.evidence.map((relation, index) => (
-            <div className="relation-row" key={index}>
+          passport.evidence.map((relation) => (
+            <div
+              className="relation-row deep-link-target"
+              id={`relation-${relation.id}`}
+              key={relation.id}
+            >
               <Badge tone={relation.relationType === "contradicts" ? "warning" : "neutral"}>
                 {relation.relationType.replace(/-/g, " ")}
               </Badge>

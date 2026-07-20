@@ -114,6 +114,25 @@ test("editor gates generated, rejected, and accepted synthesis drafts", async ({
 
   expect(result.reviewSlug).toBe(slug);
   await page.goto(`/reviews/${slug}`);
+  const acceptedReview = await prisma.review.findUniqueOrThrow({
+    where: { slug },
+    select: { currentSynthesisVersionId: true },
+  });
+  const permanentLink = page.getByRole("link", {
+    name: "Permanent link to accepted version 1",
+  });
+  await expect(permanentLink).toHaveAttribute(
+    "href",
+    `/reviews/${slug}/syntheses/${acceptedReview.currentSynthesisVersionId}`,
+  );
+  await permanentLink.focus();
+  await expect(permanentLink).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(
+    new RegExp(`/reviews/${slug}/syntheses/${acceptedReview.currentSynthesisVersionId}$`),
+  );
+  await expect(page.locator(".synthesis-reader")).toBeVisible();
+  await page.goto(`/reviews/${slug}`);
   await expect(page.getByText(SYNTHESIS_PUBLIC_AI_LABEL, { exact: true }).first()).toBeVisible();
   await expect(page.getByText(SYNTHESIS_PUBLIC_SCOPE_NOTICE, { exact: true })).toBeVisible();
   await expect(page.getByText("Freshness not yet checked")).toBeVisible();

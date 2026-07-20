@@ -279,6 +279,20 @@ describe.sequential("synthesis editorial lifecycle", () => {
         conceptDoi: "10.5281/zenodo.1234500",
       },
     });
+    expect(
+      await service.getPublicSynthesisReviewVersion(
+        accepted.reviewSlug!,
+        accepted.reviewVersionId!,
+        prisma,
+      ),
+    ).toEqual(publicReview);
+    expect(
+      await service.getPublicSynthesisReviewVersion(
+        accepted.reviewSlug!,
+        "missing-synthesis-version",
+        prisma,
+      ),
+    ).toBeNull();
     const acceptedVersion = await prisma.reviewVersion.findUniqueOrThrow({
       where: { id: accepted.reviewVersionId! },
     });

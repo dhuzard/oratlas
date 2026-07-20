@@ -357,6 +357,7 @@ export interface ClaimPassport {
   publishedAt?: string;
   isExample: boolean;
   evidence: Array<{
+    id: string;
     relationType: string;
     supportDirection?: string;
     /** Exact selector into the source artifacts, when the repository provided one. */
@@ -472,6 +473,7 @@ export async function getClaimPassport(
         });
       const preferred = selectPreferredTrustAssessment(assessments)?.value;
       return {
+        id: relation.id,
         relationType: relation.relationType,
         supportDirection: relation.supportDirection ?? undefined,
         sourceLocation: relation.sourceLocation ?? undefined,

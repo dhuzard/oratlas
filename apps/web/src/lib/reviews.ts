@@ -59,6 +59,7 @@ export interface ReviewTrust {
 }
 
 export interface ReviewRelation {
+  id: string;
   relationType: string;
   citationLocalId: string;
   citationTitle?: string;
@@ -338,6 +339,7 @@ export async function getReviewDetail(
         };
       });
       return {
+        id: rel.id,
         relationType: rel.relationType,
         citationLocalId: rel.citation.localCitationId,
         citationTitle: rel.citation.title ?? undefined,
