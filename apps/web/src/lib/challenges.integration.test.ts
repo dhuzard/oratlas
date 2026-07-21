@@ -284,4 +284,29 @@ describe.sequential("formal challenge persistence and lifecycle", () => {
       }),
     ).rejects.toMatchObject({ code: "conflict" });
   });
+
+  it("closes reads and lifecycle writes when the immutable version loses publication eligibility", async () => {
+    const seeded = await fixture("four");
+    const subject = { type: "claim" as const, claimId: seeded.claim.id };
+    const binding = await service.resolveChallengeSubject(prisma, seeded.version.id, subject);
+    const created = await service.createChallenge(seeded.review.slug, challenger, {
+      reviewVersionId: seeded.version.id,
+      subject,
+      canonicalSubjectHash: binding.hash,
+      grounds: "other",
+      body: "This exact published subject needs clarification.",
+    });
+    await prisma.reviewVersion.update({
+      where: { id: seeded.version.id },
+      data: { publishedAt: null },
+    });
+    expect(await service.listChallenges(seeded.review.slug, seeded.version.id)).toBeNull();
+    expect(await service.listChallengeSubjectOptions(seeded.version.id)).toEqual([]);
+    await expect(
+      service.transitionChallenge(created.id, author, {
+        expectedRevision: 0,
+        toStatus: "author-responded",
+      }),
+    ).rejects.toMatchObject({ code: "forbidden" });
+  });
 });
