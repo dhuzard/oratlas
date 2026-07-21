@@ -21,6 +21,7 @@ import { listEditorialSynthesisDrafts } from "@/lib/synthesis-editorial";
 import { SynthesisDraftPanel } from "./SynthesisDraftPanel";
 import { listSynthesisRegenerationProposalPage } from "@/lib/synthesis-staleness";
 import { SynthesisStalenessPanel } from "./SynthesisStalenessPanel";
+import { TrustEditorialProvenance } from "./TrustEditorialProvenance";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Editorial dashboard" };
@@ -307,40 +308,7 @@ export default async function EditorialPage({
               {item.citationLocalId}
               {item.citationTitle ? ` — ${item.citationTitle}` : ""}
             </p>
-            <div className="table-scroll">
-              <table className="data">
-                <thead>
-                  <tr>
-                    <th>Provenance</th>
-                    <th>Status</th>
-                    <th>Assessor</th>
-                    <th>Aggregate</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td>Repository assertion</td>
-                    <td>{item.sourceReviewStatus ?? "not supplied"}</td>
-                    <td>{item.sourceAssessorType ?? "not supplied"}</td>
-                    <td>
-                      {item.subjectType === "node-relation"
-                        ? "omitted for relation TRUST"
-                        : (item.sourceAggregateScore ?? "null / not supplied")}
-                    </td>
-                  </tr>
-                  <tr>
-                    <td>Atlas-computed public value</td>
-                    <td>{item.effectiveStatus.replaceAll("-", " ")}</td>
-                    <td>{item.reviewerLogin ?? "not reviewed"}</td>
-                    <td>
-                      {item.subjectType === "node-relation"
-                        ? "omitted for relation TRUST"
-                        : (item.computedAggregateScore ?? "not computable")}
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+            <TrustEditorialProvenance item={item} />
             {item.rationale ? (
               <p className="muted">
                 Existing marker ({item.reviewerRoleSnapshot}): {item.rationale}

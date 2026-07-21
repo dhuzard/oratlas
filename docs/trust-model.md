@@ -135,3 +135,10 @@ The claim, citation, support relation, criterion ratings (with status and ration
 repository assertion, current platform-marker state, and — only when an Atlas-computed aggregate
 is displayed — its method. Atlas structural review is not scientific peer review and does not
 establish that a claim or paper is correct.
+
+The editorial queue keeps every assessment as a separate record in the same neutral order used by
+public D01 projections. For both claim–citation and node-relation subjects, editors see the stored
+assessor type and identifier, the source assessor type and identifier, TRUST protocol version,
+assessment and source timestamps, source-record and evidence-pointer presence, and exact repository
+status/relation assertions. Raw source JSON is not rendered. The queue does not resolve assessor
+identities, compare assessors, select a preferred assessment, or combine records across protocols.
