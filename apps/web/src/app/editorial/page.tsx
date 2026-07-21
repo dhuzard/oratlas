@@ -27,6 +27,7 @@ import { NodeIdentityProposalPanel } from "./NodeIdentityProposalPanel";
 import { listPendingNodeIdentityProposals } from "@/lib/node-identity-lifecycle";
 import { listOpenChallengePage } from "@/lib/challenges";
 import { ChallengeQueuePanel } from "./ChallengeQueuePanel";
+import { CompatibilityFacets } from "@/components/CompatibilityFacets";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Editorial dashboard" };
@@ -159,6 +160,10 @@ export default async function EditorialPage({
                     {s.validation.trustDataAvailable ? "yes" : "no"}
                   </p>
                 )}
+                <CompatibilityFacets
+                  facets={s.compatibilityFacets}
+                  legacyMessage="Facet compatibility is unavailable for this immutable legacy submission."
+                />
                 {s.validation.warnings.length > 0 ? (
                   <details>
                     <summary>{s.validation.warnings.length} warning(s)</summary>

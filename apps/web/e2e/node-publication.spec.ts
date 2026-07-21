@@ -125,6 +125,14 @@ test("submitter finalizes a node-only capture and an editor publishes its nodes"
   );
   expect(firstCapturePayload.extraction.nodeExtraction).toEqual(firstInspection.nodeExtraction);
   await expect(page.getByRole("heading", { name: "Review extracted metadata" })).toBeVisible();
+  const wizardFacets = page.getByLabel("Compatibility by facet");
+  await expect(wizardFacets.locator("[data-compatibility-facet]")).toHaveCount(5);
+  await expect(wizardFacets.locator('[data-compatibility-facet="article"]')).toContainText(
+    "unavailable",
+  );
+  await expect(wizardFacets.locator('[data-compatibility-facet="claimGraph"]')).toContainText(
+    "available",
+  );
   await page.getByRole("button", { name: "Continue to node candidates" }).click();
   await expect(
     page.getByRole("heading", { name: "Review extracted node candidates" }),
@@ -177,6 +185,11 @@ test("submitter finalizes a node-only capture and an editor publishes its nodes"
   });
   expect(oversizedStatus).toBe(413);
   const submissionCard = editorPage.locator("article.card").filter({ hasText: repositoryName });
+  const editorialFacets = submissionCard.getByLabel("Compatibility by facet");
+  await expect(editorialFacets.locator("[data-compatibility-facet]")).toHaveCount(5);
+  await expect(editorialFacets.locator('[data-compatibility-facet="claimGraph"]')).toContainText(
+    "2 valid node edge",
+  );
   await expect(submissionCard.getByText(firstSourceTitle).last()).toBeVisible();
   await expect(submissionCard.getByRole("checkbox").last()).toBeChecked();
   const decisionResponse = editorPage.waitForResponse(
@@ -244,6 +257,11 @@ test("submitter finalizes a node-only capture and an editor publishes its nodes"
   const publicNode = editorPage.locator("article.card").filter({ hasText: repositoryName });
   await expect(publicNode.getByText(firstSourceTitle)).toBeVisible();
   await expect(editorPage.locator('img[src="x"]')).toHaveCount(0);
+
+  await editorPage.goto("/reviews/hippocampal-replay-computational-review");
+  await expect(
+    editorPage.getByText("Facet compatibility is unavailable for this immutable legacy report."),
+  ).toBeVisible();
 
   const sourceIdentity = await prisma.knowledgeNode.findFirstOrThrow({
     where: { repository: { canonicalUrl: repositoryUrl }, localNodeId: "claim:e2e" },
