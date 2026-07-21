@@ -14,6 +14,15 @@ export async function ingestTrustAssessment(
 ) {
   const imported = normalizeImportedTrustRecord(record, sourceRelationHumanReviewed);
   const sourceIdentity = assessmentSourceIdentity(imported.record);
+  const exact = await tx.trustAssessment.findUnique({
+    where: {
+      claimEvidenceRelationId_sourceRecordHash: {
+        claimEvidenceRelationId,
+        sourceRecordHash: sourceIdentity.sourceRecordHash,
+      },
+    },
+  });
+  if (exact) return exact;
   const predecessor = await tx.trustAssessment.findFirst({
     where: { claimEvidenceRelationId, sourceLineageKey: sourceIdentity.sourceLineageKey },
     orderBy: [{ createdAt: "desc" }, { id: "desc" }],
@@ -60,6 +69,15 @@ export async function ingestNodeRelationTrustAssessment(
 ) {
   const imported = normalizeImportedNodeRelationTrustRecord(record);
   const sourceIdentity = assessmentSourceIdentity(imported.record);
+  const exact = await tx.nodeRelationTrustAssessment.findUnique({
+    where: {
+      nodeEdgeProposalId_sourceRecordHash: {
+        nodeEdgeProposalId,
+        sourceRecordHash: sourceIdentity.sourceRecordHash,
+      },
+    },
+  });
+  if (exact) return exact;
   const predecessor = await tx.nodeRelationTrustAssessment.findFirst({
     where: { nodeEdgeProposalId, sourceLineageKey: sourceIdentity.sourceLineageKey },
     orderBy: [{ createdAt: "desc" }, { id: "desc" }],

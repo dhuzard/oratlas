@@ -13,6 +13,14 @@ function fakeDelegate(parentField: string) {
   return {
     rows,
     delegate: {
+      findUnique: async ({ where }: { where: Record<string, Record<string, string>> }) => {
+        const identity = Object.values(where)[0]!;
+        return (
+          rows.find((row) =>
+            Object.entries(identity).every(([key, value]) => row[key] === value),
+          ) ?? null
+        );
+      },
       upsert: async ({
         where,
         create,
