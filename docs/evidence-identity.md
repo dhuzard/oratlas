@@ -93,7 +93,10 @@ that a claim, source, TRUST assessment, or generated answer is scientifically co
 - UI: `/reviews/{slug}/versions/{versionId}`
 - API: `/api/reviews/{slug}/versions/{versionId}`
 - Read-only comments API: `/api/reviews/{slug}/versions/{versionId}/comments`
+- Formal challenge register/API: `/api/reviews/{slug}/versions/{versionId}/challenges`
 
 Each route verifies that the version belongs to the slug and reads the selected version's own
 snapshot, repository, metadata, claims, citations, identifiers, and version-bound discussion.
 Historical pages never post, reply to, or remove comments.
+Challenges deliberately remain version-scoped on historical pages: their target binding includes
+the exact version and is re-hashed on every public read. A challenge does not mutate that subject.

@@ -698,3 +698,15 @@ introducing a test-only production route or granting an agent publication author
 - Projected every assessment (with assessor and protocol) through review, node, graph, search,
   discussion, and synthesis surfaces while retaining explicit singleton compatibility for older
   serialized packets.
+
+## 2026-07-21 — ORA-E01 immutable formal challenges
+
+- Added typed formal challenges for exact version-scoped claims, claim–evidence relations, and
+  individual TRUST assessment criteria. The server derives canonical subject JSON and SHA-256;
+  filing, transitions, and public reads fail closed on any mismatch.
+- Added authenticated, same-origin, bounded and rate-limited filing/transition routes with a strict
+  append-only lifecycle ledger, optimistic revisions, actor/role snapshots, and audit events.
+- Kept the provisional editors-resolve policy behind one swappable authority function; contributor
+  response and challenger withdrawal authority remain separately checked.
+- Added a visually distinct public formal-challenge register and escaped filing form without
+  changing claims, relations, assessments, TRUST values, compatibility, or review lifecycle.

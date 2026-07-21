@@ -59,6 +59,7 @@ export interface ReviewTrust {
 }
 
 export interface ReviewRelation {
+  relationId: string;
   relationType: string;
   citationLocalId: string;
   citationTitle?: string;
@@ -71,6 +72,7 @@ export interface ReviewRelation {
 }
 
 export interface ReviewClaim {
+  subjectId: string;
   claimId: string;
   localClaimId: string;
   text: string;
@@ -277,6 +279,7 @@ export async function getReviewDetail(
 
   const limitations = new Set<string>();
   const claims: ReviewClaim[] = version.claims.map((claim) => ({
+    subjectId: claim.id,
     claimId: globalClaimId(version.id, claim.localClaimId),
     localClaimId: claim.localClaimId,
     text: claim.text,
@@ -338,6 +341,7 @@ export async function getReviewDetail(
         };
       });
       return {
+        relationId: rel.id,
         relationType: rel.relationType,
         citationLocalId: rel.citation.localCitationId,
         citationTitle: rel.citation.title ?? undefined,
