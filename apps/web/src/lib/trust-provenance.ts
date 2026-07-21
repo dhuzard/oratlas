@@ -555,10 +555,21 @@ export interface TrustQueueItem {
   citationLocalId: string;
   citationTitle?: string;
   relationType: string;
+  protocolVersion: string;
+  assessorType: string;
+  assessorId?: string;
+  assessedAt?: string;
+  evidenceAvailable: boolean;
+  sourceRecordAvailable: boolean;
   sourceReviewStatus?: string;
   sourceAssessorType?: string;
+  sourceAssessorId?: string;
+  sourceAssessedAt?: string;
+  sourceEvidenceAvailable: boolean;
   sourceRelationHumanReviewed?: boolean;
   criteria: TrustCriterionProfileRow[];
+  sourceAggregateScore: number | null;
+  computedAggregateScore: number | null;
   effectiveStatus: string;
   verificationState: ResolvedTrustVerification["state"];
   reviewerLogin?: string;
@@ -597,10 +608,21 @@ export async function listTrustEditorialQueue(
       citationLocalId: row.relation.citation.localCitationId,
       citationTitle: row.relation.citation.title ?? undefined,
       relationType: row.relation.relationType,
+      protocolVersion: row.protocolVersion,
+      assessorType: row.assessorType,
+      assessorId: row.assessorId ?? undefined,
+      assessedAt: row.assessedAt?.toISOString(),
+      evidenceAvailable: row.evidenceJson !== null,
+      sourceRecordAvailable: row.sourceRecordJson !== null,
       sourceReviewStatus: row.sourceReviewStatus ?? undefined,
       sourceAssessorType: row.sourceAssessorType ?? undefined,
+      sourceAssessorId: row.sourceAssessorId ?? undefined,
+      sourceAssessedAt: row.sourceAssessedAt?.toISOString(),
+      sourceEvidenceAvailable: row.sourceEvidenceJson !== null,
       sourceRelationHumanReviewed: row.sourceRelationHumanReviewed ?? undefined,
       criteria: trustCriterionProfileFromJson(resolved.subject.assessment.criteriaJson),
+      sourceAggregateScore: row.sourceAggregateScore,
+      computedAggregateScore: row.aggregateScore,
       effectiveStatus: resolved.effectiveStatus,
       verificationState: resolved.state,
       reviewerLogin: row.verification?.reviewer.githubLogin,
@@ -624,9 +646,20 @@ export async function listTrustEditorialQueue(
         citationLocalId: row.proposal.targetNodeVersion.knowledgeNode.localNodeId,
         citationTitle: row.proposal.targetNodeVersion.title,
         relationType: row.proposal.relationType,
+        protocolVersion: row.protocolVersion,
+        assessorType: row.assessorType,
+        assessorId: row.assessorId ?? undefined,
+        assessedAt: row.assessedAt?.toISOString(),
+        evidenceAvailable: row.evidenceJson !== null,
+        sourceRecordAvailable: row.sourceRecordJson !== null,
         sourceReviewStatus: row.sourceReviewStatus,
         sourceAssessorType: row.sourceAssessorType,
         criteria: trustCriterionProfileFromJson(resolved.subject.assessment.criteriaJson),
+        sourceAssessorId: row.sourceAssessorId ?? undefined,
+        sourceAssessedAt: row.sourceAssessedAt?.toISOString(),
+        sourceEvidenceAvailable: row.sourceEvidenceJson !== null,
+        sourceAggregateScore: row.sourceAggregateScore,
+        computedAggregateScore: null,
         effectiveStatus: resolved.effectiveStatus,
         verificationState: resolved.state,
         reviewerLogin: row.verification?.reviewer.githubLogin,
@@ -647,6 +680,12 @@ export async function listTrustEditorialQueue(
         citationLocalId: row.proposal.targetNodeVersion.knowledgeNode.localNodeId,
         citationTitle: row.proposal.targetNodeVersion.title,
         relationType: row.proposal.relationType,
+        protocolVersion: row.protocolVersion,
+        assessorType: row.assessorType,
+        assessorId: row.assessorId ?? undefined,
+        assessedAt: row.assessedAt?.toISOString(),
+        evidenceAvailable: row.evidenceJson !== null,
+        sourceRecordAvailable: row.sourceRecordJson !== null,
         sourceReviewStatus: row.sourceReviewStatus,
         sourceAssessorType: row.sourceAssessorType,
         criteria: trustCriterionProfileFromJson({
@@ -661,6 +700,11 @@ export async function listTrustEditorialQueue(
           replicationConvergence: row.replicationConvergence,
           conflictDependency: row.conflictDependency,
         }),
+        sourceAssessorId: row.sourceAssessorId ?? undefined,
+        sourceAssessedAt: row.sourceAssessedAt?.toISOString(),
+        sourceEvidenceAvailable: row.sourceEvidenceJson !== null,
+        sourceAggregateScore: row.sourceAggregateScore,
+        computedAggregateScore: null,
         effectiveStatus: "unverified-import",
         verificationState: "stale-verification",
         revision: row.revision,
@@ -668,11 +712,25 @@ export async function listTrustEditorialQueue(
       });
     }
   }
-  return items.filter((item) => {
+  return orderTrustQueueItems(items).filter((item) => {
     if (filter === "all") return true;
     if (filter === "verified") return item.verificationState === "platform-verified";
     if (filter === "stale") return item.verificationState === "stale-verification";
     if (filter === "legacy") return item.verificationState === "legacy-unknown";
     return item.verificationState !== "platform-verified";
   });
+}
+
+/** Apply the D01 neutral ordering without using status, rating, or aggregate fields. */
+export function orderTrustQueueItems(items: readonly TrustQueueItem[]): TrustQueueItem[] {
+  return orderTrustAssessments(
+    items.map((item) => ({
+      id: item.assessmentId,
+      assessedAt: item.assessedAt ?? null,
+      assessorType: item.assessorType,
+      assessorId: item.assessorId ?? null,
+      protocolVersion: item.protocolVersion,
+      value: item,
+    })),
+  ).map(({ value }) => value);
 }

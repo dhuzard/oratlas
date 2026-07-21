@@ -4,11 +4,60 @@ vi.mock("server-only", () => ({}));
 vi.mock("./db.js", () => ({ prisma: {} }));
 
 import {
+  orderTrustQueueItems,
   resolveLoadedTrustAssessment,
   verifyTrustAssessmentInTransaction,
   type LoadedTrustAssessment,
   type TrustEditorialError,
 } from "./trust-provenance.js";
+
+describe("TRUST editorial queue ordering", () => {
+  it("uses D01 neutral provenance ordering instead of status or score", () => {
+    const base = {
+      subjectType: "claim-citation",
+      subjectHref: "/reviews/review",
+      subjectLabel: "review",
+      canVerify: true,
+      claimLocalId: "claim",
+      claimText: "Claim",
+      citationLocalId: "citation",
+      relationType: "supports",
+      protocolVersion: "trust-poc-1.0",
+      assessorType: "agent",
+      evidenceAvailable: false,
+      sourceRecordAvailable: true,
+      sourceEvidenceAvailable: false,
+      sourceAggregateScore: null,
+      computedAggregateScore: null,
+      effectiveStatus: "unverified-import",
+      verificationState: "unverified-import",
+      revision: 0,
+      assessmentHash: "a".repeat(64),
+    } as const;
+    const ordered = orderTrustQueueItems([
+      { ...base, assessmentId: "later", assessedAt: "2026-02-01T00:00:00.000Z" },
+      {
+        ...base,
+        assessmentId: "z-adjudicated",
+        assessedAt: "2026-01-01T00:00:00.000Z",
+        effectiveStatus: "adjudicated",
+        computedAggregateScore: 1,
+      },
+      {
+        ...base,
+        assessmentId: "a-unverified",
+        assessedAt: "2026-01-01T00:00:00.000Z",
+        computedAggregateScore: 0,
+      },
+    ]);
+
+    expect(ordered.map(({ assessmentId }) => assessmentId)).toEqual([
+      "a-unverified",
+      "z-adjudicated",
+      "later",
+    ]);
+  });
+});
 
 function loadedRow(): LoadedTrustAssessment {
   const now = new Date("2026-01-01T00:00:00.000Z");
