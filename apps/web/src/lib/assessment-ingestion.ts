@@ -14,21 +14,19 @@ export async function ingestTrustAssessment(
 ) {
   const imported = normalizeImportedTrustRecord(record, sourceRelationHumanReviewed);
   const sourceIdentity = assessmentSourceIdentity(imported.record);
-  const existing = await tx.trustAssessment.findUnique({
+  const predecessor = await tx.trustAssessment.findFirst({
+    where: { claimEvidenceRelationId, sourceLineageKey: sourceIdentity.sourceLineageKey },
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+  });
+  return tx.trustAssessment.upsert({
     where: {
       claimEvidenceRelationId_sourceRecordHash: {
         claimEvidenceRelationId,
         sourceRecordHash: sourceIdentity.sourceRecordHash,
       },
     },
-  });
-  if (existing) return existing;
-  const predecessor = await tx.trustAssessment.findFirst({
-    where: { claimEvidenceRelationId, sourceLineageKey: sourceIdentity.sourceLineageKey },
-    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-  });
-  return tx.trustAssessment.create({
-    data: {
+    update: {},
+    create: {
       claimEvidenceRelationId,
       protocolVersion: imported.record.protocolVersion,
       assessorType: imported.record.assessorType,
@@ -62,21 +60,19 @@ export async function ingestNodeRelationTrustAssessment(
 ) {
   const imported = normalizeImportedNodeRelationTrustRecord(record);
   const sourceIdentity = assessmentSourceIdentity(imported.record);
-  const existing = await tx.nodeRelationTrustAssessment.findUnique({
+  const predecessor = await tx.nodeRelationTrustAssessment.findFirst({
+    where: { nodeEdgeProposalId, sourceLineageKey: sourceIdentity.sourceLineageKey },
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+  });
+  return tx.nodeRelationTrustAssessment.upsert({
     where: {
       nodeEdgeProposalId_sourceRecordHash: {
         nodeEdgeProposalId,
         sourceRecordHash: sourceIdentity.sourceRecordHash,
       },
     },
-  });
-  if (existing) return existing;
-  const predecessor = await tx.nodeRelationTrustAssessment.findFirst({
-    where: { nodeEdgeProposalId, sourceLineageKey: sourceIdentity.sourceLineageKey },
-    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-  });
-  return tx.nodeRelationTrustAssessment.create({
-    data: {
+    update: {},
+    create: {
       nodeEdgeProposalId,
       protocolVersion: imported.record.protocolVersion,
       assessorType: imported.record.assessorType,

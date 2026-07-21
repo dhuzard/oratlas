@@ -107,6 +107,10 @@ export function GraphExplorer({
             const target = nodes.get(edge.targetVersionId);
             if (!source || !target) return null;
             const presentation = relationPresentation(edge);
+            const trustAssessments =
+              edge.status === "confirmed"
+                ? (edge.trustAssessments ?? (edge.trust ? [edge.trust] : []))
+                : [];
             return (
               <li className={presentation.className} key={edge.id}>
                 <div className="graph-edge-heading">
@@ -131,8 +135,8 @@ export function GraphExplorer({
                   {edge.status === "confirmed"
                     ? `Confirmed by an editor · ${edge.confirmedAt.slice(0, 10)}`
                     : `${edge.provenance.replace(/-/g, " ")} · proposed ${edge.proposedAt.slice(0, 10)}`}
-                  {edge.status === "confirmed" && (edge.trustAssessments?.length ?? 0) > 0
-                    ? ` · relation TRUST: ${edge.trustAssessments!.length} assessment${edge.trustAssessments!.length === 1 ? "" : "s"} (${edge.trustAssessments!.map((assessment) => `${assessment.assessorId ?? assessment.assessorType}, ${assessment.protocolVersion}`).join("; ")})`
+                  {trustAssessments.length > 0
+                    ? ` · relation TRUST: ${trustAssessments.length} assessment${trustAssessments.length === 1 ? "" : "s"} (${trustAssessments.map((assessment) => `${assessment.assessorId ?? assessment.assessorType ?? "not supplied (legacy)"}, ${assessment.protocolVersion}`).join("; ")})`
                     : ""}
                 </p>
               </li>

@@ -8,7 +8,6 @@ import {
 } from "./graph-trust";
 import {
   loadedNodeRelationTrustInclude,
-  PUBLIC_NODE_RELATION_TRUST_GLOBAL_LIMIT,
   projectPublicNodeRelationTrustAssessments,
   type LoadedNodeRelationTrustAssessment,
 } from "./trust-provenance";
@@ -31,9 +30,7 @@ export const databaseGraphTrustProvider: GraphTrustProvider = {
       },
       include: loadedNodeRelationTrustInclude,
       orderBy: [{ assessedAt: "desc" }, { id: "asc" }],
-      take: PUBLIC_NODE_RELATION_TRUST_GLOBAL_LIMIT + 1,
     });
-    if (rows.length > PUBLIC_NODE_RELATION_TRUST_GLOBAL_LIMIT) return new Map();
 
     return projectGraphTrustRows(exactKeys, rows as LoadedNodeRelationTrustAssessment[]);
   },
@@ -67,8 +64,7 @@ export function projectGraphTrustRows(
     if (parsed.data.length === 1) {
       const assessment = parsed.data[0];
       if (!assessment) continue;
-      const { protocolVersion, reviewStatus, verificationState } = assessment;
-      result.set(key, { protocolVersion, reviewStatus, verificationState });
+      result.set(key, assessment);
     } else {
       result.set(key, parsed.data);
     }

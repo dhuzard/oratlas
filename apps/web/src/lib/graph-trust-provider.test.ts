@@ -1,13 +1,31 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { findMany } = vi.hoisted(() => ({ findMany: vi.fn() }));
+const { findMany, projectAssessments } = vi.hoisted(() => ({
+  findMany: vi.fn(),
+  projectAssessments: vi.fn((rows: Array<{ id: string }>) =>
+    rows.map((row) => ({
+      assessmentId: row.id,
+      protocolVersion: "TRUST-1.0",
+      assessorType: "human",
+      assessorId: "reviewer-1",
+      assessedAt: "2026-01-01T00:00:00.000Z",
+      reviewStatus: "human-reviewed",
+      verificationState: "platform-verified",
+    })),
+  ),
+}));
 
 vi.mock("server-only", () => ({}));
 vi.mock("./db.js", () => ({
   prisma: { nodeRelationTrustAssessment: { findMany } },
 }));
+vi.mock("./trust-provenance.js", () => ({
+  loadedNodeRelationTrustInclude: { proposal: true },
+  projectPublicNodeRelationTrustAssessments: projectAssessments,
+}));
 
 import { databaseGraphTrustProvider } from "./graph-trust-provider.js";
+import { graphTrustLookupKey } from "./graph-trust.js";
 
 const exactKey = {
   sourceVersionId: "source-version",
@@ -26,16 +44,19 @@ function minimalRow(index: number, relationType = "supports") {
   };
 }
 
-describe("databaseGraphTrustProvider bounds", () => {
-  beforeEach(() => findMany.mockReset());
+describe("databaseGraphTrustProvider", () => {
+  beforeEach(() => {
+    findMany.mockReset();
+    projectAssessments.mockClear();
+  });
 
   it("does not query persistence when no exact relation keys are requested", async () => {
     await expect(databaseGraphTrustProvider.lookup([])).resolves.toEqual(new Map());
     expect(findMany).not.toHaveBeenCalled();
   });
 
-  it("uses one globally bounded exact-key query and fails closed above 10,000 rows", async () => {
-    findMany.mockResolvedValue(Array.from({ length: 10_001 }, () => null));
+  it("uses one complete exact-key query without a silent global row cap", async () => {
+    findMany.mockResolvedValue([]);
 
     await expect(databaseGraphTrustProvider.lookup([exactKey, exactKey])).resolves.toEqual(
       new Map(),
@@ -43,7 +64,6 @@ describe("databaseGraphTrustProvider bounds", () => {
     expect(findMany).toHaveBeenCalledTimes(1);
     expect(findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        take: 10_001,
         where: {
           OR: [
             {
@@ -57,15 +77,30 @@ describe("databaseGraphTrustProvider bounds", () => {
         },
       }),
     );
+    expect(findMany.mock.calls[0]?.[0]).not.toHaveProperty("take");
   });
 
-  it("omits an exact key above 50 assessments and never falls back to another relation", async () => {
+  it("retains complete assessment sets above 50 and never falls back to another relation", async () => {
     findMany.mockResolvedValue([
       ...Array.from({ length: 51 }, (_, index) => minimalRow(index)),
       minimalRow(52, "contradicts"),
     ]);
 
-    await expect(databaseGraphTrustProvider.lookup([exactKey])).resolves.toEqual(new Map());
+    const result = await databaseGraphTrustProvider.lookup([exactKey]);
+    expect(result.get(graphTrustLookupKey(exactKey))).toHaveLength(51);
     expect(findMany).toHaveBeenCalledTimes(1);
+  });
+
+  it("retains full provenance metadata for a singleton assessment", async () => {
+    findMany.mockResolvedValue([minimalRow(1)]);
+
+    const result = await databaseGraphTrustProvider.lookup([exactKey]);
+    expect(result.get(graphTrustLookupKey(exactKey))).toMatchObject({
+      assessmentId: "assessment-1",
+      protocolVersion: "TRUST-1.0",
+      assessorType: "human",
+      assessorId: "reviewer-1",
+      assessedAt: "2026-01-01T00:00:00.000Z",
+    });
   });
 });

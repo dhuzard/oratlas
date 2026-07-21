@@ -10,6 +10,7 @@ import {
   reviewedNodeRelationTrustSubjectHash,
   reviewedTrustSubjectHash,
   orderTrustAssessments,
+  compareTrustCodeUnits,
   trustSubjectInputFromDatabaseParts,
   type ReviewedTrustSubjectInput,
   type ReviewedNodeRelationTrustSubjectInput,
@@ -288,6 +289,24 @@ describe("TRUST reviewed-subject integrity", () => {
       },
     ];
     expect(orderTrustAssessments(candidates).map(({ value }) => value)).toEqual([3, 2, 1]);
+  });
+
+  it("uses host-independent code-unit ordering for non-ASCII provenance", () => {
+    expect(["é", "z", "ä", "a"].sort(compareTrustCodeUnits)).toEqual(["a", "z", "ä", "é"]);
+    const candidates = ["é", "z", "ä", "a"].map((assessorId, index) => ({
+      id: `id-${index}`,
+      assessedAt: null,
+      assessorType: "human",
+      assessorId,
+      protocolVersion: "trust-1",
+      value: assessorId,
+    }));
+    expect(orderTrustAssessments(candidates).map(({ value }) => value)).toEqual([
+      "a",
+      "z",
+      "ä",
+      "é",
+    ]);
   });
 
   it("keeps hashes independent of Prisma include/query shape", () => {

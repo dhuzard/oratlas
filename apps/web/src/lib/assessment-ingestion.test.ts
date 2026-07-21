@@ -13,21 +13,20 @@ function fakeDelegate(parentField: string) {
   return {
     rows,
     delegate: {
-      findUnique: async ({ where }: { where: Record<string, Record<string, string>> }) => {
+      upsert: async ({
+        where,
+        create,
+      }: {
+        where: Record<string, Record<string, string>>;
+        create: Record<string, unknown>;
+      }) => {
         const identity = Object.values(where)[0]!;
-        return (
-          rows.find((row) =>
-            Object.entries(identity).every(([key, value]) => row[key] === value),
-          ) ?? null
+        const existing = rows.find((row) =>
+          Object.entries(identity).every(([key, value]) => row[key] === value),
         );
-      },
-      findFirst: async ({ where }: { where: Record<string, string> }) =>
-        [...rows]
-          .reverse()
-          .find((row) => Object.entries(where).every(([key, value]) => row[key] === value)) ?? null,
-      create: async ({ data }: { data: Record<string, unknown> }) => {
+        if (existing) return existing;
         const row: Stored = {
-          ...data,
+          ...create,
           id: `assessment-${rows.length + 1}`,
           createdAt: new Date(),
         };
@@ -35,6 +34,10 @@ function fakeDelegate(parentField: string) {
         rows.push(row);
         return row;
       },
+      findFirst: async ({ where }: { where: Record<string, string> }) =>
+        [...rows]
+          .reverse()
+          .find((row) => Object.entries(where).every(([key, value]) => row[key] === value)) ?? null,
     },
   };
 }

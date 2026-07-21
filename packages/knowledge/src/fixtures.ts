@@ -79,6 +79,9 @@ export const sampleIndex: KnowledgeIndexData = {
           citationId: replaySharedCitation,
           relationType: "supports",
           trust: {
+            assessmentId: "trust-replay-support",
+            protocolVersion: "TRUST-1.0",
+            assessorType: "human",
             reviewStatus: "human-reviewed",
             verificationState: "platform-verified",
             aggregateScore: 0.82,
@@ -119,6 +122,9 @@ export const sampleIndex: KnowledgeIndexData = {
           citationId: attentionSharedCitation,
           relationType: "supports",
           trust: {
+            assessmentId: "trust-attention-support",
+            protocolVersion: "TRUST-1.0",
+            assessorType: "imported",
             reviewStatus: "unverified-import",
             verificationState: "unverified-import",
             notableCriteria: ["entailment"],

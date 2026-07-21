@@ -354,6 +354,7 @@ function edgeMetadata(edge: SubgraphEvidenceEdge): unknown {
     targetVersionId: _targetVersionId,
     relationType: _relationType,
     trust: _trust,
+    trustAssessments: _trustAssessments,
     ...metadata
   } = edge;
   return metadata;
@@ -562,7 +563,9 @@ export function compareSynthesisGenerations(
       if (canonicalJson(edgeBinding(oldEdge)) !== canonicalJson(edgeBinding(newEdge))) {
         changedFields.push("binding");
       }
-      if (canonicalJson(oldEdge.trust ?? null) !== canonicalJson(newEdge.trust ?? null)) {
+      const oldTrust = oldEdge.trustAssessments ?? (oldEdge.trust ? [oldEdge.trust] : []);
+      const newTrust = newEdge.trustAssessments ?? (newEdge.trust ? [newEdge.trust] : []);
+      if (canonicalJson(oldTrust) !== canonicalJson(newTrust)) {
         changedFields.push("trust");
       }
       if (canonicalJson(edgeMetadata(oldEdge)) !== canonicalJson(edgeMetadata(newEdge))) {

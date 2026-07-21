@@ -354,6 +354,13 @@ describe("versioned evidence and TRUST integration", () => {
       },
     });
     expect(index.reviews[0]?.hasHumanReviewedTrust).toBe(true);
+    expect(packet.claims[0]?.relations[0]?.trustAssessments?.[0]).toMatchObject({
+      assessmentId: expect.any(String),
+      protocolVersion: expect.any(String),
+      assessorType: expect.any(String),
+      assessorId: expect.any(String),
+      assessedAt: expect.any(String),
+    });
 
     for (const claim of packet.claims) {
       expect(claim.claimId).toBe(globalClaimId("version-current", claim.localClaimId));

@@ -91,4 +91,29 @@ describe("graph presentation", () => {
     expect(html).not.toContain("AgentRun");
     expect(html).not.toContain("evidenceJson");
   });
+
+  it("renders legacy singleton TRUST with an explicit missing-assessor fallback", () => {
+    const legacyResult = {
+      ...result,
+      edges: [
+        {
+          ...result.edges[0],
+          status: "confirmed",
+          provenance: "confirmed-by-editor",
+          confirmedAt: "2026-07-16T00:00:00.000Z",
+          proposedAt: undefined,
+          trust: {
+            protocolVersion: "TRUST-1.0",
+            reviewStatus: "human-reviewed",
+            verificationState: "platform-verified",
+          },
+        },
+      ],
+    } as unknown as PublicGraphResponse;
+    const query = publicGraphQuerySchema.parse({ seed: "node/a", limit: 1 });
+    const html = renderToStaticMarkup(<GraphExplorer result={legacyResult} query={query} />);
+
+    expect(html).toContain("relation TRUST: 1 assessment");
+    expect(html).toContain("not supplied (legacy), TRUST-1.0");
+  });
 });
