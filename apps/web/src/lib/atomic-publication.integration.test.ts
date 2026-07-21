@@ -527,20 +527,19 @@ describe.sequential("atomic publication integration", () => {
     });
     const ingestion = await import("./assessment-ingestion");
     const { withSqliteRetry } = await import("./db-retry");
+    const ingestionClient = runtime.prisma as unknown as Parameters<
+      typeof ingestion.ingestTrustAssessment
+    >[0];
     const runConcurrentIngests = async (records: TrustRecord[]) => {
       const settled = await Promise.allSettled(
         records.map((candidate) =>
           withSqliteRetry(
             () =>
-              runtime.prisma.$transaction(
-                (tx) =>
-                  ingestion.ingestTrustAssessment(
-                    tx,
-                    stored.claimEvidenceRelationId,
-                    candidate,
-                    null,
-                  ),
-                { maxWait: 500, timeout: 1_500 },
+              ingestion.ingestTrustAssessment(
+                ingestionClient,
+                stored.claimEvidenceRelationId,
+                candidate,
+                null,
               ),
             () => false,
           ),
@@ -628,19 +627,18 @@ describe.sequential("atomic publication integration", () => {
     });
     const ingestion = await import("./assessment-ingestion");
     const { withSqliteRetry } = await import("./db-retry");
+    const ingestionClient = runtime.prisma as unknown as Parameters<
+      typeof ingestion.ingestNodeRelationTrustAssessment
+    >[0];
     const importedNodeRecord = nodeRelationTrustKnowledge().trust[0] as NodeRelationTrustRecord;
     const nodeReplayResults = await Promise.allSettled(
       Array.from({ length: 8 }, () =>
         withSqliteRetry(
           () =>
-            runtime.prisma.$transaction(
-              (tx) =>
-                ingestion.ingestNodeRelationTrustAssessment(
-                  tx,
-                  assessment.nodeEdgeProposalId,
-                  importedNodeRecord,
-                ),
-              { maxWait: 500, timeout: 1_500 },
+            ingestion.ingestNodeRelationTrustAssessment(
+              ingestionClient,
+              assessment.nodeEdgeProposalId,
+              importedNodeRecord,
             ),
           () => false,
         ),
