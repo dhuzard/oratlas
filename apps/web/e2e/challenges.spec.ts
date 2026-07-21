@@ -14,6 +14,25 @@ test.describe("Formal challenge register", () => {
     await expect(section.getByRole("link", { name: /Sign in/ })).toBeVisible();
     await expect(page.locator('[data-register="open-discussion"]')).toHaveCount(1);
     await expect(page.getByText(/TRUST assessments/).first()).toBeVisible();
+
+    const unauthorizedStatus = await page.evaluate(async () => {
+      const response = await fetch("/api/reviews/example/versions/example/challenges", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: "{}",
+      });
+      return response.status;
+    });
+    expect(unauthorizedStatus).toBe(401);
+
+    const crossOrigin = await page.request.post(
+      "/api/reviews/example/versions/example/challenges",
+      {
+        headers: { "Content-Type": "application/json", Origin: "https://attacker.invalid" },
+        data: {},
+      },
+    );
+    expect(crossOrigin.status()).toBe(403);
   });
 
   test("files escaped text against an exact subject and persists its attributed ledger", async ({
