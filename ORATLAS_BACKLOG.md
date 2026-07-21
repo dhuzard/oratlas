@@ -364,11 +364,11 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-E01 — Challenge records targeting exact immutable subjects
 
-- **Status:** ready · **Priority:** P1 · **Size:** L · **Agent:** conditional (schema and API
+- **Status:** review · **Priority:** P1 · **Size:** L · **Agent:** conditional (schema and API
   are agent-suitable; the resolution-authority field defaults to editors pending
   `ORATLAS_DECISIONS.md` §5 — build with editors-resolve and keep it swappable)
 - **Packages:** `packages/contracts`, `packages/db`, `apps/web` · **External dep:** none ·
-  **Issue/PR:** none
+  **Issue/PR:** [#98](https://github.com/dhuzard/oratlas/pull/98)
 - **Goal:** Today's `ReviewComment` (typed, claim-anchored, one-level replies,
   visible/removed) is discussion, not challenge. Add a formal **Challenge**: a structured,
   attributed objection targeting an exact immutable subject — a claim (version-scoped), a
