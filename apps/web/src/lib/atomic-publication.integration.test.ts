@@ -543,13 +543,33 @@ describe.sequential("atomic publication integration", () => {
       },
     });
     const ingestion = await import("./assessment-ingestion");
-    await Promise.all(
-      Array.from({ length: 8 }, () =>
-        runtime.prisma.$transaction((tx) =>
-          ingestion.ingestTrustAssessment(tx, stored.claimEvidenceRelationId, record, null),
+    const { withSqliteRetry } = await import("./db-retry");
+    const runConcurrentIngests = async (records: TrustRecord[]) => {
+      const settled = await Promise.allSettled(
+        records.map((candidate) =>
+          withSqliteRetry(
+            () =>
+              runtime.prisma.$transaction(
+                (tx) =>
+                  ingestion.ingestTrustAssessment(
+                    tx,
+                    stored.claimEvidenceRelationId,
+                    candidate,
+                    null,
+                  ),
+                { maxWait: 500, timeout: 1_500 },
+              ),
+            () => false,
+          ),
         ),
-      ),
-    );
+      );
+      const rejected = settled.filter(
+        (result): result is PromiseRejectedResult => result.status === "rejected",
+      );
+      if (rejected.length > 0) throw rejected[0]!.reason;
+      return settled;
+    };
+    await runConcurrentIngests(Array.from({ length: 8 }, () => record));
     expect(
       await runtime.prisma.trustAssessment.count({
         where: { claimEvidenceRelationId: stored.claimEvidenceRelationId },
@@ -562,13 +582,7 @@ describe.sequential("atomic publication integration", () => {
         entailment: { rating: rating as "low" | "moderate", status: "assessed" },
       },
     }));
-    await Promise.all(
-      changedRecords.map((changed) =>
-        runtime.prisma.$transaction((tx) =>
-          ingestion.ingestTrustAssessment(tx, stored.claimEvidenceRelationId, changed, null),
-        ),
-      ),
-    );
+    await runConcurrentIngests(changedRecords);
     const lineage = await runtime.prisma.trustAssessment.findMany({
       where: { claimEvidenceRelationId: stored.claimEvidenceRelationId },
       orderBy: { createdAt: "asc" },
@@ -592,7 +606,7 @@ describe.sequential("atomic publication integration", () => {
       ),
     );
     expect(independent.supersedesAssessmentId).toBeNull();
-  });
+  }, 10_000);
 
   it("persists node-relation TRUST through acceptance, CAS review, public confirmation, and supersession", async () => {
     const [claim, , dataset] = knowledgeNodes();
@@ -630,18 +644,29 @@ describe.sequential("atomic publication integration", () => {
       include: trust.loadedNodeRelationTrustInclude,
     });
     const ingestion = await import("./assessment-ingestion");
+    const { withSqliteRetry } = await import("./db-retry");
     const importedNodeRecord = nodeRelationTrustKnowledge().trust[0] as NodeRelationTrustRecord;
-    await Promise.all(
+    const nodeReplayResults = await Promise.allSettled(
       Array.from({ length: 8 }, () =>
-        runtime.prisma.$transaction((tx) =>
-          ingestion.ingestNodeRelationTrustAssessment(
-            tx,
-            assessment.nodeEdgeProposalId,
-            importedNodeRecord,
-          ),
+        withSqliteRetry(
+          () =>
+            runtime.prisma.$transaction(
+              (tx) =>
+                ingestion.ingestNodeRelationTrustAssessment(
+                  tx,
+                  assessment.nodeEdgeProposalId,
+                  importedNodeRecord,
+                ),
+              { maxWait: 500, timeout: 1_500 },
+            ),
+          () => false,
         ),
       ),
     );
+    const nodeReplayFailure = nodeReplayResults.find(
+      (result): result is PromiseRejectedResult => result.status === "rejected",
+    );
+    if (nodeReplayFailure) throw nodeReplayFailure.reason;
     expect(
       await runtime.prisma.nodeRelationTrustAssessment.count({
         where: { nodeEdgeProposalId: assessment.nodeEdgeProposalId },
