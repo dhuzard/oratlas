@@ -61,6 +61,11 @@ export function buildEvidencePacket(
       relations: c.relations.map((rel) => {
         const trustAssessments = (rel.trustAssessments ?? (rel.trust ? [rel.trust] : [])).map(
           (assessment) => ({
+            assessmentId: assessment.assessmentId,
+            protocolVersion: assessment.protocolVersion,
+            assessorType: assessment.assessorType,
+            assessorId: assessment.assessorId,
+            assessedAt: assessment.assessedAt,
             reviewStatus: assessment.reviewStatus,
             verificationState: assessment.verificationState,
             aggregateScore: assessment.aggregateScore,

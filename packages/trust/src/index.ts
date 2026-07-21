@@ -829,6 +829,11 @@ export interface PublicTrustAssessment<T = unknown> {
   value: T;
 }
 
+/** Locale-independent UTF-16 code-unit ordering for reproducible projections. */
+export function compareTrustCodeUnits(left: string, right: string): number {
+  return left < right ? -1 : left > right ? 1 : 0;
+}
+
 /**
  * Stable display order for a complete assessment set. The ordering deliberately
  * excludes ratings, aggregate values, review status, and verification state so
@@ -838,15 +843,15 @@ export function orderTrustAssessments<T>(
   assessments: readonly PublicTrustAssessment<T>[],
 ): PublicTrustAssessment<T>[] {
   return [...assessments].sort((left, right) => {
-    const time = (left.assessedAt ?? "").localeCompare(right.assessedAt ?? "");
+    const time = compareTrustCodeUnits(left.assessedAt ?? "", right.assessedAt ?? "");
     if (time !== 0) return time;
-    const assessorType = left.assessorType.localeCompare(right.assessorType);
+    const assessorType = compareTrustCodeUnits(left.assessorType, right.assessorType);
     if (assessorType !== 0) return assessorType;
-    const assessorId = (left.assessorId ?? "").localeCompare(right.assessorId ?? "");
+    const assessorId = compareTrustCodeUnits(left.assessorId ?? "", right.assessorId ?? "");
     if (assessorId !== 0) return assessorId;
-    const protocol = left.protocolVersion.localeCompare(right.protocolVersion);
+    const protocol = compareTrustCodeUnits(left.protocolVersion, right.protocolVersion);
     if (protocol !== 0) return protocol;
-    return left.id.localeCompare(right.id);
+    return compareTrustCodeUnits(left.id, right.id);
   });
 }
 

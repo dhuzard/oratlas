@@ -51,6 +51,11 @@ export interface IndexedCitation {
 }
 
 export interface IndexedTrust {
+  assessmentId: string;
+  protocolVersion: string;
+  assessorType: string;
+  assessorId?: string;
+  assessedAt?: string;
   reviewStatus: AssessmentReviewStatus;
   verificationState: TrustVerificationState;
   aggregateScore?: number;

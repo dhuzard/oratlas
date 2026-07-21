@@ -161,8 +161,6 @@ export function resolveLoadedNodeRelationTrustAssessment(
 export function projectPublicNodeRelationTrustAssessments(
   rows: readonly LoadedNodeRelationTrustAssessment[],
 ): PublicNodeRelationTrustSummary[] {
-  if (rows.length > PUBLIC_NODE_RELATION_TRUST_PER_KEY_LIMIT) return [];
-
   const candidates = rows.flatMap((row) => {
     try {
       const resolved = resolveLoadedNodeRelationTrustAssessment(row);

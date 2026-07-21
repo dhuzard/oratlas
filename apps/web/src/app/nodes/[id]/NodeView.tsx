@@ -77,7 +77,7 @@ export function NodeView({
                       {edge.provenance.replace(/-/g, " ")}
                       {edge.assertedAt ? ` · ${edge.assertedAt.slice(0, 10)}` : ""}
                     </p>
-                    {(edge.trustAssessments ?? []).map((assessment) => (
+                    {nodeEdgeTrustAssessments(edge).map((assessment) => (
                       <p className="muted" key={assessment.assessmentId}>
                         Relation TRUST: assessor {assessment.assessorId ?? assessment.assessorType}{" "}
                         · {assessment.reviewStatus.replace(/-/g, " ")} ·{" "}
@@ -125,8 +125,8 @@ export function NodeView({
                           )}
                         </p>
                       ) : null}
-                      {(context.trustAssessments?.length ?? 0) > 0 ? (
-                        (context.trustAssessments ?? []).map((assessment) => (
+                      {nodeContextTrustAssessments(context).length > 0 ? (
+                        nodeContextTrustAssessments(context).map((assessment) => (
                           <p className="muted" key={assessment.assessmentId}>
                             assessor {assessment.assessorId ?? assessment.assessorType} · protocol{" "}
                             {assessment.protocolVersion} ·{" "}
@@ -338,6 +338,37 @@ function NodePayload({ version }: { version: PublicNodeVersion }) {
 
 function kindLabel(kind: PublicNodeDetail["kind"]): string {
   return kind === "code" ? "Code" : `${kind[0]!.toUpperCase()}${kind.slice(1)}`;
+}
+
+type NodeEdgeTrustAssessment = NonNullable<
+  PublicNodeDetail["edges"][number]["trustAssessments"]
+>[number];
+
+export function nodeEdgeTrustAssessments(
+  edge: PublicNodeDetail["edges"][number],
+): NodeEdgeTrustAssessment[] {
+  if (edge.trustAssessments) return edge.trustAssessments;
+  if (!edge.trust) return [];
+  return [{ ...edge.trust, assessorType: "not supplied (legacy)" }];
+}
+
+type NodeContextTrustAssessment = NonNullable<
+  PublicNodeDetail["trustContext"][number]["trustAssessments"]
+>[number];
+
+export function nodeContextTrustAssessments(
+  context: PublicNodeDetail["trustContext"][number],
+): NodeContextTrustAssessment[] {
+  if (context.trustAssessments) return context.trustAssessments;
+  if (!context.trust) return [];
+  return [
+    {
+      ...context.trust,
+      assessmentId: `legacy:${context.claimId}:${context.citationId}`,
+      protocolVersion: "not supplied (legacy)",
+      assessorType: "not supplied (legacy)",
+    },
+  ];
 }
 
 function formatBytes(value: number): string {

@@ -314,13 +314,19 @@ describe("synthesis generation delta", () => {
       },
       assessmentId,
       protocolVersion: "trust/1.0.0",
+      assessorType: "human",
       reviewStatus: "human-reviewed",
       verificationState: "platform-verified",
       criteria: [{ criterion: "identityIntegrity", rating: "high", status: "assessed" }],
     });
     const nodes = [node("node-a"), dataset("node-data")];
-    const previous = snapshot(nodes, [{ ...base, trust: trust("assessment-1") }]);
-    const current = snapshot(nodes, [{ ...base, trust: trust("assessment-2") }]);
+    const previous = snapshot(nodes, [{ ...base, trustAssessments: [trust("assessment-1")] }]);
+    const current = snapshot(nodes, [
+      {
+        ...base,
+        trustAssessments: [trust("assessment-1"), trust("assessment-2")],
+      },
+    ]);
     const delta = compareSynthesisGenerations(previous, current);
     expect(delta.confirmedEdges.changed).toEqual([
       expect.objectContaining({ edgeId: "edge-trust", changedFields: ["trust"] }),

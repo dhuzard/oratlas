@@ -30,7 +30,6 @@ import {
 } from "./node-edge-publication";
 import {
   loadedNodeRelationTrustInclude,
-  PUBLIC_NODE_RELATION_TRUST_GLOBAL_LIMIT,
   resolveTrustAssessmentRows,
   projectPublicNodeRelationTrustAssessments,
 } from "./trust-provenance";
@@ -57,7 +56,6 @@ const PUBLIC_NODE_SEARCH_BATCH_SIZE = 200;
 const PUBLIC_NODE_VERSION_LIMIT = 200;
 const PUBLIC_NODE_EDGE_LIMIT = 200;
 const PUBLIC_NODE_TRUST_RELATION_LIMIT = 200;
-const PUBLIC_NODE_TRUST_ASSESSMENT_LIMIT = 50;
 
 export type ExactPublicNodeVersionProjection = {
   id: string;
@@ -517,7 +515,6 @@ export async function getPublicNode(
         trustAssessments: {
           include: { verification: true },
           orderBy: [{ assessedAt: "desc" }, { id: "desc" }],
-          take: PUBLIC_NODE_TRUST_ASSESSMENT_LIMIT,
         },
       },
       orderBy: { id: "asc" },
@@ -550,22 +547,17 @@ export async function getPublicNode(
       },
       include: loadedNodeRelationTrustInclude,
       orderBy: [{ assessedAt: "desc" }, { id: "asc" }],
-      take: PUBLIC_NODE_RELATION_TRUST_GLOBAL_LIMIT + 1,
     });
-    // A repository can import adversarially many assessments. Fail closed for
-    // this optional projection if the one global bound is exceeded.
-    if (trustRows.length <= PUBLIC_NODE_RELATION_TRUST_GLOBAL_LIMIT) {
-      const candidates = new Map<string, typeof trustRows>();
-      for (const assessment of trustRows) {
-        const edgeId = assessment.proposal.confirmedEdgeId;
-        if (!edgeId) continue;
-        const list = candidates.get(edgeId) ?? [];
-        list.push(assessment);
-        candidates.set(edgeId, list);
-      }
-      for (const [edgeId, values] of candidates) {
-        nodeTrustByEdge.set(edgeId, projectPublicNodeRelationTrustAssessments(values));
-      }
+    const candidates = new Map<string, typeof trustRows>();
+    for (const assessment of trustRows) {
+      const edgeId = assessment.proposal.confirmedEdgeId;
+      if (!edgeId) continue;
+      const list = candidates.get(edgeId) ?? [];
+      list.push(assessment);
+      candidates.set(edgeId, list);
+    }
+    for (const [edgeId, values] of candidates) {
+      nodeTrustByEdge.set(edgeId, projectPublicNodeRelationTrustAssessments(values));
     }
   }
 

@@ -176,6 +176,11 @@ export async function buildKnowledgeIndex(): Promise<KnowledgeIndexData> {
           const record = toTrustRecord(trust.assessment);
           const agg = computeAggregate(record);
           return {
+            assessmentId: trust.assessment.id,
+            protocolVersion: trust.assessment.protocolVersion,
+            assessorType: trust.assessment.assessorType,
+            assessorId: trust.assessment.assessorId ?? undefined,
+            assessedAt: trust.assessment.assessedAt?.toISOString(),
             reviewStatus: trust.resolved.effectiveStatus as AssessmentReviewStatus,
             verificationState: trust.resolved.state,
             aggregateScore: agg.score ?? undefined,
