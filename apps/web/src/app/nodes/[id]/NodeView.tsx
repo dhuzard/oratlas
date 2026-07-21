@@ -77,18 +77,15 @@ export function NodeView({
                       {edge.provenance.replace(/-/g, " ")}
                       {edge.assertedAt ? ` · ${edge.assertedAt.slice(0, 10)}` : ""}
                     </p>
-                    {(edge.trustAssessments ?? (edge.trust ? [edge.trust] : [])).map(
-                      (assessment) => (
-                        <p className="muted" key={assessment.assessmentId}>
-                          Relation TRUST: assessor{" "}
-                          {assessment.assessorId ?? assessment.assessorType} ·{" "}
-                          {assessment.reviewStatus.replace(/-/g, " ")} ·{" "}
-                          {assessment.verificationState.replace(/-/g, " ")} · protocol{" "}
-                          {assessment.protocolVersion}. This compact view omits the aggregate
-                          because criterion detail is not displayed here.
-                        </p>
-                      ),
-                    )}
+                    {(edge.trustAssessments ?? []).map((assessment) => (
+                      <p className="muted" key={assessment.assessmentId}>
+                        Relation TRUST: assessor {assessment.assessorId ?? assessment.assessorType}{" "}
+                        · {assessment.reviewStatus.replace(/-/g, " ")} ·{" "}
+                        {assessment.verificationState.replace(/-/g, " ")} · protocol{" "}
+                        {assessment.protocolVersion}. This compact view omits the aggregate because
+                        criterion detail is not displayed here.
+                      </p>
+                    ))}
                   </li>
                 ))}
               </ul>
@@ -128,20 +125,18 @@ export function NodeView({
                           )}
                         </p>
                       ) : null}
-                      {(context.trustAssessments?.length ?? 0) > 0 || context.trust ? (
-                        (context.trustAssessments ?? (context.trust ? [context.trust] : [])).map(
-                          (assessment) => (
-                            <p className="muted" key={assessment.assessmentId}>
-                              assessor {assessment.assessorId ?? assessment.assessorType} · protocol{" "}
-                              {assessment.protocolVersion} ·{" "}
-                              {assessment.reviewStatus.replace(/-/g, " ")} ·{" "}
-                              {assessment.verificationState.replace(/-/g, " ")}
-                              {assessment.aggregateScore !== undefined && assessment.aggregateMethod
-                                ? ` · relation aggregate ${assessment.aggregateScore.toFixed(2)} (${assessment.aggregateMethod})`
-                                : ""}
-                            </p>
-                          ),
-                        )
+                      {(context.trustAssessments?.length ?? 0) > 0 ? (
+                        (context.trustAssessments ?? []).map((assessment) => (
+                          <p className="muted" key={assessment.assessmentId}>
+                            assessor {assessment.assessorId ?? assessment.assessorType} · protocol{" "}
+                            {assessment.protocolVersion} ·{" "}
+                            {assessment.reviewStatus.replace(/-/g, " ")} ·{" "}
+                            {assessment.verificationState.replace(/-/g, " ")}
+                            {assessment.aggregateScore !== undefined && assessment.aggregateMethod
+                              ? ` · relation aggregate ${assessment.aggregateScore.toFixed(2)} (${assessment.aggregateMethod})`
+                              : ""}
+                          </p>
+                        ))
                       ) : (
                         <p className="muted">No TRUST assessment on this relation.</p>
                       )}

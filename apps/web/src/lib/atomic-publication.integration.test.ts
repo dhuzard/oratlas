@@ -685,6 +685,9 @@ describe.sequential("atomic publication integration", () => {
       updatedAt: _updatedAt,
       proposal: _proposal,
       verification: _verification,
+      sourceRecordHash: _sourceRecordHash,
+      sourceLineageKey: _sourceLineageKey,
+      supersedesAssessmentId: _supersedesAssessmentId,
       ...cloneData
     } = verifiedLoaded;
     await runtime.prisma.nodeRelationTrustAssessment.create({
@@ -694,7 +697,16 @@ describe.sequential("atomic publication integration", () => {
       (await graphTrust.databaseGraphTrustProvider.lookup([exactTrustKey])).get(
         graphTrustKey.graphTrustLookupKey(exactTrustKey),
       ),
-    ).toMatchObject({ reviewStatus: "human-reviewed", verificationState: "platform-verified" });
+    ).toEqual([
+      expect.objectContaining({
+        reviewStatus: "human-reviewed",
+        verificationState: "platform-verified",
+      }),
+      expect.objectContaining({
+        reviewStatus: "unverified-import",
+        verificationState: "unverified-import",
+      }),
+    ]);
 
     await runtime.prisma.nodeRelationTrustAssessment.create({
       data: {
@@ -707,7 +719,16 @@ describe.sequential("atomic publication integration", () => {
       (await graphTrust.databaseGraphTrustProvider.lookup([exactTrustKey])).get(
         graphTrustKey.graphTrustLookupKey(exactTrustKey),
       ),
-    ).toMatchObject({ reviewStatus: "human-reviewed", verificationState: "platform-verified" });
+    ).toEqual([
+      expect.objectContaining({
+        reviewStatus: "human-reviewed",
+        verificationState: "platform-verified",
+      }),
+      expect.objectContaining({
+        reviewStatus: "unverified-import",
+        verificationState: "unverified-import",
+      }),
+    ]);
 
     await runtime.prisma.nodeRelationTrustAssessment.createMany({
       data: Array.from({ length: 48 }, (_, index) => ({
