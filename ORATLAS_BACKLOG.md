@@ -442,8 +442,8 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-F01 — Assessor and protocol provenance in editorial queues
 
-- **Status:** backlog · **Priority:** P1 · **Size:** S · **Agent:** yes
-- **Packages:** `apps/web` · **External dep:** none · **Issue/PR:** none
+- **Status:** review · **Priority:** P1 · **Size:** S · **Agent:** yes
+- **Packages:** `apps/web` · **External dep:** none · **Issue/PR:** #97 (stacked on #95)
 - **Goal:** Editors deciding on TRUST verification should always see who/what assessed
   (assessor type, id, protocol + version, source assertions) without expanding raw JSON.
   Verify current queue detail and close gaps, including for node-relation assessments.
