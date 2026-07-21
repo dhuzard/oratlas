@@ -868,9 +868,12 @@ model TrustAssessment {
   sourceAggregateScore        Float?
   sourceAggregateMethod       String?
   sourceRelationHumanReviewed Boolean?
-  sourceRecordHash            String?
-  sourceLineageKey            String?
-  supersedesAssessmentId      String?
+
+  /// Canonical source identity. Exact hash re-ingest is idempotent; a changed
+  /// record in the same lineage creates a new row linked to its predecessor.
+  sourceRecordHash       String?
+  sourceLineageKey       String?
+  supersedesAssessmentId String?
 
   /// Incremented by editorial verification writes for optimistic concurrency.
   revision  Int      @default(0)
