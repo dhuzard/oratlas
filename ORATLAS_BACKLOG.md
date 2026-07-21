@@ -86,10 +86,10 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-A01 — Per-facet compatibility model (article / citations / evidence-package / claim-graph / assessments)
 
-- **Status:** backlog · **Priority:** P0 · **Size:** M · **Agent:** conditional (contract shape
+- **Status:** in review · **Priority:** P0 · **Size:** M · **Agent:** conditional (contract shape
   should be reviewed by a maintainer before the UI consumes it)
 - **Packages:** `packages/contracts`, `packages/extractor`, `apps/web` · **External dep:**
-  template structure (read-only) · **Issue/PR:** none
+  template structure (read-only) · **Issue/PR:** PR #96
 - **Goal:** A repository can be article-compatible yet lack a claim graph, or carry TRUST
   records without an evidence package. Today `COMPATIBILITY_LEVELS` is one structural scalar
   (`packages/contracts/src/enums.ts:28`); facet truth is buried in signals and extraction
