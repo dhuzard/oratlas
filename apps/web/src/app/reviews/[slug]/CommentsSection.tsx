@@ -222,7 +222,11 @@ export function CommentsSection({
   }
 
   return (
-    <section id="community-review" aria-label="Community review and discussion">
+    <section
+      id="community-review"
+      data-register="open-discussion"
+      aria-label="Community review and discussion"
+    >
       <div className="card">
         <h2 className="card-title">
           Community review &amp; discussion{" "}

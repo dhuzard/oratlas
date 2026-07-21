@@ -39,6 +39,8 @@ suffix, and arrays are JSON-encoded strings. Switching to PostgreSQL is a dataso
 | `ExecutionPassportArtifact`              | Exact run input/output descriptor  | `(passportId, entityId)` unique; SHA-256 + byte size                              |
 | `DiscussionThread` / `DiscussionMessage` | Atlas Discuss history              | grounding + model metadata                                                        |
 | `ReviewComment`                          | Human peer commentary on a version | `reviewVersionId`, optional `claimId`, one-level `parentId`; soft `status`        |
+| `Challenge`                              | Formal objection to exact subject  | server-derived subject JSON + SHA-256; version, challenger, grounds, lifecycle    |
+| `ChallengeTransition`                    | Append-only challenge lifecycle    | `(challengeId, revision)` unique; actor and role snapshot                         |
 | `KnowledgeLinkProposal`                  | Cross-review link proposal         | `(source, target, relation)` unique; `status`                                     |
 | `AuditEvent`                             | Append-only audit trail            | operation key + `(subjectType, subjectId)` indexed                                |
 | `IdempotencyKey`                         | Retry-safe operation claim         | primary-key uniqueness; same decision transaction                                 |
@@ -98,6 +100,14 @@ suffix, and arrays are JSON-encoded strings. Switching to PostgreSQL is a dataso
   versions are never destroyed; `Review.currentSnapshotId` points at the latest.
 - Historical UI/API routes resolve the chosen version's own snapshot and evidence. Comments are
   version-scoped and read-only on historical routes; nullable version ids only support legacy rows.
+- Formal challenges bind to exactly one claim, claim–evidence relation, or assessment criterion
+  instance through explicit foreign keys plus canonical subject JSON and SHA-256. Filing and every
+  transition resolve the target within the named immutable review version. Public reads repeat
+  that resolution and omit a record when either canonical bytes or hash differ. Challenge
+  lifecycle writes never update the claim, relation, assessment, TRUST value, or compatibility.
+- `ChallengeTransition` is the authoritative append-only lifecycle ledger. Revision zero records
+  attributed filing (`null → open`); optimistic compare-and-set advances only legal edges
+  (`open → author-responded → resolved|dismissed|withdrawn`). Terminal states cannot transition.
 - `Submission.submittedPayloadJson` is the immutable snapshot of exactly what the submitter
   finalized, including the versioned node-extraction report. Editorial acceptance rechecks those
   candidates against the consumed capture. `acceptedNodeSelectionJson` stores the editor's sorted

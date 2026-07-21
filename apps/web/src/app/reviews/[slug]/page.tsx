@@ -2,12 +2,15 @@ import { notFound } from "next/navigation";
 import { headers } from "next/headers";
 import Link from "next/link";
 import { type Metadata } from "next";
+import { TRUST_CRITERIA } from "@oratlas/contracts";
 import { Card, Badge, CompatibilityBadge, DefinitionList, Notice, StatusPill } from "@oratlas/ui";
 import { getReviewDetail } from "@/lib/reviews";
 import { listReviewComments } from "@/lib/comments";
 import { getCurrentUser, isEditor } from "@/lib/auth";
 import { TrustDisplay } from "@/components/TrustDisplay";
 import { CommentsSection } from "./CommentsSection";
+import { ChallengesSection } from "./ChallengesSection";
+import { listChallenges, listChallengeSubjectOptions } from "@/lib/challenges";
 import { ProvenanceBadge } from "@oratlas/ui";
 import { swhidArchiveUrl, swhidForRevision } from "@oratlas/exports";
 import { serializeJsonForHtml } from "@/lib/json-for-html";
@@ -134,6 +137,8 @@ export default async function ReviewPage({
     processHistory,
     executionPassports,
     protocolDrift,
+    challenges,
+    challengeSubjects,
   ] = await Promise.all([
     listReviewComments(slug, review.version.id),
     getCurrentUser(),
@@ -142,6 +147,8 @@ export default async function ReviewPage({
     getProcessHistoryForVersion(review.version.id),
     listExecutionPassportsForVersion(review.version.id),
     getPublicProtocolSummary(review.version.id),
+    listChallenges(slug, review.version.id),
+    listChallengeSubjectOptions(review.version.id),
   ]);
   const claimAlertCounts = await getClaimAlertCounts(review.version.id);
   const nonce = requestHeaders.get("x-nonce") ?? undefined;
@@ -150,6 +157,11 @@ export default async function ReviewPage({
     reviewVersionId: review.version.id,
     commentCount: 0,
     comments: [],
+  };
+  const challengeList = challenges ?? {
+    reviewSlug: slug,
+    reviewVersionId: review.version.id,
+    challenges: [],
   };
   const commentsByClaim = new Map<string, number>();
   for (const c of commentList.comments) {
@@ -499,6 +511,7 @@ export default async function ReviewPage({
                         : (claim.anchor ?? claim.localClaimId)
                     }
                   >
+                    <span id={`claim-subject-${claim.subjectId}`} />
                     <p className="claim-text">{claim.text}</p>
                     <div className="btn-row">
                       <span className="mono muted">{claim.localClaimId}</span>
@@ -531,6 +544,7 @@ export default async function ReviewPage({
                         id={`relation-${rel.id}`}
                         key={rel.id}
                       >
+                        <span id={`relation-subject-${rel.relationId}`} />
                         <Badge tone={rel.relationType === "contradicts" ? "warning" : "neutral"}>
                           {rel.relationType.replace(/-/g, " ")}
                         </Badge>
@@ -557,6 +571,12 @@ export default async function ReviewPage({
                                 key={trust.assessmentId}
                                 aria-label={`TRUST assessment ${trust.assessmentId}`}
                               >
+                                {TRUST_CRITERIA.map((criterion) => (
+                                  <span
+                                    id={`assessment-subject-${trust.assessmentId}-${criterion}`}
+                                    key={criterion}
+                                  />
+                                ))}
                                 <TrustDisplay trust={trust} />
                               </section>
                             ))}
@@ -678,6 +698,12 @@ export default async function ReviewPage({
               ))}
             </Card>
           ) : null}
+
+          <ChallengesSection
+            initial={challengeList}
+            subjects={challengeSubjects}
+            canFile={Boolean(user)}
+          />
 
           <CommentsSection
             reviewSlug={review.slug}

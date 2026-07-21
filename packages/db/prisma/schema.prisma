@@ -71,6 +71,8 @@ model User {
   synthesisVersionsApproved      ReviewVersion[]                   @relation("synthesisVersionApprover")
   synthesisAttributions          SynthesisAttributionContributor[] @relation("synthesisAttributionUser")
   synthesisRegenerationResolved  SynthesisRegenerationProposal[]   @relation("synthesisRegenerationResolver")
+  challengesFiled                Challenge[]                       @relation("challengeChallenger")
+  challengeTransitions           ChallengeTransition[]             @relation("challengeTransitionActor")
 
   @@index([githubLoginNormalized])
 }
@@ -248,6 +250,7 @@ model ReviewVersion {
   acceptedPredecessor            ReviewVersion?                    @relation("synthesisVersionPredecessor", fields: [acceptedPredecessorVersionId], references: [id])
   synthesisSuccessors            ReviewVersion[]                   @relation("synthesisVersionPredecessor")
   synthesisAttributions          SynthesisAttributionContributor[]
+  challenges                     Challenge[]
   synthesisStalenessHead         SynthesisStalenessHead?
   synthesisStalenessEvaluations  SynthesisStalenessEvaluation[]    @relation("synthesisStalenessVersion")
   synthesisRegenerationProposals SynthesisRegenerationProposal[]   @relation("synthesisRegenerationVersion")
@@ -468,6 +471,7 @@ model Claim {
   protocolSnapshots  ProtocolSnapshot[]
   executionPassports ExecutionPassportClaim[]
   replicationBriefs  ReplicationBriefClaim[]
+  challenges         Challenge[]              @relation("challengeClaim")
 
   @@unique([reviewVersionId, localClaimId])
   @@index([knowledgeNodeId])
@@ -850,6 +854,7 @@ model ClaimEvidenceRelation {
   claim            Claim             @relation(fields: [claimId], references: [id])
   citation         Citation          @relation(fields: [citationId], references: [id])
   trustAssessments TrustAssessment[]
+  challenges       Challenge[]       @relation("challengeRelation")
 
   @@unique([claimId, citationId, relationType])
 }
@@ -916,10 +921,68 @@ model TrustAssessment {
   verification TrustVerification?
   supersedes   TrustAssessment?      @relation("TrustAssessmentSupersession", fields: [supersedesAssessmentId], references: [id])
   supersededBy TrustAssessment[]     @relation("TrustAssessmentSupersession")
+  challenges   Challenge[]           @relation("challengeAssessment")
 
   @@unique([claimEvidenceRelationId, sourceRecordHash])
   @@index([reviewStatus])
   @@index([claimEvidenceRelationId, sourceLineageKey])
+}
+
+/// Formal, attributed objection to one exact immutable scholarly subject.
+/// The subject JSON and hash are server-derived; reads re-resolve and re-hash
+/// the target so a stale or tampered binding fails closed.
+model Challenge {
+  id                      String   @id @default(cuid())
+  reviewVersionId         String
+  /// claim | relation | assessment-criterion
+  subjectType             String
+  claimId                 String?
+  claimEvidenceRelationId String?
+  trustAssessmentId       String?
+  criterion               String?
+  subjectRefJson          String
+  canonicalSubjectHash    String
+  /// entailment | source-access | methodology | identity | other
+  grounds                 String
+  /// Plain text only; bounded by contracts and rendered escaped.
+  body                    String
+  challengerId            String
+  /// open | author-responded | resolved | dismissed | withdrawn
+  status                  String   @default("open")
+  revision                Int      @default(0)
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  reviewVersion ReviewVersion          @relation(fields: [reviewVersionId], references: [id])
+  claim         Claim?                 @relation("challengeClaim", fields: [claimId], references: [id])
+  relation      ClaimEvidenceRelation? @relation("challengeRelation", fields: [claimEvidenceRelationId], references: [id])
+  assessment    TrustAssessment?       @relation("challengeAssessment", fields: [trustAssessmentId], references: [id])
+  challenger    User                   @relation("challengeChallenger", fields: [challengerId], references: [id])
+  transitions   ChallengeTransition[]
+
+  @@index([reviewVersionId, createdAt])
+  @@index([canonicalSubjectHash, status])
+  @@index([challengerId, createdAt])
+}
+
+/// Append-only challenge lifecycle ledger. The nullable initial fromStatus
+/// records attributed filing as the first lifecycle event.
+model ChallengeTransition {
+  id                String   @id @default(cuid())
+  challengeId       String
+  fromStatus        String?
+  toStatus          String
+  actorId           String
+  actorRoleSnapshot String
+  rationale         String?
+  revision          Int
+  createdAt         DateTime @default(now())
+
+  challenge Challenge @relation(fields: [challengeId], references: [id])
+  actor     User      @relation("challengeTransitionActor", fields: [actorId], references: [id])
+
+  @@unique([challengeId, revision])
+  @@index([challengeId, createdAt])
 }
 
 /// Platform-owned review marker. This is deliberately separate from the

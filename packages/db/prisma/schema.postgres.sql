@@ -577,6 +577,43 @@ CREATE TABLE "TrustAssessment" (
 );
 
 -- CreateTable
+CREATE TABLE "Challenge" (
+    "id" TEXT NOT NULL,
+    "reviewVersionId" TEXT NOT NULL,
+    "subjectType" TEXT NOT NULL,
+    "claimId" TEXT,
+    "claimEvidenceRelationId" TEXT,
+    "trustAssessmentId" TEXT,
+    "criterion" TEXT,
+    "subjectRefJson" TEXT NOT NULL,
+    "canonicalSubjectHash" TEXT NOT NULL,
+    "grounds" TEXT NOT NULL,
+    "body" TEXT NOT NULL,
+    "challengerId" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'open',
+    "revision" INTEGER NOT NULL DEFAULT 0,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Challenge_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "ChallengeTransition" (
+    "id" TEXT NOT NULL,
+    "challengeId" TEXT NOT NULL,
+    "fromStatus" TEXT,
+    "toStatus" TEXT NOT NULL,
+    "actorId" TEXT NOT NULL,
+    "actorRoleSnapshot" TEXT NOT NULL,
+    "rationale" TEXT,
+    "revision" INTEGER NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "ChallengeTransition_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "TrustVerification" (
     "id" TEXT NOT NULL,
     "trustAssessmentId" TEXT NOT NULL,
@@ -1327,6 +1364,21 @@ CREATE INDEX "TrustAssessment_claimEvidenceRelationId_sourceLineageKey_idx" ON "
 CREATE UNIQUE INDEX "TrustAssessment_claimEvidenceRelationId_sourceRecordHash_key" ON "TrustAssessment"("claimEvidenceRelationId", "sourceRecordHash");
 
 -- CreateIndex
+CREATE INDEX "Challenge_reviewVersionId_createdAt_idx" ON "Challenge"("reviewVersionId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "Challenge_canonicalSubjectHash_status_idx" ON "Challenge"("canonicalSubjectHash", "status");
+
+-- CreateIndex
+CREATE INDEX "Challenge_challengerId_createdAt_idx" ON "Challenge"("challengerId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "ChallengeTransition_challengeId_createdAt_idx" ON "ChallengeTransition"("challengeId", "createdAt");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "ChallengeTransition_challengeId_revision_key" ON "ChallengeTransition"("challengeId", "revision");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "TrustVerification_trustAssessmentId_key" ON "TrustVerification"("trustAssessmentId");
 
 -- CreateIndex
@@ -1706,6 +1758,27 @@ ALTER TABLE "TrustAssessment" ADD CONSTRAINT "TrustAssessment_claimEvidenceRelat
 
 -- AddForeignKey
 ALTER TABLE "TrustAssessment" ADD CONSTRAINT "TrustAssessment_supersedesAssessmentId_fkey" FOREIGN KEY ("supersedesAssessmentId") REFERENCES "TrustAssessment"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Challenge" ADD CONSTRAINT "Challenge_reviewVersionId_fkey" FOREIGN KEY ("reviewVersionId") REFERENCES "ReviewVersion"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Challenge" ADD CONSTRAINT "Challenge_claimId_fkey" FOREIGN KEY ("claimId") REFERENCES "Claim"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Challenge" ADD CONSTRAINT "Challenge_claimEvidenceRelationId_fkey" FOREIGN KEY ("claimEvidenceRelationId") REFERENCES "ClaimEvidenceRelation"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Challenge" ADD CONSTRAINT "Challenge_trustAssessmentId_fkey" FOREIGN KEY ("trustAssessmentId") REFERENCES "TrustAssessment"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Challenge" ADD CONSTRAINT "Challenge_challengerId_fkey" FOREIGN KEY ("challengerId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ChallengeTransition" ADD CONSTRAINT "ChallengeTransition_challengeId_fkey" FOREIGN KEY ("challengeId") REFERENCES "Challenge"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ChallengeTransition" ADD CONSTRAINT "ChallengeTransition_actorId_fkey" FOREIGN KEY ("actorId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "TrustVerification" ADD CONSTRAINT "TrustVerification_trustAssessmentId_fkey" FOREIGN KEY ("trustAssessmentId") REFERENCES "TrustAssessment"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
