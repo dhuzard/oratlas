@@ -20,6 +20,7 @@ import { ArticleReader } from "./ArticleReader";
 import { getPublicSynthesisReview } from "@/lib/synthesis-editorial";
 import { loadSynthesisReadingContext } from "@/lib/synthesis-reading";
 import { SynthesisReader } from "./SynthesisReader";
+import { CompatibilityFacets } from "@/components/CompatibilityFacets";
 
 export const dynamic = "force-dynamic";
 
@@ -693,6 +694,7 @@ export default async function ReviewPage({
               never by an opaque model decision. Structural grounding does not establish the
               scientific correctness of a claim.
             </p>
+            <CompatibilityFacets facets={review.compatibilityFacets} />
           </Card>
 
           <Card title="Provenance summary">

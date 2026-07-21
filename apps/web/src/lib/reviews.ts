@@ -9,12 +9,14 @@ import {
 import {
   canonicalWorkAliases,
   claimDomAnchor,
+  compatibilityReportSchema,
   findWorkIdentifierConflicts,
   globalCitationId,
   globalClaimId,
   isExactCommitSha,
   type PublicationConsistencyReport,
   type PublicLifecycleEvent,
+  type FacetCompatibilityReport,
   type WorkIdentityAssertion,
 } from "@oratlas/contracts";
 import { prisma, parseJsonColumn } from "./db";
@@ -94,6 +96,7 @@ export interface ReviewDetail {
   domains: string[];
   compatibilityLevel?: string;
   compatibilityReport?: unknown;
+  compatibilityFacets?: FacetCompatibilityReport;
   contributors: Array<{
     displayName: string;
     orcid?: string;
@@ -268,6 +271,9 @@ export async function getReviewDetail(
   const legacyInspectionReport = snapshot
     ? parseJsonColumn<{ compatibilityReport?: unknown }>(snapshot.inspectionReportJson, {})
     : {};
+  const compatibilityReport =
+    meta.compatibilityReport ?? legacyInspectionReport.compatibilityReport;
+  const parsedCompatibilityReport = compatibilityReportSchema.safeParse(compatibilityReport);
 
   const limitations = new Set<string>();
   const claims: ReviewClaim[] = version.claims.map((claim) => ({
@@ -382,7 +388,10 @@ export async function getReviewDetail(
     keywords: meta.keywords ?? [],
     domains: meta.domains ?? [],
     compatibilityLevel: meta.compatibilityLevel,
-    compatibilityReport: meta.compatibilityReport ?? legacyInspectionReport.compatibilityReport,
+    compatibilityReport,
+    compatibilityFacets: parsedCompatibilityReport.success
+      ? parsedCompatibilityReport.data.facets
+      : undefined,
     contributors: version.contributors.map((c) => ({
       displayName: c.person.displayName,
       orcid: c.person.orcid ?? undefined,

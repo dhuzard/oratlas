@@ -3,6 +3,7 @@ import {
   resolveEffectiveMetadata,
   type EditedMetadata,
   type ExtractedMetadata,
+  type FacetCompatibilityReport,
   type SubmissionValidationReport,
 } from "@oratlas/contracts";
 import { prisma, parseJsonColumn } from "./db";
@@ -26,6 +27,7 @@ export interface EditorialSubmission {
   sourceKind?: string;
   capturePayloadHash?: string;
   validation?: SubmissionValidationReport;
+  compatibilityFacets?: FacetCompatibilityReport;
   metadataDiff: MetadataDiffRow[];
   editorialNote?: string;
   publicationTargets?: { proseReview: boolean; knowledgeNodes: boolean };
@@ -115,6 +117,7 @@ export async function listSubmissions(statuses?: string[]): Promise<EditorialSub
       sourceKind: s.sourceKind ?? s.snapshot?.sourceKind ?? undefined,
       capturePayloadHash: s.inspectionCapture?.payloadHash,
       validation,
+      compatibilityFacets: submittedPayload?.compatibilityReport.facets,
       metadataDiff,
       editorialNote: s.editorialNote ?? undefined,
       publicationTargets: submittedPayload?.publicationTargets,

@@ -21,6 +21,7 @@ import { listEditorialSynthesisDrafts } from "@/lib/synthesis-editorial";
 import { SynthesisDraftPanel } from "./SynthesisDraftPanel";
 import { listSynthesisRegenerationProposalPage } from "@/lib/synthesis-staleness";
 import { SynthesisStalenessPanel } from "./SynthesisStalenessPanel";
+import { CompatibilityFacets } from "@/components/CompatibilityFacets";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Editorial dashboard" };
@@ -144,6 +145,10 @@ export default async function EditorialPage({
                     {s.validation.trustDataAvailable ? "yes" : "no"}
                   </p>
                 )}
+                <CompatibilityFacets
+                  facets={s.compatibilityFacets}
+                  legacyMessage="Facet compatibility is unavailable for this immutable legacy submission."
+                />
                 {s.validation.warnings.length > 0 ? (
                   <details>
                     <summary>{s.validation.warnings.length} warning(s)</summary>
