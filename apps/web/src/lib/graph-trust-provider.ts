@@ -61,8 +61,17 @@ export function projectGraphTrustRows(
   const result = new Map<string, unknown>();
   for (const [key, group] of groups) {
     const assessments = projectPublicNodeRelationTrustAssessments(group);
+    if (assessments.length === 0) continue;
     const parsed = publicGraphTrustSchema.array().safeParse(assessments);
-    if (parsed.success) result.set(key, parsed.data);
+    if (!parsed.success) continue;
+    if (parsed.data.length === 1) {
+      const assessment = parsed.data[0];
+      if (!assessment) continue;
+      const { protocolVersion, reviewStatus, verificationState } = assessment;
+      result.set(key, { protocolVersion, reviewStatus, verificationState });
+    } else {
+      result.set(key, parsed.data);
+    }
   }
   return result;
 }

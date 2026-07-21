@@ -569,6 +569,18 @@ export async function getPublicNode(
     }
   }
 
+  const legacyEdgeTrust = (edgeId: string) => {
+    const assessments = nodeTrustByEdge.get(edgeId) ?? [];
+    if (assessments.length !== 1) return undefined;
+    const assessment = assessments[0]!;
+    return {
+      assessmentId: assessment.assessmentId,
+      protocolVersion: assessment.protocolVersion,
+      reviewStatus: assessment.reviewStatus,
+      verificationState: assessment.verificationState,
+    };
+  };
+
   const outgoing = outgoingRows.flatMap((edge) => {
     if (!hasOwnedConfirmedTargetVersion(edge)) return [];
     const relatedNode = tryRelatedNodeVersion(
@@ -584,6 +596,7 @@ export async function getPublicNode(
         provenance: edge.provenance,
         rationale: edge.rationale ?? undefined,
         assertedAt: edge.assertedAt?.toISOString(),
+        trust: legacyEdgeTrust(edge.id),
         trustAssessments: nodeTrustByEdge.get(edge.id) ?? [],
         relatedNode,
       },
@@ -604,6 +617,7 @@ export async function getPublicNode(
         provenance: edge.provenance,
         rationale: edge.rationale ?? undefined,
         assertedAt: edge.assertedAt?.toISOString(),
+        trust: legacyEdgeTrust(edge.id),
         trustAssessments: nodeTrustByEdge.get(edge.id) ?? [],
         relatedNode,
       },
@@ -628,6 +642,18 @@ export async function getPublicNode(
         };
       }),
     ).map(({ value }) => value);
+    const projectedAssessments = assessments.map(({ assessment, resolved }) => ({
+      assessmentId: assessment.id,
+      protocolVersion: assessment.protocolVersion,
+      assessorType: assessment.assessorType,
+      assessorId: assessment.assessorId ?? undefined,
+      assessedAt: assessment.assessedAt?.toISOString(),
+      reviewStatus: resolved.effectiveStatus,
+      verificationState: resolved.state,
+      aggregateScore: assessment.aggregateScore ?? undefined,
+      aggregateMethod: assessment.aggregateMethod ?? undefined,
+    }));
+    const singleton = projectedAssessments.length === 1 ? projectedAssessments[0] : undefined;
     return {
       claimId: claim.id,
       claimLocalId: claim.localClaimId,
@@ -642,17 +668,15 @@ export async function getPublicNode(
         relation.citation.rawCitationJson,
       ),
       relationType: relation.relationType,
-      trustAssessments: assessments.map(({ assessment, resolved }) => ({
-        assessmentId: assessment.id,
-        protocolVersion: assessment.protocolVersion,
-        assessorType: assessment.assessorType,
-        assessorId: assessment.assessorId ?? undefined,
-        assessedAt: assessment.assessedAt?.toISOString(),
-        reviewStatus: resolved.effectiveStatus,
-        verificationState: resolved.state,
-        aggregateScore: assessment.aggregateScore ?? undefined,
-        aggregateMethod: assessment.aggregateMethod ?? undefined,
-      })),
+      trust: singleton
+        ? {
+            reviewStatus: singleton.reviewStatus,
+            verificationState: singleton.verificationState,
+            aggregateScore: singleton.aggregateScore,
+            aggregateMethod: singleton.aggregateMethod,
+          }
+        : undefined,
+      trustAssessments: projectedAssessments,
     };
   });
 
