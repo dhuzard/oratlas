@@ -395,7 +395,7 @@ At most five items, ordered. Rationale and dependencies:
 - **Status:** in-review · **Priority:** P1 · **Size:** M · **Agent:** conditional (same
   authority default as ORA-E01)
 - **Packages:** `apps/web`, `packages/contracts`, `packages/db` · **External dep:** none ·
-  **Issue/PR:** draft PR pending publication
+  **Issue/PR:** [#100](https://github.com/dhuzard/oratlas/pull/100)
 - **Goal:** Complete the challenge exchange: attributed author/contributor responses, editor
   moderation (remove with retained tombstone + audit, consistent with comment semantics), and
   resolution records with rationale.
