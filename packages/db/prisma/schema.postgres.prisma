@@ -80,6 +80,10 @@ model User {
   challengeResponses             ChallengeResponse[]               @relation("challengeResponder")
   challengeContentRemovals       Challenge[]                       @relation("challengeContentRemover")
   challengeResponseRemovals      ChallengeResponse[]               @relation("challengeResponseRemover")
+  nodeChallengeContributions     ChallengeResponse[]               @relation("nodeChallengeContributor")
+  trustAdjudications             TrustAdjudication[]               @relation("trustAdjudicator")
+  adjudicatorDesignation         TrustAdjudicatorDesignation?      @relation("designatedAdjudicator")
+  adjudicatorDesignationsMade    TrustAdjudicatorDesignation[]     @relation("adjudicatorDesignator")
 
   @@index([githubLoginNormalized])
 }
@@ -338,7 +342,7 @@ model Person {
   orcid       String?
   githubLogin String?
 
-  contributions ReviewContributor[]
+  contributions      ReviewContributor[]
   challengeResponses ChallengeResponse[]
 }
 
@@ -395,20 +399,42 @@ model Submission {
   createdAt                  DateTime  @default(now())
   updatedAt                  DateTime  @updatedAt
 
-  submitter              User                   @relation("submitter", fields: [submitterId], references: [id])
-  reviewer               User?                  @relation("reviewer", fields: [reviewerId], references: [id])
-  repository             Repository             @relation(fields: [repositoryId], references: [id])
-  snapshot               RepositorySnapshot?    @relation(fields: [snapshotId], references: [id])
-  inspectionCapture      InspectionCapture?     @relation(fields: [inspectionCaptureId], references: [id])
-  sourceVersion          ReviewVersion?         @relation("VersionSource")
-  resultingReviewVersion ReviewVersion?         @relation("ResultingVersion", fields: [resultingReviewVersionId], references: [id])
-  sourceNodeVersions     KnowledgeNodeVersion[] @relation("NodeVersionSource")
+  submitter              User                         @relation("submitter", fields: [submitterId], references: [id])
+  reviewer               User?                        @relation("reviewer", fields: [reviewerId], references: [id])
+  repository             Repository                   @relation(fields: [repositoryId], references: [id])
+  snapshot               RepositorySnapshot?          @relation(fields: [snapshotId], references: [id])
+  inspectionCapture      InspectionCapture?           @relation(fields: [inspectionCaptureId], references: [id])
+  sourceVersion          ReviewVersion?               @relation("VersionSource")
+  resultingReviewVersion ReviewVersion?               @relation("ResultingVersion", fields: [resultingReviewVersionId], references: [id])
+  sourceNodeVersions     KnowledgeNodeVersion[]       @relation("NodeVersionSource")
   editorialOverrides     EditorialOverride[]
-  previousSubmission     Submission?            @relation("Resubmission", fields: [previousSubmissionId], references: [id])
-  resubmission           Submission?            @relation("Resubmission")
+  previousSubmission     Submission?                  @relation("Resubmission", fields: [previousSubmissionId], references: [id])
+  resubmission           Submission?                  @relation("Resubmission")
   editorAssignments      EditorAssignment[]
   reviewRounds           ReviewRound[]
-  nodeEdgeProposals      NodeEdgeProposal[]     @relation("NodeEdgeProposalSubmission")
+  nodeEdgeProposals      NodeEdgeProposal[]           @relation("NodeEdgeProposalSubmission")
+  decisionProvenance     EditorialDecisionProvenance?
+}
+
+/// Immutable provenance for the legacy direct editorial decision endpoint.
+/// Free-text notes remain on Submission and never enter public projections.
+model EditorialDecisionProvenance {
+  id                                       String    @id @default(cuid())
+  submissionId                             String    @unique
+  actorId                                  String
+  actorGithubLoginSnapshot                 String
+  actorRoleSnapshot                        String
+  decision                                 String
+  conflictOfInterestStatus                 String    @default("not-provided")
+  administratorOverride                    Boolean   @default(false)
+  administratorOverrideById                String?
+  administratorOverrideGithubLoginSnapshot String?
+  administratorOverrideAt                  DateTime?
+  noteHash                                 String?
+  decisionHash                             String
+  createdAt                                DateTime  @default(now())
+
+  submission Submission @relation(fields: [submissionId], references: [id])
 }
 
 /// An explicit, check-scoped editorial exception. Overrides never rewrite the
@@ -623,6 +649,8 @@ model NodeEdgeProposal {
   reviewedBy        User?                         @relation("nodeEdgeProposalReviewer", fields: [reviewedById], references: [id])
   confirmedEdge     NodeEdge?                     @relation("confirmedProposalEdge", fields: [confirmedEdgeId], references: [id])
   trustAssessments  NodeRelationTrustAssessment[]
+  adjudications     TrustAdjudication[]
+  challenges        Challenge[]                   @relation("challengeNodeContainer")
 
   @@index([status, createdAt])
   @@index([sourceNodeVersionId])
@@ -859,10 +887,11 @@ model ClaimEvidenceRelation {
   extractionConfidence Float?
   humanReviewed        Boolean @default(false)
 
-  claim            Claim             @relation(fields: [claimId], references: [id])
-  citation         Citation          @relation(fields: [citationId], references: [id])
+  claim            Claim               @relation(fields: [claimId], references: [id])
+  citation         Citation            @relation(fields: [citationId], references: [id])
   trustAssessments TrustAssessment[]
-  challenges       Challenge[]       @relation("challengeRelation")
+  challenges       Challenge[]         @relation("challengeRelation")
+  adjudications    TrustAdjudication[]
 
   @@unique([claimId, citationId, relationType])
 }
@@ -871,13 +900,15 @@ model ClaimEvidenceRelation {
 /// Criterion-level records are authoritative; the aggregate is optional and
 /// must carry the algorithm/version that produced it.
 model TrustAssessment {
-  id                      String    @id @default(cuid())
-  claimEvidenceRelationId String
-  protocolVersion         String
+  id                       String    @id @default(cuid())
+  claimEvidenceRelationId  String
+  protocolVersion          String
   /// agent | human
-  assessorType            String
-  assessorId              String?
-  assessedAt              DateTime?
+  assessorType             String
+  assessorId               String?
+  assessedAt               DateTime?
+  /// Immutable public source snapshot. Repository records missing it import as not-provided.
+  conflictOfInterestStatus String    @default("not-provided")
 
   /// Each criterion: JSON {rating, status, rationale, evidencePointer} — the
   /// column stays queryable per criterion while remaining provider-portable.
@@ -925,11 +956,12 @@ model TrustAssessment {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  relation     ClaimEvidenceRelation @relation(fields: [claimEvidenceRelationId], references: [id])
-  verification TrustVerification?
-  supersedes   TrustAssessment?      @relation("TrustAssessmentSupersession", fields: [supersedesAssessmentId], references: [id])
-  supersededBy TrustAssessment[]     @relation("TrustAssessmentSupersession")
-  challenges   Challenge[]           @relation("challengeAssessment")
+  relation               ClaimEvidenceRelation        @relation(fields: [claimEvidenceRelationId], references: [id])
+  verification           TrustVerification?
+  supersedes             TrustAssessment?             @relation("TrustAssessmentSupersession", fields: [supersedesAssessmentId], references: [id])
+  supersededBy           TrustAssessment[]            @relation("TrustAssessmentSupersession")
+  challenges             Challenge[]                  @relation("challengeAssessment")
+  adjudicationReferences TrustAdjudicationReference[]
 
   @@unique([claimEvidenceRelationId, sourceRecordHash])
   @@index([reviewStatus])
@@ -940,49 +972,57 @@ model TrustAssessment {
 /// The subject JSON and hash are server-derived; reads re-resolve and re-hash
 /// the target so a stale or tampered binding fails closed.
 model Challenge {
-  id                      String   @id @default(cuid())
-  reviewVersionId         String
-  /// claim | relation | assessment-criterion
-  subjectType             String
-  claimId                 String?
-  claimEvidenceRelationId String?
-  trustAssessmentId       String?
-  criterion               String?
-  subjectRefJson          String
-  canonicalSubjectHash    String
+  id                         String    @id @default(cuid())
+  /// Exactly one truthful public container is present: an immutable review
+  /// version for legacy E01 subjects, or the exact node-edge proposal whose
+  /// node-relation adjudication is challenged.
+  reviewVersionId            String?
+  nodeEdgeProposalId         String?
+  /// claim | relation | assessment-criterion | adjudication
+  subjectType                String
+  claimId                    String?
+  claimEvidenceRelationId    String?
+  trustAssessmentId          String?
+  trustAdjudicationId        String?
+  criterion                  String?
+  subjectRefJson             String
+  canonicalSubjectHash       String
   /// entailment | source-access | methodology | identity | other
-  grounds                 String
+  grounds                    String
   /// Plain text only; bounded by contracts and rendered escaped.
-  body                    String
+  body                       String
   /// visible | removed. Removed bytes stay retained but never enter public DTOs.
-  contentStatus           String   @default("visible")
-  contentRevision         Int      @default(0)
-  removedAt               DateTime?
-  removedById             String?
-  removedByRoleSnapshot   String?
+  contentStatus              String    @default("visible")
+  contentRevision            Int       @default(0)
+  removedAt                  DateTime?
+  removedById                String?
+  removedByRoleSnapshot      String?
   /// Canonical digest of the immutable filed grounds/body and subject binding.
-  filedContentHash        String
-  challengerId            String
+  filedContentHash           String
+  challengerId               String
   /// SHA-256(challenger + exact subject hash) while the challenge is active.
   /// Nullable uniqueness is portable across SQLite/PostgreSQL and prevents
   /// concurrent duplicate filings without a provider-specific partial index.
-  activeChallengerSubjectKey String? @unique
+  activeChallengerSubjectKey String?   @unique
   /// open | author-responded | resolved | dismissed | withdrawn
-  status                  String   @default("open")
-  revision                Int      @default(0)
-  createdAt               DateTime @default(now())
-  updatedAt               DateTime @updatedAt
+  status                     String    @default("open")
+  revision                   Int       @default(0)
+  createdAt                  DateTime  @default(now())
+  updatedAt                  DateTime  @updatedAt
 
-  reviewVersion ReviewVersion          @relation(fields: [reviewVersionId], references: [id])
+  reviewVersion ReviewVersion?         @relation(fields: [reviewVersionId], references: [id])
+  nodeContainer NodeEdgeProposal?      @relation("challengeNodeContainer", fields: [nodeEdgeProposalId], references: [id])
   claim         Claim?                 @relation("challengeClaim", fields: [claimId], references: [id])
   relation      ClaimEvidenceRelation? @relation("challengeRelation", fields: [claimEvidenceRelationId], references: [id])
   assessment    TrustAssessment?       @relation("challengeAssessment", fields: [trustAssessmentId], references: [id])
+  adjudication  TrustAdjudication?     @relation("challengeAdjudication", fields: [trustAdjudicationId], references: [id])
   challenger    User                   @relation("challengeChallenger", fields: [challengerId], references: [id])
   removedBy     User?                  @relation("challengeContentRemover", fields: [removedById], references: [id])
   transitions   ChallengeTransition[]
   response      ChallengeResponse?
 
   @@index([reviewVersionId, createdAt])
+  @@index([nodeEdgeProposalId, createdAt])
   @@index([canonicalSubjectHash, status])
   @@index([challengerId, createdAt])
 }
@@ -990,51 +1030,61 @@ model Challenge {
 /// Immutable, one-per-challenge contributor-of-record response. Moderation
 /// changes only the tombstone projection; original bytes and digest are retained.
 model ChallengeResponse {
-  id                             String   @id @default(cuid())
-  challengeId                    String   @unique
+  id                             String    @id @default(cuid())
+  challengeId                    String    @unique
   responderId                    String
   responderRoleSnapshot          String
   responderGithubLoginSnapshot   String
   responderDisplayNameSnapshot   String?
-  contributorPersonId            String
+  contributorPersonId            String?
+  nodeContributorUserId          String?
   contributorGithubLoginSnapshot String
   contributorDisplayNameSnapshot String
   contributorRolesJsonSnapshot   String
   body                           String
   contentHash                    String
   /// visible | removed
-  contentStatus                  String   @default("visible")
-  contentRevision                Int      @default(0)
+  contentStatus                  String    @default("visible")
+  contentRevision                Int       @default(0)
   removedAt                      DateTime?
   removedById                    String?
   removedByRoleSnapshot          String?
-  createdAt                      DateTime @default(now())
+  createdAt                      DateTime  @default(now())
 
-  challenge         Challenge @relation(fields: [challengeId], references: [id])
-  responder         User      @relation("challengeResponder", fields: [responderId], references: [id])
-  contributorPerson Person    @relation(fields: [contributorPersonId], references: [id])
-  removedBy         User?     @relation("challengeResponseRemover", fields: [removedById], references: [id])
+  challenge           Challenge @relation(fields: [challengeId], references: [id])
+  responder           User      @relation("challengeResponder", fields: [responderId], references: [id])
+  contributorPerson   Person?   @relation(fields: [contributorPersonId], references: [id])
+  nodeContributorUser User?     @relation("nodeChallengeContributor", fields: [nodeContributorUserId], references: [id])
+  removedBy           User?     @relation("challengeResponseRemover", fields: [removedById], references: [id])
 
   @@index([responderId, createdAt])
+  @@index([nodeContributorUserId])
   @@index([contentStatus, createdAt])
 }
 
 /// Append-only challenge lifecycle ledger. The nullable initial fromStatus
 /// records attributed filing as the first lifecycle event.
 model ChallengeTransition {
-  id                String   @id @default(cuid())
-  challengeId       String
-  fromStatus        String?
-  toStatus          String
-  actorId           String
-  actorRoleSnapshot String
-  rationale         String?
+  id                                       String    @id @default(cuid())
+  challengeId                              String
+  fromStatus                               String?
+  toStatus                                 String
+  actorId                                  String
+  actorRoleSnapshot                        String
+  rationale                                String?
+  /// Immutable public tri-state snapshot; null only on legacy/non-outcome rows.
+  conflictOfInterestStatus                 String?
+  /// Exceptional direct-self-involvement path. Public DTOs expose login/time, never role snapshots.
+  administratorOverride                    Boolean   @default(false)
+  administratorOverrideById                String?
+  administratorOverrideGithubLoginSnapshot String?
+  administratorOverrideAt                  DateTime?
   /// Present only on open -> author-responded; binds that event to ChallengeResponse.
-  responseContentHash String?
+  responseContentHash                      String?
   /// Binds every ledger event to the immutable content filed at revision zero.
-  filedContentHash  String
-  revision          Int
-  createdAt         DateTime @default(now())
+  filedContentHash                         String
+  revision                                 Int
+  createdAt                                DateTime  @default(now())
 
   challenge Challenge @relation(fields: [challengeId], references: [id])
   actor     User      @relation("challengeTransitionActor", fields: [actorId], references: [id])
@@ -1065,16 +1115,87 @@ model TrustVerification {
   @@index([reviewerId])
 }
 
+/// Explicit authority grant for a non-editor TRUST adjudicator.
+model TrustAdjudicatorDesignation {
+  id             String    @id @default(cuid())
+  userId         String    @unique
+  designatedById String
+  active         Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  revokedAt      DateTime?
+
+  user         User @relation("designatedAdjudicator", fields: [userId], references: [id])
+  designatedBy User @relation("adjudicatorDesignator", fields: [designatedById], references: [id])
+}
+
+/// Append-only outcome over one same-protocol, current-head disagreement set.
+/// It never edits or replaces any referenced assessment.
+model TrustAdjudication {
+  id                                       String    @id @default(cuid())
+  /// claim-citation | node-relation
+  subjectType                              String
+  claimEvidenceRelationId                  String?
+  nodeEdgeProposalId                       String?
+  protocolVersion                          String
+  /// disagreement-upheld | assessment-upheld | reassessment-requested
+  outcome                                  String
+  selectedAssessmentId                     String?
+  adjudicatorId                            String
+  adjudicatorRoleSnapshot                  String
+  adjudicatorGithubLoginSnapshot           String
+  rationale                                String
+  rationaleHash                            String
+  conflictOfInterestStatus                 String    @default("not-provided")
+  administratorOverride                    Boolean   @default(false)
+  administratorOverrideById                String?
+  administratorOverrideGithubLoginSnapshot String?
+  administratorOverrideAt                  DateTime?
+  disagreementHash                         String    @unique
+  outcomeHash                              String
+  createdAt                                DateTime  @default(now())
+
+  claimEvidenceRelation ClaimEvidenceRelation?       @relation(fields: [claimEvidenceRelationId], references: [id])
+  nodeEdgeProposal      NodeEdgeProposal?            @relation(fields: [nodeEdgeProposalId], references: [id])
+  adjudicator           User                         @relation("trustAdjudicator", fields: [adjudicatorId], references: [id])
+  references            TrustAdjudicationReference[]
+  challenges            Challenge[]                  @relation("challengeAdjudication")
+
+  @@index([claimEvidenceRelationId, protocolVersion, createdAt])
+  @@index([nodeEdgeProposalId, protocolVersion, createdAt])
+  @@index([adjudicatorId, createdAt])
+}
+
+/// Ordered immutable assessment/hash binding for one adjudication.
+model TrustAdjudicationReference {
+  adjudicationId                String
+  position                      Int
+  assessmentId                  String
+  assessmentHash                String
+  trustAssessmentId             String?
+  nodeRelationTrustAssessmentId String?
+
+  adjudication                TrustAdjudication            @relation(fields: [adjudicationId], references: [id])
+  trustAssessment             TrustAssessment?             @relation(fields: [trustAssessmentId], references: [id])
+  nodeRelationTrustAssessment NodeRelationTrustAssessment? @relation(fields: [nodeRelationTrustAssessmentId], references: [id])
+
+  @@id([adjudicationId, position])
+  @@unique([adjudicationId, assessmentId])
+  @@index([trustAssessmentId])
+  @@index([nodeRelationTrustAssessmentId])
+}
+
 /// Imported TRUST assessment whose mandatory subject is one exact immutable
 /// author node-edge proposal. The proposal survives editorial rejection and
 /// links to the confirmed edge when accepted, preserving the imported subject.
 model NodeRelationTrustAssessment {
-  id                 String    @id @default(cuid())
-  nodeEdgeProposalId String
-  protocolVersion    String
-  assessorType       String
-  assessorId         String?
-  assessedAt         DateTime?
+  id                       String    @id @default(cuid())
+  nodeEdgeProposalId       String
+  protocolVersion          String
+  assessorType             String
+  assessorId               String?
+  assessedAt               DateTime?
+  /// Immutable public source snapshot. Repository records missing it import as not-provided.
+  conflictOfInterestStatus String    @default("not-provided")
 
   identityIntegrity             String?
   entailment                    String?
@@ -1110,10 +1231,11 @@ model NodeRelationTrustAssessment {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  proposal     NodeEdgeProposal               @relation(fields: [nodeEdgeProposalId], references: [id])
-  verification NodeRelationTrustVerification?
-  supersedes   NodeRelationTrustAssessment?   @relation("NodeRelationTrustAssessmentSupersession", fields: [supersedesAssessmentId], references: [id])
-  supersededBy NodeRelationTrustAssessment[]  @relation("NodeRelationTrustAssessmentSupersession")
+  proposal               NodeEdgeProposal               @relation(fields: [nodeEdgeProposalId], references: [id])
+  verification           NodeRelationTrustVerification?
+  supersedes             NodeRelationTrustAssessment?   @relation("NodeRelationTrustAssessmentSupersession", fields: [supersedesAssessmentId], references: [id])
+  supersededBy           NodeRelationTrustAssessment[]  @relation("NodeRelationTrustAssessmentSupersession")
+  adjudicationReferences TrustAdjudicationReference[]
 
   @@unique([nodeEdgeProposalId, sourceRecordHash])
   @@index([nodeEdgeProposalId])
@@ -1498,19 +1620,19 @@ model KnowledgeLinkProposal {
 
 /// Append-only audit trail for editorially meaningful changes.
 model AuditEvent {
-  id             String   @id @default(cuid())
-  actorId        String?
+  id              String   @id @default(cuid())
+  actorId         String?
   /// e.g. submission.finalized, submission.accepted, review.published,
   /// trust.adjudicated, linkProposal.reviewed, auth.mock-login-refused
-  action         String
-  subjectType    String
-  subjectId      String
-  detailsJson    String   @default("{}")
+  action          String
+  subjectType     String
+  subjectId       String
+  detailsJson     String   @default("{}")
   /// Optional deterministic key for retry-safe transactional events.
-  idempotencyKey String?
+  idempotencyKey  String?
   /// ORAtlas platform release that emitted this event. Null only on historical rows.
   platformVersion String?
-  createdAt      DateTime @default(now())
+  createdAt       DateTime @default(now())
 
   actor User? @relation(fields: [actorId], references: [id])
 
@@ -1610,15 +1732,26 @@ model AuthorResponse {
 
 /// Decision letter closing a round. Exactly one per round; immutable.
 model DecisionLetter {
-  id        String   @id @default(cuid())
-  roundId   String   @unique
-  editorId  String
+  id                                       String    @id @default(cuid())
+  roundId                                  String    @unique
+  editorId                                 String
+  /// Immutable public actor identity; null only on legacy rows.
+  editorGithubLoginSnapshot                String?
+  editorRoleSnapshot                       String?
   /// contracts ROUND_DECISIONS: accept | reject | request-changes
-  decision  String
+  decision                                 String
   /// Canonical JSON of contracts decisionLetterBodySchema.
-  bodyJson  String
-  bodyHash  String
-  createdAt DateTime @default(now())
+  bodyJson                                 String
+  bodyHash                                 String
+  /// SHA-256 over decision, body hash, public COI snapshot and public override provenance.
+  decisionHash                             String?
+  /// Immutable public tri-state snapshot for the decision itself.
+  conflictOfInterestStatus                 String    @default("not-provided")
+  administratorOverride                    Boolean   @default(false)
+  administratorOverrideById                String?
+  administratorOverrideGithubLoginSnapshot String?
+  administratorOverrideAt                  DateTime?
+  createdAt                                DateTime  @default(now())
 
   round  ReviewRound @relation(fields: [roundId], references: [id])
   editor User        @relation("decisionEditor", fields: [editorId], references: [id])

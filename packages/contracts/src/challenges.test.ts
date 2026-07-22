@@ -7,6 +7,7 @@ import {
   moderateChallengeContentInputSchema,
   publicChallengeResponseSchema,
   challengeTransitionSchema,
+  transitionChallengeInputSchema,
   isLegalChallengeTransition,
 } from "./challenges.js";
 
@@ -50,6 +51,27 @@ describe("challenge contracts", () => {
     }
   });
 
+  it("requires a strict tri-state COI snapshot for editorial outcomes", () => {
+    const outcome = {
+      expectedRevision: 1,
+      toStatus: "resolved",
+      rationale: "Private editorial rationale.",
+    } as const;
+    expect(transitionChallengeInputSchema.safeParse(outcome).success).toBe(false);
+    expect(
+      transitionChallengeInputSchema.safeParse({
+        ...outcome,
+        conflictOfInterest: { status: "none-declared" },
+      }).success,
+    ).toBe(true);
+    expect(
+      transitionChallengeInputSchema.safeParse({
+        ...outcome,
+        conflictOfInterest: { status: "minor-conflict" },
+      }).success,
+    ).toBe(false);
+  });
+
   it("bounds responses and requires compare-and-set moderation revisions", () => {
     expect(
       createChallengeResponseInputSchema.parse({ expectedRevision: 0, body: "A response." }),
@@ -89,11 +111,17 @@ describe("challenge contracts", () => {
       actor: { githubLogin: "editor", role: "EDITOR" },
       actorRoleSnapshot: "EDITOR",
       rationale: "private rationale",
+      conflictOfInterest: { status: "conflict-declared" },
+      administratorOverride: {
+        administrator: { githubLogin: "admin" },
+        exercisedAt: "2026-07-22T00:00:00.000Z",
+      },
       revision: 2,
       createdAt: "2026-07-22T00:00:00.000Z",
     });
     expect(publicTransition.actor).not.toHaveProperty("role");
     expect(publicTransition).not.toHaveProperty("actorRoleSnapshot");
     expect(publicTransition).not.toHaveProperty("rationale");
+    expect(publicTransition.conflictOfInterest.status).toBe("conflict-declared");
   });
 });

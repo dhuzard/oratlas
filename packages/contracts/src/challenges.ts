@@ -1,6 +1,15 @@
 import { z } from "zod";
+import {
+  conflictOfInterestSnapshotSchema,
+  publicConflictOverrideSchema,
+} from "./conflicts-of-interest.js";
 
-export const CHALLENGE_SUBJECT_TYPES = ["claim", "relation", "assessment-criterion"] as const;
+export const CHALLENGE_SUBJECT_TYPES = [
+  "claim",
+  "relation",
+  "assessment-criterion",
+  "adjudication",
+] as const;
 export const challengeSubjectTypeSchema = z.enum(CHALLENGE_SUBJECT_TYPES);
 
 export const CHALLENGE_GROUNDS = [
@@ -37,33 +46,94 @@ export const challengeSubjectInputSchema = z.discriminatedUnion("type", [
     assessmentId: id,
     criterion: id,
   }),
+  z.object({ type: z.literal("adjudication"), adjudicationId: id }),
 ]);
 export type ChallengeSubjectInput = z.infer<typeof challengeSubjectInputSchema>;
 
-export const createChallengeInputSchema = z.object({
-  reviewVersionId: id,
+const challengeFilingSchema = z.object({
   subject: challengeSubjectInputSchema,
   canonicalSubjectHash: sha256,
   grounds: challengeGroundsSchema,
   body: z.string().trim().min(1).max(CHALLENGE_BODY_MAX),
 });
+
+/**
+ * Existing E01 filings keep their reviewVersionId shape. ORA-D02a adds a
+ * mutually exclusive nodeEdgeProposalId container only for an adjudication
+ * subject, avoiding a fictional ReviewVersion association.
+ */
+export const createChallengeInputSchema = z.union([
+  challengeFilingSchema.extend({
+    containerType: z.literal("review-version").optional(),
+    reviewVersionId: id,
+    nodeEdgeProposalId: z.never().optional(),
+  }),
+  challengeFilingSchema.extend({
+    containerType: z.literal("node-relation"),
+    reviewVersionId: z.never().optional(),
+    nodeEdgeProposalId: id,
+    subject: z.object({ type: z.literal("adjudication"), adjudicationId: id }),
+  }),
+]);
 export type CreateChallengeInput = z.infer<typeof createChallengeInputSchema>;
 
-export const transitionChallengeInputSchema = z.object({
-  expectedRevision: z.number().int().nonnegative(),
-  toStatus: challengeStatusSchema.exclude(["open"]),
-  rationale: z.string().trim().min(1).max(CHALLENGE_RATIONALE_MAX).optional(),
-});
+export const transitionChallengeInputSchema = z
+  .object({
+    expectedRevision: z.number().int().nonnegative(),
+    toStatus: challengeStatusSchema.exclude(["open"]),
+    rationale: z.string().trim().min(1).max(CHALLENGE_RATIONALE_MAX).optional(),
+    conflictOfInterest: conflictOfInterestSnapshotSchema.optional(),
+    administratorOverride: z.literal(true).optional(),
+  })
+  .strict()
+  .superRefine((input, context) => {
+    const outcome = input.toStatus === "resolved" || input.toStatus === "dismissed";
+    if (outcome && !input.conflictOfInterest) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["conflictOfInterest"],
+        message: "Editorial outcomes require a conflict-of-interest snapshot.",
+      });
+    }
+    if (!outcome && (input.conflictOfInterest || input.administratorOverride)) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Conflict snapshots and overrides apply only to editorial outcomes.",
+      });
+    }
+    if (input.administratorOverride && input.conflictOfInterest?.status !== "conflict-declared") {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["administratorOverride"],
+        message: "An administrator override requires conflict-declared.",
+      });
+    }
+  });
 export type TransitionChallengeInput = z.infer<typeof transitionChallengeInputSchema>;
 
-export const challengeTransitionSchema = z.object({
-  id: z.string(),
-  fromStatus: challengeStatusSchema.nullable(),
-  toStatus: challengeStatusSchema,
-  actor: z.object({ githubLogin: z.string() }),
-  revision: z.number().int().nonnegative(),
-  createdAt: z.string(),
-});
+export const challengeTransitionSchema = z
+  .object({
+    id: z.string(),
+    fromStatus: challengeStatusSchema.nullable(),
+    toStatus: challengeStatusSchema,
+    actor: z.object({ githubLogin: z.string() }),
+    conflictOfInterest: conflictOfInterestSnapshotSchema,
+    administratorOverride: publicConflictOverrideSchema.optional(),
+    revision: z.number().int().nonnegative(),
+    createdAt: z.string(),
+  })
+  .superRefine((transition, context) => {
+    if (
+      transition.administratorOverride &&
+      transition.conflictOfInterest.status !== "conflict-declared"
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["administratorOverride"],
+        message: "A public administrator override requires conflict-declared.",
+      });
+    }
+  });
 
 export const challengeContentStatusSchema = z.enum(["visible", "removed"]);
 export type ChallengeContentStatus = z.infer<typeof challengeContentStatusSchema>;
@@ -93,7 +163,9 @@ export const publicChallengeResponseSchema = z.object({
 
 export const publicChallengeSchema = z.object({
   id: z.string(),
-  reviewVersionId: z.string(),
+  containerType: z.enum(["review-version", "node-relation"]),
+  reviewVersionId: z.string().nullable(),
+  nodeEdgeProposalId: z.string().nullable(),
   subjectType: challengeSubjectTypeSchema,
   subjectLabel: z.string(),
   subjectHref: z.string(),
@@ -118,6 +190,14 @@ export const challengeListSchema = z.object({
   challenges: z.array(publicChallengeSchema),
 });
 export type ChallengeList = z.infer<typeof challengeListSchema>;
+
+export const nodeChallengeListSchema = z.object({
+  nodeId: z.string(),
+  nodeEdgeProposalIds: z.array(z.string()),
+  challenges: z.array(publicChallengeSchema),
+  nextCursor: z.string().nullable(),
+});
+export type NodeChallengeList = z.infer<typeof nodeChallengeListSchema>;
 
 /** Legal edges are intentionally closed; terminal states cannot transition. */
 export function isLegalChallengeTransition(from: ChallengeStatus, to: ChallengeStatus): boolean {

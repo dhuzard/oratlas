@@ -1,10 +1,20 @@
 import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
 
 const FIRST_COMMIT_SHA = "d".repeat(40);
 const FIRST_TREE_SHA = "e".repeat(40);
 const SECOND_COMMIT_SHA = "f".repeat(40);
 const SECOND_TREE_SHA = "a".repeat(40);
 const FOLLOW_UP_TAG = "follow-up-v2";
+const ethicalDebtFixture = JSON.parse(
+  readFileSync(
+    new URL(
+      "../../../packages/extractor/src/fixtures/ethical-debt-v0.1.0-trust-preview.3/fixture.json",
+      import.meta.url,
+    ),
+    "utf8",
+  ),
+) as EthicalDebtFixture;
 
 if (process.env.ORATLAS_E2E_GITHUB_FIXTURE === "1") {
   const upstreamFetch = globalThis.fetch;
@@ -13,6 +23,10 @@ if (process.env.ORATLAS_E2E_GITHUB_FIXTURE === "1") {
     const url = new URL(request.url);
     if (url.origin !== "https://api.github.com") return upstreamFetch(input, init);
     if (request.method !== "GET") return jsonResponse(405, { message: "Method Not Allowed" });
+
+    if (url.pathname.startsWith("/repos/dhuzard/ethical-debt-AI-review")) {
+      return ethicalDebtResponse(url);
+    }
 
     const match = /^\/repos\/e2e-lab\/(node-e2e-[^/]+)(\/.*)?$/.exec(url.pathname);
     if (!match) return jsonResponse(404, { message: "Not Found" });
@@ -73,6 +87,103 @@ if (process.env.ORATLAS_E2E_GITHUB_FIXTURE === "1") {
         : contentResponse(content);
     }
     return jsonResponse(404, { message: "Not Found" });
+  };
+}
+
+interface EthicalDebtFixture {
+  repository: {
+    githubRepositoryId: string;
+    name: string;
+    owner: string;
+    canonicalUrl: string;
+    defaultBranch: string;
+  };
+  source: {
+    commitSha: string;
+    treeSha: string;
+    releaseTag?: string;
+    releaseUrl?: string;
+    sourceCreatedAt?: string;
+  };
+  tree: Array<{ path: string; size: number; blobSha?: string }>;
+  files: Record<string, { size: number; content: string }>;
+}
+
+function ethicalDebtResponse(url: URL): Response {
+  const fixture = ethicalDebtFixture;
+  const repoPath = `/repos/${fixture.repository.owner}/${fixture.repository.name}`;
+  const suffix = url.pathname.slice(repoPath.length);
+  const tag = fixture.source.releaseTag!;
+  if (!suffix) {
+    return jsonResponse(200, {
+      id: Number(fixture.repository.githubRepositoryId),
+      name: fixture.repository.name,
+      full_name: `${fixture.repository.owner}/${fixture.repository.name}`,
+      owner: { login: fixture.repository.owner },
+      html_url: fixture.repository.canonicalUrl,
+      private: false,
+      fork: false,
+      archived: false,
+      default_branch: fixture.repository.defaultBranch,
+    });
+  }
+  if (suffix === `/commits/${fixture.repository.defaultBranch}`) {
+    return commitResponse(fixture.source.commitSha);
+  }
+  if (suffix === `/commits/${fixture.source.commitSha}`) {
+    return commitResponse(fixture.source.commitSha);
+  }
+  if (suffix === "/tags") {
+    return jsonResponse(200, [{ name: tag, commit: { sha: fixture.source.commitSha } }]);
+  }
+  if (suffix === "/releases") {
+    return jsonResponse(200, [ethicalDebtRelease(fixture)]);
+  }
+  if (suffix === `/releases/tags/${encodeURIComponent(tag)}`) {
+    return jsonResponse(200, ethicalDebtRelease(fixture));
+  }
+  if (suffix === `/git/ref/tags/${tag}`) {
+    return jsonResponse(200, {
+      ref: `refs/tags/${tag}`,
+      object: { type: "commit", sha: fixture.source.commitSha },
+    });
+  }
+  if (suffix === `/git/commits/${fixture.source.commitSha}`) {
+    return jsonResponse(200, {
+      sha: fixture.source.commitSha,
+      tree: { sha: fixture.source.treeSha },
+    });
+  }
+  if (suffix === "/pages") return jsonResponse(404, { message: "Not Found" });
+  if (suffix === `/git/trees/${fixture.source.treeSha}`) {
+    return jsonResponse(200, {
+      truncated: false,
+      tree: fixture.tree.map((entry) => ({
+        path: entry.path,
+        type: "blob",
+        size: entry.size,
+        sha: entry.blobSha,
+      })),
+    });
+  }
+  if (suffix.startsWith("/contents/")) {
+    const path = decodeURIComponent(suffix.slice("/contents/".length));
+    const file = fixture.files[path];
+    return file ? contentResponse(file.content) : jsonResponse(404, { message: "Not Found" });
+  }
+  return jsonResponse(404, { message: "Not Found" });
+}
+
+function ethicalDebtRelease(fixture: EthicalDebtFixture) {
+  const tag = fixture.source.releaseTag!;
+  return {
+    tag_name: tag,
+    name: tag,
+    html_url: fixture.source.releaseUrl,
+    published_at: fixture.source.sourceCreatedAt ?? null,
+    draft: false,
+    prerelease: true,
+    body: "",
   };
 }
 

@@ -7,6 +7,8 @@ import {
   globalCitationId,
   globalClaimId,
   isExactCommitSha,
+  conflictOfInterestStatusSchema,
+  trustCriterionAssessmentSchema,
   type AssessmentReviewStatus,
   type ClaimEvidenceRelationType,
 } from "@oratlas/contracts";
@@ -20,6 +22,11 @@ import {
 import { prisma, parseJsonColumn } from "./db";
 import { resolveTrustAssessmentRows } from "./trust-provenance";
 import { isReadablePublicState } from "./review-lifecycle";
+
+function publicConflictStatus(value: string) {
+  const parsed = conflictOfInterestStatusSchema.safeParse(value);
+  return parsed.success ? parsed.data : ("not-provided" as const);
+}
 
 /**
  * Build the in-memory knowledge index from accepted/published reviews. Uses the
@@ -181,6 +188,9 @@ export async function buildKnowledgeIndex(): Promise<KnowledgeIndexData> {
             assessorType: trust.assessment.assessorType,
             assessorId: trust.assessment.assessorId ?? undefined,
             assessedAt: trust.assessment.assessedAt?.toISOString(),
+            conflictOfInterest: {
+              status: publicConflictStatus(trust.assessment.conflictOfInterestStatus),
+            },
             reviewStatus: trust.resolved.effectiveStatus as AssessmentReviewStatus,
             verificationState: trust.resolved.state,
             aggregateScore: agg.score ?? undefined,
@@ -263,21 +273,27 @@ const CRITERIA_COLUMNS = [
 
 /** Reconstruct a TrustRecord from the per-criterion JSON columns. */
 export function toTrustRecord(row: TrustRow): TrustRecord {
+  return reconstructTrustRecord(row, false);
+}
+
+/** Reconstruct a complete export record, rejecting corrupt persisted criteria. */
+export function toTrustRecordForExport(row: TrustRow): TrustRecord {
+  return reconstructTrustRecord(row, true);
+}
+
+function reconstructTrustRecord(row: TrustRow, failOnMalformedCriterion: boolean): TrustRecord {
   const criteria: TrustRecord["criteria"] = {};
   for (const col of CRITERIA_COLUMNS) {
     const raw = row[col];
     if (!raw) continue;
     try {
       const parsed = JSON.parse(raw);
-      if (parsed && typeof parsed.rating === "string") {
-        criteria[col] = {
-          rating: parsed.rating,
-          status: parsed.status ?? "assessed",
-          rationale: parsed.rationale,
-          evidencePointer: parsed.evidencePointer,
-        };
-      }
+      const criterion = trustCriterionAssessmentSchema.safeParse(parsed);
+      if (criterion.success) criteria[col] = criterion.data;
+      else if (failOnMalformedCriterion)
+        throw new Error(`Invalid persisted TRUST criterion ${col}.`);
     } catch {
+      if (failOnMalformedCriterion) throw new Error(`Invalid persisted TRUST criterion ${col}.`);
       // ignore malformed criterion JSON
     }
   }

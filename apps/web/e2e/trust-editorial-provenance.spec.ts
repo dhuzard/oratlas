@@ -4,13 +4,49 @@ import { getPrisma } from "@oratlas/db";
 import { createSessionToken } from "../src/lib/session-token";
 
 const nodeAssessmentId = "ora-f01-node-assessment";
+const nodeProposalId = "ora-f01-node-proposal";
+const nodeProposalOriginKey = "e2e:ora-f01:asserted-node-relation";
 const paginationAssessmentPrefix = "ora-f01-page-assessment-";
 const rawSourceSentinel = "ORA_F01_RAW_SOURCE_JSON_MUST_NOT_RENDER";
 
 test.beforeAll(async () => {
   const prisma = getPrisma();
-  const proposal = await prisma.nodeEdgeProposal.findFirst({ orderBy: { id: "asc" } });
-  if (!proposal) throw new Error("Seed data did not expose a node-edge proposal.");
+  await prisma.nodeRelationTrustAssessment.deleteMany({ where: { id: nodeAssessmentId } });
+  await prisma.nodeEdgeProposal.deleteMany({ where: { id: nodeProposalId } });
+  const seedProposal = await prisma.nodeEdgeProposal.findFirst({
+    where: {
+      originKey: "seed:agent-proposal:independent-replay-uses-dataset",
+      sourceNodeVersion: { knowledgeNode: { kind: "claim" } },
+      targetNode: { kind: { in: ["dataset", "code", "figure"] } },
+    },
+    orderBy: { id: "asc" },
+    include: {
+      sourceNodeVersion: { include: { knowledgeNode: true } },
+      targetNode: { include: { repository: true } },
+      targetNodeVersion: { include: { snapshot: true } },
+    },
+  });
+  if (!seedProposal) throw new Error("Seed data did not expose a claim-to-evidence proposal.");
+  const proposal = await prisma.nodeEdgeProposal.create({
+    data: {
+      id: nodeProposalId,
+      originKey: nodeProposalOriginKey,
+      sourceStableKey: seedProposal.sourceStableKey,
+      targetStableKey: seedProposal.targetStableKey,
+      sourceNodeVersionId: seedProposal.sourceNodeVersionId,
+      targetNodeId: seedProposal.targetNodeId,
+      targetNodeVersionId: seedProposal.targetNodeVersionId,
+      relationType: seedProposal.relationType,
+      origin: "asserted-by-author",
+      rationale: "Dedicated exact-relation fixture for TRUST editorial provenance.",
+      evidenceJson: "{}",
+    },
+    include: {
+      sourceNodeVersion: { include: { knowledgeNode: true } },
+      targetNode: { include: { repository: true } },
+      targetNodeVersion: { include: { snapshot: true } },
+    },
+  });
   await prisma.nodeRelationTrustAssessment.upsert({
     where: { id: nodeAssessmentId },
     update: {},
@@ -24,7 +60,26 @@ test.beforeAll(async () => {
       limitationsJson: "[]",
       evidenceJson: JSON.stringify({ pointer: "node-evidence.json:8" }),
       reviewStatus: "unverified-import",
-      sourceRecordJson: JSON.stringify({ sentinel: rawSourceSentinel }),
+      sourceRecordJson: JSON.stringify({
+        subjectType: "node-relation",
+        subject: {
+          claimNodeId: proposal.sourceNodeVersion.knowledgeNode.localNodeId,
+          evidenceNodeId: proposal.targetNode.localNodeId,
+          evidenceKind: proposal.targetNode.kind,
+          relationType: proposal.relationType,
+          evidenceRepository: {
+            githubRepositoryId: proposal.targetNode.repository.githubRepositoryId!,
+            commitSha: proposal.targetNodeVersion.snapshot.commitSha,
+          },
+        },
+        protocolVersion: "trust-node-fixture-2.0",
+        assessorType: "agent",
+        assessorId: "source-node-agent",
+        assessedAt: "2026-02-01T01:01:01.000Z",
+        criteria: {},
+        evidence: { pointer: rawSourceSentinel },
+        reviewStatus: "agent-proposed",
+      }),
       sourceReviewStatus: "agent-proposed",
       sourceAssessorType: "agent",
       sourceAssessorId: "source-node-agent",
@@ -58,10 +113,12 @@ test.beforeAll(async () => {
 });
 
 test.afterAll(async () => {
-  await getPrisma().nodeRelationTrustAssessment.deleteMany({
+  const prisma = getPrisma();
+  await prisma.nodeRelationTrustAssessment.deleteMany({
     where: { id: nodeAssessmentId },
   });
-  await getPrisma().trustAssessment.deleteMany({
+  await prisma.nodeEdgeProposal.deleteMany({ where: { id: nodeProposalId } });
+  await prisma.trustAssessment.deleteMany({
     where: { id: { startsWith: paginationAssessmentPrefix } },
   });
 });

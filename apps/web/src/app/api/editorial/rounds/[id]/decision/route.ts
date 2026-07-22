@@ -1,6 +1,7 @@
 import { z } from "zod";
 import {
   decisionLetterBodySchema,
+  conflictOfInterestSnapshotSchema,
   editorialOverridesSchema,
   localNodeIdSchema,
   roundDecisionSchema,
@@ -17,6 +18,8 @@ const bodySchema = z.object({
   note: z.string().max(5000).optional(),
   overrides: editorialOverridesSchema,
   selectedNodeIds: z.array(localNodeIdSchema).max(5_000).default([]),
+  conflictOfInterest: conflictOfInterestSnapshotSchema,
+  administratorOverride: z.boolean().default(false),
 });
 
 /** Close a round with a decision letter and apply the archive decision. */
@@ -31,6 +34,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       body.note,
       body.overrides,
       body.selectedNodeIds,
+      {
+        conflictOfInterest: body.conflictOfInterest,
+        administratorOverride: body.administratorOverride,
+      },
     ),
   );
 }

@@ -1,13 +1,14 @@
-# ORAtlas open decisions — governance and scientific judgment
+# ORAtlas ratified decisions — governance and scientific judgment
 
-These questions require human governance or scientific judgment. **Agents and contributors must
-not resolve them by implementation default**; backlog items in `ORATLAS_BACKLOG.md` that depend
-on them are marked `blocked` (tracked by ORA-L03). The decision slate below was ratified by the
-maintainer on 2026-07-22. Implementations must preserve the recorded boundaries and explicitly
-cite the relevant section when unblocking dependent backlog items.
+These questions required human governance or scientific judgment and were ratified by the
+maintainer on 2026-07-22. **Agents and contributors must not replace these decisions with
+implementation defaults.** Implementations must preserve the recorded boundaries and explicitly
+cite the relevant section. Historical “Open question” labels below retain the question that each
+decision answered; they do not indicate an unresolved blocker.
 
-Format per entry: current state in the codebase, the open question, and what depends on it.
-Decider for §§1–13: Damien Huzard (`dhuzard`). Decision date: 2026-07-22.
+Format per entry: current state in the codebase, the question presented, the ratified decision, and
+what depends on it.
+Decider for §§1–14: Damien Huzard (`dhuzard`). Decision date: 2026-07-22.
 
 ## 1. Structural versus scientific verification
 
@@ -185,3 +186,16 @@ Decider for §§1–13: Damien Huzard (`dhuzard`). Decision date: 2026-07-22.
   ORAtlas JSONL exports, provenance, and honest non-crosswalk assessment semantics required
   for the first end-to-end fixture.
 - **Depends on it:** ORA-A03, ORA-A04, ORA-K02.
+
+## 14. Disagreement detection and active queue scope
+
+- **Decision:** Within one exact protocol identity, any difference between two explicit ordinal
+  criterion ratings is a disagreement. Missing, `not-assessed`, and `not-applicable` values are
+  coverage gaps, not ratings, and therefore do not create a disagreement.
+- **Decision:** The open disagreement queue compares only the current heads of immutable
+  assessment supersession lineages. Superseded assessments and their historical disagreements
+  remain publicly visible, but do not generate active alerts.
+- **Rationale:** A zero-distance threshold avoids hiding minority assessments, while separating
+  absent coverage from contrary judgement. Lineage-head queueing prevents corrected assessments
+  from leaving stale operational alerts without erasing the scholarly record.
+- **Depends on it:** ORA-D02.

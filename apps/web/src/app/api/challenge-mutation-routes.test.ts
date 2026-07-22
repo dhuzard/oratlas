@@ -83,7 +83,12 @@ const cases = [
   {
     name: "transition",
     suffix: "challenge:transition:challenge-1",
-    body: { expectedRevision: 1, toStatus: "resolved", rationale: "Editorial outcome." },
+    body: {
+      expectedRevision: 1,
+      toStatus: "resolved",
+      rationale: "Editorial outcome.",
+      conflictOfInterest: { status: "none-declared" },
+    },
     domain: state.transitionChallenge,
     invoke: (request: Request) =>
       transitionChallenge(request, { params: Promise.resolve({ id: "challenge-1" }) }),

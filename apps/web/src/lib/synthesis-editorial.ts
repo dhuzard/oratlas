@@ -221,6 +221,7 @@ async function loadAuthoritativeTrustByEdge(
             assessorType: row.assessorType,
             assessorId: row.assessorId ?? undefined,
             assessedAt: row.assessedAt?.toISOString(),
+            conflictOfInterest: { status: row.conflictOfInterestStatus },
             reviewStatus: resolved.effectiveStatus,
             verificationState: resolved.state,
             criteria,

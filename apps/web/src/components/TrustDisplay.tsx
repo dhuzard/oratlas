@@ -38,9 +38,7 @@ export function TrustDisplay({ trust }: { trust: ReviewTrust }) {
 
       {platformVerified && trust.platformVerification ? (
         <p className="muted" style={{ fontSize: "0.85rem" }}>
-          Atlas marker: {trust.platformVerification.reviewerLogin} (
-          {trust.platformVerification.reviewerRoleSnapshot}) —{" "}
-          {trust.platformVerification.rationale}
+          Atlas marker recorded by @{trust.platformVerification.reviewerLogin}.
         </p>
       ) : trust.verificationState === "stale-verification" ? (
         <p className="muted" style={{ fontSize: "0.85rem" }}>

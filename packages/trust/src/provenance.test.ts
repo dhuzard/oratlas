@@ -24,6 +24,7 @@ function subject(): ReviewedTrustSubjectInput {
       assessorType: "agent",
       assessorId: "repository-agent",
       assessedAt: "2026-01-01T00:00:00.000Z",
+      conflictOfInterestStatus: "not-provided",
       criteriaJson: {
         identityIntegrity: null,
         entailment: '{"rating":"high"}',
@@ -251,6 +252,11 @@ describe("TRUST reviewed-subject integrity", () => {
         (value.assessment.sourceRecordJson = '{"reviewStatus":"agent-proposed"}'),
     ],
     [
+      "conflict-of-interest snapshot",
+      (value: ReviewedTrustSubjectInput) =>
+        (value.assessment.conflictOfInterestStatus = "none-declared"),
+    ],
+    [
       "citation source",
       (value: ReviewedTrustSubjectInput) => (value.citation.source = "Changed Journal"),
     ],
@@ -469,6 +475,11 @@ describe("TRUST node-relation subject integrity", () => {
       "source assertion",
       (value: ReviewedNodeRelationTrustSubjectInput) =>
         (value.assessment.sourceRecordJson = '{"reviewStatus":"agent-proposed"}'),
+    ],
+    [
+      "conflict-of-interest snapshot",
+      (value: ReviewedNodeRelationTrustSubjectInput) =>
+        (value.assessment.conflictOfInterestStatus = "conflict-declared"),
     ],
   ])("invalidates the canonical hash after a %s mutation", (_label, mutate) => {
     const original = nodeRelationSubject();

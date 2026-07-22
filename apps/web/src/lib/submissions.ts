@@ -10,6 +10,7 @@ import {
   type NodeRelationTrustRecord,
   type PreservedFiles,
   type SnapshotStorageReport,
+  type ConflictOfInterestOutcomeInput,
 } from "@oratlas/contracts";
 import { assertKnowledgeNodeMaterializationBinding, type Prisma } from "@oratlas/db";
 import { isExampleDoi } from "@oratlas/zenodo";
@@ -31,6 +32,7 @@ import {
 import { materializeAuthorEdgeProposals } from "./node-edge-lifecycle";
 import { ingestNodeRelationTrustAssessment, ingestTrustAssessment } from "./assessment-ingestion";
 import { materializeSameClaimProposals } from "./node-identity-lifecycle";
+import { directEditorialDecisionHash } from "./decision-provenance";
 
 export type { SubmissionPayload } from "./submission-payload";
 
@@ -50,6 +52,121 @@ export interface CreateSubmissionResult {
 export interface EditorialOverrideInput {
   checkId: string;
   rationale: string;
+}
+
+const LEGACY_CONFLICT_OUTCOME: ConflictOfInterestOutcomeInput = {
+  conflictOfInterest: { status: "not-provided" },
+  administratorOverride: false,
+};
+
+async function decisionConflictProvenance(
+  tx: Prisma.TransactionClient,
+  submission: { id: string; submitterId: string },
+  actorId: string,
+  input: ConflictOfInterestOutcomeInput,
+): Promise<{
+  actorGithubLogin: string;
+  actorRole: string;
+  directlyInvolved: boolean;
+  overrideAt: Date | null;
+}> {
+  const actor = await tx.user.findUnique({
+    where: { id: actorId },
+    select: { role: true, githubLogin: true },
+  });
+  if (!actor || (actor.role !== "EDITOR" && actor.role !== "ADMIN")) {
+    throw new SubmissionError("Editor role required.", "forbidden");
+  }
+  const authoredReport = await tx.formalReviewReport.findFirst({
+    where: { round: { submissionId: submission.id }, reviewerId: actorId },
+    select: { id: true },
+  });
+  const assignment = await tx.editorAssignment.findUnique({
+    where: {
+      submissionId_editorId: { submissionId: submission.id, editorId: actorId },
+    },
+    select: { status: true },
+  });
+  const directlyInvolved = submission.submitterId === actorId || Boolean(authoredReport);
+  if (
+    assignment?.status === "recused" &&
+    !(directlyInvolved && input.administratorOverride && actor.role === "ADMIN")
+  ) {
+    throw new SubmissionError(
+      "A recused editor cannot decide this submission without a ratified administrator override.",
+      "forbidden",
+    );
+  }
+  if (directlyInvolved && !input.administratorOverride) {
+    throw new SubmissionError(
+      "Direct self-involvement requires recusal or an explicit administrator override.",
+      "forbidden",
+    );
+  }
+  if (input.administratorOverride) {
+    if (!directlyInvolved) {
+      throw new SubmissionError(
+        "An administrator override is valid only for direct self-involvement.",
+      );
+    }
+    if (actor.role !== "ADMIN") {
+      throw new SubmissionError("Administrator role required for a recusal override.", "forbidden");
+    }
+    if (input.conflictOfInterest.status !== "conflict-declared") {
+      throw new SubmissionError("An administrator override requires conflict-declared.");
+    }
+  }
+  return {
+    actorGithubLogin: actor.githubLogin,
+    actorRole: actor.role,
+    directlyInvolved,
+    overrideAt: input.administratorOverride ? new Date() : null,
+  };
+}
+
+async function createDirectDecisionProvenance(
+  tx: Prisma.TransactionClient,
+  submission: { id: string; submitterId: string },
+  actorId: string,
+  decision: "accept" | "reject" | "request-changes",
+  note: string | undefined,
+  input: ConflictOfInterestOutcomeInput,
+): Promise<string> {
+  const provenance = await decisionConflictProvenance(tx, submission, actorId, input);
+  const noteHash = note === undefined ? null : sha256(note);
+  const decisionHash = directEditorialDecisionHash({
+    submissionId: submission.id,
+    actor: { githubLogin: provenance.actorGithubLogin, role: provenance.actorRole },
+    decision,
+    noteHash,
+    conflictOfInterest: input.conflictOfInterest,
+    override:
+      input.administratorOverride && provenance.overrideAt
+        ? {
+            administratorGithubLogin: provenance.actorGithubLogin,
+            exercisedAt: provenance.overrideAt,
+          }
+        : null,
+  });
+  await tx.editorialDecisionProvenance.create({
+    data: {
+      submissionId: submission.id,
+      actorId,
+      actorGithubLoginSnapshot: provenance.actorGithubLogin,
+      actorRoleSnapshot: provenance.actorRole,
+      decision,
+      conflictOfInterestStatus: input.conflictOfInterest.status,
+      administratorOverride: input.administratorOverride,
+      administratorOverrideById: input.administratorOverride ? actorId : null,
+      administratorOverrideGithubLoginSnapshot: input.administratorOverride
+        ? provenance.actorGithubLogin
+        : null,
+      administratorOverrideAt: provenance.overrideAt,
+      noteHash,
+      decisionHash,
+    },
+  });
+  return decisionHash;
 }
 
 /** Consume one exact inspection capture; no repository network request occurs here. */
@@ -103,6 +220,7 @@ export async function createSubmission(
     knowledge,
     nodeExtraction: captured.extraction.nodeExtraction,
     publicationTargets,
+    sourceAssessmentDocuments: captured.extraction.sourceAssessmentDocuments,
   };
   const submittedPayloadJson = canonicalJson(submittedPayload);
 
@@ -307,7 +425,7 @@ export async function createSubmission(
 export class SubmissionError extends Error {
   constructor(
     message: string,
-    public readonly code: "bad-request" | "conflict" = "bad-request",
+    public readonly code: "bad-request" | "forbidden" | "conflict" = "bad-request",
   ) {
     super(message);
     this.name = "SubmissionError";
@@ -408,6 +526,17 @@ export function acceptSubmission(
   selectedNodeIds: string[],
   transactionClient: Prisma.TransactionClient,
   formalRoundId: string,
+  conflictOutcome: ConflictOfInterestOutcomeInput,
+): Promise<AcceptanceResult>;
+export function acceptSubmission(
+  submissionId: string,
+  reviewerId: string,
+  note: string | undefined,
+  overrides: EditorialOverrideInput[] | undefined,
+  selectedNodeIds: string[],
+  transactionClient: Prisma.TransactionClient | undefined,
+  formalRoundId: string | undefined,
+  conflictOutcome: ConflictOfInterestOutcomeInput,
 ): Promise<AcceptanceResult>;
 export async function acceptSubmission(
   submissionId: string,
@@ -417,6 +546,7 @@ export async function acceptSubmission(
   selectedNodeIds: string[] = [],
   transactionClient?: Prisma.TransactionClient,
   formalRoundId?: string,
+  conflictOutcome: ConflictOfInterestOutcomeInput = LEGACY_CONFLICT_OUTCOME,
 ): Promise<AcceptanceResult> {
   const requestedSelection = normalizeRequestedSelection(selectedNodeIds);
   const selectionJson = canonicalJson(requestedSelection);
@@ -452,6 +582,7 @@ export async function acceptSubmission(
       note,
       validatedOverrides,
       requestedSelection,
+      conflictOutcome,
     );
     await assertFormalRoundDecisionScope(tx, submission.id, formalRoundId);
     if (submission.status === "accepted") {
@@ -485,6 +616,9 @@ export async function acceptSubmission(
         `Submission is already ${submission.status}; acceptance cannot replace that decision.`,
         "conflict",
       );
+    }
+    if (!formalRoundId) {
+      await decisionConflictProvenance(tx, submission, reviewerId, conflictOutcome);
     }
     if (submission.inspectionCapture) {
       const captured = verifyStoredCaptureForAcceptance(submission.inspectionCapture);
@@ -611,6 +745,16 @@ export async function acceptSubmission(
       });
     }
     await claimIdempotency(tx, `submission.accepted:${submission.id}`, operationHash);
+    const decisionHash = formalRoundId
+      ? undefined
+      : await createDirectDecisionProvenance(
+          tx,
+          submission,
+          reviewerId,
+          "accept",
+          note,
+          conflictOutcome,
+        );
     await tx.auditEvent.create({
       data: {
         actorId: reviewerId,
@@ -627,6 +771,9 @@ export async function acceptSubmission(
           edgeProposalIds,
           nodeTrustAssessmentIds,
           overrideCheckIds: validatedOverrides.map((entry) => entry.checkId),
+          conflictOfInterest: conflictOutcome.conflictOfInterest,
+          administratorOverride: conflictOutcome.administratorOverride,
+          decisionHash,
         }),
       },
     });
@@ -675,6 +822,7 @@ export async function acceptSubmission(
         note,
         overrides,
         requestedSelection,
+        conflictOutcome,
       );
       const accepted = await readAcceptedResult(submissionId, selectionHash, operationHash);
       if (accepted) return accepted;
@@ -709,6 +857,7 @@ export function acceptSubmissionInTransaction(
   overrides: EditorialOverrideInput[],
   selectedNodeIds: string[],
   formalRoundId: string,
+  conflictOutcome: ConflictOfInterestOutcomeInput,
 ): Promise<AcceptanceResult> {
   return acceptSubmission(
     submissionId,
@@ -718,6 +867,7 @@ export function acceptSubmissionInTransaction(
     selectedNodeIds,
     tx,
     formalRoundId,
+    conflictOutcome,
   );
 }
 
@@ -744,6 +894,7 @@ function acceptanceOperationHash(
   note: string | undefined,
   overrides: EditorialOverrideInput[],
   selectedNodeIds: string[],
+  conflictOutcome: ConflictOfInterestOutcomeInput,
 ): string {
   return sha256(
     canonicalJson({
@@ -755,6 +906,8 @@ function acceptanceOperationHash(
           left.rationale.localeCompare(right.rationale),
       ),
       selectedNodeIds,
+      conflictOfInterest: conflictOutcome.conflictOfInterest,
+      administratorOverride: conflictOutcome.administratorOverride,
     }),
   );
 }
@@ -939,6 +1092,7 @@ async function materializeReviewPublication(
         compatibilityReport: payload.compatibilityReport,
         extractorVersion: extracted?.extractorVersion,
         provenance: extracted?.fields,
+        sourceAssessmentDocuments: payload.sourceAssessmentDocuments,
       }),
       versionDoi: meta.versionDoi,
       conceptDoi: meta.conceptDoi,
@@ -1078,9 +1232,18 @@ export async function decideSubmission(
   note?: string,
   transactionClient?: Prisma.TransactionClient,
   formalRoundId?: string,
+  conflictOutcome: ConflictOfInterestOutcomeInput = LEGACY_CONFLICT_OUTCOME,
 ): Promise<{ idempotent: boolean }> {
   const status = decision === "reject" ? "rejected" : "changes-requested";
-  const operationHash = sha256(canonicalJson({ reviewerId, decision, note: note ?? null }));
+  const operationHash = sha256(
+    canonicalJson({
+      reviewerId,
+      decision,
+      note: note ?? null,
+      conflictOfInterest: conflictOutcome.conflictOfInterest,
+      administratorOverride: conflictOutcome.administratorOverride,
+    }),
+  );
   const operation = async (tx: Prisma.TransactionClient) => {
     const current = await tx.submission.findUnique({ where: { id: submissionId } });
     if (!current) throw new SubmissionError("Submission not found.");
@@ -1100,6 +1263,9 @@ export async function decideSubmission(
         "conflict",
       );
     }
+    if (!formalRoundId) {
+      await decisionConflictProvenance(tx, current, reviewerId, conflictOutcome);
+    }
     const changed = await tx.submission.updateMany({
       where: { id: submissionId, status: current.status },
       data: { status, reviewerId, reviewedAt: new Date(), editorialNote: note },
@@ -1108,6 +1274,16 @@ export async function decideSubmission(
       throw new SubmissionError("Submission decision changed concurrently.", "conflict");
     }
     await claimIdempotency(tx, `submission.${decision}:${submissionId}`, operationHash);
+    const decisionHash = formalRoundId
+      ? undefined
+      : await createDirectDecisionProvenance(
+          tx,
+          current,
+          reviewerId,
+          decision,
+          note,
+          conflictOutcome,
+        );
     await tx.auditEvent.create({
       data: {
         actorId: reviewerId,
@@ -1115,7 +1291,12 @@ export async function decideSubmission(
         subjectType: "submission",
         subjectId: submissionId,
         idempotencyKey: `submission.${decision}:${submissionId}`,
-        detailsJson: canonicalJson({ note }),
+        detailsJson: canonicalJson({
+          note,
+          conflictOfInterest: conflictOutcome.conflictOfInterest,
+          administratorOverride: conflictOutcome.administratorOverride,
+          decisionHash,
+        }),
       },
     });
     return { idempotent: false };
@@ -1137,8 +1318,17 @@ export function decideSubmissionInTransaction(
   decision: "reject" | "request-changes",
   note: string | undefined,
   formalRoundId: string,
+  conflictOutcome: ConflictOfInterestOutcomeInput,
 ): Promise<{ idempotent: boolean }> {
-  return decideSubmission(submissionId, reviewerId, decision, note, tx, formalRoundId);
+  return decideSubmission(
+    submissionId,
+    reviewerId,
+    decision,
+    note,
+    tx,
+    formalRoundId,
+    conflictOutcome,
+  );
 }
 
 type CaptureRow = {
@@ -1235,7 +1425,7 @@ function sourceContentHash(capture: InspectionCapturePayload): string {
       {
         size: file.size,
         truncated: file.truncated,
-        contentHash: file.content ? sha256(file.content) : null,
+        contentHash: file.content !== undefined ? sha256(file.content) : null,
       },
     ]),
   );
@@ -1263,7 +1453,7 @@ function repositorySnapshotReport(capture: InspectionCapturePayload): SnapshotSt
         {
           size: file.size,
           truncated: file.truncated,
-          contentHash: file.content ? sha256(file.content) : null,
+          contentHash: file.content !== undefined ? sha256(file.content) : null,
         },
       ]),
     ),

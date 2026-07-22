@@ -1,5 +1,7 @@
 "use client";
 import { useState } from "react";
+import type { FacetCompatibilityReport } from "@oratlas/contracts";
+import { CompatibilityFacets } from "@/components/CompatibilityFacets";
 
 interface InspectResponse {
   repo: { owner: string; name: string; canonicalUrl: string };
@@ -22,6 +24,7 @@ interface InspectResponse {
   };
   compatibility: {
     overallCompatibility: string;
+    facets?: FacetCompatibilityReport;
     levelRationale: string[];
     blockingErrors: string[];
     warnings: string[];
@@ -258,6 +261,7 @@ export function SubmitWizard({ signedIn }: { signedIn: boolean }) {
           <p>
             <strong>Compatibility:</strong> {inspection.compatibility.overallCompatibility}
           </p>
+          <CompatibilityFacets facets={inspection.compatibility.facets} />
           <p className="mono">
             Captured {inspection.selectedSource.kind}: {inspection.selectedSource.commitSha}
           </p>

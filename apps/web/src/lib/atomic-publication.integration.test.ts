@@ -46,6 +46,7 @@ let runtime: Runtime;
 let submitterId: string;
 let otherUserId: string;
 let editorId: string;
+let administratorId: string;
 let sequence = 0;
 
 beforeAll(async () => {
@@ -86,9 +87,13 @@ beforeAll(async () => {
   const editor = await prisma.user.create({
     data: { githubUserId: "atomic-editor", githubLogin: "atomic-editor", role: "EDITOR" },
   });
+  const administrator = await prisma.user.create({
+    data: { githubUserId: "atomic-admin", githubLogin: "atomic-admin", role: "ADMIN" },
+  });
   submitterId = submitter.id;
   otherUserId = other.id;
   editorId = editor.id;
+  administratorId = administrator.id;
 }, 30_000);
 
 afterAll(async () => {
@@ -291,6 +296,22 @@ describe.sequential("atomic publication integration", () => {
         where: { idempotencyKey: `submission.accepted:${submission.submissionId}` },
       }),
     ).toBe(1);
+    expect(
+      await runtime.prisma.editorialDecisionProvenance.findUniqueOrThrow({
+        where: { submissionId: submission.submissionId },
+        select: {
+          decision: true,
+          conflictOfInterestStatus: true,
+          administratorOverride: true,
+          decisionHash: true,
+        },
+      }),
+    ).toMatchObject({
+      decision: "accept",
+      conflictOfInterestStatus: "not-provided",
+      administratorOverride: false,
+      decisionHash: expect.stringMatching(/^[a-f0-9]{64}$/),
+    });
     await expect(
       runtime.acceptSubmission(
         submission.submissionId,
@@ -320,6 +341,103 @@ describe.sequential("atomic publication integration", () => {
     expect(["accepted", "rejected"]).toContain(stored?.status);
     if (stored?.status === "accepted") expect(stored.resultingReviewVersionId).toBeTruthy();
     if (stored?.status === "rejected") expect(stored.resultingReviewVersionId).toBeNull();
+  });
+
+  it("recuses direct involvement unless an ADMIN records the public override", async () => {
+    const capability = await capture({
+      githubRepositoryId: nextRepoId(),
+      inspectedByUserId: administratorId,
+    });
+    const submission = await runtime.createSubmission({
+      inspectionToken: capability.token,
+      submitterId: administratorId,
+    });
+    await runtime.prisma.editorAssignment.create({
+      data: {
+        submissionId: submission.submissionId,
+        editorId: administratorId,
+        assignedById: administratorId,
+        status: "recused",
+        coiDeclared: true,
+        coiStatement: "Direct self-involvement recorded before the public override.",
+      },
+    });
+    await expect(
+      runtime.acceptSubmission(submission.submissionId, administratorId),
+    ).rejects.toMatchObject({ code: "forbidden" });
+    await expect(
+      runtime.acceptSubmission(
+        submission.submissionId,
+        administratorId,
+        undefined,
+        [],
+        [],
+        undefined,
+        undefined,
+        {
+          conflictOfInterest: { status: "conflict-declared" },
+          administratorOverride: true,
+        },
+      ),
+    ).resolves.toMatchObject({ idempotent: false });
+    expect(
+      await runtime.prisma.editorialDecisionProvenance.findUniqueOrThrow({
+        where: { submissionId: submission.submissionId },
+        select: {
+          conflictOfInterestStatus: true,
+          administratorOverride: true,
+          administratorOverrideGithubLoginSnapshot: true,
+          actorRoleSnapshot: true,
+        },
+      }),
+    ).toEqual({
+      conflictOfInterestStatus: "conflict-declared",
+      administratorOverride: true,
+      administratorOverrideGithubLoginSnapshot: "atomic-admin",
+      actorRoleSnapshot: "ADMIN",
+    });
+  });
+
+  it("treats assignment COI declarations as provenance and rejects uninvolved overrides", async () => {
+    const provenanceCapability = await capture({ githubRepositoryId: nextRepoId() });
+    const provenanceSubmission = await runtime.createSubmission({
+      inspectionToken: provenanceCapability.token,
+      submitterId,
+    });
+    await runtime.prisma.editorAssignment.create({
+      data: {
+        submissionId: provenanceSubmission.submissionId,
+        editorId,
+        assignedById: administratorId,
+        status: "active",
+        coiDeclared: true,
+        coiStatement: "A disclosed relationship that does not require recusal.",
+      },
+    });
+    await expect(
+      runtime.acceptSubmission(provenanceSubmission.submissionId, editorId),
+    ).resolves.toMatchObject({ idempotent: false });
+
+    const uninvolvedCapability = await capture({ githubRepositoryId: nextRepoId() });
+    const uninvolvedSubmission = await runtime.createSubmission({
+      inspectionToken: uninvolvedCapability.token,
+      submitterId,
+    });
+    await expect(
+      runtime.acceptSubmission(
+        uninvolvedSubmission.submissionId,
+        administratorId,
+        undefined,
+        [],
+        [],
+        undefined,
+        undefined,
+        {
+          conflictOfInterest: { status: "conflict-declared" },
+          administratorOverride: true,
+        },
+      ),
+    ).rejects.toThrow("valid only for direct self-involvement");
   });
 
   it("rolls back the status, version and audits when materialization fails", async () => {
@@ -1349,7 +1467,8 @@ describe.sequential("atomic publication integration", () => {
         inspectionToken: capability.token,
         submitterId,
       });
-      await runtime.decideSubmission(submission.submissionId, editorId, decision);
+      const note = `Private rationale for ${decision}`;
+      await runtime.decideSubmission(submission.submissionId, editorId, decision, note);
       expect(
         await runtime.prisma.knowledgeNodeVersion.count({
           where: { sourceSubmissionId: submission.submissionId },
@@ -1360,6 +1479,12 @@ describe.sequential("atomic publication integration", () => {
           where: { idempotencyKey: `submission.${decision}:${submission.submissionId}` },
         }),
       ).toBe(1);
+      expect(
+        await runtime.prisma.editorialDecisionProvenance.findUniqueOrThrow({
+          where: { submissionId: submission.submissionId },
+          select: { noteHash: true },
+        }),
+      ).toEqual({ noteHash: sha256(note) });
     }
   });
 });
@@ -1371,10 +1496,12 @@ async function capture(options: {
   capturedAt?: Date;
   sourceKind?: "default-branch" | "tag" | "release";
   releaseTag?: string;
+  tagObjectSha?: string;
   metadataCommitSha?: string;
   knowledge?: FullExtraction["knowledge"];
   nodeExtraction?: NodeExtractionReport;
   reviewContentDetected?: boolean;
+  inspectedByUserId?: string;
 }) {
   const owner = options.owner ?? "lab";
   const name = options.name ?? `review-${sequence}`;
@@ -1385,6 +1512,7 @@ async function capture(options: {
     githubRepositoryId: options.githubRepositoryId,
     sourceKind,
     releaseTag: options.releaseTag,
+    tagObjectSha: options.tagObjectSha,
   });
   const extraction = fullExtraction(
     report,
@@ -1396,7 +1524,7 @@ async function capture(options: {
   );
   const baseValidation = validationReport(report);
   const capability = await runtime.createInspectionCapture(
-    submitterId,
+    options.inspectedByUserId ?? submitterId,
     report,
     extraction,
     baseValidation,
@@ -1414,6 +1542,7 @@ function inspectionReport(options: {
   githubRepositoryId: string;
   sourceKind: "default-branch" | "tag" | "release";
   releaseTag?: string;
+  tagObjectSha?: string;
 }): InspectionReport {
   const releaseTag =
     options.sourceKind === "default-branch" ? undefined : (options.releaseTag ?? "v1");
@@ -1437,6 +1566,7 @@ function inspectionReport(options: {
       kind: options.sourceKind,
       commitSha: commitA,
       treeSha: treeA,
+      ...(options.tagObjectSha ? { tagObjectSha: options.tagObjectSha } : {}),
       ...(options.sourceKind === "default-branch" ? { branch: "main" } : { releaseTag }),
     },
     tree: [],
@@ -1500,10 +1630,18 @@ function fullExtraction(
   };
 }
 
-function compatibilityReport(reviewContentDetected = true): CompatibilityReport {
+function compatibilityReport(
+  reviewContentDetected = true,
+): Extract<CompatibilityReport, { schemaVersion: "1.1.0" }> {
   const absent = { detected: false, evidence: [] };
+  const notDeclared = {
+    status: "not-declared" as const,
+    loadedCount: 0 as const,
+    skippedCount: 0 as const,
+    sources: [],
+  };
   return {
-    schemaVersion: "1.0.0",
+    schemaVersion: "1.1.0",
     templateForkDetected: absent,
     templateFilesDetected: absent,
     mystProjectDetected: absent,
@@ -1520,6 +1658,14 @@ function compatibilityReport(reviewContentDetected = true): CompatibilityReport 
     blockingErrors: [],
     warnings: [],
     recommendations: [],
+    artifactOutcomes: {
+      claims: notDeclared,
+      citations: notDeclared,
+      relations: notDeclared,
+      trust: notDeclared,
+      nodes: notDeclared,
+      edges: notDeclared,
+    },
   };
 }
 
@@ -1559,12 +1705,14 @@ async function assertSameCommitSelectionOrder(
   order: Array<"default-branch" | "release">,
 ): Promise<void> {
   const githubRepositoryId = nextRepoId();
+  const annotatedTagObjectSha = "e".repeat(40);
   const acceptedVersionIds: string[] = [];
   for (const sourceKind of order) {
     const capability = await capture({
       githubRepositoryId,
       sourceKind,
       releaseTag: sourceKind === "release" ? "v1" : undefined,
+      tagObjectSha: sourceKind === "release" ? annotatedTagObjectSha : undefined,
     });
     const submission = await runtime.createSubmission({
       inspectionToken: capability.token,
@@ -1580,12 +1728,29 @@ async function assertSameCommitSelectionOrder(
     where: { id: { in: acceptedVersionIds } },
     include: { snapshot: true },
   });
+  const repository = await runtime.prisma.repository.findUniqueOrThrow({
+    where: { githubRepositoryId },
+  });
   expect(versions).toHaveLength(2);
   expect(new Set(versions.map((version) => version.snapshotId)).size).toBe(1);
   expect(new Set(versions.map((version) => version.sourceKind))).toEqual(
     new Set(["default-branch", "release"]),
   );
   expect(versions.every((version) => version.inspectionCaptureId)).toBe(true);
+  expect(versions.every((version) => version.capturePayloadHash)).toBe(true);
+  expect(versions.every((version) => version.snapshot?.commitSha === commitA)).toBe(true);
+  expect(versions.every((version) => version.snapshot?.sourceTreeSha === treeA)).toBe(true);
+  expect(versions.every((version) => version.snapshot?.repositoryId === repository.id)).toBe(true);
+  expect(versions.find((version) => version.sourceKind === "default-branch")).toMatchObject({
+    sourceBranch: "main",
+    sourceSelectionKey: "default-branch:main",
+    tagObjectSha: null,
+  });
+  expect(versions.find((version) => version.sourceKind === "release")).toMatchObject({
+    releaseTag: "v1",
+    sourceSelectionKey: "release:v1",
+    tagObjectSha: annotatedTagObjectSha,
+  });
   expect(versions.every((version) => version.snapshot?.sourceKind === null)).toBe(true);
   expect(versions.every((version) => version.snapshot?.releaseTag === null)).toBe(true);
 }

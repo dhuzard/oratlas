@@ -69,4 +69,20 @@ describe("public graph contracts", () => {
       }).success,
     ).toBe(false);
   });
+
+  it("publishes only the bounded assessment COI snapshot", () => {
+    const assessment = {
+      protocolVersion: "TRUST-1.0",
+      conflictOfInterest: { status: "not-provided" },
+      reviewStatus: "unverified-import",
+      verificationState: "unverified-import",
+    };
+    expect(publicGraphTrustSchema.safeParse(assessment).success).toBe(true);
+    expect(
+      publicGraphTrustSchema.safeParse({
+        ...assessment,
+        conflictOfInterest: { status: "conflict-declared", rationale: "private" },
+      }).success,
+    ).toBe(false);
+  });
 });

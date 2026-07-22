@@ -15,6 +15,9 @@ vi.mock("./db.js", () => ({
       findMany: vi.fn(async () => database.indexReviews),
       findUnique: vi.fn(async () => database.detailReview),
     },
+    trustAssessment: { findMany: vi.fn(async () => []) },
+    nodeRelationTrustAssessment: { findMany: vi.fn(async () => []) },
+    trustAdjudication: { findMany: vi.fn(async () => []) },
   },
   parseJsonColumn(value: string, fallback: unknown) {
     try {
@@ -34,6 +37,7 @@ import {
   type DatabaseTrustSubjectRows,
 } from "@oratlas/trust";
 import { buildKnowledgeIndex } from "./index-builder.js";
+import { directEditorialDecisionHash } from "./decision-provenance.js";
 import { getReviewDetail } from "./reviews.js";
 import { TrustDisplay } from "../components/TrustDisplay.js";
 
@@ -238,6 +242,14 @@ function buildVersion(versionId: string, semanticVersion: string, createdAt: Dat
     },
     claims: evidence.map(({ claim }) => claim),
     citations: evidence.map(({ citation }) => citation),
+    sourceSubmission: {
+      editorialOverrides: [],
+      decisionProvenance: null,
+      reviewer: null,
+      reviewRounds: [],
+      reviewedAt: null,
+      updatedAt: createdAt,
+    },
   };
 }
 
@@ -295,6 +307,89 @@ beforeEach(() => {
 });
 
 describe("versioned evidence and TRUST integration", () => {
+  it("fails closed when direct editorial decision provenance is tampered", async () => {
+    const fixture = buildDatabaseFixture();
+    const provenance = {
+      id: "decision-provenance-1",
+      submissionId: "submission-1",
+      actorGithubLoginSnapshot: "decision-editor",
+      actorRoleSnapshot: "EDITOR",
+      decision: "accept",
+      noteHash: null,
+      conflictOfInterestStatus: "none-declared",
+      administratorOverride: false,
+      administratorOverrideGithubLoginSnapshot: null,
+      administratorOverrideAt: null,
+      createdAt: now,
+      decisionHash: directEditorialDecisionHash({
+        submissionId: "submission-1",
+        actor: { githubLogin: "decision-editor", role: "EDITOR" },
+        decision: "accept",
+        noteHash: null,
+        conflictOfInterest: { status: "none-declared" },
+        override: null,
+      }),
+    };
+    (
+      fixture.detailReview.versions[0]!.sourceSubmission as unknown as {
+        decisionProvenance: typeof provenance;
+      }
+    ).decisionProvenance = provenance;
+    database.detailReview = fixture.detailReview;
+    expect((await getReviewDetail("trust-history"))?.version.editorialDecision).toMatchObject({
+      actorLogin: "decision-editor",
+      decisionHash: provenance.decisionHash,
+    });
+
+    provenance.decisionHash = "0".repeat(64);
+    expect((await getReviewDetail("trust-history"))?.version.editorialDecision).toBeUndefined();
+  });
+
+  it("deny-lists private verification and editorial-override fields from the public detail", async () => {
+    const fixture = buildDatabaseFixture();
+    const privateVerificationRationale = "PRIVATE-VERIFICATION-RATIONALE";
+    const privateOverrideRationale = "PRIVATE-EDITORIAL-OVERRIDE-RATIONALE";
+    const privateRoleSnapshot = "PRIVATE-REVIEWER-ROLE-SNAPSHOT";
+    const assessment =
+      fixture.detailReview.versions[0]!.claims[0]!.evidenceRelations[0]!.trustAssessments[0]!;
+    if (!assessment.verification) throw new Error("Expected verified assessment fixture.");
+    assessment.verification.rationale = privateVerificationRationale;
+    assessment.verification.reviewerRoleSnapshot = privateRoleSnapshot;
+    (
+      fixture.detailReview.versions[0]!.sourceSubmission.editorialOverrides as Array<{
+        checkId: string;
+        rationale: string;
+        editor: { githubLogin: string };
+        createdAt: Date;
+      }>
+    ).push({
+      checkId: "release-tag",
+      rationale: privateOverrideRationale,
+      editor: { githubLogin: "override-editor" },
+      createdAt: now,
+    });
+    database.detailReview = fixture.detailReview;
+
+    const detail = await getReviewDetail("trust-history");
+    const serialized = JSON.stringify(detail);
+    expect(serialized).not.toContain(privateVerificationRationale);
+    expect(serialized).not.toContain(privateOverrideRationale);
+    expect(serialized).not.toContain(privateRoleSnapshot);
+
+    const verification = detail?.claims[0]?.relations[0]?.trust?.platformVerification;
+    expect(verification).toEqual({ reviewerLogin: "atlas-editor" });
+    expect(verification).not.toHaveProperty("rationale");
+    expect(verification).not.toHaveProperty("reviewerRoleSnapshot");
+    expect(detail?.version.editorialOverrides).toEqual([
+      {
+        checkId: "release-tag",
+        editorLogin: "override-editor",
+        createdAt: now.toISOString(),
+      },
+    ]);
+    expect(detail?.version.editorialOverrides[0]).not.toHaveProperty("rationale");
+  });
+
   it("returns and renders every assessment in deterministic non-rating order", async () => {
     const fixture = buildDatabaseFixture();
     const relation = fixture.detailReview.versions[0]!.claims[0]!.evidenceRelations[0]!;

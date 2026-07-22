@@ -1,10 +1,13 @@
 import "server-only";
+import { z } from "zod";
 import {
   preservationManifestSchema,
   preservedFilesSchema,
   snapshotStorageReportSchema,
   isExactCommitSha,
   isSafeRepoRelativePath,
+  sourceAssessmentDocumentsReportSchema,
+  conflictOfInterestStatusSchema,
   type PreservationManifest,
   type PreservedFileDescriptor,
   type PreservedFiles,
@@ -16,11 +19,16 @@ import {
   swhidForRevision,
   type ExportContributor,
   type ProvExportInput,
+  type ScholarlyJsonInput,
   type VersionExportInput,
 } from "@oratlas/exports";
 import { appBaseUrl } from "./base-url";
+import { listChallenges } from "./challenges";
 import { prisma, parseJsonColumn } from "./db";
 import { sha256 } from "./hash";
+import { toTrustRecordForExport } from "./index-builder";
+import { resolveTrustAssessmentRows } from "./trust-provenance";
+import { listTrustDisagreementQueue } from "./trust-adjudication";
 
 /**
  * Preservation and export data for one immutable version, assembled from the
@@ -39,6 +47,31 @@ export interface VersionExportContext {
   exportInput: VersionExportInput;
   provInput: ProvExportInput;
   manifest: PreservationManifest;
+  scholarlyInput: ScholarlyJsonInput;
+}
+
+const exportLimitationsSchema = z.array(z.string().max(2_000)).max(50);
+const exportEvidenceSchema = z.record(z.string(), z.unknown());
+const exportMetadataSchema = z.record(z.string(), z.unknown());
+
+function parsePersistedExportJson<T>(label: string, value: string, schema: z.ZodType<T>): T {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(value);
+  } catch {
+    throw new Error(`Invalid persisted ${label} JSON.`);
+  }
+  const result = schema.safeParse(parsed);
+  if (!result.success) throw new Error(`Invalid persisted ${label} JSON.`);
+  return result.data;
+}
+
+function parsePersistedConflictOfInterest(value: string) {
+  const parsed = conflictOfInterestStatusSchema.safeParse(value);
+  if (!parsed.success) {
+    throw new Error("Invalid persisted TRUST conflict-of-interest status.");
+  }
+  return parsed.data;
 }
 
 async function loadVersionRow(slug: string, versionId: string) {
@@ -54,7 +87,21 @@ async function loadVersionRow(slug: string, versionId: string) {
       review: { select: { slug: true } },
       snapshot: { include: { repository: true } },
       contributors: { include: { person: true }, orderBy: { position: "asc" } },
-      sourceSubmission: { include: { submitter: true, reviewer: true } },
+      sourceSubmission: {
+        include: {
+          submitter: true,
+          reviewer: true,
+          decisionProvenance: true,
+          reviewRounds: {
+            orderBy: { roundNumber: "desc" },
+            select: {
+              decisionLetter: {
+                select: { decision: true, editorGithubLoginSnapshot: true },
+              },
+            },
+          },
+        },
+      },
     },
   });
 }
@@ -81,6 +128,12 @@ export async function getVersionExportContext(
     familyName: contributor.person.familyName ?? undefined,
     orcid: contributor.person.orcid ?? undefined,
   }));
+  const acceptanceEditorLogin =
+    version.sourceSubmission?.decisionProvenance?.actorGithubLoginSnapshot ??
+    version.sourceSubmission?.reviewRounds.find(
+      (round) => round.decisionLetter?.decision === "accept",
+    )?.decisionLetter?.editorGithubLoginSnapshot ??
+    undefined;
 
   const exportInput: VersionExportInput = {
     platformVersion: PLATFORM_VERSION,
@@ -129,7 +182,7 @@ export async function getVersionExportContext(
       : undefined,
     acceptance: {
       publishedAt: version.publishedAt?.toISOString(),
-      editorLogin: version.sourceSubmission?.reviewer?.githubLogin,
+      editorLogin: acceptanceEditorLogin,
     },
   };
 
@@ -182,7 +235,139 @@ export async function getVersionExportContext(
     preservedContentAvailable: true,
   } satisfies PreservationManifest);
 
-  return { exportInput, provInput, manifest };
+  const [assessmentRows, challengeList, disagreementQueue] = await Promise.all([
+    prisma.trustAssessment.findMany({
+      where: {
+        relation: {
+          claim: { reviewVersionId: version.id },
+          citation: { reviewVersionId: version.id },
+        },
+      },
+      include: {
+        verification: { include: { reviewer: { select: { githubLogin: true } } } },
+        relation: { include: { claim: true, citation: true } },
+      },
+      orderBy: [{ id: "asc" }],
+    }),
+    listChallenges(version.review.slug, version.id),
+    listTrustDisagreementQueue({ reviewVersionId: version.id }),
+  ]);
+  const persistedMetadata = parsePersistedExportJson(
+    "review metadata",
+    version.metadataJson,
+    exportMetadataSchema,
+  );
+  const relationIds = new Set(assessmentRows.map((assessment) => assessment.relation.id));
+  const versionDisagreements = disagreementQueue.filter(
+    (item) => item.subjectType === "claim-citation" && relationIds.has(item.subjectId),
+  );
+  const sourceDocuments =
+    persistedMetadata.sourceAssessmentDocuments === undefined
+      ? undefined
+      : sourceAssessmentDocumentsReportSchema.parse(persistedMetadata.sourceAssessmentDocuments);
+  const scholarlyInput: ScholarlyJsonInput = {
+    version: exportInput,
+    assessments: assessmentRows.map((assessment) => {
+      const resolved = resolveTrustAssessmentRows(
+        {
+          assessment,
+          relation: assessment.relation,
+          claim: assessment.relation.claim,
+          citation: assessment.relation.citation,
+        },
+        assessment.verification,
+      );
+      const record = toTrustRecordForExport(assessment);
+      return {
+        id: assessment.id,
+        url: `${canonicalUrl}#assessment-${encodeURIComponent(assessment.id)}`,
+        relation: {
+          id: assessment.relation.id,
+          claim: {
+            localId: assessment.relation.claim.localClaimId,
+            url: `${canonicalUrl}#claim-subject-${encodeURIComponent(assessment.relation.claim.id)}`,
+          },
+          citation: {
+            localId: assessment.relation.citation.localCitationId,
+            title: assessment.relation.citation.title ?? undefined,
+          },
+          relationType: assessment.relation.relationType,
+        },
+        protocolVersion: assessment.protocolVersion,
+        assessor: {
+          type: assessment.assessorType,
+          identifier: assessment.assessorId ?? undefined,
+        },
+        assessedAt: assessment.assessedAt?.toISOString(),
+        conflictOfInterest: {
+          status: parsePersistedConflictOfInterest(assessment.conflictOfInterestStatus),
+        },
+        criteria: record.criteria,
+        limitations: parsePersistedExportJson(
+          `TRUST limitations for assessment ${assessment.id}`,
+          assessment.limitationsJson,
+          exportLimitationsSchema,
+        ),
+        evidence: assessment.evidenceJson
+          ? parsePersistedExportJson(
+              `TRUST evidence for assessment ${assessment.id}`,
+              assessment.evidenceJson,
+              exportEvidenceSchema,
+            )
+          : undefined,
+        verification: {
+          state: resolved.state,
+          effectiveReviewStatus: resolved.effectiveStatus,
+          sourceAssertion: assessment.sourceRecordJson
+            ? {
+                reviewStatus: assessment.sourceReviewStatus ?? undefined,
+                assessorType: assessment.sourceAssessorType ?? undefined,
+                assessorId: assessment.sourceAssessorId ?? undefined,
+                assessedAt: assessment.sourceAssessedAt?.toISOString(),
+                relationHumanReviewed: assessment.sourceRelationHumanReviewed ?? undefined,
+              }
+            : undefined,
+          platformAssertion:
+            resolved.state === "platform-verified" && assessment.verification
+              ? {
+                  status: assessment.verification.status,
+                  reviewerLogin: assessment.verification.reviewer.githubLogin,
+                  reviewedAt: assessment.verification.updatedAt.toISOString(),
+                }
+              : undefined,
+        },
+        supersedesAssessmentId: assessment.supersedesAssessmentId ?? undefined,
+      };
+    }),
+    disagreements: versionDisagreements.map((item) => ({
+      id: item.disagreementHash,
+      url: `${canonicalUrl}#disagreement-${item.disagreementHash}`,
+      relationId: item.subjectId,
+      protocolVersion: item.protocolVersion,
+      assessmentIds: item.assessments.map(({ id }) => id),
+      report: item.report,
+      current: item.current,
+      open: item.open,
+    })),
+    adjudications: versionDisagreements.flatMap((item) =>
+      item.adjudications.map((adjudication) => ({
+        ...adjudication,
+        url: `${canonicalUrl}#adjudication-${encodeURIComponent(adjudication.id)}`,
+      })),
+    ),
+    challenges: challengeList?.challenges ?? [],
+    sourceDocuments: sourceDocuments
+      ? sourceDocuments.documents.map((document) => ({
+          ...document,
+          downloadUrl:
+            document.status === "preserved"
+              ? `${appBaseUrl()}/api/reviews/${encodeURIComponent(version.review.slug)}/versions/${encodeURIComponent(version.id)}/files/${encodeURIComponent(document.path)}`
+              : undefined,
+        }))
+      : [],
+  };
+
+  return { exportInput, provInput, manifest, scholarlyInput };
 }
 
 /**

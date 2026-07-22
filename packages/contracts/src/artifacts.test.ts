@@ -22,6 +22,7 @@ describe("parseJsonlArtifact", () => {
     expect(result.errors[0]?.line).toBe(2);
     expect(result.errors[1]?.line).toBe(4);
     expect(result.truncated).toBe(false);
+    expect(result.truncatedCount).toBe(0);
   });
 
   it("caps record count", () => {
@@ -31,6 +32,7 @@ describe("parseJsonlArtifact", () => {
     const result = parseJsonlArtifact(content, claimRecordSchema, 3);
     expect(result.records).toHaveLength(3);
     expect(result.truncated).toBe(true);
+    expect(result.truncatedCount).toBe(7);
   });
 });
 
@@ -49,6 +51,29 @@ describe("trustRecordSchema", () => {
     };
     const parsed = trustRecordSchema.safeParse(record);
     expect(parsed.success).toBe(true);
+    expect(parsed.success && parsed.data.conflictOfInterest).toBeUndefined();
+  });
+
+  it("accepts the public tri-state snapshot and rejects private or invented COI fields", () => {
+    const base = {
+      claimId: "c1",
+      citationId: "ref1",
+      protocolVersion: "trust-1.0",
+      assessorType: "human",
+      criteria: {},
+    };
+    expect(
+      trustRecordSchema.safeParse({
+        ...base,
+        conflictOfInterest: { status: "none-declared" },
+      }).success,
+    ).toBe(true);
+    expect(
+      trustRecordSchema.safeParse({
+        ...base,
+        conflictOfInterest: { status: "minor", rationale: "private" },
+      }).success,
+    ).toBe(false);
   });
 
   it("rejects numeric probabilities as ratings", () => {

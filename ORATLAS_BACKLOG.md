@@ -86,10 +86,10 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-A01 — Per-facet compatibility model (article / citations / evidence-package / claim-graph / assessments)
 
-- **Status:** backlog · **Priority:** P0 · **Size:** M · **Agent:** conditional (contract shape
+- **Status:** review (integration train 4) · **Priority:** P0 · **Size:** M · **Agent:** conditional (contract shape
   should be reviewed by a maintainer before the UI consumes it)
 - **Packages:** `packages/contracts`, `packages/extractor`, `apps/web` · **External dep:**
-  template structure (read-only) · **Issue/PR:** none
+  template structure (read-only) · **Issue/PR:** integration PR #105; source PR #96
 - **Goal:** A repository can be article-compatible yet lack a claim graph, or carry TRUST
   records without an evidence package. Today `COMPATIBILITY_LEVELS` is one structural scalar
   (`packages/contracts/src/enums.ts:28`); facet truth is buried in signals and extraction
@@ -112,9 +112,9 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-A02 — Report absent optional artifacts instead of empty successful features
 
-- **Status:** ready · **Priority:** P0 · **Size:** M · **Agent:** yes
+- **Status:** review (integration train 4) · **Priority:** P0 · **Size:** M · **Agent:** yes
 - **Packages:** `packages/extractor`, `packages/contracts`, `apps/web` · **External dep:** none
-  · **Issue/PR:** none
+  · **Issue/PR:** integration PR #105; source PR #73
 - **Goal:** "No claims were extracted for this review" (`apps/web/src/app/reviews/[slug]/page.tsx:488`)
   currently renders identically whether the repository never declared a claims artifact, declared
   one that failed validation, or declared one that legitimately contained zero records. That
@@ -137,10 +137,11 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-A03 — Frozen Ethical Debt integration fixture
 
-- **Status:** ready · **Priority:** P1 · **Size:** M · **Agent:** yes (pin and artifact layout
+- **Status:** review (integration train 4) · **Priority:** P1 · **Size:** M · **Agent:** yes (pin and artifact layout
   ratified in `ORATLAS_DECISIONS.md` §13 and `CROSS_REPO_DEPENDENCIES.md`)
 - **Packages:** `apps/web` (e2e fixtures), `packages/extractor` (fixtures), `scripts` ·
-  **External dep:** `dhuzard/ethical-debt-AI-review` (exact release or commit) · **Issue/PR:** none
+  **External dep:** `dhuzard/ethical-debt-AI-review` (exact release or commit) · **Issue/PR:**
+  integration PR #105
 - **Goal:** The first reference review has **no presence in this repository** (zero references
   found). Freeze an exact release/commit of `dhuzard/ethical-debt-AI-review` as a
   checked-in, deterministic integration fixture proving the real production pipeline —
@@ -162,12 +163,13 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-A04 — Ingest and surface template TRUST.md / FAIR.md assessment documents
 
-- **Status:** ready · **Priority:** P2 · **Size:** M · **Agent:** yes (preservation-only
+- **Status:** review (integration train 4) · **Priority:** P2 · **Size:** M · **Agent:** yes (preservation-only
   extraction boundary ratified in `ORATLAS_DECISIONS.md` §12; upstream suggestions remain
   human communication)
 - **Packages:** `packages/extractor`, `packages/contracts`, `apps/web` · **External dep:**
   `AllenNeuralDynamics/ComputationalReviewTemplate` (file conventions),
-  `Neuronautix/TRUST.md` (versioned convention and schemas) · **Issue/PR:** issue #18
+  `Neuronautix/TRUST.md` (versioned convention and schemas) · **Issue/PR:** integration PR #105;
+  issue #18
 - **Goal:** Template repositories may carry `TRUST.md`/`FAIR.md` describing their assessment
   methodology. Detect them, preserve them as source-native provenance documents, and link them
   from the review's assessment display — without interpreting or scoring them.
@@ -184,9 +186,9 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-A05 — Verify end-to-end identity preservation (repo id, release, tag object, commit, tree)
 
-- **Status:** backlog · **Priority:** P0 · **Size:** S · **Agent:** yes
+- **Status:** review (integration train 4) · **Priority:** P0 · **Size:** S · **Agent:** yes
 - **Packages:** `packages/db`, `packages/github`, `packages/extractor` · **External dep:** none
-  · **Issue/PR:** builds on PR #13
+  · **Issue/PR:** integration PR #105; source PR #74; builds on PR #13
 - **Goal:** Pinning is implemented (immutable GitHub repository id, source-selection key,
   tag object, commit SHA, capture hashes). This is an audit item: confirm the **tree** identity
   is either captured or derivable for every published version, and that no path (legacy rows,
@@ -258,8 +260,9 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-C02 — Evidence-independence audit for imported claim–citation reviews
 
-- **Status:** backlog · **Priority:** P2 · **Size:** S · **Agent:** yes
-- **Packages:** `packages/knowledge` · **External dep:** none · **Issue/PR:** builds on PR #21
+- **Status:** review (integration train 4) · **Priority:** P2 · **Size:** S · **Agent:** yes
+- **Packages:** `packages/knowledge` · **External dep:** none · **Issue/PR:** integration PR
+  #105; source PR #84; builds on PR #21
 - **Goal:** Independence-aware synthesis and shared-dataset detection shipped for the graph
   (PR #21). Audit that legacy claim–citation reviews get the same shared-source detection
   (same DOI/dataset cited across relations) in contradiction and synthesis views, and close
@@ -303,10 +306,10 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-D02 — Explicit disagreement and adjudication records
 
-- **Status:** ready · **Priority:** P1 · **Size:** L · **Agent:** yes (authority, display, and
+- **Status:** review (core and ORA-D02a delivered 2026-07-22) · **Priority:** P1 · **Size:** L · **Agent:** yes (authority, display, and
   non-compensation boundaries ratified in `ORATLAS_DECISIONS.md` §§2–5)
 - **Packages:** `packages/contracts`, `packages/trust`, `packages/db`, `apps/web` ·
-  **External dep:** none · **Issue/PR:** none
+  **External dep:** none · **Issue/PR:** integration PR #105
 - **Goal:** When two assessments of the same relation disagree, the disagreement must be a
   first-class, visible fact — never averaged away — and an adjudication must be a separate,
   attributed record referencing the assessments it weighs, with rationale.
@@ -321,6 +324,35 @@ At most five items, ordered. Rationale and dependencies:
 - **Acceptance criteria:** Unit tests for detection determinism and protocol-scoping;
   adjudication is append-only, hash-binds its subjects, and fails closed if a referenced
   assessment mutates; UI shows all assessments + the adjudication, never a merged value.
+- **Delivered:** Exact-protocol criterion disagreement/coverage-gap detection; current-lineage
+  editorial queue; designated-adjudicator and editor authority with direct-involvement recusal;
+  public-minimal COI/ADMIN override provenance; append-only, hash-bound SQLite/PostgreSQL
+  records and guards; public review badges/history; scholarly JSON 1.1 and RO-Crate entities.
+  Underlying assessment profiles remain complete and independent. See
+  `docs/trust-adjudication.md`.
+
+### ORA-D02a — Challenge an exact node-relation adjudication
+
+- **Status:** review (integration PR #105) · **Priority:** P1 · **Size:** M · **Agent:** yes
+- **Packages:** `packages/contracts`, `packages/db`, `apps/web` · **External dep:** none
+- **Goal:** Complete the ratified §5 rule for node-relation adjudications without weakening the
+  exact immutable-subject binding used by E01. Claim–citation adjudication challenges ship in
+  ORA-D02, bound to adjudication id, `disagreementHash`, and `outcomeHash`.
+- **Scope:** Support node-relation adjudications in the Challenge subject union; define a
+  non-fictional container for node challenges instead of attaching them to an unrelated
+  `ReviewVersion`; add public deep links, lifecycle integrity rechecks, exports, and dual-family
+  tests.
+- **Non-goals:** No mutable adjudication discussion field; no cross-protocol subject.
+- **Dependencies:** ORA-D02, ORA-E01. The current E01 schema requires `reviewVersionId` and its
+  subject union has no node container, so an atomic schema/API migration is required.
+- **Acceptance criteria:** Filing against a node adjudication hash-binds the exact `outcomeHash`;
+  tamper/stale checks fail closed; public DTO and exports expose the challenge; all existing E01
+  subjects remain compatible.
+- **Delivered:** Exclusive `ReviewVersion`/`NodeEdgeProposal` challenge containers with database
+  guards; exact adjudication, disagreement, outcome, and referenced-assessment integrity rechecks;
+  conservative §5 recusal across adjudicators, assessors, and reviewers; public node deep links and
+  cursor-paginated register; canonical node challenge JSON and RO-Crate exports; dual-family,
+  lifecycle, privacy, cursor, SQLite, and PostgreSQL guard coverage.
 
 ### ORA-D03 — Assessment profile display without a mandatory aggregate
 
@@ -342,10 +374,11 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-D04 — Protocol-crosswalk guard: never translate between assessment protocols
 
-- **Status:** backlog · **Priority:** P0 · **Size:** S · **Agent:** yes
+- **Status:** review (integration train 4) · **Priority:** P0 · **Size:** S · **Agent:** yes
 - **Packages:** `packages/trust`, `packages/contracts`, `docs` · **External dep:**
   `Neuronautix/TRUST.md` and `Neuronautix/ComputationalReviewTemplate_trust-knowledge`
-  (distinct protocol identities; no implicit crosswalk) · **Issue/PR:** none
+  (distinct protocol identities; no implicit crosswalk) · **Issue/PR:** integration PR #105;
+  source PR #75
 - **Goal:** `protocolVersion` is stored per assessment, but nothing structurally prevents a
   future feature from comparing, averaging, or converting ratings across different protocols.
   Make "no invented crosswalk" an enforced, tested property, not just a convention.
@@ -457,17 +490,23 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-F02 — Conflict-of-interest representation
 
-- **Status:** ready · **Priority:** P2 · **Size:** M · **Agent:** yes (public provenance,
+- **Status:** review (integration train 4) · **Priority:** P2 · **Size:** M · **Agent:** yes (public provenance,
   recusal, and audited-override contract ratified in `ORATLAS_DECISIONS.md` §6)
 - **Packages:** `packages/contracts`, `packages/db`, `apps/web` · **External dep:** none ·
-  **Issue/PR:** none
-- **Goal:** Assessments, adjudications, and challenge resolutions carry no declared-interest
-  field. Decide (governance) what COI declaration looks like, then represent it as stored,
-  displayed provenance — never as an automatic disqualifier.
-- **Scope (post-decision):** COI declaration fields + display.
-- **Non-goals:** No COI inference; no blocking logic without governance sign-off.
+  **Issue/PR:** integration PR #105
+- **Goal:** Assessments, adjudications, challenge outcomes, and editorial decisions carry an
+  immutable tri-state declared-interest snapshot as visible provenance — never a severity score
+  or inferred automatic disqualifier.
+- **Scope:** Store and display `none-declared` / `conflict-declared` / `not-provided`; enforce
+  direct-involvement recusal; permit only an explicit, hash-bound, publicly attributable ADMIN
+  override with `conflict-declared`; keep private rationales and role snapshots out of public DTOs.
+- **Non-goals:** No COI inference, severity, ranking, or automatic scientific judgment; no dead
+  override API on repository imports that have no platform actor.
 - **Dependencies:** decision §6; ORA-D01.
-- **Acceptance criteria:** defined post-decision.
+- **Acceptance criteria:** Contract and integration tests cover all three statuses, legacy
+  `not-provided`, immutable database guards, direct-involvement recusal, the narrow ADMIN override,
+  hash/idempotency binding, and public/private serialization boundaries for assessments,
+  adjudications, challenges, and editorial decisions.
 
 ### ORA-F03 — Editorial-data visibility audit (public vs private)
 
@@ -553,11 +592,11 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-I01 — Assessment and challenge representation in exports
 
-- **Status:** ready · **Priority:** P2 · **Size:** M · **Agent:** yes (uncollapsed assessment,
+- **Status:** review (integration train 4) · **Priority:** P2 · **Size:** M · **Agent:** yes (uncollapsed assessment,
   challenge, source-native, and verification boundaries ratified in
   `ORATLAS_DECISIONS.md` §§1–2, §9, §§11–12)
 - **Packages:** `packages/exports`, `packages/federation` · **External dep:** consuming
-  services · **Issue/PR:** builds on PRs #15, #26
+  services · **Issue/PR:** integration PR #105; builds on PRs #15, #26
 - **Goal:** Once multiple assessments (ORA-D01) and challenges (ORA-E01) exist, scholarly
   exports and COAR Notify payloads must represent them without collapsing them: every
   assessment with assessor + protocol, disagreement uncollapsed, challenges with lifecycle

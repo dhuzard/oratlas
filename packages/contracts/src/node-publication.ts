@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { conflictOfInterestSnapshotSchema } from "./conflicts-of-interest.js";
 import {
   codeNodePayloadSchema,
   datasetNodePayloadSchema,
@@ -138,6 +139,7 @@ const publicNodeTrustAssessmentSchema = z
     assessorType: z.string().min(1).max(40),
     assessorId: z.string().min(1).max(200).optional(),
     assessedAt: z.string().datetime().optional(),
+    conflictOfInterest: conflictOfInterestSnapshotSchema,
     reviewStatus: assessmentReviewStatusSchema,
     verificationState: trustVerificationStateSchema,
     criteria: z.array(publicTrustCriterionProfileRowSchema).length(TRUST_CRITERIA.length),

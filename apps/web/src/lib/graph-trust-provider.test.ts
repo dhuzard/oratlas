@@ -9,6 +9,7 @@ const { findMany, projectAssessments } = vi.hoisted(() => ({
       assessorType: "human",
       assessorId: "reviewer-1",
       assessedAt: "2026-01-01T00:00:00.000Z",
+      conflictOfInterest: { status: "not-provided" },
       reviewStatus: "human-reviewed",
       verificationState: "platform-verified",
     })),
@@ -101,6 +102,7 @@ describe("databaseGraphTrustProvider", () => {
       assessorType: "human",
       assessorId: "reviewer-1",
       assessedAt: "2026-01-01T00:00:00.000Z",
+      conflictOfInterest: { status: "not-provided" },
     });
   });
 });

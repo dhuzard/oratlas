@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { conflictOfInterestSnapshotSchema } from "./conflicts-of-interest.js";
 import {
   assessmentReviewStatusSchema,
   claimEvidenceRelationTypeSchema,
@@ -42,6 +43,7 @@ export const evidenceClaimSchema = z.object({
             assessorType: z.string().min(1).max(40),
             assessorId: z.string().min(1).max(200).optional(),
             assessedAt: z.string().datetime().optional(),
+            conflictOfInterest: conflictOfInterestSnapshotSchema,
             reviewStatus: assessmentReviewStatusSchema,
             verificationState: trustVerificationStateSchema,
             aggregateScore: z.number().min(0).max(1).optional(),
@@ -57,6 +59,7 @@ export const evidenceClaimSchema = z.object({
               assessorType: z.string().min(1).max(40),
               assessorId: z.string().min(1).max(200).optional(),
               assessedAt: z.string().datetime().optional(),
+              conflictOfInterest: conflictOfInterestSnapshotSchema,
               reviewStatus: assessmentReviewStatusSchema,
               verificationState: trustVerificationStateSchema,
               aggregateScore: z.number().min(0).max(1).optional(),

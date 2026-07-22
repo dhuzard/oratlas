@@ -31,6 +31,8 @@ export function DecisionForm({
   const [selectedNodeIds, setSelectedNodeIds] = useState(() =>
     nodeCandidates.map((candidate) => candidate.id),
   );
+  const [conflictStatus, setConflictStatus] = useState("none-declared");
+  const [administratorOverride, setAdministratorOverride] = useState(false);
 
   async function decide(decision: "accept" | "reject" | "request-changes") {
     setLoading(decision);
@@ -51,6 +53,8 @@ export function DecisionForm({
                 }))
               : [],
           selectedNodeIds: decision === "accept" ? selectedNodeIds : [],
+          conflictOfInterest: { status: conflictStatus },
+          administratorOverride,
         }),
       });
       const data = await res.json();
@@ -115,6 +119,26 @@ export function DecisionForm({
           value={note}
           onChange={(e) => setNote(e.target.value)}
         />
+      </div>
+      <div className="field">
+        <label htmlFor={`coi-${submissionId}`}>Conflict-of-interest snapshot</label>
+        <select
+          id={`coi-${submissionId}`}
+          value={conflictStatus}
+          onChange={(event) => setConflictStatus(event.target.value)}
+        >
+          <option value="none-declared">none declared</option>
+          <option value="conflict-declared">conflict declared</option>
+          <option value="not-provided">not provided</option>
+        </select>
+        <label style={{ display: "block", marginTop: "0.5rem" }}>
+          <input
+            type="checkbox"
+            checked={administratorOverride}
+            onChange={(event) => setAdministratorOverride(event.target.checked)}
+          />{" "}
+          Exercise ADMIN recusal override (direct involvement only)
+        </label>
       </div>
       {overrideCheckIds.map((checkId) => (
         <div className="field" key={checkId}>

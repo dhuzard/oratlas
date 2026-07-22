@@ -1,16 +1,26 @@
 import {
+  type ArtifactCompatibilityReport,
+  type ArtifactOutcome,
+  type ArtifactOutcomeIssue,
+  type ArtifactSourceOutcome,
   type CompatibilityLevel,
-  type CompatibilityReport,
   type CompatibilitySignal,
+  type FacetCompatibility,
+  type FacetCompatibilityReport,
   type InspectionReport,
+  validateNodeManifest,
 } from "@oratlas/contracts";
-import { type ExtractedKnowledge } from "./knowledge.js";
+import { type ExtractedKnowledge, type KnowledgeArtifactOutcomes } from "./knowledge.js";
 import { type NodeExtractionReport } from "./nodes.js";
 
 const TEMPLATE_FULL_NAME = "allenneuraldynamics/computationalreviewtemplate";
 
 function signal(detected: boolean, evidence: string[]): CompatibilitySignal {
   return { detected, evidence };
+}
+
+function facet(status: FacetCompatibility["status"], ...evidence: string[]): FacetCompatibility {
+  return { status, evidence };
 }
 
 /**
@@ -24,7 +34,8 @@ export function assessCompatibility(
   knowledge: ExtractedKnowledge,
   manifestPresent: boolean,
   nodeExtraction?: NodeExtractionReport,
-): CompatibilityReport {
+  knowledgeArtifactOutcomes?: KnowledgeArtifactOutcomes,
+): ArtifactCompatibilityReport {
   if (report.status === "failed") {
     return inspectionFailed(report.error ?? "Inspection failed.");
   }
@@ -89,6 +100,14 @@ export function assessCompatibility(
       ? ["Review content Markdown/MyST files were found."]
       : ["No obvious review content files found."],
   );
+  const capturedReviewContent = Object.entries(report.files).some(([path, file]) => {
+    const normalizedPath = path.toLowerCase();
+    const isReviewContent =
+      (normalizedPath.startsWith("content/") && normalizedPath.endsWith(".md")) ||
+      normalizedPath.endsWith("evidence_database.md") ||
+      /(^|\/)(introduction|methods|results|discussion)\.md$/.test(normalizedPath);
+    return isReviewContent && !file.truncated && typeof file.content === "string";
+  });
 
   // 6. Provenance
   const provenanceDetected = signal(
@@ -134,6 +153,17 @@ export function assessCompatibility(
 
   const legacyKnowledgeArtifacts = knowledge.claims.length > 0 || knowledge.citations.length > 0;
   const knowledgeArtifacts = legacyKnowledgeArtifacts || validNodeDeclarations;
+
+  const facets = assessFacets({
+    manifestPresent,
+    mystProjectDetected,
+    bibliographyDetected,
+    reviewContentDetected,
+    capturedReviewContent,
+    provenanceDetected,
+    knowledge,
+    nodeExtraction,
+  });
 
   // --- Level decision (transparent) ---
   const rationale: string[] = [];
@@ -204,7 +234,7 @@ export function assessCompatibility(
   }
 
   return {
-    schemaVersion: "1.0.0",
+    schemaVersion: "1.1.0",
     templateForkDetected,
     templateFilesDetected,
     mystProjectDetected,
@@ -214,18 +244,30 @@ export function assessCompatibility(
     trustDataDetected,
     releaseDetected,
     doiDetected,
+    facets,
     overallCompatibility: level,
     levelRationale: rationale,
     blockingErrors,
     warnings,
     recommendations,
+    artifactOutcomes: {
+      ...(knowledgeArtifactOutcomes ?? emptyKnowledgeArtifactOutcomes()),
+      nodes: nodeArtifactOutcome(report, nodeExtraction, "nodes"),
+      edges: nodeArtifactOutcome(report, nodeExtraction, "edges"),
+    },
   };
 }
 
-function inspectionFailed(error: string): CompatibilityReport {
+function inspectionFailed(error: string): ArtifactCompatibilityReport {
   const empty = signal(false, []);
+  const unavailable = (): ArtifactOutcome => ({
+    status: "skipped",
+    loadedCount: 0,
+    skippedCount: null,
+    sources: [],
+  });
   return {
-    schemaVersion: "1.0.0",
+    schemaVersion: "1.1.0",
     templateForkDetected: empty,
     templateFilesDetected: empty,
     mystProjectDetected: empty,
@@ -235,10 +277,289 @@ function inspectionFailed(error: string): CompatibilityReport {
     trustDataDetected: empty,
     releaseDetected: empty,
     doiDetected: empty,
+    facets: {
+      article: facet("unknown", "Article compatibility is unknown because inspection failed."),
+      citations: facet("unknown", "Citation compatibility is unknown because inspection failed."),
+      evidencePackage: facet(
+        "unknown",
+        "Evidence-package compatibility is unknown because inspection failed.",
+      ),
+      claimGraph: facet(
+        "unknown",
+        "Claim-graph compatibility is unknown because inspection failed.",
+      ),
+      assessments: facet(
+        "unknown",
+        "Assessment compatibility is unknown because inspection failed.",
+      ),
+    },
     overallCompatibility: "inspection-failed",
     levelRationale: ["Inspection failed; compatibility could not be assessed."],
     blockingErrors: [error],
     warnings: [],
     recommendations: [],
+    artifactOutcomes: {
+      claims: unavailable(),
+      citations: unavailable(),
+      relations: unavailable(),
+      trust: unavailable(),
+      nodes: unavailable(),
+      edges: unavailable(),
+    },
   };
+}
+
+interface FacetInputs {
+  manifestPresent: boolean;
+  mystProjectDetected: CompatibilitySignal;
+  bibliographyDetected: CompatibilitySignal;
+  reviewContentDetected: CompatibilitySignal;
+  capturedReviewContent: boolean;
+  provenanceDetected: CompatibilitySignal;
+  knowledge: ExtractedKnowledge;
+  nodeExtraction?: NodeExtractionReport;
+}
+
+/**
+ * Derive independent capability availability from already validated extraction
+ * outputs. These rules do not affect the legacy scalar acceptance decision.
+ */
+function assessFacets(input: FacetInputs): FacetCompatibilityReport {
+  const { knowledge, nodeExtraction } = input;
+  const validNodes = nodeExtraction?.counts.ok ?? 0;
+  const validEdges = nodeExtraction?.counts.edgesOk ?? 0;
+
+  const article = input.capturedReviewContent
+    ? facet("available", ...input.reviewContentDetected.evidence)
+    : input.reviewContentDetected.detected
+      ? facet(
+          "partial",
+          "Review prose was detected in the repository tree, but no complete review prose was captured.",
+        )
+      : input.mystProjectDetected.detected || input.manifestPresent
+        ? facet(
+            "partial",
+            input.mystProjectDetected.detected
+              ? "A MyST project was found, but no review prose was detected."
+              : "A review manifest was parsed, but no review prose was detected.",
+          )
+        : facet("unavailable", "No review prose or article structure was detected.");
+
+  const citations =
+    input.bibliographyDetected.detected || knowledge.citations.length > 0
+      ? facet(
+          "available",
+          ...(input.bibliographyDetected.detected ? input.bibliographyDetected.evidence : []),
+          ...(knowledge.citations.length > 0
+            ? [`${knowledge.citations.length} structured citation record(s) parsed.`]
+            : []),
+        )
+      : facet("unavailable", "No bibliography or structured citation records were detected.");
+
+  const evidenceAvailable = knowledge.claims.length > 0 && knowledge.citations.length > 0;
+  const evidenceParts =
+    knowledge.claims.length > 0 ||
+    knowledge.citations.length > 0 ||
+    knowledge.relations.length > 0 ||
+    input.provenanceDetected.detected ||
+    input.manifestPresent;
+  const evidencePackage = evidenceAvailable
+    ? facet(
+        "available",
+        `${knowledge.claims.length} claim record(s) and ${knowledge.citations.length} citation record(s) form a usable evidence package.`,
+        `${knowledge.relations.length} valid claim–citation relation(s) parsed.`,
+      )
+    : evidenceParts
+      ? facet(
+          "partial",
+          `Evidence-package inputs are incomplete: ${knowledge.claims.length} claim(s), ${knowledge.citations.length} citation(s), and ${knowledge.relations.length} relation(s) parsed.`,
+        )
+      : facet("unavailable", "No evidence-package inputs were detected.");
+
+  const graphConnected = knowledge.relations.length > 0 || validEdges > 0;
+  const graphNodes = knowledge.claims.length > 0 || validNodes > 0;
+  const claimGraph = graphConnected
+    ? facet(
+        "available",
+        `${knowledge.claims.length} claim record(s), ${knowledge.relations.length} claim–citation relation(s), ${validNodes} valid node(s), and ${validEdges} valid node edge(s) parsed.`,
+      )
+    : graphNodes
+      ? facet(
+          "partial",
+          `${knowledge.claims.length} claim record(s) and ${validNodes} valid node(s) parsed, but no valid relations or edges were found.`,
+        )
+      : facet("unavailable", "No valid claims, knowledge nodes, relations, or edges were found.");
+
+  const assessments =
+    knowledge.trust.length > 0
+      ? facet("available", `${knowledge.trust.length} TRUST assessment record(s) parsed.`)
+      : facet("unavailable", "No TRUST assessment records were found.");
+
+  return { article, citations, evidencePackage, claimGraph, assessments };
+}
+
+function notDeclared(): ArtifactOutcome {
+  return { status: "not-declared", loadedCount: 0, skippedCount: 0, sources: [] };
+}
+
+function emptyKnowledgeArtifactOutcomes(): KnowledgeArtifactOutcomes {
+  return {
+    claims: notDeclared(),
+    citations: notDeclared(),
+    relations: notDeclared(),
+    trust: notDeclared(),
+  };
+}
+
+function nodeArtifactOutcome(
+  report: InspectionReport,
+  extraction: NodeExtractionReport | undefined,
+  kind: "nodes" | "edges",
+): ArtifactOutcome {
+  const manifestFile = report.files["node-manifest.json"];
+  const manifestInTree = report.tree.some((entry) => entry.path === "node-manifest.json");
+  if (!manifestFile && !manifestInTree) return notDeclared();
+
+  if (!extraction || extraction.manifest.status !== "ok" || manifestFile?.content === undefined) {
+    const invalid = extraction?.manifest.status === "invalid";
+    const issues = boundedNodeIssues(extraction, [
+      {
+        code: invalid ? "manifest-invalid" : "manifest-not-fetched",
+        message: invalid
+          ? "node-manifest.json is invalid; artifact declarations could not be processed."
+          : "node-manifest.json was not fetched within the inspection budget.",
+      },
+    ]);
+    const source: ArtifactSourceOutcome = {
+      status: invalid ? "invalid" : "skipped",
+      path: "node-manifest.json",
+      discovery: "declared",
+      loadedCount: 0,
+      skippedCount: null,
+      issues,
+    };
+    return {
+      status: source.status,
+      loadedCount: 0,
+      skippedCount: null,
+      sources: [source],
+    };
+  }
+
+  let paths: string[] = [];
+  try {
+    const validation = validateNodeManifest(JSON.parse(manifestFile.content));
+    if (!validation.ok || !validation.manifest) return invalidNodeManifestOutcome(extraction);
+    const source = kind === "nodes" ? validation.manifest.nodes : validation.manifest.edges;
+    if (!source) return notDeclared();
+    paths = source.format === "json" ? source.files : [source.path];
+  } catch {
+    return invalidNodeManifestOutcome(extraction);
+  }
+
+  const records = kind === "nodes" ? extraction.nodes : extraction.edges;
+  const sources = paths.map((path): ArtifactSourceOutcome => {
+    const matching = records.filter((record) => record.sourcePath === path);
+    const loadedCount = matching.filter((record) => record.status === "ok").length;
+    const invalidCount = matching.filter((record) => record.status === "invalid").length;
+    const skippedRecords = matching.filter((record) => record.status === "skipped");
+    const hasUnknownSkippedCount = matching.some((record) =>
+      record.issues.some((issue) =>
+        ["source-not-fetched", "source-missing", "source-oversized"].includes(issue.code),
+      ),
+    );
+    const skippedCount = hasUnknownSkippedCount
+      ? null
+      : invalidCount +
+        skippedRecords.reduce((total, record) => total + (record.skippedRecordCount ?? 1), 0);
+    const issues = matching
+      .flatMap((record) => record.issues)
+      .slice(0, 200)
+      .map((issue) => ({ code: issue.code, message: issue.message }));
+    const file = report.files[path];
+    if (
+      hasUnknownSkippedCount ||
+      (matching.length === 0 && (!file || file.content === undefined || file.truncated))
+    ) {
+      return {
+        status: "skipped",
+        path,
+        discovery: "declared",
+        loadedCount: 0,
+        skippedCount: null,
+        issues: [
+          {
+            code: file?.truncated ? "source-truncated" : "source-not-fetched",
+            message: `Declared ${kind} source '${path}' was unavailable for extraction.`,
+          },
+        ],
+      };
+    }
+    if (loadedCount > 0 || matching.length === 0) {
+      return {
+        status: "loaded",
+        path,
+        discovery: "declared",
+        loadedCount,
+        skippedCount,
+        issues,
+      };
+    }
+    return {
+      status: invalidCount > 0 ? "invalid" : "skipped",
+      path,
+      discovery: "declared",
+      loadedCount: 0,
+      skippedCount,
+      issues:
+        issues.length > 0
+          ? issues
+          : [{ code: "records-skipped", message: `Declared ${kind} records were skipped.` }],
+    };
+  });
+  const status = sources.some((source) => source.status === "loaded")
+    ? "loaded"
+    : sources.some((source) => source.status === "invalid")
+      ? "invalid"
+      : "skipped";
+  return {
+    status,
+    loadedCount: sources.reduce((total, source) => total + source.loadedCount, 0),
+    skippedCount: sources.some((source) => source.skippedCount === null)
+      ? null
+      : sources.reduce((total, source) => total + (source.skippedCount ?? 0), 0),
+    sources,
+  };
+}
+
+function invalidNodeManifestOutcome(extraction: NodeExtractionReport): ArtifactOutcome {
+  const issues = boundedNodeIssues(extraction, [
+    { code: "manifest-invalid", message: "node-manifest.json is invalid." },
+  ]);
+  return {
+    status: "invalid",
+    loadedCount: 0,
+    skippedCount: null,
+    sources: [
+      {
+        status: "invalid",
+        path: "node-manifest.json",
+        discovery: "declared",
+        loadedCount: 0,
+        skippedCount: null,
+        issues,
+      },
+    ],
+  };
+}
+
+function boundedNodeIssues(
+  extraction: NodeExtractionReport | undefined,
+  fallback: ArtifactOutcomeIssue[],
+): ArtifactOutcomeIssue[] {
+  const issues = extraction?.errors.slice(0, 200).map((issue) => ({
+    code: issue.code,
+    message: issue.message,
+  }));
+  return issues && issues.length > 0 ? issues : fallback;
 }

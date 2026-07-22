@@ -36,6 +36,10 @@ export const DEFAULT_LIMITS: InspectionLimits = {
 const WELL_KNOWN_FILES = [
   "review-manifest.json",
   "node-manifest.json",
+  // Source-native methodology documents. Only these exact, case-sensitive
+  // root paths are captured; similarly named or nested files are not aliases.
+  "TRUST.md",
+  "FAIR.md",
   "CITATION.cff",
   ".zenodo.json",
   "codemeta.json",

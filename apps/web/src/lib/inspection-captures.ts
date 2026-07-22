@@ -10,6 +10,7 @@ import {
   relationRecordSchema,
   reviewManifestSchema,
   submissionValidationReportSchema,
+  sourceAssessmentDocumentsReportSchema,
   trustAssessmentRecordSchema,
   type InspectionReport,
   type SubmissionValidationReport,
@@ -54,6 +55,7 @@ const extractionFields = {
   manifest: reviewManifestSchema.optional(),
   knowledge: knowledgeExtractionSchema,
   compatibility: compatibilityReportSchema,
+  sourceAssessmentDocuments: sourceAssessmentDocumentsReportSchema.optional(),
 };
 
 const inspectionCapturePayloadSchema = z.discriminatedUnion("schemaVersion", [

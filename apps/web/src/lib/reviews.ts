@@ -8,19 +8,35 @@ import {
 import {
   canonicalWorkAliases,
   claimDomAnchor,
+  facetCompatibilityReportSchema,
   findWorkIdentifierConflicts,
   globalCitationId,
   globalClaimId,
   isExactCommitSha,
+  conflictOfInterestStatusSchema,
+  sourceAssessmentDocumentsReportSchema,
   type PublicationConsistencyReport,
   type PublicLifecycleEvent,
+  type FacetCompatibilityReport,
   type WorkIdentityAssertion,
+  type SourceAssessmentDocumentsReport,
 } from "@oratlas/contracts";
 import { prisma, parseJsonColumn } from "./db";
 import { toTrustRecord } from "./index-builder";
 import { resolveTrustAssessmentRows } from "./trust-provenance";
 import { trustCriterionProfile } from "./trust-profile";
+import { listTrustDisagreementQueue, type TrustDisagreementQueueItem } from "./trust-adjudication";
 import { isTombstonedState, lifecycleEventDto } from "./review-lifecycle";
+import {
+  compatibilityReportFromStoredJson,
+  type StoredCompatibilityReport,
+} from "./compatibility-report";
+import { directEditorialDecisionHash } from "./decision-provenance";
+
+function publicConflictStatus(value: string) {
+  const parsed = conflictOfInterestStatusSchema.safeParse(value);
+  return parsed.success ? parsed.data : ("not-provided" as const);
+}
 
 export interface ReviewCriterion {
   criterion: string;
@@ -34,6 +50,9 @@ export interface ReviewTrust {
   assessorType: string;
   assessorId?: string;
   assessedAt?: string;
+  conflictOfInterest: {
+    status: "none-declared" | "conflict-declared" | "not-provided";
+  };
   reviewStatus: string;
   verificationState: TrustVerificationState;
   protocolVersion: string;
@@ -52,8 +71,6 @@ export interface ReviewTrust {
   };
   platformVerification?: {
     reviewerLogin: string;
-    reviewerRoleSnapshot: string;
-    rationale: string;
   };
   supersedesAssessmentId?: string;
 }
@@ -70,6 +87,7 @@ export interface ReviewRelation {
   /** Backward-compatible singleton projection; absent whenever a set has multiple rows. */
   trust?: ReviewTrust;
   trusts: ReviewTrust[];
+  trustDisagreements: TrustDisagreementQueueItem[];
 }
 
 export interface ReviewClaim {
@@ -102,7 +120,9 @@ export interface ReviewDetail {
   keywords: string[];
   domains: string[];
   compatibilityLevel?: string;
-  compatibilityReport?: unknown;
+  compatibilityReport?: StoredCompatibilityReport;
+  compatibilityFacets?: FacetCompatibilityReport;
+  sourceAssessmentDocuments?: SourceAssessmentDocumentsReport;
   contributors: Array<{
     displayName: string;
     orcid?: string;
@@ -137,10 +157,22 @@ export interface ReviewDetail {
     publicationConsistency?: PublicationConsistencyReport;
     editorialOverrides: Array<{
       checkId: string;
-      rationale: string;
       editorLogin: string;
       createdAt: string;
     }>;
+    editorialDecision?: {
+      actorLogin: string;
+      decision: string;
+      decisionHash?: string;
+      conflictOfInterest: {
+        status: "none-declared" | "conflict-declared" | "not-provided";
+      };
+      administratorOverride?: {
+        administrator: { githubLogin: string };
+        exercisedAt: string;
+      };
+      decidedAt: string;
+    };
   };
   identifiers: Array<{
     scheme: string;
@@ -194,6 +226,9 @@ export async function getReviewDetail(
           sourceSubmission: {
             include: {
               editorialOverrides: { include: { editor: true }, orderBy: { checkId: "asc" } },
+              decisionProvenance: true,
+              reviewer: true,
+              reviewRounds: { select: { decisionLetter: { select: { id: true } } } },
             },
           },
           citations: true,
@@ -273,12 +308,24 @@ export async function getReviewDetail(
     compatibilityReport?: unknown;
     reviewType?: string;
     license?: string;
+    sourceAssessmentDocuments?: unknown;
   }>(version.metadataJson, {});
-  const legacyInspectionReport = snapshot
-    ? parseJsonColumn<{ compatibilityReport?: unknown }>(snapshot.inspectionReportJson, {})
-    : {};
+  const compatibilityReport = compatibilityReportFromStoredJson(
+    version.metadataJson,
+    snapshot.inspectionReportJson,
+  );
+  const compatibilityFacetsResult = facetCompatibilityReportSchema.safeParse(
+    compatibilityReport?.facets,
+  );
+  const compatibilityFacets = compatibilityFacetsResult.success
+    ? compatibilityFacetsResult.data
+    : undefined;
+  const sourceAssessmentDocuments = sourceAssessmentDocumentsReportSchema.safeParse(
+    meta.sourceAssessmentDocuments,
+  );
 
   const limitations = new Set<string>();
+  const trustDisagreementQueue = await listTrustDisagreementQueue({ reviewVersionId: version.id });
   const claims: ReviewClaim[] = version.claims.map((claim) => ({
     subjectId: claim.id,
     claimId: globalClaimId(version.id, claim.localClaimId),
@@ -315,6 +362,9 @@ export async function getReviewDetail(
           assessorType: trustRow.assessment.assessorType,
           assessorId: trustRow.assessment.assessorId ?? undefined,
           assessedAt: trustRow.assessment.assessedAt?.toISOString(),
+          conflictOfInterest: {
+            status: publicConflictStatus(trustRow.assessment.conflictOfInterestStatus),
+          },
           reviewStatus: trustRow.resolved.effectiveStatus,
           verificationState: trustRow.resolved.state,
           protocolVersion: trustRow.assessment.protocolVersion,
@@ -334,8 +384,6 @@ export async function getReviewDetail(
           platformVerification: trustRow.assessment.verification
             ? {
                 reviewerLogin: trustRow.assessment.verification.reviewer.githubLogin,
-                reviewerRoleSnapshot: trustRow.assessment.verification.reviewerRoleSnapshot,
-                rationale: trustRow.assessment.verification.rationale,
               }
             : undefined,
           supersedesAssessmentId: trustRow.assessment.supersedesAssessmentId ?? undefined,
@@ -353,6 +401,9 @@ export async function getReviewDetail(
         humanReviewed: false,
         trust: trustRows.length === 1 ? trustRows[0] : undefined,
         trusts: trustRows,
+        trustDisagreements: trustDisagreementQueue.filter(
+          (item) => item.subjectType === "claim-citation" && item.subjectId === rel.id,
+        ),
       };
     }),
   }));
@@ -375,6 +426,60 @@ export async function getReviewDetail(
   const publishedIdentifier = version.identifiers.find(
     (identifier) => identifier.relationType === "published-review",
   );
+
+  const directProvenance = version.sourceSubmission?.decisionProvenance;
+  let directEditorialDecision: ReviewDetail["version"]["editorialDecision"];
+  if (directProvenance) {
+    const conflictOfInterest = conflictOfInterestStatusSchema.safeParse(
+      directProvenance.conflictOfInterestStatus,
+    );
+    const expectedHash = conflictOfInterest.success
+      ? directEditorialDecisionHash({
+          submissionId: directProvenance.submissionId,
+          actor: {
+            githubLogin: directProvenance.actorGithubLoginSnapshot,
+            role: directProvenance.actorRoleSnapshot,
+          },
+          decision: directProvenance.decision,
+          noteHash: directProvenance.noteHash,
+          conflictOfInterest: { status: conflictOfInterest.data },
+          override:
+            directProvenance.administratorOverride &&
+            directProvenance.administratorOverrideGithubLoginSnapshot &&
+            directProvenance.administratorOverrideAt
+              ? {
+                  administratorGithubLogin:
+                    directProvenance.administratorOverrideGithubLoginSnapshot,
+                  exercisedAt: directProvenance.administratorOverrideAt,
+                }
+              : null,
+        })
+      : null;
+    if (expectedHash === directProvenance.decisionHash && conflictOfInterest.success) {
+      directEditorialDecision = {
+        actorLogin: directProvenance.actorGithubLoginSnapshot,
+        decision: directProvenance.decision,
+        decisionHash: directProvenance.decisionHash,
+        conflictOfInterest: { status: conflictOfInterest.data },
+        administratorOverride:
+          directProvenance.administratorOverride &&
+          directProvenance.administratorOverrideGithubLoginSnapshot &&
+          directProvenance.administratorOverrideAt
+            ? {
+                administrator: {
+                  githubLogin: directProvenance.administratorOverrideGithubLoginSnapshot,
+                },
+                exercisedAt: directProvenance.administratorOverrideAt.toISOString(),
+              }
+            : undefined,
+        decidedAt: directProvenance.createdAt.toISOString(),
+      };
+    } else {
+      console.error(
+        `[reviews] editorial decision ${directProvenance.id} failed provenance verification; omitted.`,
+      );
+    }
+  }
 
   return {
     slug: review.slug,
@@ -399,7 +504,11 @@ export async function getReviewDetail(
     keywords: meta.keywords ?? [],
     domains: meta.domains ?? [],
     compatibilityLevel: meta.compatibilityLevel,
-    compatibilityReport: meta.compatibilityReport ?? legacyInspectionReport.compatibilityReport,
+    compatibilityReport,
+    compatibilityFacets,
+    sourceAssessmentDocuments: sourceAssessmentDocuments.success
+      ? sourceAssessmentDocuments.data
+      : undefined,
     contributors: version.contributors.map((c) => ({
       displayName: c.person.displayName,
       orcid: c.person.orcid ?? undefined,
@@ -438,10 +547,22 @@ export async function getReviewDetail(
       editorialOverrides:
         version.sourceSubmission?.editorialOverrides.map((override) => ({
           checkId: override.checkId,
-          rationale: override.rationale,
           editorLogin: override.editor.githubLogin,
           createdAt: override.createdAt.toISOString(),
         })) ?? [],
+      editorialDecision: directProvenance
+        ? directEditorialDecision
+        : version.sourceSubmission?.reviewer &&
+            !version.sourceSubmission.reviewRounds.some((round) => round.decisionLetter)
+          ? {
+              actorLogin: version.sourceSubmission.reviewer.githubLogin,
+              decision: "accept",
+              conflictOfInterest: { status: "not-provided" },
+              decidedAt:
+                version.sourceSubmission.reviewedAt?.toISOString() ??
+                version.sourceSubmission.updatedAt.toISOString(),
+            }
+          : undefined,
     },
     identifiers: version.identifiers.map((id) => ({
       scheme: id.scheme,

@@ -4,6 +4,7 @@ import {
   challengeContentStatusSchema,
   challengeGroundsSchema,
   challengeStatusSchema,
+  conflictOfInterestStatusSchema,
   isExactCommitSha,
   isLegalChallengeTransition,
   trustCriterionAssessmentSchema,
@@ -13,6 +14,7 @@ import {
 import { createReviewedTrustSubject, trustSubjectInputFromDatabaseRows } from "@oratlas/trust";
 import type {
   ChallengeList,
+  NodeChallengeList,
   ChallengeContentStatus,
   ChallengeStatus,
   ChallengeSubjectInput,
@@ -27,6 +29,8 @@ import { prisma } from "./db";
 import { sha256 } from "./hash";
 import { isEditor, type SessionUser } from "./auth";
 import { isReadablePublicState } from "./review-lifecycle";
+import { readablePublicNodeVersionWhere } from "./public-snapshot-visibility";
+import { assertExactTrustAdjudicationValid } from "./trust-adjudication";
 
 export class ChallengeError extends Error {
   constructor(
@@ -42,14 +46,18 @@ export class ChallengeError extends Error {
 export const MAX_ACTIVE_CHALLENGES_PER_SUBJECT = 10;
 const ACTIVE_CHALLENGE_STATUSES = ["open", "author-responded"] as const;
 const CHALLENGE_TRANSACTION_ATTEMPTS = 3;
+export const MAX_NODE_CHALLENGE_CONTAINERS = 200;
+export const MAX_NODE_CHALLENGE_PAGE_SIZE = 100;
 
 type Db = Prisma.TransactionClient | typeof prisma;
 type ResolvedSubject = {
   type: ChallengeSubjectInput["type"];
-  reviewVersionId: string;
+  reviewVersionId: string | null;
+  nodeEdgeProposalId: string | null;
   claimId?: string;
   relationId?: string;
   assessmentId?: string;
+  adjudicationId?: string;
   criterion?: string;
   refJson: string;
   hash: string;
@@ -61,6 +69,16 @@ export type ChallengeSubjectOption = {
   subject: ChallengeSubjectInput;
   canonicalSubjectHash: string;
   label: string;
+  nodeEdgeProposalId?: string;
+  adjudication?: {
+    id: string;
+    outcome: string;
+    disagreementHash: string;
+    outcomeHash: string;
+    adjudicatorGithubLogin: string;
+    createdAt: string;
+  };
+  canonicalSubjectRefJson?: string;
 };
 
 function resolved(
@@ -166,9 +184,13 @@ function exactRelationSubject(relation: {
 /** Resolve only through exact foreign keys and include immutable target bytes in the digest. */
 export async function resolveChallengeSubject(
   db: Db,
-  reviewVersionId: string,
+  reviewVersionId: string | null,
   subject: ChallengeSubjectInput,
+  nodeEdgeProposalId: string | null = null,
 ): Promise<ResolvedSubject> {
+  if (subject.type !== "adjudication" && (!reviewVersionId || nodeEdgeProposalId)) {
+    throw new ChallengeError("This challenge subject requires a review-version container.");
+  }
   if (subject.type === "claim") {
     const claim = await db.claim.findUnique({ where: { id: subject.claimId } });
     if (!claim || claim.reviewVersionId !== reviewVersionId)
@@ -177,6 +199,7 @@ export async function resolveChallengeSubject(
       {
         type: subject.type,
         reviewVersionId,
+        nodeEdgeProposalId: null,
         claimId: claim.id,
         label: `Claim ${claim.localClaimId}`,
         hrefFragment: `claim-subject-${claim.id}`,
@@ -203,6 +226,7 @@ export async function resolveChallengeSubject(
       {
         type: subject.type,
         reviewVersionId,
+        nodeEdgeProposalId: null,
         relationId: relation.id,
         label: `Relation ${relation.claim.localClaimId} → ${relation.citation.localCitationId}`,
         hrefFragment: `relation-subject-${relation.id}`,
@@ -213,6 +237,53 @@ export async function resolveChallengeSubject(
         relation: exactRelationSubject(relation),
       },
     );
+  }
+
+  if (subject.type === "adjudication") {
+    const adjudication = await db.trustAdjudication.findUnique({
+      where: { id: subject.adjudicationId },
+      include: {
+        references: { orderBy: { position: "asc" } },
+        claimEvidenceRelation: { include: { claim: true, citation: true } },
+        nodeEdgeProposal: {
+          include: {
+            sourceNodeVersion: { select: { knowledgeNodeId: true } },
+            targetNode: { select: { id: true } },
+          },
+        },
+      },
+    });
+    const reviewMatch = Boolean(
+      reviewVersionId &&
+      !nodeEdgeProposalId &&
+      adjudication?.subjectType === "claim-citation" &&
+      adjudication.claimEvidenceRelation?.claim.reviewVersionId === reviewVersionId &&
+      adjudication.claimEvidenceRelation.citation.reviewVersionId === reviewVersionId,
+    );
+    const nodeMatch = Boolean(
+      !reviewVersionId &&
+      nodeEdgeProposalId &&
+      adjudication?.subjectType === "node-relation" &&
+      adjudication.nodeEdgeProposalId === nodeEdgeProposalId &&
+      adjudication.nodeEdgeProposal,
+    );
+    if (!adjudication || (!reviewMatch && !nodeMatch)) {
+      throw new ChallengeError("Challenge adjudication subject not found.", "not-found");
+    }
+    try {
+      await assertExactTrustAdjudicationValid(db, adjudication.id);
+    } catch {
+      throw new ChallengeError("Challenge adjudication integrity check failed.", "conflict");
+    }
+    return {
+      type: subject.type,
+      reviewVersionId,
+      nodeEdgeProposalId,
+      adjudicationId: adjudication.id,
+      label: `Adjudication ${adjudication.id}`,
+      hrefFragment: `adjudication-${adjudication.id}`,
+      ...adjudicationChallengeBinding(adjudication),
+    };
   }
 
   if (!TRUST_CRITERIA.includes(subject.criterion as (typeof TRUST_CRITERIA)[number])) {
@@ -259,6 +330,7 @@ export async function resolveChallengeSubject(
     {
       type: subject.type,
       reviewVersionId,
+      nodeEdgeProposalId: null,
       assessmentId: assessment.id,
       criterion: subject.criterion,
       label: `Assessment ${assessment.id} · ${subject.criterion}`,
@@ -280,6 +352,7 @@ function rowSubject(row: {
   claimId: string | null;
   claimEvidenceRelationId: string | null;
   trustAssessmentId: string | null;
+  trustAdjudicationId: string | null;
   criterion: string | null;
 }): ChallengeSubjectInput | null {
   if (row.subjectType === "claim" && row.claimId) return { type: "claim", claimId: row.claimId };
@@ -292,27 +365,37 @@ function rowSubject(row: {
       criterion: row.criterion,
     };
   }
+  if (row.subjectType === "adjudication" && row.trustAdjudicationId) {
+    return { type: "adjudication", adjudicationId: row.trustAdjudicationId };
+  }
   return null;
 }
 
 async function assertChallengeSubjectIntegrity(
   db: Db,
   row: Parameters<typeof rowSubject>[0] & {
-    reviewVersionId: string;
+    reviewVersionId: string | null;
+    nodeEdgeProposalId: string | null;
     canonicalSubjectHash: string;
     subjectRefJson: string;
   },
 ): Promise<void> {
   const input = rowSubject(row);
   if (!input) throw new ChallengeError("Challenge subject binding is invalid.", "conflict");
-  const current = await resolveChallengeSubject(db, row.reviewVersionId, input);
+  const current = await resolveChallengeSubject(
+    db,
+    row.reviewVersionId,
+    input,
+    row.nodeEdgeProposalId,
+  );
   if (current.hash !== row.canonicalSubjectHash || current.refJson !== row.subjectRefJson) {
     throw new ChallengeError("Challenge subject integrity check failed.", "conflict");
   }
 }
 
 type ChallengeContent = {
-  reviewVersionId: string;
+  reviewVersionId: string | null;
+  nodeEdgeProposalId: string | null;
   subjectType: string;
   subjectRefJson: string;
   canonicalSubjectHash: string;
@@ -331,10 +414,26 @@ function isPersistedCriterion(value: unknown): boolean {
 }
 
 function hashFiledContent(row: ChallengeContent): string {
+  if (row.reviewVersionId && !row.nodeEdgeProposalId) {
+    // Preserve byte-for-byte E01 replay compatibility for already filed rows.
+    return sha256(
+      canonicalJson({
+        schema: "oratlas/challenge-filed-content/1",
+        reviewVersionId: row.reviewVersionId,
+        subjectType: row.subjectType,
+        subjectRefJson: row.subjectRefJson,
+        canonicalSubjectHash: row.canonicalSubjectHash,
+        grounds: row.grounds,
+        body: row.body,
+        challengerId: row.challengerId,
+      }),
+    );
+  }
   return sha256(
     canonicalJson({
-      schema: "oratlas/challenge-filed-content/1",
+      schema: "oratlas/challenge-filed-content/2",
       reviewVersionId: row.reviewVersionId,
+      nodeEdgeProposalId: row.nodeEdgeProposalId,
       subjectType: row.subjectType,
       subjectRefJson: row.subjectRefJson,
       canonicalSubjectHash: row.canonicalSubjectHash,
@@ -358,6 +457,11 @@ type LedgerChallenge = ChallengeContent & {
     toStatus: string;
     rationale: string | null;
     responseContentHash: string | null;
+    conflictOfInterestStatus: string | null;
+    administratorOverride: boolean;
+    administratorOverrideById: string | null;
+    administratorOverrideGithubLoginSnapshot: string | null;
+    administratorOverrideAt: Date | null;
     revision: number;
     actor: { id: string; githubLogin: string; role: string };
   }>;
@@ -391,7 +495,9 @@ function assertChallengeLedger(row: LedgerChallenge, expectedActiveKey: string |
       event.actor.id !== event.actorId ||
       !event.actor.githubLogin ||
       !userRoleSchema.safeParse(event.actor.role).success ||
-      !userRoleSchema.safeParse(event.actorRoleSnapshot).success
+      !userRoleSchema.safeParse(event.actorRoleSnapshot).success ||
+      (event.conflictOfInterestStatus !== null &&
+        !conflictOfInterestStatusSchema.safeParse(event.conflictOfInterestStatus).success)
     ) {
       throw new ChallengeError("Challenge lifecycle ledger is invalid.", "conflict");
     }
@@ -401,7 +507,9 @@ function assertChallengeLedger(row: LedgerChallenge, expectedActiveKey: string |
         event.toStatus !== "open" ||
         event.actorId !== row.challengerId ||
         event.rationale !== null ||
-        event.responseContentHash !== null
+        event.responseContentHash !== null ||
+        event.conflictOfInterestStatus !== null ||
+        event.administratorOverride
       ) {
         throw new ChallengeError("Challenge filing event is invalid.", "conflict");
       }
@@ -414,6 +522,32 @@ function assertChallengeLedger(row: LedgerChallenge, expectedActiveKey: string |
         (!event.rationale || !["EDITOR", "ADMIN"].includes(event.actorRoleSnapshot))
       ) {
         throw new ChallengeError("Challenge editorial outcome evidence is invalid.", "conflict");
+      }
+      const isOutcome = to.data === "resolved" || to.data === "dismissed";
+      if (!isOutcome && (event.conflictOfInterestStatus !== null || event.administratorOverride)) {
+        throw new ChallengeError(
+          "Challenge COI evidence is attached to a non-outcome.",
+          "conflict",
+        );
+      }
+      const overrideFields = [
+        event.administratorOverrideById,
+        event.administratorOverrideGithubLoginSnapshot,
+        event.administratorOverrideAt,
+      ];
+      if (
+        event.administratorOverride
+          ? event.actorRoleSnapshot !== "ADMIN" ||
+            event.administratorOverrideById !== event.actorId ||
+            !event.administratorOverrideGithubLoginSnapshot ||
+            !event.administratorOverrideAt ||
+            event.conflictOfInterestStatus !== "conflict-declared"
+          : overrideFields.some((value) => value !== null)
+      ) {
+        throw new ChallengeError(
+          "Challenge administrator override evidence is invalid.",
+          "conflict",
+        );
       }
       if (to.data === "withdrawn" && event.actorId !== row.challengerId) {
         throw new ChallengeError("Challenge withdrawal evidence is invalid.", "conflict");
@@ -533,6 +667,72 @@ function isExactChallengeVersion(version: {
   );
 }
 
+function adjudicationChallengeBinding(adjudication: {
+  id: string;
+  disagreementHash: string;
+  outcomeHash: string;
+}) {
+  const refJson = canonicalJson({
+    schema: "oratlas/challenge-subject/2",
+    type: "adjudication",
+    adjudication: {
+      id: adjudication.id,
+      disagreementHash: adjudication.disagreementHash,
+      outcomeHash: adjudication.outcomeHash,
+    },
+  });
+  return { refJson, hash: sha256(refJson) };
+}
+
+async function publicNodeChallengeContainer(db: Db, nodeEdgeProposalId: string, nodeId?: string) {
+  return db.nodeEdgeProposal.findFirst({
+    where: {
+      id: nodeEdgeProposalId,
+      status: "confirmed",
+      sourceNodeVersion: {
+        ...readablePublicNodeVersionWhere,
+        ...(nodeId ? { knowledgeNodeId: nodeId } : {}),
+      },
+      targetNodeVersion: readablePublicNodeVersionWhere,
+    },
+    select: {
+      id: true,
+      sourceNodeVersion: {
+        select: {
+          knowledgeNodeId: true,
+          sourceSubmission: {
+            select: {
+              submitter: {
+                select: { id: true, githubLogin: true, displayName: true },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+}
+
+async function assertChallengeContainerReadable(
+  db: Db,
+  row: { reviewVersionId: string | null; nodeEdgeProposalId: string | null },
+): Promise<void> {
+  if (row.reviewVersionId && !row.nodeEdgeProposalId) {
+    const version = await db.reviewVersion.findUnique({
+      where: { id: row.reviewVersionId },
+      select: {
+        publicState: true,
+        publishedAt: true,
+        snapshot: { select: { commitSha: true } },
+      },
+    });
+    if (version && isExactChallengeVersion(version)) return;
+  } else if (!row.reviewVersionId && row.nodeEdgeProposalId) {
+    if (await publicNodeChallengeContainer(db, row.nodeEdgeProposalId)) return;
+  }
+  throw new ChallengeError("Challenges are closed on this public container.", "forbidden");
+}
+
 function mapChallengeTransactionError(error: unknown): never {
   if (error instanceof ChallengeError) throw error;
   const code = prismaErrorCode(error);
@@ -596,6 +796,7 @@ export async function createChallenge(
               claimId: subject.claimId,
               claimEvidenceRelationId: subject.relationId,
               trustAssessmentId: subject.assessmentId,
+              trustAdjudicationId: subject.adjudicationId,
               criterion: subject.criterion,
               subjectRefJson: subject.refJson,
               canonicalSubjectHash: subject.hash,
@@ -605,6 +806,7 @@ export async function createChallenge(
               activeChallengerSubjectKey: activeKey,
               filedContentHash: hashFiledContent({
                 reviewVersionId: version.id,
+                nodeEdgeProposalId: null,
                 subjectType: subject.type,
                 subjectRefJson: subject.refJson,
                 canonicalSubjectHash: subject.hash,
@@ -674,6 +876,205 @@ export async function createChallenge(
   );
 }
 
+/** File against a node adjudication without inventing a ReviewVersion container. */
+export async function createNodeChallenge(
+  nodeId: string,
+  actor: SessionUser,
+  input: CreateChallengeInput,
+): Promise<{ id: string }> {
+  if (
+    input.containerType !== "node-relation" ||
+    !("nodeEdgeProposalId" in input) ||
+    !input.nodeEdgeProposalId ||
+    input.subject.type !== "adjudication"
+  ) {
+    throw new ChallengeError("A node challenge requires an exact adjudication and proposal.");
+  }
+  const activeKey = activeChallengerSubjectKey(actor.id, input.canonicalSubjectHash);
+  for (let attempt = 1; attempt <= CHALLENGE_TRANSACTION_ATTEMPTS; attempt += 1) {
+    try {
+      return await prisma.$transaction(
+        async (tx) => {
+          const container = await publicNodeChallengeContainer(
+            tx,
+            input.nodeEdgeProposalId,
+            nodeId,
+          );
+          if (!container) {
+            throw new ChallengeError("Public node-relation container not found.", "not-found");
+          }
+          const subject = await resolveChallengeSubject(tx, null, input.subject, container.id);
+          if (subject.hash !== input.canonicalSubjectHash) {
+            throw new ChallengeError(
+              "Challenge subject changed or its canonical hash is invalid.",
+              "conflict",
+            );
+          }
+          const duplicateId = await reconcileActiveChallengeGroup(tx, actor.id, subject.hash);
+          if (duplicateId) {
+            throw new ChallengeError(
+              "You already have an active challenge for this exact subject.",
+              "conflict",
+            );
+          }
+          const activeCount = await tx.challenge.count({
+            where: {
+              canonicalSubjectHash: subject.hash,
+              status: { in: [...ACTIVE_CHALLENGE_STATUSES] },
+            },
+          });
+          if (activeCount >= MAX_ACTIVE_CHALLENGES_PER_SUBJECT) {
+            throw new ChallengeError(
+              "This exact subject already has the maximum number of active challenges.",
+              "rate-limited",
+            );
+          }
+          const filedContentHash = hashFiledContent({
+            reviewVersionId: null,
+            nodeEdgeProposalId: container.id,
+            subjectType: subject.type,
+            subjectRefJson: subject.refJson,
+            canonicalSubjectHash: subject.hash,
+            grounds: input.grounds,
+            body: input.body,
+            challengerId: actor.id,
+          });
+          const challenge = await tx.challenge.create({
+            data: {
+              reviewVersionId: null,
+              nodeEdgeProposalId: container.id,
+              subjectType: subject.type,
+              trustAdjudicationId: subject.adjudicationId,
+              subjectRefJson: subject.refJson,
+              canonicalSubjectHash: subject.hash,
+              grounds: input.grounds,
+              body: input.body,
+              challengerId: actor.id,
+              activeChallengerSubjectKey: activeKey,
+              filedContentHash,
+            },
+          });
+          await tx.challengeTransition.create({
+            data: {
+              challengeId: challenge.id,
+              fromStatus: null,
+              toStatus: "open",
+              actorId: actor.id,
+              actorRoleSnapshot: actor.role,
+              filedContentHash,
+              revision: 0,
+            },
+          });
+          await tx.auditEvent.create({
+            data: {
+              actorId: actor.id,
+              action: "challenge.filed",
+              subjectType: "challenge",
+              subjectId: challenge.id,
+              detailsJson: canonicalJson({
+                canonicalSubjectHash: subject.hash,
+                filedContentHash,
+                grounds: input.grounds,
+                nodeEdgeProposalId: container.id,
+                subjectType: subject.type,
+              }),
+            },
+          });
+          return { id: challenge.id };
+        },
+        { maxWait: 5_000, timeout: 15_000, isolationLevel: "Serializable" },
+      );
+    } catch (error) {
+      if (error instanceof ChallengeError) throw error;
+      const code = prismaErrorCode(error);
+      if (code === "P2002") {
+        const duplicate = await prisma.challenge.findUnique({
+          where: { activeChallengerSubjectKey: activeKey },
+          select: { id: true },
+        });
+        if (duplicate) {
+          throw new ChallengeError(
+            "You already have an active challenge for this exact subject.",
+            "conflict",
+          );
+        }
+      }
+      if (
+        attempt < CHALLENGE_TRANSACTION_ATTEMPTS &&
+        ["P1008", "P2028", "P2034"].includes(code ?? "")
+      ) {
+        continue;
+      }
+      return mapChallengeTransactionError(error);
+    }
+  }
+  throw new ChallengeError(
+    "Challenge filing could not be serialized. Refresh and retry.",
+    "conflict",
+  );
+}
+
+export async function listNodeChallengeSubjectOptions(
+  nodeId: string,
+): Promise<ChallengeSubjectOption[]> {
+  const adjudications = await prisma.trustAdjudication.findMany({
+    where: {
+      subjectType: "node-relation",
+      nodeEdgeProposal: {
+        status: "confirmed",
+        sourceNodeVersion: {
+          ...readablePublicNodeVersionWhere,
+          knowledgeNodeId: nodeId,
+        },
+        targetNodeVersion: readablePublicNodeVersionWhere,
+      },
+    },
+    orderBy: { id: "asc" },
+    take: MAX_NODE_CHALLENGE_CONTAINERS,
+    select: { id: true, nodeEdgeProposalId: true },
+  });
+  return nodeAdjudicationOptions(adjudications);
+}
+
+async function nodeAdjudicationOptions(
+  adjudications: Array<{ id: string; nodeEdgeProposalId: string | null }>,
+): Promise<ChallengeSubjectOption[]> {
+  const { listTrustDisagreementQueue } = await import("./trust-adjudication");
+  const publicQueue = await listTrustDisagreementQueue({
+    nodeEdgeProposalIds: [...new Set(adjudications.flatMap((row) => row.nodeEdgeProposalId ?? []))],
+  });
+  const publicById = new Map(
+    publicQueue
+      .flatMap((item) => item.adjudications)
+      .filter((item) => item.valid)
+      .map((item) => [item.id, item] as const),
+  );
+  return adjudications.flatMap(({ id, nodeEdgeProposalId }) => {
+    if (!nodeEdgeProposalId) throw new ChallengeError("Node adjudication container is invalid.");
+    const subject: ChallengeSubjectInput = { type: "adjudication", adjudicationId: id };
+    const publicAdjudication = publicById.get(id);
+    if (!publicAdjudication) return [];
+    const binding = adjudicationChallengeBinding(publicAdjudication);
+    return [
+      {
+        subject,
+        canonicalSubjectHash: binding.hash,
+        canonicalSubjectRefJson: binding.refJson,
+        label: `Adjudication ${id}`,
+        nodeEdgeProposalId,
+        adjudication: {
+          id,
+          outcome: publicAdjudication.outcome,
+          disagreementHash: publicAdjudication.disagreementHash,
+          outcomeHash: publicAdjudication.outcomeHash,
+          adjudicatorGithubLogin: publicAdjudication.adjudicator.githubLogin,
+          createdAt: publicAdjudication.createdAt,
+        },
+      },
+    ];
+  });
+}
+
 export async function listChallengeSubjectOptions(
   reviewVersionId: string,
 ): Promise<ChallengeSubjectOption[]> {
@@ -707,6 +1108,11 @@ export async function listChallengeSubjectOptions(
                   conflictDependency: true,
                 },
               },
+              adjudications: {
+                where: { subjectType: "claim-citation" },
+                orderBy: { id: "asc" },
+                select: { id: true },
+              },
             },
           },
         },
@@ -726,6 +1132,9 @@ export async function listChallengeSubjectOptions(
           }
         }
       }
+      for (const adjudication of relation.adjudications) {
+        inputs.push({ type: "adjudication", adjudicationId: adjudication.id });
+      }
     }
   }
   return Promise.all(
@@ -742,7 +1151,8 @@ export function hasChallengeResolutionAuthority(actor: SessionUser): boolean {
 }
 
 type ContributorSnapshot = {
-  personId: string;
+  personId: string | null;
+  nodeContributorUserId: string | null;
   githubLogin: string;
   displayName: string;
   rolesJson: string;
@@ -769,11 +1179,31 @@ async function contributorOfRecord(
   return matched?.person.githubLogin
     ? {
         personId: matched.personId,
+        nodeContributorUserId: null,
         githubLogin: matched.person.githubLogin,
         displayName: matched.person.displayName,
         rolesJson: matched.rolesJson,
       }
     : null;
+}
+
+async function nodeContributorOfRecord(
+  db: Db,
+  nodeEdgeProposalId: string,
+  actor: SessionUser,
+): Promise<ContributorSnapshot | null> {
+  const proposal = await publicNodeChallengeContainer(db, nodeEdgeProposalId);
+  // Match D02 recusal provenance exactly: the immutable source node
+  // version's accepted submission, never the proposal's optional submission.
+  const submitter = proposal?.sourceNodeVersion.sourceSubmission?.submitter;
+  if (!submitter || submitter.id !== actor.id) return null;
+  return {
+    personId: null,
+    nodeContributorUserId: submitter.id,
+    githubLogin: submitter.githubLogin,
+    displayName: submitter.displayName ?? submitter.githubLogin,
+    rolesJson: '["node-submitter"]',
+  };
 }
 
 export async function isChallengeContributorOfRecord(
@@ -802,13 +1232,33 @@ export async function transitionChallenge(
               },
             },
             response: true,
+            assessment: { include: { verification: true } },
+            adjudication: {
+              select: {
+                adjudicatorId: true,
+                references: {
+                  select: {
+                    trustAssessment: {
+                      select: {
+                        assessorId: true,
+                        verification: { select: { reviewerId: true } },
+                      },
+                    },
+                    nodeRelationTrustAssessment: {
+                      select: {
+                        assessorId: true,
+                        verification: { select: { reviewerId: true } },
+                      },
+                    },
+                  },
+                },
+              },
+            },
             transitions: { include: { actor: true }, orderBy: { revision: "asc" } },
           },
         });
         if (!challenge) throw new ChallengeError("Challenge not found.", "not-found");
-        if (!isExactChallengeVersion(challenge.reviewVersion)) {
-          throw new ChallengeError("Challenges are closed on this review version.", "forbidden");
-        }
+        await assertChallengeContainerReadable(tx, challenge);
         const activeWinnerId = isActiveChallengeStatus(challenge.status)
           ? await reconcileActiveChallengeGroup(
               tx,
@@ -834,6 +1284,7 @@ export async function transitionChallenge(
           tx,
           challenge.reviewVersionId,
           subjectInput,
+          challenge.nodeEdgeProposalId,
         );
         if (
           currentSubject.hash !== challenge.canonicalSubjectHash ||
@@ -857,6 +1308,62 @@ export async function transitionChallenge(
         }
         if (["resolved", "dismissed"].includes(input.toStatus) && !input.rationale)
           throw new ChallengeError("A rationale is required for an editorial outcome.");
+        const isOutcome = input.toStatus === "resolved" || input.toStatus === "dismissed";
+        const conflictOfInterestStatus = isOutcome
+          ? (input.conflictOfInterest?.status ?? "not-provided")
+          : null;
+        const contributor = isOutcome
+          ? challenge.reviewVersionId
+            ? await contributorOfRecord(tx, challenge.reviewVersionId, actor)
+            : challenge.nodeEdgeProposalId
+              ? await nodeContributorOfRecord(tx, challenge.nodeEdgeProposalId, actor)
+              : null
+          : null;
+        const actorLogin = actor.githubLogin.normalize("NFKC").toLowerCase();
+        const assessmentAssessor = challenge.assessment?.assessorId
+          ?.normalize("NFKC")
+          .toLowerCase();
+        const referencedAssessmentInvolvement = challenge.adjudication?.references.some(
+          (reference) => {
+            const assessment = reference.trustAssessment ?? reference.nodeRelationTrustAssessment;
+            return (
+              assessment?.assessorId?.normalize("NFKC").toLowerCase() === actorLogin ||
+              assessment?.verification?.reviewerId === actor.id
+            );
+          },
+        );
+        const directlyInvolved = Boolean(
+          isOutcome &&
+          (challenge.challengerId === actor.id ||
+            challenge.response?.responderId === actor.id ||
+            contributor ||
+            assessmentAssessor === actorLogin ||
+            challenge.assessment?.verification?.reviewerId === actor.id ||
+            challenge.adjudication?.adjudicatorId === actor.id ||
+            referencedAssessmentInvolvement),
+        );
+        if (directlyInvolved && !input.administratorOverride) {
+          throw new ChallengeError(
+            "Direct self-involvement requires recusal or an explicit administrator override.",
+            "forbidden",
+          );
+        }
+        if (input.administratorOverride) {
+          if (!directlyInvolved)
+            throw new ChallengeError(
+              "An administrator override is valid only for direct self-involvement.",
+            );
+          if (actor.role !== "ADMIN")
+            throw new ChallengeError(
+              "Administrator role required for a recusal override.",
+              "forbidden",
+            );
+          if (conflictOfInterestStatus !== "conflict-declared")
+            throw new ChallengeError(
+              "An administrator override requires a conflict-declared snapshot.",
+            );
+        }
+        const outcomeAt = new Date();
         const revision = challenge.revision + 1;
         const claimed = await tx.challenge.updateMany({
           where: { id: challenge.id, revision: input.expectedRevision, status: from },
@@ -881,6 +1388,14 @@ export async function transitionChallenge(
             actorRoleSnapshot: actor.role,
             filedContentHash: challenge.filedContentHash,
             rationale: input.rationale,
+            conflictOfInterestStatus,
+            administratorOverride: input.administratorOverride ?? false,
+            administratorOverrideById: input.administratorOverride ? actor.id : null,
+            administratorOverrideGithubLoginSnapshot: input.administratorOverride
+              ? actor.githubLogin
+              : null,
+            administratorOverrideAt: input.administratorOverride ? outcomeAt : null,
+            createdAt: outcomeAt,
             revision,
           },
         });
@@ -894,6 +1409,8 @@ export async function transitionChallenge(
               fromStatus: from,
               filedContentHash: challenge.filedContentHash,
               rationale: input.rationale,
+              conflictOfInterestStatus,
+              administratorOverride: input.administratorOverride ?? false,
               revision,
               toStatus: input.toStatus,
             }),
@@ -980,6 +1497,7 @@ export async function listChallenges(
                 responderGithubLoginSnapshot: row.response.responderGithubLoginSnapshot,
                 responderDisplayNameSnapshot: row.response.responderDisplayNameSnapshot,
                 contributorPersonId: row.response.contributorPersonId,
+                nodeContributorUserId: row.response.nodeContributorUserId,
                 contributorGithubLoginSnapshot: row.response.contributorGithubLoginSnapshot,
                 contributorDisplayNameSnapshot: row.response.contributorDisplayNameSnapshot,
                 contributorRolesJsonSnapshot: row.response.contributorRolesJsonSnapshot,
@@ -993,7 +1511,9 @@ export async function listChallenges(
       }
       challenges.push({
         id: row.id,
+        containerType: "review-version",
         reviewVersionId,
+        nodeEdgeProposalId: null,
         subjectType: subject.type,
         subjectLabel: subject.label,
         subjectHref: `/reviews/${encodeURIComponent(slug)}/versions/${encodeURIComponent(reviewVersionId)}#${subject.hrefFragment}`,
@@ -1014,6 +1534,19 @@ export async function listChallenges(
           fromStatus: event.fromStatus as ChallengeStatus | null,
           toStatus: event.toStatus as ChallengeStatus,
           actor: { githubLogin: event.actor.githubLogin },
+          conflictOfInterest: {
+            status: conflictOfInterestStatusSchema.parse(
+              event.conflictOfInterestStatus ?? "not-provided",
+            ),
+          },
+          administratorOverride: event.administratorOverride
+            ? {
+                administrator: {
+                  githubLogin: event.administratorOverrideGithubLoginSnapshot!,
+                },
+                exercisedAt: event.administratorOverrideAt!.toISOString(),
+              }
+            : undefined,
           revision: event.revision,
           createdAt: event.createdAt.toISOString(),
         })),
@@ -1040,19 +1573,224 @@ export async function listChallenges(
   return { reviewSlug: slug, reviewVersionId, challenges };
 }
 
+export async function isNodeChallengeContributorOfRecord(
+  nodeEdgeProposalIds: readonly string[],
+  actor: SessionUser,
+): Promise<boolean> {
+  for (const id of nodeEdgeProposalIds) {
+    if (await nodeContributorOfRecord(prisma, id, actor)) return true;
+  }
+  return false;
+}
+
+/** Public node register/export for exact node-relation adjudication challenges. */
+export async function listNodeChallenges(
+  nodeId: string,
+  cursor?: string,
+  requestedLimit = 50,
+): Promise<NodeChallengeList | null> {
+  const limit = Math.max(1, Math.min(MAX_NODE_CHALLENGE_PAGE_SIZE, Math.trunc(requestedLimit)));
+  const node = await prisma.knowledgeNode.findFirst({
+    where: { id: nodeId, versions: { some: readablePublicNodeVersionWhere } },
+    select: { id: true },
+  });
+  if (!node) return null;
+  const rows = await prisma.$transaction(
+    async (tx) => {
+      const cursorRow = cursor
+        ? await tx.challenge.findFirst({
+            where: {
+              id: cursor,
+              nodeContainer: { sourceNodeVersion: { knowledgeNodeId: nodeId } },
+            },
+            select: { id: true },
+          })
+        : null;
+      if (cursor && !cursorRow) throw new ChallengeError("Invalid node challenge cursor.");
+      const loaded = await tx.challenge.findMany({
+        where: {
+          reviewVersionId: null,
+          nodeEdgeProposalId: { not: null },
+          nodeContainer: {
+            status: "confirmed",
+            sourceNodeVersion: {
+              ...readablePublicNodeVersionWhere,
+              knowledgeNodeId: nodeId,
+            },
+            targetNodeVersion: readablePublicNodeVersionWhere,
+          },
+        },
+        orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+        ...(cursorRow ? { cursor: { id: cursorRow.id }, skip: 1 } : {}),
+        take: limit + 1,
+        include: {
+          challenger: true,
+          response: true,
+          transitions: { include: { actor: true }, orderBy: { revision: "asc" } },
+        },
+      });
+      const winners = new Map<string, string | null>();
+      for (const row of loaded) {
+        if (!isActiveChallengeStatus(row.status)) continue;
+        const group = canonicalJson([row.challengerId, row.canonicalSubjectHash]);
+        if (!winners.has(group)) {
+          winners.set(
+            group,
+            await reconcileActiveChallengeGroup(tx, row.challengerId, row.canonicalSubjectHash),
+          );
+        }
+        row.activeChallengerSubjectKey = expectedActiveKeyForRow(row, winners.get(group)!);
+      }
+      return loaded;
+    },
+    { maxWait: 5_000, timeout: 15_000, isolationLevel: "Serializable" },
+  );
+  const pageRows = rows.slice(0, limit);
+  const subjectOptions = await nodeAdjudicationOptions(
+    pageRows.flatMap((row) =>
+      row.trustAdjudicationId
+        ? [{ id: row.trustAdjudicationId, nodeEdgeProposalId: row.nodeEdgeProposalId }]
+        : [],
+    ),
+  );
+  const optionByAdjudicationId = new Map(
+    subjectOptions.flatMap((option) =>
+      option.subject.type === "adjudication"
+        ? [[option.subject.adjudicationId, option] as const]
+        : [],
+    ),
+  );
+  const challenges: PublicChallenge[] = [];
+  for (const row of pageRows) {
+    const input = rowSubject(row);
+    if (input?.type !== "adjudication" || !row.nodeEdgeProposalId || !row.trustAdjudicationId)
+      continue;
+    try {
+      await assertChallengeContainerReadable(prisma, row);
+      const option = optionByAdjudicationId.get(row.trustAdjudicationId);
+      if (
+        !option ||
+        option.nodeEdgeProposalId !== row.nodeEdgeProposalId ||
+        option.canonicalSubjectHash !== row.canonicalSubjectHash ||
+        option.canonicalSubjectRefJson !== row.subjectRefJson
+      )
+        continue;
+      assertChallengeLedger(
+        row,
+        isActiveChallengeStatus(row.status) ? row.activeChallengerSubjectKey : null,
+      );
+      assertChallengeResponseIntegrity(row, row.response);
+      if (
+        !challengeContentStatusSchema.safeParse(row.contentStatus).success ||
+        (row.response &&
+          (!challengeContentStatusSchema.safeParse(row.response.contentStatus).success ||
+            row.response.contentHash !==
+              hashChallengeResponse({
+                challengeId: row.response.challengeId,
+                responderId: row.response.responderId,
+                responderRoleSnapshot: row.response.responderRoleSnapshot,
+                responderGithubLoginSnapshot: row.response.responderGithubLoginSnapshot,
+                responderDisplayNameSnapshot: row.response.responderDisplayNameSnapshot,
+                contributorPersonId: row.response.contributorPersonId,
+                nodeContributorUserId: row.response.nodeContributorUserId,
+                contributorGithubLoginSnapshot: row.response.contributorGithubLoginSnapshot,
+                contributorDisplayNameSnapshot: row.response.contributorDisplayNameSnapshot,
+                contributorRolesJsonSnapshot: row.response.contributorRolesJsonSnapshot,
+                body: row.response.body,
+              })))
+      ) {
+        throw new ChallengeError(
+          "Challenge content projection integrity check failed.",
+          "conflict",
+        );
+      }
+      challenges.push({
+        id: row.id,
+        containerType: "node-relation",
+        reviewVersionId: null,
+        nodeEdgeProposalId: row.nodeEdgeProposalId,
+        subjectType: "adjudication",
+        subjectLabel: option.label,
+        subjectHref: `/nodes/${encodeURIComponent(nodeId)}#adjudication-${encodeURIComponent(row.trustAdjudicationId)}`,
+        canonicalSubjectHash: row.canonicalSubjectHash,
+        filedContentHash: row.filedContentHash,
+        grounds: row.grounds as PublicChallenge["grounds"],
+        body: row.contentStatus === "visible" ? row.body : "",
+        contentStatus: row.contentStatus as ChallengeContentStatus,
+        contentRevision: row.contentRevision,
+        status: row.status as ChallengeStatus,
+        revision: row.revision,
+        challenger: {
+          githubLogin: row.challenger.githubLogin,
+          displayName: row.challenger.displayName,
+        },
+        transitions: row.transitions.map((event) => ({
+          id: event.id,
+          fromStatus: event.fromStatus as ChallengeStatus | null,
+          toStatus: event.toStatus as ChallengeStatus,
+          actor: { githubLogin: event.actor.githubLogin },
+          conflictOfInterest: {
+            status: conflictOfInterestStatusSchema.parse(
+              event.conflictOfInterestStatus ?? "not-provided",
+            ),
+          },
+          administratorOverride: event.administratorOverride
+            ? {
+                administrator: {
+                  githubLogin: event.administratorOverrideGithubLoginSnapshot!,
+                },
+                exercisedAt: event.administratorOverrideAt!.toISOString(),
+              }
+            : undefined,
+          revision: event.revision,
+          createdAt: event.createdAt.toISOString(),
+        })),
+        response: row.response
+          ? {
+              id: row.response.id,
+              body: row.response.contentStatus === "visible" ? row.response.body : "",
+              contentHash: row.response.contentHash,
+              contentStatus: row.response.contentStatus as ChallengeContentStatus,
+              contentRevision: row.response.contentRevision,
+              responder: {
+                githubLogin: row.response.responderGithubLoginSnapshot,
+                displayName: row.response.responderDisplayNameSnapshot,
+              },
+              createdAt: row.response.createdAt.toISOString(),
+            }
+          : null,
+        createdAt: row.createdAt.toISOString(),
+      });
+    } catch (error) {
+      if (!(error instanceof ChallengeError)) throw error;
+    }
+  }
+  return {
+    nodeId,
+    nodeEdgeProposalIds: [...new Set(challenges.flatMap((row) => row.nodeEdgeProposalId ?? []))],
+    challenges,
+    nextCursor: rows.length > limit ? (pageRows.at(-1)?.id ?? null) : null,
+  };
+}
+
 function hashChallengeResponse(input: {
   challengeId: string;
   responderId: string;
   responderRoleSnapshot: string;
   responderGithubLoginSnapshot: string;
   responderDisplayNameSnapshot: string | null;
-  contributorPersonId: string;
+  contributorPersonId: string | null;
+  nodeContributorUserId: string | null;
   contributorGithubLoginSnapshot: string;
   contributorDisplayNameSnapshot: string;
   contributorRolesJsonSnapshot: string;
   body: string;
 }): string {
-  return sha256(canonicalJson({ schema: "oratlas/challenge-response/1", ...input }));
+  if (input.contributorPersonId && !input.nodeContributorUserId) {
+    const { nodeContributorUserId: _nodeContributorUserId, ...legacy } = input;
+    return sha256(canonicalJson({ schema: "oratlas/challenge-response/1", ...legacy }));
+  }
+  return sha256(canonicalJson({ schema: "oratlas/challenge-response/2", ...input }));
 }
 
 type ResponseIntegrityRecord = Parameters<typeof hashChallengeResponse>[0] & {
@@ -1064,6 +1802,8 @@ type ResponseIntegrityRecord = Parameters<typeof hashChallengeResponse>[0] & {
 function assertChallengeResponseIntegrity(
   challenge: {
     id: string;
+    reviewVersionId: string | null;
+    nodeEdgeProposalId: string | null;
     status: string;
     transitions: Array<{
       fromStatus: string | null;
@@ -1090,6 +1830,7 @@ function assertChallengeResponseIntegrity(
     responderGithubLoginSnapshot: response.responderGithubLoginSnapshot,
     responderDisplayNameSnapshot: response.responderDisplayNameSnapshot,
     contributorPersonId: response.contributorPersonId,
+    nodeContributorUserId: response.nodeContributorUserId,
     contributorGithubLoginSnapshot: response.contributorGithubLoginSnapshot,
     contributorDisplayNameSnapshot: response.contributorDisplayNameSnapshot,
     contributorRolesJsonSnapshot: response.contributorRolesJsonSnapshot,
@@ -1097,6 +1838,8 @@ function assertChallengeResponseIntegrity(
   });
   if (
     challenge.status === "open" ||
+    (challenge.reviewVersionId !== null) !== (response.contributorPersonId !== null) ||
+    (challenge.nodeEdgeProposalId !== null) !== (response.nodeContributorUserId !== null) ||
     response.challengeId !== challenge.id ||
     responseEvent.fromStatus !== "open" ||
     responseEvent.revision !== 1 ||
@@ -1133,8 +1876,7 @@ export async function createChallengeResponse(
           },
         });
         if (!challenge) throw new ChallengeError("Challenge not found.", "not-found");
-        if (!isExactChallengeVersion(challenge.reviewVersion))
-          throw new ChallengeError("Challenges are closed on this review version.", "forbidden");
+        await assertChallengeContainerReadable(tx, challenge);
         const activeWinnerId = await reconcileActiveChallengeGroup(
           tx,
           challenge.challengerId,
@@ -1154,6 +1896,7 @@ export async function createChallengeResponse(
           tx,
           challenge.reviewVersionId,
           subjectInput,
+          challenge.nodeEdgeProposalId,
         );
         if (
           currentSubject.hash !== challenge.canonicalSubjectHash ||
@@ -1161,7 +1904,11 @@ export async function createChallengeResponse(
         ) {
           throw new ChallengeError("Challenge subject integrity check failed.", "conflict");
         }
-        const contributor = await contributorOfRecord(tx, challenge.reviewVersionId, actor);
+        const contributor = challenge.reviewVersionId
+          ? await contributorOfRecord(tx, challenge.reviewVersionId, actor)
+          : challenge.nodeEdgeProposalId
+            ? await nodeContributorOfRecord(tx, challenge.nodeEdgeProposalId, actor)
+            : null;
         if (!contributor)
           throw new ChallengeError("Only a contributor of record may respond.", "forbidden");
         const responseContent = {
@@ -1171,6 +1918,7 @@ export async function createChallengeResponse(
           responderGithubLoginSnapshot: actor.githubLogin,
           responderDisplayNameSnapshot: actor.displayName,
           contributorPersonId: contributor.personId,
+          nodeContributorUserId: contributor.nodeContributorUserId,
           contributorGithubLoginSnapshot: contributor.githubLogin,
           contributorDisplayNameSnapshot: contributor.displayName,
           contributorRolesJsonSnapshot: contributor.rolesJson,
@@ -1253,8 +2001,7 @@ export async function removeChallengeContent(
         },
       });
       if (!challenge) throw new ChallengeError("Challenge not found.", "not-found");
-      if (!isExactChallengeVersion(challenge.reviewVersion))
-        throw new ChallengeError("Challenges are closed on this review version.", "forbidden");
+      await assertChallengeContainerReadable(tx, challenge);
       const activeWinnerId = isActiveChallengeStatus(challenge.status)
         ? await reconcileActiveChallengeGroup(
             tx,
@@ -1335,8 +2082,7 @@ export async function removeChallengeResponseContent(
         },
       });
       if (!response) throw new ChallengeError("Challenge response not found.", "not-found");
-      if (!isExactChallengeVersion(response.challenge.reviewVersion))
-        throw new ChallengeError("Challenges are closed on this review version.", "forbidden");
+      await assertChallengeContainerReadable(tx, response.challenge);
       const challenge = response.challenge;
       const activeWinnerId = isActiveChallengeStatus(challenge.status)
         ? await reconcileActiveChallengeGroup(
@@ -1358,6 +2104,7 @@ export async function removeChallengeResponseContent(
           responderGithubLoginSnapshot: response.responderGithubLoginSnapshot,
           responderDisplayNameSnapshot: response.responderDisplayNameSnapshot,
           contributorPersonId: response.contributorPersonId,
+          nodeContributorUserId: response.nodeContributorUserId,
           contributorGithubLoginSnapshot: response.contributorGithubLoginSnapshot,
           contributorDisplayNameSnapshot: response.contributorDisplayNameSnapshot,
           contributorRolesJsonSnapshot: response.contributorRolesJsonSnapshot,
@@ -1444,11 +2191,22 @@ export async function listOpenChallengePage(
       const loaded = await tx.challenge.findMany({
         where: {
           status: { in: [...ACTIVE_CHALLENGE_STATUSES] },
-          reviewVersion: {
-            publicState: { in: ["published", "withdrawn"] },
-            publishedAt: { not: null },
-            review: { status: "published" },
-          },
+          OR: [
+            {
+              reviewVersion: {
+                publicState: { in: ["published", "withdrawn"] },
+                publishedAt: { not: null },
+                review: { status: "published" },
+              },
+            },
+            {
+              nodeContainer: {
+                status: "confirmed",
+                sourceNodeVersion: readablePublicNodeVersionWhere,
+                targetNodeVersion: readablePublicNodeVersionWhere,
+              },
+            },
+          ],
         },
         orderBy: [{ createdAt: "asc" }, { id: "asc" }],
         ...(cursorRow ? { cursor: { id: cursorRow.id }, skip: 1 } : {}),
@@ -1463,6 +2221,9 @@ export async function listOpenChallengePage(
               snapshot: { select: { commitSha: true } },
               review: { select: { slug: true } },
             },
+          },
+          nodeContainer: {
+            select: { sourceNodeVersion: { select: { knowledgeNodeId: true } } },
           },
         },
       });
@@ -1485,12 +2246,17 @@ export async function listOpenChallengePage(
   const items: ChallengeQueueItem[] = [];
   for (const row of pageRows) {
     try {
-      if (!isExactChallengeVersion(row.reviewVersion)) continue;
+      await assertChallengeContainerReadable(prisma, row);
       assertChallengeLedger(row, row.activeChallengerSubjectKey);
       assertChallengeResponseIntegrity(row, row.response);
       await assertChallengeSubjectIntegrity(prisma, row);
       if (!challengeContentStatusSchema.safeParse(row.contentStatus).success) continue;
-      const subject = await resolveChallengeSubject(prisma, row.reviewVersionId, rowSubject(row)!);
+      const subject = await resolveChallengeSubject(
+        prisma,
+        row.reviewVersionId,
+        rowSubject(row)!,
+        row.nodeEdgeProposalId,
+      );
       items.push({
         id: row.id,
         status: row.status as "open" | "author-responded",
@@ -1512,7 +2278,12 @@ export async function listOpenChallengePage(
             }
           : null,
         subjectLabel: subject.label,
-        challengeHref: `/reviews/${encodeURIComponent(row.reviewVersion.review.slug)}/versions/${encodeURIComponent(row.reviewVersionId)}#challenge-${encodeURIComponent(row.id)}`,
+        challengeHref:
+          row.reviewVersionId && row.reviewVersion
+            ? `/reviews/${encodeURIComponent(row.reviewVersion.review.slug)}/versions/${encodeURIComponent(row.reviewVersionId)}#challenge-${encodeURIComponent(row.id)}`
+            : row.nodeContainer
+              ? `/nodes/${encodeURIComponent(row.nodeContainer.sourceNodeVersion.knowledgeNodeId)}#challenge-${encodeURIComponent(row.id)}`
+              : "",
         createdAt: row.createdAt.toISOString(),
       });
     } catch (error) {

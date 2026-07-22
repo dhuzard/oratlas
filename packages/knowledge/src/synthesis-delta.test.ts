@@ -313,6 +313,7 @@ describe("synthesis generation delta", () => {
         relationType: base.relationType,
       },
       assessmentId,
+      conflictOfInterest: { status: "not-provided" },
       protocolVersion: "trust/1.0.0",
       assessorType: "human",
       reviewStatus: "human-reviewed",

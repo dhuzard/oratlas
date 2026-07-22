@@ -1,4 +1,8 @@
-import { editorialOverridesSchema, localNodeIdSchema } from "@oratlas/contracts";
+import {
+  conflictOfInterestSnapshotSchema,
+  editorialOverridesSchema,
+  localNodeIdSchema,
+} from "@oratlas/contracts";
 import { z } from "zod";
 import { AuthError, isEditor } from "@/lib/auth";
 import { handleLifecyclePost } from "@/lib/editorial-api";
@@ -14,6 +18,8 @@ const bodySchema = z
     note: z.string().max(5_000).optional(),
     overrides: editorialOverridesSchema,
     selectedNodeIds: z.array(localNodeIdSchema).max(5_000).default([]),
+    conflictOfInterest: conflictOfInterestSnapshotSchema,
+    administratorOverride: z.boolean().default(false),
   })
   .strict();
 
@@ -31,10 +37,27 @@ export async function POST(request: Request) {
           body.note,
           body.overrides,
           body.selectedNodeIds,
+          undefined,
+          undefined,
+          {
+            conflictOfInterest: body.conflictOfInterest,
+            administratorOverride: body.administratorOverride,
+          },
         );
         return { status: "accepted", ...result };
       }
-      const result = await decideSubmission(body.submissionId, actor.id, body.decision, body.note);
+      const result = await decideSubmission(
+        body.submissionId,
+        actor.id,
+        body.decision,
+        body.note,
+        undefined,
+        undefined,
+        {
+          conflictOfInterest: body.conflictOfInterest,
+          administratorOverride: body.administratorOverride,
+        },
+      );
       return { status: body.decision, idempotent: result.idempotent };
     },
     "editorial-decision",

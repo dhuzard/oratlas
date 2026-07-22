@@ -110,6 +110,42 @@ describe("synthesize", () => {
     expect(summary.independentSupportingFamilies).toBe(2);
   });
 
+  it("flags the same work cited by separate legacy review versions as shared evidence", () => {
+    const legacyCitations = [
+      citation({ citationId: "version-a:citation-1", doi: "10.1234/shared-work" }),
+      citation({ citationId: "version-b:reference-7", doi: "https://doi.org/10.1234/SHARED-WORK" }),
+    ];
+    const legacyStatements: SynthesisStatement[] = [
+      {
+        claimId: "version-a:claim-1",
+        reviewSlug: "legacy-review-a",
+        reviewVersionId: "version-a",
+        localClaimId: "claim-1",
+        text: "The intervention improves recall.",
+        evidence: [{ citationId: "version-a:citation-1", relationType: "supports" }],
+      },
+      {
+        claimId: "version-b:claim-3",
+        reviewSlug: "legacy-review-b",
+        reviewVersionId: "version-b",
+        localClaimId: "claim-3",
+        text: "The intervention does not improve recall.",
+        evidence: [{ citationId: "version-b:reference-7", relationType: "contradicts" }],
+      },
+    ];
+
+    const result = synthesize(legacyStatements, legacyCitations);
+
+    expect(result.statements.map((statement) => statement.summary.sharedWorkKeys)).toEqual([
+      ["doi:10.1234/shared-work"],
+      ["doi:10.1234/shared-work"],
+    ]);
+    expect(new Set(result.familyByWorkKey.values()).size).toBe(1);
+    expect(result.contradictions).toMatchObject([
+      { claimIdA: "version-a:claim-1", claimIdB: "version-b:claim-3", sharedFamilyCount: 1 },
+    ]);
+  });
+
   it("separates genuine contradiction from scope difference", () => {
     const base = { reviewSlug: "r", reviewVersionId: "v", localClaimId: "x" };
     const supports: SynthesisStatement = {

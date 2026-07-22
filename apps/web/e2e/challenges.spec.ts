@@ -192,6 +192,7 @@ test.describe("Formal challenge register", () => {
           expectedRevision: 1,
           toStatus: "resolved",
           rationale: "The contributor response addresses the exact objection.",
+          conflictOfInterest: { status: "none-declared" },
         }),
       });
       return { status: result.status, body: await result.text() };
@@ -222,6 +223,7 @@ test.describe("Formal challenge register", () => {
         fromStatus: "author-responded",
         toStatus: "resolved",
         actorRoleSnapshot: "EDITOR",
+        conflictOfInterestStatus: "none-declared",
         revision: 2,
       },
     ]);

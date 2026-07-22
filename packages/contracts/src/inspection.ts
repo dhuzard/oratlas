@@ -116,8 +116,36 @@ export const compatibilitySignalSchema = z.object({
 });
 export type CompatibilitySignal = z.infer<typeof compatibilitySignalSchema>;
 
-export const compatibilityReportSchema = z.object({
-  schemaVersion: z.literal("1.0.0"),
+/** Availability of one independently consumable repository capability. */
+export const facetCompatibilityStatusSchema = z.enum([
+  "available",
+  "partial",
+  "unavailable",
+  "unknown",
+]);
+export type FacetCompatibilityStatus = z.infer<typeof facetCompatibilityStatusSchema>;
+
+export const facetCompatibilitySchema = z
+  .object({
+    status: facetCompatibilityStatusSchema,
+    /** Deterministic, human-readable facts supporting this facet status. */
+    evidence: z.array(z.string().min(1)).min(1),
+  })
+  .strict();
+export type FacetCompatibility = z.infer<typeof facetCompatibilitySchema>;
+
+export const facetCompatibilityReportSchema = z
+  .object({
+    article: facetCompatibilitySchema,
+    citations: facetCompatibilitySchema,
+    evidencePackage: facetCompatibilitySchema,
+    claimGraph: facetCompatibilitySchema,
+    assessments: facetCompatibilitySchema,
+  })
+  .strict();
+export type FacetCompatibilityReport = z.infer<typeof facetCompatibilityReportSchema>;
+
+const compatibilityReportBaseShape = {
   templateForkDetected: compatibilitySignalSchema,
   templateFilesDetected: compatibilitySignalSchema,
   mystProjectDetected: compatibilitySignalSchema,
@@ -127,11 +155,115 @@ export const compatibilityReportSchema = z.object({
   trustDataDetected: compatibilitySignalSchema,
   releaseDetected: compatibilitySignalSchema,
   doiDetected: compatibilitySignalSchema,
+  /**
+   * Independently derived capability statuses. Optional only so immutable
+   * reports captured before this additive field existed remain readable.
+   */
+  facets: facetCompatibilityReportSchema.optional(),
   overallCompatibility: compatibilityLevelSchema,
   /** Why the repository received its level, in plain language. */
   levelRationale: z.array(z.string()),
   blockingErrors: z.array(z.string()).default([]),
   warnings: z.array(z.string()).default([]),
   recommendations: z.array(z.string()).default([]),
+};
+
+export const artifactKindSchema = z.enum([
+  "claims",
+  "citations",
+  "relations",
+  "trust",
+  "nodes",
+  "edges",
+]);
+export type ArtifactKind = z.infer<typeof artifactKindSchema>;
+
+export const artifactOutcomeIssueSchema = z
+  .object({
+    code: z.string().min(1).max(80),
+    message: z.string().min(1).max(2_000),
+    line: z.number().int().positive().optional(),
+  })
+  .strict();
+export type ArtifactOutcomeIssue = z.infer<typeof artifactOutcomeIssueSchema>;
+
+const artifactSourceBaseShape = {
+  path: z.string().min(1).max(512),
+  discovery: z.enum(["declared", "discovered"]),
+  loadedCount: z.number().int().nonnegative(),
+  skippedCount: z.number().int().nonnegative().nullable(),
+  issues: z.array(artifactOutcomeIssueSchema).max(200),
+};
+
+export const artifactSourceOutcomeSchema = z.discriminatedUnion("status", [
+  z.object({ ...artifactSourceBaseShape, status: z.literal("loaded") }).strict(),
+  z
+    .object({
+      ...artifactSourceBaseShape,
+      status: z.literal("skipped"),
+      loadedCount: z.literal(0),
+      issues: z.array(artifactOutcomeIssueSchema).min(1).max(200),
+    })
+    .strict(),
+  z
+    .object({
+      ...artifactSourceBaseShape,
+      status: z.literal("invalid"),
+      loadedCount: z.literal(0),
+      issues: z.array(artifactOutcomeIssueSchema).min(1).max(200),
+    })
+    .strict(),
+]);
+export type ArtifactSourceOutcome = z.infer<typeof artifactSourceOutcomeSchema>;
+
+const artifactOutcomeBaseShape = {
+  loadedCount: z.number().int().nonnegative(),
+  skippedCount: z.number().int().nonnegative().nullable(),
+  sources: z.array(artifactSourceOutcomeSchema).max(8),
+};
+
+export const artifactOutcomeSchema = z.discriminatedUnion("status", [
+  z
+    .object({
+      status: z.literal("not-declared"),
+      loadedCount: z.literal(0),
+      skippedCount: z.literal(0),
+      sources: z.array(artifactSourceOutcomeSchema).length(0),
+    })
+    .strict(),
+  z.object({ ...artifactOutcomeBaseShape, status: z.literal("loaded") }).strict(),
+  z.object({ ...artifactOutcomeBaseShape, status: z.literal("skipped") }).strict(),
+  z.object({ ...artifactOutcomeBaseShape, status: z.literal("invalid") }).strict(),
+]);
+export type ArtifactOutcome = z.infer<typeof artifactOutcomeSchema>;
+
+export const artifactOutcomesSchema = z
+  .object({
+    claims: artifactOutcomeSchema,
+    citations: artifactOutcomeSchema,
+    relations: artifactOutcomeSchema,
+    trust: artifactOutcomeSchema,
+    nodes: artifactOutcomeSchema,
+    edges: artifactOutcomeSchema,
+  })
+  .strict();
+export type ArtifactOutcomes = z.infer<typeof artifactOutcomesSchema>;
+
+export const legacyCompatibilityReportSchema = z.object({
+  schemaVersion: z.literal("1.0.0"),
+  ...compatibilityReportBaseShape,
 });
+export type LegacyCompatibilityReport = z.infer<typeof legacyCompatibilityReportSchema>;
+
+export const artifactCompatibilityReportSchema = z.object({
+  schemaVersion: z.literal("1.1.0"),
+  ...compatibilityReportBaseShape,
+  artifactOutcomes: artifactOutcomesSchema,
+});
+export type ArtifactCompatibilityReport = z.infer<typeof artifactCompatibilityReportSchema>;
+
+export const compatibilityReportSchema = z.discriminatedUnion("schemaVersion", [
+  legacyCompatibilityReportSchema,
+  artifactCompatibilityReportSchema,
+]);
 export type CompatibilityReport = z.infer<typeof compatibilityReportSchema>;

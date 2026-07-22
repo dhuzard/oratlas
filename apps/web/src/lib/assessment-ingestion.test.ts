@@ -73,6 +73,7 @@ const nodeRecord: NodeRelationTrustRecord = {
   assessorType: "agent",
   assessorId: "agent-a",
   assessedAt: "2026-07-01T00:00:00.000Z",
+  conflictOfInterest: { status: "conflict-declared" },
   criteria: { methodologicalSafeguards: { rating: "moderate", status: "assessed" } },
   reviewStatus: "agent-proposed",
 };
@@ -110,6 +111,8 @@ describe("multiple-assessment ingestion", () => {
     expect(other.id).not.toBe(first.id);
     expect(changed.supersedesAssessmentId).toBe(first.id);
     expect(changed.id).not.toBe(first.id);
+    expect(first.conflictOfInterestStatus).toBe("not-provided");
+    expect(first.sourceRecordJson).toContain('"conflictOfInterest":{"status":"not-provided"}');
   });
 
   it("applies the same append-only source lineage to node-relation assessments", async () => {
@@ -132,5 +135,24 @@ describe("multiple-assessment ingestion", () => {
     expect(node.rows).toHaveLength(2);
     expect(replay.id).toBe(first.id);
     expect(changed.supersedesAssessmentId).toBe(first.id);
+    expect(first.conflictOfInterestStatus).toBe("conflict-declared");
+    expect(first.sourceRecordJson).toContain('"conflictOfInterest":{"status":"conflict-declared"}');
+  });
+
+  it("binds the immutable COI snapshot into source identity", async () => {
+    const claim = fakeDelegate("claimEvidenceRelationId");
+    const tx = { trustAssessment: claim.delegate } as unknown as Prisma.TransactionClient;
+
+    const missing = await ingestTrustAssessment(tx, "relation-1", claimRecord, false);
+    const declared = await ingestTrustAssessment(
+      tx,
+      "relation-1",
+      { ...claimRecord, conflictOfInterest: { status: "none-declared" } },
+      false,
+    );
+
+    expect(declared.id).not.toBe(missing.id);
+    expect(declared.sourceRecordHash).not.toBe(missing.sourceRecordHash);
+    expect(declared.conflictOfInterestStatus).toBe("none-declared");
   });
 });

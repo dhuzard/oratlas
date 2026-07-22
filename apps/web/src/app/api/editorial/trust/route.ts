@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { platformTrustReviewStatusSchema } from "@oratlas/contracts";
 import { z } from "zod";
 import { getCurrentUser, getServerEnv, isEditor } from "@/lib/auth";
 import {
@@ -22,13 +21,13 @@ export const runtime = "nodejs";
 const bodySchema = z.object({
   assessmentId: z.string().min(1).max(200),
   subjectType: z.enum(["claim-citation", "node-relation"]).default("claim-citation"),
-  status: platformTrustReviewStatusSchema,
+  status: z.literal("human-reviewed"),
   rationale: z.string().trim().min(10).max(4_000),
   expectedRevision: z.number().int().min(0),
   expectedAssessmentHash: z.string().regex(/^[a-f0-9]{64}$/),
 });
 
-/** Platform verification/adjudication. Repository assertions cannot call this. */
+/** Structural verification only. D02 adjudications use their separate append-only route. */
 export async function POST(request: Request) {
   try {
     const integrity = validateSameOriginJsonRequest(request, getServerEnv().NEXT_PUBLIC_BASE_URL);

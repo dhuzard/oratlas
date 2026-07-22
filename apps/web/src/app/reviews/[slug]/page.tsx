@@ -27,6 +27,8 @@ import { ArticleReader } from "./ArticleReader";
 import { getPublicSynthesisReview } from "@/lib/synthesis-editorial";
 import { loadSynthesisReadingContext } from "@/lib/synthesis-reading";
 import { SynthesisReader } from "./SynthesisReader";
+import { CompatibilityFacets } from "@/components/CompatibilityFacets";
+import { ArtifactOutcomes } from "@/components/ArtifactOutcomes";
 
 export const dynamic = "force-dynamic";
 
@@ -219,6 +221,14 @@ export default async function ReviewPage({
         {review.version.isExample ? <Badge tone="warning">example data</Badge> : null}
       </div>
 
+      <Card title="Source artifact outcomes">
+        <p className="muted">
+          Inspection results for the accepted repository snapshot. These describe source artifacts,
+          not whether this particular review has claims or relations.
+        </p>
+        <ArtifactOutcomes report={review.compatibilityReport} />
+      </Card>
+
       {isHistoricalRoute ? (
         <Notice tone="info" title="Immutable historical version">
           You are viewing version {review.version.semanticVersion ?? review.version.id}. Its
@@ -226,6 +236,38 @@ export default async function ReviewPage({
           comments are read-only.{" "}
           <Link href={`/reviews/${review.slug}`}>View the current version</Link>.
         </Notice>
+      ) : null}
+
+      {review.sourceAssessmentDocuments?.documents.some(
+        (document) => document.status !== "absent",
+      ) ? (
+        <Card title="Source-declared assessment methodology">
+          <p>
+            These documents are preserved exactly as source provenance. ORAtlas does not parse their
+            Markdown, infer ratings, or treat them as Atlas verification.
+          </p>
+          <ul>
+            {review.sourceAssessmentDocuments.documents
+              .filter((document) => document.status !== "absent")
+              .map((document) => (
+                <li key={document.path}>
+                  {document.status === "preserved" ? (
+                    <a
+                      href={`/api/reviews/${encodeURIComponent(review.slug)}/versions/${encodeURIComponent(review.version.id)}/files/${encodeURIComponent(document.path)}`}
+                    >
+                      {document.path}
+                    </a>
+                  ) : (
+                    document.path
+                  )}{" "}
+                  <span className="muted">
+                    — methodology declared by source
+                    {document.status === "unavailable" ? "; unavailable within capture limits" : ""}
+                  </span>
+                </li>
+              ))}
+          </ul>
+        </Card>
       ) : null}
 
       {review.publicState === "withdrawn" ? (
@@ -471,12 +513,22 @@ export default async function ReviewPage({
                   <ul>
                     {review.version.editorialOverrides.map((override) => (
                       <li key={override.checkId}>
-                        <span className="mono">{override.checkId}</span> — {override.rationale} — @
+                        <span className="mono">{override.checkId}</span> — recorded by @
                         {override.editorLogin}, {override.createdAt.slice(0, 10)}
                       </li>
                     ))}
                   </ul>
                 </Notice>
+              ) : null}
+              {review.version.editorialDecision ? (
+                <p className="muted">
+                  Editorial decision by @{review.version.editorialDecision.actorLogin}:{" "}
+                  {review.version.editorialDecision.decision} · conflict of interest:{" "}
+                  {review.version.editorialDecision.conflictOfInterest.status}
+                  {review.version.editorialDecision.administratorOverride
+                    ? ` · ADMIN override by @${review.version.editorialDecision.administratorOverride.administrator.githubLogin} at ${review.version.editorialDecision.administratorOverride.exercisedAt}`
+                    : ""}
+                </p>
               ) : null}
               <p className="muted">
                 This report verifies identifier and source consistency. It does not judge the
@@ -568,6 +620,45 @@ export default async function ReviewPage({
                             )
                           ) : null}
                         </span>
+                        {rel.trustDisagreements.map((disagreement) => (
+                          <details
+                            key={disagreement.disagreementHash}
+                            data-register="trust-disagreement"
+                          >
+                            <summary>
+                              <Badge tone={disagreement.open ? "warning" : "success"}>
+                                {disagreement.open ? "TRUST disagreement" : "TRUST adjudicated"}
+                              </Badge>{" "}
+                              {disagreement.protocolVersion}
+                            </summary>
+                            <p>
+                              Assessments remain separate. No rating was averaged, replaced, or
+                              hidden.
+                            </p>
+                            <ul>
+                              {disagreement.report.disagreements.map((criterion) => (
+                                <li key={criterion.criterion}>
+                                  {criterion.criterion}:{" "}
+                                  {criterion.ratings
+                                    .map(
+                                      (rating) =>
+                                        `${rating.rating} (${rating.assessmentIds.join(", ")})`,
+                                    )
+                                    .join(" vs ")}
+                                </li>
+                              ))}
+                            </ul>
+                            {disagreement.adjudications.map((adjudication) => (
+                              <p id={`adjudication-${adjudication.id}`} key={adjudication.id}>
+                                Adjudication: {adjudication.outcome.replace(/-/g, " ")} by @
+                                {adjudication.adjudicator.githubLogin} on{" "}
+                                {new Date(adjudication.createdAt).toLocaleDateString()} · COI{" "}
+                                {adjudication.conflictOfInterest.status}
+                                {adjudication.valid ? "" : " · integrity unavailable"}
+                              </p>
+                            ))}
+                          </details>
+                        ))}
                         {rel.trusts.length > 0 ? (
                           <details data-register="formal-assessment">
                             <summary>Formal TRUST assessments ({rel.trusts.length})</summary>
@@ -697,7 +788,11 @@ export default async function ReviewPage({
                           {round.decision ? (
                             <li>
                               Decision: {round.decision.decision} — @{round.decision.editorLogin},{" "}
-                              {round.decision.issuedAt.slice(0, 10)}
+                              {round.decision.issuedAt.slice(0, 10)} · conflict of interest:{" "}
+                              {round.decision.conflictOfInterest.status}
+                              {round.decision.administratorOverride
+                                ? ` · ADMIN override by @${round.decision.administratorOverride.administrator.githubLogin}`
+                                : ""}
                             </li>
                           ) : null}
                         </ul>
@@ -755,6 +850,7 @@ export default async function ReviewPage({
               never by an opaque model decision. Structural grounding does not establish the
               scientific correctness of a claim.
             </p>
+            <CompatibilityFacets facets={review.compatibilityFacets} />
           </Card>
 
           <Card title="Provenance summary">
@@ -823,6 +919,7 @@ export default async function ReviewPage({
                   ["bibtex", "BibTeX"],
                   ["ris", "RIS"],
                   ["csl", "CSL-JSON"],
+                  ["json", "Scholarly JSON"],
                   ["jats", "JATS XML"],
                   ["ro-crate", "RO-Crate"],
                   ["prov", "PROV (JSON-LD)"],

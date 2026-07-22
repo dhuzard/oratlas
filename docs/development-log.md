@@ -1,6 +1,35 @@
 # Development log
 
+## ORA-A03 — Frozen Ethical Debt integration fixture
+
+- Captured `dhuzard/ethical-debt-AI-review` release `v0.1.0-trust-preview.3` at immutable commit
+  `955e2994e0c6a042be80851b2125c2064c211dcf` and tree
+  `095ceeb0ab7f5d9d3bc32f77869dcc856c707806` with the ORA-K02 bounded capture tool. The checked-in
+  fixture contains 11 routed files (3,444,868 source bytes) and is bound by manifest SHA-256
+  `9f13f8dfc35cca0cf0a602b3304bcc0c9fe94e751c448d020b63e789f27abb23`.
+- Added offline replay coverage for the real extractor and compatibility pipeline: 529 claims, 994
+  citations, 1,392 relations and 1,392 source-native TRUST records. Imported TRUST remains
+  `unverified-import`; the source review status is provenance, never Atlas verification.
+- The fixture deliberately records article chapter paths only as bounded tree metadata. Tests prove
+  no uncaptured chapter bytes are presented as a preserved article, while root `TRUST.md` and
+  `FAIR.md` are preserved byte-for-byte without methodology parsing or rating crosswalks.
+- Added a Playwright submission journey backed by the same generated fixture transport. Every
+  GitHub API request is served from checked-in bytes, so CI remains fully offline.
+
 Chronological record of implementation slices, decisions, and verification outcomes.
+
+## ORA-I01 — Assessment and challenge representation in exports
+
+- Added canonical scholarly JSON for complete, independently ordered TRUST assessments, public
+  challenge records, and preservation-only `TRUST.md` / `FAIR.md` descriptors. No aggregate,
+  disagreement summary, or protocol crosswalk is synthesized.
+- Built the export solely from accepted database rows. Its challenge mapper whitelists the public
+  integrity-checked DTO and cannot expose transition rationale, internal actor ids, role snapshots,
+  audit records, or retained removed bytes.
+- Linked scholarly JSON from RO-Crate and COAR Notify Announce Review payloads. RO-Crate also emits
+  assessment, public challenge, and source-document entities with absolute identifiers.
+- Added OpenAPI, public download-link, interoperability, privacy, deterministic-ordering, and
+  disagreeing-assessment regressions.
 
 ## PR-00 — Repository initialization
 
@@ -822,3 +851,39 @@ and tombstone boundaries and pin every verified property with code evidence or r
   routes to the shared same-origin, authentication, route-scoped rate, and body-size boundary, and
   cross-referenced service regressions for current-role authorization, CAS races, atomic audits,
   fail-closed ledger reads, and public tombstone/private-field redaction.
+
+## ORA-A05 — Publication identity preservation audit
+
+**Objective:** trace the immutable source identity tuple through every repository-backed
+publication path without changing application behavior or rewriting historical rows.
+
+| Path                                            | Repository identity                                                   | Selection identity                                                               | Commit/tree identity                                                                                        | Capture/content identity                                                                                                     |
+| ----------------------------------------------- | --------------------------------------------------------------------- | -------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Inspection                                      | `InspectionReport.githubRepositoryId`                                 | `selectedSource.kind`, branch/release, optional annotated-tag object             | required `selectedSource.commitSha` and `treeSha`                                                           | canonical `InspectionCapture.payloadHash`                                                                                    |
+| Submission + snapshot                           | `Submission.repositoryId` → immutable `Repository.githubRepositoryId` | source kind/branch/key, release fields, tag-object SHA copied to `Submission`    | commit and tree copied to `RepositorySnapshot`                                                              | submitted payload binds the capture hash; snapshot content hash binds repository id, commit, tree, and captured-file hashes  |
+| Prose review version                            | source submission/capture foreign keys                                | source kind/branch/key, release fields, tag-object SHA copied to `ReviewVersion` | immutable snapshot foreign key supplies commit and tree                                                     | `ReviewVersion.capturePayloadHash`                                                                                           |
+| Knowledge-node version                          | node repository plus source submission/capture foreign keys           | inherited from the immutable source submission                                   | immutable snapshot foreign key supplies commit and tree                                                     | `KnowledgeNodeVersion.capturePayloadHash`; materialization binding checks repository, snapshot, capture, and commit equality |
+| Author edge proposal / node-relation assessment | source repository GitHub id and submission/capture ids                | inherited from the accepted node version                                         | source commit stored on provenance records; tree remains derivable through the source node version snapshot | capture payload hash stored on the proposal and checked during materialization                                               |
+| Reconciliation                                  | duplicate repositories grouped by GitHub repository id                | version rows retain their selection fields                                       | snapshots are currently merged by commit SHA                                                                | node versions are compared across all semantic provenance fields before deduplication                                        |
+
+Synthesis versions are derived editorial publications rather than direct repository captures.
+They bind exact accepted review/node version ids and packet/content hashes; the source repository
+tuple remains reachable through those immutable inputs instead of being copied as a second,
+potentially divergent identity record.
+
+Regression coverage now pins both selection orders for one commit (default branch and annotated
+release) and asserts repository linkage, selection key, tag-object SHA, commit SHA, tree SHA,
+inspection-capture linkage, and capture hash on the resulting immutable review versions. Existing
+node-only acceptance coverage separately asserts source capture ids/hashes and snapshot linkage.
+
+Two fail-closed gaps were found and intentionally not changed in this audit-only item:
+
+- Repository reconciliation treats equal repository id + commit SHA as sufficient to merge two
+  snapshots. It does not first compare the already-present `sourceTreeSha`, `contentHash`, or
+  preserved-file manifest. A follow-up should reject the reconciliation transaction when any of
+  those immutable values differ; no additive schema field is needed.
+- Historical `ReviewVersion` and `KnowledgeNodeVersion` rows can reference legacy snapshots whose
+  nullable `sourceTreeSha` is absent, and current readers expose the tree as optional rather than
+  withholding the publication. A policy decision is required before making those already-public
+  records fail closed. The tree field exists, so this is a legacy-data policy/migration question,
+  not a schema-shape gap.

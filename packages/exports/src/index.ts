@@ -8,7 +8,24 @@ export {
 } from "./docmap.js";
 export { jats } from "./jats.js";
 export { provJsonLd, type ProvExportInput } from "./prov.js";
+export {
+  nodeChallengeExportDocument,
+  nodeChallengeJson,
+  nodeChallengeRoCrate,
+  type NodeChallengeExportDocument,
+  type NodeChallengeExportInput,
+} from "./node-challenges.js";
 export { roCrate, type RoCrateInput } from "./ro-crate.js";
+export {
+  scholarlyJson,
+  scholarlyJsonDocument,
+  type ScholarlyJsonDocument,
+  type ScholarlyJsonInput,
+  type ScholarlySourceDocumentInput,
+  type ScholarlyTrustAdjudicationInput,
+  type ScholarlyTrustAssessmentInput,
+  type ScholarlyTrustDisagreementInput,
+} from "./scholarly-json.js";
 export { swhidArchiveUrl, swhidForDirectory, swhidForRevision } from "./swhid.js";
 export {
   EXAMPLE_IDENTIFIER_NOTE,

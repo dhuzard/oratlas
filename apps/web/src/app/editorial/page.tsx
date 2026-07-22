@@ -27,6 +27,10 @@ import { NodeIdentityProposalPanel } from "./NodeIdentityProposalPanel";
 import { listPendingNodeIdentityProposals } from "@/lib/node-identity-lifecycle";
 import { listOpenChallengePage } from "@/lib/challenges";
 import { ChallengeQueuePanel } from "./ChallengeQueuePanel";
+import { CompatibilityFacets } from "@/components/CompatibilityFacets";
+import { ArtifactOutcomes } from "@/components/ArtifactOutcomes";
+import { listTrustDisagreementQueue } from "@/lib/trust-adjudication";
+import { TrustAdjudicationPanel } from "./TrustAdjudicationPanel";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Editorial dashboard" };
@@ -79,6 +83,7 @@ export default async function EditorialPage({
     : params.trustPage;
   const trustPage = /^\d+$/.test(requestedTrustPage ?? "") ? Number(requestedTrustPage) : 1;
   const trustQueue = await listTrustEditorialQueuePage(trustFilter, { page: trustPage });
+  const trustDisagreements = await listTrustDisagreementQueue();
   const openProposals = await listOpenProposals();
   const federationQueue = await listFederationQueue();
   const openProtocolProposals = await listOpenProtocolProposals();
@@ -116,6 +121,7 @@ export default async function EditorialPage({
         proposals={synthesisProposalPage.proposals}
         nextCursor={synthesisProposalPage.nextCursor}
       />
+      <TrustAdjudicationPanel items={trustDisagreements} />
 
       <h2>Pending submissions ({pending.length})</h2>
       {pending.length === 0 ? (
@@ -159,6 +165,10 @@ export default async function EditorialPage({
                     {s.validation.trustDataAvailable ? "yes" : "no"}
                   </p>
                 )}
+                <CompatibilityFacets
+                  facets={s.compatibilityFacets}
+                  legacyMessage="Facet compatibility is unavailable for this immutable legacy submission."
+                />
                 {s.validation.warnings.length > 0 ? (
                   <details>
                     <summary>{s.validation.warnings.length} warning(s)</summary>
@@ -195,6 +205,11 @@ export default async function EditorialPage({
                 ) : null}
               </div>
             ) : null}
+
+            <details>
+              <summary>Per-artifact compatibility</summary>
+              <ArtifactOutcomes report={s.compatibilityReport} />
+            </details>
 
             <details>
               <summary>
@@ -276,7 +291,7 @@ export default async function EditorialPage({
         Active immutable challenges requiring a contributor response or human editorial outcome.
         Outcome rationales are retained as editorial-only records.
       </p>
-      <ChallengeQueuePanel items={challengePage.items} />
+      <ChallengeQueuePanel items={challengePage.items} isAdministrator={user.role === "ADMIN"} />
       {challengePage.nextCursor ? (
         <p>
           <a href={`/editorial?challengeCursor=${encodeURIComponent(challengePage.nextCursor)}`}>

@@ -58,6 +58,40 @@ describe("inspectRepository", () => {
     expect(report.files["review-manifest.json"]?.content).toContain("schemaVersion");
   });
 
+  it("captures only exact case-sensitive root TRUST.md and FAIR.md documents", async () => {
+    const fixture = structuredClone(plainRepoFixture);
+    fixture.files = {
+      ...fixture.files,
+      "TRUST.md": "# Source TRUST\n<script>alert(1)</script>\n",
+      "FAIR.md": "# Source FAIR\n",
+      "trust.md": "# Wrong case\n",
+      "docs/TRUST.md": "# Wrong location\n",
+      "../FAIR.md": "# Unsafe path\n",
+    };
+
+    const report = await inspectRepository(`${fixture.owner}/${fixture.name}`, {
+      transport: createFakeTransport(fixture),
+    });
+
+    expect(report.files["TRUST.md"]?.content).toContain("<script>");
+    expect(report.files["FAIR.md"]?.content).toBe("# Source FAIR\n");
+    expect(report.files["trust.md"]).toBeUndefined();
+    expect(report.files["docs/TRUST.md"]).toBeUndefined();
+    expect(report.files["../FAIR.md"]).toBeUndefined();
+  });
+
+  it("records an oversized root methodology document without capturing its bytes", async () => {
+    const fixture = structuredClone(plainRepoFixture);
+    fixture.files = { ...fixture.files, "TRUST.md": "x".repeat(101) };
+    const report = await inspectRepository(`${fixture.owner}/${fixture.name}`, {
+      transport: createFakeTransport(fixture),
+      limits: { maxFileBytes: 100 },
+    });
+
+    expect(report.files["TRUST.md"]).toMatchObject({ size: 101, truncated: true });
+    expect(report.files["TRUST.md"]?.content).toBeUndefined();
+  });
+
   it("selects a release commit even when the default branch has moved", async () => {
     const releaseCommit = "1".repeat(40);
     const fixture = {

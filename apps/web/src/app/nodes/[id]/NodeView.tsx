@@ -2,12 +2,14 @@ import Link from "next/link";
 import { Badge, Card, DefinitionList, Notice, TrustCriterionProfile } from "@oratlas/ui";
 import { TRUST_CRITERIA, type PublicNodeDetail, type PublicNodeVersion } from "@oratlas/contracts";
 import { TrustVerificationBadge } from "@/components/TrustVerificationBadge";
+import type { PublicNodeDetailProjection } from "@/lib/node-publication";
+import { ArtifactOutcomes } from "@/components/ArtifactOutcomes";
 
 export function NodeView({
   node,
   historical = false,
 }: {
-  node: PublicNodeDetail;
+  node: PublicNodeDetailProjection;
   historical?: boolean;
 }) {
   const version = node.version;
@@ -36,6 +38,14 @@ export function NodeView({
           Explore this node’s graph
         </Link>
       </p>
+
+      <Card title="Source artifact context">
+        <p className="muted">
+          Repository-level inspection context. The relation and TRUST empty states below remain
+          specific to this node version.
+        </p>
+        <ArtifactOutcomes report={node.compatibilityReport} only={["nodes", "edges", "trust"]} />
+      </Card>
 
       <div className="grid layout-2">
         <div>
@@ -402,6 +412,7 @@ export function nodeEdgeTrustAssessments(
     {
       ...edge.trust,
       assessorType: "not supplied (legacy)",
+      conflictOfInterest: { status: "not-provided" },
       criteria: missingTrustCriterionProfile(),
     },
   ];
@@ -422,6 +433,7 @@ export function nodeContextTrustAssessments(
       assessmentId: `legacy:${context.claimId}:${context.citationId}`,
       protocolVersion: "not supplied (legacy)",
       assessorType: "not supplied (legacy)",
+      conflictOfInterest: { status: "not-provided" },
       criteria: missingTrustCriterionProfile(),
     },
   ];

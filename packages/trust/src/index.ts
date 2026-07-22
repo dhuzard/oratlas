@@ -1,12 +1,17 @@
 import {
   TRUST_CRITERIA,
+  EXPLICIT_TRUST_ORDINALS,
   nodeRelationTrustRecordSchema,
+  trustDisagreementInputSchema,
+  trustDisagreementReportSchema,
   trustAssessmentRecordSchema,
   trustRecordSchema,
   type AssessmentReviewStatus,
   type NodeRelationTrustRecord,
   type TrustAssessmentRecord,
   type TrustCriterion,
+  type TrustDisagreementInput,
+  type TrustDisagreementReport,
   type TrustOrdinal,
   type TrustRecord,
   type TrustVerificationState,
@@ -112,7 +117,9 @@ export function computeAggregate(record: TrustAssessmentRecord): AggregateResult
 }
 
 export interface NormalizedImportedTrustRecord {
-  record: TrustRecord;
+  record: TrustRecord & {
+    conflictOfInterest: { status: "none-declared" | "conflict-declared" | "not-provided" };
+  };
   criterionColumns: Partial<Record<TrustCriterion, string>>;
   limitationsJson: string;
   evidenceJson: string | null;
@@ -133,14 +140,22 @@ export interface NormalizedImportedTrustRecord {
 export type NormalizedImportedNodeRelationTrustRecord = Omit<
   NormalizedImportedTrustRecord,
   "record"
-> & { record: NodeRelationTrustRecord };
+> & {
+  record: NodeRelationTrustRecord & {
+    conflictOfInterest: { status: "none-declared" | "conflict-declared" | "not-provided" };
+  };
+};
 
 /** Normalize a repository record without trusting its review assertions. */
 export function normalizeImportedTrustRecord(
   input: TrustRecord,
   sourceRelationHumanReviewed: boolean | null,
 ): NormalizedImportedTrustRecord {
-  const record = trustRecordSchema.parse(input);
+  const parsed = trustRecordSchema.parse(input);
+  const record = {
+    ...parsed,
+    conflictOfInterest: parsed.conflictOfInterest ?? { status: "not-provided" as const },
+  };
   return normalizeImportedRecord(record, sourceRelationHumanReviewed, true);
 }
 
@@ -152,7 +167,11 @@ export function normalizeImportedTrustRecord(
 export function normalizeImportedNodeRelationTrustRecord(
   input: NodeRelationTrustRecord,
 ): NormalizedImportedNodeRelationTrustRecord {
-  const record = nodeRelationTrustRecordSchema.parse(input);
+  const parsed = nodeRelationTrustRecordSchema.parse(input);
+  const record = {
+    ...parsed,
+    conflictOfInterest: parsed.conflictOfInterest ?? { status: "not-provided" as const },
+  };
   return normalizeImportedRecord(record, null, false);
 }
 
@@ -190,10 +209,90 @@ function normalizeImportedRecord<T extends TrustAssessmentRecord>(
   };
 }
 
-/** Ordinal comparison helper for filtering (e.g. "at least moderate"). */
-export function ordinalAtLeast(rating: TrustOrdinal, threshold: TrustOrdinal): boolean {
-  const a = ORDINAL_VALUES[rating];
-  const b = ORDINAL_VALUES[threshold];
+export type CrossAssessmentOperation = "selection" | "aggregation" | "comparison" | "disagreement";
+
+/**
+ * TRUST is the fixed protocol family; its version is an opaque exact string.
+ * No caller may compare, select, aggregate, or adjudicate across versions
+ * unless an explicit editorial crosswalk is introduced in the future.
+ */
+export function assertSingleAssessmentProtocol(
+  operation: CrossAssessmentOperation,
+  assessments: readonly { protocolVersion: string }[],
+): string | undefined {
+  const protocolVersion = assessments[0]?.protocolVersion;
+  if (assessments.some((assessment) => assessment.protocolVersion !== protocolVersion)) {
+    throw new Error(`${operation} requires one exact TRUST protocol version.`);
+  }
+  return protocolVersion;
+}
+
+/**
+ * Compare every TRUST criterion across one exact protocol version. Differing
+ * explicit assessed ordinals are disagreements; absent and non-assessed values
+ * remain coverage gaps and never become synthetic ratings.
+ */
+export function detectTrustCriterionDisagreements(
+  input: TrustDisagreementInput,
+): TrustDisagreementReport {
+  const parsed = trustDisagreementInputSchema.parse(input);
+  const assessments = [...parsed.assessments].sort((left, right) =>
+    compareTrustCodeUnits(left.assessmentId, right.assessmentId),
+  );
+  const protocolVersion = assertSingleAssessmentProtocol("disagreement", assessments) ?? null;
+  const disagreements: TrustDisagreementReport["disagreements"] = [];
+  const coverageGaps: TrustDisagreementReport["coverageGaps"] = [];
+
+  for (const criterion of TRUST_CRITERIA) {
+    const ratingAssessmentIds = new Map<string, string[]>();
+    const gaps: TrustDisagreementReport["coverageGaps"][number]["gaps"] = [];
+
+    for (const assessment of assessments) {
+      const value = assessment.criteria.find((candidate) => candidate.criterion === criterion);
+      if (!value) {
+        gaps.push({ assessmentId: assessment.assessmentId, reason: "missing" });
+      } else if (value.status === "assessed") {
+        const ids = ratingAssessmentIds.get(value.rating) ?? [];
+        ids.push(assessment.assessmentId);
+        ratingAssessmentIds.set(value.rating, ids);
+      } else {
+        gaps.push({ assessmentId: assessment.assessmentId, reason: value.status });
+      }
+    }
+
+    if (ratingAssessmentIds.size > 1) {
+      disagreements.push({
+        criterion,
+        ratings: EXPLICIT_TRUST_ORDINALS.flatMap((rating) => {
+          const assessmentIds = ratingAssessmentIds.get(rating);
+          return assessmentIds ? [{ rating, assessmentIds }] : [];
+        }),
+      });
+    }
+    if (gaps.length > 0) coverageGaps.push({ criterion, gaps });
+  }
+
+  return trustDisagreementReportSchema.parse({
+    protocolVersion,
+    assessmentIds: assessments.map(({ assessmentId }) => assessmentId),
+    disagreements,
+    coverageGaps,
+  });
+}
+
+export interface ProtocolTrustOrdinal {
+  protocolVersion: string;
+  rating: TrustOrdinal;
+}
+
+/** Protocol-aware ordinal comparison helper (e.g. "at least moderate"). */
+export function ordinalAtLeast(
+  rating: ProtocolTrustOrdinal,
+  threshold: ProtocolTrustOrdinal,
+): boolean {
+  assertSingleAssessmentProtocol("comparison", [rating, threshold]);
+  const a = ORDINAL_VALUES[rating.rating];
+  const b = ORDINAL_VALUES[threshold.rating];
   if (a === null || b === null) return false;
   return a >= b;
 }
@@ -210,6 +309,7 @@ export interface ReviewedTrustSubjectInput {
     assessorType: string;
     assessorId: string | null;
     assessedAt: string | null;
+    conflictOfInterestStatus?: string;
     criteriaJson: Record<TrustCriterion, string | null>;
     limitationsJson: string;
     evidenceJson: string | null;
@@ -477,6 +577,7 @@ export interface DatabaseTrustAssessmentRow {
   assessorType: string;
   assessorId: string | null;
   assessedAt: DateValue;
+  conflictOfInterestStatus?: string;
   identityIntegrity: string | null;
   entailment: string | null;
   sourceAccess: string | null;
@@ -577,6 +678,7 @@ export function trustSubjectInputFromDatabaseRows(
       assessorType: assessment.assessorType,
       assessorId: assessment.assessorId,
       assessedAt: assessment.assessedAt,
+      conflictOfInterestStatus: assessment.conflictOfInterestStatus ?? "not-provided",
       criteriaJson: {
         identityIntegrity: assessment.identityIntegrity,
         entailment: assessment.entailment,
@@ -614,7 +716,10 @@ export function trustSubjectInputFromDatabaseRows(
 export function createReviewedTrustSubject(input: ReviewedTrustSubjectInput) {
   return {
     schemaVersion: TRUST_SUBJECT_SCHEMA_VERSION,
-    assessment: input.assessment,
+    assessment: {
+      ...input.assessment,
+      conflictOfInterestStatus: input.assessment.conflictOfInterestStatus ?? "not-provided",
+    },
     relation: input.relation,
     claim: input.claim,
     citation: input.citation,
@@ -702,7 +807,10 @@ export function createReviewedNodeRelationTrustSubject(
   }
   return {
     schemaVersion: TRUST_NODE_RELATION_SUBJECT_SCHEMA_VERSION,
-    assessment: input.assessment,
+    assessment: {
+      ...input.assessment,
+      conflictOfInterestStatus: input.assessment.conflictOfInterestStatus ?? "not-provided",
+    },
     importedRecord: input.importedRecord,
     proposal: input.proposal,
     confirmedEdge: input.confirmedEdge,
