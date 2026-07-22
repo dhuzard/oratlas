@@ -54,7 +54,7 @@ guidance and backlog state were reconciled to this train policy in a train-level
 
 ## Train 2 — Core archive and TRUST
 
-Branch: `integration/core-trust` · Base: `integration/reliability-ops` · Draft PR: #103
+Branch: `integration/core-trust` · Base: `main` · PR: #103
 
 | ORA     | Source PR | Frozen head                                |
 | ------- | --------: | ------------------------------------------ |
