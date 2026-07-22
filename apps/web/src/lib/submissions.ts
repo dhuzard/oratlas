@@ -103,6 +103,7 @@ export async function createSubmission(
     knowledge,
     nodeExtraction: captured.extraction.nodeExtraction,
     publicationTargets,
+    sourceAssessmentDocuments: captured.extraction.sourceAssessmentDocuments,
   };
   const submittedPayloadJson = canonicalJson(submittedPayload);
 
@@ -939,6 +940,7 @@ async function materializeReviewPublication(
         compatibilityReport: payload.compatibilityReport,
         extractorVersion: extracted?.extractorVersion,
         provenance: extracted?.fields,
+        sourceAssessmentDocuments: payload.sourceAssessmentDocuments,
       }),
       versionDoi: meta.versionDoi,
       conceptDoi: meta.conceptDoi,
@@ -1235,7 +1237,7 @@ function sourceContentHash(capture: InspectionCapturePayload): string {
       {
         size: file.size,
         truncated: file.truncated,
-        contentHash: file.content ? sha256(file.content) : null,
+        contentHash: file.content !== undefined ? sha256(file.content) : null,
       },
     ]),
   );
@@ -1263,7 +1265,7 @@ function repositorySnapshotReport(capture: InspectionCapturePayload): SnapshotSt
         {
           size: file.size,
           truncated: file.truncated,
-          contentHash: file.content ? sha256(file.content) : null,
+          contentHash: file.content !== undefined ? sha256(file.content) : null,
         },
       ]),
     ),

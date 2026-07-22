@@ -8,6 +8,7 @@ import {
   effectiveMetadataSchema,
   relationRecordSchema,
   submissionValidationReportSchema,
+  sourceAssessmentDocumentsReportSchema,
   trustAssessmentRecordSchema,
   type ClaimRecord,
   type CitationRecord,
@@ -16,6 +17,7 @@ import {
   type RelationRecord,
   type SubmissionValidationReport,
   type TrustAssessmentRecord,
+  type SourceAssessmentDocumentsReport,
 } from "@oratlas/contracts";
 import {
   createEmptyNodeExtractionReport,
@@ -46,6 +48,7 @@ export interface SubmissionPayload {
   };
   nodeExtraction: NodeExtractionReport;
   publicationTargets: PublicationTargets;
+  sourceAssessmentDocuments?: SourceAssessmentDocumentsReport;
 }
 
 export type NodeCandidateRecord = ExtractedNodeRecord & {
@@ -70,6 +73,7 @@ const payloadFields = {
   compatibilityReport: compatibilityReportSchema,
   validation: submissionValidationReportSchema,
   knowledge: knowledgeSchema,
+  sourceAssessmentDocuments: sourceAssessmentDocumentsReportSchema.optional(),
 };
 
 const submissionPayloadSchema = z.discriminatedUnion("schemaVersion", [

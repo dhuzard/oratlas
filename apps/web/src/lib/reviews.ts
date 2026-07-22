@@ -13,10 +13,12 @@ import {
   globalCitationId,
   globalClaimId,
   isExactCommitSha,
+  sourceAssessmentDocumentsReportSchema,
   type PublicationConsistencyReport,
   type PublicLifecycleEvent,
   type FacetCompatibilityReport,
   type WorkIdentityAssertion,
+  type SourceAssessmentDocumentsReport,
 } from "@oratlas/contracts";
 import { prisma, parseJsonColumn } from "./db";
 import { toTrustRecord } from "./index-builder";
@@ -110,6 +112,7 @@ export interface ReviewDetail {
   compatibilityLevel?: string;
   compatibilityReport?: StoredCompatibilityReport;
   compatibilityFacets?: FacetCompatibilityReport;
+  sourceAssessmentDocuments?: SourceAssessmentDocumentsReport;
   contributors: Array<{
     displayName: string;
     orcid?: string;
@@ -280,6 +283,7 @@ export async function getReviewDetail(
     compatibilityReport?: unknown;
     reviewType?: string;
     license?: string;
+    sourceAssessmentDocuments?: unknown;
   }>(version.metadataJson, {});
   const compatibilityReport = compatibilityReportFromStoredJson(
     version.metadataJson,
@@ -291,6 +295,9 @@ export async function getReviewDetail(
   const compatibilityFacets = compatibilityFacetsResult.success
     ? compatibilityFacetsResult.data
     : undefined;
+  const sourceAssessmentDocuments = sourceAssessmentDocumentsReportSchema.safeParse(
+    meta.sourceAssessmentDocuments,
+  );
 
   const limitations = new Set<string>();
   const claims: ReviewClaim[] = version.claims.map((claim) => ({
@@ -415,6 +422,9 @@ export async function getReviewDetail(
     compatibilityLevel: meta.compatibilityLevel,
     compatibilityReport,
     compatibilityFacets,
+    sourceAssessmentDocuments: sourceAssessmentDocuments.success
+      ? sourceAssessmentDocuments.data
+      : undefined,
     contributors: version.contributors.map((c) => ({
       displayName: c.person.displayName,
       orcid: c.person.orcid ?? undefined,

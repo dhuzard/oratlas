@@ -238,6 +238,38 @@ export default async function ReviewPage({
         </Notice>
       ) : null}
 
+      {review.sourceAssessmentDocuments?.documents.some(
+        (document) => document.status !== "absent",
+      ) ? (
+        <Card title="Source-declared assessment methodology">
+          <p>
+            These documents are preserved exactly as source provenance. ORAtlas does not parse their
+            Markdown, infer ratings, or treat them as Atlas verification.
+          </p>
+          <ul>
+            {review.sourceAssessmentDocuments.documents
+              .filter((document) => document.status !== "absent")
+              .map((document) => (
+                <li key={document.path}>
+                  {document.status === "preserved" ? (
+                    <a
+                      href={`/api/reviews/${encodeURIComponent(review.slug)}/versions/${encodeURIComponent(review.version.id)}/files/${encodeURIComponent(document.path)}`}
+                    >
+                      {document.path}
+                    </a>
+                  ) : (
+                    document.path
+                  )}{" "}
+                  <span className="muted">
+                    — methodology declared by source
+                    {document.status === "unavailable" ? "; unavailable within capture limits" : ""}
+                  </span>
+                </li>
+              ))}
+          </ul>
+        </Card>
+      ) : null}
+
       {review.publicState === "withdrawn" ? (
         <Notice tone="error" title="Withdrawn version">
           This version remains visible as part of the scholarly record but should not be relied

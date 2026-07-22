@@ -31,6 +31,8 @@ const commitA = "a".repeat(40);
 const treeA = "b".repeat(40);
 const nowIso = "2026-07-12T08:00:00.000Z";
 const readmeContent = "# Preserved Review\n\nBody with <markup> & special chars.\n";
+const trustDocument = "# Computational Review TRUST v2\n\n<script>alert(1)</script>\n";
+const fairDocument = "# FAIR\n\nSource-declared methodology.\n";
 
 type Runtime = {
   prisma: PrismaClient;
@@ -53,16 +55,20 @@ let editorId: string;
 
 beforeAll(async () => {
   process.env.DATABASE_URL = databaseUrl;
+  const prismaArgs = [
+    "db",
+    "push",
+    "--schema",
+    "packages/db/prisma/schema.prisma",
+    "--skip-generate",
+  ];
   execFileSync(
-    process.execPath,
-    [
-      resolve(process.cwd(), "packages/db/node_modules/prisma/build/index.js"),
-      "db",
-      "push",
-      "--schema",
-      "packages/db/prisma/schema.prisma",
-      "--skip-generate",
-    ],
+    process.platform === "win32"
+      ? process.execPath
+      : resolve(process.cwd(), "packages/db/node_modules/.bin/prisma"),
+    process.platform === "win32"
+      ? [resolve(process.cwd(), "packages/db/node_modules/prisma/build/index.js"), ...prismaArgs]
+      : prismaArgs,
     {
       env: { ...process.env, DATABASE_URL: databaseUrl, RUST_LOG: "info" },
       stdio: "pipe",
@@ -321,6 +327,16 @@ describe.sequential("preservation and standards exports", () => {
       "README.md",
     );
     expect(preserved?.content).toBe(readmeContent);
+    expect(
+      (await runtime.getPreservedFileContent(accepted.reviewSlug, versionId, "TRUST.md"))?.content,
+    ).toBe(trustDocument);
+    expect(
+      (await runtime.getPreservedFileContent(accepted.reviewSlug, versionId, "FAIR.md"))?.content,
+    ).toBe(fairDocument);
+    const storedMetadata = JSON.parse(review.versions[0]!.metadataJson) as Record<string, unknown>;
+    expect(storedMetadata.sourceAssessmentDocuments).toEqual(
+      fullExtraction().sourceAssessmentDocuments,
+    );
 
     const bib = bibtex(exportInput);
     expect(bib).toContain(`commit ${commitA}`);
@@ -507,13 +523,29 @@ function inspectionReport(name = "preserved-review", repoId = "1"): InspectionRe
     releases: [],
     tags: [],
     selectedSource: { kind: "default-branch", commitSha: commitA, treeSha: treeA, branch: "main" },
-    tree: [{ path: "README.md", size: readmeContent.length }],
+    tree: [
+      { path: "README.md", size: Buffer.byteLength(readmeContent) },
+      { path: "TRUST.md", size: Buffer.byteLength(trustDocument) },
+      { path: "FAIR.md", size: Buffer.byteLength(fairDocument) },
+    ],
     treeTruncated: false,
     files: {
       "README.md": {
         path: "README.md",
         size: readmeContent.length,
         content: readmeContent,
+        truncated: false,
+      },
+      "TRUST.md": {
+        path: "TRUST.md",
+        size: Buffer.byteLength(trustDocument),
+        content: trustDocument,
+        truncated: false,
+      },
+      "FAIR.md": {
+        path: "FAIR.md",
+        size: Buffer.byteLength(fairDocument),
+        content: fairDocument,
         truncated: false,
       },
     },
@@ -556,6 +588,35 @@ function fullExtraction(name = "preserved-review"): FullExtraction {
       extractorVersion: "preservation-test",
     }),
     compatibility: compatibilityReport(),
+    sourceAssessmentDocuments: {
+      schemaVersion: "1.0.0",
+      documents: [
+        {
+          kind: "trust",
+          path: "TRUST.md",
+          status: "preserved",
+          size: Buffer.byteLength(trustDocument),
+          contentHash: sha256(trustDocument),
+          provenance: {
+            source: "repository-file",
+            commitSha: commitA,
+            extractorVersion: "preservation-test",
+          },
+        },
+        {
+          kind: "fair",
+          path: "FAIR.md",
+          status: "preserved",
+          size: Buffer.byteLength(fairDocument),
+          contentHash: sha256(fairDocument),
+          provenance: {
+            source: "repository-file",
+            commitSha: commitA,
+            extractorVersion: "preservation-test",
+          },
+        },
+      ],
+    },
   };
 }
 

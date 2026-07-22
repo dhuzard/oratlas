@@ -22,6 +22,7 @@ export * from "./search.js";
 export * from "./api.js";
 export * from "./canonical-json.js";
 export * from "./preservation.js";
+export * from "./source-assessment-documents.js";
 export * from "./editorial.js";
 export * from "./monitoring.js";
 export * from "./lifecycle.js";

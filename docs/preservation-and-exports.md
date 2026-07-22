@@ -24,6 +24,9 @@ At submission time the platform stores, per accepted version:
   inspect-to-submit capability and may be pruned without any effect on preservation. Public
   reader, file and export routes never consult it. Legacy rows with missing or malformed durable
   preserved content fail closed as unavailable until explicitly migrated.
+- exact root `TRUST.md` and `FAIR.md` source-methodology documents, when captured within the same
+  bounds, with preservation-only checksums and commit provenance; see
+  [`source-assessment-documents.md`](source-assessment-documents.md).
 
 ## Endpoints
 

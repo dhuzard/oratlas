@@ -93,6 +93,59 @@ describe("runExtraction — non-review repository", () => {
   });
 });
 
+describe("source assessment documents", () => {
+  it("reports preserved documents with immutable provenance but no interpreted fields", async () => {
+    const fixture = structuredClone(plainRepoFixture);
+    fixture.files = {
+      ...fixture.files,
+      "TRUST.md": "# Computational Review TRUST v2\n\nSource assertion only.\n",
+      "FAIR.md": "# FAIR\n\n<script>alert(1)</script>\n",
+    };
+    const result = runExtraction(await inspect(fixture), now);
+
+    expect(result.sourceAssessmentDocuments).toEqual({
+      schemaVersion: "1.0.0",
+      documents: [
+        expect.objectContaining({
+          kind: "trust",
+          path: "TRUST.md",
+          status: "preserved",
+          contentHash: expect.stringMatching(/^[0-9a-f]{64}$/),
+          provenance: expect.objectContaining({
+            source: "repository-file",
+            commitSha: fixture.commitSha,
+          }),
+        }),
+        expect.objectContaining({ kind: "fair", path: "FAIR.md", status: "preserved" }),
+      ],
+    });
+    expect(JSON.stringify(result.sourceAssessmentDocuments)).not.toContain("<script>");
+    expect(result.metadata.fields).not.toHaveProperty("trust");
+    expect(result.metadata.fields).not.toHaveProperty("fair");
+  });
+
+  it("distinguishes absent and bounded-unavailable documents and ignores aliases", async () => {
+    const fixture = structuredClone(plainRepoFixture);
+    fixture.files = {
+      ...fixture.files,
+      "TRUST.md": "x".repeat(101),
+      "trust.md": "# wrong case",
+      "docs/FAIR.md": "# wrong location",
+    };
+    const report = await inspectRepository(`${fixture.owner}/${fixture.name}`, {
+      transport: createFakeTransport(fixture),
+      now,
+      limits: { maxFileBytes: 100 },
+    });
+    const result = runExtraction(report, now);
+
+    expect(result.sourceAssessmentDocuments?.documents).toEqual([
+      expect.objectContaining({ path: "TRUST.md", status: "unavailable", size: 101 }),
+      expect.objectContaining({ path: "FAIR.md", status: "absent" }),
+    ]);
+  });
+});
+
 describe("source parsers", () => {
   it("parses CITATION.cff authors and ORCIDs", () => {
     const parsed = parseCitationCff(CITATION_CFF);

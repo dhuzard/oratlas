@@ -4,6 +4,8 @@ import { extractKnowledgeWithOutcomes, type ExtractedKnowledge } from "./knowled
 import { assessCompatibility } from "./compatibility.js";
 import { extractKnowledgeNodes, type NodeExtractionReport } from "./nodes.js";
 import { parseManifest } from "./sources.js";
+import { extractSourceAssessmentDocuments } from "./source-assessment-documents.js";
+import { type SourceAssessmentDocumentsReport } from "@oratlas/contracts";
 
 export { EXTRACTOR_VERSION } from "./version.js";
 export { extractMetadata, type ExtractionResult } from "./extract.js";
@@ -35,12 +37,14 @@ export type {
   NodeRecordStatus,
 } from "./nodes.js";
 export * from "./sources.js";
+export { extractSourceAssessmentDocuments } from "./source-assessment-documents.js";
 
 export interface FullExtraction extends ExtractionResult {
   manifest?: ReviewManifest;
   knowledge: ExtractedKnowledge;
   nodeExtraction: NodeExtractionReport;
   compatibility: ReturnType<typeof assessCompatibility>;
+  sourceAssessmentDocuments?: SourceAssessmentDocumentsReport;
 }
 
 /**
@@ -65,6 +69,10 @@ export function runExtraction(
     nodeExtraction,
     knowledgeResult.artifactOutcomes,
   );
+  const sourceAssessmentDocuments =
+    report.selectedSource?.commitSha || report.latestCommitSha
+      ? extractSourceAssessmentDocuments(report)
+      : undefined;
 
   return {
     ...metaResult,
@@ -72,5 +80,6 @@ export function runExtraction(
     knowledge,
     nodeExtraction,
     compatibility,
+    sourceAssessmentDocuments,
   };
 }
