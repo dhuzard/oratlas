@@ -568,6 +568,7 @@ CREATE TABLE "Challenge" (
     "body" TEXT NOT NULL,
     "filedContentHash" TEXT NOT NULL,
     "challengerId" TEXT NOT NULL,
+    "activeChallengerSubjectKey" TEXT,
     "status" TEXT NOT NULL DEFAULT 'open',
     "revision" INTEGER NOT NULL DEFAULT 0,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -1331,6 +1332,9 @@ CREATE INDEX "TrustAssessment_claimEvidenceRelationId_sourceLineageKey_idx" ON "
 
 -- CreateIndex
 CREATE UNIQUE INDEX "TrustAssessment_claimEvidenceRelationId_sourceRecordHash_key" ON "TrustAssessment"("claimEvidenceRelationId", "sourceRecordHash");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Challenge_activeChallengerSubjectKey_key" ON "Challenge"("activeChallengerSubjectKey");
 
 -- CreateIndex
 CREATE INDEX "Challenge_reviewVersionId_createdAt_idx" ON "Challenge"("reviewVersionId", "createdAt");

@@ -224,7 +224,7 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-B02 — Platform release versioning and changelog
 
-- **Status:** backlog · **Priority:** P2 · **Size:** S · **Agent:** yes
+- **Status:** review · **Priority:** P2 · **Size:** S · **Agent:** yes
 - **Packages:** repo root, `docs` · **External dep:** none · **Issue/PR:** none
 - **Goal:** The archive asserts immutability of scholarly records, but the platform itself has
   no tagged releases or changelog, making "which code produced this record" harder to answer
@@ -443,7 +443,7 @@ At most five items, ordered. Rationale and dependencies:
 ### ORA-F01 — Assessor and protocol provenance in editorial queues
 
 - **Status:** backlog · **Priority:** P1 · **Size:** S · **Agent:** yes
-- **Packages:** `apps/web` · **External dep:** none · **Issue/PR:** none
+- **Packages:** `apps/web`, `packages/db` · **External dep:** none · **Issue/PR:** draft PR pending
 - **Goal:** Editors deciding on TRUST verification should always see who/what assessed
   (assessor type, id, protocol + version, source assertions) without expanding raw JSON.
   Verify current queue detail and close gaps, including for node-relation assessments.

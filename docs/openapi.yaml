@@ -2132,7 +2132,7 @@ paths:
         "404": { $ref: "#/components/responses/Error" }
     post:
       summary: File an attributed formal challenge against an exact canonical subject
-      description: Requires authentication, exact same-origin JSON, bounded body, and rate-limit budget. Does not mutate the target.
+      description: Requires authentication, exact same-origin JSON, bounded body, and rate-limit budget. At most ten open or author-responded challenges may target one canonical subject, and one challenger may have only one such active challenge per subject. Does not mutate the target.
       security: [{ session: [] }]
       parameters:
         - { name: slug, in: path, required: true, schema: { type: string } }

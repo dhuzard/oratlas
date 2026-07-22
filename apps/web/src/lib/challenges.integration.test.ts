@@ -39,6 +39,23 @@ const editor = {
   role: "EDITOR" as const,
 };
 
+async function createActor(suffix: string) {
+  const row = await prisma.user.create({
+    data: {
+      githubLogin: `challenge-actor-${suffix}`,
+      githubUserId: `challenge-actor-${suffix}`,
+    },
+  });
+  return {
+    id: row.id,
+    githubLogin: row.githubLogin,
+    displayName: row.displayName,
+    avatarUrl: row.avatarUrl,
+    profileUrl: row.profileUrl,
+    role: "USER" as const,
+  };
+}
+
 beforeAll(async () => {
   process.env.DATABASE_URL = databaseUrl;
   const require = createRequire(import.meta.url);
@@ -688,5 +705,105 @@ describe.sequential("formal challenge persistence and lifecycle", () => {
     expect(results.filter((result) => result.status === "fulfilled")).toHaveLength(1);
     expect(results.filter((result) => result.status === "rejected")).toHaveLength(1);
     expect(await prisma.challengeTransition.count({ where: { challengeId: raced.id } })).toBe(2);
+  });
+
+  it("rejects concurrent duplicate active challenges and releases the key at a terminal state", async () => {
+    const seeded = await fixture("duplicate-control");
+    const subject = { type: "claim" as const, claimId: seeded.claim.id };
+    const binding = await service.resolveChallengeSubject(prisma, seeded.version.id, subject);
+    const input = {
+      reviewVersionId: seeded.version.id,
+      subject,
+      canonicalSubjectHash: binding.hash,
+      grounds: "methodology" as const,
+      body: "The exact method needs clarification.",
+    };
+
+    const outcomes = await Promise.allSettled([
+      service.createChallenge(seeded.review.slug, challenger, input),
+      service.createChallenge(seeded.review.slug, challenger, input),
+    ]);
+    const successes = outcomes.filter(
+      (outcome): outcome is PromiseFulfilledResult<{ id: string }> =>
+        outcome.status === "fulfilled",
+    );
+    const failures = outcomes.filter(
+      (outcome): outcome is PromiseRejectedResult => outcome.status === "rejected",
+    );
+    expect(successes).toHaveLength(1);
+    expect(failures).toHaveLength(1);
+    expect(failures[0]?.reason).toMatchObject({
+      code: "conflict",
+      message: "You already have an active challenge for this exact subject.",
+    });
+    expect(await prisma.challenge.count({ where: { canonicalSubjectHash: binding.hash } })).toBe(1);
+    expect(
+      await prisma.auditEvent.count({
+        where: { action: "challenge.filed", subjectId: successes[0]!.value.id },
+      }),
+    ).toBe(1);
+
+    const created = successes[0]!.value;
+    await service.transitionChallenge(created.id, author, {
+      expectedRevision: 0,
+      toStatus: "author-responded",
+    });
+    await expect(
+      service.createChallenge(seeded.review.slug, challenger, input),
+    ).rejects.toMatchObject({ code: "conflict" });
+    await service.transitionChallenge(created.id, editor, {
+      expectedRevision: 1,
+      toStatus: "dismissed",
+      rationale: "The objection has been reviewed and closed.",
+    });
+    await expect(service.createChallenge(seeded.review.slug, challenger, input)).resolves.toEqual({
+      id: expect.any(String),
+    });
+  });
+
+  it("caps active challenges per exact subject under a concurrent boundary race without rejection audits", async () => {
+    const seeded = await fixture("subject-cap");
+    const subject = { type: "claim" as const, claimId: seeded.claim.id };
+    const binding = await service.resolveChallengeSubject(prisma, seeded.version.id, subject);
+    const actors = await Promise.all(
+      Array.from({ length: service.MAX_ACTIVE_CHALLENGES_PER_SUBJECT + 1 }, (_, index) =>
+        createActor(`cap-${index}`),
+      ),
+    );
+    const file = (actor: (typeof actors)[number]) =>
+      service.createChallenge(seeded.review.slug, actor, {
+        reviewVersionId: seeded.version.id,
+        subject,
+        canonicalSubjectHash: binding.hash,
+        grounds: "other",
+        body: `Independent objection from ${actor.githubLogin}.`,
+      });
+
+    for (const actor of actors.slice(0, service.MAX_ACTIVE_CHALLENGES_PER_SUBJECT - 1)) {
+      await file(actor);
+    }
+    const auditCountBeforeBoundary = await prisma.auditEvent.count({
+      where: { action: "challenge.filed" },
+    });
+    const boundary = await Promise.allSettled(actors.slice(-2).map(file));
+    expect(boundary.filter((outcome) => outcome.status === "fulfilled")).toHaveLength(1);
+    const rejected = boundary.find(
+      (outcome): outcome is PromiseRejectedResult => outcome.status === "rejected",
+    );
+    expect(rejected?.reason).toMatchObject({
+      code: "rate-limited",
+      message: "This exact subject already has the maximum number of active challenges.",
+    });
+    expect(
+      await prisma.challenge.count({
+        where: {
+          canonicalSubjectHash: binding.hash,
+          status: { in: ["open", "author-responded"] },
+        },
+      }),
+    ).toBe(service.MAX_ACTIVE_CHALLENGES_PER_SUBJECT);
+    expect(await prisma.auditEvent.count({ where: { action: "challenge.filed" } })).toBe(
+      auditCountBeforeBoundary + 1,
+    );
   });
 });

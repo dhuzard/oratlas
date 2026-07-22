@@ -27,12 +27,17 @@ import { isReadablePublicState } from "./review-lifecycle";
 export class ChallengeError extends Error {
   constructor(
     message: string,
-    public readonly code: "not-found" | "bad-request" | "forbidden" | "conflict" = "bad-request",
+    public readonly code:
+      "not-found" | "bad-request" | "forbidden" | "conflict" | "rate-limited" = "bad-request",
   ) {
     super(message);
     this.name = "ChallengeError";
   }
 }
+
+export const MAX_ACTIVE_CHALLENGES_PER_SUBJECT = 10;
+const ACTIVE_CHALLENGE_STATUSES = ["open", "author-responded"] as const;
+const CHALLENGE_TRANSACTION_ATTEMPTS = 3;
 
 type Db = Prisma.TransactionClient | typeof prisma;
 type ResolvedSubject = {
@@ -324,6 +329,7 @@ type LedgerChallenge = ChallengeContent & {
   status: string;
   revision: number;
   filedContentHash: string;
+  activeChallengerSubjectKey: string | null;
   transitions: Array<{
     actorId: string;
     actorRoleSnapshot: string;
@@ -343,8 +349,16 @@ function assertChallengeLedger(row: LedgerChallenge): void {
     throw new ChallengeError("Challenge projection contains invalid enums.", "conflict");
   }
   const contentHash = hashFiledContent(row);
+  const expectedActiveKey = ACTIVE_CHALLENGE_STATUSES.includes(
+    projected.data as (typeof ACTIVE_CHALLENGE_STATUSES)[number],
+  )
+    ? activeChallengerSubjectKey(row.challengerId, row.canonicalSubjectHash)
+    : null;
   if (row.filedContentHash !== contentHash || row.transitions.length !== row.revision + 1) {
     throw new ChallengeError("Challenge immutable content or ledger is invalid.", "conflict");
+  }
+  if (row.activeChallengerSubjectKey !== expectedActiveKey) {
+    throw new ChallengeError("Challenge abuse-control projection is invalid.", "conflict");
   }
   let previous: ChallengeStatus | null = null;
   for (let index = 0; index < row.transitions.length; index += 1) {
@@ -398,6 +412,22 @@ function assertChallengeLedger(row: LedgerChallenge): void {
   }
 }
 
+function activeChallengerSubjectKey(challengerId: string, canonicalSubjectHash: string): string {
+  return sha256(
+    canonicalJson({
+      schema: "oratlas/active-challenger-subject/1",
+      challengerId,
+      canonicalSubjectHash,
+    }),
+  );
+}
+
+function prismaErrorCode(error: unknown): string | undefined {
+  return typeof error === "object" && error !== null && "code" in error
+    ? String((error as { code?: unknown }).code)
+    : undefined;
+}
+
 function isExactChallengeVersion(version: {
   publicState: string;
   publishedAt: Date | null;
@@ -412,10 +442,7 @@ function isExactChallengeVersion(version: {
 
 function mapChallengeTransactionError(error: unknown): never {
   if (error instanceof ChallengeError) throw error;
-  const code =
-    typeof error === "object" && error !== null && "code" in error
-      ? String((error as { code?: unknown }).code)
-      : undefined;
+  const code = prismaErrorCode(error);
   if (["P1008", "P2002", "P2028", "P2034"].includes(code ?? "")) {
     throw new ChallengeError(
       "Challenge lifecycle changed concurrently. Refresh and retry.",
@@ -430,81 +457,131 @@ export async function createChallenge(
   actor: SessionUser,
   input: CreateChallengeInput,
 ): Promise<{ id: string }> {
-  try {
-    return await prisma.$transaction(
-      async (tx) => {
-        const version = await tx.reviewVersion.findFirst({
-          where: { id: input.reviewVersionId, review: { slug, status: "published" } },
-          include: { snapshot: { select: { commitSha: true } } },
-        });
-        if (!version) throw new ChallengeError("Review version not found.", "not-found");
-        if (!isExactChallengeVersion(version)) {
-          throw new ChallengeError("Challenges are closed on this review version.", "forbidden");
-        }
-        const subject = await resolveChallengeSubject(tx, version.id, input.subject);
-        if (subject.hash !== input.canonicalSubjectHash) {
-          throw new ChallengeError(
-            "Challenge subject changed or its canonical hash is invalid.",
-            "conflict",
-          );
-        }
-        const challenge = await tx.challenge.create({
-          data: {
-            reviewVersionId: version.id,
-            subjectType: subject.type,
-            claimId: subject.claimId,
-            claimEvidenceRelationId: subject.relationId,
-            trustAssessmentId: subject.assessmentId,
-            criterion: subject.criterion,
-            subjectRefJson: subject.refJson,
-            canonicalSubjectHash: subject.hash,
-            grounds: input.grounds,
-            body: input.body,
-            challengerId: actor.id,
-            filedContentHash: hashFiledContent({
+  const activeKey = activeChallengerSubjectKey(actor.id, input.canonicalSubjectHash);
+  for (let attempt = 1; attempt <= CHALLENGE_TRANSACTION_ATTEMPTS; attempt += 1) {
+    try {
+      return await prisma.$transaction(
+        async (tx) => {
+          const version = await tx.reviewVersion.findFirst({
+            where: { id: input.reviewVersionId, review: { slug, status: "published" } },
+            include: { snapshot: { select: { commitSha: true } } },
+          });
+          if (!version) throw new ChallengeError("Review version not found.", "not-found");
+          if (!isExactChallengeVersion(version)) {
+            throw new ChallengeError("Challenges are closed on this review version.", "forbidden");
+          }
+          const subject = await resolveChallengeSubject(tx, version.id, input.subject);
+          if (subject.hash !== input.canonicalSubjectHash) {
+            throw new ChallengeError(
+              "Challenge subject changed or its canonical hash is invalid.",
+              "conflict",
+            );
+          }
+          const duplicate = await tx.challenge.findUnique({
+            where: { activeChallengerSubjectKey: activeKey },
+            select: { id: true },
+          });
+          if (duplicate) {
+            throw new ChallengeError(
+              "You already have an active challenge for this exact subject.",
+              "conflict",
+            );
+          }
+          const activeCount = await tx.challenge.count({
+            where: {
+              canonicalSubjectHash: subject.hash,
+              status: { in: [...ACTIVE_CHALLENGE_STATUSES] },
+            },
+          });
+          if (activeCount >= MAX_ACTIVE_CHALLENGES_PER_SUBJECT) {
+            throw new ChallengeError(
+              "This exact subject already has the maximum number of active challenges.",
+              "rate-limited",
+            );
+          }
+          const challenge = await tx.challenge.create({
+            data: {
               reviewVersionId: version.id,
               subjectType: subject.type,
+              claimId: subject.claimId,
+              claimEvidenceRelationId: subject.relationId,
+              trustAssessmentId: subject.assessmentId,
+              criterion: subject.criterion,
               subjectRefJson: subject.refJson,
               canonicalSubjectHash: subject.hash,
               grounds: input.grounds,
               body: input.body,
               challengerId: actor.id,
-            }),
-          },
-        });
-        await tx.challengeTransition.create({
-          data: {
-            challengeId: challenge.id,
-            fromStatus: null,
-            toStatus: "open",
-            actorId: actor.id,
-            actorRoleSnapshot: actor.role,
-            filedContentHash: challenge.filedContentHash,
-            revision: 0,
-          },
-        });
-        await tx.auditEvent.create({
-          data: {
-            actorId: actor.id,
-            action: "challenge.filed",
-            subjectType: "challenge",
-            subjectId: challenge.id,
-            detailsJson: canonicalJson({
-              canonicalSubjectHash: subject.hash,
+              activeChallengerSubjectKey: activeKey,
+              filedContentHash: hashFiledContent({
+                reviewVersionId: version.id,
+                subjectType: subject.type,
+                subjectRefJson: subject.refJson,
+                canonicalSubjectHash: subject.hash,
+                grounds: input.grounds,
+                body: input.body,
+                challengerId: actor.id,
+              }),
+            },
+          });
+          await tx.challengeTransition.create({
+            data: {
+              challengeId: challenge.id,
+              fromStatus: null,
+              toStatus: "open",
+              actorId: actor.id,
+              actorRoleSnapshot: actor.role,
               filedContentHash: challenge.filedContentHash,
-              grounds: input.grounds,
-              reviewVersionId: version.id,
-              subjectType: subject.type,
-            }),
-          },
+              revision: 0,
+            },
+          });
+          await tx.auditEvent.create({
+            data: {
+              actorId: actor.id,
+              action: "challenge.filed",
+              subjectType: "challenge",
+              subjectId: challenge.id,
+              detailsJson: canonicalJson({
+                canonicalSubjectHash: subject.hash,
+                filedContentHash: challenge.filedContentHash,
+                grounds: input.grounds,
+                reviewVersionId: version.id,
+                subjectType: subject.type,
+              }),
+            },
+          });
+          return { id: challenge.id };
+        },
+        { maxWait: 5_000, timeout: 15_000, isolationLevel: "Serializable" },
+      );
+    } catch (error) {
+      if (error instanceof ChallengeError) throw error;
+      const code = prismaErrorCode(error);
+      if (code === "P2002") {
+        const duplicate = await prisma.challenge.findUnique({
+          where: { activeChallengerSubjectKey: activeKey },
+          select: { id: true },
         });
-        return { id: challenge.id };
-      },
-      { maxWait: 5_000, timeout: 15_000, isolationLevel: "Serializable" },
-    );
-  } catch (error) {
-    return mapChallengeTransactionError(error);
+        if (duplicate) {
+          throw new ChallengeError(
+            "You already have an active challenge for this exact subject.",
+            "conflict",
+          );
+        }
+      }
+      if (
+        attempt < CHALLENGE_TRANSACTION_ATTEMPTS &&
+        ["P1008", "P2028", "P2034"].includes(code ?? "")
+      ) {
+        continue;
+      }
+      return mapChallengeTransactionError(error);
+    }
   }
+  throw new ChallengeError(
+    "Challenge filing could not be serialized. Refresh and retry.",
+    "conflict",
+  );
 }
 
 export async function listChallengeSubjectOptions(
@@ -657,7 +734,15 @@ export async function transitionChallenge(
         const revision = challenge.revision + 1;
         const claimed = await tx.challenge.updateMany({
           where: { id: challenge.id, revision: input.expectedRevision, status: from },
-          data: { status: input.toStatus, revision },
+          data: {
+            status: input.toStatus,
+            revision,
+            activeChallengerSubjectKey: ACTIVE_CHALLENGE_STATUSES.includes(
+              input.toStatus as (typeof ACTIVE_CHALLENGE_STATUSES)[number],
+            )
+              ? challenge.activeChallengerSubjectKey
+              : null,
+          },
         });
         if (claimed.count !== 1)
           throw new ChallengeError("Challenge lifecycle changed. Refresh and retry.", "conflict");

@@ -113,7 +113,11 @@ suffix, and arrays are JSON-encoded strings. Switching to PostgreSQL is a dataso
   (`open → author-responded → resolved|dismissed|withdrawn`). Every read/write validates contiguous
   revisions, legal edges, enum-valid actor snapshots, and agreement with the mutable projection.
   The challenge and every ledger event also carry a canonical filed-content hash over the immutable
-  subject binding, challenger, grounds, and body. Terminal states cannot transition.
+  subject binding, challenger, grounds, and body. At most ten active (`open` or
+  `author-responded`) challenges may target one canonical subject. A nullable unique digest of
+  challenger plus subject hash prevents concurrent duplicate active filings on both SQLite and
+  PostgreSQL; terminal transitions clear it atomically so a later filing is possible. Terminal
+  states cannot transition.
 - `Submission.submittedPayloadJson` is the immutable snapshot of exactly what the submitter
   finalized, including the versioned node-extraction report. Editorial acceptance rechecks those
   candidates against the consumed capture. `acceptedNodeSelectionJson` stores the editor's sorted
