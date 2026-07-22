@@ -620,6 +620,45 @@ export default async function ReviewPage({
                             )
                           ) : null}
                         </span>
+                        {rel.trustDisagreements.map((disagreement) => (
+                          <details
+                            key={disagreement.disagreementHash}
+                            data-register="trust-disagreement"
+                          >
+                            <summary>
+                              <Badge tone={disagreement.open ? "warning" : "success"}>
+                                {disagreement.open ? "TRUST disagreement" : "TRUST adjudicated"}
+                              </Badge>{" "}
+                              {disagreement.protocolVersion}
+                            </summary>
+                            <p>
+                              Assessments remain separate. No rating was averaged, replaced, or
+                              hidden.
+                            </p>
+                            <ul>
+                              {disagreement.report.disagreements.map((criterion) => (
+                                <li key={criterion.criterion}>
+                                  {criterion.criterion}:{" "}
+                                  {criterion.ratings
+                                    .map(
+                                      (rating) =>
+                                        `${rating.rating} (${rating.assessmentIds.join(", ")})`,
+                                    )
+                                    .join(" vs ")}
+                                </li>
+                              ))}
+                            </ul>
+                            {disagreement.adjudications.map((adjudication) => (
+                              <p id={`adjudication-${adjudication.id}`} key={adjudication.id}>
+                                Adjudication: {adjudication.outcome.replace(/-/g, " ")} by @
+                                {adjudication.adjudicator.githubLogin} on{" "}
+                                {new Date(adjudication.createdAt).toLocaleDateString()} · COI{" "}
+                                {adjudication.conflictOfInterest.status}
+                                {adjudication.valid ? "" : " · integrity unavailable"}
+                              </p>
+                            ))}
+                          </details>
+                        ))}
                         {rel.trusts.length > 0 ? (
                           <details data-register="formal-assessment">
                             <summary>Formal TRUST assessments ({rel.trusts.length})</summary>

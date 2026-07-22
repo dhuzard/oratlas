@@ -25,6 +25,7 @@ import { prisma, parseJsonColumn } from "./db";
 import { toTrustRecord } from "./index-builder";
 import { resolveTrustAssessmentRows } from "./trust-provenance";
 import { trustCriterionProfile } from "./trust-profile";
+import { listTrustDisagreementQueue, type TrustDisagreementQueueItem } from "./trust-adjudication";
 import { isTombstonedState, lifecycleEventDto } from "./review-lifecycle";
 import {
   compatibilityReportFromStoredJson,
@@ -86,6 +87,7 @@ export interface ReviewRelation {
   /** Backward-compatible singleton projection; absent whenever a set has multiple rows. */
   trust?: ReviewTrust;
   trusts: ReviewTrust[];
+  trustDisagreements: TrustDisagreementQueueItem[];
 }
 
 export interface ReviewClaim {
@@ -323,6 +325,7 @@ export async function getReviewDetail(
   );
 
   const limitations = new Set<string>();
+  const trustDisagreementQueue = await listTrustDisagreementQueue({ reviewVersionId: version.id });
   const claims: ReviewClaim[] = version.claims.map((claim) => ({
     subjectId: claim.id,
     claimId: globalClaimId(version.id, claim.localClaimId),
@@ -398,6 +401,9 @@ export async function getReviewDetail(
         humanReviewed: false,
         trust: trustRows.length === 1 ? trustRows[0] : undefined,
         trusts: trustRows,
+        trustDisagreements: trustDisagreementQueue.filter(
+          (item) => item.subjectType === "claim-citation" && item.subjectId === rel.id,
+        ),
       };
     }),
   }));

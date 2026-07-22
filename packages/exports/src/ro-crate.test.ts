@@ -109,6 +109,8 @@ describe("roCrate", () => {
           },
         },
       ],
+      disagreements: [],
+      adjudications: [],
       challenges: [],
       sourceDocuments: [],
     });

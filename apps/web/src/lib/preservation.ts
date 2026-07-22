@@ -3,11 +3,11 @@ import { z } from "zod";
 import {
   preservationManifestSchema,
   preservedFilesSchema,
-  conflictOfInterestStatusSchema,
   snapshotStorageReportSchema,
   isExactCommitSha,
   isSafeRepoRelativePath,
   sourceAssessmentDocumentsReportSchema,
+  conflictOfInterestStatusSchema,
   type PreservationManifest,
   type PreservedFileDescriptor,
   type PreservedFiles,
@@ -28,6 +28,7 @@ import { prisma, parseJsonColumn } from "./db";
 import { sha256 } from "./hash";
 import { toTrustRecordForExport } from "./index-builder";
 import { resolveTrustAssessmentRows } from "./trust-provenance";
+import { listTrustDisagreementQueue } from "./trust-adjudication";
 
 /**
  * Preservation and export data for one immutable version, assembled from the
@@ -234,7 +235,7 @@ export async function getVersionExportContext(
     preservedContentAvailable: true,
   } satisfies PreservationManifest);
 
-  const [assessmentRows, challengeList] = await Promise.all([
+  const [assessmentRows, challengeList, disagreementQueue] = await Promise.all([
     prisma.trustAssessment.findMany({
       where: {
         relation: {
@@ -249,11 +250,16 @@ export async function getVersionExportContext(
       orderBy: [{ id: "asc" }],
     }),
     listChallenges(version.review.slug, version.id),
+    listTrustDisagreementQueue({ reviewVersionId: version.id }),
   ]);
   const persistedMetadata = parsePersistedExportJson(
     "review metadata",
     version.metadataJson,
     exportMetadataSchema,
+  );
+  const relationIds = new Set(assessmentRows.map((assessment) => assessment.relation.id));
+  const versionDisagreements = disagreementQueue.filter(
+    (item) => item.subjectType === "claim-citation" && relationIds.has(item.subjectId),
   );
   const sourceDocuments =
     persistedMetadata.sourceAssessmentDocuments === undefined
@@ -333,6 +339,22 @@ export async function getVersionExportContext(
         supersedesAssessmentId: assessment.supersedesAssessmentId ?? undefined,
       };
     }),
+    disagreements: versionDisagreements.map((item) => ({
+      id: item.disagreementHash,
+      url: `${canonicalUrl}#disagreement-${item.disagreementHash}`,
+      relationId: item.subjectId,
+      protocolVersion: item.protocolVersion,
+      assessmentIds: item.assessments.map(({ id }) => id),
+      report: item.report,
+      current: item.current,
+      open: item.open,
+    })),
+    adjudications: versionDisagreements.flatMap((item) =>
+      item.adjudications.map((adjudication) => ({
+        ...adjudication,
+        url: `${canonicalUrl}#adjudication-${encodeURIComponent(adjudication.id)}`,
+      })),
+    ),
     challenges: challengeList?.challenges ?? [],
     sourceDocuments: sourceDocuments
       ? sourceDocuments.documents.map((document) => ({

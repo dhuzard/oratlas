@@ -605,6 +605,7 @@ CREATE TABLE "Challenge" (
     "claimId" TEXT,
     "claimEvidenceRelationId" TEXT,
     "trustAssessmentId" TEXT,
+    "trustAdjudicationId" TEXT,
     "criterion" TEXT,
     "subjectRefJson" TEXT NOT NULL,
     "canonicalSubjectHash" TEXT NOT NULL,
@@ -685,6 +686,56 @@ CREATE TABLE "TrustVerification" (
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "TrustVerification_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "TrustAdjudicatorDesignation" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "designatedById" TEXT NOT NULL,
+    "active" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "revokedAt" TIMESTAMP(3),
+
+    CONSTRAINT "TrustAdjudicatorDesignation_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "TrustAdjudication" (
+    "id" TEXT NOT NULL,
+    "subjectType" TEXT NOT NULL,
+    "claimEvidenceRelationId" TEXT,
+    "nodeEdgeProposalId" TEXT,
+    "protocolVersion" TEXT NOT NULL,
+    "outcome" TEXT NOT NULL,
+    "selectedAssessmentId" TEXT,
+    "adjudicatorId" TEXT NOT NULL,
+    "adjudicatorRoleSnapshot" TEXT NOT NULL,
+    "adjudicatorGithubLoginSnapshot" TEXT NOT NULL,
+    "rationale" TEXT NOT NULL,
+    "rationaleHash" TEXT NOT NULL,
+    "conflictOfInterestStatus" TEXT NOT NULL DEFAULT 'not-provided',
+    "administratorOverride" BOOLEAN NOT NULL DEFAULT false,
+    "administratorOverrideById" TEXT,
+    "administratorOverrideGithubLoginSnapshot" TEXT,
+    "administratorOverrideAt" TIMESTAMP(3),
+    "disagreementHash" TEXT NOT NULL,
+    "outcomeHash" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "TrustAdjudication_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "TrustAdjudicationReference" (
+    "adjudicationId" TEXT NOT NULL,
+    "position" INTEGER NOT NULL,
+    "assessmentId" TEXT NOT NULL,
+    "assessmentHash" TEXT NOT NULL,
+    "trustAssessmentId" TEXT,
+    "nodeRelationTrustAssessmentId" TEXT,
+
+    CONSTRAINT "TrustAdjudicationReference_pkey" PRIMARY KEY ("adjudicationId","position")
 );
 
 -- CreateTable
@@ -1471,6 +1522,30 @@ CREATE INDEX "TrustVerification_status_idx" ON "TrustVerification"("status");
 CREATE INDEX "TrustVerification_reviewerId_idx" ON "TrustVerification"("reviewerId");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "TrustAdjudicatorDesignation_userId_key" ON "TrustAdjudicatorDesignation"("userId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "TrustAdjudication_disagreementHash_key" ON "TrustAdjudication"("disagreementHash");
+
+-- CreateIndex
+CREATE INDEX "TrustAdjudication_claimEvidenceRelationId_protocolVersion_c_idx" ON "TrustAdjudication"("claimEvidenceRelationId", "protocolVersion", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "TrustAdjudication_nodeEdgeProposalId_protocolVersion_create_idx" ON "TrustAdjudication"("nodeEdgeProposalId", "protocolVersion", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "TrustAdjudication_adjudicatorId_createdAt_idx" ON "TrustAdjudication"("adjudicatorId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "TrustAdjudicationReference_trustAssessmentId_idx" ON "TrustAdjudicationReference"("trustAssessmentId");
+
+-- CreateIndex
+CREATE INDEX "TrustAdjudicationReference_nodeRelationTrustAssessmentId_idx" ON "TrustAdjudicationReference"("nodeRelationTrustAssessmentId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "TrustAdjudicationReference_adjudicationId_assessmentId_key" ON "TrustAdjudicationReference"("adjudicationId", "assessmentId");
+
+-- CreateIndex
 CREATE INDEX "NodeRelationTrustAssessment_nodeEdgeProposalId_idx" ON "NodeRelationTrustAssessment"("nodeEdgeProposalId");
 
 -- CreateIndex
@@ -1858,6 +1933,9 @@ ALTER TABLE "Challenge" ADD CONSTRAINT "Challenge_claimEvidenceRelationId_fkey" 
 ALTER TABLE "Challenge" ADD CONSTRAINT "Challenge_trustAssessmentId_fkey" FOREIGN KEY ("trustAssessmentId") REFERENCES "TrustAssessment"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "Challenge" ADD CONSTRAINT "Challenge_trustAdjudicationId_fkey" FOREIGN KEY ("trustAdjudicationId") REFERENCES "TrustAdjudication"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "Challenge" ADD CONSTRAINT "Challenge_challengerId_fkey" FOREIGN KEY ("challengerId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -1886,6 +1964,30 @@ ALTER TABLE "TrustVerification" ADD CONSTRAINT "TrustVerification_trustAssessmen
 
 -- AddForeignKey
 ALTER TABLE "TrustVerification" ADD CONSTRAINT "TrustVerification_reviewerId_fkey" FOREIGN KEY ("reviewerId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "TrustAdjudicatorDesignation" ADD CONSTRAINT "TrustAdjudicatorDesignation_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "TrustAdjudicatorDesignation" ADD CONSTRAINT "TrustAdjudicatorDesignation_designatedById_fkey" FOREIGN KEY ("designatedById") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "TrustAdjudication" ADD CONSTRAINT "TrustAdjudication_claimEvidenceRelationId_fkey" FOREIGN KEY ("claimEvidenceRelationId") REFERENCES "ClaimEvidenceRelation"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "TrustAdjudication" ADD CONSTRAINT "TrustAdjudication_nodeEdgeProposalId_fkey" FOREIGN KEY ("nodeEdgeProposalId") REFERENCES "NodeEdgeProposal"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "TrustAdjudication" ADD CONSTRAINT "TrustAdjudication_adjudicatorId_fkey" FOREIGN KEY ("adjudicatorId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "TrustAdjudicationReference" ADD CONSTRAINT "TrustAdjudicationReference_adjudicationId_fkey" FOREIGN KEY ("adjudicationId") REFERENCES "TrustAdjudication"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "TrustAdjudicationReference" ADD CONSTRAINT "TrustAdjudicationReference_trustAssessmentId_fkey" FOREIGN KEY ("trustAssessmentId") REFERENCES "TrustAssessment"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "TrustAdjudicationReference" ADD CONSTRAINT "TrustAdjudicationReference_nodeRelationTrustAssessmentId_fkey" FOREIGN KEY ("nodeRelationTrustAssessmentId") REFERENCES "NodeRelationTrustAssessment"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "NodeRelationTrustAssessment" ADD CONSTRAINT "NodeRelationTrustAssessment_nodeEdgeProposalId_fkey" FOREIGN KEY ("nodeEdgeProposalId") REFERENCES "NodeEdgeProposal"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -2150,6 +2252,15 @@ ALTER TABLE "ChallengeTransition" ADD CONSTRAINT "ChallengeTransition_coi_check"
       OR ("administratorOverride" = true AND "toStatus" IN ('resolved', 'dismissed') AND "conflictOfInterestStatus" = 'conflict-declared' AND "actorRoleSnapshot" = 'ADMIN' AND "administratorOverrideById" = "actorId" AND "administratorOverrideGithubLoginSnapshot" IS NOT NULL AND "administratorOverrideAt" IS NOT NULL))
   );
 
+ALTER TABLE "Challenge" DROP CONSTRAINT IF EXISTS "Challenge_subject_union_check";
+
+ALTER TABLE "Challenge" ADD CONSTRAINT "Challenge_subject_union_check" CHECK (
+    ("subjectType" = 'claim' AND "claimId" IS NOT NULL AND "claimEvidenceRelationId" IS NULL AND "trustAssessmentId" IS NULL AND "trustAdjudicationId" IS NULL AND "criterion" IS NULL)
+    OR ("subjectType" = 'relation' AND "claimId" IS NULL AND "claimEvidenceRelationId" IS NOT NULL AND "trustAssessmentId" IS NULL AND "trustAdjudicationId" IS NULL AND "criterion" IS NULL)
+    OR ("subjectType" = 'assessment-criterion' AND "claimId" IS NULL AND "claimEvidenceRelationId" IS NULL AND "trustAssessmentId" IS NOT NULL AND "trustAdjudicationId" IS NULL AND "criterion" IS NOT NULL)
+    OR ("subjectType" = 'adjudication' AND "claimId" IS NULL AND "claimEvidenceRelationId" IS NULL AND "trustAssessmentId" IS NULL AND "trustAdjudicationId" IS NOT NULL AND "criterion" IS NULL)
+  );
+
 ALTER TABLE "TrustAssessment" DROP CONSTRAINT IF EXISTS "TrustAssessment_coi_check";
 
 ALTER TABLE "TrustAssessment" ADD CONSTRAINT "TrustAssessment_coi_check" CHECK (
@@ -2177,6 +2288,31 @@ ALTER TABLE "EditorialDecisionProvenance" ADD CONSTRAINT "EditorialDecisionProve
     "conflictOfInterestStatus" IN ('none-declared', 'conflict-declared', 'not-provided')
     AND (("administratorOverride" = false AND "administratorOverrideById" IS NULL AND "administratorOverrideGithubLoginSnapshot" IS NULL AND "administratorOverrideAt" IS NULL)
       OR ("administratorOverride" = true AND "conflictOfInterestStatus" = 'conflict-declared' AND "actorRoleSnapshot" = 'ADMIN' AND "administratorOverrideById" = "actorId" AND "administratorOverrideGithubLoginSnapshot" IS NOT NULL AND "administratorOverrideAt" IS NOT NULL))
+  );
+
+ALTER TABLE "TrustAdjudicatorDesignation" DROP CONSTRAINT IF EXISTS "TrustAdjudicatorDesignation_state_check";
+
+ALTER TABLE "TrustAdjudicatorDesignation" ADD CONSTRAINT "TrustAdjudicatorDesignation_state_check" CHECK (
+    ("active" = true AND "revokedAt" IS NULL) OR ("active" = false AND "revokedAt" IS NOT NULL)
+  );
+
+ALTER TABLE "TrustAdjudication" DROP CONSTRAINT IF EXISTS "TrustAdjudication_shape_check";
+
+ALTER TABLE "TrustAdjudication" ADD CONSTRAINT "TrustAdjudication_shape_check" CHECK (
+    (("subjectType" = 'claim-citation' AND "claimEvidenceRelationId" IS NOT NULL AND "nodeEdgeProposalId" IS NULL)
+      OR ("subjectType" = 'node-relation' AND "claimEvidenceRelationId" IS NULL AND "nodeEdgeProposalId" IS NOT NULL))
+    AND (("outcome" = 'assessment-upheld' AND "selectedAssessmentId" IS NOT NULL)
+      OR ("outcome" IN ('disagreement-upheld', 'reassessment-requested') AND "selectedAssessmentId" IS NULL))
+    AND "conflictOfInterestStatus" IN ('none-declared', 'conflict-declared', 'not-provided')
+    AND (("administratorOverride" = false AND "administratorOverrideById" IS NULL AND "administratorOverrideGithubLoginSnapshot" IS NULL AND "administratorOverrideAt" IS NULL)
+      OR ("administratorOverride" = true AND "conflictOfInterestStatus" = 'conflict-declared' AND "adjudicatorRoleSnapshot" = 'ADMIN' AND "administratorOverrideById" = "adjudicatorId" AND "administratorOverrideGithubLoginSnapshot" IS NOT NULL AND "administratorOverrideAt" IS NOT NULL))
+  );
+
+ALTER TABLE "TrustAdjudicationReference" DROP CONSTRAINT IF EXISTS "TrustAdjudicationReference_shape_check";
+
+ALTER TABLE "TrustAdjudicationReference" ADD CONSTRAINT "TrustAdjudicationReference_shape_check" CHECK (
+    ("trustAssessmentId" IS NOT NULL AND "nodeRelationTrustAssessmentId" IS NULL AND "assessmentId" = "trustAssessmentId")
+    OR ("trustAssessmentId" IS NULL AND "nodeRelationTrustAssessmentId" IS NOT NULL AND "assessmentId" = "nodeRelationTrustAssessmentId")
   );
 
 CREATE OR REPLACE FUNCTION "oratlas_reject_assessment_coi_update"() RETURNS trigger AS $$
@@ -2223,6 +2359,38 @@ DROP TRIGGER IF EXISTS "EditorialDecisionProvenance_immutable_delete_guard" ON "
 
 CREATE TRIGGER "EditorialDecisionProvenance_immutable_delete_guard" BEFORE DELETE ON "EditorialDecisionProvenance"
     FOR EACH ROW EXECUTE FUNCTION "oratlas_reject_immutable_editorial_decision_update"();
+
+DROP TRIGGER IF EXISTS "TrustAdjudication_immutable_guard" ON "TrustAdjudication";
+
+CREATE TRIGGER "TrustAdjudication_immutable_guard" BEFORE UPDATE OR DELETE ON "TrustAdjudication"
+    FOR EACH ROW EXECUTE FUNCTION "oratlas_reject_immutable_editorial_decision_update"();
+
+DROP TRIGGER IF EXISTS "TrustAdjudicationReference_immutable_guard" ON "TrustAdjudicationReference";
+
+CREATE TRIGGER "TrustAdjudicationReference_immutable_guard" BEFORE UPDATE OR DELETE ON "TrustAdjudicationReference"
+    FOR EACH ROW EXECUTE FUNCTION "oratlas_reject_immutable_editorial_decision_update"();
+
+CREATE OR REPLACE FUNCTION "oratlas_validate_adjudication_reference_subject"() RETURNS trigger AS $$
+  BEGIN
+    IF NOT EXISTS (
+      SELECT 1 FROM "TrustAdjudication" a
+      WHERE a."id" = NEW."adjudicationId" AND (
+        (a."subjectType" = 'claim-citation' AND NEW."trustAssessmentId" IS NOT NULL AND EXISTS (
+          SELECT 1 FROM "TrustAssessment" t WHERE t."id" = NEW."trustAssessmentId"
+            AND t."claimEvidenceRelationId" = a."claimEvidenceRelationId" AND t."protocolVersion" = a."protocolVersion"))
+        OR (a."subjectType" = 'node-relation' AND NEW."nodeRelationTrustAssessmentId" IS NOT NULL AND EXISTS (
+          SELECT 1 FROM "NodeRelationTrustAssessment" n WHERE n."id" = NEW."nodeRelationTrustAssessmentId"
+            AND n."nodeEdgeProposalId" = a."nodeEdgeProposalId" AND n."protocolVersion" = a."protocolVersion"))
+      )
+    ) THEN RAISE EXCEPTION 'Adjudication reference subject mismatch'; END IF;
+    RETURN NEW;
+  END;
+  $$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS "TrustAdjudicationReference_subject_guard" ON "TrustAdjudicationReference";
+
+CREATE TRIGGER "TrustAdjudicationReference_subject_guard" BEFORE INSERT OR UPDATE ON "TrustAdjudicationReference"
+    FOR EACH ROW EXECUTE FUNCTION "oratlas_validate_adjudication_reference_subject"();
 
 CREATE OR REPLACE FUNCTION "oratlas_validate_synthesis_membership_reference"() RETURNS trigger AS $$
   BEGIN

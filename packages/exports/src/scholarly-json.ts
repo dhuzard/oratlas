@@ -2,10 +2,12 @@ import {
   canonicalJson,
   type PublicChallenge,
   type ConflictOfInterestSnapshot,
+  type PublicTrustAdjudication,
   type SourceAssessmentDocument,
   type TrustCriterion,
   type TrustCriterionAssessment,
   type TrustVerificationState,
+  type TrustDisagreementReport,
 } from "@oratlas/contracts";
 import type { VersionExportInput } from "./types.js";
 
@@ -40,6 +42,21 @@ export interface ScholarlyTrustAssessmentInput {
   supersedesAssessmentId?: string;
 }
 
+export interface ScholarlyTrustDisagreementInput {
+  id: string;
+  url: string;
+  relationId: string;
+  protocolVersion: string;
+  assessmentIds: string[];
+  report: TrustDisagreementReport;
+  current: boolean;
+  open: boolean;
+}
+
+export interface ScholarlyTrustAdjudicationInput extends PublicTrustAdjudication {
+  url: string;
+}
+
 export interface ScholarlySourceDocumentInput extends SourceAssessmentDocument {
   downloadUrl?: string;
 }
@@ -47,12 +64,14 @@ export interface ScholarlySourceDocumentInput extends SourceAssessmentDocument {
 export interface ScholarlyJsonInput {
   version: VersionExportInput;
   assessments: ScholarlyTrustAssessmentInput[];
+  disagreements: ScholarlyTrustDisagreementInput[];
+  adjudications: ScholarlyTrustAdjudicationInput[];
   challenges: PublicChallenge[];
   sourceDocuments: ScholarlySourceDocumentInput[];
 }
 
 export interface ScholarlyJsonDocument {
-  schemaVersion: "1.0.0";
+  schemaVersion: "1.1.0";
   platformVersion: string;
   review: {
     id: string;
@@ -64,6 +83,8 @@ export interface ScholarlyJsonDocument {
     treeSha?: string;
   };
   assessments: ScholarlyTrustAssessmentInput[];
+  disagreements: ScholarlyTrustDisagreementInput[];
+  adjudications: ScholarlyTrustAdjudicationInput[];
   challenges: ReturnType<typeof publicChallenge>[];
   sourceDocuments: ScholarlySourceDocumentInput[];
 }
@@ -142,7 +163,7 @@ function compareAssessments(
 /** Build the complete public, per-record scholarly projection with deterministic ordering. */
 export function scholarlyJsonDocument(input: ScholarlyJsonInput): ScholarlyJsonDocument {
   return {
-    schemaVersion: "1.0.0",
+    schemaVersion: "1.1.0",
     platformVersion: input.version.platformVersion,
     review: {
       id: input.version.canonicalUrl,
@@ -154,6 +175,12 @@ export function scholarlyJsonDocument(input: ScholarlyJsonInput): ScholarlyJsonD
       treeSha: input.version.treeSha,
     },
     assessments: [...input.assessments].sort(compareAssessments),
+    disagreements: [...input.disagreements].sort((left, right) =>
+      compareCodeUnits(left.id, right.id),
+    ),
+    adjudications: [...input.adjudications].sort((left, right) =>
+      compareCodeUnits(left.id, right.id),
+    ),
     challenges: [...input.challenges]
       .sort((left, right) => left.id.localeCompare(right.id))
       .map((challenge) => publicChallenge(challenge, input.version.canonicalUrl)),

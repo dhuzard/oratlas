@@ -14,6 +14,10 @@ export const DATABASE_GUARD_NAMES = [
   "DecisionLetter_coi_check",
   "EditorialDecisionProvenance_coi_check",
   "ChallengeTransition_coi_check",
+  "Challenge_subject_union_check",
+  "TrustAdjudicatorDesignation_state_check",
+  "TrustAdjudication_shape_check",
+  "TrustAdjudicationReference_shape_check",
 ] as const;
 
 export const POSTGRES_DATABASE_GUARD_TRIGGER_NAMES = [
@@ -25,6 +29,9 @@ export const POSTGRES_DATABASE_GUARD_TRIGGER_NAMES = [
   "DecisionLetter_immutable_delete_guard",
   "EditorialDecisionProvenance_immutable_guard",
   "EditorialDecisionProvenance_immutable_delete_guard",
+  "TrustAdjudication_immutable_guard",
+  "TrustAdjudicationReference_immutable_guard",
+  "TrustAdjudicationReference_subject_guard",
 ] as const;
 
 export const POSTGRES_DATABASE_GUARD_SQL = [
@@ -78,6 +85,13 @@ export const POSTGRES_DATABASE_GUARD_SQL = [
     AND (("administratorOverride" = false AND "administratorOverrideById" IS NULL AND "administratorOverrideGithubLoginSnapshot" IS NULL AND "administratorOverrideAt" IS NULL)
       OR ("administratorOverride" = true AND "toStatus" IN ('resolved', 'dismissed') AND "conflictOfInterestStatus" = 'conflict-declared' AND "actorRoleSnapshot" = 'ADMIN' AND "administratorOverrideById" = "actorId" AND "administratorOverrideGithubLoginSnapshot" IS NOT NULL AND "administratorOverrideAt" IS NOT NULL))
   )`,
+  'ALTER TABLE "Challenge" DROP CONSTRAINT IF EXISTS "Challenge_subject_union_check"',
+  `ALTER TABLE "Challenge" ADD CONSTRAINT "Challenge_subject_union_check" CHECK (
+    ("subjectType" = 'claim' AND "claimId" IS NOT NULL AND "claimEvidenceRelationId" IS NULL AND "trustAssessmentId" IS NULL AND "trustAdjudicationId" IS NULL AND "criterion" IS NULL)
+    OR ("subjectType" = 'relation' AND "claimId" IS NULL AND "claimEvidenceRelationId" IS NOT NULL AND "trustAssessmentId" IS NULL AND "trustAdjudicationId" IS NULL AND "criterion" IS NULL)
+    OR ("subjectType" = 'assessment-criterion' AND "claimId" IS NULL AND "claimEvidenceRelationId" IS NULL AND "trustAssessmentId" IS NOT NULL AND "trustAdjudicationId" IS NULL AND "criterion" IS NOT NULL)
+    OR ("subjectType" = 'adjudication' AND "claimId" IS NULL AND "claimEvidenceRelationId" IS NULL AND "trustAssessmentId" IS NULL AND "trustAdjudicationId" IS NOT NULL AND "criterion" IS NULL)
+  )`,
   'ALTER TABLE "TrustAssessment" DROP CONSTRAINT IF EXISTS "TrustAssessment_coi_check"',
   `ALTER TABLE "TrustAssessment" ADD CONSTRAINT "TrustAssessment_coi_check" CHECK (
     "conflictOfInterestStatus" IN ('none-declared', 'conflict-declared', 'not-provided')
@@ -98,6 +112,25 @@ export const POSTGRES_DATABASE_GUARD_SQL = [
     "conflictOfInterestStatus" IN ('none-declared', 'conflict-declared', 'not-provided')
     AND (("administratorOverride" = false AND "administratorOverrideById" IS NULL AND "administratorOverrideGithubLoginSnapshot" IS NULL AND "administratorOverrideAt" IS NULL)
       OR ("administratorOverride" = true AND "conflictOfInterestStatus" = 'conflict-declared' AND "actorRoleSnapshot" = 'ADMIN' AND "administratorOverrideById" = "actorId" AND "administratorOverrideGithubLoginSnapshot" IS NOT NULL AND "administratorOverrideAt" IS NOT NULL))
+  )`,
+  'ALTER TABLE "TrustAdjudicatorDesignation" DROP CONSTRAINT IF EXISTS "TrustAdjudicatorDesignation_state_check"',
+  `ALTER TABLE "TrustAdjudicatorDesignation" ADD CONSTRAINT "TrustAdjudicatorDesignation_state_check" CHECK (
+    ("active" = true AND "revokedAt" IS NULL) OR ("active" = false AND "revokedAt" IS NOT NULL)
+  )`,
+  'ALTER TABLE "TrustAdjudication" DROP CONSTRAINT IF EXISTS "TrustAdjudication_shape_check"',
+  `ALTER TABLE "TrustAdjudication" ADD CONSTRAINT "TrustAdjudication_shape_check" CHECK (
+    (("subjectType" = 'claim-citation' AND "claimEvidenceRelationId" IS NOT NULL AND "nodeEdgeProposalId" IS NULL)
+      OR ("subjectType" = 'node-relation' AND "claimEvidenceRelationId" IS NULL AND "nodeEdgeProposalId" IS NOT NULL))
+    AND (("outcome" = 'assessment-upheld' AND "selectedAssessmentId" IS NOT NULL)
+      OR ("outcome" IN ('disagreement-upheld', 'reassessment-requested') AND "selectedAssessmentId" IS NULL))
+    AND "conflictOfInterestStatus" IN ('none-declared', 'conflict-declared', 'not-provided')
+    AND (("administratorOverride" = false AND "administratorOverrideById" IS NULL AND "administratorOverrideGithubLoginSnapshot" IS NULL AND "administratorOverrideAt" IS NULL)
+      OR ("administratorOverride" = true AND "conflictOfInterestStatus" = 'conflict-declared' AND "adjudicatorRoleSnapshot" = 'ADMIN' AND "administratorOverrideById" = "adjudicatorId" AND "administratorOverrideGithubLoginSnapshot" IS NOT NULL AND "administratorOverrideAt" IS NOT NULL))
+  )`,
+  'ALTER TABLE "TrustAdjudicationReference" DROP CONSTRAINT IF EXISTS "TrustAdjudicationReference_shape_check"',
+  `ALTER TABLE "TrustAdjudicationReference" ADD CONSTRAINT "TrustAdjudicationReference_shape_check" CHECK (
+    ("trustAssessmentId" IS NOT NULL AND "nodeRelationTrustAssessmentId" IS NULL AND "assessmentId" = "trustAssessmentId")
+    OR ("trustAssessmentId" IS NULL AND "nodeRelationTrustAssessmentId" IS NOT NULL AND "assessmentId" = "nodeRelationTrustAssessmentId")
   )`,
   `CREATE OR REPLACE FUNCTION "oratlas_reject_assessment_coi_update"() RETURNS trigger AS $$
   BEGIN
@@ -130,6 +163,31 @@ export const POSTGRES_DATABASE_GUARD_SQL = [
   'DROP TRIGGER IF EXISTS "EditorialDecisionProvenance_immutable_delete_guard" ON "EditorialDecisionProvenance"',
   `CREATE TRIGGER "EditorialDecisionProvenance_immutable_delete_guard" BEFORE DELETE ON "EditorialDecisionProvenance"
     FOR EACH ROW EXECUTE FUNCTION "oratlas_reject_immutable_editorial_decision_update"()`,
+  'DROP TRIGGER IF EXISTS "TrustAdjudication_immutable_guard" ON "TrustAdjudication"',
+  `CREATE TRIGGER "TrustAdjudication_immutable_guard" BEFORE UPDATE OR DELETE ON "TrustAdjudication"
+    FOR EACH ROW EXECUTE FUNCTION "oratlas_reject_immutable_editorial_decision_update"()`,
+  'DROP TRIGGER IF EXISTS "TrustAdjudicationReference_immutable_guard" ON "TrustAdjudicationReference"',
+  `CREATE TRIGGER "TrustAdjudicationReference_immutable_guard" BEFORE UPDATE OR DELETE ON "TrustAdjudicationReference"
+    FOR EACH ROW EXECUTE FUNCTION "oratlas_reject_immutable_editorial_decision_update"()`,
+  `CREATE OR REPLACE FUNCTION "oratlas_validate_adjudication_reference_subject"() RETURNS trigger AS $$
+  BEGIN
+    IF NOT EXISTS (
+      SELECT 1 FROM "TrustAdjudication" a
+      WHERE a."id" = NEW."adjudicationId" AND (
+        (a."subjectType" = 'claim-citation' AND NEW."trustAssessmentId" IS NOT NULL AND EXISTS (
+          SELECT 1 FROM "TrustAssessment" t WHERE t."id" = NEW."trustAssessmentId"
+            AND t."claimEvidenceRelationId" = a."claimEvidenceRelationId" AND t."protocolVersion" = a."protocolVersion"))
+        OR (a."subjectType" = 'node-relation' AND NEW."nodeRelationTrustAssessmentId" IS NOT NULL AND EXISTS (
+          SELECT 1 FROM "NodeRelationTrustAssessment" n WHERE n."id" = NEW."nodeRelationTrustAssessmentId"
+            AND n."nodeEdgeProposalId" = a."nodeEdgeProposalId" AND n."protocolVersion" = a."protocolVersion"))
+      )
+    ) THEN RAISE EXCEPTION 'Adjudication reference subject mismatch'; END IF;
+    RETURN NEW;
+  END;
+  $$ LANGUAGE plpgsql`,
+  'DROP TRIGGER IF EXISTS "TrustAdjudicationReference_subject_guard" ON "TrustAdjudicationReference"',
+  `CREATE TRIGGER "TrustAdjudicationReference_subject_guard" BEFORE INSERT OR UPDATE ON "TrustAdjudicationReference"
+    FOR EACH ROW EXECUTE FUNCTION "oratlas_validate_adjudication_reference_subject"()`,
   `CREATE OR REPLACE FUNCTION "oratlas_validate_synthesis_membership_reference"() RETURNS trigger AS $$
   BEGIN
     IF EXISTS (
@@ -230,6 +288,36 @@ const sqliteGuardConditions = {
     AND ((NEW."administratorOverride" = 0 AND NEW."administratorOverrideById" IS NULL AND NEW."administratorOverrideGithubLoginSnapshot" IS NULL AND NEW."administratorOverrideAt" IS NULL)
       OR (NEW."administratorOverride" = 1 AND NEW."toStatus" IN ('resolved', 'dismissed') AND NEW."conflictOfInterestStatus" = 'conflict-declared' AND NEW."actorRoleSnapshot" = 'ADMIN' AND NEW."administratorOverrideById" = NEW."actorId" AND NEW."administratorOverrideGithubLoginSnapshot" IS NOT NULL AND NEW."administratorOverrideAt" IS NOT NULL))
     THEN 1 ELSE 0 END`,
+  Challenge: `CASE WHEN
+    (NEW."subjectType" = 'claim' AND NEW."claimId" IS NOT NULL AND NEW."claimEvidenceRelationId" IS NULL AND NEW."trustAssessmentId" IS NULL AND NEW."trustAdjudicationId" IS NULL AND NEW."criterion" IS NULL)
+    OR (NEW."subjectType" = 'relation' AND NEW."claimId" IS NULL AND NEW."claimEvidenceRelationId" IS NOT NULL AND NEW."trustAssessmentId" IS NULL AND NEW."trustAdjudicationId" IS NULL AND NEW."criterion" IS NULL)
+    OR (NEW."subjectType" = 'assessment-criterion' AND NEW."claimId" IS NULL AND NEW."claimEvidenceRelationId" IS NULL AND NEW."trustAssessmentId" IS NOT NULL AND NEW."trustAdjudicationId" IS NULL AND NEW."criterion" IS NOT NULL)
+    OR (NEW."subjectType" = 'adjudication' AND NEW."claimId" IS NULL AND NEW."claimEvidenceRelationId" IS NULL AND NEW."trustAssessmentId" IS NULL AND NEW."trustAdjudicationId" IS NOT NULL AND NEW."criterion" IS NULL)
+    THEN 1 ELSE 0 END`,
+  TrustAdjudicatorDesignation: `CASE WHEN
+    (NEW."active" = 1 AND NEW."revokedAt" IS NULL) OR (NEW."active" = 0 AND NEW."revokedAt" IS NOT NULL)
+    THEN 1 ELSE 0 END`,
+  TrustAdjudication: `CASE WHEN
+    ((NEW."subjectType" = 'claim-citation' AND NEW."claimEvidenceRelationId" IS NOT NULL AND NEW."nodeEdgeProposalId" IS NULL)
+      OR (NEW."subjectType" = 'node-relation' AND NEW."claimEvidenceRelationId" IS NULL AND NEW."nodeEdgeProposalId" IS NOT NULL))
+    AND ((NEW."outcome" = 'assessment-upheld' AND NEW."selectedAssessmentId" IS NOT NULL)
+      OR (NEW."outcome" IN ('disagreement-upheld', 'reassessment-requested') AND NEW."selectedAssessmentId" IS NULL))
+    AND NEW."conflictOfInterestStatus" IN ('none-declared', 'conflict-declared', 'not-provided')
+    AND ((NEW."administratorOverride" = 0 AND NEW."administratorOverrideById" IS NULL AND NEW."administratorOverrideGithubLoginSnapshot" IS NULL AND NEW."administratorOverrideAt" IS NULL)
+      OR (NEW."administratorOverride" = 1 AND NEW."conflictOfInterestStatus" = 'conflict-declared' AND NEW."adjudicatorRoleSnapshot" = 'ADMIN' AND NEW."administratorOverrideById" = NEW."adjudicatorId" AND NEW."administratorOverrideGithubLoginSnapshot" IS NOT NULL AND NEW."administratorOverrideAt" IS NOT NULL))
+    THEN 1 ELSE 0 END`,
+  TrustAdjudicationReference: `CASE WHEN
+    ((NEW."trustAssessmentId" IS NOT NULL AND NEW."nodeRelationTrustAssessmentId" IS NULL AND NEW."assessmentId" = NEW."trustAssessmentId")
+      OR (NEW."trustAssessmentId" IS NULL AND NEW."nodeRelationTrustAssessmentId" IS NOT NULL AND NEW."assessmentId" = NEW."nodeRelationTrustAssessmentId"))
+    AND EXISTS (
+      SELECT 1 FROM "TrustAdjudication" a WHERE a."id" = NEW."adjudicationId" AND (
+        (a."subjectType" = 'claim-citation' AND NEW."trustAssessmentId" IS NOT NULL AND EXISTS (
+          SELECT 1 FROM "TrustAssessment" t WHERE t."id" = NEW."trustAssessmentId" AND t."claimEvidenceRelationId" = a."claimEvidenceRelationId" AND t."protocolVersion" = a."protocolVersion"))
+        OR (a."subjectType" = 'node-relation' AND NEW."nodeRelationTrustAssessmentId" IS NOT NULL AND EXISTS (
+          SELECT 1 FROM "NodeRelationTrustAssessment" n WHERE n."id" = NEW."nodeRelationTrustAssessmentId" AND n."nodeEdgeProposalId" = a."nodeEdgeProposalId" AND n."protocolVersion" = a."protocolVersion"))
+      )
+    )
+    THEN 1 ELSE 0 END`,
 } as const;
 
 export const SQLITE_DATABASE_GUARD_NAMES = Object.keys(sqliteGuardConditions).flatMap((table) => [
@@ -244,6 +332,10 @@ export const SQLITE_ASSESSMENT_COI_IMMUTABLE_GUARD_NAMES = [
   "DecisionLetter_immutable_delete_guard",
   "EditorialDecisionProvenance_immutable_guard",
   "EditorialDecisionProvenance_immutable_delete_guard",
+  "TrustAdjudication_immutable_guard_update",
+  "TrustAdjudication_immutable_guard_delete",
+  "TrustAdjudicationReference_immutable_guard_update",
+  "TrustAdjudicationReference_immutable_guard_delete",
 ] as const;
 
 /** Apply database-native guards after Prisma db push for the selected provider. */
@@ -311,6 +403,21 @@ export async function applyDatabaseGuards(
           SELECT RAISE(ABORT, 'Editorial decision provenance is immutable');
         END
       `);
+    }
+    for (const table of ["TrustAdjudication", "TrustAdjudicationReference"] as const) {
+      const name = `${table}_immutable_guard`;
+      for (const operation of ["UPDATE", "DELETE"] as const) {
+        const operationName = `${name}_${operation.toLowerCase()}`;
+        await tx.$executeRawUnsafe(`DROP TRIGGER IF EXISTS "${operationName}"`);
+        await tx.$executeRawUnsafe(`
+          CREATE TRIGGER "${operationName}"
+          BEFORE ${operation} ON "${table}"
+          FOR EACH ROW
+          BEGIN
+            SELECT RAISE(ABORT, 'TRUST adjudication provenance is immutable');
+          END
+        `);
+      }
     }
   });
 }

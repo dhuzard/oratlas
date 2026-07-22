@@ -97,6 +97,32 @@ const input: ScholarlyJsonInput = {
       },
     },
   ],
+  disagreements: [
+    {
+      id: "d".repeat(64),
+      url: `${version.canonicalUrl}#disagreement-${"d".repeat(64)}`,
+      relationId: "relation-1",
+      protocolVersion: "trust-v2",
+      assessmentIds: ["assessment-1", "assessment-2"],
+      report: {
+        protocolVersion: "trust-v2",
+        assessmentIds: ["assessment-1", "assessment-2"],
+        disagreements: [
+          {
+            criterion: "entailment",
+            ratings: [
+              { rating: "high", assessmentIds: ["assessment-1"] },
+              { rating: "low", assessmentIds: ["assessment-2"] },
+            ],
+          },
+        ],
+        coverageGaps: [],
+      },
+      current: true,
+      open: true,
+    },
+  ],
+  adjudications: [],
   challenges: [challenge],
   sourceDocuments: [],
 };
@@ -116,7 +142,9 @@ describe("scholarly JSON", () => {
     expect(serialized).toBe(
       scholarlyJson({ ...input, assessments: [...input.assessments].reverse() }),
     );
-    expect(serialized).not.toMatch(/aggregate|disagreement|crosswalk/i);
+    expect(serialized).not.toMatch(/aggregate|crosswalk/i);
+    expect(document.disagreements[0]?.report.disagreements[0]?.criterion).toBe("entailment");
+    expect(document.assessments.every((assessment) => assessment.conflictOfInterest)).toBe(true);
   });
 
   it("uses the ratified assessment time/type/id/protocol/assessment ordering", () => {

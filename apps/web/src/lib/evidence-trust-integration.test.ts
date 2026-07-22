@@ -15,6 +15,9 @@ vi.mock("./db.js", () => ({
       findMany: vi.fn(async () => database.indexReviews),
       findUnique: vi.fn(async () => database.detailReview),
     },
+    trustAssessment: { findMany: vi.fn(async () => []) },
+    nodeRelationTrustAssessment: { findMany: vi.fn(async () => []) },
+    trustAdjudication: { findMany: vi.fn(async () => []) },
   },
   parseJsonColumn(value: string, fallback: unknown) {
     try {

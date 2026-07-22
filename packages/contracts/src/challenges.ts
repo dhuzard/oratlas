@@ -4,7 +4,12 @@ import {
   publicConflictOverrideSchema,
 } from "./conflicts-of-interest.js";
 
-export const CHALLENGE_SUBJECT_TYPES = ["claim", "relation", "assessment-criterion"] as const;
+export const CHALLENGE_SUBJECT_TYPES = [
+  "claim",
+  "relation",
+  "assessment-criterion",
+  "adjudication",
+] as const;
 export const challengeSubjectTypeSchema = z.enum(CHALLENGE_SUBJECT_TYPES);
 
 export const CHALLENGE_GROUNDS = [
@@ -41,6 +46,7 @@ export const challengeSubjectInputSchema = z.discriminatedUnion("type", [
     assessmentId: id,
     criterion: id,
   }),
+  z.object({ type: z.literal("adjudication"), adjudicationId: id }),
 ]);
 export type ChallengeSubjectInput = z.infer<typeof challengeSubjectInputSchema>;
 

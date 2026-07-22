@@ -18,7 +18,8 @@ export function TrustVerificationForm({
   const [pending, setPending] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
-  async function submit(status: "human-reviewed" | "adjudicated") {
+  async function submit() {
+    const status = "human-reviewed" as const;
     setPending(status);
     setMessage(null);
     try {
@@ -39,7 +40,7 @@ export function TrustVerificationForm({
         setMessage(result?.error?.message ?? "TRUST verification failed.");
         return;
       }
-      setMessage(status === "adjudicated" ? "Adjudication recorded." : "Review recorded.");
+      setMessage("Structural review recorded.");
       router.refresh();
     } catch {
       setMessage("Network error.");
@@ -67,17 +68,9 @@ export function TrustVerificationForm({
           className="btn"
           type="button"
           disabled={pending !== null || rationale.trim().length < 10}
-          onClick={() => submit("human-reviewed")}
+          onClick={() => submit()}
         >
           {pending === "human-reviewed" ? "Recording…" : "Record structural review"}
-        </button>
-        <button
-          className="btn btn-secondary"
-          type="button"
-          disabled={pending !== null || rationale.trim().length < 10}
-          onClick={() => submit("adjudicated")}
-        >
-          {pending === "adjudicated" ? "Recording…" : "Record adjudication"}
         </button>
       </div>
       {message ? (

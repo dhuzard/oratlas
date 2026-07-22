@@ -303,7 +303,7 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-D02 — Explicit disagreement and adjudication records
 
-- **Status:** ready · **Priority:** P1 · **Size:** L · **Agent:** yes (authority, display, and
+- **Status:** in-progress (core delivered 2026-07-22; ORA-D02a remains) · **Priority:** P1 · **Size:** L · **Agent:** yes (authority, display, and
   non-compensation boundaries ratified in `ORATLAS_DECISIONS.md` §§2–5)
 - **Packages:** `packages/contracts`, `packages/trust`, `packages/db`, `apps/web` ·
   **External dep:** none · **Issue/PR:** none
@@ -321,6 +321,30 @@ At most five items, ordered. Rationale and dependencies:
 - **Acceptance criteria:** Unit tests for detection determinism and protocol-scoping;
   adjudication is append-only, hash-binds its subjects, and fails closed if a referenced
   assessment mutates; UI shows all assessments + the adjudication, never a merged value.
+- **Delivered:** Exact-protocol criterion disagreement/coverage-gap detection; current-lineage
+  editorial queue; designated-adjudicator and editor authority with direct-involvement recusal;
+  public-minimal COI/ADMIN override provenance; append-only, hash-bound SQLite/PostgreSQL
+  records and guards; public review badges/history; scholarly JSON 1.1 and RO-Crate entities.
+  Underlying assessment profiles remain complete and independent. See
+  `docs/trust-adjudication.md`.
+
+### ORA-D02a — Challenge an exact node-relation adjudication
+
+- **Status:** ready · **Priority:** P1 · **Size:** M · **Agent:** yes
+- **Packages:** `packages/contracts`, `packages/db`, `apps/web` · **External dep:** none
+- **Goal:** Complete the ratified §5 rule for node-relation adjudications without weakening the
+  exact immutable-subject binding used by E01. Claim–citation adjudication challenges ship in
+  ORA-D02, bound to adjudication id, `disagreementHash`, and `outcomeHash`.
+- **Scope:** Support node-relation adjudications in the Challenge subject union; define a
+  non-fictional container for node challenges instead of attaching them to an unrelated
+  `ReviewVersion`; add public deep links, lifecycle integrity rechecks, exports, and dual-family
+  tests.
+- **Non-goals:** No mutable adjudication discussion field; no cross-protocol subject.
+- **Dependencies:** ORA-D02, ORA-E01. The current E01 schema requires `reviewVersionId` and its
+  subject union has no node container, so an atomic schema/API migration is required.
+- **Acceptance criteria:** Filing against a node adjudication hash-binds the exact `outcomeHash`;
+  tamper/stale checks fail closed; public DTO and exports expose the challenge; all existing E01
+  subjects remain compatible.
 
 ### ORA-D03 — Assessment profile display without a mandatory aggregate
 

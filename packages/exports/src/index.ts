@@ -15,7 +15,9 @@ export {
   type ScholarlyJsonDocument,
   type ScholarlyJsonInput,
   type ScholarlySourceDocumentInput,
+  type ScholarlyTrustAdjudicationInput,
   type ScholarlyTrustAssessmentInput,
+  type ScholarlyTrustDisagreementInput,
 } from "./scholarly-json.js";
 export { swhidArchiveUrl, swhidForDirectory, swhidForRevision } from "./swhid.js";
 export {

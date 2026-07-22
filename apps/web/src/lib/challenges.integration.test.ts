@@ -516,9 +516,9 @@ describe.sequential("formal challenge persistence and lifecycle", () => {
       expect(publicApi).not.toContain(privateValue);
     }
 
-    // Challenge records are deliberately not mapped into the current scholarly
-    // export vocabulary. This verifies absence without deciding whether a future
-    // ratified vocabulary should add them (ORATLAS_DECISIONS.md §9 / ORA-I01).
+    // Scholarly RO-Crate includes the public challenge tombstone; baseline
+    // provenance/JATS do not. Removed bodies, responses, and private rationale
+    // never enter any export.
     const [{ getVersionExportContext }, { GET: exportGet }] = await Promise.all([
       import("./preservation"),
       import("../app/api/reviews/[slug]/versions/[versionId]/export/[format]/route"),
@@ -536,12 +536,14 @@ describe.sequential("formal challenge persistence and lifecycle", () => {
         }),
       ),
     );
-    for (const exportResponse of exportResponses) {
+    for (const [index, exportResponse] of exportResponses.entries()) {
       expect(exportResponse.status).toBe(200);
       const exported = await exportResponse.text();
-      for (const challengeValue of [created.id, challengeText, responseText, privateRationale]) {
+      for (const challengeValue of [challengeText, responseText, privateRationale]) {
         expect(exported).not.toContain(challengeValue);
       }
+      if (index === 1) expect(exported).toContain(created.id);
+      else expect(exported).not.toContain(created.id);
     }
     expect(await service.listOpenChallengePage()).not.toEqual(
       expect.objectContaining({

@@ -80,6 +80,9 @@ model User {
   challengeResponses             ChallengeResponse[]               @relation("challengeResponder")
   challengeContentRemovals       Challenge[]                       @relation("challengeContentRemover")
   challengeResponseRemovals      ChallengeResponse[]               @relation("challengeResponseRemover")
+  trustAdjudications             TrustAdjudication[]               @relation("trustAdjudicator")
+  adjudicatorDesignation         TrustAdjudicatorDesignation?      @relation("designatedAdjudicator")
+  adjudicatorDesignationsMade    TrustAdjudicatorDesignation[]     @relation("adjudicatorDesignator")
 
   @@index([githubLoginNormalized])
 }
@@ -645,6 +648,7 @@ model NodeEdgeProposal {
   reviewedBy        User?                         @relation("nodeEdgeProposalReviewer", fields: [reviewedById], references: [id])
   confirmedEdge     NodeEdge?                     @relation("confirmedProposalEdge", fields: [confirmedEdgeId], references: [id])
   trustAssessments  NodeRelationTrustAssessment[]
+  adjudications     TrustAdjudication[]
 
   @@index([status, createdAt])
   @@index([sourceNodeVersionId])
@@ -881,10 +885,11 @@ model ClaimEvidenceRelation {
   extractionConfidence Float?
   humanReviewed        Boolean @default(false)
 
-  claim            Claim             @relation(fields: [claimId], references: [id])
-  citation         Citation          @relation(fields: [citationId], references: [id])
+  claim            Claim               @relation(fields: [claimId], references: [id])
+  citation         Citation            @relation(fields: [citationId], references: [id])
   trustAssessments TrustAssessment[]
-  challenges       Challenge[]       @relation("challengeRelation")
+  challenges       Challenge[]         @relation("challengeRelation")
+  adjudications    TrustAdjudication[]
 
   @@unique([claimId, citationId, relationType])
 }
@@ -949,11 +954,12 @@ model TrustAssessment {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  relation     ClaimEvidenceRelation @relation(fields: [claimEvidenceRelationId], references: [id])
-  verification TrustVerification?
-  supersedes   TrustAssessment?      @relation("TrustAssessmentSupersession", fields: [supersedesAssessmentId], references: [id])
-  supersededBy TrustAssessment[]     @relation("TrustAssessmentSupersession")
-  challenges   Challenge[]           @relation("challengeAssessment")
+  relation               ClaimEvidenceRelation        @relation(fields: [claimEvidenceRelationId], references: [id])
+  verification           TrustVerification?
+  supersedes             TrustAssessment?             @relation("TrustAssessmentSupersession", fields: [supersedesAssessmentId], references: [id])
+  supersededBy           TrustAssessment[]            @relation("TrustAssessmentSupersession")
+  challenges             Challenge[]                  @relation("challengeAssessment")
+  adjudicationReferences TrustAdjudicationReference[]
 
   @@unique([claimEvidenceRelationId, sourceRecordHash])
   @@index([reviewStatus])
@@ -966,11 +972,12 @@ model TrustAssessment {
 model Challenge {
   id                         String    @id @default(cuid())
   reviewVersionId            String
-  /// claim | relation | assessment-criterion
+  /// claim | relation | assessment-criterion | adjudication (claim-citation only)
   subjectType                String
   claimId                    String?
   claimEvidenceRelationId    String?
   trustAssessmentId          String?
+  trustAdjudicationId        String?
   criterion                  String?
   subjectRefJson             String
   canonicalSubjectHash       String
@@ -1001,6 +1008,7 @@ model Challenge {
   claim         Claim?                 @relation("challengeClaim", fields: [claimId], references: [id])
   relation      ClaimEvidenceRelation? @relation("challengeRelation", fields: [claimEvidenceRelationId], references: [id])
   assessment    TrustAssessment?       @relation("challengeAssessment", fields: [trustAssessmentId], references: [id])
+  adjudication  TrustAdjudication?     @relation("challengeAdjudication", fields: [trustAdjudicationId], references: [id])
   challenger    User                   @relation("challengeChallenger", fields: [challengerId], references: [id])
   removedBy     User?                  @relation("challengeContentRemover", fields: [removedById], references: [id])
   transitions   ChallengeTransition[]
@@ -1096,6 +1104,75 @@ model TrustVerification {
   @@index([reviewerId])
 }
 
+/// Explicit authority grant for a non-editor TRUST adjudicator.
+model TrustAdjudicatorDesignation {
+  id             String    @id @default(cuid())
+  userId         String    @unique
+  designatedById String
+  active         Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  revokedAt      DateTime?
+
+  user         User @relation("designatedAdjudicator", fields: [userId], references: [id])
+  designatedBy User @relation("adjudicatorDesignator", fields: [designatedById], references: [id])
+}
+
+/// Append-only outcome over one same-protocol, current-head disagreement set.
+/// It never edits or replaces any referenced assessment.
+model TrustAdjudication {
+  id                                       String    @id @default(cuid())
+  /// claim-citation | node-relation
+  subjectType                              String
+  claimEvidenceRelationId                  String?
+  nodeEdgeProposalId                       String?
+  protocolVersion                          String
+  /// disagreement-upheld | assessment-upheld | reassessment-requested
+  outcome                                  String
+  selectedAssessmentId                     String?
+  adjudicatorId                            String
+  adjudicatorRoleSnapshot                  String
+  adjudicatorGithubLoginSnapshot           String
+  rationale                                String
+  rationaleHash                            String
+  conflictOfInterestStatus                 String    @default("not-provided")
+  administratorOverride                    Boolean   @default(false)
+  administratorOverrideById                String?
+  administratorOverrideGithubLoginSnapshot String?
+  administratorOverrideAt                  DateTime?
+  disagreementHash                         String    @unique
+  outcomeHash                              String
+  createdAt                                DateTime  @default(now())
+
+  claimEvidenceRelation ClaimEvidenceRelation?       @relation(fields: [claimEvidenceRelationId], references: [id])
+  nodeEdgeProposal      NodeEdgeProposal?            @relation(fields: [nodeEdgeProposalId], references: [id])
+  adjudicator           User                         @relation("trustAdjudicator", fields: [adjudicatorId], references: [id])
+  references            TrustAdjudicationReference[]
+  challenges            Challenge[]                  @relation("challengeAdjudication")
+
+  @@index([claimEvidenceRelationId, protocolVersion, createdAt])
+  @@index([nodeEdgeProposalId, protocolVersion, createdAt])
+  @@index([adjudicatorId, createdAt])
+}
+
+/// Ordered immutable assessment/hash binding for one adjudication.
+model TrustAdjudicationReference {
+  adjudicationId                String
+  position                      Int
+  assessmentId                  String
+  assessmentHash                String
+  trustAssessmentId             String?
+  nodeRelationTrustAssessmentId String?
+
+  adjudication                TrustAdjudication            @relation(fields: [adjudicationId], references: [id])
+  trustAssessment             TrustAssessment?             @relation(fields: [trustAssessmentId], references: [id])
+  nodeRelationTrustAssessment NodeRelationTrustAssessment? @relation(fields: [nodeRelationTrustAssessmentId], references: [id])
+
+  @@id([adjudicationId, position])
+  @@unique([adjudicationId, assessmentId])
+  @@index([trustAssessmentId])
+  @@index([nodeRelationTrustAssessmentId])
+}
+
 /// Imported TRUST assessment whose mandatory subject is one exact immutable
 /// author node-edge proposal. The proposal survives editorial rejection and
 /// links to the confirmed edge when accepted, preserving the imported subject.
@@ -1143,10 +1220,11 @@ model NodeRelationTrustAssessment {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  proposal     NodeEdgeProposal               @relation(fields: [nodeEdgeProposalId], references: [id])
-  verification NodeRelationTrustVerification?
-  supersedes   NodeRelationTrustAssessment?   @relation("NodeRelationTrustAssessmentSupersession", fields: [supersedesAssessmentId], references: [id])
-  supersededBy NodeRelationTrustAssessment[]  @relation("NodeRelationTrustAssessmentSupersession")
+  proposal               NodeEdgeProposal               @relation(fields: [nodeEdgeProposalId], references: [id])
+  verification           NodeRelationTrustVerification?
+  supersedes             NodeRelationTrustAssessment?   @relation("NodeRelationTrustAssessmentSupersession", fields: [supersedesAssessmentId], references: [id])
+  supersededBy           NodeRelationTrustAssessment[]  @relation("NodeRelationTrustAssessmentSupersession")
+  adjudicationReferences TrustAdjudicationReference[]
 
   @@unique([nodeEdgeProposalId, sourceRecordHash])
   @@index([nodeEdgeProposalId])

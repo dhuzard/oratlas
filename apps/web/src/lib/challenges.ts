@@ -51,6 +51,7 @@ type ResolvedSubject = {
   claimId?: string;
   relationId?: string;
   assessmentId?: string;
+  adjudicationId?: string;
   criterion?: string;
   refJson: string;
   hash: string;
@@ -216,6 +217,43 @@ export async function resolveChallengeSubject(
     );
   }
 
+  if (subject.type === "adjudication") {
+    const adjudication = await db.trustAdjudication.findUnique({
+      where: { id: subject.adjudicationId },
+      include: {
+        references: { orderBy: { position: "asc" } },
+        claimEvidenceRelation: { include: { claim: true, citation: true } },
+      },
+    });
+    if (
+      !adjudication ||
+      adjudication.subjectType !== "claim-citation" ||
+      !adjudication.claimEvidenceRelation ||
+      adjudication.claimEvidenceRelation.claim.reviewVersionId !== reviewVersionId ||
+      adjudication.claimEvidenceRelation.citation.reviewVersionId !== reviewVersionId
+    ) {
+      throw new ChallengeError("Challenge adjudication subject not found.", "not-found");
+    }
+    return resolved(
+      {
+        type: subject.type,
+        reviewVersionId,
+        adjudicationId: adjudication.id,
+        label: `Adjudication ${adjudication.id}`,
+        hrefFragment: `adjudication-${adjudication.id}`,
+      },
+      {
+        schema: "oratlas/challenge-subject/2",
+        type: subject.type,
+        adjudication: {
+          id: adjudication.id,
+          disagreementHash: adjudication.disagreementHash,
+          outcomeHash: adjudication.outcomeHash,
+        },
+      },
+    );
+  }
+
   if (!TRUST_CRITERIA.includes(subject.criterion as (typeof TRUST_CRITERIA)[number])) {
     throw new ChallengeError("Unknown TRUST criterion.");
   }
@@ -281,6 +319,7 @@ function rowSubject(row: {
   claimId: string | null;
   claimEvidenceRelationId: string | null;
   trustAssessmentId: string | null;
+  trustAdjudicationId: string | null;
   criterion: string | null;
 }): ChallengeSubjectInput | null {
   if (row.subjectType === "claim" && row.claimId) return { type: "claim", claimId: row.claimId };
@@ -292,6 +331,9 @@ function rowSubject(row: {
       assessmentId: row.trustAssessmentId,
       criterion: row.criterion,
     };
+  }
+  if (row.subjectType === "adjudication" && row.trustAdjudicationId) {
+    return { type: "adjudication", adjudicationId: row.trustAdjudicationId };
   }
   return null;
 }
@@ -632,6 +674,7 @@ export async function createChallenge(
               claimId: subject.claimId,
               claimEvidenceRelationId: subject.relationId,
               trustAssessmentId: subject.assessmentId,
+              trustAdjudicationId: subject.adjudicationId,
               criterion: subject.criterion,
               subjectRefJson: subject.refJson,
               canonicalSubjectHash: subject.hash,
@@ -743,6 +786,11 @@ export async function listChallengeSubjectOptions(
                   conflictDependency: true,
                 },
               },
+              adjudications: {
+                where: { subjectType: "claim-citation" },
+                orderBy: { id: "asc" },
+                select: { id: true },
+              },
             },
           },
         },
@@ -761,6 +809,9 @@ export async function listChallengeSubjectOptions(
             inputs.push({ type: "assessment-criterion", assessmentId: assessment.id, criterion });
           }
         }
+      }
+      for (const adjudication of relation.adjudications) {
+        inputs.push({ type: "adjudication", adjudicationId: adjudication.id });
       }
     }
   }

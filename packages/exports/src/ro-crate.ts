@@ -58,6 +58,8 @@ export function roCrate(input: RoCrateInput): { "@context": string; "@graph": Js
   const scholarlyEntityIds = input.scholarly
     ? [
         ...input.scholarly.document.assessments.map((assessment) => assessment.url),
+        ...input.scholarly.document.disagreements.map((disagreement) => disagreement.url),
+        ...input.scholarly.document.adjudications.map((adjudication) => adjudication.url),
         ...input.scholarly.document.challenges.map((challenge) => challenge.url),
         ...input.scholarly.document.sourceDocuments.map(
           (document) => document.downloadUrl ?? `#source-document-${document.kind}`,
@@ -123,8 +125,40 @@ export function roCrate(input: RoCrateInput): { "@context": string; "@graph": Js
           ...(assessment.assessor.identifier ? { identifier: assessment.assessor.identifier } : {}),
         },
         measurementTechnique: assessment.protocolVersion,
+        "https://oratlas.org/ns/conflictOfInterest": assessment.conflictOfInterest,
         "https://oratlas.org/ns/verificationState": assessment.verification.state,
         "https://oratlas.org/ns/criteria": assessment.criteria,
+      });
+    }
+    for (const disagreement of input.scholarly.document.disagreements) {
+      graph.push({
+        "@id": disagreement.url,
+        "@type": "CreativeWork",
+        name: `TRUST disagreement ${disagreement.id}`,
+        about: {
+          "@id": `${version.canonicalUrl}#relation-${encodeURIComponent(disagreement.relationId)}`,
+        },
+        measurementTechnique: disagreement.protocolVersion,
+        "https://oratlas.org/ns/assessment": disagreement.assessmentIds.map((id) => ({
+          "@id": `${version.canonicalUrl}#assessment-${encodeURIComponent(id)}`,
+        })),
+        "https://oratlas.org/ns/disagreementReport": disagreement.report,
+        "https://oratlas.org/ns/current": disagreement.current,
+        "https://oratlas.org/ns/open": disagreement.open,
+      });
+    }
+    for (const adjudication of input.scholarly.document.adjudications) {
+      graph.push({
+        "@id": adjudication.url,
+        "@type": "Action",
+        name: `TRUST adjudication ${adjudication.id}`,
+        actionStatus: adjudication.outcome,
+        agent: { name: adjudication.adjudicator.githubLogin },
+        object: { "@id": `${version.canonicalUrl}#disagreement-${adjudication.disagreementHash}` },
+        dateCreated: adjudication.createdAt,
+        "https://oratlas.org/ns/conflictOfInterest": adjudication.conflictOfInterest,
+        "https://oratlas.org/ns/outcomeHash": adjudication.outcomeHash,
+        "https://oratlas.org/ns/valid": adjudication.valid,
       });
     }
     for (const challenge of input.scholarly.document.challenges) {

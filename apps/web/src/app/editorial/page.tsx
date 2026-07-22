@@ -29,6 +29,8 @@ import { listOpenChallengePage } from "@/lib/challenges";
 import { ChallengeQueuePanel } from "./ChallengeQueuePanel";
 import { CompatibilityFacets } from "@/components/CompatibilityFacets";
 import { ArtifactOutcomes } from "@/components/ArtifactOutcomes";
+import { listTrustDisagreementQueue } from "@/lib/trust-adjudication";
+import { TrustAdjudicationPanel } from "./TrustAdjudicationPanel";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Editorial dashboard" };
@@ -81,6 +83,7 @@ export default async function EditorialPage({
     : params.trustPage;
   const trustPage = /^\d+$/.test(requestedTrustPage ?? "") ? Number(requestedTrustPage) : 1;
   const trustQueue = await listTrustEditorialQueuePage(trustFilter, { page: trustPage });
+  const trustDisagreements = await listTrustDisagreementQueue();
   const openProposals = await listOpenProposals();
   const federationQueue = await listFederationQueue();
   const openProtocolProposals = await listOpenProtocolProposals();
@@ -118,6 +121,7 @@ export default async function EditorialPage({
         proposals={synthesisProposalPage.proposals}
         nextCursor={synthesisProposalPage.nextCursor}
       />
+      <TrustAdjudicationPanel items={trustDisagreements} />
 
       <h2>Pending submissions ({pending.length})</h2>
       {pending.length === 0 ? (

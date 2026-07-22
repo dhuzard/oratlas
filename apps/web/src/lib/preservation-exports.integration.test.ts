@@ -17,7 +17,7 @@ import {
   scholarlyJson,
   scholarlyJsonDocument,
 } from "@oratlas/exports";
-import { type PrismaClient } from "@oratlas/db";
+import { applyDatabaseGuards, type PrismaClient } from "@oratlas/db";
 import { type createInspectionCapture } from "./inspection-captures";
 import { type acceptSubmission, type createSubmission } from "./submissions";
 import { type getPreservedFileContent, type getVersionExportContext } from "./preservation";
@@ -29,6 +29,10 @@ import {
   type removeChallengeResponseContent,
   type transitionChallenge,
 } from "./challenges";
+import {
+  type createTrustAdjudication,
+  type listTrustDisagreementQueue,
+} from "./trust-adjudication";
 
 vi.mock("server-only", () => ({}));
 
@@ -54,6 +58,8 @@ type Runtime = {
   removeChallengeContent: typeof removeChallengeContent;
   removeChallengeResponseContent: typeof removeChallengeResponseContent;
   transitionChallenge: typeof transitionChallenge;
+  createTrustAdjudication: typeof createTrustAdjudication;
+  listTrustDisagreementQueue: typeof listTrustDisagreementQueue;
 };
 
 let runtime: Runtime;
@@ -86,6 +92,7 @@ beforeAll(async () => {
   const submissions = await import("./submissions");
   const preservation = await import("./preservation");
   const challenges = await import("./challenges");
+  const adjudications = await import("./trust-adjudication");
   runtime = {
     prisma,
     createInspectionCapture: captures.createInspectionCapture,
@@ -99,6 +106,8 @@ beforeAll(async () => {
     removeChallengeContent: challenges.removeChallengeContent,
     removeChallengeResponseContent: challenges.removeChallengeResponseContent,
     transitionChallenge: challenges.transitionChallenge,
+    createTrustAdjudication: adjudications.createTrustAdjudication,
+    listTrustDisagreementQueue: adjudications.listTrustDisagreementQueue,
   };
   const submitter = await prisma.user.create({
     data: { githubUserId: "pres-submitter", githubLogin: "pres-submitter", role: "USER" },
@@ -238,7 +247,7 @@ describe.sequential("preservation and standards exports", () => {
         relationType: "supports",
       },
     });
-    await Promise.all(
+    const assessmentRows = await Promise.all(
       [
         { assessorId: "assessor-a", rating: "high" },
         { assessorId: "assessor-b", rating: "low" },
@@ -257,6 +266,23 @@ describe.sequential("preservation and standards exports", () => {
         }),
       ),
     );
+    const disagreement = (await runtime.listTrustDisagreementQueue()).find(
+      (item) => item.subjectId === relation.id && item.open,
+    );
+    expect(disagreement).toBeDefined();
+    const adjudication = await runtime.createTrustAdjudication(
+      { id: editorId, githubLogin: "pres-editor", role: "EDITOR" },
+      {
+        subjectType: "claim-citation",
+        assessmentIds: assessmentRows.map(({ id }) => id),
+        expectedDisagreementHash: disagreement!.disagreementHash,
+        outcome: "disagreement-upheld",
+        rationale: "PRIVATE-D02-ADJUDICATION-RATIONALE-MUST-NOT-EXPORT",
+        conflictOfInterest: { status: "none-declared" },
+        administratorOverride: false,
+      },
+    );
+    expect(adjudication.valid).toBe(true);
     const challengeSubjects = await runtime.listChallengeSubjectOptions(versionId);
     const subjectFor = (claimId: string) =>
       challengeSubjects.find(
@@ -394,6 +420,14 @@ describe.sequential("preservation and standards exports", () => {
     expect(
       scholarlyInput.assessments.map((assessment) => assessment.conflictOfInterest.status).sort(),
     ).toEqual(["conflict-declared", "none-declared"]);
+    expect(scholarlyInput.disagreements).toHaveLength(1);
+    expect(scholarlyInput.disagreements[0]).toMatchObject({ open: false, current: true });
+    expect(scholarlyInput.adjudications).toHaveLength(1);
+    expect(scholarlyInput.adjudications[0]).toMatchObject({
+      outcome: "disagreement-upheld",
+      adjudicator: { githubLogin: "pres-editor" },
+      valid: true,
+    });
     expect(scholarlyInput.challenges.map(({ status }) => status).sort()).toEqual([
       "author-responded",
       "open",
@@ -407,7 +441,8 @@ describe.sequential("preservation and standards exports", () => {
     expect(scholarly).not.toContain(lifecycleSentinels.rationale);
     expect(scholarly).not.toContain(challengerUser.id);
     expect(scholarly).not.toContain(moderatorUser.id);
-    expect(scholarly).not.toMatch(/"(?:roleSnapshot|actorId|disagreement|crosswalk)":/i);
+    expect(scholarly).not.toContain("PRIVATE-D02-ADJUDICATION-RATIONALE-MUST-NOT-EXPORT");
+    expect(scholarly).not.toMatch(/"(?:roleSnapshot|actorId|crosswalk)":/i);
 
     const bib = bibtex(exportInput);
     expect(bib).toContain(`commit ${commitA}`);
@@ -425,6 +460,8 @@ describe.sequential("preservation and standards exports", () => {
     });
     expect(JSON.stringify(crate)).toContain(`swh:1:rev:${commitA}`);
     expect(JSON.stringify(crate)).toContain("TRUST assessment");
+    expect(JSON.stringify(crate)).toContain("TRUST disagreement");
+    expect(JSON.stringify(crate)).toContain("TRUST adjudication");
     expect(JSON.stringify(crate)).toContain(lifecycleSentinels.openChallenge);
     const prov = provJsonLd(provInput);
     const serializedProv = JSON.stringify(prov);
@@ -508,6 +545,111 @@ describe.sequential("preservation and standards exports", () => {
         `baseline export included public challenge value: ${publicChallengeValue}`,
       ).toBe(false);
     }
+
+    const successor = await runtime.prisma.trustAssessment.create({
+      data: {
+        claimEvidenceRelationId: relation.id,
+        protocolVersion: "trust-v2",
+        assessorType: "human",
+        assessorId: "assessor-a",
+        assessedAt: new Date("2026-07-04T00:00:00.000Z"),
+        entailment: JSON.stringify({ rating: "moderate", status: "assessed" }),
+        limitationsJson: "[]",
+        sourceRecordHash: "e".repeat(64),
+        sourceLineageKey: "assessor-a-lineage",
+        supersedesAssessmentId: assessmentRows[0]!.id,
+      },
+    });
+    const afterSupersession = (await runtime.listTrustDisagreementQueue()).find(
+      (item) =>
+        item.subjectId === relation.id && item.assessments.some(({ id }) => id === successor.id),
+    );
+    expect(afterSupersession).toMatchObject({ open: true });
+    const historicalAfterSupersession = (await runtime.listTrustDisagreementQueue()).find(
+      (item) => !item.current && item.adjudications.some(({ id }) => id === adjudication.id),
+    );
+    expect(historicalAfterSupersession?.adjudications).toEqual([
+      expect.objectContaining({ id: adjudication.id, valid: true }),
+    ]);
+
+    const declaredCitation = await runtime.prisma.citation.create({
+      data: { reviewVersionId: versionId, localCitationId: "d02-declared-coi" },
+    });
+    const declaredRelation = await runtime.prisma.claimEvidenceRelation.create({
+      data: { claimId: claims[1]!.id, citationId: declaredCitation.id, relationType: "supports" },
+    });
+    const declaredAssessments = await Promise.all(
+      ["high", "low"].map((rating, index) =>
+        runtime.prisma.trustAssessment.create({
+          data: {
+            claimEvidenceRelationId: declaredRelation.id,
+            protocolVersion: "trust-v2",
+            assessorType: "human",
+            assessorId: `independent-${index}`,
+            entailment: JSON.stringify({ rating, status: "assessed" }),
+          },
+        }),
+      ),
+    );
+    const declaredDisagreement = (await runtime.listTrustDisagreementQueue()).find(
+      (item) => item.subjectId === declaredRelation.id,
+    );
+    await expect(
+      runtime.createTrustAdjudication(
+        { id: editorId, githubLogin: "pres-editor", role: "EDITOR" },
+        {
+          subjectType: "claim-citation",
+          assessmentIds: declaredAssessments.map(({ id }) => id),
+          expectedDisagreementHash: declaredDisagreement!.disagreementHash,
+          outcome: "disagreement-upheld",
+          rationale: "A declared conflict snapshot alone is provenance, not direct involvement.",
+          conflictOfInterest: { status: "conflict-declared" },
+          administratorOverride: false,
+        },
+      ),
+    ).resolves.toMatchObject({ conflictOfInterest: { status: "conflict-declared" } });
+
+    const malformed = await runtime.prisma.trustAssessment.create({
+      data: {
+        claimEvidenceRelationId: declaredRelation.id,
+        protocolVersion: "trust-invalid",
+        assessorType: "agent",
+        entailment: "{malformed",
+      },
+    });
+    await expect(runtime.listTrustDisagreementQueue()).rejects.toThrow(
+      /criterion entailment is invalid/i,
+    );
+    await runtime.prisma.trustAssessment.delete({ where: { id: malformed.id } });
+    await runtime.prisma.trustAssessment.update({
+      where: { id: declaredAssessments[0]!.id },
+      data: { conflictOfInterestStatus: "corrupt-status" },
+    });
+    await expect(runtime.getVersionExportContext(accepted.reviewSlug, versionId)).rejects.toThrow();
+    await runtime.prisma.trustAssessment.update({
+      where: { id: declaredAssessments[0]!.id },
+      data: { conflictOfInterestStatus: "not-provided" },
+    });
+
+    await applyDatabaseGuards(runtime.prisma, "sqlite");
+    await expect(
+      runtime.prisma.trustAdjudication.update({
+        where: { id: adjudication.id },
+        data: { outcome: "reassessment-requested" },
+      }),
+    ).rejects.toThrow();
+    await expect(
+      runtime.prisma.trustAdjudication.delete({ where: { id: adjudication.id } }),
+    ).rejects.toThrow();
+    await expect(
+      runtime.prisma.$executeRawUnsafe(
+        `INSERT INTO "TrustAdjudicatorDesignation" ("id", "userId", "designatedById", "active", "createdAt", "revokedAt") VALUES (?, ?, ?, 0, ?, NULL)`,
+        "invalid-designation",
+        submitterId,
+        editorId,
+        new Date().toISOString(),
+      ),
+    ).rejects.toThrow(/database guard rejected invalid state/i);
   }, 30_000);
 
   it("keeps preserved content durable after the ephemeral capture row is deleted", async () => {
