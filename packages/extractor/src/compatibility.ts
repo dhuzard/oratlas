@@ -381,6 +381,7 @@ function assessFacets(input: FacetInputs): FacetCompatibilityReport {
       : facet("unavailable", "No TRUST assessment records were found.");
 
   return { article, citations, evidencePackage, claimGraph, assessments };
+}
 
 function notDeclared(): ArtifactOutcome {
   return { status: "not-declared", loadedCount: 0, skippedCount: 0, sources: [] };

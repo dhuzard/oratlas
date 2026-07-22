@@ -8,6 +8,7 @@ import {
 import {
   canonicalWorkAliases,
   claimDomAnchor,
+  facetCompatibilityReportSchema,
   findWorkIdentifierConflicts,
   globalCitationId,
   globalClaimId,
@@ -284,6 +285,12 @@ export async function getReviewDetail(
     version.metadataJson,
     snapshot.inspectionReportJson,
   );
+  const compatibilityFacetsResult = facetCompatibilityReportSchema.safeParse(
+    compatibilityReport?.facets,
+  );
+  const compatibilityFacets = compatibilityFacetsResult.success
+    ? compatibilityFacetsResult.data
+    : undefined;
 
   const limitations = new Set<string>();
   const claims: ReviewClaim[] = version.claims.map((claim) => ({
@@ -407,7 +414,7 @@ export async function getReviewDetail(
     domains: meta.domains ?? [],
     compatibilityLevel: meta.compatibilityLevel,
     compatibilityReport,
-    compatibilityFacets: compatibilityReport?.facets,
+    compatibilityFacets,
     contributors: version.contributors.map((c) => ({
       displayName: c.person.displayName,
       orcid: c.person.orcid ?? undefined,
