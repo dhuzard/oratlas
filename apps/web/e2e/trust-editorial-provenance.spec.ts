@@ -15,6 +15,7 @@ test.beforeAll(async () => {
   await prisma.nodeEdgeProposal.deleteMany({ where: { id: nodeProposalId } });
   const seedProposal = await prisma.nodeEdgeProposal.findFirst({
     where: {
+      originKey: "seed:agent-proposal:independent-replay-uses-dataset",
       sourceNodeVersion: { knowledgeNode: { kind: "claim" } },
       targetNode: { kind: { in: ["dataset", "code", "figure"] } },
     },

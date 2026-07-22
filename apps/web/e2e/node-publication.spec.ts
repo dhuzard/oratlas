@@ -192,7 +192,9 @@ test("submitter finalizes a node-only capture and an editor publishes its nodes"
     "2 valid node edge",
   );
   await expect(submissionCard.getByText(firstSourceTitle).last()).toBeVisible();
-  await expect(submissionCard.getByRole("checkbox").last()).toBeChecked();
+  await expect(
+    submissionCard.locator("label").filter({ hasText: firstSourceTitle }).getByRole("checkbox"),
+  ).toBeChecked();
   const decisionResponse = editorPage.waitForResponse(
     (response) =>
       response.url().includes("/api/editorial/decision") && response.request().method() === "POST",
