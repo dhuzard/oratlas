@@ -769,6 +769,122 @@ describe.sequential("formal challenge persistence and lifecycle", () => {
     });
   });
 
+  it("adopts pre-J03 active rows without hiding them or blocking their lifecycle", async () => {
+    const seeded = await fixture("legacy-active-keys");
+    const claimSubject = { type: "claim" as const, claimId: seeded.claim.id };
+    const relationSubject = { type: "relation" as const, relationId: seeded.relation.id };
+    const claimBinding = await service.resolveChallengeSubject(
+      prisma,
+      seeded.version.id,
+      claimSubject,
+    );
+    const relationBinding = await service.resolveChallengeSubject(
+      prisma,
+      seeded.version.id,
+      relationSubject,
+    );
+    const open = await service.createChallenge(seeded.review.slug, challenger, {
+      reviewVersionId: seeded.version.id,
+      subject: claimSubject,
+      canonicalSubjectHash: claimBinding.hash,
+      grounds: "identity",
+      body: "Legacy open challenge.",
+    });
+    const responded = await service.createChallenge(seeded.review.slug, challenger, {
+      reviewVersionId: seeded.version.id,
+      subject: relationSubject,
+      canonicalSubjectHash: relationBinding.hash,
+      grounds: "source-access",
+      body: "Legacy responded challenge.",
+    });
+    await service.transitionChallenge(responded.id, author, {
+      expectedRevision: 0,
+      toStatus: "author-responded",
+    });
+    await prisma.challenge.updateMany({
+      where: { id: { in: [open.id, responded.id] } },
+      data: { activeChallengerSubjectKey: null },
+    });
+    const original = await prisma.challenge.findUniqueOrThrow({ where: { id: open.id } });
+    const legacyDuplicate = await prisma.challenge.create({
+      data: {
+        reviewVersionId: original.reviewVersionId,
+        subjectType: original.subjectType,
+        claimId: original.claimId,
+        claimEvidenceRelationId: original.claimEvidenceRelationId,
+        trustAssessmentId: original.trustAssessmentId,
+        criterion: original.criterion,
+        subjectRefJson: original.subjectRefJson,
+        canonicalSubjectHash: original.canonicalSubjectHash,
+        grounds: original.grounds,
+        body: original.body,
+        filedContentHash: original.filedContentHash,
+        challengerId: original.challengerId,
+      },
+    });
+    await prisma.challengeTransition.create({
+      data: {
+        challengeId: legacyDuplicate.id,
+        fromStatus: null,
+        toStatus: "open",
+        actorId: challenger.id,
+        actorRoleSnapshot: challenger.role,
+        filedContentHash: original.filedContentHash,
+        revision: 0,
+      },
+    });
+
+    const listed = await service.listChallenges(seeded.review.slug, seeded.version.id);
+    expect(listed?.challenges.map(({ id }) => id)).toEqual(
+      expect.arrayContaining([open.id, responded.id, legacyDuplicate.id]),
+    );
+    const adopted = await prisma.challenge.findMany({
+      where: { id: { in: [open.id, responded.id, legacyDuplicate.id] } },
+      orderBy: { id: "asc" },
+      select: { id: true, activeChallengerSubjectKey: true },
+    });
+    expect(adopted.find((row) => row.id === open.id)?.activeChallengerSubjectKey).not.toBeNull();
+    expect(
+      adopted.find((row) => row.id === responded.id)?.activeChallengerSubjectKey,
+    ).not.toBeNull();
+    expect(
+      adopted.find((row) => row.id === legacyDuplicate.id)?.activeChallengerSubjectKey,
+    ).toBeNull();
+
+    await expect(
+      service.createChallenge(seeded.review.slug, challenger, {
+        reviewVersionId: seeded.version.id,
+        subject: claimSubject,
+        canonicalSubjectHash: claimBinding.hash,
+        grounds: "other",
+        body: "A duplicate of the legacy active challenge.",
+      }),
+    ).rejects.toMatchObject({ code: "conflict" });
+    await expect(
+      service.transitionChallenge(open.id, author, {
+        expectedRevision: 0,
+        toStatus: "author-responded",
+      }),
+    ).resolves.toEqual({ revision: 1, status: "author-responded" });
+    await service.transitionChallenge(responded.id, editor, {
+      expectedRevision: 1,
+      toStatus: "resolved",
+      rationale: "The legacy exchange is complete.",
+    });
+    expect(
+      await prisma.challenge.findUniqueOrThrow({
+        where: { id: responded.id },
+        select: { activeChallengerSubjectKey: true },
+      }),
+    ).toEqual({ activeChallengerSubjectKey: null });
+    await expect(
+      service.transitionChallenge(legacyDuplicate.id, author, {
+        expectedRevision: 0,
+        toStatus: "author-responded",
+      }),
+    ).resolves.toEqual({ revision: 1, status: "author-responded" });
+  });
+
   it("caps active challenges per exact subject under a concurrent boundary race without rejection audits", async () => {
     const seeded = await fixture("subject-cap");
     const subject = { type: "claim" as const, claimId: seeded.claim.id };

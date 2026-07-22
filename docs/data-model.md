@@ -117,7 +117,10 @@ suffix, and arrays are JSON-encoded strings. Switching to PostgreSQL is a dataso
   `author-responded`) challenges may target one canonical subject. A nullable unique digest of
   challenger plus subject hash prevents concurrent duplicate active filings on both SQLite and
   PostgreSQL; terminal transitions clear it atomically so a later filing is possible. Terminal
-  states cannot transition.
+  states cannot transition. Pre-J03 active rows acquire the key lazily on list, filing, or
+  transition. If legacy data already contains duplicates, the oldest `(createdAt, id)` row owns
+  the key; all duplicates remain visible and transitionable, and ownership advances after terminal
+  closure.
 - `Submission.submittedPayloadJson` is the immutable snapshot of exactly what the submitter
   finalized, including the versioned node-extraction report. Editorial acceptance rechecks those
   candidates against the consumed capture. `acceptedNodeSelectionJson` stores the editor's sorted
