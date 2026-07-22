@@ -949,6 +949,10 @@ model Challenge {
   /// Canonical digest of the immutable filed grounds/body and subject binding.
   filedContentHash        String
   challengerId            String
+  /// SHA-256(challenger + exact subject hash) while the challenge is active.
+  /// Nullable uniqueness is portable across SQLite/PostgreSQL and prevents
+  /// concurrent duplicate filings without a provider-specific partial index.
+  activeChallengerSubjectKey String? @unique
   /// open | author-responded | resolved | dismissed | withdrawn
   status                  String   @default("open")
   revision                Int      @default(0)

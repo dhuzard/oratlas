@@ -769,3 +769,13 @@ rewriting the historical implementation record.
   TRUST assessment provenance, and limited criterion options to persisted contract-valid values.
   Reads and writes now validate the full ledger projection plus a filed-content hash carried by the
   filing transition and audit trail.
+
+## 2026-07-22 — ORA-J03 public-write abuse controls
+
+- Capped each exact canonical subject at ten active formal challenges, counting both `open` and
+  `author-responded` exchanges and releasing capacity only at a terminal lifecycle transition.
+- Added a SQLite/PostgreSQL-portable nullable unique active challenger/subject digest so concurrent
+  duplicate filings produce one winner and a typed conflict instead of duplicate records.
+- Re-evaluate caps after bounded serialization retries; duplicate and cap rejections happen before
+  the append-only filing ledger and audit event, so rejected abuse traffic does not create audit
+  noise. Existing comment body and ten-per-minute limits remain regression-covered.
