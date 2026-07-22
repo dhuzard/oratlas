@@ -638,6 +638,11 @@ CREATE TABLE "ChallengeTransition" (
     "actorId" TEXT NOT NULL,
     "actorRoleSnapshot" TEXT NOT NULL,
     "rationale" TEXT,
+    "conflictOfInterestStatus" TEXT,
+    "administratorOverride" BOOLEAN NOT NULL DEFAULT false,
+    "administratorOverrideById" TEXT,
+    "administratorOverrideGithubLoginSnapshot" TEXT,
+    "administratorOverrideAt" TIMESTAMP(3),
     "responseContentHash" TEXT,
     "filedContentHash" TEXT NOT NULL,
     "revision" INTEGER NOT NULL,
@@ -2099,6 +2104,14 @@ ALTER TABLE "NodeIdentityProposal" ADD CONSTRAINT "NodeIdentityProposal_status_c
     "kind" = 'same-claim' AND "sourceNodeId" <> "targetNodeId" AND "revision" >= 0
     AND (("status" = 'proposed' AND "revision" = 0 AND "reviewedById" IS NULL AND "reviewedAt" IS NULL AND "reviewNote" IS NULL)
       OR ("status" IN ('confirmed', 'rejected') AND "revision" >= 1 AND "reviewedById" IS NOT NULL AND "reviewedAt" IS NOT NULL AND "reviewNote" IS NOT NULL))
+  );
+
+ALTER TABLE "ChallengeTransition" DROP CONSTRAINT IF EXISTS "ChallengeTransition_coi_check";
+
+ALTER TABLE "ChallengeTransition" ADD CONSTRAINT "ChallengeTransition_coi_check" CHECK (
+    ("conflictOfInterestStatus" IS NULL OR ("toStatus" IN ('resolved', 'dismissed') AND "conflictOfInterestStatus" IN ('none-declared', 'conflict-declared', 'not-provided')))
+    AND (("administratorOverride" = false AND "administratorOverrideById" IS NULL AND "administratorOverrideGithubLoginSnapshot" IS NULL AND "administratorOverrideAt" IS NULL)
+      OR ("administratorOverride" = true AND "toStatus" IN ('resolved', 'dismissed') AND "conflictOfInterestStatus" = 'conflict-declared' AND "actorRoleSnapshot" = 'ADMIN' AND "administratorOverrideById" = "actorId" AND "administratorOverrideGithubLoginSnapshot" IS NOT NULL AND "administratorOverrideAt" IS NOT NULL))
   );
 
 CREATE OR REPLACE FUNCTION "oratlas_validate_synthesis_membership_reference"() RETURNS trigger AS $$

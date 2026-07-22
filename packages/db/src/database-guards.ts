@@ -9,6 +9,7 @@ export const DATABASE_GUARD_NAMES = [
   "SynthesisStalenessEvaluation_status_check",
   "SynthesisRegenerationProposal_status_check",
   "NodeIdentityProposal_status_check",
+  "ChallengeTransition_coi_check",
 ] as const;
 
 export const POSTGRES_DATABASE_GUARD_TRIGGER_NAMES = [
@@ -60,6 +61,12 @@ export const POSTGRES_DATABASE_GUARD_SQL = [
     "kind" = 'same-claim' AND "sourceNodeId" <> "targetNodeId" AND "revision" >= 0
     AND (("status" = 'proposed' AND "revision" = 0 AND "reviewedById" IS NULL AND "reviewedAt" IS NULL AND "reviewNote" IS NULL)
       OR ("status" IN ('confirmed', 'rejected') AND "revision" >= 1 AND "reviewedById" IS NOT NULL AND "reviewedAt" IS NOT NULL AND "reviewNote" IS NOT NULL))
+  )`,
+  'ALTER TABLE "ChallengeTransition" DROP CONSTRAINT IF EXISTS "ChallengeTransition_coi_check"',
+  `ALTER TABLE "ChallengeTransition" ADD CONSTRAINT "ChallengeTransition_coi_check" CHECK (
+    ("conflictOfInterestStatus" IS NULL OR ("toStatus" IN ('resolved', 'dismissed') AND "conflictOfInterestStatus" IN ('none-declared', 'conflict-declared', 'not-provided')))
+    AND (("administratorOverride" = false AND "administratorOverrideById" IS NULL AND "administratorOverrideGithubLoginSnapshot" IS NULL AND "administratorOverrideAt" IS NULL)
+      OR ("administratorOverride" = true AND "toStatus" IN ('resolved', 'dismissed') AND "conflictOfInterestStatus" = 'conflict-declared' AND "actorRoleSnapshot" = 'ADMIN' AND "administratorOverrideById" = "actorId" AND "administratorOverrideGithubLoginSnapshot" IS NOT NULL AND "administratorOverrideAt" IS NOT NULL))
   )`,
   `CREATE OR REPLACE FUNCTION "oratlas_validate_synthesis_membership_reference"() RETURNS trigger AS $$
   BEGIN
@@ -142,6 +149,11 @@ const sqliteGuardConditions = {
     NEW."kind" = 'same-claim' AND NEW."sourceNodeId" <> NEW."targetNodeId" AND NEW."revision" >= 0
     AND ((NEW."status" = 'proposed' AND NEW."revision" = 0 AND NEW."reviewedById" IS NULL AND NEW."reviewedAt" IS NULL AND NEW."reviewNote" IS NULL)
       OR (NEW."status" IN ('confirmed', 'rejected') AND NEW."revision" >= 1 AND NEW."reviewedById" IS NOT NULL AND NEW."reviewedAt" IS NOT NULL AND NEW."reviewNote" IS NOT NULL))
+    THEN 1 ELSE 0 END`,
+  ChallengeTransition: `CASE WHEN
+    (NEW."conflictOfInterestStatus" IS NULL OR (NEW."toStatus" IN ('resolved', 'dismissed') AND NEW."conflictOfInterestStatus" IN ('none-declared', 'conflict-declared', 'not-provided')))
+    AND ((NEW."administratorOverride" = 0 AND NEW."administratorOverrideById" IS NULL AND NEW."administratorOverrideGithubLoginSnapshot" IS NULL AND NEW."administratorOverrideAt" IS NULL)
+      OR (NEW."administratorOverride" = 1 AND NEW."toStatus" IN ('resolved', 'dismissed') AND NEW."conflictOfInterestStatus" = 'conflict-declared' AND NEW."actorRoleSnapshot" = 'ADMIN' AND NEW."administratorOverrideById" = NEW."actorId" AND NEW."administratorOverrideGithubLoginSnapshot" IS NOT NULL AND NEW."administratorOverrideAt" IS NOT NULL))
     THEN 1 ELSE 0 END`,
 } as const;
 

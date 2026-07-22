@@ -1018,19 +1018,26 @@ model ChallengeResponse {
 /// Append-only challenge lifecycle ledger. The nullable initial fromStatus
 /// records attributed filing as the first lifecycle event.
 model ChallengeTransition {
-  id                String   @id @default(cuid())
-  challengeId       String
-  fromStatus        String?
-  toStatus          String
-  actorId           String
-  actorRoleSnapshot String
-  rationale         String?
+  id                                       String    @id @default(cuid())
+  challengeId                              String
+  fromStatus                               String?
+  toStatus                                 String
+  actorId                                  String
+  actorRoleSnapshot                        String
+  rationale                                String?
+  /// Immutable public tri-state snapshot; null only on legacy/non-outcome rows.
+  conflictOfInterestStatus                 String?
+  /// Exceptional direct-self-involvement path. Public DTOs expose login/time, never role snapshots.
+  administratorOverride                    Boolean   @default(false)
+  administratorOverrideById                String?
+  administratorOverrideGithubLoginSnapshot String?
+  administratorOverrideAt                  DateTime?
   /// Present only on open -> author-responded; binds that event to ChallengeResponse.
-  responseContentHash String?
+  responseContentHash                      String?
   /// Binds every ledger event to the immutable content filed at revision zero.
-  filedContentHash  String
-  revision          Int
-  createdAt         DateTime @default(now())
+  filedContentHash                         String
+  revision                                 Int
+  createdAt                                DateTime  @default(now())
 
   challenge Challenge @relation(fields: [challengeId], references: [id])
   actor     User      @relation("challengeTransitionActor", fields: [actorId], references: [id])

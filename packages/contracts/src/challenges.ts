@@ -1,4 +1,8 @@
 import { z } from "zod";
+import {
+  conflictOfInterestSnapshotSchema,
+  publicConflictOverrideSchema,
+} from "./conflicts-of-interest.js";
 
 export const CHALLENGE_SUBJECT_TYPES = ["claim", "relation", "assessment-criterion"] as const;
 export const challengeSubjectTypeSchema = z.enum(CHALLENGE_SUBJECT_TYPES);
@@ -49,21 +53,63 @@ export const createChallengeInputSchema = z.object({
 });
 export type CreateChallengeInput = z.infer<typeof createChallengeInputSchema>;
 
-export const transitionChallengeInputSchema = z.object({
-  expectedRevision: z.number().int().nonnegative(),
-  toStatus: challengeStatusSchema.exclude(["open"]),
-  rationale: z.string().trim().min(1).max(CHALLENGE_RATIONALE_MAX).optional(),
-});
+export const transitionChallengeInputSchema = z
+  .object({
+    expectedRevision: z.number().int().nonnegative(),
+    toStatus: challengeStatusSchema.exclude(["open"]),
+    rationale: z.string().trim().min(1).max(CHALLENGE_RATIONALE_MAX).optional(),
+    conflictOfInterest: conflictOfInterestSnapshotSchema.optional(),
+    administratorOverride: z.literal(true).optional(),
+  })
+  .strict()
+  .superRefine((input, context) => {
+    const outcome = input.toStatus === "resolved" || input.toStatus === "dismissed";
+    if (outcome && !input.conflictOfInterest) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["conflictOfInterest"],
+        message: "Editorial outcomes require a conflict-of-interest snapshot.",
+      });
+    }
+    if (!outcome && (input.conflictOfInterest || input.administratorOverride)) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Conflict snapshots and overrides apply only to editorial outcomes.",
+      });
+    }
+    if (input.administratorOverride && input.conflictOfInterest?.status !== "conflict-declared") {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["administratorOverride"],
+        message: "An administrator override requires conflict-declared.",
+      });
+    }
+  });
 export type TransitionChallengeInput = z.infer<typeof transitionChallengeInputSchema>;
 
-export const challengeTransitionSchema = z.object({
-  id: z.string(),
-  fromStatus: challengeStatusSchema.nullable(),
-  toStatus: challengeStatusSchema,
-  actor: z.object({ githubLogin: z.string() }),
-  revision: z.number().int().nonnegative(),
-  createdAt: z.string(),
-});
+export const challengeTransitionSchema = z
+  .object({
+    id: z.string(),
+    fromStatus: challengeStatusSchema.nullable(),
+    toStatus: challengeStatusSchema,
+    actor: z.object({ githubLogin: z.string() }),
+    conflictOfInterest: conflictOfInterestSnapshotSchema,
+    administratorOverride: publicConflictOverrideSchema.optional(),
+    revision: z.number().int().nonnegative(),
+    createdAt: z.string(),
+  })
+  .superRefine((transition, context) => {
+    if (
+      transition.administratorOverride &&
+      transition.conflictOfInterest.status !== "conflict-declared"
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["administratorOverride"],
+        message: "A public administrator override requires conflict-declared.",
+      });
+    }
+  });
 
 export const challengeContentStatusSchema = z.enum(["visible", "removed"]);
 export type ChallengeContentStatus = z.infer<typeof challengeContentStatusSchema>;

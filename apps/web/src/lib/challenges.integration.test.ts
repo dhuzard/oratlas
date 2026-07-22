@@ -44,6 +44,14 @@ const editor = {
   profileUrl: null,
   role: "EDITOR" as const,
 };
+const administrator = {
+  id: "",
+  githubLogin: "challenge-admin",
+  displayName: null,
+  avatarUrl: null,
+  profileUrl: null,
+  role: "ADMIN" as const,
+};
 
 async function createActor(suffix: string) {
   const row = await prisma.user.create({
@@ -94,7 +102,7 @@ beforeAll(async () => {
   }
   ({ prisma } = await import("./db"));
   service = await import("./challenges");
-  for (const actor of [challenger, author, editor]) {
+  for (const actor of [challenger, author, editor, administrator]) {
     const row = await prisma.user.create({
       data: { githubLogin: actor.githubLogin, githubUserId: actor.githubLogin, role: actor.role },
     });
@@ -187,6 +195,105 @@ async function fixture(suffix: string) {
 }
 
 describe.sequential("formal challenge persistence and lifecycle", () => {
+  it("publishes tri-state COI and enforces recusal with only an explicit ADMIN override", async () => {
+    const normal = await fixture("coi-normal");
+    const normalBinding = await service.resolveChallengeSubject(prisma, normal.version.id, {
+      type: "claim",
+      claimId: normal.claim.id,
+    });
+    const normalChallenge = await service.createChallenge(normal.review.slug, challenger, {
+      reviewVersionId: normal.version.id,
+      subject: { type: "claim", claimId: normal.claim.id },
+      canonicalSubjectHash: normalBinding.hash,
+      grounds: "other",
+      body: "A normal challenge outcome with public COI provenance.",
+    });
+    await service.createChallengeResponse(normalChallenge.id, author, {
+      expectedRevision: 0,
+      body: "Contributor response.",
+    });
+    await service.transitionChallenge(normalChallenge.id, editor, {
+      expectedRevision: 1,
+      toStatus: "resolved",
+      rationale: "PRIVATE-COI-NORMAL-RATIONALE",
+      conflictOfInterest: { status: "none-declared" },
+    });
+
+    const self = await fixture("coi-self-editor");
+    const selfBinding = await service.resolveChallengeSubject(prisma, self.version.id, {
+      type: "claim",
+      claimId: self.claim.id,
+    });
+    const selfChallenge = await service.createChallenge(self.review.slug, editor, {
+      reviewVersionId: self.version.id,
+      subject: { type: "claim", claimId: self.claim.id },
+      canonicalSubjectHash: selfBinding.hash,
+      grounds: "other",
+      body: "The resolving editor filed this challenge.",
+    });
+    await service.createChallengeResponse(selfChallenge.id, author, {
+      expectedRevision: 0,
+      body: "Contributor response.",
+    });
+    await expect(
+      service.transitionChallenge(selfChallenge.id, editor, {
+        expectedRevision: 1,
+        toStatus: "dismissed",
+        rationale: "The editor cannot dismiss their own challenge.",
+        conflictOfInterest: { status: "conflict-declared" },
+      }),
+    ).rejects.toMatchObject({ code: "forbidden", message: expect.stringContaining("recusal") });
+    await expect(
+      service.transitionChallenge(selfChallenge.id, editor, {
+        expectedRevision: 1,
+        toStatus: "dismissed",
+        rationale: "An editor cannot exercise the administrator exception.",
+        conflictOfInterest: { status: "conflict-declared" },
+        administratorOverride: true,
+      }),
+    ).rejects.toMatchObject({ code: "forbidden" });
+
+    const adminSelf = await fixture("coi-self-admin");
+    const adminBinding = await service.resolveChallengeSubject(prisma, adminSelf.version.id, {
+      type: "claim",
+      claimId: adminSelf.claim.id,
+    });
+    const adminChallenge = await service.createChallenge(adminSelf.review.slug, administrator, {
+      reviewVersionId: adminSelf.version.id,
+      subject: { type: "claim", claimId: adminSelf.claim.id },
+      canonicalSubjectHash: adminBinding.hash,
+      grounds: "other",
+      body: "The administrator filed this challenge.",
+    });
+    await service.createChallengeResponse(adminChallenge.id, author, {
+      expectedRevision: 0,
+      body: "Contributor response.",
+    });
+    await service.transitionChallenge(adminChallenge.id, administrator, {
+      expectedRevision: 1,
+      toStatus: "resolved",
+      rationale: "PRIVATE-ADMIN-OVERRIDE-RATIONALE",
+      conflictOfInterest: { status: "conflict-declared" },
+      administratorOverride: true,
+    });
+
+    const normalPublic = await service.listChallenges(normal.review.slug, normal.version.id);
+    expect(normalPublic?.challenges[0]?.transitions.at(-1)).toMatchObject({
+      conflictOfInterest: { status: "none-declared" },
+    });
+    const adminPublic = await service.listChallenges(adminSelf.review.slug, adminSelf.version.id);
+    const serialized = JSON.stringify(adminPublic);
+    expect(adminPublic?.challenges[0]?.transitions.at(-1)).toMatchObject({
+      conflictOfInterest: { status: "conflict-declared" },
+      administratorOverride: {
+        administrator: { githubLogin: administrator.githubLogin },
+      },
+    });
+    expect(serialized).not.toContain("PRIVATE-ADMIN-OVERRIDE-RATIONALE");
+    expect(serialized).not.toContain("actorRoleSnapshot");
+    expect(serialized).not.toContain(administrator.id);
+  });
+
   it("files an attributed challenge without mutating its exact subject", async () => {
     const seeded = await fixture("one");
     const subject = {

@@ -4,6 +4,7 @@ import {
   challengeContentStatusSchema,
   challengeGroundsSchema,
   challengeStatusSchema,
+  conflictOfInterestStatusSchema,
   isExactCommitSha,
   isLegalChallengeTransition,
   trustCriterionAssessmentSchema,
@@ -358,6 +359,11 @@ type LedgerChallenge = ChallengeContent & {
     toStatus: string;
     rationale: string | null;
     responseContentHash: string | null;
+    conflictOfInterestStatus: string | null;
+    administratorOverride: boolean;
+    administratorOverrideById: string | null;
+    administratorOverrideGithubLoginSnapshot: string | null;
+    administratorOverrideAt: Date | null;
     revision: number;
     actor: { id: string; githubLogin: string; role: string };
   }>;
@@ -391,7 +397,9 @@ function assertChallengeLedger(row: LedgerChallenge, expectedActiveKey: string |
       event.actor.id !== event.actorId ||
       !event.actor.githubLogin ||
       !userRoleSchema.safeParse(event.actor.role).success ||
-      !userRoleSchema.safeParse(event.actorRoleSnapshot).success
+      !userRoleSchema.safeParse(event.actorRoleSnapshot).success ||
+      (event.conflictOfInterestStatus !== null &&
+        !conflictOfInterestStatusSchema.safeParse(event.conflictOfInterestStatus).success)
     ) {
       throw new ChallengeError("Challenge lifecycle ledger is invalid.", "conflict");
     }
@@ -401,7 +409,9 @@ function assertChallengeLedger(row: LedgerChallenge, expectedActiveKey: string |
         event.toStatus !== "open" ||
         event.actorId !== row.challengerId ||
         event.rationale !== null ||
-        event.responseContentHash !== null
+        event.responseContentHash !== null ||
+        event.conflictOfInterestStatus !== null ||
+        event.administratorOverride
       ) {
         throw new ChallengeError("Challenge filing event is invalid.", "conflict");
       }
@@ -414,6 +424,32 @@ function assertChallengeLedger(row: LedgerChallenge, expectedActiveKey: string |
         (!event.rationale || !["EDITOR", "ADMIN"].includes(event.actorRoleSnapshot))
       ) {
         throw new ChallengeError("Challenge editorial outcome evidence is invalid.", "conflict");
+      }
+      const isOutcome = to.data === "resolved" || to.data === "dismissed";
+      if (!isOutcome && (event.conflictOfInterestStatus !== null || event.administratorOverride)) {
+        throw new ChallengeError(
+          "Challenge COI evidence is attached to a non-outcome.",
+          "conflict",
+        );
+      }
+      const overrideFields = [
+        event.administratorOverrideById,
+        event.administratorOverrideGithubLoginSnapshot,
+        event.administratorOverrideAt,
+      ];
+      if (
+        event.administratorOverride
+          ? event.actorRoleSnapshot !== "ADMIN" ||
+            event.administratorOverrideById !== event.actorId ||
+            !event.administratorOverrideGithubLoginSnapshot ||
+            !event.administratorOverrideAt ||
+            event.conflictOfInterestStatus !== "conflict-declared"
+          : overrideFields.some((value) => value !== null)
+      ) {
+        throw new ChallengeError(
+          "Challenge administrator override evidence is invalid.",
+          "conflict",
+        );
       }
       if (to.data === "withdrawn" && event.actorId !== row.challengerId) {
         throw new ChallengeError("Challenge withdrawal evidence is invalid.", "conflict");
@@ -802,6 +838,7 @@ export async function transitionChallenge(
               },
             },
             response: true,
+            assessment: { include: { verification: true } },
             transitions: { include: { actor: true }, orderBy: { revision: "asc" } },
           },
         });
@@ -857,6 +894,47 @@ export async function transitionChallenge(
         }
         if (["resolved", "dismissed"].includes(input.toStatus) && !input.rationale)
           throw new ChallengeError("A rationale is required for an editorial outcome.");
+        const isOutcome = input.toStatus === "resolved" || input.toStatus === "dismissed";
+        const conflictOfInterestStatus = isOutcome
+          ? (input.conflictOfInterest?.status ?? "not-provided")
+          : null;
+        const contributor = isOutcome
+          ? await contributorOfRecord(tx, challenge.reviewVersionId, actor)
+          : null;
+        const actorLogin = actor.githubLogin.normalize("NFKC").toLowerCase();
+        const assessmentAssessor = challenge.assessment?.assessorId
+          ?.normalize("NFKC")
+          .toLowerCase();
+        const directlyInvolved = Boolean(
+          isOutcome &&
+          (challenge.challengerId === actor.id ||
+            challenge.response?.responderId === actor.id ||
+            contributor ||
+            assessmentAssessor === actorLogin ||
+            challenge.assessment?.verification?.reviewerId === actor.id),
+        );
+        if (directlyInvolved && !input.administratorOverride) {
+          throw new ChallengeError(
+            "Direct self-involvement requires recusal or an explicit administrator override.",
+            "forbidden",
+          );
+        }
+        if (input.administratorOverride) {
+          if (!directlyInvolved)
+            throw new ChallengeError(
+              "An administrator override is valid only for direct self-involvement.",
+            );
+          if (actor.role !== "ADMIN")
+            throw new ChallengeError(
+              "Administrator role required for a recusal override.",
+              "forbidden",
+            );
+          if (conflictOfInterestStatus !== "conflict-declared")
+            throw new ChallengeError(
+              "An administrator override requires a conflict-declared snapshot.",
+            );
+        }
+        const outcomeAt = new Date();
         const revision = challenge.revision + 1;
         const claimed = await tx.challenge.updateMany({
           where: { id: challenge.id, revision: input.expectedRevision, status: from },
@@ -881,6 +959,14 @@ export async function transitionChallenge(
             actorRoleSnapshot: actor.role,
             filedContentHash: challenge.filedContentHash,
             rationale: input.rationale,
+            conflictOfInterestStatus,
+            administratorOverride: input.administratorOverride ?? false,
+            administratorOverrideById: input.administratorOverride ? actor.id : null,
+            administratorOverrideGithubLoginSnapshot: input.administratorOverride
+              ? actor.githubLogin
+              : null,
+            administratorOverrideAt: input.administratorOverride ? outcomeAt : null,
+            createdAt: outcomeAt,
             revision,
           },
         });
@@ -894,6 +980,8 @@ export async function transitionChallenge(
               fromStatus: from,
               filedContentHash: challenge.filedContentHash,
               rationale: input.rationale,
+              conflictOfInterestStatus,
+              administratorOverride: input.administratorOverride ?? false,
               revision,
               toStatus: input.toStatus,
             }),
@@ -1014,6 +1102,19 @@ export async function listChallenges(
           fromStatus: event.fromStatus as ChallengeStatus | null,
           toStatus: event.toStatus as ChallengeStatus,
           actor: { githubLogin: event.actor.githubLogin },
+          conflictOfInterest: {
+            status: conflictOfInterestStatusSchema.parse(
+              event.conflictOfInterestStatus ?? "not-provided",
+            ),
+          },
+          administratorOverride: event.administratorOverride
+            ? {
+                administrator: {
+                  githubLogin: event.administratorOverrideGithubLoginSnapshot!,
+                },
+                exercisedAt: event.administratorOverrideAt!.toISOString(),
+              }
+            : undefined,
           revision: event.revision,
           createdAt: event.createdAt.toISOString(),
         })),

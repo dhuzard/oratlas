@@ -287,7 +287,7 @@ export default async function EditorialPage({
         Active immutable challenges requiring a contributor response or human editorial outcome.
         Outcome rationales are retained as editorial-only records.
       </p>
-      <ChallengeQueuePanel items={challengePage.items} />
+      <ChallengeQueuePanel items={challengePage.items} isAdministrator={user.role === "ADMIN"} />
       {challengePage.nextCursor ? (
         <p>
           <a href={`/editorial?challengeCursor=${encodeURIComponent(challengePage.nextCursor)}`}>

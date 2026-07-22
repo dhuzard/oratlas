@@ -127,7 +127,11 @@ export function ChallengesSection({
                   {challenge.transitions.map((transition) => (
                     <li key={transition.id}>
                       {transition.toStatus.replace(/-/g, " ")} · @{transition.actor.githubLogin} (
-                      recorded {transition.createdAt.slice(0, 10)})
+                      recorded {transition.createdAt.slice(0, 10)}) · COI:{" "}
+                      {transition.conflictOfInterest.status.replace(/-/g, " ")}
+                      {transition.administratorOverride
+                        ? ` · administrator override by @${transition.administratorOverride.administrator.githubLogin}`
+                        : ""}
                     </li>
                   ))}
                 </ol>

@@ -1,10 +1,19 @@
 "use client";
 
 import { useState } from "react";
+import type { ConflictOfInterestStatus } from "@oratlas/contracts";
 import type { ChallengeQueueItem } from "@/lib/challenges";
 
-export function ChallengeQueuePanel({ items }: { items: ChallengeQueueItem[] }) {
+export function ChallengeQueuePanel({
+  items,
+  isAdministrator,
+}: {
+  items: ChallengeQueueItem[];
+  isAdministrator: boolean;
+}) {
   const [rationales, setRationales] = useState<Record<string, string>>({});
+  const [conflicts, setConflicts] = useState<Record<string, ConflictOfInterestStatus>>({});
+  const [overrides, setOverrides] = useState<Record<string, boolean>>({});
   const [message, setMessage] = useState("");
 
   async function mutate(path: string, payload: unknown) {
@@ -72,6 +81,8 @@ export function ChallengeQueuePanel({ items }: { items: ChallengeQueueItem[] }) 
                   expectedRevision: item.revision,
                   toStatus: submitter.value,
                   rationale: rationales[item.id] ?? "",
+                  conflictOfInterest: { status: conflicts[item.id] ?? "not-provided" },
+                  ...(overrides[item.id] ? { administratorOverride: true } : {}),
                 });
               }}
             >
@@ -86,6 +97,37 @@ export function ChallengeQueuePanel({ items }: { items: ChallengeQueueItem[] }) 
                   }
                 />
               </label>
+              <label>
+                Conflict-of-interest declaration (public, immutable)
+                <select
+                  value={conflicts[item.id] ?? "not-provided"}
+                  onChange={(event) =>
+                    setConflicts((current) => ({
+                      ...current,
+                      [item.id]: event.target.value as ConflictOfInterestStatus,
+                    }))
+                  }
+                >
+                  <option value="none-declared">None declared</option>
+                  <option value="conflict-declared">Conflict declared</option>
+                  <option value="not-provided">Not provided</option>
+                </select>
+              </label>
+              {isAdministrator ? (
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={overrides[item.id] ?? false}
+                    onChange={(event) =>
+                      setOverrides((current) => ({
+                        ...current,
+                        [item.id]: event.target.checked,
+                      }))
+                    }
+                  />{" "}
+                  Public audited administrator override for direct self-involvement
+                </label>
+              ) : null}
               <button type="submit" value="resolved">
                 Resolve
               </button>{" "}
