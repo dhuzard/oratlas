@@ -92,7 +92,8 @@ export function ChallengesSection({
               </p>
               <details>
                 <summary>Lifecycle and immutable binding</summary>
-                <p className="mono">sha256:{challenge.canonicalSubjectHash}</p>
+                <p className="mono">subject sha256:{challenge.canonicalSubjectHash}</p>
+                <p className="mono">filed content sha256:{challenge.filedContentHash}</p>
                 <ol>
                   {challenge.transitions.map((transition) => (
                     <li key={transition.id}>

@@ -99,4 +99,7 @@ Each route verifies that the version belongs to the slug and reads the selected 
 snapshot, repository, metadata, claims, citations, identifiers, and version-bound discussion.
 Historical pages never post, reply to, or remove comments.
 Challenges deliberately remain version-scoped on historical pages: their target binding includes
-the exact version and is re-hashed on every public read. A challenge does not mutate that subject.
+the exact version, both endpoints for a relation, and canonical TRUST provenance for an assessment
+criterion, and is re-hashed on every public read. Only persisted contract-valid criterion instances
+are challengeable. A separate public hash makes the originally filed grounds/body and subject
+binding tamper-evident. A challenge does not mutate that subject.

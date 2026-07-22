@@ -25,6 +25,10 @@ editorial outcome. It MUST NOT be presented as a scientific-truth verdict and ne
 target record, TRUST criteria, compatibility, or review lifecycle. Filing and transitions use
 authenticated exact-same-origin JSON, bounded contracts, rate limits, optimistic revisions, an
 append-only `ChallengeTransition`, and an `AuditEvent`.
+Before a challenge is displayed or advanced, the server reconstructs its complete revision-zero
+ledger through the final mutable projection and verifies the canonical hash of its immutable filed
+grounds, body, challenger, and exact subject binding. Missing, extra, illegal, or tampered events
+fail closed.
 
 ## What acceptance means (and does not)
 

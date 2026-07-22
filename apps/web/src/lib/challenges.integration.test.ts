@@ -154,7 +154,7 @@ async function fixture(suffix: string) {
       entailment: '{"rating":"high","status":"assessed"}',
     },
   });
-  return { review, version, claim, relation, assessment };
+  return { review, version, claim, citation, relation, assessment };
 }
 
 describe.sequential("formal challenge persistence and lifecycle", () => {
@@ -179,14 +179,22 @@ describe.sequential("formal challenge persistence and lifecycle", () => {
     expect(
       await prisma.trustAssessment.findUniqueOrThrow({ where: { id: seeded.assessment.id } }),
     ).toEqual(before);
+    const storedChallenge = await prisma.challenge.findUniqueOrThrow({ where: { id: created.id } });
     expect(
       await prisma.challengeTransition.findMany({ where: { challengeId: created.id } }),
-    ).toMatchObject([{ fromStatus: null, toStatus: "open", actorId: challenger.id, revision: 0 }]);
-    expect(
-      await prisma.auditEvent.findFirst({
-        where: { subjectId: created.id, action: "challenge.filed" },
-      }),
-    ).not.toBeNull();
+    ).toMatchObject([
+      {
+        fromStatus: null,
+        toStatus: "open",
+        actorId: challenger.id,
+        filedContentHash: storedChallenge.filedContentHash,
+        revision: 0,
+      },
+    ]);
+    const filingAudit = await prisma.auditEvent.findFirst({
+      where: { subjectId: created.id, action: "challenge.filed" },
+    });
+    expect(filingAudit?.detailsJson).toContain(storedChallenge.filedContentHash);
     const listed = await service.listChallenges(seeded.review.slug, seeded.version.id);
     expect(listed?.challenges[0]).toMatchObject({
       id: created.id,
@@ -308,5 +316,377 @@ describe.sequential("formal challenge persistence and lifecycle", () => {
         toStatus: "author-responded",
       }),
     ).rejects.toMatchObject({ code: "forbidden" });
+  });
+
+  it("rejects cross-version claims, relation endpoints, and assessment criteria", async () => {
+    const first = await fixture("cross-a");
+    const second = await fixture("cross-b");
+    await expect(
+      service.resolveChallengeSubject(prisma, second.version.id, {
+        type: "claim",
+        claimId: first.claim.id,
+      }),
+    ).rejects.toMatchObject({ code: "not-found" });
+
+    const relation = await prisma.claimEvidenceRelation.create({
+      data: {
+        claimId: first.claim.id,
+        citationId: second.citation.id,
+        relationType: "supports",
+      },
+    });
+    await expect(
+      service.resolveChallengeSubject(prisma, first.version.id, {
+        type: "relation",
+        relationId: relation.id,
+      }),
+    ).rejects.toMatchObject({ code: "not-found" });
+
+    const assessment = await prisma.trustAssessment.create({
+      data: {
+        claimEvidenceRelationId: relation.id,
+        protocolVersion: "trust-v1",
+        assessorType: "human",
+        entailment: '{"rating":"high","status":"assessed"}',
+      },
+    });
+    await expect(
+      service.resolveChallengeSubject(prisma, first.version.id, {
+        type: "assessment-criterion",
+        assessmentId: assessment.id,
+        criterion: "entailment",
+      }),
+    ).rejects.toMatchObject({ code: "not-found" });
+  });
+
+  it("binds all semantic bytes and fails closed when each target type mutates", async () => {
+    const claimFixture = await fixture("mutate-claim");
+    const claimSubject = { type: "claim" as const, claimId: claimFixture.claim.id };
+    const claimBinding = await service.resolveChallengeSubject(
+      prisma,
+      claimFixture.version.id,
+      claimSubject,
+    );
+    const claimChallenge = await service.createChallenge(claimFixture.review.slug, challenger, {
+      reviewVersionId: claimFixture.version.id,
+      subject: claimSubject,
+      canonicalSubjectHash: claimBinding.hash,
+      grounds: "methodology",
+      body: "The declared scope is material.",
+    });
+    await prisma.claim.update({
+      where: { id: claimFixture.claim.id },
+      data: { scopeJson: '{"population":"changed"}' },
+    });
+    expect(
+      (await service.listChallenges(claimFixture.review.slug, claimFixture.version.id))?.challenges,
+    ).toEqual([]);
+    await expect(
+      service.transitionChallenge(claimChallenge.id, author, {
+        expectedRevision: 0,
+        toStatus: "author-responded",
+      }),
+    ).rejects.toMatchObject({ code: "conflict" });
+
+    const relationFixture = await fixture("mutate-relation");
+    const relationSubject = {
+      type: "relation" as const,
+      relationId: relationFixture.relation.id,
+    };
+    const relationBinding = await service.resolveChallengeSubject(
+      prisma,
+      relationFixture.version.id,
+      relationSubject,
+    );
+    const relationChallenge = await service.createChallenge(
+      relationFixture.review.slug,
+      challenger,
+      {
+        reviewVersionId: relationFixture.version.id,
+        subject: relationSubject,
+        canonicalSubjectHash: relationBinding.hash,
+        grounds: "identity",
+        body: "The exact citation identity is material.",
+      },
+    );
+    await prisma.citation.update({
+      where: { id: relationFixture.citation.id },
+      data: { doi: "10.1000/changed" },
+    });
+    expect(
+      (await service.listChallenges(relationFixture.review.slug, relationFixture.version.id))
+        ?.challenges,
+    ).toEqual([]);
+    await expect(
+      service.transitionChallenge(relationChallenge.id, author, {
+        expectedRevision: 0,
+        toStatus: "author-responded",
+      }),
+    ).rejects.toMatchObject({ code: "conflict" });
+
+    const assessmentFixture = await fixture("mutate-assessment");
+    const assessmentSubject = {
+      type: "assessment-criterion" as const,
+      assessmentId: assessmentFixture.assessment.id,
+      criterion: "entailment",
+    };
+    const assessmentBinding = await service.resolveChallengeSubject(
+      prisma,
+      assessmentFixture.version.id,
+      assessmentSubject,
+    );
+    const assessmentChallenge = await service.createChallenge(
+      assessmentFixture.review.slug,
+      challenger,
+      {
+        reviewVersionId: assessmentFixture.version.id,
+        subject: assessmentSubject,
+        canonicalSubjectHash: assessmentBinding.hash,
+        grounds: "entailment",
+        body: "The assessed criterion is material.",
+      },
+    );
+    await prisma.trustAssessment.update({
+      where: { id: assessmentFixture.assessment.id },
+      data: { protocolVersion: "trust-v2" },
+    });
+    expect(
+      (await service.listChallenges(assessmentFixture.review.slug, assessmentFixture.version.id))
+        ?.challenges,
+    ).toEqual([]);
+    await expect(
+      service.transitionChallenge(assessmentChallenge.id, author, {
+        expectedRevision: 0,
+        toStatus: "author-responded",
+      }),
+    ).rejects.toMatchObject({ code: "conflict" });
+  });
+
+  it("advertises and accepts only persisted contract-valid criterion instances", async () => {
+    const seeded = await fixture("criteria");
+    const options = await service.listChallengeSubjectOptions(seeded.version.id);
+    expect(
+      options
+        .filter((option) => option.subject.type === "assessment-criterion")
+        .map((option) => option.subject),
+    ).toEqual([
+      {
+        type: "assessment-criterion",
+        assessmentId: seeded.assessment.id,
+        criterion: "entailment",
+      },
+    ]);
+    await expect(
+      service.resolveChallengeSubject(prisma, seeded.version.id, {
+        type: "assessment-criterion",
+        assessmentId: seeded.assessment.id,
+        criterion: "sourceAccess",
+      }),
+    ).rejects.toMatchObject({ code: "not-found" });
+
+    await prisma.trustAssessment.update({
+      where: { id: seeded.assessment.id },
+      data: { sourceAccess: '{"rating":"not-assessed","status":"not-assessed"}' },
+    });
+    await expect(
+      service.resolveChallengeSubject(prisma, seeded.version.id, {
+        type: "assessment-criterion",
+        assessmentId: seeded.assessment.id,
+        criterion: "sourceAccess",
+      }),
+    ).resolves.toMatchObject({ type: "assessment-criterion", criterion: "sourceAccess" });
+
+    await prisma.trustAssessment.update({
+      where: { id: seeded.assessment.id },
+      data: { sourceAccess: '{"rating":"invented","status":"assessed"}' },
+    });
+    await expect(
+      service.resolveChallengeSubject(prisma, seeded.version.id, {
+        type: "assessment-criterion",
+        assessmentId: seeded.assessment.id,
+        criterion: "sourceAccess",
+      }),
+    ).rejects.toMatchObject({ code: "conflict" });
+    expect(
+      (await service.listChallengeSubjectOptions(seeded.version.id)).some(
+        (option) =>
+          option.subject.type === "assessment-criterion" &&
+          option.subject.criterion === "sourceAccess",
+      ),
+    ).toBe(false);
+  });
+
+  it("fails closed for filed-content and lifecycle-ledger tampering", async () => {
+    const contentFixture = await fixture("ledger-content");
+    const contentSubject = { type: "claim" as const, claimId: contentFixture.claim.id };
+    const contentBinding = await service.resolveChallengeSubject(
+      prisma,
+      contentFixture.version.id,
+      contentSubject,
+    );
+    const contentChallenge = await service.createChallenge(contentFixture.review.slug, challenger, {
+      reviewVersionId: contentFixture.version.id,
+      subject: contentSubject,
+      canonicalSubjectHash: contentBinding.hash,
+      grounds: "other",
+      body: "Immutable filed text.",
+    });
+    await prisma.challenge.update({
+      where: { id: contentChallenge.id },
+      data: { body: "Tampered filed text." },
+    });
+    expect(
+      (await service.listChallenges(contentFixture.review.slug, contentFixture.version.id))
+        ?.challenges,
+    ).toEqual([]);
+    await expect(
+      service.transitionChallenge(contentChallenge.id, author, {
+        expectedRevision: 0,
+        toStatus: "author-responded",
+      }),
+    ).rejects.toMatchObject({ code: "conflict" });
+
+    const deletedFixture = await fixture("ledger-deleted");
+    const deletedSubject = { type: "claim" as const, claimId: deletedFixture.claim.id };
+    const deletedBinding = await service.resolveChallengeSubject(
+      prisma,
+      deletedFixture.version.id,
+      deletedSubject,
+    );
+    const deletedChallenge = await service.createChallenge(deletedFixture.review.slug, challenger, {
+      reviewVersionId: deletedFixture.version.id,
+      subject: deletedSubject,
+      canonicalSubjectHash: deletedBinding.hash,
+      grounds: "other",
+      body: "Ledger deletion must fail closed.",
+    });
+    await prisma.challengeTransition.deleteMany({ where: { challengeId: deletedChallenge.id } });
+    expect(
+      (await service.listChallenges(deletedFixture.review.slug, deletedFixture.version.id))
+        ?.challenges,
+    ).toEqual([]);
+
+    const extraFixture = await fixture("ledger-extra");
+    const extraSubject = { type: "claim" as const, claimId: extraFixture.claim.id };
+    const extraBinding = await service.resolveChallengeSubject(
+      prisma,
+      extraFixture.version.id,
+      extraSubject,
+    );
+    const extraChallenge = await service.createChallenge(extraFixture.review.slug, challenger, {
+      reviewVersionId: extraFixture.version.id,
+      subject: extraSubject,
+      canonicalSubjectHash: extraBinding.hash,
+      grounds: "other",
+      body: "Extra ledger rows must fail closed.",
+    });
+    const stored = await prisma.challenge.findUniqueOrThrow({ where: { id: extraChallenge.id } });
+    await prisma.challengeTransition.create({
+      data: {
+        challengeId: extraChallenge.id,
+        fromStatus: "open",
+        toStatus: "author-responded",
+        actorId: author.id,
+        actorRoleSnapshot: author.role,
+        filedContentHash: stored.filedContentHash,
+        revision: 1,
+      },
+    });
+    expect(
+      (await service.listChallenges(extraFixture.review.slug, extraFixture.version.id))?.challenges,
+    ).toEqual([]);
+
+    const tamperedFixture = await fixture("ledger-tampered");
+    const tamperedSubject = { type: "claim" as const, claimId: tamperedFixture.claim.id };
+    const tamperedBinding = await service.resolveChallengeSubject(
+      prisma,
+      tamperedFixture.version.id,
+      tamperedSubject,
+    );
+    const tamperedChallenge = await service.createChallenge(
+      tamperedFixture.review.slug,
+      challenger,
+      {
+        reviewVersionId: tamperedFixture.version.id,
+        subject: tamperedSubject,
+        canonicalSubjectHash: tamperedBinding.hash,
+        grounds: "other",
+        body: "Ledger status tampering must fail closed.",
+      },
+    );
+    await prisma.challengeTransition.update({
+      where: { challengeId_revision: { challengeId: tamperedChallenge.id, revision: 0 } },
+      data: { toStatus: "invented", actorRoleSnapshot: "INVENTED" },
+    });
+    expect(
+      (await service.listChallenges(tamperedFixture.review.slug, tamperedFixture.version.id))
+        ?.challenges,
+    ).toEqual([]);
+    await expect(
+      service.transitionChallenge(tamperedChallenge.id, author, {
+        expectedRevision: 0,
+        toStatus: "author-responded",
+      }),
+    ).rejects.toMatchObject({ code: "conflict" });
+  });
+
+  it("covers dismissal, withdrawal, terminal rejection, and concurrent CAS", async () => {
+    const seeded = await fixture("edges");
+    const subject = { type: "claim" as const, claimId: seeded.claim.id };
+    const binding = await service.resolveChallengeSubject(prisma, seeded.version.id, subject);
+    const file = (body: string) =>
+      service.createChallenge(seeded.review.slug, challenger, {
+        reviewVersionId: seeded.version.id,
+        subject,
+        canonicalSubjectHash: binding.hash,
+        grounds: "other",
+        body,
+      });
+
+    const dismissed = await file("Dismiss this after response.");
+    await service.transitionChallenge(dismissed.id, author, {
+      expectedRevision: 0,
+      toStatus: "author-responded",
+    });
+    await expect(
+      service.transitionChallenge(dismissed.id, editor, {
+        expectedRevision: 1,
+        toStatus: "dismissed",
+        rationale: "The objection is outside the bounded subject.",
+      }),
+    ).resolves.toEqual({ revision: 2, status: "dismissed" });
+    await expect(
+      service.transitionChallenge(dismissed.id, challenger, {
+        expectedRevision: 2,
+        toStatus: "withdrawn",
+      }),
+    ).rejects.toMatchObject({ code: "conflict" });
+
+    const withdrawn = await file("Withdraw this after response.");
+    await service.transitionChallenge(withdrawn.id, author, {
+      expectedRevision: 0,
+      toStatus: "author-responded",
+    });
+    await expect(
+      service.transitionChallenge(withdrawn.id, challenger, {
+        expectedRevision: 1,
+        toStatus: "withdrawn",
+      }),
+    ).resolves.toEqual({ revision: 2, status: "withdrawn" });
+
+    const raced = await file("Only one response transition may win.");
+    const results = await Promise.allSettled([
+      service.transitionChallenge(raced.id, author, {
+        expectedRevision: 0,
+        toStatus: "author-responded",
+      }),
+      service.transitionChallenge(raced.id, author, {
+        expectedRevision: 0,
+        toStatus: "author-responded",
+      }),
+    ]);
+    expect(results.filter((result) => result.status === "fulfilled")).toHaveLength(1);
+    expect(results.filter((result) => result.status === "rejected")).toHaveLength(1);
+    expect(await prisma.challengeTransition.count({ where: { challengeId: raced.id } })).toBe(2);
   });
 });

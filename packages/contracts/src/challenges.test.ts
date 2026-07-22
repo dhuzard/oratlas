@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   CHALLENGE_BODY_MAX,
+  CHALLENGE_STATUSES,
   createChallengeInputSchema,
   isLegalChallengeTransition,
 } from "./challenges.js";
@@ -30,10 +31,18 @@ describe("challenge contracts", () => {
   });
 
   it("permits only the closed append-only lifecycle graph", () => {
-    expect(isLegalChallengeTransition("open", "author-responded")).toBe(true);
-    expect(isLegalChallengeTransition("author-responded", "resolved")).toBe(true);
-    expect(isLegalChallengeTransition("open", "resolved")).toBe(false);
-    expect(isLegalChallengeTransition("resolved", "withdrawn")).toBe(false);
-    expect(isLegalChallengeTransition("open", "open")).toBe(false);
+    const legal = new Set([
+      "open>author-responded",
+      "author-responded>resolved",
+      "author-responded>dismissed",
+      "author-responded>withdrawn",
+    ]);
+    for (const from of CHALLENGE_STATUSES) {
+      for (const to of CHALLENGE_STATUSES) {
+        expect(isLegalChallengeTransition(from, to), `${from}>${to}`).toBe(
+          legal.has(`${from}>${to}`),
+        );
+      }
+    }
   });
 });

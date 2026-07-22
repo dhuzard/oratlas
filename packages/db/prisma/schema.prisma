@@ -946,6 +946,8 @@ model Challenge {
   grounds                 String
   /// Plain text only; bounded by contracts and rendered escaped.
   body                    String
+  /// Canonical digest of the immutable filed grounds/body and subject binding.
+  filedContentHash        String
   challengerId            String
   /// open | author-responded | resolved | dismissed | withdrawn
   status                  String   @default("open")
@@ -975,6 +977,8 @@ model ChallengeTransition {
   actorId           String
   actorRoleSnapshot String
   rationale         String?
+  /// Binds every ledger event to the immutable content filed at revision zero.
+  filedContentHash  String
   revision          Int
   createdAt         DateTime @default(now())
 

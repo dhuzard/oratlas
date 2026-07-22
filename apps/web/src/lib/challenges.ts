@@ -1,10 +1,15 @@
 import "server-only";
 import {
   canonicalJson,
+  challengeGroundsSchema,
+  challengeStatusSchema,
   isExactCommitSha,
   isLegalChallengeTransition,
+  trustCriterionAssessmentSchema,
   TRUST_CRITERIA,
+  userRoleSchema,
 } from "@oratlas/contracts";
+import { createReviewedTrustSubject, trustSubjectInputFromDatabaseRows } from "@oratlas/trust";
 import type {
   ChallengeList,
   ChallengeStatus,
@@ -57,6 +62,98 @@ function resolved(
   return { ...value, refJson, hash: sha256(refJson) };
 }
 
+function exactClaimSubject(claim: {
+  id: string;
+  reviewVersionId: string;
+  localClaimId: string;
+  text: string;
+  normalizedText: string;
+  section: string | null;
+  anchor: string | null;
+  claimType: string | null;
+  qualification: string | null;
+  scopeJson: string | null;
+}) {
+  return {
+    id: claim.id,
+    reviewVersionId: claim.reviewVersionId,
+    localClaimId: claim.localClaimId,
+    text: claim.text,
+    normalizedText: claim.normalizedText,
+    section: claim.section,
+    anchor: claim.anchor,
+    claimType: claim.claimType,
+    qualification: claim.qualification,
+    scopeJson: claim.scopeJson,
+  };
+}
+
+function exactCitationSubject(citation: {
+  id: string;
+  reviewVersionId: string;
+  localCitationId: string;
+  doi: string | null;
+  pmid: string | null;
+  openAlexId: string | null;
+  title: string | null;
+  authorsJson: string;
+  year: number | null;
+  source: string | null;
+  url: string | null;
+  datasetIdsJson: string;
+  derivedFromJson: string;
+  rawCitationJson: string | null;
+}) {
+  return {
+    id: citation.id,
+    reviewVersionId: citation.reviewVersionId,
+    localCitationId: citation.localCitationId,
+    doi: citation.doi,
+    pmid: citation.pmid,
+    openAlexId: citation.openAlexId,
+    title: citation.title,
+    authorsJson: citation.authorsJson,
+    year: citation.year,
+    source: citation.source,
+    url: citation.url,
+    datasetIdsJson: citation.datasetIdsJson,
+    derivedFromJson: citation.derivedFromJson,
+    rawCitationJson: citation.rawCitationJson,
+  };
+}
+
+function exactRelationSubject(relation: {
+  id: string;
+  claimId: string;
+  citationId: string;
+  relationType: string;
+  supportDirection: string | null;
+  sourceLocation: string | null;
+  extractionMethod: string | null;
+  extractionConfidence: number | null;
+  humanReviewed: boolean;
+  claim: Parameters<typeof exactClaimSubject>[0];
+  citation: Parameters<typeof exactCitationSubject>[0];
+}) {
+  if (relation.claim.reviewVersionId !== relation.citation.reviewVersionId) {
+    throw new ChallengeError("Challenge relation endpoints cross review versions.", "conflict");
+  }
+  return {
+    reviewVersionId: relation.claim.reviewVersionId,
+    id: relation.id,
+    claimId: relation.claimId,
+    citationId: relation.citationId,
+    relationType: relation.relationType,
+    supportDirection: relation.supportDirection,
+    sourceLocation: relation.sourceLocation,
+    extractionMethod: relation.extractionMethod,
+    extractionConfidence: relation.extractionConfidence,
+    humanReviewed: relation.humanReviewed,
+    claim: exactClaimSubject(relation.claim),
+    citation: exactCitationSubject(relation.citation),
+  };
+}
+
 /** Resolve only through exact foreign keys and include immutable target bytes in the digest. */
 export async function resolveChallengeSubject(
   db: Db,
@@ -64,19 +161,9 @@ export async function resolveChallengeSubject(
   subject: ChallengeSubjectInput,
 ): Promise<ResolvedSubject> {
   if (subject.type === "claim") {
-    const claim = await db.claim.findFirst({
-      where: { id: subject.claimId, reviewVersionId },
-      select: {
-        id: true,
-        reviewVersionId: true,
-        localClaimId: true,
-        text: true,
-        normalizedText: true,
-        claimType: true,
-        qualification: true,
-      },
-    });
-    if (!claim) throw new ChallengeError("Challenge claim subject not found.", "not-found");
+    const claim = await db.claim.findUnique({ where: { id: subject.claimId } });
+    if (!claim || claim.reviewVersionId !== reviewVersionId)
+      throw new ChallengeError("Challenge claim subject not found.", "not-found");
     return resolved(
       {
         type: subject.type,
@@ -85,27 +172,24 @@ export async function resolveChallengeSubject(
         label: `Claim ${claim.localClaimId}`,
         hrefFragment: `claim-subject-${claim.id}`,
       },
-      { schema: "oratlas/challenge-subject/1", type: subject.type, ...claim },
+      {
+        schema: "oratlas/challenge-subject/2",
+        type: subject.type,
+        claim: exactClaimSubject(claim),
+      },
     );
   }
   if (subject.type === "relation") {
-    const relation = await db.claimEvidenceRelation.findFirst({
-      where: { id: subject.relationId, claim: { reviewVersionId } },
-      select: {
-        id: true,
-        claimId: true,
-        citationId: true,
-        relationType: true,
-        supportDirection: true,
-        sourceLocation: true,
-        extractionMethod: true,
-        extractionConfidence: true,
-        humanReviewed: true,
-        claim: { select: { reviewVersionId: true, localClaimId: true } },
-        citation: { select: { localCitationId: true } },
-      },
+    const relation = await db.claimEvidenceRelation.findUnique({
+      where: { id: subject.relationId },
+      include: { claim: true, citation: true },
     });
-    if (!relation) throw new ChallengeError("Challenge relation subject not found.", "not-found");
+    if (
+      !relation ||
+      relation.claim.reviewVersionId !== reviewVersionId ||
+      relation.citation.reviewVersionId !== reviewVersionId
+    )
+      throw new ChallengeError("Challenge relation subject not found.", "not-found");
     return resolved(
       {
         type: subject.type,
@@ -114,26 +198,54 @@ export async function resolveChallengeSubject(
         label: `Relation ${relation.claim.localClaimId} → ${relation.citation.localCitationId}`,
         hrefFragment: `relation-subject-${relation.id}`,
       },
-      { schema: "oratlas/challenge-subject/1", type: subject.type, ...relation },
+      {
+        schema: "oratlas/challenge-subject/2",
+        type: subject.type,
+        relation: exactRelationSubject(relation),
+      },
     );
   }
 
   if (!TRUST_CRITERIA.includes(subject.criterion as (typeof TRUST_CRITERIA)[number])) {
     throw new ChallengeError("Unknown TRUST criterion.");
   }
-  const assessment = await db.trustAssessment.findFirst({
-    where: { id: subject.assessmentId, relation: { claim: { reviewVersionId } } },
+  const assessment = await db.trustAssessment.findUnique({
+    where: { id: subject.assessmentId },
     include: {
       relation: {
         include: {
-          claim: { select: { reviewVersionId: true, localClaimId: true } },
-          citation: { select: { localCitationId: true } },
+          claim: true,
+          citation: true,
         },
       },
     },
   });
-  if (!assessment) throw new ChallengeError("Challenge assessment subject not found.", "not-found");
+  if (
+    !assessment ||
+    assessment.relation.claim.reviewVersionId !== reviewVersionId ||
+    assessment.relation.citation.reviewVersionId !== reviewVersionId
+  )
+    throw new ChallengeError("Challenge assessment subject not found.", "not-found");
   const criterionValue = assessment[subject.criterion as keyof typeof assessment];
+  if (typeof criterionValue !== "string") {
+    throw new ChallengeError("Challenge assessment criterion is not persisted.", "not-found");
+  }
+  let parsedCriterion: unknown;
+  try {
+    parsedCriterion = JSON.parse(criterionValue);
+  } catch {
+    throw new ChallengeError("Challenge assessment criterion is invalid.", "conflict");
+  }
+  const validCriterion = trustCriterionAssessmentSchema.safeParse(parsedCriterion);
+  if (!validCriterion.success) {
+    throw new ChallengeError("Challenge assessment criterion is invalid.", "conflict");
+  }
+  const trustSubject = trustSubjectInputFromDatabaseRows({
+    assessment,
+    relation: assessment.relation,
+    claim: assessment.relation.claim,
+    citation: assessment.relation.citation,
+  });
   return resolved(
     {
       type: subject.type,
@@ -144,17 +256,12 @@ export async function resolveChallengeSubject(
       hrefFragment: `assessment-subject-${assessment.id}-${subject.criterion}`,
     },
     {
-      schema: "oratlas/challenge-subject/1",
+      schema: "oratlas/challenge-subject/2",
       type: subject.type,
       reviewVersionId,
-      assessmentId: assessment.id,
-      relationId: assessment.claimEvidenceRelationId,
-      protocolVersion: assessment.protocolVersion,
-      assessorType: assessment.assessorType,
-      assessorId: assessment.assessorId,
-      assessedAt: assessment.assessedAt,
-      criterion: subject.criterion,
-      criterionValue,
+      relation: exactRelationSubject(assessment.relation),
+      trustSubject: createReviewedTrustSubject(trustSubject),
+      criterion: { name: subject.criterion, value: validCriterion.data },
     },
   );
 }
@@ -177,6 +284,118 @@ function rowSubject(row: {
     };
   }
   return null;
+}
+
+type ChallengeContent = {
+  reviewVersionId: string;
+  subjectType: string;
+  subjectRefJson: string;
+  canonicalSubjectHash: string;
+  grounds: string;
+  body: string;
+  challengerId: string;
+};
+
+function isPersistedCriterion(value: unknown): boolean {
+  if (typeof value !== "string") return false;
+  try {
+    return trustCriterionAssessmentSchema.safeParse(JSON.parse(value)).success;
+  } catch {
+    return false;
+  }
+}
+
+function hashFiledContent(row: ChallengeContent): string {
+  return sha256(
+    canonicalJson({
+      schema: "oratlas/challenge-filed-content/1",
+      reviewVersionId: row.reviewVersionId,
+      subjectType: row.subjectType,
+      subjectRefJson: row.subjectRefJson,
+      canonicalSubjectHash: row.canonicalSubjectHash,
+      grounds: row.grounds,
+      body: row.body,
+      challengerId: row.challengerId,
+    }),
+  );
+}
+
+type LedgerChallenge = ChallengeContent & {
+  status: string;
+  revision: number;
+  filedContentHash: string;
+  transitions: Array<{
+    actorId: string;
+    actorRoleSnapshot: string;
+    filedContentHash: string;
+    fromStatus: string | null;
+    toStatus: string;
+    rationale: string | null;
+    revision: number;
+    actor: { id: string; githubLogin: string; role: string };
+  }>;
+};
+
+/** Validate the append-only ledger before projecting or advancing mutable state. */
+function assertChallengeLedger(row: LedgerChallenge): void {
+  const projected = challengeStatusSchema.safeParse(row.status);
+  if (!projected.success || !challengeGroundsSchema.safeParse(row.grounds).success) {
+    throw new ChallengeError("Challenge projection contains invalid enums.", "conflict");
+  }
+  const contentHash = hashFiledContent(row);
+  if (row.filedContentHash !== contentHash || row.transitions.length !== row.revision + 1) {
+    throw new ChallengeError("Challenge immutable content or ledger is invalid.", "conflict");
+  }
+  let previous: ChallengeStatus | null = null;
+  for (let index = 0; index < row.transitions.length; index += 1) {
+    const event = row.transitions[index]!;
+    const from =
+      event.fromStatus === null ? null : challengeStatusSchema.safeParse(event.fromStatus);
+    const to = challengeStatusSchema.safeParse(event.toStatus);
+    if (
+      event.revision !== index ||
+      event.filedContentHash !== contentHash ||
+      !to.success ||
+      (from !== null && !from.success) ||
+      !event.actorId ||
+      event.actor.id !== event.actorId ||
+      !event.actor.githubLogin ||
+      !userRoleSchema.safeParse(event.actor.role).success ||
+      !userRoleSchema.safeParse(event.actorRoleSnapshot).success
+    ) {
+      throw new ChallengeError("Challenge lifecycle ledger is invalid.", "conflict");
+    }
+    if (index === 0) {
+      if (
+        event.fromStatus !== null ||
+        event.toStatus !== "open" ||
+        event.actorId !== row.challengerId ||
+        event.rationale !== null
+      ) {
+        throw new ChallengeError("Challenge filing event is invalid.", "conflict");
+      }
+    } else {
+      if (event.fromStatus !== previous || !isLegalChallengeTransition(previous!, to.data)) {
+        throw new ChallengeError("Challenge lifecycle transition is invalid.", "conflict");
+      }
+      if (
+        (to.data === "resolved" || to.data === "dismissed") &&
+        (!event.rationale || !["EDITOR", "ADMIN"].includes(event.actorRoleSnapshot))
+      ) {
+        throw new ChallengeError("Challenge editorial outcome evidence is invalid.", "conflict");
+      }
+      if (to.data === "withdrawn" && event.actorId !== row.challengerId) {
+        throw new ChallengeError("Challenge withdrawal evidence is invalid.", "conflict");
+      }
+    }
+    previous = to.data;
+  }
+  if (previous !== projected.data || row.revision !== row.transitions.at(-1)?.revision) {
+    throw new ChallengeError(
+      "Challenge projection does not match its lifecycle ledger.",
+      "conflict",
+    );
+  }
 }
 
 function isExactChallengeVersion(version: {
@@ -242,6 +461,15 @@ export async function createChallenge(
             grounds: input.grounds,
             body: input.body,
             challengerId: actor.id,
+            filedContentHash: hashFiledContent({
+              reviewVersionId: version.id,
+              subjectType: subject.type,
+              subjectRefJson: subject.refJson,
+              canonicalSubjectHash: subject.hash,
+              grounds: input.grounds,
+              body: input.body,
+              challengerId: actor.id,
+            }),
           },
         });
         await tx.challengeTransition.create({
@@ -251,6 +479,7 @@ export async function createChallenge(
             toStatus: "open",
             actorId: actor.id,
             actorRoleSnapshot: actor.role,
+            filedContentHash: challenge.filedContentHash,
             revision: 0,
           },
         });
@@ -262,6 +491,7 @@ export async function createChallenge(
             subjectId: challenge.id,
             detailsJson: canonicalJson({
               canonicalSubjectHash: subject.hash,
+              filedContentHash: challenge.filedContentHash,
               grounds: input.grounds,
               reviewVersionId: version.id,
               subjectType: subject.type,
@@ -294,7 +524,22 @@ export async function listChallengeSubjectOptions(
             orderBy: { id: "asc" },
             select: {
               id: true,
-              trustAssessments: { orderBy: { id: "asc" }, select: { id: true } },
+              trustAssessments: {
+                orderBy: { id: "asc" },
+                select: {
+                  id: true,
+                  identityIntegrity: true,
+                  entailment: true,
+                  sourceAccess: true,
+                  populationRelevance: true,
+                  interventionExposureRelevance: true,
+                  outcomeRelevance: true,
+                  methodologicalSafeguards: true,
+                  statisticalSafeguards: true,
+                  replicationConvergence: true,
+                  conflictDependency: true,
+                },
+              },
             },
           },
         },
@@ -309,7 +554,9 @@ export async function listChallengeSubjectOptions(
       inputs.push({ type: "relation", relationId: relation.id });
       for (const assessment of relation.trustAssessments) {
         for (const criterion of TRUST_CRITERIA) {
-          inputs.push({ type: "assessment-criterion", assessmentId: assessment.id, criterion });
+          if (isPersistedCriterion(assessment[criterion])) {
+            inputs.push({ type: "assessment-criterion", assessmentId: assessment.id, criterion });
+          }
         }
       }
     }
@@ -360,12 +607,14 @@ export async function transitionChallenge(
                 snapshot: { select: { commitSha: true } },
               },
             },
+            transitions: { include: { actor: true }, orderBy: { revision: "asc" } },
           },
         });
         if (!challenge) throw new ChallengeError("Challenge not found.", "not-found");
         if (!isExactChallengeVersion(challenge.reviewVersion)) {
           throw new ChallengeError("Challenges are closed on this review version.", "forbidden");
         }
+        assertChallengeLedger(challenge);
         const from = challenge.status as ChallengeStatus;
         if (challenge.revision !== input.expectedRevision)
           throw new ChallengeError("Challenge lifecycle changed. Refresh and retry.", "conflict");
@@ -419,6 +668,7 @@ export async function transitionChallenge(
             toStatus: input.toStatus,
             actorId: actor.id,
             actorRoleSnapshot: actor.role,
+            filedContentHash: challenge.filedContentHash,
             rationale: input.rationale,
             revision,
           },
@@ -431,6 +681,7 @@ export async function transitionChallenge(
             subjectId: challengeId,
             detailsJson: canonicalJson({
               fromStatus: from,
+              filedContentHash: challenge.filedContentHash,
               rationale: input.rationale,
               revision,
               toStatus: input.toStatus,
@@ -476,6 +727,7 @@ export async function listChallenges(
       const subject = await resolveChallengeSubject(prisma, reviewVersionId, input);
       if (subject.hash !== row.canonicalSubjectHash || subject.refJson !== row.subjectRefJson)
         continue;
+      assertChallengeLedger(row);
       challenges.push({
         id: row.id,
         reviewVersionId,
@@ -483,6 +735,7 @@ export async function listChallenges(
         subjectLabel: subject.label,
         subjectHref: `/reviews/${encodeURIComponent(slug)}/versions/${encodeURIComponent(reviewVersionId)}#${subject.hrefFragment}`,
         canonicalSubjectHash: row.canonicalSubjectHash,
+        filedContentHash: row.filedContentHash,
         grounds: row.grounds as PublicChallenge["grounds"],
         body: row.body,
         status: row.status as ChallengeStatus,

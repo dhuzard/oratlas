@@ -589,6 +589,7 @@ CREATE TABLE "Challenge" (
     "canonicalSubjectHash" TEXT NOT NULL,
     "grounds" TEXT NOT NULL,
     "body" TEXT NOT NULL,
+    "filedContentHash" TEXT NOT NULL,
     "challengerId" TEXT NOT NULL,
     "status" TEXT NOT NULL DEFAULT 'open',
     "revision" INTEGER NOT NULL DEFAULT 0,
@@ -607,6 +608,7 @@ CREATE TABLE "ChallengeTransition" (
     "actorId" TEXT NOT NULL,
     "actorRoleSnapshot" TEXT NOT NULL,
     "rationale" TEXT,
+    "filedContentHash" TEXT NOT NULL,
     "revision" INTEGER NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 

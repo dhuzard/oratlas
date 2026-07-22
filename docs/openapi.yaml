@@ -952,6 +952,7 @@ components:
           subjectLabel,
           subjectHref,
           canonicalSubjectHash,
+          filedContentHash,
           grounds,
           body,
           status,
@@ -967,6 +968,7 @@ components:
         subjectLabel: { type: string }
         subjectHref: { type: string }
         canonicalSubjectHash: { type: string, pattern: "^[a-f0-9]{64}$" }
+        filedContentHash: { type: string, pattern: "^[a-f0-9]{64}$" }
         grounds: { type: string, enum: [entailment, source-access, methodology, identity, other] }
         body: { type: string }
         status: { type: string, enum: [open, author-responded, resolved, dismissed, withdrawn] }
