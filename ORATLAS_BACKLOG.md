@@ -137,10 +137,10 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-A03 — Frozen Ethical Debt integration fixture
 
-- **Status:** ready · **Priority:** P1 · **Size:** M · **Agent:** yes (pin and artifact layout
+- **Status:** review · **Priority:** P1 · **Size:** M · **Agent:** yes (pin and artifact layout
   ratified in `ORATLAS_DECISIONS.md` §13 and `CROSS_REPO_DEPENDENCIES.md`)
 - **Packages:** `apps/web` (e2e fixtures), `packages/extractor` (fixtures), `scripts` ·
-  **External dep:** `dhuzard/ethical-debt-AI-review` (exact release or commit) · **Issue/PR:** none
+  **External dep:** `dhuzard/ethical-debt-AI-review` (exact release or commit) · **Issue/PR:** External fixtures integration train
 - **Goal:** The first reference review has **no presence in this repository** (zero references
   found). Freeze an exact release/commit of `dhuzard/ethical-debt-AI-review` as a
   checked-in, deterministic integration fixture proving the real production pipeline —

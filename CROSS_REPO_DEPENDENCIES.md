@@ -71,17 +71,17 @@ only in local capture scripts (ORA-K02).
   checked-in fixture generation remain ORA-A03 implementation work.
 - **Pin:** the artifact-bearing lightweight tag `v0.1.0-trust-preview.3` is frozen as follows:
 
-  | Field                            | Value                                           |
-  | -------------------------------- | ----------------------------------------------- |
-  | GitHub repository id (immutable) | `1291083149`                                    |
-  | Release tag                      | `v0.1.0-trust-preview.3` (lightweight)          |
-  | Commit SHA                       | `955e2994e0c6a042be80851b2125c2064c211dcf`      |
-  | Tree hash                        | `095ceeb0ab7f5d9d3bc32f77869dcc856c707806`      |
-  | Source `TRUST.md` blob           | `29db889ac19ca7ab33e3ae7bc7a8637614989aaf`      |
-  | Source `FAIR.md` blob            | `9d164253a351b9083efe2f71089500051ba1a2fb`      |
-  | Review manifest blob             | `39c8ee17291f211713d94554174eb63734ef2c44`      |
-  | TRUST assessments JSONL blob     | `c3058ec573eeebba32c502b71986ba5084a08778`      |
-  | Fixture manifest SHA-256         | To be generated and recorded by ORA-A03 capture |
+  | Field                            | Value                                                              |
+  | -------------------------------- | ------------------------------------------------------------------ |
+  | GitHub repository id (immutable) | `1291083149`                                                       |
+  | Release tag                      | `v0.1.0-trust-preview.3` (lightweight)                             |
+  | Commit SHA                       | `955e2994e0c6a042be80851b2125c2064c211dcf`                         |
+  | Tree hash                        | `095ceeb0ab7f5d9d3bc32f77869dcc856c707806`                         |
+  | Source `TRUST.md` blob           | `29db889ac19ca7ab33e3ae7bc7a8637614989aaf`                         |
+  | Source `FAIR.md` blob            | `9d164253a351b9083efe2f71089500051ba1a2fb`                         |
+  | Review manifest blob             | `39c8ee17291f211713d94554174eb63734ef2c44`                         |
+  | TRUST assessments JSONL blob     | `c3058ec573eeebba32c502b71986ba5084a08778`                         |
+  | Fixture manifest SHA-256         | `9f13f8dfc35cca0cf0a602b3304bcc0c9fe94e751c448d020b63e789f27abb23` |
 
 - **Rules:** the fixture is captured once at the pin via the ORA-K02 script and checked in;
   CI never contacts the live repository; updating the pin is a deliberate, reviewed re-capture

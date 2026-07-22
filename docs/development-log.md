@@ -1,5 +1,21 @@
 # Development log
 
+## ORA-A03 — Frozen Ethical Debt integration fixture
+
+- Captured `dhuzard/ethical-debt-AI-review` release `v0.1.0-trust-preview.3` at immutable commit
+  `955e2994e0c6a042be80851b2125c2064c211dcf` and tree
+  `095ceeb0ab7f5d9d3bc32f77869dcc856c707806` with the ORA-K02 bounded capture tool. The checked-in
+  fixture contains 11 routed files (3,444,868 source bytes) and is bound by manifest SHA-256
+  `9f13f8dfc35cca0cf0a602b3304bcc0c9fe94e751c448d020b63e789f27abb23`.
+- Added offline replay coverage for the real extractor and compatibility pipeline: 529 claims, 994
+  citations, 1,392 relations and 1,392 source-native TRUST records. Imported TRUST remains
+  `unverified-import`; the source review status is provenance, never Atlas verification.
+- The fixture deliberately records article chapter paths only as bounded tree metadata. Tests prove
+  no uncaptured chapter bytes are presented as a preserved article, while root `TRUST.md` and
+  `FAIR.md` are preserved byte-for-byte without methodology parsing or rating crosswalks.
+- Added a Playwright submission journey backed by the same generated fixture transport. Every
+  GitHub API request is served from checked-in bytes, so CI remains fully offline.
+
 Chronological record of implementation slices, decisions, and verification outcomes.
 
 ## PR-00 — Repository initialization
