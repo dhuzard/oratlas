@@ -8,6 +8,10 @@ const state = vi.hoisted(() => ({
 
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/auth", () => ({
+  AuthError: class AuthError extends Error {
+    status = 401;
+  },
+  getServerEnv: () => ({ NEXT_PUBLIC_BASE_URL: "https://oratlas.test" }),
   requireUser: () =>
     Promise.resolve({
       id: "commenter-1",
@@ -50,6 +54,11 @@ describe("POST /api/reviews/{slug}/comments abuse boundaries", () => {
     const response = await POST(
       new Request("https://oratlas.test/api/reviews/bounded-review/comments", {
         method: "POST",
+        headers: {
+          Origin: "https://oratlas.test",
+          "Content-Type": "application/json",
+          "Sec-Fetch-Site": "same-origin",
+        },
         body: JSON.stringify({ body: "A bounded comment." }),
       }),
       params,
@@ -67,7 +76,12 @@ describe("POST /api/reviews/{slug}/comments abuse boundaries", () => {
     const response = await POST(
       new Request("https://oratlas.test/api/reviews/bounded-review/comments", {
         method: "POST",
-        headers: { "content-length": String(MAX_BODY_BYTES + 1) },
+        headers: {
+          Origin: "https://oratlas.test",
+          "Content-Type": "application/json",
+          "Sec-Fetch-Site": "same-origin",
+          "content-length": String(MAX_BODY_BYTES + 1),
+        },
         body: "{}",
       }),
       params,
