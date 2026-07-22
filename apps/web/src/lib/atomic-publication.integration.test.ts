@@ -605,6 +605,18 @@ describe.sequential("atomic publication integration", () => {
       ),
     );
     expect(independent.supersedesAssessmentId).toBeNull();
+    const trustQueue = await (await import("./trust-provenance")).listTrustEditorialQueue("all");
+    const independentQueueItems = trustQueue.filter((item) =>
+      [stored.id, independent.id].includes(item.assessmentId),
+    );
+    expect(independentQueueItems).toHaveLength(2);
+    expect(independentQueueItems.every((item) => item.criteria.length === 10)).toBe(true);
+    expect(
+      independentQueueItems.every(
+        (item) =>
+          item.criteria.filter((criterion) => criterion.status === "not-supplied").length === 9,
+      ),
+    ).toBe(true);
   }, 10_000);
 
   it("persists node-relation TRUST through acceptance, CAS review, public confirmation, and supersession", async () => {
@@ -907,6 +919,18 @@ describe.sequential("atomic publication integration", () => {
       ?.edges[0];
     expect(publicEdgeWithCompleteAssessments?.trust).toBeUndefined();
     expect(publicEdgeWithCompleteAssessments?.trustAssessments).toHaveLength(50);
+    expect(
+      publicEdgeWithCompleteAssessments?.trustAssessments?.every(
+        (candidate) => candidate.criteria.length === 10,
+      ),
+    ).toBe(true);
+    expect(
+      publicEdgeWithCompleteAssessments?.trustAssessments?.every(
+        (candidate) =>
+          candidate.criteria.filter((criterion) => criterion.status === "not-supplied").length ===
+          9,
+      ),
+    ).toBe(true);
 
     await lifecycle.decideNodeEdgeProposal(
       { id: editorId, role: "EDITOR" },

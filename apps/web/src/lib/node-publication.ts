@@ -33,6 +33,7 @@ import {
   resolveTrustAssessmentRows,
   projectPublicNodeRelationTrustAssessments,
 } from "./trust-provenance";
+import { trustCriterionProfileFromJson } from "./trust-profile";
 
 const storedNodeProvenanceSchema = z.union([
   knowledgeNodeProvenanceSchema,
@@ -535,6 +536,7 @@ export async function getPublicNode(
         "unverified-import" | "agent-proposed" | "human-reviewed" | "adjudicated" | "superseded";
       verificationState:
         "platform-verified" | "unverified-import" | "stale-verification" | "legacy-unknown";
+      criteria: ReturnType<typeof trustCriterionProfileFromJson>;
     }[]
   >();
   if (publicEdgeIds.length > 0) {
@@ -557,7 +559,32 @@ export async function getPublicNode(
       candidates.set(edgeId, list);
     }
     for (const [edgeId, values] of candidates) {
-      nodeTrustByEdge.set(edgeId, projectPublicNodeRelationTrustAssessments(values));
+      const rowsById = new Map(values.map((row) => [row.id, row]));
+      nodeTrustByEdge.set(
+        edgeId,
+        projectPublicNodeRelationTrustAssessments(values).flatMap((assessment) => {
+          const row = rowsById.get(assessment.assessmentId);
+          return row
+            ? [
+                {
+                  ...assessment,
+                  criteria: trustCriterionProfileFromJson({
+                    identityIntegrity: row.identityIntegrity,
+                    entailment: row.entailment,
+                    sourceAccess: row.sourceAccess,
+                    populationRelevance: row.populationRelevance,
+                    interventionExposureRelevance: row.interventionExposureRelevance,
+                    outcomeRelevance: row.outcomeRelevance,
+                    methodologicalSafeguards: row.methodologicalSafeguards,
+                    statisticalSafeguards: row.statisticalSafeguards,
+                    replicationConvergence: row.replicationConvergence,
+                    conflictDependency: row.conflictDependency,
+                  }),
+                },
+              ]
+            : [];
+        }),
+      );
     }
   }
 
@@ -642,6 +669,7 @@ export async function getPublicNode(
       assessedAt: assessment.assessedAt?.toISOString(),
       reviewStatus: resolved.effectiveStatus,
       verificationState: resolved.state,
+      criteria: trustCriterionProfileFromJson(resolved.subject.assessment.criteriaJson),
       aggregateScore: assessment.aggregateScore ?? undefined,
       aggregateMethod: assessment.aggregateMethod ?? undefined,
     }));

@@ -25,6 +25,19 @@ test("claim node exposes confirmed edges, scoped TRUST context, and immutable hi
   const detail = publicNodeDetailSchema.parse(await detailResponse.json());
   expect(detail.id).toBe(claim.id);
   expect(detail.edges.every((edge) => edge.provenance !== "proposed-by-agent")).toBe(true);
+  const assessments = [
+    ...detail.edges.flatMap((edge) => edge.trustAssessments ?? []),
+    ...detail.trustContext.flatMap((context) => context.trustAssessments ?? []),
+  ];
+  expect(assessments.length).toBeGreaterThan(0);
+  expect(assessments.every((assessment) => assessment.criteria.length === 10)).toBe(true);
+  await expect(page.getByRole("table", { name: /TRUST criteria/ }).first()).toBeVisible();
+  await expect(
+    page
+      .getByRole("table", { name: /TRUST criteria/ })
+      .first()
+      .getByRole("row"),
+  ).toHaveCount(11);
 
   const edgesResponse = await request.get(`/api/nodes/${claim.id}/edges`);
   expect(edgesResponse.ok()).toBeTruthy();
