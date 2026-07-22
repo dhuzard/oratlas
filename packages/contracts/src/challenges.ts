@@ -73,6 +73,7 @@ export const publicChallengeSchema = z.object({
   subjectLabel: z.string(),
   subjectHref: z.string(),
   canonicalSubjectHash: sha256,
+  filedContentHash: sha256,
   grounds: challengeGroundsSchema,
   body: z.string(),
   status: challengeStatusSchema,

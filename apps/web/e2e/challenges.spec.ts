@@ -35,7 +35,7 @@ test.describe("Formal challenge register", () => {
     expect(crossOrigin.status()).toBe(403);
   });
 
-  test("files escaped text against an exact subject and persists its attributed ledger", async ({
+  test("files, records an author response, and resolves with attributable audit evidence", async ({
     page,
   }) => {
     await page.goto("/signin");
@@ -81,5 +81,70 @@ test.describe("Formal challenge register", () => {
         where: { subjectType: "challenge", subjectId: id, action: "challenge.filed" },
       }),
     ).toBe(1);
+
+    const submitter = await prisma.user.findUniqueOrThrow({
+      where: { githubLogin: "atlas-submitter" },
+    });
+    const person = await prisma.person.create({
+      data: { displayName: "E2E author", githubLogin: submitter.githubLogin },
+    });
+    await prisma.reviewContributor.create({
+      data: {
+        reviewVersionId: challenge.reviewVersionId,
+        personId: person.id,
+        rolesJson: '["author"]',
+        position: 999,
+      },
+    });
+    const authorResponse = await page.evaluate(async (challengeId) => {
+      const result = await fetch(`/api/challenges/${encodeURIComponent(challengeId)}/transitions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ expectedRevision: 0, toStatus: "author-responded" }),
+      });
+      return { status: result.status, body: await result.text() };
+    }, id);
+    expect(authorResponse.status, authorResponse.body).toBe(200);
+
+    await page.context().clearCookies();
+    await page.goto("/signin");
+    await page.getByRole("button", { name: /Sign in as editor/ }).click();
+    await expect(page).toHaveURL(/\/editorial/);
+    const resolution = await page.evaluate(async (challengeId) => {
+      const result = await fetch(`/api/challenges/${encodeURIComponent(challengeId)}/transitions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          expectedRevision: 1,
+          toStatus: "resolved",
+          rationale: "The contributor response addresses the exact objection.",
+        }),
+      });
+      return { status: result.status, body: await result.text() };
+    }, id);
+    expect(resolution.status, resolution.body).toBe(200);
+
+    const completed = await prisma.challenge.findUniqueOrThrow({
+      where: { id },
+      include: { transitions: { orderBy: { revision: "asc" } } },
+    });
+    expect(completed).toMatchObject({ status: "resolved", revision: 2 });
+    expect(completed.transitions).toMatchObject([
+      { fromStatus: null, toStatus: "open", actorId: submitter.id, revision: 0 },
+      { fromStatus: "open", toStatus: "author-responded", actorId: submitter.id, revision: 1 },
+      {
+        fromStatus: "author-responded",
+        toStatus: "resolved",
+        actorRoleSnapshot: "EDITOR",
+        revision: 2,
+      },
+    ]);
+    expect(
+      await prisma.auditEvent.count({
+        where: { subjectType: "challenge", subjectId: id, action: "challenge.transitioned" },
+      }),
+    ).toBe(2);
+    await page.goto(REVIEW);
+    await expect(page.locator(`#challenge-${id}`)).toContainText("resolved");
   });
 });

@@ -101,13 +101,19 @@ suffix, and arrays are JSON-encoded strings. Switching to PostgreSQL is a dataso
 - Historical UI/API routes resolve the chosen version's own snapshot and evidence. Comments are
   version-scoped and read-only on historical routes; nullable version ids only support legacy rows.
 - Formal challenges bind to exactly one claim, claim–evidence relation, or assessment criterion
-  instance through explicit foreign keys plus canonical subject JSON and SHA-256. Filing and every
-  transition resolve the target within the named immutable review version. Public reads repeat
-  that resolution and omit a record when either canonical bytes or hash differ. Challenge
+  instance through explicit foreign keys plus canonical subject JSON and SHA-256. Relation
+  subjects include both exact same-version endpoints and their full semantic bytes; criterion
+  subjects embed the canonical TRUST subject, exact relation, assessment provenance, and one
+  persisted contract-valid criterion value. Filing and every transition resolve the target within
+  the named immutable review version. Public reads repeat that resolution and omit a record when
+  either canonical bytes or hash differ. Challenge
   lifecycle writes never update the claim, relation, assessment, TRUST value, or compatibility.
 - `ChallengeTransition` is the authoritative append-only lifecycle ledger. Revision zero records
   attributed filing (`null → open`); optimistic compare-and-set advances only legal edges
-  (`open → author-responded → resolved|dismissed|withdrawn`). Terminal states cannot transition.
+  (`open → author-responded → resolved|dismissed|withdrawn`). Every read/write validates contiguous
+  revisions, legal edges, enum-valid actor snapshots, and agreement with the mutable projection.
+  The challenge and every ledger event also carry a canonical filed-content hash over the immutable
+  subject binding, challenger, grounds, and body. Terminal states cannot transition.
 - `Submission.submittedPayloadJson` is the immutable snapshot of exactly what the submitter
   finalized, including the versioned node-extraction report. Editorial acceptance rechecks those
   candidates against the consumed capture. `acceptedNodeSelectionJson` stores the editor's sorted

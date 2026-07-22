@@ -710,3 +710,7 @@ introducing a test-only production route or granting an agent publication author
   response and challenger withdrawal authority remain separately checked.
 - Added a visually distinct public formal-challenge register and escaped filing form without
   changing claims, relations, assessments, TRUST values, compatibility, or review lifecycle.
+- Hardened exact subjects to bind full same-version claim/citation relation semantics and canonical
+  TRUST assessment provenance, and limited criterion options to persisted contract-valid values.
+  Reads and writes now validate the full ledger projection plus a filed-content hash carried by the
+  filing transition and audit trail.
