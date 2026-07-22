@@ -4,14 +4,17 @@ import { getPrisma } from "@oratlas/db";
 import { createSessionToken } from "../src/lib/session-token";
 
 const nodeAssessmentId = "ora-f01-node-assessment";
+const nodeProposalId = "ora-f01-node-proposal";
+const nodeProposalOriginKey = "e2e:ora-f01:asserted-node-relation";
 const paginationAssessmentPrefix = "ora-f01-page-assessment-";
 const rawSourceSentinel = "ORA_F01_RAW_SOURCE_JSON_MUST_NOT_RENDER";
 
 test.beforeAll(async () => {
   const prisma = getPrisma();
-  const proposal = await prisma.nodeEdgeProposal.findFirst({
+  await prisma.nodeRelationTrustAssessment.deleteMany({ where: { id: nodeAssessmentId } });
+  await prisma.nodeEdgeProposal.deleteMany({ where: { id: nodeProposalId } });
+  const seedProposal = await prisma.nodeEdgeProposal.findFirst({
     where: {
-      origin: "asserted-by-author",
       sourceNodeVersion: { knowledgeNode: { kind: "claim" } },
       targetNode: { kind: { in: ["dataset", "code", "figure"] } },
     },
@@ -21,7 +24,26 @@ test.beforeAll(async () => {
       targetNode: true,
     },
   });
-  if (!proposal) throw new Error("Seed data did not expose a node-edge proposal.");
+  if (!seedProposal) throw new Error("Seed data did not expose a claim-to-evidence proposal.");
+  const proposal = await prisma.nodeEdgeProposal.create({
+    data: {
+      id: nodeProposalId,
+      originKey: nodeProposalOriginKey,
+      sourceStableKey: seedProposal.sourceStableKey,
+      targetStableKey: seedProposal.targetStableKey,
+      sourceNodeVersionId: seedProposal.sourceNodeVersionId,
+      targetNodeId: seedProposal.targetNodeId,
+      targetNodeVersionId: seedProposal.targetNodeVersionId,
+      relationType: seedProposal.relationType,
+      origin: "asserted-by-author",
+      rationale: "Dedicated exact-relation fixture for TRUST editorial provenance.",
+      evidenceJson: "{}",
+    },
+    include: {
+      sourceNodeVersion: { include: { knowledgeNode: true } },
+      targetNode: true,
+    },
+  });
   await prisma.nodeRelationTrustAssessment.upsert({
     where: { id: nodeAssessmentId },
     update: {},
@@ -84,10 +106,12 @@ test.beforeAll(async () => {
 });
 
 test.afterAll(async () => {
-  await getPrisma().nodeRelationTrustAssessment.deleteMany({
+  const prisma = getPrisma();
+  await prisma.nodeRelationTrustAssessment.deleteMany({
     where: { id: nodeAssessmentId },
   });
-  await getPrisma().trustAssessment.deleteMany({
+  await prisma.nodeEdgeProposal.deleteMany({ where: { id: nodeProposalId } });
+  await prisma.trustAssessment.deleteMany({
     where: { id: { startsWith: paginationAssessmentPrefix } },
   });
 });

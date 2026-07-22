@@ -164,6 +164,7 @@ test("submitter finalizes a node-only capture and an editor publishes its nodes"
         decision: "accept",
         overrides: [],
         selectedNodeIds: ["claim:e2e"],
+        conflictOfInterest: { status: "none-declared" },
       }),
     });
     return response.status;
