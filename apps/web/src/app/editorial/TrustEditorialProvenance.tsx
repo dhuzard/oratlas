@@ -61,11 +61,6 @@ export function TrustEditorialProvenance({ item }: { item: TrustQueueItem }) {
               <td>{item.effectiveStatus.replaceAll("-", " ")}</td>
               <td>{item.sourceReviewStatus ?? "not supplied"}</td>
             </tr>
-            <tr>
-              <th scope="row">Aggregate</th>
-              <td>{aggregateValue(item, "computed")}</td>
-              <td>{aggregateValue(item, "source")}</td>
-            </tr>
           </tbody>
         </table>
       </div>
@@ -101,10 +96,4 @@ export function TrustEditorialProvenance({ item }: { item: TrustQueueItem }) {
 
 function dateValue(value: string | undefined) {
   return value ? <time dateTime={value}>{value}</time> : "not supplied";
-}
-
-function aggregateValue(item: TrustQueueItem, provenance: "computed" | "source") {
-  if (item.subjectType === "node-relation") return "omitted for relation TRUST";
-  const value = provenance === "computed" ? item.computedAggregateScore : item.sourceAggregateScore;
-  return value ?? (provenance === "computed" ? "not computable" : "null / not supplied");
 }

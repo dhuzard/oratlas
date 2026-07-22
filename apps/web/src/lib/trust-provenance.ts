@@ -576,19 +576,15 @@ export interface TrustQueueItem {
   assessmentHash: string;
 }
 
-export async function listTrustEditorialQueue(
-  filter: TrustQueueFilter = "needs-review",
-): Promise<TrustQueueItem[]> {
+async function loadTrustEditorialQueueItems(): Promise<TrustQueueItem[]> {
   const [legacyRows, nodeRows] = await Promise.all([
     prisma.trustAssessment.findMany({
       include: loadedTrustInclude,
       orderBy: [{ createdAt: "asc" }, { id: "asc" }],
-      take: 500,
     }),
     prisma.nodeRelationTrustAssessment.findMany({
       include: loadedNodeRelationTrustInclude,
       orderBy: [{ createdAt: "asc" }, { id: "asc" }],
-      take: 500,
     }),
   ]);
 
@@ -695,13 +691,81 @@ export async function listTrustEditorialQueue(
       });
     }
   }
-  return orderTrustQueueItems(items).filter((item) => {
+  return orderTrustQueueItems(items);
+}
+
+function filterTrustQueueItems(
+  items: readonly TrustQueueItem[],
+  filter: TrustQueueFilter,
+): TrustQueueItem[] {
+  return items.filter((item) => {
     if (filter === "all") return true;
     if (filter === "verified") return item.verificationState === "platform-verified";
     if (filter === "stale") return item.verificationState === "stale-verification";
     if (filter === "legacy") return item.verificationState === "legacy-unknown";
     return item.verificationState !== "platform-verified";
   });
+}
+
+export interface TrustQueuePageOptions {
+  page?: number;
+  pageSize?: number;
+}
+
+export interface TrustQueuePage {
+  items: TrustQueueItem[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+
+const DEFAULT_TRUST_QUEUE_PAGE_SIZE = 25;
+const MAX_TRUST_QUEUE_PAGE_SIZE = 100;
+
+/**
+ * Deterministically page the complete, neutrally ordered queue. Counts and
+ * page boundaries are calculated after the selected verification-state filter.
+ */
+export function paginateTrustQueueItems(
+  items: readonly TrustQueueItem[],
+  filter: TrustQueueFilter = "needs-review",
+  options: TrustQueuePageOptions = {},
+): TrustQueuePage {
+  const ordered = orderTrustQueueItems(items);
+  const filtered = filterTrustQueueItems(ordered, filter);
+  const requestedPageSize = Number.isSafeInteger(options.pageSize) ? options.pageSize! : 0;
+  const pageSize =
+    requestedPageSize > 0
+      ? Math.min(requestedPageSize, MAX_TRUST_QUEUE_PAGE_SIZE)
+      : DEFAULT_TRUST_QUEUE_PAGE_SIZE;
+  const total = filtered.length;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const requestedPage = Number.isSafeInteger(options.page) ? options.page! : 1;
+  const page = Math.min(Math.max(requestedPage, 1), totalPages);
+  const start = (page - 1) * pageSize;
+  return {
+    items: filtered.slice(start, start + pageSize),
+    total,
+    page,
+    pageSize,
+    totalPages,
+  };
+}
+
+/** Complete compatibility read for transactional callers and internal tests. */
+export async function listTrustEditorialQueue(
+  filter: TrustQueueFilter = "needs-review",
+): Promise<TrustQueueItem[]> {
+  return filterTrustQueueItems(await loadTrustEditorialQueueItems(), filter);
+}
+
+/** Count-accurate, page-bounded read used by the editorial dashboard. */
+export async function listTrustEditorialQueuePage(
+  filter: TrustQueueFilter = "needs-review",
+  options: TrustQueuePageOptions = {},
+): Promise<TrustQueuePage> {
+  return paginateTrustQueueItems(await loadTrustEditorialQueueItems(), filter, options);
 }
 
 /** Apply the D01 neutral ordering without using status, rating, or aggregate fields. */
