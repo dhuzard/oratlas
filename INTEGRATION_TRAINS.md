@@ -122,7 +122,7 @@ ratified public/private visibility boundary.
 
 ## Train 4 — External fixtures, exports, and decision-driven features
 
-Branch: `integration/external-exports` · Base: `integration/challenges-governance`
+Branch: `integration/external-exports` · Base: `integration/challenges-governance` · Draft PR: #105
 
 | ORA     | Source PR | Frozen head                                |
 | ------- | --------: | ------------------------------------------ |
