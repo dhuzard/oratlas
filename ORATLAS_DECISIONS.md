@@ -7,7 +7,7 @@ maintainer on 2026-07-22. Implementations must preserve the recorded boundaries 
 cite the relevant section when unblocking dependent backlog items.
 
 Format per entry: current state in the codebase, the open question, and what depends on it.
-Decider for §§1–13: Damien Huzard (`dhuzard`). Decision date: 2026-07-22.
+Decider for §§1–14: Damien Huzard (`dhuzard`). Decision date: 2026-07-22.
 
 ## 1. Structural versus scientific verification
 
