@@ -58,6 +58,7 @@ async function seedReview(review: SeedReview, editorId: string) {
       owner: review.repository.owner,
       name: review.repository.name,
       canonicalUrl: review.repository.canonicalUrl,
+      githubRepositoryId: `seed:${review.slug}`,
       defaultBranch: review.repository.defaultBranch,
       description: review.repository.description,
       licenseSpdx: review.licenseSpdx,
