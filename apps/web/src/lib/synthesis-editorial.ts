@@ -53,7 +53,7 @@ import {
   PUBLIC_NODE_RELATION_TRUST_PER_KEY_LIMIT,
   resolveLoadedNodeRelationTrustAssessment,
 } from "./trust-provenance";
-import { selectPreferredTrustAssessment } from "@oratlas/trust";
+import { orderTrustAssessments } from "@oratlas/trust";
 
 const SYNTHESIS_TOPIC_SCAN_LIMIT = 1_000;
 const SYNTHESIS_TRANSACTION_ATTEMPTS = 3;
@@ -152,7 +152,10 @@ async function loadAuthoritativeTrustByEdge(
   client: PrismaClient,
   selectedEdges: SubgraphEvidenceSource["edges"],
 ) {
-  const result = new Map<string, NonNullable<SubgraphEvidenceSource["edges"][number]["trust"]>>();
+  const result = new Map<
+    string,
+    NonNullable<SubgraphEvidenceSource["edges"][number]["trustAssessments"]>
+  >();
   if (selectedEdges.length === 0) return result;
   const rows = await client.nodeRelationTrustAssessment.findMany({
     where: {
@@ -183,11 +186,11 @@ async function loadAuthoritativeTrustByEdge(
         "TRUST selection exceeds the authoritative per-relation bound.",
       );
     }
-    const preferred = selectPreferredTrustAssessment(
+    const assessments = orderTrustAssessments(
       candidates.flatMap((row) => {
         try {
           const resolved = resolveLoadedNodeRelationTrustAssessment(row);
-          if (!resolved.authoritative || resolved.state !== "platform-verified") return [];
+          if (!resolved.authoritative) return [];
           const criteria = TRUST_CRITERIA.flatMap((criterion) => {
             const encoded = resolved.subject.assessment.criteriaJson[criterion];
             if (!encoded) return [];
@@ -215,6 +218,9 @@ async function loadAuthoritativeTrustByEdge(
             },
             assessmentId: row.id,
             protocolVersion: row.protocolVersion,
+            assessorType: row.assessorType,
+            assessorId: row.assessorId ?? undefined,
+            assessedAt: row.assessedAt?.toISOString(),
             reviewStatus: resolved.effectiveStatus,
             verificationState: resolved.state,
             criteria,
@@ -226,8 +232,10 @@ async function loadAuthoritativeTrustByEdge(
           return [
             {
               id: row.id,
-              effectiveStatus: resolved.effectiveStatus,
               assessedAt: row.assessedAt?.toISOString() ?? null,
+              assessorType: row.assessorType,
+              assessorId: row.assessorId,
+              protocolVersion: row.protocolVersion,
               value: value.data,
             },
           ];
@@ -235,8 +243,8 @@ async function loadAuthoritativeTrustByEdge(
           return [];
         }
       }),
-    )?.value;
-    if (preferred) result.set(edge.id, preferred);
+    ).map(({ value }) => value);
+    result.set(edge.id, assessments);
   }
   return result;
 }
@@ -384,7 +392,10 @@ export async function loadPreparedSynthesisPacket(
         .map((edge) => edge.id),
     },
     nodes: selectedNodes,
-    edges: selectedEdges.map((edge) => ({ ...edge, trust: trustByEdge.get(edge.id) })),
+    edges: selectedEdges.map((edge) => ({
+      ...edge,
+      trustAssessments: trustByEdge.get(edge.id) ?? [],
+    })),
   };
   return buildPreparedSubgraphEvidencePacket(source);
 }
@@ -1625,56 +1636,64 @@ export async function decideSynthesisDraft(
   );
 }
 
+const publicSynthesisVersionInclude = Prisma.validator<Prisma.ReviewVersionInclude>()({
+  acceptedPredecessor: {
+    select: {
+      id: true,
+      reviewId: true,
+      recordSourceType: true,
+      synthesisOrdinal: true,
+      synthesisDraftId: true,
+    },
+  },
+  synthesisAttributions: { orderBy: { position: "asc" } },
+  synthesisStalenessHead: {
+    include: { currentEvaluation: true },
+  },
+  synthesisDraft: {
+    include: {
+      agentRun: true,
+      acceptedBy: { select: { githubLogin: true, displayName: true, role: true } },
+      memberships: {
+        orderBy: { position: "asc" },
+        include: { nodeVersion: { select: { knowledgeNodeId: true } } },
+      },
+      citations: {
+        orderBy: [{ location: "asc" }, { citationIndex: "asc" }],
+        include: { nodeVersion: { select: { knowledgeNodeId: true } } },
+      },
+      reviewVersion: { select: { id: true, synthesisOrdinal: true } },
+    },
+  },
+});
+
 export async function getPublicSynthesisReview(
   slug: string,
   client: PrismaClient = prisma,
+  requestedVersionId?: string,
 ): Promise<PublicSynthesisReview | null> {
   const review = await client.review.findUnique({
     where: { slug },
     include: {
-      currentSynthesisVersion: {
-        include: {
-          acceptedPredecessor: {
-            select: {
-              id: true,
-              reviewId: true,
-              recordSourceType: true,
-              synthesisOrdinal: true,
-              synthesisDraftId: true,
-            },
-          },
-          synthesisAttributions: { orderBy: { position: "asc" } },
-          synthesisStalenessHead: {
-            include: { currentEvaluation: true },
-          },
-          synthesisDraft: {
-            include: {
-              agentRun: true,
-              acceptedBy: { select: { githubLogin: true, displayName: true, role: true } },
-              memberships: {
-                orderBy: { position: "asc" },
-                include: { nodeVersion: { select: { knowledgeNodeId: true } } },
-              },
-              citations: {
-                orderBy: [{ location: "asc" }, { citationIndex: "asc" }],
-                include: { nodeVersion: { select: { knowledgeNodeId: true } } },
-              },
-              reviewVersion: { select: { id: true, synthesisOrdinal: true } },
-            },
-          },
-        },
+      currentSynthesisVersion: { include: publicSynthesisVersionInclude },
+      versions: {
+        where: { id: requestedVersionId ?? "__current-synthesis-only__" },
+        take: 1,
+        include: publicSynthesisVersionInclude,
       },
     },
   });
   if (!review) return null;
-  const version = review.currentSynthesisVersion;
+  const version = requestedVersionId ? review.versions[0] : review.currentSynthesisVersion;
+  const isCurrent = review.currentSynthesisVersionId === version?.id;
   if (
     review.reviewType !== "ai-synthesis" ||
     review.status !== "published" ||
     review.repositoryId ||
     review.currentSnapshotId ||
     review.synthesisSeriesKey !== version?.synthesisDraft?.seriesKey ||
-    review.currentSynthesisVersionId !== version?.id ||
+    (!requestedVersionId && !isCurrent) ||
+    (requestedVersionId && version?.id !== requestedVersionId) ||
     !version ||
     version.reviewId !== review.id ||
     version.recordSourceType !== "synthesis" ||
@@ -1830,7 +1849,7 @@ export async function getPublicSynthesisReview(
     version: {
       id: version.id,
       ordinal,
-      isCurrent: true,
+      isCurrent,
       versionDoi: version.versionDoi ?? undefined,
       conceptDoi: version.conceptDoi ?? undefined,
     },
@@ -1868,4 +1887,13 @@ export async function getPublicSynthesisReview(
     })(),
   });
   return candidate.success ? candidate.data : null;
+}
+
+/** Load one immutable accepted synthesis version without falling back to the current head. */
+export function getPublicSynthesisReviewVersion(
+  slug: string,
+  versionId: string,
+  client: PrismaClient = prisma,
+) {
+  return getPublicSynthesisReview(slug, client, versionId);
 }

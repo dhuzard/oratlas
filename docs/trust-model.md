@@ -64,6 +64,25 @@ accessible criterion detail and the aggregate method.
 
 ## Repository assertions and platform verification
 
+### Multiple assessments on one relation
+
+An evidence relation owns an ordered **set** of assessments. Different assessors, assessor types,
+protocols, and assessment times coexist; review status, verification state, criterion ratings, and
+aggregate values never decide which record is displayed. New reads order the complete set by
+`assessedAt`, assessor type, assessor id, protocol version, and finally the immutable assessment id.
+
+Imported source identity has two canonical SHA-256 values. `sourceRecordHash` identifies the exact
+strictly parsed record and makes replay idempotent within its relation. `sourceLineageKey` identifies
+the exact subject plus assessor and protocol. When content in that lineage changes, Atlas appends a
+new row whose `supersedesAssessmentId` points to the preceding row; it does not update or hide the
+predecessor. Each row retains its own independent `TrustVerification` or
+`NodeRelationTrustVerification` marker. The same rules apply to claim–citation and node-relation
+assessments.
+
+Legacy serialized packets may contain a singleton `trust` member. New projections use an explicit
+assessment-set member and populate the legacy member only when compatibility requires an actual
+singleton; a multi-row set is never collapsed into it.
+
 Repository artifacts may assert `agent-proposed`, `human-reviewed`, `adjudicated`, or
 `superseded`, and a relation may assert `humanReviewed: true`. Atlas preserves those exact source
 assertions (status, assessor, evidence, timestamp, aggregate—including explicit `null`), but never
@@ -116,3 +135,13 @@ The claim, citation, support relation, criterion ratings (with status and ration
 repository assertion, current platform-marker state, and — only when an Atlas-computed aggregate
 is displayed — its method. Atlas structural review is not scientific peer review and does not
 establish that a claim or paper is correct.
+
+The editorial queue keeps every assessment as a separate record in the same neutral order used by
+public D01 projections. For both claim–citation and node-relation subjects, editors see the stored
+assessor type and identifier, the source assessor type and identifier, TRUST protocol version,
+assessment and source timestamps, source-record and evidence-pointer presence, and exact repository
+status/relation assertions. Raw source JSON is not rendered. The queue does not resolve assessor
+identities, compare assessors, select a preferred assessment, or combine records across protocols.
+The dashboard reports the complete filtered count and pages that complete ordered set; it does not
+silently cap either assessment family. Compact queue rows omit aggregates because they do not carry
+the accessible criterion profile and aggregate method required to interpret one.

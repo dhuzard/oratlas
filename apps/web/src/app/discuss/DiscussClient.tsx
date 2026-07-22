@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { trustVerificationPresentation } from "@/components/TrustVerificationBadge";
 
 interface EvidenceClaim {
   claimId: string;
@@ -17,6 +18,12 @@ interface EvidenceClaim {
         "platform-verified" | "unverified-import" | "stale-verification" | "legacy-unknown";
       notableCriteria: string[];
     };
+    trustAssessments?: Array<{
+      reviewStatus: string;
+      verificationState:
+        "platform-verified" | "unverified-import" | "stale-verification" | "legacy-unknown";
+      notableCriteria: string[];
+    }>;
   }>;
 }
 
@@ -203,14 +210,14 @@ function DeterministicView({ result }: { result: DeterministicResult }) {
 function trustSummary(claim: EvidenceClaim): string {
   const states = new Set(
     claim.relations.flatMap((relation) =>
-      relation.trust ? [relation.trust.verificationState] : [],
+      (relation.trustAssessments ?? (relation.trust ? [relation.trust] : [])).map(
+        (assessment) => assessment.verificationState,
+      ),
     ),
   );
-  if (states.has("platform-verified")) return " · Atlas-reviewed TRUST structure";
-  if (states.has("stale-verification")) return " · Atlas TRUST verification is stale";
-  if (states.has("legacy-unknown")) return " · legacy TRUST provenance unknown";
-  if (states.has("unverified-import")) return " · repository TRUST assertion (unverified)";
-  return "";
+  if (states.size === 0) return "";
+  if (states.size > 1) return " · Mixed TRUST verification states — not Atlas verified";
+  return ` · ${trustVerificationPresentation([...states][0]!).label}`;
 }
 
 function List({ title, items }: { title: string; items: string[] }) {

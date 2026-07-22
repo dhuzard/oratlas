@@ -64,8 +64,12 @@ function classifyMaterializationFailure(error: unknown) {
 }
 
 function withoutTrust(edge: SubgraphEvidencePacket["edges"][number]) {
-  const { trust: _trust, ...identity } = edge;
+  const { trust: _trust, trustAssessments: _trustAssessments, ...identity } = edge;
   return identity;
+}
+
+function assessmentSet(edge: SubgraphEvidencePacket["edges"][number]) {
+  return edge.trustAssessments ?? (edge.trust ? [edge.trust] : []);
 }
 
 export function compareSynthesisPackets(
@@ -117,7 +121,7 @@ export function compareSynthesisPackets(
       reasons.add("confirmed-edge-changed");
       affected.push({ kind: "edge", id, change: "changed" });
     }
-    if (canonicalJson(edge.trust ?? null) !== canonicalJson(current.trust ?? null)) {
+    if (canonicalJson(assessmentSet(edge)) !== canonicalJson(assessmentSet(current))) {
       reasons.add("trust-changed");
       affected.push({ kind: "trust", id, change: "changed" });
     }

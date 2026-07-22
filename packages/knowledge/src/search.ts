@@ -173,7 +173,11 @@ export class InProcessSearchProvider implements SearchProvider {
       return false;
     }
     if (q.trustCriterion) {
-      const has = c.relations.some((r) => r.trust?.notableCriteria.includes(q.trustCriterion!));
+      const has = c.relations.some((r) =>
+        (r.trustAssessments ?? (r.trust ? [r.trust] : [])).some((assessment) =>
+          assessment.notableCriteria.includes(q.trustCriterion!),
+        ),
+      );
       if (!has) return false;
     }
     return true;

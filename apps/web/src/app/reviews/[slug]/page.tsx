@@ -525,8 +525,12 @@ export default async function ReviewPage({
                         <em>Qualification:</em> {claim.qualification}
                       </p>
                     ) : null}
-                    {claim.relations.map((rel, i) => (
-                      <div className="relation-row" key={i}>
+                    {claim.relations.map((rel) => (
+                      <div
+                        className="relation-row deep-link-target"
+                        id={`relation-${rel.id}`}
+                        key={rel.id}
+                      >
                         <Badge tone={rel.relationType === "contradicts" ? "warning" : "neutral"}>
                           {rel.relationType.replace(/-/g, " ")}
                         </Badge>
@@ -543,10 +547,19 @@ export default async function ReviewPage({
                             )
                           ) : null}
                         </span>
-                        {rel.trust ? (
+                        {rel.trusts.length > 0 ? (
                           <details>
-                            <summary>TRUST assessment</summary>
-                            <TrustDisplay trust={rel.trust} />
+                            <summary>TRUST assessments ({rel.trusts.length})</summary>
+                            {rel.trusts.map((trust) => (
+                              <section
+                                id={`assessment-${trust.assessmentId}`}
+                                className="deep-link-target"
+                                key={trust.assessmentId}
+                                aria-label={`TRUST assessment ${trust.assessmentId}`}
+                              >
+                                <TrustDisplay trust={trust} />
+                              </section>
+                            ))}
                           </details>
                         ) : (
                           <span className="muted">no TRUST assessment</span>
@@ -585,7 +598,11 @@ export default async function ReviewPage({
                   </thead>
                   <tbody>
                     {review.citations.map((c) => (
-                      <tr key={c.localCitationId}>
+                      <tr
+                        className="deep-link-target"
+                        id={`citation-${c.localCitationId}`}
+                        key={c.localCitationId}
+                      >
                         <td>{c.title ?? c.localCitationId}</td>
                         <td>{c.year ?? "—"}</td>
                         <td>

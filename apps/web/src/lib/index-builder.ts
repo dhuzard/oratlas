@@ -1,5 +1,5 @@
 import "server-only";
-import { computeAggregate, selectPreferredTrustAssessment, type TrustRecord } from "@oratlas/trust";
+import { computeAggregate, orderTrustAssessments, type TrustRecord } from "@oratlas/trust";
 import {
   canonicalWorkAliases,
   claimDomAnchor,
@@ -157,7 +157,7 @@ export async function buildKnowledgeIndex(): Promise<KnowledgeIndexData> {
 
     for (const claim of version.claims) {
       const relations: IndexedRelation[] = claim.evidenceRelations.map((rel) => {
-        const trust = selectPreferredTrustAssessment(
+        const trust = orderTrustAssessments(
           rel.trustAssessments.map((assessment) => {
             const resolved = resolveTrustAssessmentRows(
               { assessment, relation: rel, claim, citation: rel.citation },
@@ -165,30 +165,36 @@ export async function buildKnowledgeIndex(): Promise<KnowledgeIndexData> {
             );
             return {
               id: assessment.id,
-              effectiveStatus: resolved.effectiveStatus,
               assessedAt: assessment.assessedAt?.toISOString() ?? null,
+              assessorType: assessment.assessorType,
+              assessorId: assessment.assessorId,
+              protocolVersion: assessment.protocolVersion,
               value: { assessment, resolved },
             };
           }),
-        )?.value;
-        let indexedTrust;
-        if (trust) {
+        ).map(({ value: trust }) => {
           const record = toTrustRecord(trust.assessment);
           const agg = computeAggregate(record);
-          indexedTrust = {
+          return {
+            assessmentId: trust.assessment.id,
+            protocolVersion: trust.assessment.protocolVersion,
+            assessorType: trust.assessment.assessorType,
+            assessorId: trust.assessment.assessorId ?? undefined,
+            assessedAt: trust.assessment.assessedAt?.toISOString(),
             reviewStatus: trust.resolved.effectiveStatus as AssessmentReviewStatus,
             verificationState: trust.resolved.state,
             aggregateScore: agg.score ?? undefined,
             aggregateMethod: agg.method,
             notableCriteria: agg.assessedCriteria,
           };
-        }
+        });
         return {
           citationId:
             citationGlobalById.get(rel.citationId) ??
             globalCitationId(version.id, `missing:${rel.citationId}`),
           relationType: rel.relationType as ClaimEvidenceRelationType,
-          trust: indexedTrust,
+          trust: trust.length === 1 ? trust[0] : undefined,
+          trustAssessments: trust,
         };
       });
 

@@ -856,7 +856,7 @@ textarea {
 }
 .trust-criterion {
   display: grid;
-  grid-template-columns: 14rem 8rem 1fr;
+  grid-template-columns: minmax(12rem, 1.4fr) minmax(7rem, 0.7fr) minmax(8rem, 0.8fr) 2fr;
   gap: 0.5rem;
   padding: 0.35rem 0;
   border-bottom: 1px solid var(--border);
@@ -1078,4 +1078,9 @@ table.data td {
 }
 .btn-link-danger {
   color: var(--error);
+}
+:where(.deep-link-target):target {
+  scroll-margin-block: 5rem;
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
 }

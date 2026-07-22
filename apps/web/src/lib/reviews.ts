@@ -1,8 +1,7 @@
 import "server-only";
 import {
   computeAggregate,
-  selectPreferredTrustAssessment,
-  TRUST_CRITERIA,
+  orderTrustAssessments,
   type TrustRecord,
   type TrustVerificationState,
 } from "@oratlas/trust";
@@ -20,6 +19,7 @@ import {
 import { prisma, parseJsonColumn } from "./db";
 import { toTrustRecord } from "./index-builder";
 import { resolveTrustAssessmentRows } from "./trust-provenance";
+import { trustCriterionProfile } from "./trust-profile";
 import { isTombstonedState, lifecycleEventDto } from "./review-lifecycle";
 
 export interface ReviewCriterion {
@@ -30,7 +30,10 @@ export interface ReviewCriterion {
 }
 
 export interface ReviewTrust {
+  assessmentId: string;
   assessorType: string;
+  assessorId?: string;
+  assessedAt?: string;
   reviewStatus: string;
   verificationState: TrustVerificationState;
   protocolVersion: string;
@@ -52,16 +55,20 @@ export interface ReviewTrust {
     reviewerRoleSnapshot: string;
     rationale: string;
   };
+  supersedesAssessmentId?: string;
 }
 
 export interface ReviewRelation {
+  id: string;
   relationType: string;
   citationLocalId: string;
   citationTitle?: string;
   citationDoi?: string;
   citationIsExample: boolean;
   humanReviewed: boolean;
+  /** Backward-compatible singleton projection; absent whenever a set has multiple rows. */
   trust?: ReviewTrust;
+  trusts: ReviewTrust[];
 }
 
 export interface ReviewClaim {
@@ -280,7 +287,7 @@ export async function getReviewDetail(
     claimType: claim.claimType ?? undefined,
     qualification: claim.qualification ?? undefined,
     relations: claim.evidenceRelations.map((rel) => {
-      const trustRow = selectPreferredTrustAssessment(
+      const trustRows = orderTrustAssessments(
         rel.trustAssessments.map((assessment) => {
           const resolved = resolveTrustAssessmentRows(
             { assessment, relation: rel, claim, citation: rel.citation },
@@ -288,20 +295,23 @@ export async function getReviewDetail(
           );
           return {
             id: assessment.id,
-            effectiveStatus: resolved.effectiveStatus,
             assessedAt: assessment.assessedAt?.toISOString() ?? null,
+            assessorType: assessment.assessorType,
+            assessorId: assessment.assessorId,
+            protocolVersion: assessment.protocolVersion,
             value: { assessment, resolved },
           };
         }),
-      )?.value;
-      let trust: ReviewTrust | undefined;
-      if (trustRow) {
+      ).map(({ value: trustRow }): ReviewTrust => {
         const record = toTrustRecord(trustRow.assessment);
         const agg = computeAggregate(record);
         const limitationList = parseJsonColumn<string[]>(trustRow.assessment.limitationsJson, []);
         for (const l of limitationList) limitations.add(l);
-        trust = {
+        return {
+          assessmentId: trustRow.assessment.id,
           assessorType: trustRow.assessment.assessorType,
+          assessorId: trustRow.assessment.assessorId ?? undefined,
+          assessedAt: trustRow.assessment.assessedAt?.toISOString(),
           reviewStatus: trustRow.resolved.effectiveStatus,
           verificationState: trustRow.resolved.state,
           protocolVersion: trustRow.assessment.protocolVersion,
@@ -325,9 +335,11 @@ export async function getReviewDetail(
                 rationale: trustRow.assessment.verification.rationale,
               }
             : undefined,
+          supersedesAssessmentId: trustRow.assessment.supersedesAssessmentId ?? undefined,
         };
-      }
+      });
       return {
+        id: rel.id,
         relationType: rel.relationType,
         citationLocalId: rel.citation.localCitationId,
         citationTitle: rel.citation.title ?? undefined,
@@ -335,7 +347,8 @@ export async function getReviewDetail(
         citationIsExample: isExampleCitation(rel.citation.rawCitationJson),
         // Legacy/source relation flags never become a platform assertion.
         humanReviewed: false,
-        trust,
+        trust: trustRows.length === 1 ? trustRows[0] : undefined,
+        trusts: trustRows,
       };
     }),
   }));
@@ -472,18 +485,7 @@ export async function getReviewDetail(
 }
 
 function criteriaList(record: TrustRecord): ReviewCriterion[] {
-  const out: ReviewCriterion[] = [];
-  for (const criterion of TRUST_CRITERIA) {
-    const entry = record.criteria[criterion];
-    if (!entry) continue;
-    out.push({
-      criterion,
-      rating: entry.rating,
-      status: entry.status ?? "assessed",
-      rationale: entry.rationale,
-    });
-  }
-  return out;
+  return trustCriterionProfile(record.criteria);
 }
 
 function isExampleCitation(rawJson: string | null): boolean {

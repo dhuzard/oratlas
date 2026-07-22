@@ -7,6 +7,7 @@ import {
   type SynthesisReviewParagraph,
 } from "@oratlas/contracts";
 import { serializeJsonForHtml } from "@/lib/json-for-html";
+import { TrustVerificationBadge } from "@/components/TrustVerificationBadge";
 import {
   buildSynthesisJsonLd,
   type SynthesisCitationReadingContext,
@@ -47,6 +48,12 @@ export function SynthesisReader({
         </div>
         <h1>{synthesis.title}</h1>
         <p className="lead">{synthesis.abstract}</p>
+        <p>
+          <Link href={`/reviews/${synthesis.slug}/syntheses/${synthesis.version.id}`}>
+            Permanent link to accepted version {synthesis.version.ordinal}
+          </Link>
+          {synthesis.version.isCurrent ? " · current version" : " · historical version"}
+        </p>
         {synthesis.version.ordinal > 1 ? (
           <p>
             <a href={`/reviews/${synthesis.slug}/changes`}>
@@ -314,8 +321,8 @@ function SynthesisParagraph({
                         <li
                           key={`${trust.subject}:${trust.reviewStatus}:${trust.verificationState}:${index}`}
                         >
-                          TRUST: {trust.subject} · {trust.reviewStatus.replace(/-/g, " ")} ·{" "}
-                          {trust.verificationState.replace(/-/g, " ")}
+                          TRUST: {trust.subject} ·{" "}
+                          <TrustVerificationBadge state={trust.verificationState} />
                         </li>
                       ))}
                     </ul>

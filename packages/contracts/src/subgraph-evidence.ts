@@ -153,6 +153,9 @@ export const subgraphEvidenceTrustSchema = z
       .strict(),
     assessmentId: boundedIdSchema,
     protocolVersion: z.string().min(1).max(120),
+    assessorType: z.string().min(1).max(40),
+    assessorId: z.string().min(1).max(200).optional(),
+    assessedAt: z.string().datetime().optional(),
     reviewStatus: assessmentReviewStatusSchema,
     verificationState: trustVerificationStateSchema,
     criteria: z.array(trustCriterionSchema).min(1).max(TRUST_CRITERIA.length),
@@ -270,7 +273,9 @@ export const subgraphEvidenceEdgeSchema = z
     rationale: z.string().max(4_000).optional(),
     assertedAt: z.string().datetime().optional(),
     confirmedAt: z.string().datetime(),
+    /** Legacy single-assessment packet field; never populated by new materialization. */
     trust: subgraphEvidenceTrustSchema.optional(),
+    trustAssessments: z.array(subgraphEvidenceTrustSchema).optional(),
   })
   .strict();
 export type SubgraphEvidenceEdge = z.infer<typeof subgraphEvidenceEdgeSchema>;
@@ -383,9 +388,10 @@ export const subgraphEvidencePacketSchema = z
     }
     const edgeIds = packet.edges.map((edge) => edge.id);
     if (new Set(edgeIds).size !== edgeIds.length) issue(["edges"], "Edge ids must be unique.");
-    const trustAssessmentIds = packet.edges.flatMap((edge) =>
-      edge.trust ? [edge.trust.assessmentId] : [],
-    );
+    const trustAssessmentIds = packet.edges.flatMap((edge) => [
+      ...(edge.trust ? [edge.trust.assessmentId] : []),
+      ...(edge.trustAssessments ?? []).map((assessment) => assessment.assessmentId),
+    ]);
     if (new Set(trustAssessmentIds).size !== trustAssessmentIds.length) {
       issue(["edges"], "A TRUST assessment can own only one exact relation subject.");
     }
@@ -413,17 +419,22 @@ export const subgraphEvidencePacketSchema = z
       ) {
         issue(["edges", index], "Every edge must bind the exact packet node versions.");
       }
-      if (
-        edge.trust &&
-        (edge.trust.subject.sourceNodeId !== edge.sourceNodeId ||
-          edge.trust.subject.sourceVersionId !== edge.sourceVersionId ||
-          edge.trust.subject.targetNodeId !== edge.targetNodeId ||
-          edge.trust.subject.targetVersionId !== edge.targetVersionId ||
-          edge.trust.subject.relationType !== edge.relationType)
-      ) {
-        issue(["edges", index, "trust", "subject"], "TRUST subject must equal its exact edge.");
+      const assessments = edge.trustAssessments ?? (edge.trust ? [edge.trust] : []);
+      for (const [assessmentIndex, assessment] of assessments.entries()) {
+        if (
+          assessment.subject.sourceNodeId !== edge.sourceNodeId ||
+          assessment.subject.sourceVersionId !== edge.sourceVersionId ||
+          assessment.subject.targetNodeId !== edge.targetNodeId ||
+          assessment.subject.targetVersionId !== edge.targetVersionId ||
+          assessment.subject.relationType !== edge.relationType
+        ) {
+          issue(
+            ["edges", index, "trust", assessmentIndex, "subject"],
+            "TRUST subject must equal its exact edge.",
+          );
+        }
       }
-      if (edge.trust && source && target) {
+      if (assessments.length > 0 && source && target) {
         const expectedRelation =
           target.kind === "dataset"
             ? "uses-dataset"

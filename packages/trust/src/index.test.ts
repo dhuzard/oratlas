@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   ORDINAL_MEAN_METHOD,
+  assessmentSourceIdentity,
   computeAggregate,
   ordinalAtLeast,
   validateTrustAssessmentRecord,
@@ -90,5 +91,18 @@ describe("ordinalAtLeast", () => {
     expect(ordinalAtLeast("high", "moderate")).toBe(true);
     expect(ordinalAtLeast("low", "high")).toBe(false);
     expect(ordinalAtLeast("not-assessed", "low")).toBe(false);
+  });
+});
+
+describe("assessmentSourceIdentity", () => {
+  it("keeps a changed source record in the same lineage with a new exact hash", () => {
+    const original = assessmentSourceIdentity(record);
+    const changed = assessmentSourceIdentity({
+      ...record,
+      criteria: { ...record.criteria, entailment: { rating: "low", status: "assessed" } },
+    });
+    expect(changed.sourceLineageKey).toBe(original.sourceLineageKey);
+    expect(changed.sourceRecordHash).not.toBe(original.sourceRecordHash);
+    expect(assessmentSourceIdentity(structuredClone(record))).toEqual(original);
   });
 });

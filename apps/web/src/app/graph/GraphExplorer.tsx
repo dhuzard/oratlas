@@ -8,6 +8,7 @@ import {
   type PublicGraphResponse,
 } from "@oratlas/contracts";
 import { graphHref, graphNodeVersionHref, relationPresentation } from "./graph-presentation";
+import { TrustVerificationBadge } from "@/components/TrustVerificationBadge";
 
 export function GraphLanding() {
   return (
@@ -107,8 +108,16 @@ export function GraphExplorer({
             const target = nodes.get(edge.targetVersionId);
             if (!source || !target) return null;
             const presentation = relationPresentation(edge);
+            const trustAssessments =
+              edge.status === "confirmed"
+                ? (edge.trustAssessments ?? (edge.trust ? [edge.trust] : []))
+                : [];
             return (
-              <li className={presentation.className} key={edge.id}>
+              <li
+                className={`${presentation.className} deep-link-target`}
+                id={`edge-${edge.id}`}
+                key={edge.id}
+              >
                 <div className="graph-edge-heading">
                   <span className="graph-status-symbol" aria-hidden="true">
                     {presentation.statusSymbol}
@@ -131,10 +140,20 @@ export function GraphExplorer({
                   {edge.status === "confirmed"
                     ? `Confirmed by an editor · ${edge.confirmedAt.slice(0, 10)}`
                     : `${edge.provenance.replace(/-/g, " ")} · proposed ${edge.proposedAt.slice(0, 10)}`}
-                  {edge.status === "confirmed" && edge.trust
-                    ? ` · relation TRUST: ${edge.trust.reviewStatus.replace(/-/g, " ")}, ${edge.trust.verificationState.replace(/-/g, " ")}`
+                  {trustAssessments.length > 0
+                    ? ` · relation TRUST: ${trustAssessments.length} assessment${trustAssessments.length === 1 ? "" : "s"} (${trustAssessments.map((assessment) => `${assessment.assessorId ?? assessment.assessorType ?? "not supplied (legacy)"}, ${assessment.protocolVersion}`).join("; ")})`
                     : ""}
                 </p>
+                {trustAssessments.map((assessment, index) => (
+                  <div
+                    className="btn-row"
+                    key={assessment.assessmentId ?? `${edge.id}:legacy-${index}`}
+                  >
+                    <span className="muted">Relation TRUST:</span>
+                    <TrustVerificationBadge state={assessment.verificationState} />
+                    <span className="mono muted">protocol {assessment.protocolVersion}</span>
+                  </div>
+                ))}
               </li>
             );
           })}

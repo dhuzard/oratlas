@@ -51,8 +51,8 @@ test("proposals are visibly distinct and remain privacy-minimal", async ({ page,
   }
 });
 
-test("filters and signed cursor pagination preserve their query", async ({ page, request }) => {
-  const candidate = await discoverPaginatedNode(request);
+test("filters and signed cursor pagination preserve their query", async ({ page }) => {
+  const candidate = await discoverPaginatedNode();
   await page.goto(graphUrl(candidate, { limit: "1", relationType: "uses-dataset" }));
   // A relation filter may reduce the page to one without a cursor; first verify filter rendering.
   await expect(page.locator("#graph-relation")).toHaveValue("uses-dataset");
@@ -104,11 +104,8 @@ test("graph is accessible on a narrow viewport and example DOI is never linked",
 
 test.describe("without JavaScript", () => {
   test.use({ javaScriptEnabled: false });
-  test("authoritative relations, filters, and pagination are server rendered", async ({
-    page,
-    request,
-  }) => {
-    const candidate = await discoverPaginatedNode(request);
+  test("authoritative relations, filters, and pagination are server rendered", async ({ page }) => {
+    const candidate = await discoverPaginatedNode();
     await page.goto(graphUrl(candidate, { limit: "1" }));
     await expect(page.getByRole("list", { name: "Authoritative graph relations" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Apply filters" })).toBeVisible();
@@ -215,16 +212,21 @@ async function discoverEdge(
   throw new Error(`Seed data has no ${status} ${relationType ?? ""} edge`);
 }
 
-async function discoverPaginatedNode(request: APIRequestContext) {
-  const nodesResponse = await request.get("/api/nodes?pageSize=50");
-  const nodes = publicNodeListResponseSchema.parse(await nodesResponse.json()).items;
-  for (const node of nodes) {
-    const response = await request.get(
-      `/api/graph?seed=${encodeURIComponent(node.id)}&depth=1&limit=1`,
-    );
-    if (!response.ok()) continue;
-    const result = publicGraphResponseSchema.parse(await response.json());
-    if (result.page.nextCursor) return node.id;
+async function discoverPaginatedNode() {
+  const edges = await prisma.nodeEdge.findMany({
+    where: { status: "confirmed" },
+    select: {
+      sourceNodeVersion: { select: { knowledgeNodeId: true } },
+      targetNodeId: true,
+    },
+  });
+  const adjacency = new Map<string, number>();
+  for (const edge of edges) {
+    for (const nodeId of [edge.sourceNodeVersion.knowledgeNodeId, edge.targetNodeId]) {
+      adjacency.set(nodeId, (adjacency.get(nodeId) ?? 0) + 1);
+    }
   }
+  const candidate = [...adjacency].find(([, relationCount]) => relationCount > 1)?.[0];
+  if (candidate) return candidate;
   throw new Error("Seed data has no graph node with multiple relations");
 }

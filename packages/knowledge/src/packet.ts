@@ -58,19 +58,28 @@ export function buildEvidencePacket(
       anchor: c.anchor,
       sourceAnchor: c.sourceAnchor,
       claimType: c.claimType,
-      relations: c.relations.map((rel) => ({
-        citationId: rel.citationId,
-        relationType: rel.relationType,
-        trust: rel.trust
-          ? {
-              reviewStatus: rel.trust.reviewStatus,
-              verificationState: rel.trust.verificationState,
-              aggregateScore: rel.trust.aggregateScore,
-              aggregateMethod: rel.trust.aggregateMethod,
-              notableCriteria: rel.trust.notableCriteria,
-            }
-          : undefined,
-      })),
+      relations: c.relations.map((rel) => {
+        const trustAssessments = (rel.trustAssessments ?? (rel.trust ? [rel.trust] : [])).map(
+          (assessment) => ({
+            assessmentId: assessment.assessmentId,
+            protocolVersion: assessment.protocolVersion,
+            assessorType: assessment.assessorType,
+            assessorId: assessment.assessorId,
+            assessedAt: assessment.assessedAt,
+            reviewStatus: assessment.reviewStatus,
+            verificationState: assessment.verificationState,
+            aggregateScore: assessment.aggregateScore,
+            aggregateMethod: assessment.aggregateMethod,
+            notableCriteria: assessment.notableCriteria,
+          }),
+        );
+        return {
+          citationId: rel.citationId,
+          relationType: rel.relationType,
+          trust: trustAssessments.length === 1 ? trustAssessments[0] : undefined,
+          trustAssessments,
+        };
+      }),
     };
   });
 

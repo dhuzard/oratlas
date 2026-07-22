@@ -205,6 +205,7 @@ function fixture(): SubgraphEvidenceSource {
           },
           assessmentId: "trust-dataset",
           protocolVersion: "TRUST-1.0",
+          assessorType: "human",
           reviewStatus: "human-reviewed",
           verificationState: "platform-verified",
           criteria: [

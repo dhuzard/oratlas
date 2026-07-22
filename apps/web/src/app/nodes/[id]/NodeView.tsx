@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { Badge, Card, DefinitionList, Notice } from "@oratlas/ui";
-import { type PublicNodeDetail, type PublicNodeVersion } from "@oratlas/contracts";
+import { Badge, Card, DefinitionList, Notice, TrustCriterionProfile } from "@oratlas/ui";
+import { TRUST_CRITERIA, type PublicNodeDetail, type PublicNodeVersion } from "@oratlas/contracts";
+import { TrustVerificationBadge } from "@/components/TrustVerificationBadge";
 
 export function NodeView({
   node,
@@ -77,14 +78,25 @@ export function NodeView({
                       {edge.provenance.replace(/-/g, " ")}
                       {edge.assertedAt ? ` · ${edge.assertedAt.slice(0, 10)}` : ""}
                     </p>
-                    {edge.trust ? (
-                      <p className="muted">
-                        Relation TRUST: {edge.trust.reviewStatus.replace(/-/g, " ")} ·{" "}
-                        {edge.trust.verificationState.replace(/-/g, " ")} · protocol{" "}
-                        {edge.trust.protocolVersion}. This compact view omits the aggregate because
-                        criterion detail is not displayed here.
-                      </p>
-                    ) : null}
+                    {nodeEdgeTrustAssessments(edge).map((assessment) => (
+                      <section
+                        className="trust-block"
+                        key={assessment.assessmentId}
+                        aria-label={`Relation TRUST assessment ${assessment.assessmentId}`}
+                      >
+                        <p className="muted">
+                          Relation TRUST: assessor{" "}
+                          {assessment.assessorId ?? assessment.assessorType} ·{" "}
+                          {assessment.reviewStatus.replace(/-/g, " ")} · protocol{" "}
+                          {assessment.protocolVersion}{" "}
+                          <TrustVerificationBadge state={assessment.verificationState} />
+                        </p>
+                        <TrustCriterionProfile
+                          criteria={assessment.criteria}
+                          label={`TRUST criteria for relation assessment ${assessment.assessmentId}`}
+                        />
+                      </section>
+                    ))}
                   </li>
                 ))}
               </ul>
@@ -124,15 +136,25 @@ export function NodeView({
                           )}
                         </p>
                       ) : null}
-                      {context.trust ? (
-                        <p className="muted">
-                          {context.trust.reviewStatus.replace(/-/g, " ")} ·{" "}
-                          {context.trust.verificationState.replace(/-/g, " ")}
-                          {context.trust.aggregateScore !== undefined &&
-                          context.trust.aggregateMethod
-                            ? ` · relation aggregate ${context.trust.aggregateScore.toFixed(2)} (${context.trust.aggregateMethod})`
-                            : ""}
-                        </p>
+                      {nodeContextTrustAssessments(context).length > 0 ? (
+                        nodeContextTrustAssessments(context).map((assessment) => (
+                          <section
+                            className="trust-block"
+                            key={assessment.assessmentId}
+                            aria-label={`Claim-citation TRUST assessment ${assessment.assessmentId}`}
+                          >
+                            <p className="muted">
+                              assessor {assessment.assessorId ?? assessment.assessorType} · protocol{" "}
+                              {assessment.protocolVersion} ·{" "}
+                              {assessment.reviewStatus.replace(/-/g, " ")}{" "}
+                              <TrustVerificationBadge state={assessment.verificationState} />
+                            </p>
+                            <TrustCriterionProfile
+                              criteria={assessment.criteria}
+                              label={`TRUST criteria for claim-citation assessment ${assessment.assessmentId}`}
+                            />
+                          </section>
+                        ))
                       ) : (
                         <p className="muted">No TRUST assessment on this relation.</p>
                       )}
@@ -334,6 +356,52 @@ function NodePayload({ version }: { version: PublicNodeVersion }) {
 
 function kindLabel(kind: PublicNodeDetail["kind"]): string {
   return kind === "code" ? "Code" : `${kind[0]!.toUpperCase()}${kind.slice(1)}`;
+}
+
+type NodeEdgeTrustAssessment = NonNullable<
+  PublicNodeDetail["edges"][number]["trustAssessments"]
+>[number];
+
+export function nodeEdgeTrustAssessments(
+  edge: PublicNodeDetail["edges"][number],
+): NodeEdgeTrustAssessment[] {
+  if (edge.trustAssessments) return edge.trustAssessments;
+  if (!edge.trust) return [];
+  return [
+    {
+      ...edge.trust,
+      assessorType: "not supplied (legacy)",
+      criteria: missingTrustCriterionProfile(),
+    },
+  ];
+}
+
+type NodeContextTrustAssessment = NonNullable<
+  PublicNodeDetail["trustContext"][number]["trustAssessments"]
+>[number];
+
+export function nodeContextTrustAssessments(
+  context: PublicNodeDetail["trustContext"][number],
+): NodeContextTrustAssessment[] {
+  if (context.trustAssessments) return context.trustAssessments;
+  if (!context.trust) return [];
+  return [
+    {
+      ...context.trust,
+      assessmentId: `legacy:${context.claimId}:${context.citationId}`,
+      protocolVersion: "not supplied (legacy)",
+      assessorType: "not supplied (legacy)",
+      criteria: missingTrustCriterionProfile(),
+    },
+  ];
+}
+
+function missingTrustCriterionProfile() {
+  return TRUST_CRITERIA.map((criterion) => ({
+    criterion,
+    rating: "not-supplied" as const,
+    status: "not-supplied" as const,
+  }));
 }
 
 function formatBytes(value: number): string {

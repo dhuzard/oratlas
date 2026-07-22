@@ -570,6 +570,7 @@ export async function listConfirmedEdgesForNode(nodeId: string) {
       title: edge.relatedNode.title,
     },
     trust: edge.trust,
+    trustAssessments: edge.trustAssessments,
   }));
 }
 

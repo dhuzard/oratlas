@@ -37,12 +37,33 @@ export const evidenceClaimSchema = z.object({
         relationType: claimEvidenceRelationTypeSchema,
         trust: z
           .object({
+            assessmentId: z.string().min(1),
+            protocolVersion: z.string().min(1).max(120),
+            assessorType: z.string().min(1).max(40),
+            assessorId: z.string().min(1).max(200).optional(),
+            assessedAt: z.string().datetime().optional(),
             reviewStatus: assessmentReviewStatusSchema,
             verificationState: trustVerificationStateSchema,
             aggregateScore: z.number().min(0).max(1).optional(),
             aggregateMethod: z.string().optional(),
             notableCriteria: z.array(z.string()).default([]),
           })
+          .optional(),
+        trustAssessments: z
+          .array(
+            z.object({
+              assessmentId: z.string().min(1),
+              protocolVersion: z.string().min(1).max(120),
+              assessorType: z.string().min(1).max(40),
+              assessorId: z.string().min(1).max(200).optional(),
+              assessedAt: z.string().datetime().optional(),
+              reviewStatus: assessmentReviewStatusSchema,
+              verificationState: trustVerificationStateSchema,
+              aggregateScore: z.number().min(0).max(1).optional(),
+              aggregateMethod: z.string().optional(),
+              notableCriteria: z.array(z.string()).default([]),
+            }),
+          )
           .optional(),
       }),
     )

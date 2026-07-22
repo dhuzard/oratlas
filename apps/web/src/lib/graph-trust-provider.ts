@@ -8,8 +8,7 @@ import {
 } from "./graph-trust";
 import {
   loadedNodeRelationTrustInclude,
-  PUBLIC_NODE_RELATION_TRUST_GLOBAL_LIMIT,
-  selectPreferredPublicNodeRelationTrustAssessment,
+  projectPublicNodeRelationTrustAssessments,
   type LoadedNodeRelationTrustAssessment,
 } from "./trust-provenance";
 
@@ -31,9 +30,7 @@ export const databaseGraphTrustProvider: GraphTrustProvider = {
       },
       include: loadedNodeRelationTrustInclude,
       orderBy: [{ assessedAt: "desc" }, { id: "asc" }],
-      take: PUBLIC_NODE_RELATION_TRUST_GLOBAL_LIMIT + 1,
     });
-    if (rows.length > PUBLIC_NODE_RELATION_TRUST_GLOBAL_LIMIT) return new Map();
 
     return projectGraphTrustRows(exactKeys, rows as LoadedNodeRelationTrustAssessment[]);
   },
@@ -60,11 +57,17 @@ export function projectGraphTrustRows(
 
   const result = new Map<string, unknown>();
   for (const [key, group] of groups) {
-    const selected = selectPreferredPublicNodeRelationTrustAssessment(group);
-    if (!selected) continue;
-    const { assessmentId: _assessmentId, ...compact } = selected;
-    const parsed = publicGraphTrustSchema.safeParse(compact);
-    if (parsed.success) result.set(key, parsed.data);
+    const assessments = projectPublicNodeRelationTrustAssessments(group);
+    if (assessments.length === 0) continue;
+    const parsed = publicGraphTrustSchema.array().safeParse(assessments);
+    if (!parsed.success) continue;
+    if (parsed.data.length === 1) {
+      const assessment = parsed.data[0];
+      if (!assessment) continue;
+      result.set(key, assessment);
+    } else {
+      result.set(key, parsed.data);
+    }
   }
   return result;
 }

@@ -11,6 +11,7 @@ import {
   knowledgeNodeKindSchema,
   nodeEdgeProvenanceSchema,
   nodeRelationTypeSchema,
+  TRUST_CRITERIA,
   trustVerificationStateSchema,
 } from "./enums.js";
 import { doiSchema, httpsUrlSchema } from "./identifiers.js";
@@ -111,6 +112,38 @@ export const publicRelatedNodeVersionSchema = publicNodeSummarySchema
   .strict();
 export type PublicRelatedNodeVersion = z.infer<typeof publicRelatedNodeVersionSchema>;
 
+export const publicTrustCriterionProfileRowSchema = z
+  .object({
+    criterion: z.enum(TRUST_CRITERIA),
+    rating: z.enum([
+      "very-low",
+      "low",
+      "moderate",
+      "high",
+      "very-high",
+      "not-assessed",
+      "not-applicable",
+      "not-supplied",
+      "unavailable",
+    ]),
+    status: z.enum(["assessed", "not-assessed", "not-applicable", "not-supplied", "invalid"]),
+    rationale: z.string().max(4_000).optional(),
+  })
+  .strict();
+
+const publicNodeTrustAssessmentSchema = z
+  .object({
+    assessmentId: z.string().min(1),
+    protocolVersion: z.string().min(1).max(40),
+    assessorType: z.string().min(1).max(40),
+    assessorId: z.string().min(1).max(200).optional(),
+    assessedAt: z.string().datetime().optional(),
+    reviewStatus: assessmentReviewStatusSchema,
+    verificationState: trustVerificationStateSchema,
+    criteria: z.array(publicTrustCriterionProfileRowSchema).length(TRUST_CRITERIA.length),
+  })
+  .strict();
+
 export const publicNodeEdgeSchema = z
   .object({
     id: z.string().min(1),
@@ -128,6 +161,7 @@ export const publicNodeEdgeSchema = z
       })
       .strict()
       .optional(),
+    trustAssessments: z.array(publicNodeTrustAssessmentSchema).optional(),
     relatedNode: publicRelatedNodeVersionSchema,
   })
   .strict();
@@ -152,6 +186,16 @@ export const publicNodeTrustContextSchema = z
         aggregateMethod: z.string().optional(),
       })
       .strict()
+      .optional(),
+    trustAssessments: z
+      .array(
+        publicNodeTrustAssessmentSchema
+          .extend({
+            aggregateScore: z.number().min(0).max(1).optional(),
+            aggregateMethod: z.string().optional(),
+          })
+          .strict(),
+      )
       .optional(),
   })
   .strict();

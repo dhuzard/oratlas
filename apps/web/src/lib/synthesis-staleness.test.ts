@@ -102,6 +102,18 @@ describe("synthesis packet staleness deltas", () => {
       edges: [{ ...(accepted.edges[0] as object), trust: { assessmentId: "trust-2" } }],
     });
     expect([...compareSynthesisPackets(accepted, changedTrust).reasons]).toEqual(["trust-changed"]);
+    const changedAssessmentSet = packet({
+      edges: [
+        {
+          ...(accepted.edges[0] as object),
+          trust: undefined,
+          trustAssessments: [{ assessmentId: "trust-1" }, { assessmentId: "trust-2" }],
+        },
+      ],
+    });
+    expect([...compareSynthesisPackets(accepted, changedAssessmentSet).reasons]).toEqual([
+      "trust-changed",
+    ]);
     const changedEdge = packet({
       edges: [{ ...(accepted.edges[0] as object), relationType: "contradicts" }],
     });

@@ -67,6 +67,7 @@ describe("subgraph evidence contracts", () => {
       },
       assessmentId: "trust-1",
       protocolVersion: "TRUST-1.0",
+      assessorType: "human",
       reviewStatus: "human-reviewed",
       verificationState: "platform-verified",
       criteria: [

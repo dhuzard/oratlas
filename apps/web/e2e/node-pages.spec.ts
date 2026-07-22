@@ -18,13 +18,31 @@ test("claim node exposes confirmed edges, scoped TRUST context, and immutable hi
   await expect(
     page.getByText("TRUST belongs to each exact claim–citation relation."),
   ).toBeVisible();
-  await expect(page.getByText(/relation aggregate/).first()).toBeVisible();
+  await expect(page.getByText(/relation aggregate/)).toHaveCount(0);
+  await expect(
+    page
+      .getByText(/Atlas structurally verified|Repository\/source-native — not verified by Atlas/)
+      .first(),
+  ).toBeVisible();
 
   const detailResponse = await request.get(`/api/nodes/${claim.id}`);
   expect(detailResponse.ok()).toBeTruthy();
   const detail = publicNodeDetailSchema.parse(await detailResponse.json());
   expect(detail.id).toBe(claim.id);
   expect(detail.edges.every((edge) => edge.provenance !== "proposed-by-agent")).toBe(true);
+  const assessments = [
+    ...detail.edges.flatMap((edge) => edge.trustAssessments ?? []),
+    ...detail.trustContext.flatMap((context) => context.trustAssessments ?? []),
+  ];
+  expect(assessments.length).toBeGreaterThan(0);
+  expect(assessments.every((assessment) => assessment.criteria.length === 10)).toBe(true);
+  await expect(page.getByRole("table", { name: /TRUST criteria/ }).first()).toBeVisible();
+  await expect(
+    page
+      .getByRole("table", { name: /TRUST criteria/ })
+      .first()
+      .getByRole("row"),
+  ).toHaveCount(11);
 
   const edgesResponse = await request.get(`/api/nodes/${claim.id}/edges`);
   expect(edgesResponse.ok()).toBeTruthy();

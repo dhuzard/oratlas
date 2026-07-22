@@ -9,7 +9,7 @@ import {
   nodeRelationTrustSubjectInputFromDatabaseRows,
   resolveNodeRelationTrustVerification,
   resolveTrustVerification,
-  selectPreferredTrustAssessment,
+  orderTrustAssessments,
   trustSubjectInputFromDatabaseRows,
   type DatabaseTrustSubjectRows,
   type ReviewedNodeRelationAssessmentInput,
@@ -17,7 +17,9 @@ import {
   type ResolvedTrustVerification,
 } from "@oratlas/trust";
 import { type Prisma } from "@oratlas/db";
+import { type TrustCriterionProfileRow } from "@oratlas/ui";
 import { prisma } from "./db";
+import { trustCriterionProfileFromJson } from "./trust-profile";
 
 const loadedTrustInclude = {
   verification: { include: { reviewer: true } },
@@ -66,6 +68,7 @@ export const PUBLIC_NODE_RELATION_TRUST_PER_KEY_LIMIT = 50;
 
 export interface PublicNodeRelationTrustSummary extends PublicGraphTrust {
   assessmentId: string;
+  assessorType: string;
 }
 
 export interface ResolvedTrustAssessment extends ResolvedTrustVerification {
@@ -154,20 +157,22 @@ export function resolveLoadedNodeRelationTrustAssessment(
 }
 
 /**
- * Resolve one bounded exact-relation group into its preferred anonymous summary.
+ * Resolve one bounded exact-relation group into its complete anonymous assessment set.
  * Persisted review labels are never projected without reconstructing the subject.
  */
-export function selectPreferredPublicNodeRelationTrustAssessment(
+export function projectPublicNodeRelationTrustAssessments(
   rows: readonly LoadedNodeRelationTrustAssessment[],
-): PublicNodeRelationTrustSummary | undefined {
-  if (rows.length > PUBLIC_NODE_RELATION_TRUST_PER_KEY_LIMIT) return undefined;
-
+): PublicNodeRelationTrustSummary[] {
   const candidates = rows.flatMap((row) => {
     try {
       const resolved = resolveLoadedNodeRelationTrustAssessment(row);
       if (!resolved.authoritative) return [];
       const parsed = publicGraphTrustSchema.safeParse({
+        assessmentId: row.id,
         protocolVersion: row.protocolVersion,
+        assessorType: row.assessorType,
+        assessorId: row.assessorId ?? undefined,
+        assessedAt: row.assessedAt?.toISOString(),
         reviewStatus: resolved.effectiveStatus,
         verificationState: resolved.state,
       });
@@ -175,9 +180,15 @@ export function selectPreferredPublicNodeRelationTrustAssessment(
       return [
         {
           id: row.id,
-          effectiveStatus: resolved.effectiveStatus,
           assessedAt: row.assessedAt?.toISOString() ?? null,
-          value: { assessmentId: row.id, ...parsed.data },
+          assessorType: row.assessorType,
+          assessorId: row.assessorId,
+          protocolVersion: row.protocolVersion,
+          value: {
+            ...parsed.data,
+            assessmentId: row.id,
+            assessorType: row.assessorType,
+          },
         },
       ];
     } catch {
@@ -186,7 +197,7 @@ export function selectPreferredPublicNodeRelationTrustAssessment(
     }
   });
 
-  return selectPreferredTrustAssessment(candidates)?.value;
+  return orderTrustAssessments(candidates).map(({ value }) => value);
 }
 
 function mapNodeAssessment(
@@ -544,9 +555,19 @@ export interface TrustQueueItem {
   citationLocalId: string;
   citationTitle?: string;
   relationType: string;
+  protocolVersion: string;
+  assessorType: string;
+  assessorId?: string;
+  assessedAt?: string;
+  evidenceAvailable: boolean;
+  sourceRecordAvailable: boolean;
   sourceReviewStatus?: string;
   sourceAssessorType?: string;
+  sourceAssessorId?: string;
+  sourceAssessedAt?: string;
+  sourceEvidenceAvailable: boolean;
   sourceRelationHumanReviewed?: boolean;
+  criteria: TrustCriterionProfileRow[];
   sourceAggregateScore: number | null;
   computedAggregateScore: number | null;
   effectiveStatus: string;
@@ -558,19 +579,15 @@ export interface TrustQueueItem {
   assessmentHash: string;
 }
 
-export async function listTrustEditorialQueue(
-  filter: TrustQueueFilter = "needs-review",
-): Promise<TrustQueueItem[]> {
+async function loadTrustEditorialQueueItems(): Promise<TrustQueueItem[]> {
   const [legacyRows, nodeRows] = await Promise.all([
     prisma.trustAssessment.findMany({
       include: loadedTrustInclude,
       orderBy: [{ createdAt: "asc" }, { id: "asc" }],
-      take: 500,
     }),
     prisma.nodeRelationTrustAssessment.findMany({
       include: loadedNodeRelationTrustInclude,
       orderBy: [{ createdAt: "asc" }, { id: "asc" }],
-      take: 500,
     }),
   ]);
 
@@ -587,9 +604,19 @@ export async function listTrustEditorialQueue(
       citationLocalId: row.relation.citation.localCitationId,
       citationTitle: row.relation.citation.title ?? undefined,
       relationType: row.relation.relationType,
+      protocolVersion: row.protocolVersion,
+      assessorType: row.assessorType,
+      assessorId: row.assessorId ?? undefined,
+      assessedAt: row.assessedAt?.toISOString(),
+      evidenceAvailable: row.evidenceJson !== null,
+      sourceRecordAvailable: row.sourceRecordJson !== null,
       sourceReviewStatus: row.sourceReviewStatus ?? undefined,
       sourceAssessorType: row.sourceAssessorType ?? undefined,
+      sourceAssessorId: row.sourceAssessorId ?? undefined,
+      sourceAssessedAt: row.sourceAssessedAt?.toISOString(),
+      sourceEvidenceAvailable: row.sourceEvidenceJson !== null,
       sourceRelationHumanReviewed: row.sourceRelationHumanReviewed ?? undefined,
+      criteria: trustCriterionProfileFromJson(resolved.subject.assessment.criteriaJson),
       sourceAggregateScore: row.sourceAggregateScore,
       computedAggregateScore: row.aggregateScore,
       effectiveStatus: resolved.effectiveStatus,
@@ -615,8 +642,18 @@ export async function listTrustEditorialQueue(
         citationLocalId: row.proposal.targetNodeVersion.knowledgeNode.localNodeId,
         citationTitle: row.proposal.targetNodeVersion.title,
         relationType: row.proposal.relationType,
+        protocolVersion: row.protocolVersion,
+        assessorType: row.assessorType,
+        assessorId: row.assessorId ?? undefined,
+        assessedAt: row.assessedAt?.toISOString(),
+        evidenceAvailable: row.evidenceJson !== null,
+        sourceRecordAvailable: row.sourceRecordJson !== null,
         sourceReviewStatus: row.sourceReviewStatus,
         sourceAssessorType: row.sourceAssessorType,
+        criteria: trustCriterionProfileFromJson(resolved.subject.assessment.criteriaJson),
+        sourceAssessorId: row.sourceAssessorId ?? undefined,
+        sourceAssessedAt: row.sourceAssessedAt?.toISOString(),
+        sourceEvidenceAvailable: row.sourceEvidenceJson !== null,
         sourceAggregateScore: row.sourceAggregateScore,
         computedAggregateScore: null,
         effectiveStatus: resolved.effectiveStatus,
@@ -639,8 +676,29 @@ export async function listTrustEditorialQueue(
         citationLocalId: row.proposal.targetNodeVersion.knowledgeNode.localNodeId,
         citationTitle: row.proposal.targetNodeVersion.title,
         relationType: row.proposal.relationType,
+        protocolVersion: row.protocolVersion,
+        assessorType: row.assessorType,
+        assessorId: row.assessorId ?? undefined,
+        assessedAt: row.assessedAt?.toISOString(),
+        evidenceAvailable: row.evidenceJson !== null,
+        sourceRecordAvailable: row.sourceRecordJson !== null,
         sourceReviewStatus: row.sourceReviewStatus,
         sourceAssessorType: row.sourceAssessorType,
+        criteria: trustCriterionProfileFromJson({
+          identityIntegrity: row.identityIntegrity,
+          entailment: row.entailment,
+          sourceAccess: row.sourceAccess,
+          populationRelevance: row.populationRelevance,
+          interventionExposureRelevance: row.interventionExposureRelevance,
+          outcomeRelevance: row.outcomeRelevance,
+          methodologicalSafeguards: row.methodologicalSafeguards,
+          statisticalSafeguards: row.statisticalSafeguards,
+          replicationConvergence: row.replicationConvergence,
+          conflictDependency: row.conflictDependency,
+        }),
+        sourceAssessorId: row.sourceAssessorId ?? undefined,
+        sourceAssessedAt: row.sourceAssessedAt?.toISOString(),
+        sourceEvidenceAvailable: row.sourceEvidenceJson !== null,
         sourceAggregateScore: row.sourceAggregateScore,
         computedAggregateScore: null,
         effectiveStatus: "unverified-import",
@@ -650,6 +708,13 @@ export async function listTrustEditorialQueue(
       });
     }
   }
+  return orderTrustQueueItems(items);
+}
+
+function filterTrustQueueItems(
+  items: readonly TrustQueueItem[],
+  filter: TrustQueueFilter,
+): TrustQueueItem[] {
   return items.filter((item) => {
     if (filter === "all") return true;
     if (filter === "verified") return item.verificationState === "platform-verified";
@@ -657,4 +722,79 @@ export async function listTrustEditorialQueue(
     if (filter === "legacy") return item.verificationState === "legacy-unknown";
     return item.verificationState !== "platform-verified";
   });
+}
+
+export interface TrustQueuePageOptions {
+  page?: number;
+  pageSize?: number;
+}
+
+export interface TrustQueuePage {
+  items: TrustQueueItem[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+
+const DEFAULT_TRUST_QUEUE_PAGE_SIZE = 25;
+const MAX_TRUST_QUEUE_PAGE_SIZE = 100;
+
+/**
+ * Deterministically page the complete, neutrally ordered queue. Counts and
+ * page boundaries are calculated after the selected verification-state filter.
+ */
+export function paginateTrustQueueItems(
+  items: readonly TrustQueueItem[],
+  filter: TrustQueueFilter = "needs-review",
+  options: TrustQueuePageOptions = {},
+): TrustQueuePage {
+  const ordered = orderTrustQueueItems(items);
+  const filtered = filterTrustQueueItems(ordered, filter);
+  const requestedPageSize = Number.isSafeInteger(options.pageSize) ? options.pageSize! : 0;
+  const pageSize =
+    requestedPageSize > 0
+      ? Math.min(requestedPageSize, MAX_TRUST_QUEUE_PAGE_SIZE)
+      : DEFAULT_TRUST_QUEUE_PAGE_SIZE;
+  const total = filtered.length;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const requestedPage = Number.isSafeInteger(options.page) ? options.page! : 1;
+  const page = Math.min(Math.max(requestedPage, 1), totalPages);
+  const start = (page - 1) * pageSize;
+  return {
+    items: filtered.slice(start, start + pageSize),
+    total,
+    page,
+    pageSize,
+    totalPages,
+  };
+}
+
+/** Complete compatibility read for transactional callers and internal tests. */
+export async function listTrustEditorialQueue(
+  filter: TrustQueueFilter = "needs-review",
+): Promise<TrustQueueItem[]> {
+  return filterTrustQueueItems(await loadTrustEditorialQueueItems(), filter);
+}
+
+/** Count-accurate, page-bounded read used by the editorial dashboard. */
+export async function listTrustEditorialQueuePage(
+  filter: TrustQueueFilter = "needs-review",
+  options: TrustQueuePageOptions = {},
+): Promise<TrustQueuePage> {
+  return paginateTrustQueueItems(await loadTrustEditorialQueueItems(), filter, options);
+}
+
+/** Apply the D01 neutral ordering without using status, rating, or aggregate fields. */
+export function orderTrustQueueItems(items: readonly TrustQueueItem[]): TrustQueueItem[] {
+  return orderTrustAssessments(
+    items.map((item) => ({
+      id: item.assessmentId,
+      assessedAt: item.assessedAt ?? null,
+      assessorType: item.assessorType,
+      assessorId: item.assessorId ?? null,
+      protocolVersion: item.protocolVersion,
+      value: item,
+    })),
+  ).map(({ value }) => value);
 }

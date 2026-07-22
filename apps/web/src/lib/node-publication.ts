@@ -21,7 +21,7 @@ import {
   type PublicNodeVersion,
 } from "@oratlas/contracts";
 import { nodeFieldProvenanceSchema } from "@oratlas/extractor";
-import { selectPreferredTrustAssessment } from "@oratlas/trust";
+import { orderTrustAssessments } from "@oratlas/trust";
 import type { PrismaClient } from "@oratlas/db";
 import { prisma } from "./db";
 import {
@@ -30,10 +30,10 @@ import {
 } from "./node-edge-publication";
 import {
   loadedNodeRelationTrustInclude,
-  PUBLIC_NODE_RELATION_TRUST_GLOBAL_LIMIT,
   resolveTrustAssessmentRows,
-  selectPreferredPublicNodeRelationTrustAssessment,
+  projectPublicNodeRelationTrustAssessments,
 } from "./trust-provenance";
+import { trustCriterionProfileFromJson } from "./trust-profile";
 
 const storedNodeProvenanceSchema = z.union([
   knowledgeNodeProvenanceSchema,
@@ -57,7 +57,6 @@ const PUBLIC_NODE_SEARCH_BATCH_SIZE = 200;
 const PUBLIC_NODE_VERSION_LIMIT = 200;
 const PUBLIC_NODE_EDGE_LIMIT = 200;
 const PUBLIC_NODE_TRUST_RELATION_LIMIT = 200;
-const PUBLIC_NODE_TRUST_ASSESSMENT_LIMIT = 50;
 
 export type ExactPublicNodeVersionProjection = {
   id: string;
@@ -517,7 +516,6 @@ export async function getPublicNode(
         trustAssessments: {
           include: { verification: true },
           orderBy: [{ assessedAt: "desc" }, { id: "desc" }],
-          take: PUBLIC_NODE_TRUST_ASSESSMENT_LIMIT,
         },
       },
       orderBy: { id: "asc" },
@@ -531,11 +529,15 @@ export async function getPublicNode(
     {
       assessmentId: string;
       protocolVersion: string;
+      assessorType: string;
+      assessorId?: string;
+      assessedAt?: string;
       reviewStatus:
         "unverified-import" | "agent-proposed" | "human-reviewed" | "adjudicated" | "superseded";
       verificationState:
         "platform-verified" | "unverified-import" | "stale-verification" | "legacy-unknown";
-    }
+      criteria: ReturnType<typeof trustCriterionProfileFromJson>;
+    }[]
   >();
   if (publicEdgeIds.length > 0) {
     const trustRows = await prisma.nodeRelationTrustAssessment.findMany({
@@ -547,26 +549,56 @@ export async function getPublicNode(
       },
       include: loadedNodeRelationTrustInclude,
       orderBy: [{ assessedAt: "desc" }, { id: "asc" }],
-      take: PUBLIC_NODE_RELATION_TRUST_GLOBAL_LIMIT + 1,
     });
-    // A repository can import adversarially many assessments. Fail closed for
-    // this optional projection if the one global bound is exceeded.
-    if (trustRows.length <= PUBLIC_NODE_RELATION_TRUST_GLOBAL_LIMIT) {
-      const candidates = new Map<string, typeof trustRows>();
-      for (const assessment of trustRows) {
-        const edgeId = assessment.proposal.confirmedEdgeId;
-        if (!edgeId) continue;
-        const list = candidates.get(edgeId) ?? [];
-        list.push(assessment);
-        candidates.set(edgeId, list);
-      }
-      for (const [edgeId, values] of candidates) {
-        const preferred = selectPreferredPublicNodeRelationTrustAssessment(values);
-        if (!preferred) continue;
-        nodeTrustByEdge.set(edgeId, preferred);
-      }
+    const candidates = new Map<string, typeof trustRows>();
+    for (const assessment of trustRows) {
+      const edgeId = assessment.proposal.confirmedEdgeId;
+      if (!edgeId) continue;
+      const list = candidates.get(edgeId) ?? [];
+      list.push(assessment);
+      candidates.set(edgeId, list);
+    }
+    for (const [edgeId, values] of candidates) {
+      const rowsById = new Map(values.map((row) => [row.id, row]));
+      nodeTrustByEdge.set(
+        edgeId,
+        projectPublicNodeRelationTrustAssessments(values).flatMap((assessment) => {
+          const row = rowsById.get(assessment.assessmentId);
+          return row
+            ? [
+                {
+                  ...assessment,
+                  criteria: trustCriterionProfileFromJson({
+                    identityIntegrity: row.identityIntegrity,
+                    entailment: row.entailment,
+                    sourceAccess: row.sourceAccess,
+                    populationRelevance: row.populationRelevance,
+                    interventionExposureRelevance: row.interventionExposureRelevance,
+                    outcomeRelevance: row.outcomeRelevance,
+                    methodologicalSafeguards: row.methodologicalSafeguards,
+                    statisticalSafeguards: row.statisticalSafeguards,
+                    replicationConvergence: row.replicationConvergence,
+                    conflictDependency: row.conflictDependency,
+                  }),
+                },
+              ]
+            : [];
+        }),
+      );
     }
   }
+
+  const legacyEdgeTrust = (edgeId: string) => {
+    const assessments = nodeTrustByEdge.get(edgeId) ?? [];
+    if (assessments.length !== 1) return undefined;
+    const assessment = assessments[0]!;
+    return {
+      assessmentId: assessment.assessmentId,
+      protocolVersion: assessment.protocolVersion,
+      reviewStatus: assessment.reviewStatus,
+      verificationState: assessment.verificationState,
+    };
+  };
 
   const outgoing = outgoingRows.flatMap((edge) => {
     if (!hasOwnedConfirmedTargetVersion(edge)) return [];
@@ -583,7 +615,8 @@ export async function getPublicNode(
         provenance: edge.provenance,
         rationale: edge.rationale ?? undefined,
         assertedAt: edge.assertedAt?.toISOString(),
-        trust: nodeTrustByEdge.get(edge.id),
+        trust: legacyEdgeTrust(edge.id),
+        trustAssessments: nodeTrustByEdge.get(edge.id) ?? [],
         relatedNode,
       },
     ];
@@ -603,7 +636,8 @@ export async function getPublicNode(
         provenance: edge.provenance,
         rationale: edge.rationale ?? undefined,
         assertedAt: edge.assertedAt?.toISOString(),
-        trust: nodeTrustByEdge.get(edge.id),
+        trust: legacyEdgeTrust(edge.id),
+        trustAssessments: nodeTrustByEdge.get(edge.id) ?? [],
         relatedNode,
       },
     ];
@@ -611,7 +645,7 @@ export async function getPublicNode(
 
   const trustContext = trustRelations.map((relation) => {
     const claim = relation.claim;
-    const preferred = selectPreferredTrustAssessment(
+    const assessments = orderTrustAssessments(
       relation.trustAssessments.map((assessment) => {
         const resolved = resolveTrustAssessmentRows(
           { assessment, relation, claim, citation: relation.citation },
@@ -619,12 +653,27 @@ export async function getPublicNode(
         );
         return {
           id: assessment.id,
-          effectiveStatus: resolved.effectiveStatus,
           assessedAt: assessment.assessedAt?.toISOString() ?? null,
+          assessorType: assessment.assessorType,
+          assessorId: assessment.assessorId,
+          protocolVersion: assessment.protocolVersion,
           value: { assessment, resolved },
         };
       }),
-    )?.value;
+    ).map(({ value }) => value);
+    const projectedAssessments = assessments.map(({ assessment, resolved }) => ({
+      assessmentId: assessment.id,
+      protocolVersion: assessment.protocolVersion,
+      assessorType: assessment.assessorType,
+      assessorId: assessment.assessorId ?? undefined,
+      assessedAt: assessment.assessedAt?.toISOString(),
+      reviewStatus: resolved.effectiveStatus,
+      verificationState: resolved.state,
+      criteria: trustCriterionProfileFromJson(resolved.subject.assessment.criteriaJson),
+      aggregateScore: assessment.aggregateScore ?? undefined,
+      aggregateMethod: assessment.aggregateMethod ?? undefined,
+    }));
+    const singleton = projectedAssessments.length === 1 ? projectedAssessments[0] : undefined;
     return {
       claimId: claim.id,
       claimLocalId: claim.localClaimId,
@@ -639,14 +688,15 @@ export async function getPublicNode(
         relation.citation.rawCitationJson,
       ),
       relationType: relation.relationType,
-      trust: preferred
+      trust: singleton
         ? {
-            reviewStatus: preferred.resolved.effectiveStatus,
-            verificationState: preferred.resolved.state,
-            aggregateScore: preferred.assessment.aggregateScore ?? undefined,
-            aggregateMethod: preferred.assessment.aggregateMethod ?? undefined,
+            reviewStatus: singleton.reviewStatus,
+            verificationState: singleton.verificationState,
+            aggregateScore: singleton.aggregateScore,
+            aggregateMethod: singleton.aggregateMethod,
           }
         : undefined,
+      trustAssessments: projectedAssessments,
     };
   });
 

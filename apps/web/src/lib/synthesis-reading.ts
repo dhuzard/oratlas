@@ -268,15 +268,17 @@ export async function loadSynthesisReadingContext(
     const trust = packet.edges
       .filter(
         (edge) =>
-          edge.trust &&
+          ((edge.trustAssessments?.length ?? 0) > 0 || edge.trust !== undefined) &&
           ((edge.sourceNodeId === node.id && edge.sourceVersionId === node.versionId) ||
             (edge.targetNodeId === node.id && edge.targetVersionId === node.versionId)),
       )
-      .map((edge) => ({
-        subject: `packet relation ${edge.relationType.replace(/-/g, " ")}`,
-        reviewStatus: edge.trust!.reviewStatus,
-        verificationState: edge.trust!.verificationState,
-      }))
+      .flatMap((edge) =>
+        (edge.trustAssessments ?? (edge.trust ? [edge.trust] : [])).map((assessment) => ({
+          subject: `packet relation ${edge.relationType.replace(/-/g, " ")} (${assessment.assessmentId})`,
+          reviewStatus: assessment.reviewStatus,
+          verificationState: assessment.verificationState,
+        })),
+      )
       .sort(
         (left, right) =>
           compare(left.subject, right.subject) ||

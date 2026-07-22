@@ -1,14 +1,129 @@
 import { describe, expect, it, vi } from "vitest";
+import { TRUST_CRITERIA } from "@oratlas/contracts";
 
 vi.mock("server-only", () => ({}));
 vi.mock("./db.js", () => ({ prisma: {} }));
 
 import {
+  orderTrustQueueItems,
+  paginateTrustQueueItems,
   resolveLoadedTrustAssessment,
   verifyTrustAssessmentInTransaction,
   type LoadedTrustAssessment,
   type TrustEditorialError,
+  type TrustQueueItem,
 } from "./trust-provenance.js";
+
+describe("TRUST editorial queue ordering", () => {
+  it("uses D01 neutral provenance ordering instead of status or score", () => {
+    const base = {
+      subjectType: "claim-citation",
+      subjectHref: "/reviews/review",
+      subjectLabel: "review",
+      canVerify: true,
+      claimLocalId: "claim",
+      claimText: "Claim",
+      citationLocalId: "citation",
+      relationType: "supports",
+      protocolVersion: "trust-poc-1.0",
+      assessorType: "agent",
+      evidenceAvailable: false,
+      sourceRecordAvailable: true,
+      sourceEvidenceAvailable: false,
+      criteria: missingCriteria(),
+      sourceAggregateScore: null,
+      computedAggregateScore: null,
+      effectiveStatus: "unverified-import",
+      verificationState: "unverified-import",
+      revision: 0,
+      assessmentHash: "a".repeat(64),
+    } as const;
+    const ordered = orderTrustQueueItems([
+      { ...base, assessmentId: "later", assessedAt: "2026-02-01T00:00:00.000Z" },
+      {
+        ...base,
+        assessmentId: "z-adjudicated",
+        assessedAt: "2026-01-01T00:00:00.000Z",
+        effectiveStatus: "adjudicated",
+        computedAggregateScore: 1,
+      },
+      {
+        ...base,
+        assessmentId: "a-unverified",
+        assessedAt: "2026-01-01T00:00:00.000Z",
+        computedAggregateScore: 0,
+      },
+    ]);
+
+    expect(ordered.map(({ assessmentId }) => assessmentId)).toEqual([
+      "a-unverified",
+      "z-adjudicated",
+      "later",
+    ]);
+  });
+
+  it("pages more than 500 mixed-family records without silent omission", () => {
+    const records = Array.from({ length: 1_002 }, (_, index) =>
+      queueItem(
+        `assessment-${String(index).padStart(4, "0")}`,
+        index % 2 === 0 ? "claim-citation" : "node-relation",
+        new Date(Date.UTC(2026, 0, 1, 0, 0, index)).toISOString(),
+      ),
+    );
+    const visibleIds: string[] = [];
+
+    for (let page = 1; page <= 11; page += 1) {
+      const result = paginateTrustQueueItems(records, "all", { page, pageSize: 100 });
+      expect(result.total).toBe(1_002);
+      expect(result.totalPages).toBe(11);
+      visibleIds.push(...result.items.map(({ assessmentId }) => assessmentId));
+    }
+
+    expect(visibleIds).toHaveLength(1_002);
+    expect(new Set(visibleIds).size).toBe(1_002);
+    expect(records.some(({ subjectType }) => subjectType === "claim-citation")).toBe(true);
+    expect(records.some(({ subjectType }) => subjectType === "node-relation")).toBe(true);
+  });
+});
+
+function queueItem(
+  assessmentId: string,
+  subjectType: TrustQueueItem["subjectType"],
+  assessedAt: string,
+): TrustQueueItem {
+  return {
+    assessmentId,
+    subjectType,
+    subjectHref: "/reviews/review",
+    subjectLabel: "review",
+    canVerify: true,
+    claimLocalId: "claim",
+    claimText: "Claim",
+    citationLocalId: "citation",
+    relationType: "supports",
+    protocolVersion: "trust-poc-1.0",
+    assessorType: "agent",
+    assessedAt,
+    evidenceAvailable: false,
+    sourceRecordAvailable: true,
+    sourceEvidenceAvailable: false,
+    criteria: missingCriteria(),
+    sourceAggregateScore: null,
+    computedAggregateScore: null,
+    effectiveStatus: "unverified-import",
+    verificationState: "unverified-import",
+    revision: 0,
+    assessmentHash: "a".repeat(64),
+  };
+}
+
+function missingCriteria() {
+  return TRUST_CRITERIA.map((criterion) => ({
+    criterion,
+    rating: "not-supplied" as const,
+    status: "not-supplied" as const,
+  }));
+}
 
 function loadedRow(): LoadedTrustAssessment {
   const now = new Date("2026-01-01T00:00:00.000Z");

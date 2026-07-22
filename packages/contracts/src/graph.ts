@@ -51,7 +51,11 @@ export type PublicGraphNode = z.infer<typeof publicGraphNodeSchema>;
 
 export const publicGraphTrustSchema = z
   .object({
+    assessmentId: z.string().min(1).max(200).optional(),
     protocolVersion: z.string().min(1).max(120),
+    assessorType: z.string().min(1).max(40).optional(),
+    assessorId: z.string().min(1).max(200).optional(),
+    assessedAt: z.string().datetime().optional(),
     reviewStatus: assessmentReviewStatusSchema,
     verificationState: trustVerificationStateSchema,
   })
@@ -76,7 +80,9 @@ export const publicGraphEdgeSchema = z.discriminatedUnion("status", [
       status: z.literal("confirmed"),
       provenance: z.literal("confirmed-by-editor"),
       confirmedAt: z.string().datetime(),
+      /** Legacy compact field; new projections use trustAssessments. */
       trust: publicGraphTrustSchema.optional(),
+      trustAssessments: z.array(publicGraphTrustSchema).optional(),
     })
     .strict(),
   z

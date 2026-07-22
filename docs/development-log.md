@@ -744,3 +744,12 @@ rewriting the historical implementation record.
 - Verified that references #3, #7, #56, #60, and #66 are real, closed repository issues rather than
   PR-number drift. Documentation now labels them as closed implementation/umbrella records and
   names work that remains deferred instead of saying a closed issue has yet to land.
+
+## 2026-07-20 — ORA-D01 multiple-assessment contract
+
+- Replaced status/rating-based preferred-assessment selection with deterministic complete-set
+  ordering that uses only time and provenance identifiers.
+- Added append-only source lineage and exact-record idempotency to both TRUST assessment models.
+- Projected every assessment (with assessor and protocol) through review, node, graph, search,
+  discussion, and synthesis surfaces while retaining explicit singleton compatibility for older
+  serialized packets.

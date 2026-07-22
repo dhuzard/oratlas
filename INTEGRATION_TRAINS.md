@@ -54,7 +54,7 @@ guidance and backlog state were reconciled to this train policy in a train-level
 
 ## Train 2 — Core archive and TRUST
 
-Branch: `integration/core-trust` · Base: `integration/reliability-ops`
+Branch: `integration/core-trust` · Base: `main` · PR: #103
 
 | ORA     | Source PR | Frozen head                                |
 | ------- | --------: | ------------------------------------------ |
@@ -67,6 +67,20 @@ Branch: `integration/core-trust` · Base: `integration/reliability-ops`
 
 Resolve review DTO, TRUST presentation, editorial-panel, and stable-link overlaps once on this
 train. Complete arrays remain canonical and no cross-assessment aggregate is introduced.
+
+### Imported functional commits
+
+| ORA     | Source commits                                                   | Integrated commits                                               |
+| ------- | ---------------------------------------------------------------- | ---------------------------------------------------------------- |
+| ORA-D01 | `1a02eea`, `b89b7db`, `b2ad8e0`, `90f39fb`, `b5f65c4`, `32815b4` | `b05e5f7`, `c03716c`, `5f3c72e`, `5c0be38`, `a49c830`, `261ea40` |
+| ORA-D03 | `01fb266`, `5712bea`, `1d5d4c3`                                  | `457e88c`, `4fb3713`, `2b59ac5`                                  |
+| ORA-F01 | `b832eb3`, `ae414d7`                                             | `09d3ea9`, `35e5972`                                             |
+| ORA-H01 | `7d5d0e2`                                                        | `c423bcb`                                                        |
+| ORA-H02 | `1617f4f`, `cd07a8c`, `a7a1943`                                  | `cb6ac74`, `e767ba8`, `105ac5e`                                  |
+| ORA-G01 | `c5f1c78`                                                        | `47735f4`                                                        |
+
+PR-link-only commits were omitted. Integration commit `0aced9b` reconciles complete profiles,
+fail-closed per-assessment badges, pagination, singleton compatibility, and stable deep links.
 
 ## Train 3 — Challenges and editorial governance
 

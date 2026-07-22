@@ -4,6 +4,7 @@ import { type Metadata } from "next";
 import { Badge, Card, DefinitionList, Notice, StatusPill } from "@oratlas/ui";
 import { getClaimPassport } from "@/lib/claim-monitoring";
 import { getClaimIndependence } from "@/lib/synthesis";
+import { TrustVerificationBadge } from "@/components/TrustVerificationBadge";
 
 export const dynamic = "force-dynamic";
 
@@ -81,8 +82,12 @@ export default async function ClaimPassportPage({
         {passport.evidence.length === 0 ? (
           <p className="muted">No evidence relations were extracted for this claim.</p>
         ) : (
-          passport.evidence.map((relation, index) => (
-            <div className="relation-row" key={index}>
+          passport.evidence.map((relation) => (
+            <div
+              className="relation-row deep-link-target"
+              id={`relation-${relation.id}`}
+              key={relation.id}
+            >
               <Badge tone={relation.relationType === "contradicts" ? "warning" : "neutral"}>
                 {relation.relationType.replace(/-/g, " ")}
               </Badge>
@@ -102,7 +107,15 @@ export default async function ClaimPassportPage({
               {relation.sourceLocation ? (
                 <span className="mono muted">@ {relation.sourceLocation}</span>
               ) : null}
-              {relation.hasTrustAssessment ? <Badge>TRUST assessed</Badge> : null}
+              {relation.trustAssessments.map((assessment) => (
+                <span className="btn-row" key={assessment.assessmentId}>
+                  <TrustVerificationBadge state={assessment.verificationState} />
+                  <span className="mono muted">protocol {assessment.protocolVersion}</span>
+                </span>
+              ))}
+              {relation.hasTrustAssessment && relation.trustAssessments.length === 0 ? (
+                <TrustVerificationBadge state="legacy-unknown" />
+              ) : null}
             </div>
           ))
         )}
