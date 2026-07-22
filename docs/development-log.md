@@ -818,3 +818,7 @@ and tombstone boundaries and pin every verified property with code evidence or r
   node-only submission provides independent publication authority.
 - Added focused regression coverage for transport caps/origins/redirects, comment mutation
   integrity and races, and node/graph tombstone behavior.
+- Re-ran the audit after the formal challenge exchange landed: pinned all five challenge mutation
+  routes to the shared same-origin, authentication, route-scoped rate, and body-size boundary, and
+  cross-referenced service regressions for current-role authorization, CAS races, atomic audits,
+  fail-closed ledger reads, and public tombstone/private-field redaction.
