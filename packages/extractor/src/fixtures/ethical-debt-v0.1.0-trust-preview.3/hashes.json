@@ -1,1 +1,17 @@
-{"files":{"FAIR.md":"dd44ae72b9c76ee061e475990edc3aecb2990bb793afb557e3451ba6fac7d46c","README.md":"b4d39b1a886af6af091c9fae9bb879646793b013adff585265e5f849a14f9881","TRUST.md":"087759f22e66aa7ee466a2de0189c322bec43f8e775ff586f359a93b053ef5b0","content/references.bib":"4467d7c95a607458c64651318a77dee6d12d98cb28f7c8df13ea9def1cfacc1f","knowledge/oratlas/citations.jsonl":"af46805ccf09e33099e8fc1bb894110f869cee418688410c3b3486e9c3b30f3b","knowledge/oratlas/claims.jsonl":"4630ba7c558d2f327b4ab43955fbd5b5d58cb11d4a0708000b05c5895a552a25","knowledge/oratlas/provenance.json":"8527040189130f0c34570594a3bba5a441931d9dc790d7162280f0c856771383","knowledge/oratlas/relations.jsonl":"237bdd3b928377fefc271ab5276d7341e5777c3a1a6c29b180e6813d8e02d19b","knowledge/oratlas/trust-assessments.jsonl":"7450b0c6dd38c47f5e8097b5b842c1a06219a9718c865e50c100586b17cebdb0","myst.yml":"96b26d3e96aa3599f93e590ffa851238a04b0f79795dc5168e2c06b9eb37c5db","review-manifest.json":"6160b57a7e7409f7371ad66f9f2482900566ccf52a04a06206f9c8531de4eec2"},"manifestSha256":"9f13f8dfc35cca0cf0a602b3304bcc0c9fe94e751c448d020b63e789f27abb23","schemaVersion":"1.0.0"}
+{
+  "files": {
+    "FAIR.md": "dd44ae72b9c76ee061e475990edc3aecb2990bb793afb557e3451ba6fac7d46c",
+    "README.md": "b4d39b1a886af6af091c9fae9bb879646793b013adff585265e5f849a14f9881",
+    "TRUST.md": "087759f22e66aa7ee466a2de0189c322bec43f8e775ff586f359a93b053ef5b0",
+    "content/references.bib": "4467d7c95a607458c64651318a77dee6d12d98cb28f7c8df13ea9def1cfacc1f",
+    "knowledge/oratlas/citations.jsonl": "af46805ccf09e33099e8fc1bb894110f869cee418688410c3b3486e9c3b30f3b",
+    "knowledge/oratlas/claims.jsonl": "4630ba7c558d2f327b4ab43955fbd5b5d58cb11d4a0708000b05c5895a552a25",
+    "knowledge/oratlas/provenance.json": "8527040189130f0c34570594a3bba5a441931d9dc790d7162280f0c856771383",
+    "knowledge/oratlas/relations.jsonl": "237bdd3b928377fefc271ab5276d7341e5777c3a1a6c29b180e6813d8e02d19b",
+    "knowledge/oratlas/trust-assessments.jsonl": "7450b0c6dd38c47f5e8097b5b842c1a06219a9718c865e50c100586b17cebdb0",
+    "myst.yml": "96b26d3e96aa3599f93e590ffa851238a04b0f79795dc5168e2c06b9eb37c5db",
+    "review-manifest.json": "6160b57a7e7409f7371ad66f9f2482900566ccf52a04a06206f9c8531de4eec2"
+  },
+  "manifestSha256": "9f13f8dfc35cca0cf0a602b3304bcc0c9fe94e751c448d020b63e789f27abb23",
+  "schemaVersion": "1.0.0"
+}

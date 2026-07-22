@@ -117,7 +117,9 @@ export function computeAggregate(record: TrustAssessmentRecord): AggregateResult
 }
 
 export interface NormalizedImportedTrustRecord {
-  record: TrustRecord & { conflictOfInterest: { status: "none-declared" | "conflict-declared" | "not-provided" } };
+  record: TrustRecord & {
+    conflictOfInterest: { status: "none-declared" | "conflict-declared" | "not-provided" };
+  };
   criterionColumns: Partial<Record<TrustCriterion, string>>;
   limitationsJson: string;
   evidenceJson: string | null;

@@ -112,9 +112,7 @@ describe("multiple-assessment ingestion", () => {
     expect(changed.supersedesAssessmentId).toBe(first.id);
     expect(changed.id).not.toBe(first.id);
     expect(first.conflictOfInterestStatus).toBe("not-provided");
-    expect(first.sourceRecordJson).toContain(
-      '"conflictOfInterest":{"status":"not-provided"}',
-    );
+    expect(first.sourceRecordJson).toContain('"conflictOfInterest":{"status":"not-provided"}');
   });
 
   it("applies the same append-only source lineage to node-relation assessments", async () => {
@@ -138,9 +136,7 @@ describe("multiple-assessment ingestion", () => {
     expect(replay.id).toBe(first.id);
     expect(changed.supersedesAssessmentId).toBe(first.id);
     expect(first.conflictOfInterestStatus).toBe("conflict-declared");
-    expect(first.sourceRecordJson).toContain(
-      '"conflictOfInterest":{"status":"conflict-declared"}',
-    );
+    expect(first.sourceRecordJson).toContain('"conflictOfInterest":{"status":"conflict-declared"}');
   });
 
   it("binds the immutable COI snapshot into source identity", async () => {
