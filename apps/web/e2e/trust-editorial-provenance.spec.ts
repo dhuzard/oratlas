@@ -22,7 +22,8 @@ test.beforeAll(async () => {
     orderBy: { id: "asc" },
     include: {
       sourceNodeVersion: { include: { knowledgeNode: true } },
-      targetNode: true,
+      targetNode: { include: { repository: true } },
+      targetNodeVersion: { include: { snapshot: true } },
     },
   });
   if (!seedProposal) throw new Error("Seed data did not expose a claim-to-evidence proposal.");
@@ -42,7 +43,8 @@ test.beforeAll(async () => {
     },
     include: {
       sourceNodeVersion: { include: { knowledgeNode: true } },
-      targetNode: true,
+      targetNode: { include: { repository: true } },
+      targetNodeVersion: { include: { snapshot: true } },
     },
   });
   await prisma.nodeRelationTrustAssessment.upsert({
@@ -65,6 +67,10 @@ test.beforeAll(async () => {
           evidenceNodeId: proposal.targetNode.localNodeId,
           evidenceKind: proposal.targetNode.kind,
           relationType: proposal.relationType,
+          evidenceRepository: {
+            githubRepositoryId: proposal.targetNode.repository.githubRepositoryId!,
+            commitSha: proposal.targetNodeVersion.snapshot.commitSha,
+          },
         },
         protocolVersion: "trust-node-fixture-2.0",
         assessorType: "agent",

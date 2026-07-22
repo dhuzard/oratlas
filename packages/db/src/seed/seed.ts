@@ -52,13 +52,14 @@ function buildMetadataJson(review: SeedReview) {
 }
 
 async function seedReview(review: SeedReview, editorId: string) {
+  const githubRepositoryId = String(Number.parseInt(sha256(review.slug).slice(0, 12), 16));
   const repo = await prisma.repository.create({
     data: {
       host: "github.com",
       owner: review.repository.owner,
       name: review.repository.name,
       canonicalUrl: review.repository.canonicalUrl,
-      githubRepositoryId: `seed:${review.slug}`,
+      githubRepositoryId,
       defaultBranch: review.repository.defaultBranch,
       description: review.repository.description,
       licenseSpdx: review.licenseSpdx,
@@ -82,7 +83,7 @@ async function seedReview(review: SeedReview, editorId: string) {
   const articleBytes = Buffer.byteLength(article, "utf8");
   const inspectionReport = {
     schemaVersion: "1.0.0",
-    githubRepositoryId: `seed:${review.slug}`,
+    githubRepositoryId,
     repositoryUrl: review.repository.canonicalUrl,
     commitSha: review.snapshot.commitSha,
     treeSha,
@@ -658,7 +659,9 @@ async function main() {
       owner: replicationLabRepository.owner,
       name: replicationLabRepository.name,
       canonicalUrl: replicationLabRepository.canonicalUrl,
-      githubRepositoryId: "seed:independent-replication-lab",
+      githubRepositoryId: String(
+        Number.parseInt(sha256("independent-replication-lab").slice(0, 12), 16),
+      ),
       defaultBranch: replicationLabRepository.defaultBranch,
       description: replicationLabRepository.description,
       licenseSpdx: "CC-BY-4.0",
