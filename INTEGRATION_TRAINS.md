@@ -54,7 +54,7 @@ guidance and backlog state were reconciled to this train policy in a train-level
 
 ## Train 2 — Core archive and TRUST
 
-Branch: `integration/core-trust` · Base: `integration/reliability-ops` · Draft PR: #103
+Branch: `integration/core-trust` · Base: `main` · PR: #103
 
 | ORA     | Source PR | Frozen head                                |
 | ------- | --------: | ------------------------------------------ |
@@ -84,7 +84,7 @@ fail-closed per-assessment badges, pagination, singleton compatibility, and stab
 
 ## Train 3 — Challenges and editorial governance
 
-Branch: `integration/challenges-governance` · Base: `integration/core-trust` · Draft PR: #104
+Branch: `integration/challenges-governance` · Base: `main` · PR: #104
 
 | ORA     | Source PR | Frozen head                                |
 | ------- | --------: | ------------------------------------------ |
@@ -122,7 +122,7 @@ ratified public/private visibility boundary.
 
 ## Train 4 — External fixtures, exports, and decision-driven features
 
-Branch: `integration/external-exports` · Base: `integration/challenges-governance` · Draft PR: #105
+Branch: `integration/external-exports` · Base: `main` · PR: #105
 
 | ORA     | Source PR | Frozen head                                |
 | ------- | --------: | ------------------------------------------ |

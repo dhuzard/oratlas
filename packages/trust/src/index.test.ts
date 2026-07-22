@@ -153,3 +153,16 @@ describe("assessmentSourceIdentity", () => {
     expect(assessmentSourceIdentity(structuredClone(record))).toEqual(original);
   });
 });
+
+describe("assessmentSourceIdentity", () => {
+  it("keeps a changed source record in the same lineage with a new exact hash", () => {
+    const original = assessmentSourceIdentity(record);
+    const changed = assessmentSourceIdentity({
+      ...record,
+      criteria: { ...record.criteria, entailment: { rating: "low", status: "assessed" } },
+    });
+    expect(changed.sourceLineageKey).toBe(original.sourceLineageKey);
+    expect(changed.sourceRecordHash).not.toBe(original.sourceRecordHash);
+    expect(assessmentSourceIdentity(structuredClone(record))).toEqual(original);
+  });
+});
