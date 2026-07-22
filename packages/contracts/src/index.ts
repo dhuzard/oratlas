@@ -30,3 +30,4 @@ export * from "./lifecycle.js";
 export * from "./replication.js";
 export * from "./execution-passports.js";
 export * from "./atlas-check.js";
+export * from "./trust-disagreement.js";

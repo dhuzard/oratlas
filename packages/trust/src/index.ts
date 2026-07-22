@@ -1,12 +1,17 @@
 import {
   TRUST_CRITERIA,
+  EXPLICIT_TRUST_ORDINALS,
   nodeRelationTrustRecordSchema,
+  trustDisagreementInputSchema,
+  trustDisagreementReportSchema,
   trustAssessmentRecordSchema,
   trustRecordSchema,
   type AssessmentReviewStatus,
   type NodeRelationTrustRecord,
   type TrustAssessmentRecord,
   type TrustCriterion,
+  type TrustDisagreementInput,
+  type TrustDisagreementReport,
   type TrustOrdinal,
   type TrustRecord,
   type TrustVerificationState,
@@ -218,6 +223,59 @@ export function assertSingleAssessmentProtocol(
     throw new Error(`${operation} requires one exact TRUST protocol version.`);
   }
   return protocolVersion;
+}
+
+/**
+ * Compare every TRUST criterion across one exact protocol version. Differing
+ * explicit assessed ordinals are disagreements; absent and non-assessed values
+ * remain coverage gaps and never become synthetic ratings.
+ */
+export function detectTrustCriterionDisagreements(
+  input: TrustDisagreementInput,
+): TrustDisagreementReport {
+  const parsed = trustDisagreementInputSchema.parse(input);
+  const assessments = [...parsed.assessments].sort((left, right) =>
+    compareTrustCodeUnits(left.assessmentId, right.assessmentId),
+  );
+  const protocolVersion = assertSingleAssessmentProtocol("disagreement", assessments) ?? null;
+  const disagreements: TrustDisagreementReport["disagreements"] = [];
+  const coverageGaps: TrustDisagreementReport["coverageGaps"] = [];
+
+  for (const criterion of TRUST_CRITERIA) {
+    const ratingAssessmentIds = new Map<string, string[]>();
+    const gaps: TrustDisagreementReport["coverageGaps"][number]["gaps"] = [];
+
+    for (const assessment of assessments) {
+      const value = assessment.criteria.find((candidate) => candidate.criterion === criterion);
+      if (!value) {
+        gaps.push({ assessmentId: assessment.assessmentId, reason: "missing" });
+      } else if (value.status === "assessed") {
+        const ids = ratingAssessmentIds.get(value.rating) ?? [];
+        ids.push(assessment.assessmentId);
+        ratingAssessmentIds.set(value.rating, ids);
+      } else {
+        gaps.push({ assessmentId: assessment.assessmentId, reason: value.status });
+      }
+    }
+
+    if (ratingAssessmentIds.size > 1) {
+      disagreements.push({
+        criterion,
+        ratings: EXPLICIT_TRUST_ORDINALS.flatMap((rating) => {
+          const assessmentIds = ratingAssessmentIds.get(rating);
+          return assessmentIds ? [{ rating, assessmentIds }] : [];
+        }),
+      });
+    }
+    if (gaps.length > 0) coverageGaps.push({ criterion, gaps });
+  }
+
+  return trustDisagreementReportSchema.parse({
+    protocolVersion,
+    assessmentIds: assessments.map(({ assessmentId }) => assessmentId),
+    disagreements,
+    coverageGaps,
+  });
 }
 
 export interface ProtocolTrustOrdinal {
