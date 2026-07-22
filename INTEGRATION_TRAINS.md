@@ -113,7 +113,7 @@ audit. This train implements the ratified authority and public/private boundarie
 | ORA-E03 | `42a7985`, `4681386`                       | `d0c4ce9`, `bfe3527`                       |
 | ORA-E04 | `6ebf430`                                  | `53045a6`                                  |
 | ORA-J01 | `9615909`, `06e5995`, `120c43f`            | `c0b991a`, `4f093e9`, `7335c40`            |
-| ORA-I02 | `f7a7272`, `d1ef39b`, `daeae74`            | `d4414d1`, `33528cd`, `73628cd`            |
+| ORA-I02 | `f7a7272`, `d1ef39b`, `daeae74`            | `d4414d1`, `33528cd`, `73673fe`            |
 | ORA-F03 | `aee0f80`, `9bd185a`                       | `456c2b3`, `8111f90`                       |
 
 PR-link-only and inherited ancestor commits were omitted. The integrated result retains complete
