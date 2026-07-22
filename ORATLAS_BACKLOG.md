@@ -206,7 +206,7 @@ At most five items, ordered. Rationale and dependencies:
 ### ORA-B01 — Transactional-publication audit across review, node, and synthesis acceptance
 
 - **Status:** review (integration train 1) · **Priority:** P0 · **Size:** S · **Agent:** yes
-- **Packages:** `apps/web`, `packages/db` · **External dep:** none · **Issue/PR:** train 1;
+- **Packages:** `apps/web`, `packages/db` · **External dep:** none · **Issue/PR:** integration PR #102;
   source PR #78; builds on PRs #13, #16, #17, KG-04, KG-13
 - **Goal:** Acceptance paths use serializable compare-and-set, idempotency keys, and unique
   constraints. Audit that **no** acceptance path (prose review, node selection, node-edge
@@ -224,7 +224,8 @@ At most five items, ordered. Rationale and dependencies:
 ### ORA-B02 — Platform release versioning and changelog
 
 - **Status:** review (integration train 1) · **Priority:** P2 · **Size:** S · **Agent:** yes
-- **Packages:** repo root, `docs` · **External dep:** none · **Issue/PR:** train 1; source PR #93
+- **Packages:** repo root, `docs` · **External dep:** none · **Issue/PR:** integration PR #102;
+  source PR #93
 - **Goal:** The archive asserts immutability of scholarly records, but the platform itself has
   no tagged releases or changelog, making "which code produced this record" harder to answer
   than it should be for a preservation system.
@@ -602,7 +603,7 @@ At most five items, ordered. Rationale and dependencies:
 ### ORA-J02 — Backup/restore and disaster-recovery drill
 
 - **Status:** review (integration train 1) · **Priority:** P2 · **Size:** S · **Agent:** yes
-- **Packages:** `scripts`, `docs/operations` · **External dep:** none · **Issue/PR:** train 1;
+- **Packages:** `scripts`, `docs/operations` · **External dep:** none · **Issue/PR:** integration PR #102;
   source PR #82; builds on `scripts/backup.ts`/`restore.ts`
 - **Goal:** Scripts and docs exist; prove them. A CI job that backs up a seeded database,
   destroys it, restores, and byte-compares public API output before/after.
@@ -629,7 +630,7 @@ At most five items, ordered. Rationale and dependencies:
 ### ORA-K01 — Postgres CI matrix
 
 - **Status:** review (integration train 1) · **Priority:** P1 · **Size:** M · **Agent:** yes
-- **Packages:** `.github`, `packages/db` · **External dep:** none · **Issue/PR:** train 1;
+- **Packages:** `.github`, `packages/db` · **External dep:** none · **Issue/PR:** integration PR #102;
   source PR #79; builds on PR #22
 - **Goal:** CI's existing `postgres` job already proves schema generation, push, and seed
   against a real Postgres 16 service on every PR. The remaining gap: the unit/integration
@@ -646,7 +647,7 @@ At most five items, ordered. Rationale and dependencies:
 
 - **Status:** review (integration train 1) · **Priority:** P1 · **Size:** S · **Agent:** yes
 - **Packages:** `scripts`, test fixtures · **External dep:** any pinned external repo ·
-  **Issue/PR:** train 1; source PR #77; generalizes the KG-20 interception pattern
+  **Issue/PR:** integration PR #102; source PR #77; generalizes the KG-20 interception pattern
 - **Goal:** ORA-A03 needs to freeze a real repository deterministically; future reference
   reviews will too. Provide one reusable capture script: given `owner/repo` + commit/release,
   fetch the bounded file set the inspector would read, write hashed fixture bytes, and emit
@@ -661,7 +662,8 @@ At most five items, ordered. Rationale and dependencies:
 ### ORA-K03 — E2E wall-time and flake budget
 
 - **Status:** review (integration train 1) · **Priority:** P2 · **Size:** S · **Agent:** yes
-- **Packages:** `apps/web`, `.github` · **External dep:** none · **Issue/PR:** train 1; source PR #83
+- **Packages:** `apps/web`, `.github` · **External dep:** none · **Issue/PR:** integration PR #102;
+  source PR #83
 - **Goal:** The Playwright surface has grown (KG-20 journey + suites). Measure wall time,
   set a budget, deduplicate overlapping journeys, and track flakes before they normalize.
 - **Scope:** Timing report; seed reuse; retire redundant specs only with coverage proof.
@@ -675,7 +677,8 @@ At most five items, ordered. Rationale and dependencies:
 ### ORA-L01 — Reconcile planning and status documentation with implementation
 
 - **Status:** review (integration train 1) · **Priority:** P1 · **Size:** S · **Agent:** yes
-- **Packages:** repo root, `docs` · **External dep:** none · **Issue/PR:** train 1; source PR #88
+- **Packages:** repo root, `docs` · **External dep:** none · **Issue/PR:** integration PR #102;
+  source PR #88
 - **Goal:** `PLAN.md` still frames KG-01…KG-20 as "the next phase"; `TODO.md` is a completed
   tracker that reads as active; README should point newcomers at the current model and this
   backlog. Bring the narrative docs in line with shipped reality and this file (partially done
@@ -696,7 +699,7 @@ At most five items, ordered. Rationale and dependencies:
 ### ORA-L02 — Contributor guide for this backlog and agent workflow
 
 - **Status:** review (integration train 1) · **Priority:** P2 · **Size:** S · **Agent:** yes
-- **Packages:** repo root · **External dep:** none · **Issue/PR:** train 1; source PR #81
+- **Packages:** repo root · **External dep:** none · **Issue/PR:** integration PR #102; source PR #81
 - **Goal:** CONTRIBUTING.md predates this tracker. Add the ORA-scoped commit and integration-train
   workflow, status field updates, verification bar, and agent rules below so human and agent
   contributors follow the same loop.
