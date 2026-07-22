@@ -343,17 +343,12 @@ type LedgerChallenge = ChallengeContent & {
 };
 
 /** Validate the append-only ledger before projecting or advancing mutable state. */
-function assertChallengeLedger(row: LedgerChallenge): void {
+function assertChallengeLedger(row: LedgerChallenge, expectedActiveKey: string | null): void {
   const projected = challengeStatusSchema.safeParse(row.status);
   if (!projected.success || !challengeGroundsSchema.safeParse(row.grounds).success) {
     throw new ChallengeError("Challenge projection contains invalid enums.", "conflict");
   }
   const contentHash = hashFiledContent(row);
-  const expectedActiveKey = ACTIVE_CHALLENGE_STATUSES.includes(
-    projected.data as (typeof ACTIVE_CHALLENGE_STATUSES)[number],
-  )
-    ? activeChallengerSubjectKey(row.challengerId, row.canonicalSubjectHash)
-    : null;
   if (row.filedContentHash !== contentHash || row.transitions.length !== row.revision + 1) {
     throw new ChallengeError("Challenge immutable content or ledger is invalid.", "conflict");
   }
@@ -422,6 +417,77 @@ function activeChallengerSubjectKey(challengerId: string, canonicalSubjectHash: 
   );
 }
 
+function isActiveChallengeStatus(status: string): boolean {
+  return ACTIVE_CHALLENGE_STATUSES.includes(status as (typeof ACTIVE_CHALLENGE_STATUSES)[number]);
+}
+
+/**
+ * Adopt the portable active key for the deterministic oldest active row.
+ * E01 deployments may already contain duplicate active rows. They remain
+ * visible and transitionable; only the oldest row owns the unique key until it
+ * becomes terminal, after which the next oldest row is adopted lazily.
+ */
+async function reconcileActiveChallengeGroup(
+  db: Db,
+  challengerId: string,
+  canonicalSubjectHash: string,
+): Promise<string | null> {
+  const candidates = await db.challenge.findMany({
+    where: {
+      challengerId,
+      canonicalSubjectHash,
+      status: { in: [...ACTIVE_CHALLENGE_STATUSES] },
+    },
+    orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+    select: { id: true, activeChallengerSubjectKey: true },
+  });
+  const winner = candidates[0];
+  if (!winner) return null;
+  const expectedKey = activeChallengerSubjectKey(challengerId, canonicalSubjectHash);
+  if (
+    candidates.some(
+      (candidate) =>
+        candidate.activeChallengerSubjectKey !== null &&
+        candidate.activeChallengerSubjectKey !== expectedKey,
+    )
+  ) {
+    throw new ChallengeError("Challenge abuse-control projection is invalid.", "conflict");
+  }
+
+  await db.challenge.updateMany({
+    where: {
+      id: { not: winner.id },
+      activeChallengerSubjectKey: expectedKey,
+    },
+    data: { activeChallengerSubjectKey: null },
+  });
+  if (winner.activeChallengerSubjectKey === null) {
+    await db.challenge.updateMany({
+      where: {
+        id: winner.id,
+        status: { in: [...ACTIVE_CHALLENGE_STATUSES] },
+        activeChallengerSubjectKey: null,
+      },
+      data: { activeChallengerSubjectKey: expectedKey },
+    });
+  }
+  return winner.id;
+}
+
+function expectedActiveKeyForRow(
+  row: {
+    id: string;
+    status: string;
+    challengerId: string;
+    canonicalSubjectHash: string;
+  },
+  winnerId: string | null,
+): string | null {
+  return isActiveChallengeStatus(row.status) && row.id === winnerId
+    ? activeChallengerSubjectKey(row.challengerId, row.canonicalSubjectHash)
+    : null;
+}
+
 function prismaErrorCode(error: unknown): string | undefined {
   return typeof error === "object" && error !== null && "code" in error
     ? String((error as { code?: unknown }).code)
@@ -477,11 +543,8 @@ export async function createChallenge(
               "conflict",
             );
           }
-          const duplicate = await tx.challenge.findUnique({
-            where: { activeChallengerSubjectKey: activeKey },
-            select: { id: true },
-          });
-          if (duplicate) {
+          const duplicateId = await reconcileActiveChallengeGroup(tx, actor.id, subject.hash);
+          if (duplicateId) {
             throw new ChallengeError(
               "You already have an active challenge for this exact subject.",
               "conflict",
@@ -691,7 +754,15 @@ export async function transitionChallenge(
         if (!isExactChallengeVersion(challenge.reviewVersion)) {
           throw new ChallengeError("Challenges are closed on this review version.", "forbidden");
         }
-        assertChallengeLedger(challenge);
+        const activeWinnerId = isActiveChallengeStatus(challenge.status)
+          ? await reconcileActiveChallengeGroup(
+              tx,
+              challenge.challengerId,
+              challenge.canonicalSubjectHash,
+            )
+          : null;
+        challenge.activeChallengerSubjectKey = expectedActiveKeyForRow(challenge, activeWinnerId);
+        assertChallengeLedger(challenge, challenge.activeChallengerSubjectKey);
         const from = challenge.status as ChallengeStatus;
         if (challenge.revision !== input.expectedRevision)
           throw new ChallengeError("Challenge lifecycle changed. Refresh and retry.", "conflict");
@@ -796,14 +867,38 @@ export async function listChallenges(
     },
   });
   if (!version || !isExactChallengeVersion(version)) return null;
-  const rows = await prisma.challenge.findMany({
-    where: { reviewVersionId },
-    orderBy: { createdAt: "asc" },
-    include: {
-      challenger: true,
-      transitions: { include: { actor: true }, orderBy: { revision: "asc" } },
-    },
-  });
+  const rows = await (async () => {
+    try {
+      return await prisma.$transaction(
+        async (tx) => {
+          const loaded = await tx.challenge.findMany({
+            where: { reviewVersionId },
+            orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+            include: {
+              challenger: true,
+              transitions: { include: { actor: true }, orderBy: { revision: "asc" } },
+            },
+          });
+          const winners = new Map<string, string | null>();
+          for (const row of loaded) {
+            if (!isActiveChallengeStatus(row.status)) continue;
+            const group = canonicalJson([row.challengerId, row.canonicalSubjectHash]);
+            if (!winners.has(group)) {
+              winners.set(
+                group,
+                await reconcileActiveChallengeGroup(tx, row.challengerId, row.canonicalSubjectHash),
+              );
+            }
+            row.activeChallengerSubjectKey = expectedActiveKeyForRow(row, winners.get(group)!);
+          }
+          return loaded;
+        },
+        { maxWait: 5_000, timeout: 15_000, isolationLevel: "Serializable" },
+      );
+    } catch (error) {
+      return mapChallengeTransactionError(error);
+    }
+  })();
   const challenges: PublicChallenge[] = [];
   for (const row of rows) {
     const input = rowSubject(row);
@@ -812,7 +907,7 @@ export async function listChallenges(
       const subject = await resolveChallengeSubject(prisma, reviewVersionId, input);
       if (subject.hash !== row.canonicalSubjectHash || subject.refJson !== row.subjectRefJson)
         continue;
-      assertChallengeLedger(row);
+      assertChallengeLedger(row, row.activeChallengerSubjectKey);
       challenges.push({
         id: row.id,
         reviewVersionId,

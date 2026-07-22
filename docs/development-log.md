@@ -724,3 +724,6 @@ introducing a test-only production route or granting an agent publication author
 - Re-evaluate caps after bounded serialization retries; duplicate and cap rejections happen before
   the append-only filing ledger and audit event, so rejected abuse traffic does not create audit
   noise. Existing comment body and ten-per-minute limits remain regression-covered.
+- Added transactional lazy adoption for active challenges created before the unique key existed.
+  Deterministic oldest-first ownership preserves and permits transitions on every pre-existing
+  duplicate rather than hiding legacy records as corrupt.
