@@ -31,8 +31,8 @@ acknowledge and respond as soon as we reasonably can.
   server signed inboxes use their own replay and signature boundary.
 - **Authorization.** Editorial actions require the EDITOR/ADMIN role, checked server-side on every
   route. Editorially meaningful changes are written to an append-only audit log.
-- **Input limits.** JSON bodies are size-limited; submission and discussion endpoints are rate
-  limited; all inputs are validated with Zod.
+- **Input limits.** JSON bodies are size-limited; submission, discussion, and formal challenge
+  mutation endpoints are route-scoped rate limited; all inputs are validated with Zod.
 - **Grounding.** LLM discussion output is validated against a schema and rejected if it references
   identifiers not present in the evidence packet.
 
