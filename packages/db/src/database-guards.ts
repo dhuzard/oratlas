@@ -15,6 +15,7 @@ export const DATABASE_GUARD_NAMES = [
   "EditorialDecisionProvenance_coi_check",
   "ChallengeTransition_coi_check",
   "Challenge_subject_union_check",
+  "ChallengeResponse_contributor_union_check",
   "TrustAdjudicatorDesignation_state_check",
   "TrustAdjudication_shape_check",
   "TrustAdjudicationReference_shape_check",
@@ -32,6 +33,8 @@ export const POSTGRES_DATABASE_GUARD_TRIGGER_NAMES = [
   "TrustAdjudication_immutable_guard",
   "TrustAdjudicationReference_immutable_guard",
   "TrustAdjudicationReference_subject_guard",
+  "Challenge_adjudication_container_guard",
+  "ChallengeResponse_contributor_container_guard",
 ] as const;
 
 export const POSTGRES_DATABASE_GUARD_SQL = [
@@ -87,10 +90,17 @@ export const POSTGRES_DATABASE_GUARD_SQL = [
   )`,
   'ALTER TABLE "Challenge" DROP CONSTRAINT IF EXISTS "Challenge_subject_union_check"',
   `ALTER TABLE "Challenge" ADD CONSTRAINT "Challenge_subject_union_check" CHECK (
-    ("subjectType" = 'claim' AND "claimId" IS NOT NULL AND "claimEvidenceRelationId" IS NULL AND "trustAssessmentId" IS NULL AND "trustAdjudicationId" IS NULL AND "criterion" IS NULL)
-    OR ("subjectType" = 'relation' AND "claimId" IS NULL AND "claimEvidenceRelationId" IS NOT NULL AND "trustAssessmentId" IS NULL AND "trustAdjudicationId" IS NULL AND "criterion" IS NULL)
-    OR ("subjectType" = 'assessment-criterion' AND "claimId" IS NULL AND "claimEvidenceRelationId" IS NULL AND "trustAssessmentId" IS NOT NULL AND "trustAdjudicationId" IS NULL AND "criterion" IS NOT NULL)
-    OR ("subjectType" = 'adjudication' AND "claimId" IS NULL AND "claimEvidenceRelationId" IS NULL AND "trustAssessmentId" IS NULL AND "trustAdjudicationId" IS NOT NULL AND "criterion" IS NULL)
+    (("reviewVersionId" IS NOT NULL AND "nodeEdgeProposalId" IS NULL)
+      OR ("reviewVersionId" IS NULL AND "nodeEdgeProposalId" IS NOT NULL AND "subjectType" = 'adjudication'))
+    AND (("subjectType" = 'claim' AND "claimId" IS NOT NULL AND "claimEvidenceRelationId" IS NULL AND "trustAssessmentId" IS NULL AND "trustAdjudicationId" IS NULL AND "criterion" IS NULL)
+      OR ("subjectType" = 'relation' AND "claimId" IS NULL AND "claimEvidenceRelationId" IS NOT NULL AND "trustAssessmentId" IS NULL AND "trustAdjudicationId" IS NULL AND "criterion" IS NULL)
+      OR ("subjectType" = 'assessment-criterion' AND "claimId" IS NULL AND "claimEvidenceRelationId" IS NULL AND "trustAssessmentId" IS NOT NULL AND "trustAdjudicationId" IS NULL AND "criterion" IS NOT NULL)
+      OR ("subjectType" = 'adjudication' AND "claimId" IS NULL AND "claimEvidenceRelationId" IS NULL AND "trustAssessmentId" IS NULL AND "trustAdjudicationId" IS NOT NULL AND "criterion" IS NULL))
+  )`,
+  'ALTER TABLE "ChallengeResponse" DROP CONSTRAINT IF EXISTS "ChallengeResponse_contributor_union_check"',
+  `ALTER TABLE "ChallengeResponse" ADD CONSTRAINT "ChallengeResponse_contributor_union_check" CHECK (
+    ("contributorPersonId" IS NOT NULL AND "nodeContributorUserId" IS NULL)
+    OR ("contributorPersonId" IS NULL AND "nodeContributorUserId" IS NOT NULL)
   )`,
   'ALTER TABLE "TrustAssessment" DROP CONSTRAINT IF EXISTS "TrustAssessment_coi_check"',
   `ALTER TABLE "TrustAssessment" ADD CONSTRAINT "TrustAssessment_coi_check" CHECK (
@@ -188,6 +198,45 @@ export const POSTGRES_DATABASE_GUARD_SQL = [
   'DROP TRIGGER IF EXISTS "TrustAdjudicationReference_subject_guard" ON "TrustAdjudicationReference"',
   `CREATE TRIGGER "TrustAdjudicationReference_subject_guard" BEFORE INSERT OR UPDATE ON "TrustAdjudicationReference"
     FOR EACH ROW EXECUTE FUNCTION "oratlas_validate_adjudication_reference_subject"()`,
+  `CREATE OR REPLACE FUNCTION "oratlas_validate_challenge_adjudication_container"() RETURNS trigger AS $$
+  BEGIN
+    IF NEW."subjectType" = 'adjudication' AND NOT EXISTS (
+      SELECT 1 FROM "TrustAdjudication" a WHERE a."id" = NEW."trustAdjudicationId" AND (
+        (NEW."reviewVersionId" IS NOT NULL AND NEW."nodeEdgeProposalId" IS NULL
+          AND a."subjectType" = 'claim-citation' AND EXISTS (
+            SELECT 1 FROM "ClaimEvidenceRelation" r
+            JOIN "Claim" c ON c."id" = r."claimId"
+            JOIN "Citation" i ON i."id" = r."citationId"
+            WHERE r."id" = a."claimEvidenceRelationId"
+              AND c."reviewVersionId" = NEW."reviewVersionId"
+              AND i."reviewVersionId" = NEW."reviewVersionId"))
+        OR (NEW."reviewVersionId" IS NULL AND NEW."nodeEdgeProposalId" IS NOT NULL
+          AND a."subjectType" = 'node-relation'
+          AND a."nodeEdgeProposalId" = NEW."nodeEdgeProposalId")
+      )
+    ) THEN RAISE EXCEPTION 'Challenge adjudication container mismatch'; END IF;
+    RETURN NEW;
+  END;
+  $$ LANGUAGE plpgsql`,
+  'DROP TRIGGER IF EXISTS "Challenge_adjudication_container_guard" ON "Challenge"',
+  `CREATE TRIGGER "Challenge_adjudication_container_guard" BEFORE INSERT OR UPDATE ON "Challenge"
+    FOR EACH ROW EXECUTE FUNCTION "oratlas_validate_challenge_adjudication_container"()`,
+  `CREATE OR REPLACE FUNCTION "oratlas_validate_challenge_response_container"() RETURNS trigger AS $$
+  BEGIN
+    IF NOT EXISTS (
+      SELECT 1 FROM "Challenge" c WHERE c."id" = NEW."challengeId" AND (
+        (c."reviewVersionId" IS NOT NULL AND c."nodeEdgeProposalId" IS NULL
+          AND NEW."contributorPersonId" IS NOT NULL AND NEW."nodeContributorUserId" IS NULL)
+        OR (c."reviewVersionId" IS NULL AND c."nodeEdgeProposalId" IS NOT NULL
+          AND NEW."contributorPersonId" IS NULL AND NEW."nodeContributorUserId" IS NOT NULL)
+      )
+    ) THEN RAISE EXCEPTION 'Challenge response contributor container mismatch'; END IF;
+    RETURN NEW;
+  END;
+  $$ LANGUAGE plpgsql`,
+  'DROP TRIGGER IF EXISTS "ChallengeResponse_contributor_container_guard" ON "ChallengeResponse"',
+  `CREATE TRIGGER "ChallengeResponse_contributor_container_guard" BEFORE INSERT OR UPDATE ON "ChallengeResponse"
+    FOR EACH ROW EXECUTE FUNCTION "oratlas_validate_challenge_response_container"()`,
   `CREATE OR REPLACE FUNCTION "oratlas_validate_synthesis_membership_reference"() RETURNS trigger AS $$
   BEGIN
     IF EXISTS (
@@ -289,10 +338,37 @@ const sqliteGuardConditions = {
       OR (NEW."administratorOverride" = 1 AND NEW."toStatus" IN ('resolved', 'dismissed') AND NEW."conflictOfInterestStatus" = 'conflict-declared' AND NEW."actorRoleSnapshot" = 'ADMIN' AND NEW."administratorOverrideById" = NEW."actorId" AND NEW."administratorOverrideGithubLoginSnapshot" IS NOT NULL AND NEW."administratorOverrideAt" IS NOT NULL))
     THEN 1 ELSE 0 END`,
   Challenge: `CASE WHEN
-    (NEW."subjectType" = 'claim' AND NEW."claimId" IS NOT NULL AND NEW."claimEvidenceRelationId" IS NULL AND NEW."trustAssessmentId" IS NULL AND NEW."trustAdjudicationId" IS NULL AND NEW."criterion" IS NULL)
-    OR (NEW."subjectType" = 'relation' AND NEW."claimId" IS NULL AND NEW."claimEvidenceRelationId" IS NOT NULL AND NEW."trustAssessmentId" IS NULL AND NEW."trustAdjudicationId" IS NULL AND NEW."criterion" IS NULL)
-    OR (NEW."subjectType" = 'assessment-criterion' AND NEW."claimId" IS NULL AND NEW."claimEvidenceRelationId" IS NULL AND NEW."trustAssessmentId" IS NOT NULL AND NEW."trustAdjudicationId" IS NULL AND NEW."criterion" IS NOT NULL)
-    OR (NEW."subjectType" = 'adjudication' AND NEW."claimId" IS NULL AND NEW."claimEvidenceRelationId" IS NULL AND NEW."trustAssessmentId" IS NULL AND NEW."trustAdjudicationId" IS NOT NULL AND NEW."criterion" IS NULL)
+    ((NEW."reviewVersionId" IS NOT NULL AND NEW."nodeEdgeProposalId" IS NULL)
+      OR (NEW."reviewVersionId" IS NULL AND NEW."nodeEdgeProposalId" IS NOT NULL AND NEW."subjectType" = 'adjudication'))
+    AND ((NEW."subjectType" = 'claim' AND NEW."claimId" IS NOT NULL AND NEW."claimEvidenceRelationId" IS NULL AND NEW."trustAssessmentId" IS NULL AND NEW."trustAdjudicationId" IS NULL AND NEW."criterion" IS NULL)
+      OR (NEW."subjectType" = 'relation' AND NEW."claimId" IS NULL AND NEW."claimEvidenceRelationId" IS NOT NULL AND NEW."trustAssessmentId" IS NULL AND NEW."trustAdjudicationId" IS NULL AND NEW."criterion" IS NULL)
+      OR (NEW."subjectType" = 'assessment-criterion' AND NEW."claimId" IS NULL AND NEW."claimEvidenceRelationId" IS NULL AND NEW."trustAssessmentId" IS NOT NULL AND NEW."trustAdjudicationId" IS NULL AND NEW."criterion" IS NOT NULL)
+      OR (NEW."subjectType" = 'adjudication' AND NEW."claimId" IS NULL AND NEW."claimEvidenceRelationId" IS NULL AND NEW."trustAssessmentId" IS NULL AND NEW."trustAdjudicationId" IS NOT NULL AND NEW."criterion" IS NULL))
+    AND (NEW."subjectType" <> 'adjudication' OR EXISTS (
+      SELECT 1 FROM "TrustAdjudication" a WHERE a."id" = NEW."trustAdjudicationId" AND (
+        (NEW."reviewVersionId" IS NOT NULL AND NEW."nodeEdgeProposalId" IS NULL
+          AND a."subjectType" = 'claim-citation' AND EXISTS (
+            SELECT 1 FROM "ClaimEvidenceRelation" r
+            JOIN "Claim" c ON c."id" = r."claimId"
+            JOIN "Citation" i ON i."id" = r."citationId"
+            WHERE r."id" = a."claimEvidenceRelationId"
+              AND c."reviewVersionId" = NEW."reviewVersionId"
+              AND i."reviewVersionId" = NEW."reviewVersionId"))
+        OR (NEW."reviewVersionId" IS NULL AND NEW."nodeEdgeProposalId" IS NOT NULL
+          AND a."subjectType" = 'node-relation'
+          AND a."nodeEdgeProposalId" = NEW."nodeEdgeProposalId")
+      )))
+    THEN 1 ELSE 0 END`,
+  ChallengeResponse: `CASE WHEN
+    ((NEW."contributorPersonId" IS NOT NULL AND NEW."nodeContributorUserId" IS NULL)
+      OR (NEW."contributorPersonId" IS NULL AND NEW."nodeContributorUserId" IS NOT NULL))
+    AND EXISTS (
+      SELECT 1 FROM "Challenge" c WHERE c."id" = NEW."challengeId" AND (
+        (c."reviewVersionId" IS NOT NULL AND c."nodeEdgeProposalId" IS NULL
+          AND NEW."contributorPersonId" IS NOT NULL AND NEW."nodeContributorUserId" IS NULL)
+        OR (c."reviewVersionId" IS NULL AND c."nodeEdgeProposalId" IS NOT NULL
+          AND NEW."contributorPersonId" IS NULL AND NEW."nodeContributorUserId" IS NOT NULL)
+      ))
     THEN 1 ELSE 0 END`,
   TrustAdjudicatorDesignation: `CASE WHEN
     (NEW."active" = 1 AND NEW."revokedAt" IS NULL) OR (NEW."active" = 0 AND NEW."revokedAt" IS NOT NULL)

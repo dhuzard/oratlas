@@ -50,13 +50,31 @@ export const challengeSubjectInputSchema = z.discriminatedUnion("type", [
 ]);
 export type ChallengeSubjectInput = z.infer<typeof challengeSubjectInputSchema>;
 
-export const createChallengeInputSchema = z.object({
-  reviewVersionId: id,
+const challengeFilingSchema = z.object({
   subject: challengeSubjectInputSchema,
   canonicalSubjectHash: sha256,
   grounds: challengeGroundsSchema,
   body: z.string().trim().min(1).max(CHALLENGE_BODY_MAX),
 });
+
+/**
+ * Existing E01 filings keep their reviewVersionId shape. ORA-D02a adds a
+ * mutually exclusive nodeEdgeProposalId container only for an adjudication
+ * subject, avoiding a fictional ReviewVersion association.
+ */
+export const createChallengeInputSchema = z.union([
+  challengeFilingSchema.extend({
+    containerType: z.literal("review-version").optional(),
+    reviewVersionId: id,
+    nodeEdgeProposalId: z.never().optional(),
+  }),
+  challengeFilingSchema.extend({
+    containerType: z.literal("node-relation"),
+    reviewVersionId: z.never().optional(),
+    nodeEdgeProposalId: id,
+    subject: z.object({ type: z.literal("adjudication"), adjudicationId: id }),
+  }),
+]);
 export type CreateChallengeInput = z.infer<typeof createChallengeInputSchema>;
 
 export const transitionChallengeInputSchema = z
@@ -145,7 +163,9 @@ export const publicChallengeResponseSchema = z.object({
 
 export const publicChallengeSchema = z.object({
   id: z.string(),
-  reviewVersionId: z.string(),
+  containerType: z.enum(["review-version", "node-relation"]),
+  reviewVersionId: z.string().nullable(),
+  nodeEdgeProposalId: z.string().nullable(),
   subjectType: challengeSubjectTypeSchema,
   subjectLabel: z.string(),
   subjectHref: z.string(),
@@ -170,6 +190,14 @@ export const challengeListSchema = z.object({
   challenges: z.array(publicChallengeSchema),
 });
 export type ChallengeList = z.infer<typeof challengeListSchema>;
+
+export const nodeChallengeListSchema = z.object({
+  nodeId: z.string(),
+  nodeEdgeProposalIds: z.array(z.string()),
+  challenges: z.array(publicChallengeSchema),
+  nextCursor: z.string().nullable(),
+});
+export type NodeChallengeList = z.infer<typeof nodeChallengeListSchema>;
 
 /** Legal edges are intentionally closed; terminal states cannot transition. */
 export function isLegalChallengeTransition(from: ChallengeStatus, to: ChallengeStatus): boolean {

@@ -600,7 +600,8 @@ CREATE TABLE "TrustAssessment" (
 -- CreateTable
 CREATE TABLE "Challenge" (
     "id" TEXT NOT NULL,
-    "reviewVersionId" TEXT NOT NULL,
+    "reviewVersionId" TEXT,
+    "nodeEdgeProposalId" TEXT,
     "subjectType" TEXT NOT NULL,
     "claimId" TEXT,
     "claimEvidenceRelationId" TEXT,
@@ -635,7 +636,8 @@ CREATE TABLE "ChallengeResponse" (
     "responderRoleSnapshot" TEXT NOT NULL,
     "responderGithubLoginSnapshot" TEXT NOT NULL,
     "responderDisplayNameSnapshot" TEXT,
-    "contributorPersonId" TEXT NOT NULL,
+    "contributorPersonId" TEXT,
+    "nodeContributorUserId" TEXT,
     "contributorGithubLoginSnapshot" TEXT NOT NULL,
     "contributorDisplayNameSnapshot" TEXT NOT NULL,
     "contributorRolesJsonSnapshot" TEXT NOT NULL,
@@ -1492,6 +1494,9 @@ CREATE UNIQUE INDEX "Challenge_activeChallengerSubjectKey_key" ON "Challenge"("a
 CREATE INDEX "Challenge_reviewVersionId_createdAt_idx" ON "Challenge"("reviewVersionId", "createdAt");
 
 -- CreateIndex
+CREATE INDEX "Challenge_nodeEdgeProposalId_createdAt_idx" ON "Challenge"("nodeEdgeProposalId", "createdAt");
+
+-- CreateIndex
 CREATE INDEX "Challenge_canonicalSubjectHash_status_idx" ON "Challenge"("canonicalSubjectHash", "status");
 
 -- CreateIndex
@@ -1502,6 +1507,9 @@ CREATE UNIQUE INDEX "ChallengeResponse_challengeId_key" ON "ChallengeResponse"("
 
 -- CreateIndex
 CREATE INDEX "ChallengeResponse_responderId_createdAt_idx" ON "ChallengeResponse"("responderId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "ChallengeResponse_nodeContributorUserId_idx" ON "ChallengeResponse"("nodeContributorUserId");
 
 -- CreateIndex
 CREATE INDEX "ChallengeResponse_contentStatus_createdAt_idx" ON "ChallengeResponse"("contentStatus", "createdAt");
@@ -1921,7 +1929,10 @@ ALTER TABLE "TrustAssessment" ADD CONSTRAINT "TrustAssessment_claimEvidenceRelat
 ALTER TABLE "TrustAssessment" ADD CONSTRAINT "TrustAssessment_supersedesAssessmentId_fkey" FOREIGN KEY ("supersedesAssessmentId") REFERENCES "TrustAssessment"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Challenge" ADD CONSTRAINT "Challenge_reviewVersionId_fkey" FOREIGN KEY ("reviewVersionId") REFERENCES "ReviewVersion"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "Challenge" ADD CONSTRAINT "Challenge_reviewVersionId_fkey" FOREIGN KEY ("reviewVersionId") REFERENCES "ReviewVersion"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Challenge" ADD CONSTRAINT "Challenge_nodeEdgeProposalId_fkey" FOREIGN KEY ("nodeEdgeProposalId") REFERENCES "NodeEdgeProposal"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Challenge" ADD CONSTRAINT "Challenge_claimId_fkey" FOREIGN KEY ("claimId") REFERENCES "Claim"("id") ON DELETE SET NULL ON UPDATE CASCADE;
@@ -1948,7 +1959,10 @@ ALTER TABLE "ChallengeResponse" ADD CONSTRAINT "ChallengeResponse_challengeId_fk
 ALTER TABLE "ChallengeResponse" ADD CONSTRAINT "ChallengeResponse_responderId_fkey" FOREIGN KEY ("responderId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "ChallengeResponse" ADD CONSTRAINT "ChallengeResponse_contributorPersonId_fkey" FOREIGN KEY ("contributorPersonId") REFERENCES "Person"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "ChallengeResponse" ADD CONSTRAINT "ChallengeResponse_contributorPersonId_fkey" FOREIGN KEY ("contributorPersonId") REFERENCES "Person"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ChallengeResponse" ADD CONSTRAINT "ChallengeResponse_nodeContributorUserId_fkey" FOREIGN KEY ("nodeContributorUserId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "ChallengeResponse" ADD CONSTRAINT "ChallengeResponse_removedById_fkey" FOREIGN KEY ("removedById") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
@@ -2255,10 +2269,19 @@ ALTER TABLE "ChallengeTransition" ADD CONSTRAINT "ChallengeTransition_coi_check"
 ALTER TABLE "Challenge" DROP CONSTRAINT IF EXISTS "Challenge_subject_union_check";
 
 ALTER TABLE "Challenge" ADD CONSTRAINT "Challenge_subject_union_check" CHECK (
-    ("subjectType" = 'claim' AND "claimId" IS NOT NULL AND "claimEvidenceRelationId" IS NULL AND "trustAssessmentId" IS NULL AND "trustAdjudicationId" IS NULL AND "criterion" IS NULL)
-    OR ("subjectType" = 'relation' AND "claimId" IS NULL AND "claimEvidenceRelationId" IS NOT NULL AND "trustAssessmentId" IS NULL AND "trustAdjudicationId" IS NULL AND "criterion" IS NULL)
-    OR ("subjectType" = 'assessment-criterion' AND "claimId" IS NULL AND "claimEvidenceRelationId" IS NULL AND "trustAssessmentId" IS NOT NULL AND "trustAdjudicationId" IS NULL AND "criterion" IS NOT NULL)
-    OR ("subjectType" = 'adjudication' AND "claimId" IS NULL AND "claimEvidenceRelationId" IS NULL AND "trustAssessmentId" IS NULL AND "trustAdjudicationId" IS NOT NULL AND "criterion" IS NULL)
+    (("reviewVersionId" IS NOT NULL AND "nodeEdgeProposalId" IS NULL)
+      OR ("reviewVersionId" IS NULL AND "nodeEdgeProposalId" IS NOT NULL AND "subjectType" = 'adjudication'))
+    AND (("subjectType" = 'claim' AND "claimId" IS NOT NULL AND "claimEvidenceRelationId" IS NULL AND "trustAssessmentId" IS NULL AND "trustAdjudicationId" IS NULL AND "criterion" IS NULL)
+      OR ("subjectType" = 'relation' AND "claimId" IS NULL AND "claimEvidenceRelationId" IS NOT NULL AND "trustAssessmentId" IS NULL AND "trustAdjudicationId" IS NULL AND "criterion" IS NULL)
+      OR ("subjectType" = 'assessment-criterion' AND "claimId" IS NULL AND "claimEvidenceRelationId" IS NULL AND "trustAssessmentId" IS NOT NULL AND "trustAdjudicationId" IS NULL AND "criterion" IS NOT NULL)
+      OR ("subjectType" = 'adjudication' AND "claimId" IS NULL AND "claimEvidenceRelationId" IS NULL AND "trustAssessmentId" IS NULL AND "trustAdjudicationId" IS NOT NULL AND "criterion" IS NULL))
+  );
+
+ALTER TABLE "ChallengeResponse" DROP CONSTRAINT IF EXISTS "ChallengeResponse_contributor_union_check";
+
+ALTER TABLE "ChallengeResponse" ADD CONSTRAINT "ChallengeResponse_contributor_union_check" CHECK (
+    ("contributorPersonId" IS NOT NULL AND "nodeContributorUserId" IS NULL)
+    OR ("contributorPersonId" IS NULL AND "nodeContributorUserId" IS NOT NULL)
   );
 
 ALTER TABLE "TrustAssessment" DROP CONSTRAINT IF EXISTS "TrustAssessment_coi_check";
@@ -2391,6 +2414,51 @@ DROP TRIGGER IF EXISTS "TrustAdjudicationReference_subject_guard" ON "TrustAdjud
 
 CREATE TRIGGER "TrustAdjudicationReference_subject_guard" BEFORE INSERT OR UPDATE ON "TrustAdjudicationReference"
     FOR EACH ROW EXECUTE FUNCTION "oratlas_validate_adjudication_reference_subject"();
+
+CREATE OR REPLACE FUNCTION "oratlas_validate_challenge_adjudication_container"() RETURNS trigger AS $$
+  BEGIN
+    IF NEW."subjectType" = 'adjudication' AND NOT EXISTS (
+      SELECT 1 FROM "TrustAdjudication" a WHERE a."id" = NEW."trustAdjudicationId" AND (
+        (NEW."reviewVersionId" IS NOT NULL AND NEW."nodeEdgeProposalId" IS NULL
+          AND a."subjectType" = 'claim-citation' AND EXISTS (
+            SELECT 1 FROM "ClaimEvidenceRelation" r
+            JOIN "Claim" c ON c."id" = r."claimId"
+            JOIN "Citation" i ON i."id" = r."citationId"
+            WHERE r."id" = a."claimEvidenceRelationId"
+              AND c."reviewVersionId" = NEW."reviewVersionId"
+              AND i."reviewVersionId" = NEW."reviewVersionId"))
+        OR (NEW."reviewVersionId" IS NULL AND NEW."nodeEdgeProposalId" IS NOT NULL
+          AND a."subjectType" = 'node-relation'
+          AND a."nodeEdgeProposalId" = NEW."nodeEdgeProposalId")
+      )
+    ) THEN RAISE EXCEPTION 'Challenge adjudication container mismatch'; END IF;
+    RETURN NEW;
+  END;
+  $$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS "Challenge_adjudication_container_guard" ON "Challenge";
+
+CREATE TRIGGER "Challenge_adjudication_container_guard" BEFORE INSERT OR UPDATE ON "Challenge"
+    FOR EACH ROW EXECUTE FUNCTION "oratlas_validate_challenge_adjudication_container"();
+
+CREATE OR REPLACE FUNCTION "oratlas_validate_challenge_response_container"() RETURNS trigger AS $$
+  BEGIN
+    IF NOT EXISTS (
+      SELECT 1 FROM "Challenge" c WHERE c."id" = NEW."challengeId" AND (
+        (c."reviewVersionId" IS NOT NULL AND c."nodeEdgeProposalId" IS NULL
+          AND NEW."contributorPersonId" IS NOT NULL AND NEW."nodeContributorUserId" IS NULL)
+        OR (c."reviewVersionId" IS NULL AND c."nodeEdgeProposalId" IS NOT NULL
+          AND NEW."contributorPersonId" IS NULL AND NEW."nodeContributorUserId" IS NOT NULL)
+      )
+    ) THEN RAISE EXCEPTION 'Challenge response contributor container mismatch'; END IF;
+    RETURN NEW;
+  END;
+  $$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS "ChallengeResponse_contributor_container_guard" ON "ChallengeResponse";
+
+CREATE TRIGGER "ChallengeResponse_contributor_container_guard" BEFORE INSERT OR UPDATE ON "ChallengeResponse"
+    FOR EACH ROW EXECUTE FUNCTION "oratlas_validate_challenge_response_container"();
 
 CREATE OR REPLACE FUNCTION "oratlas_validate_synthesis_membership_reference"() RETURNS trigger AS $$
   BEGIN

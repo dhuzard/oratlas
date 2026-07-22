@@ -19,7 +19,9 @@ const version: VersionExportInput = {
 
 const challenge: PublicChallenge = {
   id: "challenge-1",
+  containerType: "review-version",
   reviewVersionId: "version-1",
+  nodeEdgeProposalId: null,
   subjectType: "assessment-criterion",
   subjectLabel: "Entailment",
   subjectHref: "/reviews/review/versions/version-1#assessment-subject-assessment-1-entailment",

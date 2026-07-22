@@ -11,8 +11,13 @@ import type {
 } from "./trust-adjudication";
 import type {
   createChallenge,
+  createNodeChallenge,
+  createChallengeResponse,
+  transitionChallenge,
   listChallengeSubjectOptions,
+  listNodeChallengeSubjectOptions,
   listChallenges,
+  listNodeChallenges,
   resolveChallengeSubject,
 } from "./challenges";
 
@@ -28,8 +33,13 @@ type Runtime = {
   list: typeof listTrustDisagreementQueue;
   designate: typeof setTrustAdjudicatorDesignation;
   createChallenge: typeof createChallenge;
+  createNodeChallenge: typeof createNodeChallenge;
+  createChallengeResponse: typeof createChallengeResponse;
+  transitionChallenge: typeof transitionChallenge;
   challengeOptions: typeof listChallengeSubjectOptions;
+  nodeChallengeOptions: typeof listNodeChallengeSubjectOptions;
   listChallenges: typeof listChallenges;
+  listNodeChallenges: typeof listNodeChallenges;
   resolveChallengeSubject: typeof resolveChallengeSubject;
 };
 
@@ -39,6 +49,16 @@ let editor: Actor;
 let designated: Actor;
 let repositoryId: string;
 let snapshotId: string;
+
+function session(actor: Actor) {
+  return {
+    ...actor,
+    role: actor.role as "USER" | "EDITOR" | "ADMIN",
+    displayName: null,
+    avatarUrl: null,
+    profileUrl: null,
+  };
+}
 
 beforeAll(async () => {
   process.env.DATABASE_URL = databaseUrl;
@@ -68,8 +88,13 @@ beforeAll(async () => {
     list: service.listTrustDisagreementQueue,
     designate: service.setTrustAdjudicatorDesignation,
     createChallenge: challenges.createChallenge,
+    createNodeChallenge: challenges.createNodeChallenge,
+    createChallengeResponse: challenges.createChallengeResponse,
+    transitionChallenge: challenges.transitionChallenge,
     challengeOptions: challenges.listChallengeSubjectOptions,
+    nodeChallengeOptions: challenges.listNodeChallengeSubjectOptions,
     listChallenges: challenges.listChallenges,
+    listNodeChallenges: challenges.listNodeChallenges,
     resolveChallengeSubject: challenges.resolveChallengeSubject,
   };
   const [adminRow, editorRow, designatedRow] = await Promise.all([
@@ -344,7 +369,33 @@ describe.sequential("TRUST adjudication persistence", () => {
   });
 
   it("files a hash-bound public challenge against a claim-citation adjudication", async () => {
-    const fixture = await disagreementFixture("challenge-adjudication");
+    const [referencedAssessor, contributor] = await Promise.all([
+      runtime.prisma.user.create({
+        data: {
+          githubUserId: "d02-claim-assessor",
+          githubLogin: "d02-claim-assessor",
+          role: "EDITOR",
+        },
+      }),
+      runtime.prisma.user.create({
+        data: { githubUserId: "d02-claim-contributor", githubLogin: "d02-claim-contributor" },
+      }),
+    ]);
+    const fixture = await disagreementFixture("challenge-adjudication", [
+      referencedAssessor.githubLogin,
+      "challenge-adjudication-b",
+    ]);
+    const contributorPerson = await runtime.prisma.person.create({
+      data: { displayName: "Claim contributor", githubLogin: contributor.githubLogin },
+    });
+    await runtime.prisma.reviewContributor.create({
+      data: {
+        reviewVersionId: fixture.version.id,
+        personId: contributorPerson.id,
+        rolesJson: '["author"]',
+        position: 0,
+      },
+    });
     const adjudication = await runtime.create(editor, input(fixture));
     const option = (await runtime.challengeOptions(fixture.version.id)).find(
       ({ subject }) =>
@@ -386,16 +437,46 @@ describe.sequential("TRUST adjudication persistence", () => {
         subjectHref: expect.stringContaining(`#adjudication-${adjudication.id}`),
       }),
     ]);
+    await runtime.createChallengeResponse(challenge.id, session(contributor), {
+      expectedRevision: 0,
+      body: "A distinct contributor responds before editorial resolution.",
+    });
+    await expect(
+      runtime.transitionChallenge(challenge.id, session(referencedAssessor), {
+        expectedRevision: 1,
+        toStatus: "dismissed",
+        rationale: "A referenced claim assessor must recuse.",
+        conflictOfInterest: { status: "conflict-declared" },
+      }),
+    ).rejects.toMatchObject({ code: "forbidden", message: expect.stringContaining("recusal") });
+    await expect(
+      runtime.transitionChallenge(challenge.id, session(editor), {
+        expectedRevision: 1,
+        toStatus: "dismissed",
+        rationale: "The challenged adjudicator must also recuse.",
+        conflictOfInterest: { status: "conflict-declared" },
+      }),
+    ).rejects.toMatchObject({ code: "forbidden", message: expect.stringContaining("recusal") });
+    await runtime.transitionChallenge(challenge.id, session(admin), {
+      expectedRevision: 1,
+      toStatus: "resolved",
+      rationale: "A non-involved administrator records the outcome.",
+      conflictOfInterest: { status: "none-declared" },
+    });
     const originalOutcomeHash = adjudication.outcomeHash;
     await runtime.prisma.trustAdjudication.update({
       where: { id: adjudication.id },
       data: { outcomeHash: "f".repeat(64) },
     });
-    const changed = await runtime.resolveChallengeSubject(runtime.prisma, fixture.version.id, {
-      type: "adjudication",
-      adjudicationId: adjudication.id,
-    });
-    expect(changed.hash).not.toBe(option!.canonicalSubjectHash);
+    await expect(
+      runtime.resolveChallengeSubject(runtime.prisma, fixture.version.id, {
+        type: "adjudication",
+        adjudicationId: adjudication.id,
+      }),
+    ).rejects.toMatchObject({ code: "conflict" });
+    expect(
+      (await runtime.listChallenges(fixture.review.slug, fixture.version.id))?.challenges,
+    ).toEqual([]);
     await runtime.prisma.trustAdjudication.update({
       where: { id: adjudication.id },
       data: { outcomeHash: originalOutcomeHash },
@@ -403,6 +484,40 @@ describe.sequential("TRUST adjudication persistence", () => {
   });
 
   it("creates and integrity-checks a node-relation adjudication", async () => {
+    const [sourceSubmitter, proposalSubmitter, challenger, referencedAssessor] = await Promise.all([
+      runtime.prisma.user.create({
+        data: { githubUserId: "d02-node-source", githubLogin: "d02-node-source" },
+      }),
+      runtime.prisma.user.create({
+        data: { githubUserId: "d02-node-proposal", githubLogin: "d02-node-proposal" },
+      }),
+      runtime.prisma.user.create({
+        data: { githubUserId: "d02-node-challenger", githubLogin: "d02-node-challenger" },
+      }),
+      runtime.prisma.user.create({
+        data: {
+          githubUserId: "d02-node-assessor",
+          githubLogin: "d02-node-assessor",
+          role: "EDITOR",
+        },
+      }),
+    ]);
+    const sourceSubmission = await runtime.prisma.submission.create({
+      data: {
+        submitterId: sourceSubmitter.id,
+        repositoryId,
+        snapshotId,
+        status: "accepted",
+      },
+    });
+    const proposalSubmission = await runtime.prisma.submission.create({
+      data: {
+        submitterId: proposalSubmitter.id,
+        repositoryId,
+        snapshotId,
+        status: "accepted",
+      },
+    });
     const [sourceNode, targetNode] = await Promise.all([
       runtime.prisma.knowledgeNode.create({
         data: { repositoryId, localNodeId: "d02-node-claim", kind: "claim" },
@@ -421,6 +536,7 @@ describe.sequential("TRUST adjudication persistence", () => {
         data: {
           knowledgeNodeId: sourceNode.id,
           snapshotId,
+          sourceSubmissionId: sourceSubmission.id,
           title: "Node claim",
           text: "Node claim text",
           license: "CC-BY-4.0",
@@ -432,6 +548,7 @@ describe.sequential("TRUST adjudication persistence", () => {
         data: {
           knowledgeNodeId: targetNode.id,
           snapshotId,
+          sourceSubmissionId: sourceSubmission.id,
           title: "Node dataset",
           license: "CC-BY-4.0",
           provenanceJson,
@@ -457,6 +574,8 @@ describe.sequential("TRUST adjudication persistence", () => {
         targetNodeVersionId: targetVersion.id,
         relationType: "uses-dataset",
         origin: "asserted-by-author",
+        status: "confirmed",
+        sourceSubmissionId: proposalSubmission.id,
       },
     });
     const nodeAssessments = await Promise.all(
@@ -466,7 +585,7 @@ describe.sequential("TRUST adjudication persistence", () => {
             nodeEdgeProposalId: proposal.id,
             protocolVersion: "trust-v2",
             assessorType: "human",
-            assessorId: `node-assessor-${index}`,
+            assessorId: index === 0 ? referencedAssessor.githubLogin : `node-assessor-${index}`,
             sourceAccess: JSON.stringify({ rating, status: "assessed" }),
             sourceRecordJson: canonicalJson({
               subjectType: "node-relation",
@@ -478,7 +597,7 @@ describe.sequential("TRUST adjudication persistence", () => {
               },
               protocolVersion: "trust-v2",
               assessorType: "human",
-              assessorId: `node-assessor-${index}`,
+              assessorId: index === 0 ? referencedAssessor.githubLogin : `node-assessor-${index}`,
               criteria: { sourceAccess: { rating, status: "assessed" } },
               reviewStatus: "human-reviewed",
             }),
@@ -492,7 +611,7 @@ describe.sequential("TRUST adjudication persistence", () => {
       (item) => item.subjectType === "node-relation" && item.subjectId === proposal.id,
     );
     expect(disagreement).toBeDefined();
-    const adjudication = await runtime.create(editor, {
+    const adjudication = await runtime.create(admin, {
       subjectType: "node-relation",
       assessmentIds: nodeAssessments.map(({ id }) => id),
       expectedDisagreementHash: disagreement!.disagreementHash,
@@ -502,6 +621,130 @@ describe.sequential("TRUST adjudication persistence", () => {
       administratorOverride: false,
     });
     expect(adjudication).toMatchObject({ subjectType: "node-relation", valid: true });
+    const options = await runtime.nodeChallengeOptions(sourceNode.id);
+    const option = options.find(
+      ({ subject }) =>
+        subject.type === "adjudication" && subject.adjudicationId === adjudication.id,
+    );
+    expect(option).toMatchObject({
+      nodeEdgeProposalId: proposal.id,
+      adjudication: {
+        id: adjudication.id,
+        disagreementHash: adjudication.disagreementHash,
+        outcomeHash: adjudication.outcomeHash,
+      },
+    });
+    const filed = await runtime.createNodeChallenge(sourceNode.id, session(challenger), {
+      containerType: "node-relation",
+      nodeEdgeProposalId: proposal.id,
+      subject: { type: "adjudication", adjudicationId: adjudication.id },
+      canonicalSubjectHash: option!.canonicalSubjectHash,
+      grounds: "methodology",
+      body: "The exact node-relation adjudication should be reconsidered.",
+    });
+    expect(
+      await runtime.prisma.challenge.findUniqueOrThrow({ where: { id: filed.id } }),
+    ).toMatchObject({
+      reviewVersionId: null,
+      nodeEdgeProposalId: proposal.id,
+      trustAdjudicationId: adjudication.id,
+    });
+    const originalSourceAccess = nodeAssessments[0]!.sourceAccess;
+    await runtime.prisma.nodeRelationTrustAssessment.update({
+      where: { id: nodeAssessments[0]!.id },
+      data: { sourceAccess: JSON.stringify({ rating: "very-high", status: "assessed" }) },
+    });
+    expect((await runtime.listNodeChallenges(sourceNode.id))?.challenges).toEqual([]);
+    await expect(
+      runtime.createChallengeResponse(filed.id, session(sourceSubmitter), {
+        expectedRevision: 0,
+        body: "A response must fail while the referenced assessment is stale.",
+      }),
+    ).rejects.toMatchObject({ code: "conflict" });
+    await runtime.prisma.nodeRelationTrustAssessment.update({
+      where: { id: nodeAssessments[0]!.id },
+      data: { sourceAccess: originalSourceAccess },
+    });
+    await expect(
+      runtime.createChallengeResponse(filed.id, session(proposalSubmitter), {
+        expectedRevision: 0,
+        body: "The proposal submitter is not the immutable source contributor.",
+      }),
+    ).rejects.toMatchObject({ code: "forbidden" });
+    await runtime.createChallengeResponse(filed.id, session(sourceSubmitter), {
+      expectedRevision: 0,
+      body: "The immutable source-node contributor responds to this challenge.",
+    });
+    const response = await runtime.prisma.challengeResponse.findUniqueOrThrow({
+      where: { challengeId: filed.id },
+    });
+    expect(response).toMatchObject({
+      contributorPersonId: null,
+      nodeContributorUserId: sourceSubmitter.id,
+    });
+    await expect(
+      runtime.transitionChallenge(filed.id, session(referencedAssessor), {
+        expectedRevision: 1,
+        toStatus: "dismissed",
+        rationale: "A referenced assessor must recuse from adjudication-challenge resolution.",
+        conflictOfInterest: { status: "conflict-declared" },
+      }),
+    ).rejects.toMatchObject({ code: "forbidden", message: expect.stringContaining("recusal") });
+    await expect(
+      runtime.transitionChallenge(filed.id, session(admin), {
+        expectedRevision: 1,
+        toStatus: "resolved",
+        rationale: "The adjudicator cannot resolve a challenge to their own outcome directly.",
+        conflictOfInterest: { status: "conflict-declared" },
+      }),
+    ).rejects.toMatchObject({ code: "forbidden", message: expect.stringContaining("recusal") });
+    await runtime.transitionChallenge(filed.id, session(admin), {
+      expectedRevision: 1,
+      toStatus: "resolved",
+      rationale: "The node adjudication challenge received an editorial outcome.",
+      conflictOfInterest: { status: "conflict-declared" },
+      administratorOverride: true,
+    });
+    expect(await runtime.listNodeChallenges(sourceNode.id)).toMatchObject({
+      nodeId: sourceNode.id,
+      nodeEdgeProposalIds: [proposal.id],
+      challenges: [
+        {
+          id: filed.id,
+          containerType: "node-relation",
+          reviewVersionId: null,
+          nodeEdgeProposalId: proposal.id,
+          subjectHref: `/nodes/${sourceNode.id}#adjudication-${adjudication.id}`,
+          status: "resolved",
+        },
+      ],
+    });
+    const second = await runtime.createNodeChallenge(sourceNode.id, session(proposalSubmitter), {
+      containerType: "node-relation",
+      nodeEdgeProposalId: proposal.id,
+      subject: { type: "adjudication", adjudicationId: adjudication.id },
+      canonicalSubjectHash: option!.canonicalSubjectHash,
+      grounds: "identity",
+      body: "A second filer exercises cursor pagination for the public register.",
+    });
+    const firstPage = await runtime.listNodeChallenges(sourceNode.id, undefined, 1);
+    expect(firstPage?.challenges).toHaveLength(1);
+    expect(firstPage?.nextCursor).toBe(firstPage?.challenges[0]?.id);
+    const secondPage = await runtime.listNodeChallenges(sourceNode.id, firstPage!.nextCursor!, 1);
+    expect(secondPage?.nextCursor).toBeNull();
+    expect(new Set([firstPage?.challenges[0]?.id, secondPage?.challenges[0]?.id])).toEqual(
+      new Set([filed.id, second.id]),
+    );
+    const originalOutcomeHash = adjudication.outcomeHash;
+    await runtime.prisma.trustAdjudication.update({
+      where: { id: adjudication.id },
+      data: { outcomeHash: "e".repeat(64) },
+    });
+    expect((await runtime.listNodeChallenges(sourceNode.id))?.challenges).toEqual([]);
+    await runtime.prisma.trustAdjudication.update({
+      where: { id: adjudication.id },
+      data: { outcomeHash: originalOutcomeHash },
+    });
     await runtime.prisma.nodeRelationTrustAssessment.update({
       where: { id: nodeAssessments[0]!.id },
       data: { sourceAccess: JSON.stringify({ rating: "very-high", status: "assessed" }) },
@@ -549,5 +792,121 @@ describe.sequential("TRUST adjudication persistence", () => {
         },
       }),
     ).rejects.toThrow();
+
+    const nodeAdjudication = await runtime.prisma.trustAdjudication.findFirstOrThrow({
+      where: { subjectType: "node-relation" },
+    });
+    const nodeChallenge = await runtime.prisma.challenge.findFirstOrThrow({
+      where: { nodeEdgeProposalId: nodeAdjudication.nodeEdgeProposalId },
+    });
+    const challengeColumns = `("id", "reviewVersionId", "nodeEdgeProposalId", "subjectType", "trustAdjudicationId", "subjectRefJson", "canonicalSubjectHash", "grounds", "body", "filedContentHash", "challengerId", "createdAt", "updatedAt")`;
+    const challengeValues = `VALUES (?, ?, ?, 'adjudication', ?, '{}', ?, 'other', 'guard fixture', ?, ?, ?, ?)`;
+    const now = new Date().toISOString();
+    const insertChallenge = (
+      id: string,
+      reviewVersionId: string | null,
+      nodeEdgeProposalId: string | null,
+      trustAdjudicationId: string,
+    ) =>
+      runtime.prisma.$executeRawUnsafe(
+        `INSERT INTO "Challenge" ${challengeColumns} ${challengeValues}`,
+        id,
+        reviewVersionId,
+        nodeEdgeProposalId,
+        trustAdjudicationId,
+        "a".repeat(64),
+        "b".repeat(64),
+        designated.id,
+        now,
+        now,
+      );
+    await expect(
+      insertChallenge(
+        "guard-both-containers",
+        fixture.version.id,
+        nodeAdjudication.nodeEdgeProposalId,
+        adjudication.id,
+      ),
+    ).rejects.toThrow(/database guard rejected invalid state/i);
+    await expect(
+      insertChallenge("guard-neither-container", null, null, adjudication.id),
+    ).rejects.toThrow(/database guard rejected invalid state/i);
+    await expect(
+      insertChallenge(
+        "guard-wrong-node-adjudication",
+        null,
+        nodeAdjudication.nodeEdgeProposalId,
+        adjudication.id,
+      ),
+    ).rejects.toThrow(/database guard rejected invalid state/i);
+
+    const contributorPerson = await runtime.prisma.person.create({
+      data: { displayName: "Guard contributor", githubLogin: designated.githubLogin },
+    });
+    for (const [id, reviewVersionId, proposalId, adjudicationId] of [
+      ["guard-review-response-both", fixture.version.id, null, adjudication.id],
+      ["guard-review-response-node", fixture.version.id, null, adjudication.id],
+      [
+        "guard-node-response-neither",
+        null,
+        nodeAdjudication.nodeEdgeProposalId,
+        nodeAdjudication.id,
+      ],
+      [
+        "guard-node-response-person",
+        null,
+        nodeAdjudication.nodeEdgeProposalId,
+        nodeAdjudication.id,
+      ],
+    ] as const) {
+      await insertChallenge(id, reviewVersionId, proposalId, adjudicationId);
+    }
+    const responseColumns = `("id", "challengeId", "responderId", "responderRoleSnapshot", "responderGithubLoginSnapshot", "contributorPersonId", "nodeContributorUserId", "contributorGithubLoginSnapshot", "contributorDisplayNameSnapshot", "contributorRolesJsonSnapshot", "body", "contentHash", "createdAt")`;
+    const insertResponse = (
+      id: string,
+      challengeId: string,
+      personId: string | null,
+      nodeUserId: string | null,
+    ) =>
+      runtime.prisma.$executeRawUnsafe(
+        `INSERT INTO "ChallengeResponse" ${responseColumns} VALUES (?, ?, ?, 'USER', ?, ?, ?, ?, 'Guard contributor', '[]', 'guard response', ?, ?)`,
+        id,
+        challengeId,
+        designated.id,
+        designated.githubLogin,
+        personId,
+        nodeUserId,
+        designated.githubLogin,
+        "c".repeat(64),
+        now,
+      );
+    await expect(
+      insertResponse(
+        "guard-response-both",
+        "guard-review-response-both",
+        contributorPerson.id,
+        designated.id,
+      ),
+    ).rejects.toThrow(/database guard rejected invalid state/i);
+    await expect(
+      insertResponse("guard-response-neither", "guard-node-response-neither", null, null),
+    ).rejects.toThrow(/database guard rejected invalid state/i);
+    await expect(
+      insertResponse(
+        "guard-response-review-node",
+        "guard-review-response-node",
+        null,
+        designated.id,
+      ),
+    ).rejects.toThrow(/database guard rejected invalid state/i);
+    await expect(
+      insertResponse(
+        "guard-response-node-person",
+        "guard-node-response-person",
+        contributorPerson.id,
+        null,
+      ),
+    ).rejects.toThrow(/database guard rejected invalid state/i);
+    expect(nodeChallenge.id).toBeTruthy();
   });
 });

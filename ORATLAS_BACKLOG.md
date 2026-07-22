@@ -306,7 +306,7 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-D02 — Explicit disagreement and adjudication records
 
-- **Status:** in-progress (core delivered 2026-07-22; ORA-D02a remains) · **Priority:** P1 · **Size:** L · **Agent:** yes (authority, display, and
+- **Status:** review (core and ORA-D02a delivered 2026-07-22) · **Priority:** P1 · **Size:** L · **Agent:** yes (authority, display, and
   non-compensation boundaries ratified in `ORATLAS_DECISIONS.md` §§2–5)
 - **Packages:** `packages/contracts`, `packages/trust`, `packages/db`, `apps/web` ·
   **External dep:** none · **Issue/PR:** integration PR #105
@@ -333,7 +333,7 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-D02a — Challenge an exact node-relation adjudication
 
-- **Status:** ready · **Priority:** P1 · **Size:** M · **Agent:** yes
+- **Status:** review (implementation branch `work/d02a-node-challenges`) · **Priority:** P1 · **Size:** M · **Agent:** yes
 - **Packages:** `packages/contracts`, `packages/db`, `apps/web` · **External dep:** none
 - **Goal:** Complete the ratified §5 rule for node-relation adjudications without weakening the
   exact immutable-subject binding used by E01. Claim–citation adjudication challenges ship in
@@ -348,6 +348,11 @@ At most five items, ordered. Rationale and dependencies:
 - **Acceptance criteria:** Filing against a node adjudication hash-binds the exact `outcomeHash`;
   tamper/stale checks fail closed; public DTO and exports expose the challenge; all existing E01
   subjects remain compatible.
+- **Delivered:** Exclusive `ReviewVersion`/`NodeEdgeProposal` challenge containers with database
+  guards; exact adjudication, disagreement, outcome, and referenced-assessment integrity rechecks;
+  conservative §5 recusal across adjudicators, assessors, and reviewers; public node deep links and
+  cursor-paginated register; canonical node challenge JSON and RO-Crate exports; dual-family,
+  lifecycle, privacy, cursor, SQLite, and PostgreSQL guard coverage.
 
 ### ORA-D03 — Assessment profile display without a mandatory aggregate
 

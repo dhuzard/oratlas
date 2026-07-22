@@ -1424,6 +1424,26 @@ components:
           minLength: 1
           maxLength: 10000
           description: Plain text, always rendered escaped.
+    NodeChallengeCreateRequest:
+      type: object
+      additionalProperties: false
+      required: [containerType, nodeEdgeProposalId, subject, canonicalSubjectHash, grounds, body]
+      properties:
+        containerType: { const: node-relation }
+        nodeEdgeProposalId: { type: string, minLength: 1, maxLength: 200 }
+        subject:
+          type: object
+          additionalProperties: false
+          required: [type, adjudicationId]
+          properties:
+            type: { const: adjudication }
+            adjudicationId: { type: string, minLength: 1, maxLength: 200 }
+        canonicalSubjectHash:
+          type: string
+          pattern: "^[a-f0-9]{64}$"
+          description: Exact server-published hash over adjudication id, disagreementHash, and outcomeHash.
+        grounds: { type: string, enum: [entailment, source-access, methodology, identity, other] }
+        body: { type: string, minLength: 1, maxLength: 10000 }
     ChallengeTransitionRequest:
       type: object
       additionalProperties: false
@@ -1499,7 +1519,9 @@ components:
       required:
         [
           id,
+          containerType,
           reviewVersionId,
+          nodeEdgeProposalId,
           subjectType,
           subjectLabel,
           subjectHref,
@@ -1518,8 +1540,10 @@ components:
         ]
       properties:
         id: { type: string }
-        reviewVersionId: { type: string }
-        subjectType: { type: string, enum: [claim, relation, assessment-criterion] }
+        containerType: { type: string, enum: [review-version, node-relation] }
+        reviewVersionId: { type: [string, "null"] }
+        nodeEdgeProposalId: { type: [string, "null"] }
+        subjectType: { type: string, enum: [claim, relation, assessment-criterion, adjudication] }
         subjectLabel: { type: string }
         subjectHref: { type: string }
         canonicalSubjectHash: { type: string, pattern: "^[a-f0-9]{64}$" }
@@ -1550,6 +1574,15 @@ components:
         reviewSlug: { type: string }
         reviewVersionId: { type: string }
         challenges: { type: array, items: { $ref: "#/components/schemas/PublicChallenge" } }
+    NodeChallengeList:
+      type: object
+      additionalProperties: false
+      required: [nodeId, nodeEdgeProposalIds, challenges, nextCursor]
+      properties:
+        nodeId: { type: string }
+        nodeEdgeProposalIds: { type: array, items: { type: string } }
+        challenges: { type: array, items: { $ref: "#/components/schemas/PublicChallenge" } }
+        nextCursor: { type: [string, "null"] }
     ChallengeCreateResponse:
       type: object
       additionalProperties: false
@@ -2727,6 +2760,70 @@ paths:
                     type: array
                     maxItems: 200
                     items: { $ref: "#/components/schemas/PublicNodeVersionSummary" }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/nodes/{id}/challenges:
+    get:
+      summary: Export integrity-valid challenges to exact node-relation adjudications
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+        - { name: cursor, in: query, schema: { type: string } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 100 } }
+      responses:
+        "200":
+          description: Node challenge register; stale or tampered bindings fail closed and are omitted
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/NodeChallengeList" }
+        "404": { $ref: "#/components/responses/Error" }
+    post:
+      summary: File a challenge against an exact node-relation adjudication
+      description: Uses the exact NodeEdgeProposal as the public container and hash-binds adjudication id, disagreementHash, and outcomeHash without a fictional ReviewVersion.
+      security: [{ session: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/NodeChallengeCreateRequest" }
+      responses:
+        "201":
+          description: Challenge and initial append-only lifecycle event created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ChallengeCreateResponse" }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "413": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/Error" }
+  /api/nodes/{id}/exports/challenges.json:
+    get:
+      summary: Canonical scholarly JSON export of integrity-valid node adjudication challenges
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+        - { name: cursor, in: query, schema: { type: string } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 100 } }
+      responses:
+        "200":
+          description: Privacy-filtered canonical challenge document
+          content:
+            application/vnd.oratlas.node-challenges+json: { schema: { type: object } }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/nodes/{id}/exports/challenges-ro-crate:
+    get:
+      summary: RO-Crate export of integrity-valid node adjudication challenges
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+        - { name: cursor, in: query, schema: { type: string } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 100 } }
+      responses:
+        "200":
+          description: RO-Crate 1.1 graph with exact subject and lifecycle bindings
+          content:
+            application/ld+json: { schema: { type: object } }
         "404": { $ref: "#/components/responses/Error" }
   /api/nodes/{id}/versions/{versionId}:
     get:

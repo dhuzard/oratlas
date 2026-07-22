@@ -63,6 +63,7 @@ export interface TrustDisagreementScope {
   reviewVersionId?: string;
   claimEvidenceRelationId?: string;
   nodeEdgeProposalId?: string;
+  nodeEdgeProposalIds?: readonly string[];
 }
 
 export interface TrustDisagreementQueueItem extends Omit<
@@ -195,6 +196,10 @@ function publicAdjudication(
 
 async function loadHistoricalAssessmentState(
   adjudications: readonly StoredAdjudication[],
+  client: Pick<
+    Prisma.TransactionClient,
+    "trustAssessment" | "nodeRelationTrustAssessment"
+  > = prisma,
 ): Promise<{
   hashes: Map<string, string>;
   groups: Map<string, DisagreementGroup>;
@@ -210,7 +215,7 @@ async function loadHistoricalAssessmentState(
     }
   }
   const [claimRows, nodeRows] = await Promise.all([
-    prisma.trustAssessment.findMany({
+    client.trustAssessment.findMany({
       where: { id: { in: [...claimIds] } },
       include: {
         verification: { include: { reviewer: true } },
@@ -224,7 +229,7 @@ async function loadHistoricalAssessmentState(
         },
       },
     }),
-    prisma.nodeRelationTrustAssessment.findMany({
+    client.nodeRelationTrustAssessment.findMany({
       where: { id: { in: [...nodeIds] } },
       include: loadedNodeRelationTrustInclude,
     }),
@@ -316,6 +321,34 @@ async function loadHistoricalAssessmentState(
   return { hashes, groups };
 }
 
+/**
+ * Re-resolve one exact adjudication, including every referenced assessment,
+ * its disagreement report, and the stored outcome hash. Challenge subjects
+ * must call this rather than trusting the adjudication row's hash columns.
+ */
+export async function assertExactTrustAdjudicationValid(
+  client: Pick<
+    Prisma.TransactionClient,
+    "trustAdjudication" | "trustAssessment" | "nodeRelationTrustAssessment"
+  >,
+  adjudicationId: string,
+): Promise<PublicTrustAdjudication> {
+  const adjudication = await client.trustAdjudication.findUnique({
+    where: { id: adjudicationId },
+    include: { references: true },
+  });
+  if (!adjudication) {
+    throw new TrustAdjudicationError("TRUST adjudication not found.", "not-found");
+  }
+  const historical = await loadHistoricalAssessmentState([adjudication], client);
+  const group = historical.groups.get(adjudication.id);
+  const projected = publicAdjudication(adjudication, historical.hashes, group);
+  if (!projected?.valid) {
+    throw new TrustAdjudicationError("TRUST adjudication integrity failed.", "conflict");
+  }
+  return projected;
+}
+
 async function loadGroups(
   client: Pick<
     Prisma.TransactionClient,
@@ -324,41 +357,47 @@ async function loadGroups(
   scope: TrustDisagreementScope = {},
 ): Promise<DisagreementGroup[]> {
   const [claimRows, nodeRows] = await Promise.all([
-    client.trustAssessment.findMany({
-      where: {
-        supersededBy: { none: {} },
-        ...(scope.reviewVersionId
-          ? { relation: { claim: { reviewVersionId: scope.reviewVersionId } } }
-          : {}),
-        ...(scope.claimEvidenceRelationId
-          ? { claimEvidenceRelationId: scope.claimEvidenceRelationId }
-          : {}),
-      },
-      take: 10_001,
-      include: {
-        verification: { include: { reviewer: true } },
-        challenges: { select: { challengerId: true } },
-        relation: {
+    scope.nodeEdgeProposalId || scope.nodeEdgeProposalIds
+      ? Promise.resolve([])
+      : client.trustAssessment.findMany({
+          where: {
+            supersededBy: { none: {} },
+            ...(scope.reviewVersionId
+              ? { relation: { claim: { reviewVersionId: scope.reviewVersionId } } }
+              : {}),
+            ...(scope.claimEvidenceRelationId
+              ? { claimEvidenceRelationId: scope.claimEvidenceRelationId }
+              : {}),
+          },
+          take: 10_001,
           include: {
-            citation: true,
+            verification: { include: { reviewer: true } },
             challenges: { select: { challengerId: true } },
-            claim: {
+            relation: {
               include: {
-                reviewVersion: {
-                  include: { review: true, contributors: { include: { person: true } } },
+                citation: true,
+                challenges: { select: { challengerId: true } },
+                claim: {
+                  include: {
+                    reviewVersion: {
+                      include: { review: true, contributors: { include: { person: true } } },
+                    },
+                  },
                 },
               },
             },
           },
-        },
-      },
-    }),
+        }),
     scope.reviewVersionId || scope.claimEvidenceRelationId
       ? Promise.resolve([])
       : client.nodeRelationTrustAssessment.findMany({
           where: {
             supersededBy: { none: {} },
-            ...(scope.nodeEdgeProposalId ? { nodeEdgeProposalId: scope.nodeEdgeProposalId } : {}),
+            ...(scope.nodeEdgeProposalId
+              ? { nodeEdgeProposalId: scope.nodeEdgeProposalId }
+              : scope.nodeEdgeProposalIds
+                ? { nodeEdgeProposalId: { in: [...scope.nodeEdgeProposalIds] } }
+                : {}),
           },
           take: 10_001,
           include: loadedNodeRelationTrustInclude,
@@ -471,7 +510,9 @@ export async function listTrustDisagreementQueue(
         ? { claimEvidenceRelationId: scope.claimEvidenceRelationId }
         : scope.nodeEdgeProposalId
           ? { nodeEdgeProposalId: scope.nodeEdgeProposalId }
-          : undefined,
+          : scope.nodeEdgeProposalIds
+            ? { nodeEdgeProposalId: { in: [...scope.nodeEdgeProposalIds] } }
+            : undefined,
     take: 10_001,
     include: { references: true },
     orderBy: [{ createdAt: "asc" }, { id: "asc" }],

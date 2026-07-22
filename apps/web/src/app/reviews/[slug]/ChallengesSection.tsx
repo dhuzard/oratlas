@@ -1,7 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import type { ChallengeList, ChallengeGrounds, ChallengeSubjectInput } from "@oratlas/contracts";
+import type {
+  ChallengeList,
+  NodeChallengeList,
+  ChallengeGrounds,
+  ChallengeSubjectInput,
+} from "@oratlas/contracts";
 import type { ChallengeSubjectOption } from "@/lib/challenges";
 
 const grounds: Array<{ value: ChallengeGrounds; label: string }> = [
@@ -18,7 +23,7 @@ export function ChallengesSection({
   canFile,
   viewer,
 }: {
-  initial: ChallengeList;
+  initial: ChallengeList | NodeChallengeList;
   subjects: ChallengeSubjectOption[];
   canFile: boolean;
   viewer: {
@@ -34,12 +39,51 @@ export function ChallengesSection({
   const [message, setMessage] = useState("");
   const [responses, setResponses] = useState<Record<string, string>>({});
   const [rationales, setRationales] = useState<Record<string, string>>({});
+  const [loadedNodeCursors, setLoadedNodeCursors] = useState<Array<string | undefined>>([
+    undefined,
+  ]);
+  const endpoint =
+    "reviewSlug" in list
+      ? `/api/reviews/${encodeURIComponent(list.reviewSlug)}/versions/${encodeURIComponent(list.reviewVersionId)}/challenges`
+      : `/api/nodes/${encodeURIComponent(list.nodeId)}/challenges`;
 
   async function refresh() {
-    const response = await fetch(
-      `/api/reviews/${encodeURIComponent(list.reviewSlug)}/versions/${encodeURIComponent(list.reviewVersionId)}/challenges`,
-    );
-    if (response.ok) setList((await response.json()) as ChallengeList);
+    if ("reviewSlug" in list) {
+      const response = await fetch(endpoint);
+      if (response.ok) setList((await response.json()) as ChallengeList);
+      return;
+    }
+    const pages: NodeChallengeList[] = [];
+    for (const cursor of loadedNodeCursors) {
+      const response = await fetch(
+        `${endpoint}${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ""}`,
+      );
+      if (!response.ok) return;
+      pages.push((await response.json()) as NodeChallengeList);
+    }
+    const last = pages.at(-1);
+    if (!last) return;
+    setList({
+      nodeId: list.nodeId,
+      nodeEdgeProposalIds: [...new Set(pages.flatMap((page) => page.nodeEdgeProposalIds))],
+      challenges: pages.flatMap((page) => page.challenges),
+      nextCursor: last.nextCursor,
+    });
+  }
+
+  async function loadMoreNodeChallenges() {
+    if (!("nodeId" in list) || !list.nextCursor) return;
+    const cursor = list.nextCursor;
+    const response = await fetch(`${endpoint}?cursor=${encodeURIComponent(cursor)}`);
+    if (!response.ok) return;
+    const page = (await response.json()) as NodeChallengeList;
+    setLoadedNodeCursors((current) => [...current, cursor]);
+    setList({
+      nodeId: list.nodeId,
+      nodeEdgeProposalIds: [...new Set([...list.nodeEdgeProposalIds, ...page.nodeEdgeProposalIds])],
+      challenges: [...list.challenges, ...page.challenges],
+      nextCursor: page.nextCursor,
+    });
   }
 
   async function fileChallenge(event: React.FormEvent) {
@@ -47,20 +91,23 @@ export function ChallengesSection({
     const selected = subjects[subjectIndex];
     if (!selected) return;
     setMessage("Filing…");
-    const response = await fetch(
-      `/api/reviews/${encodeURIComponent(list.reviewSlug)}/versions/${encodeURIComponent(list.reviewVersionId)}/challenges`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          reviewVersionId: list.reviewVersionId,
-          subject: selected.subject satisfies ChallengeSubjectInput,
-          canonicalSubjectHash: selected.canonicalSubjectHash,
-          grounds: selectedGrounds,
-          body,
-        }),
-      },
-    );
+    const reviewVersion = "reviewVersionId" in list;
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...(reviewVersion
+          ? { reviewVersionId: list.reviewVersionId }
+          : {
+              containerType: "node-relation",
+              nodeEdgeProposalId: selected.nodeEdgeProposalId,
+            }),
+        subject: selected.subject satisfies ChallengeSubjectInput,
+        canonicalSubjectHash: selected.canonicalSubjectHash,
+        grounds: selectedGrounds,
+        body,
+      }),
+    });
     const payload = (await response.json()) as { error?: { message?: string } };
     if (!response.ok) {
       setMessage(payload.error?.message ?? "Challenge filing failed.");
@@ -100,7 +147,7 @@ export function ChallengesSection({
         decisions, the archived review, or establish scientific truth.
       </p>
       {list.challenges.length === 0 ? (
-        <p className="muted">No formal challenges have been filed for this version.</p>
+        <p className="muted">No formal challenges have been filed for this public record.</p>
       ) : (
         <ol>
           {list.challenges.map((challenge) => (
@@ -274,6 +321,11 @@ export function ChallengesSection({
           ))}
         </ol>
       )}
+      {"nodeId" in list && list.nextCursor ? (
+        <button type="button" onClick={() => void loadMoreNodeChallenges()}>
+          Load more challenges
+        </button>
+      ) : null}
       {message ? <p role="status">{message}</p> : null}
       {canFile && subjects.length > 0 ? (
         <form onSubmit={fileChallenge}>

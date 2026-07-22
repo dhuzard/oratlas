@@ -27,9 +27,15 @@ time, adjudicator login, tri-state COI, optional ADMIN override, and integrity h
 the rationale, role snapshot, and internal user identifiers. Scholarly JSON and RO-Crate preserve
 the independent assessments, detected disagreement, and adjudication as distinct records.
 
-Claim–citation adjudications may be challenged through the existing review-version lifecycle. The
-challenge subject binds the exact adjudication id, disagreement hash, and outcome hash and links
-back to the public adjudication anchor; later integrity checks re-resolve those values. The current
-Challenge container still cannot represent node-relation adjudications because it requires a
-`ReviewVersion`. That node-only extension is tracked as ORA-D02a rather than attaching a challenge
-to an unrelated review.
+Both adjudication families may be challenged. Claim–citation adjudications retain the existing
+review-version container. Node-relation adjudications use their exact `NodeEdgeProposal` as a
+mutually exclusive, non-fictional public container. In both cases the challenge subject binds the
+exact adjudication id, disagreement hash, and outcome hash and links back to a public adjudication
+anchor; every read and lifecycle mutation re-resolves those values and fails closed on stale or
+tampered state.
+
+The node challenge register is available in the node page and as JSON at
+`/api/nodes/{nodeId}/challenges`. A node contributor response is attributed only through the
+immutable source node version's accepted submission. The proposal's optional submission pointer
+is never substituted for that provenance. Existing E01 claim, relation, assessment-criterion, and
+claim-adjudication subjects preserve their original review-version shape and replay hashes.

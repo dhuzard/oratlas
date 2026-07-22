@@ -94,7 +94,9 @@ function publicChallenge(challenge: PublicChallenge, canonicalVersionUrl: string
   return {
     id: challenge.id,
     url: `${canonicalVersionUrl}#challenge-${encodeURIComponent(challenge.id)}`,
+    containerType: challenge.containerType,
     reviewVersionId: challenge.reviewVersionId,
+    nodeEdgeProposalId: challenge.nodeEdgeProposalId,
     subject: {
       type: challenge.subjectType,
       label: challenge.subjectLabel,

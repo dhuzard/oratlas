@@ -76,6 +76,7 @@ model User {
   challengeResponses             ChallengeResponse[]               @relation("challengeResponder")
   challengeContentRemovals       Challenge[]                       @relation("challengeContentRemover")
   challengeResponseRemovals      ChallengeResponse[]               @relation("challengeResponseRemover")
+  nodeChallengeContributions     ChallengeResponse[]               @relation("nodeChallengeContributor")
   trustAdjudications             TrustAdjudication[]               @relation("trustAdjudicator")
   adjudicatorDesignation         TrustAdjudicatorDesignation?      @relation("designatedAdjudicator")
   adjudicatorDesignationsMade    TrustAdjudicatorDesignation[]     @relation("adjudicatorDesignator")
@@ -645,6 +646,7 @@ model NodeEdgeProposal {
   confirmedEdge     NodeEdge?                     @relation("confirmedProposalEdge", fields: [confirmedEdgeId], references: [id])
   trustAssessments  NodeRelationTrustAssessment[]
   adjudications     TrustAdjudication[]
+  challenges        Challenge[]                   @relation("challengeNodeContainer")
 
   @@index([status, createdAt])
   @@index([sourceNodeVersionId])
@@ -967,8 +969,12 @@ model TrustAssessment {
 /// the target so a stale or tampered binding fails closed.
 model Challenge {
   id                         String    @id @default(cuid())
-  reviewVersionId            String
-  /// claim | relation | assessment-criterion | adjudication (claim-citation only)
+  /// Exactly one truthful public container is present: an immutable review
+  /// version for legacy E01 subjects, or the exact node-edge proposal whose
+  /// node-relation adjudication is challenged.
+  reviewVersionId            String?
+  nodeEdgeProposalId         String?
+  /// claim | relation | assessment-criterion | adjudication
   subjectType                String
   claimId                    String?
   claimEvidenceRelationId    String?
@@ -1000,7 +1006,8 @@ model Challenge {
   createdAt                  DateTime  @default(now())
   updatedAt                  DateTime  @updatedAt
 
-  reviewVersion ReviewVersion          @relation(fields: [reviewVersionId], references: [id])
+  reviewVersion ReviewVersion?         @relation(fields: [reviewVersionId], references: [id])
+  nodeContainer NodeEdgeProposal?      @relation("challengeNodeContainer", fields: [nodeEdgeProposalId], references: [id])
   claim         Claim?                 @relation("challengeClaim", fields: [claimId], references: [id])
   relation      ClaimEvidenceRelation? @relation("challengeRelation", fields: [claimEvidenceRelationId], references: [id])
   assessment    TrustAssessment?       @relation("challengeAssessment", fields: [trustAssessmentId], references: [id])
@@ -1011,6 +1018,7 @@ model Challenge {
   response      ChallengeResponse?
 
   @@index([reviewVersionId, createdAt])
+  @@index([nodeEdgeProposalId, createdAt])
   @@index([canonicalSubjectHash, status])
   @@index([challengerId, createdAt])
 }
@@ -1024,7 +1032,8 @@ model ChallengeResponse {
   responderRoleSnapshot          String
   responderGithubLoginSnapshot   String
   responderDisplayNameSnapshot   String?
-  contributorPersonId            String
+  contributorPersonId            String?
+  nodeContributorUserId          String?
   contributorGithubLoginSnapshot String
   contributorDisplayNameSnapshot String
   contributorRolesJsonSnapshot   String
@@ -1038,12 +1047,14 @@ model ChallengeResponse {
   removedByRoleSnapshot          String?
   createdAt                      DateTime  @default(now())
 
-  challenge         Challenge @relation(fields: [challengeId], references: [id])
-  responder         User      @relation("challengeResponder", fields: [responderId], references: [id])
-  contributorPerson Person    @relation(fields: [contributorPersonId], references: [id])
-  removedBy         User?     @relation("challengeResponseRemover", fields: [removedById], references: [id])
+  challenge           Challenge @relation(fields: [challengeId], references: [id])
+  responder           User      @relation("challengeResponder", fields: [responderId], references: [id])
+  contributorPerson   Person?   @relation(fields: [contributorPersonId], references: [id])
+  nodeContributorUser User?     @relation("nodeChallengeContributor", fields: [nodeContributorUserId], references: [id])
+  removedBy           User?     @relation("challengeResponseRemover", fields: [removedById], references: [id])
 
   @@index([responderId, createdAt])
+  @@index([nodeContributorUserId])
   @@index([contentStatus, createdAt])
 }
 
