@@ -566,8 +566,9 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-I02 — OpenAPI and route-parity maintenance for new surfaces
 
-- **Status:** backlog · **Priority:** P2 · **Size:** S · **Agent:** yes
-- **Packages:** `apps/web`, `docs`, `scripts` · **External dep:** none · **Issue/PR:** none
+- **Status:** in-review · **Priority:** P2 · **Size:** S · **Agent:** yes
+- **Packages:** `apps/web`, `docs`, `scripts` · **External dep:** none · **Issue/PR:**
+  [#101](https://github.com/dhuzard/oratlas/pull/101)
 - **Goal:** `scripts/check-openapi-routes.ts` enforces parity. Standing item: every backlog
   item adding routes (D/E workstreams) updates `docs/openapi.yaml`; this item covers the sweep
   after tranche one lands.
