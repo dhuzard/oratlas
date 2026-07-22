@@ -8,9 +8,15 @@ import type * as Challenges from "./challenges";
 
 vi.mock("server-only", () => ({}));
 
+const externalDatabaseUrl = process.env.CHALLENGE_TEST_DATABASE_URL;
 const fileName = `.tmp-oratlas-challenges-${process.pid}-${Date.now()}.db`;
-const databasePath = resolve(process.cwd(), "packages/db/prisma", fileName);
-const databaseUrl = `file:./${fileName}`;
+const databasePath = externalDatabaseUrl
+  ? undefined
+  : resolve(process.cwd(), "packages/db/prisma", fileName);
+const databaseUrl = externalDatabaseUrl ?? `file:./${fileName}`;
+const databaseSchema = externalDatabaseUrl
+  ? "packages/db/prisma/schema.postgres.prisma"
+  : "packages/db/prisma/schema.prisma";
 let prisma: PrismaClient;
 let service: typeof Challenges;
 
@@ -66,11 +72,11 @@ beforeAll(async () => {
   try {
     execFileSync(
       process.execPath,
-      [prismaCli, "db", "push", "--schema", "packages/db/prisma/schema.prisma", "--skip-generate"],
+      [prismaCli, "db", "push", "--schema", databaseSchema, "--skip-generate"],
       { env: { ...process.env, DATABASE_URL: databaseUrl }, stdio: "pipe" },
     );
   } catch (error) {
-    if (process.platform !== "win32") throw error;
+    if (process.platform !== "win32" || !databasePath) throw error;
     const ddl = execFileSync(
       process.execPath,
       [
@@ -79,7 +85,7 @@ beforeAll(async () => {
         "diff",
         "--from-empty",
         "--to-schema-datamodel",
-        "packages/db/prisma/schema.prisma",
+        databaseSchema,
         "--script",
       ],
       { env: { ...process.env, DATABASE_URL: databaseUrl }, encoding: "utf8" },
@@ -98,8 +104,10 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await prisma?.$disconnect();
-  for (const path of [databasePath, `${databasePath}-journal`, `${databasePath}-wal`])
-    if (existsSync(path)) rmSync(path);
+  if (databasePath) {
+    for (const path of [databasePath, `${databasePath}-journal`, `${databasePath}-wal`])
+      if (existsSync(path)) rmSync(path);
+  }
 });
 
 async function fixture(suffix: string) {

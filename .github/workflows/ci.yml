@@ -162,6 +162,11 @@ jobs:
         env:
           EXECUTION_PASSPORT_TEST_DATABASE_URL: "postgresql://oratlas:oratlas@localhost:5432/oratlas"
 
+      - name: Exercise challenge abuse controls on PostgreSQL
+        run: pnpm exec vitest run apps/web/src/lib/challenges.integration.test.ts
+        env:
+          CHALLENGE_TEST_DATABASE_URL: "postgresql://oratlas:oratlas@localhost:5432/oratlas"
+
   e2e:
     runs-on: ubuntu-latest
     timeout-minutes: 20
