@@ -223,6 +223,35 @@ describe("inspectRepository", () => {
     expect(report.status).toBe("failed");
   });
 
+  it("does not reveal whether an unavailable repository is token-visible and private", async () => {
+    const privateRequests: string[] = [];
+    const privateTransport = createFakeTransport({
+      ...plainRepoFixture,
+      requestLog: privateRequests,
+      repo: { ...plainRepoFixture.repo, private: true },
+    });
+    const unavailableRequests: string[] = [];
+    const unavailableTransport = {
+      async request(path: string) {
+        unavailableRequests.push(path);
+        return { status: 404, ok: false, json: { message: "Not Found" }, headers: {} };
+      },
+    };
+
+    const privateReport = await inspectRepository("someone/random-cli-tool", {
+      transport: privateTransport,
+    });
+    const unavailableReport = await inspectRepository("someone/random-cli-tool", {
+      transport: unavailableTransport,
+    });
+
+    expect(privateReport.status).toBe("failed");
+    expect(privateReport.error).toBe(unavailableReport.error);
+    expect(privateReport.error).toBe("Repository is not publicly available.");
+    expect(privateRequests).toHaveLength(1);
+    expect(unavailableRequests).toHaveLength(1);
+  });
+
   it("enforces the per-file size limit", async () => {
     const big = "x".repeat(2000);
     const transport = createFakeTransport({

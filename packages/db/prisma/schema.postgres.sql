@@ -377,6 +377,29 @@ CREATE TABLE "NodeAlias" (
 );
 
 -- CreateTable
+CREATE TABLE "NodeIdentityProposal" (
+    "id" TEXT NOT NULL,
+    "kind" TEXT NOT NULL,
+    "sourceNodeId" TEXT NOT NULL,
+    "targetNodeId" TEXT NOT NULL,
+    "signalsJson" TEXT NOT NULL,
+    "sharedAliasesJson" TEXT NOT NULL DEFAULT '[]',
+    "sourceTextHash" TEXT,
+    "targetTextHash" TEXT,
+    "textSimilarity" DOUBLE PRECISION,
+    "methodVersion" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'proposed',
+    "revision" INTEGER NOT NULL DEFAULT 0,
+    "reviewedById" TEXT,
+    "reviewedAt" TIMESTAMP(3),
+    "reviewNote" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "NodeIdentityProposal_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "ReplicationBrief" (
     "id" TEXT NOT NULL,
     "requestKey" TEXT NOT NULL,
@@ -551,6 +574,76 @@ CREATE TABLE "TrustAssessment" (
     "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "TrustAssessment_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "Challenge" (
+    "id" TEXT NOT NULL,
+    "reviewVersionId" TEXT NOT NULL,
+    "subjectType" TEXT NOT NULL,
+    "claimId" TEXT,
+    "claimEvidenceRelationId" TEXT,
+    "trustAssessmentId" TEXT,
+    "criterion" TEXT,
+    "subjectRefJson" TEXT NOT NULL,
+    "canonicalSubjectHash" TEXT NOT NULL,
+    "grounds" TEXT NOT NULL,
+    "body" TEXT NOT NULL,
+    "contentStatus" TEXT NOT NULL DEFAULT 'visible',
+    "contentRevision" INTEGER NOT NULL DEFAULT 0,
+    "removedAt" TIMESTAMP(3),
+    "removedById" TEXT,
+    "removedByRoleSnapshot" TEXT,
+    "filedContentHash" TEXT NOT NULL,
+    "challengerId" TEXT NOT NULL,
+    "activeChallengerSubjectKey" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'open',
+    "revision" INTEGER NOT NULL DEFAULT 0,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Challenge_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "ChallengeResponse" (
+    "id" TEXT NOT NULL,
+    "challengeId" TEXT NOT NULL,
+    "responderId" TEXT NOT NULL,
+    "responderRoleSnapshot" TEXT NOT NULL,
+    "responderGithubLoginSnapshot" TEXT NOT NULL,
+    "responderDisplayNameSnapshot" TEXT,
+    "contributorPersonId" TEXT NOT NULL,
+    "contributorGithubLoginSnapshot" TEXT NOT NULL,
+    "contributorDisplayNameSnapshot" TEXT NOT NULL,
+    "contributorRolesJsonSnapshot" TEXT NOT NULL,
+    "body" TEXT NOT NULL,
+    "contentHash" TEXT NOT NULL,
+    "contentStatus" TEXT NOT NULL DEFAULT 'visible',
+    "contentRevision" INTEGER NOT NULL DEFAULT 0,
+    "removedAt" TIMESTAMP(3),
+    "removedById" TEXT,
+    "removedByRoleSnapshot" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "ChallengeResponse_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "ChallengeTransition" (
+    "id" TEXT NOT NULL,
+    "challengeId" TEXT NOT NULL,
+    "fromStatus" TEXT,
+    "toStatus" TEXT NOT NULL,
+    "actorId" TEXT NOT NULL,
+    "actorRoleSnapshot" TEXT NOT NULL,
+    "rationale" TEXT,
+    "responseContentHash" TEXT,
+    "filedContentHash" TEXT NOT NULL,
+    "revision" INTEGER NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "ChallengeTransition_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -1235,6 +1328,15 @@ CREATE INDEX "NodeAlias_scheme_value_idx" ON "NodeAlias"("scheme", "value");
 CREATE UNIQUE INDEX "NodeAlias_knowledgeNodeId_scheme_role_value_key" ON "NodeAlias"("knowledgeNodeId", "scheme", "role", "value");
 
 -- CreateIndex
+CREATE INDEX "NodeIdentityProposal_status_createdAt_idx" ON "NodeIdentityProposal"("status", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "NodeIdentityProposal_sourceNodeId_status_idx" ON "NodeIdentityProposal"("sourceNodeId", "status");
+
+-- CreateIndex
+CREATE INDEX "NodeIdentityProposal_targetNodeId_status_idx" ON "NodeIdentityProposal"("targetNodeId", "status");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "ReplicationBrief_requestKey_key" ON "ReplicationBrief"("requestKey");
 
 -- CreateIndex
@@ -1293,6 +1395,33 @@ CREATE INDEX "TrustAssessment_claimEvidenceRelationId_sourceLineageKey_idx" ON "
 
 -- CreateIndex
 CREATE UNIQUE INDEX "TrustAssessment_claimEvidenceRelationId_sourceRecordHash_key" ON "TrustAssessment"("claimEvidenceRelationId", "sourceRecordHash");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Challenge_activeChallengerSubjectKey_key" ON "Challenge"("activeChallengerSubjectKey");
+
+-- CreateIndex
+CREATE INDEX "Challenge_reviewVersionId_createdAt_idx" ON "Challenge"("reviewVersionId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "Challenge_canonicalSubjectHash_status_idx" ON "Challenge"("canonicalSubjectHash", "status");
+
+-- CreateIndex
+CREATE INDEX "Challenge_challengerId_createdAt_idx" ON "Challenge"("challengerId", "createdAt");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "ChallengeResponse_challengeId_key" ON "ChallengeResponse"("challengeId");
+
+-- CreateIndex
+CREATE INDEX "ChallengeResponse_responderId_createdAt_idx" ON "ChallengeResponse"("responderId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "ChallengeResponse_contentStatus_createdAt_idx" ON "ChallengeResponse"("contentStatus", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "ChallengeTransition_challengeId_createdAt_idx" ON "ChallengeTransition"("challengeId", "createdAt");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "ChallengeTransition_challengeId_revision_key" ON "ChallengeTransition"("challengeId", "revision");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "TrustVerification_trustAssessmentId_key" ON "TrustVerification"("trustAssessmentId");
@@ -1616,6 +1745,15 @@ ALTER TABLE "NodeEdgeProposal" ADD CONSTRAINT "NodeEdgeProposal_confirmedEdgeId_
 ALTER TABLE "NodeAlias" ADD CONSTRAINT "NodeAlias_knowledgeNodeId_fkey" FOREIGN KEY ("knowledgeNodeId") REFERENCES "KnowledgeNode"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "NodeIdentityProposal" ADD CONSTRAINT "NodeIdentityProposal_sourceNodeId_fkey" FOREIGN KEY ("sourceNodeId") REFERENCES "KnowledgeNode"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "NodeIdentityProposal" ADD CONSTRAINT "NodeIdentityProposal_targetNodeId_fkey" FOREIGN KEY ("targetNodeId") REFERENCES "KnowledgeNode"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "NodeIdentityProposal" ADD CONSTRAINT "NodeIdentityProposal_reviewedById_fkey" FOREIGN KEY ("reviewedById") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "ReplicationBrief" ADD CONSTRAINT "ReplicationBrief_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -1665,6 +1803,42 @@ ALTER TABLE "TrustAssessment" ADD CONSTRAINT "TrustAssessment_claimEvidenceRelat
 
 -- AddForeignKey
 ALTER TABLE "TrustAssessment" ADD CONSTRAINT "TrustAssessment_supersedesAssessmentId_fkey" FOREIGN KEY ("supersedesAssessmentId") REFERENCES "TrustAssessment"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Challenge" ADD CONSTRAINT "Challenge_reviewVersionId_fkey" FOREIGN KEY ("reviewVersionId") REFERENCES "ReviewVersion"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Challenge" ADD CONSTRAINT "Challenge_claimId_fkey" FOREIGN KEY ("claimId") REFERENCES "Claim"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Challenge" ADD CONSTRAINT "Challenge_claimEvidenceRelationId_fkey" FOREIGN KEY ("claimEvidenceRelationId") REFERENCES "ClaimEvidenceRelation"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Challenge" ADD CONSTRAINT "Challenge_trustAssessmentId_fkey" FOREIGN KEY ("trustAssessmentId") REFERENCES "TrustAssessment"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Challenge" ADD CONSTRAINT "Challenge_challengerId_fkey" FOREIGN KEY ("challengerId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Challenge" ADD CONSTRAINT "Challenge_removedById_fkey" FOREIGN KEY ("removedById") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ChallengeResponse" ADD CONSTRAINT "ChallengeResponse_challengeId_fkey" FOREIGN KEY ("challengeId") REFERENCES "Challenge"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ChallengeResponse" ADD CONSTRAINT "ChallengeResponse_responderId_fkey" FOREIGN KEY ("responderId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ChallengeResponse" ADD CONSTRAINT "ChallengeResponse_contributorPersonId_fkey" FOREIGN KEY ("contributorPersonId") REFERENCES "Person"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ChallengeResponse" ADD CONSTRAINT "ChallengeResponse_removedById_fkey" FOREIGN KEY ("removedById") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ChallengeTransition" ADD CONSTRAINT "ChallengeTransition_challengeId_fkey" FOREIGN KEY ("challengeId") REFERENCES "Challenge"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ChallengeTransition" ADD CONSTRAINT "ChallengeTransition_actorId_fkey" FOREIGN KEY ("actorId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "TrustVerification" ADD CONSTRAINT "TrustVerification_trustAssessmentId_fkey" FOREIGN KEY ("trustAssessmentId") REFERENCES "TrustAssessment"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -1917,6 +2091,14 @@ ALTER TABLE "SynthesisRegenerationProposal" ADD CONSTRAINT "SynthesisRegeneratio
     ("status" = 'open' AND "openHeadKey" = "acceptedReviewVersionId" AND "resolvedById" IS NULL AND "resolvedAt" IS NULL AND "resolutionRationale" IS NULL AND "resolutionIdempotencyKey" IS NULL AND "resolutionInputHash" IS NULL)
     OR ("status" = 'superseded' AND "openHeadKey" IS NULL AND "resolvedById" IS NULL AND "resolvedAt" IS NULL AND "resolutionRationale" IS NULL AND "resolutionIdempotencyKey" IS NULL AND "resolutionInputHash" IS NULL)
     OR ("status" IN ('regeneration-requested', 'dismissed') AND "openHeadKey" IS NULL AND "resolvedById" IS NOT NULL AND "resolvedAt" IS NOT NULL AND "resolutionRationale" IS NOT NULL AND "resolutionIdempotencyKey" IS NOT NULL AND "resolutionInputHash" IS NOT NULL)
+  );
+
+ALTER TABLE "NodeIdentityProposal" DROP CONSTRAINT IF EXISTS "NodeIdentityProposal_status_check";
+
+ALTER TABLE "NodeIdentityProposal" ADD CONSTRAINT "NodeIdentityProposal_status_check" CHECK (
+    "kind" = 'same-claim' AND "sourceNodeId" <> "targetNodeId" AND "revision" >= 0
+    AND (("status" = 'proposed' AND "revision" = 0 AND "reviewedById" IS NULL AND "reviewedAt" IS NULL AND "reviewNote" IS NULL)
+      OR ("status" IN ('confirmed', 'rejected') AND "revision" >= 1 AND "reviewedById" IS NOT NULL AND "reviewedAt" IS NOT NULL AND "reviewNote" IS NOT NULL))
   );
 
 CREATE OR REPLACE FUNCTION "oratlas_validate_synthesis_membership_reference"() RETURNS trigger AS $$

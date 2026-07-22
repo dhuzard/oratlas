@@ -30,16 +30,150 @@ export interface DoiResolver {
 
 export interface FetchResolverOptions {
   timeoutMs?: number;
+  /** Maximum decoded response bytes buffered for one Zenodo metadata response. */
+  maxResponseBytes?: number;
   fetchImpl?: typeof fetch;
   zenodoApiBase?: string;
+}
+
+const ZENODO_API_BASE = "https://zenodo.org/api";
+const DEFAULT_MAX_RESPONSE_BYTES = 2 * 1024 * 1024;
+const MAX_RESOLUTION_URL_LENGTH = 2048;
+
+function isUnsafeIpv4(hostname: string): boolean {
+  const parts = hostname.split(".").map(Number);
+  if (
+    parts.length !== 4 ||
+    parts.some((part) => !Number.isInteger(part) || part < 0 || part > 255)
+  ) {
+    return false;
+  }
+  const [a, b] = parts as [number, number, number, number];
+  return (
+    a === 0 ||
+    a === 10 ||
+    a === 127 ||
+    (a === 100 && b >= 64 && b <= 127) ||
+    (a === 169 && b === 254) ||
+    (a === 172 && b >= 16 && b <= 31) ||
+    (a === 192 && b === 168) ||
+    (a === 198 && (b === 18 || b === 19)) ||
+    a >= 224
+  );
+}
+
+function isUnsafeIpv6(hostname: string): boolean {
+  const host = hostname.replace(/^\[|\]$/g, "").toLowerCase();
+  return (
+    host === "::" ||
+    host === "::1" ||
+    host.startsWith("fc") ||
+    host.startsWith("fd") ||
+    /^fe[89ab]/.test(host) ||
+    /^fe[c-f]/.test(host) ||
+    host.startsWith("ff") ||
+    host.startsWith("::ffff:")
+  );
+}
+
+/** Retain only bounded, public HTTPS redirect targets for reports and callers. */
+export function safeDoiResolutionUrl(value: string | null | undefined): string | undefined {
+  if (!value || value.length > MAX_RESOLUTION_URL_LENGTH) return undefined;
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    return undefined;
+  }
+  const hostname = url.hostname.toLowerCase().replace(/\.$/, "");
+  if (
+    url.protocol !== "https:" ||
+    url.username !== "" ||
+    url.password !== "" ||
+    (url.port !== "" && url.port !== "443") ||
+    hostname === "localhost" ||
+    hostname.endsWith(".localhost") ||
+    hostname.endsWith(".local") ||
+    isUnsafeIpv4(hostname) ||
+    (hostname.includes(":") && isUnsafeIpv6(hostname))
+  ) {
+    return undefined;
+  }
+  return url.href;
+}
+
+function validateZenodoApiBase(value: string): string {
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    throw new Error("Zenodo API base must be the canonical https://zenodo.org/api URL.");
+  }
+  if (
+    url.protocol !== "https:" ||
+    url.hostname.toLowerCase() !== "zenodo.org" ||
+    (url.port !== "" && url.port !== "443") ||
+    url.username !== "" ||
+    url.password !== "" ||
+    url.pathname.replace(/\/+$/, "") !== "/api" ||
+    url.search !== "" ||
+    url.hash !== ""
+  ) {
+    throw new Error("Zenodo API base must be the canonical https://zenodo.org/api URL.");
+  }
+  return ZENODO_API_BASE;
+}
+
+async function readJsonBounded(response: Response, maxBytes: number): Promise<unknown> {
+  const declaredLength = response.headers.get("content-length");
+  if (declaredLength !== null) {
+    const parsedLength = Number(declaredLength);
+    if (Number.isFinite(parsedLength) && parsedLength > maxBytes) {
+      await response.body?.cancel("declared response byte limit exceeded");
+      throw new Error(`Response exceeds the ${maxBytes}-byte limit.`);
+    }
+  }
+
+  if (!response.body) return null;
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (!value) continue;
+      total += value.byteLength;
+      if (total > maxBytes) {
+        await reader.cancel("response byte limit exceeded");
+        throw new Error(`Response exceeds the ${maxBytes}-byte limit.`);
+      }
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+
+  const bytes = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return JSON.parse(new TextDecoder().decode(bytes)) as unknown;
 }
 
 export function createFetchResolver(options: FetchResolverOptions = {}): DoiResolver {
   const {
     timeoutMs = 10_000,
+    maxResponseBytes = DEFAULT_MAX_RESPONSE_BYTES,
     fetchImpl = fetch,
-    zenodoApiBase = "https://zenodo.org/api",
+    zenodoApiBase = ZENODO_API_BASE,
   } = options;
+  if (!Number.isSafeInteger(maxResponseBytes) || maxResponseBytes <= 0) {
+    throw new Error("Zenodo response byte limit must be a positive safe integer.");
+  }
+  const validatedZenodoApiBase = validateZenodoApiBase(zenodoApiBase);
 
   async function withTimeout<T>(fn: (signal: AbortSignal) => Promise<T>): Promise<T> {
     const controller = new AbortController();
@@ -64,7 +198,7 @@ export function createFetchResolver(options: FetchResolverOptions = {}): DoiReso
           const resolves = res.status >= 200 && res.status < 400;
           return {
             resolves,
-            resolvedUrl: res.headers.get("location") ?? undefined,
+            resolvedUrl: safeDoiResolutionUrl(res.headers.get("location")),
             status: res.status,
           };
         } catch (err) {
@@ -77,12 +211,16 @@ export function createFetchResolver(options: FetchResolverOptions = {}): DoiReso
     async fetchZenodoRecord(recordId: string): Promise<ZenodoRecord | null> {
       return withTimeout(async (signal) => {
         try {
-          const res = await fetchImpl(`${zenodoApiBase}/records/${encodeURIComponent(recordId)}`, {
-            signal,
-            headers: { Accept: "application/json", "User-Agent": "open-review-atlas" },
-          });
+          const res = await fetchImpl(
+            `${validatedZenodoApiBase}/records/${encodeURIComponent(recordId)}`,
+            {
+              signal,
+              redirect: "error",
+              headers: { Accept: "application/json", "User-Agent": "open-review-atlas" },
+            },
+          );
           if (!res.ok) return null;
-          const json = (await res.json()) as Record<string, unknown>;
+          const json = (await readJsonBounded(res, maxResponseBytes)) as Record<string, unknown>;
           return parseZenodoRecord(json);
         } catch {
           return null;

@@ -84,7 +84,7 @@ fail-closed per-assessment badges, pagination, singleton compatibility, and stab
 
 ## Train 3 — Challenges and editorial governance
 
-Branch: `integration/challenges-governance` · Base: `integration/core-trust`
+Branch: `integration/challenges-governance` · Base: `main` · PR: #104
 
 | ORA     | Source PR | Frozen head                                |
 | ------- | --------: | ------------------------------------------ |
@@ -101,6 +101,24 @@ Branch: `integration/challenges-governance` · Base: `integration/core-trust`
 Preserve the tested E01 → J03 → E02 lifecycle order. Apply I02 before the final visibility
 audit. This train implements the ratified authority and public/private boundaries in
 `ORATLAS_DECISIONS.md` §§5, 6, and 9.
+
+### Imported functional commits
+
+| ORA     | Source commits                             | Integrated commits                         |
+| ------- | ------------------------------------------ | ------------------------------------------ |
+| ORA-C01 | `e129f04`, `6a9024b`, `31fa066`            | `3ffe379`, `73e7acc`, `430afc8`            |
+| ORA-E01 | `4d47ddc`, `84d5d44`, `9a96918`, `4f7d121` | `d663d6a`, `42eb18a`, `d840cf4`, `46700a9` |
+| ORA-J03 | `9ef43b9`, `f2c2fdc`, `e732061`, `27a47fd` | `2d6ee56`, `a53129c`, `33eca93`, `b25c1ed` |
+| ORA-E02 | `ec0cd06`, `bcbeaa2`                       | `1ddbbef`, `fe8f162`                       |
+| ORA-E03 | `42a7985`, `4681386`                       | `d0c4ce9`, `bfe3527`                       |
+| ORA-E04 | `6ebf430`                                  | `53045a6`                                  |
+| ORA-J01 | `9615909`, `06e5995`, `120c43f`            | `c0b991a`, `4f093e9`, `7335c40`            |
+| ORA-I02 | `f7a7272`, `d1ef39b`, `daeae74`            | `d4414d1`, `33528cd`, `73673fe`            |
+| ORA-F03 | `aee0f80`, `9bd185a`                       | `456c2b3`, `8111f90`                       |
+
+PR-link-only and inherited ancestor commits were omitted. The integrated result retains complete
+assessment arrays and stable links from Train 2, the E01 → J03 → E02 lifecycle order, and the
+ratified public/private visibility boundary.
 
 ## Train 4 — External fixtures, exports, and decision-driven features
 

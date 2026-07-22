@@ -1,17 +1,19 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { compareRoutes, normalizeRoutePath } from "./check-openapi-routes.js";
+import {
+  compareRoutes,
+  normalizeRoutePath,
+  parseDocumentedOperations,
+  parseRouteHandlerMethods,
+} from "./check-openapi-routes.js";
 
 describe("normalizeRoutePath", () => {
-  it("collapses OpenAPI and Next dynamic segments to a single token", () => {
-    expect(normalizeRoutePath("/api/reviews/{slug}")).toBe("/api/reviews/{}");
-    expect(normalizeRoutePath("/api/reviews/[slug]")).toBe("/api/reviews/{}");
-  });
-
-  it("collapses catch-all segments", () => {
-    expect(normalizeRoutePath("/api/x/[...path]")).toBe("/api/x/{}");
-    expect(normalizeRoutePath("/api/x/{path}")).toBe("/api/x/{}");
+  it("normalizes OpenAPI, Next dynamic, and catch-all segments", () => {
+    expect(normalizeRoutePath("/api/reviews/{slug}/files/{path}")).toBe("/api/reviews/{}/files/{}");
+    expect(normalizeRoutePath("/api/reviews/[slug]/files/[...path]")).toBe(
+      "/api/reviews/{}/files/{}",
+    );
   });
 
   it("keeps static segments exact", () => {
@@ -19,45 +21,117 @@ describe("normalizeRoutePath", () => {
   });
 });
 
-describe("compareRoutes", () => {
-  it("matches documented and actual routes despite differing parameter names", () => {
-    const documented = ["/api/reviews/{slug}/versions/{versionId}"];
-    const actual = ["/api/reviews/[slug]/versions/[versionId]"];
-    const result = compareRoutes(documented, actual);
-    expect(result.undocumented).toEqual([]);
-    expect(result.missing).toEqual([]);
+describe("method and path parity", () => {
+  it("passes when method and normalized path both match", () => {
+    const documented = [{ method: "get", path: "/api/reviews/{slug}" }];
+    const actual = [{ method: "GET", path: "/api/reviews/[slug]" }];
+    expect(compareRoutes(documented, actual)).toEqual({ undocumented: [], missing: [] });
   });
 
-  it("detects an undocumented actual route (failure condition)", () => {
-    const documented = ["/api/health"];
-    const actual = ["/api/health", "/api/auth/github/start"];
-    const result = compareRoutes(documented, actual);
-    expect(result.undocumented).toEqual(["/api/auth/github/start"]);
-    expect(result.missing).toEqual([]);
+  it("fails a new verb on an already documented path", () => {
+    const documented = [{ method: "GET", path: "/api/reviews/{slug}" }];
+    const actual = [
+      { method: "GET", path: "/api/reviews/[slug]" },
+      { method: "POST", path: "/api/reviews/[slug]" },
+    ];
+    expect(compareRoutes(documented, actual)).toEqual({
+      undocumented: [{ method: "POST", path: "/api/reviews/[slug]" }],
+      missing: [],
+    });
   });
 
-  it("detects a documented path with no actual route (warning condition)", () => {
-    const documented = ["/api/health", "/api/legacy/thing"];
-    const actual = ["/api/health"];
-    const result = compareRoutes(documented, actual);
-    expect(result.undocumented).toEqual([]);
-    expect(result.missing).toEqual(["/api/legacy/thing"]);
+  it("reports stale documented verbs independently of path coverage", () => {
+    const documented = [
+      { method: "GET", path: "/api/reviews/{slug}" },
+      { method: "DELETE", path: "/api/reviews/{slug}" },
+    ];
+    const actual = [{ method: "GET", path: "/api/reviews/[slug]" }];
+    expect(compareRoutes(documented, actual).missing).toEqual([
+      { method: "DELETE", path: "/api/reviews/{slug}" },
+    ]);
   });
 
-  it("matches a documented {path} against a Next catch-all [...path]", () => {
-    const documented = ["/api/reviews/{slug}/versions/{versionId}/files/{path}"];
-    const actual = ["/api/reviews/[slug]/versions/[versionId]/files/[...path]"];
-    const result = compareRoutes(documented, actual);
-    expect(result.undocumented).toEqual([]);
-    expect(result.missing).toEqual([]);
+  it("detects an undocumented actual path", () => {
+    const documented = [{ method: "GET", path: "/api/health" }];
+    const actual = [
+      { method: "GET", path: "/api/health" },
+      { method: "GET", path: "/api/new-resource" },
+    ];
+    expect(compareRoutes(documented, actual).undocumented).toEqual([
+      { method: "GET", path: "/api/new-resource" },
+    ]);
+  });
+
+  it("detects a documented path with no actual handler", () => {
+    const documented = [
+      { method: "GET", path: "/api/health" },
+      { method: "GET", path: "/api/legacy/thing" },
+    ];
+    const actual = [{ method: "GET", path: "/api/health" }];
+    expect(compareRoutes(documented, actual).missing).toEqual([
+      { method: "GET", path: "/api/legacy/thing" },
+    ]);
+  });
+
+  it("matches an OpenAPI path parameter against a Next catch-all segment", () => {
+    const documented = [
+      { method: "GET", path: "/api/reviews/{slug}/versions/{versionId}/files/{path}" },
+    ];
+    const actual = [
+      { method: "GET", path: "/api/reviews/[slug]/versions/[versionId]/files/[...path]" },
+    ];
+    expect(compareRoutes(documented, actual)).toEqual({ undocumented: [], missing: [] });
   });
 
   it("reports both drift directions at once", () => {
-    const documented = ["/api/a", "/api/only-doc"];
-    const actual = ["/api/a", "/api/only-route"];
-    const result = compareRoutes(documented, actual);
-    expect(result.undocumented).toEqual(["/api/only-route"]);
-    expect(result.missing).toEqual(["/api/only-doc"]);
+    const documented = [
+      { method: "GET", path: "/api/a" },
+      { method: "POST", path: "/api/only-doc" },
+    ];
+    const actual = [
+      { method: "GET", path: "/api/a" },
+      { method: "DELETE", path: "/api/only-route" },
+    ];
+    expect(compareRoutes(documented, actual)).toEqual({
+      undocumented: [{ method: "DELETE", path: "/api/only-route" }],
+      missing: [{ method: "POST", path: "/api/only-doc" }],
+    });
+  });
+});
+
+describe("operation discovery inputs", () => {
+  it("parses only HTTP operations nested under API paths", () => {
+    const yaml = `openapi: 3.1.0
+paths:
+  /api/items/{id}:
+    parameters: []
+    get:
+      responses: {}
+    PATCH:
+      responses: {}
+  /web/page:
+    get:
+      responses: {}
+components:
+  schemas: {}
+`;
+    expect(parseDocumentedOperations(yaml)).toEqual([
+      { method: "GET", path: "/api/items/{id}" },
+      { method: "PATCH", path: "/api/items/{id}" },
+    ]);
+  });
+
+  it("recognizes function, const, and aliased route-handler exports", () => {
+    const source = `
+      export async function GET() {}
+      export function OPTIONS() {}
+      export const POST = async () => {};
+      const remove = () => {};
+      export { remove as DELETE };
+      const text = "export async function PATCH() {}";
+      // export function PUT() {}
+    `;
+    expect(parseRouteHandlerMethods(source)).toEqual(["DELETE", "GET", "OPTIONS", "POST"]);
   });
 });
 

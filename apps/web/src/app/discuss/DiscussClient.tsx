@@ -4,6 +4,7 @@ import { trustVerificationPresentation } from "@/components/TrustVerificationBad
 
 interface EvidenceClaim {
   claimId: string;
+  localClaimId: string;
   reviewTitle: string;
   reviewSlug: string;
   reviewVersionId: string;
@@ -42,6 +43,16 @@ interface DiscussResponse {
   result: unknown;
   llmAvailable?: boolean;
   deterministic?: DeterministicResult;
+  packetHash: string;
+  packetSchemaVersion: "1.1.0";
+  references: DiscussionReference[];
+}
+
+interface DiscussionReference {
+  kind: "claim" | "citation";
+  id: string;
+  label: string;
+  href: string;
 }
 
 export function DiscussClient({ initialReview }: { initialReview?: string }) {
@@ -109,12 +120,23 @@ export function DiscussClient({ initialReview }: { initialReview?: string }) {
         <div className="card">
           <p className="muted">
             Mode: <strong>{response.mode === "llm" ? "LLM (grounded)" : "Deterministic"}</strong>.
-            {response.mode === "deterministic" && response.llmAvailable === false
-              ? " No LLM key configured — this is a structured evidence summary, not generated prose."
-              : ""}
           </p>
 
-          {llm?.answer ? <LlmAnswer answer={llm.answer} /> : null}
+          {response.mode === "deterministic" && response.llmAvailable === false ? (
+            <div className="notice notice-info">
+              No LLM provider is configured. Atlas is showing the deterministic structured evidence
+              summary; no generated prose was attempted.
+            </div>
+          ) : null}
+
+          <p className="muted" style={{ fontSize: "0.85rem" }}>
+            Evidence packet {response.packetSchemaVersion}:{" "}
+            <code className="mono" data-testid="discussion-packet-hash">
+              {response.packetHash}
+            </code>
+          </p>
+
+          {llm?.answer ? <LlmAnswer answer={llm.answer} references={response.references} /> : null}
           {llm && !llm.answer ? (
             <div className="notice notice-warning">
               The model did not produce a grounded answer ({llm.error}). Showing the deterministic
@@ -122,7 +144,9 @@ export function DiscussClient({ initialReview }: { initialReview?: string }) {
             </div>
           ) : null}
 
-          {deterministic ? <DeterministicView result={deterministic} /> : null}
+          {deterministic ? (
+            <DeterministicView result={deterministic} references={response.references} />
+          ) : null}
         </div>
       ) : null}
     </div>
@@ -143,7 +167,14 @@ interface LlmResult {
   error?: string;
 }
 
-function LlmAnswer({ answer }: { answer: NonNullable<LlmResult["answer"]> }) {
+function LlmAnswer({
+  answer,
+  references,
+}: {
+  answer: NonNullable<LlmResult["answer"]>;
+  references: DiscussionReference[];
+}) {
+  const used = new Set([...answer.reviewClaimsUsed, ...answer.citationsUsed]);
   return (
     <div className="prose">
       <p>{answer.answer}</p>
@@ -159,11 +190,18 @@ function LlmAnswer({ answer }: { answer: NonNullable<LlmResult["answer"]> }) {
         citation(s). Every claim–citation edge was validated against the evidence packet. This is
         structural grounding, not a finding that the claims are scientifically correct.
       </p>
+      <GroundingReferences references={references.filter((reference) => used.has(reference.id))} />
     </div>
   );
 }
 
-function DeterministicView({ result }: { result: DeterministicResult }) {
+function DeterministicView({
+  result,
+  references,
+}: {
+  result: DeterministicResult;
+  references: DiscussionReference[];
+}) {
   if (result.insufficientEvidence) {
     return (
       <div className="notice notice-info">
@@ -186,7 +224,7 @@ function DeterministicView({ result }: { result: DeterministicResult }) {
               <p className="muted" style={{ margin: 0 }}>
                 from{" "}
                 <a
-                  href={`/reviews/${claim.reviewSlug}/versions/${claim.reviewVersionId}#${claim.anchor}`}
+                  href={`/claims/${claim.reviewVersionId}/${encodeURIComponent(claim.localClaimId)}`}
                 >
                   {claim.reviewTitle}
                 </a>
@@ -203,6 +241,24 @@ function DeterministicView({ result }: { result: DeterministicResult }) {
           </p>
         ))}
       </div>
+      <GroundingReferences references={references} />
+    </div>
+  );
+}
+
+function GroundingReferences({ references }: { references: DiscussionReference[] }) {
+  if (references.length === 0) return null;
+  return (
+    <div>
+      <h3 style={{ fontSize: "1.05rem" }}>Grounding references</h3>
+      <ul>
+        {references.map((reference) => (
+          <li key={`${reference.kind}:${reference.id}`}>
+            <a href={reference.href}>{reference.label}</a>{" "}
+            <span className="muted">({reference.kind})</span>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

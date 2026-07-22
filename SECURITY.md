@@ -17,22 +17,27 @@ acknowledge and respond as soon as we reasonably can.
   localhost/loopback/link-local/private IPs, non-standard ports, and non-http(s) schemes are
   rejected before any request is made.
 - **Bounded inspection.** Repositories are inspected via the GitHub API with explicit timeouts,
-  max file bytes, max total bytes, max file count, bounded tree traversal, and permitted textual
-  extensions. Repositories are **never cloned**, **never built**, and **no repository code is ever
-  executed**. No shell command is derived from repository content.
+  a transport-level response-byte cap enforced while streaming, max file bytes, max total decoded
+  artifact bytes, max file count, bounded tree traversal, and permitted textual extensions.
+  Repositories are **never cloned**, **never built**, and **no repository code is ever executed**.
+  No shell command is derived from repository content.
 - **Untrusted content is never HTML.** Repository-derived content is rendered as escaped text
   (React), never as raw HTML. Artifact paths are validated against traversal and URL schemes.
 - **Server-side secrets.** GitHub tokens, OAuth secrets, and LLM keys are server-side only and are
   never exposed to the browser. Secrets are not logged.
 - **Sessions & CSRF.** Sessions are HMAC-signed, `httpOnly`, `SameSite=Lax`, and `Secure` in
-  production. OAuth uses a state parameter. Mutations use same-origin API routes / server actions
-  (`form-action 'self'`).
+  production. OAuth uses a state parameter. Cookie-authenticated JSON mutations require the exact
+  configured `Origin`, reject cross-site Fetch Metadata, and require `application/json`; server-to-
+  server signed inboxes use their own replay and signature boundary.
 - **Authorization.** Editorial actions require the EDITOR/ADMIN role, checked server-side on every
   route. Editorially meaningful changes are written to an append-only audit log.
-- **Input limits.** JSON bodies are size-limited; submission and discussion endpoints are rate
-  limited; all inputs are validated with Zod.
+- **Input limits.** JSON bodies are size-limited; submission, discussion, and formal challenge
+  mutation endpoints are route-scoped rate limited; all inputs are validated with Zod.
 - **Grounding.** LLM discussion output is validated against a schema and rejected if it references
   identifiers not present in the evidence packet.
+
+The current evidence checklist and bounded residual risks are recorded in
+[`docs/security-audit-2026-07.md`](docs/security-audit-2026-07.md).
 
 ## Non-production notes
 

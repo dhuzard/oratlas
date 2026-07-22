@@ -69,11 +69,17 @@ model User {
   replicationBriefsCompleted     ReplicationBrief[]                @relation("replicationCompleter")
   replicationBriefsWithdrawn     ReplicationBrief[]                @relation("replicationWithdrawer")
   nodeEdgeProposalsReviewed      NodeEdgeProposal[]                @relation("nodeEdgeProposalReviewer")
+  nodeIdentityProposalsReviewed  NodeIdentityProposal[]            @relation("nodeIdentityProposalReviewer")
   nodeEdgesConfirmed             NodeEdge[]                        @relation("nodeEdgeConfirmer")
   synthesisDraftsApproved        SynthesisDraft[]                  @relation("synthesisDraftApprover")
   synthesisVersionsApproved      ReviewVersion[]                   @relation("synthesisVersionApprover")
   synthesisAttributions          SynthesisAttributionContributor[] @relation("synthesisAttributionUser")
   synthesisRegenerationResolved  SynthesisRegenerationProposal[]   @relation("synthesisRegenerationResolver")
+  challengesFiled                Challenge[]                       @relation("challengeChallenger")
+  challengeTransitions           ChallengeTransition[]             @relation("challengeTransitionActor")
+  challengeResponses             ChallengeResponse[]               @relation("challengeResponder")
+  challengeContentRemovals       Challenge[]                       @relation("challengeContentRemover")
+  challengeResponseRemovals      ChallengeResponse[]               @relation("challengeResponseRemover")
 
   @@index([githubLoginNormalized])
 }
@@ -251,6 +257,7 @@ model ReviewVersion {
   acceptedPredecessor            ReviewVersion?                    @relation("synthesisVersionPredecessor", fields: [acceptedPredecessorVersionId], references: [id])
   synthesisSuccessors            ReviewVersion[]                   @relation("synthesisVersionPredecessor")
   synthesisAttributions          SynthesisAttributionContributor[]
+  challenges                     Challenge[]
   synthesisStalenessHead         SynthesisStalenessHead?
   synthesisStalenessEvaluations  SynthesisStalenessEvaluation[]    @relation("synthesisStalenessVersion")
   synthesisRegenerationProposals SynthesisRegenerationProposal[]   @relation("synthesisRegenerationVersion")
@@ -332,6 +339,7 @@ model Person {
   githubLogin String?
 
   contributions ReviewContributor[]
+  challengeResponses ChallengeResponse[]
 }
 
 model ReviewContributor {
@@ -471,6 +479,7 @@ model Claim {
   protocolSnapshots  ProtocolSnapshot[]
   executionPassports ExecutionPassportClaim[]
   replicationBriefs  ReplicationBriefClaim[]
+  challenges         Challenge[]              @relation("challengeClaim")
 
   @@unique([reviewVersionId, localClaimId])
   @@index([knowledgeNodeId])
@@ -493,6 +502,8 @@ model KnowledgeNode {
   incomingEdgeProposals NodeEdgeProposal[]         @relation("proposalTargetNode")
   linkedClaims          Claim[]
   aliases               NodeAlias[]
+  identityProposalsFrom NodeIdentityProposal[]     @relation("identityProposalSource")
+  identityProposalsTo   NodeIdentityProposal[]     @relation("identityProposalTarget")
   synthesisMemberships  SynthesisDraftMembership[]
   synthesisCitations    SynthesisDraftCitation[]
 
@@ -640,6 +651,39 @@ model NodeAlias {
 
   @@unique([knowledgeNodeId, scheme, role, value])
   @@index([scheme, value])
+}
+
+/// A deterministic cross-repository identity suggestion. Confirming this row
+/// publishes an "also asserted in" relationship; it never merges stable nodes
+/// or combines their protocol-scoped assessments.
+model NodeIdentityProposal {
+  id                String    @id
+  /// same-work | same-claim (C01 currently persists same-claim only)
+  kind              String
+  sourceNodeId      String
+  targetNodeId      String
+  signalsJson       String
+  sharedAliasesJson String    @default("[]")
+  sourceTextHash    String?
+  targetTextHash    String?
+  textSimilarity    Float?
+  methodVersion     String
+  /// proposed | confirmed | rejected
+  status            String    @default("proposed")
+  revision          Int       @default(0)
+  reviewedById      String?
+  reviewedAt        DateTime?
+  reviewNote        String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  sourceNode KnowledgeNode @relation("identityProposalSource", fields: [sourceNodeId], references: [id], onDelete: Restrict)
+  targetNode KnowledgeNode @relation("identityProposalTarget", fields: [targetNodeId], references: [id], onDelete: Restrict)
+  reviewedBy User?         @relation("nodeIdentityProposalReviewer", fields: [reviewedById], references: [id], onDelete: Restrict)
+
+  @@index([status, createdAt])
+  @@index([sourceNodeId, status])
+  @@index([targetNodeId, status])
 }
 
 /// A human-editor-published replication opportunity. Triage snapshots are
@@ -818,6 +862,7 @@ model ClaimEvidenceRelation {
   claim            Claim             @relation(fields: [claimId], references: [id])
   citation         Citation          @relation(fields: [citationId], references: [id])
   trustAssessments TrustAssessment[]
+  challenges       Challenge[]       @relation("challengeRelation")
 
   @@unique([claimId, citationId, relationType])
 }
@@ -884,10 +929,118 @@ model TrustAssessment {
   verification TrustVerification?
   supersedes   TrustAssessment?      @relation("TrustAssessmentSupersession", fields: [supersedesAssessmentId], references: [id])
   supersededBy TrustAssessment[]     @relation("TrustAssessmentSupersession")
+  challenges   Challenge[]           @relation("challengeAssessment")
 
   @@unique([claimEvidenceRelationId, sourceRecordHash])
   @@index([reviewStatus])
   @@index([claimEvidenceRelationId, sourceLineageKey])
+}
+
+/// Formal, attributed objection to one exact immutable scholarly subject.
+/// The subject JSON and hash are server-derived; reads re-resolve and re-hash
+/// the target so a stale or tampered binding fails closed.
+model Challenge {
+  id                      String   @id @default(cuid())
+  reviewVersionId         String
+  /// claim | relation | assessment-criterion
+  subjectType             String
+  claimId                 String?
+  claimEvidenceRelationId String?
+  trustAssessmentId       String?
+  criterion               String?
+  subjectRefJson          String
+  canonicalSubjectHash    String
+  /// entailment | source-access | methodology | identity | other
+  grounds                 String
+  /// Plain text only; bounded by contracts and rendered escaped.
+  body                    String
+  /// visible | removed. Removed bytes stay retained but never enter public DTOs.
+  contentStatus           String   @default("visible")
+  contentRevision         Int      @default(0)
+  removedAt               DateTime?
+  removedById             String?
+  removedByRoleSnapshot   String?
+  /// Canonical digest of the immutable filed grounds/body and subject binding.
+  filedContentHash        String
+  challengerId            String
+  /// SHA-256(challenger + exact subject hash) while the challenge is active.
+  /// Nullable uniqueness is portable across SQLite/PostgreSQL and prevents
+  /// concurrent duplicate filings without a provider-specific partial index.
+  activeChallengerSubjectKey String? @unique
+  /// open | author-responded | resolved | dismissed | withdrawn
+  status                  String   @default("open")
+  revision                Int      @default(0)
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  reviewVersion ReviewVersion          @relation(fields: [reviewVersionId], references: [id])
+  claim         Claim?                 @relation("challengeClaim", fields: [claimId], references: [id])
+  relation      ClaimEvidenceRelation? @relation("challengeRelation", fields: [claimEvidenceRelationId], references: [id])
+  assessment    TrustAssessment?       @relation("challengeAssessment", fields: [trustAssessmentId], references: [id])
+  challenger    User                   @relation("challengeChallenger", fields: [challengerId], references: [id])
+  removedBy     User?                  @relation("challengeContentRemover", fields: [removedById], references: [id])
+  transitions   ChallengeTransition[]
+  response      ChallengeResponse?
+
+  @@index([reviewVersionId, createdAt])
+  @@index([canonicalSubjectHash, status])
+  @@index([challengerId, createdAt])
+}
+
+/// Immutable, one-per-challenge contributor-of-record response. Moderation
+/// changes only the tombstone projection; original bytes and digest are retained.
+model ChallengeResponse {
+  id                             String   @id @default(cuid())
+  challengeId                    String   @unique
+  responderId                    String
+  responderRoleSnapshot          String
+  responderGithubLoginSnapshot   String
+  responderDisplayNameSnapshot   String?
+  contributorPersonId            String
+  contributorGithubLoginSnapshot String
+  contributorDisplayNameSnapshot String
+  contributorRolesJsonSnapshot   String
+  body                           String
+  contentHash                    String
+  /// visible | removed
+  contentStatus                  String   @default("visible")
+  contentRevision                Int      @default(0)
+  removedAt                      DateTime?
+  removedById                    String?
+  removedByRoleSnapshot          String?
+  createdAt                      DateTime @default(now())
+
+  challenge         Challenge @relation(fields: [challengeId], references: [id])
+  responder         User      @relation("challengeResponder", fields: [responderId], references: [id])
+  contributorPerson Person    @relation(fields: [contributorPersonId], references: [id])
+  removedBy         User?     @relation("challengeResponseRemover", fields: [removedById], references: [id])
+
+  @@index([responderId, createdAt])
+  @@index([contentStatus, createdAt])
+}
+
+/// Append-only challenge lifecycle ledger. The nullable initial fromStatus
+/// records attributed filing as the first lifecycle event.
+model ChallengeTransition {
+  id                String   @id @default(cuid())
+  challengeId       String
+  fromStatus        String?
+  toStatus          String
+  actorId           String
+  actorRoleSnapshot String
+  rationale         String?
+  /// Present only on open -> author-responded; binds that event to ChallengeResponse.
+  responseContentHash String?
+  /// Binds every ledger event to the immutable content filed at revision zero.
+  filedContentHash  String
+  revision          Int
+  createdAt         DateTime @default(now())
+
+  challenge Challenge @relation(fields: [challengeId], references: [id])
+  actor     User      @relation("challengeTransitionActor", fields: [actorId], references: [id])
+
+  @@unique([challengeId, revision])
+  @@index([challengeId, createdAt])
 }
 
 /// Platform-owned review marker. This is deliberately separate from the

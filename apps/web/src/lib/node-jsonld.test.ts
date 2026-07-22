@@ -52,6 +52,7 @@ function datasetNode(): PublicNodeDetail {
       },
     ],
     edges: [],
+    sameClaims: [],
     trustContext: [],
   });
 }

@@ -10,6 +10,34 @@
 Roles are checked **server-side** on every editorial route (`requireEditor`). The editorial UI is
 also hidden from non-editors, but the server checks are authoritative.
 
+## Formal challenge authority (interim)
+
+Formal challenges are a separate register from TRUST assessments and open comments. Any signed-in
+user may file a typed, plain-text objection against the server-published hash of an exact immutable
+claim, relation, or assessment criterion. A contributor of record may create one immutable,
+attributed response; that record and the `author-responded` transition commit atomically. A bare
+status transition is rejected. The challenger may withdraw. Pending the governance decision in
+`ORATLAS_DECISIONS.md` §5, `hasChallengeResolutionAuthority` grants `resolved`/`dismissed` only to
+current editors/admins; this check is deliberately isolated so the authority policy can be swapped
+without rewriting lifecycle storage.
+
+Resolution requires a rationale and means only that the objection received an attributable
+editorial outcome. It MUST NOT be presented as a scientific-truth verdict and never changes the
+target record, TRUST criteria, compatibility, or review lifecycle. Filing and transitions use
+authenticated exact-same-origin JSON, bounded contracts, rate limits, optimistic revisions, an
+append-only `ChallengeTransition`, and an `AuditEvent`.
+Before a challenge is displayed or advanced, the server reconstructs its complete revision-zero
+ledger through the final mutable projection and verifies the canonical hash of its immutable filed
+grounds, body, challenger, and exact subject binding. Missing, extra, illegal, or tampered events
+fail closed.
+
+The filer or a current editor may remove challenge text; the responder or a current editor may
+remove response text. Removal retains original bytes and hashes for accountability but public
+projections return an empty body and a visible tombstone without remover identity. No moderation
+rationale is accepted until decision §9 is ratified. Resolution rationale and internal role
+snapshots likewise remain editorial-only. The editorial dashboard provides a bounded,
+oldest-first queue over `open` and `author-responded` challenges with exact immutable links.
+
 ## What acceptance means (and does not)
 
 - Acceptance is an **editorial curation decision**, not peer review. The platform states this

@@ -209,6 +209,8 @@ export function CommentsSection({
     try {
       const res = await fetch(`/api/comments/${encodeURIComponent(commentId)}`, {
         method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: "{}",
       });
       const data = await res.json();
       if (!res.ok) {
@@ -222,16 +224,16 @@ export function CommentsSection({
   }
 
   return (
-    <section id="community-review" aria-label="Community review and discussion">
+    <section id="community-review" data-register="open-discussion" aria-label="Open discussion">
       <div className="card">
         <h2 className="card-title">
-          Community review &amp; discussion{" "}
-          <span className="muted comment-count">({list.commentCount})</span>
+          Open discussion <span className="muted comment-count">({list.commentCount})</span>
         </h2>
         <p className="muted comment-intro">
-          Open scholarly exchange on this review: ask questions, raise concerns, suggest evidence,
-          or endorse findings. Comments can address the whole review or a specific claim, and are
-          publicly attributed to your account.
+          Ask questions, raise concerns, suggest evidence, or endorse findings. Comments can address
+          the whole review or a specific claim and are publicly attributed to your account. They are
+          open discussion, not TRUST assessments, formal challenges, formal review reports,
+          editorial decisions, or changes to the immutable archived review.
         </p>
 
         {readOnly ? (

@@ -2,12 +2,19 @@ import { notFound } from "next/navigation";
 import { headers } from "next/headers";
 import Link from "next/link";
 import { type Metadata } from "next";
+import { TRUST_CRITERIA } from "@oratlas/contracts";
 import { Card, Badge, CompatibilityBadge, DefinitionList, Notice, StatusPill } from "@oratlas/ui";
 import { getReviewDetail } from "@/lib/reviews";
 import { listReviewComments } from "@/lib/comments";
 import { getCurrentUser, isEditor } from "@/lib/auth";
 import { TrustDisplay } from "@/components/TrustDisplay";
 import { CommentsSection } from "./CommentsSection";
+import { ChallengesSection } from "./ChallengesSection";
+import {
+  isChallengeContributorOfRecord,
+  listChallenges,
+  listChallengeSubjectOptions,
+} from "@/lib/challenges";
 import { ProvenanceBadge } from "@oratlas/ui";
 import { swhidArchiveUrl, swhidForRevision } from "@oratlas/exports";
 import { serializeJsonForHtml } from "@/lib/json-for-html";
@@ -134,6 +141,8 @@ export default async function ReviewPage({
     processHistory,
     executionPassports,
     protocolDrift,
+    challenges,
+    challengeSubjects,
   ] = await Promise.all([
     listReviewComments(slug, review.version.id),
     getCurrentUser(),
@@ -142,6 +151,8 @@ export default async function ReviewPage({
     getProcessHistoryForVersion(review.version.id),
     listExecutionPassportsForVersion(review.version.id),
     getPublicProtocolSummary(review.version.id),
+    listChallenges(slug, review.version.id),
+    listChallengeSubjectOptions(review.version.id),
   ]);
   const claimAlertCounts = await getClaimAlertCounts(review.version.id);
   const nonce = requestHeaders.get("x-nonce") ?? undefined;
@@ -151,6 +162,14 @@ export default async function ReviewPage({
     commentCount: 0,
     comments: [],
   };
+  const challengeList = challenges ?? {
+    reviewSlug: slug,
+    reviewVersionId: review.version.id,
+    challenges: [],
+  };
+  const viewerIsContributor = user
+    ? await isChallengeContributorOfRecord(review.version.id, user)
+    : false;
   const commentsByClaim = new Map<string, number>();
   for (const c of commentList.comments) {
     if (c.status !== "visible" || !c.claimLocalId) continue;
@@ -499,6 +518,7 @@ export default async function ReviewPage({
                         : (claim.anchor ?? claim.localClaimId)
                     }
                   >
+                    <span id={`claim-subject-${claim.subjectId}`} />
                     <p className="claim-text">{claim.text}</p>
                     <div className="btn-row">
                       <span className="mono muted">{claim.localClaimId}</span>
@@ -516,7 +536,7 @@ export default async function ReviewPage({
                       {claim.section ? <span className="muted">§ {claim.section}</span> : null}
                       {claimComments > 0 ? (
                         <a href="#community-review">
-                          {claimComments} comment{claimComments === 1 ? "" : "s"}
+                          {claimComments} discussion comment{claimComments === 1 ? "" : "s"}
                         </a>
                       ) : null}
                     </div>
@@ -531,6 +551,7 @@ export default async function ReviewPage({
                         id={`relation-${rel.id}`}
                         key={rel.id}
                       >
+                        <span id={`relation-subject-${rel.relationId}`} />
                         <Badge tone={rel.relationType === "contradicts" ? "warning" : "neutral"}>
                           {rel.relationType.replace(/-/g, " ")}
                         </Badge>
@@ -548,15 +569,22 @@ export default async function ReviewPage({
                           ) : null}
                         </span>
                         {rel.trusts.length > 0 ? (
-                          <details>
-                            <summary>TRUST assessments ({rel.trusts.length})</summary>
+                          <details data-register="formal-assessment">
+                            <summary>Formal TRUST assessments ({rel.trusts.length})</summary>
                             {rel.trusts.map((trust) => (
                               <section
                                 id={`assessment-${trust.assessmentId}`}
                                 className="deep-link-target"
                                 key={trust.assessmentId}
-                                aria-label={`TRUST assessment ${trust.assessmentId}`}
+                                data-assessment-id={trust.assessmentId}
+                                aria-label={`Formal TRUST assessment ${trust.assessmentId}`}
                               >
+                                {TRUST_CRITERIA.map((criterion) => (
+                                  <span
+                                    id={`assessment-subject-${trust.assessmentId}-${criterion}`}
+                                    key={criterion}
+                                  />
+                                ))}
                                 <TrustDisplay trust={trust} />
                               </section>
                             ))}
@@ -628,56 +656,73 @@ export default async function ReviewPage({
           ) : null}
 
           {processHistory.length > 0 ? (
-            <Card title="Editorial process history">
-              <p className="muted">
-                Open review: reports, responses and decision letters are public, attributable and
-                immutable across revision rounds.
-              </p>
-              {processHistory.map((entry, entryIndex) => (
-                <div key={entry.submissionId}>
-                  <p>
-                    <strong>Submission {entryIndex + 1}</strong>{" "}
-                    <span className="muted">
-                      by @{entry.submitterLogin}
-                      {entry.submittedAt ? ` · ${entry.submittedAt.slice(0, 10)}` : ""} ·{" "}
-                      {entry.status}
-                    </span>
-                  </p>
-                  {entry.rounds.map((round) => (
-                    <div className="claim-card" key={round.roundId}>
-                      <p>
-                        <strong>Round {round.roundNumber}</strong>{" "}
-                        <span className="muted">({round.status})</span>
-                      </p>
-                      <ul>
-                        {round.reports.map((report, reportIndex) => (
-                          <li key={reportIndex}>
-                            Review by @{report.reviewerLogin} — {report.recommendation}
-                            {report.reviewerOrcid
-                              ? ` (ORCID ${report.reviewerOrcid}${report.orcidVerified ? "" : ", unverified"})`
-                              : ""}
-                            , {report.submittedAt.slice(0, 10)}
-                          </li>
-                        ))}
-                        {round.responses.map((response, responseIndex) => (
-                          <li key={`r-${responseIndex}`}>
-                            Author response by @{response.authorLogin},{" "}
-                            {response.submittedAt.slice(0, 10)}
-                          </li>
-                        ))}
-                        {round.decision ? (
-                          <li>
-                            Decision: {round.decision.decision} — @{round.decision.editorLogin},{" "}
-                            {round.decision.issuedAt.slice(0, 10)}
-                          </li>
-                        ) : null}
-                      </ul>
-                    </div>
-                  ))}
-                </div>
-              ))}
-            </Card>
+            <section data-register="formal-editorial" aria-label="Formal editorial review history">
+              <Card title="Formal editorial review history">
+                <p className="muted">
+                  Open review: reports, responses and decision letters are public, attributable and
+                  immutable across revision rounds.
+                </p>
+                {processHistory.map((entry, entryIndex) => (
+                  <div key={entry.submissionId}>
+                    <p>
+                      <strong>Submission {entryIndex + 1}</strong>{" "}
+                      <span className="muted">
+                        by @{entry.submitterLogin}
+                        {entry.submittedAt ? ` · ${entry.submittedAt.slice(0, 10)}` : ""} ·{" "}
+                        {entry.status}
+                      </span>
+                    </p>
+                    {entry.rounds.map((round) => (
+                      <div className="claim-card" key={round.roundId}>
+                        <p>
+                          <strong>Round {round.roundNumber}</strong>{" "}
+                          <span className="muted">({round.status})</span>
+                        </p>
+                        <ul>
+                          {round.reports.map((report, reportIndex) => (
+                            <li key={reportIndex}>
+                              Review by @{report.reviewerLogin} — {report.recommendation}
+                              {report.reviewerOrcid
+                                ? ` (ORCID ${report.reviewerOrcid}${report.orcidVerified ? "" : ", unverified"})`
+                                : ""}
+                              , {report.submittedAt.slice(0, 10)}
+                            </li>
+                          ))}
+                          {round.responses.map((response, responseIndex) => (
+                            <li key={`r-${responseIndex}`}>
+                              Author response by @{response.authorLogin},{" "}
+                              {response.submittedAt.slice(0, 10)}
+                            </li>
+                          ))}
+                          {round.decision ? (
+                            <li>
+                              Decision: {round.decision.decision} — @{round.decision.editorLogin},{" "}
+                              {round.decision.issuedAt.slice(0, 10)}
+                            </li>
+                          ) : null}
+                        </ul>
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </Card>
+            </section>
           ) : null}
+
+          <ChallengesSection
+            initial={challengeList}
+            subjects={challengeSubjects}
+            canFile={Boolean(user)}
+            viewer={
+              user
+                ? {
+                    githubLogin: user.githubLogin,
+                    isContributor: viewerIsContributor,
+                    canResolve: isEditor(user),
+                  }
+                : null
+            }
+          />
 
           <CommentsSection
             reviewSlug={review.slug}
@@ -825,9 +870,9 @@ export default async function ReviewPage({
             ) : null}
           </Card>
 
-          <Card title="Discuss">
+          <Card title="Discussion tools">
             <p>
-              <a href="#community-review">Community discussion ({commentList.commentCount})</a> —
+              <a href="#community-review">Open discussion ({commentList.commentCount})</a> —
               questions, concerns and endorsements from readers.
             </p>
             <p>Or ask grounded questions across accepted reviews.</p>

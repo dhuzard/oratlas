@@ -192,11 +192,38 @@ components:
         commitSha: { type: string, pattern: "^(?:[0-9a-f]{40}|[0-9a-f]{64})$" }
         createdAt: { type: string, format: date-time }
         isCurrent: { type: boolean }
+    PublicTrustAssessmentProvenance:
+      type: object
+      additionalProperties: false
+      required: [protocolVersion, reviewStatus, verificationState]
+      properties:
+        assessmentId: { type: string, minLength: 1, maxLength: 200 }
+        protocolVersion: { type: string, minLength: 1, maxLength: 120 }
+        assessorType: { type: string, minLength: 1, maxLength: 40 }
+        assessorId: { type: string, minLength: 1, maxLength: 200 }
+        assessedAt: { type: string, format: date-time }
+        reviewStatus:
+          type: string
+          enum: [unverified-import, agent-proposed, human-reviewed, adjudicated, superseded]
+        verificationState:
+          type: string
+          enum: [platform-verified, unverified-import, stale-verification, legacy-unknown]
     PublicNodeDetail:
       type: object
       additionalProperties: false
       required:
-        [schemaVersion, id, localNodeId, kind, repository, version, versions, edges, trustContext]
+        [
+          schemaVersion,
+          id,
+          localNodeId,
+          kind,
+          repository,
+          version,
+          versions,
+          edges,
+          sameClaims,
+          trustContext,
+        ]
       properties:
         schemaVersion: { const: 1.0.0 }
         id: { type: string }
@@ -305,11 +332,100 @@ components:
                   verificationState:
                     type: string
                     enum: [platform-verified, unverified-import, stale-verification, legacy-unknown]
+              trustAssessments:
+                type: array
+                description: Complete, deterministically ordered relation-scoped assessment set.
+                items:
+                  allOf:
+                    - { $ref: "#/components/schemas/PublicTrustAssessmentProvenance" }
+                    - { required: [assessmentId, assessorType] }
               relatedNode: { $ref: "#/components/schemas/PublicRelatedNodeVersion" }
+        sameClaims:
+          type: array
+          description: >
+            Editor-confirmed “also asserted in” identities. Stable nodes and relation-scoped
+            assessments remain separate; proposed and rejected identities are never public.
+          items:
+            type: object
+            additionalProperties: false
+            required: [proposalId, nodeId, localNodeId, title, repository, reviewAssertions]
+            properties:
+              proposalId: { type: string, pattern: "^nip_[0-9a-f]{64}$" }
+              nodeId: { type: string }
+              localNodeId: { type: string }
+              title: { type: string }
+              repository:
+                type: object
+                required: [owner, name, url]
+                properties:
+                  owner: { type: string }
+                  name: { type: string }
+                  url: { type: string, format: uri }
+              reviewAssertions:
+                type: array
+                items:
+                  type: object
+                  required: [reviewSlug, reviewTitle, versionId, localClaimId]
+                  properties:
+                    reviewSlug: { type: string }
+                    reviewTitle: { type: string }
+                    versionId: { type: string }
+                    localClaimId: { type: string }
         trustContext:
           type: array
           description: Relation-scoped claim-citation context; never a bare node-level TRUST score.
-          items: { type: object }
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              [
+                claimId,
+                claimLocalId,
+                reviewSlug,
+                reviewVersionId,
+                citationId,
+                citationLocalId,
+                citationIsExample,
+                relationType,
+              ]
+            properties:
+              claimId: { type: string }
+              claimLocalId: { type: string }
+              reviewSlug: { type: string }
+              reviewVersionId: { type: string }
+              citationId: { type: string }
+              citationLocalId: { type: string }
+              citationTitle: { type: string }
+              citationDoi: { type: string }
+              citationIsExample: { type: boolean }
+              relationType: { type: string }
+              trust:
+                type: object
+                additionalProperties: false
+                required: [reviewStatus, verificationState]
+                properties:
+                  reviewStatus: { type: string }
+                  verificationState: { type: string }
+                  aggregateScore: { type: number, minimum: 0, maximum: 1 }
+                  aggregateMethod: { type: string }
+              trustAssessments:
+                type: array
+                description: Complete, deterministically ordered assessment set with provenance.
+                items:
+                  type: object
+                  additionalProperties: false
+                  required:
+                    [assessmentId, protocolVersion, assessorType, reviewStatus, verificationState]
+                  properties:
+                    assessmentId: { type: string }
+                    protocolVersion: { type: string, minLength: 1, maxLength: 40 }
+                    assessorType: { type: string, minLength: 1, maxLength: 40 }
+                    assessorId: { type: string, minLength: 1, maxLength: 200 }
+                    assessedAt: { type: string, format: date-time }
+                    reviewStatus: { type: string }
+                    verificationState: { type: string }
+                    aggregateScore: { type: number, minimum: 0, maximum: 1 }
+                    aggregateMethod: { type: string }
     PublicGraphNode:
       type: object
       additionalProperties: false
@@ -368,21 +484,7 @@ components:
               isExample: { type: boolean }
         createdAt: { type: string, format: date-time }
     PublicGraphTrust:
-      type: object
-      additionalProperties: false
-      required: [protocolVersion, reviewStatus, verificationState]
-      properties:
-        protocolVersion: { type: string }
-        reviewStatus:
-          {
-            type: string,
-            enum: [unverified-import, agent-proposed, human-reviewed, adjudicated, superseded],
-          }
-        verificationState:
-          {
-            type: string,
-            enum: [platform-verified, unverified-import, stale-verification, legacy-unknown],
-          }
+      $ref: "#/components/schemas/PublicTrustAssessmentProvenance"
     PublicGraphEdge:
       oneOf:
         - type: object
@@ -425,6 +527,10 @@ components:
             assertedAt: { type: string, format: date-time }
             confirmedAt: { type: string, format: date-time }
             trust: { $ref: "#/components/schemas/PublicGraphTrust" }
+            trustAssessments:
+              type: array
+              description: Complete, deterministically ordered assessment set; never collapsed.
+              items: { $ref: "#/components/schemas/PublicGraphTrust" }
         - type: object
           additionalProperties: false
           description: >
@@ -584,6 +690,14 @@ components:
         decision: { type: string, enum: [confirm, reject, supersede] }
         expectedRevision: { type: integer, minimum: 0 }
         note: { type: string, minLength: 10, maxLength: 4000 }
+    NodeIdentityDecision:
+      type: object
+      additionalProperties: false
+      required: [decision, expectedRevision, note]
+      properties:
+        decision: { type: string, enum: [confirm, reject] }
+        expectedRevision: { type: integer, minimum: 0 }
+        note: { type: string, minLength: 10, maxLength: 2000 }
     ProtocolEvidence:
       type: object
       additionalProperties: false
@@ -828,6 +942,529 @@ components:
         parentId:
           type: string
           description: Id of the comment being replied to. Threads are one level deep.
+    PublicReviewTrustAssessment:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          assessmentId,
+          assessorType,
+          reviewStatus,
+          verificationState,
+          protocolVersion,
+          criteria,
+          limitations,
+          sourceAssertion,
+        ]
+      properties:
+        assessmentId: { type: string }
+        assessorType: { type: string }
+        assessorId: { type: string }
+        assessedAt: { type: string, format: date-time }
+        reviewStatus: { type: string }
+        verificationState:
+          type: string
+          enum: [platform-verified, unverified-import, stale-verification, legacy-unknown]
+        protocolVersion: { type: string }
+        criteria:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [criterion, rating, status]
+            properties:
+              criterion: { type: string }
+              rating: { type: string }
+              status: { type: string }
+              rationale: { type: string }
+        limitations: { type: array, items: { type: string } }
+        aggregateScore: { type: number, minimum: 0, maximum: 1 }
+        aggregateMethod: { type: string }
+        sourceAssertion:
+          type: object
+          additionalProperties: false
+          required: [aggregateScore]
+          properties:
+            reviewStatus: { type: string }
+            assessorType: { type: string }
+            assessorId: { type: string }
+            assessedAt: { type: string, format: date-time }
+            relationHumanReviewed: { type: boolean }
+            aggregateScore: { type: [number, "null"], minimum: 0, maximum: 1 }
+            aggregateMethod: { type: string }
+        platformVerification:
+          type: object
+          additionalProperties: false
+          required: [reviewerLogin, reviewerRoleSnapshot, rationale]
+          properties:
+            reviewerLogin: { type: string }
+            reviewerRoleSnapshot: { type: string }
+            rationale: { type: string }
+        supersedesAssessmentId: { type: string }
+    PublicReviewRelation:
+      type: object
+      additionalProperties: false
+      required:
+        [relationId, relationType, citationLocalId, citationIsExample, humanReviewed, trusts]
+      properties:
+        relationId: { type: string }
+        relationType: { type: string }
+        citationLocalId: { type: string }
+        citationTitle: { type: string }
+        citationDoi: { type: string }
+        citationIsExample: { type: boolean }
+        humanReviewed: { type: boolean }
+        trust:
+          $ref: "#/components/schemas/PublicReviewTrustAssessment"
+          description: Legacy singleton projection; absent when multiple assessments exist.
+        trusts:
+          type: array
+          description: Complete, deterministically ordered assessment set with full provenance.
+          items: { $ref: "#/components/schemas/PublicReviewTrustAssessment" }
+    PublicReviewClaim:
+      type: object
+      additionalProperties: false
+      required: [subjectId, claimId, localClaimId, text, anchor, relations]
+      properties:
+        subjectId: { type: string }
+        claimId: { type: string }
+        localClaimId: { type: string }
+        text: { type: string }
+        section: { type: string }
+        anchor: { type: string }
+        sourceAnchor: { type: string }
+        claimType: { type: string }
+        qualification: { type: string }
+        relations: { type: array, items: { $ref: "#/components/schemas/PublicReviewRelation" } }
+    PublicReviewDetail:
+      type: object
+      additionalProperties: false
+      description: Review detail; D01 relation assessment sets are represented by claims[].relations[].trusts.
+      required:
+        [
+          slug,
+          title,
+          status,
+          publicState,
+          isTombstoned,
+          lifecycleRevision,
+          lifecycleEvents,
+          updatedAt,
+          keywords,
+          domains,
+          contributors,
+          repository,
+          snapshot,
+          version,
+          identifiers,
+          versions,
+          claims,
+          citations,
+          limitations,
+          identifierConflicts,
+        ]
+      properties:
+        slug: { type: string }
+        title: { type: string }
+        abstract: { type: string }
+        reviewType: { type: string }
+        licenseSpdx: { type: string }
+        publishedReviewUrl: { type: string }
+        status: { type: string }
+        publicState: { type: string, enum: [published, withdrawn, tombstoned] }
+        isTombstoned: { type: boolean }
+        lifecycleRevision: { type: integer, minimum: 0 }
+        lifecycleEvents:
+          type: array
+          items: { $ref: "#/components/schemas/PublicReviewLifecycleEvent" }
+        acceptedAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        keywords: { type: array, items: { type: string } }
+        domains: { type: array, items: { type: string } }
+        compatibilityLevel: { type: string }
+        compatibilityReport: {}
+        contributors:
+          type: array
+          items: { $ref: "#/components/schemas/PublicReviewContributor" }
+        repository: { $ref: "#/components/schemas/PublicReviewRepository" }
+        snapshot: { $ref: "#/components/schemas/PublicReviewSnapshot" }
+        version: { $ref: "#/components/schemas/PublicReviewVersion" }
+        identifiers:
+          type: array
+          items: { $ref: "#/components/schemas/PublicReviewIdentifier" }
+        versions:
+          type: array
+          items: { $ref: "#/components/schemas/PublicReviewVersionSummary" }
+        claims: { type: array, items: { $ref: "#/components/schemas/PublicReviewClaim" } }
+        citations:
+          type: array
+          items: { $ref: "#/components/schemas/PublicReviewCitation" }
+        limitations: { type: array, items: { type: string } }
+        identifierConflicts:
+          type: array
+          items: { $ref: "#/components/schemas/PublicWorkIdentityAssertion" }
+    PublicReviewLifecycleEvent:
+      type: object
+      additionalProperties: false
+      required: [id, kind, reviewVersionId, reason, actorLogin, revision, createdAt]
+      properties:
+        id: { type: string }
+        kind: { type: string, enum: [correction, withdrawal, tombstone] }
+        reviewVersionId: { type: string }
+        supersedesVersionId: { type: string }
+        reason: { type: string }
+        actorLogin: { type: string }
+        revision: { type: integer, minimum: 0 }
+        createdAt: { type: string, format: date-time }
+    PublicReviewContributor:
+      type: object
+      additionalProperties: false
+      required: [displayName, roles, isExampleOrcid]
+      properties:
+        displayName: { type: string }
+        orcid: { type: string }
+        githubLogin: { type: string }
+        roles: { type: array, items: { type: string } }
+        isExampleOrcid: { type: boolean }
+    PublicReviewRepository:
+      type: object
+      additionalProperties: false
+      required: [canonicalUrl, owner, name]
+      properties:
+        canonicalUrl: { type: string }
+        owner: { type: string }
+        name: { type: string }
+        defaultBranch: { type: string }
+        pagesUrl: { type: string }
+    PublicReviewSnapshot:
+      type: object
+      additionalProperties: false
+      required: [commitSha]
+      properties:
+        commitSha: { type: string }
+        treeSha: { type: string }
+    PublicDoiCheck:
+      type: object
+      additionalProperties: false
+      required: [id, description, outcome]
+      properties:
+        id: { type: string }
+        description: { type: string }
+        outcome: { type: string, enum: [pass, warn, fail, skipped] }
+        details: { type: string }
+    PublicPublicationConsistencyReport:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          schemaVersion,
+          status,
+          selectedSourceKind,
+          selectedCommitSha,
+          selectedTreeSha,
+          checks,
+          errors,
+          warnings,
+          overridableCheckIds,
+          requiresEditorOverride,
+        ]
+      properties:
+        schemaVersion: { const: 1.0.0 }
+        status: { type: string, enum: [pass, warn, fail, not-applicable] }
+        selectedSourceKind: { type: string, enum: [default-branch, tag, release] }
+        selectedCommitSha: { type: string }
+        selectedTreeSha: { type: string }
+        selectedReleaseTag: { type: string }
+        checks: { type: array, items: { $ref: "#/components/schemas/PublicDoiCheck" } }
+        errors: { type: array, items: { type: string } }
+        warnings: { type: array, items: { type: string } }
+        overridableCheckIds: { type: array, items: { type: string } }
+        requiresEditorOverride: { type: boolean }
+    PublicReviewEditorialOverride:
+      type: object
+      additionalProperties: false
+      required: [checkId, rationale, editorLogin, createdAt]
+      properties:
+        checkId: { type: string }
+        rationale: { type: string }
+        editorLogin: { type: string }
+        createdAt: { type: string, format: date-time }
+    PublicReviewVersion:
+      type: object
+      additionalProperties: false
+      required: [id, isExample, editorialOverrides]
+      properties:
+        id: { type: string }
+        sourceKind: { type: string }
+        sourceBranch: { type: string }
+        releaseTag: { type: string }
+        releaseUrl: { type: string }
+        tagObjectSha: { type: string }
+        semanticVersion: { type: string }
+        versionDoi: { type: string }
+        conceptDoi: { type: string }
+        zenodoRecordId: { type: string }
+        isExample: { type: boolean }
+        capturePayloadHash: { type: string }
+        publicationConsistency: { $ref: "#/components/schemas/PublicPublicationConsistencyReport" }
+        editorialOverrides:
+          type: array
+          items: { $ref: "#/components/schemas/PublicReviewEditorialOverride" }
+    PublicReviewIdentifier:
+      type: object
+      additionalProperties: false
+      required: [scheme, value, relationType, validationStatus, isExample]
+      properties:
+        scheme: { type: string }
+        value: { type: string }
+        relationType: { type: string }
+        url: { type: string }
+        validationStatus: { type: string }
+        isExample: { type: boolean }
+    PublicReviewVersionSummary:
+      type: object
+      additionalProperties: false
+      required: [id, isExample, isCurrent, publicState]
+      properties:
+        id: { type: string }
+        semanticVersion: { type: string }
+        versionDoi: { type: string }
+        releaseTag: { type: string }
+        publishedAt: { type: string, format: date-time }
+        isExample: { type: boolean }
+        isCurrent: { type: boolean }
+        publicState: { type: string, enum: [published, withdrawn, tombstoned] }
+    PublicReviewCitation:
+      type: object
+      additionalProperties: false
+      required: [localCitationId, citationId, workId, canonicalWorkAliases, isExample]
+      properties:
+        localCitationId: { type: string }
+        citationId: { type: string }
+        title: { type: string }
+        doi: { type: string }
+        pmid: { type: string }
+        openAlexId: { type: string }
+        workId: { type: string }
+        canonicalWorkAliases: { type: array, items: { type: string } }
+        year: { type: integer }
+        source: { type: string }
+        isExample: { type: boolean }
+    PublicWorkIdentityAssertion:
+      type: object
+      additionalProperties: false
+      required: [citationIds, scheme, values, message]
+      properties:
+        citationIds: { type: array, items: { type: string } }
+        scheme: { type: string, enum: [doi, pmid, openalex] }
+        values: { type: array, items: { type: string } }
+        message: { type: string }
+    ChallengeSubject:
+      oneOf:
+        - type: object
+          additionalProperties: false
+          required: [type, claimId]
+          properties:
+            type: { const: claim }
+            claimId: { type: string, minLength: 1, maxLength: 200 }
+        - type: object
+          additionalProperties: false
+          required: [type, relationId]
+          properties:
+            type: { const: relation }
+            relationId: { type: string, minLength: 1, maxLength: 200 }
+        - type: object
+          additionalProperties: false
+          required: [type, assessmentId, criterion]
+          properties:
+            type: { const: assessment-criterion }
+            assessmentId: { type: string, minLength: 1, maxLength: 200 }
+            criterion:
+              type: string
+              enum:
+                [
+                  identityIntegrity,
+                  entailment,
+                  sourceAccess,
+                  populationRelevance,
+                  interventionExposureRelevance,
+                  outcomeRelevance,
+                  methodologicalSafeguards,
+                  statisticalSafeguards,
+                  replicationConvergence,
+                  conflictDependency,
+                ]
+    ChallengeCreateRequest:
+      type: object
+      additionalProperties: false
+      required: [reviewVersionId, subject, canonicalSubjectHash, grounds, body]
+      properties:
+        reviewVersionId: { type: string, minLength: 1, maxLength: 200 }
+        subject: { $ref: "#/components/schemas/ChallengeSubject" }
+        canonicalSubjectHash:
+          type: string
+          pattern: "^[a-f0-9]{64}$"
+          description: Exact server-published subject digest; mismatch fails closed.
+        grounds: { type: string, enum: [entailment, source-access, methodology, identity, other] }
+        body:
+          type: string
+          minLength: 1
+          maxLength: 10000
+          description: Plain text, always rendered escaped.
+    ChallengeTransitionRequest:
+      type: object
+      additionalProperties: false
+      required: [expectedRevision, toStatus]
+      properties:
+        expectedRevision: { type: integer, minimum: 0 }
+        toStatus: { type: string, enum: [resolved, dismissed, withdrawn] }
+        rationale: { type: string, minLength: 1, maxLength: 5000 }
+    ChallengeResponseCreateRequest:
+      type: object
+      additionalProperties: false
+      required: [expectedRevision, body]
+      properties:
+        expectedRevision: { type: integer, minimum: 0 }
+        body:
+          {
+            type: string,
+            minLength: 1,
+            maxLength: 10000,
+            description: Plain text; rendered escaped.,
+          }
+    ChallengeModerationRequest:
+      type: object
+      additionalProperties: false
+      required: [expectedContentRevision]
+      properties:
+        expectedContentRevision: { type: integer, minimum: 0 }
+    PublicChallengeActor:
+      type: object
+      additionalProperties: false
+      required: [githubLogin]
+      properties:
+        githubLogin: { type: string }
+        displayName: { type: [string, "null"] }
+    PublicChallengeIdentity:
+      type: object
+      additionalProperties: false
+      required: [githubLogin, displayName]
+      properties:
+        githubLogin: { type: string }
+        displayName: { type: [string, "null"] }
+    PublicChallengeTransition:
+      type: object
+      additionalProperties: false
+      required: [id, fromStatus, toStatus, actor, revision, createdAt]
+      properties:
+        id: { type: string }
+        fromStatus:
+          type: [string, "null"]
+          enum: [open, author-responded, resolved, dismissed, withdrawn, null]
+        toStatus: { type: string, enum: [open, author-responded, resolved, dismissed, withdrawn] }
+        actor: { $ref: "#/components/schemas/PublicChallengeActor" }
+        revision: { type: integer, minimum: 0 }
+        createdAt: { type: string, format: date-time }
+    PublicChallengeResponse:
+      type: object
+      additionalProperties: false
+      required: [id, body, contentHash, contentStatus, contentRevision, responder, createdAt]
+      properties:
+        id: { type: string }
+        body: { type: string, description: Empty when contentStatus is removed. }
+        contentHash: { type: string, pattern: "^[a-f0-9]{64}$" }
+        contentStatus: { type: string, enum: [visible, removed] }
+        contentRevision: { type: integer, minimum: 0 }
+        responder: { $ref: "#/components/schemas/PublicChallengeIdentity" }
+        createdAt: { type: string, format: date-time }
+      allOf:
+        - if: { properties: { contentStatus: { const: removed } }, required: [contentStatus] }
+          then: { properties: { body: { const: "" } }, required: [body] }
+    PublicChallenge:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          id,
+          reviewVersionId,
+          subjectType,
+          subjectLabel,
+          subjectHref,
+          canonicalSubjectHash,
+          filedContentHash,
+          grounds,
+          body,
+          contentStatus,
+          contentRevision,
+          status,
+          revision,
+          challenger,
+          transitions,
+          response,
+          createdAt,
+        ]
+      properties:
+        id: { type: string }
+        reviewVersionId: { type: string }
+        subjectType: { type: string, enum: [claim, relation, assessment-criterion] }
+        subjectLabel: { type: string }
+        subjectHref: { type: string }
+        canonicalSubjectHash: { type: string, pattern: "^[a-f0-9]{64}$" }
+        filedContentHash: { type: string, pattern: "^[a-f0-9]{64}$" }
+        grounds: { type: string, enum: [entailment, source-access, methodology, identity, other] }
+        body: { type: string }
+        contentStatus: { type: string, enum: [visible, removed] }
+        contentRevision: { type: integer, minimum: 0 }
+        status: { type: string, enum: [open, author-responded, resolved, dismissed, withdrawn] }
+        revision: { type: integer, minimum: 0 }
+        challenger: { $ref: "#/components/schemas/PublicChallengeIdentity" }
+        transitions:
+          type: array
+          items: { $ref: "#/components/schemas/PublicChallengeTransition" }
+        response:
+          oneOf:
+            - type: "null"
+            - { $ref: "#/components/schemas/PublicChallengeResponse" }
+        createdAt: { type: string, format: date-time }
+      allOf:
+        - if: { properties: { contentStatus: { const: removed } }, required: [contentStatus] }
+          then: { properties: { body: { const: "" } }, required: [body] }
+    ChallengeList:
+      type: object
+      additionalProperties: false
+      required: [reviewSlug, reviewVersionId, challenges]
+      properties:
+        reviewSlug: { type: string }
+        reviewVersionId: { type: string }
+        challenges: { type: array, items: { $ref: "#/components/schemas/PublicChallenge" } }
+    ChallengeCreateResponse:
+      type: object
+      additionalProperties: false
+      required: [id]
+      properties:
+        id: { type: string }
+    ChallengeTransitionResponse:
+      type: object
+      additionalProperties: false
+      required: [revision, status]
+      properties:
+        revision: { type: integer, minimum: 1 }
+        status: { type: string, enum: [resolved, dismissed, withdrawn] }
+    ChallengeResponseCreateResponse:
+      type: object
+      additionalProperties: false
+      required: [id, revision, status]
+      properties:
+        id: { type: string }
+        revision: { type: integer, minimum: 1 }
+        status: { const: author-responded }
+    ChallengeModerationResponse:
+      type: object
+      additionalProperties: false
+      required: [contentRevision, contentStatus]
+      properties:
+        contentRevision: { type: integer, minimum: 1 }
+        contentStatus: { const: removed }
     ReplicationClaimRef:
       type: object
       additionalProperties: false
@@ -1943,7 +2580,11 @@ paths:
       parameters:
         - { name: slug, in: path, required: true, schema: { type: string } }
       responses:
-        "200": { description: Review detail }
+        "200":
+          description: Review detail with complete relation-scoped assessment sets
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PublicReviewDetail" }
         "404": { $ref: "#/components/responses/Error" }
   /api/claims:
     get:
@@ -1961,7 +2602,11 @@ paths:
         - { name: slug, in: path, required: true, schema: { type: string } }
         - { name: versionId, in: path, required: true, schema: { type: string } }
       responses:
-        "200": { description: Version-scoped review detail }
+        "200":
+          description: Version-scoped review detail with complete relation-scoped assessment sets
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PublicReviewDetail" }
         "404": { $ref: "#/components/responses/Error" }
   /api/reviews/{slug}/diff:
     get:
@@ -1984,6 +2629,142 @@ paths:
       responses:
         "200": { description: Version-scoped threaded comment list }
         "404": { $ref: "#/components/responses/Error" }
+  /api/reviews/{slug}/versions/{versionId}/challenges:
+    get:
+      summary: List integrity-valid formal challenges bound to one immutable review version
+      parameters:
+        - { name: slug, in: path, required: true, schema: { type: string } }
+        - { name: versionId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Formal challenge register; stale/tampered subject bindings fail closed and are omitted
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ChallengeList" }
+        "404": { $ref: "#/components/responses/Error" }
+    post:
+      summary: File an attributed formal challenge against an exact canonical subject
+      description: Requires authentication, exact same-origin JSON, bounded body, and rate-limit budget. At most ten open or author-responded challenges may target one canonical subject, and one challenger may have only one such active challenge per subject. Does not mutate the target.
+      security: [{ session: [] }]
+      parameters:
+        - { name: slug, in: path, required: true, schema: { type: string } }
+        - { name: versionId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ChallengeCreateRequest" }
+      responses:
+        "201":
+          description: Challenge and initial append-only lifecycle event created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ChallengeCreateResponse" }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "413": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/Error" }
+  /api/challenges/{id}/transitions:
+    post:
+      summary: Append an authorized formal-challenge lifecycle transition
+      description: Challengers withdraw; the interim swappable policy grants resolution/dismissal to editors. A bare author-responded transition is rejected because response creation owns that atomic transition. Resolution rationale is editorial-only. Scientific-truth verdicts are not represented.
+      security: [{ session: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ChallengeTransitionRequest" }
+      responses:
+        "200":
+          description: Transition appended and current challenge revision advanced
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ChallengeTransitionResponse" }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "413": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/Error" }
+  /api/challenges/{id}/responses:
+    post:
+      summary: Create the one immutable contributor-of-record response and atomically advance the challenge
+      security: [{ session: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ChallengeResponseCreateRequest" }
+      responses:
+        "200":
+          description: Response and open-to-author-responded transition recorded atomically
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ChallengeResponseCreateResponse" }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "413": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/Error" }
+  /api/challenges/{id}/moderation:
+    post:
+      summary: Replace public challenge text with a retained audited tombstone
+      description: The original bytes, remover identity, and role snapshot are retained privately and never returned by the public challenge DTO. No rationale is accepted pending governance decision §9.
+      security: [{ session: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ChallengeModerationRequest" }
+      responses:
+        "200":
+          description: Challenge body tombstoned atomically with its audit event
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ChallengeModerationResponse" }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "413": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/Error" }
+  /api/challenge-responses/{id}/moderation:
+    post:
+      summary: Replace public challenge-response text with a retained audited tombstone
+      security: [{ session: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ChallengeModerationRequest" }
+      responses:
+        "200":
+          description: Response body tombstoned atomically with its audit event
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ChallengeModerationResponse" }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "413": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/Error" }
   /api/discuss:
     post:
       summary: Grounded cross-review discussion (deterministic or LLM mode)
@@ -2019,6 +2800,7 @@ paths:
         "400": { $ref: "#/components/responses/Error" }
         "401": { $ref: "#/components/responses/Error" }
         "404": { $ref: "#/components/responses/Error" }
+        "413": { $ref: "#/components/responses/Error" }
         "429": { $ref: "#/components/responses/Error" }
   /api/comments/{id}:
     delete:
@@ -2299,6 +3081,28 @@ paths:
         content:
           application/json:
             schema: { $ref: "#/components/schemas/NodeEdgeDecision" }
+      responses:
+        "200": { description: CAS decision result; exact retries are idempotent }
+        "400": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "413": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/Error" }
+  /api/editorial/node-identity-proposals/{id}/decision:
+    post:
+      summary: Confirm or reject one deterministic same-claim proposal
+      description: >
+        Requires a current editor/admin and optimistic revision. Confirmation publishes only an
+        “also asserted in” identity; it never merges nodes or combines protocol-scoped TRUST data.
+      security: [{ session: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/NodeIdentityDecision" }
       responses:
         "200": { description: CAS decision result; exact retries are idempotent }
         "400": { $ref: "#/components/responses/Error" }

@@ -34,6 +34,8 @@ import {
   projectPublicNodeRelationTrustAssessments,
 } from "./trust-provenance";
 import { trustCriterionProfileFromJson } from "./trust-profile";
+import { isReadablePublicState } from "./review-lifecycle";
+import { readablePublicNodeVersionWhere } from "./public-snapshot-visibility";
 
 const storedNodeProvenanceSchema = z.union([
   knowledgeNodeProvenanceSchema,
@@ -249,10 +251,14 @@ export async function getExactPublicNodeVersions(
   if (requestedByNode.size !== requested.length) return new Map();
 
   const rows = await client.knowledgeNode.findMany({
-    where: { id: { in: [...requestedByNode.keys()] } },
+    where: {
+      id: { in: [...requestedByNode.keys()] },
+      versions: { some: readablePublicNodeVersionWhere },
+    },
     include: {
       repository: { select: { owner: true, name: true, canonicalUrl: true } },
       versions: {
+        where: readablePublicNodeVersionWhere,
         include: versionInclude,
         orderBy: [{ createdAt: "desc" }, { id: "desc" }],
         take: 1,
@@ -290,6 +296,7 @@ export async function getExactPublicNodeVersions(
             OR: historical.map((item) => ({
               id: item.nodeVersionId,
               knowledgeNodeId: item.nodeId,
+              ...readablePublicNodeVersionWhere,
             })),
           },
           include: versionInclude,
@@ -373,12 +380,13 @@ export async function scanPublicNodeSummaries(
     const isFinalBoundedPage = pageSize === remaining;
     const page = await client.knowledgeNode.findMany({
       where: {
-        versions: { some: {} },
+        versions: { some: readablePublicNodeVersionWhere },
         ...(kind ? { kind } : {}),
       },
       include: {
         repository: { select: { owner: true, name: true, canonicalUrl: true } },
         versions: {
+          where: readablePublicNodeVersionWhere,
           include: versionInclude,
           orderBy: [{ createdAt: "desc" }, { id: "desc" }],
           take: 1,
@@ -424,10 +432,14 @@ export async function getPublicNode(
   selectedVersionId?: string,
 ): Promise<PublicNodeDetail | null> {
   const node = await prisma.knowledgeNode.findUnique({
-    where: { id },
+    where: {
+      id,
+      versions: { some: readablePublicNodeVersionWhere },
+    },
     include: {
       repository: { select: { owner: true, name: true, canonicalUrl: true } },
       versions: {
+        where: readablePublicNodeVersionWhere,
         include: versionInclude,
         orderBy: [{ createdAt: "desc" }, { id: "desc" }],
         take: PUBLIC_NODE_VERSION_LIMIT,
@@ -449,7 +461,11 @@ export async function getPublicNode(
   if (!selectedStored && selectedVersionId) {
     selectedStored =
       (await prisma.knowledgeNodeVersion.findFirst({
-        where: { id: selectedVersionId, knowledgeNodeId: node.id },
+        where: {
+          id: selectedVersionId,
+          knowledgeNodeId: node.id,
+          ...readablePublicNodeVersionWhere,
+        },
         include: versionInclude,
       })) ?? undefined;
   }
@@ -462,9 +478,14 @@ export async function getPublicNode(
     ? node.versions
     : [...node.versions, selectedStored];
 
-  const [outgoingRows, incomingRows, trustRelations] = await Promise.all([
+  const [outgoingRows, incomingRows, trustRelations, identityRows] = await Promise.all([
     prisma.nodeEdge.findMany({
-      where: { ...publicConfirmedNodeEdgeWhere, sourceNodeVersionId: selectedStored.id },
+      where: {
+        ...publicConfirmedNodeEdgeWhere,
+        sourceNodeVersionId: selectedStored.id,
+        sourceNodeVersion: readablePublicNodeVersionWhere,
+        confirmedTargetNodeVersion: readablePublicNodeVersionWhere,
+      },
       include: {
         confirmedTargetNodeVersion: {
           include: {
@@ -483,6 +504,8 @@ export async function getPublicNode(
     prisma.nodeEdge.findMany({
       where: {
         ...publicConfirmedNodeEdgeWhere,
+        sourceNodeVersion: readablePublicNodeVersionWhere,
+        confirmedTargetNodeVersion: readablePublicNodeVersionWhere,
         targetNodeId: node.id,
         confirmedTargetNodeVersionId: selectedStored.id,
         relationType: "contradicts",
@@ -507,7 +530,11 @@ export async function getPublicNode(
       where: {
         claim: {
           knowledgeNodeId: node.id,
-          reviewVersion: { snapshotId: selectedStored.snapshotId },
+          reviewVersion: {
+            snapshotId: selectedStored.snapshotId,
+            publicState: { in: ["published", "withdrawn"] },
+            review: { status: "published" },
+          },
         },
       },
       include: {
@@ -520,6 +547,41 @@ export async function getPublicNode(
       },
       orderBy: { id: "asc" },
       take: PUBLIC_NODE_TRUST_RELATION_LIMIT,
+    }),
+    prisma.nodeIdentityProposal.findMany({
+      where: {
+        kind: "same-claim",
+        status: "confirmed",
+        reviewedAt: { not: null },
+        reviewedBy: { is: { role: { in: ["EDITOR", "ADMIN"] } } },
+        OR: [{ sourceNodeId: node.id }, { targetNodeId: node.id }],
+      },
+      include: {
+        sourceNode: {
+          include: {
+            repository: { select: { owner: true, name: true, canonicalUrl: true } },
+            versions: {
+              include: versionInclude,
+              orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+              take: 1,
+            },
+            linkedClaims: { include: { reviewVersion: { include: { review: true } } } },
+          },
+        },
+        targetNode: {
+          include: {
+            repository: { select: { owner: true, name: true, canonicalUrl: true } },
+            versions: {
+              include: versionInclude,
+              orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+              take: 1,
+            },
+            linkedClaims: { include: { reviewVersion: { include: { review: true } } } },
+          },
+        },
+      },
+      orderBy: { id: "asc" },
+      take: PUBLIC_NODE_EDGE_LIMIT,
     }),
   ]);
 
@@ -719,6 +781,45 @@ export async function getPublicNode(
     ];
   });
 
+  const sameClaims = identityRows.flatMap((proposal) => {
+    const other = proposal.sourceNodeId === node.id ? proposal.targetNode : proposal.sourceNode;
+    const storedVersion = other.versions[0];
+    if (!storedVersion || other.kind !== "claim") return [];
+    const publicVersion = tryMapVersion("claim", storedVersion);
+    if (!publicVersion) return [];
+    const reviewAssertions = other.linkedClaims
+      .filter(
+        (claim) =>
+          claim.reviewVersion.review.status === "published" &&
+          isReadablePublicState(claim.reviewVersion.publicState),
+      )
+      .map((claim) => ({
+        reviewSlug: claim.reviewVersion.review.slug,
+        reviewTitle: claim.reviewVersion.title,
+        versionId: claim.reviewVersion.id,
+        localClaimId: claim.localClaimId,
+      }))
+      .sort(
+        (left, right) =>
+          compareCanonical(left.reviewTitle, right.reviewTitle) ||
+          compareCanonical(left.versionId, right.versionId),
+      );
+    return [
+      {
+        proposalId: proposal.id,
+        nodeId: other.id,
+        localNodeId: other.localNodeId,
+        title: publicVersion.title,
+        repository: {
+          owner: other.repository.owner,
+          name: other.repository.name,
+          url: other.repository.canonicalUrl,
+        },
+        reviewAssertions,
+      },
+    ];
+  });
+
   return publicNodeDetailSchema.parse({
     schemaVersion: "1.0.0",
     id: node.id,
@@ -737,6 +838,7 @@ export async function getPublicNode(
         compareCanonical(left.relationType, right.relationType) ||
         compareCanonical(left.id, right.id),
     ),
+    sameClaims,
     trustContext,
   });
 }

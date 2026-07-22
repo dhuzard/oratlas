@@ -59,10 +59,10 @@ test("two aggregate-free TRUST assessments render complete independent profiles"
         "Waking place-cell sequences are not faithfully reactivated during human sleep replay.",
     });
     const assessmentList = claim.locator("details");
-    await expect(assessmentList.locator("summary")).toHaveText("TRUST assessments (2)");
+    await expect(assessmentList.locator("summary")).toHaveText("Formal TRUST assessments (2)");
     await assessmentList.locator("summary").click();
 
-    const assessments = assessmentList.locator('section[aria-label^="TRUST assessment "]');
+    const assessments = assessmentList.locator('section[aria-label^="Formal TRUST assessment "]');
     await expect(assessments).toHaveCount(2);
     for (const assessment of await assessments.all()) {
       const profile = assessment.getByRole("table", { name: "TRUST criteria" });
@@ -74,7 +74,7 @@ test("two aggregate-free TRUST assessments render complete independent profiles"
     }
 
     const independent = assessmentList.getByRole("region", {
-      name: `TRUST assessment ${secondAssessmentId}`,
+      name: `Formal TRUST assessment ${secondAssessmentId}`,
     });
     await expect(independent).toContainText("independent-profile-reviewer");
     await expect(independent).toContainText("trust-independent-2.0");

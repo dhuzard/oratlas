@@ -753,3 +753,72 @@ rewriting the historical implementation record.
 - Projected every assessment (with assessor and protocol) through review, node, graph, search,
   discussion, and synthesis surfaces while retaining explicit singleton compatibility for older
   serialized packets.
+
+## 2026-07-21 — ORA-E01 immutable formal challenges
+
+- Added typed formal challenges for exact version-scoped claims, claim–evidence relations, and
+  individual TRUST assessment criteria. The server derives canonical subject JSON and SHA-256;
+  filing, transitions, and public reads fail closed on any mismatch.
+- Added authenticated, same-origin, bounded and rate-limited filing/transition routes with a strict
+  append-only lifecycle ledger, optimistic revisions, actor/role snapshots, and audit events.
+- Kept the provisional editors-resolve policy behind one swappable authority function; contributor
+  response and challenger withdrawal authority remain separately checked.
+- Added a visually distinct public formal-challenge register and escaped filing form without
+  changing claims, relations, assessments, TRUST values, compatibility, or review lifecycle.
+- Hardened exact subjects to bind full same-version claim/citation relation semantics and canonical
+  TRUST assessment provenance, and limited criterion options to persisted contract-valid values.
+  Reads and writes now validate the full ledger projection plus a filed-content hash carried by the
+  filing transition and audit trail.
+
+## 2026-07-22 — ORA-J03 public-write abuse controls
+
+- Capped each exact canonical subject at ten active formal challenges, counting both `open` and
+  `author-responded` exchanges and releasing capacity only at a terminal lifecycle transition.
+- Added a SQLite/PostgreSQL-portable nullable unique active challenger/subject digest so concurrent
+  duplicate filings produce one winner and a typed conflict instead of duplicate records.
+- Re-evaluate caps after bounded serialization retries; duplicate and cap rejections happen before
+  the append-only filing ledger and audit event, so rejected abuse traffic does not create audit
+  noise. Existing comment body and ten-per-minute limits remain regression-covered.
+- Added transactional lazy adoption for active challenges created before the unique key existed.
+  Deterministic oldest-first ownership preserves and permits transitions on every pre-existing
+  duplicate rather than hiding legacy records as corrupt.
+
+## 2026-07-22 — ORA-E02 challenge exchange and moderation
+
+- Added one immutable, digest-bound `ChallengeResponse` per challenge with responder and matched
+  contributor-of-record snapshots. Creation atomically advances `open → author-responded`, appends
+  the lifecycle event with the exact response hash, and writes response and transition audits under
+  compare-and-set protection. Reads and writes fail closed if the response, transition hash,
+  responder, role snapshot, or revision no longer agree.
+- Added challenge and response moderation that retains original bytes, publishes empty-body
+  tombstones, hides remover identity, and commits its audit atomically. Moderation rationale remains
+  out of scope pending governance decision §9.
+- Kept terminal transitions as the resolution record while making rationale and internal role
+  snapshots editorial-only in public DTOs. The interim editor/admin outcome authority remains one
+  swappable function; challengers retain withdrawal authority.
+- Added a bounded deterministic editorial queue whose database projection is limited before any
+  relationship loading, with immutable review-version links, public and
+  editorial controls, OpenAPI contracts, and SQLite/PostgreSQL/service/e2e coverage for the complete
+  file → respond → moderate → tombstone → resolve exchange.
+
+## ORA-J01 — Security and immutable-publication audit
+
+**Objective:** re-verify the platform's authorization, immutability, untrusted-input, network, audit,
+and tombstone boundaries and pin every verified property with code evidence or regression tests.
+
+- Published the evidence checklist in `docs/security-audit-2026-07.md` and refreshed `SECURITY.md`
+  to state the exact browser-mutation, server-to-server, and streamed response-limit boundaries.
+- Added bounded streaming reads and exact trusted-service origin validation to GitHub and Zenodo
+  transports; redirects fail closed and oversized declared or streamed responses are cancelled
+  before full buffering.
+- Applied the canonical same-origin JSON guard to comment creation/removal and made removal plus its
+  audit record one transaction with a visible-status compare-and-set.
+- Closed the tombstone projection gap for repository-derived nodes and graph data: a version is
+  public only while a published, non-tombstoned review authorizes its snapshot or its own accepted
+  node-only submission provides independent publication authority.
+- Added focused regression coverage for transport caps/origins/redirects, comment mutation
+  integrity and races, and node/graph tombstone behavior.
+- Re-ran the audit after the formal challenge exchange landed: pinned all five challenge mutation
+  routes to the shared same-origin, authentication, route-scoped rate, and body-size boundary, and
+  cross-referenced service regressions for current-role authorization, CAS races, atomic audits,
+  fail-closed ledger reads, and public tombstone/private-field redaction.

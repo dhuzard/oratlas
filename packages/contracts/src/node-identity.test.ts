@@ -3,6 +3,7 @@ import {
   canonicalizeNodeAlias,
   nodeAliasSchema,
   nodeIdentityCandidateSchema,
+  nodeIdentityDecisionSchema,
 } from "./node-identity.js";
 
 describe("node identity contracts", () => {
@@ -79,6 +80,23 @@ describe("node identity contracts", () => {
         localNodeId: "dataset-1",
         kind: "dataset",
         claim: { statement: "Not a claim payload", qualifiers: [] },
+      }).success,
+    ).toBe(false);
+  });
+
+  it("requires an attributable bounded editorial identity decision", () => {
+    expect(
+      nodeIdentityDecisionSchema.parse({
+        decision: "confirm",
+        expectedRevision: 0,
+        note: "Editor compared the scientific scope.",
+      }),
+    ).toMatchObject({ decision: "confirm", expectedRevision: 0 });
+    expect(
+      nodeIdentityDecisionSchema.safeParse({
+        decision: "merge",
+        expectedRevision: 0,
+        note: "Merge nodes automatically.",
       }).success,
     ).toBe(false);
   });

@@ -39,6 +39,8 @@ suffix, and arrays are JSON-encoded strings. Switching to PostgreSQL is a dataso
 | `ExecutionPassportArtifact`              | Exact run input/output descriptor  | `(passportId, entityId)` unique; SHA-256 + byte size                              |
 | `DiscussionThread` / `DiscussionMessage` | Atlas Discuss history              | grounding + model metadata                                                        |
 | `ReviewComment`                          | Human peer commentary on a version | `reviewVersionId`, optional `claimId`, one-level `parentId`; soft `status`        |
+| `Challenge`                              | Formal objection to exact subject  | server-derived subject JSON + SHA-256; version, challenger, grounds, lifecycle    |
+| `ChallengeTransition`                    | Append-only challenge lifecycle    | `(challengeId, revision)` unique; actor and role snapshot                         |
 | `KnowledgeLinkProposal`                  | Cross-review link proposal         | `(source, target, relation)` unique; `status`                                     |
 | `AuditEvent`                             | Append-only audit trail            | operation key + `(subjectType, subjectId)` indexed                                |
 | `IdempotencyKey`                         | Retry-safe operation claim         | primary-key uniqueness; same decision transaction                                 |
@@ -98,6 +100,39 @@ suffix, and arrays are JSON-encoded strings. Switching to PostgreSQL is a dataso
   versions are never destroyed; `Review.currentSnapshotId` points at the latest.
 - Historical UI/API routes resolve the chosen version's own snapshot and evidence. Comments are
   version-scoped and read-only on historical routes; nullable version ids only support legacy rows.
+- Formal challenges bind to exactly one claim, claim–evidence relation, or assessment criterion
+  instance through explicit foreign keys plus canonical subject JSON and SHA-256. Relation
+  subjects include both exact same-version endpoints and their full semantic bytes; criterion
+  subjects embed the canonical TRUST subject, exact relation, assessment provenance, and one
+  persisted contract-valid criterion value. Filing and every transition resolve the target within
+  the named immutable review version. Public reads repeat that resolution and omit a record when
+  either canonical bytes or hash differ. Challenge
+  lifecycle writes never update the claim, relation, assessment, TRUST value, or compatibility.
+- `ChallengeTransition` is the authoritative append-only lifecycle ledger. Revision zero records
+  attributed filing (`null → open`); optimistic compare-and-set advances only legal edges
+  (`open → author-responded → resolved|dismissed|withdrawn`). Every read/write validates contiguous
+  revisions, legal edges, enum-valid actor snapshots, and agreement with the mutable projection.
+  The challenge and every ledger event also carry a canonical filed-content hash over the immutable
+  subject binding, challenger, grounds, and body. At most ten active (`open` or
+  `author-responded`) challenges may target one canonical subject. A nullable unique digest of
+  challenger plus subject hash prevents concurrent duplicate active filings on both SQLite and
+  PostgreSQL; terminal transitions clear it atomically so a later filing is possible. Terminal
+  states cannot transition. Pre-J03 active rows acquire the key lazily on list, filing, or
+  transition. If legacy data already contains duplicates, the oldest `(createdAt, id)` row owns
+  the key; all duplicates remain visible and transitionable, and ownership advances after terminal
+  closure.
+- `ChallengeResponse` is an immutable, one-per-challenge record created only by a contributor of
+  record. It snapshots the responding user role and the matched `Person` identity, GitHub login,
+  display name, and contributor roles, and binds those fields plus its bounded plain-text body to a
+  canonical SHA-256. Response creation and `open → author-responded` are one serializable,
+  compare-and-set transaction; the transition carries the exact response-content hash and its
+  actor/revision must agree with the response snapshot. Missing, deleted, or mismatched response
+  evidence fails closed. The bare transition is rejected.
+- Challenge and response moderation retain original bytes and content digests while advancing a
+  separate content revision to a public `removed` tombstone. Public DTOs return an empty body and
+  never expose remover identity, remover role, removed bytes, terminal rationale, or internal actor
+  roles. Moderation and its audit event commit atomically. Terminal `ChallengeTransition` rows
+  remain the authoritative resolution record; rationale is editorial-only pending governance §9.
 - `Submission.submittedPayloadJson` is the immutable snapshot of exactly what the submitter
   finalized, including the versioned node-extraction report. Editorial acceptance rechecks those
   candidates against the consumed capture. `acceptedNodeSelectionJson` stores the editor's sorted

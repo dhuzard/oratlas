@@ -241,9 +241,9 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-C01 — Cross-review same-claim proposals surfaced end-to-end
 
-- **Status:** backlog · **Priority:** P2 · **Size:** M · **Agent:** yes
+- **Status:** review (integration train 3) · **Priority:** P2 · **Size:** M · **Agent:** yes
 - **Packages:** `packages/knowledge`, `apps/web` · **External dep:** none · **Issue/PR:**
-  builds on KG-06 (PR #38)
+  integration PR #104; source PR #91; builds on KG-06 (PR #38)
 - **Goal:** Deterministic same-claim detection (alias + normalized-text hash) exists and emits
   proposals. Verify, and where missing complete, the loop: proposals visible in the editorial
   dashboard, confirmable/rejectable with audit, and confirmed identity visible on claim
@@ -364,11 +364,10 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-E01 — Challenge records targeting exact immutable subjects
 
-- **Status:** ready · **Priority:** P1 · **Size:** L · **Agent:** conditional (schema and API
-  are agent-suitable; the resolution-authority field defaults to editors pending
-  `ORATLAS_DECISIONS.md` §5 — build with editors-resolve and keep it swappable)
+- **Status:** review (integration train 3) · **Priority:** P1 · **Size:** L · **Agent:** yes
+  (authority and public/private boundaries ratified in `ORATLAS_DECISIONS.md` §§5, 6, and 9)
 - **Packages:** `packages/contracts`, `packages/db`, `apps/web` · **External dep:** none ·
-  **Issue/PR:** none
+  **Issue/PR:** integration PR #104; source PR #98
 - **Goal:** Today's `ReviewComment` (typed, claim-anchored, one-level replies,
   visible/removed) is discussion, not challenge. Add a formal **Challenge**: a structured,
   attributed objection targeting an exact immutable subject — a claim (version-scoped), a
@@ -392,10 +391,10 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-E02 — Author responses, moderation, and resolution workflow for challenges
 
-- **Status:** backlog · **Priority:** P1 · **Size:** M · **Agent:** conditional (same
-  authority default as ORA-E01)
+- **Status:** review (integration train 3) · **Priority:** P1 · **Size:** M · **Agent:** yes
+  (authority and public/private boundaries ratified in `ORATLAS_DECISIONS.md` §§5, 6, and 9)
 - **Packages:** `apps/web`, `packages/contracts`, `packages/db` · **External dep:** none ·
-  **Issue/PR:** none
+  **Issue/PR:** integration PR #104; source PR #100
 - **Goal:** Complete the challenge exchange: attributed author/contributor responses, editor
   moderation (remove with retained tombstone + audit, consistent with comment semantics), and
   resolution records with rationale.
@@ -410,8 +409,9 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-E03 — Keep discussion visibly separate from formal assessment
 
-- **Status:** backlog · **Priority:** P1 · **Size:** S · **Agent:** yes
-- **Packages:** `apps/web`, `packages/ui` · **External dep:** none · **Issue/PR:** none
+- **Status:** review (integration train 3) · **Priority:** P1 · **Size:** S · **Agent:** yes
+- **Packages:** `apps/web`, `packages/ui` · **External dep:** none · **Issue/PR:** integration PR #104;
+  source PR #87
 - **Goal:** Three registers now coexist on a review: formal assessments (TRUST), formal
   challenges (ORA-E01), and open discussion (comments, Atlas Discuss). Audit and enforce that
   the UI never lets discussion visually or structurally bleed into assessment — distinct
@@ -425,8 +425,9 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-E04 — Atlas Discuss improvements
 
-- **Status:** backlog · **Priority:** P2 · **Size:** M · **Agent:** yes
-- **Packages:** `packages/knowledge`, `apps/web` · **External dep:** none · **Issue/PR:** none
+- **Status:** review (integration train 3) · **Priority:** P2 · **Size:** M · **Agent:** yes
+- **Packages:** `packages/knowledge`, `apps/web` · **External dep:** none · **Issue/PR:** integration PR #104;
+  source PR #90
 - **Goal:** Incremental quality on the grounded discussion assistant: citations that deep-link
   into claim passports/node pages, answer provenance (packet hash) surfaced to readers, and
   graceful degraded mode messaging when only the deterministic composer is available.
@@ -470,8 +471,9 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-F03 — Editorial-data visibility audit (public vs private)
 
-- **Status:** backlog · **Priority:** P1 · **Size:** S · **Agent:** yes
-- **Packages:** `apps/web` · **External dep:** none · **Issue/PR:** none
+- **Status:** review (integration train 3) · **Priority:** P1 · **Size:** S · **Agent:** yes
+- **Packages:** `apps/web` · **External dep:** none · **Issue/PR:** integration PR #104;
+  source PR #89
 - **Goal:** The synthesis governance work established a strict public allowlist/private
   denylist for synthesis records. Audit the same property for the rest of the editorial
   surface: submission notes, overrides, rejected/changes-requested payloads, capture bytes,
@@ -569,8 +571,9 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-I02 — OpenAPI and route-parity maintenance for new surfaces
 
-- **Status:** backlog · **Priority:** P2 · **Size:** S · **Agent:** yes
-- **Packages:** `apps/web`, `docs`, `scripts` · **External dep:** none · **Issue/PR:** none
+- **Status:** review (integration train 3) · **Priority:** P2 · **Size:** S · **Agent:** yes
+- **Packages:** `apps/web`, `docs`, `scripts` · **External dep:** none · **Issue/PR:** integration PR #104;
+  source PR #101
 - **Goal:** `scripts/check-openapi-routes.ts` enforces parity. Standing item: every backlog
   item adding routes (D/E workstreams) updates `docs/openapi.yaml`; this item covers the sweep
   after tranche one lands.
@@ -584,10 +587,10 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-J01 — Security and immutable-publication audit (standing P0)
 
-- **Status:** ready · **Priority:** P0 · **Size:** M · **Agent:** yes (audit + regression
+- **Status:** review (integration train 3) · **Priority:** P0 · **Size:** M · **Agent:** yes (audit + regression
   tests; exploit-fixing PRs separately, smallest-first)
 - **Packages:** all, focus `apps/web`, `packages/github`, `packages/db` · **External dep:**
-  none · **Issue/PR:** builds on PRs #9, #10, #11
+  none · **Issue/PR:** integration PR #104; source PR #72; builds on PRs #9, #10, #11
 - **Goal:** A single sweep re-verifying, with tests, the full defensive posture:
   authorization matrix per route (role snapshots vs current role), same-origin + Fetch
   Metadata enforcement on every mutation, optimistic-concurrency coverage (every revision/CAS
@@ -617,8 +620,9 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-J03 — Abuse controls for public-write surfaces (challenges, comments)
 
-- **Status:** backlog · **Priority:** P2 · **Size:** S · **Agent:** yes
-- **Packages:** `apps/web` · **External dep:** none · **Issue/PR:** none
+- **Status:** review (integration train 3) · **Priority:** P2 · **Size:** S · **Agent:** yes
+- **Packages:** `apps/web` · **External dep:** none · **Issue/PR:** integration PR #104;
+  source PR #99
 - **Goal:** Challenges (ORA-E01) add a new authenticated public-write surface. Extend the
   existing rate-limit/body-bound conventions with per-subject caps and duplicate-challenge
   detection (same challenger, same subject hash, open state ⇒ reject with typed error).
