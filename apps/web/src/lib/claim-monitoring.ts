@@ -11,7 +11,7 @@ import {
   type ProposalResolution,
 } from "@oratlas/contracts";
 import { type Prisma } from "@oratlas/db";
-import { selectPreferredTrustAssessment, type TrustVerificationState } from "@oratlas/trust";
+import { type TrustVerificationState } from "@oratlas/trust";
 import { prisma } from "./db";
 import { withSqliteRetry as sharedWithSqliteRetry } from "./db-retry";
 import { isReadablePublicState } from "./review-lifecycle";
@@ -454,24 +454,24 @@ export async function getClaimPassport(
     isExample: version.isExample,
     evidence: claim.evidenceRelations.map((relation) => {
       const assessments = relation.trustAssessments.map((assessment) => {
-          const resolved = resolveTrustAssessmentRows(
-            { assessment, relation, claim, citation: relation.citation },
-            assessment.verification,
-          );
-          return {
-            id: assessment.id,
+        const resolved = resolveTrustAssessmentRows(
+          { assessment, relation, claim, citation: relation.citation },
+          assessment.verification,
+        );
+        return {
+          id: assessment.id,
+          protocolVersion: assessment.protocolVersion,
+          effectiveStatus: resolved.effectiveStatus,
+          assessedAt: assessment.assessedAt?.toISOString() ?? null,
+          value: {
+            assessmentId: assessment.id,
             protocolVersion: assessment.protocolVersion,
-            effectiveStatus: resolved.effectiveStatus,
-            assessedAt: assessment.assessedAt?.toISOString() ?? null,
-            value: {
-              assessmentId: assessment.id,
-              protocolVersion: assessment.protocolVersion,
-              reviewStatus: resolved.effectiveStatus,
-              verificationState: resolved.state,
-            },
-          };
-        });
-      const preferred = selectPreferredTrustAssessment(assessments)?.value;
+            reviewStatus: resolved.effectiveStatus,
+            verificationState: resolved.state,
+          },
+        };
+      });
+      const preferred = assessments.length === 1 ? assessments[0]!.value : undefined;
       return {
         id: relation.id,
         relationType: relation.relationType,

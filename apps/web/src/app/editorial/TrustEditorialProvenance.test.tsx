@@ -1,5 +1,6 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
+import { TRUST_CRITERIA } from "@oratlas/contracts";
 import { type TrustQueueItem } from "@/lib/trust-provenance";
 import { TrustEditorialProvenance } from "./TrustEditorialProvenance";
 
@@ -26,6 +27,11 @@ function item(overrides: Partial<TrustQueueItem> = {}): TrustQueueItem {
     sourceAssessedAt: "2026-01-01T03:04:05.000Z",
     sourceEvidenceAvailable: true,
     sourceRelationHumanReviewed: false,
+    criteria: TRUST_CRITERIA.map((criterion) => ({
+      criterion,
+      rating: "not-supplied",
+      status: "not-supplied",
+    })),
     sourceAggregateScore: 0.37,
     computedAggregateScore: 0.61,
     effectiveStatus: "unverified-import",

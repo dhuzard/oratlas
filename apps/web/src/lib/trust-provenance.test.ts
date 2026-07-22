@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { TRUST_CRITERIA } from "@oratlas/contracts";
 
 vi.mock("server-only", () => ({}));
 vi.mock("./db.js", () => ({ prisma: {} }));
@@ -29,6 +30,7 @@ describe("TRUST editorial queue ordering", () => {
       evidenceAvailable: false,
       sourceRecordAvailable: true,
       sourceEvidenceAvailable: false,
+      criteria: missingCriteria(),
       sourceAggregateScore: null,
       computedAggregateScore: null,
       effectiveStatus: "unverified-import",
@@ -105,6 +107,7 @@ function queueItem(
     evidenceAvailable: false,
     sourceRecordAvailable: true,
     sourceEvidenceAvailable: false,
+    criteria: missingCriteria(),
     sourceAggregateScore: null,
     computedAggregateScore: null,
     effectiveStatus: "unverified-import",
@@ -112,6 +115,14 @@ function queueItem(
     revision: 0,
     assessmentHash: "a".repeat(64),
   };
+}
+
+function missingCriteria() {
+  return TRUST_CRITERIA.map((criterion) => ({
+    criterion,
+    rating: "not-supplied" as const,
+    status: "not-supplied" as const,
+  }));
 }
 
 function loadedRow(): LoadedTrustAssessment {
