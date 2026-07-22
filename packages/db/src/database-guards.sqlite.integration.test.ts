@@ -7,7 +7,8 @@ import { PrismaClient } from "../generated/client/index.js";
 import { applyDatabaseGuards } from "./database-guards.js";
 
 const databasePath = join(tmpdir(), `oratlas-decision-guards-${process.pid}-${Date.now()}.db`);
-const databaseUrl = `file:${databasePath.replaceAll("\\", "/")}`;
+// Keep PRAGMA state and the raw fixture writes on one SQLite connection.
+const databaseUrl = `file:${databasePath.replaceAll("\\", "/")}?connection_limit=1`;
 let prisma: PrismaClient;
 
 describe("SQLite immutable editorial decision guards", () => {
