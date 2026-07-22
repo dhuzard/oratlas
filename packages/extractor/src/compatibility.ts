@@ -100,6 +100,14 @@ export function assessCompatibility(
       ? ["Review content Markdown/MyST files were found."]
       : ["No obvious review content files found."],
   );
+  const capturedReviewContent = Object.entries(report.files).some(([path, file]) => {
+    const normalizedPath = path.toLowerCase();
+    const isReviewContent =
+      (normalizedPath.startsWith("content/") && normalizedPath.endsWith(".md")) ||
+      normalizedPath.endsWith("evidence_database.md") ||
+      /(^|\/)(introduction|methods|results|discussion)\.md$/.test(normalizedPath);
+    return isReviewContent && !file.truncated && typeof file.content === "string";
+  });
 
   // 6. Provenance
   const provenanceDetected = signal(
@@ -151,6 +159,7 @@ export function assessCompatibility(
     mystProjectDetected,
     bibliographyDetected,
     reviewContentDetected,
+    capturedReviewContent,
     provenanceDetected,
     knowledge,
     nodeExtraction,
@@ -305,6 +314,7 @@ interface FacetInputs {
   mystProjectDetected: CompatibilitySignal;
   bibliographyDetected: CompatibilitySignal;
   reviewContentDetected: CompatibilitySignal;
+  capturedReviewContent: boolean;
   provenanceDetected: CompatibilitySignal;
   knowledge: ExtractedKnowledge;
   nodeExtraction?: NodeExtractionReport;
@@ -319,16 +329,21 @@ function assessFacets(input: FacetInputs): FacetCompatibilityReport {
   const validNodes = nodeExtraction?.counts.ok ?? 0;
   const validEdges = nodeExtraction?.counts.edgesOk ?? 0;
 
-  const article = input.reviewContentDetected.detected
+  const article = input.capturedReviewContent
     ? facet("available", ...input.reviewContentDetected.evidence)
-    : input.mystProjectDetected.detected || input.manifestPresent
+    : input.reviewContentDetected.detected
       ? facet(
           "partial",
-          input.mystProjectDetected.detected
-            ? "A MyST project was found, but no review prose was detected."
-            : "A review manifest was parsed, but no review prose was detected.",
+          "Review prose was detected in the repository tree, but no complete review prose was captured.",
         )
-      : facet("unavailable", "No review prose or article structure was detected.");
+      : input.mystProjectDetected.detected || input.manifestPresent
+        ? facet(
+            "partial",
+            input.mystProjectDetected.detected
+              ? "A MyST project was found, but no review prose was detected."
+              : "A review manifest was parsed, but no review prose was detected.",
+          )
+        : facet("unavailable", "No review prose or article structure was detected.");
 
   const citations =
     input.bibliographyDetected.detected || knowledge.citations.length > 0

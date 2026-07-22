@@ -99,6 +99,14 @@ describe("frozen Ethical Debt release", () => {
       overallCompatibility: "compatible",
       trustDataDetected: { detected: true },
       reviewContentDetected: { detected: true },
+      facets: {
+        article: {
+          status: "partial",
+          evidence: [
+            "Review prose was detected in the repository tree, but no complete review prose was captured.",
+          ],
+        },
+      },
     });
 
     const sourceTrust = extraction.knowledge.trust.find((record) => "claimId" in record);

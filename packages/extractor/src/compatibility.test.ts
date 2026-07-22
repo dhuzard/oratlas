@@ -59,6 +59,22 @@ describe("per-facet compatibility", () => {
     });
   });
 
+  it("reports tree-only review prose as partial when its bytes were not captured", () => {
+    const result = assessCompatibility(
+      report(["myst.yml", "content/introduction.md"], ["myst.yml"]),
+      emptyKnowledge(),
+      false,
+    );
+
+    expect(result.reviewContentDetected.detected).toBe(true);
+    expect(result.facets?.article).toEqual({
+      status: "partial",
+      evidence: [
+        "Review prose was detected in the repository tree, but no complete review prose was captured.",
+      ],
+    });
+  });
+
   it("classifies nodes-only input as a partial graph while preserving node compatibility", () => {
     const nodes = createEmptyNodeExtractionReport();
     nodes.manifest.status = "ok";
@@ -135,7 +151,7 @@ function emptyKnowledge(overrides: Partial<ExtractedKnowledge> = {}): ExtractedK
   return { claims: [], citations: [], relations: [], trust: [], warnings: [], ...overrides };
 }
 
-function report(paths: string[]): InspectionReport {
+function report(paths: string[], capturedPaths: string[] = paths): InspectionReport {
   return {
     schemaVersion: "1.0.0",
     repo: {
@@ -151,7 +167,12 @@ function report(paths: string[]): InspectionReport {
     releases: [],
     tree: paths.map((path) => ({ path, size: 1 })),
     treeTruncated: false,
-    files: {},
+    files: Object.fromEntries(
+      capturedPaths.map((path) => [
+        path,
+        { path, size: 1, content: "# Captured review content", truncated: false },
+      ]),
+    ),
     warnings: [],
     limits: {
       maxFileBytes: 1_000_000,

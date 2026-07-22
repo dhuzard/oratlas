@@ -380,7 +380,7 @@ describe.sequential("preservation and standards exports", () => {
     const scholarly = scholarlyJson(scholarlyInput);
     expect(scholarlyInput.assessments).toHaveLength(2);
     expect(
-      scholarlyInput.assessments.map((assessment) => assessment.criteria.entailment?.rating),
+      scholarlyInput.assessments.map((assessment) => assessment.criteria.entailment?.rating).sort(),
     ).toEqual(["high", "low"]);
     expect(scholarlyInput.challenges.map(({ status }) => status).sort()).toEqual([
       "author-responded",
@@ -540,6 +540,108 @@ describe.sequential("preservation and standards exports", () => {
       "README.md",
     );
     expect(preserved?.content).toBe(readmeContent);
+  }, 30_000);
+
+  it("rejects malformed persisted assessment and methodology JSON for scholarly exports", async () => {
+    const capability = await runtime.createInspectionCapture(
+      submitterId,
+      inspectionReport("invalid-scholarly-export", "4"),
+      fullExtraction("invalid-scholarly-export"),
+      validationReport(),
+      new Date(),
+    );
+    const submission = await runtime.createSubmission({
+      inspectionToken: capability.token,
+      submitterId,
+    });
+    const accepted = await runtime.acceptSubmission(submission.submissionId, editorId);
+    const version = await runtime.prisma.reviewVersion.findFirstOrThrow({
+      where: { review: { slug: accepted.reviewSlug } },
+    });
+    const claim = await runtime.prisma.claim.create({
+      data: {
+        reviewVersionId: version.id,
+        localClaimId: "invalid-export-claim",
+        text: "A bounded export-integrity claim.",
+        normalizedText: "a bounded export-integrity claim",
+      },
+    });
+    const citation = await runtime.prisma.citation.create({
+      data: {
+        reviewVersionId: version.id,
+        localCitationId: "invalid-export-citation",
+        title: "Export integrity source",
+      },
+    });
+    const relation = await runtime.prisma.claimEvidenceRelation.create({
+      data: { claimId: claim.id, citationId: citation.id, relationType: "supports" },
+    });
+    const assessment = await runtime.prisma.trustAssessment.create({
+      data: {
+        claimEvidenceRelationId: relation.id,
+        protocolVersion: "trust-v2",
+        assessorType: "human",
+        entailment: JSON.stringify({ rating: "high", status: "assessed" }),
+      },
+    });
+    const originalMetadata = JSON.parse(version.metadataJson) as Record<string, unknown>;
+    const getContext = () => runtime.getVersionExportContext(accepted.reviewSlug, version.id);
+
+    await runtime.prisma.trustAssessment.update({
+      where: { id: assessment.id },
+      data: { entailment: "{malformed" },
+    });
+    await expect(getContext()).rejects.toThrow("Invalid persisted TRUST criterion entailment.");
+
+    await runtime.prisma.trustAssessment.update({
+      where: { id: assessment.id },
+      data: {
+        entailment: JSON.stringify({ rating: "high", status: "assessed" }),
+        limitationsJson: JSON.stringify({ silently: "dropped before this regression" }),
+      },
+    });
+    await expect(getContext()).rejects.toThrow("Invalid persisted TRUST limitations");
+
+    await runtime.prisma.trustAssessment.update({
+      where: { id: assessment.id },
+      data: { limitationsJson: "[]", evidenceJson: "[]" },
+    });
+    await expect(getContext()).rejects.toThrow("Invalid persisted TRUST evidence");
+
+    await runtime.prisma.trustAssessment.update({
+      where: { id: assessment.id },
+      data: { evidenceJson: null },
+    });
+    await runtime.prisma.reviewVersion.update({
+      where: { id: version.id },
+      data: {
+        metadataJson: JSON.stringify({
+          ...originalMetadata,
+          sourceAssessmentDocuments: { schemaVersion: "broken", documents: [] },
+        }),
+      },
+    });
+    await expect(getContext()).rejects.toThrow();
+
+    const { sourceAssessmentDocuments: _legacyAbsent, ...legacyMetadata } = originalMetadata;
+    await runtime.prisma.reviewVersion.update({
+      where: { id: version.id },
+      data: { metadataJson: JSON.stringify(legacyMetadata) },
+    });
+    const context = await getContext();
+    expect(context?.scholarlyInput.sourceDocuments).toEqual([]);
+    expect(() =>
+      roCrate({
+        version: context!.exportInput,
+        files: context!.manifest.files,
+        snapshotContentHash: context!.manifest.integrity.snapshotContentHash,
+        capturePayloadHash: context!.manifest.integrity.capturePayloadHash,
+        scholarly: {
+          url: `${context!.exportInput.canonicalUrl.replace("/reviews/", "/api/reviews/")}/export/json`,
+          document: scholarlyJsonDocument(context!.scholarlyInput),
+        },
+      }),
+    ).not.toThrow();
   }, 30_000);
 
   it("fails closed for legacy rows without valid durable preserved content", async () => {

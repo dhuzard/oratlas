@@ -1,4 +1,5 @@
 import "server-only";
+import { z } from "zod";
 import {
   preservationManifestSchema,
   preservedFilesSchema,
@@ -24,7 +25,7 @@ import { appBaseUrl } from "./base-url";
 import { listChallenges } from "./challenges";
 import { prisma, parseJsonColumn } from "./db";
 import { sha256 } from "./hash";
-import { toTrustRecord } from "./index-builder";
+import { toTrustRecordForExport } from "./index-builder";
 import { resolveTrustAssessmentRows } from "./trust-provenance";
 
 /**
@@ -45,6 +46,22 @@ export interface VersionExportContext {
   provInput: ProvExportInput;
   manifest: PreservationManifest;
   scholarlyInput: ScholarlyJsonInput;
+}
+
+const exportLimitationsSchema = z.array(z.string().max(2_000)).max(50);
+const exportEvidenceSchema = z.record(z.string(), z.unknown());
+const exportMetadataSchema = z.record(z.string(), z.unknown());
+
+function parsePersistedExportJson<T>(label: string, value: string, schema: z.ZodType<T>): T {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(value);
+  } catch {
+    throw new Error(`Invalid persisted ${label} JSON.`);
+  }
+  const result = schema.safeParse(parsed);
+  if (!result.success) throw new Error(`Invalid persisted ${label} JSON.`);
+  return result.data;
 }
 
 async function loadVersionRow(slug: string, versionId: string) {
@@ -204,10 +221,15 @@ export async function getVersionExportContext(
     }),
     listChallenges(version.review.slug, version.id),
   ]);
-  const sourceDocuments = sourceAssessmentDocumentsReportSchema.safeParse(
-    parseJsonColumn<{ sourceAssessmentDocuments?: unknown }>(version.metadataJson, {})
-      .sourceAssessmentDocuments,
+  const persistedMetadata = parsePersistedExportJson(
+    "review metadata",
+    version.metadataJson,
+    exportMetadataSchema,
   );
+  const sourceDocuments =
+    persistedMetadata.sourceAssessmentDocuments === undefined
+      ? undefined
+      : sourceAssessmentDocumentsReportSchema.parse(persistedMetadata.sourceAssessmentDocuments);
   const scholarlyInput: ScholarlyJsonInput = {
     version: exportInput,
     assessments: assessmentRows.map((assessment) => {
@@ -220,7 +242,7 @@ export async function getVersionExportContext(
         },
         assessment.verification,
       );
-      const record = toTrustRecord(assessment);
+      const record = toTrustRecordForExport(assessment);
       return {
         id: assessment.id,
         url: `${canonicalUrl}#assessment-${encodeURIComponent(assessment.id)}`,
@@ -243,9 +265,17 @@ export async function getVersionExportContext(
         },
         assessedAt: assessment.assessedAt?.toISOString(),
         criteria: record.criteria,
-        limitations: parseJsonColumn<string[]>(assessment.limitationsJson, []),
+        limitations: parsePersistedExportJson(
+          `TRUST limitations for assessment ${assessment.id}`,
+          assessment.limitationsJson,
+          exportLimitationsSchema,
+        ),
         evidence: assessment.evidenceJson
-          ? parseJsonColumn<Record<string, unknown> | undefined>(assessment.evidenceJson, undefined)
+          ? parsePersistedExportJson(
+              `TRUST evidence for assessment ${assessment.id}`,
+              assessment.evidenceJson,
+              exportEvidenceSchema,
+            )
           : undefined,
         verification: {
           state: resolved.state,
@@ -272,8 +302,8 @@ export async function getVersionExportContext(
       };
     }),
     challenges: challengeList?.challenges ?? [],
-    sourceDocuments: sourceDocuments.success
-      ? sourceDocuments.data.documents.map((document) => ({
+    sourceDocuments: sourceDocuments
+      ? sourceDocuments.documents.map((document) => ({
           ...document,
           downloadUrl:
             document.status === "preserved"
