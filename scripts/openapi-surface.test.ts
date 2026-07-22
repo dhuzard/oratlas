@@ -87,6 +87,202 @@ describe("challenge OpenAPI surface", () => {
     ]) {
       expect(schemas[name].additionalProperties, name).toBe(false);
     }
+    const closedShapes = {
+      PublicReviewTrustAssessment: {
+        required: [
+          "assessmentId",
+          "assessorType",
+          "reviewStatus",
+          "verificationState",
+          "protocolVersion",
+          "criteria",
+          "limitations",
+          "sourceAssertion",
+        ],
+        properties: [
+          "assessmentId",
+          "assessorType",
+          "assessorId",
+          "assessedAt",
+          "reviewStatus",
+          "verificationState",
+          "protocolVersion",
+          "criteria",
+          "limitations",
+          "aggregateScore",
+          "aggregateMethod",
+          "sourceAssertion",
+          "platformVerification",
+          "supersedesAssessmentId",
+        ],
+      },
+      PublicReviewRelation: {
+        required: [
+          "relationId",
+          "relationType",
+          "citationLocalId",
+          "citationIsExample",
+          "humanReviewed",
+          "trusts",
+        ],
+        properties: [
+          "relationId",
+          "relationType",
+          "citationLocalId",
+          "citationTitle",
+          "citationDoi",
+          "citationIsExample",
+          "humanReviewed",
+          "trust",
+          "trusts",
+        ],
+      },
+      PublicReviewClaim: {
+        required: ["subjectId", "claimId", "localClaimId", "text", "anchor", "relations"],
+        properties: [
+          "subjectId",
+          "claimId",
+          "localClaimId",
+          "text",
+          "section",
+          "anchor",
+          "sourceAnchor",
+          "claimType",
+          "qualification",
+          "relations",
+        ],
+      },
+      PublicReviewLifecycleEvent: {
+        required: [
+          "id",
+          "kind",
+          "reviewVersionId",
+          "reason",
+          "actorLogin",
+          "revision",
+          "createdAt",
+        ],
+        properties: [
+          "id",
+          "kind",
+          "reviewVersionId",
+          "supersedesVersionId",
+          "reason",
+          "actorLogin",
+          "revision",
+          "createdAt",
+        ],
+      },
+      PublicReviewContributor: {
+        required: ["displayName", "roles", "isExampleOrcid"],
+        properties: ["displayName", "orcid", "githubLogin", "roles", "isExampleOrcid"],
+      },
+      PublicReviewRepository: {
+        required: ["canonicalUrl", "owner", "name"],
+        properties: ["canonicalUrl", "owner", "name", "defaultBranch", "pagesUrl"],
+      },
+      PublicReviewSnapshot: {
+        required: ["commitSha"],
+        properties: ["commitSha", "treeSha"],
+      },
+      PublicDoiCheck: {
+        required: ["id", "description", "outcome"],
+        properties: ["id", "description", "outcome", "details"],
+      },
+      PublicPublicationConsistencyReport: {
+        required: [
+          "schemaVersion",
+          "status",
+          "selectedSourceKind",
+          "selectedCommitSha",
+          "selectedTreeSha",
+          "checks",
+          "errors",
+          "warnings",
+          "overridableCheckIds",
+          "requiresEditorOverride",
+        ],
+        properties: [
+          "schemaVersion",
+          "status",
+          "selectedSourceKind",
+          "selectedCommitSha",
+          "selectedTreeSha",
+          "selectedReleaseTag",
+          "checks",
+          "errors",
+          "warnings",
+          "overridableCheckIds",
+          "requiresEditorOverride",
+        ],
+      },
+      PublicReviewEditorialOverride: {
+        required: ["checkId", "rationale", "editorLogin", "createdAt"],
+        properties: ["checkId", "rationale", "editorLogin", "createdAt"],
+      },
+      PublicReviewVersion: {
+        required: ["id", "isExample", "editorialOverrides"],
+        properties: [
+          "id",
+          "sourceKind",
+          "sourceBranch",
+          "releaseTag",
+          "releaseUrl",
+          "tagObjectSha",
+          "semanticVersion",
+          "versionDoi",
+          "conceptDoi",
+          "zenodoRecordId",
+          "isExample",
+          "capturePayloadHash",
+          "publicationConsistency",
+          "editorialOverrides",
+        ],
+      },
+      PublicReviewIdentifier: {
+        required: ["scheme", "value", "relationType", "validationStatus", "isExample"],
+        properties: ["scheme", "value", "relationType", "url", "validationStatus", "isExample"],
+      },
+      PublicReviewVersionSummary: {
+        required: ["id", "isExample", "isCurrent", "publicState"],
+        properties: [
+          "id",
+          "semanticVersion",
+          "versionDoi",
+          "releaseTag",
+          "publishedAt",
+          "isExample",
+          "isCurrent",
+          "publicState",
+        ],
+      },
+      PublicReviewCitation: {
+        required: ["localCitationId", "citationId", "workId", "canonicalWorkAliases", "isExample"],
+        properties: [
+          "localCitationId",
+          "citationId",
+          "title",
+          "doi",
+          "pmid",
+          "openAlexId",
+          "workId",
+          "canonicalWorkAliases",
+          "year",
+          "source",
+          "isExample",
+        ],
+      },
+      PublicWorkIdentityAssertion: {
+        required: ["citationIds", "scheme", "values", "message"],
+        properties: ["citationIds", "scheme", "values", "message"],
+      },
+    };
+    for (const [name, expected] of Object.entries(closedShapes)) {
+      expect(schemas[name].required, `${name} required`).toEqual(expected.required);
+      expect(Object.keys(schemas[name].properties), `${name} properties`).toEqual(
+        expected.properties,
+      );
+    }
   });
 
   it("parses the challenge body contract as one valid YAML scalar description", () => {
@@ -96,6 +292,14 @@ describe("challenge OpenAPI surface", () => {
       maxLength: 10_000,
       description: "Plain text, always rendered escaped.",
     });
+  });
+
+  it("advertises only lifecycle states accepted by the transition route", () => {
+    expect(schemas.ChallengeTransitionRequest.properties.toStatus.enum).toEqual([
+      "resolved",
+      "dismissed",
+      "withdrawn",
+    ]);
   });
 
   it("documents public tombstones while excluding private moderation and editorial fields", () => {
@@ -156,6 +360,79 @@ describe("D01 assessment provenance in OpenAPI", () => {
     expect(relation.properties.trusts.items.$ref).toBe(
       "#/components/schemas/PublicReviewTrustAssessment",
     );
+    const review = schemas.PublicReviewDetail;
+    expect(review.additionalProperties).toBe(false);
+    expect(review.required).toEqual([
+      "slug",
+      "title",
+      "status",
+      "publicState",
+      "isTombstoned",
+      "lifecycleRevision",
+      "lifecycleEvents",
+      "updatedAt",
+      "keywords",
+      "domains",
+      "contributors",
+      "repository",
+      "snapshot",
+      "version",
+      "identifiers",
+      "versions",
+      "claims",
+      "citations",
+      "limitations",
+      "identifierConflicts",
+    ]);
+    expect(Object.keys(review.properties)).toEqual([
+      "slug",
+      "title",
+      "abstract",
+      "reviewType",
+      "licenseSpdx",
+      "publishedReviewUrl",
+      "status",
+      "publicState",
+      "isTombstoned",
+      "lifecycleRevision",
+      "lifecycleEvents",
+      "acceptedAt",
+      "updatedAt",
+      "keywords",
+      "domains",
+      "compatibilityLevel",
+      "compatibilityReport",
+      "contributors",
+      "repository",
+      "snapshot",
+      "version",
+      "identifiers",
+      "versions",
+      "claims",
+      "citations",
+      "limitations",
+      "identifierConflicts",
+    ]);
+    for (const name of [
+      "PublicReviewTrustAssessment",
+      "PublicReviewRelation",
+      "PublicReviewClaim",
+      "PublicReviewDetail",
+      "PublicReviewLifecycleEvent",
+      "PublicReviewContributor",
+      "PublicReviewRepository",
+      "PublicReviewSnapshot",
+      "PublicDoiCheck",
+      "PublicPublicationConsistencyReport",
+      "PublicReviewEditorialOverride",
+      "PublicReviewVersion",
+      "PublicReviewIdentifier",
+      "PublicReviewVersionSummary",
+      "PublicReviewCitation",
+      "PublicWorkIdentityAssertion",
+    ]) {
+      expect(schemas[name].additionalProperties, name).toBe(false);
+    }
     expect(
       paths["/api/reviews/{slug}"].get.responses["200"].content["application/json"].schema.$ref,
     ).toBe("#/components/schemas/PublicReviewDetail");
