@@ -4,6 +4,7 @@ import {
   type PreservedFileDescriptor,
   type VersionExportInput,
 } from "./types.js";
+import type { ScholarlyJsonDocument } from "./scholarly-json.js";
 
 /**
  * RO-Crate 1.1 metadata document describing the preserved package of one
@@ -19,6 +20,7 @@ export interface RoCrateInput {
   snapshotContentHash?: string;
   /** SHA-256 of the exact accepted inspection capture. */
   capturePayloadHash?: string;
+  scholarly?: { url: string; document: ScholarlyJsonDocument };
 }
 
 type JsonLdEntity = Record<string, unknown>;
@@ -53,6 +55,15 @@ export function roCrate(input: RoCrateInput): { "@context": string; "@graph": Js
   if (revisionSwhid) identifiers.push(revisionSwhid);
   if (directorySwhid) identifiers.push(directorySwhid);
 
+  const scholarlyEntityIds = input.scholarly
+    ? [
+        ...input.scholarly.document.assessments.map((assessment) => assessment.url),
+        ...input.scholarly.document.challenges.map((challenge) => challenge.url),
+        ...input.scholarly.document.sourceDocuments.map(
+          (document) => document.downloadUrl ?? `#source-document-${document.kind}`,
+        ),
+      ]
+    : [];
   const root: JsonLdEntity = {
     "@id": "./",
     "@type": "Dataset",
@@ -61,7 +72,10 @@ export function roCrate(input: RoCrateInput): { "@context": string; "@graph": Js
     url: version.canonicalUrl,
     isBasedOn: version.repositoryUrl,
     publisher: { "@id": "#open-review-atlas" },
-    hasPart: files.map((file) => ({ "@id": fileEntityId(file.path) })),
+    hasPart: [
+      ...files.map((file) => ({ "@id": fileEntityId(file.path) })),
+      ...(input.scholarly ? [{ "@id": input.scholarly.url }] : []),
+    ],
     author: version.contributors.map((_, index) => ({ "@id": `#author-${index}` })),
   };
   if (version.abstract) root.description = version.abstract;
@@ -85,6 +99,57 @@ export function roCrate(input: RoCrateInput): { "@context": string; "@graph": Js
   }
   root.disambiguatingDescription = disambiguations.join(" ");
   graph.push(root);
+
+  if (input.scholarly) {
+    root.mentions = [
+      { "@id": "#oratlas-platform" },
+      ...scholarlyEntityIds.map((id) => ({ "@id": id })),
+    ];
+    graph.push({
+      "@id": input.scholarly.url,
+      "@type": "File",
+      name: "ORAtlas scholarly JSON export",
+      encodingFormat: "application/vnd.oratlas.scholarly+json",
+      about: { "@id": "./" },
+    });
+    for (const assessment of input.scholarly.document.assessments) {
+      graph.push({
+        "@id": assessment.url,
+        "@type": "CreativeWork",
+        name: `TRUST assessment ${assessment.id}`,
+        about: { "@id": assessment.relation.claim.url },
+        creator: {
+          name: assessment.assessor.identifier ?? assessment.assessor.type,
+          ...(assessment.assessor.identifier ? { identifier: assessment.assessor.identifier } : {}),
+        },
+        measurementTechnique: assessment.protocolVersion,
+        "https://oratlas.org/ns/verificationState": assessment.verification.state,
+        "https://oratlas.org/ns/criteria": assessment.criteria,
+      });
+    }
+    for (const challenge of input.scholarly.document.challenges) {
+      graph.push({
+        "@id": challenge.url,
+        "@type": "Comment",
+        about: { "@id": challenge.subject.url },
+        text: challenge.body,
+        dateCreated: challenge.createdAt,
+        creator: { name: challenge.challenger.githubLogin },
+        actionStatus: challenge.status,
+      });
+    }
+    for (const document of input.scholarly.document.sourceDocuments) {
+      graph.push({
+        "@id": document.downloadUrl ?? `#source-document-${document.kind}`,
+        "@type": "CreativeWork",
+        name: document.path,
+        encodingFormat: "text/markdown",
+        creativeWorkStatus: document.status,
+        ...(document.size === undefined ? {} : { contentSize: String(document.size) }),
+        ...(document.contentHash ? { sha256: document.contentHash } : {}),
+      });
+    }
+  }
 
   graph.push({
     "@id": "#open-review-atlas",

@@ -866,6 +866,7 @@ export default async function ReviewPage({
                   ["bibtex", "BibTeX"],
                   ["ris", "RIS"],
                   ["csl", "CSL-JSON"],
+                  ["json", "Scholarly JSON"],
                   ["jats", "JATS XML"],
                   ["ro-crate", "RO-Crate"],
                   ["prov", "PROV (JSON-LD)"],

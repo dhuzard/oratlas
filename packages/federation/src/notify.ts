@@ -390,7 +390,12 @@ export function parseCoarNotifyActivity(input: unknown): NormalizedCoarNotifyAct
 export interface BuildAnnounceReviewInput {
   activityId: string;
   actor: { id: string; name: string };
-  review: { id: string; citeAs?: string };
+  review: {
+    id: string;
+    citeAs?: string;
+    item?: { id: string; type: string | string[]; mediaType: string };
+    exports?: Array<{ id: string; type: string | string[]; mediaType: string }>;
+  };
   reviewedResource: {
     id: string;
     citeAs?: string;
@@ -419,6 +424,8 @@ export function buildAnnounceReview(input: BuildAnnounceReviewInput): AnnounceRe
       id: input.review.id,
       type: ["Page", "sorg:Review"],
       ...(input.review.citeAs ? { "ietf:cite-as": input.review.citeAs } : {}),
+      ...(input.review.item ? { "ietf:item": input.review.item } : {}),
+      ...(input.review.exports ? { "https://oratlas.org/ns/exports": input.review.exports } : {}),
     },
     origin: {
       id: input.origin.id,

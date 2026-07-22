@@ -553,11 +553,11 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-I01 — Assessment and challenge representation in exports
 
-- **Status:** ready · **Priority:** P2 · **Size:** M · **Agent:** yes (uncollapsed assessment,
+- **Status:** review · **Priority:** P2 · **Size:** M · **Agent:** yes (uncollapsed assessment,
   challenge, source-native, and verification boundaries ratified in
   `ORATLAS_DECISIONS.md` §§1–2, §9, §§11–12)
 - **Packages:** `packages/exports`, `packages/federation` · **External dep:** consuming
-  services · **Issue/PR:** builds on PRs #15, #26
+  services · **Issue/PR:** External fixtures integration train; builds on PRs #15, #26
 - **Goal:** Once multiple assessments (ORA-D01) and challenges (ORA-E01) exist, scholarly
   exports and COAR Notify payloads must represent them without collapsing them: every
   assessment with assessor + protocol, disagreement uncollapsed, challenges with lifecycle

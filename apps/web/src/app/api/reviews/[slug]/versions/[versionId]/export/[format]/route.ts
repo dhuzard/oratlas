@@ -1,5 +1,14 @@
 import { NextResponse } from "next/server";
-import { bibtex, cslJson, jats, provJsonLd, ris, roCrate } from "@oratlas/exports";
+import {
+  bibtex,
+  cslJson,
+  jats,
+  provJsonLd,
+  ris,
+  roCrate,
+  scholarlyJson,
+  scholarlyJsonDocument,
+} from "@oratlas/exports";
 import { errorResponse, handleRouteError } from "@/lib/api";
 import { getDocmapForVersion } from "@/lib/editorial-docmap";
 import { getVersionExportContext, type VersionExportContext } from "@/lib/preservation";
@@ -42,6 +51,10 @@ const EXPORTERS: Record<
           files: context.manifest.files,
           snapshotContentHash: context.manifest.integrity.snapshotContentHash,
           capturePayloadHash: context.manifest.integrity.capturePayloadHash,
+          scholarly: {
+            url: `${context.exportInput.canonicalUrl.replace("/reviews/", "/api/reviews/")}/export/json`,
+            document: scholarlyJsonDocument(context.scholarlyInput),
+          },
         }),
         null,
         2,
@@ -56,6 +69,11 @@ const EXPORTERS: Record<
     contentType: "application/json; charset=utf-8",
     extension: "preservation.json",
     render: (context) => JSON.stringify(context.manifest, null, 2),
+  },
+  json: {
+    contentType: "application/vnd.oratlas.scholarly+json; charset=utf-8",
+    extension: "scholarly.json",
+    render: (context) => scholarlyJson(context.scholarlyInput),
   },
 };
 

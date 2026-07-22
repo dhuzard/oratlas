@@ -2824,7 +2824,7 @@ paths:
           required: true
           schema:
             type: string
-            enum: [csl, bibtex, ris, jats, ro-crate, prov, package, docmap]
+            enum: [csl, bibtex, ris, jats, ro-crate, prov, package, docmap, json]
       responses:
         "200":
           description: >
@@ -2832,7 +2832,9 @@ paths:
             jats → JATS XML front matter, ro-crate → RO-Crate 1.1 JSON-LD,
             prov → W3C PROV JSON-LD, package → preservation manifest with
             file checksums, SWHIDs and integrity hashes. Example identifiers
-            (10.5555/…) are withheld from machine-actionable fields.
+            (10.5555/…) are withheld from machine-actionable fields. json →
+            deterministic ORAtlas scholarly JSON with every TRUST assessment,
+            integrity-checked public challenges, and source-document metadata.
         "404": { $ref: "#/components/responses/Error" }
   /api/reviews/{slug}/versions/{versionId}/files/{path}:
     get:

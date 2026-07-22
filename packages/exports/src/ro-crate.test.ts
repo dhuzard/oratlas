@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { roCrate } from "./ro-crate.js";
+import { scholarlyJsonDocument } from "./scholarly-json.js";
 import { type VersionExportInput } from "./types.js";
 
 const version: VersionExportInput = {
@@ -82,5 +83,47 @@ describe("roCrate", () => {
     expect(serialized).not.toContain("orcid.org");
     const root = findEntity(crate["@graph"], "./")!;
     expect(String(root.disambiguatingDescription)).toContain("synthetic examples");
+  });
+
+  it("keeps opaque assessment assessor identifiers out of JSON-LD node ids", () => {
+    const document = scholarlyJsonDocument({
+      version,
+      assessments: [
+        {
+          id: "assessment-1",
+          url: `${version.canonicalUrl}#assessment-assessment-1`,
+          relation: {
+            id: "relation-1",
+            claim: { localId: "claim-1", url: `${version.canonicalUrl}#claim-1` },
+            citation: { localId: "citation-1" },
+            relationType: "supports",
+          },
+          protocolVersion: "trust-v2",
+          assessor: { type: "human", identifier: "opaque-reviewer-id" },
+          criteria: {},
+          limitations: [],
+          verification: {
+            state: "unverified-import",
+            effectiveReviewStatus: "unverified-import",
+          },
+        },
+      ],
+      challenges: [],
+      sourceDocuments: [],
+    });
+    const crate = roCrate({
+      version,
+      files: [],
+      scholarly: { url: `${version.canonicalUrl}/export/json`, document },
+    });
+    const assessment = findEntity(
+      crate["@graph"],
+      `${version.canonicalUrl}#assessment-assessment-1`,
+    )!;
+    expect(assessment.creator).toEqual({
+      name: "opaque-reviewer-id",
+      identifier: "opaque-reviewer-id",
+    });
+    expect(JSON.stringify(assessment.creator)).not.toContain('"@id"');
   });
 });

@@ -5,6 +5,7 @@ import {
   snapshotStorageReportSchema,
   isExactCommitSha,
   isSafeRepoRelativePath,
+  sourceAssessmentDocumentsReportSchema,
   type PreservationManifest,
   type PreservedFileDescriptor,
   type PreservedFiles,
@@ -16,11 +17,15 @@ import {
   swhidForRevision,
   type ExportContributor,
   type ProvExportInput,
+  type ScholarlyJsonInput,
   type VersionExportInput,
 } from "@oratlas/exports";
 import { appBaseUrl } from "./base-url";
+import { listChallenges } from "./challenges";
 import { prisma, parseJsonColumn } from "./db";
 import { sha256 } from "./hash";
+import { toTrustRecord } from "./index-builder";
+import { resolveTrustAssessmentRows } from "./trust-provenance";
 
 /**
  * Preservation and export data for one immutable version, assembled from the
@@ -39,6 +44,7 @@ export interface VersionExportContext {
   exportInput: VersionExportInput;
   provInput: ProvExportInput;
   manifest: PreservationManifest;
+  scholarlyInput: ScholarlyJsonInput;
 }
 
 async function loadVersionRow(slug: string, versionId: string) {
@@ -182,7 +188,102 @@ export async function getVersionExportContext(
     preservedContentAvailable: true,
   } satisfies PreservationManifest);
 
-  return { exportInput, provInput, manifest };
+  const [assessmentRows, challengeList] = await Promise.all([
+    prisma.trustAssessment.findMany({
+      where: {
+        relation: {
+          claim: { reviewVersionId: version.id },
+          citation: { reviewVersionId: version.id },
+        },
+      },
+      include: {
+        verification: { include: { reviewer: { select: { githubLogin: true } } } },
+        relation: { include: { claim: true, citation: true } },
+      },
+      orderBy: [{ id: "asc" }],
+    }),
+    listChallenges(version.review.slug, version.id),
+  ]);
+  const sourceDocuments = sourceAssessmentDocumentsReportSchema.safeParse(
+    parseJsonColumn<{ sourceAssessmentDocuments?: unknown }>(version.metadataJson, {})
+      .sourceAssessmentDocuments,
+  );
+  const scholarlyInput: ScholarlyJsonInput = {
+    version: exportInput,
+    assessments: assessmentRows.map((assessment) => {
+      const resolved = resolveTrustAssessmentRows(
+        {
+          assessment,
+          relation: assessment.relation,
+          claim: assessment.relation.claim,
+          citation: assessment.relation.citation,
+        },
+        assessment.verification,
+      );
+      const record = toTrustRecord(assessment);
+      return {
+        id: assessment.id,
+        url: `${canonicalUrl}#assessment-${encodeURIComponent(assessment.id)}`,
+        relation: {
+          id: assessment.relation.id,
+          claim: {
+            localId: assessment.relation.claim.localClaimId,
+            url: `${canonicalUrl}#claim-subject-${encodeURIComponent(assessment.relation.claim.id)}`,
+          },
+          citation: {
+            localId: assessment.relation.citation.localCitationId,
+            title: assessment.relation.citation.title ?? undefined,
+          },
+          relationType: assessment.relation.relationType,
+        },
+        protocolVersion: assessment.protocolVersion,
+        assessor: {
+          type: assessment.assessorType,
+          identifier: assessment.assessorId ?? undefined,
+        },
+        assessedAt: assessment.assessedAt?.toISOString(),
+        criteria: record.criteria,
+        limitations: parseJsonColumn<string[]>(assessment.limitationsJson, []),
+        evidence: assessment.evidenceJson
+          ? parseJsonColumn<Record<string, unknown> | undefined>(assessment.evidenceJson, undefined)
+          : undefined,
+        verification: {
+          state: resolved.state,
+          effectiveReviewStatus: resolved.effectiveStatus,
+          sourceAssertion: assessment.sourceRecordJson
+            ? {
+                reviewStatus: assessment.sourceReviewStatus ?? undefined,
+                assessorType: assessment.sourceAssessorType ?? undefined,
+                assessorId: assessment.sourceAssessorId ?? undefined,
+                assessedAt: assessment.sourceAssessedAt?.toISOString(),
+                relationHumanReviewed: assessment.sourceRelationHumanReviewed ?? undefined,
+              }
+            : undefined,
+          platformAssertion:
+            resolved.state === "platform-verified" && assessment.verification
+              ? {
+                  status: assessment.verification.status,
+                  reviewerLogin: assessment.verification.reviewer.githubLogin,
+                  reviewedAt: assessment.verification.updatedAt.toISOString(),
+                }
+              : undefined,
+        },
+        supersedesAssessmentId: assessment.supersedesAssessmentId ?? undefined,
+      };
+    }),
+    challenges: challengeList?.challenges ?? [],
+    sourceDocuments: sourceDocuments.success
+      ? sourceDocuments.data.documents.map((document) => ({
+          ...document,
+          downloadUrl:
+            document.status === "preserved"
+              ? `${appBaseUrl()}/api/reviews/${encodeURIComponent(version.review.slug)}/versions/${encodeURIComponent(version.id)}/files/${encodeURIComponent(document.path)}`
+              : undefined,
+        }))
+      : [],
+  };
+
+  return { exportInput, provInput, manifest, scholarlyInput };
 }
 
 /**

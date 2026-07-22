@@ -18,6 +18,19 @@
 
 Chronological record of implementation slices, decisions, and verification outcomes.
 
+## ORA-I01 — Assessment and challenge representation in exports
+
+- Added canonical scholarly JSON for complete, independently ordered TRUST assessments, public
+  challenge records, and preservation-only `TRUST.md` / `FAIR.md` descriptors. No aggregate,
+  disagreement summary, or protocol crosswalk is synthesized.
+- Built the export solely from accepted database rows. Its challenge mapper whitelists the public
+  integrity-checked DTO and cannot expose transition rationale, internal actor ids, role snapshots,
+  audit records, or retained removed bytes.
+- Linked scholarly JSON from RO-Crate and COAR Notify Announce Review payloads. RO-Crate also emits
+  assessment, public challenge, and source-document entities with absolute identifiers.
+- Added OpenAPI, public download-link, interoperability, privacy, deterministic-ordering, and
+  disagreeing-assessment regressions.
+
 ## PR-00 — Repository initialization
 
 **Objective:** initialize the pnpm TypeScript monorepo with shared tooling so every later

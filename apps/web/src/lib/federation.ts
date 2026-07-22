@@ -337,6 +337,18 @@ export async function prepareVersionReviewAnnouncement(
       ...(version.versionDoi && !version.isExample
         ? { citeAs: `https://doi.org/${version.versionDoi}` }
         : {}),
+      item: {
+        id: `${base}/api/reviews/${encodeURIComponent(slug)}/versions/${encodeURIComponent(versionId)}/export/json`,
+        type: "Document",
+        mediaType: "application/vnd.oratlas.scholarly+json",
+      },
+      exports: [
+        {
+          id: `${base}/api/reviews/${encodeURIComponent(slug)}/versions/${encodeURIComponent(versionId)}/export/ro-crate`,
+          type: "Document",
+          mediaType: "application/ld+json",
+        },
+      ],
     },
     reviewedResource: {
       id: requestPayload.object.id,

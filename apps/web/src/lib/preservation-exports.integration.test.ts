@@ -9,7 +9,14 @@ import {
   type SubmissionValidationReport,
 } from "@oratlas/contracts";
 import { createEmptyNodeExtractionReport, type FullExtraction } from "@oratlas/extractor";
-import { bibtex, jats, provJsonLd, roCrate } from "@oratlas/exports";
+import {
+  bibtex,
+  jats,
+  provJsonLd,
+  roCrate,
+  scholarlyJson,
+  scholarlyJsonDocument,
+} from "@oratlas/exports";
 import { type PrismaClient } from "@oratlas/db";
 import { type createInspectionCapture } from "./inspection-captures";
 import { type acceptSubmission, type createSubmission } from "./submissions";
@@ -217,6 +224,38 @@ describe.sequential("preservation and standards exports", () => {
         }),
       ),
     );
+    const citation = await runtime.prisma.citation.create({
+      data: {
+        reviewVersionId: versionId,
+        localCitationId: "i01-disagreement-source",
+        title: "Independent assessment source",
+      },
+    });
+    const relation = await runtime.prisma.claimEvidenceRelation.create({
+      data: {
+        claimId: claims[0]!.id,
+        citationId: citation.id,
+        relationType: "supports",
+      },
+    });
+    await Promise.all(
+      [
+        { assessorId: "assessor-a", rating: "high" },
+        { assessorId: "assessor-b", rating: "low" },
+      ].map((assessment, index) =>
+        runtime.prisma.trustAssessment.create({
+          data: {
+            claimEvidenceRelationId: relation.id,
+            protocolVersion: "trust-v2",
+            assessorType: "human",
+            assessorId: assessment.assessorId,
+            assessedAt: new Date(`2026-07-0${index + 1}T00:00:00.000Z`),
+            entailment: JSON.stringify({ rating: assessment.rating, status: "assessed" }),
+            limitationsJson: JSON.stringify([`Independent ${assessment.rating} assessment.`]),
+          },
+        }),
+      ),
+    );
     const challengeSubjects = await runtime.listChallengeSubjectOptions(versionId);
     const subjectFor = (claimId: string) =>
       challengeSubjects.find(
@@ -305,7 +344,7 @@ describe.sequential("preservation and standards exports", () => {
     // network, so exports must be derivable purely from stored rows.
     const context = await runtime.getVersionExportContext(accepted.reviewSlug, versionId);
     expect(context).not.toBeNull();
-    const { exportInput, provInput, manifest } = context!;
+    const { exportInput, provInput, manifest, scholarlyInput } = context!;
 
     expect(exportInput.platformVersion).toBe("0.1.0");
     expect(provInput.platformVersion).toBe("0.1.0");
@@ -338,6 +377,26 @@ describe.sequential("preservation and standards exports", () => {
       fullExtraction().sourceAssessmentDocuments,
     );
 
+    const scholarly = scholarlyJson(scholarlyInput);
+    expect(scholarlyInput.assessments).toHaveLength(2);
+    expect(
+      scholarlyInput.assessments.map((assessment) => assessment.criteria.entailment?.rating),
+    ).toEqual(["high", "low"]);
+    expect(scholarlyInput.challenges.map(({ status }) => status).sort()).toEqual([
+      "author-responded",
+      "open",
+      "resolved",
+    ]);
+    expect(scholarlyInput.sourceDocuments.map(({ path }) => path)).toEqual(["TRUST.md", "FAIR.md"]);
+    expect(scholarly).toContain(lifecycleSentinels.openChallenge);
+    expect(scholarly).toContain(lifecycleSentinels.respondedResponse);
+    expect(scholarly).not.toContain(lifecycleSentinels.removedChallenge);
+    expect(scholarly).not.toContain(lifecycleSentinels.removedResponse);
+    expect(scholarly).not.toContain(lifecycleSentinels.rationale);
+    expect(scholarly).not.toContain(challengerUser.id);
+    expect(scholarly).not.toContain(moderatorUser.id);
+    expect(scholarly).not.toMatch(/"(?:roleSnapshot|actorId|disagreement|crosswalk)":/i);
+
     const bib = bibtex(exportInput);
     expect(bib).toContain(`commit ${commitA}`);
     const jatsXml = jats(exportInput);
@@ -347,8 +406,14 @@ describe.sequential("preservation and standards exports", () => {
       files: manifest.files,
       snapshotContentHash: manifest.integrity.snapshotContentHash,
       capturePayloadHash: manifest.integrity.capturePayloadHash,
+      scholarly: {
+        url: `${exportInput.canonicalUrl.replace("/reviews/", "/api/reviews/")}/export/json`,
+        document: scholarlyJsonDocument(scholarlyInput),
+      },
     });
     expect(JSON.stringify(crate)).toContain(`swh:1:rev:${commitA}`);
+    expect(JSON.stringify(crate)).toContain("TRUST assessment");
+    expect(JSON.stringify(crate)).toContain(lifecycleSentinels.openChallenge);
     const prov = provJsonLd(provInput);
     const serializedProv = JSON.stringify(prov);
     expect(serializedProv).toContain(capability.payloadHash);
@@ -383,22 +448,13 @@ describe.sequential("preservation and standards exports", () => {
     ).map(({ detailsJson }) => detailsJson);
     const privateChallengeData = [
       discussionSentinel,
-      ...Object.values(lifecycleSentinels),
-      contributorLogin,
-      challengerLogin,
-      moderatorLogin,
-      contributorPerson.displayName,
+      lifecycleSentinels.removedChallenge,
+      lifecycleSentinels.removedResponse,
+      lifecycleSentinels.rationale,
       "E03-INTERNAL-CONTRIBUTOR-ROLE-MUST-STAY-PRIVATE",
       contributorUser.id,
       challengerUser.id,
       moderatorUser.id,
-      openChallenge.id,
-      respondedChallenge.id,
-      respondedResponse.id,
-      resolvedChallenge.id,
-      resolvedResponse.id,
-      retained.filedContentHash,
-      retained.response!.contentHash,
       ...challengeAuditDetails,
     ];
     for (const sentinel of privateChallengeData) {
@@ -411,6 +467,33 @@ describe.sequential("preservation and standards exports", () => {
         ),
         `private challenge data leaked: ${sentinel}`,
       ).toEqual({ bibtex: false, jats: false, roCrate: false, prov: false, manifest: false });
+    }
+    const baselineFormats = {
+      bibtex: bib,
+      jats: jatsXml,
+      prov: serializedProv,
+      manifest: JSON.stringify(manifest),
+    };
+    for (const publicChallengeValue of [
+      lifecycleSentinels.openChallenge,
+      lifecycleSentinels.respondedChallenge,
+      lifecycleSentinels.respondedResponse,
+      contributorLogin,
+      challengerLogin,
+      moderatorLogin,
+      contributorPerson.displayName,
+      openChallenge.id,
+      respondedChallenge.id,
+      respondedResponse.id,
+      resolvedChallenge.id,
+      resolvedResponse.id,
+      retained.filedContentHash,
+      retained.response!.contentHash,
+    ]) {
+      expect(
+        Object.values(baselineFormats).some((value) => value.includes(publicChallengeValue)),
+        `baseline export included public challenge value: ${publicChallengeValue}`,
+      ).toBe(false);
     }
   }, 30_000);
 

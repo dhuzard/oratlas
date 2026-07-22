@@ -232,7 +232,21 @@ describe("COAR Notify review federation", () => {
     const payload = buildAnnounceReview({
       activityId: "urn:uuid:94ecae35-dcfd-4182-8550-22c7164fe23f",
       actor: { id: "https://oratlas.example/system", name: "Open Review Atlas" },
-      review: { id: "https://oratlas.example/reviews/demo/versions/v1" },
+      review: {
+        id: "https://oratlas.example/reviews/demo/versions/v1",
+        item: {
+          id: "https://oratlas.example/api/reviews/demo/versions/v1/export/json",
+          type: "Document",
+          mediaType: "application/vnd.oratlas.scholarly+json",
+        },
+        exports: [
+          {
+            id: "https://oratlas.example/api/reviews/demo/versions/v1/export/ro-crate",
+            type: "Document",
+            mediaType: "application/ld+json",
+          },
+        ],
+      },
       reviewedResource: {
         id: requestReview.object.id,
         citeAs: requestReview.object["ietf:cite-as"],
@@ -254,5 +268,9 @@ describe("COAR Notify review federation", () => {
       contextId: requestReview.object.id,
       inReplyTo: requestReview.id,
     });
+    expect(payload.object["ietf:item"]?.mediaType).toBe("application/vnd.oratlas.scholarly+json");
+    expect(payload.object["https://oratlas.org/ns/exports"]).toEqual([
+      expect.objectContaining({ mediaType: "application/ld+json" }),
+    ]);
   });
 });

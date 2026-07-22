@@ -40,6 +40,7 @@ At submission time the platform stores, per accepted version:
 | `GET /api/reviews/{slug}/versions/{id}/export/prov`     | W3C PROV provenance (JSON-LD)                                      |
 | `GET /api/reviews/{slug}/versions/{id}/export/package`  | Preservation manifest (files, checksums, SWHIDs, integrity hashes) |
 | `GET /api/reviews/{slug}/versions/{id}/export/docmap`   | DocMaps-compatible editorial process history (JSON-LD)             |
+| `GET /api/reviews/{slug}/versions/{id}/export/json`     | Deterministic scholarly JSON (TRUST, challenges, source documents) |
 | `GET /api/reviews/{slug}/versions/{id}/files/{path}`    | Preserved raw file content (plain-text attachment)                 |
 | `GET /api/feeds/atom`                                   | Atom 1.0 feed of recently accepted versions                        |
 | `GET /api/reviews/{slug}/diff?from={id}&to={id}`        | Canonical checksummed asset/metadata/claim/citation diff           |
@@ -76,9 +77,26 @@ versions, whose synthetic object ids do not exist in any archive.
 - **Exports are pure functions of stored rows.** The PROV chain (repository state →
   inspection capture → submission → accepted version) reflects the actual pipeline and embeds
   the stored integrity hashes.
-- **Discussion and challenges are separate registers.** Open comments, Atlas Discuss output, and
-  current challenge records are outside the baseline BibTeX, JATS, RO-Crate, PROV, and package
-  manifest contracts. No challenge status qualifies for those exports today. Any future export of
-  a resolved challenge requires an explicit, versioned contract defining its resolution,
-  provenance, authority, and representation; exporters must not infer that contract from lifecycle
-  status alone.
+- **Discussion remains a separate register.** Open comments and Atlas Discuss output stay outside
+  every scholarly export. Challenges remain outside BibTeX, CSL, RIS, JATS, PROV, package, and
+  DocMap. The versioned scholarly JSON includes every integrity-checked public challenge state;
+  RO-Crate links that JSON and describes its public challenge and assessment entities without
+  inferring scientific resolution from lifecycle state.
+
+## Scholarly JSON profile
+
+The `1.0.0` scholarly JSON profile is regenerated deterministically from accepted database rows and
+never contacts an upstream repository. It exports every claim–citation TRUST assessment separately,
+including protocol, assessor, criterion records, limitations, evidence, source assertion, and the
+fail-closed Atlas verification state. It deliberately defines no aggregate, disagreement summary,
+or protocol crosswalk: consumers compare the uncollapsed records only within protocols they
+understand.
+
+Challenges use the integrity-checked public projection of the challenge register. Visible challenge
+and response text, public GitHub attribution, hashes, status, and lifecycle events are included.
+Retained removed bytes, transition rationale, internal user ids, and role snapshots never enter the
+export. `TRUST.md` and `FAIR.md` appear only as preservation metadata and download links; their
+Markdown is not parsed into assessment fields.
+
+COAR Notify Announce Review activities identify scholarly JSON as the review's `ietf:item` and link
+the RO-Crate representation through the absolute `https://oratlas.org/ns/exports` extension.

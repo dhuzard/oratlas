@@ -9,6 +9,14 @@ export {
 export { jats } from "./jats.js";
 export { provJsonLd, type ProvExportInput } from "./prov.js";
 export { roCrate, type RoCrateInput } from "./ro-crate.js";
+export {
+  scholarlyJson,
+  scholarlyJsonDocument,
+  type ScholarlyJsonDocument,
+  type ScholarlyJsonInput,
+  type ScholarlySourceDocumentInput,
+  type ScholarlyTrustAssessmentInput,
+} from "./scholarly-json.js";
 export { swhidArchiveUrl, swhidForDirectory, swhidForRevision } from "./swhid.js";
 export {
   EXAMPLE_IDENTIFIER_NOTE,

@@ -261,6 +261,18 @@ describe.sequential("federated review service", () => {
     expect(payload.context["ietf:cite-as"]).toBe("https://doi.org/10.5555/12345680");
     expect(payload.object.id).toBe(`${baseUrl}/reviews/federated-review/versions/${versionId}`);
     expect(payload.object["ietf:cite-as"]).toBe("https://doi.org/10.1234/federated-review.v1");
+    expect(payload.object).toMatchObject({
+      "ietf:item": {
+        id: `${baseUrl}/api/reviews/federated-review/versions/${versionId}/export/json`,
+        mediaType: "application/vnd.oratlas.scholarly+json",
+      },
+      "https://oratlas.org/ns/exports": [
+        {
+          id: `${baseUrl}/api/reviews/federated-review/versions/${versionId}/export/ro-crate`,
+          mediaType: "application/ld+json",
+        },
+      ],
+    });
     expect(payload.inReplyTo).toBe(activityId);
     await expect(
       runtime.federation.prepareVersionReviewAnnouncement(
