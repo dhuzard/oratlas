@@ -18,6 +18,7 @@
     "typecheck": "pnpm -r --no-bail typecheck",
     "test": "vitest run",
     "test:e2e": "pnpm --filter @oratlas/web test:e2e",
+    "e2e:budget": "tsx scripts/check-e2e-budget.ts apps/web/test-results/e2e-results.json",
     "db:push": "pnpm --filter @oratlas/db db:push",
     "db:seed": "pnpm --filter @oratlas/db db:seed",
     "db:reset": "pnpm --filter @oratlas/db db:reset",
@@ -25,14 +26,17 @@
     "openapi:check": "tsx scripts/check-openapi-routes.ts",
     "backup": "tsx scripts/backup.ts",
     "restore": "tsx scripts/restore.ts",
+    "drill:backup-restore": "tsx scripts/backup-restore-drill.ts",
     "db:pg:schema": "pnpm --filter @oratlas/db db:pg:schema",
     "db:pg:ddl": "pnpm --filter @oratlas/db db:pg:ddl",
     "ingest": "tsx scripts/ingest.ts",
     "validate-doi": "tsx scripts/validate-doi.ts",
     "atlas-check": "tsx scripts/atlas-check.ts",
     "atlas-check:json": "tsx scripts/atlas-check.ts --format json",
+    "capture:fixture": "tsx scripts/capture-github-fixture.ts",
     "eval:grounding": "pnpm --silent exec tsx scripts/eval-grounding.ts",
-    "refresh:syntheses": "tsx --conditions=react-server scripts/refresh-syntheses.ts"
+    "refresh:syntheses": "tsx --conditions=react-server scripts/refresh-syntheses.ts",
+    "release:notes": "tsx scripts/release-notes.ts"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",

@@ -893,6 +893,7 @@ CREATE TABLE "AuditEvent" (
     "subjectId" TEXT NOT NULL,
     "detailsJson" TEXT NOT NULL DEFAULT '{}',
     "idempotencyKey" TEXT,
+    "platformVersion" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "AuditEvent_pkey" PRIMARY KEY ("id")

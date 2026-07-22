@@ -6,6 +6,7 @@
  */
 
 export interface ProvExportInput {
+  platformVersion: string;
   canonicalUrl: string;
   versionId: string;
   title: string;
@@ -102,6 +103,7 @@ export function provJsonLd(input: ProvExportInput): {
     "prov:atLocation": input.canonicalUrl,
     "prov:wasDerivedFrom": { "@id": derivedFrom },
     "prov:wasGeneratedBy": { "@id": acceptanceId },
+    "oratlas:exportedByPlatformVersion": input.platformVersion,
   };
   if (input.acceptance.publishedAt) {
     versionEntity["prov:generatedAtTime"] = input.acceptance.publishedAt;

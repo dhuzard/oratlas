@@ -6,6 +6,7 @@ export interface FakeRepoFixture {
   name: string;
   repo: Record<string, unknown>;
   commitSha?: string;
+  treeSha?: string;
   tags?: Array<{
     name: string;
     commitSha: string;
@@ -21,6 +22,8 @@ export interface FakeRepoFixture {
   files?: Record<string, string>;
   /** extra tree entries (paths) with no fetched content. */
   extraTreePaths?: string[];
+  /** Exact captured tree metadata; preferred over synthesized file entries. */
+  treeEntries?: Array<{ path: string; size: number; sha?: string }>;
   /** Optional request trace used to assert exact commit/tree endpoint selection. */
   requestLog?: string[];
   /** Simulate GitHub's Contents API omitting inline content above this size. */
@@ -50,7 +53,7 @@ export function createFakeTransport(fixture: FakeRepoFixture): GithubTransport {
   const resolvedName = typeof fixture.repo.name === "string" ? fixture.repo.name : fixture.name;
   const resolvedBase = `/repos/${resolvedOwner}/${resolvedName}`;
   const commitSha = fixture.commitSha ?? "a".repeat(40);
-  const treeSha = "f".repeat(40);
+  const treeSha = fixture.treeSha ?? "f".repeat(40);
   const files = fixture.files ?? {};
   const treePaths = new Set<string>([...Object.keys(files), ...(fixture.extraTreePaths ?? [])]);
 
@@ -108,12 +111,19 @@ export function createFakeTransport(fixture: FakeRepoFixture): GithubTransport {
       if (pathname.startsWith(`${base}/git/trees/`)) {
         return ok({
           truncated: false,
-          tree: [...treePaths].map((p) => ({
-            path: p,
-            type: "blob",
-            size: Buffer.byteLength(files[p] ?? "", "utf-8"),
-            sha: gitBlobSha(files[p] ?? ""),
-          })),
+          tree: fixture.treeEntries
+            ? fixture.treeEntries.map((entry) => ({
+                path: entry.path,
+                type: "blob",
+                size: entry.size,
+                sha: entry.sha ?? gitBlobSha(files[entry.path] ?? ""),
+              }))
+            : [...treePaths].map((p) => ({
+                path: p,
+                type: "blob",
+                size: Buffer.byteLength(files[p] ?? "", "utf-8"),
+                sha: gitBlobSha(files[p] ?? ""),
+              })),
         });
       }
       if (pathname.startsWith(`${base}/git/blobs/`)) {

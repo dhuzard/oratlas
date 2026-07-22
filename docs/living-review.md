@@ -1,6 +1,7 @@
 # Claim passports and living-review monitoring
 
-Issue #3 makes individual claims citable, inspectable and update-aware.
+Closed implementation [issue #3](https://github.com/dhuzard/oratlas/issues/3) made individual
+claims citable, inspectable and update-aware. The behavior below is shipped.
 
 ## Claim passports
 
@@ -22,7 +23,9 @@ proposal is resolved by an editor with an attributable note (updated / no action
 dismissed); signals and resolutions are append-only and audited.
 
 In the POC, signals arrive through the editor API/dashboard; automated registry polling
-(Crossref retraction watch, PubMed correction feeds) is production scope (issue #7). The
+(Crossref retraction watch, PubMed correction feeds) remains outside the POC. It was discussed in
+the now-closed production-readiness umbrella [issue #7](https://github.com/dhuzard/oratlas/issues/7)
+but was not implemented by closing that issue. The
 signed release compiler and reproducibility attestations belong to the template toolchain
 and are likewise out of the archive POC.
 

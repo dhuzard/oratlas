@@ -1,4 +1,8 @@
 import { z } from "zod";
+import rootPackage from "../../../package.json" with { type: "json" };
+
+/** Version of the ORAtlas platform code that is currently running. */
+export const PLATFORM_VERSION = rootPackage.version;
 
 /**
  * Server-side environment configuration. Parsed once, lazily.

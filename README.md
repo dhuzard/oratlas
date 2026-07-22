@@ -256,11 +256,15 @@ A full inventory of limitations lives in [`docs/poc-limitations.md`](docs/poc-li
 | [`docs/operations/`](docs/operations/README.md)                                                | Backups, observability, Postgres, privacy & takedown      |
 | [`docs/poc-limitations.md`](docs/poc-limitations.md)                                           | What the POC deliberately does not do                     |
 | [`docs/openapi.yaml`](docs/openapi.yaml)                                                       | API description                                           |
-| [`PLAN.md`](PLAN.md)                                                                           | Implementation plan and backlog                           |
+| [`PLAN.md`](PLAN.md)                                                                           | Shipped implementation plan                               |
+| [`ORATLAS_BACKLOG.md`](ORATLAS_BACKLOG.md)                                                     | Canonical active backlog                                  |
+| [`ORATLAS_DECISIONS.md`](ORATLAS_DECISIONS.md)                                                 | Ratified governance and scientific decisions              |
+| [`INTEGRATION_TRAINS.md`](INTEGRATION_TRAINS.md)                                               | Consolidated implementation and review branches           |
 
 ## Contributing
 
-See [`CONTRIBUTING.md`](CONTRIBUTING.md) for development workflow and expectations,
+See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the canonical backlog workflow and development
+expectations,
 [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) for community standards, and
 [`SECURITY.md`](SECURITY.md) for how to report vulnerabilities.
 

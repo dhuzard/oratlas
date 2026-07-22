@@ -22,8 +22,12 @@ import { type acceptSubmission, type createSubmission, type decideSubmission } f
 
 vi.mock("server-only", () => ({}));
 
-const databasePath = `/tmp/oratlas-atomic-${process.pid}-${Date.now()}.db`;
-const databaseUrl = `file:${databasePath}`;
+const inheritedDatabaseUrl = process.env.DATABASE_URL;
+const usesExternalPostgres = /^(?:postgresql|postgres):\/\//.test(inheritedDatabaseUrl ?? "");
+const databasePath = usesExternalPostgres
+  ? undefined
+  : `/tmp/oratlas-atomic-${process.pid}-${Date.now()}.db`;
+const databaseUrl = usesExternalPostgres ? inheritedDatabaseUrl! : `file:${databasePath}`;
 const commitA = "a".repeat(40);
 const treeA = "b".repeat(40);
 const nowIso = "2026-07-12T08:00:00.000Z";
@@ -44,21 +48,23 @@ let sequence = 0;
 
 beforeAll(async () => {
   process.env.DATABASE_URL = databaseUrl;
-  execFileSync(
-    process.execPath,
-    [
-      resolve(process.cwd(), "packages/db/node_modules/prisma/build/index.js"),
-      "db",
-      "push",
-      "--schema",
-      "packages/db/prisma/schema.prisma",
-      "--skip-generate",
-    ],
-    {
-      env: { ...process.env, DATABASE_URL: databaseUrl, RUST_LOG: "info" },
-      stdio: "pipe",
-    },
-  );
+  if (!usesExternalPostgres) {
+    execFileSync(
+      process.execPath,
+      [
+        resolve(process.cwd(), "packages/db/node_modules/prisma/build/index.js"),
+        "db",
+        "push",
+        "--schema",
+        "packages/db/prisma/schema.prisma",
+        "--skip-generate",
+      ],
+      {
+        env: { ...process.env, DATABASE_URL: databaseUrl, RUST_LOG: "info" },
+        stdio: "pipe",
+      },
+    );
+  }
   const { prisma } = await import("./db");
   const captures = await import("./inspection-captures");
   const submissions = await import("./submissions");
@@ -85,6 +91,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await runtime?.prisma.$disconnect();
+  if (!databasePath) return;
   for (const path of [
     databasePath,
     `${databasePath}-journal`,
@@ -282,6 +289,16 @@ describe.sequential("atomic publication integration", () => {
         where: { idempotencyKey: `submission.accepted:${submission.submissionId}` },
       }),
     ).toBe(1);
+    await expect(
+      runtime.acceptSubmission(
+        submission.submissionId,
+        editorId,
+        "A changed note must not reuse the acceptance operation.",
+      ),
+    ).rejects.toMatchObject({ code: "conflict" });
+    await expect(
+      runtime.acceptSubmission(submission.submissionId, otherUserId),
+    ).rejects.toMatchObject({ code: "conflict" });
   });
 
   it("allows only one terminal result in an accept-versus-reject race", async () => {

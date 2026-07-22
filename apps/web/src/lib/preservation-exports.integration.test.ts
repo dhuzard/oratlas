@@ -108,6 +108,9 @@ describe.sequential("preservation and standards exports", () => {
     expect(context).not.toBeNull();
     const { exportInput, provInput, manifest } = context!;
 
+    expect(exportInput.platformVersion).toBe("0.1.0");
+    expect(provInput.platformVersion).toBe("0.1.0");
+    expect(manifest.platformVersion).toBe("0.1.0");
     expect(exportInput.commitSha).toBe(commitA);
     expect(exportInput.treeSha).toBe(treeA);
     expect(manifest.preservedContentAvailable).toBe(true);

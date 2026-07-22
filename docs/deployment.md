@@ -69,13 +69,14 @@ non-unique, so `prisma db push` can add both to a populated database without
    transfer roles, or delete audit history based only on a matching login; rerun the backfill after
    reconciliation.
 4. Confirm no null normalized values remain. Database-enforced normalized uniqueness and making
-   the column required are deferred to the provider-specific migration tracked in
-   [issue #7](https://github.com/dhuzard/oratlas/issues/7).
+   the column required remain deferred provider-specific migration work. The original umbrella
+   [issue #7](https://github.com/dhuzard/oratlas/issues/7) is closed and must not be read as an open
+   tracker for this remaining step.
 
 OAuth also scans computed legacy login keys during this transition and rejects any collision, so an
 unbackfilled or case-colliding legacy account cannot confer its role on a newly authenticated user.
-Until issue #7 lands, this complete application scan—not the transitional index—is the uniqueness
-control.
+Until that provider-specific migration lands, this complete application scan—not the transitional
+index—is the uniqueness control.
 
 ## Security headers
 

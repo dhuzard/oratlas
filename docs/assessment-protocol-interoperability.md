@@ -18,19 +18,21 @@ This document describes exact repository states, not moving branches.
 
 | Protocol layer                | Protocol/version identity                                                                                                                | Immutable baseline                                                                                 |
 | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| TRUST.md v0.3                 | Unreleased additive v0.3 model recorded by accepted decisions D-001–D-012; no v0.3 schema, validator, or release existed at this pin     | `Neuronautix/TRUST.md@019f24b3e51d4213502af4fa916a104b6a8da4fd`                                    |
+| TRUST.md v0.4                 | Released v0.4 convention and schema; annotated release candidate `v0.4.0-rc.1`                                                           | `Neuronautix/TRUST.md@354beab9732bc72e357507c3a3f4b2f67b3cfced`                                    |
 | Computational Review TRUST v2 | Rubric/schema version `2.0.0`                                                                                                            | `Neuronautix/ComputationalReviewTemplate_trust-knowledge@165f336608eed7d22f6c6505da57a4e3577070cc` |
 | ORAtlas TRUST                 | Protocol `trust-poc-1.0`; subject schema `oratlas-trust-subject-1`; node-relation subject schema `oratlas-trust-node-relation-subject-1` | `dhuzard/oratlas@102d3fa96d47e9e7773720b0c36802f888cca4fe`                                         |
 
-The TRUST.md entry is a decision-complete implementation target, not a published protocol release.
-When v0.3 is released, this document must be updated in a reviewed change that pins the release tag
-and commit. ORAtlas must not silently treat later source content as equivalent to these baselines.
+The TRUST.md entry pins annotated tag `v0.4.0-rc.1`, tag object
+`e2eecd709992d00e18799c12e5e1b3136dbd421e`, tree
+`7d99eeb52252b56f469345a70c273c3484b3c6fe`, and schema blob
+`e20dd44832409fbfb16783cd8d7fdc44aa26c124`. ORAtlas must not silently treat later source
+content as equivalent to these baselines.
 
 ## The three layers
 
 | Layer                         | Assessment unit                                                            | Primary output                                                |
 | ----------------------------- | -------------------------------------------------------------------------- | ------------------------------------------------------------- |
-| TRUST.md v0.3                 | Repository, artifact, claim, or externally referenced relation declaration | Ordinal profile and assessment provenance                     |
+| TRUST.md v0.4                 | Repository, artifact, claim, or externally referenced relation declaration | Ordinal profile, lifecycle, supersession, and provenance      |
 | Computational Review TRUST v2 | Review claim as written                                                    | Five-component deterministic audit and experimental aggregate |
 | ORAtlas TRUST                 | Immutable claim–evidence relation                                          | Multidimensional independent relation assessment              |
 
@@ -50,17 +52,17 @@ range, reviewer status, or provenance field is interoperable only to the extent 
 
 ## Concept-level mapping
 
-| Concept                   | TRUST.md v0.3                                                                                                       | Computational Review TRUST v2                                                                      | ORAtlas TRUST                                                                                                 | Classification and required handling                                                                                                                      |
+| Concept                   | TRUST.md v0.4                                                                                                       | Computational Review TRUST v2                                                                      | ORAtlas TRUST                                                                                                 | Classification and required handling                                                                                                                      |
 | ------------------------- | ------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Protocol identity         | `trust_md_version` v0.3                                                                                             | `rubric_version`/`schema_version` 2.0.0                                                            | `protocolVersion` `trust-poc-1.0`                                                                             | **Equivalent as identity metadata only.** Preserve the native identifier verbatim; never collapse the three protocols under an unversioned “TRUST” label. |
+| Protocol identity         | `trust_md_version` `0.4`                                                                                            | `rubric_version`/`schema_version` 2.0.0                                                            | `protocolVersion` `trust-poc-1.0`                                                                             | **Equivalent as identity metadata only.** Preserve the native identifier verbatim; never collapse the three protocols under an unversioned “TRUST” label. |
 | Assessment unit           | Repository, artifact, claim, or external relation reference                                                         | Claim as written                                                                                   | Exact immutable claim–evidence relation                                                                       | **Related but not equivalent.** Unit must be explicit and preserved. A broader-unit assessment cannot be promoted to a narrower unit.                     |
-| Ordinal expression        | Primary five-band evidence-support semantics                                                                        | Derived claim label from deterministic component scores and caps                                   | Per-criterion seven-value vocabulary including `not-assessed` and `not-applicable`                            | **Related but not equivalent; not crosswalkable.** Identical-looking words do not authorize conversion.                                                   |
-| Numerical value           | Optional non-probabilistic 0–100 refinement within a band                                                           | Deterministic 0–100 claim audit aggregate                                                          | Optional 0–1 advisory mean of assessed ORAtlas ordinals                                                       | **Not crosswalkable.** Preserve native scale, method, and limitations. Never rescale or compare as if cardinally commensurate.                            |
-| Dimensions/components     | Statement type, evidence support, review status, calibration, source integrity; traceability recorded as provenance | Traceability, robustness, uncertainty calibration, source integrity, transferability/scope control | Ten relation criteria defined in `docs/trust-model.md`                                                        | **Related but not equivalent; native components are source-native only.** Similar names do not establish identical questions or scoring rules.            |
+| Ordinal expression        | Assessment-scoped vocabularies for evidence support, calibration, source integrity, and optional fitness conclusion | Derived claim label from deterministic component scores and caps                                   | Per-criterion seven-value vocabulary including `not-assessed` and `not-applicable`                            | **Related but not equivalent; not crosswalkable.** Identical-looking words do not authorize conversion.                                                   |
+| Numerical value           | Optional non-probabilistic 0–100 refinement scoped to one assessment                                                | Deterministic 0–100 claim audit aggregate                                                          | Optional 0–1 advisory mean of assessed ORAtlas ordinals                                                       | **Not crosswalkable.** Preserve native scale, method, and limitations. Never rescale or compare as if cardinally commensurate.                            |
+| Dimensions/components     | Evidence support, calibration, and source integrity; purpose and fitness are separate assessment fields             | Traceability, robustness, uncertainty calibration, source integrity, transferability/scope control | Ten relation criteria defined in `docs/trust-model.md`                                                        | **Related but not equivalent; native components are source-native only.** Similar names do not establish identical questions or scoring rules.            |
 | Missingness               | Missing, explicit `not-assessed`, `not-applicable`, and low support are distinct                                    | Native schema and audit rules                                                                      | Missing, `not-assessed`, and `not-applicable` remain distinct; unassessed values are excluded from aggregates | **Equivalent only where the source state is explicit and meanings match.** Do not turn absence into low support or zero.                                  |
 | Review process status     | `unreviewed`, `agent-reviewed`, `human-reviewed`, `adjudicated` with required provenance                            | Source-native human review and adjudication state                                                  | Imported assertion plus separate Atlas-owned verification marker                                              | **Related but not equivalent.** Source status is provenance, not platform authority.                                                                      |
-| Assessor/provenance       | Assessor, protocol, timestamp, independence and resolution provenance as applicable                                 | Validator, agent and human decision provenance                                                     | Source provenance plus immutable subject hash and Atlas verification provenance                               | **Equivalent for literal provenance facts; related but not equivalent for authority.** Preserve actor, time, method, and source without promotion.        |
-| Aggregate                 | Optional/deprecated native summaries; no mandatory aggregate                                                        | Experimental deterministic claim aggregate with component detail and caps                          | Optional advisory criterion mean, method-labelled                                                             | **Source-native only and not crosswalkable.** Aggregates remain bound to their protocol and unit.                                                         |
+| Assessor/provenance       | Assessment series/id/version, assessor, protocol, timestamp, declared independence, basis, and lifecycle provenance | Validator, agent and human decision provenance                                                     | Source provenance plus immutable subject hash and Atlas verification provenance                               | **Equivalent for literal provenance facts; related but not equivalent for authority.** Preserve actor, time, method, and source without promotion.        |
+| Aggregate                 | Top-level cross-assessment aggregation forbidden; optional summary scoped to one assessment and protocol            | Experimental deterministic claim aggregate with component detail and caps                          | Optional advisory criterion mean, method-labelled                                                             | **Source-native only and not crosswalkable.** Aggregates remain bound to their protocol and unit.                                                         |
 | Verification/adjudication | Declares completion of a source review process                                                                      | Declares source-side review of the claim audit                                                     | Separate hash-bound ORAtlas editor marker                                                                     | **Not equivalent.** Only the Atlas marker changes ORAtlas verification state.                                                                             |
 
 ## Field handling rules
@@ -100,9 +102,9 @@ versioned, reviewed crosswalk explicitly establishes that mapping.
 ### Source-native-only fields
 
 Computational Review TRUST v2 component scores, rules, caps, labels, aggregate, and source review
-decisions are source-native assertions. TRUST.md v0.3 bands, optional refinements, dimensions,
-summaries, and conformance claims are likewise source-native unless ORAtlas independently evaluates
-its own relation criteria.
+decisions are source-native assertions. TRUST.md v0.4 dimension vocabularies, fitness conclusions,
+optional refinements, assessment-scoped summaries, and conformance claims are likewise source-native
+unless ORAtlas independently evaluates its own relation criteria.
 
 Source-native data may support discovery, provenance inspection, or side-by-side display. It must
 not populate ORAtlas criterion columns, set an ORAtlas aggregate, satisfy an ORAtlas verification
@@ -211,6 +213,7 @@ Changes to this document require review whenever they alter import, preservation
 verification, or aggregation behaviour. A source protocol release does not update these rules
 automatically.
 
-The next mandatory update is triggered by the published TRUST.md v0.3 release. That update must pin
-the release tag and commit, compare the executable specification with the decision baseline above,
-and record any semantic differences before ORAtlas accepts v0.3 records as a supported protocol.
+The next mandatory update is triggered by a stable TRUST.md v0.4 release or any v0.5 release
+candidate. That update must pin the tag, commit, tree, and schema blob; compare the executable
+specification with the baseline above; and record semantic differences before ORAtlas accepts the
+new pin as a supported protocol.

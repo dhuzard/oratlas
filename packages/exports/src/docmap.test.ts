@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { docmap, type DocmapInput } from "./docmap.js";
 
 const base: DocmapInput = {
+  platformVersion: "0.1.0",
   id: "https://atlas.example.org/reviews/r/versions/v-1/export/docmap",
   publisherName: "Open Review Atlas",
   publisherUrl: "https://atlas.example.org",
@@ -47,6 +48,7 @@ describe("docmap", () => {
     const map = docmap(base);
     const steps = map["steps"] as Record<string, Record<string, unknown>>;
     expect(map["first-step"]).toBe("_:b0");
+    expect(map["publisher"]).toMatchObject({ "platform-version": "0.1.0" });
     expect(steps["_:b0"]!["next-step"]).toBe("_:b1");
     expect(steps["_:b1"]!["previous-step"]).toBe("_:b0");
     expect(steps["_:b1"]!["next-step"]).toBe("_:b2");

@@ -2,8 +2,8 @@
 
 This file is the **single canonical backlog** for `dhuzard/oratlas`. It supersedes `TODO.md`
 (the KG-01…KG-20 backlog, fully shipped and retained as a historical record) and the PR-00…PR-10
-list in `PLAN.md` (also fully shipped). Planning state lives here; unresolved governance and
-scientific questions live in `ORATLAS_DECISIONS.md`; upstream coupling lives in
+list in `PLAN.md` (also fully shipped). Planning state lives here; governance and scientific
+decision records live in `ORATLAS_DECISIONS.md`; upstream coupling lives in
 `CROSS_REPO_DEPENDENCIES.md`.
 
 ORAtlas is an immutable archive and open-review platform for AI-enriched computational reviews.
@@ -137,9 +137,8 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-A03 — Frozen Ethical Debt integration fixture
 
-- **Status:** ready · **Priority:** P1 · **Size:** M · **Agent:** conditional (a maintainer must
-  confirm the exact release/commit pin and that the repo's artifact layout is intended for
-  ingestion; record the pin in `CROSS_REPO_DEPENDENCIES.md`)
+- **Status:** ready · **Priority:** P1 · **Size:** M · **Agent:** yes (pin and artifact layout
+  ratified in `ORATLAS_DECISIONS.md` §13 and `CROSS_REPO_DEPENDENCIES.md`)
 - **Packages:** `apps/web` (e2e fixtures), `packages/extractor` (fixtures), `scripts` ·
   **External dep:** `dhuzard/ethical-debt-AI-review` (exact release or commit) · **Issue/PR:** none
 - **Goal:** The first reference review has **no presence in this repository** (zero references
@@ -163,12 +162,12 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-A04 — Ingest and surface template TRUST.md / FAIR.md assessment documents
 
-- **Status:** backlog · **Priority:** P2 · **Size:** M · **Agent:** conditional (requires a
-  maintainer to define which statements in TRUST.md/FAIR.md are extractable facts vs prose;
-  "suggest improvements" upstream is human work)
+- **Status:** ready · **Priority:** P2 · **Size:** M · **Agent:** yes (preservation-only
+  extraction boundary ratified in `ORATLAS_DECISIONS.md` §12; upstream suggestions remain
+  human communication)
 - **Packages:** `packages/extractor`, `packages/contracts`, `apps/web` · **External dep:**
   `AllenNeuralDynamics/ComputationalReviewTemplate` (file conventions),
-  `Neuronautix/ComputationalReviewTemplate_trust-knowledge` (semantics) · **Issue/PR:** issue #18
+  `Neuronautix/TRUST.md` (versioned convention and schemas) · **Issue/PR:** issue #18
 - **Goal:** Template repositories may carry `TRUST.md`/`FAIR.md` describing their assessment
   methodology. Detect them, preserve them as source-native provenance documents, and link them
   from the review's assessment display — without interpreting or scoring them.
@@ -206,9 +205,9 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-B01 — Transactional-publication audit across review, node, and synthesis acceptance
 
-- **Status:** ready · **Priority:** P0 · **Size:** S · **Agent:** yes
-- **Packages:** `apps/web`, `packages/db` · **External dep:** none · **Issue/PR:** builds on
-  PRs #13, #16, #17, KG-04, KG-13
+- **Status:** review (integration train 1) · **Priority:** P0 · **Size:** S · **Agent:** yes
+- **Packages:** `apps/web`, `packages/db` · **External dep:** none · **Issue/PR:** integration PR #102;
+  source PR #78; builds on PRs #13, #16, #17, KG-04, KG-13
 - **Goal:** Acceptance paths use serializable compare-and-set, idempotency keys, and unique
   constraints. Audit that **no** acceptance path (prose review, node selection, node-edge
   confirmation, synthesis decision, lifecycle events) can leave partially-public state under
@@ -224,8 +223,9 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-B02 — Platform release versioning and changelog
 
-- **Status:** backlog · **Priority:** P2 · **Size:** S · **Agent:** yes
-- **Packages:** repo root, `docs` · **External dep:** none · **Issue/PR:** none
+- **Status:** review (integration train 1) · **Priority:** P2 · **Size:** S · **Agent:** yes
+- **Packages:** repo root, `docs` · **External dep:** none · **Issue/PR:** integration PR #102;
+  source PR #93
 - **Goal:** The archive asserts immutability of scholarly records, but the platform itself has
   no tagged releases or changelog, making "which code produced this record" harder to answer
   than it should be for a preservation system.
@@ -275,8 +275,8 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-D01 — Multiple-assessment contract (coexistence without overwrite)
 
-- **Status:** ready · **Priority:** P1 · **Size:** M · **Agent:** conditional (contract
-  semantics need one maintainer review; no open governance question blocks coexistence itself)
+- **Status:** ready · **Priority:** P1 · **Size:** M · **Agent:** yes (identity, replay,
+  singleton, supersession, and ordering contract ratified in `ORATLAS_DECISIONS.md` §11)
 - **Packages:** `packages/contracts`, `packages/trust`, `packages/db`, `apps/web` ·
   **External dep:** none · **Issue/PR:** none
 - **Goal:** `TrustAssessment` has no uniqueness on its relation, so multiple rows can exist,
@@ -302,9 +302,8 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-D02 — Explicit disagreement and adjudication records
 
-- **Status:** blocked (adjudication authority + display rules — `ORATLAS_DECISIONS.md` §5, §2)
-  · **Priority:** P1 · **Size:** L · **Agent:** conditional after the decision (schema/flow is
-  then mechanical)
+- **Status:** ready · **Priority:** P1 · **Size:** L · **Agent:** yes (authority, display, and
+  non-compensation boundaries ratified in `ORATLAS_DECISIONS.md` §§2–5)
 - **Packages:** `packages/contracts`, `packages/trust`, `packages/db`, `apps/web` ·
   **External dep:** none · **Issue/PR:** none
 - **Goal:** When two assessments of the same relation disagree, the disagreement must be a
@@ -344,8 +343,8 @@ At most five items, ordered. Rationale and dependencies:
 
 - **Status:** backlog · **Priority:** P0 · **Size:** S · **Agent:** yes
 - **Packages:** `packages/trust`, `packages/contracts`, `docs` · **External dep:**
-  `Neuronautix/ComputationalReviewTemplate_trust-knowledge` (protocol identity semantics) ·
-  **Issue/PR:** none
+  `Neuronautix/TRUST.md` and `Neuronautix/ComputationalReviewTemplate_trust-knowledge`
+  (distinct protocol identities; no implicit crosswalk) · **Issue/PR:** none
 - **Goal:** `protocolVersion` is stored per assessment, but nothing structurally prevents a
   future feature from comparing, averaging, or converting ratings across different protocols.
   Make "no invented crosswalk" an enforced, tested property, not just a convention.
@@ -455,8 +454,8 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-F02 — Conflict-of-interest representation
 
-- **Status:** blocked (`ORATLAS_DECISIONS.md` §6) · **Priority:** P2 · **Size:** M ·
-  **Agent:** conditional after the decision
+- **Status:** ready · **Priority:** P2 · **Size:** M · **Agent:** yes (public provenance,
+  recusal, and audited-override contract ratified in `ORATLAS_DECISIONS.md` §6)
 - **Packages:** `packages/contracts`, `packages/db`, `apps/web` · **External dep:** none ·
   **Issue/PR:** none
 - **Goal:** Assessments, adjudications, and challenge resolutions carry no declared-interest
@@ -548,8 +547,9 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-I01 — Assessment and challenge representation in exports
 
-- **Status:** backlog · **Priority:** P2 · **Size:** M · **Agent:** conditional (export
-  vocabulary choices need one maintainer review)
+- **Status:** ready · **Priority:** P2 · **Size:** M · **Agent:** yes (uncollapsed assessment,
+  challenge, source-native, and verification boundaries ratified in
+  `ORATLAS_DECISIONS.md` §§1–2, §9, §§11–12)
 - **Packages:** `packages/exports`, `packages/federation` · **External dep:** consuming
   services · **Issue/PR:** builds on PRs #15, #26
 - **Goal:** Once multiple assessments (ORA-D01) and challenges (ORA-E01) exist, scholarly
@@ -601,9 +601,9 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-J02 — Backup/restore and disaster-recovery drill
 
-- **Status:** backlog · **Priority:** P2 · **Size:** S · **Agent:** yes
-- **Packages:** `scripts`, `docs/operations` · **External dep:** none · **Issue/PR:** builds
-  on `scripts/backup.ts`/`restore.ts`
+- **Status:** review (integration train 1) · **Priority:** P2 · **Size:** S · **Agent:** yes
+- **Packages:** `scripts`, `docs/operations` · **External dep:** none · **Issue/PR:** integration PR #102;
+  source PR #82; builds on `scripts/backup.ts`/`restore.ts`
 - **Goal:** Scripts and docs exist; prove them. A CI job that backs up a seeded database,
   destroys it, restores, and byte-compares public API output before/after.
 - **Scope:** Drill job (SQLite now, Postgres with ORA-K01); document RPO/RTO expectations.
@@ -628,9 +628,9 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-K01 — Postgres CI matrix
 
-- **Status:** backlog · **Priority:** P1 · **Size:** M · **Agent:** yes
-- **Packages:** `.github`, `packages/db` · **External dep:** none · **Issue/PR:** builds on
-  PR #22
+- **Status:** review (integration train 1) · **Priority:** P1 · **Size:** M · **Agent:** yes
+- **Packages:** `.github`, `packages/db` · **External dep:** none · **Issue/PR:** integration PR #102;
+  source PR #79; builds on PR #22
 - **Goal:** CI's existing `postgres` job already proves schema generation, push, and seed
   against a real Postgres 16 service on every PR. The remaining gap: the unit/integration
   test suite — in particular the serialization-sensitive acceptance-transaction tests — still
@@ -644,9 +644,9 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-K02 — Fixture-capture tooling for frozen external repositories
 
-- **Status:** backlog · **Priority:** P1 · **Size:** S · **Agent:** yes
+- **Status:** review (integration train 1) · **Priority:** P1 · **Size:** S · **Agent:** yes
 - **Packages:** `scripts`, test fixtures · **External dep:** any pinned external repo ·
-  **Issue/PR:** generalizes the KG-20 interception pattern
+  **Issue/PR:** integration PR #102; source PR #77; generalizes the KG-20 interception pattern
 - **Goal:** ORA-A03 needs to freeze a real repository deterministically; future reference
   reviews will too. Provide one reusable capture script: given `owner/repo` + commit/release,
   fetch the bounded file set the inspector would read, write hashed fixture bytes, and emit
@@ -660,8 +660,9 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-K03 — E2E wall-time and flake budget
 
-- **Status:** backlog · **Priority:** P2 · **Size:** S · **Agent:** yes
-- **Packages:** `apps/web`, `.github` · **External dep:** none · **Issue/PR:** none
+- **Status:** review (integration train 1) · **Priority:** P2 · **Size:** S · **Agent:** yes
+- **Packages:** `apps/web`, `.github` · **External dep:** none · **Issue/PR:** integration PR #102;
+  source PR #83
 - **Goal:** The Playwright surface has grown (KG-20 journey + suites). Measure wall time,
   set a budget, deduplicate overlapping journeys, and track flakes before they normalize.
 - **Scope:** Timing report; seed reuse; retire redundant specs only with coverage proof.
@@ -674,8 +675,9 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-L01 — Reconcile planning and status documentation with implementation
 
-- **Status:** ready · **Priority:** P1 · **Size:** S · **Agent:** yes
-- **Packages:** repo root, `docs` · **External dep:** none · **Issue/PR:** none
+- **Status:** review (integration train 1) · **Priority:** P1 · **Size:** S · **Agent:** yes
+- **Packages:** repo root, `docs` · **External dep:** none · **Issue/PR:** integration PR #102;
+  source PR #88
 - **Goal:** `PLAN.md` still frames KG-01…KG-20 as "the next phase"; `TODO.md` is a completed
   tracker that reads as active; README should point newcomers at the current model and this
   backlog. Bring the narrative docs in line with shipped reality and this file (partially done
@@ -695,11 +697,11 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-L02 — Contributor guide for this backlog and agent workflow
 
-- **Status:** backlog · **Priority:** P2 · **Size:** S · **Agent:** yes
-- **Packages:** repo root · **External dep:** none · **Issue/PR:** none
-- **Goal:** CONTRIBUTING.md predates this tracker. Add the backlog workflow (one item = one
-  branch = one PR, status field updates, verification bar) and the agent rules below so human
-  and agent contributors follow the same loop.
+- **Status:** review (integration train 1) · **Priority:** P2 · **Size:** S · **Agent:** yes
+- **Packages:** repo root · **External dep:** none · **Issue/PR:** integration PR #102; source PR #81
+- **Goal:** CONTRIBUTING.md predates this tracker. Add the ORA-scoped commit and integration-train
+  workflow, status field updates, verification bar, and agent rules below so human and agent
+  contributors follow the same loop.
 - **Scope:** CONTRIBUTING.md section; link from README.
 - **Non-goals:** No process beyond what this file defines.
 - **Dependencies:** none.
@@ -708,10 +710,10 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-L03 — Resolve open governance and scientific decisions
 
-- **Status:** blocked (human governance — this is the tracking item for
-  `ORATLAS_DECISIONS.md`) · **Priority:** P1 · **Size:** M · **Agent:** no
-- **Packages:** `docs` · **External dep:** `Neuronautix/ComputationalReviewTemplate_trust-knowledge`
-  for protocol-semantics questions · **Issue/PR:** none
+- **Status:** review (decision slate ratified 2026-07-22; dependent implementation now
+  unblocked) · **Priority:** P1 · **Size:** M · **Agent:** no
+- **Packages:** `docs` · **External dep:** `Neuronautix/TRUST.md` for protocol-semantics
+  questions · **Issue/PR:** integration train
 - **Goal:** Several backlog items (ORA-D02, ORA-F02, parts of ORA-E01/E02) are blocked on the
   questions in `ORATLAS_DECISIONS.md`. Decisions are made by the maintainer/editorial group,
   recorded there with rationale and date, and unblock items here.
@@ -727,9 +729,10 @@ At most five items, ordered. Rationale and dependencies:
 
 ## Rules for autonomous agents
 
-1. **One backlog item per branch and per PR.** Prefix branch and PR title with the item ID
-   (`ORA-D01: …`). Update the item's Status here in the same PR, and add the PR reference to
-   its Issue/PR field.
+1. **Code in ORA-scoped commits; review in integration trains.** Keep one backlog item per
+   commit series and prefix commits with the item ID, but group 5–10 related items into one
+   outcome-based integration branch and PR. `INTEGRATION_TRAINS.md` is the canonical mapping.
+   Do not open an item-level PR unless isolation is required for an urgent security fix.
 2. **Never weaken immutability, provenance, or fail-closed behavior.** If a test gets in your
    way, the test is probably the specification.
 3. **Do not alter scientific semantics incidentally.** A refactor that changes what a rating,
@@ -742,17 +745,19 @@ At most five items, ordered. Rationale and dependencies:
    are new records.
 7. **Preserve historical records and hashes.** Migrations are additive; reconciliation aborts
    on ambiguity rather than choosing a scholarly record.
-8. **Add tests for contracts, migrations, permissions, and public behavior** in every PR that
-   touches them. Verification bar: `pnpm lint && pnpm typecheck && pnpm test &&
-pnpm schema:check`, plus `pnpm --filter @oratlas/web build`, plus e2e when `apps/web`
-   changes.
+8. **Add tests for contracts, migrations, permissions, and public behavior** in every ORA
+   commit that touches them. Every integration train runs the complete verification bar:
+   `pnpm lint && pnpm typecheck && pnpm test && pnpm schema:check`, plus
+   `pnpm --filter @oratlas/web build`, plus e2e when `apps/web` changes.
 9. **Use frozen fixtures for deterministic tests.** No live network in CI, ever.
 10. **Mark work `blocked` when governance or scientific judgment is required** and record the
     question in `ORATLAS_DECISIONS.md` instead of deciding it in code.
-11. **Prefer small, reversible PRs.** An L-sized item should land as a sequence of reviewable
-    slices behind complete states, not one mega-PR.
-12. **Update this backlog with the PR reference** on completion (`done (PR #N)`), mirroring
-    the convention `TODO.md` used.
+11. **Prefer small, reversible commits inside bounded trains.** Preserve a green state after
+    each ORA commit where practical. Keep at most two integration PRs under active human
+    review and use independent semantic and security reviews before requesting approval.
+12. **Update this backlog with the integration PR reference** on completion
+    (`done (integration PR #N)`), while the train manifest preserves source-PR and commit
+    provenance.
 
 ## Non-goals (platform charter — binding for every item)
 

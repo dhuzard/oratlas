@@ -6,7 +6,8 @@ const mocks = vi.hoisted(() => {
   const tx = {
     review: { findUnique: vi.fn(), updateMany: vi.fn() },
     reviewVersion: { update: vi.fn() },
-    reviewLifecycleEvent: { create: vi.fn() },
+    reviewLifecycleEvent: { findUnique: vi.fn(), create: vi.fn() },
+    idempotencyKey: { findUnique: vi.fn(), create: vi.fn() },
     auditEvent: { create: vi.fn() },
   };
   return {
@@ -64,6 +65,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   mocks.tx.review.findUnique.mockResolvedValue(reviewRow());
   mocks.tx.review.updateMany.mockResolvedValue({ count: 1 });
+  mocks.tx.idempotencyKey.findUnique.mockResolvedValue(null);
 });
 
 describe("lifecycle/current-version races", () => {

@@ -689,3 +689,58 @@ introducing a test-only production route or granting an agent publication author
   node-head-change proposal with its exact old/new node-version IDs, requesting regeneration as an
   editor, and verifying the public reader and archive stale disclosures. CI explicitly clears
   provider, model, and API-key variables so the journey stays offline and deterministic.
+
+## ORA-B01 — Transactional-publication audit
+
+**Objective:** prove that every transition which makes scholarly state public commits its content,
+decision, idempotency claim, attribution, and audit record as one unit under crashes, retries, and
+concurrent editors.
+
+The audit found two coupled gaps in the formal editorial workflow. `issueDecision` previously
+published or rejected a submission first and closed its review round in a second transaction; a
+failure between them could expose a review without its decision letter. The legacy direct decision
+endpoint could also bypass an open formal round. Formal decisions now use the transaction-aware
+submission decision core inside one serializable transaction, and direct decisions fail closed
+while a formal round is open.
+
+Retry identity is now the full canonical decision, not merely its target or selected nodes.
+Submission acceptance binds editor, note, validated overrides, and normalized node selection;
+terminal rejection/request-changes decisions bind editor, decision, and note. Formal round and
+review lifecycle decisions similarly bind their complete payloads. Exact response-loss retries
+return the committed result, while a reused key/revision with changed bytes or actor conflicts.
+
+| Public transition                           | Atomic boundary                                                                                                                                        | Conflict/retry proof                                                                                        | Late-crash proof                                                                                                                    |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| Prose review and selected knowledge nodes   | `acceptSubmission` serializable transaction; formal calls reuse its transaction-aware core                                                             | Concurrent exact accept, accept-versus-reject, exact subset replay, changed selection/note/editor rejection | Existing mid-materialization abort proves status, review version, nodes, idempotency claims, and audits roll back                   |
+| Formal decision letter and archive decision | One `issueDecision` serializable transaction containing submission decision, publication, letter, round closure, assignments, notification, and audits | Exact formal replay; changed round decision conflicts; direct bypass blocked                                | Final `editorial.decision-issued` audit trigger abort leaves submission pending, round open, and no review, letter, claim, or audit |
+| Confirmed or superseded node edge           | `decideNodeEdgeProposal` serializable transaction containing edge, proposal CAS, claim, and audit                                                      | Exact replay, changed retry, decision race, and concurrent shared-edge confirmation                         | Final audit trigger abort leaves proposal private and removes edge, claim, and audit                                                |
+| Accepted synthesis                          | `decideSynthesisDraft` serializable transaction containing review/version/head, draft/run decision, proposal supersession, claims, and audits          | Exact replay with request hash, changed retry, accept/reject race                                           | Final acceptance-audit trigger abort leaves the draft pending and creates no review/version, claim, or audit                        |
+| Correction, withdrawal, or tombstone        | Serializable `recordReviewLifecycleEvent` transaction containing review CAS, public state, event, claim, and audit                                     | Exact revision replay, changed-payload conflict, concurrent different decisions                             | Final audit trigger abort restores public state and removes event, claim, and audit                                                 |
+
+SQLite integration tests exercise every row, including deterministic `RAISE(ABORT)` injection at
+the last audit write. The same provider-sensitive concurrency matrix will run against PostgreSQL
+under ORA-K01; the transaction and CAS invariants are provider-independent, but PostgreSQL remains
+the authoritative proof for its serialization-error behavior.
+
+## ORA-B02 — Platform release versioning and changelog
+
+- Made the root package version the platform provenance source and added one database-client query
+  extension that stamps direct, bulk, returned-bulk, and transactional audit writes. Historical
+  audit rows remain nullable and are not backfilled.
+- Added the generator platform version to every public `/export/` representation and exposed audit
+  versions in the editorial log, with `legacy` reserved for pre-versioning rows.
+- Added a Keep a Changelog record and a tag-gated release workflow that validates tag/version/main
+  ancestry, verifies the tagged source, and creates a GitHub Release from the exact changelog entry.
+  The first annotated tag remains an explicit post-merge maintainer action.
+
+## ORA-L01 — Planning and status documentation reconciliation
+
+**Objective:** make the repository's narrative point to the canonical current tracker without
+rewriting the historical implementation record.
+
+- Marked PR-00…PR-10 and KG-01…KG-20 as shipped phases, retained `TODO.md` as history, and linked
+  `ORATLAS_BACKLOG.md`, `ORATLAS_DECISIONS.md`, and `CROSS_REPO_DEPENDENCIES.md` from the current plan.
+- Added the active backlog and decision register to the README documentation index.
+- Verified that references #3, #7, #56, #60, and #66 are real, closed repository issues rather than
+  PR-number drift. Documentation now labels them as closed implementation/umbrella records and
+  names work that remains deferred instead of saying a closed issue has yet to land.
