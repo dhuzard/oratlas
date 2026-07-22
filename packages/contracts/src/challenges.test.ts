@@ -3,6 +3,10 @@ import {
   CHALLENGE_BODY_MAX,
   CHALLENGE_STATUSES,
   createChallengeInputSchema,
+  createChallengeResponseInputSchema,
+  moderateChallengeContentInputSchema,
+  publicChallengeResponseSchema,
+  challengeTransitionSchema,
   isLegalChallengeTransition,
 } from "./challenges.js";
 
@@ -44,5 +48,46 @@ describe("challenge contracts", () => {
         );
       }
     }
+  });
+
+  it("bounds responses and requires compare-and-set moderation revisions", () => {
+    expect(
+      createChallengeResponseInputSchema.parse({ expectedRevision: 0, body: "A response." }),
+    ).toEqual({ expectedRevision: 0, body: "A response." });
+    expect(
+      createChallengeResponseInputSchema.safeParse({
+        expectedRevision: 0,
+        body: "x".repeat(10_001),
+      }).success,
+    ).toBe(false);
+    expect(
+      moderateChallengeContentInputSchema.safeParse({ expectedContentRevision: -1 }).success,
+    ).toBe(false);
+    const projected = publicChallengeResponseSchema.parse({
+      id: "response-1",
+      body: "",
+      contentHash: "a".repeat(64),
+      contentStatus: "removed",
+      contentRevision: 1,
+      responder: { githubLogin: "author", displayName: null },
+      contributorRoles: ["author"],
+      removedById: "editor-private-id",
+      createdAt: "2026-07-22T00:00:00.000Z",
+    });
+    expect(projected).not.toHaveProperty("contributorRoles");
+    expect(projected).not.toHaveProperty("removedById");
+    const publicTransition = challengeTransitionSchema.parse({
+      id: "transition-1",
+      fromStatus: "author-responded",
+      toStatus: "resolved",
+      actor: { githubLogin: "editor", role: "EDITOR" },
+      actorRoleSnapshot: "EDITOR",
+      rationale: "private rationale",
+      revision: 2,
+      createdAt: "2026-07-22T00:00:00.000Z",
+    });
+    expect(publicTransition.actor).not.toHaveProperty("role");
+    expect(publicTransition).not.toHaveProperty("actorRoleSnapshot");
+    expect(publicTransition).not.toHaveProperty("rationale");
   });
 });

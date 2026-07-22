@@ -257,17 +257,23 @@ describe.sequential("formal challenge persistence and lifecycle", () => {
       }),
     ).rejects.toMatchObject({ code: "conflict" });
     await expect(
-      service.transitionChallenge(created.id, challenger, {
-        expectedRevision: 0,
-        toStatus: "author-responded",
-      }),
-    ).rejects.toMatchObject({ code: "forbidden" });
-    await expect(
       service.transitionChallenge(created.id, author, {
         expectedRevision: 0,
         toStatus: "author-responded",
       }),
-    ).resolves.toEqual({ revision: 1, status: "author-responded" });
+    ).rejects.toMatchObject({ code: "bad-request" });
+    await expect(
+      service.createChallengeResponse(created.id, challenger, {
+        expectedRevision: 0,
+        body: "Not a contributor response.",
+      }),
+    ).rejects.toMatchObject({ code: "forbidden" });
+    await expect(
+      service.createChallengeResponse(created.id, author, {
+        expectedRevision: 0,
+        body: "The contributor addresses the exact method objection.",
+      }),
+    ).resolves.toMatchObject({ revision: 1, status: "author-responded" });
     await expect(
       service.transitionChallenge(created.id, challenger, {
         expectedRevision: 1,
@@ -290,6 +296,100 @@ describe.sequential("formal challenge persistence and lifecycle", () => {
     ).resolves.toEqual({ revision: 2, status: "resolved" });
     expect(await prisma.challengeTransition.count({ where: { challengeId: created.id } })).toBe(3);
     expect(await prisma.auditEvent.count({ where: { subjectId: created.id } })).toBe(3);
+    expect(
+      await prisma.auditEvent.count({ where: { action: "challenge.response-created" } }),
+    ).toBeGreaterThan(0);
+  });
+
+  it("records the full response, moderation, tombstone, resolution, queue, and audit exchange", async () => {
+    const seeded = await fixture("exchange");
+    const subject = { type: "claim" as const, claimId: seeded.claim.id };
+    const binding = await service.resolveChallengeSubject(prisma, seeded.version.id, subject);
+    const challengeText = "<img src=x onerror=alert(1)> retained challenge bytes";
+    const responseText = "<script>alert(2)</script> retained response bytes";
+    const privateRationale = "PRIVATE-EDITORIAL-RESOLUTION-RATIONALE";
+    const created = await service.createChallenge(seeded.review.slug, challenger, {
+      reviewVersionId: seeded.version.id,
+      subject,
+      canonicalSubjectHash: binding.hash,
+      grounds: "entailment",
+      body: challengeText,
+    });
+
+    const response = await service.createChallengeResponse(created.id, author, {
+      expectedRevision: 0,
+      body: responseText,
+    });
+    const queue = await service.listOpenChallengePage();
+    expect(queue.items.find(({ id }) => id === created.id)).toMatchObject({
+      status: "author-responded",
+      challengeHref: `/reviews/${seeded.review.slug}/versions/${seeded.version.id}#challenge-${created.id}`,
+    });
+    const firstQueuePage = await service.listOpenChallengePage(undefined, 1);
+    expect(firstQueuePage.items).toHaveLength(1);
+    expect(firstQueuePage.nextCursor).toBeTruthy();
+    const secondQueuePage = await service.listOpenChallengePage(firstQueuePage.nextCursor!, 1);
+    expect(secondQueuePage.items.map(({ id }) => id)).not.toContain(firstQueuePage.items[0]!.id);
+
+    const moderationRace = await Promise.allSettled([
+      service.removeChallengeResponseContent(response.id, editor, { expectedContentRevision: 0 }),
+      service.removeChallengeResponseContent(response.id, editor, { expectedContentRevision: 0 }),
+    ]);
+    expect(moderationRace.filter(({ status }) => status === "fulfilled")).toHaveLength(1);
+    expect(moderationRace.filter(({ status }) => status === "rejected")).toHaveLength(1);
+    await service.removeChallengeContent(created.id, editor, { expectedContentRevision: 0 });
+    await service.transitionChallenge(created.id, editor, {
+      expectedRevision: 1,
+      toStatus: "resolved",
+      rationale: privateRationale,
+    });
+
+    const retained = await prisma.challenge.findUniqueOrThrow({
+      where: { id: created.id },
+      include: { response: true, transitions: { orderBy: { revision: "asc" } } },
+    });
+    expect(retained).toMatchObject({
+      body: challengeText,
+      contentStatus: "removed",
+      removedById: editor.id,
+    });
+    expect(retained.response).toMatchObject({
+      body: responseText,
+      contentStatus: "removed",
+      removedById: editor.id,
+    });
+    expect(retained.transitions.at(-1)?.rationale).toBe(privateRationale);
+
+    const publicRow = (await service.listChallenges(seeded.review.slug, seeded.version.id))!
+      .challenges[0]!;
+    expect(publicRow).toMatchObject({ body: "", contentStatus: "removed", status: "resolved" });
+    expect(publicRow.response).toMatchObject({ body: "", contentStatus: "removed" });
+    const serialized = JSON.stringify(publicRow);
+    for (const privateValue of [
+      challengeText,
+      responseText,
+      privateRationale,
+      editor.id,
+      "EDITOR",
+      "contributorRoles",
+      "rolesJsonSnapshot",
+    ]) {
+      expect(serialized).not.toContain(privateValue);
+    }
+    expect(await service.listOpenChallengePage()).not.toEqual(
+      expect.objectContaining({
+        items: expect.arrayContaining([expect.objectContaining({ id: created.id })]),
+      }),
+    );
+    for (const action of [
+      "challenge.filed",
+      "challenge.response-created",
+      "challenge.content-removed",
+      "challenge.response-removed",
+      "challenge.transitioned",
+    ]) {
+      expect(await prisma.auditEvent.count({ where: { action } })).toBeGreaterThan(0);
+    }
   });
 
   it("fails closed after target tampering", async () => {
@@ -669,9 +769,9 @@ describe.sequential("formal challenge persistence and lifecycle", () => {
       });
 
     const dismissed = await file("Dismiss this after response.");
-    await service.transitionChallenge(dismissed.id, author, {
+    await service.createChallengeResponse(dismissed.id, author, {
       expectedRevision: 0,
-      toStatus: "author-responded",
+      body: "A bounded contributor response for dismissal.",
     });
     await expect(
       service.transitionChallenge(dismissed.id, editor, {
@@ -688,9 +788,9 @@ describe.sequential("formal challenge persistence and lifecycle", () => {
     ).rejects.toMatchObject({ code: "conflict" });
 
     const withdrawn = await file("Withdraw this after response.");
-    await service.transitionChallenge(withdrawn.id, author, {
+    await service.createChallengeResponse(withdrawn.id, author, {
       expectedRevision: 0,
-      toStatus: "author-responded",
+      body: "A bounded contributor response before withdrawal.",
     });
     await expect(
       service.transitionChallenge(withdrawn.id, challenger, {
@@ -701,13 +801,13 @@ describe.sequential("formal challenge persistence and lifecycle", () => {
 
     const raced = await file("Only one response transition may win.");
     const results = await Promise.allSettled([
-      service.transitionChallenge(raced.id, author, {
+      service.createChallengeResponse(raced.id, author, {
         expectedRevision: 0,
-        toStatus: "author-responded",
+        body: "Concurrent response A.",
       }),
-      service.transitionChallenge(raced.id, author, {
+      service.createChallengeResponse(raced.id, author, {
         expectedRevision: 0,
-        toStatus: "author-responded",
+        body: "Concurrent response B.",
       }),
     ]);
     expect(results.filter((result) => result.status === "fulfilled")).toHaveLength(1);
@@ -752,9 +852,9 @@ describe.sequential("formal challenge persistence and lifecycle", () => {
     ).toBe(1);
 
     const created = successes[0]!.value;
-    await service.transitionChallenge(created.id, author, {
+    await service.createChallengeResponse(created.id, author, {
       expectedRevision: 0,
-      toStatus: "author-responded",
+      body: "The active-key response.",
     });
     await expect(
       service.createChallenge(seeded.review.slug, challenger, input),
@@ -797,9 +897,9 @@ describe.sequential("formal challenge persistence and lifecycle", () => {
       grounds: "source-access",
       body: "Legacy responded challenge.",
     });
-    await service.transitionChallenge(responded.id, author, {
+    await service.createChallengeResponse(responded.id, author, {
       expectedRevision: 0,
-      toStatus: "author-responded",
+      body: "Legacy response content.",
     });
     await prisma.challenge.updateMany({
       where: { id: { in: [open.id, responded.id] } },
@@ -861,11 +961,11 @@ describe.sequential("formal challenge persistence and lifecycle", () => {
       }),
     ).rejects.toMatchObject({ code: "conflict" });
     await expect(
-      service.transitionChallenge(open.id, author, {
+      service.createChallengeResponse(open.id, author, {
         expectedRevision: 0,
-        toStatus: "author-responded",
+        body: "Adopted open response.",
       }),
-    ).resolves.toEqual({ revision: 1, status: "author-responded" });
+    ).resolves.toMatchObject({ revision: 1, status: "author-responded" });
     await service.transitionChallenge(responded.id, editor, {
       expectedRevision: 1,
       toStatus: "resolved",
@@ -878,11 +978,11 @@ describe.sequential("formal challenge persistence and lifecycle", () => {
       }),
     ).toEqual({ activeChallengerSubjectKey: null });
     await expect(
-      service.transitionChallenge(legacyDuplicate.id, author, {
+      service.createChallengeResponse(legacyDuplicate.id, author, {
         expectedRevision: 0,
-        toStatus: "author-responded",
+        body: "Legacy duplicate response.",
       }),
-    ).resolves.toEqual({ revision: 1, status: "author-responded" });
+    ).resolves.toMatchObject({ revision: 1, status: "author-responded" });
   });
 
   it("caps active challenges per exact subject under a concurrent boundary race without rejection audits", async () => {

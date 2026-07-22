@@ -96,20 +96,57 @@ test.describe("Formal challenge register", () => {
         position: 999,
       },
     });
-    const authorResponse = await page.evaluate(async (challengeId) => {
+    const bareTransitionStatus = await page.evaluate(async (challengeId) => {
       const result = await fetch(`/api/challenges/${encodeURIComponent(challengeId)}/transitions`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ expectedRevision: 0, toStatus: "author-responded" }),
       });
-      return { status: result.status, body: await result.text() };
+      return result.status;
     }, id);
+    expect(bareTransitionStatus).toBe(400);
+    const responseBody = `<script>alert(2)</script> bounded contributor response ${Date.now()}`;
+    const authorResponse = await page.evaluate(
+      async ({ challengeId, responseBody }) => {
+        const result = await fetch(`/api/challenges/${encodeURIComponent(challengeId)}/responses`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ expectedRevision: 0, body: responseBody }),
+        });
+        return { status: result.status, body: await result.text() };
+      },
+      { challengeId: id, responseBody },
+    );
     expect(authorResponse.status, authorResponse.body).toBe(200);
+    const { id: responseId } = JSON.parse(authorResponse.body) as { id: string };
 
     await page.context().clearCookies();
     await page.goto("/signin");
     await page.getByRole("button", { name: /Sign in as editor/ }).click();
     await expect(page).toHaveURL(/\/editorial/);
+    const moderation = await page.evaluate(
+      async ({ challengeId, responseId }) => {
+        const removeChallenge = await fetch(
+          `/api/challenges/${encodeURIComponent(challengeId)}/moderation`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ expectedContentRevision: 0 }),
+          },
+        );
+        const removeResponse = await fetch(
+          `/api/challenge-responses/${encodeURIComponent(responseId)}/moderation`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ expectedContentRevision: 0 }),
+          },
+        );
+        return [removeChallenge.status, removeResponse.status];
+      },
+      { challengeId: id, responseId },
+    );
+    expect(moderation).toEqual([200, 200]);
     const resolution = await page.evaluate(async (challengeId) => {
       const result = await fetch(`/api/challenges/${encodeURIComponent(challengeId)}/transitions`, {
         method: "POST",
@@ -126,9 +163,15 @@ test.describe("Formal challenge register", () => {
 
     const completed = await prisma.challenge.findUniqueOrThrow({
       where: { id },
-      include: { transitions: { orderBy: { revision: "asc" } } },
+      include: { response: true, transitions: { orderBy: { revision: "asc" } } },
     });
-    expect(completed).toMatchObject({ status: "resolved", revision: 2 });
+    expect(completed).toMatchObject({
+      body,
+      contentStatus: "removed",
+      status: "resolved",
+      revision: 2,
+      response: { body: responseBody, contentStatus: "removed" },
+    });
     expect(completed.transitions).toMatchObject([
       { fromStatus: null, toStatus: "open", actorId: submitter.id, revision: 0 },
       { fromStatus: "open", toStatus: "author-responded", actorId: submitter.id, revision: 1 },
@@ -145,6 +188,19 @@ test.describe("Formal challenge register", () => {
       }),
     ).toBe(2);
     await page.goto(REVIEW);
-    await expect(page.locator(`#challenge-${id}`)).toContainText("resolved");
+    const tombstone = page.locator(`#challenge-${id}`);
+    await expect(tombstone).toContainText("resolved");
+    await expect(tombstone).toContainText("[challenge text removed]");
+    await expect(tombstone).toContainText("[response text removed]");
+    await expect(tombstone).not.toContainText(body);
+    await expect(tombstone).not.toContainText(responseBody);
+    expect(
+      await prisma.auditEvent.count({
+        where: {
+          action: { in: ["challenge.content-removed", "challenge.response-removed"] },
+          OR: [{ subjectId: id }, { subjectId: responseId }],
+        },
+      }),
+    ).toBe(2);
   });
 });

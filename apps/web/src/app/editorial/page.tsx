@@ -25,6 +25,8 @@ import { TrustEditorialProvenance } from "./TrustEditorialProvenance";
 import { TrustVerificationBadge } from "@/components/TrustVerificationBadge";
 import { NodeIdentityProposalPanel } from "./NodeIdentityProposalPanel";
 import { listPendingNodeIdentityProposals } from "@/lib/node-identity-lifecycle";
+import { listOpenChallengePage } from "@/lib/challenges";
+import { ChallengeQueuePanel } from "./ChallengeQueuePanel";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Editorial dashboard" };
@@ -89,6 +91,10 @@ export default async function EditorialPage({
   const synthesisProposalPage = await listSynthesisRegenerationProposalPage(undefined, {
     cursor: requestedSynthesisCursor,
   });
+  const requestedChallengeCursor = Array.isArray(params.challengeCursor)
+    ? params.challengeCursor[0]
+    : params.challengeCursor;
+  const challengePage = await listOpenChallengePage(requestedChallengeCursor?.slice(0, 200));
 
   return (
     <div>
@@ -264,6 +270,20 @@ export default async function EditorialPage({
           />
         </Card>
       ))}
+
+      <h2>Open formal challenges ({challengePage.items.length})</h2>
+      <p className="muted">
+        Active immutable challenges requiring a contributor response or human editorial outcome.
+        Outcome rationales are retained as editorial-only records.
+      </p>
+      <ChallengeQueuePanel items={challengePage.items} />
+      {challengePage.nextCursor ? (
+        <p>
+          <a href={`/editorial?challengeCursor=${encodeURIComponent(challengePage.nextCursor)}`}>
+            Next challenge page →
+          </a>
+        </p>
+      ) : null}
 
       <h2>TRUST provenance queue ({trustQueue.total})</h2>
       <p className="muted">

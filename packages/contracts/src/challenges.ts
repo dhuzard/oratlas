@@ -24,6 +24,7 @@ export const challengeStatusSchema = z.enum(CHALLENGE_STATUSES);
 export type ChallengeStatus = z.infer<typeof challengeStatusSchema>;
 
 export const CHALLENGE_BODY_MAX = 10_000;
+export const CHALLENGE_RESPONSE_BODY_MAX = 10_000;
 export const CHALLENGE_RATIONALE_MAX = 5_000;
 const id = z.string().trim().min(1).max(200);
 const sha256 = z.string().regex(/^[0-9a-f]{64}$/);
@@ -59,10 +60,32 @@ export const challengeTransitionSchema = z.object({
   id: z.string(),
   fromStatus: challengeStatusSchema.nullable(),
   toStatus: challengeStatusSchema,
-  actor: z.object({ githubLogin: z.string(), role: z.string() }),
-  actorRoleSnapshot: z.string(),
-  rationale: z.string().optional(),
+  actor: z.object({ githubLogin: z.string() }),
   revision: z.number().int().nonnegative(),
+  createdAt: z.string(),
+});
+
+export const challengeContentStatusSchema = z.enum(["visible", "removed"]);
+export type ChallengeContentStatus = z.infer<typeof challengeContentStatusSchema>;
+
+export const createChallengeResponseInputSchema = z.object({
+  expectedRevision: z.number().int().nonnegative(),
+  body: z.string().trim().min(1).max(CHALLENGE_RESPONSE_BODY_MAX),
+});
+export type CreateChallengeResponseInput = z.infer<typeof createChallengeResponseInputSchema>;
+
+export const moderateChallengeContentInputSchema = z.object({
+  expectedContentRevision: z.number().int().nonnegative(),
+});
+export type ModerateChallengeContentInput = z.infer<typeof moderateChallengeContentInputSchema>;
+
+export const publicChallengeResponseSchema = z.object({
+  id: z.string(),
+  body: z.string(),
+  contentHash: sha256,
+  contentStatus: challengeContentStatusSchema,
+  contentRevision: z.number().int().nonnegative(),
+  responder: z.object({ githubLogin: z.string(), displayName: z.string().nullable() }),
   createdAt: z.string(),
 });
 
@@ -76,10 +99,13 @@ export const publicChallengeSchema = z.object({
   filedContentHash: sha256,
   grounds: challengeGroundsSchema,
   body: z.string(),
+  contentStatus: challengeContentStatusSchema,
+  contentRevision: z.number().int().nonnegative(),
   status: challengeStatusSchema,
   revision: z.number().int().nonnegative(),
   challenger: z.object({ githubLogin: z.string(), displayName: z.string().nullable() }),
   transitions: z.array(challengeTransitionSchema),
+  response: publicChallengeResponseSchema.nullable(),
   createdAt: z.string(),
 });
 export type PublicChallenge = z.infer<typeof publicChallengeSchema>;

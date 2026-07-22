@@ -1,6 +1,7 @@
 import "server-only";
 import {
   canonicalJson,
+  challengeContentStatusSchema,
   challengeGroundsSchema,
   challengeStatusSchema,
   isExactCommitSha,
@@ -12,9 +13,12 @@ import {
 import { createReviewedTrustSubject, trustSubjectInputFromDatabaseRows } from "@oratlas/trust";
 import type {
   ChallengeList,
+  ChallengeContentStatus,
   ChallengeStatus,
   ChallengeSubjectInput,
   CreateChallengeInput,
+  CreateChallengeResponseInput,
+  ModerateChallengeContentInput,
   PublicChallenge,
   TransitionChallengeInput,
 } from "@oratlas/contracts";
@@ -289,6 +293,22 @@ function rowSubject(row: {
     };
   }
   return null;
+}
+
+async function assertChallengeSubjectIntegrity(
+  db: Db,
+  row: Parameters<typeof rowSubject>[0] & {
+    reviewVersionId: string;
+    canonicalSubjectHash: string;
+    subjectRefJson: string;
+  },
+): Promise<void> {
+  const input = rowSubject(row);
+  if (!input) throw new ChallengeError("Challenge subject binding is invalid.", "conflict");
+  const current = await resolveChallengeSubject(db, row.reviewVersionId, input);
+  if (current.hash !== row.canonicalSubjectHash || current.refJson !== row.subjectRefJson) {
+    throw new ChallengeError("Challenge subject integrity check failed.", "conflict");
+  }
 }
 
 type ChallengeContent = {
@@ -714,19 +734,46 @@ export function hasChallengeResolutionAuthority(actor: SessionUser): boolean {
   return isEditor(actor);
 }
 
-async function isContributorOfRecord(
+type ContributorSnapshot = {
+  personId: string;
+  githubLogin: string;
+  displayName: string;
+  rolesJson: string;
+};
+
+async function contributorOfRecord(
   db: Db,
   versionId: string,
   actor: SessionUser,
-): Promise<boolean> {
+): Promise<ContributorSnapshot | null> {
   const login = actor.githubLogin.normalize("NFKC").toLowerCase();
   const contributors = await db.reviewContributor.findMany({
     where: { reviewVersionId: versionId, person: { githubLogin: { not: null } } },
-    select: { person: { select: { githubLogin: true } } },
+    orderBy: [{ position: "asc" }, { personId: "asc" }],
+    select: {
+      personId: true,
+      rolesJson: true,
+      person: { select: { githubLogin: true, displayName: true } },
+    },
   });
-  return contributors.some(
+  const matched = contributors.find(
     ({ person }) => person.githubLogin?.normalize("NFKC").toLowerCase() === login,
   );
+  return matched?.person.githubLogin
+    ? {
+        personId: matched.personId,
+        githubLogin: matched.person.githubLogin,
+        displayName: matched.person.displayName,
+        rolesJson: matched.rolesJson,
+      }
+    : null;
+}
+
+export async function isChallengeContributorOfRecord(
+  versionId: string,
+  actor: SessionUser,
+): Promise<boolean> {
+  return Boolean(await contributorOfRecord(prisma, versionId, actor));
 }
 
 export async function transitionChallenge(
@@ -792,11 +839,10 @@ export async function transitionChallenge(
               "forbidden",
             );
         } else if (input.toStatus === "author-responded") {
-          if (!(await isContributorOfRecord(tx, challenge.reviewVersionId, actor)))
-            throw new ChallengeError(
-              "Only a contributor of record may mark an author response.",
-              "forbidden",
-            );
+          throw new ChallengeError(
+            "Create an attributed response to mark this challenge author-responded.",
+            "bad-request",
+          );
         } else if (!hasChallengeResolutionAuthority(actor)) {
           throw new ChallengeError("Editor resolution authority required.", "forbidden");
         }
@@ -876,6 +922,7 @@ export async function listChallenges(
             orderBy: [{ createdAt: "asc" }, { id: "asc" }],
             include: {
               challenger: true,
+              response: true,
               transitions: { include: { actor: true }, orderBy: { revision: "asc" } },
             },
           });
@@ -911,6 +958,29 @@ export async function listChallenges(
         row,
         isActiveChallengeStatus(row.status) ? row.activeChallengerSubjectKey : null,
       );
+      if (
+        !challengeContentStatusSchema.safeParse(row.contentStatus).success ||
+        (row.response &&
+          (!challengeContentStatusSchema.safeParse(row.response.contentStatus).success ||
+            row.response.contentHash !==
+              hashChallengeResponse({
+                challengeId: row.response.challengeId,
+                responderId: row.response.responderId,
+                responderRoleSnapshot: row.response.responderRoleSnapshot,
+                responderGithubLoginSnapshot: row.response.responderGithubLoginSnapshot,
+                responderDisplayNameSnapshot: row.response.responderDisplayNameSnapshot,
+                contributorPersonId: row.response.contributorPersonId,
+                contributorGithubLoginSnapshot: row.response.contributorGithubLoginSnapshot,
+                contributorDisplayNameSnapshot: row.response.contributorDisplayNameSnapshot,
+                contributorRolesJsonSnapshot: row.response.contributorRolesJsonSnapshot,
+                body: row.response.body,
+              })))
+      ) {
+        throw new ChallengeError(
+          "Challenge content projection integrity check failed.",
+          "conflict",
+        );
+      }
       challenges.push({
         id: row.id,
         reviewVersionId,
@@ -920,7 +990,9 @@ export async function listChallenges(
         canonicalSubjectHash: row.canonicalSubjectHash,
         filedContentHash: row.filedContentHash,
         grounds: row.grounds as PublicChallenge["grounds"],
-        body: row.body,
+        body: row.contentStatus === "visible" ? row.body : "",
+        contentStatus: row.contentStatus as ChallengeContentStatus,
+        contentRevision: row.contentRevision,
         status: row.status as ChallengeStatus,
         revision: row.revision,
         challenger: {
@@ -931,12 +1003,24 @@ export async function listChallenges(
           id: event.id,
           fromStatus: event.fromStatus as ChallengeStatus | null,
           toStatus: event.toStatus as ChallengeStatus,
-          actor: { githubLogin: event.actor.githubLogin, role: event.actor.role },
-          actorRoleSnapshot: event.actorRoleSnapshot,
-          rationale: event.rationale ?? undefined,
+          actor: { githubLogin: event.actor.githubLogin },
           revision: event.revision,
           createdAt: event.createdAt.toISOString(),
         })),
+        response: row.response
+          ? {
+              id: row.response.id,
+              body: row.response.contentStatus === "visible" ? row.response.body : "",
+              contentHash: row.response.contentHash,
+              contentStatus: row.response.contentStatus as ChallengeContentStatus,
+              contentRevision: row.response.contentRevision,
+              responder: {
+                githubLogin: row.response.responderGithubLoginSnapshot,
+                displayName: row.response.responderDisplayNameSnapshot,
+              },
+              createdAt: row.response.createdAt.toISOString(),
+            }
+          : null,
         createdAt: row.createdAt.toISOString(),
       });
     } catch (error) {
@@ -944,4 +1028,393 @@ export async function listChallenges(
     }
   }
   return { reviewSlug: slug, reviewVersionId, challenges };
+}
+
+function hashChallengeResponse(input: {
+  challengeId: string;
+  responderId: string;
+  responderRoleSnapshot: string;
+  responderGithubLoginSnapshot: string;
+  responderDisplayNameSnapshot: string | null;
+  contributorPersonId: string;
+  contributorGithubLoginSnapshot: string;
+  contributorDisplayNameSnapshot: string;
+  contributorRolesJsonSnapshot: string;
+  body: string;
+}): string {
+  return sha256(canonicalJson({ schema: "oratlas/challenge-response/1", ...input }));
+}
+
+export async function createChallengeResponse(
+  challengeId: string,
+  actor: SessionUser,
+  input: CreateChallengeResponseInput,
+): Promise<{ id: string; revision: number; status: "author-responded" }> {
+  try {
+    return await prisma.$transaction(
+      async (tx) => {
+        const challenge = await tx.challenge.findUnique({
+          where: { id: challengeId },
+          include: {
+            response: true,
+            reviewVersion: {
+              select: {
+                publicState: true,
+                publishedAt: true,
+                snapshot: { select: { commitSha: true } },
+              },
+            },
+            transitions: { include: { actor: true }, orderBy: { revision: "asc" } },
+          },
+        });
+        if (!challenge) throw new ChallengeError("Challenge not found.", "not-found");
+        if (!isExactChallengeVersion(challenge.reviewVersion))
+          throw new ChallengeError("Challenges are closed on this review version.", "forbidden");
+        const activeWinnerId = await reconcileActiveChallengeGroup(
+          tx,
+          challenge.challengerId,
+          challenge.canonicalSubjectHash,
+        );
+        challenge.activeChallengerSubjectKey = expectedActiveKeyForRow(challenge, activeWinnerId);
+        assertChallengeLedger(challenge, challenge.activeChallengerSubjectKey);
+        if (challenge.status !== "open" || challenge.revision !== input.expectedRevision)
+          throw new ChallengeError("Challenge lifecycle changed. Refresh and retry.", "conflict");
+        if (challenge.response)
+          throw new ChallengeError("This challenge already has a response.", "conflict");
+        const subjectInput = rowSubject(challenge);
+        if (!subjectInput)
+          throw new ChallengeError("Challenge subject binding is invalid.", "conflict");
+        const currentSubject = await resolveChallengeSubject(
+          tx,
+          challenge.reviewVersionId,
+          subjectInput,
+        );
+        if (
+          currentSubject.hash !== challenge.canonicalSubjectHash ||
+          currentSubject.refJson !== challenge.subjectRefJson
+        ) {
+          throw new ChallengeError("Challenge subject integrity check failed.", "conflict");
+        }
+        const contributor = await contributorOfRecord(tx, challenge.reviewVersionId, actor);
+        if (!contributor)
+          throw new ChallengeError("Only a contributor of record may respond.", "forbidden");
+        const responseContent = {
+          challengeId,
+          responderId: actor.id,
+          responderRoleSnapshot: actor.role,
+          responderGithubLoginSnapshot: actor.githubLogin,
+          responderDisplayNameSnapshot: actor.displayName,
+          contributorPersonId: contributor.personId,
+          contributorGithubLoginSnapshot: contributor.githubLogin,
+          contributorDisplayNameSnapshot: contributor.displayName,
+          contributorRolesJsonSnapshot: contributor.rolesJson,
+          body: input.body,
+        };
+        const contentHash = hashChallengeResponse(responseContent);
+        const revision = input.expectedRevision + 1;
+        const claimed = await tx.challenge.updateMany({
+          where: { id: challengeId, status: "open", revision: input.expectedRevision },
+          data: { status: "author-responded", revision },
+        });
+        if (claimed.count !== 1)
+          throw new ChallengeError("Challenge lifecycle changed. Refresh and retry.", "conflict");
+        const response = await tx.challengeResponse.create({
+          data: { ...responseContent, contentHash },
+        });
+        await tx.challengeTransition.create({
+          data: {
+            challengeId,
+            fromStatus: "open",
+            toStatus: "author-responded",
+            actorId: actor.id,
+            actorRoleSnapshot: actor.role,
+            filedContentHash: challenge.filedContentHash,
+            revision,
+          },
+        });
+        await tx.auditEvent.createMany({
+          data: [
+            {
+              actorId: actor.id,
+              action: "challenge.response-created",
+              subjectType: "challengeResponse",
+              subjectId: response.id,
+              detailsJson: canonicalJson({ challengeId, contentHash, revision }),
+            },
+            {
+              actorId: actor.id,
+              action: "challenge.transitioned",
+              subjectType: "challenge",
+              subjectId: challengeId,
+              detailsJson: canonicalJson({
+                fromStatus: "open",
+                filedContentHash: challenge.filedContentHash,
+                revision,
+                toStatus: "author-responded",
+              }),
+            },
+          ],
+        });
+        return { id: response.id, revision, status: "author-responded" as const };
+      },
+      { maxWait: 5_000, timeout: 15_000, isolationLevel: "Serializable" },
+    );
+  } catch (error) {
+    return mapChallengeTransactionError(error);
+  }
+}
+
+export async function removeChallengeContent(
+  challengeId: string,
+  actor: SessionUser,
+  input: ModerateChallengeContentInput,
+): Promise<{ contentRevision: number; contentStatus: "removed" }> {
+  try {
+    return await prisma.$transaction(async (tx) => {
+      const challenge = await tx.challenge.findUnique({
+        where: { id: challengeId },
+        include: {
+          reviewVersion: {
+            select: {
+              publicState: true,
+              publishedAt: true,
+              snapshot: { select: { commitSha: true } },
+            },
+          },
+          transitions: { include: { actor: true }, orderBy: { revision: "asc" } },
+        },
+      });
+      if (!challenge) throw new ChallengeError("Challenge not found.", "not-found");
+      if (!isExactChallengeVersion(challenge.reviewVersion))
+        throw new ChallengeError("Challenges are closed on this review version.", "forbidden");
+      const activeWinnerId = isActiveChallengeStatus(challenge.status)
+        ? await reconcileActiveChallengeGroup(
+            tx,
+            challenge.challengerId,
+            challenge.canonicalSubjectHash,
+          )
+        : null;
+      challenge.activeChallengerSubjectKey = expectedActiveKeyForRow(challenge, activeWinnerId);
+      assertChallengeLedger(challenge, challenge.activeChallengerSubjectKey);
+      await assertChallengeSubjectIntegrity(tx, challenge);
+      if (challenge.challengerId !== actor.id && !isEditor(actor))
+        throw new ChallengeError(
+          "Only the filer or an editor may remove this challenge text.",
+          "forbidden",
+        );
+      if (
+        challenge.contentStatus !== "visible" ||
+        challenge.contentRevision !== input.expectedContentRevision
+      )
+        throw new ChallengeError("Challenge content changed. Refresh and retry.", "conflict");
+      const contentRevision = challenge.contentRevision + 1;
+      const claimed = await tx.challenge.updateMany({
+        where: {
+          id: challengeId,
+          contentStatus: "visible",
+          contentRevision: input.expectedContentRevision,
+        },
+        data: {
+          contentStatus: "removed",
+          contentRevision,
+          removedAt: new Date(),
+          removedById: actor.id,
+          removedByRoleSnapshot: actor.role,
+        },
+      });
+      if (claimed.count !== 1)
+        throw new ChallengeError("Challenge content changed. Refresh and retry.", "conflict");
+      await tx.auditEvent.create({
+        data: {
+          actorId: actor.id,
+          action: "challenge.content-removed",
+          subjectType: "challenge",
+          subjectId: challengeId,
+          detailsJson: canonicalJson({ contentHash: challenge.filedContentHash, contentRevision }),
+        },
+      });
+      return { contentRevision, contentStatus: "removed" as const };
+    });
+  } catch (error) {
+    return mapChallengeTransactionError(error);
+  }
+}
+
+export async function removeChallengeResponseContent(
+  responseId: string,
+  actor: SessionUser,
+  input: ModerateChallengeContentInput,
+): Promise<{ contentRevision: number; contentStatus: "removed" }> {
+  try {
+    return await prisma.$transaction(async (tx) => {
+      const response = await tx.challengeResponse.findUnique({
+        where: { id: responseId },
+        include: {
+          challenge: {
+            include: {
+              reviewVersion: {
+                select: {
+                  publicState: true,
+                  publishedAt: true,
+                  snapshot: { select: { commitSha: true } },
+                },
+              },
+              transitions: { include: { actor: true }, orderBy: { revision: "asc" } },
+            },
+          },
+        },
+      });
+      if (!response) throw new ChallengeError("Challenge response not found.", "not-found");
+      if (!isExactChallengeVersion(response.challenge.reviewVersion))
+        throw new ChallengeError("Challenges are closed on this review version.", "forbidden");
+      const challenge = response.challenge;
+      const activeWinnerId = isActiveChallengeStatus(challenge.status)
+        ? await reconcileActiveChallengeGroup(
+            tx,
+            challenge.challengerId,
+            challenge.canonicalSubjectHash,
+          )
+        : null;
+      challenge.activeChallengerSubjectKey = expectedActiveKeyForRow(challenge, activeWinnerId);
+      assertChallengeLedger(challenge, challenge.activeChallengerSubjectKey);
+      await assertChallengeSubjectIntegrity(tx, challenge);
+      if (
+        response.contentHash !==
+        hashChallengeResponse({
+          challengeId: response.challengeId,
+          responderId: response.responderId,
+          responderRoleSnapshot: response.responderRoleSnapshot,
+          responderGithubLoginSnapshot: response.responderGithubLoginSnapshot,
+          responderDisplayNameSnapshot: response.responderDisplayNameSnapshot,
+          contributorPersonId: response.contributorPersonId,
+          contributorGithubLoginSnapshot: response.contributorGithubLoginSnapshot,
+          contributorDisplayNameSnapshot: response.contributorDisplayNameSnapshot,
+          contributorRolesJsonSnapshot: response.contributorRolesJsonSnapshot,
+          body: response.body,
+        })
+      )
+        throw new ChallengeError("Challenge response integrity check failed.", "conflict");
+      if (response.responderId !== actor.id && !isEditor(actor))
+        throw new ChallengeError(
+          "Only the responder or an editor may remove this response.",
+          "forbidden",
+        );
+      if (
+        response.contentStatus !== "visible" ||
+        response.contentRevision !== input.expectedContentRevision
+      )
+        throw new ChallengeError("Response content changed. Refresh and retry.", "conflict");
+      const contentRevision = response.contentRevision + 1;
+      const claimed = await tx.challengeResponse.updateMany({
+        where: {
+          id: responseId,
+          contentStatus: "visible",
+          contentRevision: input.expectedContentRevision,
+        },
+        data: {
+          contentStatus: "removed",
+          contentRevision,
+          removedAt: new Date(),
+          removedById: actor.id,
+          removedByRoleSnapshot: actor.role,
+        },
+      });
+      if (claimed.count !== 1)
+        throw new ChallengeError("Response content changed. Refresh and retry.", "conflict");
+      await tx.auditEvent.create({
+        data: {
+          actorId: actor.id,
+          action: "challenge.response-removed",
+          subjectType: "challengeResponse",
+          subjectId: responseId,
+          detailsJson: canonicalJson({
+            challengeId: response.challengeId,
+            contentHash: response.contentHash,
+            contentRevision,
+          }),
+        },
+      });
+      return { contentRevision, contentStatus: "removed" as const };
+    });
+  } catch (error) {
+    return mapChallengeTransactionError(error);
+  }
+}
+
+export type ChallengeQueueItem = {
+  id: string;
+  status: "open" | "author-responded";
+  revision: number;
+  contentStatus: ChallengeContentStatus;
+  contentRevision: number;
+  response: PublicChallenge["response"];
+  subjectLabel: string;
+  challengeHref: string;
+  createdAt: string;
+};
+
+export type ChallengeQueuePage = {
+  items: ChallengeQueueItem[];
+  nextCursor: string | null;
+};
+
+/** Deterministic, bounded editorial page over active challenge records. */
+export async function listOpenChallengePage(
+  cursor?: string,
+  requestedLimit = 25,
+): Promise<ChallengeQueuePage> {
+  const limit = Math.max(1, Math.min(100, Math.trunc(requestedLimit)));
+  const cursorRow = cursor
+    ? await prisma.challenge.findUnique({ where: { id: cursor }, select: { id: true } })
+    : null;
+  if (cursor && !cursorRow) throw new ChallengeError("Invalid challenge queue cursor.");
+  const rows = await prisma.challenge.findMany({
+    where: {
+      status: { in: [...ACTIVE_CHALLENGE_STATUSES] },
+      reviewVersion: {
+        publicState: { in: ["published", "withdrawn"] },
+        publishedAt: { not: null },
+        review: { status: "published" },
+      },
+    },
+    orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+    ...(cursorRow ? { cursor: { id: cursorRow.id }, skip: 1 } : {}),
+    take: limit + 1,
+    select: {
+      id: true,
+      reviewVersionId: true,
+      reviewVersion: { select: { review: { select: { slug: true } } } },
+    },
+  });
+  const pageRows = rows.slice(0, limit);
+  const lists = new Map<string, ChallengeList | null>();
+  const items: ChallengeQueueItem[] = [];
+  for (const row of pageRows) {
+    let list = lists.get(row.reviewVersionId);
+    if (list === undefined) {
+      list = await listChallenges(row.reviewVersion.review.slug, row.reviewVersionId);
+      lists.set(row.reviewVersionId, list);
+    }
+    const challenge = list?.challenges.find((candidate) => candidate.id === row.id);
+    if (
+      !challenge ||
+      !ACTIVE_CHALLENGE_STATUSES.includes(challenge.status as "open" | "author-responded")
+    )
+      continue;
+    items.push({
+      id: challenge.id,
+      status: challenge.status as "open" | "author-responded",
+      revision: challenge.revision,
+      contentStatus: challenge.contentStatus,
+      contentRevision: challenge.contentRevision,
+      response: challenge.response,
+      subjectLabel: challenge.subjectLabel,
+      challengeHref: `/reviews/${encodeURIComponent(row.reviewVersion.review.slug)}/versions/${encodeURIComponent(row.reviewVersionId)}#challenge-${encodeURIComponent(challenge.id)}`,
+      createdAt: challenge.createdAt,
+    });
+  }
+  return {
+    items,
+    nextCursor: rows.length > limit ? (pageRows.at(-1)?.id ?? null) : null,
+  };
 }
