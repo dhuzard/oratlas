@@ -63,9 +63,10 @@ All PR-00…PR-10 slices above have shipped. The later KG-01…KG-20 node-first 
 AI-synthesis phase has also shipped; [`TODO.md`](TODO.md) is retained only as that phase's historical
 record.
 
-Current work is tracked exclusively in [`ORATLAS_BACKLOG.md`](ORATLAS_BACKLOG.md), with unresolved
-governance and scientific questions in [`ORATLAS_DECISIONS.md`](ORATLAS_DECISIONS.md) and pinned
-upstream coupling in [`CROSS_REPO_DEPENDENCIES.md`](CROSS_REPO_DEPENDENCIES.md).
+Current work is tracked exclusively in [`ORATLAS_BACKLOG.md`](ORATLAS_BACKLOG.md), with ratified
+governance and scientific decisions in [`ORATLAS_DECISIONS.md`](ORATLAS_DECISIONS.md), pinned
+upstream coupling in [`CROSS_REPO_DEPENDENCIES.md`](CROSS_REPO_DEPENDENCIES.md), and consolidated
+review branches in [`INTEGRATION_TRAINS.md`](INTEGRATION_TRAINS.md).
 
 ## Non-goals (POC boundary)
 

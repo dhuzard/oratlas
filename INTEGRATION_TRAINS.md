@@ -36,6 +36,22 @@ Branch: `integration/reliability-ops` · Base: `main`
 
 Apply CI/tooling commits first, operational drills next, and planning reconciliation last.
 
+### Imported functional commits
+
+| ORA     | Source commits                  | Integrated commits              |
+| ------- | ------------------------------- | ------------------------------- |
+| ORA-B01 | `608c787`, `a5e52da`            | `5b2440b`, `ec1773d`            |
+| ORA-K01 | `40d2b66`                       | `d2426a7`                       |
+| ORA-B02 | `48eb5e9`, `d7400a3`, `6a19246` | `3896910`, `7cae9de`, `ee1bbeb` |
+| ORA-J02 | `e0a7e10`, `32ccc2e`            | `3ed5d79`, `c331f76`            |
+| ORA-K02 | `8120062`                       | `e4e9d45`                       |
+| ORA-K03 | `33c87f2`, `ca4d7bb`            | `bf042f4`, `396b0a6`            |
+| ORA-L01 | `d50f213`                       | `be3225f`                       |
+| ORA-L02 | `54422dd`                       | `2f75de3`                       |
+
+PR-link-only commits were omitted. Development-log append conflicts were combined; contributor
+guidance and backlog state were reconciled to this train policy in a train-level commit.
+
 ## Train 2 — Core archive and TRUST
 
 Branch: `integration/core-trust` · Base: `integration/reliability-ops`
