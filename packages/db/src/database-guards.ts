@@ -22,7 +22,9 @@ export const POSTGRES_DATABASE_GUARD_TRIGGER_NAMES = [
   "TrustAssessment_coi_immutable_guard",
   "NodeRelationTrustAssessment_coi_immutable_guard",
   "DecisionLetter_coi_immutable_guard",
+  "DecisionLetter_immutable_delete_guard",
   "EditorialDecisionProvenance_immutable_guard",
+  "EditorialDecisionProvenance_immutable_delete_guard",
 ] as const;
 
 export const POSTGRES_DATABASE_GUARD_SQL = [
@@ -87,6 +89,7 @@ export const POSTGRES_DATABASE_GUARD_SQL = [
   'ALTER TABLE "DecisionLetter" DROP CONSTRAINT IF EXISTS "DecisionLetter_coi_check"',
   `ALTER TABLE "DecisionLetter" ADD CONSTRAINT "DecisionLetter_coi_check" CHECK (
     "conflictOfInterestStatus" IN ('none-declared', 'conflict-declared', 'not-provided')
+    AND ("decisionHash" IS NULL OR ("editorGithubLoginSnapshot" IS NOT NULL AND "editorRoleSnapshot" IS NOT NULL))
     AND (("administratorOverride" = false AND "administratorOverrideById" IS NULL AND "administratorOverrideGithubLoginSnapshot" IS NULL AND "administratorOverrideAt" IS NULL)
       OR ("administratorOverride" = true AND "conflictOfInterestStatus" = 'conflict-declared' AND "editorRoleSnapshot" = 'ADMIN' AND "administratorOverrideById" = "editorId" AND "administratorOverrideGithubLoginSnapshot" IS NOT NULL AND "administratorOverrideAt" IS NOT NULL))
   )`,
@@ -118,8 +121,14 @@ export const POSTGRES_DATABASE_GUARD_SQL = [
   'DROP TRIGGER IF EXISTS "DecisionLetter_coi_immutable_guard" ON "DecisionLetter"',
   `CREATE TRIGGER "DecisionLetter_coi_immutable_guard" BEFORE UPDATE ON "DecisionLetter"
     FOR EACH ROW EXECUTE FUNCTION "oratlas_reject_immutable_editorial_decision_update"()`,
+  'DROP TRIGGER IF EXISTS "DecisionLetter_immutable_delete_guard" ON "DecisionLetter"',
+  `CREATE TRIGGER "DecisionLetter_immutable_delete_guard" BEFORE DELETE ON "DecisionLetter"
+    FOR EACH ROW EXECUTE FUNCTION "oratlas_reject_immutable_editorial_decision_update"()`,
   'DROP TRIGGER IF EXISTS "EditorialDecisionProvenance_immutable_guard" ON "EditorialDecisionProvenance"',
   `CREATE TRIGGER "EditorialDecisionProvenance_immutable_guard" BEFORE UPDATE ON "EditorialDecisionProvenance"
+    FOR EACH ROW EXECUTE FUNCTION "oratlas_reject_immutable_editorial_decision_update"()`,
+  'DROP TRIGGER IF EXISTS "EditorialDecisionProvenance_immutable_delete_guard" ON "EditorialDecisionProvenance"',
+  `CREATE TRIGGER "EditorialDecisionProvenance_immutable_delete_guard" BEFORE DELETE ON "EditorialDecisionProvenance"
     FOR EACH ROW EXECUTE FUNCTION "oratlas_reject_immutable_editorial_decision_update"()`,
   `CREATE OR REPLACE FUNCTION "oratlas_validate_synthesis_membership_reference"() RETURNS trigger AS $$
   BEGIN
@@ -207,6 +216,7 @@ const sqliteGuardConditions = {
   NodeRelationTrustAssessment: `CASE WHEN NEW."conflictOfInterestStatus" IN ('none-declared', 'conflict-declared', 'not-provided') THEN 1 ELSE 0 END`,
   DecisionLetter: `CASE WHEN
     NEW."conflictOfInterestStatus" IN ('none-declared', 'conflict-declared', 'not-provided')
+    AND (NEW."decisionHash" IS NULL OR (NEW."editorGithubLoginSnapshot" IS NOT NULL AND NEW."editorRoleSnapshot" IS NOT NULL))
     AND ((NEW."administratorOverride" = 0 AND NEW."administratorOverrideById" IS NULL AND NEW."administratorOverrideGithubLoginSnapshot" IS NULL AND NEW."administratorOverrideAt" IS NULL)
       OR (NEW."administratorOverride" = 1 AND NEW."conflictOfInterestStatus" = 'conflict-declared' AND NEW."editorRoleSnapshot" = 'ADMIN' AND NEW."administratorOverrideById" = NEW."editorId" AND NEW."administratorOverrideGithubLoginSnapshot" IS NOT NULL AND NEW."administratorOverrideAt" IS NOT NULL))
     THEN 1 ELSE 0 END`,
@@ -231,7 +241,9 @@ export const SQLITE_ASSESSMENT_COI_IMMUTABLE_GUARD_NAMES = [
   "TrustAssessment_coi_immutable_guard",
   "NodeRelationTrustAssessment_coi_immutable_guard",
   "DecisionLetter_coi_immutable_guard",
+  "DecisionLetter_immutable_delete_guard",
   "EditorialDecisionProvenance_immutable_guard",
+  "EditorialDecisionProvenance_immutable_delete_guard",
 ] as const;
 
 /** Apply database-native guards after Prisma db push for the selected provider. */
@@ -284,6 +296,16 @@ export async function applyDatabaseGuards(
       await tx.$executeRawUnsafe(`
         CREATE TRIGGER "${name}"
         BEFORE UPDATE ON "${table}"
+        FOR EACH ROW
+        BEGIN
+          SELECT RAISE(ABORT, 'Editorial decision provenance is immutable');
+        END
+      `);
+      const deleteName = `${table}_immutable_delete_guard`;
+      await tx.$executeRawUnsafe(`DROP TRIGGER IF EXISTS "${deleteName}"`);
+      await tx.$executeRawUnsafe(`
+        CREATE TRIGGER "${deleteName}"
+        BEFORE DELETE ON "${table}"
         FOR EACH ROW
         BEGIN
           SELECT RAISE(ABORT, 'Editorial decision provenance is immutable');

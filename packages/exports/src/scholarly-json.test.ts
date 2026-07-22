@@ -62,6 +62,7 @@ const input: ScholarlyJsonInput = {
       protocolVersion: "trust-v2",
       assessor: { type: "human", identifier: "reviewer-b" },
       assessedAt: "2026-07-03T00:00:00.000Z",
+      conflictOfInterest: { status: "not-provided" },
       criteria: { entailment: { rating: "low", status: "assessed" } },
       limitations: [],
       verification: {
@@ -82,6 +83,7 @@ const input: ScholarlyJsonInput = {
       protocolVersion: "trust-v2",
       assessor: { type: "human", identifier: "reviewer-a" },
       assessedAt: "2026-07-02T00:00:00.000Z",
+      conflictOfInterest: { status: "conflict-declared" },
       criteria: { entailment: { rating: "high", status: "assessed" } },
       limitations: ["Independent assessment disagrees."],
       verification: {
@@ -107,6 +109,9 @@ describe("scholarly JSON", () => {
       "high",
       "low",
     ]);
+    expect(document.assessments.map(({ conflictOfInterest }) => conflictOfInterest.status)).toEqual(
+      ["conflict-declared", "not-provided"],
+    );
     const serialized = scholarlyJson(input);
     expect(serialized).toBe(
       scholarlyJson({ ...input, assessments: [...input.assessments].reverse() }),

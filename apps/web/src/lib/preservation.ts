@@ -3,6 +3,7 @@ import { z } from "zod";
 import {
   preservationManifestSchema,
   preservedFilesSchema,
+  conflictOfInterestStatusSchema,
   snapshotStorageReportSchema,
   isExactCommitSha,
   isSafeRepoRelativePath,
@@ -64,6 +65,14 @@ function parsePersistedExportJson<T>(label: string, value: string, schema: z.Zod
   return result.data;
 }
 
+function parsePersistedConflictOfInterest(value: string) {
+  const parsed = conflictOfInterestStatusSchema.safeParse(value);
+  if (!parsed.success) {
+    throw new Error("Invalid persisted TRUST conflict-of-interest status.");
+  }
+  return parsed.data;
+}
+
 async function loadVersionRow(slug: string, versionId: string) {
   return prisma.reviewVersion.findFirst({
     // Exports are public artifacts of the public archive: only versions of
@@ -77,7 +86,21 @@ async function loadVersionRow(slug: string, versionId: string) {
       review: { select: { slug: true } },
       snapshot: { include: { repository: true } },
       contributors: { include: { person: true }, orderBy: { position: "asc" } },
-      sourceSubmission: { include: { submitter: true, reviewer: true } },
+      sourceSubmission: {
+        include: {
+          submitter: true,
+          reviewer: true,
+          decisionProvenance: true,
+          reviewRounds: {
+            orderBy: { roundNumber: "desc" },
+            select: {
+              decisionLetter: {
+                select: { decision: true, editorGithubLoginSnapshot: true },
+              },
+            },
+          },
+        },
+      },
     },
   });
 }
@@ -104,6 +127,12 @@ export async function getVersionExportContext(
     familyName: contributor.person.familyName ?? undefined,
     orcid: contributor.person.orcid ?? undefined,
   }));
+  const acceptanceEditorLogin =
+    version.sourceSubmission?.decisionProvenance?.actorGithubLoginSnapshot ??
+    version.sourceSubmission?.reviewRounds.find(
+      (round) => round.decisionLetter?.decision === "accept",
+    )?.decisionLetter?.editorGithubLoginSnapshot ??
+    undefined;
 
   const exportInput: VersionExportInput = {
     platformVersion: PLATFORM_VERSION,
@@ -152,7 +181,7 @@ export async function getVersionExportContext(
       : undefined,
     acceptance: {
       publishedAt: version.publishedAt?.toISOString(),
-      editorLogin: version.sourceSubmission?.reviewer?.githubLogin,
+      editorLogin: acceptanceEditorLogin,
     },
   };
 
@@ -264,6 +293,9 @@ export async function getVersionExportContext(
           identifier: assessment.assessorId ?? undefined,
         },
         assessedAt: assessment.assessedAt?.toISOString(),
+        conflictOfInterest: {
+          status: parsePersistedConflictOfInterest(assessment.conflictOfInterestStatus),
+        },
         criteria: record.criteria,
         limitations: parsePersistedExportJson(
           `TRUST limitations for assessment ${assessment.id}`,

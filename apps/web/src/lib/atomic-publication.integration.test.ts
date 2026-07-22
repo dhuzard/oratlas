@@ -352,6 +352,16 @@ describe.sequential("atomic publication integration", () => {
       inspectionToken: capability.token,
       submitterId: administratorId,
     });
+    await runtime.prisma.editorAssignment.create({
+      data: {
+        submissionId: submission.submissionId,
+        editorId: administratorId,
+        assignedById: administratorId,
+        status: "recused",
+        coiDeclared: true,
+        coiStatement: "Direct self-involvement recorded before the public override.",
+      },
+    });
     await expect(
       runtime.acceptSubmission(submission.submissionId, administratorId),
     ).rejects.toMatchObject({ code: "forbidden" });
@@ -386,6 +396,48 @@ describe.sequential("atomic publication integration", () => {
       administratorOverrideGithubLoginSnapshot: "atomic-admin",
       actorRoleSnapshot: "ADMIN",
     });
+  });
+
+  it("treats assignment COI declarations as provenance and rejects uninvolved overrides", async () => {
+    const provenanceCapability = await capture({ githubRepositoryId: nextRepoId() });
+    const provenanceSubmission = await runtime.createSubmission({
+      inspectionToken: provenanceCapability.token,
+      submitterId,
+    });
+    await runtime.prisma.editorAssignment.create({
+      data: {
+        submissionId: provenanceSubmission.submissionId,
+        editorId,
+        assignedById: administratorId,
+        status: "active",
+        coiDeclared: true,
+        coiStatement: "A disclosed relationship that does not require recusal.",
+      },
+    });
+    await expect(
+      runtime.acceptSubmission(provenanceSubmission.submissionId, editorId),
+    ).resolves.toMatchObject({ idempotent: false });
+
+    const uninvolvedCapability = await capture({ githubRepositoryId: nextRepoId() });
+    const uninvolvedSubmission = await runtime.createSubmission({
+      inspectionToken: uninvolvedCapability.token,
+      submitterId,
+    });
+    await expect(
+      runtime.acceptSubmission(
+        uninvolvedSubmission.submissionId,
+        administratorId,
+        undefined,
+        [],
+        [],
+        undefined,
+        undefined,
+        {
+          conflictOfInterest: { status: "conflict-declared" },
+          administratorOverride: true,
+        },
+      ),
+    ).rejects.toThrow("valid only for direct self-involvement");
   });
 
   it("rolls back the status, version and audits when materialization fails", async () => {

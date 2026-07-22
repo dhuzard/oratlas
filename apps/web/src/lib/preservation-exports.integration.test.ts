@@ -250,6 +250,7 @@ describe.sequential("preservation and standards exports", () => {
             assessorType: "human",
             assessorId: assessment.assessorId,
             assessedAt: new Date(`2026-07-0${index + 1}T00:00:00.000Z`),
+            conflictOfInterestStatus: index === 0 ? "conflict-declared" : "none-declared",
             entailment: JSON.stringify({ rating: assessment.rating, status: "assessed" }),
             limitationsJson: JSON.stringify([`Independent ${assessment.rating} assessment.`]),
           },
@@ -342,7 +343,15 @@ describe.sequential("preservation and standards exports", () => {
 
     // Simulate upstream deletion: nothing in the export path may consult the
     // network, so exports must be derivable purely from stored rows.
+    await runtime.prisma.user.update({
+      where: { id: editorId },
+      data: { githubLogin: "renamed-pres-editor" },
+    });
     const context = await runtime.getVersionExportContext(accepted.reviewSlug, versionId);
+    await runtime.prisma.user.update({
+      where: { id: editorId },
+      data: { githubLogin: "pres-editor" },
+    });
     expect(context).not.toBeNull();
     const { exportInput, provInput, manifest, scholarlyInput } = context!;
 
@@ -382,6 +391,9 @@ describe.sequential("preservation and standards exports", () => {
     expect(
       scholarlyInput.assessments.map((assessment) => assessment.criteria.entailment?.rating).sort(),
     ).toEqual(["high", "low"]);
+    expect(
+      scholarlyInput.assessments.map((assessment) => assessment.conflictOfInterest.status).sort(),
+    ).toEqual(["conflict-declared", "none-declared"]);
     expect(scholarlyInput.challenges.map(({ status }) => status).sort()).toEqual([
       "author-responded",
       "open",
@@ -418,6 +430,7 @@ describe.sequential("preservation and standards exports", () => {
     const serializedProv = JSON.stringify(prov);
     expect(serializedProv).toContain(capability.payloadHash);
     expect(serializedProv).toContain("pres-editor");
+    expect(serializedProv).not.toContain("renamed-pres-editor");
     const exportsByFormat = {
       bibtex: bib,
       jats: jatsXml,
@@ -610,7 +623,14 @@ describe.sequential("preservation and standards exports", () => {
 
     await runtime.prisma.trustAssessment.update({
       where: { id: assessment.id },
-      data: { evidenceJson: null },
+      data: { evidenceJson: null, conflictOfInterestStatus: "corrupt-status" },
+    });
+    await expect(getContext()).rejects.toThrow(
+      "Invalid persisted TRUST conflict-of-interest status.",
+    );
+    await runtime.prisma.trustAssessment.update({
+      where: { id: assessment.id },
+      data: { conflictOfInterestStatus: "not-provided" },
     });
     await runtime.prisma.reviewVersion.update({
       where: { id: version.id },

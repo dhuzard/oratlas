@@ -30,6 +30,7 @@ import {
   compatibilityReportFromStoredJson,
   type StoredCompatibilityReport,
 } from "./compatibility-report";
+import { directEditorialDecisionHash } from "./decision-provenance";
 
 function publicConflictStatus(value: string) {
   const parsed = conflictOfInterestStatusSchema.safeParse(value);
@@ -69,8 +70,6 @@ export interface ReviewTrust {
   };
   platformVerification?: {
     reviewerLogin: string;
-    reviewerRoleSnapshot: string;
-    rationale: string;
   };
   supersedesAssessmentId?: string;
 }
@@ -156,7 +155,6 @@ export interface ReviewDetail {
     publicationConsistency?: PublicationConsistencyReport;
     editorialOverrides: Array<{
       checkId: string;
-      rationale: string;
       editorLogin: string;
       createdAt: string;
     }>;
@@ -383,8 +381,6 @@ export async function getReviewDetail(
           platformVerification: trustRow.assessment.verification
             ? {
                 reviewerLogin: trustRow.assessment.verification.reviewer.githubLogin,
-                reviewerRoleSnapshot: trustRow.assessment.verification.reviewerRoleSnapshot,
-                rationale: trustRow.assessment.verification.rationale,
               }
             : undefined,
           supersedesAssessmentId: trustRow.assessment.supersedesAssessmentId ?? undefined,
@@ -424,6 +420,60 @@ export async function getReviewDetail(
   const publishedIdentifier = version.identifiers.find(
     (identifier) => identifier.relationType === "published-review",
   );
+
+  const directProvenance = version.sourceSubmission?.decisionProvenance;
+  let directEditorialDecision: ReviewDetail["version"]["editorialDecision"];
+  if (directProvenance) {
+    const conflictOfInterest = conflictOfInterestStatusSchema.safeParse(
+      directProvenance.conflictOfInterestStatus,
+    );
+    const expectedHash = conflictOfInterest.success
+      ? directEditorialDecisionHash({
+          submissionId: directProvenance.submissionId,
+          actor: {
+            githubLogin: directProvenance.actorGithubLoginSnapshot,
+            role: directProvenance.actorRoleSnapshot,
+          },
+          decision: directProvenance.decision,
+          noteHash: directProvenance.noteHash,
+          conflictOfInterest: { status: conflictOfInterest.data },
+          override:
+            directProvenance.administratorOverride &&
+            directProvenance.administratorOverrideGithubLoginSnapshot &&
+            directProvenance.administratorOverrideAt
+              ? {
+                  administratorGithubLogin:
+                    directProvenance.administratorOverrideGithubLoginSnapshot,
+                  exercisedAt: directProvenance.administratorOverrideAt,
+                }
+              : null,
+        })
+      : null;
+    if (expectedHash === directProvenance.decisionHash && conflictOfInterest.success) {
+      directEditorialDecision = {
+        actorLogin: directProvenance.actorGithubLoginSnapshot,
+        decision: directProvenance.decision,
+        decisionHash: directProvenance.decisionHash,
+        conflictOfInterest: { status: conflictOfInterest.data },
+        administratorOverride:
+          directProvenance.administratorOverride &&
+          directProvenance.administratorOverrideGithubLoginSnapshot &&
+          directProvenance.administratorOverrideAt
+            ? {
+                administrator: {
+                  githubLogin: directProvenance.administratorOverrideGithubLoginSnapshot,
+                },
+                exercisedAt: directProvenance.administratorOverrideAt.toISOString(),
+              }
+            : undefined,
+        decidedAt: directProvenance.createdAt.toISOString(),
+      };
+    } else {
+      console.error(
+        `[reviews] editorial decision ${directProvenance.id} failed provenance verification; omitted.`,
+      );
+    }
+  }
 
   return {
     slug: review.slug,
@@ -491,41 +541,11 @@ export async function getReviewDetail(
       editorialOverrides:
         version.sourceSubmission?.editorialOverrides.map((override) => ({
           checkId: override.checkId,
-          rationale: override.rationale,
           editorLogin: override.editor.githubLogin,
           createdAt: override.createdAt.toISOString(),
         })) ?? [],
-      editorialDecision: version.sourceSubmission?.decisionProvenance
-        ? {
-            actorLogin: version.sourceSubmission.decisionProvenance.actorGithubLoginSnapshot,
-            decision: version.sourceSubmission.decisionProvenance.decision,
-            decisionHash: version.sourceSubmission.decisionProvenance.decisionHash,
-            conflictOfInterest: {
-              status:
-                version.sourceSubmission.decisionProvenance.conflictOfInterestStatus ===
-                  "none-declared" ||
-                version.sourceSubmission.decisionProvenance.conflictOfInterestStatus ===
-                  "conflict-declared"
-                  ? version.sourceSubmission.decisionProvenance.conflictOfInterestStatus
-                  : "not-provided",
-            },
-            administratorOverride:
-              version.sourceSubmission.decisionProvenance.administratorOverride &&
-              version.sourceSubmission.decisionProvenance
-                .administratorOverrideGithubLoginSnapshot &&
-              version.sourceSubmission.decisionProvenance.administratorOverrideAt
-                ? {
-                    administrator: {
-                      githubLogin:
-                        version.sourceSubmission.decisionProvenance
-                          .administratorOverrideGithubLoginSnapshot,
-                    },
-                    exercisedAt:
-                      version.sourceSubmission.decisionProvenance.administratorOverrideAt.toISOString(),
-                  }
-                : undefined,
-            decidedAt: version.sourceSubmission.decisionProvenance.createdAt.toISOString(),
-          }
+      editorialDecision: directProvenance
+        ? directEditorialDecision
         : version.sourceSubmission?.reviewer &&
             !version.sourceSubmission.reviewRounds.some((round) => round.decisionLetter)
           ? {

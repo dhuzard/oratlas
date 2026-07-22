@@ -100,6 +100,7 @@ describe("roCrate", () => {
           },
           protocolVersion: "trust-v2",
           assessor: { type: "human", identifier: "opaque-reviewer-id" },
+          conflictOfInterest: { status: "not-provided" },
           criteria: {},
           limitations: [],
           verification: {

@@ -1095,6 +1095,7 @@ CREATE TABLE "DecisionLetter" (
     "id" TEXT NOT NULL,
     "roundId" TEXT NOT NULL,
     "editorId" TEXT NOT NULL,
+    "editorGithubLoginSnapshot" TEXT,
     "editorRoleSnapshot" TEXT,
     "decision" TEXT NOT NULL,
     "bodyJson" TEXT NOT NULL,
@@ -2165,6 +2166,7 @@ ALTER TABLE "DecisionLetter" DROP CONSTRAINT IF EXISTS "DecisionLetter_coi_check
 
 ALTER TABLE "DecisionLetter" ADD CONSTRAINT "DecisionLetter_coi_check" CHECK (
     "conflictOfInterestStatus" IN ('none-declared', 'conflict-declared', 'not-provided')
+    AND ("decisionHash" IS NULL OR ("editorGithubLoginSnapshot" IS NOT NULL AND "editorRoleSnapshot" IS NOT NULL))
     AND (("administratorOverride" = false AND "administratorOverrideById" IS NULL AND "administratorOverrideGithubLoginSnapshot" IS NULL AND "administratorOverrideAt" IS NULL)
       OR ("administratorOverride" = true AND "conflictOfInterestStatus" = 'conflict-declared' AND "editorRoleSnapshot" = 'ADMIN' AND "administratorOverrideById" = "editorId" AND "administratorOverrideGithubLoginSnapshot" IS NOT NULL AND "administratorOverrideAt" IS NOT NULL))
   );
@@ -2207,9 +2209,19 @@ DROP TRIGGER IF EXISTS "DecisionLetter_coi_immutable_guard" ON "DecisionLetter";
 CREATE TRIGGER "DecisionLetter_coi_immutable_guard" BEFORE UPDATE ON "DecisionLetter"
     FOR EACH ROW EXECUTE FUNCTION "oratlas_reject_immutable_editorial_decision_update"();
 
+DROP TRIGGER IF EXISTS "DecisionLetter_immutable_delete_guard" ON "DecisionLetter";
+
+CREATE TRIGGER "DecisionLetter_immutable_delete_guard" BEFORE DELETE ON "DecisionLetter"
+    FOR EACH ROW EXECUTE FUNCTION "oratlas_reject_immutable_editorial_decision_update"();
+
 DROP TRIGGER IF EXISTS "EditorialDecisionProvenance_immutable_guard" ON "EditorialDecisionProvenance";
 
 CREATE TRIGGER "EditorialDecisionProvenance_immutable_guard" BEFORE UPDATE ON "EditorialDecisionProvenance"
+    FOR EACH ROW EXECUTE FUNCTION "oratlas_reject_immutable_editorial_decision_update"();
+
+DROP TRIGGER IF EXISTS "EditorialDecisionProvenance_immutable_delete_guard" ON "EditorialDecisionProvenance";
+
+CREATE TRIGGER "EditorialDecisionProvenance_immutable_delete_guard" BEFORE DELETE ON "EditorialDecisionProvenance"
     FOR EACH ROW EXECUTE FUNCTION "oratlas_reject_immutable_editorial_decision_update"();
 
 CREATE OR REPLACE FUNCTION "oratlas_validate_synthesis_membership_reference"() RETURNS trigger AS $$

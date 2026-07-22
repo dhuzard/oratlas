@@ -513,7 +513,7 @@ export default async function ReviewPage({
                   <ul>
                     {review.version.editorialOverrides.map((override) => (
                       <li key={override.checkId}>
-                        <span className="mono">{override.checkId}</span> — {override.rationale} — @
+                        <span className="mono">{override.checkId}</span> — recorded by @
                         {override.editorLogin}, {override.createdAt.slice(0, 10)}
                       </li>
                     ))}

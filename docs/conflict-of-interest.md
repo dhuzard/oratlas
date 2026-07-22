@@ -44,7 +44,9 @@ Formal round decisions store the snapshot on the immutable `DecisionLetter`. The
 decision endpoint creates a separate, one-per-submission immutable provenance record so mutable
 submission state is never treated as the decision ledger. Their decision hashes and idempotency
 bindings cover the outcome, decision-letter body or private-note hash, public actor login, private
-role snapshot, COI snapshot, and override.
+role snapshot, stable submission/round identity, COI snapshot, and the administrator override login
+and exercise time. Reads recompute those hashes before publishing a decision. The stored actor login
+snapshot, rather than a mutable current account login, drives projections and idempotent retries.
 
 An editor is directly involved when deciding their own submission or a submission for which they
 authored a formal report. Direct involvement requires recusal. Only an `ADMIN` may exercise the
@@ -52,6 +54,12 @@ explicit exception, and only with `conflict-declared`. Public decision projectio
 status and, when exercised, the administrator login and time; notes, rationale, role snapshots, and
 internal user IDs remain private. Legacy decision rows without provenance project as
 `not-provided` rather than `none-declared`.
+
+An assignment-level COI declaration is provenance, not an automatic recusal. A `recused` assignment
+cannot make an ordinary decision. The ratified exception remains limited to actual direct
+self-involvement, an `ADMIN` actor, an explicit `conflict-declared` input, and public override
+provenance; an uninvolved override is rejected. Database guards prevent both updates and deletions
+of decision letters and direct-decision provenance.
 
 ## Current coverage
 

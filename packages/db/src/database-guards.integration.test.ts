@@ -26,6 +26,17 @@ describe.skipIf(!enabled)("PostgreSQL database guards", () => {
     expect(triggers.map(({ tgname }) => tgname)).toEqual(
       expect.arrayContaining([...POSTGRES_DATABASE_GUARD_TRIGGER_NAMES]),
     );
+    const immutableDeleteTriggers = await prisma.$queryRaw<
+      Array<{ tgname: string; definition: string }>
+    >`
+      SELECT tgname, pg_get_triggerdef(oid) AS definition
+      FROM pg_trigger
+      WHERE tgname IN ('DecisionLetter_immutable_delete_guard', 'EditorialDecisionProvenance_immutable_delete_guard')
+    `;
+    expect(immutableDeleteTriggers).toHaveLength(2);
+    expect(
+      immutableDeleteTriggers.every(({ definition }) => definition.includes("BEFORE DELETE")),
+    ).toBe(true);
 
     await expect(
       prisma.review.create({

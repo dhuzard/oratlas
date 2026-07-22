@@ -88,7 +88,10 @@ versions, whose synthetic object ids do not exist in any archive.
 The `1.0.0` scholarly JSON profile is regenerated deterministically from accepted database rows and
 never contacts an upstream repository. It exports every claim–citation TRUST assessment separately,
 including protocol, assessor, criterion records, limitations, evidence, source assertion, and the
-fail-closed Atlas verification state. It deliberately defines no aggregate, disagreement summary,
+fail-closed Atlas verification state. Each assessment also carries its immutable tri-state COI
+snapshot; an invalid persisted status rejects export. Acceptance attribution comes from immutable
+direct or formal decision provenance rather than the editor's mutable current login. The profile
+deliberately defines no aggregate, disagreement summary,
 or protocol crosswalk: consumers compare the uncollapsed records only within protocols they
 understand.
 

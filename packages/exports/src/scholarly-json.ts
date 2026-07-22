@@ -1,6 +1,7 @@
 import {
   canonicalJson,
   type PublicChallenge,
+  type ConflictOfInterestSnapshot,
   type SourceAssessmentDocument,
   type TrustCriterion,
   type TrustCriterionAssessment,
@@ -20,6 +21,7 @@ export interface ScholarlyTrustAssessmentInput {
   protocolVersion: string;
   assessor: { type: string; identifier?: string };
   assessedAt?: string;
+  conflictOfInterest: ConflictOfInterestSnapshot;
   criteria: Partial<Record<TrustCriterion, TrustCriterionAssessment>>;
   limitations: string[];
   evidence?: Record<string, unknown>;

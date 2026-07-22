@@ -32,6 +32,7 @@ import {
 import { materializeAuthorEdgeProposals } from "./node-edge-lifecycle";
 import { ingestNodeRelationTrustAssessment, ingestTrustAssessment } from "./assessment-ingestion";
 import { materializeSameClaimProposals } from "./node-identity-lifecycle";
+import { directEditorialDecisionHash } from "./decision-provenance";
 
 export type { SubmissionPayload } from "./submission-payload";
 
@@ -80,7 +81,22 @@ async function decisionConflictProvenance(
     where: { round: { submissionId: submission.id }, reviewerId: actorId },
     select: { id: true },
   });
+  const assignment = await tx.editorAssignment.findUnique({
+    where: {
+      submissionId_editorId: { submissionId: submission.id, editorId: actorId },
+    },
+    select: { status: true },
+  });
   const directlyInvolved = submission.submitterId === actorId || Boolean(authoredReport);
+  if (
+    assignment?.status === "recused" &&
+    !(directlyInvolved && input.administratorOverride && actor.role === "ADMIN")
+  ) {
+    throw new SubmissionError(
+      "A recused editor cannot decide this submission without a ratified administrator override.",
+      "forbidden",
+    );
+  }
   if (directlyInvolved && !input.administratorOverride) {
     throw new SubmissionError(
       "Direct self-involvement requires recusal or an explicit administrator override.",
@@ -118,19 +134,20 @@ async function createDirectDecisionProvenance(
 ): Promise<string> {
   const provenance = await decisionConflictProvenance(tx, submission, actorId, input);
   const noteHash = note === undefined ? null : sha256(note);
-  const decisionHash = sha256(
-    canonicalJson({
-      submissionId: submission.id,
-      actorGithubLogin: provenance.actorGithubLogin,
-      actorRoleSnapshot: provenance.actorRole,
-      decision,
-      noteHash,
-      conflictOfInterest: input.conflictOfInterest,
-      administratorOverride: input.administratorOverride
-        ? { administrator: { githubLogin: provenance.actorGithubLogin } }
+  const decisionHash = directEditorialDecisionHash({
+    submissionId: submission.id,
+    actor: { githubLogin: provenance.actorGithubLogin, role: provenance.actorRole },
+    decision,
+    noteHash,
+    conflictOfInterest: input.conflictOfInterest,
+    override:
+      input.administratorOverride && provenance.overrideAt
+        ? {
+            administratorGithubLogin: provenance.actorGithubLogin,
+            exercisedAt: provenance.overrideAt,
+          }
         : null,
-    }),
-  );
+  });
   await tx.editorialDecisionProvenance.create({
     data: {
       submissionId: submission.id,

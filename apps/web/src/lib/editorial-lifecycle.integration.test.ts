@@ -192,6 +192,97 @@ describe.sequential("formal editorial-review lifecycle", () => {
     ).toBe(0);
   });
 
+  it("enforces the formal recusal and administrator-override matrix", async () => {
+    const administratorRow = await runtime.prisma.user.create({
+      data: {
+        githubUserId: "lc-formal-admin",
+        githubLogin: "lc-formal-admin",
+        role: "ADMIN",
+      },
+    });
+    const administrator = { id: administratorRow.id, role: "ADMIN" };
+    const ownSubmission = await newSubmission(administrator.id, "formal-admin-own-review", "905");
+    await runtime.prisma.editorAssignment.create({
+      data: {
+        submissionId: ownSubmission.submissionId,
+        editorId: administrator.id,
+        assignedById: administrator.id,
+        status: "active",
+      },
+    });
+    const ownRound = await runtime.lifecycle.openReviewRound(
+      administrator,
+      ownSubmission.submissionId,
+    );
+    await runtime.prisma.editorAssignment.update({
+      where: {
+        submissionId_editorId: {
+          submissionId: ownSubmission.submissionId,
+          editorId: administrator.id,
+        },
+      },
+      data: { status: "recused", coiDeclared: true, coiStatement: "Self-involvement." },
+    });
+    await expect(
+      runtime.lifecycle.issueDecision(administrator, ownRound.roundId, "request-changes", {
+        schemaVersion: "1.0.0",
+        letter: "A public administrator override is recorded for this direct involvement.",
+      }),
+    ).rejects.toMatchObject({ code: "forbidden" });
+    await expect(
+      runtime.lifecycle.issueDecision(
+        administrator,
+        ownRound.roundId,
+        "request-changes",
+        {
+          schemaVersion: "1.0.0",
+          letter: "A public administrator override is recorded for this direct involvement.",
+        },
+        undefined,
+        [],
+        [],
+        {
+          conflictOfInterest: { status: "conflict-declared" },
+          administratorOverride: true,
+        },
+      ),
+    ).resolves.toMatchObject({ decision: "request-changes" });
+
+    const uninvolvedSubmission = await newSubmission(
+      submitter.id,
+      "formal-admin-uninvolved-review",
+      "906",
+    );
+    await runtime.prisma.editorAssignment.create({
+      data: {
+        submissionId: uninvolvedSubmission.submissionId,
+        editorId: administrator.id,
+        assignedById: administrator.id,
+        status: "active",
+        coiDeclared: true,
+      },
+    });
+    const uninvolvedRound = await runtime.lifecycle.openReviewRound(
+      administrator,
+      uninvolvedSubmission.submissionId,
+    );
+    await expect(
+      runtime.lifecycle.issueDecision(
+        administrator,
+        uninvolvedRound.roundId,
+        "reject",
+        { schemaVersion: "1.0.0", letter: "An uninvolved override must be rejected." },
+        undefined,
+        [],
+        [],
+        {
+          conflictOfInterest: { status: "conflict-declared" },
+          administratorOverride: true,
+        },
+      ),
+    ).rejects.toThrow("valid only for direct self-involvement");
+  });
+
   it("traverses review rounds with an immutable, attributable public process history", async () => {
     const { lifecycle } = runtime;
     const first = await newSubmission(submitter.id, "lifecycle-review", "901");
@@ -294,6 +385,15 @@ describe.sequential("formal editorial-review lifecycle", () => {
       letter: "The revision addresses every concern from round one. Accepted.",
     });
     expect(decision2.reviewSlug).toBeDefined();
+    const storedDecision2 = await runtime.prisma.decisionLetter.findUniqueOrThrow({
+      where: { roundId: round2.roundId },
+      select: { id: true, decisionHash: true, editorGithubLoginSnapshot: true },
+    });
+    expect(storedDecision2.editorGithubLoginSnapshot).toBe("lc-editor");
+    await runtime.prisma.user.update({
+      where: { id: editor.id },
+      data: { githubLogin: "lc-editor-renamed" },
+    });
     expect(
       await lifecycle.issueDecision(editor, round2.roundId, "accept", {
         schemaVersion: "1.0.0",
@@ -337,6 +437,22 @@ describe.sequential("formal editorial-review lifecycle", () => {
     expect(history[0]!.rounds[0]!.decision?.administratorOverride).toBeUndefined();
     expect(history[0]!.rounds[0]!.decision?.decisionHash).toMatch(/^[a-f0-9]{64}$/);
     expect(history[1]!.rounds[0]!.decision?.decision).toBe("accept");
+    expect(history[1]!.rounds[0]!.decision?.editorLogin).toBe("lc-editor");
+
+    await runtime.prisma.decisionLetter.update({
+      where: { id: storedDecision2.id },
+      data: { decisionHash: "0".repeat(64) },
+    });
+    const corruptHistory = await lifecycle.getProcessHistory(second.submissionId);
+    expect(corruptHistory[1]!.rounds[0]!.decision).toBeUndefined();
+    await runtime.prisma.decisionLetter.update({
+      where: { id: storedDecision2.id },
+      data: { decisionHash: storedDecision2.decisionHash },
+    });
+    await runtime.prisma.user.update({
+      where: { id: editor.id },
+      data: { githubLogin: "lc-editor" },
+    });
 
     // DocMaps export of the published version covers the full chain.
     const review = await runtime.prisma.review.findUniqueOrThrow({
