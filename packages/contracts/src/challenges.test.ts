@@ -63,6 +63,12 @@ describe("challenge contracts", () => {
     expect(
       moderateChallengeContentInputSchema.safeParse({ expectedContentRevision: -1 }).success,
     ).toBe(false);
+    expect(
+      moderateChallengeContentInputSchema.safeParse({
+        expectedContentRevision: 0,
+        rationale: "not accepted before governance §9",
+      }).success,
+    ).toBe(false);
     const projected = publicChallengeResponseSchema.parse({
       id: "response-1",
       body: "",

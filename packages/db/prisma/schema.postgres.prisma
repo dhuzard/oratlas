@@ -1029,6 +1029,8 @@ model ChallengeTransition {
   actorId           String
   actorRoleSnapshot String
   rationale         String?
+  /// Present only on open -> author-responded; binds that event to ChallengeResponse.
+  responseContentHash String?
   /// Binds every ledger event to the immutable content filed at revision zero.
   filedContentHash  String
   revision          Int

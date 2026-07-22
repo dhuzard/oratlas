@@ -174,7 +174,13 @@ test.describe("Formal challenge register", () => {
     });
     expect(completed.transitions).toMatchObject([
       { fromStatus: null, toStatus: "open", actorId: submitter.id, revision: 0 },
-      { fromStatus: "open", toStatus: "author-responded", actorId: submitter.id, revision: 1 },
+      {
+        fromStatus: "open",
+        toStatus: "author-responded",
+        actorId: submitter.id,
+        responseContentHash: completed.response?.contentHash,
+        revision: 1,
+      },
       {
         fromStatus: "author-responded",
         toStatus: "resolved",

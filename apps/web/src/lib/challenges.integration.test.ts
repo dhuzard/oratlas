@@ -331,12 +331,21 @@ describe.sequential("formal challenge persistence and lifecycle", () => {
     const secondQueuePage = await service.listOpenChallengePage(firstQueuePage.nextCursor!, 1);
     expect(secondQueuePage.items.map(({ id }) => id)).not.toContain(firstQueuePage.items[0]!.id);
 
+    await expect(
+      service.removeChallengeResponseContent(response.id, challenger, {
+        expectedContentRevision: 0,
+      }),
+    ).rejects.toMatchObject({ code: "forbidden" });
+
     const moderationRace = await Promise.allSettled([
       service.removeChallengeResponseContent(response.id, editor, { expectedContentRevision: 0 }),
       service.removeChallengeResponseContent(response.id, editor, { expectedContentRevision: 0 }),
     ]);
     expect(moderationRace.filter(({ status }) => status === "fulfilled")).toHaveLength(1);
     expect(moderationRace.filter(({ status }) => status === "rejected")).toHaveLength(1);
+    await expect(
+      service.removeChallengeContent(created.id, author, { expectedContentRevision: 0 }),
+    ).rejects.toMatchObject({ code: "forbidden" });
     await service.removeChallengeContent(created.id, editor, { expectedContentRevision: 0 });
     await service.transitionChallenge(created.id, editor, {
       expectedRevision: 1,
@@ -390,6 +399,73 @@ describe.sequential("formal challenge persistence and lifecycle", () => {
     ]) {
       expect(await prisma.auditEvent.count({ where: { action } })).toBeGreaterThan(0);
     }
+  });
+
+  it("fails closed when the response row or its transition hash/actor binding is missing or tampered", async () => {
+    async function responded(suffix: string) {
+      const seeded = await fixture(`response-integrity-${suffix}`);
+      const subject = { type: "claim" as const, claimId: seeded.claim.id };
+      const binding = await service.resolveChallengeSubject(prisma, seeded.version.id, subject);
+      const challenge = await service.createChallenge(seeded.review.slug, challenger, {
+        reviewVersionId: seeded.version.id,
+        subject,
+        canonicalSubjectHash: binding.hash,
+        grounds: "other",
+        body: `Response integrity ${suffix}.`,
+      });
+      const response = await service.createChallengeResponse(challenge.id, author, {
+        expectedRevision: 0,
+        body: `Valid immutable response ${suffix}.`,
+      });
+      expect(
+        (await service.listChallenges(seeded.review.slug, seeded.version.id))?.challenges,
+      ).toHaveLength(1);
+      return { seeded, challenge, response };
+    }
+
+    const deleted = await responded("deleted");
+    await prisma.challengeResponse.delete({ where: { id: deleted.response.id } });
+    expect(
+      (await service.listChallenges(deleted.seeded.review.slug, deleted.seeded.version.id))
+        ?.challenges,
+    ).toEqual([]);
+    await expect(
+      service.transitionChallenge(deleted.challenge.id, editor, {
+        expectedRevision: 1,
+        toStatus: "resolved",
+        rationale: "Must fail without the bound response.",
+      }),
+    ).rejects.toMatchObject({ code: "conflict" });
+
+    const contentTamper = await responded("content-hash");
+    await prisma.challengeResponse.update({
+      where: { id: contentTamper.response.id },
+      data: { contentHash: "0".repeat(64) },
+    });
+    expect(
+      (
+        await service.listChallenges(
+          contentTamper.seeded.review.slug,
+          contentTamper.seeded.version.id,
+        )
+      )?.challenges,
+    ).toEqual([]);
+
+    const transitionTamper = await responded("transition-hash");
+    await prisma.challengeTransition.update({
+      where: {
+        challengeId_revision: { challengeId: transitionTamper.challenge.id, revision: 1 },
+      },
+      data: { responseContentHash: "f".repeat(64), actorId: challenger.id },
+    });
+    expect(
+      (
+        await service.listChallenges(
+          transitionTamper.seeded.review.slug,
+          transitionTamper.seeded.version.id,
+        )
+      )?.challenges,
+    ).toEqual([]);
   });
 
   it("fails closed after target tampering", async () => {
