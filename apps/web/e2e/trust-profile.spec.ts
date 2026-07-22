@@ -62,7 +62,7 @@ test("two aggregate-free TRUST assessments render complete independent profiles"
     await expect(assessmentList.locator("summary")).toHaveText("Formal TRUST assessments (2)");
     await assessmentList.locator("summary").click();
 
-    const assessments = assessmentList.locator('section[aria-label^="TRUST assessment "]');
+    const assessments = assessmentList.locator('section[aria-label^="Formal TRUST assessment "]');
     await expect(assessments).toHaveCount(2);
     for (const assessment of await assessments.all()) {
       const profile = assessment.getByRole("table", { name: "TRUST criteria" });
