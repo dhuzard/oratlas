@@ -16,16 +16,24 @@ export function ChallengesSection({
   initial,
   subjects,
   canFile,
+  viewer,
 }: {
   initial: ChallengeList;
   subjects: ChallengeSubjectOption[];
   canFile: boolean;
+  viewer: {
+    githubLogin: string;
+    isContributor: boolean;
+    canResolve: boolean;
+  } | null;
 }) {
   const [list, setList] = useState(initial);
   const [subjectIndex, setSubjectIndex] = useState(0);
   const [selectedGrounds, setSelectedGrounds] = useState<ChallengeGrounds>("entailment");
   const [body, setBody] = useState("");
   const [message, setMessage] = useState("");
+  const [responses, setResponses] = useState<Record<string, string>>({});
+  const [rationales, setRationales] = useState<Record<string, string>>({});
 
   async function refresh() {
     const response = await fetch(
@@ -63,6 +71,22 @@ export function ChallengesSection({
     await refresh();
   }
 
+  async function mutate(path: string, payload: unknown, success: string) {
+    setMessage("Saving…");
+    const response = await fetch(path, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const result = (await response.json()) as { error?: { message?: string } };
+    if (!response.ok) {
+      setMessage(result.error?.message ?? "Challenge action failed.");
+      return;
+    }
+    setMessage(success);
+    await refresh();
+  }
+
   return (
     <section
       id="formal-challenges"
@@ -84,7 +108,11 @@ export function ChallengesSection({
                 <strong>{challenge.grounds.replace(/-/g, " ")}</strong> ·{" "}
                 <span>{challenge.status.replace(/-/g, " ")}</span>
               </p>
-              <p>{challenge.body}</p>
+              {challenge.contentStatus === "removed" ? (
+                <p className="muted">[challenge text removed]</p>
+              ) : (
+                <p>{challenge.body}</p>
+              )}
               <p className="muted">
                 Filed by @{challenge.challenger.githubLogin} against{" "}
                 <a href={challenge.subjectHref}>{challenge.subjectLabel}</a> on{" "}
@@ -98,16 +126,150 @@ export function ChallengesSection({
                   {challenge.transitions.map((transition) => (
                     <li key={transition.id}>
                       {transition.toStatus.replace(/-/g, " ")} · @{transition.actor.githubLogin} (
-                      {transition.actorRoleSnapshot})
-                      {transition.rationale ? ` — ${transition.rationale}` : ""}
+                      recorded {transition.createdAt.slice(0, 10)})
                     </li>
                   ))}
                 </ol>
               </details>
+              {challenge.response ? (
+                <div data-challenge-response={challenge.response.id}>
+                  <h4>Contributor response</h4>
+                  {challenge.response.contentStatus === "removed" ? (
+                    <p className="muted">[response text removed]</p>
+                  ) : (
+                    <p>{challenge.response.body}</p>
+                  )}
+                  <p className="muted">
+                    @{challenge.response.responder.githubLogin} · contributor of record ·{" "}
+                    {challenge.response.createdAt.slice(0, 10)}
+                  </p>
+                  {viewer &&
+                  challenge.response.contentStatus === "visible" &&
+                  (viewer.canResolve ||
+                    viewer.githubLogin.toLowerCase() ===
+                      challenge.response.responder.githubLogin.toLowerCase()) ? (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        mutate(
+                          `/api/challenge-responses/${encodeURIComponent(challenge.response!.id)}/moderation`,
+                          { expectedContentRevision: challenge.response!.contentRevision },
+                          "Response removed; its tombstone remains public.",
+                        )
+                      }
+                    >
+                      Remove response text
+                    </button>
+                  ) : null}
+                </div>
+              ) : null}
+              {viewer?.isContributor && challenge.status === "open" ? (
+                <form
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    void mutate(
+                      `/api/challenges/${encodeURIComponent(challenge.id)}/responses`,
+                      { expectedRevision: challenge.revision, body: responses[challenge.id] ?? "" },
+                      "Contributor response recorded.",
+                    );
+                  }}
+                >
+                  <label>
+                    Contributor response
+                    <textarea
+                      required
+                      maxLength={10_000}
+                      value={responses[challenge.id] ?? ""}
+                      onChange={(event) =>
+                        setResponses((current) => ({
+                          ...current,
+                          [challenge.id]: event.target.value,
+                        }))
+                      }
+                    />
+                  </label>
+                  <button type="submit">Respond as contributor of record</button>
+                </form>
+              ) : null}
+              {viewer?.canResolve && challenge.status === "author-responded" ? (
+                <form
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    const submitter = (event.nativeEvent as SubmitEvent)
+                      .submitter as HTMLButtonElement;
+                    void mutate(
+                      `/api/challenges/${encodeURIComponent(challenge.id)}/transitions`,
+                      {
+                        expectedRevision: challenge.revision,
+                        toStatus: submitter.value,
+                        rationale: rationales[challenge.id] ?? "",
+                      },
+                      "Editorial outcome recorded.",
+                    );
+                  }}
+                >
+                  <label>
+                    Editorial rationale (private)
+                    <textarea
+                      required
+                      maxLength={5_000}
+                      value={rationales[challenge.id] ?? ""}
+                      onChange={(event) =>
+                        setRationales((current) => ({
+                          ...current,
+                          [challenge.id]: event.target.value,
+                        }))
+                      }
+                    />
+                  </label>
+                  <button type="submit" value="resolved">
+                    Resolve
+                  </button>{" "}
+                  <button type="submit" value="dismissed">
+                    Dismiss
+                  </button>
+                </form>
+              ) : null}
+              {viewer &&
+              challenge.status === "author-responded" &&
+              viewer.githubLogin.toLowerCase() ===
+                challenge.challenger.githubLogin.toLowerCase() ? (
+                <button
+                  type="button"
+                  onClick={() =>
+                    mutate(
+                      `/api/challenges/${encodeURIComponent(challenge.id)}/transitions`,
+                      { expectedRevision: challenge.revision, toStatus: "withdrawn" },
+                      "Challenge withdrawn.",
+                    )
+                  }
+                >
+                  Withdraw challenge
+                </button>
+              ) : null}
+              {viewer &&
+              challenge.contentStatus === "visible" &&
+              (viewer.canResolve ||
+                viewer.githubLogin.toLowerCase() ===
+                  challenge.challenger.githubLogin.toLowerCase()) ? (
+                <button
+                  type="button"
+                  onClick={() =>
+                    mutate(
+                      `/api/challenges/${encodeURIComponent(challenge.id)}/moderation`,
+                      { expectedContentRevision: challenge.contentRevision },
+                      "Challenge text removed; its tombstone remains public.",
+                    )
+                  }
+                >
+                  Remove challenge text
+                </button>
+              ) : null}
             </li>
           ))}
         </ol>
       )}
+      {message ? <p role="status">{message}</p> : null}
       {canFile && subjects.length > 0 ? (
         <form onSubmit={fileChallenge}>
           <h3>File a formal challenge</h3>
@@ -147,7 +309,6 @@ export function ChallengesSection({
             />
           </label>
           <button type="submit">File challenge</button>
-          {message ? <p role="status">{message}</p> : null}
         </form>
       ) : canFile ? (
         <p className="muted">No challengeable subjects are available.</p>

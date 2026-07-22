@@ -72,6 +72,9 @@ model User {
   synthesisRegenerationResolved  SynthesisRegenerationProposal[]   @relation("synthesisRegenerationResolver")
   challengesFiled                Challenge[]                       @relation("challengeChallenger")
   challengeTransitions           ChallengeTransition[]             @relation("challengeTransitionActor")
+  challengeResponses             ChallengeResponse[]               @relation("challengeResponder")
+  challengeContentRemovals       Challenge[]                       @relation("challengeContentRemover")
+  challengeResponseRemovals      ChallengeResponse[]               @relation("challengeResponseRemover")
 
   @@index([githubLoginNormalized])
 }
@@ -331,6 +334,7 @@ model Person {
   githubLogin String?
 
   contributions ReviewContributor[]
+  challengeResponses ChallengeResponse[]
 }
 
 model ReviewContributor {
@@ -910,6 +914,12 @@ model Challenge {
   grounds                 String
   /// Plain text only; bounded by contracts and rendered escaped.
   body                    String
+  /// visible | removed. Removed bytes stay retained but never enter public DTOs.
+  contentStatus           String   @default("visible")
+  contentRevision         Int      @default(0)
+  removedAt               DateTime?
+  removedById             String?
+  removedByRoleSnapshot   String?
   /// Canonical digest of the immutable filed grounds/body and subject binding.
   filedContentHash        String
   challengerId            String
@@ -928,11 +938,45 @@ model Challenge {
   relation      ClaimEvidenceRelation? @relation("challengeRelation", fields: [claimEvidenceRelationId], references: [id])
   assessment    TrustAssessment?       @relation("challengeAssessment", fields: [trustAssessmentId], references: [id])
   challenger    User                   @relation("challengeChallenger", fields: [challengerId], references: [id])
+  removedBy     User?                  @relation("challengeContentRemover", fields: [removedById], references: [id])
   transitions   ChallengeTransition[]
+  response      ChallengeResponse?
 
   @@index([reviewVersionId, createdAt])
   @@index([canonicalSubjectHash, status])
   @@index([challengerId, createdAt])
+}
+
+/// Immutable, one-per-challenge contributor-of-record response. Moderation
+/// changes only the tombstone projection; original bytes and digest are retained.
+model ChallengeResponse {
+  id                             String   @id @default(cuid())
+  challengeId                    String   @unique
+  responderId                    String
+  responderRoleSnapshot          String
+  responderGithubLoginSnapshot   String
+  responderDisplayNameSnapshot   String?
+  contributorPersonId            String
+  contributorGithubLoginSnapshot String
+  contributorDisplayNameSnapshot String
+  contributorRolesJsonSnapshot   String
+  body                           String
+  contentHash                    String
+  /// visible | removed
+  contentStatus                  String   @default("visible")
+  contentRevision                Int      @default(0)
+  removedAt                      DateTime?
+  removedById                    String?
+  removedByRoleSnapshot          String?
+  createdAt                      DateTime @default(now())
+
+  challenge         Challenge @relation(fields: [challengeId], references: [id])
+  responder         User      @relation("challengeResponder", fields: [responderId], references: [id])
+  contributorPerson Person    @relation(fields: [contributorPersonId], references: [id])
+  removedBy         User?     @relation("challengeResponseRemover", fields: [removedById], references: [id])
+
+  @@index([responderId, createdAt])
+  @@index([contentStatus, createdAt])
 }
 
 /// Append-only challenge lifecycle ledger. The nullable initial fromStatus

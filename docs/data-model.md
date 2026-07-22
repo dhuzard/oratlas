@@ -121,6 +121,16 @@ suffix, and arrays are JSON-encoded strings. Switching to PostgreSQL is a dataso
   transition. If legacy data already contains duplicates, the oldest `(createdAt, id)` row owns
   the key; all duplicates remain visible and transitionable, and ownership advances after terminal
   closure.
+- `ChallengeResponse` is an immutable, one-per-challenge record created only by a contributor of
+  record. It snapshots the responding user role and the matched `Person` identity, GitHub login,
+  display name, and contributor roles, and binds those fields plus its bounded plain-text body to a
+  canonical SHA-256. Response creation and `open → author-responded` are one serializable,
+  compare-and-set transaction; the bare transition is rejected.
+- Challenge and response moderation retain original bytes and content digests while advancing a
+  separate content revision to a public `removed` tombstone. Public DTOs return an empty body and
+  never expose remover identity, remover role, removed bytes, terminal rationale, or internal actor
+  roles. Moderation and its audit event commit atomically. Terminal `ChallengeTransition` rows
+  remain the authoritative resolution record; rationale is editorial-only pending governance §9.
 - `Submission.submittedPayloadJson` is the immutable snapshot of exactly what the submitter
   finalized, including the versioned node-extraction report. Editorial acceptance rechecks those
   candidates against the consumed capture. `acceptedNodeSelectionJson` stores the editor's sorted

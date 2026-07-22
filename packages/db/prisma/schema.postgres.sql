@@ -566,6 +566,11 @@ CREATE TABLE "Challenge" (
     "canonicalSubjectHash" TEXT NOT NULL,
     "grounds" TEXT NOT NULL,
     "body" TEXT NOT NULL,
+    "contentStatus" TEXT NOT NULL DEFAULT 'visible',
+    "contentRevision" INTEGER NOT NULL DEFAULT 0,
+    "removedAt" TIMESTAMP(3),
+    "removedById" TEXT,
+    "removedByRoleSnapshot" TEXT,
     "filedContentHash" TEXT NOT NULL,
     "challengerId" TEXT NOT NULL,
     "activeChallengerSubjectKey" TEXT,
@@ -575,6 +580,30 @@ CREATE TABLE "Challenge" (
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "Challenge_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "ChallengeResponse" (
+    "id" TEXT NOT NULL,
+    "challengeId" TEXT NOT NULL,
+    "responderId" TEXT NOT NULL,
+    "responderRoleSnapshot" TEXT NOT NULL,
+    "responderGithubLoginSnapshot" TEXT NOT NULL,
+    "responderDisplayNameSnapshot" TEXT,
+    "contributorPersonId" TEXT NOT NULL,
+    "contributorGithubLoginSnapshot" TEXT NOT NULL,
+    "contributorDisplayNameSnapshot" TEXT NOT NULL,
+    "contributorRolesJsonSnapshot" TEXT NOT NULL,
+    "body" TEXT NOT NULL,
+    "contentHash" TEXT NOT NULL,
+    "contentStatus" TEXT NOT NULL DEFAULT 'visible',
+    "contentRevision" INTEGER NOT NULL DEFAULT 0,
+    "removedAt" TIMESTAMP(3),
+    "removedById" TEXT,
+    "removedByRoleSnapshot" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "ChallengeResponse_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -1346,6 +1375,15 @@ CREATE INDEX "Challenge_canonicalSubjectHash_status_idx" ON "Challenge"("canonic
 CREATE INDEX "Challenge_challengerId_createdAt_idx" ON "Challenge"("challengerId", "createdAt");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "ChallengeResponse_challengeId_key" ON "ChallengeResponse"("challengeId");
+
+-- CreateIndex
+CREATE INDEX "ChallengeResponse_responderId_createdAt_idx" ON "ChallengeResponse"("responderId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "ChallengeResponse_contentStatus_createdAt_idx" ON "ChallengeResponse"("contentStatus", "createdAt");
+
+-- CreateIndex
 CREATE INDEX "ChallengeTransition_challengeId_createdAt_idx" ON "ChallengeTransition"("challengeId", "createdAt");
 
 -- CreateIndex
@@ -1737,6 +1775,21 @@ ALTER TABLE "Challenge" ADD CONSTRAINT "Challenge_trustAssessmentId_fkey" FOREIG
 
 -- AddForeignKey
 ALTER TABLE "Challenge" ADD CONSTRAINT "Challenge_challengerId_fkey" FOREIGN KEY ("challengerId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Challenge" ADD CONSTRAINT "Challenge_removedById_fkey" FOREIGN KEY ("removedById") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ChallengeResponse" ADD CONSTRAINT "ChallengeResponse_challengeId_fkey" FOREIGN KEY ("challengeId") REFERENCES "Challenge"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ChallengeResponse" ADD CONSTRAINT "ChallengeResponse_responderId_fkey" FOREIGN KEY ("responderId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ChallengeResponse" ADD CONSTRAINT "ChallengeResponse_contributorPersonId_fkey" FOREIGN KEY ("contributorPersonId") REFERENCES "Person"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ChallengeResponse" ADD CONSTRAINT "ChallengeResponse_removedById_fkey" FOREIGN KEY ("removedById") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "ChallengeTransition" ADD CONSTRAINT "ChallengeTransition_challengeId_fkey" FOREIGN KEY ("challengeId") REFERENCES "Challenge"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

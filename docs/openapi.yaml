@@ -891,6 +891,25 @@ components:
         expectedRevision: { type: integer, minimum: 0 }
         toStatus: { type: string, enum: [author-responded, resolved, dismissed, withdrawn] }
         rationale: { type: string, minLength: 1, maxLength: 5000 }
+    ChallengeResponseCreateRequest:
+      type: object
+      additionalProperties: false
+      required: [expectedRevision, body]
+      properties:
+        expectedRevision: { type: integer, minimum: 0 }
+        body:
+          {
+            type: string,
+            minLength: 1,
+            maxLength: 10000,
+            description: Plain text; rendered escaped.,
+          }
+    ChallengeModerationRequest:
+      type: object
+      additionalProperties: false
+      required: [expectedContentRevision]
+      properties:
+        expectedContentRevision: { type: integer, minimum: 0 }
     PublicChallenge:
       type: object
       additionalProperties: false
@@ -905,10 +924,13 @@ components:
           filedContentHash,
           grounds,
           body,
+          contentStatus,
+          contentRevision,
           status,
           revision,
           challenger,
           transitions,
+          response,
           createdAt,
         ]
       properties:
@@ -921,6 +943,8 @@ components:
         filedContentHash: { type: string, pattern: "^[a-f0-9]{64}$" }
         grounds: { type: string, enum: [entailment, source-access, methodology, identity, other] }
         body: { type: string }
+        contentStatus: { type: string, enum: [visible, removed] }
+        contentRevision: { type: integer, minimum: 0 }
         status: { type: string, enum: [open, author-responded, resolved, dismissed, withdrawn] }
         revision: { type: integer, minimum: 0 }
         challenger:
@@ -933,7 +957,7 @@ components:
           type: array
           items:
             type: object
-            required: [id, fromStatus, toStatus, actor, actorRoleSnapshot, revision, createdAt]
+            required: [id, fromStatus, toStatus, actor, revision, createdAt]
             properties:
               id: { type: string }
               fromStatus:
@@ -945,14 +969,31 @@ components:
                 { type: string, enum: [open, author-responded, resolved, dismissed, withdrawn] }
               actor:
                 type: object
-                required: [githubLogin, role]
+                required: [githubLogin]
                 properties:
                   githubLogin: { type: string }
-                  role: { type: string }
-              actorRoleSnapshot: { type: string }
-              rationale: { type: string }
               revision: { type: integer, minimum: 0 }
               createdAt: { type: string, format: date-time }
+        response:
+          oneOf:
+            - type: "null"
+            - type: object
+              additionalProperties: false
+              required:
+                [id, body, contentHash, contentStatus, contentRevision, responder, createdAt]
+              properties:
+                id: { type: string }
+                body: { type: string, description: Empty when contentStatus is removed. }
+                contentHash: { type: string, pattern: "^[a-f0-9]{64}$" }
+                contentStatus: { type: string, enum: [visible, removed] }
+                contentRevision: { type: integer, minimum: 0 }
+                responder:
+                  type: object
+                  required: [githubLogin, displayName]
+                  properties:
+                    githubLogin: { type: string }
+                    displayName: { type: [string, "null"] }
+                createdAt: { type: string, format: date-time }
         createdAt: { type: string, format: date-time }
     ReplicationClaimRef:
       type: object
@@ -2154,7 +2195,7 @@ paths:
   /api/challenges/{id}/transitions:
     post:
       summary: Append an authorized formal-challenge lifecycle transition
-      description: Contributor-of-record authors mark author response; challengers withdraw; the interim swappable policy grants resolution/dismissal to editors. Scientific-truth verdicts are not represented.
+      description: Challengers withdraw; the interim swappable policy grants resolution/dismissal to editors. A bare author-responded transition is rejected because response creation owns that atomic transition. Resolution rationale is editorial-only. Scientific-truth verdicts are not represented.
       security: [{ session: [] }]
       parameters:
         - { name: id, in: path, required: true, schema: { type: string } }
@@ -2165,6 +2206,67 @@ paths:
             schema: { $ref: "#/components/schemas/ChallengeTransitionRequest" }
       responses:
         "200": { description: Transition appended and current challenge revision advanced }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "413": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/Error" }
+  /api/challenges/{id}/responses:
+    post:
+      summary: Create the one immutable contributor-of-record response and atomically advance the challenge
+      security: [{ session: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ChallengeResponseCreateRequest" }
+      responses:
+        "200": { description: Response and open-to-author-responded transition recorded atomically }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "413": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/Error" }
+  /api/challenges/{id}/moderation:
+    post:
+      summary: Replace public challenge text with a retained audited tombstone
+      description: The original bytes, remover identity, and role snapshot are retained privately and never returned by the public challenge DTO. No rationale is accepted pending governance decision §9.
+      security: [{ session: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ChallengeModerationRequest" }
+      responses:
+        "200": { description: Challenge body tombstoned atomically with its audit event }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "413": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/Error" }
+  /api/challenge-responses/{id}/moderation:
+    post:
+      summary: Replace public challenge-response text with a retained audited tombstone
+      security: [{ session: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ChallengeModerationRequest" }
+      responses:
+        "200": { description: Response body tombstoned atomically with its audit event }
         "400": { $ref: "#/components/responses/Error" }
         "401": { $ref: "#/components/responses/Error" }
         "403": { $ref: "#/components/responses/Error" }

@@ -10,7 +10,11 @@ import { getCurrentUser, isEditor } from "@/lib/auth";
 import { TrustDisplay } from "@/components/TrustDisplay";
 import { CommentsSection } from "./CommentsSection";
 import { ChallengesSection } from "./ChallengesSection";
-import { listChallenges, listChallengeSubjectOptions } from "@/lib/challenges";
+import {
+  isChallengeContributorOfRecord,
+  listChallenges,
+  listChallengeSubjectOptions,
+} from "@/lib/challenges";
 import { ProvenanceBadge } from "@oratlas/ui";
 import { swhidArchiveUrl, swhidForRevision } from "@oratlas/exports";
 import { serializeJsonForHtml } from "@/lib/json-for-html";
@@ -163,6 +167,9 @@ export default async function ReviewPage({
     reviewVersionId: review.version.id,
     challenges: [],
   };
+  const viewerIsContributor = user
+    ? await isChallengeContributorOfRecord(review.version.id, user)
+    : false;
   const commentsByClaim = new Map<string, number>();
   for (const c of commentList.comments) {
     if (c.status !== "visible" || !c.claimLocalId) continue;
@@ -696,6 +703,15 @@ export default async function ReviewPage({
             initial={challengeList}
             subjects={challengeSubjects}
             canFile={Boolean(user)}
+            viewer={
+              user
+                ? {
+                    githubLogin: user.githubLogin,
+                    isContributor: viewerIsContributor,
+                    canResolve: isEditor(user),
+                  }
+                : null
+            }
           />
 
           <CommentsSection
