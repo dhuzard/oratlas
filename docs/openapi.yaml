@@ -1038,14 +1038,227 @@ components:
         relations: { type: array, items: { $ref: "#/components/schemas/PublicReviewRelation" } }
     PublicReviewDetail:
       type: object
+      additionalProperties: false
       description: Review detail; D01 relation assessment sets are represented by claims[].relations[].trusts.
-      required: [slug, title, status, isTombstoned, claims]
+      required:
+        [
+          slug,
+          title,
+          status,
+          publicState,
+          isTombstoned,
+          lifecycleRevision,
+          lifecycleEvents,
+          updatedAt,
+          keywords,
+          domains,
+          contributors,
+          repository,
+          snapshot,
+          version,
+          identifiers,
+          versions,
+          claims,
+          citations,
+          limitations,
+          identifierConflicts,
+        ]
       properties:
         slug: { type: string }
         title: { type: string }
+        abstract: { type: string }
+        reviewType: { type: string }
+        licenseSpdx: { type: string }
+        publishedReviewUrl: { type: string }
         status: { type: string }
+        publicState: { type: string, enum: [published, withdrawn, tombstoned] }
         isTombstoned: { type: boolean }
+        lifecycleRevision: { type: integer, minimum: 0 }
+        lifecycleEvents:
+          type: array
+          items: { $ref: "#/components/schemas/PublicReviewLifecycleEvent" }
+        acceptedAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        keywords: { type: array, items: { type: string } }
+        domains: { type: array, items: { type: string } }
+        compatibilityLevel: { type: string }
+        compatibilityReport: {}
+        contributors:
+          type: array
+          items: { $ref: "#/components/schemas/PublicReviewContributor" }
+        repository: { $ref: "#/components/schemas/PublicReviewRepository" }
+        snapshot: { $ref: "#/components/schemas/PublicReviewSnapshot" }
+        version: { $ref: "#/components/schemas/PublicReviewVersion" }
+        identifiers:
+          type: array
+          items: { $ref: "#/components/schemas/PublicReviewIdentifier" }
+        versions:
+          type: array
+          items: { $ref: "#/components/schemas/PublicReviewVersionSummary" }
         claims: { type: array, items: { $ref: "#/components/schemas/PublicReviewClaim" } }
+        citations:
+          type: array
+          items: { $ref: "#/components/schemas/PublicReviewCitation" }
+        limitations: { type: array, items: { type: string } }
+        identifierConflicts:
+          type: array
+          items: { $ref: "#/components/schemas/PublicWorkIdentityAssertion" }
+    PublicReviewLifecycleEvent:
+      type: object
+      additionalProperties: false
+      required: [id, kind, reviewVersionId, reason, actorLogin, revision, createdAt]
+      properties:
+        id: { type: string }
+        kind: { type: string, enum: [correction, withdrawal, tombstone] }
+        reviewVersionId: { type: string }
+        supersedesVersionId: { type: string }
+        reason: { type: string }
+        actorLogin: { type: string }
+        revision: { type: integer, minimum: 0 }
+        createdAt: { type: string, format: date-time }
+    PublicReviewContributor:
+      type: object
+      additionalProperties: false
+      required: [displayName, roles, isExampleOrcid]
+      properties:
+        displayName: { type: string }
+        orcid: { type: string }
+        githubLogin: { type: string }
+        roles: { type: array, items: { type: string } }
+        isExampleOrcid: { type: boolean }
+    PublicReviewRepository:
+      type: object
+      additionalProperties: false
+      required: [canonicalUrl, owner, name]
+      properties:
+        canonicalUrl: { type: string }
+        owner: { type: string }
+        name: { type: string }
+        defaultBranch: { type: string }
+        pagesUrl: { type: string }
+    PublicReviewSnapshot:
+      type: object
+      additionalProperties: false
+      required: [commitSha]
+      properties:
+        commitSha: { type: string }
+        treeSha: { type: string }
+    PublicDoiCheck:
+      type: object
+      additionalProperties: false
+      required: [id, description, outcome]
+      properties:
+        id: { type: string }
+        description: { type: string }
+        outcome: { type: string, enum: [pass, warn, fail, skipped] }
+        details: { type: string }
+    PublicPublicationConsistencyReport:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          schemaVersion,
+          status,
+          selectedSourceKind,
+          selectedCommitSha,
+          selectedTreeSha,
+          checks,
+          errors,
+          warnings,
+          overridableCheckIds,
+          requiresEditorOverride,
+        ]
+      properties:
+        schemaVersion: { const: 1.0.0 }
+        status: { type: string, enum: [pass, warn, fail, not-applicable] }
+        selectedSourceKind: { type: string, enum: [default-branch, tag, release] }
+        selectedCommitSha: { type: string }
+        selectedTreeSha: { type: string }
+        selectedReleaseTag: { type: string }
+        checks: { type: array, items: { $ref: "#/components/schemas/PublicDoiCheck" } }
+        errors: { type: array, items: { type: string } }
+        warnings: { type: array, items: { type: string } }
+        overridableCheckIds: { type: array, items: { type: string } }
+        requiresEditorOverride: { type: boolean }
+    PublicReviewEditorialOverride:
+      type: object
+      additionalProperties: false
+      required: [checkId, rationale, editorLogin, createdAt]
+      properties:
+        checkId: { type: string }
+        rationale: { type: string }
+        editorLogin: { type: string }
+        createdAt: { type: string, format: date-time }
+    PublicReviewVersion:
+      type: object
+      additionalProperties: false
+      required: [id, isExample, editorialOverrides]
+      properties:
+        id: { type: string }
+        sourceKind: { type: string }
+        sourceBranch: { type: string }
+        releaseTag: { type: string }
+        releaseUrl: { type: string }
+        tagObjectSha: { type: string }
+        semanticVersion: { type: string }
+        versionDoi: { type: string }
+        conceptDoi: { type: string }
+        zenodoRecordId: { type: string }
+        isExample: { type: boolean }
+        capturePayloadHash: { type: string }
+        publicationConsistency: { $ref: "#/components/schemas/PublicPublicationConsistencyReport" }
+        editorialOverrides:
+          type: array
+          items: { $ref: "#/components/schemas/PublicReviewEditorialOverride" }
+    PublicReviewIdentifier:
+      type: object
+      additionalProperties: false
+      required: [scheme, value, relationType, validationStatus, isExample]
+      properties:
+        scheme: { type: string }
+        value: { type: string }
+        relationType: { type: string }
+        url: { type: string }
+        validationStatus: { type: string }
+        isExample: { type: boolean }
+    PublicReviewVersionSummary:
+      type: object
+      additionalProperties: false
+      required: [id, isExample, isCurrent, publicState]
+      properties:
+        id: { type: string }
+        semanticVersion: { type: string }
+        versionDoi: { type: string }
+        releaseTag: { type: string }
+        publishedAt: { type: string, format: date-time }
+        isExample: { type: boolean }
+        isCurrent: { type: boolean }
+        publicState: { type: string, enum: [published, withdrawn, tombstoned] }
+    PublicReviewCitation:
+      type: object
+      additionalProperties: false
+      required: [localCitationId, citationId, workId, canonicalWorkAliases, isExample]
+      properties:
+        localCitationId: { type: string }
+        citationId: { type: string }
+        title: { type: string }
+        doi: { type: string }
+        pmid: { type: string }
+        openAlexId: { type: string }
+        workId: { type: string }
+        canonicalWorkAliases: { type: array, items: { type: string } }
+        year: { type: integer }
+        source: { type: string }
+        isExample: { type: boolean }
+    PublicWorkIdentityAssertion:
+      type: object
+      additionalProperties: false
+      required: [citationIds, scheme, values, message]
+      properties:
+        citationIds: { type: array, items: { type: string } }
+        scheme: { type: string, enum: [doi, pmid, openalex] }
+        values: { type: array, items: { type: string } }
+        message: { type: string }
     ChallengeSubject:
       oneOf:
         - type: object
@@ -1104,7 +1317,7 @@ components:
       required: [expectedRevision, toStatus]
       properties:
         expectedRevision: { type: integer, minimum: 0 }
-        toStatus: { type: string, enum: [author-responded, resolved, dismissed, withdrawn] }
+        toStatus: { type: string, enum: [resolved, dismissed, withdrawn] }
         rationale: { type: string, minLength: 1, maxLength: 5000 }
     ChallengeResponseCreateRequest:
       type: object
