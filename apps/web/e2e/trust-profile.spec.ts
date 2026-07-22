@@ -59,7 +59,7 @@ test("two aggregate-free TRUST assessments render complete independent profiles"
         "Waking place-cell sequences are not faithfully reactivated during human sleep replay.",
     });
     const assessmentList = claim.locator("details");
-    await expect(assessmentList.locator("summary")).toHaveText("TRUST assessments (2)");
+    await expect(assessmentList.locator("summary")).toHaveText("Formal TRUST assessments (2)");
     await assessmentList.locator("summary").click();
 
     const assessments = assessmentList.locator('section[aria-label^="TRUST assessment "]');
