@@ -907,6 +907,119 @@ components:
         expectedAssessmentHash:
           type: string
           pattern: "^[a-f0-9]{64}$"
+    TrustAdjudicationRequest:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          subjectType,
+          assessmentIds,
+          expectedDisagreementHash,
+          outcome,
+          rationale,
+          conflictOfInterest,
+        ]
+      properties:
+        subjectType: { type: string, enum: [claim-citation, node-relation] }
+        assessmentIds:
+          type: array
+          minItems: 2
+          maxItems: 100
+          uniqueItems: true
+          items: { type: string, minLength: 1, maxLength: 200 }
+          description: Exact assessment identifiers in one current, same-protocol disagreement set.
+        expectedDisagreementHash:
+          type: string
+          pattern: "^[a-f0-9]{64}$"
+          description: Optimistic-concurrency hash from the current disagreement queue entry.
+        outcome:
+          type: string
+          enum: [disagreement-upheld, assessment-upheld, reassessment-requested]
+        selectedAssessmentId:
+          type: string
+          minLength: 1
+          maxLength: 200
+          description: Required exactly when outcome is assessment-upheld; must occur in assessmentIds.
+        rationale: { type: string, minLength: 20, maxLength: 10000 }
+        conflictOfInterest:
+          $ref: "#/components/schemas/ConflictOfInterestSnapshot"
+        administratorOverride:
+          type: boolean
+          default: false
+          description: Requires an ADMIN, direct involvement, and conflict-declared.
+    ConflictOfInterestSnapshot:
+      type: object
+      additionalProperties: false
+      required: [status]
+      properties:
+        status: { type: string, enum: [none-declared, conflict-declared, not-provided] }
+    PublicTrustAdjudication:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          id,
+          subjectType,
+          protocolVersion,
+          assessmentIds,
+          outcome,
+          adjudicator,
+          conflictOfInterest,
+          disagreementHash,
+          outcomeHash,
+          createdAt,
+          valid,
+        ]
+      properties:
+        id: { type: string, minLength: 1 }
+        subjectType: { type: string, enum: [claim-citation, node-relation] }
+        protocolVersion: { type: string, minLength: 1 }
+        assessmentIds:
+          type: array
+          minItems: 2
+          items: { type: string, minLength: 1 }
+        outcome:
+          type: string
+          enum: [disagreement-upheld, assessment-upheld, reassessment-requested]
+        selectedAssessmentId: { type: string, minLength: 1 }
+        adjudicator:
+          type: object
+          additionalProperties: false
+          required: [githubLogin]
+          properties:
+            githubLogin: { type: string, minLength: 1 }
+        conflictOfInterest:
+          $ref: "#/components/schemas/ConflictOfInterestSnapshot"
+        administratorOverride:
+          type: object
+          additionalProperties: false
+          required: [administrator, exercisedAt]
+          properties:
+            administrator:
+              type: object
+              additionalProperties: false
+              required: [githubLogin]
+              properties:
+                githubLogin: { type: string, minLength: 1 }
+            exercisedAt: { type: string, format: date-time }
+        disagreementHash: { type: string, pattern: "^[a-f0-9]{64}$" }
+        outcomeHash: { type: string, pattern: "^[a-f0-9]{64}$" }
+        createdAt: { type: string, format: date-time }
+        valid: { type: boolean }
+    TrustAdjudicatorDesignationRequest:
+      type: object
+      additionalProperties: false
+      required: [userId, active]
+      properties:
+        userId: { type: string, minLength: 1, maxLength: 200 }
+        active: { type: boolean }
+    TrustAdjudicatorDesignation:
+      type: object
+      additionalProperties: false
+      required: [userId, active]
+      properties:
+        userId: { type: string }
+        active: { type: boolean }
     ReviewLifecycleRequest:
       type: object
       required: [reviewSlug, reviewVersionId, kind, reason, expectedRevision]
@@ -2371,6 +2484,60 @@ paths:
         "403": { $ref: "#/components/responses/Error" }
         "409": { $ref: "#/components/responses/Error" }
         "415": { $ref: "#/components/responses/Error" }
+  /api/editorial/trust/adjudications:
+    post:
+      summary: Record an immutable adjudication of a current TRUST disagreement
+      description: >
+        Editor or designated-adjudicator authority, exact same-origin application/json, and a
+        current disagreement hash are required. Referenced assessments must form one current,
+        same-protocol disagreement set. Directly involved adjudicators must recuse unless an
+        administrator records the explicit conflict-declared override. Repeating the identical
+        outcome is idempotent; a different outcome for the same disagreement returns 409.
+      security: [{ session: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TrustAdjudicationRequest" }
+      responses:
+        "200":
+          description: Existing or newly recorded public adjudication
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PublicTrustAdjudication" }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "413": { $ref: "#/components/responses/Error" }
+        "415": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/Error" }
+  /api/editorial/trust/adjudicators:
+    post:
+      summary: Designate or revoke a TRUST adjudicator (administrator role required)
+      description: >
+        Administrator role, exact same-origin application/json, and an existing user identifier
+        are required. The designation is upserted and its activation or revocation is audited.
+      security: [{ session: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TrustAdjudicatorDesignationRequest" }
+      responses:
+        "200":
+          description: Current adjudicator designation state
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TrustAdjudicatorDesignation" }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "413": { $ref: "#/components/responses/Error" }
+        "415": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/Error" }
   /api/editorial/lifecycle:
     post:
       summary: Append a version-bound correction, withdrawal or tombstone

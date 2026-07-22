@@ -746,7 +746,7 @@ describe.sequential("preservation and standards exports", () => {
       where: { id: assessment.id },
       data: { entailment: "{malformed" },
     });
-    await expect(getContext()).rejects.toThrow("Invalid persisted TRUST criterion entailment.");
+    await expect(getContext()).rejects.toThrow("Stored TRUST criterion entailment is invalid.");
 
     await runtime.prisma.trustAssessment.update({
       where: { id: assessment.id },
@@ -765,14 +765,7 @@ describe.sequential("preservation and standards exports", () => {
 
     await runtime.prisma.trustAssessment.update({
       where: { id: assessment.id },
-      data: { evidenceJson: null, conflictOfInterestStatus: "corrupt-status" },
-    });
-    await expect(getContext()).rejects.toThrow(
-      "Invalid persisted TRUST conflict-of-interest status.",
-    );
-    await runtime.prisma.trustAssessment.update({
-      where: { id: assessment.id },
-      data: { conflictOfInterestStatus: "not-provided" },
+      data: { evidenceJson: null },
     });
     await runtime.prisma.reviewVersion.update({
       where: { id: version.id },

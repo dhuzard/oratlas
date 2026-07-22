@@ -86,7 +86,7 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-A01 — Per-facet compatibility model (article / citations / evidence-package / claim-graph / assessments)
 
-- **Status:** backlog · **Priority:** P0 · **Size:** M · **Agent:** conditional (contract shape
+- **Status:** review (integration train 4) · **Priority:** P0 · **Size:** M · **Agent:** conditional (contract shape
   should be reviewed by a maintainer before the UI consumes it)
 - **Packages:** `packages/contracts`, `packages/extractor`, `apps/web` · **External dep:**
   template structure (read-only) · **Issue/PR:** none
@@ -112,7 +112,7 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-A02 — Report absent optional artifacts instead of empty successful features
 
-- **Status:** in-progress · **Priority:** P0 · **Size:** M · **Agent:** yes
+- **Status:** review (integration train 4) · **Priority:** P0 · **Size:** M · **Agent:** yes
 - **Packages:** `packages/extractor`, `packages/contracts`, `apps/web` · **External dep:** none
   · **Issue/PR:** none
 - **Goal:** "No claims were extracted for this review" (`apps/web/src/app/reviews/[slug]/page.tsx:488`)
@@ -137,7 +137,7 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-A03 — Frozen Ethical Debt integration fixture
 
-- **Status:** review · **Priority:** P1 · **Size:** M · **Agent:** yes (pin and artifact layout
+- **Status:** review (integration train 4) · **Priority:** P1 · **Size:** M · **Agent:** yes (pin and artifact layout
   ratified in `ORATLAS_DECISIONS.md` §13 and `CROSS_REPO_DEPENDENCIES.md`)
 - **Packages:** `apps/web` (e2e fixtures), `packages/extractor` (fixtures), `scripts` ·
   **External dep:** `dhuzard/ethical-debt-AI-review` (exact release or commit) · **Issue/PR:** External fixtures integration train
@@ -162,7 +162,7 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-A04 — Ingest and surface template TRUST.md / FAIR.md assessment documents
 
-- **Status:** ready · **Priority:** P2 · **Size:** M · **Agent:** yes (preservation-only
+- **Status:** review (integration train 4) · **Priority:** P2 · **Size:** M · **Agent:** yes (preservation-only
   extraction boundary ratified in `ORATLAS_DECISIONS.md` §12; upstream suggestions remain
   human communication)
 - **Packages:** `packages/extractor`, `packages/contracts`, `apps/web` · **External dep:**
@@ -184,7 +184,7 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-A05 — Verify end-to-end identity preservation (repo id, release, tag object, commit, tree)
 
-- **Status:** in-progress · **Priority:** P0 · **Size:** S · **Agent:** yes
+- **Status:** review (integration train 4) · **Priority:** P0 · **Size:** S · **Agent:** yes
 - **Packages:** `packages/db`, `packages/github`, `packages/extractor` · **External dep:** none
   · **Issue/PR:** builds on PR #13
 - **Goal:** Pinning is implemented (immutable GitHub repository id, source-selection key,
@@ -258,7 +258,7 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-C02 — Evidence-independence audit for imported claim–citation reviews
 
-- **Status:** backlog · **Priority:** P2 · **Size:** S · **Agent:** yes
+- **Status:** review (integration train 4) · **Priority:** P2 · **Size:** S · **Agent:** yes
 - **Packages:** `packages/knowledge` · **External dep:** none · **Issue/PR:** builds on PR #21
 - **Goal:** Independence-aware synthesis and shared-dataset detection shipped for the graph
   (PR #21). Audit that legacy claim–citation reviews get the same shared-source detection
@@ -366,7 +366,7 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-D04 — Protocol-crosswalk guard: never translate between assessment protocols
 
-- **Status:** in-progress · **Priority:** P0 · **Size:** S · **Agent:** yes
+- **Status:** review (integration train 4) · **Priority:** P0 · **Size:** S · **Agent:** yes
 - **Packages:** `packages/trust`, `packages/contracts`, `docs` · **External dep:**
   `Neuronautix/TRUST.md` and `Neuronautix/ComputationalReviewTemplate_trust-knowledge`
   (distinct protocol identities; no implicit crosswalk) · **Issue/PR:** none
@@ -481,7 +481,7 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-F02 — Conflict-of-interest representation
 
-- **Status:** ready · **Priority:** P2 · **Size:** M · **Agent:** yes (public provenance,
+- **Status:** review (integration train 4) · **Priority:** P2 · **Size:** M · **Agent:** yes (public provenance,
   recusal, and audited-override contract ratified in `ORATLAS_DECISIONS.md` §6)
 - **Packages:** `packages/contracts`, `packages/db`, `apps/web` · **External dep:** none ·
   **Issue/PR:** none
@@ -577,7 +577,7 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-I01 — Assessment and challenge representation in exports
 
-- **Status:** review · **Priority:** P2 · **Size:** M · **Agent:** yes (uncollapsed assessment,
+- **Status:** review (integration train 4) · **Priority:** P2 · **Size:** M · **Agent:** yes (uncollapsed assessment,
   challenge, source-native, and verification boundaries ratified in
   `ORATLAS_DECISIONS.md` §§1–2, §9, §§11–12)
 - **Packages:** `packages/exports`, `packages/federation` · **External dep:** consuming
