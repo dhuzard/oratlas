@@ -84,7 +84,7 @@ fail-closed per-assessment badges, pagination, singleton compatibility, and stab
 
 ## Train 3 — Challenges and editorial governance
 
-Branch: `integration/challenges-governance` · Base: `integration/core-trust`
+Branch: `integration/challenges-governance` · Base: `integration/core-trust` · Draft PR: #104
 
 | ORA     | Source PR | Frozen head                                |
 | ------- | --------: | ------------------------------------------ |
