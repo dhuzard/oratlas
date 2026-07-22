@@ -1,12 +1,13 @@
-# ORAtlas open decisions — governance and scientific judgment
+# ORAtlas ratified decisions — governance and scientific judgment
 
-These questions require human governance or scientific judgment. **Agents and contributors must
-not resolve them by implementation default**; backlog items in `ORATLAS_BACKLOG.md` that depend
-on them are marked `blocked` (tracked by ORA-L03). The decision slate below was ratified by the
-maintainer on 2026-07-22. Implementations must preserve the recorded boundaries and explicitly
-cite the relevant section when unblocking dependent backlog items.
+These questions required human governance or scientific judgment and were ratified by the
+maintainer on 2026-07-22. **Agents and contributors must not replace these decisions with
+implementation defaults.** Implementations must preserve the recorded boundaries and explicitly
+cite the relevant section. Historical “Open question” labels below retain the question that each
+decision answered; they do not indicate an unresolved blocker.
 
-Format per entry: current state in the codebase, the open question, and what depends on it.
+Format per entry: current state in the codebase, the question presented, the ratified decision, and
+what depends on it.
 Decider for §§1–14: Damien Huzard (`dhuzard`). Decision date: 2026-07-22.
 
 ## 1. Structural versus scientific verification

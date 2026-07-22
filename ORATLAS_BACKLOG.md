@@ -489,13 +489,19 @@ At most five items, ordered. Rationale and dependencies:
   recusal, and audited-override contract ratified in `ORATLAS_DECISIONS.md` §6)
 - **Packages:** `packages/contracts`, `packages/db`, `apps/web` · **External dep:** none ·
   **Issue/PR:** integration PR #105
-- **Goal:** Assessments, adjudications, and challenge resolutions carry no declared-interest
-  field. Decide (governance) what COI declaration looks like, then represent it as stored,
-  displayed provenance — never as an automatic disqualifier.
-- **Scope (post-decision):** COI declaration fields + display.
-- **Non-goals:** No COI inference; no blocking logic without governance sign-off.
+- **Goal:** Assessments, adjudications, challenge outcomes, and editorial decisions carry an
+  immutable tri-state declared-interest snapshot as visible provenance — never a severity score
+  or inferred automatic disqualifier.
+- **Scope:** Store and display `none-declared` / `conflict-declared` / `not-provided`; enforce
+  direct-involvement recusal; permit only an explicit, hash-bound, publicly attributable ADMIN
+  override with `conflict-declared`; keep private rationales and role snapshots out of public DTOs.
+- **Non-goals:** No COI inference, severity, ranking, or automatic scientific judgment; no dead
+  override API on repository imports that have no platform actor.
 - **Dependencies:** decision §6; ORA-D01.
-- **Acceptance criteria:** defined post-decision.
+- **Acceptance criteria:** Contract and integration tests cover all three statuses, legacy
+  `not-provided`, immutable database guards, direct-involvement recusal, the narrow ADMIN override,
+  hash/idempotency binding, and public/private serialization boundaries for assessments,
+  adjudications, challenges, and editorial decisions.
 
 ### ORA-F03 — Editorial-data visibility audit (public vs private)
 

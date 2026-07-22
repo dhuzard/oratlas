@@ -67,8 +67,9 @@ only in local capture scripts (ORA-K02).
   integration fixture (ORA-A03).
 - **Repository:** `https://github.com/dhuzard/ethical-debt-AI-review` (immutable GitHub
   repository id `1291083149`).
-- **Current state:** the fixture source is ratified by `ORATLAS_DECISIONS.md` §13. Capture and
-  checked-in fixture generation remain ORA-A03 implementation work.
+- **Current state:** the fixture source is ratified by `ORATLAS_DECISIONS.md` §13 and checked in
+  under `packages/extractor/src/fixtures/ethical-debt-v0.1.0-trust-preview.3`. Its manifest hash,
+  offline transport, extractor path, and submission journey are covered by ORA-A03 tests.
 - **Pin:** the artifact-bearing lightweight tag `v0.1.0-trust-preview.3` is frozen as follows:
 
   | Field                            | Value                                                              |
