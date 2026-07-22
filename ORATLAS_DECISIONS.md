@@ -185,3 +185,16 @@ Decider for §§1–13: Damien Huzard (`dhuzard`). Decision date: 2026-07-22.
   ORAtlas JSONL exports, provenance, and honest non-crosswalk assessment semantics required
   for the first end-to-end fixture.
 - **Depends on it:** ORA-A03, ORA-A04, ORA-K02.
+
+## 14. Disagreement detection and active queue scope
+
+- **Decision:** Within one exact protocol identity, any difference between two explicit ordinal
+  criterion ratings is a disagreement. Missing, `not-assessed`, and `not-applicable` values are
+  coverage gaps, not ratings, and therefore do not create a disagreement.
+- **Decision:** The open disagreement queue compares only the current heads of immutable
+  assessment supersession lineages. Superseded assessments and their historical disagreements
+  remain publicly visible, but do not generate active alerts.
+- **Rationale:** A zero-distance threshold avoids hiding minority assessments, while separating
+  absent coverage from contrary judgement. Lineage-head queueing prevents corrected assessments
+  from leaving stale operational alerts without erasing the scholarly record.
+- **Depends on it:** ORA-D02.
