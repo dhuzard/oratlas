@@ -137,17 +137,10 @@ function ethicalDebtResponse(url: URL): Response {
     return jsonResponse(200, [{ name: tag, commit: { sha: fixture.source.commitSha } }]);
   }
   if (suffix === "/releases") {
-    return jsonResponse(200, [
-      {
-        tag_name: tag,
-        name: tag,
-        html_url: fixture.source.releaseUrl,
-        published_at: fixture.source.sourceCreatedAt ?? null,
-        draft: false,
-        prerelease: true,
-        body: "",
-      },
-    ]);
+    return jsonResponse(200, [ethicalDebtRelease(fixture)]);
+  }
+  if (suffix === `/releases/tags/${encodeURIComponent(tag)}`) {
+    return jsonResponse(200, ethicalDebtRelease(fixture));
   }
   if (suffix === `/git/ref/tags/${tag}`) {
     return jsonResponse(200, {
@@ -179,6 +172,19 @@ function ethicalDebtResponse(url: URL): Response {
     return file ? contentResponse(file.content) : jsonResponse(404, { message: "Not Found" });
   }
   return jsonResponse(404, { message: "Not Found" });
+}
+
+function ethicalDebtRelease(fixture: EthicalDebtFixture) {
+  const tag = fixture.source.releaseTag!;
+  return {
+    tag_name: tag,
+    name: tag,
+    html_url: fixture.source.releaseUrl,
+    published_at: fixture.source.sourceCreatedAt ?? null,
+    draft: false,
+    prerelease: true,
+    body: "",
+  };
 }
 
 function revision(repositoryUrl: string, followUp: boolean) {

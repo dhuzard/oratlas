@@ -9,7 +9,18 @@ const rawSourceSentinel = "ORA_F01_RAW_SOURCE_JSON_MUST_NOT_RENDER";
 
 test.beforeAll(async () => {
   const prisma = getPrisma();
-  const proposal = await prisma.nodeEdgeProposal.findFirst({ orderBy: { id: "asc" } });
+  const proposal = await prisma.nodeEdgeProposal.findFirst({
+    where: {
+      origin: "asserted-by-author",
+      sourceNodeVersion: { knowledgeNode: { kind: "claim" } },
+      targetNode: { kind: { in: ["dataset", "code", "figure"] } },
+    },
+    orderBy: { id: "asc" },
+    include: {
+      sourceNodeVersion: { include: { knowledgeNode: true } },
+      targetNode: true,
+    },
+  });
   if (!proposal) throw new Error("Seed data did not expose a node-edge proposal.");
   await prisma.nodeRelationTrustAssessment.upsert({
     where: { id: nodeAssessmentId },
@@ -24,7 +35,22 @@ test.beforeAll(async () => {
       limitationsJson: "[]",
       evidenceJson: JSON.stringify({ pointer: "node-evidence.json:8" }),
       reviewStatus: "unverified-import",
-      sourceRecordJson: JSON.stringify({ sentinel: rawSourceSentinel }),
+      sourceRecordJson: JSON.stringify({
+        subjectType: "node-relation",
+        subject: {
+          claimNodeId: proposal.sourceNodeVersion.knowledgeNode.localNodeId,
+          evidenceNodeId: proposal.targetNode.localNodeId,
+          evidenceKind: proposal.targetNode.kind,
+          relationType: proposal.relationType,
+        },
+        protocolVersion: "trust-node-fixture-2.0",
+        assessorType: "agent",
+        assessorId: "source-node-agent",
+        assessedAt: "2026-02-01T01:01:01.000Z",
+        criteria: {},
+        evidence: { pointer: rawSourceSentinel },
+        reviewStatus: "agent-proposed",
+      }),
       sourceReviewStatus: "agent-proposed",
       sourceAssessorType: "agent",
       sourceAssessorId: "source-node-agent",
