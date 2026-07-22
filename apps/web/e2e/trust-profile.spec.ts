@@ -74,7 +74,7 @@ test("two aggregate-free TRUST assessments render complete independent profiles"
     }
 
     const independent = assessmentList.getByRole("region", {
-      name: `TRUST assessment ${secondAssessmentId}`,
+      name: `Formal TRUST assessment ${secondAssessmentId}`,
     });
     await expect(independent).toContainText("independent-profile-reviewer");
     await expect(independent).toContainText("trust-independent-2.0");
