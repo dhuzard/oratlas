@@ -333,7 +333,7 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-D02a — Challenge an exact node-relation adjudication
 
-- **Status:** review (implementation branch `work/d02a-node-challenges`) · **Priority:** P1 · **Size:** M · **Agent:** yes
+- **Status:** review (integration PR #105) · **Priority:** P1 · **Size:** M · **Agent:** yes
 - **Packages:** `packages/contracts`, `packages/db`, `apps/web` · **External dep:** none
 - **Goal:** Complete the ratified §5 rule for node-relation adjudications without weakening the
   exact immutable-subject binding used by E01. Claim–citation adjudication challenges ship in

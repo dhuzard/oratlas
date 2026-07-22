@@ -138,22 +138,23 @@ and requires federation coordination.
 
 ### Imported functional commits
 
-| ORA     | Source commit(s)     | Integration commit(s)           |
-| ------- | -------------------- | ------------------------------- |
-| ORA-A01 | `c31d0d5`, `a795cdc` | `65c5981`, `e729898`            |
-| ORA-A02 | `9c1ee4c`            | `c9ee6ef`                       |
-| ORA-A05 | `3a3ed04`            | `d1ac54d`                       |
-| ORA-C02 | `1ab175e`            | `b4840ea`                       |
-| ORA-D04 | `3aaa2be`            | `8162d67`                       |
-| ORA-A03 | —                    | `c0c2d36`                       |
-| ORA-A04 | —                    | `373b1ad`                       |
-| ORA-D02 | —                    | `ce8a808`, `6b74583`            |
-| ORA-F02 | —                    | `20a82cb`, `02e1762`, `0e2b70f` |
-| ORA-I01 | —                    | `22eca5e`                       |
+| ORA      | Source commit(s)     | Integration commit(s)           |
+| -------- | -------------------- | ------------------------------- |
+| ORA-A01  | `c31d0d5`, `a795cdc` | `65c5981`, `e729898`            |
+| ORA-A02  | `9c1ee4c`            | `c9ee6ef`                       |
+| ORA-A05  | `3a3ed04`            | `d1ac54d`                       |
+| ORA-C02  | `1ab175e`            | `b4840ea`                       |
+| ORA-D04  | `3aaa2be`            | `8162d67`                       |
+| ORA-A03  | —                    | `c0c2d36`                       |
+| ORA-A04  | —                    | `373b1ad`                       |
+| ORA-D02  | —                    | `ce8a808`, `6b74583`            |
+| ORA-D02a | —                    | `22b6fc0`                       |
+| ORA-F02  | —                    | `20a82cb`, `02e1762`, `0e2b70f` |
+| ORA-I01  | —                    | `22eca5e`                       |
 
 Integration-only reconciliation and review fixes are retained in this train. ORA-D02 includes
-claim-citation adjudication challenges; the separately tracked ORA-D02a remains open for
-node-relation adjudication challenges because they need a non-fictional node challenge container.
+claim-citation adjudication challenges; ORA-D02a completes node-relation adjudication challenges
+with a non-fictional `NodeEdgeProposal` container.
 
 ## Import and retirement rules
 
