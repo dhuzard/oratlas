@@ -122,8 +122,12 @@ async function fixture(suffix: string) {
     data: {
       repositoryId: repository.id,
       commitSha: "a".repeat(40),
+      sourceTreeSha: "b".repeat(40),
       inspectionStatus: "succeeded",
       inspectionReportJson: "{}",
+      preservedFilesJson: JSON.stringify({
+        "README.md": { size: 20, truncated: false, content: "# Challenge fixture\n" },
+      }),
       contentHash: "b".repeat(64),
     },
   });
@@ -385,6 +389,53 @@ describe.sequential("formal challenge persistence and lifecycle", () => {
     ]) {
       expect(serialized).not.toContain(privateValue);
     }
+
+    const { GET: challengeGet } =
+      await import("../app/api/reviews/[slug]/versions/[versionId]/challenges/route");
+    const challengeResponse = await challengeGet(new Request("http://localhost/challenges"), {
+      params: Promise.resolve({ slug: seeded.review.slug, versionId: seeded.version.id }),
+    });
+    expect(challengeResponse.status).toBe(200);
+    const publicApi = await challengeResponse.text();
+    expect(publicApi).toContain(`"id":"${created.id}"`);
+    for (const privateValue of [
+      challengeText,
+      responseText,
+      privateRationale,
+      editor.id,
+      "removedByRoleSnapshot",
+      "actorRoleSnapshot",
+    ]) {
+      expect(publicApi).not.toContain(privateValue);
+    }
+
+    // Challenge records are deliberately not mapped into the current scholarly
+    // export vocabulary. This verifies absence without deciding whether a future
+    // ratified vocabulary should add them (ORATLAS_DECISIONS.md §9 / ORA-I01).
+    const [{ getVersionExportContext }, { GET: exportGet }] = await Promise.all([
+      import("./preservation"),
+      import("../app/api/reviews/[slug]/versions/[versionId]/export/[format]/route"),
+    ]);
+    const exportContext = await getVersionExportContext(seeded.review.slug, seeded.version.id);
+    expect(exportContext).not.toBeNull();
+    const exportResponses = await Promise.all(
+      ["prov", "ro-crate", "jats"].map((format) =>
+        exportGet(new Request("http://localhost/export"), {
+          params: Promise.resolve({
+            slug: seeded.review.slug,
+            versionId: seeded.version.id,
+            format,
+          }),
+        }),
+      ),
+    );
+    for (const exportResponse of exportResponses) {
+      expect(exportResponse.status).toBe(200);
+      const exported = await exportResponse.text();
+      for (const challengeValue of [created.id, challengeText, responseText, privateRationale]) {
+        expect(exported).not.toContain(challengeValue);
+      }
+    }
     expect(await service.listOpenChallengePage()).not.toEqual(
       expect.objectContaining({
         items: expect.arrayContaining([expect.objectContaining({ id: created.id })]),
@@ -398,6 +449,71 @@ describe.sequential("formal challenge persistence and lifecycle", () => {
       "challenge.transitioned",
     ]) {
       expect(await prisma.auditEvent.count({ where: { action } })).toBeGreaterThan(0);
+    }
+  }, 20_000);
+
+  it("publishes the complete challenge lifecycle while the editorial queue remains active-only", async () => {
+    const seeded = await fixture("visibility-lifecycle");
+    const subject = { type: "claim" as const, claimId: seeded.claim.id };
+    const binding = await service.resolveChallengeSubject(prisma, seeded.version.id, subject);
+    const expected = ["open", "author-responded", "resolved", "dismissed", "withdrawn"] as const;
+    const ids = new Map<(typeof expected)[number], string>();
+    const terminalRationales: string[] = [];
+
+    for (const status of expected) {
+      const actor = await createActor(`visibility-${status}`);
+      const challenge = await service.createChallenge(seeded.review.slug, actor, {
+        reviewVersionId: seeded.version.id,
+        subject,
+        canonicalSubjectHash: binding.hash,
+        grounds: "other",
+        body: `PUBLIC-F03-${status}-CHALLENGE`,
+      });
+      ids.set(status, challenge.id);
+      if (status === "open") continue;
+
+      await service.createChallengeResponse(challenge.id, author, {
+        expectedRevision: 0,
+        body: `PUBLIC-F03-${status}-RESPONSE`,
+      });
+      if (status === "author-responded") continue;
+
+      if (status === "withdrawn") {
+        await service.transitionChallenge(challenge.id, actor, {
+          expectedRevision: 1,
+          toStatus: "withdrawn",
+        });
+      } else {
+        const rationale = `PRIVATE-F03-${status}-RATIONALE`;
+        terminalRationales.push(rationale);
+        await service.transitionChallenge(challenge.id, editor, {
+          expectedRevision: 1,
+          toStatus: status,
+          rationale,
+        });
+      }
+    }
+
+    const list = await service.listChallenges(seeded.review.slug, seeded.version.id);
+    expect(list?.challenges.map(({ status }) => status).sort()).toEqual([...expected].sort());
+    const publicSerialization = JSON.stringify(list);
+    for (const rationale of terminalRationales)
+      expect(publicSerialization).not.toContain(rationale);
+    expect(publicSerialization).not.toContain("actorRoleSnapshot");
+    // Transition attribution is current public behavior: terminal editor and
+    // challenger-withdrawal logins are intentionally inventoried, not changed here.
+    expect(publicSerialization).toContain(editor.githubLogin);
+    expect(publicSerialization).toContain("challenge-actor-visibility-withdrawn");
+
+    const queue = await service.listOpenChallengePage();
+    expect(
+      queue.items
+        .filter(({ id }) => [...ids.values()].includes(id))
+        .map(({ status }) => status)
+        .sort(),
+    ).toEqual(["author-responded", "open"]);
+    for (const terminal of ["resolved", "dismissed", "withdrawn"] as const) {
+      expect(queue.items.map(({ id }) => id)).not.toContain(ids.get(terminal));
     }
   });
 
