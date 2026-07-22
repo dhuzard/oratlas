@@ -306,6 +306,9 @@ describe("versioned evidence and TRUST integration", () => {
       assessorType: "human",
       assessorId: "second-reviewer",
       assessedAt: new Date("2026-07-03T00:00:00.000Z"),
+      entailment: JSON.stringify({ rating: "not-assessed", status: "not-assessed" }),
+      sourceAggregateScore: 0.42,
+      sourceAggregateMethod: null,
       verification: null,
     });
     database.detailReview = fixture.detailReview;
@@ -321,11 +324,27 @@ describe("versioned evidence and TRUST integration", () => {
       "platform-verified",
       "unverified-import",
     ]);
+    expect(output?.trusts.every((assessment) => assessment.criteria.length === 10)).toBe(true);
+    expect(output?.trusts[1]?.criteria.find((row) => row.criterion === "entailment")).toMatchObject(
+      {
+        rating: "not-assessed",
+        status: "not-assessed",
+      },
+    );
+    expect(
+      output?.trusts[1]?.criteria.find((row) => row.criterion === "sourceAccess"),
+    ).toMatchObject({ rating: "not-supplied", status: "not-supplied" });
     const html = output?.trusts.map((trust) =>
       renderToStaticMarkup(createElement(TrustDisplay, { trust })),
     );
     expect(html?.join(" ")).toContain("second-reviewer");
     expect(html?.join(" ")).toContain("trust-independent-2.0");
+    expect(html).toHaveLength(2);
+    expect(html![0]!.match(/role="row"/g)).toHaveLength(11);
+    expect(html![1]!.match(/role="row"/g)).toHaveLength(11);
+    expect(html?.[1]).toContain("aggregate without an aggregation method");
+    expect(html?.[1]).not.toContain("0.42");
+    expect(html?.join(" ")).not.toContain('role="progressbar"');
   });
 
   it("carries all fail-closed verification states into exact globally-scoped packets", async () => {

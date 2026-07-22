@@ -25,6 +25,9 @@ describe("NodeView legacy TRUST compatibility", () => {
       expect.objectContaining({
         assessmentId: "legacy-edge-assessment",
         assessorType: "not supplied (legacy)",
+        criteria: expect.arrayContaining([
+          expect.objectContaining({ status: "not-supplied", rating: "not-supplied" }),
+        ]),
       }),
     ]);
     expect(nodeContextTrustAssessments(context)).toEqual([
@@ -32,7 +35,12 @@ describe("NodeView legacy TRUST compatibility", () => {
         assessmentId: "legacy:claim-1:citation-1",
         protocolVersion: "not supplied (legacy)",
         assessorType: "not supplied (legacy)",
+        criteria: expect.arrayContaining([
+          expect.objectContaining({ status: "not-supplied", rating: "not-supplied" }),
+        ]),
       }),
     ]);
+    expect(nodeEdgeTrustAssessments(edge)[0]?.criteria).toHaveLength(10);
+    expect(nodeContextTrustAssessments(context)[0]?.criteria).toHaveLength(10);
   });
 });
