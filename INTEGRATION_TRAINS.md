@@ -1,0 +1,105 @@
+# ORAtlas integration trains
+
+This plan replaces item-level pull-request review with ORA-scoped commits inside four
+outcome-based integration trains. Source PRs remain immutable review evidence until their
+replacement train is verified; they are then closed as superseded, never deleted.
+
+Decision authority: Damien Huzard (`dhuzard`), 2026-07-22.
+
+## Ordered branch graph
+
+```text
+main
+└── integration/reliability-ops
+    └── integration/core-trust
+        └── integration/challenges-governance
+            └── integration/external-exports
+```
+
+Merge and retarget in that order. Only the incremental train diff is reviewed. At most two
+trains should be under active human review at once.
+
+## Train 1 — Reliability, operations, and documentation
+
+Branch: `integration/reliability-ops` · Base: `main`
+
+| ORA     | Source PR | Frozen head                                |
+| ------- | --------: | ------------------------------------------ |
+| ORA-B01 |       #78 | `a5e52dae7e308fd11eb0d46a195d423432a99410` |
+| ORA-B02 |       #93 | `6a1924643b37e429584ab87531346d597cb4b14d` |
+| ORA-J02 |       #82 | `32ccc2e63cf5e6b508f98b49341c5dba086b5223` |
+| ORA-K01 |       #79 | `ca19ccee6e1c02fbab77e910017a12db1110c3b2` |
+| ORA-K02 |       #77 | `4d8a0258a8e596d888408b2f658293f3cc40caf7` |
+| ORA-K03 |       #83 | `ca4d7bb970ebf5d4299dfa433ae279cbd3442a06` |
+| ORA-L01 |       #88 | `eaaf3a50d965468e2f15f49d6d675d57a8051c11` |
+| ORA-L02 |       #81 | `a1724c13e0db2bb569de911533da6c2be649f940` |
+
+Apply CI/tooling commits first, operational drills next, and planning reconciliation last.
+
+## Train 2 — Core archive and TRUST
+
+Branch: `integration/core-trust` · Base: `integration/reliability-ops`
+
+| ORA     | Source PR | Frozen head                                |
+| ------- | --------: | ------------------------------------------ |
+| ORA-D01 |       #95 | `32815b4b2d19fb709fbb5bcf9a783f4241f37d69` |
+| ORA-D03 |       #80 | `42f6f1337f6acee29e7910a242203a6b9cf612fa` |
+| ORA-F01 |       #97 | `ae414d7b3bbeb46b7dd52422551465aa92843e3a` |
+| ORA-G01 |       #85 | `f64da89047a153d91c9fb0f7ad6692213f422a00` |
+| ORA-H01 |       #76 | `f4add7e97902e7cf77c33b66266f8a5bee3177cc` |
+| ORA-H02 |       #86 | `a7a1943f2cfcaa1e6ac801f2a6335450962571eb` |
+
+Resolve review DTO, TRUST presentation, editorial-panel, and stable-link overlaps once on this
+train. Complete arrays remain canonical and no cross-assessment aggregate is introduced.
+
+## Train 3 — Challenges and editorial governance
+
+Branch: `integration/challenges-governance` · Base: `integration/core-trust`
+
+| ORA     | Source PR | Frozen head                                |
+| ------- | --------: | ------------------------------------------ |
+| ORA-C01 |       #91 | `31fa0662cdea21d3ddfa78180d26e6cfceb2e631` |
+| ORA-E01 |       #98 | `4f7d121fac85e0ff6a9aac0d53989970df7a59b6` |
+| ORA-J03 |       #99 | `27a47fd11440bec8b641044d18d45fe9e485e732` |
+| ORA-E02 |      #100 | `bcbeaa2972587423b1a3128c8968bb48b612c586` |
+| ORA-E03 |       #87 | `4681386b82b7fe7346fe3c30d642b9bb19b79e44` |
+| ORA-E04 |       #90 | `9dbce58bd0c13a85db811e45db9290d6fc57eb98` |
+| ORA-J01 |       #72 | `120c43fcff9bb31dd3870ad1997a69a88f031e5f` |
+| ORA-I02 |      #101 | `daeae74e02ec62e4d9285e6bf7bd7b4dd89d3deb` |
+| ORA-F03 |       #89 | `9bd185a9db3967a59f12e57ea091128f8511a2f1` |
+
+Preserve the tested E01 → J03 → E02 lifecycle order. Apply I02 before the final visibility
+audit. This train implements the ratified authority and public/private boundaries in
+`ORATLAS_DECISIONS.md` §§5, 6, and 9.
+
+## Train 4 — External fixtures, exports, and decision-driven features
+
+Branch: `integration/external-exports` · Base: `integration/challenges-governance`
+
+| ORA     | Source PR | Frozen head                                |
+| ------- | --------: | ------------------------------------------ |
+| ORA-A01 |       #96 | `a28ee544f873f11a1782f25d70ba4338805b6179` |
+| ORA-A02 |       #73 | `d02fb21cbaa1d372672981166a9a8f8d4548fe55` |
+| ORA-A05 |       #74 | `2e4ce38d73eeec29a11fb4481733e79286bb7edd` |
+| ORA-D04 |       #75 | `5e91d350ec29d56d961a3cbb09b3697de40766dc` |
+| ORA-C02 |       #84 | `b978ac4644d5b3e367a7b7f0d91484fcf4ba325b` |
+
+New ORA-scoped commits on this train implement the now-unblocked ORA-A03, ORA-A04, ORA-D02,
+ORA-F02, and ORA-I01. ORA-G02 remains outside this consolidation because it has no source PR
+and requires federation coordination.
+
+## Import and retirement rules
+
+1. Import functional commits and preserve authorship and ORA identifiers.
+2. Exclude PR-link-only commits; reconcile backlog and planning documents once per train.
+3. Record source head, source commits, integration commits, decisions, conflicts, and tests in
+   the train PR description or an appended manifest section here.
+4. Compare source and integrated patches before retiring a source PR. Any intentional delta
+   must be documented.
+5. Run formatting, lint, typecheck, unit/integration tests, schema checks, PostgreSQL, and e2e
+   once on the complete train.
+6. Require one semantic/data-integrity review and one security/privacy/integration review.
+7. After the integration PR is green, comment on each source PR with its replacement and
+   close it as superseded. Reopen it if the mapping is later found incomplete.
+8. Human review focuses on decisions, migrations, public contracts, and material risk rather
+   than re-reviewing every source diff line by line.
