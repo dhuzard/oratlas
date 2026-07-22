@@ -907,7 +907,10 @@ export async function listChallenges(
       const subject = await resolveChallengeSubject(prisma, reviewVersionId, input);
       if (subject.hash !== row.canonicalSubjectHash || subject.refJson !== row.subjectRefJson)
         continue;
-      assertChallengeLedger(row, row.activeChallengerSubjectKey);
+      assertChallengeLedger(
+        row,
+        isActiveChallengeStatus(row.status) ? row.activeChallengerSubjectKey : null,
+      );
       challenges.push({
         id: row.id,
         reviewVersionId,
