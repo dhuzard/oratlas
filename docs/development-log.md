@@ -732,13 +732,16 @@ introducing a test-only production route or granting an agent publication author
 
 - Added one immutable, digest-bound `ChallengeResponse` per challenge with responder and matched
   contributor-of-record snapshots. Creation atomically advances `open → author-responded`, appends
-  the lifecycle event, and writes response and transition audits under compare-and-set protection.
+  the lifecycle event with the exact response hash, and writes response and transition audits under
+  compare-and-set protection. Reads and writes fail closed if the response, transition hash,
+  responder, role snapshot, or revision no longer agree.
 - Added challenge and response moderation that retains original bytes, publishes empty-body
   tombstones, hides remover identity, and commits its audit atomically. Moderation rationale remains
   out of scope pending governance decision §9.
 - Kept terminal transitions as the resolution record while making rationale and internal role
   snapshots editorial-only in public DTOs. The interim editor/admin outcome authority remains one
   swappable function; challengers retain withdrawal authority.
-- Added a bounded deterministic editorial queue with immutable review-version links, public and
+- Added a bounded deterministic editorial queue whose database projection is limited before any
+  relationship loading, with immutable review-version links, public and
   editorial controls, OpenAPI contracts, and SQLite/PostgreSQL/service/e2e coverage for the complete
   file → respond → moderate → tombstone → resolve exchange.

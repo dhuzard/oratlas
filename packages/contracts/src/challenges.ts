@@ -74,9 +74,11 @@ export const createChallengeResponseInputSchema = z.object({
 });
 export type CreateChallengeResponseInput = z.infer<typeof createChallengeResponseInputSchema>;
 
-export const moderateChallengeContentInputSchema = z.object({
-  expectedContentRevision: z.number().int().nonnegative(),
-});
+export const moderateChallengeContentInputSchema = z
+  .object({
+    expectedContentRevision: z.number().int().nonnegative(),
+  })
+  .strict();
 export type ModerateChallengeContentInput = z.infer<typeof moderateChallengeContentInputSchema>;
 
 export const publicChallengeResponseSchema = z.object({

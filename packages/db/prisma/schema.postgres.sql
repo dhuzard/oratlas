@@ -615,6 +615,7 @@ CREATE TABLE "ChallengeTransition" (
     "actorId" TEXT NOT NULL,
     "actorRoleSnapshot" TEXT NOT NULL,
     "rationale" TEXT,
+    "responseContentHash" TEXT,
     "filedContentHash" TEXT NOT NULL,
     "revision" INTEGER NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,

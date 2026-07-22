@@ -357,6 +357,7 @@ type LedgerChallenge = ChallengeContent & {
     fromStatus: string | null;
     toStatus: string;
     rationale: string | null;
+    responseContentHash: string | null;
     revision: number;
     actor: { id: string; githubLogin: string; role: string };
   }>;
@@ -399,7 +400,8 @@ function assertChallengeLedger(row: LedgerChallenge, expectedActiveKey: string |
         event.fromStatus !== null ||
         event.toStatus !== "open" ||
         event.actorId !== row.challengerId ||
-        event.rationale !== null
+        event.rationale !== null ||
+        event.responseContentHash !== null
       ) {
         throw new ChallengeError("Challenge filing event is invalid.", "conflict");
       }
@@ -415,6 +417,9 @@ function assertChallengeLedger(row: LedgerChallenge, expectedActiveKey: string |
       }
       if (to.data === "withdrawn" && event.actorId !== row.challengerId) {
         throw new ChallengeError("Challenge withdrawal evidence is invalid.", "conflict");
+      }
+      if (to.data !== "author-responded" && event.responseContentHash !== null) {
+        throw new ChallengeError("Challenge response binding is invalid.", "conflict");
       }
     }
     previous = to.data;
@@ -452,7 +457,7 @@ async function reconcileActiveChallengeGroup(
   challengerId: string,
   canonicalSubjectHash: string,
 ): Promise<string | null> {
-  const candidates = await db.challenge.findMany({
+  const winner = await db.challenge.findFirst({
     where: {
       challengerId,
       canonicalSubjectHash,
@@ -461,16 +466,18 @@ async function reconcileActiveChallengeGroup(
     orderBy: [{ createdAt: "asc" }, { id: "asc" }],
     select: { id: true, activeChallengerSubjectKey: true },
   });
-  const winner = candidates[0];
   if (!winner) return null;
   const expectedKey = activeChallengerSubjectKey(challengerId, canonicalSubjectHash);
-  if (
-    candidates.some(
-      (candidate) =>
-        candidate.activeChallengerSubjectKey !== null &&
-        candidate.activeChallengerSubjectKey !== expectedKey,
-    )
-  ) {
+  const malformed = await db.challenge.findFirst({
+    where: {
+      challengerId,
+      canonicalSubjectHash,
+      status: { in: [...ACTIVE_CHALLENGE_STATUSES] },
+      activeChallengerSubjectKey: { not: null, notIn: [expectedKey] },
+    },
+    select: { id: true },
+  });
+  if (malformed) {
     throw new ChallengeError("Challenge abuse-control projection is invalid.", "conflict");
   }
 
@@ -794,6 +801,7 @@ export async function transitionChallenge(
                 snapshot: { select: { commitSha: true } },
               },
             },
+            response: true,
             transitions: { include: { actor: true }, orderBy: { revision: "asc" } },
           },
         });
@@ -810,6 +818,7 @@ export async function transitionChallenge(
           : null;
         challenge.activeChallengerSubjectKey = expectedActiveKeyForRow(challenge, activeWinnerId);
         assertChallengeLedger(challenge, challenge.activeChallengerSubjectKey);
+        assertChallengeResponseIntegrity(challenge, challenge.response);
         const from = challenge.status as ChallengeStatus;
         if (challenge.revision !== input.expectedRevision)
           throw new ChallengeError("Challenge lifecycle changed. Refresh and retry.", "conflict");
@@ -958,6 +967,7 @@ export async function listChallenges(
         row,
         isActiveChallengeStatus(row.status) ? row.activeChallengerSubjectKey : null,
       );
+      assertChallengeResponseIntegrity(row, row.response);
       if (
         !challengeContentStatusSchema.safeParse(row.contentStatus).success ||
         (row.response &&
@@ -1045,6 +1055,61 @@ function hashChallengeResponse(input: {
   return sha256(canonicalJson({ schema: "oratlas/challenge-response/1", ...input }));
 }
 
+type ResponseIntegrityRecord = Parameters<typeof hashChallengeResponse>[0] & {
+  id: string;
+  contentHash: string;
+  contentStatus: string;
+};
+
+function assertChallengeResponseIntegrity(
+  challenge: {
+    id: string;
+    status: string;
+    transitions: Array<{
+      fromStatus: string | null;
+      toStatus: string;
+      actorId: string;
+      actorRoleSnapshot: string;
+      responseContentHash: string | null;
+      revision: number;
+    }>;
+  },
+  response: ResponseIntegrityRecord | null,
+): void {
+  const responseEvent = challenge.transitions.find(
+    (transition) => transition.toStatus === "author-responded",
+  );
+  if (Boolean(responseEvent) !== Boolean(response)) {
+    throw new ChallengeError("Challenge response ledger binding is incomplete.", "conflict");
+  }
+  if (!responseEvent || !response) return;
+  const contentHash = hashChallengeResponse({
+    challengeId: response.challengeId,
+    responderId: response.responderId,
+    responderRoleSnapshot: response.responderRoleSnapshot,
+    responderGithubLoginSnapshot: response.responderGithubLoginSnapshot,
+    responderDisplayNameSnapshot: response.responderDisplayNameSnapshot,
+    contributorPersonId: response.contributorPersonId,
+    contributorGithubLoginSnapshot: response.contributorGithubLoginSnapshot,
+    contributorDisplayNameSnapshot: response.contributorDisplayNameSnapshot,
+    contributorRolesJsonSnapshot: response.contributorRolesJsonSnapshot,
+    body: response.body,
+  });
+  if (
+    challenge.status === "open" ||
+    response.challengeId !== challenge.id ||
+    responseEvent.fromStatus !== "open" ||
+    responseEvent.revision !== 1 ||
+    responseEvent.actorId !== response.responderId ||
+    responseEvent.actorRoleSnapshot !== response.responderRoleSnapshot ||
+    responseEvent.responseContentHash !== response.contentHash ||
+    response.contentHash !== contentHash ||
+    !challengeContentStatusSchema.safeParse(response.contentStatus).success
+  ) {
+    throw new ChallengeError("Challenge response ledger binding is invalid.", "conflict");
+  }
+}
+
 export async function createChallengeResponse(
   challengeId: string,
   actor: SessionUser,
@@ -1077,6 +1142,7 @@ export async function createChallengeResponse(
         );
         challenge.activeChallengerSubjectKey = expectedActiveKeyForRow(challenge, activeWinnerId);
         assertChallengeLedger(challenge, challenge.activeChallengerSubjectKey);
+        assertChallengeResponseIntegrity(challenge, challenge.response);
         if (challenge.status !== "open" || challenge.revision !== input.expectedRevision)
           throw new ChallengeError("Challenge lifecycle changed. Refresh and retry.", "conflict");
         if (challenge.response)
@@ -1128,6 +1194,7 @@ export async function createChallengeResponse(
             toStatus: "author-responded",
             actorId: actor.id,
             actorRoleSnapshot: actor.role,
+            responseContentHash: contentHash,
             filedContentHash: challenge.filedContentHash,
             revision,
           },
@@ -1181,6 +1248,7 @@ export async function removeChallengeContent(
               snapshot: { select: { commitSha: true } },
             },
           },
+          response: true,
           transitions: { include: { actor: true }, orderBy: { revision: "asc" } },
         },
       });
@@ -1196,6 +1264,7 @@ export async function removeChallengeContent(
         : null;
       challenge.activeChallengerSubjectKey = expectedActiveKeyForRow(challenge, activeWinnerId);
       assertChallengeLedger(challenge, challenge.activeChallengerSubjectKey);
+      assertChallengeResponseIntegrity(challenge, challenge.response);
       await assertChallengeSubjectIntegrity(tx, challenge);
       if (challenge.challengerId !== actor.id && !isEditor(actor))
         throw new ChallengeError(
@@ -1259,6 +1328,7 @@ export async function removeChallengeResponseContent(
                   snapshot: { select: { commitSha: true } },
                 },
               },
+              response: true,
               transitions: { include: { actor: true }, orderBy: { revision: "asc" } },
             },
           },
@@ -1277,6 +1347,7 @@ export async function removeChallengeResponseContent(
         : null;
       challenge.activeChallengerSubjectKey = expectedActiveKeyForRow(challenge, activeWinnerId);
       assertChallengeLedger(challenge, challenge.activeChallengerSubjectKey);
+      assertChallengeResponseIntegrity(challenge, response);
       await assertChallengeSubjectIntegrity(tx, challenge);
       if (
         response.contentHash !==
@@ -1364,54 +1435,89 @@ export async function listOpenChallengePage(
   requestedLimit = 25,
 ): Promise<ChallengeQueuePage> {
   const limit = Math.max(1, Math.min(100, Math.trunc(requestedLimit)));
-  const cursorRow = cursor
-    ? await prisma.challenge.findUnique({ where: { id: cursor }, select: { id: true } })
-    : null;
-  if (cursor && !cursorRow) throw new ChallengeError("Invalid challenge queue cursor.");
-  const rows = await prisma.challenge.findMany({
-    where: {
-      status: { in: [...ACTIVE_CHALLENGE_STATUSES] },
-      reviewVersion: {
-        publicState: { in: ["published", "withdrawn"] },
-        publishedAt: { not: null },
-        review: { status: "published" },
-      },
+  const rows = await prisma.$transaction(
+    async (tx) => {
+      const cursorRow = cursor
+        ? await tx.challenge.findUnique({ where: { id: cursor }, select: { id: true } })
+        : null;
+      if (cursor && !cursorRow) throw new ChallengeError("Invalid challenge queue cursor.");
+      const loaded = await tx.challenge.findMany({
+        where: {
+          status: { in: [...ACTIVE_CHALLENGE_STATUSES] },
+          reviewVersion: {
+            publicState: { in: ["published", "withdrawn"] },
+            publishedAt: { not: null },
+            review: { status: "published" },
+          },
+        },
+        orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+        ...(cursorRow ? { cursor: { id: cursorRow.id }, skip: 1 } : {}),
+        take: limit + 1,
+        include: {
+          response: true,
+          transitions: { include: { actor: true }, orderBy: { revision: "asc" } },
+          reviewVersion: {
+            select: {
+              publicState: true,
+              publishedAt: true,
+              snapshot: { select: { commitSha: true } },
+              review: { select: { slug: true } },
+            },
+          },
+        },
+      });
+      const winners = new Map<string, string | null>();
+      for (const row of loaded) {
+        const group = canonicalJson([row.challengerId, row.canonicalSubjectHash]);
+        if (!winners.has(group)) {
+          winners.set(
+            group,
+            await reconcileActiveChallengeGroup(tx, row.challengerId, row.canonicalSubjectHash),
+          );
+        }
+        row.activeChallengerSubjectKey = expectedActiveKeyForRow(row, winners.get(group)!);
+      }
+      return loaded;
     },
-    orderBy: [{ createdAt: "asc" }, { id: "asc" }],
-    ...(cursorRow ? { cursor: { id: cursorRow.id }, skip: 1 } : {}),
-    take: limit + 1,
-    select: {
-      id: true,
-      reviewVersionId: true,
-      reviewVersion: { select: { review: { select: { slug: true } } } },
-    },
-  });
+    { maxWait: 5_000, timeout: 15_000, isolationLevel: "Serializable" },
+  );
   const pageRows = rows.slice(0, limit);
-  const lists = new Map<string, ChallengeList | null>();
   const items: ChallengeQueueItem[] = [];
   for (const row of pageRows) {
-    let list = lists.get(row.reviewVersionId);
-    if (list === undefined) {
-      list = await listChallenges(row.reviewVersion.review.slug, row.reviewVersionId);
-      lists.set(row.reviewVersionId, list);
+    try {
+      if (!isExactChallengeVersion(row.reviewVersion)) continue;
+      assertChallengeLedger(row, row.activeChallengerSubjectKey);
+      assertChallengeResponseIntegrity(row, row.response);
+      await assertChallengeSubjectIntegrity(prisma, row);
+      if (!challengeContentStatusSchema.safeParse(row.contentStatus).success) continue;
+      const subject = await resolveChallengeSubject(prisma, row.reviewVersionId, rowSubject(row)!);
+      items.push({
+        id: row.id,
+        status: row.status as "open" | "author-responded",
+        revision: row.revision,
+        contentStatus: row.contentStatus as ChallengeContentStatus,
+        contentRevision: row.contentRevision,
+        response: row.response
+          ? {
+              id: row.response.id,
+              body: row.response.contentStatus === "visible" ? row.response.body : "",
+              contentHash: row.response.contentHash,
+              contentStatus: row.response.contentStatus as ChallengeContentStatus,
+              contentRevision: row.response.contentRevision,
+              responder: {
+                githubLogin: row.response.responderGithubLoginSnapshot,
+                displayName: row.response.responderDisplayNameSnapshot,
+              },
+              createdAt: row.response.createdAt.toISOString(),
+            }
+          : null,
+        subjectLabel: subject.label,
+        challengeHref: `/reviews/${encodeURIComponent(row.reviewVersion.review.slug)}/versions/${encodeURIComponent(row.reviewVersionId)}#challenge-${encodeURIComponent(row.id)}`,
+        createdAt: row.createdAt.toISOString(),
+      });
+    } catch (error) {
+      if (!(error instanceof ChallengeError)) throw error;
     }
-    const challenge = list?.challenges.find((candidate) => candidate.id === row.id);
-    if (
-      !challenge ||
-      !ACTIVE_CHALLENGE_STATUSES.includes(challenge.status as "open" | "author-responded")
-    )
-      continue;
-    items.push({
-      id: challenge.id,
-      status: challenge.status as "open" | "author-responded",
-      revision: challenge.revision,
-      contentStatus: challenge.contentStatus,
-      contentRevision: challenge.contentRevision,
-      response: challenge.response,
-      subjectLabel: challenge.subjectLabel,
-      challengeHref: `/reviews/${encodeURIComponent(row.reviewVersion.review.slug)}/versions/${encodeURIComponent(row.reviewVersionId)}#challenge-${encodeURIComponent(challenge.id)}`,
-      createdAt: challenge.createdAt,
-    });
   }
   return {
     items,
