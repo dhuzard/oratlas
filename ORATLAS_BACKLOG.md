@@ -279,7 +279,7 @@ At most five items, ordered. Rationale and dependencies:
   (identity, replay, singleton, supersession, and ordering contract ratified in
   `ORATLAS_DECISIONS.md` §11)
 - **Packages:** `packages/contracts`, `packages/trust`, `packages/db`, `apps/web` ·
-  **External dep:** none · **Issue/PR:** train 2; source PR #95
+  **External dep:** none · **Issue/PR:** integration PR #103; source PR #95
 - **Goal:** `TrustAssessment` has no uniqueness on its relation, so multiple rows can exist,
   but nothing defines their semantics: reads and displays assume effectively one assessment
   per relation. Define the contract: several assessments per relation (different assessors,
@@ -326,7 +326,7 @@ At most five items, ordered. Rationale and dependencies:
 
 - **Status:** review (integration train 2) · **Priority:** P1 · **Size:** S · **Agent:** yes
 - **Packages:** `apps/web`, `packages/ui` · **External dep:** none · **Issue/PR:** builds on
-  source PR #80; builds on PR-05, `docs/trust-model.md`
+  integration PR #103; source PR #80; builds on PR-05, `docs/trust-model.md`
 - **Goal:** Aggregates are already optional/advisory/method-labelled. Verify and harden the
   display contract: a criterion profile (all ten criteria with rating + status, including
   explicit `not-assessed`) renders fully and legibly when no aggregate exists, and no view
@@ -443,7 +443,8 @@ At most five items, ordered. Rationale and dependencies:
 ### ORA-F01 — Assessor and protocol provenance in editorial queues
 
 - **Status:** review (integration train 2) · **Priority:** P1 · **Size:** S · **Agent:** yes
-- **Packages:** `apps/web` · **External dep:** none · **Issue/PR:** train 2; source PR #97
+- **Packages:** `apps/web` · **External dep:** none · **Issue/PR:** integration PR #103;
+  source PR #97
 - **Goal:** Editors deciding on TRUST verification should always see who/what assessed
   (assessor type, id, protocol + version, source assertions) without expanding raw JSON.
   Verify current queue detail and close gaps, including for node-relation assessments.
@@ -488,7 +489,7 @@ At most five items, ordered. Rationale and dependencies:
 
 - **Status:** review (integration train 2) · **Priority:** P2 · **Size:** S · **Agent:** yes
 - **Packages:** `packages/knowledge`, `apps/web` · **External dep:** none · **Issue/PR:**
-  train 2; source PR #85; builds on PR #21
+  integration PR #103; source PR #85; builds on PR #21
 - **Goal:** Contradiction maps shipped graph-first. Verify legacy prose-review claims
   (via their optional node backlinks and link proposals) participate; document or close gaps.
 - **Scope:** Audit + tests; deterministic rules only.
@@ -513,7 +514,8 @@ At most five items, ordered. Rationale and dependencies:
 ### ORA-H01 — Verify source-native vs ORAtlas-native separation end-to-end in the UI
 
 - **Status:** review (integration train 2) · **Priority:** P1 · **Size:** S · **Agent:** yes
-- **Packages:** `apps/web` · **External dep:** none · **Issue/PR:** train 2; source PR #76;
+- **Packages:** `apps/web` · **External dep:** none · **Issue/PR:** integration PR #103;
+  source PR #76;
   builds on PR #11, `docs/trust-model.md`
 - **Goal:** The separation (imported = `unverified-import`, platform markers separate,
   fail-closed) is implemented server-side. Lock it in at the presentation layer: every place
@@ -532,7 +534,7 @@ At most five items, ordered. Rationale and dependencies:
 ### ORA-H02 — Deep-link, accessibility, and responsive audit
 
 - **Status:** review (integration train 2) · **Priority:** P1 · **Size:** M · **Agent:** yes
-- **Packages:** `apps/web`, `packages/ui` · **External dep:** none · **Issue/PR:** train 2;
+- **Packages:** `apps/web`, `packages/ui` · **External dep:** none · **Issue/PR:** integration PR #103;
   source PR #86
 - **Goal:** Claim passports gave claims stable URLs. Verify every scholarly object renders at
   a stable, documented deep link (review version, claim, citation, relation+assessment, node
