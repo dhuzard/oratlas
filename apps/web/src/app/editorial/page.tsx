@@ -3,7 +3,7 @@ import { type Metadata } from "next";
 import { Card, Notice, StatusPill, ProvenanceBadge, TrustCriterionProfile } from "@oratlas/ui";
 import { getCurrentUser, isEditor } from "@/lib/auth";
 import { listAuditEvents, listLifecycleEditorialReviews, listSubmissions } from "@/lib/editorial";
-import { listTrustEditorialQueue, type TrustQueueFilter } from "@/lib/trust-provenance";
+import { listTrustEditorialQueuePage, type TrustQueueFilter } from "@/lib/trust-provenance";
 import { listOpenProposals } from "@/lib/claim-monitoring";
 import { getSubmissionWorkflow } from "@/lib/editorial-lifecycle";
 import { listFederationQueue } from "@/lib/federation";
@@ -69,7 +69,11 @@ export default async function EditorialPage({
   ].includes(requestedTrustFilter ?? "")
     ? (requestedTrustFilter as TrustQueueFilter)
     : "needs-review";
-  const trustQueue = await listTrustEditorialQueue(trustFilter);
+  const requestedTrustPage = Array.isArray(params.trustPage)
+    ? params.trustPage[0]
+    : params.trustPage;
+  const trustPage = /^\d+$/.test(requestedTrustPage ?? "") ? Number(requestedTrustPage) : 1;
+  const trustQueue = await listTrustEditorialQueuePage(trustFilter, { page: trustPage });
   const openProposals = await listOpenProposals();
   const federationQueue = await listFederationQueue();
   const openProtocolProposals = await listOpenProtocolProposals();
@@ -257,7 +261,7 @@ export default async function EditorialPage({
         </Card>
       ))}
 
-      <h2>TRUST provenance queue ({trustQueue.length})</h2>
+      <h2>TRUST provenance queue ({trustQueue.total})</h2>
       <p className="muted">
         Repository-supplied review labels are assertions only. Recording a platform marker confirms
         that an editor checked the captured structure and provenance; it is not scientific peer
@@ -278,60 +282,86 @@ export default async function EditorialPage({
           Filter queue
         </button>
       </form>
-      {trustQueue.length === 0 ? (
+      {trustQueue.total === 0 ? (
         <Card>
           <p className="muted">No TRUST records match this queue filter.</p>
         </Card>
       ) : (
-        trustQueue.map((item) => (
-          <Card as="article" key={item.assessmentId}>
-            <div className="btn-row">
-              <ProvenanceBadge
-                kind={
-                  item.verificationState === "platform-verified"
-                    ? "human-reviewed"
-                    : item.verificationState === "unverified-import"
-                      ? "repository-fact"
-                      : "warning"
-                }
-              >
-                {item.verificationState.replaceAll("-", " ")}
-              </ProvenanceBadge>
-              <a href={item.subjectHref} className="mono">
-                {item.subjectLabel}
-              </a>
-              <span className="muted">{item.relationType}</span>
-            </div>
-            <p className="claim-text">{item.claimText}</p>
-            <p className="muted">
-              {item.subjectType === "node-relation" ? "Evidence node" : "Citation"}{" "}
-              {item.citationLocalId}
-              {item.citationTitle ? ` — ${item.citationTitle}` : ""}
-            </p>
-            <TrustEditorialProvenance item={item} />
-            <TrustCriterionProfile
-              criteria={item.criteria}
-              label={`TRUST criteria for ${item.subjectLabel}`}
-            />
-            {item.rationale ? (
+        <>
+          <p className="muted" aria-live="polite">
+            Showing {(trustQueue.page - 1) * trustQueue.pageSize + 1}–
+            {Math.min(trustQueue.page * trustQueue.pageSize, trustQueue.total)} of{" "}
+            {trustQueue.total}
+            assessment records · page {trustQueue.page} of {trustQueue.totalPages}.
+          </p>
+          {trustQueue.items.map((item) => (
+            <Card as="article" key={item.assessmentId}>
+              <div className="btn-row">
+                <ProvenanceBadge
+                  kind={
+                    item.verificationState === "platform-verified"
+                      ? "human-reviewed"
+                      : item.verificationState === "unverified-import"
+                        ? "repository-fact"
+                        : "warning"
+                  }
+                >
+                  {item.verificationState.replaceAll("-", " ")}
+                </ProvenanceBadge>
+                <a href={item.subjectHref} className="mono">
+                  {item.subjectLabel}
+                </a>
+                <span className="muted">{item.relationType}</span>
+              </div>
+              <p className="claim-text">{item.claimText}</p>
               <p className="muted">
-                Existing marker ({item.reviewerRoleSnapshot}): {item.rationale}
+                {item.subjectType === "node-relation" ? "Evidence node" : "Citation"}{" "}
+                {item.citationLocalId}
+                {item.citationTitle ? ` — ${item.citationTitle}` : ""}
               </p>
-            ) : null}
-            {item.canVerify ? (
-              <TrustVerificationForm
-                assessmentId={item.assessmentId}
-                subjectType={item.subjectType}
-                revision={item.revision}
-                assessmentHash={item.assessmentHash}
+              <TrustEditorialProvenance item={item} />
+              <TrustCriterionProfile
+                criteria={item.criteria}
+                label={`TRUST criteria for ${item.subjectLabel}`}
               />
-            ) : (
-              <p className="muted">
-                Verification is unavailable until this exact node edge is authoritatively confirmed.
-              </p>
-            )}
-          </Card>
-        ))
+              {item.rationale ? (
+                <p className="muted">
+                  Existing marker ({item.reviewerRoleSnapshot}): {item.rationale}
+                </p>
+              ) : null}
+              {item.canVerify ? (
+                <TrustVerificationForm
+                  assessmentId={item.assessmentId}
+                  subjectType={item.subjectType}
+                  revision={item.revision}
+                  assessmentHash={item.assessmentHash}
+                />
+              ) : (
+                <p className="muted">
+                  Verification is unavailable until this exact node edge is authoritatively
+                  confirmed.
+                </p>
+              )}
+            </Card>
+          ))}
+          {trustQueue.totalPages > 1 ? (
+            <nav className="pagination" aria-label="TRUST queue pagination">
+              {trustQueue.page > 1 ? (
+                <a href={trustQueueHref(trustFilter, trustQueue.page - 1)}>Previous</a>
+              ) : (
+                <span />
+              )}
+              <span>
+                Page {trustQueue.page} of {trustQueue.totalPages}
+              </span>
+              {trustQueue.page < trustQueue.totalPages ? (
+                <a href={trustQueueHref(trustFilter, trustQueue.page + 1)}>Next</a>
+              ) : (
+                <span />
+              )}
+            </nav>
+          ) : null}
+        </>
       )}
 
       <h2>Recent decisions</h2>
@@ -419,4 +449,9 @@ export default async function EditorialPage({
       </div>
     </div>
   );
+}
+
+function trustQueueHref(filter: TrustQueueFilter, page: number): string {
+  const query = new URLSearchParams({ trustFilter: filter, trustPage: String(page) });
+  return `/editorial?${query.toString()}`;
 }

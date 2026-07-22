@@ -26,8 +26,8 @@ function item(overrides: Partial<TrustQueueItem> = {}): TrustQueueItem {
     sourceAssessedAt: "2026-01-01T03:04:05.000Z",
     sourceEvidenceAvailable: true,
     sourceRelationHumanReviewed: false,
-    sourceAggregateScore: 0,
-    computedAggregateScore: 0.5,
+    sourceAggregateScore: 0.37,
+    computedAggregateScore: 0.61,
     effectiveStatus: "unverified-import",
     verificationState: "unverified-import",
     revision: 0,
@@ -46,6 +46,9 @@ describe("TrustEditorialProvenance", () => {
     expect(html).toContain("trust-poc-1.0");
     expect(html).toContain("repository did not label relation human-reviewed");
     expect(html).not.toContain("sourceRecordJson");
+    expect(html).not.toContain("Aggregate");
+    expect(html).not.toContain("0.37");
+    expect(html).not.toContain("0.61");
   });
 
   it("labels node-relation provenance distinctly without inventing a relation assertion", () => {
@@ -55,6 +58,6 @@ describe("TrustEditorialProvenance", () => {
 
     expect(html).toContain("Node-relation assessment");
     expect(html).toContain("not applicable to node-relation records");
-    expect(html).toContain("omitted for relation TRUST");
+    expect(html).not.toContain("Aggregate");
   });
 });

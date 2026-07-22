@@ -142,3 +142,6 @@ assessor type and identifier, the source assessor type and identifier, TRUST pro
 assessment and source timestamps, source-record and evidence-pointer presence, and exact repository
 status/relation assertions. Raw source JSON is not rendered. The queue does not resolve assessor
 identities, compare assessors, select a preferred assessment, or combine records across protocols.
+The dashboard reports the complete filtered count and pages that complete ordered set; it does not
+silently cap either assessment family. Compact queue rows omit aggregates because they do not carry
+the accessible criterion profile and aggregate method required to interpret one.
