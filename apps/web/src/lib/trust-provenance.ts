@@ -173,6 +173,7 @@ export function projectPublicNodeRelationTrustAssessments(
         assessorType: row.assessorType,
         assessorId: row.assessorId ?? undefined,
         assessedAt: row.assessedAt?.toISOString(),
+        conflictOfInterest: { status: row.conflictOfInterestStatus },
         reviewStatus: resolved.effectiveStatus,
         verificationState: resolved.state,
       });
@@ -209,6 +210,7 @@ function mapNodeAssessment(
     assessorType: row.assessorType,
     assessorId: row.assessorId,
     assessedAt: iso(row.assessedAt),
+    conflictOfInterestStatus: row.conflictOfInterestStatus,
     criteriaJson: {
       identityIntegrity: row.identityIntegrity,
       entailment: row.entailment,

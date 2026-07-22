@@ -627,6 +627,9 @@ export async function getPublicNode(
       assessorType: string;
       assessorId?: string;
       assessedAt?: string;
+      conflictOfInterest: {
+        status: "none-declared" | "conflict-declared" | "not-provided";
+      };
       reviewStatus:
         "unverified-import" | "agent-proposed" | "human-reviewed" | "adjudicated" | "superseded";
       verificationState:
@@ -762,6 +765,7 @@ export async function getPublicNode(
       assessorType: assessment.assessorType,
       assessorId: assessment.assessorId ?? undefined,
       assessedAt: assessment.assessedAt?.toISOString(),
+      conflictOfInterest: { status: assessment.conflictOfInterestStatus },
       reviewStatus: resolved.effectiveStatus,
       verificationState: resolved.state,
       criteria: trustCriterionProfileFromJson(resolved.subject.assessment.criteriaJson),

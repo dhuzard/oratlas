@@ -56,6 +56,9 @@ export interface IndexedTrust {
   assessorType: string;
   assessorId?: string;
   assessedAt?: string;
+  conflictOfInterest?: {
+    status: "none-declared" | "conflict-declared" | "not-provided";
+  };
   reviewStatus: AssessmentReviewStatus;
   verificationState: TrustVerificationState;
   aggregateScore?: number;

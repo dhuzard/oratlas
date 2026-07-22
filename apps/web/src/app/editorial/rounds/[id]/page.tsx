@@ -113,6 +113,12 @@ export default async function RoundPage({ params }: { params: Promise<{ id: stri
             </span>
           </div>
           <p>{round.decision.letter.letter}</p>
+          <p className="muted">
+            Conflict of interest: {round.decision.conflictOfInterest.status}
+            {round.decision.administratorOverride
+              ? ` · ADMIN override by @${round.decision.administratorOverride.administrator.githubLogin} at ${round.decision.administratorOverride.exercisedAt}`
+              : ""}
+          </p>
         </Card>
       ) : null}
 

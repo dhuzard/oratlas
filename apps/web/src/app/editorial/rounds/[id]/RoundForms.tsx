@@ -121,6 +121,8 @@ export function RoundDecisionForm({
   const [selectedNodeIds, setSelectedNodeIds] = useState(() =>
     nodeCandidates.map((candidate) => candidate.id),
   );
+  const [conflictStatus, setConflictStatus] = useState("none-declared");
+  const [administratorOverride, setAdministratorOverride] = useState(false);
 
   return (
     <form
@@ -132,6 +134,8 @@ export function RoundDecisionForm({
           decision,
           letter: { schemaVersion: "1.0.0", letter },
           selectedNodeIds: decision === "accept" ? selectedNodeIds : [],
+          conflictOfInterest: { status: conflictStatus },
+          administratorOverride,
         });
         setBusy(false);
         if (error) setMessage(error);
@@ -173,6 +177,26 @@ export function RoundDecisionForm({
           ))}
         </fieldset>
       ) : null}
+      <div className="field">
+        <label htmlFor={`round-coi-${roundId}`}>Conflict-of-interest snapshot</label>
+        <select
+          id={`round-coi-${roundId}`}
+          value={conflictStatus}
+          onChange={(event) => setConflictStatus(event.target.value)}
+        >
+          <option value="none-declared">none declared</option>
+          <option value="conflict-declared">conflict declared</option>
+          <option value="not-provided">not provided</option>
+        </select>
+        <label style={{ display: "block", marginTop: "0.5rem" }}>
+          <input
+            type="checkbox"
+            checked={administratorOverride}
+            onChange={(event) => setAdministratorOverride(event.target.checked)}
+          />{" "}
+          Exercise ADMIN recusal override (direct involvement only)
+        </label>
+      </div>
       <div className="btn-row" style={{ marginTop: "0.4rem" }}>
         <select value={decision} onChange={(event) => setDecision(event.target.value)}>
           <option value="accept">accept</option>

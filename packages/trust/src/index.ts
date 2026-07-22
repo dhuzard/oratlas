@@ -112,7 +112,7 @@ export function computeAggregate(record: TrustAssessmentRecord): AggregateResult
 }
 
 export interface NormalizedImportedTrustRecord {
-  record: TrustRecord;
+  record: TrustRecord & { conflictOfInterest: { status: "none-declared" | "conflict-declared" | "not-provided" } };
   criterionColumns: Partial<Record<TrustCriterion, string>>;
   limitationsJson: string;
   evidenceJson: string | null;
@@ -133,14 +133,22 @@ export interface NormalizedImportedTrustRecord {
 export type NormalizedImportedNodeRelationTrustRecord = Omit<
   NormalizedImportedTrustRecord,
   "record"
-> & { record: NodeRelationTrustRecord };
+> & {
+  record: NodeRelationTrustRecord & {
+    conflictOfInterest: { status: "none-declared" | "conflict-declared" | "not-provided" };
+  };
+};
 
 /** Normalize a repository record without trusting its review assertions. */
 export function normalizeImportedTrustRecord(
   input: TrustRecord,
   sourceRelationHumanReviewed: boolean | null,
 ): NormalizedImportedTrustRecord {
-  const record = trustRecordSchema.parse(input);
+  const parsed = trustRecordSchema.parse(input);
+  const record = {
+    ...parsed,
+    conflictOfInterest: parsed.conflictOfInterest ?? { status: "not-provided" as const },
+  };
   return normalizeImportedRecord(record, sourceRelationHumanReviewed, true);
 }
 
@@ -152,7 +160,11 @@ export function normalizeImportedTrustRecord(
 export function normalizeImportedNodeRelationTrustRecord(
   input: NodeRelationTrustRecord,
 ): NormalizedImportedNodeRelationTrustRecord {
-  const record = nodeRelationTrustRecordSchema.parse(input);
+  const parsed = nodeRelationTrustRecordSchema.parse(input);
+  const record = {
+    ...parsed,
+    conflictOfInterest: parsed.conflictOfInterest ?? { status: "not-provided" as const },
+  };
   return normalizeImportedRecord(record, null, false);
 }
 
@@ -237,6 +249,7 @@ export interface ReviewedTrustSubjectInput {
     assessorType: string;
     assessorId: string | null;
     assessedAt: string | null;
+    conflictOfInterestStatus?: string;
     criteriaJson: Record<TrustCriterion, string | null>;
     limitationsJson: string;
     evidenceJson: string | null;
@@ -504,6 +517,7 @@ export interface DatabaseTrustAssessmentRow {
   assessorType: string;
   assessorId: string | null;
   assessedAt: DateValue;
+  conflictOfInterestStatus?: string;
   identityIntegrity: string | null;
   entailment: string | null;
   sourceAccess: string | null;
@@ -604,6 +618,7 @@ export function trustSubjectInputFromDatabaseRows(
       assessorType: assessment.assessorType,
       assessorId: assessment.assessorId,
       assessedAt: assessment.assessedAt,
+      conflictOfInterestStatus: assessment.conflictOfInterestStatus ?? "not-provided",
       criteriaJson: {
         identityIntegrity: assessment.identityIntegrity,
         entailment: assessment.entailment,
@@ -641,7 +656,10 @@ export function trustSubjectInputFromDatabaseRows(
 export function createReviewedTrustSubject(input: ReviewedTrustSubjectInput) {
   return {
     schemaVersion: TRUST_SUBJECT_SCHEMA_VERSION,
-    assessment: input.assessment,
+    assessment: {
+      ...input.assessment,
+      conflictOfInterestStatus: input.assessment.conflictOfInterestStatus ?? "not-provided",
+    },
     relation: input.relation,
     claim: input.claim,
     citation: input.citation,
@@ -729,7 +747,10 @@ export function createReviewedNodeRelationTrustSubject(
   }
   return {
     schemaVersion: TRUST_NODE_RELATION_SUBJECT_SCHEMA_VERSION,
-    assessment: input.assessment,
+    assessment: {
+      ...input.assessment,
+      conflictOfInterestStatus: input.assessment.conflictOfInterestStatus ?? "not-provided",
+    },
     importedRecord: input.importedRecord,
     proposal: input.proposal,
     confirmedEdge: input.confirmedEdge,

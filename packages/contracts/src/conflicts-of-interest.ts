@@ -23,3 +23,21 @@ export const publicConflictOverrideSchema = z
   })
   .strict();
 export type PublicConflictOverride = z.infer<typeof publicConflictOverrideSchema>;
+
+/** Input shared by every immutable editorial outcome surface. */
+export const conflictOfInterestOutcomeInputSchema = z
+  .object({
+    conflictOfInterest: conflictOfInterestSnapshotSchema,
+    administratorOverride: z.boolean().default(false),
+  })
+  .strict()
+  .superRefine((input, context) => {
+    if (input.administratorOverride && input.conflictOfInterest.status !== "conflict-declared") {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["administratorOverride"],
+        message: "Administrator override requires conflict-declared.",
+      });
+    }
+  });
+export type ConflictOfInterestOutcomeInput = z.infer<typeof conflictOfInterestOutcomeInputSchema>;

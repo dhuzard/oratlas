@@ -10,6 +10,7 @@ import {
 } from "./enums.js";
 import { commitShaSchema, doiSchema } from "./identifiers.js";
 import { localNodeIdSchema } from "./knowledge-nodes.js";
+import { conflictOfInterestSnapshotSchema } from "./conflicts-of-interest.js";
 
 /**
  * Knowledge artifact records as they appear inside review repositories
@@ -103,6 +104,8 @@ export const trustRecordSchema = z.object({
   assessorType: assessorTypeSchema,
   assessorId: z.string().max(200).optional(),
   assessedAt: z.string().datetime().optional(),
+  /** Public, immutable source snapshot. Legacy records default explicitly. */
+  conflictOfInterest: conflictOfInterestSnapshotSchema.optional(),
   criteria: z.object(criteriaShape),
   limitations: z.array(z.string().max(2_000)).max(50).optional(),
   evidence: z.record(z.string(), z.unknown()).optional(),
@@ -173,6 +176,8 @@ export const nodeRelationTrustRecordSchema = z
     assessorType: assessorTypeSchema,
     assessorId: z.string().max(200).optional(),
     assessedAt: z.string().datetime().optional(),
+    /** Public, immutable source snapshot. Legacy records default explicitly. */
+    conflictOfInterest: conflictOfInterestSnapshotSchema.optional(),
     criteria: z.object(strictCriteriaShape).strict(),
     limitations: z.array(z.string().max(2_000)).max(50).optional(),
     evidence: z.record(z.string(), z.unknown()).optional(),

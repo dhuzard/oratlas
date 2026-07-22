@@ -412,6 +412,7 @@ export function nodeEdgeTrustAssessments(
     {
       ...edge.trust,
       assessorType: "not supplied (legacy)",
+      conflictOfInterest: { status: "not-provided" },
       criteria: missingTrustCriterionProfile(),
     },
   ];
@@ -432,6 +433,7 @@ export function nodeContextTrustAssessments(
       assessmentId: `legacy:${context.claimId}:${context.citationId}`,
       protocolVersion: "not supplied (legacy)",
       assessorType: "not supplied (legacy)",
+      conflictOfInterest: { status: "not-provided" },
       criteria: missingTrustCriterionProfile(),
     },
   ];

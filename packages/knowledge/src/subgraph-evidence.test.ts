@@ -204,6 +204,7 @@ function fixture(): SubgraphEvidenceSource {
             relationType: "uses-dataset",
           },
           assessmentId: "trust-dataset",
+          conflictOfInterest: { status: "not-provided" },
           protocolVersion: "TRUST-1.0",
           assessorType: "human",
           reviewStatus: "human-reviewed",

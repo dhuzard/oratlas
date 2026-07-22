@@ -445,6 +445,7 @@ describe.sequential("public graph query", () => {
               protocolVersion: "TRUST-1.0",
               reviewStatus: "human-reviewed",
               verificationState: "platform-verified",
+              conflictOfInterest: { status: "not-provided" },
             },
           ],
           [
@@ -467,6 +468,7 @@ describe.sequential("public graph query", () => {
           protocolVersion: "TRUST-1.0",
           reviewStatus: "human-reviewed",
           verificationState: "platform-verified",
+          conflictOfInterest: { status: "not-provided" },
         },
       }),
     ]);

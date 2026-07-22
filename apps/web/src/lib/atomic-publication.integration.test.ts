@@ -46,6 +46,7 @@ let runtime: Runtime;
 let submitterId: string;
 let otherUserId: string;
 let editorId: string;
+let administratorId: string;
 let sequence = 0;
 
 beforeAll(async () => {
@@ -86,9 +87,13 @@ beforeAll(async () => {
   const editor = await prisma.user.create({
     data: { githubUserId: "atomic-editor", githubLogin: "atomic-editor", role: "EDITOR" },
   });
+  const administrator = await prisma.user.create({
+    data: { githubUserId: "atomic-admin", githubLogin: "atomic-admin", role: "ADMIN" },
+  });
   submitterId = submitter.id;
   otherUserId = other.id;
   editorId = editor.id;
+  administratorId = administrator.id;
 }, 30_000);
 
 afterAll(async () => {
@@ -291,6 +296,22 @@ describe.sequential("atomic publication integration", () => {
         where: { idempotencyKey: `submission.accepted:${submission.submissionId}` },
       }),
     ).toBe(1);
+    expect(
+      await runtime.prisma.editorialDecisionProvenance.findUniqueOrThrow({
+        where: { submissionId: submission.submissionId },
+        select: {
+          decision: true,
+          conflictOfInterestStatus: true,
+          administratorOverride: true,
+          decisionHash: true,
+        },
+      }),
+    ).toMatchObject({
+      decision: "accept",
+      conflictOfInterestStatus: "not-provided",
+      administratorOverride: false,
+      decisionHash: expect.stringMatching(/^[a-f0-9]{64}$/),
+    });
     await expect(
       runtime.acceptSubmission(
         submission.submissionId,
@@ -320,6 +341,51 @@ describe.sequential("atomic publication integration", () => {
     expect(["accepted", "rejected"]).toContain(stored?.status);
     if (stored?.status === "accepted") expect(stored.resultingReviewVersionId).toBeTruthy();
     if (stored?.status === "rejected") expect(stored.resultingReviewVersionId).toBeNull();
+  });
+
+  it("recuses direct involvement unless an ADMIN records the public override", async () => {
+    const capability = await capture({
+      githubRepositoryId: nextRepoId(),
+      inspectedByUserId: administratorId,
+    });
+    const submission = await runtime.createSubmission({
+      inspectionToken: capability.token,
+      submitterId: administratorId,
+    });
+    await expect(
+      runtime.acceptSubmission(submission.submissionId, administratorId),
+    ).rejects.toMatchObject({ code: "forbidden" });
+    await expect(
+      runtime.acceptSubmission(
+        submission.submissionId,
+        administratorId,
+        undefined,
+        [],
+        [],
+        undefined,
+        undefined,
+        {
+          conflictOfInterest: { status: "conflict-declared" },
+          administratorOverride: true,
+        },
+      ),
+    ).resolves.toMatchObject({ idempotent: false });
+    expect(
+      await runtime.prisma.editorialDecisionProvenance.findUniqueOrThrow({
+        where: { submissionId: submission.submissionId },
+        select: {
+          conflictOfInterestStatus: true,
+          administratorOverride: true,
+          administratorOverrideGithubLoginSnapshot: true,
+          actorRoleSnapshot: true,
+        },
+      }),
+    ).toEqual({
+      conflictOfInterestStatus: "conflict-declared",
+      administratorOverride: true,
+      administratorOverrideGithubLoginSnapshot: "atomic-admin",
+      actorRoleSnapshot: "ADMIN",
+    });
   });
 
   it("rolls back the status, version and audits when materialization fails", async () => {
@@ -1349,7 +1415,8 @@ describe.sequential("atomic publication integration", () => {
         inspectionToken: capability.token,
         submitterId,
       });
-      await runtime.decideSubmission(submission.submissionId, editorId, decision);
+      const note = `Private rationale for ${decision}`;
+      await runtime.decideSubmission(submission.submissionId, editorId, decision, note);
       expect(
         await runtime.prisma.knowledgeNodeVersion.count({
           where: { sourceSubmissionId: submission.submissionId },
@@ -1360,6 +1427,12 @@ describe.sequential("atomic publication integration", () => {
           where: { idempotencyKey: `submission.${decision}:${submission.submissionId}` },
         }),
       ).toBe(1);
+      expect(
+        await runtime.prisma.editorialDecisionProvenance.findUniqueOrThrow({
+          where: { submissionId: submission.submissionId },
+          select: { noteHash: true },
+        }),
+      ).toEqual({ noteHash: sha256(note) });
     }
   });
 });
@@ -1376,6 +1449,7 @@ async function capture(options: {
   knowledge?: FullExtraction["knowledge"];
   nodeExtraction?: NodeExtractionReport;
   reviewContentDetected?: boolean;
+  inspectedByUserId?: string;
 }) {
   const owner = options.owner ?? "lab";
   const name = options.name ?? `review-${sequence}`;
@@ -1398,7 +1472,7 @@ async function capture(options: {
   );
   const baseValidation = validationReport(report);
   const capability = await runtime.createInspectionCapture(
-    submitterId,
+    options.inspectedByUserId ?? submitterId,
     report,
     extraction,
     baseValidation,

@@ -300,6 +300,24 @@ describe.sequential("formal editorial-review lifecycle", () => {
         letter: "The revision addresses every concern from round one. Accepted.",
       }),
     ).toEqual(decision2);
+    await expect(
+      lifecycle.issueDecision(
+        editor,
+        round2.roundId,
+        "accept",
+        {
+          schemaVersion: "1.0.0",
+          letter: "The revision addresses every concern from round one. Accepted.",
+        },
+        undefined,
+        [],
+        [],
+        {
+          conflictOfInterest: { status: "conflict-declared" },
+          administratorOverride: false,
+        },
+      ),
+    ).rejects.toMatchObject({ code: "conflict" });
 
     // Public process history spans the revision lineage, oldest first, with
     // verifiable hashes and attributable actors.
@@ -313,6 +331,11 @@ describe.sequential("formal editorial-review lifecycle", () => {
     expect(historicReport.orcidVerified).toBe(false);
     expect(historicReport.bodyHash).toBe(sha256(canonicalJson(historicReport.body)));
     expect(history[0]!.rounds[0]!.decision?.decision).toBe("request-changes");
+    expect(history[0]!.rounds[0]!.decision?.conflictOfInterest).toEqual({
+      status: "not-provided",
+    });
+    expect(history[0]!.rounds[0]!.decision?.administratorOverride).toBeUndefined();
+    expect(history[0]!.rounds[0]!.decision?.decisionHash).toMatch(/^[a-f0-9]{64}$/);
     expect(history[1]!.rounds[0]!.decision?.decision).toBe("accept");
 
     // DocMaps export of the published version covers the full chain.

@@ -66,6 +66,7 @@ export function buildEvidencePacket(
             assessorType: assessment.assessorType,
             assessorId: assessment.assessorId,
             assessedAt: assessment.assessedAt,
+            conflictOfInterest: assessment.conflictOfInterest ?? { status: "not-provided" },
             reviewStatus: assessment.reviewStatus,
             verificationState: assessment.verificationState,
             aggregateScore: assessment.aggregateScore,

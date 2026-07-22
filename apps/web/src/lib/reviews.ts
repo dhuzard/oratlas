@@ -13,6 +13,7 @@ import {
   globalCitationId,
   globalClaimId,
   isExactCommitSha,
+  conflictOfInterestStatusSchema,
   sourceAssessmentDocumentsReportSchema,
   type PublicationConsistencyReport,
   type PublicLifecycleEvent,
@@ -30,6 +31,11 @@ import {
   type StoredCompatibilityReport,
 } from "./compatibility-report";
 
+function publicConflictStatus(value: string) {
+  const parsed = conflictOfInterestStatusSchema.safeParse(value);
+  return parsed.success ? parsed.data : ("not-provided" as const);
+}
+
 export interface ReviewCriterion {
   criterion: string;
   rating: string;
@@ -42,6 +48,9 @@ export interface ReviewTrust {
   assessorType: string;
   assessorId?: string;
   assessedAt?: string;
+  conflictOfInterest: {
+    status: "none-declared" | "conflict-declared" | "not-provided";
+  };
   reviewStatus: string;
   verificationState: TrustVerificationState;
   protocolVersion: string;
@@ -151,6 +160,19 @@ export interface ReviewDetail {
       editorLogin: string;
       createdAt: string;
     }>;
+    editorialDecision?: {
+      actorLogin: string;
+      decision: string;
+      decisionHash?: string;
+      conflictOfInterest: {
+        status: "none-declared" | "conflict-declared" | "not-provided";
+      };
+      administratorOverride?: {
+        administrator: { githubLogin: string };
+        exercisedAt: string;
+      };
+      decidedAt: string;
+    };
   };
   identifiers: Array<{
     scheme: string;
@@ -204,6 +226,9 @@ export async function getReviewDetail(
           sourceSubmission: {
             include: {
               editorialOverrides: { include: { editor: true }, orderBy: { checkId: "asc" } },
+              decisionProvenance: true,
+              reviewer: true,
+              reviewRounds: { select: { decisionLetter: { select: { id: true } } } },
             },
           },
           citations: true,
@@ -336,6 +361,9 @@ export async function getReviewDetail(
           assessorType: trustRow.assessment.assessorType,
           assessorId: trustRow.assessment.assessorId ?? undefined,
           assessedAt: trustRow.assessment.assessedAt?.toISOString(),
+          conflictOfInterest: {
+            status: publicConflictStatus(trustRow.assessment.conflictOfInterestStatus),
+          },
           reviewStatus: trustRow.resolved.effectiveStatus,
           verificationState: trustRow.resolved.state,
           protocolVersion: trustRow.assessment.protocolVersion,
@@ -467,6 +495,48 @@ export async function getReviewDetail(
           editorLogin: override.editor.githubLogin,
           createdAt: override.createdAt.toISOString(),
         })) ?? [],
+      editorialDecision: version.sourceSubmission?.decisionProvenance
+        ? {
+            actorLogin: version.sourceSubmission.decisionProvenance.actorGithubLoginSnapshot,
+            decision: version.sourceSubmission.decisionProvenance.decision,
+            decisionHash: version.sourceSubmission.decisionProvenance.decisionHash,
+            conflictOfInterest: {
+              status:
+                version.sourceSubmission.decisionProvenance.conflictOfInterestStatus ===
+                  "none-declared" ||
+                version.sourceSubmission.decisionProvenance.conflictOfInterestStatus ===
+                  "conflict-declared"
+                  ? version.sourceSubmission.decisionProvenance.conflictOfInterestStatus
+                  : "not-provided",
+            },
+            administratorOverride:
+              version.sourceSubmission.decisionProvenance.administratorOverride &&
+              version.sourceSubmission.decisionProvenance
+                .administratorOverrideGithubLoginSnapshot &&
+              version.sourceSubmission.decisionProvenance.administratorOverrideAt
+                ? {
+                    administrator: {
+                      githubLogin:
+                        version.sourceSubmission.decisionProvenance
+                          .administratorOverrideGithubLoginSnapshot,
+                    },
+                    exercisedAt:
+                      version.sourceSubmission.decisionProvenance.administratorOverrideAt.toISOString(),
+                  }
+                : undefined,
+            decidedAt: version.sourceSubmission.decisionProvenance.createdAt.toISOString(),
+          }
+        : version.sourceSubmission?.reviewer &&
+            !version.sourceSubmission.reviewRounds.some((round) => round.decisionLetter)
+          ? {
+              actorLogin: version.sourceSubmission.reviewer.githubLogin,
+              decision: "accept",
+              conflictOfInterest: { status: "not-provided" },
+              decidedAt:
+                version.sourceSubmission.reviewedAt?.toISOString() ??
+                version.sourceSubmission.updatedAt.toISOString(),
+            }
+          : undefined,
     },
     identifiers: version.identifiers.map((id) => ({
       scheme: id.scheme,

@@ -10,11 +10,14 @@ import {
   roundDecisionSchema,
   type AuthorResponseBody,
   type ConflictOfInterest,
+  type ConflictOfInterestOutcomeInput,
   type DecisionLetterBody,
   type FormalReviewReportBody,
   type NotificationKind,
   type ReviewRecommendation,
   type RoundDecision,
+  type ConflictOfInterestSnapshot,
+  type PublicConflictOverride,
 } from "@oratlas/contracts";
 import { type Prisma } from "@oratlas/db";
 import { prisma } from "./db";
@@ -446,6 +449,10 @@ export async function issueDecision(
   note?: string,
   overrides: EditorialOverrideInput[] = [],
   selectedNodeIds: string[] = [],
+  conflictOutcome: ConflictOfInterestOutcomeInput = {
+    conflictOfInterest: { status: "not-provided" },
+    administratorOverride: false,
+  },
 ): Promise<IssueDecisionResult> {
   if (!isEditorRole(actor.role)) {
     throw new LifecycleError("Only a current editor can issue a decision.", "forbidden");
@@ -467,6 +474,8 @@ export async function issueDecision(
           left.rationale.localeCompare(right.rationale),
       ),
       selectedNodeIds: [...selectedNodeIds].sort((left, right) => left.localeCompare(right)),
+      conflictOfInterest: conflictOutcome.conflictOfInterest,
+      administratorOverride: conflictOutcome.administratorOverride,
     }),
   );
 
@@ -475,7 +484,7 @@ export async function issueDecision(
       async (tx) => {
         const currentActor = await tx.user.findUnique({
           where: { id: actor.id },
-          select: { role: true },
+          select: { role: true, githubLogin: true },
         });
         if (!currentActor || !isEditorRole(currentActor.role)) {
           throw new LifecycleError("Only a current editor can issue a decision.", "forbidden");
@@ -485,6 +494,49 @@ export async function issueDecision(
           include: { submission: true, decisionLetter: true },
         });
         if (!round) throw new LifecycleError("Review round not found.", "not-found");
+        const directlyInvolved =
+          round.submission.submitterId === actor.id ||
+          Boolean(
+            await tx.formalReviewReport.findFirst({
+              where: { roundId, reviewerId: actor.id },
+              select: { id: true },
+            }),
+          );
+        if (directlyInvolved && !conflictOutcome.administratorOverride) {
+          throw new LifecycleError(
+            "Direct self-involvement requires recusal or an explicit administrator override.",
+            "forbidden",
+          );
+        }
+        if (conflictOutcome.administratorOverride) {
+          if (!directlyInvolved) {
+            throw new LifecycleError(
+              "An administrator override is valid only for direct self-involvement.",
+            );
+          }
+          if (currentActor.role !== "ADMIN") {
+            throw new LifecycleError(
+              "Administrator role required for a recusal override.",
+              "forbidden",
+            );
+          }
+          if (conflictOutcome.conflictOfInterest.status !== "conflict-declared") {
+            throw new LifecycleError("An administrator override requires conflict-declared.");
+          }
+        }
+        const overrideAt = conflictOutcome.administratorOverride ? new Date() : null;
+        const decisionHash = sha256(
+          canonicalJson({
+            decision: parsedDecision,
+            bodyHash,
+            actorGithubLogin: currentActor.githubLogin,
+            actorRoleSnapshot: currentActor.role,
+            conflictOfInterest: conflictOutcome.conflictOfInterest,
+            administratorOverride: conflictOutcome.administratorOverride
+              ? { administrator: { githubLogin: currentActor.githubLogin } }
+              : null,
+          }),
+        );
         const priorClaim = await tx.idempotencyKey.findUnique({ where: { key: operationKey } });
         if (priorClaim) {
           if (priorClaim.requestHash !== operationHash) {
@@ -497,7 +549,11 @@ export async function issueDecision(
             round.status !== "decided" ||
             round.decisionLetter?.editorId !== actor.id ||
             round.decisionLetter.decision !== parsedDecision ||
-            round.decisionLetter.bodyHash !== bodyHash
+            round.decisionLetter.bodyHash !== bodyHash ||
+            round.decisionLetter.decisionHash !== decisionHash ||
+            round.decisionLetter.conflictOfInterestStatus !==
+              conflictOutcome.conflictOfInterest.status ||
+            round.decisionLetter.administratorOverride !== conflictOutcome.administratorOverride
           ) {
             throw new LifecycleError(
               "Round decision idempotency record is incomplete.",
@@ -538,6 +594,7 @@ export async function issueDecision(
               overrides,
               selectedNodeIds,
               round.id,
+              conflictOutcome,
             )
           ).reviewSlug;
         } else {
@@ -548,11 +605,27 @@ export async function issueDecision(
             parsedDecision === "reject" ? "reject" : "request-changes",
             note,
             round.id,
+            conflictOutcome,
           );
         }
 
         await tx.decisionLetter.create({
-          data: { roundId, editorId: actor.id, decision: parsedDecision, bodyJson, bodyHash },
+          data: {
+            roundId,
+            editorId: actor.id,
+            editorRoleSnapshot: currentActor.role,
+            decision: parsedDecision,
+            bodyJson,
+            bodyHash,
+            decisionHash,
+            conflictOfInterestStatus: conflictOutcome.conflictOfInterest.status,
+            administratorOverride: conflictOutcome.administratorOverride,
+            administratorOverrideById: conflictOutcome.administratorOverride ? actor.id : null,
+            administratorOverrideGithubLoginSnapshot: conflictOutcome.administratorOverride
+              ? currentActor.githubLogin
+              : null,
+            administratorOverrideAt: overrideAt,
+          },
         });
         const closed = await tx.reviewRound.updateMany({
           where: { id: roundId, status: "open" },
@@ -573,7 +646,14 @@ export async function issueDecision(
           "editorial.decision-issued",
           "review-round",
           roundId,
-          { decision: parsedDecision, bodyHash, reviewSlug },
+          {
+            decision: parsedDecision,
+            bodyHash,
+            decisionHash,
+            reviewSlug,
+            conflictOfInterest: conflictOutcome.conflictOfInterest,
+            administratorOverride: conflictOutcome.administratorOverride,
+          },
           operationKey,
           operationHash,
         );
@@ -630,6 +710,9 @@ export interface ProcessHistoryRound {
     decision: string;
     letter: DecisionLetterBody;
     bodyHash: string;
+    decisionHash?: string;
+    conflictOfInterest: ConflictOfInterestSnapshot;
+    administratorOverride?: PublicConflictOverride;
     issuedAt: string;
   };
 }
@@ -698,6 +781,9 @@ function mapLetterRow(letter: LetterRow):
       decision: string;
       letter: DecisionLetterBody;
       bodyHash: string;
+      decisionHash?: string;
+      conflictOfInterest: ConflictOfInterestSnapshot;
+      administratorOverride?: PublicConflictOverride;
       issuedAt: string;
     }
   | undefined {
@@ -711,6 +797,25 @@ function mapLetterRow(letter: LetterRow):
     decision: letter.decision,
     letter: body.data,
     bodyHash: letter.bodyHash,
+    decisionHash: letter.decisionHash ?? undefined,
+    conflictOfInterest: {
+      status:
+        letter.conflictOfInterestStatus === "none-declared" ||
+        letter.conflictOfInterestStatus === "conflict-declared"
+          ? letter.conflictOfInterestStatus
+          : "not-provided",
+    },
+    administratorOverride:
+      letter.administratorOverride &&
+      letter.administratorOverrideGithubLoginSnapshot &&
+      letter.administratorOverrideAt
+        ? {
+            administrator: {
+              githubLogin: letter.administratorOverrideGithubLoginSnapshot,
+            },
+            exercisedAt: letter.administratorOverrideAt.toISOString(),
+          }
+        : undefined,
     issuedAt: letter.createdAt.toISOString(),
   };
 }
@@ -891,6 +996,9 @@ export interface RoundDetail {
     decision: string;
     letter: DecisionLetterBody;
     bodyHash: string;
+    decisionHash?: string;
+    conflictOfInterest: ConflictOfInterestSnapshot;
+    administratorOverride?: PublicConflictOverride;
     issuedAt: string;
   };
 }

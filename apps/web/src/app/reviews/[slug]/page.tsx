@@ -520,6 +520,16 @@ export default async function ReviewPage({
                   </ul>
                 </Notice>
               ) : null}
+              {review.version.editorialDecision ? (
+                <p className="muted">
+                  Editorial decision by @{review.version.editorialDecision.actorLogin}:{" "}
+                  {review.version.editorialDecision.decision} · conflict of interest:{" "}
+                  {review.version.editorialDecision.conflictOfInterest.status}
+                  {review.version.editorialDecision.administratorOverride
+                    ? ` · ADMIN override by @${review.version.editorialDecision.administratorOverride.administrator.githubLogin} at ${review.version.editorialDecision.administratorOverride.exercisedAt}`
+                    : ""}
+                </p>
+              ) : null}
               <p className="muted">
                 This report verifies identifier and source consistency. It does not judge the
                 scientific correctness of the review.
@@ -739,7 +749,11 @@ export default async function ReviewPage({
                           {round.decision ? (
                             <li>
                               Decision: {round.decision.decision} — @{round.decision.editorLogin},{" "}
-                              {round.decision.issuedAt.slice(0, 10)}
+                              {round.decision.issuedAt.slice(0, 10)} · conflict of interest:{" "}
+                              {round.decision.conflictOfInterest.status}
+                              {round.decision.administratorOverride
+                                ? ` · ADMIN override by @${round.decision.administratorOverride.administrator.githubLogin}`
+                                : ""}
                             </li>
                           ) : null}
                         </ul>

@@ -7,6 +7,7 @@ import {
   globalCitationId,
   globalClaimId,
   isExactCommitSha,
+  conflictOfInterestStatusSchema,
   type AssessmentReviewStatus,
   type ClaimEvidenceRelationType,
 } from "@oratlas/contracts";
@@ -20,6 +21,11 @@ import {
 import { prisma, parseJsonColumn } from "./db";
 import { resolveTrustAssessmentRows } from "./trust-provenance";
 import { isReadablePublicState } from "./review-lifecycle";
+
+function publicConflictStatus(value: string) {
+  const parsed = conflictOfInterestStatusSchema.safeParse(value);
+  return parsed.success ? parsed.data : ("not-provided" as const);
+}
 
 /**
  * Build the in-memory knowledge index from accepted/published reviews. Uses the
@@ -181,6 +187,9 @@ export async function buildKnowledgeIndex(): Promise<KnowledgeIndexData> {
             assessorType: trust.assessment.assessorType,
             assessorId: trust.assessment.assessorId ?? undefined,
             assessedAt: trust.assessment.assessedAt?.toISOString(),
+            conflictOfInterest: {
+              status: publicConflictStatus(trust.assessment.conflictOfInterestStatus),
+            },
             reviewStatus: trust.resolved.effectiveStatus as AssessmentReviewStatus,
             verificationState: trust.resolved.state,
             aggregateScore: agg.score ?? undefined,

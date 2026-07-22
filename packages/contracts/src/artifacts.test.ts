@@ -51,6 +51,29 @@ describe("trustRecordSchema", () => {
     };
     const parsed = trustRecordSchema.safeParse(record);
     expect(parsed.success).toBe(true);
+    expect(parsed.success && parsed.data.conflictOfInterest).toBeUndefined();
+  });
+
+  it("accepts the public tri-state snapshot and rejects private or invented COI fields", () => {
+    const base = {
+      claimId: "c1",
+      citationId: "ref1",
+      protocolVersion: "trust-1.0",
+      assessorType: "human",
+      criteria: {},
+    };
+    expect(
+      trustRecordSchema.safeParse({
+        ...base,
+        conflictOfInterest: { status: "none-declared" },
+      }).success,
+    ).toBe(true);
+    expect(
+      trustRecordSchema.safeParse({
+        ...base,
+        conflictOfInterest: { status: "minor", rationale: "private" },
+      }).success,
+    ).toBe(false);
   });
 
   it("rejects numeric probabilities as ratings", () => {

@@ -18,6 +18,7 @@ import { manifestContributorSchema } from "./manifest.js";
 import { publicNodeIdentifierSchema } from "./node-publication.js";
 import { safeRepoRelativePathSchema } from "./paths.js";
 import { canonicalJson } from "./canonical-json.js";
+import { conflictOfInterestSnapshotSchema } from "./conflicts-of-interest.js";
 
 /** Graph-native evidence packets are separate from Atlas Discuss EvidencePacket 1.1. */
 export const SUBGRAPH_EVIDENCE_SCHEMA_VERSION = "1.0.0" as const;
@@ -156,6 +157,7 @@ export const subgraphEvidenceTrustSchema = z
     assessorType: z.string().min(1).max(40),
     assessorId: z.string().min(1).max(200).optional(),
     assessedAt: z.string().datetime().optional(),
+    conflictOfInterest: conflictOfInterestSnapshotSchema,
     reviewStatus: assessmentReviewStatusSchema,
     verificationState: trustVerificationStateSchema,
     criteria: z.array(trustCriterionSchema).min(1).max(TRUST_CRITERIA.length),

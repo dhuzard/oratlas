@@ -9,6 +9,7 @@ import {
 import { httpsUrlSchema } from "./identifiers.js";
 import { knowledgeNodeProvenanceSchema } from "./knowledge-nodes.js";
 import { publicNodeIdentifierSchema } from "./node-publication.js";
+import { conflictOfInterestSnapshotSchema } from "./conflicts-of-interest.js";
 
 export const GRAPH_MAX_DEPTH = 3;
 export const GRAPH_MAX_PAGE_SIZE = 50;
@@ -56,6 +57,7 @@ export const publicGraphTrustSchema = z
     assessorType: z.string().min(1).max(40).optional(),
     assessorId: z.string().min(1).max(200).optional(),
     assessedAt: z.string().datetime().optional(),
+    conflictOfInterest: conflictOfInterestSnapshotSchema,
     reviewStatus: assessmentReviewStatusSchema,
     verificationState: trustVerificationStateSchema,
   })

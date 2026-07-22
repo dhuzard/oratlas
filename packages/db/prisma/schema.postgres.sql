@@ -235,6 +235,26 @@ CREATE TABLE "Submission" (
 );
 
 -- CreateTable
+CREATE TABLE "EditorialDecisionProvenance" (
+    "id" TEXT NOT NULL,
+    "submissionId" TEXT NOT NULL,
+    "actorId" TEXT NOT NULL,
+    "actorGithubLoginSnapshot" TEXT NOT NULL,
+    "actorRoleSnapshot" TEXT NOT NULL,
+    "decision" TEXT NOT NULL,
+    "conflictOfInterestStatus" TEXT NOT NULL DEFAULT 'not-provided',
+    "administratorOverride" BOOLEAN NOT NULL DEFAULT false,
+    "administratorOverrideById" TEXT,
+    "administratorOverrideGithubLoginSnapshot" TEXT,
+    "administratorOverrideAt" TIMESTAMP(3),
+    "noteHash" TEXT,
+    "decisionHash" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "EditorialDecisionProvenance_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "EditorialOverride" (
     "id" TEXT NOT NULL,
     "submissionId" TEXT NOT NULL,
@@ -540,6 +560,7 @@ CREATE TABLE "TrustAssessment" (
     "assessorType" TEXT NOT NULL,
     "assessorId" TEXT,
     "assessedAt" TIMESTAMP(3),
+    "conflictOfInterestStatus" TEXT NOT NULL DEFAULT 'not-provided',
     "identityIntegrity" TEXT,
     "entailment" TEXT,
     "sourceAccess" TEXT,
@@ -674,6 +695,7 @@ CREATE TABLE "NodeRelationTrustAssessment" (
     "assessorType" TEXT NOT NULL,
     "assessorId" TEXT,
     "assessedAt" TIMESTAMP(3),
+    "conflictOfInterestStatus" TEXT NOT NULL DEFAULT 'not-provided',
     "identityIntegrity" TEXT,
     "entailment" TEXT,
     "sourceAccess" TEXT,
@@ -1073,9 +1095,16 @@ CREATE TABLE "DecisionLetter" (
     "id" TEXT NOT NULL,
     "roundId" TEXT NOT NULL,
     "editorId" TEXT NOT NULL,
+    "editorRoleSnapshot" TEXT,
     "decision" TEXT NOT NULL,
     "bodyJson" TEXT NOT NULL,
     "bodyHash" TEXT NOT NULL,
+    "decisionHash" TEXT,
+    "conflictOfInterestStatus" TEXT NOT NULL DEFAULT 'not-provided',
+    "administratorOverride" BOOLEAN NOT NULL DEFAULT false,
+    "administratorOverrideById" TEXT,
+    "administratorOverrideGithubLoginSnapshot" TEXT,
+    "administratorOverrideAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "DecisionLetter_pkey" PRIMARY KEY ("id")
@@ -1265,6 +1294,9 @@ CREATE UNIQUE INDEX "Submission_inspectionCaptureId_key" ON "Submission"("inspec
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Submission_previousSubmissionId_key" ON "Submission"("previousSubmissionId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "EditorialDecisionProvenance_submissionId_key" ON "EditorialDecisionProvenance"("submissionId");
 
 -- CreateIndex
 CREATE INDEX "EditorialOverride_editorId_idx" ON "EditorialOverride"("editorId");
@@ -1679,6 +1711,9 @@ ALTER TABLE "Submission" ADD CONSTRAINT "Submission_resultingReviewVersionId_fke
 
 -- AddForeignKey
 ALTER TABLE "Submission" ADD CONSTRAINT "Submission_previousSubmissionId_fkey" FOREIGN KEY ("previousSubmissionId") REFERENCES "Submission"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "EditorialDecisionProvenance" ADD CONSTRAINT "EditorialDecisionProvenance_submissionId_fkey" FOREIGN KEY ("submissionId") REFERENCES "Submission"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "EditorialOverride" ADD CONSTRAINT "EditorialOverride_submissionId_fkey" FOREIGN KEY ("submissionId") REFERENCES "Submission"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -2113,6 +2148,69 @@ ALTER TABLE "ChallengeTransition" ADD CONSTRAINT "ChallengeTransition_coi_check"
     AND (("administratorOverride" = false AND "administratorOverrideById" IS NULL AND "administratorOverrideGithubLoginSnapshot" IS NULL AND "administratorOverrideAt" IS NULL)
       OR ("administratorOverride" = true AND "toStatus" IN ('resolved', 'dismissed') AND "conflictOfInterestStatus" = 'conflict-declared' AND "actorRoleSnapshot" = 'ADMIN' AND "administratorOverrideById" = "actorId" AND "administratorOverrideGithubLoginSnapshot" IS NOT NULL AND "administratorOverrideAt" IS NOT NULL))
   );
+
+ALTER TABLE "TrustAssessment" DROP CONSTRAINT IF EXISTS "TrustAssessment_coi_check";
+
+ALTER TABLE "TrustAssessment" ADD CONSTRAINT "TrustAssessment_coi_check" CHECK (
+    "conflictOfInterestStatus" IN ('none-declared', 'conflict-declared', 'not-provided')
+  );
+
+ALTER TABLE "NodeRelationTrustAssessment" DROP CONSTRAINT IF EXISTS "NodeRelationTrustAssessment_coi_check";
+
+ALTER TABLE "NodeRelationTrustAssessment" ADD CONSTRAINT "NodeRelationTrustAssessment_coi_check" CHECK (
+    "conflictOfInterestStatus" IN ('none-declared', 'conflict-declared', 'not-provided')
+  );
+
+ALTER TABLE "DecisionLetter" DROP CONSTRAINT IF EXISTS "DecisionLetter_coi_check";
+
+ALTER TABLE "DecisionLetter" ADD CONSTRAINT "DecisionLetter_coi_check" CHECK (
+    "conflictOfInterestStatus" IN ('none-declared', 'conflict-declared', 'not-provided')
+    AND (("administratorOverride" = false AND "administratorOverrideById" IS NULL AND "administratorOverrideGithubLoginSnapshot" IS NULL AND "administratorOverrideAt" IS NULL)
+      OR ("administratorOverride" = true AND "conflictOfInterestStatus" = 'conflict-declared' AND "editorRoleSnapshot" = 'ADMIN' AND "administratorOverrideById" = "editorId" AND "administratorOverrideGithubLoginSnapshot" IS NOT NULL AND "administratorOverrideAt" IS NOT NULL))
+  );
+
+ALTER TABLE "EditorialDecisionProvenance" DROP CONSTRAINT IF EXISTS "EditorialDecisionProvenance_coi_check";
+
+ALTER TABLE "EditorialDecisionProvenance" ADD CONSTRAINT "EditorialDecisionProvenance_coi_check" CHECK (
+    "conflictOfInterestStatus" IN ('none-declared', 'conflict-declared', 'not-provided')
+    AND (("administratorOverride" = false AND "administratorOverrideById" IS NULL AND "administratorOverrideGithubLoginSnapshot" IS NULL AND "administratorOverrideAt" IS NULL)
+      OR ("administratorOverride" = true AND "conflictOfInterestStatus" = 'conflict-declared' AND "actorRoleSnapshot" = 'ADMIN' AND "administratorOverrideById" = "actorId" AND "administratorOverrideGithubLoginSnapshot" IS NOT NULL AND "administratorOverrideAt" IS NOT NULL))
+  );
+
+CREATE OR REPLACE FUNCTION "oratlas_reject_assessment_coi_update"() RETURNS trigger AS $$
+  BEGIN
+    IF NEW."conflictOfInterestStatus" IS DISTINCT FROM OLD."conflictOfInterestStatus" THEN
+      RAISE EXCEPTION 'Assessment conflict-of-interest snapshot is immutable';
+    END IF;
+    RETURN NEW;
+  END;
+  $$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS "TrustAssessment_coi_immutable_guard" ON "TrustAssessment";
+
+CREATE TRIGGER "TrustAssessment_coi_immutable_guard" BEFORE UPDATE ON "TrustAssessment"
+    FOR EACH ROW EXECUTE FUNCTION "oratlas_reject_assessment_coi_update"();
+
+DROP TRIGGER IF EXISTS "NodeRelationTrustAssessment_coi_immutable_guard" ON "NodeRelationTrustAssessment";
+
+CREATE TRIGGER "NodeRelationTrustAssessment_coi_immutable_guard" BEFORE UPDATE ON "NodeRelationTrustAssessment"
+    FOR EACH ROW EXECUTE FUNCTION "oratlas_reject_assessment_coi_update"();
+
+CREATE OR REPLACE FUNCTION "oratlas_reject_immutable_editorial_decision_update"() RETURNS trigger AS $$
+  BEGIN
+    RAISE EXCEPTION 'Editorial decision provenance is immutable';
+  END;
+  $$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS "DecisionLetter_coi_immutable_guard" ON "DecisionLetter";
+
+CREATE TRIGGER "DecisionLetter_coi_immutable_guard" BEFORE UPDATE ON "DecisionLetter"
+    FOR EACH ROW EXECUTE FUNCTION "oratlas_reject_immutable_editorial_decision_update"();
+
+DROP TRIGGER IF EXISTS "EditorialDecisionProvenance_immutable_guard" ON "EditorialDecisionProvenance";
+
+CREATE TRIGGER "EditorialDecisionProvenance_immutable_guard" BEFORE UPDATE ON "EditorialDecisionProvenance"
+    FOR EACH ROW EXECUTE FUNCTION "oratlas_reject_immutable_editorial_decision_update"();
 
 CREATE OR REPLACE FUNCTION "oratlas_validate_synthesis_membership_reference"() RETURNS trigger AS $$
   BEGIN

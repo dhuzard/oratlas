@@ -9,12 +9,20 @@ export const DATABASE_GUARD_NAMES = [
   "SynthesisStalenessEvaluation_status_check",
   "SynthesisRegenerationProposal_status_check",
   "NodeIdentityProposal_status_check",
+  "TrustAssessment_coi_check",
+  "NodeRelationTrustAssessment_coi_check",
+  "DecisionLetter_coi_check",
+  "EditorialDecisionProvenance_coi_check",
   "ChallengeTransition_coi_check",
 ] as const;
 
 export const POSTGRES_DATABASE_GUARD_TRIGGER_NAMES = [
   "SynthesisDraftMembership_reference_guard",
   "SynthesisDraftCitation_reference_guard",
+  "TrustAssessment_coi_immutable_guard",
+  "NodeRelationTrustAssessment_coi_immutable_guard",
+  "DecisionLetter_coi_immutable_guard",
+  "EditorialDecisionProvenance_immutable_guard",
 ] as const;
 
 export const POSTGRES_DATABASE_GUARD_SQL = [
@@ -68,6 +76,51 @@ export const POSTGRES_DATABASE_GUARD_SQL = [
     AND (("administratorOverride" = false AND "administratorOverrideById" IS NULL AND "administratorOverrideGithubLoginSnapshot" IS NULL AND "administratorOverrideAt" IS NULL)
       OR ("administratorOverride" = true AND "toStatus" IN ('resolved', 'dismissed') AND "conflictOfInterestStatus" = 'conflict-declared' AND "actorRoleSnapshot" = 'ADMIN' AND "administratorOverrideById" = "actorId" AND "administratorOverrideGithubLoginSnapshot" IS NOT NULL AND "administratorOverrideAt" IS NOT NULL))
   )`,
+  'ALTER TABLE "TrustAssessment" DROP CONSTRAINT IF EXISTS "TrustAssessment_coi_check"',
+  `ALTER TABLE "TrustAssessment" ADD CONSTRAINT "TrustAssessment_coi_check" CHECK (
+    "conflictOfInterestStatus" IN ('none-declared', 'conflict-declared', 'not-provided')
+  )`,
+  'ALTER TABLE "NodeRelationTrustAssessment" DROP CONSTRAINT IF EXISTS "NodeRelationTrustAssessment_coi_check"',
+  `ALTER TABLE "NodeRelationTrustAssessment" ADD CONSTRAINT "NodeRelationTrustAssessment_coi_check" CHECK (
+    "conflictOfInterestStatus" IN ('none-declared', 'conflict-declared', 'not-provided')
+  )`,
+  'ALTER TABLE "DecisionLetter" DROP CONSTRAINT IF EXISTS "DecisionLetter_coi_check"',
+  `ALTER TABLE "DecisionLetter" ADD CONSTRAINT "DecisionLetter_coi_check" CHECK (
+    "conflictOfInterestStatus" IN ('none-declared', 'conflict-declared', 'not-provided')
+    AND (("administratorOverride" = false AND "administratorOverrideById" IS NULL AND "administratorOverrideGithubLoginSnapshot" IS NULL AND "administratorOverrideAt" IS NULL)
+      OR ("administratorOverride" = true AND "conflictOfInterestStatus" = 'conflict-declared' AND "editorRoleSnapshot" = 'ADMIN' AND "administratorOverrideById" = "editorId" AND "administratorOverrideGithubLoginSnapshot" IS NOT NULL AND "administratorOverrideAt" IS NOT NULL))
+  )`,
+  'ALTER TABLE "EditorialDecisionProvenance" DROP CONSTRAINT IF EXISTS "EditorialDecisionProvenance_coi_check"',
+  `ALTER TABLE "EditorialDecisionProvenance" ADD CONSTRAINT "EditorialDecisionProvenance_coi_check" CHECK (
+    "conflictOfInterestStatus" IN ('none-declared', 'conflict-declared', 'not-provided')
+    AND (("administratorOverride" = false AND "administratorOverrideById" IS NULL AND "administratorOverrideGithubLoginSnapshot" IS NULL AND "administratorOverrideAt" IS NULL)
+      OR ("administratorOverride" = true AND "conflictOfInterestStatus" = 'conflict-declared' AND "actorRoleSnapshot" = 'ADMIN' AND "administratorOverrideById" = "actorId" AND "administratorOverrideGithubLoginSnapshot" IS NOT NULL AND "administratorOverrideAt" IS NOT NULL))
+  )`,
+  `CREATE OR REPLACE FUNCTION "oratlas_reject_assessment_coi_update"() RETURNS trigger AS $$
+  BEGIN
+    IF NEW."conflictOfInterestStatus" IS DISTINCT FROM OLD."conflictOfInterestStatus" THEN
+      RAISE EXCEPTION 'Assessment conflict-of-interest snapshot is immutable';
+    END IF;
+    RETURN NEW;
+  END;
+  $$ LANGUAGE plpgsql`,
+  'DROP TRIGGER IF EXISTS "TrustAssessment_coi_immutable_guard" ON "TrustAssessment"',
+  `CREATE TRIGGER "TrustAssessment_coi_immutable_guard" BEFORE UPDATE ON "TrustAssessment"
+    FOR EACH ROW EXECUTE FUNCTION "oratlas_reject_assessment_coi_update"()`,
+  'DROP TRIGGER IF EXISTS "NodeRelationTrustAssessment_coi_immutable_guard" ON "NodeRelationTrustAssessment"',
+  `CREATE TRIGGER "NodeRelationTrustAssessment_coi_immutable_guard" BEFORE UPDATE ON "NodeRelationTrustAssessment"
+    FOR EACH ROW EXECUTE FUNCTION "oratlas_reject_assessment_coi_update"()`,
+  `CREATE OR REPLACE FUNCTION "oratlas_reject_immutable_editorial_decision_update"() RETURNS trigger AS $$
+  BEGIN
+    RAISE EXCEPTION 'Editorial decision provenance is immutable';
+  END;
+  $$ LANGUAGE plpgsql`,
+  'DROP TRIGGER IF EXISTS "DecisionLetter_coi_immutable_guard" ON "DecisionLetter"',
+  `CREATE TRIGGER "DecisionLetter_coi_immutable_guard" BEFORE UPDATE ON "DecisionLetter"
+    FOR EACH ROW EXECUTE FUNCTION "oratlas_reject_immutable_editorial_decision_update"()`,
+  'DROP TRIGGER IF EXISTS "EditorialDecisionProvenance_immutable_guard" ON "EditorialDecisionProvenance"',
+  `CREATE TRIGGER "EditorialDecisionProvenance_immutable_guard" BEFORE UPDATE ON "EditorialDecisionProvenance"
+    FOR EACH ROW EXECUTE FUNCTION "oratlas_reject_immutable_editorial_decision_update"()`,
   `CREATE OR REPLACE FUNCTION "oratlas_validate_synthesis_membership_reference"() RETURNS trigger AS $$
   BEGIN
     IF EXISTS (
@@ -150,6 +203,18 @@ const sqliteGuardConditions = {
     AND ((NEW."status" = 'proposed' AND NEW."revision" = 0 AND NEW."reviewedById" IS NULL AND NEW."reviewedAt" IS NULL AND NEW."reviewNote" IS NULL)
       OR (NEW."status" IN ('confirmed', 'rejected') AND NEW."revision" >= 1 AND NEW."reviewedById" IS NOT NULL AND NEW."reviewedAt" IS NOT NULL AND NEW."reviewNote" IS NOT NULL))
     THEN 1 ELSE 0 END`,
+  TrustAssessment: `CASE WHEN NEW."conflictOfInterestStatus" IN ('none-declared', 'conflict-declared', 'not-provided') THEN 1 ELSE 0 END`,
+  NodeRelationTrustAssessment: `CASE WHEN NEW."conflictOfInterestStatus" IN ('none-declared', 'conflict-declared', 'not-provided') THEN 1 ELSE 0 END`,
+  DecisionLetter: `CASE WHEN
+    NEW."conflictOfInterestStatus" IN ('none-declared', 'conflict-declared', 'not-provided')
+    AND ((NEW."administratorOverride" = 0 AND NEW."administratorOverrideById" IS NULL AND NEW."administratorOverrideGithubLoginSnapshot" IS NULL AND NEW."administratorOverrideAt" IS NULL)
+      OR (NEW."administratorOverride" = 1 AND NEW."conflictOfInterestStatus" = 'conflict-declared' AND NEW."editorRoleSnapshot" = 'ADMIN' AND NEW."administratorOverrideById" = NEW."editorId" AND NEW."administratorOverrideGithubLoginSnapshot" IS NOT NULL AND NEW."administratorOverrideAt" IS NOT NULL))
+    THEN 1 ELSE 0 END`,
+  EditorialDecisionProvenance: `CASE WHEN
+    NEW."conflictOfInterestStatus" IN ('none-declared', 'conflict-declared', 'not-provided')
+    AND ((NEW."administratorOverride" = 0 AND NEW."administratorOverrideById" IS NULL AND NEW."administratorOverrideGithubLoginSnapshot" IS NULL AND NEW."administratorOverrideAt" IS NULL)
+      OR (NEW."administratorOverride" = 1 AND NEW."conflictOfInterestStatus" = 'conflict-declared' AND NEW."actorRoleSnapshot" = 'ADMIN' AND NEW."administratorOverrideById" = NEW."actorId" AND NEW."administratorOverrideGithubLoginSnapshot" IS NOT NULL AND NEW."administratorOverrideAt" IS NOT NULL))
+    THEN 1 ELSE 0 END`,
   ChallengeTransition: `CASE WHEN
     (NEW."conflictOfInterestStatus" IS NULL OR (NEW."toStatus" IN ('resolved', 'dismissed') AND NEW."conflictOfInterestStatus" IN ('none-declared', 'conflict-declared', 'not-provided')))
     AND ((NEW."administratorOverride" = 0 AND NEW."administratorOverrideById" IS NULL AND NEW."administratorOverrideGithubLoginSnapshot" IS NULL AND NEW."administratorOverrideAt" IS NULL)
@@ -161,6 +226,13 @@ export const SQLITE_DATABASE_GUARD_NAMES = Object.keys(sqliteGuardConditions).fl
   `${table}_guard_insert`,
   `${table}_guard_update`,
 ]);
+
+export const SQLITE_ASSESSMENT_COI_IMMUTABLE_GUARD_NAMES = [
+  "TrustAssessment_coi_immutable_guard",
+  "NodeRelationTrustAssessment_coi_immutable_guard",
+  "DecisionLetter_coi_immutable_guard",
+  "EditorialDecisionProvenance_immutable_guard",
+] as const;
 
 /** Apply database-native guards after Prisma db push for the selected provider. */
 export async function applyDatabaseGuards(
@@ -190,6 +262,33 @@ export async function applyDatabaseGuards(
           END
         `);
       }
+    }
+    for (const table of ["TrustAssessment", "NodeRelationTrustAssessment"] as const) {
+      const name = `${table}_coi_immutable_guard`;
+      await tx.$executeRawUnsafe(`DROP TRIGGER IF EXISTS "${name}"`);
+      await tx.$executeRawUnsafe(`
+        CREATE TRIGGER "${name}"
+        BEFORE UPDATE OF "conflictOfInterestStatus" ON "${table}"
+        FOR EACH ROW WHEN NEW."conflictOfInterestStatus" IS NOT OLD."conflictOfInterestStatus"
+        BEGIN
+          SELECT RAISE(ABORT, 'Assessment conflict-of-interest snapshot is immutable');
+        END
+      `);
+    }
+    for (const table of ["DecisionLetter", "EditorialDecisionProvenance"] as const) {
+      const name =
+        table === "DecisionLetter"
+          ? "DecisionLetter_coi_immutable_guard"
+          : "EditorialDecisionProvenance_immutable_guard";
+      await tx.$executeRawUnsafe(`DROP TRIGGER IF EXISTS "${name}"`);
+      await tx.$executeRawUnsafe(`
+        CREATE TRIGGER "${name}"
+        BEFORE UPDATE ON "${table}"
+        FOR EACH ROW
+        BEGIN
+          SELECT RAISE(ABORT, 'Editorial decision provenance is immutable');
+        END
+      `);
     }
   });
 }
