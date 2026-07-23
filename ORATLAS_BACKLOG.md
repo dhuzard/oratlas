@@ -1,9 +1,10 @@
-# ORAtlas backlog — canonical tracker
+# ORAtlas v0.1 implementation record
 
-This file is the **single canonical backlog** for `dhuzard/oratlas`. It supersedes `TODO.md`
+This file is the **frozen v0.1 implementation record** for `dhuzard/oratlas`. It supersedes `TODO.md`
 (the KG-01…KG-20 backlog, fully shipped and retained as a historical record) and the PR-00…PR-10
-list in `PLAN.md` (also fully shipped). Planning state lives here; governance and scientific
-decision records live in `ORATLAS_DECISIONS.md`; upstream coupling lives in
+list in `PLAN.md` (also fully shipped). New work must be derived from deployment, editorial-pilot,
+and external-review evidence and recorded in `V0.2_ROADMAP.md`, not added here. Governance and
+scientific decision records remain in `ORATLAS_DECISIONS.md`; upstream coupling remains in
 `CROSS_REPO_DEPENDENCIES.md`.
 
 ORAtlas is an immutable archive and open-review platform for AI-enriched computational reviews.
@@ -59,26 +60,18 @@ packets, graph explorer, staleness/living review, synthesis diffs, exports/feder
 
 ---
 
-## Recommended first tranche
+## Completed v0.1 implementation
 
-At most five items, ordered. Rationale and dependencies:
+The four integration trains are merged through PRs #102–#105. Their final result is
+`main` commit `8d4435aaff7cf9671e94599f93f29aa71c753f97` (tree
+`75a6c987134be234c8c2248746b6f7c826cb950e`). Of the 36 scoped ORA items below, **35 are
+implemented**. ORA-G02 is the sole exception: cross-archive claim matching is blocked on a reviewed
+federation policy, deployment experience, and a second archive, and no implementation is
+authorized.
 
-1. **ORA-J01 — Security and immutable-publication audit** (P0, ready). Independent of
-   everything; its findings may reprioritize the rest, so it goes first.
-2. **ORA-A02 — Absent-artifact and per-facet compatibility reporting** (P0, ready). Fixes the
-   remaining misleading-representation risk (empty states indistinguishable from absent
-   artifacts). No dependencies; unblocks honest display for ORA-A03's fixture.
-3. **ORA-A03 — Frozen Ethical Debt integration fixture** (P1, ready). First real-world review;
-   exercises A02's report against genuine artifacts. Depends on choosing an exact
-   release/commit pin (mechanical, recorded in `CROSS_REPO_DEPENDENCIES.md`); benefits from
-   but does not hard-depend on ORA-A02.
-4. **ORA-H01 — Verify source-native vs ORAtlas-native separation end-to-end** (P1, ready). The
-   separation is implemented; this locks it in with e2e/regression coverage so later
-   assessment work (ORA-D01/D02) cannot silently erode it. No dependencies.
-5. **ORA-D01 — Multiple-assessment contract** (P1, ready). Defines coexistence of several
-   assessments per relation without overwrite. Everything in workstreams D and E that involves
-   disagreement, adjudication, or challenge-of-assessment builds on it. Schema already permits
-   multiple rows; the contract and read semantics are the work.
+This closes the broad v0.1 implementation phase. The record below is frozen; status corrections
+may clarify historical evidence, but new feature planning belongs in `V0.2_ROADMAP.md` after real
+editorial use and external review.
 
 ---
 
@@ -86,7 +79,7 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-A01 — Per-facet compatibility model (article / citations / evidence-package / claim-graph / assessments)
 
-- **Status:** review (integration train 4) · **Priority:** P0 · **Size:** M · **Agent:** conditional (contract shape
+- **Status:** done (integration PR #105) · **Priority:** P0 · **Size:** M · **Agent:** conditional (contract shape
   should be reviewed by a maintainer before the UI consumes it)
 - **Packages:** `packages/contracts`, `packages/extractor`, `apps/web` · **External dep:**
   template structure (read-only) · **Issue/PR:** integration PR #105; source PR #96
@@ -112,7 +105,7 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-A02 — Report absent optional artifacts instead of empty successful features
 
-- **Status:** review (integration train 4) · **Priority:** P0 · **Size:** M · **Agent:** yes
+- **Status:** done (integration PR #105) · **Priority:** P0 · **Size:** M · **Agent:** yes
 - **Packages:** `packages/extractor`, `packages/contracts`, `apps/web` · **External dep:** none
   · **Issue/PR:** integration PR #105; source PR #73
 - **Goal:** "No claims were extracted for this review" (`apps/web/src/app/reviews/[slug]/page.tsx:488`)
@@ -137,7 +130,7 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-A03 — Frozen Ethical Debt integration fixture
 
-- **Status:** review (integration train 4) · **Priority:** P1 · **Size:** M · **Agent:** yes (pin and artifact layout
+- **Status:** done (integration PR #105) · **Priority:** P1 · **Size:** M · **Agent:** yes (pin and artifact layout
   ratified in `ORATLAS_DECISIONS.md` §13 and `CROSS_REPO_DEPENDENCIES.md`)
 - **Packages:** `apps/web` (e2e fixtures), `packages/extractor` (fixtures), `scripts` ·
   **External dep:** `dhuzard/ethical-debt-AI-review` (exact release or commit) · **Issue/PR:**
@@ -163,7 +156,7 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-A04 — Ingest and surface template TRUST.md / FAIR.md assessment documents
 
-- **Status:** review (integration train 4) · **Priority:** P2 · **Size:** M · **Agent:** yes (preservation-only
+- **Status:** done (integration PR #105) · **Priority:** P2 · **Size:** M · **Agent:** yes (preservation-only
   extraction boundary ratified in `ORATLAS_DECISIONS.md` §12; upstream suggestions remain
   human communication)
 - **Packages:** `packages/extractor`, `packages/contracts`, `apps/web` · **External dep:**
@@ -186,7 +179,7 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-A05 — Verify end-to-end identity preservation (repo id, release, tag object, commit, tree)
 
-- **Status:** review (integration train 4) · **Priority:** P0 · **Size:** S · **Agent:** yes
+- **Status:** done (integration PR #105) · **Priority:** P0 · **Size:** S · **Agent:** yes
 - **Packages:** `packages/db`, `packages/github`, `packages/extractor` · **External dep:** none
   · **Issue/PR:** integration PR #105; source PR #74; builds on PR #13
 - **Goal:** Pinning is implemented (immutable GitHub repository id, source-selection key,
@@ -207,7 +200,7 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-B01 — Transactional-publication audit across review, node, and synthesis acceptance
 
-- **Status:** review (integration train 1) · **Priority:** P0 · **Size:** S · **Agent:** yes
+- **Status:** done (integration PR #102) · **Priority:** P0 · **Size:** S · **Agent:** yes
 - **Packages:** `apps/web`, `packages/db` · **External dep:** none · **Issue/PR:** integration PR #102;
   source PR #78; builds on PRs #13, #16, #17, KG-04, KG-13
 - **Goal:** Acceptance paths use serializable compare-and-set, idempotency keys, and unique
@@ -225,7 +218,7 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-B02 — Platform release versioning and changelog
 
-- **Status:** review (integration train 1) · **Priority:** P2 · **Size:** S · **Agent:** yes
+- **Status:** done (integration PR #102) · **Priority:** P2 · **Size:** S · **Agent:** yes
 - **Packages:** repo root, `docs` · **External dep:** none · **Issue/PR:** integration PR #102;
   source PR #93
 - **Goal:** The archive asserts immutability of scholarly records, but the platform itself has
@@ -243,7 +236,7 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-C01 — Cross-review same-claim proposals surfaced end-to-end
 
-- **Status:** review (integration train 3) · **Priority:** P2 · **Size:** M · **Agent:** yes
+- **Status:** done (integration PR #104) · **Priority:** P2 · **Size:** M · **Agent:** yes
 - **Packages:** `packages/knowledge`, `apps/web` · **External dep:** none · **Issue/PR:**
   integration PR #104; source PR #91; builds on KG-06 (PR #38)
 - **Goal:** Deterministic same-claim detection (alias + normalized-text hash) exists and emits
@@ -260,7 +253,7 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-C02 — Evidence-independence audit for imported claim–citation reviews
 
-- **Status:** review (integration train 4) · **Priority:** P2 · **Size:** S · **Agent:** yes
+- **Status:** done (integration PR #105) · **Priority:** P2 · **Size:** S · **Agent:** yes
 - **Packages:** `packages/knowledge` · **External dep:** none · **Issue/PR:** integration PR
   #105; source PR #84; builds on PR #21
 - **Goal:** Independence-aware synthesis and shared-dataset detection shipped for the graph
@@ -278,7 +271,7 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-D01 — Multiple-assessment contract (coexistence without overwrite)
 
-- **Status:** review (integration train 2) · **Priority:** P1 · **Size:** M · **Agent:** yes
+- **Status:** done (integration PR #103) · **Priority:** P1 · **Size:** M · **Agent:** yes
   (identity, replay, singleton, supersession, and ordering contract ratified in
   `ORATLAS_DECISIONS.md` §11)
 - **Packages:** `packages/contracts`, `packages/trust`, `packages/db`, `apps/web` ·
@@ -306,7 +299,7 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-D02 — Explicit disagreement and adjudication records
 
-- **Status:** review (core and ORA-D02a delivered 2026-07-22) · **Priority:** P1 · **Size:** L · **Agent:** yes (authority, display, and
+- **Status:** done (integration PR #105) · **Priority:** P1 · **Size:** L · **Agent:** yes (authority, display, and
   non-compensation boundaries ratified in `ORATLAS_DECISIONS.md` §§2–5)
 - **Packages:** `packages/contracts`, `packages/trust`, `packages/db`, `apps/web` ·
   **External dep:** none · **Issue/PR:** integration PR #105
@@ -333,7 +326,7 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-D02a — Challenge an exact node-relation adjudication
 
-- **Status:** review (integration PR #105) · **Priority:** P1 · **Size:** M · **Agent:** yes
+- **Status:** done (integration PR #105) · **Priority:** P1 · **Size:** M · **Agent:** yes
 - **Packages:** `packages/contracts`, `packages/db`, `apps/web` · **External dep:** none
 - **Goal:** Complete the ratified §5 rule for node-relation adjudications without weakening the
   exact immutable-subject binding used by E01. Claim–citation adjudication challenges ship in
@@ -356,7 +349,7 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-D03 — Assessment profile display without a mandatory aggregate
 
-- **Status:** review (integration train 2) · **Priority:** P1 · **Size:** S · **Agent:** yes
+- **Status:** done (integration PR #103) · **Priority:** P1 · **Size:** S · **Agent:** yes
 - **Packages:** `apps/web`, `packages/ui` · **External dep:** none · **Issue/PR:** builds on
   integration PR #103; source PR #80; builds on PR-05, `docs/trust-model.md`
 - **Goal:** Aggregates are already optional/advisory/method-labelled. Verify and harden the
@@ -374,7 +367,7 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-D04 — Protocol-crosswalk guard: never translate between assessment protocols
 
-- **Status:** review (integration train 4) · **Priority:** P0 · **Size:** S · **Agent:** yes
+- **Status:** done (integration PR #105) · **Priority:** P0 · **Size:** S · **Agent:** yes
 - **Packages:** `packages/trust`, `packages/contracts`, `docs` · **External dep:**
   `Neuronautix/TRUST.md` and `Neuronautix/ComputationalReviewTemplate_trust-knowledge`
   (distinct protocol identities; no implicit crosswalk) · **Issue/PR:** integration PR #105;
@@ -397,7 +390,7 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-E01 — Challenge records targeting exact immutable subjects
 
-- **Status:** review (integration train 3) · **Priority:** P1 · **Size:** L · **Agent:** yes
+- **Status:** done (integration PR #104) · **Priority:** P1 · **Size:** L · **Agent:** yes
   (authority and public/private boundaries ratified in `ORATLAS_DECISIONS.md` §§5, 6, and 9)
 - **Packages:** `packages/contracts`, `packages/db`, `apps/web` · **External dep:** none ·
   **Issue/PR:** integration PR #104; source PR #98
@@ -424,7 +417,7 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-E02 — Author responses, moderation, and resolution workflow for challenges
 
-- **Status:** review (integration train 3) · **Priority:** P1 · **Size:** M · **Agent:** yes
+- **Status:** done (integration PR #104) · **Priority:** P1 · **Size:** M · **Agent:** yes
   (authority and public/private boundaries ratified in `ORATLAS_DECISIONS.md` §§5, 6, and 9)
 - **Packages:** `apps/web`, `packages/contracts`, `packages/db` · **External dep:** none ·
   **Issue/PR:** integration PR #104; source PR #100
@@ -442,7 +435,7 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-E03 — Keep discussion visibly separate from formal assessment
 
-- **Status:** review (integration train 3) · **Priority:** P1 · **Size:** S · **Agent:** yes
+- **Status:** done (integration PR #104) · **Priority:** P1 · **Size:** S · **Agent:** yes
 - **Packages:** `apps/web`, `packages/ui` · **External dep:** none · **Issue/PR:** integration PR #104;
   source PR #87
 - **Goal:** Three registers now coexist on a review: formal assessments (TRUST), formal
@@ -458,7 +451,7 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-E04 — Atlas Discuss improvements
 
-- **Status:** review (integration train 3) · **Priority:** P2 · **Size:** M · **Agent:** yes
+- **Status:** done (integration PR #104) · **Priority:** P2 · **Size:** M · **Agent:** yes
 - **Packages:** `packages/knowledge`, `apps/web` · **External dep:** none · **Issue/PR:** integration PR #104;
   source PR #90
 - **Goal:** Incremental quality on the grounded discussion assistant: citations that deep-link
@@ -476,7 +469,7 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-F01 — Assessor and protocol provenance in editorial queues
 
-- **Status:** review (integration train 2) · **Priority:** P1 · **Size:** S · **Agent:** yes
+- **Status:** done (integration PR #103) · **Priority:** P1 · **Size:** S · **Agent:** yes
 - **Packages:** `apps/web` · **External dep:** none · **Issue/PR:** integration PR #103;
   source PR #97
 - **Goal:** Editors deciding on TRUST verification should always see who/what assessed
@@ -490,7 +483,7 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-F02 — Conflict-of-interest representation
 
-- **Status:** review (integration train 4) · **Priority:** P2 · **Size:** M · **Agent:** yes (public provenance,
+- **Status:** done (integration PR #105) · **Priority:** P2 · **Size:** M · **Agent:** yes (public provenance,
   recusal, and audited-override contract ratified in `ORATLAS_DECISIONS.md` §6)
 - **Packages:** `packages/contracts`, `packages/db`, `apps/web` · **External dep:** none ·
   **Issue/PR:** integration PR #105
@@ -510,7 +503,7 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-F03 — Editorial-data visibility audit (public vs private)
 
-- **Status:** review (integration train 3) · **Priority:** P1 · **Size:** S · **Agent:** yes
+- **Status:** done (integration PR #104) · **Priority:** P1 · **Size:** S · **Agent:** yes
 - **Packages:** `apps/web` · **External dep:** none · **Issue/PR:** integration PR #104;
   source PR #89
 - **Goal:** The synthesis governance work established a strict public allowlist/private
@@ -528,7 +521,7 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-G01 — Contradiction-map coverage audit for legacy claim–citation reviews
 
-- **Status:** review (integration train 2) · **Priority:** P2 · **Size:** S · **Agent:** yes
+- **Status:** done (integration PR #103) · **Priority:** P2 · **Size:** S · **Agent:** yes
 - **Packages:** `packages/knowledge`, `apps/web` · **External dep:** none · **Issue/PR:**
   integration PR #103; source PR #85; builds on PR #21
 - **Goal:** Contradiction maps shipped graph-first. Verify legacy prose-review claims
@@ -540,7 +533,7 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-G02 — Cross-archive claim matching beyond one ORAtlas instance
 
-- **Status:** backlog · **Priority:** P3 · **Size:** L · **Agent:** no (needs federation
+- **Status:** blocked (policy and deployment evidence required; no implementation authorized) · **Priority:** P3 · **Size:** L · **Agent:** no (needs federation
   policy and a real second instance)
 - **Packages:** `packages/federation`, `packages/knowledge` · **External dep:** external
   archives · **Issue/PR:** builds on PR #26
@@ -554,7 +547,7 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-H01 — Verify source-native vs ORAtlas-native separation end-to-end in the UI
 
-- **Status:** review (integration train 2) · **Priority:** P1 · **Size:** S · **Agent:** yes
+- **Status:** done (integration PR #103) · **Priority:** P1 · **Size:** S · **Agent:** yes
 - **Packages:** `apps/web` · **External dep:** none · **Issue/PR:** integration PR #103;
   source PR #76;
   builds on PR #11, `docs/trust-model.md`
@@ -574,7 +567,7 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-H02 — Deep-link, accessibility, and responsive audit
 
-- **Status:** review (integration train 2) · **Priority:** P1 · **Size:** M · **Agent:** yes
+- **Status:** done (integration PR #103) · **Priority:** P1 · **Size:** M · **Agent:** yes
 - **Packages:** `apps/web`, `packages/ui` · **External dep:** none · **Issue/PR:** integration PR #103;
   source PR #86
 - **Goal:** Claim passports gave claims stable URLs. Verify every scholarly object renders at
@@ -592,7 +585,7 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-I01 — Assessment and challenge representation in exports
 
-- **Status:** review (integration train 4) · **Priority:** P2 · **Size:** M · **Agent:** yes (uncollapsed assessment,
+- **Status:** done (integration PR #105) · **Priority:** P2 · **Size:** M · **Agent:** yes (uncollapsed assessment,
   challenge, source-native, and verification boundaries ratified in
   `ORATLAS_DECISIONS.md` §§1–2, §9, §§11–12)
 - **Packages:** `packages/exports`, `packages/federation` · **External dep:** consuming
@@ -610,7 +603,7 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-I02 — OpenAPI and route-parity maintenance for new surfaces
 
-- **Status:** review (integration train 3) · **Priority:** P2 · **Size:** S · **Agent:** yes
+- **Status:** done (integration PR #104) · **Priority:** P2 · **Size:** S · **Agent:** yes
 - **Packages:** `apps/web`, `docs`, `scripts` · **External dep:** none · **Issue/PR:** integration PR #104;
   source PR #101
 - **Goal:** `scripts/check-openapi-routes.ts` enforces parity. Standing item: every backlog
@@ -626,7 +619,7 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-J01 — Security and immutable-publication audit (standing P0)
 
-- **Status:** review (integration train 3) · **Priority:** P0 · **Size:** M · **Agent:** yes (audit + regression
+- **Status:** done (integration PR #104) · **Priority:** P0 · **Size:** M · **Agent:** yes (audit + regression
   tests; exploit-fixing PRs separately, smallest-first)
 - **Packages:** all, focus `apps/web`, `packages/github`, `packages/db` · **External dep:**
   none · **Issue/PR:** integration PR #104; source PR #72; builds on PRs #9, #10, #11
@@ -647,7 +640,7 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-J02 — Backup/restore and disaster-recovery drill
 
-- **Status:** review (integration train 1) · **Priority:** P2 · **Size:** S · **Agent:** yes
+- **Status:** done (integration PR #102) · **Priority:** P2 · **Size:** S · **Agent:** yes
 - **Packages:** `scripts`, `docs/operations` · **External dep:** none · **Issue/PR:** integration PR #102;
   source PR #82; builds on `scripts/backup.ts`/`restore.ts`
 - **Goal:** Scripts and docs exist; prove them. A CI job that backs up a seeded database,
@@ -659,7 +652,7 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-J03 — Abuse controls for public-write surfaces (challenges, comments)
 
-- **Status:** review (integration train 3) · **Priority:** P2 · **Size:** S · **Agent:** yes
+- **Status:** done (integration PR #104) · **Priority:** P2 · **Size:** S · **Agent:** yes
 - **Packages:** `apps/web` · **External dep:** none · **Issue/PR:** integration PR #104;
   source PR #99
 - **Goal:** Challenges (ORA-E01) add a new authenticated public-write surface. Extend the
@@ -675,7 +668,7 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-K01 — Postgres CI matrix
 
-- **Status:** review (integration train 1) · **Priority:** P1 · **Size:** M · **Agent:** yes
+- **Status:** done (integration PR #102) · **Priority:** P1 · **Size:** M · **Agent:** yes
 - **Packages:** `.github`, `packages/db` · **External dep:** none · **Issue/PR:** integration PR #102;
   source PR #79; builds on PR #22
 - **Goal:** CI's existing `postgres` job already proves schema generation, push, and seed
@@ -691,7 +684,7 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-K02 — Fixture-capture tooling for frozen external repositories
 
-- **Status:** review (integration train 1) · **Priority:** P1 · **Size:** S · **Agent:** yes
+- **Status:** done (integration PR #102) · **Priority:** P1 · **Size:** S · **Agent:** yes
 - **Packages:** `scripts`, test fixtures · **External dep:** any pinned external repo ·
   **Issue/PR:** integration PR #102; source PR #77; generalizes the KG-20 interception pattern
 - **Goal:** ORA-A03 needs to freeze a real repository deterministically; future reference
@@ -707,7 +700,7 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-K03 — E2E wall-time and flake budget
 
-- **Status:** review (integration train 1) · **Priority:** P2 · **Size:** S · **Agent:** yes
+- **Status:** done (integration PR #102) · **Priority:** P2 · **Size:** S · **Agent:** yes
 - **Packages:** `apps/web`, `.github` · **External dep:** none · **Issue/PR:** integration PR #102;
   source PR #83
 - **Goal:** The Playwright surface has grown (KG-20 journey + suites). Measure wall time,
@@ -722,7 +715,7 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-L01 — Reconcile planning and status documentation with implementation
 
-- **Status:** review (integration train 1) · **Priority:** P1 · **Size:** S · **Agent:** yes
+- **Status:** done (integration PR #102) · **Priority:** P1 · **Size:** S · **Agent:** yes
 - **Packages:** repo root, `docs` · **External dep:** none · **Issue/PR:** integration PR #102;
   source PR #88
 - **Goal:** `PLAN.md` still frames KG-01…KG-20 as "the next phase"; `TODO.md` is a completed
@@ -744,7 +737,7 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-L02 — Contributor guide for this backlog and agent workflow
 
-- **Status:** review (integration train 1) · **Priority:** P2 · **Size:** S · **Agent:** yes
+- **Status:** done (integration PR #102) · **Priority:** P2 · **Size:** S · **Agent:** yes
 - **Packages:** repo root · **External dep:** none · **Issue/PR:** integration PR #102; source PR #81
 - **Goal:** CONTRIBUTING.md predates this tracker. Add the ORA-scoped commit and integration-train
   workflow, status field updates, verification bar, and agent rules below so human and agent
@@ -757,8 +750,8 @@ At most five items, ordered. Rationale and dependencies:
 
 ### ORA-L03 — Resolve open governance and scientific decisions
 
-- **Status:** review (decision slate ratified 2026-07-22; dependent implementation now
-  unblocked) · **Priority:** P1 · **Size:** M · **Agent:** no
+- **Status:** done (decision slate ratified 2026-07-22; dependent implementation merged in
+  integration PR #105) · **Priority:** P1 · **Size:** M · **Agent:** no
 - **Packages:** `docs` · **External dep:** `Neuronautix/TRUST.md` for protocol-semantics
   questions · **Issue/PR:** integration train
 - **Goal:** Several backlog items (ORA-D02, ORA-F02, parts of ORA-E01/E02) are blocked on the

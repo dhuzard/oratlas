@@ -6,6 +6,14 @@ replacement train is verified; they are then closed as superseded, never deleted
 
 Decision authority: Damien Huzard (`dhuzard`), 2026-07-22.
 
+## Completion record
+
+All four integration trains are merged: PR #102 (reliability, operations, and documentation),
+PR #103 (core archive and TRUST), PR #104 (challenges and editorial governance), and PR #105
+(external fixtures, exports, and decision-driven features). The integrated v0.1 implementation is
+`main` commit `8d4435aaff7cf9671e94599f93f29aa71c753f97` (tree
+`75a6c987134be234c8c2248746b6f7c826cb950e`).
+
 ## Ordered branch graph
 
 ```text
@@ -21,7 +29,7 @@ trains should be under active human review at once.
 
 ## Train 1 — Reliability, operations, and documentation
 
-Branch: `integration/reliability-ops` · Base: `main` · Draft PR: #102
+Branch: `integration/reliability-ops` · Base: `main` · PR: #102
 
 | ORA     | Source PR | Frozen head                                |
 | ------- | --------: | ------------------------------------------ |
