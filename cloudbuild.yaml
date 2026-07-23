@@ -1,0 +1,102 @@
+substitutions:
+  _REGION: europe-west1
+  _SERVICE: oratlas
+  _AR_REPOSITORY: oratlas
+  _CLOUD_SQL_INSTANCE: oratlas-postgres
+  _DATABASE_URL_SECRET: oratlas-database-url
+  _SESSION_SECRET: oratlas-session-secret
+  _GITHUB_CLIENT_ID: ""
+  _GITHUB_CLIENT_SECRET: oratlas-github-client-secret
+  _GITHUB_TOKEN_SECRET: oratlas-github-token
+  _NEXT_PUBLIC_BASE_URL: ""
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+  substitutionOption: ALLOW_LOOSE
+
+steps:
+  - id: build
+    name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - --tag
+      - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPOSITORY}/${_SERVICE}:${SHORT_SHA}
+      - .
+
+  - id: push
+    name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPOSITORY}/${_SERVICE}:${SHORT_SHA}
+
+  - id: configure-migration-job
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: gcloud
+    args:
+      - run
+      - jobs
+      - deploy
+      - ${_SERVICE}-migrate
+      - --image=${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPOSITORY}/${_SERVICE}:${SHORT_SHA}
+      - --region=${_REGION}
+      - --command=pnpm
+      - --args=db:deploy:postgres
+      - --set-cloudsql-instances=${PROJECT_ID}:${_REGION}:${_CLOUD_SQL_INSTANCE}
+      - --set-secrets=DATABASE_URL=${_DATABASE_URL_SECRET}:latest
+      - --max-retries=0
+      - --task-timeout=20m
+      - --quiet
+
+  - id: migrate-database
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: gcloud
+    args:
+      - run
+      - jobs
+      - execute
+      - ${_SERVICE}-migrate
+      - --region=${_REGION}
+      - --wait
+      - --quiet
+
+  - id: deploy-service
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: bash
+    args:
+      - -ceu
+      - |
+        SECRETS="DATABASE_URL=${_DATABASE_URL_SECRET}:latest,SESSION_SECRET=${_SESSION_SECRET}:latest"
+        if gcloud secrets describe "${_GITHUB_CLIENT_SECRET}" >/dev/null 2>&1; then
+          SECRETS="${SECRETS},GITHUB_CLIENT_SECRET=${_GITHUB_CLIENT_SECRET}:latest"
+        fi
+        if gcloud secrets describe "${_GITHUB_TOKEN_SECRET}" >/dev/null 2>&1; then
+          SECRETS="${SECRETS},GITHUB_TOKEN=${_GITHUB_TOKEN_SECRET}:latest"
+        fi
+
+        ENV_VARS="NODE_ENV=production"
+        if [[ -n "${_GITHUB_CLIENT_ID}" ]]; then
+          ENV_VARS="${ENV_VARS},GITHUB_CLIENT_ID=${_GITHUB_CLIENT_ID}"
+        fi
+        if [[ -n "${_NEXT_PUBLIC_BASE_URL}" ]]; then
+          ENV_VARS="${ENV_VARS},NEXT_PUBLIC_BASE_URL=${_NEXT_PUBLIC_BASE_URL}"
+        fi
+
+        gcloud run deploy "${_SERVICE}" \
+          --image="${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPOSITORY}/${_SERVICE}:${SHORT_SHA}" \
+          --region="${_REGION}" \
+          --platform=managed \
+          --allow-unauthenticated \
+          --port=8080 \
+          --cpu=1 \
+          --memory=1Gi \
+          --min-instances=0 \
+          --max-instances=3 \
+          --concurrency=30 \
+          --timeout=300 \
+          --set-cloudsql-instances="${PROJECT_ID}:${_REGION}:${_CLOUD_SQL_INSTANCE}" \
+          --set-env-vars="${ENV_VARS}" \
+          --set-secrets="${SECRETS}" \
+          --quiet
+
+images:
+  - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPOSITORY}/${_SERVICE}:${SHORT_SHA}

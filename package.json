@@ -20,6 +20,8 @@
     "test:e2e": "pnpm --filter @oratlas/web test:e2e",
     "e2e:budget": "tsx scripts/check-e2e-budget.ts apps/web/test-results/e2e-results.json",
     "db:push": "pnpm --filter @oratlas/db db:push",
+    "db:deploy:postgres": "pnpm --filter @oratlas/db db:deploy:postgres",
+    "db:generate:postgres": "pnpm --filter @oratlas/db db:generate:postgres",
     "db:seed": "pnpm --filter @oratlas/db db:seed",
     "db:reset": "pnpm --filter @oratlas/db db:reset",
     "schema:check": "tsx scripts/validate-json-schemas.ts",
