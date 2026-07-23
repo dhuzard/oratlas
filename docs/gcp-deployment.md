@@ -188,7 +188,7 @@ curl -fsS "${SERVICE_URL}/api/health"
 Expected response:
 
 ```json
-{"status":"ok"}
+{ "status": "ok" }
 ```
 
 Then inspect logs:
