@@ -11,9 +11,12 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "db:generate": "prisma generate",
+    "db:generate:postgres": "prisma generate --schema prisma/schema.postgres.prisma",
     "db:push": "prisma db push && tsx scripts/apply-database-guards.ts",
+    "db:deploy:postgres": "prisma db push --schema prisma/schema.postgres.prisma && tsx scripts/apply-database-guards.ts",
     "db:guards": "tsx scripts/apply-database-guards.ts",
     "db:validate": "prisma validate",
+    "db:validate:postgres": "prisma validate --schema prisma/schema.postgres.prisma",
     "db:pg:schema": "tsx scripts/gen-postgres-schema.ts",
     "db:pg:ddl": "prisma migrate diff --from-empty --to-schema-datamodel prisma/schema.postgres.prisma --script > prisma/schema.postgres.sql && tsx scripts/append-postgres-constraints.ts",
     "db:seed": "tsx src/seed/seed.ts",
