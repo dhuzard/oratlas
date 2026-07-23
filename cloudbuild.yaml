@@ -20,14 +20,14 @@ steps:
     args:
       - build
       - --tag
-      - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPOSITORY}/${_SERVICE}:${SHORT_SHA}
+      - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPOSITORY}/${_SERVICE}:${BUILD_ID}
       - .
 
   - id: push
     name: gcr.io/cloud-builders/docker
     args:
       - push
-      - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPOSITORY}/${_SERVICE}:${SHORT_SHA}
+      - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPOSITORY}/${_SERVICE}:${BUILD_ID}
 
   - id: configure-migration-job
     name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
@@ -37,7 +37,7 @@ steps:
       - jobs
       - deploy
       - ${_SERVICE}-migrate
-      - --image=${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPOSITORY}/${_SERVICE}:${SHORT_SHA}
+      - --image=${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPOSITORY}/${_SERVICE}:${BUILD_ID}
       - --region=${_REGION}
       - --command=pnpm
       - --args=db:deploy:postgres
@@ -82,7 +82,7 @@ steps:
         fi
 
         gcloud run deploy "${_SERVICE}" \
-          --image="${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPOSITORY}/${_SERVICE}:${SHORT_SHA}" \
+          --image="${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPOSITORY}/${_SERVICE}:${BUILD_ID}" \
           --region="${_REGION}" \
           --platform=managed \
           --allow-unauthenticated \
@@ -99,4 +99,4 @@ steps:
           --quiet
 
 images:
-  - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPOSITORY}/${_SERVICE}:${SHORT_SHA}
+  - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPOSITORY}/${_SERVICE}:${BUILD_ID}
