@@ -8,7 +8,9 @@ This guide deploys the ORAtlas proof of concept with:
 - Secret Manager for application secrets
 - Cloud Build for build, database bootstrap, and deployment
 
-The checked-in SQLite schema remains the local-development default. The container build generates the Prisma client from `packages/db/prisma/schema.postgres.prisma`.
+The checked-in SQLite schema remains the local-development default. The
+container build generates the Prisma client from
+`packages/db/prisma/schema.postgres.prisma`.
 
 ## 1. Set the project and region
 
@@ -46,7 +48,9 @@ If the repository already exists, continue.
 
 ## 3. Create PostgreSQL
 
-The following shared-core instance is suitable for a low-traffic proof of concept. Increase availability, CPU, memory, storage, and backup settings before treating it as a production service.
+The following shared-core instance is suitable for a low-traffic proof of
+concept. Increase availability, CPU, memory, storage, and backup settings before
+treating it as a production service.
 
 ```bash
 gcloud sql instances create "$SQL_INSTANCE" \
@@ -60,7 +64,9 @@ gcloud sql instances create "$SQL_INSTANCE" \
 gcloud sql databases create oratlas --instance="$SQL_INSTANCE"
 ```
 
-Create an application user. Use a generated password that does not contain characters requiring manual URL re-encoding, or URL-encode it before constructing `DATABASE_URL`.
+Create an application user. Use a generated password that does not contain
+characters requiring manual URL re-encoding, or URL-encode it before
+constructing `DATABASE_URL`.
 
 ```bash
 export DB_USER="oratlas"
@@ -71,7 +77,8 @@ gcloud sql users create "$DB_USER" \
   --password="$DB_PASSWORD"
 ```
 
-The Cloud Run service connects through the Cloud SQL Unix socket. Construct the Prisma URL:
+The Cloud Run service connects through the Cloud SQL Unix socket. Construct the
+Prisma URL:
 
 ```bash
 export DATABASE_URL="postgresql://${DB_USER}:${DB_PASSWORD}@localhost/oratlas?host=/cloudsql/${PROJECT_ID}:${REGION}:${SQL_INSTANCE}"
@@ -97,7 +104,8 @@ printf '%s' "YOUR_GITHUB_TOKEN" | \
   gcloud secrets create oratlas-github-token --data-file=-
 ```
 
-Do not create optional secrets with empty values. The Cloud Build deployment step adds them only when they exist.
+Do not create optional secrets with empty values. The Cloud Build deployment
+step adds them only when they exist.
 
 ## 5. Grant Cloud Build deployment permissions
 
@@ -117,7 +125,8 @@ for ROLE in \
 done
 ```
 
-For a hardened deployment, replace project-wide grants with a dedicated deployment service account and resource-level permissions.
+For a hardened deployment, replace project-wide grants with a dedicated
+deployment service account and resource-level permissions.
 
 ## 6. Submit the deployment
 
@@ -137,7 +146,10 @@ The build performs these steps:
 4. deploy the Cloud Run service;
 5. expose the service publicly.
 
-`db:deploy:postgres` currently uses `prisma db push` against the generated PostgreSQL schema, followed by ORAtlas database guards. This is intended to bootstrap the POC quickly. Before maintaining valuable production data, replace this bootstrap workflow with reviewed and committed Prisma migrations.
+`db:deploy:postgres` currently uses `prisma db push` against the generated
+PostgreSQL schema, followed by ORAtlas database guards. This is intended to
+bootstrap the POC quickly. Before maintaining valuable production data, replace
+this bootstrap workflow with reviewed and committed Prisma migrations.
 
 ## 7. Configure GitHub OAuth
 
@@ -189,14 +201,17 @@ gcloud run services logs read "$SERVICE" \
 
 ## Operational constraints of the POC
 
-The initial deployment deliberately limits Cloud Run to three instances because some ORAtlas facilities remain process-local:
+The initial deployment deliberately limits Cloud Run to three instances because
+some ORAtlas facilities remain process-local:
 
 - rate limiting;
 - search;
 - knowledge-index rebuilding;
 - synchronous ingestion.
 
-For larger public usage, move ingestion to Cloud Tasks or Pub/Sub, use PostgreSQL full-text search or another shared search provider, and place shared rate-limit/cache state in Redis or another durable service.
+For larger public usage, move ingestion to Cloud Tasks or Pub/Sub, use
+PostgreSQL full-text search or another shared search provider, and place shared
+rate-limit/cache state in Redis or another durable service.
 
 ## Updating secrets
 
