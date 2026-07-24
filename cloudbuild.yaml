@@ -20,14 +20,14 @@ steps:
     args:
       - build
       - --tag
-      - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPOSITORY}/${_SERVICE}:${SHORT_SHA}
+      - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPOSITORY}/${_SERVICE}:${BUILD_ID}
       - .
 
   - id: push
     name: gcr.io/cloud-builders/docker
     args:
       - push
-      - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPOSITORY}/${_SERVICE}:${SHORT_SHA}
+      - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPOSITORY}/${_SERVICE}:${BUILD_ID}
 
   - id: configure-migration-job
     name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
@@ -37,7 +37,7 @@ steps:
       - jobs
       - deploy
       - ${_SERVICE}-migrate
-      - --image=${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPOSITORY}/${_SERVICE}:${SHORT_SHA}
+      - --image=${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPOSITORY}/${_SERVICE}:${BUILD_ID}
       - --region=${_REGION}
       - --command=pnpm
       - --args=db:deploy:postgres
@@ -67,22 +67,22 @@ steps:
       - |
         SECRETS="DATABASE_URL=${_DATABASE_URL_SECRET}:latest,SESSION_SECRET=${_SESSION_SECRET}:latest"
         if gcloud secrets describe "${_GITHUB_CLIENT_SECRET}" >/dev/null 2>&1; then
-          SECRETS="${SECRETS},GITHUB_CLIENT_SECRET=${_GITHUB_CLIENT_SECRET}:latest"
+          SECRETS="$${SECRETS},GITHUB_CLIENT_SECRET=${_GITHUB_CLIENT_SECRET}:latest"
         fi
         if gcloud secrets describe "${_GITHUB_TOKEN_SECRET}" >/dev/null 2>&1; then
-          SECRETS="${SECRETS},GITHUB_TOKEN=${_GITHUB_TOKEN_SECRET}:latest"
+          SECRETS="$${SECRETS},GITHUB_TOKEN=${_GITHUB_TOKEN_SECRET}:latest"
         fi
 
         ENV_VARS="NODE_ENV=production"
         if [[ -n "${_GITHUB_CLIENT_ID}" ]]; then
-          ENV_VARS="${ENV_VARS},GITHUB_CLIENT_ID=${_GITHUB_CLIENT_ID}"
+          ENV_VARS="$${ENV_VARS},GITHUB_CLIENT_ID=${_GITHUB_CLIENT_ID}"
         fi
         if [[ -n "${_NEXT_PUBLIC_BASE_URL}" ]]; then
-          ENV_VARS="${ENV_VARS},NEXT_PUBLIC_BASE_URL=${_NEXT_PUBLIC_BASE_URL}"
+          ENV_VARS="$${ENV_VARS},NEXT_PUBLIC_BASE_URL=${_NEXT_PUBLIC_BASE_URL}"
         fi
 
         gcloud run deploy "${_SERVICE}" \
-          --image="${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPOSITORY}/${_SERVICE}:${SHORT_SHA}" \
+          --image="${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPOSITORY}/${_SERVICE}:${BUILD_ID}" \
           --region="${_REGION}" \
           --platform=managed \
           --allow-unauthenticated \
@@ -94,9 +94,9 @@ steps:
           --concurrency=30 \
           --timeout=300 \
           --set-cloudsql-instances="${PROJECT_ID}:${_REGION}:${_CLOUD_SQL_INSTANCE}" \
-          --set-env-vars="${ENV_VARS}" \
-          --set-secrets="${SECRETS}" \
+          --set-env-vars="$${ENV_VARS}" \
+          --set-secrets="$${SECRETS}" \
           --quiet
 
 images:
-  - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPOSITORY}/${_SERVICE}:${SHORT_SHA}
+  - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPOSITORY}/${_SERVICE}:${BUILD_ID}
