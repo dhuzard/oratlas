@@ -189,16 +189,16 @@ importers:
       '@prisma/client':
         specifier: ^6.8.0
         version: 6.19.3(prisma@6.19.3(typescript@5.9.3))(typescript@5.9.3)
-      zod:
-        specifier: ^3.25.0
-        version: 3.25.76
-    devDependencies:
       prisma:
         specifier: ^6.8.0
         version: 6.19.3(typescript@5.9.3)
       tsx:
         specifier: ^4.19.4
         version: 4.23.0
+      zod:
+        specifier: ^3.25.0
+        version: 3.25.76
+    devDependencies:
       typescript:
         specifier: ^5.8.3
         version: 5.9.3

@@ -1,6 +1,7 @@
 substitutions:
   _REGION: europe-west1
   _SERVICE: oratlas
+  _RUNTIME_SERVICE_ACCOUNT: oratlas-runtime
   _AR_REPOSITORY: oratlas
   _CLOUD_SQL_INSTANCE: oratlas-postgres
   _DATABASE_URL_SECRET: oratlas-database-url
@@ -39,6 +40,7 @@ steps:
       - ${_SERVICE}-migrate
       - --image=${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPOSITORY}/${_SERVICE}:${BUILD_ID}
       - --region=${_REGION}
+      - --service-account=${_RUNTIME_SERVICE_ACCOUNT}@${PROJECT_ID}.iam.gserviceaccount.com
       - --command=pnpm
       - --args=db:deploy:postgres
       - --set-cloudsql-instances=${PROJECT_ID}:${_REGION}:${_CLOUD_SQL_INSTANCE}
@@ -85,6 +87,7 @@ steps:
           --image="${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPOSITORY}/${_SERVICE}:${BUILD_ID}" \
           --region="${_REGION}" \
           --platform=managed \
+          --service-account="${_RUNTIME_SERVICE_ACCOUNT}@${PROJECT_ID}.iam.gserviceaccount.com" \
           --allow-unauthenticated \
           --port=8080 \
           --cpu=1 \

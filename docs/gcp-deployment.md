@@ -19,6 +19,7 @@ export PROJECT_ID="your-gcp-project"
 export REGION="europe-west1"
 export SERVICE="oratlas"
 export SQL_INSTANCE="oratlas-postgres"
+export RUNTIME_SERVICE_ACCOUNT="oratlas-runtime"
 
 gcloud config set project "$PROJECT_ID"
 gcloud config set run/region "$REGION"
@@ -107,26 +108,52 @@ printf '%s' "YOUR_GITHUB_TOKEN" | \
 Do not create optional secrets with empty values. The Cloud Build deployment
 step adds them only when they exist.
 
-## 5. Grant Cloud Build deployment permissions
+## 5. Configure deployment and runtime identities
 
 ```bash
 export PROJECT_NUMBER="$(gcloud projects describe "$PROJECT_ID" --format='value(projectNumber)')"
-export BUILD_SA="${PROJECT_NUMBER}@cloudbuild.gserviceaccount.com"
+export BUILD_SA="$(gcloud builds get-default-service-account \
+  --format='value(serviceAccountEmail)')"
+export RUNTIME_SA="${RUNTIME_SERVICE_ACCOUNT}@${PROJECT_ID}.iam.gserviceaccount.com"
 
+gcloud iam service-accounts describe "$RUNTIME_SA" >/dev/null 2>&1 || \
+  gcloud iam service-accounts create "$RUNTIME_SERVICE_ACCOUNT" \
+    --display-name="ORAtlas Cloud Run runtime"
+
+# The account that executes Cloud Build pushes the image and deploys Cloud Run.
 for ROLE in \
   roles/artifactregistry.writer \
   roles/run.admin \
-  roles/cloudsql.client \
-  roles/secretmanager.secretAccessor \
-  roles/iam.serviceAccountUser; do
+  roles/secretmanager.viewer; do
   gcloud projects add-iam-policy-binding "$PROJECT_ID" \
     --member="serviceAccount:${BUILD_SA}" \
     --role="$ROLE"
 done
+
+# Permit the build account to attach the dedicated runtime identity.
+gcloud iam service-accounts add-iam-policy-binding "$RUNTIME_SA" \
+  --member="serviceAccount:${BUILD_SA}" \
+  --role="roles/iam.serviceAccountUser"
+
+# The Cloud Run service and migration job—not the build account—read secrets
+# and connect to Cloud SQL.
+for ROLE in \
+  roles/cloudsql.client \
+  roles/secretmanager.secretAccessor; do
+  gcloud projects add-iam-policy-binding "$PROJECT_ID" \
+    --member="serviceAccount:${RUNTIME_SA}" \
+    --role="$ROLE"
+done
 ```
 
-For a hardened deployment, replace project-wide grants with a dedicated
-deployment service account and resource-level permissions.
+Google Cloud changed the default identity for new Cloud Build projects in 2024.
+Do not assume `${PROJECT_NUMBER}@cloudbuild.gserviceaccount.com`; the
+`get-default-service-account` command above returns the identity actually used
+by this project.
+
+For a hardened deployment, also replace the default build identity with a
+dedicated deployment service account and narrow the project-wide grants to the
+specific repository, secrets, and Cloud Run resources.
 
 ## 6. Submit the deployment
 
@@ -135,7 +162,7 @@ From the repository root:
 ```bash
 gcloud builds submit \
   --config=cloudbuild.yaml \
-  --substitutions="_REGION=${REGION},_SERVICE=${SERVICE},_CLOUD_SQL_INSTANCE=${SQL_INSTANCE},_NEXT_PUBLIC_BASE_URL="
+  --substitutions="_REGION=${REGION},_SERVICE=${SERVICE},_RUNTIME_SERVICE_ACCOUNT=${RUNTIME_SERVICE_ACCOUNT},_CLOUD_SQL_INSTANCE=${SQL_INSTANCE},_NEXT_PUBLIC_BASE_URL="
 ```
 
 The build performs these steps:
@@ -151,7 +178,7 @@ PostgreSQL schema, followed by ORAtlas database guards. This is intended to
 bootstrap the POC quickly. Before maintaining valuable production data, replace
 this bootstrap workflow with reviewed and committed Prisma migrations.
 
-## 7. Configure GitHub OAuth
+## 7. Set the canonical URL and optionally configure GitHub OAuth
 
 Retrieve the deployed service URL:
 
@@ -162,7 +189,17 @@ export SERVICE_URL="$(gcloud run services describe "$SERVICE" \
 echo "$SERVICE_URL"
 ```
 
-Create or update the GitHub OAuth App with:
+Redeploy once with the canonical URL even when GitHub OAuth is not enabled.
+Origin validation, redirects, and canonical links must not retain the local
+development default:
+
+```bash
+gcloud builds submit \
+  --config=cloudbuild.yaml \
+  --substitutions="_REGION=${REGION},_SERVICE=${SERVICE},_RUNTIME_SERVICE_ACCOUNT=${RUNTIME_SERVICE_ACCOUNT},_CLOUD_SQL_INSTANCE=${SQL_INSTANCE},_NEXT_PUBLIC_BASE_URL=${SERVICE_URL}"
+```
+
+To enable GitHub sign-in, create or update the GitHub OAuth App with:
 
 ```text
 Homepage URL:              SERVICE_URL
@@ -174,7 +211,7 @@ Redeploy with the client ID and canonical URL:
 ```bash
 gcloud builds submit \
   --config=cloudbuild.yaml \
-  --substitutions="_REGION=${REGION},_SERVICE=${SERVICE},_CLOUD_SQL_INSTANCE=${SQL_INSTANCE},_GITHUB_CLIENT_ID=YOUR_CLIENT_ID,_NEXT_PUBLIC_BASE_URL=${SERVICE_URL}"
+  --substitutions="_REGION=${REGION},_SERVICE=${SERVICE},_RUNTIME_SERVICE_ACCOUNT=${RUNTIME_SERVICE_ACCOUNT},_CLOUD_SQL_INSTANCE=${SQL_INSTANCE},_GITHUB_CLIENT_ID=YOUR_CLIENT_ID,_NEXT_PUBLIC_BASE_URL=${SERVICE_URL}"
 ```
 
 `AUTH_MOCK` must not be configured in production.

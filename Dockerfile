@@ -2,7 +2,9 @@ FROM node:22-bookworm-slim AS build
 
 ENV PNPM_HOME=/pnpm
 ENV PATH=$PNPM_HOME:$PATH
+ENV COREPACK_HOME=/corepack
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV CI=true
 
 RUN apt-get update \
   && apt-get install -y --no-install-recommends openssl ca-certificates \
@@ -42,13 +44,16 @@ RUN pnpm --filter @oratlas/db exec prisma generate --schema prisma/schema.postgr
 RUN SESSION_SECRET=oratlas-build-only-placeholder-not-used-at-runtime \
   pnpm --filter @oratlas/web build
 
-RUN pnpm prune --prod
+RUN pnpm install --prod --frozen-lockfile
+RUN pnpm --filter @oratlas/db exec prisma --version \
+  && pnpm --filter @oratlas/db exec tsx --version
 
 FROM node:22-bookworm-slim AS runtime
 
 ENV NODE_ENV=production
 ENV PNPM_HOME=/pnpm
 ENV PATH=$PNPM_HOME:$PATH
+ENV COREPACK_HOME=/corepack
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV HOSTNAME=0.0.0.0
 
@@ -59,8 +64,9 @@ RUN apt-get update \
 
 WORKDIR /app
 COPY --from=build /app /app
+COPY --from=build /corepack /corepack
 
 USER node
 EXPOSE 8080
 
-CMD ["sh", "-c", "pnpm --filter @oratlas/web start -- -H 0.0.0.0 -p ${PORT:-8080}"]
+CMD ["sh", "-c", "pnpm --filter @oratlas/web exec next start -H 0.0.0.0 -p ${PORT:-8080}"]
