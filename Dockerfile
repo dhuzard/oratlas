@@ -35,7 +35,13 @@ COPY . .
 # Production uses the checked-in PostgreSQL schema while local development
 # continues to use packages/db/prisma/schema.prisma (SQLite).
 RUN pnpm --filter @oratlas/db exec prisma generate --schema prisma/schema.postgres.prisma
-RUN pnpm --filter @oratlas/web build
+
+# Next.js evaluates server modules while collecting page data. Supply a
+# non-secret build-only value so production validation can complete; Cloud Run
+# injects the real SESSION_SECRET at runtime from Secret Manager.
+RUN SESSION_SECRET=oratlas-build-only-placeholder-not-used-at-runtime \
+  pnpm --filter @oratlas/web build
+
 RUN pnpm prune --prod
 
 FROM node:22-bookworm-slim AS runtime
