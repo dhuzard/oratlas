@@ -2,7 +2,12 @@ import "server-only";
 import { createHash } from "node:crypto";
 import { getServerEnv } from "@oratlas/config";
 import { SynchronousIngestionRunner, parseGithubRepoUrl } from "@oratlas/github";
-import { runExtraction, type FullExtraction } from "@oratlas/extractor";
+import {
+  enrichCompatibilityFromZenodo,
+  enrichMetadataFromZenodo,
+  runExtraction,
+  type FullExtraction,
+} from "@oratlas/extractor";
 import {
   resolveEffectiveMetadata,
   type CompatibilityReport,
@@ -12,11 +17,12 @@ import {
   type RepoSourceSelection,
   type SubmissionValidationReport,
 } from "@oratlas/contracts";
-import { validateDoi } from "@oratlas/zenodo";
+import { createFetchResolver, validateDoi } from "@oratlas/zenodo";
 import { buildPublicationConsistency } from "./publication-consistency";
 
 const env = getServerEnv();
 const runner = new SynchronousIngestionRunner({ token: env.GITHUB_TOKEN || undefined });
+const zenodoResolver = createFetchResolver();
 
 export interface InspectionOutcome {
   report: InspectionReport;
@@ -31,7 +37,22 @@ export async function inspectAndExtract(
   source: RepoSourceSelection = { kind: "default-branch" },
 ): Promise<InspectionOutcome> {
   const report = await runner.run(url, { source });
-  const extraction = runExtraction(report);
+  let extraction = runExtraction(report);
+  if (
+    report.status !== "failed" &&
+    (!extraction.metadata.fields.versionDoi ||
+      !extraction.metadata.fields.conceptDoi ||
+      !extraction.metadata.fields.zenodoRecordId)
+  ) {
+    const zenodoRecord = await zenodoResolver.findZenodoRecordByRepositoryUrl(
+      report.repo.canonicalUrl,
+    );
+    if (zenodoRecord) {
+      const metadata = enrichMetadataFromZenodo(extraction.metadata, report, zenodoRecord);
+      const compatibility = enrichCompatibilityFromZenodo(extraction.compatibility, metadata);
+      extraction = { ...extraction, metadata, compatibility };
+    }
+  }
   return {
     report,
     extraction,

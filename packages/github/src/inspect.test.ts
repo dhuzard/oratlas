@@ -12,7 +12,7 @@ import {
 describe("inspectRepository", () => {
   it("allows bounded enriched-review artifacts while retaining a shared cap", () => {
     expect(DEFAULT_LIMITS).toMatchObject({
-      maxFileBytes: 2 * 1024 * 1024,
+      maxFileBytes: 3 * 1024 * 1024,
       maxTotalBytes: 6 * 1024 * 1024,
       maxFileCount: 24,
     });
@@ -30,6 +30,26 @@ describe("inspectRepository", () => {
 
     expect(report.files["knowledge/trust.jsonl"]?.content).toBe(largeTrust);
     expect(report.files["knowledge/trust.jsonl"]?.truncated).toBe(false);
+  });
+
+  it("captures a TRUST artifact at the Ethical Debt production size", async () => {
+    const productionTrustBytes = 2_340_810;
+    const fixture = structuredClone(templateCompatibleFixture);
+    const path = "knowledge/trust.jsonl";
+    const original = fixture.files![path]!;
+    fixture.files![path] =
+      original + " ".repeat(productionTrustBytes - Buffer.byteLength(original, "utf8"));
+    fixture.contentsInlineLimitBytes = 1024 * 1024;
+
+    const report = await inspectRepository(`${fixture.owner}/${fixture.name}`, {
+      transport: createFakeTransport(fixture),
+    });
+
+    expect(report.files[path]).toMatchObject({
+      size: productionTrustBytes,
+      truncated: false,
+    });
+    expect(Buffer.byteLength(report.files[path]!.content!, "utf8")).toBe(productionTrustBytes);
   });
 
   it("inspects a template-compatible repository and fetches well-known files", async () => {

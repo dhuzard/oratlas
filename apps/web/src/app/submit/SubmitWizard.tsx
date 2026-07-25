@@ -269,6 +269,15 @@ export function SubmitWizard({ signedIn }: { signedIn: boolean }) {
             Capability expires {new Date(inspection.captureExpiresAt).toLocaleString()}; exact
             capture SHA-256 {inspection.capturePayloadHash}.
           </p>
+          {inspection.selectedSource.kind === "default-branch" &&
+          typeof inspection.effectiveMetadata.releaseTag === "string" ? (
+            <div className="notice notice-warning">
+              Zenodo identifies release{" "}
+              <strong>{inspection.effectiveMetadata.releaseTag as string}</strong>, but this
+              inspection captured the mutable default branch. Go back and choose “Published GitHub
+              release” with that exact tag before submitting the version DOI.
+            </div>
+          ) : null}
           {EDITABLE_FIELDS.map((f) => {
             const field = inspection.extractedMetadata.fields[f.key];
             return (

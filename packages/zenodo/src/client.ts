@@ -13,6 +13,7 @@ export interface DoiResolution {
 
 export interface ZenodoRecord {
   recordId: string;
+  doi?: string;
   conceptRecordId?: string;
   conceptDoi?: string;
   title?: string;
@@ -26,6 +27,10 @@ export interface ZenodoRecord {
 export interface DoiResolver {
   resolveDoi(doi: string): Promise<DoiResolution>;
   fetchZenodoRecord(recordId: string): Promise<ZenodoRecord | null>;
+}
+
+export interface ZenodoRepositoryResolver {
+  findZenodoRecordByRepositoryUrl(repositoryUrl: string): Promise<ZenodoRecord | null>;
 }
 
 export interface FetchResolverOptions {
@@ -163,7 +168,9 @@ async function readJsonBounded(response: Response, maxBytes: number): Promise<un
   return JSON.parse(new TextDecoder().decode(bytes)) as unknown;
 }
 
-export function createFetchResolver(options: FetchResolverOptions = {}): DoiResolver {
+export function createFetchResolver(
+  options: FetchResolverOptions = {},
+): DoiResolver & ZenodoRepositoryResolver {
   const {
     timeoutMs = 10_000,
     maxResponseBytes = DEFAULT_MAX_RESPONSE_BYTES,
@@ -227,12 +234,98 @@ export function createFetchResolver(options: FetchResolverOptions = {}): DoiReso
         }
       });
     },
+
+    async findZenodoRecordByRepositoryUrl(repositoryUrl: string): Promise<ZenodoRecord | null> {
+      const canonicalUrl = canonicalGithubRepositoryUrl(repositoryUrl);
+      if (!canonicalUrl) return null;
+
+      return withTimeout(async (signal) => {
+        try {
+          const query = `metadata.related_identifiers.identifier:"${escapeSearchPhrase(
+            canonicalUrl,
+          )}"`;
+          const params = new URLSearchParams({
+            q: query,
+            size: "10",
+            sort: "mostrecent",
+          });
+          const res = await fetchImpl(`${validatedZenodoApiBase}/records?${params.toString()}`, {
+            signal,
+            redirect: "error",
+            headers: { Accept: "application/json", "User-Agent": "open-review-atlas" },
+          });
+          if (!res.ok) return null;
+
+          const json = (await readJsonBounded(res, maxResponseBytes)) as Record<string, unknown>;
+          const hitsContainer = json.hits;
+          if (!hitsContainer || typeof hitsContainer !== "object") return null;
+          const hits = (hitsContainer as Record<string, unknown>).hits;
+          if (!Array.isArray(hits)) return null;
+
+          for (const hit of hits) {
+            if (!hit || typeof hit !== "object") continue;
+            const record = parseZenodoRecord(hit as Record<string, unknown>);
+            if (
+              record.recordId &&
+              record.relatedUrls.some(
+                (url) =>
+                  canonicalGithubRepositoryUrl(url)?.toLowerCase() === canonicalUrl.toLowerCase(),
+              )
+            ) {
+              return record;
+            }
+          }
+          return null;
+        } catch {
+          return null;
+        }
+      });
+    },
   };
+}
+
+function canonicalGithubRepositoryUrl(value: string): string | undefined {
+  if (value.length === 0 || value.length > MAX_RESOLUTION_URL_LENGTH) return undefined;
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    return undefined;
+  }
+  if (
+    url.protocol !== "https:" ||
+    url.hostname.toLowerCase().replace(/\.$/, "") !== "github.com" ||
+    url.username !== "" ||
+    url.password !== "" ||
+    (url.port !== "" && url.port !== "443") ||
+    url.search !== "" ||
+    url.hash !== ""
+  ) {
+    return undefined;
+  }
+  const parts = url.pathname.split("/").filter(Boolean);
+  if (parts.length !== 2) return undefined;
+  const owner = parts[0];
+  const name = parts[1]?.replace(/\.git$/i, "");
+  if (!owner || !name || !/^[A-Za-z0-9_.-]+$/.test(owner) || !/^[A-Za-z0-9_.-]+$/.test(name)) {
+    return undefined;
+  }
+  return `https://github.com/${owner}/${name}`;
+}
+
+function escapeSearchPhrase(value: string): string {
+  return value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 }
 
 /** Parse a Zenodo API record payload into our normalized shape. */
 export function parseZenodoRecord(json: Record<string, unknown>): ZenodoRecord {
   const metadata = (json.metadata ?? {}) as Record<string, unknown>;
+  const doi =
+    typeof metadata.doi === "string"
+      ? metadata.doi
+      : typeof json.doi === "string"
+        ? (json.doi as string)
+        : undefined;
   const conceptrecid = json.conceptrecid;
   const conceptDoi =
     typeof metadata.conceptdoi === "string"
@@ -253,9 +346,15 @@ export function parseZenodoRecord(json: Record<string, unknown>): ZenodoRecord {
       if (typeof r.identifier === "string") relatedUrls.push(r.identifier);
     }
   }
+  const custom = metadata.custom;
+  if (custom && typeof custom === "object") {
+    const codeRepository = (custom as Record<string, unknown>)["code:codeRepository"];
+    if (typeof codeRepository === "string") relatedUrls.push(codeRepository);
+  }
 
   return {
     recordId: String(json.id ?? json.recid ?? ""),
+    doi,
     conceptRecordId: conceptrecid !== undefined ? String(conceptrecid) : undefined,
     conceptDoi,
     title: typeof metadata.title === "string" ? metadata.title : undefined,

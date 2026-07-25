@@ -1,4 +1,19 @@
-# Open Review Atlas
+streaming logs from oratlas-dhuzard-2026
+2026-07-25 12:54:23 POST 201 https://oratlas-ftpoygqvua-ew.a.run.app/api/submissions
+2026-07-25 12:54:31 GET 200 https://oratlas-ftpoygqvua-ew.a.run.app/?_rsc=dVWCJ44PUGHGbkUz
+2026-07-25 12:54:31 GET 404 https://oratlas-ftpoygqvua-ew.a.run.app/coverage?_rsc=dVWCJ44PUGHGbkUz
+2026-07-25 12:54:31 GET 200 https://oratlas-ftpoygqvua-ew.a.run.app/claims?_rsc=dVWCJ44PUGHGbkUz
+2026-07-25 12:54:31 GET 200 https://oratlas-ftpoygqvua-ew.a.run.app/graph?_rsc=dVWCJ44PUGHGbkUz
+2026-07-25 12:54:31 GET 200 https://oratlas-ftpoygqvua-ew.a.run.app/nodes?_rsc=dVWCJ44PUGHGbkUz
+2026-07-25 12:54:32 GET 200 https://oratlas-ftpoygqvua-ew.a.run.app/synthesis?_rsc=dVWCJ44PUGHGbkUz
+2026-07-25 12:54:32 GET 200 https://oratlas-ftpoygqvua-ew.a.run.app/replications?_rsc=dVWCJ44PUGHGbkUz
+2026-07-25 12:54:32 GET 200 https://oratlas-ftpoygqvua-ew.a.run.app/submit?_rsc=dVWCJ44PUGHGbkUz
+2026-07-25 12:54:32 GET 200 https://oratlas-ftpoygqvua-ew.a.run.app/discuss?_rsc=dVWCJ44PUGHGbkUz
+2026-07-25 12:54:31 GET 200 https://oratlas-ftpoygqvua-ew.a.run.app/_next/static/chunks/app/archive/page-0a25fa5eb7f355fc.js
+2026-07-25 12:54:31 GET 200 https://oratlas-ftpoygqvua-ew.a.run.app/archive
+2026-07-25 12:54:38 GET 200 https://oratlas-ftpoygqvua-ew.a.run.app/submit?_rsc=qhgEJswmmuvoTHtl
+2026-07-25 12:54:50 POST 200 https://oratlas-ftpoygqvua-ew.a.run.app/api/inspect
+2026-07-25 12:55:01 POST 201 https://oratlas-ftpoygqvua-ew.a.run.app/api/submissions# Open Review Atlas
 
 **A proof-of-concept public archive for discovering, submitting, validating, archiving, and
 discussing AI-enriched computational literature reviews produced from GitHub repositories.**
@@ -239,7 +254,7 @@ A full inventory of limitations lives in [`docs/poc-limitations.md`](docs/poc-li
 | [`docs/trust-model.md`](docs/trust-model.md)                                                   | TRUST dimensions, relation-level attachment, aggregation  |
 | [`docs/assessment-protocol-interoperability.md`](docs/assessment-protocol-interoperability.md) | Source-protocol preservation and non-crosswalk rules      |
 | [`docs/evidence-identity.md`](docs/evidence-identity.md)                                       | Evidence identifiers and structural grounding             |
-| [`docs/review-manifest.md`](docs/review-manifest.md)                                           | Optional `review-manifest.json` format                    |
+| [`docs/review-manifest.md`](docs/review-manifest.md)                                           | Optional`review-manifest.json` format                     |
 | [`docs/atlas-check.md`](docs/atlas-check.md)                                                   | Deterministic evidence CI rule catalog                    |
 | [`docs/living-review.md`](docs/living-review.md)                                               | Claim passports and living-review monitoring              |
 | [`docs/synthesis-and-contradictions.md`](docs/synthesis-and-contradictions.md)                 | Independence-aware synthesis and contradiction maps       |

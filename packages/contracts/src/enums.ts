@@ -232,6 +232,7 @@ export const EXTRACTION_SOURCES = [
   "review-manifest",
   "citation-cff",
   "zenodo-json",
+  "zenodo-api",
   "codemeta",
   "myst-config",
   "repository-metadata",

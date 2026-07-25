@@ -211,8 +211,14 @@ Redeploy with the client ID and canonical URL:
 ```bash
 gcloud builds submit \
   --config=cloudbuild.yaml \
-  --substitutions="_REGION=${REGION},_SERVICE=${SERVICE},_RUNTIME_SERVICE_ACCOUNT=${RUNTIME_SERVICE_ACCOUNT},_CLOUD_SQL_INSTANCE=${SQL_INSTANCE},_GITHUB_CLIENT_ID=YOUR_CLIENT_ID,_NEXT_PUBLIC_BASE_URL=${SERVICE_URL}"
+  --substitutions="_REGION=${REGION},_SERVICE=${SERVICE},_RUNTIME_SERVICE_ACCOUNT=${RUNTIME_SERVICE_ACCOUNT},_CLOUD_SQL_INSTANCE=${SQL_INSTANCE},_GITHUB_CLIENT_ID=YOUR_CLIENT_ID,_ADMIN_GITHUB_USER_IDS=48721374,_NEXT_PUBLIC_BASE_URL=${SERVICE_URL}"
 ```
+
+`ADMIN_GITHUB_USER_IDS` is an optional colon-separated allowlist of immutable
+GitHub numeric user IDs (for example, `48721374:123456`). A matching user is
+promoted to `ADMIN` at their next verified OAuth sign-in. Never configure a
+GitHub login here: logins are mutable and could transfer privileges to the
+wrong person. Removing an ID does not silently demote an existing administrator.
 
 `AUTH_MOCK` must not be configured in production.
 

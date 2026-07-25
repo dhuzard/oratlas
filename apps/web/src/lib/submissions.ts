@@ -13,7 +13,7 @@ import {
   type ConflictOfInterestOutcomeInput,
 } from "@oratlas/contracts";
 import { assertKnowledgeNodeMaterializationBinding, type Prisma } from "@oratlas/db";
-import { isExampleDoi } from "@oratlas/zenodo";
+import { isExampleDoi, normalizeDoi } from "@oratlas/zenodo";
 import { prisma, parseJsonColumn } from "./db";
 import { prismaCode, uniqueTargets, withSqliteRetry as sharedWithSqliteRetry } from "./db-retry";
 import { sha256 } from "./hash";
@@ -185,7 +185,8 @@ export async function createSubmission(
     throw new SubmissionError("Inspection capability is invalid or expired.", "bad-request");
   assertCaptureUsable(capture, input.submitterId, new Date());
   const captured = verifyCapture(capture);
-  const effective = resolveEffectiveMetadata(captured.extraction.metadata, input.editedMetadata);
+  const editedMetadata = normalizeSubmissionMetadata(input.editedMetadata);
+  const effective = resolveSubmissionMetadata(captured.extraction.metadata, editedMetadata);
   const knowledge = captured.extraction.knowledge;
   const nodeCandidates = captured.extraction.nodeExtraction.nodes.filter(
     (record) => record.status === "ok" && Boolean(record.node),
@@ -201,7 +202,7 @@ export async function createSubmission(
     captured.report,
     captured.extraction.compatibility,
     captured.extraction.metadata,
-    input.editedMetadata,
+    editedMetadata,
     knowledge.claims.length > 0 && knowledge.citations.length > 0,
     knowledge.trust.length > 0,
     publicationTargets.knowledgeNodes,
@@ -329,7 +330,7 @@ export async function createSubmission(
                 : undefined,
               status,
               extractedMetadataJson: canonicalJson(exact.extraction.metadata),
-              editedMetadataJson: canonicalJson(input.editedMetadata ?? { edits: {} }),
+              editedMetadataJson: canonicalJson(editedMetadata ?? { edits: {} }),
               validationReportJson: canonicalJson(validation),
               publicationConsistencyJson: validation.publicationConsistency
                 ? canonicalJson(validation.publicationConsistency)
@@ -429,6 +430,77 @@ export class SubmissionError extends Error {
   ) {
     super(message);
     this.name = "SubmissionError";
+  }
+}
+
+function normalizeSubmissionMetadata(
+  edited: EditedMetadata | undefined,
+): EditedMetadata | undefined {
+  if (!edited) return undefined;
+  const edits: EditedMetadata["edits"] = {};
+  for (const [key, edit] of Object.entries(edited.edits)) {
+    let value = edit.value;
+    if (key === "versionDoi" || key === "conceptDoi") {
+      if (typeof value !== "string") {
+        throw new SubmissionError(`${doiFieldLabel(key)} must be a DOI string.`, "bad-request");
+      }
+      const normalized = normalizeDoi(value);
+      if (!normalized.ok || !normalized.doi) {
+        throw new SubmissionError(
+          `${doiFieldLabel(key)} is invalid. Enter a DOI such as 10.5281/zenodo.21549715.`,
+          "bad-request",
+        );
+      }
+      value = normalized.doi;
+    } else if (key === "zenodoRecordId") {
+      if (typeof value !== "string") {
+        throw new SubmissionError("Zenodo record must be a numeric record id.", "bad-request");
+      }
+      const recordId = zenodoRecordIdInput(value);
+      if (!recordId) {
+        throw new SubmissionError(
+          "Zenodo record is invalid. Enter the numeric id or a Zenodo record URL.",
+          "bad-request",
+        );
+      }
+      value = recordId;
+    }
+    edits[key] = { ...edit, value };
+  }
+  return { edits };
+}
+
+function resolveSubmissionMetadata(
+  extracted: ExtractedMetadata,
+  edited: EditedMetadata | undefined,
+): EffectiveMetadata {
+  try {
+    return resolveEffectiveMetadata(extracted, edited);
+  } catch {
+    throw new SubmissionError(
+      "Edited metadata is invalid. Check the highlighted metadata fields and inspect again.",
+      "bad-request",
+    );
+  }
+}
+
+function doiFieldLabel(key: "versionDoi" | "conceptDoi"): string {
+  return key === "versionDoi" ? "Version DOI" : "Concept DOI";
+}
+
+function zenodoRecordIdInput(value: string): string | undefined {
+  const input = value.trim();
+  if (/^\d+$/.test(input)) return input;
+  const doi = normalizeDoi(input);
+  const doiMatch = doi.ok && doi.doi ? /^10\.5281\/zenodo\.(\d+)$/i.exec(doi.doi) : null;
+  if (doiMatch?.[1]) return doiMatch[1];
+  try {
+    const url = new URL(input);
+    if (url.protocol !== "https:" || url.hostname.toLowerCase() !== "zenodo.org") return undefined;
+    const match = /^\/records\/(\d+)\/?$/.exec(url.pathname);
+    return match?.[1];
+  } catch {
+    return undefined;
   }
 }
 

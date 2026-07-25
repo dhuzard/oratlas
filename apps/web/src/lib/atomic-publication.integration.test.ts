@@ -176,6 +176,69 @@ describe.sequential("atomic publication integration", () => {
     expect(stored?.snapshot?.sourceTreeSha).toBe(treeA);
   });
 
+  it("normalizes manual DOI and Zenodo record forms before finalizing", async () => {
+    const capability = await capture({ githubRepositoryId: nextRepoId() });
+    const editedAt = new Date().toISOString();
+    const result = await runtime.createSubmission({
+      inspectionToken: capability.token,
+      submitterId,
+      editedMetadata: {
+        edits: {
+          versionDoi: {
+            value: "DOI: 10.5555/oratlas.manual.version",
+            meta: { editedAt },
+          },
+          conceptDoi: {
+            value: "https://doi.org/10.5555/oratlas.manual.concept",
+            meta: { editedAt },
+          },
+          zenodoRecordId: {
+            value: "https://zenodo.org/records/21549715",
+            meta: { editedAt },
+          },
+        },
+      },
+    });
+    const stored = await runtime.prisma.submission.findUniqueOrThrow({
+      where: { id: result.submissionId },
+      select: { editedMetadataJson: true, submittedPayloadJson: true },
+    });
+
+    expect(JSON.parse(stored.editedMetadataJson!)).toMatchObject({
+      edits: {
+        versionDoi: { value: "10.5555/oratlas.manual.version" },
+        conceptDoi: { value: "10.5555/oratlas.manual.concept" },
+        zenodoRecordId: { value: "21549715" },
+      },
+    });
+    expect(JSON.parse(stored.submittedPayloadJson!).effectiveMetadata).toMatchObject({
+      versionDoi: "10.5555/oratlas.manual.version",
+      conceptDoi: "10.5555/oratlas.manual.concept",
+      zenodoRecordId: "21549715",
+    });
+  });
+
+  it("returns a typed bad request for invalid manual publication metadata", async () => {
+    const capability = await capture({ githubRepositoryId: nextRepoId() });
+    await expect(
+      runtime.createSubmission({
+        inspectionToken: capability.token,
+        submitterId,
+        editedMetadata: {
+          edits: {
+            versionDoi: {
+              value: "not a DOI",
+              meta: { editedAt: new Date().toISOString() },
+            },
+          },
+        },
+      }),
+    ).rejects.toMatchObject({
+      code: "bad-request",
+      message: expect.stringContaining("Version DOI is invalid"),
+    });
+  });
+
   it("normalizes a canonical legacy capture without node extraction", async () => {
     const capability = await capture({ githubRepositoryId: nextRepoId() });
     const legacyPayload = JSON.parse(capability.payloadJson);

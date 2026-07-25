@@ -5,7 +5,8 @@
 - **USER** — can browse and submit.
 - **EDITOR** — can additionally inspect submissions, request changes, accept, reject, add notes,
   and see the audit log.
-- **ADMIN** — editor privileges (reserved for future administrative actions).
+- **ADMIN** — editor privileges plus explicit, audited administrator overrides
+  where the workflow permits them.
 
 Roles are checked **server-side** on every editorial route (`requireEditor`). The editorial UI is
 also hidden from non-editors, but the server checks are authoritative.
@@ -76,8 +77,8 @@ Editors can:
 
 Every decision writes an `AuditEvent` (`submission.finalized`, `submission.accepted`,
 `review.published`, `submission.reject`, `submission.request-changes`, `auth.mock-login`,
-`auth.mock-login-refused`, …) with the actor, subject, and details. The log is append-only and
-surfaced in the editorial dashboard.
+`auth.mock-login-refused`, `auth.admin-bootstrap`, …) with the actor, subject, and details. The log
+is append-only and surfaced in the editorial dashboard.
 
 ## Conflicts and independence
 

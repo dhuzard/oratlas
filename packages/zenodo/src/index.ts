@@ -11,6 +11,7 @@ export {
   type DoiResolver,
   type DoiResolution,
   type ZenodoRecord,
+  type ZenodoRepositoryResolver,
   type FetchResolverOptions,
 } from "./client.js";
 export { validateDoi, type ValidateDoiInput, type ValidateDoiOptions } from "./validate.js";

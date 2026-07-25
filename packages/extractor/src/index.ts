@@ -38,6 +38,7 @@ export type {
 } from "./nodes.js";
 export * from "./sources.js";
 export { extractSourceAssessmentDocuments } from "./source-assessment-documents.js";
+export { enrichCompatibilityFromZenodo, enrichMetadataFromZenodo } from "./zenodo-metadata.js";
 
 export interface FullExtraction extends ExtractionResult {
   manifest?: ReviewManifest;

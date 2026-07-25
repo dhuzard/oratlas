@@ -9,6 +9,7 @@ substitutions:
   _GITHUB_CLIENT_ID: ""
   _GITHUB_CLIENT_SECRET: oratlas-github-client-secret
   _GITHUB_TOKEN_SECRET: oratlas-github-token
+  _ADMIN_GITHUB_USER_IDS: ""
   _NEXT_PUBLIC_BASE_URL: ""
 
 options:
@@ -78,6 +79,9 @@ steps:
         ENV_VARS="NODE_ENV=production"
         if [[ -n "${_GITHUB_CLIENT_ID}" ]]; then
           ENV_VARS="$${ENV_VARS},GITHUB_CLIENT_ID=${_GITHUB_CLIENT_ID}"
+        fi
+        if [[ -n "${_ADMIN_GITHUB_USER_IDS}" ]]; then
+          ENV_VARS="$${ENV_VARS},ADMIN_GITHUB_USER_IDS=${_ADMIN_GITHUB_USER_IDS}"
         fi
         if [[ -n "${_NEXT_PUBLIC_BASE_URL}" ]]; then
           ENV_VARS="$${ENV_VARS},NEXT_PUBLIC_BASE_URL=${_NEXT_PUBLIC_BASE_URL}"
