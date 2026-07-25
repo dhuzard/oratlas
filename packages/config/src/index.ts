@@ -16,6 +16,9 @@ const serverEnvSchema = z.object({
   GITHUB_TOKEN: z.string().optional(),
   GITHUB_CLIENT_ID: z.string().optional(),
   GITHUB_CLIENT_SECRET: z.string().optional(),
+  // Colon-separated immutable GitHub numeric user IDs that may bootstrap an
+  // ADMIN role at OAuth sign-in. Logins are intentionally not accepted.
+  ADMIN_GITHUB_USER_IDS: z.string().optional(),
   AUTH_MOCK: z.string().optional(),
   LLM_PROVIDER: z.string().optional(),
   ANTHROPIC_API_KEY: z.string().optional(),
@@ -36,11 +39,30 @@ export type ServerEnv = z.infer<typeof serverEnvSchema> & {
   /** Mock sign-in allowed only with explicit opt-in AND outside production. */
   mockAuthEnabled: boolean;
   githubOauthEnabled: boolean;
+  adminGithubUserIds: readonly string[];
   llmEnabled: boolean;
   sessionSecret: string;
 };
 
 let cached: ServerEnv | undefined;
+
+export function parseAdminGithubUserIds(value?: string): readonly string[] {
+  if (!value?.trim()) return [];
+
+  const ids = value
+    .split(":")
+    .map((id) => id.trim())
+    .filter(Boolean);
+  for (const id of ids) {
+    const numericId = Number(id);
+    if (!/^[1-9]\d*$/.test(id) || !Number.isSafeInteger(numericId)) {
+      throw new Error(
+        "ADMIN_GITHUB_USER_IDS must contain colon-separated positive GitHub numeric user IDs.",
+      );
+    }
+  }
+  return [...new Set(ids)];
+}
 
 export function getServerEnv(env: NodeJS.ProcessEnv = process.env): ServerEnv {
   if (cached && env === process.env) return cached;
@@ -56,6 +78,7 @@ export function getServerEnv(env: NodeJS.ProcessEnv = process.env): ServerEnv {
   }
 
   const githubOauthEnabled = Boolean(parsed.GITHUB_CLIENT_ID && parsed.GITHUB_CLIENT_SECRET);
+  const adminGithubUserIds = parseAdminGithubUserIds(parsed.ADMIN_GITHUB_USER_IDS);
   // Never silently enable mock authentication in production (spec §5).
   const mockAuthEnabled = !isProduction && parsed.AUTH_MOCK === "1";
   const llmEnabled = parsed.LLM_PROVIDER === "anthropic" && Boolean(parsed.ANTHROPIC_API_KEY);
@@ -65,6 +88,7 @@ export function getServerEnv(env: NodeJS.ProcessEnv = process.env): ServerEnv {
     isProduction,
     mockAuthEnabled,
     githubOauthEnabled,
+    adminGithubUserIds,
     llmEnabled,
     sessionSecret,
   };

@@ -10,6 +10,10 @@ import {
   resolveGitHubIdentityWithRaceRecovery,
   type GitHubIdentityDatabase,
 } from "@/lib/github-identity";
+import {
+  bootstrapAdminForGithubIdentity,
+  type AdminBootstrapDatabase,
+} from "@/lib/admin-bootstrap";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -71,7 +75,7 @@ export async function GET(request: Request) {
   }
 
   // Store ONLY minimal identity (spec §5).
-  let user: { id: string };
+  let user: { id: string; role: string };
   try {
     user = await resolveGitHubIdentityWithRaceRecovery(
       prisma as unknown as GitHubIdentityDatabase,
@@ -94,6 +98,18 @@ export async function GET(request: Request) {
       );
     }
     throw error;
+  }
+  const adminBootstrap = await bootstrapAdminForGithubIdentity(
+    prisma as unknown as AdminBootstrapDatabase,
+    user,
+    String(gh.id),
+    env.adminGithubUserIds,
+  );
+  user = adminBootstrap.user;
+  if (adminBootstrap.promoted) {
+    await audit(user.id, "auth.admin-bootstrap", "user", user.id, {
+      githubUserId: String(gh.id),
+    });
   }
   await createSession(user.id);
   await audit(user.id, "auth.github-login", "auth", user.id, {});
