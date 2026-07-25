@@ -23,7 +23,7 @@ export interface InspectionLimits {
 }
 
 export const DEFAULT_LIMITS: InspectionLimits = {
-  maxFileBytes: 2 * 1024 * 1024, // 2 MiB per file
+  maxFileBytes: 3 * 1024 * 1024, // 3 MiB per file
   maxTotalBytes: 6 * 1024 * 1024, // 6 MiB total fetched content
   maxFileCount: 24, // well-known files fetched with content
   maxTreeEntries: 5000, // directory traversal bound

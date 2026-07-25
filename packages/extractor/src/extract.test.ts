@@ -56,6 +56,26 @@ describe("runExtraction — template-compatible repository", () => {
     });
   });
 
+  it("extracts TRUST records from an artifact at the Ethical Debt production size", async () => {
+    const productionTrustBytes = 2_340_810;
+    const fixture = structuredClone(templateCompatibleFixture);
+    const path = "knowledge/trust.jsonl";
+    const original = fixture.files![path]!;
+    fixture.files![path] =
+      original + " ".repeat(productionTrustBytes - Buffer.byteLength(original, "utf8"));
+    fixture.contentsInlineLimitBytes = 1024 * 1024;
+
+    const report = await inspect(fixture);
+    const result = runExtraction(report, now);
+
+    expect(report.files[path]).toMatchObject({ size: productionTrustBytes, truncated: false });
+    expect(result.knowledge.trust).toHaveLength(1);
+    expect(result.compatibility.artifactOutcomes.trust).toMatchObject({
+      status: "loaded",
+      loadedCount: 1,
+    });
+  });
+
   it("classifies as compatible or verified-template with explained signals", async () => {
     const report = await inspect(templateCompatibleFixture);
     const result = runExtraction(report, now);
