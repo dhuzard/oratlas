@@ -7,7 +7,7 @@ import {
   CITATION_CFF,
   ZENODO_JSON,
 } from "@oratlas/github/fixtures";
-import { runExtraction } from "./index.js";
+import { enrichCompatibilityFromZenodo, enrichMetadataFromZenodo, runExtraction } from "./index.js";
 import { parseCitationCff, parseZenodoJson } from "./sources.js";
 
 const now = () => new Date("2026-07-01T00:00:00Z");
@@ -81,6 +81,47 @@ describe("runExtraction — partially compatible repository", () => {
       ["partially-compatible", "compatible"].includes(result.compatibility.overallCompatibility),
     ).toBe(true);
     expect(result.compatibility.recommendations.join(" ")).toContain("Zenodo");
+  });
+
+  it("fills missing publication identifiers from an exact Zenodo repository match", async () => {
+    const fixture = structuredClone(partiallyCompatibleFixture);
+    fixture.tags = [{ name: "v0.1.0-rc.2", commitSha: "a".repeat(40) }];
+    const report = await inspect(fixture);
+    const extraction = runExtraction(report, now);
+    const extracted = extraction.metadata;
+    const enriched = enrichMetadataFromZenodo(
+      extracted,
+      report,
+      {
+        recordId: "21549715",
+        doi: "10.5281/zenodo.21549715",
+        conceptRecordId: "21549714",
+        conceptDoi: "10.5281/zenodo.21549714",
+        title: "The Ethical Debt",
+        creators: ["Huzard, Damien"],
+        relatedUrls: ["https://github.com/dhuzard/ethical-debt-AI-review"],
+        versionTag: "0.1.0-rc.2",
+      },
+      now,
+    );
+
+    expect(enriched.fields.versionDoi?.value).toBe("10.5281/zenodo.21549715");
+    expect(enriched.fields.conceptDoi?.value).toBe("10.5281/zenodo.21549714");
+    expect(enriched.fields.zenodoRecordId?.value).toBe("21549715");
+    expect(enriched.fields.releaseTag?.value).toBe("v0.1.0-rc.2");
+    expect(enriched.fields.versionDoi?.provenance).toMatchObject({
+      source: "zenodo-api",
+      pointer: "metadata.doi",
+      confidence: 1,
+    });
+    const compatibility = enrichCompatibilityFromZenodo(extraction.compatibility, enriched);
+    expect(compatibility.doiDetected).toEqual({
+      detected: true,
+      evidence: ["Zenodo record 21549715 matched the exact GitHub repository URL."],
+    });
+    expect(compatibility.recommendations.join(" ")).not.toContain(
+      "Connect the repository to Zenodo",
+    );
   });
 });
 

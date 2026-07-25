@@ -122,4 +122,90 @@ describe("createFetchResolver security boundaries", () => {
     expect(record).toBeNull();
     expect(cancelled).toBe(true);
   });
+
+  it("discovers the newest Zenodo record by an exact GitHub repository relation", async () => {
+    const fetchImpl = vi.fn<typeof fetch>(
+      async () =>
+        new Response(
+          JSON.stringify({
+            hits: {
+              hits: [
+                {
+                  id: 21549715,
+                  doi: "10.5281/zenodo.21549715",
+                  conceptrecid: "21549714",
+                  conceptdoi: "10.5281/zenodo.21549714",
+                  metadata: {
+                    title: "The Ethical Debt",
+                    version: "0.1.0-rc.2",
+                    related_identifiers: [
+                      {
+                        identifier: "https://github.com/dhuzard/ethical-debt-AI-review",
+                        relation: "isSupplementTo",
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+          }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        ),
+    );
+    const record = await createFetchResolver({ fetchImpl }).findZenodoRecordByRepositoryUrl(
+      "https://github.com/dhuzard/ethical-debt-AI-review/",
+    );
+
+    expect(record).toMatchObject({
+      recordId: "21549715",
+      doi: "10.5281/zenodo.21549715",
+      conceptRecordId: "21549714",
+      conceptDoi: "10.5281/zenodo.21549714",
+      versionTag: "0.1.0-rc.2",
+    });
+    const requested = new URL(String(fetchImpl.mock.calls[0]![0]));
+    expect(requested.origin + requested.pathname).toBe("https://zenodo.org/api/records");
+    expect(requested.searchParams.get("q")).toBe(
+      'metadata.related_identifiers.identifier:"https://github.com/dhuzard/ethical-debt-AI-review"',
+    );
+    expect(fetchImpl.mock.calls[0]![1]?.redirect).toBe("error");
+  });
+
+  it("rejects invalid repository URLs and search false positives", async () => {
+    const fetchImpl = vi.fn<typeof fetch>(
+      async () =>
+        new Response(
+          JSON.stringify({
+            hits: {
+              hits: [
+                {
+                  id: 1,
+                  doi: "10.5281/zenodo.1",
+                  metadata: {
+                    related_identifiers: [
+                      {
+                        identifier: "https://github.com/other/project",
+                        relation: "isSupplementTo",
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+          }),
+          { status: 200 },
+        ),
+    );
+    const resolver = createFetchResolver({ fetchImpl });
+
+    await expect(
+      resolver.findZenodoRecordByRepositoryUrl("https://github.com/owner/repo/issues"),
+    ).resolves.toBeNull();
+    expect(fetchImpl).not.toHaveBeenCalled();
+
+    await expect(
+      resolver.findZenodoRecordByRepositoryUrl("https://github.com/owner/repo"),
+    ).resolves.toBeNull();
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
 });
