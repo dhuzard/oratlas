@@ -105,7 +105,7 @@ export default async function ArchivePage({
                           <Link href={`/nodes/${item.node.id}`}>{item.node.title}</Link>
                         </h2>
                         <div className="meta">
-                          <Badge>node</Badge>
+                          <Badge>research object</Badge>
                           <Badge>{item.node.kind}</Badge>
                         </div>
                         {item.node.abstract ? <p>{truncate(item.node.abstract)}</p> : null}

@@ -30,7 +30,7 @@ export function NodeView({
         </Notice>
       ) : null}
       <div className="btn-row">
-        <Badge>knowledge node</Badge>
+        <Badge>research object</Badge>
         <Badge>{node.kind}</Badge>
         {version.isExample ? <Badge tone="warning">contains example identifier</Badge> : null}
       </div>

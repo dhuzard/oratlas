@@ -38,10 +38,10 @@ export default async function NodesPage({
         nodes. Each stable URL exposes immutable version history and confirmed graph context.
       </p>
       <div className="grid layout-2">
-        <section aria-label="Knowledge node results">
+        <section aria-label="Research object results">
           {result.items.length === 0 ? (
             <Card>
-              <p className="muted">No knowledge nodes match these filters.</p>
+              <p className="muted">No research objects match these filters.</p>
             </Card>
           ) : (
             <ul className="review-list">
@@ -49,7 +49,7 @@ export default async function NodesPage({
                 <li key={node.id} className="review-item">
                   <Card as="article">
                     <div className="meta">
-                      <Badge>node</Badge>
+                      <Badge>research object</Badge>
                       <Badge>{node.kind}</Badge>
                     </div>
                     <h2 style={{ fontSize: "1.2rem", margin: "0.4rem 0" }}>
@@ -124,7 +124,7 @@ function Pagination({
     return `/nodes?${params}`;
   };
   return (
-    <nav className="btn-row" aria-label="Knowledge node result pages">
+    <nav className="btn-row" aria-label="Research object result pages">
       {page > 1 ? <Link href={href(page - 1)}>Previous</Link> : null}
       <span className="muted">
         Page {page} of {pages}

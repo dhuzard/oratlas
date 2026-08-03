@@ -28,7 +28,7 @@ export default async function DiscussPage({
           : " No LLM provider is configured, so responses are deterministic structured evidence summaries rather than generated prose."}
       </p>
       <p className="notice notice-info" data-register="open-discussion">
-        Atlas Discuss output is open discussion, not a formal challenge. It neither creates nor
+        Grounded Q&amp;A output is open discussion, not a formal challenge. It neither creates nor
         changes a TRUST assessment, formal review report, challenge record, editorial decision, or
         immutable archive.
       </p>

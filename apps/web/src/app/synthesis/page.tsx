@@ -20,7 +20,7 @@ const KIND_TONE: Record<ContradictionMapRow["kind"], "warning" | "info" | "neutr
 };
 
 /**
- * Cross-review contradiction map. Every classification is a deterministic
+ * Cross-review disagreement map. Every classification is a deterministic
  * rule over declared identifiers and stored relations — distinguishing
  * genuine disagreement from a scope difference, and independent evidence from
  * repeated use of the same underlying source.

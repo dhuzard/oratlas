@@ -1,9 +1,9 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { SpecialistToolBreadcrumb, SpecialistTools } from "./SpecialistTools";
+import { SpecialistToolBreadcrumb, SpecialistTools } from "./SpecialistTools.js";
 
 describe("SpecialistTools", () => {
-  it("keeps every specialist route available outside the primary navigation", () => {
+  it("renders every specialist route in the contextual index", () => {
     const html = renderToStaticMarkup(<SpecialistTools />);
 
     for (const href of [
