@@ -8,6 +8,13 @@ import {
 } from "@oratlas/contracts";
 import { TrustVerificationBadge } from "@/components/TrustVerificationBadge";
 import { SpecialistTools } from "@/components/SpecialistTools";
+import { ExplorationIntent } from "@/components/ExplorationIntent";
+import { KnowledgeLandscape } from "@/components/KnowledgeLandscape";
+import {
+  buildKnowledgeLandscape,
+  EXPLORATION_INTERESTS,
+  normalizeExplorationInterests,
+} from "@/lib/knowledge-landscape";
 import { searchArchive } from "@/lib/archive-search";
 import { buildKnowledgeIndex } from "@/lib/index-builder";
 
@@ -20,6 +27,12 @@ type SearchParameters = Record<string, string | string[] | undefined>;
 function first(parameters: SearchParameters, key: string): string | undefined {
   const value = parameters[key];
   return Array.isArray(value) ? value[0] : value;
+}
+
+function all(parameters: SearchParameters, key: string): string[] {
+  const value = parameters[key];
+  if (!value) return [];
+  return Array.isArray(value) ? value : [value];
 }
 
 function bool(value: string | undefined): boolean | undefined {
@@ -49,6 +62,7 @@ export default async function ExplorePage({
   const q = get("q")?.trim() || undefined;
   const page = positivePage(get("page"));
   const sort = archiveSort(get("sort"));
+  const selectedInterests = normalizeExplorationInterests(all(parameters, "interest"));
   const index = await buildKnowledgeIndex();
   const provider = new InProcessSearchProvider(index);
 
@@ -61,6 +75,16 @@ export default async function ExplorePage({
     page: view === "claims" ? page : 1,
     pageSize: 20,
   });
+  const landscapeClaimResults = provider.searchClaims({
+    q,
+    reviewSlug: get("reviewSlug") || undefined,
+    claimType: get("claimType") || undefined,
+    relationType: get("relationType") || undefined,
+    trustCriterion: get("trustCriterion") || undefined,
+    page: 1,
+    pageSize: 40,
+  });
+  const landscape = buildKnowledgeLandscape(index, landscapeClaimResults.items, selectedInterests);
   const reviewQuery = archiveSearchQuerySchema.parse({
     contentType: "review",
     q,
@@ -97,6 +121,9 @@ export default async function ExplorePage({
         </p>
         <form action="/explore" method="get" role="search" className="explore-search">
           <input type="hidden" name="view" value={view} />
+          {selectedInterests.map((interest) => (
+            <input type="hidden" name="interest" value={interest} key={interest} />
+          ))}
           <label htmlFor="explore-q" className="sr-only">
             Search claims, reviews, or authors
           </label>
@@ -114,10 +141,16 @@ export default async function ExplorePage({
       </header>
 
       <nav className="explore-tabs" aria-label="Explore content">
-        <Link href={viewHref("claims", q)} aria-current={view === "claims" ? "page" : undefined}>
+        <Link
+          href={viewHref("claims", q, selectedInterests)}
+          aria-current={view === "claims" ? "page" : undefined}
+        >
           Claims <span>{claimResults.total}</span>
         </Link>
-        <Link href={viewHref("reviews", q)} aria-current={view === "reviews" ? "page" : undefined}>
+        <Link
+          href={viewHref("reviews", q, selectedInterests)}
+          aria-current={view === "reviews" ? "page" : undefined}
+        >
           Reviews <span>{reviewResults.total}</span>
         </Link>
       </nav>
@@ -136,6 +169,9 @@ export default async function ExplorePage({
           <form action="/explore" method="get" className="filters">
             <input type="hidden" name="view" value={view} />
             {q ? <input type="hidden" name="q" value={q} /> : null}
+            {selectedInterests.map((interest) => (
+              <input type="hidden" name="interest" value={interest} key={interest} />
+            ))}
             {view === "claims" ? (
               <>
                 <div className="field">
@@ -251,11 +287,31 @@ export default async function ExplorePage({
               <button className="btn" type="submit">
                 Apply filters
               </button>
-              {activeFilterCount > 0 ? <Link href={viewHref(view, q)}>Clear filters</Link> : null}
+              {activeFilterCount > 0 ? (
+                <Link href={viewHref(view, q, selectedInterests)}>Clear filters</Link>
+              ) : null}
             </div>
           </form>
         </details>
       </div>
+
+      <ExplorationIntent query={q} selectedInterests={selectedInterests} view={view} />
+
+      {q || selectedInterests.length > 0 ? (
+        <KnowledgeLandscape
+          landscape={landscape}
+          focus={
+            q ??
+            selectedInterests
+              .map(
+                (selected) =>
+                  EXPLORATION_INTERESTS.find((interest) => interest.id === selected)?.label ??
+                  selected,
+              )
+              .join(", ")
+          }
+        />
+      ) : null}
 
       <SpecialistTools />
 
@@ -390,17 +446,21 @@ export default async function ExplorePage({
   );
 }
 
-function viewHref(view: ExploreView, q?: string): string {
+function viewHref(view: ExploreView, q?: string, interests: string[] = []): string {
   const parameters = new URLSearchParams({ view });
   if (q) parameters.set("q", q);
+  for (const interest of interests) parameters.append("interest", interest);
   return "/explore?" + parameters;
 }
 
 function pageHref(parameters: SearchParameters, page: number): string {
   const output = new URLSearchParams();
   for (const [key, value] of Object.entries(parameters)) {
-    const firstValue = Array.isArray(value) ? value[0] : value;
-    if (key !== "page" && firstValue) output.set(key, firstValue);
+    if (key === "page" || !value) continue;
+    const values = Array.isArray(value) ? value : [value];
+    for (const entry of values) {
+      if (entry) output.append(key, entry);
+    }
   }
   output.set("page", String(page));
   return "/explore?" + output;
