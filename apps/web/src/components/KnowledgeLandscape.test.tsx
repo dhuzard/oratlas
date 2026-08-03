@@ -40,6 +40,7 @@ describe("KnowledgeLandscape", () => {
 
     expect(html).toContain('aria-label="Guided knowledge landscape"');
     expect(html).toContain('aria-label="Knowledge landscape details"');
+    expect(html).toContain('data-relation="contradicts"');
     expect(html).toContain('href="/claims/one/claim-1"');
     expect(html).toContain("A bounded path through");
   });

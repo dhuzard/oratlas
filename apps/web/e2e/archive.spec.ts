@@ -80,7 +80,9 @@ test.describe("Public archive browsing", () => {
     ).toBeVisible();
     const details = landscape.getByRole("navigation", { name: "Knowledge landscape details" });
     await expect(details.getByRole("link").first()).toBeVisible();
-    await expect(landscape.getByText("contradicts", { exact: true })).toBeVisible();
+    await expect(landscape.locator('.landscape-legend [data-relation="contradicts"]')).toHaveText(
+      "contradicts",
+    );
   });
 
   test("specialist tools stay contextual and return to Explore", async ({ page }) => {
