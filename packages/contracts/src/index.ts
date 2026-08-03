@@ -32,3 +32,4 @@ export * from "./execution-passports.js";
 export * from "./atlas-check.js";
 export * from "./trust-disagreement.js";
 export * from "./trust-adjudication.js";
+export * from "./knowledge-landscape.js";

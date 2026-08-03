@@ -10,11 +10,8 @@ import { TrustVerificationBadge } from "@/components/TrustVerificationBadge";
 import { SpecialistTools } from "@/components/SpecialistTools";
 import { ExplorationIntent } from "@/components/ExplorationIntent";
 import { KnowledgeLandscape } from "@/components/KnowledgeLandscape";
-import {
-  buildKnowledgeLandscape,
-  EXPLORATION_INTERESTS,
-  normalizeExplorationInterests,
-} from "@/lib/knowledge-landscape";
+import { EXPLORATION_INTERESTS, normalizeExplorationInterests } from "@/lib/knowledge-landscape";
+import { createKnowledgeLandscapeResponse } from "@/lib/knowledge-landscape-service";
 import { searchArchive } from "@/lib/archive-search";
 import { buildKnowledgeIndex } from "@/lib/index-builder";
 
@@ -76,19 +73,16 @@ export default async function ExplorePage({
     page: view === "claims" ? page : 1,
     pageSize: 20,
   });
-  const landscapeClaimResults = provider.searchClaims({
+  const landscapeResponse = createKnowledgeLandscapeResponse(index, {
     q,
+    interests: selectedInterests,
+    focusNodeId: requestedLandscapeFocus,
     reviewSlug: get("reviewSlug") || undefined,
     claimType: get("claimType") || undefined,
     relationType: get("relationType") || undefined,
     trustCriterion: get("trustCriterion") || undefined,
-    page: 1,
-    pageSize: 40,
   });
-  const landscape = buildKnowledgeLandscape(index, landscapeClaimResults.items, selectedInterests, {
-    query: q,
-    focusNodeId: requestedLandscapeFocus,
-  });
+  const landscape = landscapeResponse.landscape;
   const landscapeOverviewHref = landscapeHref(parameters);
   const landscapeFocusHrefs = Object.fromEntries(
     landscape.nodes.map((node) => [node.id, landscapeHref(parameters, node.id)]),
