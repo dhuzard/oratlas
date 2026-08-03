@@ -29,6 +29,7 @@ import { loadSynthesisReadingContext } from "@/lib/synthesis-reading";
 import { SynthesisReader } from "./SynthesisReader";
 import { CompatibilityFacets } from "@/components/CompatibilityFacets";
 import { ArtifactOutcomes } from "@/components/ArtifactOutcomes";
+import { formatCountLabel, InspectionPath } from "@/components/InspectionPath";
 
 export const dynamic = "force-dynamic";
 
@@ -187,6 +188,20 @@ export default async function ReviewPage({
       );
     }
   }
+  const evidenceRelationCount = review.claims.reduce(
+    (count, claim) => count + claim.relations.length,
+    0,
+  );
+  const assessmentEntries = review.claims.flatMap((claim) =>
+    claim.relations.flatMap((relation) =>
+      relation.trusts.map((assessment) => ({ claim, relation, assessment })),
+    ),
+  );
+  const disagreementEntries = review.claims.flatMap((claim) =>
+    claim.relations.flatMap((relation) =>
+      relation.trustDisagreements.map((disagreement) => ({ claim, relation, disagreement })),
+    ),
+  );
 
   const revisionSwhid = review.snapshot.commitSha
     ? swhidForRevision(review.snapshot.commitSha)
@@ -220,6 +235,37 @@ export default async function ReviewPage({
         ) : null}
         {review.version.isExample ? <Badge tone="warning">example data</Badge> : null}
       </div>
+
+      <h1>{review.title}</h1>
+      {review.abstract ? <p className="prose">{review.abstract}</p> : null}
+
+      <InspectionPath
+        label="Inspect this review"
+        steps={[
+          {
+            href: "#original-record",
+            label: "Original record",
+            detail: "Article, version and source",
+          },
+          {
+            href: "#linked-evidence",
+            label: "Claims & evidence",
+            detail: `${formatCountLabel(review.claims.length, "claim")} · ${formatCountLabel(evidenceRelationCount, "relation")}`,
+          },
+          {
+            href: "#assessments",
+            label: "Assessments",
+            detail: formatCountLabel(assessmentEntries.length, "separate record"),
+          },
+          {
+            href: "#disagreements",
+            label: "Disagreements",
+            detail: `${disagreementEntries.length + challengeList.challenges.length} recorded`,
+          },
+        ]}
+      />
+
+      <span id="original-record" className="inspection-anchor" />
 
       <Card title="Source artifact outcomes">
         <p className="muted">
@@ -315,9 +361,6 @@ export default async function ReviewPage({
           </Notice>
         );
       })}
-
-      <h1>{review.title}</h1>
-      {review.abstract ? <p className="prose">{review.abstract}</p> : null}
 
       {protocolDrift?.snapshots.length ? (
         <Card title={`Protocol Drift Radar (${protocolDrift.openCount} open)`}>
@@ -554,7 +597,8 @@ export default async function ReviewPage({
             </Notice>
           )}
 
-          <Card title="Claims and evidence">
+          <span id="linked-evidence" className="inspection-anchor" />
+          <Card title="Claims and linked evidence">
             {review.claims.length === 0 ? (
               <p className="muted">No claims were extracted for this review.</p>
             ) : (
@@ -623,6 +667,7 @@ export default async function ReviewPage({
                         {rel.trustDisagreements.map((disagreement) => (
                           <details
                             key={disagreement.disagreementHash}
+                            id={`disagreement-${disagreement.disagreementHash}`}
                             data-register="trust-disagreement"
                           >
                             <summary>
@@ -690,6 +735,29 @@ export default async function ReviewPage({
               })
             )}
           </Card>
+
+          <div id="assessments" className="inspection-anchor">
+            <Card title={`Separate assessments (${assessmentEntries.length})`}>
+              <p className="muted">
+                Formal TRUST assessments stay attached to their exact evidence relation. ORAtlas
+                preserves conflicting ratings as separate records and does not average them.
+              </p>
+              {assessmentEntries.length === 0 ? (
+                <p className="muted">No formal TRUST assessments are attached to this review.</p>
+              ) : (
+                <ul>
+                  {assessmentEntries.map(({ claim, relation, assessment }) => (
+                    <li key={assessment.assessmentId}>
+                      <a href={`#assessment-${assessment.assessmentId}`}>
+                        {claim.localClaimId} · {relation.citationTitle ?? relation.citationLocalId}
+                      </a>{" "}
+                      <span className="mono muted">{assessment.protocolVersion}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Card>
+          </div>
 
           {review.citations.length > 0 ? (
             <Card title="Citations">
@@ -804,20 +872,45 @@ export default async function ReviewPage({
             </section>
           ) : null}
 
-          <ChallengesSection
-            initial={challengeList}
-            subjects={challengeSubjects}
-            canFile={Boolean(user)}
-            viewer={
-              user
-                ? {
-                    githubLogin: user.githubLogin,
-                    isContributor: viewerIsContributor,
-                    canResolve: isEditor(user),
-                  }
-                : null
-            }
-          />
+          <div id="disagreements" className="inspection-anchor">
+            <Card
+              title={`Disagreements and formal challenges (${disagreementEntries.length + challengeList.challenges.length})`}
+            >
+              <p className="muted">
+                Assessment disagreements and attributed challenges remain visible alongside the
+                preserved record. They do not rewrite claims, evidence relations, or assessments.
+              </p>
+              {disagreementEntries.length > 0 ? (
+                <ul>
+                  {disagreementEntries.map(({ claim, relation, disagreement }) => (
+                    <li key={disagreement.disagreementHash}>
+                      <a href={`#disagreement-${disagreement.disagreementHash}`}>
+                        TRUST disagreement on {claim.localClaimId} ·{" "}
+                        {relation.citationTitle ?? relation.citationLocalId}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="muted">No TRUST rating disagreement is recorded.</p>
+              )}
+            </Card>
+
+            <ChallengesSection
+              initial={challengeList}
+              subjects={challengeSubjects}
+              canFile={Boolean(user)}
+              viewer={
+                user
+                  ? {
+                      githubLogin: user.githubLogin,
+                      isContributor: viewerIsContributor,
+                      canResolve: isEditor(user),
+                    }
+                  : null
+              }
+            />
+          </div>
 
           <CommentsSection
             reviewSlug={review.slug}

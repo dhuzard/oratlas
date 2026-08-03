@@ -6,6 +6,7 @@ import { getClaimPassport } from "@/lib/claim-monitoring";
 import { getClaimIndependence } from "@/lib/synthesis";
 import { TrustVerificationBadge } from "@/components/TrustVerificationBadge";
 import { ArtifactOutcomes } from "@/components/ArtifactOutcomes";
+import { InspectionPath } from "@/components/InspectionPath";
 
 export const dynamic = "force-dynamic";
 
@@ -34,6 +35,10 @@ export default async function ClaimPassportPage({
   if (!passport) notFound();
   const openAlerts = passport.alerts.filter((alert) => alert.status === "open");
   const independence = await getClaimIndependence(versionId, localClaimId);
+  const assessments = passport.evidence.flatMap((relation) =>
+    relation.trustAssessments.map((assessment) => ({ relation, assessment })),
+  );
+  const disagreementCount = independence?.contradictions.length ?? 0;
 
   return (
     <article>
@@ -56,105 +61,161 @@ export default async function ClaimPassportPage({
         </Notice>
       ) : null}
 
-      <Card title="Identity">
-        <DefinitionList
-          items={[
-            { term: "Claim ID", value: <span className="mono">{passport.claimId}</span> },
-            { term: "Local ID", value: <span className="mono">{passport.localClaimId}</span> },
-            {
-              term: "Review version",
-              value: (
-                <Link href={`/reviews/${passport.reviewSlug}/versions/${passport.versionId}`}>
-                  {passport.reviewTitle}
-                  {passport.semanticVersion ? ` (v${passport.semanticVersion})` : ""}
-                </Link>
-              ),
-            },
-            {
-              term: "Published",
-              value: passport.publishedAt?.slice(0, 10) ?? <span className="muted">—</span>,
-            },
-            { term: "Section", value: passport.section ?? <span className="muted">—</span> },
-          ]}
-        />
-      </Card>
+      <InspectionPath
+        label="Inspect this claim"
+        steps={[
+          {
+            href: "#original-record",
+            label: "Original record",
+            detail: "Exact claim and version",
+          },
+          {
+            href: "#linked-evidence",
+            label: "Linked evidence",
+            detail: `${passport.evidence.length} relation${passport.evidence.length === 1 ? "" : "s"}`,
+          },
+          {
+            href: "#assessments",
+            label: "Assessments",
+            detail: `${assessments.length} separate record${assessments.length === 1 ? "" : "s"}`,
+          },
+          {
+            href: "#disagreements",
+            label: "Disagreements",
+            detail: `${disagreementCount} contradiction${disagreementCount === 1 ? "" : "s"}`,
+          },
+        ]}
+      />
 
-      <Card title={`Also asserted in (${passport.alsoAssertedIn.length})`}>
-        <p className="muted">
-          These links were confirmed by an editor from deterministic same-claim proposals. They do
-          not merge claims or carry TRUST assessments between review protocols.
-        </p>
-        {passport.alsoAssertedIn.length === 0 ? (
-          <p className="muted">No cross-review same-claim identity has been confirmed.</p>
-        ) : (
-          <ul>
-            {passport.alsoAssertedIn.map((assertion) => (
-              <li key={`${assertion.proposalId}:${assertion.versionId}:${assertion.localClaimId}`}>
-                <Link
-                  href={`/claims/${assertion.versionId}/${encodeURIComponent(assertion.localClaimId)}`}
+      <div id="original-record" className="inspection-anchor">
+        <Card title="Original claim record">
+          <DefinitionList
+            items={[
+              { term: "Claim ID", value: <span className="mono">{passport.claimId}</span> },
+              { term: "Local ID", value: <span className="mono">{passport.localClaimId}</span> },
+              {
+                term: "Review version",
+                value: (
+                  <Link href={`/reviews/${passport.reviewSlug}/versions/${passport.versionId}`}>
+                    {passport.reviewTitle}
+                    {passport.semanticVersion ? ` (v${passport.semanticVersion})` : ""}
+                  </Link>
+                ),
+              },
+              {
+                term: "Published",
+                value: passport.publishedAt?.slice(0, 10) ?? <span className="muted">—</span>,
+              },
+              { term: "Section", value: passport.section ?? <span className="muted">—</span> },
+            ]}
+          />
+        </Card>
+
+        <Card title={`Also asserted in (${passport.alsoAssertedIn.length})`}>
+          <p className="muted">
+            These links were confirmed by an editor from deterministic same-claim proposals. They do
+            not merge claims or carry TRUST assessments between review protocols.
+          </p>
+          {passport.alsoAssertedIn.length === 0 ? (
+            <p className="muted">No cross-review same-claim identity has been confirmed.</p>
+          ) : (
+            <ul>
+              {passport.alsoAssertedIn.map((assertion) => (
+                <li
+                  key={`${assertion.proposalId}:${assertion.versionId}:${assertion.localClaimId}`}
                 >
-                  {assertion.reviewTitle}: {assertion.title}
-                </Link>{" "}
-                <span className="muted">(separate claim node)</span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </Card>
-
-      <Card title="Source artifact context">
-        <p className="muted">
-          Repository-level inspection context. The evidence count below remains specific to this
-          claim.
-        </p>
-        <ArtifactOutcomes
-          report={passport.compatibilityReport}
-          only={["claims", "citations", "relations", "trust"]}
-        />
-      </Card>
-
-      <Card title={`Evidence (${passport.evidence.length})`}>
-        {passport.evidence.length === 0 ? (
-          <p className="muted">No evidence relations were extracted for this claim.</p>
-        ) : (
-          passport.evidence.map((relation) => (
-            <div
-              className="relation-row deep-link-target"
-              id={`relation-${relation.id}`}
-              key={relation.id}
-            >
-              <Badge tone={relation.relationType === "contradicts" ? "warning" : "neutral"}>
-                {relation.relationType.replace(/-/g, " ")}
-              </Badge>
-              <span>
-                {relation.citationTitle ?? relation.citationLocalId}
-                {relation.citationDoi ? (
-                  relation.citationIsExample ? (
-                    <span className="mono"> ({relation.citationDoi}, example)</span>
-                  ) : (
-                    <a className="mono" href={`https://doi.org/${relation.citationDoi}`}>
-                      {" "}
-                      ({relation.citationDoi})
-                    </a>
-                  )
-                ) : null}
-              </span>
-              {relation.sourceLocation ? (
-                <span className="mono muted">@ {relation.sourceLocation}</span>
-              ) : null}
-              {relation.trustAssessments.map((assessment) => (
-                <span className="btn-row" key={assessment.assessmentId}>
-                  <TrustVerificationBadge state={assessment.verificationState} />
-                  <span className="mono muted">protocol {assessment.protocolVersion}</span>
-                </span>
+                  <Link
+                    href={`/claims/${assertion.versionId}/${encodeURIComponent(assertion.localClaimId)}`}
+                  >
+                    {assertion.reviewTitle}: {assertion.title}
+                  </Link>{" "}
+                  <span className="muted">(separate claim node)</span>
+                </li>
               ))}
-              {relation.hasTrustAssessment && relation.trustAssessments.length === 0 ? (
-                <TrustVerificationBadge state="legacy-unknown" />
-              ) : null}
-            </div>
-          ))
-        )}
-      </Card>
+            </ul>
+          )}
+        </Card>
+
+        <Card title="Source artifact context">
+          <p className="muted">
+            Repository-level inspection context. The evidence count below remains specific to this
+            claim.
+          </p>
+          <ArtifactOutcomes
+            report={passport.compatibilityReport}
+            only={["claims", "citations", "relations", "trust"]}
+          />
+        </Card>
+      </div>
+
+      <div id="linked-evidence" className="inspection-anchor">
+        <Card title={`Linked evidence (${passport.evidence.length})`}>
+          {passport.evidence.length === 0 ? (
+            <p className="muted">No evidence relations were extracted for this claim.</p>
+          ) : (
+            passport.evidence.map((relation) => (
+              <div
+                className="relation-row deep-link-target"
+                id={`relation-${relation.id}`}
+                key={relation.id}
+              >
+                <Badge tone={relation.relationType === "contradicts" ? "warning" : "neutral"}>
+                  {relation.relationType.replace(/-/g, " ")}
+                </Badge>
+                <span>
+                  {relation.citationTitle ?? relation.citationLocalId}
+                  {relation.citationDoi ? (
+                    relation.citationIsExample ? (
+                      <span className="mono"> ({relation.citationDoi}, example)</span>
+                    ) : (
+                      <a className="mono" href={`https://doi.org/${relation.citationDoi}`}>
+                        {" "}
+                        ({relation.citationDoi})
+                      </a>
+                    )
+                  ) : null}
+                </span>
+                {relation.sourceLocation ? (
+                  <span className="mono muted">@ {relation.sourceLocation}</span>
+                ) : null}
+                {relation.trustAssessments.map((assessment) => (
+                  <span className="btn-row" key={assessment.assessmentId}>
+                    <TrustVerificationBadge state={assessment.verificationState} />
+                    <span className="mono muted">protocol {assessment.protocolVersion}</span>
+                  </span>
+                ))}
+                {relation.hasTrustAssessment && relation.trustAssessments.length === 0 ? (
+                  <TrustVerificationBadge state="legacy-unknown" />
+                ) : null}
+              </div>
+            ))
+          )}
+        </Card>
+      </div>
+
+      <div id="assessments" className="inspection-anchor">
+        <Card title={`Separate assessments (${assessments.length})`}>
+          <p className="muted">
+            Each TRUST assessment remains an attributable record attached to one evidence relation.
+            ORAtlas does not average ratings or infer assessor independence.
+          </p>
+          {assessments.length === 0 ? (
+            <p className="muted">No formal TRUST assessment is attached to this claim.</p>
+          ) : (
+            <ul>
+              {assessments.map(({ relation, assessment }) => (
+                <li key={assessment.assessmentId}>
+                  <a href={`#relation-${relation.id}`}>
+                    {relation.citationTitle ?? relation.citationLocalId}
+                  </a>{" "}
+                  — protocol <span className="mono">{assessment.protocolVersion}</span>{" "}
+                  <TrustVerificationBadge state={assessment.verificationState} />
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
+      </div>
 
       <Card title={`Execution passports (${passport.executionPassports.length})`}>
         <p className="muted">
@@ -204,69 +265,75 @@ export default async function ClaimPassportPage({
         )}
       </Card>
 
-      {independence ? (
-        <Card title="Independence &amp; contradictions">
-          <p className="muted">
-            Independent evidence is counted in families: cited works sharing a dataset, cohort or
-            derivative lineage collapse into one. Circular citations back into the archive are
-            excluded.
-          </p>
-          <DefinitionList
-            items={[
-              {
-                term: "Supporting works",
-                value: `${independence.summary.supportingWorks} (${independence.summary.independentSupportingFamilies} independent famil${independence.summary.independentSupportingFamilies === 1 ? "y" : "ies"})`,
-              },
-              {
-                term: "Opposing works",
-                value: `${independence.summary.opposingWorks} (${independence.summary.independentOpposingFamilies} independent famil${independence.summary.independentOpposingFamilies === 1 ? "y" : "ies"})`,
-              },
-              {
-                term: "Shared with other claims",
-                value:
-                  independence.summary.sharedWorkKeys.length > 0 ? (
-                    <span className="mono">{independence.summary.sharedWorkKeys.join(", ")}</span>
-                  ) : (
-                    <span className="muted">none</span>
-                  ),
-              },
-              {
-                term: "Circular citations",
-                value:
-                  independence.summary.circularCitationIds.length > 0 ? (
-                    <Badge tone="warning">
-                      {independence.summary.circularCitationIds.length} (excluded from counts)
-                    </Badge>
-                  ) : (
-                    <span className="muted">none</span>
-                  ),
-              },
-            ]}
-          />
-          {independence.contradictions.length > 0 ? (
-            <ul>
-              {independence.contradictions.map((row, index) => {
-                const other = row.a.claimId === passport.claimId ? row.b : row.a;
-                return (
-                  <li key={index}>
-                    {row.kind === "scope-difference"
-                      ? `Scope difference (${row.differingScopeFields.join(", ")})`
-                      : row.kind === "undetermined-scope"
-                        ? "Contradiction over shared evidence (scope undeclared)"
-                        : "Genuine contradiction over shared evidence"}{" "}
-                    with <Link href={other.passportPath}>{other.text.slice(0, 80)}</Link>
-                  </li>
-                );
-              })}
-            </ul>
-          ) : (
-            <p className="muted">No opposing claims detected in the current corpus.</p>
-          )}
-          <p>
-            <Link href="/synthesis">View the full contradiction map</Link>.
-          </p>
-        </Card>
-      ) : null}
+      <div id="disagreements" className="inspection-anchor">
+        {independence ? (
+          <Card title="Independence &amp; contradictions">
+            <p className="muted">
+              Independent evidence is counted in families: cited works sharing a dataset, cohort or
+              derivative lineage collapse into one. Circular citations back into the archive are
+              excluded.
+            </p>
+            <DefinitionList
+              items={[
+                {
+                  term: "Supporting works",
+                  value: `${independence.summary.supportingWorks} (${independence.summary.independentSupportingFamilies} independent famil${independence.summary.independentSupportingFamilies === 1 ? "y" : "ies"})`,
+                },
+                {
+                  term: "Opposing works",
+                  value: `${independence.summary.opposingWorks} (${independence.summary.independentOpposingFamilies} independent famil${independence.summary.independentOpposingFamilies === 1 ? "y" : "ies"})`,
+                },
+                {
+                  term: "Shared with other claims",
+                  value:
+                    independence.summary.sharedWorkKeys.length > 0 ? (
+                      <span className="mono">{independence.summary.sharedWorkKeys.join(", ")}</span>
+                    ) : (
+                      <span className="muted">none</span>
+                    ),
+                },
+                {
+                  term: "Circular citations",
+                  value:
+                    independence.summary.circularCitationIds.length > 0 ? (
+                      <Badge tone="warning">
+                        {independence.summary.circularCitationIds.length} (excluded from counts)
+                      </Badge>
+                    ) : (
+                      <span className="muted">none</span>
+                    ),
+                },
+              ]}
+            />
+            {independence.contradictions.length > 0 ? (
+              <ul>
+                {independence.contradictions.map((row, index) => {
+                  const other = row.a.claimId === passport.claimId ? row.b : row.a;
+                  return (
+                    <li key={index}>
+                      {row.kind === "scope-difference"
+                        ? `Scope difference (${row.differingScopeFields.join(", ")})`
+                        : row.kind === "undetermined-scope"
+                          ? "Contradiction over shared evidence (scope undeclared)"
+                          : "Genuine contradiction over shared evidence"}{" "}
+                      with <Link href={other.passportPath}>{other.text.slice(0, 80)}</Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : (
+              <p className="muted">No opposing claims detected in the current corpus.</p>
+            )}
+            <p>
+              <Link href="/synthesis">View the full contradiction map</Link>.
+            </p>
+          </Card>
+        ) : (
+          <Card title="Independence &amp; contradictions">
+            <p className="muted">No independence analysis is available for this claim.</p>
+          </Card>
+        )}
+      </div>
 
       <Card title="Lineage across versions">
         <p className="muted">

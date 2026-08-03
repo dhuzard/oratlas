@@ -26,8 +26,25 @@ test.describe("Claim passports & evidence monitoring", () => {
     expect(claim).toBeDefined();
 
     await page.goto(`/claims/${review.version.id}/${encodeURIComponent(claim.localClaimId)}`);
-    await expect(page.getByRole("heading", { name: "Identity" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Original claim record" })).toBeVisible();
     await expect(page.getByText("claim passport").first()).toBeVisible();
+    const inspectionPath = page.getByRole("navigation", { name: "Inspect this claim" });
+    await expect(inspectionPath.getByRole("link", { name: /Original record/ })).toHaveAttribute(
+      "href",
+      "#original-record",
+    );
+    await expect(inspectionPath.getByRole("link", { name: /Linked evidence/ })).toHaveAttribute(
+      "href",
+      "#linked-evidence",
+    );
+    await expect(inspectionPath.getByRole("link", { name: /Assessments/ })).toHaveAttribute(
+      "href",
+      "#assessments",
+    );
+    await expect(inspectionPath.getByRole("link", { name: /Disagreements/ })).toHaveAttribute(
+      "href",
+      "#disagreements",
+    );
     await expect(page.getByRole("heading", { name: /Lineage across versions/ })).toBeVisible();
     await expect(
       page

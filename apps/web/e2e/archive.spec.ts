@@ -62,6 +62,23 @@ test.describe("Public archive browsing", () => {
   }) => {
     await page.goto("/reviews/hippocampal-replay-computational-review");
     await expect(page.getByRole("heading", { level: 1 })).toContainText("Hippocampal Replay");
+    const inspectionPath = page.getByRole("navigation", { name: "Inspect this review" });
+    await expect(inspectionPath.getByRole("link", { name: /Original record/ })).toHaveAttribute(
+      "href",
+      "#original-record",
+    );
+    await expect(inspectionPath.getByRole("link", { name: /Claims & evidence/ })).toHaveAttribute(
+      "href",
+      "#linked-evidence",
+    );
+    await expect(inspectionPath.getByRole("link", { name: /Assessments/ })).toHaveAttribute(
+      "href",
+      "#assessments",
+    );
+    await expect(inspectionPath.getByRole("link", { name: /Disagreements/ })).toHaveAttribute(
+      "href",
+      "#disagreements",
+    );
     // Version DOI and concept DOI are distinct rows (exact: these are <dt>
     // labels, and page prose such as comments may mention the same phrase).
     await expect(page.getByText("Version DOI", { exact: true })).toBeVisible();
