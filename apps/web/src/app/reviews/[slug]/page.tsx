@@ -30,6 +30,7 @@ import { SynthesisReader } from "./SynthesisReader";
 import { CompatibilityFacets } from "@/components/CompatibilityFacets";
 import { ArtifactOutcomes } from "@/components/ArtifactOutcomes";
 import { formatCountLabel, InspectionPath } from "@/components/InspectionPath";
+import { ExploreBreadcrumb } from "@/components/ExploreBreadcrumb";
 
 export const dynamic = "force-dynamic";
 
@@ -227,6 +228,8 @@ export default async function ReviewPage({
         nonce={nonce}
         dangerouslySetInnerHTML={{ __html: serializeJsonForHtml(jsonLd) }}
       />
+
+      <ExploreBreadcrumb current="Review record" href="/explore?view=reviews" />
 
       <div className="btn-row" style={{ marginBottom: "0.5rem" }}>
         <StatusPill status={review.status} />
