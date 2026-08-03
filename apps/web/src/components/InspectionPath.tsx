@@ -4,6 +4,10 @@ interface InspectionStep {
   detail: string;
 }
 
+export function formatCountLabel(count: number, singular: string) {
+  return `${count} ${singular}${count === 1 ? "" : "s"}`;
+}
+
 export function InspectionPath({ label, steps }: { label: string; steps: InspectionStep[] }) {
   return (
     <nav className="inspection-path" aria-label={label}>
