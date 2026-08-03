@@ -47,17 +47,13 @@ export default async function HomePage() {
         </p>
       </section>
 
-      <section
-        id="how-it-works"
-        className="home-how"
-        aria-labelledby="how-it-works-title"
-      >
+      <section id="how-it-works" className="home-how" aria-labelledby="how-it-works-title">
         <div className="home-section-intro">
           <p className="home-eyebrow">How it works</p>
           <h2 id="how-it-works-title">Follow a review from claim to evidence.</h2>
           <p>
-            ORAtlas keeps the published record, supporting material, and later assessments
-            connected without confusing one for another.
+            ORAtlas keeps the published record, supporting material, and later assessments connected
+            without confusing one for another.
           </p>
         </div>
         <div className="home-principles">
