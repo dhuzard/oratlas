@@ -38,6 +38,42 @@ test.describe("Public archive browsing", () => {
     await expect(page.getByRole("link", { name: /Hippocampal Replay/ }).first()).toBeVisible();
   });
 
+  test("specialist tools stay contextual and return to Explore", async ({ page }) => {
+    await page.goto("/explore");
+    await page.getByText("Specialist tools for deeper analysis", { exact: true }).click();
+    const tools = page.getByRole("navigation", { name: "Specialist analysis tools" });
+    await expect(tools.getByRole("link", { name: /Research objects/ })).toHaveAttribute(
+      "href",
+      "/nodes",
+    );
+    await expect(tools.getByRole("link", { name: /Evidence graph/ })).toHaveAttribute(
+      "href",
+      "/graph",
+    );
+    await expect(tools.getByRole("link", { name: /Disagreement map/ })).toHaveAttribute(
+      "href",
+      "/synthesis",
+    );
+    await expect(tools.getByRole("link", { name: /Coverage gaps/ })).toHaveAttribute(
+      "href",
+      "/coverage",
+    );
+    await expect(tools.getByRole("link", { name: /Replication briefs/ })).toHaveAttribute(
+      "href",
+      "/replications",
+    );
+    await expect(tools.getByRole("link", { name: /Grounded Q&A/ })).toHaveAttribute(
+      "href",
+      "/discuss",
+    );
+
+    await tools.getByRole("link", { name: /Coverage gaps/ }).click();
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Coverage gaps");
+    await expect(
+      page.getByRole("navigation", { name: "Breadcrumb" }).getByRole("link"),
+    ).toHaveAttribute("href", "/explore");
+  });
+
   test("unified Explore safely handles malformed public query parameters", async ({ page }) => {
     await page.goto("/explore?page=abc");
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(

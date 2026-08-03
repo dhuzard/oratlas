@@ -3,10 +3,11 @@ import Link from "next/link";
 import { Card, Badge } from "@oratlas/ui";
 import { nodeArchiveQuerySchema } from "@oratlas/contracts";
 import { listPublicNodes } from "@/lib/node-publication";
+import { SpecialistToolBreadcrumb } from "@/components/SpecialistTools";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
-  title: "Knowledge nodes",
+  title: "Research objects",
   description: "Browse accepted claim, figure, dataset, and code publications.",
 };
 
@@ -30,10 +31,11 @@ export default async function NodesPage({
 
   return (
     <>
-      <h1>Knowledge nodes</h1>
+      <SpecialistToolBreadcrumb current="Research objects" />
+      <h1>Research objects</h1>
       <p className="muted">
-        {result.total} accepted claim, figure, dataset, or code publication(s). Each stable node URL
-        exposes immutable version history and confirmed graph context.
+        {result.total} accepted claim, figure, dataset, or code publication(s), stored as knowledge
+        nodes. Each stable URL exposes immutable version history and confirmed graph context.
       </p>
       <div className="grid layout-2">
         <section aria-label="Knowledge node results">

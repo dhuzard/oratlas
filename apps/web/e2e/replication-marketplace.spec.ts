@@ -5,7 +5,7 @@ test.describe("Replication Marketplace", () => {
     page,
   }) => {
     await page.goto("/replications");
-    await expect(page.getByRole("heading", { name: "Replication marketplace" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Replication briefs" })).toBeVisible();
     await expect(page.getByText(/not a truth score/i)).toBeVisible();
     await expect(
       page.getByRole("heading", { name: /Published editorial triage provenance/ }),

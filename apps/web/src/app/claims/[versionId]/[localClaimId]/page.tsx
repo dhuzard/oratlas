@@ -325,7 +325,7 @@ export default async function ClaimPassportPage({
               <p className="muted">No opposing claims detected in the current corpus.</p>
             )}
             <p>
-              <Link href="/synthesis">View the full contradiction map</Link>.
+              <Link href="/synthesis">View the full disagreement map</Link>.
             </p>
           </Card>
         ) : (

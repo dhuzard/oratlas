@@ -2,10 +2,11 @@ import { type Metadata } from "next";
 import { publicGraphQuerySchema } from "@oratlas/contracts";
 import { GraphQueryError, queryPublicGraph } from "@/lib/graph-query";
 import { GraphError, GraphExplorer, GraphLanding } from "./GraphExplorer";
+import { SpecialistToolBreadcrumb } from "@/components/SpecialistTools";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
-  title: "Graph explorer",
+  title: "Evidence graph",
   description: "Explore bounded public relationships between exact knowledge-node versions.",
 };
 
@@ -16,8 +17,9 @@ export default async function GraphPage({ searchParams }: { searchParams: Promis
   const hasQuery = raw.seed !== undefined || raw.q !== undefined;
   return (
     <>
+      <SpecialistToolBreadcrumb current="Evidence graph" />
       <div className="hero">
-        <h1>Knowledge graph explorer</h1>
+        <h1>Evidence graph</h1>
         <p className="lead">
           Navigate a bounded, public neighborhood of immutable node versions. The relation list is
           the authoritative view and works without JavaScript.

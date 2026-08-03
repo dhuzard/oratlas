@@ -2,9 +2,10 @@ import Link from "next/link";
 import { type Metadata } from "next";
 import { Badge, Card, Notice } from "@oratlas/ui";
 import { getContradictionMap, type ContradictionMapRow } from "@/lib/synthesis";
+import { SpecialistToolBreadcrumb } from "@/components/SpecialistTools";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Contradiction map" };
+export const metadata: Metadata = { title: "Disagreement map" };
 
 const KIND_LABEL: Record<ContradictionMapRow["kind"], string> = {
   "genuine-contradiction": "Genuine contradiction",
@@ -29,7 +30,8 @@ export default async function SynthesisPage() {
 
   return (
     <article>
-      <h1>Contradiction map</h1>
+      <SpecialistToolBreadcrumb current="Disagreement map" />
+      <h1>Disagreement map</h1>
       <p className="muted">
         Comparing {map.statementCount} claims across {map.reviewCount} accepted reviews. Counts and
         classifications are rule-based: independent evidence is measured in evidence families (works

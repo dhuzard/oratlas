@@ -4,6 +4,7 @@ import { TRUST_CRITERIA, type PublicNodeDetail, type PublicNodeVersion } from "@
 import { TrustVerificationBadge } from "@/components/TrustVerificationBadge";
 import type { PublicNodeDetailProjection } from "@/lib/node-publication";
 import { ArtifactOutcomes } from "@/components/ArtifactOutcomes";
+import { SpecialistToolBreadcrumb } from "@/components/SpecialistTools";
 
 export function NodeView({
   node,
@@ -16,6 +17,10 @@ export function NodeView({
   const current = node.versions.find((candidate) => candidate.isCurrent)!;
   return (
     <article>
+      <SpecialistToolBreadcrumb
+        current={version.title}
+        parent={{ href: "/nodes", label: "Research objects" }}
+      />
       {historical ? (
         <Notice title="Historical immutable version">
           This page preserves the node content captured at commit{" "}

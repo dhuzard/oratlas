@@ -2,9 +2,10 @@ import Link from "next/link";
 import { type Metadata } from "next";
 import { Badge, Card, Notice, StatusPill } from "@oratlas/ui";
 import { loadPublicReplicationMarketplace } from "@/lib/replication-marketplace";
+import { SpecialistToolBreadcrumb } from "@/components/SpecialistTools";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Replication marketplace" };
+export const metadata: Metadata = { title: "Replication briefs" };
 
 export default async function ReplicationMarketplacePage({
   searchParams,
@@ -20,7 +21,8 @@ export default async function ReplicationMarketplacePage({
 
   return (
     <article>
-      <h1>Replication marketplace</h1>
+      <SpecialistToolBreadcrumb current="Replication briefs" />
+      <h1>Replication briefs</h1>
       <p className="prose">
         Human editors publish bounded replication briefs tied to archived claims. Researchers may
         claim a brief with a public protocol and later link a completion record. Atlas does not run

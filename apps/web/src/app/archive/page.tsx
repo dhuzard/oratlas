@@ -177,7 +177,7 @@ export default async function ArchivePage({
                 >
                   <option value="all">Repository reviews, nodes, and AI syntheses</option>
                   <option value="review">Repository reviews</option>
-                  <option value="node">Knowledge nodes</option>
+                  <option value="node">Research objects</option>
                   <option value="synthesis">Accepted AI syntheses</option>
                 </select>
               </div>
