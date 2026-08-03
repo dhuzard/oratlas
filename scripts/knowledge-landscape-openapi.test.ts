@@ -1,0 +1,44 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { parse } from "yaml";
+import { describe, expect, it } from "vitest";
+
+const openapi = parse(readFileSync(resolve(process.cwd(), "docs/openapi.yaml"), "utf8"));
+
+describe("knowledge landscape OpenAPI surface", () => {
+  it("publishes the bounded navigation contract and typed error", () => {
+    const operation = openapi.paths["/api/landscape"].get;
+    expect(operation.responses["200"].content["application/json"].schema.$ref).toBe(
+      "#/components/schemas/KnowledgeLandscapeResponse",
+    );
+    expect(operation.responses["400"].$ref).toBe("#/components/responses/Error");
+    expect(
+      operation.parameters.find((parameter: { name: string }) => parameter.name === "interest"),
+    ).toMatchObject({ schema: { maxItems: 5 } });
+  });
+
+  it("labels the algorithm as navigation rather than scientific scoring", () => {
+    const schemas = openapi.components.schemas;
+    for (const name of [
+      "KnowledgeLandscapeNode",
+      "KnowledgeLandscapeEdge",
+      "KnowledgeLandscapeYear",
+      "KnowledgeLandscapeData",
+      "KnowledgeLandscapeResponse",
+    ]) {
+      expect(schemas[name].additionalProperties, name).toBe(false);
+    }
+    expect(schemas.KnowledgeLandscapeResponse.properties.algorithm.properties.purpose.const).toBe(
+      "navigation",
+    );
+    expect(
+      schemas.KnowledgeLandscapeResponse.properties.algorithm.properties.limitations.prefixItems.map(
+        (item: { const: string }) => item.const,
+      ),
+    ).toEqual([
+      "not-a-truth-score",
+      "not-a-quality-score",
+      "bounded-to-six-claims-and-ten-evidence-records",
+    ]);
+  });
+});

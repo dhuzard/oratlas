@@ -1,4 +1,20 @@
 import type { IndexedClaim, KnowledgeIndexData } from "@oratlas/knowledge";
+import type {
+  ExplorationInterest,
+  KnowledgeLandscapeData,
+  KnowledgeLandscapeEdge,
+  KnowledgeLandscapeNode,
+  KnowledgeLandscapeYear,
+} from "@oratlas/contracts";
+
+export type {
+  ExplorationInterest,
+  KnowledgeLandscapeData,
+  KnowledgeLandscapeEdge,
+  KnowledgeLandscapeNode,
+  KnowledgeLandscapeYear,
+  LandscapeNodeKind,
+} from "@oratlas/contracts";
 
 export const EXPLORATION_INTERESTS = [
   {
@@ -26,42 +42,11 @@ export const EXPLORATION_INTERESTS = [
     label: "Assessed evidence",
     detail: "Claims with separate evidence assessments.",
   },
-] as const;
-
-export type ExplorationInterest = (typeof EXPLORATION_INTERESTS)[number]["id"];
-export type LandscapeNodeKind = "review" | "claim" | "evidence";
-
-export interface KnowledgeLandscapeNode {
-  id: string;
-  kind: LandscapeNodeKind;
+] as const satisfies ReadonlyArray<{
+  id: ExplorationInterest;
   label: string;
   detail: string;
-  href: string;
-  reasons: string[];
-  year?: number;
-}
-
-export interface KnowledgeLandscapeEdge {
-  sourceId: string;
-  targetId: string;
-  label: string;
-  relationType: string;
-}
-
-export interface KnowledgeLandscapeData {
-  nodes: KnowledgeLandscapeNode[];
-  edges: KnowledgeLandscapeEdge[];
-  matchedClaimCount: number;
-  shownClaimCount: number;
-  timeline: KnowledgeLandscapeYear[];
-  focusedNodeId?: string;
-}
-
-export interface KnowledgeLandscapeYear {
-  year: number;
-  reviewCount: number;
-  evidenceCount: number;
-}
+}>;
 
 export interface KnowledgeLandscapeOptions {
   query?: string;

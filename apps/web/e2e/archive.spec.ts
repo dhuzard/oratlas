@@ -80,6 +80,17 @@ test.describe("Public archive browsing", () => {
     ).toBeVisible();
     const details = landscape.getByRole("navigation", { name: "Knowledge landscape details" });
     await expect(details.getByRole("link").first()).toBeVisible();
+    const apiResponse = await page.request.get("/api/landscape?interest=disagreements");
+    expect(apiResponse.ok()).toBe(true);
+    const apiLandscape = (await apiResponse.json()) as {
+      algorithm: { purpose: string; limitations: string[] };
+      landscape: { nodes: unknown[] };
+    };
+    expect(apiLandscape.algorithm.purpose).toBe("navigation");
+    expect(apiLandscape.algorithm.limitations).toContain("not-a-truth-score");
+    expect(apiLandscape.landscape.nodes).toHaveLength(
+      await details.locator(":scope > section > ul > li").count(),
+    );
     await expect(landscape.locator('.landscape-legend [data-relation="contradicts"]')).toHaveText(
       "contradicts",
     );

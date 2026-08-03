@@ -50,6 +50,93 @@ components:
             details:
               type: array
               items: { type: string }
+    KnowledgeLandscapeNode:
+      type: object
+      additionalProperties: false
+      required: [id, kind, label, detail, href, reasons]
+      properties:
+        id: { type: string, minLength: 1, maxLength: 500 }
+        kind: { type: string, enum: [review, claim, evidence] }
+        label: { type: string, minLength: 1 }
+        detail: { type: string, minLength: 1 }
+        href: { type: string, pattern: "^/" }
+        reasons: { type: array, minItems: 1, items: { type: string, minLength: 1 } }
+        year: { type: integer, minimum: 1000, maximum: 2100 }
+    KnowledgeLandscapeEdge:
+      type: object
+      additionalProperties: false
+      required: [sourceId, targetId, label, relationType]
+      properties:
+        sourceId: { type: string, minLength: 1, maxLength: 500 }
+        targetId: { type: string, minLength: 1, maxLength: 500 }
+        label: { type: string, minLength: 1, maxLength: 100 }
+        relationType: { type: string, minLength: 1, maxLength: 100 }
+    KnowledgeLandscapeYear:
+      type: object
+      additionalProperties: false
+      required: [year, reviewCount, evidenceCount]
+      properties:
+        year: { type: integer, minimum: 1000, maximum: 2100 }
+        reviewCount: { type: integer, minimum: 0 }
+        evidenceCount: { type: integer, minimum: 0 }
+    KnowledgeLandscapeData:
+      type: object
+      additionalProperties: false
+      required: [nodes, edges, matchedClaimCount, shownClaimCount, timeline]
+      properties:
+        nodes:
+          type: array
+          maxItems: 22
+          items: { $ref: "#/components/schemas/KnowledgeLandscapeNode" }
+        edges:
+          type: array
+          items: { $ref: "#/components/schemas/KnowledgeLandscapeEdge" }
+        matchedClaimCount: { type: integer, minimum: 0 }
+        shownClaimCount: { type: integer, minimum: 0, maximum: 6 }
+        timeline:
+          type: array
+          items: { $ref: "#/components/schemas/KnowledgeLandscapeYear" }
+        focusedNodeId: { type: string, minLength: 1, maxLength: 500 }
+    KnowledgeLandscapeResponse:
+      type: object
+      additionalProperties: false
+      required: [schemaVersion, algorithm, query, landscape]
+      properties:
+        schemaVersion: { const: "1.0.0" }
+        algorithm:
+          type: object
+          additionalProperties: false
+          required: [id, version, purpose, limitations]
+          properties:
+            id: { const: explicit-interest-landscape }
+            version: { const: "1.0.0" }
+            purpose: { const: navigation }
+            limitations:
+              type: array
+              prefixItems:
+                - { const: not-a-truth-score }
+                - { const: not-a-quality-score }
+                - { const: bounded-to-six-claims-and-ten-evidence-records }
+              minItems: 3
+              maxItems: 3
+        query:
+          type: object
+          additionalProperties: false
+          required: [interests]
+          properties:
+            q: { type: string, minLength: 1, maxLength: 500 }
+            interests:
+              type: array
+              maxItems: 5
+              items:
+                type: string
+                enum: [disagreements, reproducibility, methods-models, data-code, assessed-evidence]
+            focusNodeId: { type: string, minLength: 1, maxLength: 500 }
+            reviewSlug: { type: string, maxLength: 200 }
+            claimType: { type: string, maxLength: 40 }
+            relationType: { type: string, maxLength: 40 }
+            trustCriterion: { type: string, maxLength: 60 }
+        landscape: { $ref: "#/components/schemas/KnowledgeLandscapeData" }
     PublicNodeSummary:
       type: object
       additionalProperties: false
@@ -2859,6 +2946,35 @@ paths:
         - { name: relationType, in: query, schema: { type: string } }
       responses:
         "200": { description: Claim results }
+  /api/landscape:
+    get:
+      summary: Build the bounded guided knowledge landscape used by Explore
+      description: >
+        Returns the same explicit-interest selection, inspectable navigation reasons, one-hop focus,
+        and publication-year context as the human Explore view. This is navigation metadata, not a
+        truth, evidence-quality, or aggregate TRUST score.
+      parameters:
+        - { name: q, in: query, schema: { type: string, maxLength: 500 } }
+        - name: interest
+          in: query
+          schema:
+            type: array
+            maxItems: 5
+            items:
+              type: string
+              enum: [disagreements, reproducibility, methods-models, data-code, assessed-evidence]
+        - { name: focus, in: query, schema: { type: string, maxLength: 500 } }
+        - { name: reviewSlug, in: query, schema: { type: string, maxLength: 200 } }
+        - { name: claimType, in: query, schema: { type: string, maxLength: 40 } }
+        - { name: relationType, in: query, schema: { type: string, maxLength: 40 } }
+        - { name: trustCriterion, in: query, schema: { type: string, maxLength: 60 } }
+      responses:
+        "200":
+          description: Versioned, bounded exploration landscape
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/KnowledgeLandscapeResponse" }
+        "400": { $ref: "#/components/responses/Error" }
   /api/reviews/{slug}/versions/{versionId}:
     get:
       summary: Retrieve one immutable review version and its exact snapshot/evidence
