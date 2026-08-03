@@ -7,10 +7,34 @@ test.describe("Public archive browsing", () => {
       "The arXiv for AI-generated scientific reviews",
     );
     const primaryNavigation = page.getByRole("navigation", { name: "Primary" });
-    await expect(primaryNavigation.getByRole("link", { name: "Explore" })).toBeVisible();
+    await expect(primaryNavigation.getByRole("link", { name: "Explore" })).toHaveAttribute(
+      "href",
+      "/explore",
+    );
     await expect(primaryNavigation.getByRole("link", { name: "Submit a review" })).toBeVisible();
     await expect(primaryNavigation.getByRole("link", { name: "How it works" })).toBeVisible();
     await expect(primaryNavigation.getByRole("link", { name: "Graph" })).toHaveCount(0);
+    await expect(page.getByRole("link", { name: /Hippocampal Replay/ }).first()).toBeVisible();
+  });
+
+  test("unified Explore defaults to claims and switches to reviews", async ({ page }) => {
+    await page.goto("/explore");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+      "Claims and scientific reviews",
+    );
+    const contentNavigation = page.getByRole("navigation", { name: "Explore content" });
+    await expect(contentNavigation.getByRole("link", { name: /Claims/ })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+    await expect(page.locator(".explore-result").first()).toBeVisible();
+
+    await contentNavigation.getByRole("link", { name: /Reviews/ }).click();
+    await expect(page).toHaveURL(/\/explore\?view=reviews/);
+    await expect(contentNavigation.getByRole("link", { name: /Reviews/ })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
     await expect(page.getByRole("link", { name: /Hippocampal Replay/ }).first()).toBeVisible();
   });
 
