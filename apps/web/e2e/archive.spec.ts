@@ -38,6 +38,20 @@ test.describe("Public archive browsing", () => {
     await expect(page.getByRole("link", { name: /Hippocampal Replay/ }).first()).toBeVisible();
   });
 
+  test("unified Explore safely handles malformed public query parameters", async ({ page }) => {
+    await page.goto("/explore?page=abc");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+      "Claims and scientific reviews",
+    );
+    await expect(page.getByText("Page NaN")).toHaveCount(0);
+
+    await page.goto("/explore?view=reviews&page=abc&sort=unexpected");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+      "Claims and scientific reviews",
+    );
+    await expect(page.locator("#sort")).toHaveValue("accepted");
+  });
+
   test("archive filters to repository-only reviews", async ({ page }) => {
     await page.goto("/archive?hasDoi=false");
     await expect(page.getByText(/repository-only/i).first()).toBeVisible();
