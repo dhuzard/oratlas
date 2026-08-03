@@ -24,7 +24,7 @@ test.describe("Independence-aware synthesis", () => {
 
   test("contradiction map page renders", async ({ page }) => {
     await page.goto("/synthesis");
-    await expect(page.getByRole("heading", { name: "Contradiction map" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Disagreement map" })).toBeVisible();
     await expect(page.getByText(/scope difference/i).first()).toBeVisible();
   });
 

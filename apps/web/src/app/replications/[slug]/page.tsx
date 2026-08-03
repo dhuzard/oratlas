@@ -8,6 +8,7 @@ import {
   isReplicationBriefClaimant,
 } from "@/lib/replication-marketplace";
 import { ReplicationBriefActions } from "./ReplicationBriefActions";
+import { SpecialistToolBreadcrumb } from "@/components/SpecialistTools";
 
 export const dynamic = "force-dynamic";
 
@@ -33,9 +34,10 @@ export default async function ReplicationBriefPage({
 
   return (
     <article>
-      <p>
-        <Link href="/replications">← Replication marketplace</Link>
-      </p>
+      <SpecialistToolBreadcrumb
+        current={brief.title}
+        parent={{ href: "/replications", label: "Replication briefs" }}
+      />
       <div className="btn-row">
         <StatusPill status={brief.status} />
         <Badge tone="neutral">{brief.effortBand} effort</Badge>

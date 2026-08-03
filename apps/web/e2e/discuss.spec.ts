@@ -7,7 +7,7 @@ import { test, expect, type Page } from "@playwright/test";
  */
 async function askQuestion(page: Page, question: string) {
   const field = page.getByLabel("Your question");
-  const button = page.getByRole("button", { name: /Ask Atlas Discuss/ });
+  const button = page.getByRole("button", { name: /Ask question/ });
   await expect(async () => {
     await field.fill(question);
     await expect(button).toBeEnabled({ timeout: 1000 });
@@ -15,7 +15,7 @@ async function askQuestion(page: Page, question: string) {
   await button.click();
 }
 
-test.describe("Atlas Discuss — deterministic mode", () => {
+test.describe("Grounded Q&A — deterministic mode", () => {
   test("returns a grounded evidence summary without an LLM key", async ({ page }) => {
     await page.goto("/discuss");
     await expect(page.locator('[data-register="open-discussion"]')).toContainText(

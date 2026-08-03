@@ -106,7 +106,7 @@ export function DiscussClient({ initialReview }: { initialReview?: string }) {
           {initialReview ? <small>Scoped to review: {initialReview}</small> : null}
         </div>
         <button className="btn" onClick={ask} disabled={loading || question.trim().length < 3}>
-          {loading ? "Thinking…" : "Ask Atlas Discuss"}
+          {loading ? "Thinking…" : "Ask question"}
         </button>
       </div>
 

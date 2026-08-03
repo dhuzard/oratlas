@@ -1067,7 +1067,7 @@ export default async function ReviewPage({
             </p>
             <p>Or ask grounded questions across accepted reviews.</p>
             <Link className="btn btn-secondary" href={`/discuss?review=${review.slug}`}>
-              Ask Atlas Discuss
+              Open grounded Q&amp;A
             </Link>
           </Card>
         </aside>

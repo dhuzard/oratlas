@@ -2,15 +2,17 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Badge, Card, Notice } from "@oratlas/ui";
 import { getTopicCoverage } from "@/lib/synthesis-coverage";
+import { SpecialistToolBreadcrumb } from "@/components/SpecialistTools";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Topic coverage" };
+export const metadata: Metadata = { title: "Coverage gaps" };
 
 export default async function CoveragePage() {
   const coverage = await getTopicCoverage();
   return (
     <>
-      <h1>Topic coverage</h1>
+      <SpecialistToolBreadcrumb current="Coverage gaps" />
+      <h1>Coverage gaps</h1>
       <p className="muted">
         {coverage.uncoveredNodeCount} of {coverage.scannedNodeCount} current public node version
         {coverage.scannedNodeCount === 1 ? "" : "s"} are not covered by a valid current accepted

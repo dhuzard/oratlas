@@ -1,9 +1,10 @@
 import { type Metadata } from "next";
 import { getServerEnv } from "@oratlas/config";
 import { DiscussClient } from "./DiscussClient";
+import { SpecialistToolBreadcrumb } from "@/components/SpecialistTools";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Atlas Discuss" };
+export const metadata: Metadata = { title: "Grounded Q&A" };
 
 export default async function DiscussPage({
   searchParams,
@@ -14,7 +15,8 @@ export default async function DiscussPage({
   const env = getServerEnv();
   return (
     <div>
-      <h1>Atlas Discuss</h1>
+      <SpecialistToolBreadcrumb current="Grounded Q&A" />
+      <h1>Grounded Q&amp;A</h1>
       <p className="prose muted">
         A grounded assistant that answers questions using only accepted review versions — their
         claims, citations, evidence relations, and TRUST assessments. It cites the reviews and
@@ -26,7 +28,7 @@ export default async function DiscussPage({
           : " No LLM provider is configured, so responses are deterministic structured evidence summaries rather than generated prose."}
       </p>
       <p className="notice notice-info" data-register="open-discussion">
-        Atlas Discuss output is open discussion, not a formal challenge. It neither creates nor
+        Grounded Q&amp;A output is open discussion, not a formal challenge. It neither creates nor
         changes a TRUST assessment, formal review report, challenge record, editorial decision, or
         immutable archive.
       </p>

@@ -105,7 +105,7 @@ export default async function ArchivePage({
                           <Link href={`/nodes/${item.node.id}`}>{item.node.title}</Link>
                         </h2>
                         <div className="meta">
-                          <Badge>node</Badge>
+                          <Badge>research object</Badge>
                           <Badge>{item.node.kind}</Badge>
                         </div>
                         {item.node.abstract ? <p>{truncate(item.node.abstract)}</p> : null}
@@ -177,7 +177,7 @@ export default async function ArchivePage({
                 >
                   <option value="all">Repository reviews, nodes, and AI syntheses</option>
                   <option value="review">Repository reviews</option>
-                  <option value="node">Knowledge nodes</option>
+                  <option value="node">Research objects</option>
                   <option value="synthesis">Accepted AI syntheses</option>
                 </select>
               </div>

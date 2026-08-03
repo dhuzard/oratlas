@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 export async function generateMetadata({ params }: VersionPageProps): Promise<Metadata> {
   const { id, versionId } = await params;
   const node = await getPublicNode(id, versionId);
-  if (!node) return { title: "Knowledge node version not found" };
+  if (!node) return { title: "Research object version not found" };
   return {
     title: `${node.version.title} — historical version`,
     description: node.version.abstract ?? node.version.text ?? node.version.title,

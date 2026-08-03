@@ -217,7 +217,7 @@ test("editor gates generated, rejected, and accepted synthesis drafts", async ({
   await expect(page.getByText(draft.document.title, { exact: true })).toHaveCount(0);
   await expect(page.getByText(node.versions[0]!.title, { exact: true }).first()).toBeVisible();
   await page.goto("/coverage");
-  await expect(page.getByRole("heading", { name: "Topic coverage" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Coverage gaps" })).toBeVisible();
   await expect(page.getByText(node.versions[0]!.title, { exact: true })).toHaveCount(0);
 
   await page.goto("/editorial");

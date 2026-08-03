@@ -7,6 +7,7 @@ import {
   CLAIM_TYPES,
 } from "@oratlas/contracts";
 import { TrustVerificationBadge } from "@/components/TrustVerificationBadge";
+import { SpecialistTools } from "@/components/SpecialistTools";
 import { searchArchive } from "@/lib/archive-search";
 import { buildKnowledgeIndex } from "@/lib/index-builder";
 
@@ -255,6 +256,8 @@ export default async function ExplorePage({
           </form>
         </details>
       </div>
+
+      <SpecialistTools />
 
       {view === "claims" ? (
         claimResults.items.length === 0 ? (

@@ -18,7 +18,7 @@ export const dynamic = "force-dynamic";
 export async function generateMetadata({ params }: NodePageProps): Promise<Metadata> {
   const { id } = await params;
   const node = await getPublicNode(id);
-  if (!node) return { title: "Knowledge node not found" };
+  if (!node) return { title: "Research object not found" };
   return {
     title: node.version.title,
     description: node.version.abstract ?? node.version.text ?? node.version.title,
