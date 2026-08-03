@@ -4,8 +4,13 @@ test.describe("Public archive browsing", () => {
   test("home page lists recently accepted reviews", async ({ page }) => {
     await page.goto("/");
     await expect(page.getByRole("heading", { level: 1 })).toContainText(
-      "computational literature reviews",
+      "The arXiv for AI-generated scientific reviews",
     );
+    const primaryNavigation = page.getByRole("navigation", { name: "Primary" });
+    await expect(primaryNavigation.getByRole("link", { name: "Explore" })).toBeVisible();
+    await expect(primaryNavigation.getByRole("link", { name: "Submit a review" })).toBeVisible();
+    await expect(primaryNavigation.getByRole("link", { name: "How it works" })).toBeVisible();
+    await expect(primaryNavigation.getByRole("link", { name: "Graph" })).toHaveCount(0);
     await expect(page.getByRole("link", { name: /Hippocampal Replay/ }).first()).toBeVisible();
   });
 
