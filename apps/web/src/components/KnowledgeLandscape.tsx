@@ -25,9 +25,13 @@ const LANE_LABEL: Record<LandscapeNodeKind, string> = {
 export function KnowledgeLandscape({
   landscape,
   focus,
+  overviewHref,
+  focusHrefByNode,
 }: {
   landscape: KnowledgeLandscapeData;
   focus: string;
+  overviewHref: string;
+  focusHrefByNode: Record<string, string>;
 }) {
   if (landscape.nodes.length === 0) {
     return (
@@ -44,19 +48,40 @@ export function KnowledgeLandscape({
 
   const { nodes, height } = positionNodes(landscape.nodes);
   const nodeById = new Map(nodes.map((node) => [node.id, node]));
+  const focusedNode = landscape.focusedNodeId
+    ? landscape.nodes.find((node) => node.id === landscape.focusedNodeId)
+    : undefined;
 
   return (
     <section className="knowledge-landscape" aria-label="Guided knowledge landscape">
       <div className="knowledge-landscape-heading">
         <div>
           <p className="home-eyebrow">Guided knowledge landscape</p>
-          <h2 id="knowledge-landscape-title">A bounded path through “{focus}”</h2>
+          <h2 id="knowledge-landscape-title">
+            {focusedNode
+              ? `One step from “${focusedNode.label}”`
+              : `A bounded path through “${focus}”`}
+          </h2>
         </div>
-        <p className="muted">
-          Showing {landscape.shownClaimCount} of {landscape.matchedClaimCount} matching claim
-          {landscape.matchedClaimCount === 1 ? "" : "s"}. Select any node to inspect its preserved
-          record.
-        </p>
+        <div className="knowledge-landscape-summary">
+          <p className="muted">
+            {focusedNode ? (
+              <>
+                Showing the selected node and its direct connections.{" "}
+                <a href={overviewHref}>Return to overview</a>.
+              </>
+            ) : (
+              <>
+                Showing {landscape.shownClaimCount} of {landscape.matchedClaimCount} matching claim
+                {landscape.matchedClaimCount === 1 ? "" : "s"}. Select a focus link to see one step
+                around a node.
+              </>
+            )}
+          </p>
+          <p className="landscape-ranking-note">
+            Ordering helps exploration only. It is not a truth, quality, or trust score.
+          </p>
+        </div>
       </div>
 
       <div className="knowledge-landscape-visual" tabIndex={0}>
@@ -105,6 +130,23 @@ export function KnowledgeLandscape({
         <span data-relation="contradicts">contradicts</span>
       </div>
 
+      {landscape.timeline.length > 0 ? (
+        <section className="landscape-timeline" aria-labelledby="landscape-timeline-title">
+          <div>
+            <h3 id="landscape-timeline-title">When these records entered the literature</h3>
+            <p>Publication years connect earlier evidence with later preserved reviews.</p>
+          </div>
+          <ol>
+            {landscape.timeline.map((entry) => (
+              <li key={entry.year}>
+                <strong>{entry.year}</strong>
+                <span>{timelineParts(entry.reviewCount, entry.evidenceCount).join(" · ")}</span>
+              </li>
+            ))}
+          </ol>
+        </section>
+      ) : null}
+
       <nav className="knowledge-landscape-list" aria-label="Knowledge landscape details">
         {(["review", "claim", "evidence"] as const).map((kind) => {
           const kindNodes = landscape.nodes.filter((node) => node.kind === kind);
@@ -117,6 +159,23 @@ export function KnowledgeLandscape({
                   <li key={node.id}>
                     <a href={node.href}>{node.label}</a>
                     <small>{node.detail}</small>
+                    <details className="landscape-reasons">
+                      <summary>Why this?</summary>
+                      <ul>
+                        {node.reasons.map((reason) => (
+                          <li key={reason}>{reason}</li>
+                        ))}
+                      </ul>
+                    </details>
+                    {landscape.focusedNodeId === node.id ? (
+                      <span className="landscape-focused-label" aria-current="true">
+                        Current focus
+                      </span>
+                    ) : (
+                      <a className="landscape-focus-link" href={focusHrefByNode[node.id]}>
+                        Focus on connections
+                      </a>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -126,6 +185,17 @@ export function KnowledgeLandscape({
       </nav>
     </section>
   );
+}
+
+function timelineParts(reviewCount: number, evidenceCount: number): string[] {
+  const parts: string[] = [];
+  if (evidenceCount > 0) {
+    parts.push(`${evidenceCount} evidence record${evidenceCount === 1 ? "" : "s"}`);
+  }
+  if (reviewCount > 0) {
+    parts.push(`${reviewCount} review${reviewCount === 1 ? "" : "s"}`);
+  }
+  return parts;
 }
 
 function LandscapeEdge({

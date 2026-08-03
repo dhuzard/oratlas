@@ -63,6 +63,7 @@ export default async function ExplorePage({
   const page = positivePage(get("page"));
   const sort = archiveSort(get("sort"));
   const selectedInterests = normalizeExplorationInterests(all(parameters, "interest"));
+  const requestedLandscapeFocus = get("focus")?.trim() || undefined;
   const index = await buildKnowledgeIndex();
   const provider = new InProcessSearchProvider(index);
 
@@ -84,7 +85,14 @@ export default async function ExplorePage({
     page: 1,
     pageSize: 40,
   });
-  const landscape = buildKnowledgeLandscape(index, landscapeClaimResults.items, selectedInterests);
+  const landscape = buildKnowledgeLandscape(index, landscapeClaimResults.items, selectedInterests, {
+    query: q,
+    focusNodeId: requestedLandscapeFocus,
+  });
+  const landscapeOverviewHref = landscapeHref(parameters);
+  const landscapeFocusHrefs = Object.fromEntries(
+    landscape.nodes.map((node) => [node.id, landscapeHref(parameters, node.id)]),
+  );
   const reviewQuery = archiveSearchQuerySchema.parse({
     contentType: "review",
     q,
@@ -300,6 +308,8 @@ export default async function ExplorePage({
       {q || selectedInterests.length > 0 ? (
         <KnowledgeLandscape
           landscape={landscape}
+          overviewHref={landscapeOverviewHref}
+          focusHrefByNode={landscapeFocusHrefs}
           focus={
             q ??
             selectedInterests
@@ -463,6 +473,19 @@ function pageHref(parameters: SearchParameters, page: number): string {
     }
   }
   output.set("page", String(page));
+  return "/explore?" + output;
+}
+
+function landscapeHref(parameters: SearchParameters, focusNodeId?: string): string {
+  const output = new URLSearchParams();
+  for (const [key, value] of Object.entries(parameters)) {
+    if (key === "focus" || key === "page" || !value) continue;
+    const values = Array.isArray(value) ? value : [value];
+    for (const entry of values) {
+      if (entry) output.append(key, entry);
+    }
+  }
+  if (focusNodeId) output.set("focus", focusNodeId);
   return "/explore?" + output;
 }
 

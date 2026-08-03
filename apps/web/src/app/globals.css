@@ -1201,10 +1201,19 @@ textarea {
   align-items: end;
   margin-bottom: 1rem;
 }
-.knowledge-landscape-heading > p {
+.knowledge-landscape-summary {
   max-width: 34rem;
-  margin: 0;
   text-align: right;
+}
+.knowledge-landscape-summary p {
+  margin: 0;
+}
+.knowledge-landscape-summary p + p {
+  margin-top: 0.45rem;
+}
+.landscape-ranking-note {
+  color: var(--text-muted);
+  font-size: 0.78rem;
 }
 .knowledge-landscape-visual {
   overflow-x: auto;
@@ -1298,6 +1307,60 @@ textarea {
 .landscape-legend [data-relation="contradicts"]::before {
   background: var(--warn);
 }
+.landscape-timeline {
+  display: grid;
+  grid-template-columns: minmax(12rem, 0.8fr) minmax(0, 2fr);
+  gap: 1rem;
+  align-items: start;
+  margin: 1rem 0;
+  padding: 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+.landscape-timeline h3,
+.landscape-timeline p {
+  margin: 0;
+}
+.landscape-timeline h3 {
+  font-size: 0.95rem;
+}
+.landscape-timeline p {
+  margin-top: 0.25rem;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+.landscape-timeline ol {
+  display: flex;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  overflow-x: auto;
+  list-style: none;
+}
+.landscape-timeline li {
+  min-width: 8rem;
+  padding: 0 0.8rem 0.5rem;
+  border-bottom: 2px solid var(--accent);
+}
+.landscape-timeline li::after {
+  display: block;
+  width: 0.55rem;
+  height: 0.55rem;
+  margin: 0.48rem 0 -0.82rem;
+  border-radius: 50%;
+  background: var(--accent);
+  content: "";
+}
+.landscape-timeline strong,
+.landscape-timeline span {
+  display: block;
+}
+.landscape-timeline span {
+  color: var(--text-muted);
+  font-size: 0.76rem;
+}
 .knowledge-landscape-list {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1317,6 +1380,31 @@ textarea {
 .knowledge-landscape-list small {
   display: block;
   color: var(--text-muted);
+}
+.landscape-reasons {
+  margin-top: 0.35rem;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+.landscape-reasons summary {
+  width: fit-content;
+  cursor: pointer;
+}
+.landscape-reasons ul {
+  margin-top: 0.3rem;
+}
+.landscape-reasons li + li {
+  margin-top: 0.2rem;
+}
+.landscape-focus-link,
+.landscape-focused-label {
+  display: inline-block;
+  margin-top: 0.35rem;
+  font-size: 0.8rem;
+}
+.landscape-focused-label {
+  color: var(--accent);
+  font-weight: 650;
 }
 .specialist-tools {
   margin: 0 0 1.35rem;
@@ -1441,9 +1529,12 @@ textarea {
   .knowledge-landscape-heading {
     display: block;
   }
-  .knowledge-landscape-heading > p {
+  .knowledge-landscape-summary {
     margin-top: 0.5rem;
     text-align: left;
+  }
+  .landscape-timeline {
+    grid-template-columns: 1fr;
   }
   .interest-options {
     grid-template-columns: 1fr;

@@ -37,6 +37,8 @@ export interface KnowledgeLandscapeNode {
   label: string;
   detail: string;
   href: string;
+  reasons: string[];
+  year?: number;
 }
 
 export interface KnowledgeLandscapeEdge {
@@ -51,6 +53,19 @@ export interface KnowledgeLandscapeData {
   edges: KnowledgeLandscapeEdge[];
   matchedClaimCount: number;
   shownClaimCount: number;
+  timeline: KnowledgeLandscapeYear[];
+  focusedNodeId?: string;
+}
+
+export interface KnowledgeLandscapeYear {
+  year: number;
+  reviewCount: number;
+  evidenceCount: number;
+}
+
+export interface KnowledgeLandscapeOptions {
+  query?: string;
+  focusNodeId?: string;
 }
 
 const INTEREST_IDS = new Set<string>(EXPLORATION_INTERESTS.map((interest) => interest.id));
@@ -63,6 +78,7 @@ export function buildKnowledgeLandscape(
   index: KnowledgeIndexData,
   candidateClaims: IndexedClaim[],
   interests: ExplorationInterest[],
+  options: KnowledgeLandscapeOptions = {},
 ): KnowledgeLandscapeData {
   const matchingClaims =
     interests.length === 0
@@ -70,16 +86,27 @@ export function buildKnowledgeLandscape(
       : candidateClaims.filter((claim) =>
           interests.some((interest) => matchesInterest(claim, interest)),
         );
-  const selectedClaims = matchingClaims.slice(0, 6);
+  const selectedClaims = matchingClaims
+    .map((claim) => ({
+      claim,
+      reasons: explainClaimSelection(claim, interests, options.query),
+    }))
+    .sort(compareExplorationPriority)
+    .slice(0, 6);
   const citationById = new Map(index.citations.map((citation) => [citation.citationId, citation]));
+  const reviewByVersionId = new Map(
+    index.reviews.map((review) => [review.reviewVersionId, review]),
+  );
   const nodes: KnowledgeLandscapeNode[] = [];
   const edges: KnowledgeLandscapeEdge[] = [];
   const includedReviews = new Set<string>();
   const includedEvidence = new Map<string, KnowledgeLandscapeNode>();
 
-  for (const claim of selectedClaims) {
+  for (const selected of selectedClaims) {
+    const { claim, reasons } = selected;
     const reviewNodeId = `review:${claim.reviewVersionId}`;
     if (!includedReviews.has(reviewNodeId)) {
+      const review = reviewByVersionId.get(claim.reviewVersionId);
       includedReviews.add(reviewNodeId);
       nodes.push({
         id: reviewNodeId,
@@ -87,6 +114,8 @@ export function buildKnowledgeLandscape(
         label: claim.reviewTitle,
         detail: "Preserved review record",
         href: `/reviews/${claim.reviewSlug}`,
+        reasons: ["Contains a claim in this landscape"],
+        year: review?.publicationYear,
       });
     }
 
@@ -98,6 +127,8 @@ export function buildKnowledgeLandscape(
       label: claim.text,
       detail: claim.claimType ? `${claim.claimType} claim` : "Scientific claim",
       href: claimHref,
+      reasons,
+      year: reviewByVersionId.get(claim.reviewVersionId)?.publicationYear,
     });
     edges.push({
       sourceId: reviewNodeId,
@@ -117,6 +148,8 @@ export function buildKnowledgeLandscape(
           label: citation.title ?? citation.doi ?? citation.localCitationId,
           detail: citation.year ? `Evidence published ${citation.year}` : "Linked evidence record",
           href: `${claimHref}#linked-evidence`,
+          reasons: ["Linked as evidence for a claim in this landscape"],
+          year: citation.year,
         };
         includedEvidence.set(evidenceNodeId, node);
         nodes.push(node);
@@ -132,12 +165,99 @@ export function buildKnowledgeLandscape(
     }
   }
 
-  return {
+  const completeLandscape: KnowledgeLandscapeData = {
     nodes,
     edges,
     matchedClaimCount: matchingClaims.length,
     shownClaimCount: selectedClaims.length,
+    timeline: buildTimeline(nodes),
   };
+  return focusLandscape(completeLandscape, options.focusNodeId);
+}
+
+export function focusLandscape(
+  landscape: KnowledgeLandscapeData,
+  requestedNodeId?: string,
+): KnowledgeLandscapeData {
+  if (!requestedNodeId || !landscape.nodes.some((node) => node.id === requestedNodeId)) {
+    return landscape;
+  }
+
+  const includedIds = new Set([requestedNodeId]);
+  for (const edge of landscape.edges) {
+    if (edge.sourceId === requestedNodeId) includedIds.add(edge.targetId);
+    if (edge.targetId === requestedNodeId) includedIds.add(edge.sourceId);
+  }
+  const nodes = landscape.nodes.filter((node) => includedIds.has(node.id));
+  const edges = landscape.edges.filter(
+    (edge) => includedIds.has(edge.sourceId) && includedIds.has(edge.targetId),
+  );
+  return {
+    ...landscape,
+    nodes,
+    edges,
+    timeline: buildTimeline(nodes),
+    focusedNodeId: requestedNodeId,
+  };
+}
+
+function explainClaimSelection(
+  claim: IndexedClaim,
+  interests: ExplorationInterest[],
+  query?: string,
+): string[] {
+  const reasons: string[] = [];
+  if (query?.trim()) reasons.push(`Matches the search “${query.trim()}”`);
+  for (const interest of interests) {
+    if (!matchesInterest(claim, interest)) continue;
+    const label = EXPLORATION_INTERESTS.find((item) => item.id === interest)?.label ?? interest;
+    reasons.push(`Matches your ${label.toLowerCase()} interest`);
+  }
+  const contradicting = claim.relations.filter(
+    (relation) => relation.relationType === "contradicts",
+  ).length;
+  if (contradicting > 0) {
+    reasons.push(`${contradicting} contradicting evidence link${contradicting === 1 ? "" : "s"}`);
+  }
+  const assessed = claim.relations.filter(
+    (relation) =>
+      (relation.trustAssessments ?? (relation.trust ? [relation.trust] : [])).length > 0,
+  ).length;
+  if (assessed > 0) {
+    reasons.push(`${assessed} separately assessed evidence link${assessed === 1 ? "" : "s"}`);
+  }
+  if (claim.relations.length > 0) {
+    reasons.push(
+      `${claim.relations.length} linked evidence record${claim.relations.length === 1 ? "" : "s"}`,
+    );
+  }
+  return reasons.length > 0 ? reasons : ["Included in the current filtered claim set"];
+}
+
+function compareExplorationPriority(
+  left: { claim: IndexedClaim; reasons: string[] },
+  right: { claim: IndexedClaim; reasons: string[] },
+): number {
+  return (
+    right.reasons.length - left.reasons.length ||
+    right.claim.relations.length - left.claim.relations.length ||
+    left.claim.reviewTitle.localeCompare(right.claim.reviewTitle) ||
+    left.claim.claimId.localeCompare(right.claim.claimId)
+  );
+}
+
+function buildTimeline(nodes: KnowledgeLandscapeNode[]): KnowledgeLandscapeYear[] {
+  const years = new Map<number, { reviewCount: number; evidenceCount: number }>();
+  for (const node of nodes) {
+    if (!node.year || node.kind === "claim") continue;
+    const entry = years.get(node.year) ?? { reviewCount: 0, evidenceCount: 0 };
+    if (node.kind === "review") entry.reviewCount += 1;
+    if (node.kind === "evidence") entry.evidenceCount += 1;
+    years.set(node.year, entry);
+  }
+  return [...years.entries()]
+    .sort(([left], [right]) => left - right)
+    .map(([year, counts]) => ({ year, ...counts }));
 }
 
 function matchesInterest(claim: IndexedClaim, interest: ExplorationInterest): boolean {
