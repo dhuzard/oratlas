@@ -13,6 +13,7 @@ import { buildKnowledgeIndex } from "@/lib/index-builder";
 export const dynamic = "force-dynamic";
 
 type ExploreView = "claims" | "reviews";
+type ArchiveSort = "accepted" | "updated" | "title" | "relevance";
 type SearchParameters = Record<string, string | string[] | undefined>;
 
 function first(parameters: SearchParameters, key: string): string | undefined {
@@ -26,6 +27,16 @@ function bool(value: string | undefined): boolean | undefined {
   return undefined;
 }
 
+function positivePage(value: string | undefined): number {
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) && parsed >= 1 ? parsed : 1;
+}
+
+function archiveSort(value: string | undefined): ArchiveSort {
+  if (value === "updated" || value === "title" || value === "relevance") return value;
+  return "accepted";
+}
+
 export default async function ExplorePage({
   searchParams,
 }: {
@@ -35,7 +46,8 @@ export default async function ExplorePage({
   const get = (key: string) => first(parameters, key);
   const view: ExploreView = get("view") === "reviews" ? "reviews" : "claims";
   const q = get("q")?.trim() || undefined;
-  const page = get("page") ? Number(get("page")) : 1;
+  const page = positivePage(get("page"));
+  const sort = archiveSort(get("sort"));
   const index = await buildKnowledgeIndex();
   const provider = new InProcessSearchProvider(index);
 
@@ -56,7 +68,7 @@ export default async function ExplorePage({
     hasDoi: bool(get("hasDoi")),
     hasTrustData: bool(get("hasTrustData")),
     compatibility: get("compatibility") || undefined,
-    sort: (get("sort") as never) || "accepted",
+    sort,
     page: view === "reviews" ? page : 1,
     pageSize: 20,
   });
@@ -70,9 +82,8 @@ export default async function ExplorePage({
     view === "claims"
       ? ["reviewSlug", "claimType", "relationType", "trustCriterion"].filter((key) => get(key))
           .length
-      : ["author", "domain", "hasDoi", "hasTrustData", "compatibility", "sort"].filter((key) =>
-          get(key),
-        ).length;
+      : ["author", "domain", "hasDoi", "hasTrustData", "compatibility"].filter((key) => get(key))
+          .length + (sort === "accepted" ? 0 : 1);
 
   return (
     <>
@@ -226,7 +237,7 @@ export default async function ExplorePage({
                 </div>
                 <div className="field">
                   <label htmlFor="sort">Sort by</label>
-                  <select id="sort" name="sort" defaultValue={get("sort") ?? "accepted"}>
+                  <select id="sort" name="sort" defaultValue={sort}>
                     <option value="accepted">Acceptance date</option>
                     <option value="updated">Update date</option>
                     <option value="title">Title</option>
