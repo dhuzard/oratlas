@@ -976,6 +976,77 @@ textarea {
   max-width: 58rem;
   padding: clamp(2.5rem, 6vw, 4.5rem) 0 1.5rem;
 }
+
+/* A compact, shared reading order for review and claim inspection. */
+.inspection-path {
+  margin: 1.25rem 0 1.5rem;
+}
+.inspection-path ol {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  list-style: none;
+  overflow: hidden;
+}
+.inspection-path li + li {
+  border-left: 1px solid var(--border);
+}
+.inspection-path a {
+  display: flex;
+  gap: 0.65rem;
+  align-items: flex-start;
+  height: 100%;
+  padding: 0.8rem;
+  color: var(--text);
+  text-decoration: none;
+}
+.inspection-path a:hover,
+.inspection-path a:focus-visible {
+  background: var(--surface-2);
+}
+.inspection-path strong,
+.inspection-path small {
+  display: block;
+}
+.inspection-path small {
+  margin-top: 0.15rem;
+  color: var(--text-muted);
+  line-height: 1.25;
+}
+.inspection-step-number {
+  display: grid;
+  flex: 0 0 1.65rem;
+  width: 1.65rem;
+  height: 1.65rem;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+.inspection-anchor {
+  scroll-margin-top: 5rem;
+}
+
+@media (max-width: 800px) {
+  .inspection-path ol {
+    grid-template-columns: 1fr 1fr;
+  }
+  .inspection-path li + li {
+    border-left: 0;
+  }
+  .inspection-path li:nth-child(even) {
+    border-left: 1px solid var(--border);
+  }
+  .inspection-path li:nth-child(n + 3) {
+    border-top: 1px solid var(--border);
+  }
+}
 .explore-header h1 {
   margin: 0 0 0.7rem;
   font-size: clamp(2.1rem, 5vw, 3.35rem);
