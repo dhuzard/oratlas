@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ExploreBreadcrumb } from "./ExploreBreadcrumb.js";
 
 const TOOLS = [
   {
@@ -65,17 +66,5 @@ export function SpecialistToolBreadcrumb({
   current: string;
   parent?: { href: string; label: string };
 }) {
-  return (
-    <nav className="specialist-breadcrumb" aria-label="Breadcrumb">
-      <Link href="/explore">Explore</Link>
-      <span aria-hidden="true">/</span>
-      {parent ? (
-        <>
-          <Link href={parent.href}>{parent.label}</Link>
-          <span aria-hidden="true">/</span>
-        </>
-      ) : null}
-      <span aria-current="page">{current}</span>
-    </nav>
-  );
+  return <ExploreBreadcrumb current={current} parent={parent} />;
 }

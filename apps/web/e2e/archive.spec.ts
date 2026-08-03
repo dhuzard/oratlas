@@ -38,6 +38,31 @@ test.describe("Public archive browsing", () => {
     await expect(page.getByRole("link", { name: /Hippocampal Replay/ }).first()).toBeVisible();
   });
 
+  test("first-time readers can inspect a claim and return to Explore", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+      "The arXiv for AI-generated scientific reviews.",
+    );
+
+    await page.getByRole("button", { name: "Explore claims and evidence" }).click();
+    await expect(page).toHaveURL(/\/explore\?view=claims/);
+
+    await page.locator(".explore-result h2 a").first().click();
+    await expect(page).toHaveURL(/\/claims\/[^/]+\/[^/]+$/);
+    await expect(page.getByRole("navigation", { name: "Inspect this claim" })).toBeVisible();
+
+    const breadcrumb = page.getByRole("navigation", { name: "Breadcrumb" });
+    await expect(breadcrumb.getByRole("link", { name: "Explore" })).toHaveAttribute(
+      "href",
+      "/explore?view=claims",
+    );
+    await breadcrumb.getByRole("link", { name: "Explore" }).click();
+    await expect(page).toHaveURL(/\/explore\?view=claims/);
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+      "Claims and scientific reviews",
+    );
+  });
+
   test("specialist tools stay contextual and return to Explore", async ({ page }) => {
     await page.goto("/explore");
     await page.getByText("Specialist tools for deeper analysis", { exact: true }).click();
@@ -98,6 +123,9 @@ test.describe("Public archive browsing", () => {
   }) => {
     await page.goto("/reviews/hippocampal-replay-computational-review");
     await expect(page.getByRole("heading", { level: 1 })).toContainText("Hippocampal Replay");
+    await expect(
+      page.getByRole("navigation", { name: "Breadcrumb" }).getByRole("link", { name: "Explore" }),
+    ).toHaveAttribute("href", "/explore?view=reviews");
     const inspectionPath = page.getByRole("navigation", { name: "Inspect this review" });
     await expect(inspectionPath.getByRole("link", { name: /Original record/ })).toHaveAttribute(
       "href",

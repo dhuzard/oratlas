@@ -7,6 +7,7 @@ import { getClaimIndependence } from "@/lib/synthesis";
 import { TrustVerificationBadge } from "@/components/TrustVerificationBadge";
 import { ArtifactOutcomes } from "@/components/ArtifactOutcomes";
 import { InspectionPath } from "@/components/InspectionPath";
+import { ExploreBreadcrumb } from "@/components/ExploreBreadcrumb";
 
 export const dynamic = "force-dynamic";
 
@@ -42,6 +43,7 @@ export default async function ClaimPassportPage({
 
   return (
     <article>
+      <ExploreBreadcrumb current="Claim passport" href="/explore?view=claims" />
       <div className="btn-row" style={{ marginBottom: "0.5rem" }}>
         <Badge>claim passport</Badge>
         {passport.claimType ? <Badge tone="neutral">{passport.claimType}</Badge> : null}
