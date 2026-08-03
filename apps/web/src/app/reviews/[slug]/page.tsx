@@ -29,7 +29,7 @@ import { loadSynthesisReadingContext } from "@/lib/synthesis-reading";
 import { SynthesisReader } from "./SynthesisReader";
 import { CompatibilityFacets } from "@/components/CompatibilityFacets";
 import { ArtifactOutcomes } from "@/components/ArtifactOutcomes";
-import { InspectionPath } from "@/components/InspectionPath";
+import { formatCountLabel, InspectionPath } from "@/components/InspectionPath";
 
 export const dynamic = "force-dynamic";
 
@@ -250,12 +250,12 @@ export default async function ReviewPage({
           {
             href: "#linked-evidence",
             label: "Claims & evidence",
-            detail: `${review.claims.length} claims · ${evidenceRelationCount} relations`,
+            detail: `${formatCountLabel(review.claims.length, "claim")} · ${formatCountLabel(evidenceRelationCount, "relation")}`,
           },
           {
             href: "#assessments",
             label: "Assessments",
-            detail: `${assessmentEntries.length} separate records`,
+            detail: formatCountLabel(assessmentEntries.length, "separate record"),
           },
           {
             href: "#disagreements",
