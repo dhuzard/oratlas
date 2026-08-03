@@ -1,7 +1,5 @@
 import Link from "next/link";
-import { Card, Badge, CompatibilityBadge, StatusPill } from "@oratlas/ui";
 import { buildKnowledgeIndex } from "@/lib/index-builder";
-import { ProvenanceLegend } from "@/components/ProvenanceLegend";
 
 export const dynamic = "force-dynamic";
 
@@ -9,122 +7,113 @@ export default async function HomePage() {
   const index = await buildKnowledgeIndex();
   const recent = [...index.reviews]
     .sort((a, b) => (b.acceptedAt ?? "").localeCompare(a.acceptedAt ?? ""))
-    .slice(0, 5);
-  const domains = [...new Set(index.reviews.flatMap((r) => r.domains))].sort();
-  const withDoi = index.reviews.filter((r) => r.hasDoi).length;
-  const withTrust = index.reviews.filter((r) => r.hasTrustData).length;
+    .slice(0, 4);
 
   return (
     <>
-      <section className="hero prose">
-        <h1>An open archive for computational literature reviews</h1>
+      <section className="home-hero" aria-labelledby="home-title">
+        <p className="home-eyebrow">Open Review Atlas</p>
+        <h1 id="home-title">The arXiv for AI-generated scientific reviews.</h1>
         <p className="lead">
-          Discover, submit, validate, and discuss AI-enriched computational literature reviews
-          produced from public GitHub repositories built with, forked from, or structurally
-          compatible with the ComputationalReviewTemplate.
+          Inspect a scientific claim, its linked evidence, and the independent assessments or
+          disagreements around it—without rewriting the original record.
         </p>
-        <form
-          action="/archive"
-          method="get"
-          role="search"
-          className="btn-row"
-          style={{ marginTop: "1rem" }}
-        >
-          <label
-            htmlFor="home-q"
-            className="sr-only"
-            style={{ position: "absolute", left: "-999px" }}
-          >
-            Search reviews
+
+        <form action="/archive" method="get" role="search" className="home-search">
+          <label htmlFor="home-q" className="sr-only">
+            Search claims, reviews, or authors
           </label>
           <input
             id="home-q"
             type="search"
             name="q"
-            placeholder="Search reviews, claims, authors…"
-            style={{ maxWidth: "28rem" }}
+            placeholder="Search a claim, review, or author…"
           />
           <button className="btn" type="submit">
-            Search
+            Explore claims and evidence
           </button>
-          <Link className="btn btn-secondary" href="/submit">
-            Submit a repository
-          </Link>
         </form>
+
+        <div className="home-actions">
+          <Link className="btn btn-secondary" href="/submit">
+            Submit a review
+          </Link>
+          <Link href="#how-it-works">How ORAtlas works</Link>
+        </div>
+
+        <p className="home-note">
+          ORAtlas preserves public, versioned review records. Archive acceptance is not peer review
+          or scientific endorsement.
+        </p>
       </section>
 
-      <div className="grid layout-2">
-        <div>
-          <Card title="Recently accepted reviews">
-            {recent.length === 0 ? (
-              <p className="muted">No reviews yet. Seed the database or submit a repository.</p>
-            ) : (
-              <ul className="review-list">
-                {recent.map((r) => (
-                  <li key={r.reviewSlug} className="review-item">
-                    <h3>
-                      <Link href={`/reviews/${r.reviewSlug}`}>{r.title}</Link>
-                    </h3>
-                    <div className="meta">
-                      <StatusPill status={r.status} />
-                      {r.compatibilityLevel ? (
-                        <CompatibilityBadge level={r.compatibilityLevel} />
-                      ) : null}
-                      {r.hasDoi ? (
-                        <Badge tone="success">DOI</Badge>
-                      ) : (
-                        <Badge>repository-only</Badge>
-                      )}
-                      {r.hasTrustData ? <Badge>TRUST data</Badge> : null}
-                      {r.authors.length > 0 ? <span>{r.authors.join(", ")}</span> : null}
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Card>
+      <section
+        id="how-it-works"
+        className="home-how"
+        aria-labelledby="how-it-works-title"
+      >
+        <div className="home-section-intro">
+          <p className="home-eyebrow">How it works</p>
+          <h2 id="how-it-works-title">Follow a review from claim to evidence.</h2>
+          <p>
+            ORAtlas keeps the published record, supporting material, and later assessments
+            connected without confusing one for another.
+          </p>
         </div>
-        <aside>
-          <Card title="Filter the archive">
-            <p className="muted" style={{ marginTop: 0 }}>
-              {index.reviews.length} accepted review(s); {withDoi} with a DOI, {withTrust} with
-              TRUST data.
+        <div className="home-principles">
+          <article>
+            <span className="home-principle-index" aria-hidden="true">
+              01
+            </span>
+            <h3>Preserved record</h3>
+            <p>Each accepted review version remains identifiable, attributable, and unchanged.</p>
+          </article>
+          <article>
+            <span className="home-principle-index" aria-hidden="true">
+              02
+            </span>
+            <h3>Claims linked to evidence</h3>
+            <p>Inspect what a review claims and the exact sources or artifacts connected to it.</p>
+          </article>
+          <article>
+            <span className="home-principle-index" aria-hidden="true">
+              03
+            </span>
+            <h3>Assessments stay independent</h3>
+            <p>
+              Assessments, challenges, and disagreements remain separate records—not a universal
+              score.
             </p>
-            <ul className="tag-list">
-              <li>
-                <Link href="/archive?hasDoi=true">Has DOI</Link>
+          </article>
+        </div>
+      </section>
+
+      <section className="home-latest" aria-labelledby="latest-reviews-title">
+        <div className="home-section-heading">
+          <div>
+            <p className="home-eyebrow">From the archive</p>
+            <h2 id="latest-reviews-title">Latest reviews</h2>
+          </div>
+          <Link href="/archive">Browse the archive</Link>
+        </div>
+
+        {recent.length === 0 ? (
+          <p className="muted">No reviews have been published yet.</p>
+        ) : (
+          <ol className="home-review-list">
+            {recent.map((review) => (
+              <li key={review.reviewSlug}>
+                <h3>
+                  <Link href={"/reviews/" + review.reviewSlug}>{review.title}</Link>
+                </h3>
+                {review.authors.length > 0 ? (
+                  <p className="muted">{review.authors.join(", ")}</p>
+                ) : null}
               </li>
-              <li>
-                <Link href="/archive?hasTrustData=true">Has TRUST data</Link>
-              </li>
-              <li>
-                <Link href="/archive?trustReviewState=human-reviewed">
-                  Atlas-reviewed TRUST structure
-                </Link>
-              </li>
-            </ul>
-            {domains.length > 0 ? (
-              <>
-                <h3 style={{ fontSize: "1rem" }}>Scientific domains</h3>
-                <ul className="tag-list">
-                  {domains.map((d) => (
-                    <li key={d}>
-                      <Link href={`/archive?domain=${encodeURIComponent(d)}`}>{d}</Link>
-                    </li>
-                  ))}
-                </ul>
-              </>
-            ) : null}
-          </Card>
-          <Card title="How to read this archive">
-            <ProvenanceLegend />
-            <p className="muted">
-              The interface always distinguishes repository facts, extracted metadata, human-curated
-              metadata, repository assertions, agent proposals, and Atlas structural-review records.
-            </p>
-          </Card>
-        </aside>
-      </div>
+            ))}
+          </ol>
+        )}
+      </section>
     </>
   );
 }
