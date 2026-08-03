@@ -83,6 +83,18 @@ test.describe("Public archive browsing", () => {
     await expect(landscape.locator('.landscape-legend [data-relation="contradicts"]')).toHaveText(
       "contradicts",
     );
+    await expect(landscape.getByText("Ordering helps exploration only")).toBeVisible();
+    await expect(
+      landscape.getByRole("heading", { name: "When these records entered the literature" }),
+    ).toBeVisible();
+
+    await details.getByText("Why this?", { exact: true }).first().click();
+    await expect(details.getByText("Contains a claim in this landscape").first()).toBeVisible();
+    await details.getByRole("link", { name: "Focus on connections" }).first().click();
+    await expect(page).toHaveURL(/focus=review%3A/);
+    await expect(landscape.getByRole("heading", { level: 2 })).toContainText("One step from");
+    await landscape.getByRole("link", { name: "Return to overview" }).click();
+    await expect(page).not.toHaveURL(/focus=/);
   });
 
   test("specialist tools stay contextual and return to Explore", async ({ page }) => {
