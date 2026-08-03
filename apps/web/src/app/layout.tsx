@@ -11,11 +11,11 @@ export const metadata: Metadata = {
     template: "%s · Open Review Atlas",
   },
   description:
-    "A public archive for discovering, submitting, validating, and discussing AI-enriched computational literature reviews built from GitHub repositories.",
+    "The arXiv for AI-generated scientific reviews: inspect claims, linked evidence, and independent assessments or disagreements without rewriting the original record.",
   openGraph: {
     title: "Open Review Atlas",
     description:
-      "A public archive for AI-enriched computational literature reviews built from GitHub repositories.",
+      "Inspect claims, linked evidence, and independent assessments across versioned AI-generated scientific reviews.",
     type: "website",
   },
   robots: { index: true, follow: true },
@@ -32,22 +32,16 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         </a>
         <header className="site-header">
           <div className="container">
-            <Link href="/" className="brand">
+            <Link href="/" className="brand" aria-label="Open Review Atlas home">
               Open Review <span>Atlas</span>
             </Link>
             <nav className="main-nav" aria-label="Primary">
-              <Link href="/archive">Archive</Link>
-              <Link href="/claims">Claims</Link>
-              <Link href="/nodes">Nodes</Link>
-              <Link href="/graph">Graph</Link>
-              <Link href="/coverage">Coverage</Link>
-              <Link href="/synthesis">Contradictions</Link>
-              <Link href="/replications">Replications</Link>
-              <Link href="/discuss">Discuss</Link>
-              <Link href="/submit">Submit</Link>
+              <Link href="/archive">Explore</Link>
+              <Link href="/submit">Submit a review</Link>
+              <Link href="/#how-it-works">How it works</Link>
               {isEditor(user) ? <Link href="/editorial">Editorial</Link> : null}
               {user ? (
-                <span className="muted">
+                <span className="signed-in-user">
                   {user.githubLogin}
                   {isEditor(user) ? " (editor)" : ""}
                 </span>
@@ -63,10 +57,10 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         <footer className="site-footer">
           <div className="container prose">
             <p>
-              <strong>Open Review Atlas</strong> is a proof-of-concept archive. Acceptance into the
-              archive is <strong>not peer review</strong>. TRUST assessments are specific to a
-              claim–citation relation, agent-generated links and assessments are proposals, and a
-              DOI does not establish scientific quality.
+              <strong>Open Review Atlas</strong> is a proof-of-concept public archive for
+              AI-generated scientific reviews. Acceptance into the archive is{" "}
+              <strong>not peer review</strong>. Assessments apply to specific evidence relations,
+              and a DOI does not establish scientific quality.
             </p>
             <p className="muted">
               {env.mockAuthEnabled ? "Development mode: mock sign-in enabled. " : ""}
