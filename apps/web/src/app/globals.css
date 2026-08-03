@@ -1130,6 +1130,194 @@ textarea {
   background: var(--surface);
   box-shadow: 0 0.8rem 2rem color-mix(in srgb, var(--text) 14%, transparent);
 }
+.exploration-intent {
+  display: grid;
+  grid-template-columns: minmax(15rem, 0.75fr) minmax(0, 1.25fr);
+  gap: 1.5rem;
+  margin: 0 0 1.5rem;
+  padding: 1.25rem;
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.exploration-intent h2,
+.knowledge-landscape h2,
+.knowledge-landscape-empty h2 {
+  margin: 0.15rem 0 0.45rem;
+  font-size: 1.35rem;
+}
+.exploration-intent p {
+  margin: 0;
+}
+.exploration-intent fieldset {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.interest-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin-bottom: 0.8rem;
+}
+.interest-options label {
+  display: flex;
+  gap: 0.6rem;
+  align-items: flex-start;
+  padding: 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+.interest-options label:has(input:checked) {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface));
+}
+.interest-options input {
+  margin-top: 0.3rem;
+}
+.interest-options span,
+.interest-options small {
+  display: block;
+}
+.interest-options small {
+  margin-top: 0.15rem;
+  color: var(--text-muted);
+  line-height: 1.35;
+}
+.knowledge-landscape,
+.knowledge-landscape-empty {
+  margin: 0 0 1.5rem;
+  padding: 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.knowledge-landscape-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 1.5rem;
+  align-items: end;
+  margin-bottom: 1rem;
+}
+.knowledge-landscape-heading > p {
+  max-width: 34rem;
+  margin: 0;
+  text-align: right;
+}
+.knowledge-landscape-visual {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+.knowledge-landscape-visual svg {
+  display: block;
+  min-width: 760px;
+  width: 100%;
+}
+.knowledge-landscape-visual marker path {
+  fill: var(--text-muted);
+}
+.landscape-lane-label {
+  fill: var(--text-muted);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 650;
+  text-anchor: middle;
+}
+.landscape-edge line {
+  stroke: var(--text-muted);
+  stroke-width: 1.25;
+  opacity: 0.55;
+}
+.landscape-edge-support line {
+  stroke: var(--human);
+}
+.landscape-edge-contradict line {
+  stroke: var(--warn);
+  stroke-width: 2;
+}
+.landscape-node rect {
+  stroke: var(--border);
+  stroke-width: 1.5;
+  fill: var(--surface);
+}
+.landscape-node[data-kind="review"] rect {
+  fill: color-mix(in srgb, var(--repo) 10%, var(--surface));
+  stroke: var(--repo);
+}
+.landscape-node[data-kind="claim"] rect {
+  fill: color-mix(in srgb, var(--accent) 10%, var(--surface));
+  stroke: var(--accent);
+}
+.landscape-node[data-kind="evidence"] rect {
+  fill: color-mix(in srgb, var(--curated) 10%, var(--surface));
+  stroke: var(--curated);
+}
+.landscape-node text {
+  fill: var(--text);
+  font-family: var(--font-sans);
+  font-size: 11px;
+  pointer-events: none;
+}
+.knowledge-landscape-visual a:hover .landscape-node rect,
+.knowledge-landscape-visual a:focus .landscape-node rect {
+  stroke-width: 3;
+}
+.landscape-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem 0.85rem;
+  margin: 0.75rem 0 1rem;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+}
+.landscape-legend span::before {
+  display: inline-block;
+  width: 0.65rem;
+  height: 0.65rem;
+  margin-right: 0.3rem;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  content: "";
+}
+.landscape-legend [data-kind="review"]::before {
+  background: var(--repo);
+}
+.landscape-legend [data-kind="claim"]::before {
+  background: var(--accent);
+}
+.landscape-legend [data-kind="evidence"]::before {
+  background: var(--curated);
+}
+.landscape-legend [data-relation="supports"]::before {
+  background: var(--human);
+}
+.landscape-legend [data-relation="contradicts"]::before {
+  background: var(--warn);
+}
+.knowledge-landscape-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+.knowledge-landscape-list h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+}
+.knowledge-landscape-list ul {
+  margin: 0;
+  padding-left: 1.1rem;
+}
+.knowledge-landscape-list li + li {
+  margin-top: 0.5rem;
+}
+.knowledge-landscape-list small {
+  display: block;
+  color: var(--text-muted);
+}
 .specialist-tools {
   margin: 0 0 1.35rem;
   border-top: 1px solid var(--border);
@@ -1244,6 +1432,20 @@ textarea {
     box-shadow: none;
   }
   .specialist-tools ul {
+    grid-template-columns: 1fr;
+  }
+  .exploration-intent,
+  .knowledge-landscape-list {
+    grid-template-columns: 1fr;
+  }
+  .knowledge-landscape-heading {
+    display: block;
+  }
+  .knowledge-landscape-heading > p {
+    margin-top: 0.5rem;
+    text-align: left;
+  }
+  .interest-options {
     grid-template-columns: 1fr;
   }
 }

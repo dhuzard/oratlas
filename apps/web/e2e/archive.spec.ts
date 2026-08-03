@@ -63,6 +63,26 @@ test.describe("Public archive browsing", () => {
     );
   });
 
+  test("readers can build a bounded knowledge landscape from explicit interests", async ({
+    page,
+  }) => {
+    await page.goto("/explore");
+    await page.getByRole("checkbox", { name: /Disagreements/ }).check();
+    await page.getByRole("button", { name: "Build knowledge landscape" }).click();
+
+    await expect(page).toHaveURL(/interest=disagreements/);
+    const landscape = page.getByRole("region", { name: "Guided knowledge landscape" });
+    await expect(landscape.getByRole("heading", { level: 2 })).toContainText("Disagreements");
+    await expect(
+      landscape.getByRole("img", {
+        name: "Reviews connected to claims and their linked evidence",
+      }),
+    ).toBeVisible();
+    const details = landscape.getByRole("navigation", { name: "Knowledge landscape details" });
+    await expect(details.getByRole("link").first()).toBeVisible();
+    await expect(landscape.getByText("contradicts", { exact: true })).toBeVisible();
+  });
+
   test("specialist tools stay contextual and return to Explore", async ({ page }) => {
     await page.goto("/explore");
     await page.getByText("Specialist tools for deeper analysis", { exact: true }).click();
