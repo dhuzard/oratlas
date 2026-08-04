@@ -16,13 +16,19 @@ interface EvidenceClaim {
     trust?: {
       reviewStatus: string;
       verificationState:
-        "platform-verified" | "unverified-import" | "stale-verification" | "legacy-unknown";
+        | "platform-verified"
+        | "unverified-import"
+        | "stale-verification"
+        | "legacy-unknown";
       notableCriteria: string[];
     };
     trustAssessments?: Array<{
       reviewStatus: string;
       verificationState:
-        "platform-verified" | "unverified-import" | "stale-verification" | "legacy-unknown";
+        | "platform-verified"
+        | "unverified-import"
+        | "stale-verification"
+        | "legacy-unknown";
       notableCriteria: string[];
     }>;
   }>;
@@ -101,7 +107,8 @@ export function DiscussClient({ initialReview }: { initialReview?: string }) {
     response?.mode === "deterministic"
       ? (response.result as DeterministicResult)
       : response?.deterministic;
-  const llm = response?.mode === "llm" ? (response.result as LlmResult) : undefined;
+  const llm =
+    response?.mode === "llm" ? (response.result as LlmResult) : undefined;
 
   return (
     <div>
@@ -114,7 +121,9 @@ export function DiscussClient({ initialReview }: { initialReview?: string }) {
             onChange={(e) => setQuestion(e.target.value)}
             placeholder="e.g. What is the evidence that hippocampal replay supports memory consolidation?"
           />
-          {initialReview ? <small>Scoped to review: {initialReview}</small> : null}
+          {initialReview ? (
+            <small>Scoped to review: {initialReview}</small>
+          ) : null}
         </div>
         <details style={{ marginBottom: "1rem" }}>
           <summary>Use your own LLM key (optional)</summary>
@@ -125,7 +134,9 @@ export function DiscussClient({ initialReview }: { initialReview?: string }) {
                 id="llm-provider"
                 value={provider}
                 onChange={(event) =>
-                  setProvider(event.target.value === "openai" ? "openai" : "anthropic")
+                  setProvider(
+                    event.target.value === "openai" ? "openai" : "anthropic",
+                  )
                 }
               >
                 <option value="anthropic">Anthropic</option>
@@ -152,18 +163,25 @@ export function DiscussClient({ initialReview }: { initialReview?: string }) {
                 value={model}
                 onChange={(event) => setModel(event.target.value)}
                 spellCheck={false}
-                placeholder={provider === "anthropic" ? "claude-sonnet-5" : "gpt-5.6"}
+                placeholder={
+                  provider === "anthropic" ? "claude-sonnet-5" : "gpt-5.6"
+                }
               />
             </div>
           </div>
           <small>
-            The key is sent once to ORAtlas over this request, used server-side for this answer,
-            never stored by ORAtlas, and cleared from this form afterward. The selected provider
-            receives the bounded evidence packet under your account.
+            The key is sent once to ORAtlas over this request, used server-side
+            for this answer, never stored by ORAtlas, and cleared from this form
+            afterward. The selected provider receives the bounded evidence
+            packet under your account.
           </small>
         </details>
 
-        <button className="btn" onClick={ask} disabled={loading || question.trim().length < 3}>
+        <button
+          className="btn"
+          onClick={ask}
+          disabled={loading || question.trim().length < 3}
+        >
           {loading ? "Thinking…" : "Ask question"}
         </button>
       </div>
@@ -177,13 +195,19 @@ export function DiscussClient({ initialReview }: { initialReview?: string }) {
       {response ? (
         <div className="card">
           <p className="muted">
-            Mode: <strong>{response.mode === "llm" ? "LLM (grounded)" : "Deterministic"}</strong>.
+            Mode:{" "}
+            <strong>
+              {response.mode === "llm" ? "LLM (grounded)" : "Deterministic"}
+            </strong>
+            .
           </p>
 
-          {response.mode === "deterministic" && response.llmAvailable === false ? (
+          {response.mode === "deterministic" &&
+          response.llmAvailable === false ? (
             <div className="notice notice-info">
-              No LLM key was supplied and no server provider is configured. Atlas is showing the
-              deterministic structured evidence summary; no generated prose was attempted.
+              No LLM key was supplied and no server provider is configured.
+              Atlas is showing the deterministic structured evidence summary; no
+              generated prose was attempted.
             </div>
           ) : null}
 
@@ -194,16 +218,21 @@ export function DiscussClient({ initialReview }: { initialReview?: string }) {
             </code>
           </p>
 
-          {llm?.answer ? <LlmAnswer answer={llm.answer} references={response.references} /> : null}
+          {llm?.answer ? (
+            <LlmAnswer answer={llm.answer} references={response.references} />
+          ) : null}
           {llm && !llm.answer ? (
             <div className="notice notice-warning">
-              The model did not produce a grounded answer ({llm.error}). Showing the deterministic
-              evidence summary instead.
+              The model did not produce a grounded answer ({llm.error}). Showing
+              the deterministic evidence summary instead.
             </div>
           ) : null}
 
           {deterministic ? (
-            <DeterministicView result={deterministic} references={response.references} />
+            <DeterministicView
+              result={deterministic}
+              references={response.references}
+            />
           ) : null}
         </div>
       ) : null}
@@ -244,11 +273,14 @@ function LlmAnswer({
       <List title="Uncertainties" items={answer.uncertainties} />
       <List title="Missing evidence" items={answer.missingEvidence} />
       <p className="muted">
-        Grounded in {answer.reviewClaimsUsed.length} claim(s) and {answer.citationsUsed.length}{" "}
-        citation(s). Every claim–citation edge was validated against the evidence packet. This is
-        structural grounding, not a finding that the claims are scientifically correct.
+        Grounded in {answer.reviewClaimsUsed.length} claim(s) and{" "}
+        {answer.citationsUsed.length} citation(s). Every claim–citation edge was
+        validated against the evidence packet. This is structural grounding, not
+        a finding that the claims are scientifically correct.
       </p>
-      <GroundingReferences references={references.filter((reference) => used.has(reference.id))} />
+      <GroundingReferences
+        references={references.filter((reference) => used.has(reference.id))}
+      />
     </div>
   );
 }
@@ -263,21 +295,27 @@ function DeterministicView({
   if (result.insufficientEvidence) {
     return (
       <div className="notice notice-info">
-        The indexed material is insufficient to answer this question. No matching claims were found
-        across accepted reviews.
+        The indexed material is insufficient to answer this question. No
+        matching claims were found across accepted reviews.
       </div>
     );
   }
   return (
     <div>
       <p className="muted">
-        {result.matchedClaimCount} claim(s) across {result.reviewsCovered.length} review(s).
+        {result.matchedClaimCount} claim(s) across{" "}
+        {result.reviewsCovered.length} review(s).
       </p>
       {result.groups.map((group) => (
         <div key={group.relationType} style={{ marginBottom: "1rem" }}>
-          <h3 style={{ fontSize: "1.05rem" }}>{group.relationType.replace(/-/g, " ")}</h3>
+          <h3 style={{ fontSize: "1.05rem" }}>
+            {group.relationType.replace(/-/g, " ")}
+          </h3>
           {group.claims.map((claim) => (
-            <div className="claim-card" key={`${claim.reviewSlug}-${claim.claimId}`}>
+            <div
+              className="claim-card"
+              key={`${claim.reviewSlug}-${claim.claimId}`}
+            >
               <p className="claim-text">{claim.text}</p>
               <p className="muted" style={{ margin: 0 }}>
                 from{" "}
@@ -304,7 +342,11 @@ function DeterministicView({
   );
 }
 
-function GroundingReferences({ references }: { references: DiscussionReference[] }) {
+function GroundingReferences({
+  references,
+}: {
+  references: DiscussionReference[];
+}) {
   if (references.length === 0) return null;
   return (
     <div>
@@ -324,13 +366,14 @@ function GroundingReferences({ references }: { references: DiscussionReference[]
 function trustSummary(claim: EvidenceClaim): string {
   const states = new Set(
     claim.relations.flatMap((relation) =>
-      (relation.trustAssessments ?? (relation.trust ? [relation.trust] : [])).map(
-        (assessment) => assessment.verificationState,
-      ),
+      (
+        relation.trustAssessments ?? (relation.trust ? [relation.trust] : [])
+      ).map((assessment) => assessment.verificationState),
     ),
   );
   if (states.size === 0) return "";
-  if (states.size > 1) return " · Mixed TRUST verification states — not Atlas verified";
+  if (states.size > 1)
+    return " · Mixed TRUST verification states — not Atlas verified";
   return ` · ${trustVerificationPresentation([...states][0]!).label}`;
 }
 
