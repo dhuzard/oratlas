@@ -16,19 +16,13 @@ interface EvidenceClaim {
     trust?: {
       reviewStatus: string;
       verificationState:
-        | "platform-verified"
-        | "unverified-import"
-        | "stale-verification"
-        | "legacy-unknown";
+        "platform-verified" | "unverified-import" | "stale-verification" | "legacy-unknown";
       notableCriteria: string[];
     };
     trustAssessments?: Array<{
       reviewStatus: string;
       verificationState:
-        | "platform-verified"
-        | "unverified-import"
-        | "stale-verification"
-        | "legacy-unknown";
+        "platform-verified" | "unverified-import" | "stale-verification" | "legacy-unknown";
       notableCriteria: string[];
     }>;
   }>;
