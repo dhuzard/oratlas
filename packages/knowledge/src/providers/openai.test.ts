@@ -11,34 +11,32 @@ const request = {
 
 describe("OpenAI transport adapter", () => {
   it("uses the Responses API without storage and aggregates output text", async () => {
-    const fetchImpl = vi.fn(
-      async (_url: string | URL | Request, init?: RequestInit) => {
-        expect(init?.headers).toMatchObject({
-          authorization: "Bearer test-key",
-        });
-        expect(JSON.parse(String(init?.body))).toEqual({
-          model: "offline-openai",
-          instructions: "static system",
-          input: '{"packet":"canonical"}',
-          max_output_tokens: 321,
-          store: false,
-        });
-        return new Response(
-          JSON.stringify({
-            output: [
-              {
-                type: "message",
-                content: [
-                  { type: "output_text", text: '{"x":' },
-                  { type: "output_text", text: "1}" },
-                ],
-              },
-            ],
-          }),
-          { status: 200, headers: { "content-type": "application/json" } },
-        );
-      },
-    );
+    const fetchImpl = vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {
+      expect(init?.headers).toMatchObject({
+        authorization: "Bearer test-key",
+      });
+      expect(JSON.parse(String(init?.body))).toEqual({
+        model: "offline-openai",
+        instructions: "static system",
+        input: '{"packet":"canonical"}',
+        max_output_tokens: 321,
+        store: false,
+      });
+      return new Response(
+        JSON.stringify({
+          output: [
+            {
+              type: "message",
+              content: [
+                { type: "output_text", text: '{"x":' },
+                { type: "output_text", text: "1}" },
+              ],
+            },
+          ],
+        }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      );
+    });
     const provider = createOpenAIProvider({
       apiKey: "test-key",
       model: "offline-openai",
@@ -55,12 +53,12 @@ describe("OpenAI transport adapter", () => {
       apiKey: "test",
       fetchImpl: fetchImpl as typeof fetch,
     });
-    await expect(
-      provider.complete({ ...request, maxTokens: 8_193 }),
-    ).rejects.toThrow("token limit");
-    await expect(
-      provider.complete({ ...request, maxResponseBytes: 262_145 }),
-    ).rejects.toThrow("response byte limit");
+    await expect(provider.complete({ ...request, maxTokens: 8_193 })).rejects.toThrow(
+      "token limit",
+    );
+    await expect(provider.complete({ ...request, maxResponseBytes: 262_145 })).rejects.toThrow(
+      "response byte limit",
+    );
     expect(fetchImpl).not.toHaveBeenCalled();
   });
 
