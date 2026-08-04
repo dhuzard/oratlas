@@ -43,7 +43,10 @@ export async function POST(request: Request) {
       60_000,
     );
     if (!limit.ok)
-      return errorResponse("rate-limited", "Too many discussion requests. Try again shortly.");
+      return errorResponse(
+        "rate-limited",
+        "Too many discussion requests. Try again shortly.",
+      );
 
     const body = await readJsonBody(request);
     const parsed = bodySchema.safeParse(body);
@@ -54,7 +57,10 @@ export async function POST(request: Request) {
       );
 
     if (parsed.data.llm) {
-      const integrity = validateSameOriginJsonRequest(request, getServerEnv().NEXT_PUBLIC_BASE_URL);
+      const integrity = validateSameOriginJsonRequest(
+        request,
+        getServerEnv().NEXT_PUBLIC_BASE_URL,
+      );
       if (!integrity.ok) {
         return errorResponse(
           integrity.status === 415 ? "bad-request" : "forbidden",
@@ -72,7 +78,8 @@ export async function POST(request: Request) {
   } catch (err) {
     if (err instanceof BodyTooLargeError)
       return errorResponse("payload-too-large", "Request body too large.");
-    if (err instanceof BadJsonError) return errorResponse("bad-request", "Invalid JSON body.");
+    if (err instanceof BadJsonError)
+      return errorResponse("bad-request", "Invalid JSON body.");
     return handleRouteError(err);
   }
 }
