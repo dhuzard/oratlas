@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { EXPLORATION_INTERESTS, type ExplorationInterest } from "@/lib/knowledge-landscape";
+import { ExploreDiscuss } from "./ExploreDiscuss";
 
 export function ExplorationIntent({
   query,
@@ -60,6 +61,7 @@ export function ExplorationIntent({
           ) : null}
         </div>
       </form>
+      <ExploreDiscuss topic={query} interests={selectedInterests} />
     </section>
   );
 }
