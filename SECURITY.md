@@ -23,8 +23,12 @@ acknowledge and respond as soon as we reasonably can.
   No shell command is derived from repository content.
 - **Untrusted content is never HTML.** Repository-derived content is rendered as escaped text
   (React), never as raw HTML. Artifact paths are validated against traversal and URL schemes.
-- **Server-side secrets.** GitHub tokens, OAuth secrets, and LLM keys are server-side only and are
-  never exposed to the browser. Secrets are not logged.
+- **Secrets and request-scoped BYOK.** Configured GitHub tokens, OAuth secrets, and LLM keys remain
+  server-side and are never exposed to the browser. A user-supplied Anthropic/OpenAI key is accepted
+  only from the same-origin password field, sent once over the production HTTPS request, used
+  server-side for that answer, and never written to cookies, browser storage, the database, audit
+  events, or logs. The form clears it after the request. ORAtlas sends the bounded evidence packet
+  to the selected provider under the user's provider account.
 - **Sessions & CSRF.** Sessions are HMAC-signed, `httpOnly`, `SameSite=Lax`, and `Secure` in
   production. OAuth uses a state parameter. Cookie-authenticated JSON mutations require the exact
   configured `Origin`, reject cross-site Fetch Metadata, and require `application/json`; server-to-
