@@ -95,9 +95,7 @@ export function LlmCredentialPanel({ compact = false }: { compact?: boolean }) {
 
   return (
     <details className="llm-credential-panel" open={!compact && status?.source === "none"}>
-      <summary>
-        LLM provider: {statusLabel(status)}
-      </summary>
+      <summary>LLM provider: {statusLabel(status)}</summary>
       <div className="card">
         <p className="muted">
           Connect an Anthropic or OpenAI key for grounded AI functions. The key is encrypted into a
@@ -166,7 +164,11 @@ export function LlmCredentialPanel({ compact = false }: { compact?: boolean }) {
             Browser key expires {new Date(status.expiresAt).toLocaleString()}.
           </p>
         ) : null}
-        {message ? <p className="muted" role="status">{message}</p> : null}
+        {message ? (
+          <p className="muted" role="status">
+            {message}
+          </p>
+        ) : null}
       </div>
     </details>
   );

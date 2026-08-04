@@ -97,7 +97,8 @@ describe("ingestion extraction", () => {
           claimType: "empirical",
           source: {
             sourcePath: "article.md",
-            sourceQuote: "The intervention reduced immobility in the prespecified primary analysis.",
+            sourceQuote:
+              "The intervention reduced immobility in the prespecified primary analysis.",
           },
         },
       ],
@@ -122,7 +123,8 @@ describe("ingestion extraction", () => {
       provider([
         JSON.stringify({
           decision: "abstain",
-          reason: "The captured files contain no explicit claim and evidence relationship to extract.",
+          reason:
+            "The captured files contain no explicit claim and evidence relationship to extract.",
           missingEvidence: ["A scientific results section"],
         }),
       ]),

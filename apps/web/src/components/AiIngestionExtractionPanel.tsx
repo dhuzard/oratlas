@@ -91,8 +91,8 @@ export function AiIngestionExtractionPanel({
       <p className="muted">
         This sends selected, bounded text files from the exact immutable inspection to your chosen
         provider. Every candidate must quote a transmitted file verbatim. Results are stored as an
-        AgentRun for review, but are <strong>not source-authored records</strong>, are not merged into
-        deterministic extraction, and are not submitted or published automatically.
+        AgentRun for review, but are <strong>not source-authored records</strong>, are not merged
+        into deterministic extraction, and are not submitted or published automatically.
       </p>
       <p className="mono muted">Inspection capture SHA-256 {capturePayloadHash}</p>
       <LlmCredentialPanel compact />
@@ -109,7 +109,11 @@ export function AiIngestionExtractionPanel({
       <button className="btn" type="button" disabled={busy} onClick={() => void extract()}>
         {busy ? "Checking captured files…" : "Generate reviewable candidates"}
       </button>
-      {error ? <p className="form-error" role="alert">{error}</p> : null}
+      {error ? (
+        <p className="form-error" role="alert">
+          {error}
+        </p>
+      ) : null}
       {result?.decision ? <ExtractionResult result={result} /> : null}
     </section>
   );
@@ -125,13 +129,23 @@ function ExtractionResult({ result }: { result: ExtractionResponse }) {
       </p>
       <details>
         <summary>Files sent to the provider ({result.sentFiles?.length ?? 0})</summary>
-        <ul>{result.sentFiles?.map((path) => <li className="mono" key={path}>{path}</li>)}</ul>
+        <ul>
+          {result.sentFiles?.map((path) => (
+            <li className="mono" key={path}>
+              {path}
+            </li>
+          ))}
+        </ul>
       </details>
       {decision.decision === "abstain" ? (
         <div className="notice notice-info">
           <strong>The model abstained.</strong> {decision.reason}
           {decision.missingEvidence.length > 0 ? (
-            <ul>{decision.missingEvidence.map((item) => <li key={item}>{item}</li>)}</ul>
+            <ul>
+              {decision.missingEvidence.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
           ) : null}
         </div>
       ) : (
@@ -139,16 +153,22 @@ function ExtractionResult({ result }: { result: ExtractionResponse }) {
           <h4>Claim candidates ({decision.claims.length})</h4>
           {decision.claims.map((claim) => (
             <article className="claim-card" key={claim.temporaryId}>
-              <p><strong>{claim.claimType}</strong> · {claim.text}</p>
+              <p>
+                <strong>{claim.claimType}</strong> · {claim.text}
+              </p>
               {claim.qualification ? <p className="muted">{claim.qualification}</p> : null}
               <Grounding source={claim.source} />
             </article>
           ))}
           <h4>Evidence candidates ({decision.evidence.length})</h4>
-          {decision.evidence.length === 0 ? <p className="muted">No explicit evidence object proposed.</p> : null}
+          {decision.evidence.length === 0 ? (
+            <p className="muted">No explicit evidence object proposed.</p>
+          ) : null}
           {decision.evidence.map((evidence) => (
             <article className="claim-card" key={evidence.temporaryId}>
-              <p><strong>{evidence.kind}</strong> · {evidence.title}</p>
+              <p>
+                <strong>{evidence.kind}</strong> · {evidence.title}
+              </p>
               <p className="muted">
                 {evidence.doi ? `DOI ${evidence.doi}` : ""}
                 {evidence.url ? ` · ${evidence.url}` : ""}
@@ -171,7 +191,11 @@ function ExtractionResult({ result }: { result: ExtractionResponse }) {
           {decision.limitations.length > 0 ? (
             <details>
               <summary>Extraction limitations ({decision.limitations.length})</summary>
-              <ul>{decision.limitations.map((item) => <li key={item}>{item}</li>)}</ul>
+              <ul>
+                {decision.limitations.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
             </details>
           ) : null}
         </>

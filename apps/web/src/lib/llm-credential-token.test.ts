@@ -16,9 +16,7 @@ describe("LLM credential token", () => {
       issuedAt,
     );
     expect(token).not.toContain("sk-test-private-key");
-    expect(
-      readLlmCredentialToken(token, secret, issuedAt + 1_000),
-    ).toMatchObject({
+    expect(readLlmCredentialToken(token, secret, issuedAt + 1_000)).toMatchObject({
       version: 1,
       provider: "openai",
       apiKey: "sk-test-private-key",
@@ -39,11 +37,7 @@ describe("LLM credential token", () => {
     expect(readLlmCredentialToken(token, `${secret}-other`, issuedAt + 1)).toBeNull();
     expect(readLlmCredentialToken(token, secret, issuedAt - 1)).toBeNull();
     expect(
-      readLlmCredentialToken(
-        token,
-        secret,
-        issuedAt + LLM_CREDENTIAL_MAX_AGE_SECONDS * 1_000,
-      ),
+      readLlmCredentialToken(token, secret, issuedAt + LLM_CREDENTIAL_MAX_AGE_SECONDS * 1_000),
     ).toBeNull();
   });
 

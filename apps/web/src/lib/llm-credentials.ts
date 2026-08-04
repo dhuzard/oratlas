@@ -118,8 +118,7 @@ function statusFromCredential(credential: LlmCredentialPayload): LlmCredentialSt
 }
 
 function platformProviderConfiguration():
-  | { provider: LlmProviderName; apiKey: string; model: string }
-  | undefined {
+  { provider: LlmProviderName; apiKey: string; model: string } | undefined {
   const env = getServerEnv();
   if (env.LLM_PROVIDER === "anthropic" && env.ANTHROPIC_API_KEY) {
     return {

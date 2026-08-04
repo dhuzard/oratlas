@@ -117,7 +117,9 @@ export async function curateGraphRelation(
         maxTokens: 1_800,
         maxResponseBytes: 65_536,
       });
-      const parsed = graphCurationDecisionSchema.parse(JSON.parse(extractJsonObject(raw)) as unknown);
+      const parsed = graphCurationDecisionSchema.parse(
+        JSON.parse(extractJsonObject(raw)) as unknown,
+      );
       if (parsed.decision === "propose") validateEvidenceQuotes(parsed, prepared.packet);
       return {
         provider: provider.name,
@@ -165,10 +167,12 @@ function validateEvidenceQuotes(
   const source = searchableNodeText(packet.source);
   const target = searchableNodeText(packet.target);
   for (const quote of decision.evidence.sourceQuotes) {
-    if (!source.includes(quote)) throw new Error("A source quote is not present in the source node.");
+    if (!source.includes(quote))
+      throw new Error("A source quote is not present in the source node.");
   }
   for (const quote of decision.evidence.targetQuotes) {
-    if (!target.includes(quote)) throw new Error("A target quote is not present in the target node.");
+    if (!target.includes(quote))
+      throw new Error("A target quote is not present in the target node.");
   }
 }
 

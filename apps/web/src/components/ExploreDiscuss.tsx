@@ -47,13 +47,7 @@ interface DiscussResponse {
   error?: { message?: string };
 }
 
-export function ExploreDiscuss({
-  topic,
-  interests,
-}: {
-  topic?: string;
-  interests: string[];
-}) {
+export function ExploreDiscuss({ topic, interests }: { topic?: string; interests: string[] }) {
   const [question, setQuestion] = useState(() => suggestedQuestion(topic, interests));
   const [response, setResponse] = useState<DiscussResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -123,7 +117,11 @@ export function ExploreDiscuss({
         </button>
         <a href="/discuss">Open the full grounded Q&amp;A tool</a>
       </div>
-      {error ? <p className="form-error" role="alert">{error}</p> : null}
+      {error ? (
+        <p className="form-error" role="alert">
+          {error}
+        </p>
+      ) : null}
       {response ? (
         <article className="card" aria-live="polite">
           <p className="muted">
@@ -132,7 +130,9 @@ export function ExploreDiscuss({
               ? ` · ${response.llmSource === "byok" ? "browser" : "platform"} provider`
               : ""}
           </p>
-          {llm?.answer ? <CompactLlmAnswer answer={llm.answer} references={response.references} /> : null}
+          {llm?.answer ? (
+            <CompactLlmAnswer answer={llm.answer} references={response.references} />
+          ) : null}
           {llm && !llm.answer ? (
             <p className="notice notice-warning">
               The provider response failed grounding validation ({llm.error ?? "unknown error"}).
@@ -211,8 +211,14 @@ function CompactList({ title, items }: { title: string; items: string[] }) {
   if (items.length === 0) return null;
   return (
     <details>
-      <summary>{title} ({items.length})</summary>
-      <ul>{items.map((item) => <li key={item}>{item}</li>)}</ul>
+      <summary>
+        {title} ({items.length})
+      </summary>
+      <ul>
+        {items.map((item) => (
+          <li key={item}>{item}</li>
+        ))}
+      </ul>
     </details>
   );
 }

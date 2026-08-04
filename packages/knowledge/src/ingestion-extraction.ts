@@ -198,7 +198,10 @@ function validateExtraction(
   packet: IngestionExtractionPacket,
 ): void {
   const fileByPath = new Map(packet.files.map((file) => [file.path, file.content]));
-  const claimIds = uniqueIds(decision.claims.map((claim) => claim.temporaryId), "claim");
+  const claimIds = uniqueIds(
+    decision.claims.map((claim) => claim.temporaryId),
+    "claim",
+  );
   const evidenceIds = uniqueIds(
     decision.evidence.map((evidence) => evidence.temporaryId),
     "evidence",

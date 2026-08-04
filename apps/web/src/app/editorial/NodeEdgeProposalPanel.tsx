@@ -51,9 +51,7 @@ export function NodeEdgeProposalPanel({ proposals }: { proposals: Proposal[] }) 
       if (data.status === "abstained") {
         setMessage(
           `The model abstained: ${data.reason ?? "insufficient evidence"}${
-            data.missingEvidence?.length
-              ? ` Missing: ${data.missingEvidence.join("; ")}`
-              : ""
+            data.missingEvidence?.length ? ` Missing: ${data.missingEvidence.join("; ")}` : ""
           }`,
         );
         return;
@@ -186,7 +184,11 @@ export function NodeEdgeProposalPanel({ proposals }: { proposals: Proposal[] }) 
           </div>
         </article>
       ))}
-      {message ? <p className="form-error" role="status">{message}</p> : null}
+      {message ? (
+        <p className="form-error" role="status">
+          {message}
+        </p>
+      ) : null}
     </div>
   );
 }

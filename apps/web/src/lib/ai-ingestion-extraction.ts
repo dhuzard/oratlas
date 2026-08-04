@@ -17,12 +17,7 @@ import { resolveLlmProvider } from "./llm-credentials";
 export class AiIngestionExtractionError extends Error {
   constructor(
     message: string,
-    public readonly code:
-      | "bad-request"
-      | "forbidden"
-      | "not-found"
-      | "conflict"
-      | "upstream-error",
+    public readonly code: "bad-request" | "forbidden" | "not-found" | "conflict" | "upstream-error",
   ) {
     super(message);
     this.name = "AiIngestionExtractionError";
@@ -166,14 +161,19 @@ async function loadCapture(token: string, actorId: string) {
   return capture;
 }
 
-function selectTextFiles(payload: InspectionCapturePayload): Array<{ path: string; content: string }> {
+function selectTextFiles(
+  payload: InspectionCapturePayload,
+): Array<{ path: string; content: string }> {
   const candidates = Object.entries(payload.report.files)
     .flatMap(([path, file]) =>
       file.content !== undefined && !file.truncated && eligiblePath(path)
         ? [{ path, content: file.content }]
         : [],
     )
-    .sort((left, right) => filePriority(left.path) - filePriority(right.path) || left.path.localeCompare(right.path));
+    .sort(
+      (left, right) =>
+        filePriority(left.path) - filePriority(right.path) || left.path.localeCompare(right.path),
+    );
 
   const selected: Array<{ path: string; content: string }> = [];
   let remaining = MAX_PACKET_CHARACTERS;

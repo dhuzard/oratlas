@@ -1,8 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  curateGraphRelation,
-  prepareGraphCurationPacket,
-} from "./graph-curation.js";
+import { curateGraphRelation, prepareGraphCurationPacket } from "./graph-curation.js";
 import type { LlmProvider } from "./discuss.js";
 
 const commitSha = "a".repeat(40);
