@@ -1,8 +1,6 @@
 import "server-only";
-import { getServerEnv } from "@oratlas/config";
 import {
   buildEvidencePacket,
-  createAnthropicProvider,
   discussDeterministic,
   discussWithLlm,
   prepareEvidencePacket,
@@ -11,6 +9,7 @@ import {
 import { type DeterministicDiscussionResult } from "@oratlas/contracts";
 import { buildKnowledgeIndex } from "./index-builder";
 import { prisma } from "./db";
+import { resolveLlmProvider } from "./llm-credentials";
 
 export interface DiscussionReference {
   kind: "claim" | "citation";
@@ -29,24 +28,25 @@ export type DiscussionResponse =
   | ({
       mode: "deterministic";
       result: DeterministicDiscussionResult;
-      llmAvailable: boolean;
+      llmAvailable: false;
+      llmSource: "none";
     } & DiscussionProvenance)
   | ({
       mode: "llm";
       result: LlmDiscussionResult;
       deterministic: DeterministicDiscussionResult;
+      llmSource: "byok" | "platform";
     } & DiscussionProvenance);
 
 /**
- * Run Atlas Discuss over accepted reviews. Deterministic mode when no LLM key
- * is configured; LLM mode (grounded, identifier-validated) when configured. The
+ * Run Atlas Discuss over accepted reviews. Deterministic mode is used when
+ * neither a browser BYOK credential nor a platform provider is configured. The
  * deterministic summary is always computed and returned alongside LLM output.
  */
 export async function runDiscussion(
   question: string,
   reviewSlugs?: string[],
 ): Promise<DiscussionResponse> {
-  const env = getServerEnv();
   const index = await buildKnowledgeIndex();
   const packet = buildEvidencePacket(index, question, { reviewSlugs });
   const prepared = prepareEvidencePacket(packet);
@@ -56,20 +56,22 @@ export async function runDiscussion(
     packetSchemaVersion: prepared.packet.schemaVersion,
     references: discussionReferences(prepared.packet),
   };
+  const resolved = await resolveLlmProvider();
 
-  if (!env.llmEnabled || !env.ANTHROPIC_API_KEY) {
-    return { mode: "deterministic", result: deterministic, llmAvailable: false, ...provenance };
+  if (!resolved) {
+    return {
+      mode: "deterministic",
+      result: deterministic,
+      llmAvailable: false,
+      llmSource: "none",
+      ...provenance,
+    };
   }
 
-  const provider = createAnthropicProvider({
-    apiKey: env.ANTHROPIC_API_KEY,
-    model: env.LLM_MODEL,
-  });
-
   const startedAt = new Date();
-  const result = await discussWithLlm(provider, prepared);
+  const result = await discussWithLlm(resolved.provider, prepared);
 
-  // Persist the agent run for provenance (spec §14).
+  // Persist the run and exact evidence bytes, never the browser or platform key.
   await prisma.agentRun.create({
     data: {
       agentType: "discussion-answer",
@@ -78,7 +80,6 @@ export async function runDiscussion(
       modelVersion: result.modelVersion,
       promptVersion: result.promptVersion,
       inputHash: prepared.sha256,
-      // The exact canonical bytes hashed above and sent to the provider.
       inputReferencesJson: prepared.json,
       outputJson: result.answer ? JSON.stringify(result.answer) : undefined,
       status: result.answer ? "succeeded" : "failed",
@@ -88,7 +89,13 @@ export async function runDiscussion(
     },
   });
 
-  return { mode: "llm", result, deterministic, ...provenance };
+  return {
+    mode: "llm",
+    result,
+    deterministic,
+    llmSource: resolved.source,
+    ...provenance,
+  };
 }
 
 function discussionReferences(
