@@ -26,7 +26,7 @@ export async function GET(request: Request) {
     }
 
     const index = await buildKnowledgeIndex();
-    return NextResponse.json(createKnowledgeLandscapeResponse(index, parsed.data), {
+    return NextResponse.json(await createKnowledgeLandscapeResponse(index, parsed.data), {
       headers: NO_STORE,
     });
   } catch (error) {

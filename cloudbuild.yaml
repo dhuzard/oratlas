@@ -11,6 +11,8 @@ substitutions:
   _GITHUB_TOKEN_SECRET: oratlas-github-token
   _ADMIN_GITHUB_USER_IDS: ""
   _NEXT_PUBLIC_BASE_URL: ""
+  _BETA_SMOKE_QUERY: replay
+  _BETA_SMOKE_INTEREST: data-code
 
 options:
   logging: CLOUD_LOGGING_ONLY
@@ -104,6 +106,25 @@ steps:
           --set-env-vars="$${ENV_VARS}" \
           --set-secrets="$${SECRETS}" \
           --quiet
+
+        gcloud run services describe "${_SERVICE}" \
+          --region="${_REGION}" \
+          --format='value(status.url)' > /workspace/oratlas-service-url
+
+  - id: verify-beta-journey
+    name: ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPOSITORY}/${_SERVICE}:${BUILD_ID}
+    entrypoint: bash
+    env:
+      - ORATLAS_BETA_SMOKE_QUERY=${_BETA_SMOKE_QUERY}
+      - ORATLAS_BETA_SMOKE_INTEREST=${_BETA_SMOKE_INTEREST}
+    args:
+      - -ceu
+      - |
+        SERVICE_URL="$$(tr -d '\r\n' < /workspace/oratlas-service-url)"
+        cd /app
+        node scripts/smoke-gcp-beta.mjs "$${SERVICE_URL}" \
+          --query "$${ORATLAS_BETA_SMOKE_QUERY}" \
+          --interest "$${ORATLAS_BETA_SMOKE_INTEREST}"
 
 images:
   - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPOSITORY}/${_SERVICE}:${BUILD_ID}

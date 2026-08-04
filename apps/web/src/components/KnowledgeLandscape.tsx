@@ -10,17 +10,46 @@ interface PositionedNode extends KnowledgeLandscapeNode {
   y: number;
 }
 
-const LANE_X: Record<LandscapeNodeKind, number> = {
-  review: 120,
-  claim: 450,
-  evidence: 790,
+type VisualLane = "reviews" | "claims" | "objects";
+
+const LANE_FOR_KIND: Record<LandscapeNodeKind, VisualLane> = {
+  review: "reviews",
+  claim: "claims",
+  evidence: "objects",
+  figure: "objects",
+  dataset: "objects",
+  code: "objects",
+};
+
+const LANE_X: Record<VisualLane, number> = {
+  reviews: 120,
+  claims: 450,
+  objects: 790,
+};
+
+const VISUAL_LANE_LABEL: Record<VisualLane, string> = {
+  reviews: "Preserved reviews",
+  claims: "Claims",
+  objects: "Evidence & research objects",
 };
 
 const LANE_LABEL: Record<LandscapeNodeKind, string> = {
   review: "Preserved reviews",
   claim: "Claims",
   evidence: "Linked evidence",
+  figure: "Figures",
+  dataset: "Datasets",
+  code: "Code",
 };
+
+const DETAIL_KINDS: LandscapeNodeKind[] = [
+  "review",
+  "claim",
+  "evidence",
+  "figure",
+  "dataset",
+  "code",
+];
 
 export function KnowledgeLandscape({
   landscape,
@@ -74,7 +103,8 @@ export function KnowledgeLandscape({
               <>
                 Showing {landscape.shownClaimCount} of {landscape.matchedClaimCount} matching claim
                 {landscape.matchedClaimCount === 1 ? "" : "s"}. Select a focus link to see one step
-                around a node.
+                around a node. {landscape.graphNodeCount} stable graph node
+                {landscape.graphNodeCount === 1 ? " is" : "s are"} available in this path.
               </>
             )}
           </p>
@@ -84,11 +114,39 @@ export function KnowledgeLandscape({
         </div>
       </div>
 
+      {landscape.graphNodeCount > 0 ? (
+        <section className="landscape-start" aria-labelledby="landscape-start-title">
+          <div>
+            <p className="home-eyebrow">Start here</p>
+            <h3 id="landscape-start-title">Nodes worth exploring for this interest</h3>
+            <p>
+              These records are connected through explicit identities and confirmed graph edges.
+            </p>
+          </div>
+          <ol>
+            {landscape.nodes
+              .filter((node) => node.graphNodeId)
+              .slice(0, 3)
+              .map((node) => (
+                <li key={node.id}>
+                  <a href={node.href}>{node.label}</a>
+                  <small>{node.reasons[0]}</small>
+                </li>
+              ))}
+          </ol>
+        </section>
+      ) : (
+        <p className="landscape-graph-empty">
+          No matching claim has a readable graph identity yet. The preserved review, claim, and
+          evidence path remains available without inferred links.
+        </p>
+      )}
+
       <div className="knowledge-landscape-visual" tabIndex={0}>
         <svg
           viewBox={`0 0 920 ${height}`}
           role="img"
-          aria-label="Reviews connected to claims and their linked evidence"
+          aria-label="Reviews connected to claims, evidence, and graph research objects"
         >
           <defs>
             <marker
@@ -103,9 +161,9 @@ export function KnowledgeLandscape({
               <path d="M 0 0 L 10 5 L 0 10 z" />
             </marker>
           </defs>
-          {(["review", "claim", "evidence"] as const).map((kind) => (
-            <text className="landscape-lane-label" x={LANE_X[kind]} y="22" key={kind}>
-              {LANE_LABEL[kind]}
+          {(["reviews", "claims", "objects"] as const).map((lane) => (
+            <text className="landscape-lane-label" x={LANE_X[lane]} y="22" key={lane}>
+              {VISUAL_LANE_LABEL[lane]}
             </text>
           ))}
           {landscape.edges.map((edge, index) => (
@@ -126,8 +184,12 @@ export function KnowledgeLandscape({
         <span data-kind="review">Review</span>
         <span data-kind="claim">Claim</span>
         <span data-kind="evidence">Evidence</span>
+        <span data-kind="figure">Figure</span>
+        <span data-kind="dataset">Dataset</span>
+        <span data-kind="code">Code</span>
         <span data-relation="supports">supports</span>
         <span data-relation="contradicts">contradicts</span>
+        <span data-relation="confirmed">confirmed graph edge</span>
       </div>
 
       {landscape.timeline.length > 0 ? (
@@ -148,7 +210,7 @@ export function KnowledgeLandscape({
       ) : null}
 
       <nav className="knowledge-landscape-list" aria-label="Knowledge landscape details">
-        {(["review", "claim", "evidence"] as const).map((kind) => {
+        {DETAIL_KINDS.map((kind) => {
           const kindNodes = landscape.nodes.filter((node) => node.kind === kind);
           if (kindNodes.length === 0) return null;
           return (
@@ -167,6 +229,16 @@ export function KnowledgeLandscape({
                         ))}
                       </ul>
                     </details>
+                    {node.graphRecordHref && node.graphRecordHref !== node.href ? (
+                      <a className="landscape-record-link" href={node.graphRecordHref}>
+                        Inspect exact graph version
+                      </a>
+                    ) : null}
+                    {node.graphHref ? (
+                      <a className="landscape-graph-link" href={node.graphHref}>
+                        Explore graph neighborhood
+                      </a>
+                    ) : null}
                     {landscape.focusedNodeId === node.id ? (
                       <span className="landscape-focused-label" aria-current="true">
                         Current focus
@@ -209,7 +281,10 @@ function LandscapeEdge({
 }) {
   if (!source || !target) return null;
   return (
-    <g className={`landscape-edge landscape-edge-${edgeTone(edge.relationType)}`}>
+    <g
+      className={`landscape-edge landscape-edge-${edgeTone(edge.relationType)}`}
+      data-status={edge.status}
+    >
       <line
         x1={source.x}
         y1={source.y}
@@ -217,7 +292,7 @@ function LandscapeEdge({
         y2={target.y}
         markerEnd="url(#landscape-arrow)"
       />
-      <title>{edge.label}</title>
+      <title>{edgeAccessibleLabel(edge)}</title>
     </g>
   );
 }
@@ -251,16 +326,16 @@ function positionNodes(nodes: KnowledgeLandscapeNode[]): {
 } {
   const maxLaneCount = Math.max(
     1,
-    ...(["review", "claim", "evidence"] as const).map(
-      (kind) => nodes.filter((node) => node.kind === kind).length,
+    ...(["reviews", "claims", "objects"] as const).map(
+      (lane) => nodes.filter((node) => LANE_FOR_KIND[node.kind] === lane).length,
     ),
   );
   const height = Math.max(320, maxLaneCount * 78 + 70);
-  const positioned = (["review", "claim", "evidence"] as const).flatMap((kind) => {
-    const laneNodes = nodes.filter((node) => node.kind === kind);
+  const positioned = (["reviews", "claims", "objects"] as const).flatMap((lane) => {
+    const laneNodes = nodes.filter((node) => LANE_FOR_KIND[node.kind] === lane);
     return laneNodes.map((node, index) => ({
       ...node,
-      x: LANE_X[kind],
+      x: LANE_X[lane],
       y: 48 + ((index + 1) * (height - 72)) / (laneNodes.length + 1),
     }));
   });
@@ -292,4 +367,16 @@ function edgeTone(relationType: string): "support" | "contradict" | "neutral" {
   if (relationType === "supports" || relationType === "partially-supports") return "support";
   if (relationType === "contradicts") return "contradict";
   return "neutral";
+}
+
+function edgeAccessibleLabel(edge: KnowledgeLandscapeEdge): string {
+  return [
+    edge.label,
+    edge.status === "confirmed" ? "confirmed graph edge" : undefined,
+    edge.assessmentCount
+      ? `${edge.assessmentCount} independent assessment${edge.assessmentCount === 1 ? "" : "s"}`
+      : undefined,
+  ]
+    .filter(Boolean)
+    .join(" · ");
 }

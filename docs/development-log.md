@@ -900,3 +900,16 @@ Two fail-closed gaps were found and intentionally not changed in this audit-only
 - Exposed the identical projection to agents through the versioned `GET /api/landscape` contract
   and documented a privacy-minimal first-reader evaluation protocol and reporting CLI. The protocol
   has not yet been run and therefore does not establish usability.
+
+## 2026-08-04 — Graph-native personalized Explore (PR #121)
+
+- Connected guided Explore to the graph-native publication system through explicit
+  `Claim.knowledgeNodeId` bridges; no lexical identity inference is permitted.
+- Made the reader's topic and interest lenses drive both claim selection and bounded confirmed
+  graph-neighborhood recommendations, including datasets, code, figures, replication, and
+  disagreement relations.
+- Added exact node-version and graph-neighborhood links, inspectable recommendation reasons, a
+  synchronized accessible view, and the versioned GUI/API contract
+  `explicit-interest-graph-landscape@2.0.0`.
+- Added a post-deployment GCP beta gate that verifies readiness and the complete personalized graph
+  journey against a known fixture.

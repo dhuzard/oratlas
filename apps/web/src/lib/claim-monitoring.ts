@@ -398,6 +398,12 @@ export interface ClaimPassport {
   alerts: ProposalRow[];
   executionPassports: PublicExecutionPassport[];
   protocolDrift: ProtocolDriftSummary;
+  graphIdentity?: {
+    nodeId: string;
+    nodeVersionId: string;
+    kind: string;
+    title: string;
+  };
   alsoAssertedIn: Array<{
     proposalId: string;
     nodeId: string;
@@ -524,6 +530,14 @@ export async function getClaimPassport(
     alerts: claim.updateProposals.map(proposalDto),
     executionPassports,
     protocolDrift,
+    graphIdentity: publicNode
+      ? {
+          nodeId: publicNode.id,
+          nodeVersionId: publicNode.version.id,
+          kind: publicNode.kind,
+          title: publicNode.version.title,
+        }
+      : undefined,
     alsoAssertedIn: (publicNode?.sameClaims ?? []).flatMap((sameClaim) =>
       sameClaim.reviewAssertions.map((assertion) => ({
         proposalId: sameClaim.proposalId,

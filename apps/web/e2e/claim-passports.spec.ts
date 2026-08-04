@@ -27,6 +27,8 @@ test.describe("Claim passports & evidence monitoring", () => {
 
     await page.goto(`/claims/${review.version.id}/${encodeURIComponent(claim.localClaimId)}`);
     await expect(page.getByRole("heading", { name: "Original claim record" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Explore graph neighborhood" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Inspect exact graph version" })).toBeVisible();
     await expect(page.getByText("claim passport").first()).toBeVisible();
     const inspectionPath = page.getByRole("navigation", { name: "Inspect this claim" });
     await expect(inspectionPath.getByRole("link", { name: /Original record/ })).toHaveAttribute(

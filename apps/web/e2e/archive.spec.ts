@@ -63,36 +63,46 @@ test.describe("Public archive browsing", () => {
     );
   });
 
-  test("readers can build a bounded knowledge landscape from explicit interests", async ({
+  test("readers can build a personalized graph path from an explicit topic and interest", async ({
     page,
   }) => {
     await page.goto("/explore");
-    await page.getByRole("checkbox", { name: /Disagreements/ }).check();
-    await page.getByRole("button", { name: "Build knowledge landscape" }).click();
+    await page.getByLabel("Topic or question").fill("replay");
+    await page.getByRole("checkbox", { name: /Data & code/ }).check();
+    await page.getByRole("button", { name: "Show my knowledge path" }).click();
 
-    await expect(page).toHaveURL(/interest=disagreements/);
+    await expect(page).toHaveURL(/q=replay/);
+    await expect(page).toHaveURL(/interest=data-code/);
     const landscape = page.getByRole("region", { name: "Guided knowledge landscape" });
-    await expect(landscape.getByRole("heading", { level: 2 })).toContainText("Disagreements");
+    await expect(landscape.getByRole("heading", { level: 2 })).toContainText("replay");
+    await expect(
+      landscape.getByRole("heading", { name: "Nodes worth exploring for this interest" }),
+    ).toBeVisible();
     await expect(
       landscape.getByRole("img", {
-        name: "Reviews connected to claims and their linked evidence",
+        name: "Reviews connected to claims, evidence, and graph research objects",
       }),
     ).toBeVisible();
     const details = landscape.getByRole("navigation", { name: "Knowledge landscape details" });
     await expect(details.getByRole("link").first()).toBeVisible();
-    const apiResponse = await page.request.get("/api/landscape?interest=disagreements");
+    const apiResponse = await page.request.get("/api/landscape?q=replay&interest=data-code");
     expect(apiResponse.ok()).toBe(true);
     const apiLandscape = (await apiResponse.json()) as {
-      algorithm: { purpose: string; limitations: string[] };
-      landscape: { nodes: unknown[] };
+      schemaVersion: string;
+      algorithm: { id: string; purpose: string; limitations: string[] };
+      landscape: { nodes: unknown[]; graphSeedCount: number; graphNodeCount: number };
     };
+    expect(apiLandscape.schemaVersion).toBe("2.0.0");
+    expect(apiLandscape.algorithm.id).toBe("explicit-interest-graph-landscape");
     expect(apiLandscape.algorithm.purpose).toBe("navigation");
     expect(apiLandscape.algorithm.limitations).toContain("not-a-truth-score");
+    expect(apiLandscape.landscape.graphSeedCount).toBeGreaterThanOrEqual(1);
+    expect(apiLandscape.landscape.graphNodeCount).toBeGreaterThanOrEqual(2);
     expect(apiLandscape.landscape.nodes).toHaveLength(
       await details.locator(":scope > section > ul > li").count(),
     );
-    await expect(landscape.locator('.landscape-legend [data-relation="contradicts"]')).toHaveText(
-      "contradicts",
+    await expect(landscape.locator('.landscape-legend [data-relation="confirmed"]')).toHaveText(
+      "confirmed graph edge",
     );
     await expect(landscape.getByText("Ordering helps exploration only")).toBeVisible();
     await expect(
@@ -101,6 +111,12 @@ test.describe("Public archive browsing", () => {
 
     await details.getByText("Why this?", { exact: true }).first().click();
     await expect(details.getByText("Contains a claim in this landscape").first()).toBeVisible();
+    await expect(
+      details.getByRole("link", { name: "Explore graph neighborhood" }).first(),
+    ).toBeVisible();
+    await expect(
+      details.getByRole("link", { name: "Inspect exact graph version" }).first(),
+    ).toBeVisible();
     await details.getByRole("link", { name: "Focus on connections" }).first().click();
     await expect(page).toHaveURL(/focus=review%3A/);
     await expect(landscape.getByRole("heading", { level: 2 })).toContainText("One step from");

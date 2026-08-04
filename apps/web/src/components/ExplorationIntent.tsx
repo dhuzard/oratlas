@@ -16,13 +16,22 @@ export function ExplorationIntent({
         <p className="home-eyebrow">Personalize this view</p>
         <h2 id="exploration-intent-title">What do you want to understand?</h2>
         <p>
-          Choose explicit interests to build a small knowledge landscape from the current search.
-          These choices shape the map only; the complete results remain available below.
+          Describe a topic, then choose the lenses that matter to you. ORAtlas will show a small,
+          explainable path through matching graph nodes. The complete results remain below.
         </p>
       </div>
       <form action="/explore" method="get">
         <input type="hidden" name="view" value={view} />
-        {query ? <input type="hidden" name="q" value={query} /> : null}
+        <div className="field exploration-topic">
+          <label htmlFor="exploration-topic">Topic or question</label>
+          <input
+            id="exploration-topic"
+            type="search"
+            name="q"
+            defaultValue={query ?? ""}
+            placeholder="e.g. reproducibility of language-model evaluation"
+          />
+        </div>
         <fieldset>
           <legend className="sr-only">Knowledge landscape interests</legend>
           <div className="interest-options">
@@ -44,7 +53,7 @@ export function ExplorationIntent({
         </fieldset>
         <div className="btn-row">
           <button className="btn" type="submit">
-            Build knowledge landscape
+            Show my knowledge path
           </button>
           {selectedInterests.length > 0 ? (
             <Link href={resetHref(view, query)}>Reset interests</Link>

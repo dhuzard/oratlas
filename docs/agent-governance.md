@@ -17,14 +17,16 @@ document states where agents are and are **not** used.
 
 Agents may read the same bounded knowledge landscape shown to human readers through
 `GET /api/landscape`. The endpoint and Explore page call the same deterministic service and return
-the versioned `explicit-interest-landscape@1.0.0` projection. It accepts only explicit query,
+the versioned `explicit-interest-graph-landscape@2.0.0` projection. It accepts only explicit query,
 interest, filter, and optional focus state; it does not infer a profile, use behavioral telemetry,
 or mutate preserved records.
 
-The response contains at most six claims and ten evidence records. Its ordering and plain-language
-selection reasons support navigation only and are explicitly not truth, quality, consensus, or
-TRUST scores. Unknown interests fail validation rather than becoming hidden personalization
-categories. See the [agent-facing API guide](knowledge-landscape-api.md) and complete contract in
+The response contains at most six claims, ten citation-evidence records, and twelve graph
+identities reached from at most three displayed seed claims. Only explicit claim-to-node identities
+and confirmed public graph edges enter this projection. Its ordering and plain-language selection
+reasons support navigation only and are explicitly not truth, quality, consensus, or TRUST scores.
+Unknown interests fail validation rather than becoming hidden personalization categories. See the
+[agent-facing API guide](knowledge-landscape-api.md) and complete contract in
 [`openapi.yaml`](openapi.yaml).
 
 ## Where agents ARE used (and how they are governed)

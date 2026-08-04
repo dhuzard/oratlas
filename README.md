@@ -25,9 +25,10 @@ The POC ships a restrained, scholarly server-rendered interface:
 
 - **Home** — the central promise, claim-first search, a short explanation, and recently accepted
   reviews.
-- **Explore** — unified claim and review search, explicit interest selection, faceted filters, and
-  a bounded guided landscape with inspectable selection reasons, one-hop focus, and publication
-  context. The complete canonical result list remains available below it.
+- **Explore** — asks what the reader wants to understand, then uses the declared topic and interest
+  lenses to recommend a bounded path through explicitly linked graph nodes. Every recommendation
+  explains why it appeared and links to the exact preserved node version; the complete canonical
+  result list remains available below it.
 - **Claim passport** — one claim with its linked evidence, assessments, disagreements, provenance,
   and preserved review context.
 - **Review record** — the archived article, exact claim anchors, repository and commit identity,

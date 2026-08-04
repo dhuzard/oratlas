@@ -220,6 +220,7 @@ export async function buildKnowledgeIndex(): Promise<KnowledgeIndexData> {
         anchor: claimDomAnchor(version.id, claim.localClaimId),
         sourceAnchor: claim.anchor ?? undefined,
         claimType: claim.claimType ?? undefined,
+        knowledgeNodeId: claim.knowledgeNodeId ?? undefined,
         versionDoi: version.versionDoi ?? undefined,
         commitSha: version.snapshot.commitSha,
         relations,

@@ -18,13 +18,14 @@ describe("knowledge landscape contracts", () => {
     const response = knowledgeLandscapeResponseSchema.parse({
       schemaVersion: KNOWLEDGE_LANDSCAPE_SCHEMA_VERSION,
       algorithm: {
-        id: "explicit-interest-landscape",
+        id: "explicit-interest-graph-landscape",
         version: KNOWLEDGE_LANDSCAPE_ALGORITHM_VERSION,
         purpose: "navigation",
         limitations: [
           "not-a-truth-score",
           "not-a-quality-score",
-          "bounded-to-six-claims-and-ten-evidence-records",
+          "confirmed-graph-edges-only",
+          "bounded-to-six-claims-ten-evidence-and-twelve-graph-nodes",
         ],
       },
       query: { q: "replication", interests: ["reproducibility"] },
@@ -33,6 +34,8 @@ describe("knowledge landscape contracts", () => {
         edges: [],
         matchedClaimCount: 0,
         shownClaimCount: 0,
+        graphSeedCount: 0,
+        graphNodeCount: 0,
         timeline: [],
       },
     });
