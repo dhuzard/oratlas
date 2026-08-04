@@ -21,7 +21,7 @@ packages/
   federation/          Bounded offline COAR Notify validation and immutable projections
   knowledge/           Search provider, evidence packets, discussion engine, link proposals
   ui/                  Reusable accessible React primitives
-scripts/               Ingestion / validation / maintenance CLIs (tsx)
+scripts/               Ingestion / validation / evaluation / maintenance CLIs (tsx)
 docs/                  Architecture, governance, schema and deployment documentation
 ```
 
@@ -96,7 +96,26 @@ need no database.
 records (no external services). PostgreSQL FTS or an external engine can be added behind
 the same interface later.
 
-### Grounded discussion (Atlas Discuss)
+### Guided exploration
+
+`/explore` is the primary public discovery surface. It combines claim and review search with an
+optional guided knowledge landscape. Readers choose interests explicitly; the application stores
+the query, repeated `interest` values, filters, and optional `focus` node in the URL rather than an
+inferred account profile.
+
+`apps/web/src/lib/knowledge-landscape-service.ts` is the shared service boundary for both the
+server-rendered Explore page and `GET /api/landscape`. It searches at most the first 40 matching
+claim candidates, applies deterministic and inspectable navigation ordering, and returns the
+versioned `explicit-interest-landscape@1.0.0` contract. The projection contains at most six claims
+and ten evidence records, includes selection reasons and publication-year context, and can be
+reduced to the selected node plus its immediate neighbors. An unknown focus returns the overview;
+an unknown interest is rejected.
+
+The projection ranks paths for exploration, not scientific truth, evidence quality, consensus, or
+TRUST. It never mutates a preserved record, and the canonical claim or review result list remains
+available below the visualization. See [Guided knowledge landscape API](knowledge-landscape-api.md).
+
+### Grounded Q&A (Atlas Discuss implementation)
 
 The knowledge unit is an **evidence packet** built from review metadata, claims (with
 anchors), citations, claim–evidence relations, TRUST assessments, version/commit/DOI, and

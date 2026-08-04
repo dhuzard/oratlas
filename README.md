@@ -1,33 +1,20 @@
-streaming logs from oratlas-dhuzard-2026
-2026-07-25 12:54:23 POST 201 https://oratlas-ftpoygqvua-ew.a.run.app/api/submissions
-2026-07-25 12:54:31 GET 200 https://oratlas-ftpoygqvua-ew.a.run.app/?_rsc=dVWCJ44PUGHGbkUz
-2026-07-25 12:54:31 GET 404 https://oratlas-ftpoygqvua-ew.a.run.app/coverage?_rsc=dVWCJ44PUGHGbkUz
-2026-07-25 12:54:31 GET 200 https://oratlas-ftpoygqvua-ew.a.run.app/claims?_rsc=dVWCJ44PUGHGbkUz
-2026-07-25 12:54:31 GET 200 https://oratlas-ftpoygqvua-ew.a.run.app/graph?_rsc=dVWCJ44PUGHGbkUz
-2026-07-25 12:54:31 GET 200 https://oratlas-ftpoygqvua-ew.a.run.app/nodes?_rsc=dVWCJ44PUGHGbkUz
-2026-07-25 12:54:32 GET 200 https://oratlas-ftpoygqvua-ew.a.run.app/synthesis?_rsc=dVWCJ44PUGHGbkUz
-2026-07-25 12:54:32 GET 200 https://oratlas-ftpoygqvua-ew.a.run.app/replications?_rsc=dVWCJ44PUGHGbkUz
-2026-07-25 12:54:32 GET 200 https://oratlas-ftpoygqvua-ew.a.run.app/submit?_rsc=dVWCJ44PUGHGbkUz
-2026-07-25 12:54:32 GET 200 https://oratlas-ftpoygqvua-ew.a.run.app/discuss?_rsc=dVWCJ44PUGHGbkUz
-2026-07-25 12:54:31 GET 200 https://oratlas-ftpoygqvua-ew.a.run.app/_next/static/chunks/app/archive/page-0a25fa5eb7f355fc.js
-2026-07-25 12:54:31 GET 200 https://oratlas-ftpoygqvua-ew.a.run.app/archive
-2026-07-25 12:54:38 GET 200 https://oratlas-ftpoygqvua-ew.a.run.app/submit?_rsc=qhgEJswmmuvoTHtl
-2026-07-25 12:54:50 POST 200 https://oratlas-ftpoygqvua-ew.a.run.app/api/inspect
-2026-07-25 12:55:01 POST 201 https://oratlas-ftpoygqvua-ew.a.run.app/api/submissions# Open Review Atlas
+# Open Review Atlas
 
-**A proof-of-concept public archive for discovering, submitting, validating, archiving, and
-discussing AI-enriched computational literature reviews produced from GitHub repositories.**
+**The arXiv for AI-generated scientific reviews.**
+
+ORAtlas is a proof-of-concept public archive where readers can inspect a scientific claim, its
+linked evidence, and the independent assessments, challenges, or disagreements around it—without
+rewriting the original record. It provides a claim-first path through preserved reviews while
+keeping every source, assessment, and later interpretation distinct.
 
 Authors do not upload manuscripts. They submit the URL of a public GitHub repository containing
 a review built with, forked from, or structurally compatible with the
 [AllenNeuralDynamics/ComputationalReviewTemplate](https://github.com/AllenNeuralDynamics/ComputationalReviewTemplate).
 The platform inspects the repository, extracts metadata deterministically, validates optional
 Zenodo DOIs, and — after an editorial decision — publishes an immutable, versioned review record
-with claims, citations, claim-level TRUST assessments, and a grounded cross-review discussion
-assistant (Atlas Discuss), plus human-published replication briefs from transparent evidence-gap
-triage. Claims, figures, datasets, and code are first-class immutable graph nodes; bounded node
-subgraphs can generate private AI synthesis drafts that become public only after explicit editor
-acceptance under the [AI synthesis governance policy](docs/synthesis-governance.md).
+with claims, citations, claim-level TRUST assessments, and attributable provenance. Claims,
+figures, datasets, and code are first-class immutable graph nodes. Grounded Q&A, replication
+briefs, and editor-accepted AI synthesis build on those records without silently changing them.
 
 > **This platform does not perform peer review** and does not present AI-generated conclusions as
 > established scientific consensus. See [What the platform does not verify](#what-the-platform-does-not-verify).
@@ -36,20 +23,26 @@ acceptance under the [AI synthesis governance policy](docs/synthesis-governance.
 
 The POC ships a restrained, scholarly server-rendered interface:
 
-- **Home** — product explanation, search, recently accepted reviews, domain/DOI/TRUST filters,
-  provenance legend.
-- **Archive** — full-text search + faceted filters.
-- **Review page** — safe archived article reader and TOC, exact claim anchors, repository/commit,
-  provenance, claims, citations, TRUST, canonical version diff, and lifecycle notices.
-- **Submission wizard** — repository → inspect → editable metadata (with per-field provenance) →
-  validation → submit.
-- **Atlas Discuss** — grounded cross-review discussion.
+- **Home** — the central promise, claim-first search, a short explanation, and recently accepted
+  reviews.
+- **Explore** — unified claim and review search, explicit interest selection, faceted filters, and
+  a bounded guided landscape with inspectable selection reasons, one-hop focus, and publication
+  context. The complete canonical result list remains available below it.
+- **Claim passport** — one claim with its linked evidence, assessments, disagreements, provenance,
+  and preserved review context.
+- **Review record** — the archived article, exact claim anchors, repository and commit identity,
+  citations, TRUST assessments, version diff, challenges, and lifecycle notices.
+- **Submission wizard** — repository → inspect → editable metadata with per-field provenance →
+  validate → submit.
+- **Specialist tools** — Research objects, Evidence graph, Disagreement map, Coverage gaps,
+  Replication briefs, and Grounded Q&A, available when deeper analysis is useful.
 - **AI synthesis review** — editor-accepted, software-generated long-form review with exact
   node-version citations, public generation/editor provenance, rights, and immutable lineage.
-- **Replication Marketplace** — deterministic evidence-gap triage and human-published, scoped
-  replication briefs with attributable claiming/completion. See
-  [`docs/replication-marketplace.md`](docs/replication-marketplace.md).
-- **Editorial dashboard** — validation reports, metadata diff, accept/reject, audit log.
+- **Editorial dashboard** — validation reports, metadata diff, decisions, formal challenges, and
+  the audit log.
+
+Agents can request the same bounded Explore projection through the versioned
+[`GET /api/landscape`](docs/knowledge-landscape-api.md) contract.
 
 ## Architecture summary
 
@@ -71,9 +64,9 @@ CLI scripts; the web app is server-rendered Next.js (App Router).
 | `packages/protocols`           | Offline registry adapters and neutral protocol-drift comparison      |
 | `packages/execution-passports` | Offline signed Workflow Run provenance verification                  |
 | `packages/federation`          | COAR Notify review exchange validation and immutable projections     |
-| `packages/knowledge`           | Search, evidence packets, discussion, replication marketplace        |
+| `packages/knowledge`           | Search, evidence packets, discussion, and replication briefs         |
 | `packages/ui`                  | Reusable accessible React primitives                                 |
-| `scripts`                      | Ingestion / validation CLIs                                          |
+| `scripts`                      | Ingestion, validation, evaluation, and maintenance CLIs              |
 | `docs`                         | Architecture, governance, schemas, deployment                        |
 
 Full detail: [`docs/architecture.md`](docs/architecture.md).
@@ -105,11 +98,11 @@ All documented in [`.env.example`](.env.example). Summary:
 | `GITHUB_TOKEN`                                     | no       | Raises GitHub API rate limits; server-side only                |
 | `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET`        | no       | Enables real GitHub OAuth                                      |
 | `AUTH_MOCK`                                        | no       | `1` enables the dev-only mock sign-in (ignored in production)  |
-| `LLM_PROVIDER` / `ANTHROPIC_API_KEY` / `LLM_MODEL` | no       | Enables Atlas Discuss LLM mode                                 |
+| `LLM_PROVIDER` / `ANTHROPIC_API_KEY` / `LLM_MODEL` | no       | Enables Grounded Q&A LLM mode                                  |
 | `NEXT_PUBLIC_BASE_URL`                             | no       | Canonical base URL for links / Open Graph                      |
 | `EXECUTION_PASSPORT_TRUSTED_KEYS_JSON`             | no       | Explicit offline Ed25519 signer trust policy                   |
 
-No paid external service is required to run the POC. Without an LLM key, Atlas Discuss runs in
+No paid external service is required to run the POC. Without an LLM key, Grounded Q&A runs in
 deterministic mode. Without OAuth credentials, development offers a clearly-marked mock sign-in.
 
 ## Database commands
@@ -156,6 +149,7 @@ pnpm ingest https://github.com/owner/repository   # inspect + extract; read-only
 pnpm validate-doi 10.5281/zenodo.1234567 [--repo <url>] [--title <title>]
 pnpm atlas-check --root <directory>               # deterministic evidence CI (--help for options)
 pnpm backup                                       # copy the SQLite db to backups/ (prints pg_dump advice for Postgres)
+pnpm eval:exploration ./results.json              # summarize pseudonymous first-reader sessions
 ```
 
 `ingest` inspects a public GitHub repository via the API (never cloned, never executed) and
@@ -164,6 +158,9 @@ the database; `GITHUB_TOKEN` raises rate limits. `validate-doi` prints the struc
 validation report; reserved example DOIs (`10.5555/*`) are never resolved outward.
 `atlas-check` evaluates `TRUST.md`, `FAIR.md`, and review-manifest evidence artifacts with no
 network, LLM, or code execution — see [`docs/atlas-check.md`](docs/atlas-check.md).
+`eval:exploration` summarizes outcomes recorded with the privacy-minimal
+[first-time exploration protocol](docs/first-time-exploration-evaluation.md); the command does not
+replace running the study.
 
 ## Deployment
 
@@ -190,7 +187,8 @@ datasource provider to `postgresql`, set `SESSION_SECRET`, run `prisma migrate d
    failed release/DOI/commit checks require separate, audited override rationales.
 
 Accepted Markdown is read from the durable database snapshot with no active repository HTML.
-Corrections link immutable versions; withdrawals remain visibly marked but leave Atlas Discuss;
+Corrections link immutable versions; withdrawals remain visibly marked but are removed from
+Grounded Q&A;
 tombstones fail closed across pages, APIs, comments, search, claims, discussion, assets, exports
 and feeds. See [`docs/article-lifecycle.md`](docs/article-lifecycle.md).
 
@@ -254,7 +252,11 @@ A full inventory of limitations lives in [`docs/poc-limitations.md`](docs/poc-li
 | [`docs/trust-model.md`](docs/trust-model.md)                                                   | TRUST dimensions, relation-level attachment, aggregation  |
 | [`docs/assessment-protocol-interoperability.md`](docs/assessment-protocol-interoperability.md) | Source-protocol preservation and non-crosswalk rules      |
 | [`docs/evidence-identity.md`](docs/evidence-identity.md)                                       | Evidence identifiers and structural grounding             |
-| [`docs/review-manifest.md`](docs/review-manifest.md)                                           | Optional`review-manifest.json` format                     |
+| [`docs/knowledge-landscape-api.md`](docs/knowledge-landscape-api.md)                           | Agent access to the bounded Explore projection            |
+| [`docs/first-time-exploration-evaluation.md`](docs/first-time-exploration-evaluation.md)       | Privacy-minimal first-reader evaluation protocol          |
+| [`docs/deep-links.md`](docs/deep-links.md)                                                     | Stable scholarly and Explore URL contracts                |
+| [`docs/e2e-testing.md`](docs/e2e-testing.md)                                                   | Browser-suite invariants and runtime budget               |
+| [`docs/review-manifest.md`](docs/review-manifest.md)                                           | Optional `review-manifest.json` format                    |
 | [`docs/atlas-check.md`](docs/atlas-check.md)                                                   | Deterministic evidence CI rule catalog                    |
 | [`docs/living-review.md`](docs/living-review.md)                                               | Claim passports and living-review monitoring              |
 | [`docs/synthesis-and-contradictions.md`](docs/synthesis-and-contradictions.md)                 | Independence-aware synthesis and contradiction maps       |

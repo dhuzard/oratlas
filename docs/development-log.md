@@ -887,3 +887,16 @@ Two fail-closed gaps were found and intentionally not changed in this audit-only
   withholding the publication. A policy decision is required before making those already-public
   records fail closed. The tree field exists, so this is a legacy-data policy/migration question,
   not a schema-shape gap.
+
+## 2026-08-03 — Public navigation and guided Explore (PRs #112–#119)
+
+- Reframed the homepage around one reader promise: inspect a claim, its linked evidence, and the
+  independent assessments or disagreements around it without rewriting the original record.
+- Compressed public navigation into a claim-first Explore surface, claim passports, review records,
+  submission, and contextual specialist tools. Added stable return paths from deeper views.
+- Added an explicit-interest knowledge landscape with bounded visual and accessible-list views,
+  inspectable selection reasons, publication context, reversible one-hop focus, and preserved
+  canonical results below it. The ordering is navigation metadata, never a truth or quality score.
+- Exposed the identical projection to agents through the versioned `GET /api/landscape` contract
+  and documented a privacy-minimal first-reader evaluation protocol and reporting CLI. The protocol
+  has not yet been run and therefore does not establish usability.

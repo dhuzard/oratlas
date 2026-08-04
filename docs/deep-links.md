@@ -6,6 +6,9 @@ must not be renamed when presentation changes.
 
 | Object                         | Stable URL pattern                                                            |
 | ------------------------------ | ----------------------------------------------------------------------------- |
+| Explore claims or reviews      | `/explore?view={claims-or-reviews}`                                           |
+| Explicit-interest landscape    | `/explore?interest={interest}`                                                |
+| Focused landscape node         | `/explore?interest={interest}&focus={nodeId}`                                 |
 | Review version                 | `/reviews/{reviewSlug}/versions/{reviewVersionId}`                            |
 | Claim passport                 | `/claims/{reviewVersionId}/{localClaimId}`                                    |
 | Citation in a review version   | `/reviews/{reviewSlug}/versions/{reviewVersionId}#citation-{localCitationId}` |
@@ -14,10 +17,18 @@ must not be renamed when presentation changes.
 | Knowledge node version         | `/nodes/{nodeId}/versions/{nodeVersionId}`                                    |
 | Graph edge                     | `/graph?seed={nodeId}&edgeStatus=confirmed&depth=1&limit=50#edge-{edgeId}`    |
 | Accepted synthesis version     | `/reviews/{reviewSlug}/syntheses/{synthesisVersionId}`                        |
+| Formal challenge on a review   | `/reviews/{reviewSlug}/versions/{reviewVersionId}#challenge-{challengeId}`    |
+| Formal challenge on a node     | `/nodes/{nodeId}#challenge-{challengeId}`                                     |
 
 The unversioned review path remains the discovery URL for the current public review or synthesis.
 An accepted synthesis links back to its immutable version URL from its masthead. A graph-edge URL
 must retain query parameters that include the edge in the bounded result page.
 
-Challenges are intentionally absent from this inventory until ORA-E01 introduces their public data
-model and URL. ORA-H02 does not pre-empt that governance and schema work.
+Explore accepts repeated `interest` parameters. Search, filters, view, and focus are additive URL
+state and should be retained when constructing a more specific Explore link. Removing `focus`
+returns to the same overview without discarding the other parameters. The accepted interest values
+and focus-node format are versioned in the [landscape API contract](knowledge-landscape-api.md).
+
+Formal challenge anchors identify immutable public challenge records within their review-version
+or knowledge-node context. They must not be reused for a different challenge after moderation or a
+lifecycle transition.
