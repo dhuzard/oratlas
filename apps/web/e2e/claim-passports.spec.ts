@@ -21,9 +21,9 @@ test.describe("Claim passports & evidence monitoring", () => {
     const detail = await request.get("/api/reviews/hippocampal-replay-computational-review");
     const review = await detail.json();
     const claim = review.claims.find(
-      (candidate: { localClaimId: string; relations: Array<{ trust?: unknown }> }) =>
+      (candidate: { localClaimId: string; relations: Array<{ trusts: unknown[] }> }) =>
         candidate.localClaimId === "claim-001" &&
-        candidate.relations.some((relation) => relation.trust),
+        candidate.relations.some((relation) => relation.trusts.length > 0),
     );
     expect(claim).toBeDefined();
 
@@ -63,7 +63,11 @@ test.describe("Claim passports & evidence monitoring", () => {
     const body = await passport.json();
     expect(body.localClaimId).toBe(claim.localClaimId);
     expect(body.claimId).toContain("oratlas:claim:v1:");
-    expect(body.evidence.some((relation: { trust?: unknown }) => relation.trust)).toBe(true);
+    expect(
+      body.evidence.some(
+        (relation: { trustAssessments: unknown[] }) => relation.trustAssessments.length > 0,
+      ),
+    ).toBe(true);
 
     const unknown = await request.get(`/api/claims/${review.version.id}/no-such-claim`);
     expect(unknown.status()).toBe(404);
