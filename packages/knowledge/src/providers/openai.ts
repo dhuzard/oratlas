@@ -17,7 +17,9 @@ const MAX_PROVIDER_RESPONSE_BYTES = 262_144;
  * come from the provider-neutral discussion pipeline; this module performs
  * transport only and returns all output_text items as one string.
  */
-export function createOpenAIProvider(options: OpenAIProviderOptions): LlmProvider {
+export function createOpenAIProvider(
+  options: OpenAIProviderOptions,
+): LlmProvider {
   const {
     apiKey,
     model = "gpt-5.6",
@@ -67,7 +69,10 @@ export function createOpenAIProvider(options: OpenAIProviderOptions): LlmProvide
           throw new Error(`OpenAI API returned ${res.status}.`);
         }
 
-        const responseText = await readBoundedResponse(res, request.maxResponseBytes);
+        const responseText = await readBoundedResponse(
+          res,
+          request.maxResponseBytes,
+        );
         let json: {
           output?: Array<{
             type?: string;
@@ -83,11 +88,16 @@ export function createOpenAIProvider(options: OpenAIProviderOptions): LlmProvide
         const text = (json.output ?? [])
           .filter((item) => item.type === "message")
           .flatMap((item) => item.content ?? [])
-          .filter((item) => item.type === "output_text" && typeof item.text === "string")
+          .filter(
+            (item) =>
+              item.type === "output_text" && typeof item.text === "string",
+          )
           .map((item) => item.text)
           .join("");
         if (Buffer.byteLength(text, "utf8") > request.maxResponseBytes) {
-          throw new Error("OpenAI completion exceeded the response byte limit.");
+          throw new Error(
+            "OpenAI completion exceeded the response byte limit.",
+          );
         }
         return text;
       } finally {
@@ -97,7 +107,10 @@ export function createOpenAIProvider(options: OpenAIProviderOptions): LlmProvide
   };
 }
 
-async function readBoundedResponse(response: Response, maxBytes: number): Promise<string> {
+async function readBoundedResponse(
+  response: Response,
+  maxBytes: number,
+): Promise<string> {
   const declared = Number(response.headers.get("content-length"));
   if (Number.isFinite(declared) && declared > maxBytes) {
     throw new Error("OpenAI response exceeded the response byte limit.");
