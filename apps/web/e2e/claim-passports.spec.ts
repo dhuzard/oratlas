@@ -20,8 +20,10 @@ test.describe("Claim passports & evidence monitoring", () => {
   }) => {
     const detail = await request.get("/api/reviews/hippocampal-replay-computational-review");
     const review = await detail.json();
-    const claim = review.claims.find((candidate: { relations: Array<{ trust?: unknown }> }) =>
-      candidate.relations.some((relation) => relation.trust),
+    const claim = review.claims.find(
+      (candidate: { localClaimId: string; relations: Array<{ trust?: unknown }> }) =>
+        candidate.localClaimId === "claim-001" &&
+        candidate.relations.some((relation) => relation.trust),
     );
     expect(claim).toBeDefined();
 
