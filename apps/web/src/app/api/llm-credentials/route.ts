@@ -27,7 +27,9 @@ const credentialSchema = z
       .string()
       .min(1)
       .max(120)
-      .regex(/^[^\u0000-\u001f\u007f]+$/, "Model name contains control characters.")
+      .refine((value) => !containsControlCharacter(value), {
+        message: "Model name contains control characters.",
+      })
       .optional(),
   })
   .strict();
@@ -87,4 +89,12 @@ export async function DELETE(request: Request) {
 
 function noStoreJson(value: unknown): NextResponse {
   return NextResponse.json(value, { headers: { "Cache-Control": "no-store" } });
+}
+
+function containsControlCharacter(value: string): boolean {
+  for (let index = 0; index < value.length; index += 1) {
+    const code = value.charCodeAt(index);
+    if (code <= 31 || code === 127) return true;
+  }
+  return false;
 }
