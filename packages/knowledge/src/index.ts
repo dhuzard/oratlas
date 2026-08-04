@@ -1,10 +1,6 @@
 export * from "./text.js";
 export * from "./types.js";
-export {
-  InProcessSearchProvider,
-  type SearchProvider,
-  type SearchResult,
-} from "./search.js";
+export { InProcessSearchProvider, type SearchProvider, type SearchResult } from "./search.js";
 export {
   buildEvidencePacket,
   canonicalJson,
@@ -23,14 +19,8 @@ export {
   type LlmJsonCompletionRequest,
   type LlmDiscussionResult,
 } from "./discuss.js";
-export {
-  createAnthropicProvider,
-  type AnthropicProviderOptions,
-} from "./providers/anthropic.js";
-export {
-  createOpenAIProvider,
-  type OpenAIProviderOptions,
-} from "./providers/openai.js";
+export { createAnthropicProvider, type AnthropicProviderOptions } from "./providers/anthropic.js";
+export { createOpenAIProvider, type OpenAIProviderOptions } from "./providers/openai.js";
 export {
   proposeCrossReviewLinks,
   type LinkProposalDraft,
