@@ -16,37 +16,24 @@ async function askQuestion(page: Page, question: string) {
 }
 
 test.describe("Grounded Q&A — deterministic mode", () => {
-  test("returns a grounded evidence summary without an LLM key", async ({
-    page,
-  }) => {
+  test("returns a grounded evidence summary without an LLM key", async ({ page }) => {
     await page.goto("/discuss");
     await page.getByText("Use your own LLM key (optional)").click();
     await expect(page.getByLabel("Provider")).toHaveValue("anthropic");
-    await expect(page.getByLabel("API key")).toHaveAttribute(
-      "type",
-      "password",
-    );
+    await expect(page.getByLabel("API key")).toHaveAttribute("type", "password");
     await expect(page.getByText(/never stored by ORAtlas/i)).toBeVisible();
-    await expect(
-      page.locator('[data-register="open-discussion"]'),
-    ).toContainText(
+    await expect(page.locator('[data-register="open-discussion"]')).toContainText(
       /not a formal challenge.*neither creates nor changes a TRUST assessment/i,
     );
-    await expect(
-      page.locator('[data-register="open-discussion"]'),
-    ).toContainText(/immutable archive/i);
+    await expect(page.locator('[data-register="open-discussion"]')).toContainText(
+      /immutable archive/i,
+    );
     await askQuestion(page, "hippocampal replay memory consolidation");
     await expect(page.getByText(/Deterministic/).first()).toBeVisible();
-    await expect(
-      page.locator(".notice-info").getByText(/No LLM provider is configured/i),
-    ).toBeVisible();
+    await expect(page.locator(".notice-info").getByText(/No LLM key was supplied/i)).toBeVisible();
     await expect(page.getByText(/not independent replication/i)).toBeVisible();
-    await expect(page.getByTestId("discussion-packet-hash")).toHaveText(
-      /^[a-f0-9]{64}$/,
-    );
-    const references = page
-      .getByRole("heading", { name: "Grounding references" })
-      .locator("..");
+    await expect(page.getByTestId("discussion-packet-hash")).toHaveText(/^[a-f0-9]{64}$/);
+    const references = page.getByRole("heading", { name: "Grounding references" }).locator("..");
     const passport = references
       .getByRole("listitem")
       .filter({ hasText: "(citation)" })
@@ -58,16 +45,9 @@ test.describe("Grounded Q&A — deterministic mode", () => {
     expect(response.ok()).toBeTruthy();
   });
 
-  test("reports insufficient evidence for unrelated questions", async ({
-    page,
-  }) => {
+  test("reports insufficient evidence for unrelated questions", async ({ page }) => {
     await page.goto("/discuss");
-    await askQuestion(
-      page,
-      "lattice gauge quantum chromodynamics confinement topology",
-    );
-    await expect(
-      page.getByText(/insufficient|No matching claims/i).first(),
-    ).toBeVisible();
+    await askQuestion(page, "lattice gauge quantum chromodynamics confinement topology");
+    await expect(page.getByText(/insufficient|No matching claims/i).first()).toBeVisible();
   });
 });
