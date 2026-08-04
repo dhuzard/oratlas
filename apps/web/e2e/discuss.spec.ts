@@ -18,6 +18,10 @@ async function askQuestion(page: Page, question: string) {
 test.describe("Grounded Q&A — deterministic mode", () => {
   test("returns a grounded evidence summary without an LLM key", async ({ page }) => {
     await page.goto("/discuss");
+    await page.getByText("Use your own LLM key (optional)").click();
+    await expect(page.getByLabel("Provider")).toHaveValue("anthropic");
+    await expect(page.getByLabel("API key")).toHaveAttribute("type", "password");
+    await expect(page.getByText(/never stored by ORAtlas/i)).toBeVisible();
     await expect(page.locator('[data-register="open-discussion"]')).toContainText(
       /not a formal challenge.*neither creates nor changes a TRUST assessment/i,
     );
