@@ -60,6 +60,9 @@ export function DiscussClient({ initialReview }: { initialReview?: string }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [response, setResponse] = useState<DiscussResponse | null>(null);
+  const [provider, setProvider] = useState<"anthropic" | "openai">("anthropic");
+  const [apiKey, setApiKey] = useState("");
+  const [model, setModel] = useState("");
 
   async function ask() {
     setLoading(true);
@@ -71,6 +74,13 @@ export function DiscussClient({ initialReview }: { initialReview?: string }) {
         body: JSON.stringify({
           question,
           reviewSlugs: initialReview ? [initialReview] : undefined,
+          llm: apiKey.trim()
+            ? {
+                provider,
+                apiKey: apiKey.trim(),
+                model: model.trim() || undefined,
+              }
+            : undefined,
         }),
       });
       const data = await res.json();
@@ -82,6 +92,7 @@ export function DiscussClient({ initialReview }: { initialReview?: string }) {
     } catch {
       setError("Network error.");
     } finally {
+      setApiKey("");
       setLoading(false);
     }
   }
@@ -105,6 +116,53 @@ export function DiscussClient({ initialReview }: { initialReview?: string }) {
           />
           {initialReview ? <small>Scoped to review: {initialReview}</small> : null}
         </div>
+        <details style={{ marginBottom: "1rem" }}>
+          <summary>Use your own LLM key (optional)</summary>
+          <div className="filters" style={{ marginTop: "0.75rem" }}>
+            <div className="field">
+              <label htmlFor="llm-provider">Provider</label>
+              <select
+                id="llm-provider"
+                value={provider}
+                onChange={(event) =>
+                  setProvider(event.target.value === "openai" ? "openai" : "anthropic")
+                }
+              >
+                <option value="anthropic">Anthropic</option>
+                <option value="openai">OpenAI</option>
+              </select>
+            </div>
+            <div className="field">
+              <label htmlFor="llm-api-key">API key</label>
+              <input
+                id="llm-api-key"
+                type="password"
+                value={apiKey}
+                onChange={(event) => setApiKey(event.target.value)}
+                autoComplete="new-password"
+                spellCheck={false}
+                placeholder={provider === "anthropic" ? "sk-ant-…" : "sk-…"}
+              />
+            </div>
+            <div className="field">
+              <label htmlFor="llm-model">Model (optional)</label>
+              <input
+                id="llm-model"
+                type="text"
+                value={model}
+                onChange={(event) => setModel(event.target.value)}
+                spellCheck={false}
+                placeholder={provider === "anthropic" ? "claude-sonnet-5" : "gpt-5.6"}
+              />
+            </div>
+          </div>
+          <small>
+            The key is sent once to ORAtlas over this request, used server-side for this answer,
+            never stored by ORAtlas, and cleared from this form afterward. The selected provider
+            receives the bounded evidence packet under your account.
+          </small>
+        </details>
+
         <button className="btn" onClick={ask} disabled={loading || question.trim().length < 3}>
           {loading ? "Thinking…" : "Ask question"}
         </button>
@@ -124,8 +182,8 @@ export function DiscussClient({ initialReview }: { initialReview?: string }) {
 
           {response.mode === "deterministic" && response.llmAvailable === false ? (
             <div className="notice notice-info">
-              No LLM provider is configured. Atlas is showing the deterministic structured evidence
-              summary; no generated prose was attempted.
+              No LLM key was supplied and no server provider is configured. Atlas is showing the
+              deterministic structured evidence summary; no generated prose was attempted.
             </div>
           ) : null}
 
