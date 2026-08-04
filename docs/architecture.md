@@ -109,7 +109,8 @@ claim candidates, applies deterministic and inspectable navigation ordering, and
 versioned `explicit-interest-landscape@1.0.0` contract. The projection contains at most six claims
 and ten evidence records, includes selection reasons and publication-year context, and can be
 reduced to the selected node plus its immediate neighbors. An unknown focus returns the overview;
-an unknown interest is rejected.
+the API rejects an unknown interest, while the server-rendered page ignores unknown URL interest
+values before calling the service.
 
 The projection ranks paths for exploration, not scientific truth, evidence quality, consensus, or
 TRUST. It never mutates a preserved record, and the canonical claim or review result list remains

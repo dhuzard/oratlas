@@ -188,9 +188,8 @@ datasource provider to `postgresql`, set `SESSION_SECRET`, run `prisma migrate d
 
 Accepted Markdown is read from the durable database snapshot with no active repository HTML.
 Corrections link immutable versions; withdrawals remain visibly marked but are removed from
-Grounded Q&A;
-tombstones fail closed across pages, APIs, comments, search, claims, discussion, assets, exports
-and feeds. See [`docs/article-lifecycle.md`](docs/article-lifecycle.md).
+Grounded Q&A. Tombstones fail closed across pages, APIs, comments, search, claims, discussion,
+assets, exports and feeds. See [`docs/article-lifecycle.md`](docs/article-lifecycle.md).
 
 You do **not** need to own the submitted repository; you are recorded as the submitter, distinct
 from the repository's authors and maintainers.
