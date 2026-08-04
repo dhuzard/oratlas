@@ -84,7 +84,6 @@ export function readLlmCredentialToken(
 }
 
 function deriveKey(secret: string): Buffer {
-  if (secret.length < 16) throw new TypeError("LLM credential encryption secret is too short.");
   return createHash("sha256")
     .update("oratlas/byok/aes-256-gcm/v1\0", "utf8")
     .update(secret, "utf8")
@@ -121,7 +120,15 @@ function validateInput(provider: string, apiKey: string, model: string): void {
   if (apiKey.length < 10 || apiKey.length > 512 || /\s/.test(apiKey)) {
     throw new TypeError("Invalid LLM API key.");
   }
-  if (model.length < 1 || model.length > 120 || /[\u0000-\u001f\u007f]/.test(model)) {
+  if (model.length < 1 || model.length > 120 || containsControlCharacter(model)) {
     throw new TypeError("Invalid LLM model name.");
   }
+}
+
+function containsControlCharacter(value: string): boolean {
+  for (let index = 0; index < value.length; index += 1) {
+    const code = value.charCodeAt(index);
+    if (code <= 31 || code === 127) return true;
+  }
+  return false;
 }
