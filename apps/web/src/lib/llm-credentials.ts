@@ -102,9 +102,15 @@ export async function resolveLlmProvider(): Promise<ResolvedLlmProvider | null> 
 }
 
 async function readBrowserCredential(): Promise<LlmCredentialPayload | null> {
-  const token = (await cookies()).get(COOKIE_NAME)?.value;
-  if (!token) return null;
-  return readLlmCredentialToken(token, getServerEnv().sessionSecret);
+  try {
+    const token = (await cookies()).get(COOKIE_NAME)?.value;
+    if (!token) return null;
+    return readLlmCredentialToken(token, getServerEnv().sessionSecret);
+  } catch {
+    // Library and background callers have no Next.js request store. They may
+    // still use a platform provider, or remain deterministic when none exists.
+    return null;
+  }
 }
 
 function statusFromCredential(credential: LlmCredentialPayload): LlmCredentialStatus {
