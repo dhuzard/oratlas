@@ -61,6 +61,13 @@ export function readLlmCredentialToken(
     const iv = Buffer.from(ivText, "base64url");
     const ciphertext = Buffer.from(ciphertextText, "base64url");
     const tag = Buffer.from(tagText, "base64url");
+    if (
+      iv.toString("base64url") !== ivText ||
+      ciphertext.toString("base64url") !== ciphertextText ||
+      tag.toString("base64url") !== tagText
+    ) {
+      return null;
+    }
     if (iv.length !== 12 || tag.length !== 16 || ciphertext.length === 0) return null;
     const decipher = createDecipheriv("aes-256-gcm", deriveKey(secret), iv);
     decipher.setAAD(AAD);
