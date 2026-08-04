@@ -2,6 +2,7 @@
 import { useState } from "react";
 import type { FacetCompatibilityReport } from "@oratlas/contracts";
 import { CompatibilityFacets } from "@/components/CompatibilityFacets";
+import { AiIngestionExtractionPanel } from "@/components/AiIngestionExtractionPanel";
 
 interface InspectResponse {
   repo: { owner: string; name: string; canonicalUrl: string };
@@ -358,6 +359,10 @@ export function SubmitWizard({ signedIn }: { signedIn: boolean }) {
               </article>
             ))
           )}
+          <AiIngestionExtractionPanel
+            captureToken={inspection.captureToken}
+            capturePayloadHash={inspection.capturePayloadHash}
+          />
           <div className="btn-row">
             <button className="btn btn-secondary" onClick={() => setStep(2)}>
               Back
