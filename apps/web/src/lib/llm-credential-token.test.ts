@@ -32,7 +32,9 @@ describe("LLM credential token", () => {
       secret,
       issuedAt,
     );
-    const tampered = `${token.slice(0, -1)}${token.endsWith("a") ? "b" : "a"}`;
+    const parts = token.split(".");
+    parts[2] = `${parts[2]!.startsWith("A") ? "B" : "A"}${parts[2]!.slice(1)}`;
+    const tampered = parts.join(".");
     expect(readLlmCredentialToken(tampered, secret, issuedAt + 1)).toBeNull();
     expect(readLlmCredentialToken(token, `${secret}-other`, issuedAt + 1)).toBeNull();
     expect(readLlmCredentialToken(token, secret, issuedAt - 1)).toBeNull();
