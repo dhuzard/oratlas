@@ -25,3 +25,18 @@ pnpm --filter @oratlas/web test:e2e
 
 The JSON report and budget gate are enabled in CI. To inspect a downloaded CI report locally, place
 it at `apps/web/test-results/e2e-results.json` and run `pnpm e2e:budget`.
+
+## Guided Explore coverage
+
+The seeded public Explore journey preserves these user-facing invariants:
+
+- claims and reviews remain available as canonical result lists;
+- selected interests persist transparently in the URL across search, filters, tabs, and pages;
+- every visual landscape node has synchronized accessible details and a preserved-record link;
+- selection reasons, publication context, one-hop focus, and overview return remain available;
+- the GUI and `GET /api/landscape` expose the same selected node projection.
+
+These browser assertions establish implementation parity, not usability. First-reader comprehension
+and task completion are evaluated separately with the
+[first-time exploration protocol](first-time-exploration-evaluation.md); no human validation result
+is implied by a green E2E suite.

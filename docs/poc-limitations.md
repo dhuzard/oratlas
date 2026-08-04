@@ -19,6 +19,15 @@ knowledge-consensus engine.
   PostgreSQL FTS or a search engine at scale. Semantic search is not implemented.
 - **The knowledge index is rebuilt per request.** Fine at small scale; should be cached with
   invalidation in production.
+- **Guided exploration is explicit and bounded.** ORAtlas does not learn or infer a reader profile.
+  The landscape uses only the submitted query, filters, interests, and focus node; it considers at
+  most 40 matching claim candidates and displays at most six claims and ten evidence records. It is
+  an orientation aid, not a complete corpus graph.
+- **Guided ordering is navigation metadata.** Selection reasons and ordering are deterministic and
+  inspectable, but they are not measures of truth, evidence quality, consensus, or TRUST.
+- **First-reader validation has not been run.** The repository contains a privacy-minimal protocol
+  and reporting CLI, not evidence that readers understand the interface or complete its tasks. See
+  [First-time exploration evaluation](first-time-exploration-evaluation.md).
 - **Rate limiting is in-process.** Per-node only; use a shared store for multi-node deployments.
 - **Auth is minimal.** Cookie sessions + optional GitHub OAuth + dev mock. No org/OIDC, no email
   verification, no fine-grained permissions beyond USER/EDITOR/ADMIN.
@@ -50,8 +59,10 @@ knowledge-consensus engine.
   is the explicitly selected commit and its tree SHA. Version DOI claims cannot silently use the
   default-branch selection.
 - Several reviews citing the same primary source are **not independent replication**.
-- A validated Atlas Discuss evidence edge proves that the answer points to a recorded relation; it
-  does **not** prove that the claim or cited study is scientifically correct.
+- A validated Grounded Q&A (Atlas Discuss) evidence edge proves that the answer points to a
+  recorded relation; it does **not** prove that the claim or cited study is scientifically correct.
+- A guided Explore selection proves only that a record matched the declared navigation rules. It
+  does **not** establish relevance for every reader, scientific priority, quality, or correctness.
 - An editor-accepted AI synthesis is **not peer review, scientific correctness, consensus, truth
   adjudication, or a blanket TRUST assessment**. The software agent is not a person; the named
   editor is accountable for curation and the acceptance checklist, not attributed as the author of

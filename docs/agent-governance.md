@@ -13,9 +13,23 @@ document states where agents are and are **not** used.
   deterministic value without preserving both.
 - **DOI validation** is deterministic (normalization + resolution + metadata comparison).
 
+## Agent-facing guided exploration
+
+Agents may read the same bounded knowledge landscape shown to human readers through
+`GET /api/landscape`. The endpoint and Explore page call the same deterministic service and return
+the versioned `explicit-interest-landscape@1.0.0` projection. It accepts only explicit query,
+interest, filter, and optional focus state; it does not infer a profile, use behavioral telemetry,
+or mutate preserved records.
+
+The response contains at most six claims and ten evidence records. Its ordering and plain-language
+selection reasons support navigation only and are explicitly not truth, quality, consensus, or
+TRUST scores. Unknown interests fail validation rather than becoming hidden personalization
+categories. See the [agent-facing API guide](knowledge-landscape-api.md) and complete contract in
+[`openapi.yaml`](openapi.yaml).
+
 ## Where agents ARE used (and how they are governed)
 
-### Atlas Discuss
+### Grounded Q&A (Atlas Discuss)
 
 - Runs in **deterministic mode** when no LLM key is configured: it retrieves relevant claims,
   groups them by evidence relation, and returns a structured summary. It does **not** fabricate
