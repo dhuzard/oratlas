@@ -130,24 +130,20 @@ function discussionReferences(
     label: claim.text,
     href: claimHref(claim),
   }));
-  const citations: DiscussionReference[] = packet.citations.flatMap(
-    (citation) => {
-      const claim = packet.claims.find((candidate) =>
-        candidate.relations.some(
-          (relation) => relation.citationId === citation.citationId,
-        ),
-      );
-      return claim
-        ? [
-            {
-              kind: "citation" as const,
-              id: citation.citationId,
-              label: citation.title ?? citation.localCitationId,
-              href: claimHref(claim),
-            },
-          ]
-        : [];
-    },
-  );
+  const citations: DiscussionReference[] = packet.citations.flatMap((citation) => {
+    const claim = packet.claims.find((candidate) =>
+      candidate.relations.some((relation) => relation.citationId === citation.citationId),
+    );
+    return claim
+      ? [
+          {
+            kind: "citation" as const,
+            id: citation.citationId,
+            label: citation.title ?? citation.localCitationId,
+            href: claimHref(claim),
+          },
+        ]
+      : [];
+  });
   return [...claims, ...citations];
 }
