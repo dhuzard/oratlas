@@ -3,10 +3,12 @@ import { getServerEnv } from "@oratlas/config";
 import {
   buildEvidencePacket,
   createAnthropicProvider,
+  createOpenAIProvider,
   discussDeterministic,
   discussWithLlm,
   prepareEvidencePacket,
   type LlmDiscussionResult,
+  type LlmProvider,
 } from "@oratlas/knowledge";
 import { type DeterministicDiscussionResult } from "@oratlas/contracts";
 import { buildKnowledgeIndex } from "./index-builder";
@@ -23,6 +25,12 @@ interface DiscussionProvenance {
   packetHash: string;
   packetSchemaVersion: "1.1.0";
   references: DiscussionReference[];
+}
+
+export interface RequestLlmConfig {
+  provider: "anthropic" | "openai";
+  apiKey: string;
+  model?: string;
 }
 
 export type DiscussionResponse =
@@ -45,6 +53,7 @@ export type DiscussionResponse =
 export async function runDiscussion(
   question: string,
   reviewSlugs?: string[],
+  requestLlm?: RequestLlmConfig,
 ): Promise<DiscussionResponse> {
   const env = getServerEnv();
   const index = await buildKnowledgeIndex();
@@ -57,14 +66,28 @@ export async function runDiscussion(
     references: discussionReferences(prepared.packet),
   };
 
-  if (!env.llmEnabled || !env.ANTHROPIC_API_KEY) {
-    return { mode: "deterministic", result: deterministic, llmAvailable: false, ...provenance };
+  let provider: LlmProvider | undefined;
+  if (requestLlm) {
+    provider =
+      requestLlm.provider === "anthropic"
+        ? createAnthropicProvider({
+            apiKey: requestLlm.apiKey,
+            model: requestLlm.model,
+          })
+        : createOpenAIProvider({
+            apiKey: requestLlm.apiKey,
+            model: requestLlm.model,
+          });
+  } else if (env.llmEnabled && env.ANTHROPIC_API_KEY) {
+    provider = createAnthropicProvider({
+      apiKey: env.ANTHROPIC_API_KEY,
+      model: env.LLM_MODEL,
+    });
   }
 
-  const provider = createAnthropicProvider({
-    apiKey: env.ANTHROPIC_API_KEY,
-    model: env.LLM_MODEL,
-  });
+  if (!provider) {
+    return { mode: "deterministic", result: deterministic, llmAvailable: false, ...provenance };
+  }
 
   const startedAt = new Date();
   const result = await discussWithLlm(provider, prepared);
