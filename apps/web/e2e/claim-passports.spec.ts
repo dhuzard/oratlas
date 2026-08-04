@@ -20,13 +20,17 @@ test.describe("Claim passports & evidence monitoring", () => {
   }) => {
     const detail = await request.get("/api/reviews/hippocampal-replay-computational-review");
     const review = await detail.json();
-    const claim = review.claims.find((candidate: { relations: Array<{ trust?: unknown }> }) =>
-      candidate.relations.some((relation) => relation.trust),
+    const claim = review.claims.find(
+      (candidate: { localClaimId: string; relations: Array<{ trusts: unknown[] }> }) =>
+        candidate.localClaimId === "claim-001" &&
+        candidate.relations.some((relation) => relation.trusts.length > 0),
     );
     expect(claim).toBeDefined();
 
     await page.goto(`/claims/${review.version.id}/${encodeURIComponent(claim.localClaimId)}`);
     await expect(page.getByRole("heading", { name: "Original claim record" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Explore graph neighborhood" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Inspect exact graph version" })).toBeVisible();
     await expect(page.getByText("claim passport").first()).toBeVisible();
     const inspectionPath = page.getByRole("navigation", { name: "Inspect this claim" });
     await expect(inspectionPath.getByRole("link", { name: /Original record/ })).toHaveAttribute(
@@ -59,7 +63,11 @@ test.describe("Claim passports & evidence monitoring", () => {
     const body = await passport.json();
     expect(body.localClaimId).toBe(claim.localClaimId);
     expect(body.claimId).toContain("oratlas:claim:v1:");
-    expect(body.evidence.some((relation: { trust?: unknown }) => relation.trust)).toBe(true);
+    expect(
+      body.evidence.some(
+        (relation: { trustAssessments: unknown[] }) => relation.trustAssessments.length > 0,
+      ),
+    ).toBe(true);
 
     const unknown = await request.get(`/api/claims/${review.version.id}/no-such-claim`);
     expect(unknown.status()).toBe(404);

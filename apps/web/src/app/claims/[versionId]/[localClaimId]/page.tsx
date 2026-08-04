@@ -111,6 +111,21 @@ export default async function ClaimPassportPage({
               { term: "Section", value: passport.section ?? <span className="muted">—</span> },
             ]}
           />
+          {passport.graphIdentity ? (
+            <div className="btn-row" style={{ marginTop: "0.8rem" }}>
+              <Link
+                href={`/graph?seed=${encodeURIComponent(passport.graphIdentity.nodeId)}`}
+                className="btn btn-secondary"
+              >
+                Explore graph neighborhood
+              </Link>
+              <Link
+                href={`/nodes/${encodeURIComponent(passport.graphIdentity.nodeId)}/versions/${encodeURIComponent(passport.graphIdentity.nodeVersionId)}`}
+              >
+                Inspect exact graph version
+              </Link>
+            </div>
+          ) : null}
         </Card>
 
         <Card title={`Also asserted in (${passport.alsoAssertedIn.length})`}>

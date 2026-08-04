@@ -16,7 +16,7 @@ import { GET } from "./route";
 describe("GET /api/landscape", () => {
   beforeEach(() => {
     state.buildIndex.mockReset().mockResolvedValue({ marker: "index" });
-    state.createResponse.mockReset().mockReturnValue({ schemaVersion: "1.0.0" });
+    state.createResponse.mockReset().mockResolvedValue({ schemaVersion: "2.0.0" });
   });
 
   it("passes the GUI's explicit URL state to the shared landscape service", async () => {

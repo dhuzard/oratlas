@@ -38,7 +38,8 @@ describe("knowledge landscape OpenAPI surface", () => {
     ).toEqual([
       "not-a-truth-score",
       "not-a-quality-score",
-      "bounded-to-six-claims-and-ten-evidence-records",
+      "confirmed-graph-edges-only",
+      "bounded-to-six-claims-ten-evidence-and-twelve-graph-nodes",
     ]);
   });
 });

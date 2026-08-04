@@ -170,8 +170,15 @@ The build performs these steps:
 1. build and push the container image;
 2. create or update the `${SERVICE}-migrate` Cloud Run Job;
 3. execute `pnpm db:deploy:postgres` against Cloud SQL;
-4. deploy the Cloud Run service;
-5. expose the service publicly.
+4. deploy the Cloud Run service and expose it publicly;
+5. run the beta journey smoke against readiness, the homepage promise, personalized Explore,
+   `GET /api/landscape`, a confirmed graph edge, and exact node-version navigation.
+
+The default beta fixture is `q=replay&interest=data-code`. Before deployment, the Cloud SQL data
+must therefore contain a readable claim with an explicit graph identity and a confirmed dataset or
+code neighborhood matching that query. Override `_BETA_SMOKE_QUERY` and `_BETA_SMOKE_INTEREST` with
+a known real beta record when the example fixtures are not present. The deployment intentionally
+fails its final verification step when the defining personalized graph journey is unavailable.
 
 `db:deploy:postgres` currently uses `prisma db push` against the generated
 PostgreSQL schema, followed by ORAtlas database guards. This is intended to
@@ -225,13 +232,13 @@ wrong person. Removing an ID does not silently demote an existing administrator.
 ## 8. Verify the deployment
 
 ```bash
-curl -fsS "${SERVICE_URL}/api/health"
+curl -fsS "${SERVICE_URL}/api/health/ready"
 ```
 
 Expected response:
 
 ```json
-{ "status": "ok" }
+{ "status": "ready", "checks": { "database": "ok" } }
 ```
 
 Then inspect logs:
@@ -240,6 +247,12 @@ Then inspect logs:
 gcloud run services logs read "$SERVICE" \
   --region="$REGION" \
   --limit=100
+```
+
+To repeat the complete beta journey locally from the repository root:
+
+```bash
+pnpm smoke:gcp-beta -- "${SERVICE_URL}" --query replay --interest data-code
 ```
 
 ## Operational constraints of the POC

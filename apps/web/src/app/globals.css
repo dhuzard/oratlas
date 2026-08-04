@@ -1155,6 +1155,9 @@ textarea {
   padding: 0;
   border: 0;
 }
+.exploration-topic {
+  margin-bottom: 0.8rem;
+}
 .interest-options {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1215,6 +1218,40 @@ textarea {
   color: var(--text-muted);
   font-size: 0.78rem;
 }
+.landscape-start {
+  display: grid;
+  grid-template-columns: minmax(12rem, 0.7fr) minmax(0, 1.3fr);
+  gap: 1rem;
+  margin: 0 0 1rem;
+  padding: 0.9rem;
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+.landscape-start h3,
+.landscape-start p {
+  margin: 0;
+}
+.landscape-start h3 {
+  font-size: 1rem;
+}
+.landscape-start ol {
+  display: grid;
+  gap: 0.55rem;
+  margin: 0;
+  padding-left: 1.25rem;
+}
+.landscape-start small {
+  display: block;
+  color: var(--text-muted);
+}
+.landscape-graph-empty {
+  margin: 0 0 1rem;
+  padding: 0.75rem;
+  border: 1px dashed var(--border);
+  color: var(--text-muted);
+}
 .knowledge-landscape-visual {
   overflow-x: auto;
   border: 1px solid var(--border);
@@ -1265,6 +1302,12 @@ textarea {
   fill: color-mix(in srgb, var(--curated) 10%, var(--surface));
   stroke: var(--curated);
 }
+.landscape-node[data-kind="figure"] rect,
+.landscape-node[data-kind="dataset"] rect,
+.landscape-node[data-kind="code"] rect {
+  fill: color-mix(in srgb, var(--human) 9%, var(--surface));
+  stroke: var(--human);
+}
 .landscape-node text {
   fill: var(--text);
   font-family: var(--font-sans);
@@ -1301,11 +1344,19 @@ textarea {
 .landscape-legend [data-kind="evidence"]::before {
   background: var(--curated);
 }
+.landscape-legend [data-kind="figure"]::before,
+.landscape-legend [data-kind="dataset"]::before,
+.landscape-legend [data-kind="code"]::before {
+  background: var(--human);
+}
 .landscape-legend [data-relation="supports"]::before {
   background: var(--human);
 }
 .landscape-legend [data-relation="contradicts"]::before {
   background: var(--warn);
+}
+.landscape-legend [data-relation="confirmed"]::before {
+  background: var(--text-muted);
 }
 .landscape-timeline {
   display: grid;
@@ -1397,10 +1448,16 @@ textarea {
   margin-top: 0.2rem;
 }
 .landscape-focus-link,
+.landscape-record-link,
+.landscape-graph-link,
 .landscape-focused-label {
   display: inline-block;
   margin-top: 0.35rem;
   font-size: 0.8rem;
+}
+.landscape-record-link,
+.landscape-graph-link {
+  margin-right: 0.7rem;
 }
 .landscape-focused-label {
   color: var(--accent);
@@ -1523,6 +1580,7 @@ textarea {
     grid-template-columns: 1fr;
   }
   .exploration-intent,
+  .landscape-start,
   .knowledge-landscape-list {
     grid-template-columns: 1fr;
   }

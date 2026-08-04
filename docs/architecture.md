@@ -99,18 +99,24 @@ the same interface later.
 ### Guided exploration
 
 `/explore` is the primary public discovery surface. It combines claim and review search with an
-optional guided knowledge landscape. Readers choose interests explicitly; the application stores
-the query, repeated `interest` values, filters, and optional `focus` node in the URL rather than an
-inferred account profile.
+optional graph-native knowledge landscape. Readers answer what they want to understand with a topic
+and explicit interest lenses; the application stores the query, repeated `interest` values,
+filters, and optional `focus` node in the URL rather than an inferred account profile.
 
 `apps/web/src/lib/knowledge-landscape-service.ts` is the shared service boundary for both the
 server-rendered Explore page and `GET /api/landscape`. It searches at most the first 40 matching
-claim candidates, applies deterministic and inspectable navigation ordering, and returns the
-versioned `explicit-interest-landscape@1.0.0` contract. The projection contains at most six claims
-and ten evidence records, includes selection reasons and publication-year context, and can be
-reduced to the selected node plus its immediate neighbors. An unknown focus returns the overview;
-the API rejects an unknown interest, while the server-rendered page ignores unknown URL interest
-values before calling the service.
+claim candidates. For at most six explicitly bridged candidate claims, it reads one-hop public graph
+neighborhoods and uses those confirmed relations when matching interests such as data and code,
+reproducibility, or disagreements. It never infers a `Claim` → `KnowledgeNode` identity from text.
+The deterministic service returns the versioned `explicit-interest-graph-landscape@2.0.0`
+contract for both GUI and API.
+
+The projection contains at most six claims, ten citation-evidence records, three graph seeds, and
+twelve graph identities. Graph recommendations expose stable node IDs, exact readable version IDs,
+confirmed typed edges, and plain-language selection reasons. It can be reduced to the selected node
+plus its immediate neighbors. An unknown focus returns the overview; the API rejects an unknown
+interest, while the server-rendered page ignores unknown URL interest values before calling the
+service.
 
 The projection ranks paths for exploration, not scientific truth, evidence quality, consensus, or
 TRUST. It never mutates a preserved record, and the canonical claim or review result list remains

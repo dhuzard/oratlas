@@ -90,6 +90,8 @@ export interface IndexedClaim {
   claimType?: string;
   commitSha: string;
   versionDoi?: string;
+  /** Explicit bridge to the stable graph identity; never inferred from claim text. */
+  knowledgeNodeId?: string;
   relations: IndexedRelation[];
 }
 

@@ -1,7 +1,8 @@
 # Guided knowledge landscape API
 
-`GET /api/landscape` gives agents the same bounded exploration projection that readers see in
-Explore. The endpoint does not infer a profile and does not rewrite or score the scientific record.
+`GET /api/landscape` gives agents the same bounded, graph-native exploration projection that
+readers see in Explore. The endpoint does not infer a profile and does not rewrite or score the
+scientific record.
 
 ```sh
 curl --get http://localhost:3000/api/landscape \
@@ -22,9 +23,18 @@ The response includes:
 
 - `schemaVersion` and an independent navigation-algorithm version;
 - normalized explicit query and interest state;
-- the same review, claim, evidence, edge, explanation, and year objects used by the GUI;
+- the same review, claim, evidence, graph node, confirmed edge, explanation, and year objects used
+  by the GUI;
+- stable graph node IDs, exact readable node-version IDs, and links to both the preserved version
+  and its graph neighborhood;
 - machine-readable limitations stating that the ordering is not a truth or quality score;
-- no more than six claims and ten evidence records.
+- no more than six claims, ten citation-evidence records, three graph seeds, and twelve graph
+  identities.
+
+Graph recommendations use only the stored `Claim.knowledgeNodeId` bridge. ORAtlas does not infer
+node identity from lexical similarity. The personalized projection includes confirmed public graph
+edges only; proposed edges remain available through the specialist graph contract with their
+separate status.
 
 Unknown interests return `400` rather than silently creating a hidden personalization category. An
 unknown focus ID returns the overview projection, preserving a deterministic and reversible result.

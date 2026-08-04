@@ -13,12 +13,12 @@ behavioral telemetry in the evaluation file.
 1. Show the homepage for 20 seconds. Ask: “What do you think this site lets you inspect?” Record
    whether the answer identifies a scientific claim, linked evidence, independent assessments or
    disagreements, and preservation of the original record.
-2. Ask the participant to find material relevant to one of their interests and create a personalized
-   landscape. Record whether they reach it without coaching.
+2. Ask the participant to describe a topic, choose an interest lens, and create a personalized
+   knowledge path. Record whether they reach a graph-native recommendation without coaching.
 3. Ask them to point out a review, claim, evidence record, assessment, and disagreement. Record each
    distinction independently.
-4. Ask them to focus on one node, explain why it appeared, inspect its preserved record, and return to
-   the overview. Record whether the return succeeds.
+4. Ask them to focus on one graph node, explain why it appeared, inspect its exact preserved version,
+   and return to the overview. Record whether each step succeeds.
 5. For participants who use or agree to try keyboard navigation, repeat the focus-and-return journey
    without a pointer. Record only completion, not disability or assistive-technology details.
 

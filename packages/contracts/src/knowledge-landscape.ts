@@ -1,7 +1,7 @@
 import { z } from "zod";
 
-export const KNOWLEDGE_LANDSCAPE_SCHEMA_VERSION = "1.0.0" as const;
-export const KNOWLEDGE_LANDSCAPE_ALGORITHM_VERSION = "1.0.0" as const;
+export const KNOWLEDGE_LANDSCAPE_SCHEMA_VERSION = "2.0.0" as const;
+export const KNOWLEDGE_LANDSCAPE_ALGORITHM_VERSION = "2.0.0" as const;
 
 export const explorationInterestSchema = z.enum([
   "disagreements",
@@ -28,12 +28,16 @@ export type KnowledgeLandscapeQuery = z.infer<typeof knowledgeLandscapeQuerySche
 export const knowledgeLandscapeNodeSchema = z
   .object({
     id: z.string().min(1).max(500),
-    kind: z.enum(["review", "claim", "evidence"]),
+    kind: z.enum(["review", "claim", "evidence", "figure", "dataset", "code"]),
     label: z.string().min(1),
     detail: z.string().min(1),
     href: z.string().startsWith("/"),
     reasons: z.array(z.string().min(1)).min(1),
     year: z.number().int().min(1000).max(2100).optional(),
+    graphNodeId: z.string().min(1).max(200).optional(),
+    graphNodeVersionId: z.string().min(1).max(200).optional(),
+    graphHref: z.string().startsWith("/").optional(),
+    graphRecordHref: z.string().startsWith("/").optional(),
   })
   .strict();
 export type KnowledgeLandscapeNode = z.infer<typeof knowledgeLandscapeNodeSchema>;
@@ -45,6 +49,8 @@ export const knowledgeLandscapeEdgeSchema = z
     targetId: z.string().min(1).max(500),
     label: z.string().min(1).max(100),
     relationType: z.string().min(1).max(100),
+    status: z.literal("confirmed").optional(),
+    assessmentCount: z.number().int().nonnegative().optional(),
   })
   .strict();
 export type KnowledgeLandscapeEdge = z.infer<typeof knowledgeLandscapeEdgeSchema>;
@@ -60,10 +66,12 @@ export type KnowledgeLandscapeYear = z.infer<typeof knowledgeLandscapeYearSchema
 
 export const knowledgeLandscapeDataSchema = z
   .object({
-    nodes: z.array(knowledgeLandscapeNodeSchema).max(22),
+    nodes: z.array(knowledgeLandscapeNodeSchema).max(34),
     edges: z.array(knowledgeLandscapeEdgeSchema),
     matchedClaimCount: z.number().int().nonnegative(),
     shownClaimCount: z.number().int().min(0).max(6),
+    graphSeedCount: z.number().int().min(0).max(3),
+    graphNodeCount: z.number().int().min(0).max(12),
     timeline: z.array(knowledgeLandscapeYearSchema),
     focusedNodeId: z.string().min(1).max(500).optional(),
   })
@@ -75,13 +83,14 @@ export const knowledgeLandscapeResponseSchema = z
     schemaVersion: z.literal(KNOWLEDGE_LANDSCAPE_SCHEMA_VERSION),
     algorithm: z
       .object({
-        id: z.literal("explicit-interest-landscape"),
+        id: z.literal("explicit-interest-graph-landscape"),
         version: z.literal(KNOWLEDGE_LANDSCAPE_ALGORITHM_VERSION),
         purpose: z.literal("navigation"),
         limitations: z.tuple([
           z.literal("not-a-truth-score"),
           z.literal("not-a-quality-score"),
-          z.literal("bounded-to-six-claims-and-ten-evidence-records"),
+          z.literal("confirmed-graph-edges-only"),
+          z.literal("bounded-to-six-claims-ten-evidence-and-twelve-graph-nodes"),
         ]),
       })
       .strict(),

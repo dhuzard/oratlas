@@ -73,7 +73,7 @@ export default async function ExplorePage({
     page: view === "claims" ? page : 1,
     pageSize: 20,
   });
-  const landscapeResponse = createKnowledgeLandscapeResponse(index, {
+  const landscapeResponse = await createKnowledgeLandscapeResponse(index, {
     q,
     interests: selectedInterests,
     focusNodeId: requestedLandscapeFocus,

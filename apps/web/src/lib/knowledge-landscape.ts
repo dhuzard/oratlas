@@ -51,6 +51,7 @@ export const EXPLORATION_INTERESTS = [
 export interface KnowledgeLandscapeOptions {
   query?: string;
   focusNodeId?: string;
+  graphInterestMatches?: ReadonlyMap<string, ReadonlySet<ExplorationInterest>>;
 }
 
 const INTEREST_IDS = new Set<string>(EXPLORATION_INTERESTS.map((interest) => interest.id));
@@ -69,12 +70,12 @@ export function buildKnowledgeLandscape(
     interests.length === 0
       ? candidateClaims
       : candidateClaims.filter((claim) =>
-          interests.some((interest) => matchesInterest(claim, interest)),
+          interests.some((interest) => matchesInterest(claim, interest, options)),
         );
   const selectedClaims = matchingClaims
     .map((claim) => ({
       claim,
-      reasons: explainClaimSelection(claim, interests, options.query),
+      reasons: explainClaimSelection(claim, interests, options),
     }))
     .sort(compareExplorationPriority)
     .slice(0, 6);
@@ -114,6 +115,10 @@ export function buildKnowledgeLandscape(
       href: claimHref,
       reasons,
       year: reviewByVersionId.get(claim.reviewVersionId)?.publicationYear,
+      graphNodeId: claim.knowledgeNodeId,
+      graphHref: claim.knowledgeNodeId
+        ? `/graph?seed=${encodeURIComponent(claim.knowledgeNodeId)}`
+        : undefined,
     });
     edges.push({
       sourceId: reviewNodeId,
@@ -155,6 +160,8 @@ export function buildKnowledgeLandscape(
     edges,
     matchedClaimCount: matchingClaims.length,
     shownClaimCount: selectedClaims.length,
+    graphSeedCount: 0,
+    graphNodeCount: 0,
     timeline: buildTimeline(nodes),
   };
   return focusLandscape(completeLandscape, options.focusNodeId);
@@ -189,14 +196,22 @@ export function focusLandscape(
 function explainClaimSelection(
   claim: IndexedClaim,
   interests: ExplorationInterest[],
-  query?: string,
+  options: KnowledgeLandscapeOptions,
 ): string[] {
   const reasons: string[] = [];
-  if (query?.trim()) reasons.push(`Matches the search “${query.trim()}”`);
+  if (options.query?.trim()) reasons.push(`Matches the search “${options.query.trim()}”`);
   for (const interest of interests) {
-    if (!matchesInterest(claim, interest)) continue;
+    if (!matchesInterest(claim, interest, options)) continue;
     const label = EXPLORATION_INTERESTS.find((item) => item.id === interest)?.label ?? interest;
-    reasons.push(`Matches your ${label.toLowerCase()} interest`);
+    const graphMatch =
+      claim.knowledgeNodeId &&
+      options.graphInterestMatches?.get(claim.knowledgeNodeId)?.has(interest) &&
+      !matchesInterestWithoutGraph(claim, interest);
+    reasons.push(
+      graphMatch
+        ? `Its confirmed graph neighborhood matches your ${label.toLowerCase()} interest`
+        : `Matches your ${label.toLowerCase()} interest`,
+    );
   }
   const contradicting = claim.relations.filter(
     (relation) => relation.relationType === "contradicts",
@@ -245,7 +260,21 @@ function buildTimeline(nodes: KnowledgeLandscapeNode[]): KnowledgeLandscapeYear[
     .map(([year, counts]) => ({ year, ...counts }));
 }
 
-function matchesInterest(claim: IndexedClaim, interest: ExplorationInterest): boolean {
+function matchesInterest(
+  claim: IndexedClaim,
+  interest: ExplorationInterest,
+  options: KnowledgeLandscapeOptions,
+): boolean {
+  return (
+    matchesInterestWithoutGraph(claim, interest) ||
+    Boolean(
+      claim.knowledgeNodeId &&
+      options.graphInterestMatches?.get(claim.knowledgeNodeId)?.has(interest),
+    )
+  );
+}
+
+function matchesInterestWithoutGraph(claim: IndexedClaim, interest: ExplorationInterest): boolean {
   const searchable = `${claim.text} ${claim.reviewTitle} ${claim.claimType ?? ""}`.toLowerCase();
   const assessments = claim.relations.flatMap(
     (relation) => relation.trustAssessments ?? (relation.trust ? [relation.trust] : []),
