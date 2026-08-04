@@ -23,6 +23,8 @@ const serverEnvSchema = z.object({
   LLM_PROVIDER: z.string().optional(),
   ANTHROPIC_API_KEY: z.string().optional(),
   LLM_MODEL: z.string().default("claude-sonnet-5"),
+  OPENAI_API_KEY: z.string().optional(),
+  OPENAI_MODEL: z.string().default("gpt-5"),
   NEXT_PUBLIC_BASE_URL: z.string().default("http://localhost:3000"),
   // Rate limiting (per identity+route). In-process for the POC; a shared store
   // (Redis) is the production swap. Coerced from strings so env vars parse.
@@ -81,7 +83,9 @@ export function getServerEnv(env: NodeJS.ProcessEnv = process.env): ServerEnv {
   const adminGithubUserIds = parseAdminGithubUserIds(parsed.ADMIN_GITHUB_USER_IDS);
   // Never silently enable mock authentication in production (spec §5).
   const mockAuthEnabled = !isProduction && parsed.AUTH_MOCK === "1";
-  const llmEnabled = parsed.LLM_PROVIDER === "anthropic" && Boolean(parsed.ANTHROPIC_API_KEY);
+  const llmEnabled =
+    (parsed.LLM_PROVIDER === "anthropic" && Boolean(parsed.ANTHROPIC_API_KEY)) ||
+    (parsed.LLM_PROVIDER === "openai" && Boolean(parsed.OPENAI_API_KEY));
 
   const result: ServerEnv = {
     ...parsed,
