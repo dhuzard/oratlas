@@ -92,6 +92,50 @@ describe("knowledge landscape service", () => {
     expect(claim).not.toHaveProperty("graphHref");
     expect(response.landscape.graphNodeCount).toBe(0);
   });
+
+  it("trusts only requested seeds and confirmed provider edges", async () => {
+    const mixedStatusGraph = graphResponse();
+    mixedStatusGraph.seedNodeIds = [
+      "node-claim",
+      "unrequested-1",
+      "unrequested-2",
+      "unrequested-3",
+    ];
+    mixedStatusGraph.edges.push({
+      id: "edge-proposed",
+      sourceNodeId: "node-claim",
+      sourceVersionId: "version-claim",
+      targetNodeId: "node-dataset",
+      targetVersionId: "version-dataset",
+      relationType: "contradicts",
+      status: "proposed",
+      provenance: "proposed-by-agent",
+      proposedAt: "2026-08-04T12:00:00.000Z",
+    });
+
+    const response = await createKnowledgeLandscapeResponse(
+      {
+        ...index,
+        claims: [
+          {
+            ...index.claims[0]!,
+            text: "A model produced an estimate.",
+            knowledgeNodeId: "node-claim",
+          },
+        ],
+      },
+      { q: "model", interests: ["data-code", "disagreements"] },
+      { graphProvider: async () => mixedStatusGraph },
+    );
+
+    expect(response.landscape.graphSeedCount).toBe(1);
+    expect(response.landscape.edges).not.toContainEqual(
+      expect.objectContaining({ relationType: "contradicts" }),
+    );
+    expect(
+      response.landscape.nodes.find((node) => node.id === "claim:claim-1")?.reasons,
+    ).not.toContain("Its confirmed graph neighborhood matches your disagreements interest");
+  });
 });
 
 function graphNode(

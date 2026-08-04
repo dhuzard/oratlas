@@ -108,10 +108,11 @@ function graphInterestMatches(
   for (const [seedId, response] of responses) {
     if (!response) continue;
     const matches = new Set<ExplorationInterest>();
+    const confirmedEdges = response.edges.filter((edge) => edge.status === "confirmed");
     const searchable = response.nodes
       .map((node) => `${node.title} ${node.abstract ?? ""}`)
       .join(" ");
-    const relationTypes = new Set(response.edges.map((edge) => edge.relationType));
+    const relationTypes = new Set(confirmedEdges.map((edge) => edge.relationType));
     if (
       response.nodes.some((node) => node.kind === "dataset" || node.kind === "code") ||
       relationTypes.has("uses-dataset") ||
@@ -130,7 +131,7 @@ function graphInterestMatches(
     ) {
       matches.add("methods-models");
     }
-    if (response.edges.some((edge) => graphEdgeAssessmentCount(edge) > 0)) {
+    if (confirmedEdges.some((edge) => graphEdgeAssessmentCount(edge) > 0)) {
       matches.add("assessed-evidence");
     }
     output.set(seedId, matches);
@@ -169,8 +170,17 @@ async function addGraphNeighborhoods(
   ].slice(0, MAX_GRAPH_SEEDS);
   if (requestedSeedIds.length === 0) return landscape;
 
-  const responses = (await Promise.all(requestedSeedIds.map(graphProvider))).filter(
-    (response): response is PublicGraphResponse => Boolean(response),
+  const responses = (
+    await Promise.all(
+      requestedSeedIds.map(async (requestedSeedId) => ({
+        requestedSeedId,
+        response: await graphProvider(requestedSeedId),
+      })),
+    )
+  ).filter(
+    (result): result is { requestedSeedId: string; response: PublicGraphResponse } =>
+      result.response !== undefined &&
+      result.response.nodes.some((node) => node.id === result.requestedSeedId),
   );
   if (responses.length === 0) {
     return { ...landscape, nodes: landscape.nodes.map(withoutGraphProjection) };
@@ -179,10 +189,12 @@ async function addGraphNeighborhoods(
   const nodeById = new Map<string, PublicGraphNode>();
   const edgeById = new Map<string, PublicGraphEdge>();
   const availableSeedIds = new Set<string>();
-  for (const response of responses) {
-    response.seedNodeIds.forEach((id) => availableSeedIds.add(id));
+  for (const { requestedSeedId, response } of responses) {
+    availableSeedIds.add(requestedSeedId);
     response.nodes.forEach((node) => nodeById.set(node.id, node));
-    response.edges.forEach((edge) => edgeById.set(edge.id, edge));
+    response.edges
+      .filter((edge) => edge.status === "confirmed")
+      .forEach((edge) => edgeById.set(edge.id, edge));
   }
 
   const graphLandscapeId = new Map<string, string>();
@@ -242,7 +254,10 @@ async function addGraphNeighborhoods(
   const includedGraphIds = new Set(graphLandscapeId.keys());
   const nativeEdges: KnowledgeLandscapeEdge[] = [...edgeById.values()]
     .filter(
-      (edge) => includedGraphIds.has(edge.sourceNodeId) && includedGraphIds.has(edge.targetNodeId),
+      (edge) =>
+        edge.status === "confirmed" &&
+        includedGraphIds.has(edge.sourceNodeId) &&
+        includedGraphIds.has(edge.targetNodeId),
     )
     .map((edge) => ({
       sourceId: graphLandscapeId.get(edge.sourceNodeId)!,
