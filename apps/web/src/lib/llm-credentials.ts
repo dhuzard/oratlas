@@ -132,7 +132,7 @@ function platformProviderConfiguration():
     return {
       provider: "openai",
       apiKey: env.OPENAI_API_KEY,
-      model: env.LLM_MODEL || defaultModelFor("openai"),
+      model: env.OPENAI_MODEL || defaultModelFor("openai"),
     };
   }
   return undefined;
