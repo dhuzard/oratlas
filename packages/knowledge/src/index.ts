@@ -20,6 +20,27 @@ export {
   type LlmDiscussionResult,
 } from "./discuss.js";
 export { createAnthropicProvider, type AnthropicProviderOptions } from "./providers/anthropic.js";
+export { createOpenAiProvider, type OpenAiProviderOptions } from "./providers/openai.js";
+export {
+  GRAPH_CURATION_PROMPT_VERSION,
+  buildGraphCurationPrompt,
+  curateGraphRelation,
+  prepareGraphCurationPacket,
+  type GraphCurationDecision,
+  type GraphCurationPacket,
+  type GraphCurationResult,
+  type PreparedGraphCurationPacket,
+} from "./graph-curation.js";
+export {
+  INGESTION_EXTRACTION_PROMPT_VERSION,
+  buildIngestionExtractionPrompt,
+  extractIngestionCandidates,
+  prepareIngestionExtractionPacket,
+  type IngestionExtractionDecision,
+  type IngestionExtractionPacket,
+  type IngestionExtractionResult,
+  type PreparedIngestionExtractionPacket,
+} from "./ingestion-extraction.js";
 export {
   proposeCrossReviewLinks,
   type LinkProposalDraft,
