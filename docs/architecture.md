@@ -51,6 +51,22 @@ Domain packages never import Prisma. They accept and return plain typed values
 (validated by `packages/contracts`), so persistence and transport are swappable and tests
 need no database.
 
+## Canonical graph identity
+
+The accepted target architecture gives reviews and cited works first-class graph identity alongside
+claims, figures, datasets, and code. Stable identity is separate from exact immutable version
+identity: one node represents a `Review`, each `ReviewVersion` represents an exact graph version,
+and claims bind both a stable node and their exact occurrence without inferred continuity across
+versions. Cited works use conflict-aware global aliases with an occurrence-local fallback.
+
+Migration is additive and phased. `ClaimEvidenceRelation` remains the stable compatibility subject
+linked 1:1 to a canonical evidence edge so existing TRUST, challenge, and adjudication ids and
+hashes do not change. Repository-imported edges remain source assertions, distinct from editorially
+confirmed relations. Review-backed records never receive fake repository snapshots. See
+[Canonical graph identity and compatibility migration](canonical-graph-identity.md) for the
+accepted invariants, backup gate, and expand/dual-write/backfill/contract sequence. Runtime and
+database implementation have not yet shipped.
+
 ## Key flows
 
 ### Submission and ingestion

@@ -77,7 +77,14 @@ export const reviewTypeSchema = z.enum(REVIEW_TYPES);
 export type ReviewType = z.infer<typeof reviewTypeSchema>;
 
 /** First-class publication objects in the Atlas knowledge graph. */
-export const KNOWLEDGE_NODE_KINDS = ["claim", "figure", "dataset", "code"] as const;
+export const KNOWLEDGE_NODE_KINDS = [
+  "claim",
+  "figure",
+  "dataset",
+  "code",
+  "review",
+  "work",
+] as const;
 export const knowledgeNodeKindSchema = z.enum(KNOWLEDGE_NODE_KINDS);
 export type KnowledgeNodeKind = z.infer<typeof knowledgeNodeKindSchema>;
 

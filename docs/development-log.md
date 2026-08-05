@@ -18,6 +18,20 @@
 
 Chronological record of implementation slices, decisions, and verification outcomes.
 
+## 2026-08-05 — Canonical graph identity contract
+
+- Accepted the stable identity/source-union design: one stable node per review, one exact graph
+  version per review version, conflict-aware global work identities with preserved aliases and
+  occurrence-local fallback, and explicit stable-plus-exact claim bindings without inferred
+  continuity across versions.
+- Reserved `review` and `work` in the shared knowledge-node kind vocabulary. Prisma and runtime
+  support deliberately remain for the phased implementation.
+- Required canonical evidence edges to retain a 1:1 `ClaimEvidenceRelation` compatibility subject,
+  preserving all dependent TRUST, challenge, verification, and adjudication ids and hashes.
+  Imported edges remain source assertions rather than editor-confirmed relations.
+- Recorded the production expand/dual-write/backfill/contract order, the prohibition on fake source
+  snapshots, and the verified Cloud SQL backup gate required before any upgrade migration.
+
 ## ORA-I01 — Assessment and challenge representation in exports
 
 - Added canonical scholarly JSON for complete, independently ordered TRUST assessments, public

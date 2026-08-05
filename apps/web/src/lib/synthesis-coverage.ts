@@ -177,11 +177,15 @@ function kindLabel(kind: PublicNodeSummary["kind"]): string {
       return "Datasets";
     case "code":
       return "Code";
+    case "review":
+      return "Reviews";
+    case "work":
+      return "Works";
   }
 }
 
 function kindOrder(kind: PublicNodeSummary["kind"]): number {
-  return ["claim", "figure", "dataset", "code"].indexOf(kind);
+  return ["review", "claim", "work", "figure", "dataset", "code"].indexOf(kind);
 }
 
 function canonical(value: string): string {

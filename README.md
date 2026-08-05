@@ -72,6 +72,12 @@ CLI scripts; the web app is server-rendered Next.js (App Router).
 
 Full detail: [`docs/architecture.md`](docs/architecture.md).
 
+The accepted canonical-graph direction gives reviews and cited works stable node identities without
+inventing repository provenance or rewriting existing TRUST/challenge subjects. Its production
+migration is intentionally not part of the enum change: it requires a verified Cloud SQL backup and
+an expand → dual-write → backfill → contract rollout. See
+[`docs/canonical-graph-identity.md`](docs/canonical-graph-identity.md).
+
 ## Local setup
 
 Requirements: Node ≥ 20.9, `pnpm` 10.
@@ -245,6 +251,7 @@ A full inventory of limitations lives in [`docs/poc-limitations.md`](docs/poc-li
 | Document                                                                                       | Contents                                                  |
 | ---------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
 | [`docs/architecture.md`](docs/architecture.md)                                                 | Monorepo layout, package boundaries, swappable interfaces |
+| [`docs/canonical-graph-identity.md`](docs/canonical-graph-identity.md)                         | Canonical identities, compatibility invariants, migration |
 | [`docs/data-model.md`](docs/data-model.md)                                                     | Prisma schema walkthrough                                 |
 | [`docs/submission-workflow.md`](docs/submission-workflow.md)                                   | UI flow, capture capability, editorial pipeline           |
 | [`docs/article-lifecycle.md`](docs/article-lifecycle.md)                                       | Article reader, version diff, corrections, tombstones     |

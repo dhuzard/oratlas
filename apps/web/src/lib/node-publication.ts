@@ -101,6 +101,11 @@ function payloadSchema(kind: KnowledgeNodeKind) {
       return datasetNodePayloadSchema;
     case "code":
       return codeNodePayloadSchema;
+    case "review":
+    case "work":
+      // Reserved canonical kinds are introduced before their persistence
+      // materializers. Any premature stored row must fail closed.
+      return z.never();
   }
 }
 

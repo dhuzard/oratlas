@@ -239,7 +239,9 @@ async function addGraphNeighborhoods(
     graphLandscapeId.set(node.id, id);
     return {
       id,
-      kind: node.kind,
+      // The legacy landscape vocabulary calls cited works "evidence". The
+      // reference-only recommendation contract will remove this translation.
+      kind: node.kind === "work" ? "evidence" : node.kind,
       label: node.title,
       detail: `${nodeKindLabel(node.kind)} · exact preserved graph version`,
       href: exactNodeHref(node),
