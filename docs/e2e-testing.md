@@ -30,11 +30,15 @@ it at `apps/web/test-results/e2e-results.json` and run `pnpm e2e:budget`.
 
 The seeded public Explore journey preserves these user-facing invariants:
 
-- claims and reviews remain available as canonical result lists;
-- selected interests persist transparently in the URL across search, filters, tabs, and pages;
-- every visual landscape node has synchronized accessible details and a preserved-record link;
-- selection reasons, publication context, one-hop focus, and overview return remain available;
-- the GUI and `GET /api/landscape` expose the same selected node projection.
+- blank Explore performs elicitation without silently selecting archive evidence or enabling Discuss;
+- claims and reviews remain available through separate exhaustive indexes;
+- topic, selected interests, filters, canonical focus, and the explicit known set persist in the URL;
+- every visual landscape node has synchronized accessible details and an exact-version record link;
+- canonical focus expands the selected node, while overview return preserves the remaining scope;
+- anchored newcomers are preferred and named with familiar labels; disconnected items are explicit;
+- Discuss receives only the canonical node versions and edges in the visible traversed path;
+- `GET /api/landscape` exposes only canonical references, ranking scores, and reasons, with no GUI
+  rendering fields.
 
 These browser assertions establish implementation parity, not usability. First-reader comprehension
 and task completion are evaluated separately with the

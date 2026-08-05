@@ -1,6 +1,6 @@
 # Canonical graph identity and compatibility migration
 
-Status: **accepted architecture; expand, source-union compatibility, and dual-write prepared, not yet deployed**.
+Status: **accepted architecture; expand, source-union, dual-write, and guarded backfill prepared, not yet deployed**.
 
 ## Decision
 
@@ -17,6 +17,11 @@ TRUST, challenge, verification, and adjudication records depend.
 
 A stable node says _which scholarly object this is_. A node version says _which immutable state of
 that object is being addressed_. Node identity uses an explicit, discriminated source union:
+
+Publication lifecycle (`published`, `withdrawn`, or `tombstoned`) remains mutable access-control
+state outside immutable graph payload bytes. Public graph reads evaluate that state at the
+visibility boundary; changing it cannot make a preserved node version contradict the lifecycle
+ledger.
 
 | Node kind                   | Stable identity source                                   | Exact version source                                            |
 | --------------------------- | -------------------------------------------------------- | --------------------------------------------------------------- |
@@ -65,6 +70,10 @@ audited identity operation that preserves every alias and old reference.
 
 ## Canonical evidence edge and compatibility projection
 
+Each exact review version has a source-native `asserts` edge to every exact claim occurrence it
+contains. This makes review identity traversable rather than a disconnected label and preserves
+review → claim membership without deriving it in the presentation layer.
+
 Each claim-to-work evidence assertion becomes a canonical edge from the claim's exact node version
 to the stable work node, with an exact target version where the source establishes one. Imported
 repository evidence is a **source assertion**. It is distinct from an editor-confirmed relation and
@@ -99,12 +108,15 @@ deployable and rollback-safe until the final constraint step.
 3. **Backfill.** In bounded, restartable, idempotent batches, create one review node and exact
    version per existing review record; create conflict-aware work identities or occurrence-local
    fallbacks; create explicit per-occurrence claim identities where no reviewed binding exists;
-   and link every relation 1:1 to its canonical edge. Record counts, conflicts, skips, and hashes in
+   add review-to-claim `asserts` edges; and link every evidence relation 1:1 to its canonical edge.
+   Record counts, conflicts, skips, and hashes in
    a validation manifest. Do not invent repositories or snapshots and do not infer cross-version
    claim identity.
 4. **Contract.** After validation reports zero missing, duplicate, or semantically divergent
-   bindings, make required claim node/version and 1:1 edge fields non-null, enforce the source-union
-   constraints, switch canonical reads to the graph, and retain compatibility projection checks.
+   bindings, activate deferred commit-time constraints for required claim node/version and 1:1 edge
+   bindings, retain the source-union and compatibility projection checks, and switch canonical
+   reads to the graph. Immediate `NOT NULL` is deliberately adapted because a valid publication
+   transaction creates relational rows before materializing their graph projection.
 
 The first expand migration intentionally adds only nullable relational bindings and stable-key
 metadata. The following compatibility migration relaxes repository/snapshot ownership and installs
@@ -117,7 +129,8 @@ repository provenance.
 Dual-write materializes each accepted relational review version in the same database transaction:
 one stable review node and exact version, one non-merged claim-occurrence node and exact version per
 claim, conflict-aware canonical or occurrence-fallback work nodes with exact citation versions, and
-one source-assertion edge per legacy claim-evidence relation. The legacy relation id remains the
+one review `asserts` edge per claim plus one source-assertion edge per legacy claim-evidence
+relation. The legacy relation id remains the
 edge discriminator and its nullable `nodeEdgeId` becomes the 1:1 compatibility binding. Imported
 edges use `source-assertion`/`imported-from-review`; they have no confirmer and never enter the
 editor-confirmed public projection. Title and license are optional for canonical source records, so
@@ -131,9 +144,15 @@ is available. `prisma migrate deploy`, backfill, validation, and the contract mi
 start unless that backup gate passes. Local `db:reset` remains development-only and is not evidence
 that a production upgrade is safe.
 
+Normal production deployment runs every bounded backfill batch and activates the contract before a
+no-traffic application candidate is staged. Activation locks the relevant tables, repeats global
+semantic validation, and records immutable backup and manifest digests. Once active, deferred
+triggers permit temporary intra-transaction incompleteness but reject incomplete commits and
+destructive changes to canonical source identities, exact versions, or imported source assertions.
+
 ## Consequences and non-goals
 
-- Canonical traversal can eventually return complete, reader-agnostic graph records while
+- Canonical traversal returns reader-agnostic graph records while
   recommendation and presentation remain derived layers.
 - Review and work are now reserved graph kinds at the shared contract boundary. This ADR alone does
   not make current Prisma or runtime paths accept their payloads.

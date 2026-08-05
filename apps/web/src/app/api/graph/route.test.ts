@@ -13,11 +13,11 @@ vi.mock("@/lib/rate-limit", () => ({
   rateLimit: () => state.budget,
 }));
 
-vi.mock("@/lib/graph-query", () => ({
-  GraphQueryError: class GraphQueryError extends Error {
+vi.mock("@/lib/canonical-graph-query", () => ({
+  CanonicalGraphQueryError: class CanonicalGraphQueryError extends Error {
     code = "bad-request" as const;
   },
-  queryPublicGraph: state.query,
+  queryCanonicalGraph: state.query,
 }));
 
 import { GET } from "./route";
@@ -26,16 +26,15 @@ describe("GET /api/graph", () => {
   beforeEach(() => {
     state.budget = { ok: true, remaining: 9, resetAt: Date.now() + 60_000 };
     state.query.mockReset().mockResolvedValue({
-      schemaVersion: "1.0.0",
-      seedNodeIds: [],
-      depth: 1,
+      schemaVersion: "2.0.0",
+      seed: { nodeId: "n1", nodeVersionId: "v1" },
       nodes: [],
       edges: [],
       page: { limit: 25 },
     });
   });
 
-  it("returns typed 400 errors for oversized bounds before querying storage", async () => {
+  it("rejects obsolete multi-depth traversal parameters before querying storage", async () => {
     const response = await GET(new Request("https://oratlas.test/api/graph?seed=n1&depth=4"));
     expect(response.status).toBe(400);
     expect(response.headers.get("cache-control")).toBe("no-store, must-revalidate");
@@ -60,14 +59,21 @@ describe("GET /api/graph", () => {
     });
   });
 
-  it("accepts the privacy-minimal proposed status and disables caching", async () => {
+  it("accepts exact-version authoritative traversal and disables caching", async () => {
     const response = await GET(
-      new Request("https://oratlas.test/api/graph?seed=n1&edgeStatus=proposed&hasTrust=false"),
+      new Request(
+        "https://oratlas.test/api/graph?seed=n1&version=v1&status=source-assertion&direction=incoming",
+      ),
     );
     expect(response.status).toBe(200);
     expect(response.headers.get("cache-control")).toBe("no-store, must-revalidate");
     expect(state.query).toHaveBeenCalledWith(
-      expect.objectContaining({ edgeStatus: "proposed", hasTrust: false }),
+      expect.objectContaining({
+        seed: "n1",
+        version: "v1",
+        status: "source-assertion",
+        direction: "incoming",
+      }),
     );
   });
 

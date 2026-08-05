@@ -90,6 +90,7 @@ export type KnowledgeNodeKind = z.infer<typeof knowledgeNodeKindSchema>;
 
 /** Directed semantic relation between two knowledge nodes. */
 export const NODE_RELATION_TYPES = [
+  "asserts",
   "supports",
   "partially-supports",
   "contradicts",

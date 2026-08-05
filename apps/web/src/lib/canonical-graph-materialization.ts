@@ -7,6 +7,7 @@ export interface CanonicalGraphMaterializationReport {
   reviewNodeId: string;
   reviewNodeVersionId: string;
   claimCount: number;
+  reviewAssertionEdgeCount: number;
   workCount: number;
   evidenceEdgeCount: number;
   workIdentityConflictCount: number;
@@ -67,7 +68,6 @@ export async function materializeCanonicalReviewGraph(
       sourceType: "review-version",
     }),
     payloadJson: canonicalJson({
-      publicState: version.publicState,
       recordSourceType: version.recordSourceType,
       reviewId: version.review.id,
       reviewVersionId: version.id,
@@ -75,15 +75,25 @@ export async function materializeCanonicalReviewGraph(
     isExample: version.isExample,
   });
 
-  const claimVersionById = new Map<string, string>();
+  const claimVersionById = new Map<string, { nodeId: string; versionId: string }>();
+  let reviewAssertionEdgeCount = 0;
   for (const claim of version.claims) {
-    const node = await stableNode(tx, {
-      stableKey: `claim:${claim.id}`,
-      originType: "claim-occurrence",
-      localNodeId: claim.id,
-      kind: "claim",
-    });
-    assertNullableBinding("claim", claim.knowledgeNodeId, node.id);
+    const explicitlyBound = claim.knowledgeNodeId
+      ? await tx.knowledgeNode.findUnique({ where: { id: claim.knowledgeNodeId } })
+      : null;
+    if (claim.knowledgeNodeId && (!explicitlyBound || explicitlyBound.kind !== "claim")) {
+      throw new CanonicalGraphMaterializationError(
+        `Claim '${claim.id}' has an invalid explicit graph identity binding.`,
+      );
+    }
+    const node =
+      explicitlyBound ??
+      (await stableNode(tx, {
+        stableKey: `claim:${claim.id}`,
+        originType: "claim-occurrence",
+        localNodeId: claim.id,
+        kind: "claim",
+      }));
     if (!claim.knowledgeNodeId) {
       await tx.claim.update({ where: { id: claim.id }, data: { knowledgeNodeId: node.id } });
     }
@@ -110,7 +120,21 @@ export async function materializeCanonicalReviewGraph(
       }),
       isExample: version.isExample,
     });
-    claimVersionById.set(claim.id, graphVersion.id);
+    claimVersionById.set(claim.id, { nodeId: node.id, versionId: graphVersion.id });
+    const reviewAssertion = await exactSourceAssertionEdge(tx, {
+      sourceNodeVersionId: reviewGraphVersion.id,
+      targetNodeId: node.id,
+      targetNodeVersionId: graphVersion.id,
+      relationType: "asserts",
+      edgeDiscriminator: claim.id,
+      assertedAt: version.publishedAt ?? version.createdAt,
+    });
+    if (!reviewAssertion) {
+      throw new CanonicalGraphMaterializationError(
+        `Review assertion for claim '${claim.id}' failed materialization.`,
+      );
+    }
+    reviewAssertionEdgeCount += 1;
   }
 
   const workByCitationId = new Map<string, { nodeId: string; versionId: string }>();
@@ -134,7 +158,7 @@ export async function materializeCanonicalReviewGraph(
       title: citation.title,
       abstract: null,
       text: citation.rawCitationJson,
-      contributorsJson: citation.authorsJson,
+      contributorsJson: canonicalCitationContributors(citation.id, citation.authorsJson),
       license: null,
       provenanceJson: canonicalJson({
         citationId: citation.id,
@@ -160,15 +184,15 @@ export async function materializeCanonicalReviewGraph(
   });
   let evidenceEdgeCount = 0;
   for (const relation of relations) {
-    const sourceNodeVersionId = claimVersionById.get(relation.claimId);
+    const source = claimVersionById.get(relation.claimId);
     const target = workByCitationId.get(relation.citationId);
-    if (!sourceNodeVersionId || !target) {
+    if (!source || !target) {
       throw new CanonicalGraphMaterializationError(
         `Relation '${relation.id}' does not resolve to exact graph endpoints.`,
       );
     }
     const unique = {
-      sourceNodeVersionId,
+      sourceNodeVersionId: source.versionId,
       targetNodeId: target.nodeId,
       relationType: relation.relationType,
       edgeDiscriminator: relation.id,
@@ -210,10 +234,77 @@ export async function materializeCanonicalReviewGraph(
     reviewNodeId: reviewNode.id,
     reviewNodeVersionId: reviewGraphVersion.id,
     claimCount: version.claims.length,
+    reviewAssertionEdgeCount,
     workCount: version.citations.length,
     evidenceEdgeCount,
     workIdentityConflictCount,
   };
+}
+
+function canonicalCitationContributors(citationId: string, authorsJson: string): string {
+  let authors: unknown;
+  try {
+    authors = JSON.parse(authorsJson);
+  } catch {
+    throw new CanonicalGraphMaterializationError(
+      `Citation '${citationId}' has malformed author provenance.`,
+    );
+  }
+  if (!Array.isArray(authors) || authors.some((author) => typeof author !== "string")) {
+    throw new CanonicalGraphMaterializationError(
+      `Citation '${citationId}' authors must be a JSON string array.`,
+    );
+  }
+  return canonicalJson(
+    authors
+      .map((author) => author.trim())
+      .filter(Boolean)
+      .map((displayName) => ({ displayName })),
+  );
+}
+
+async function exactSourceAssertionEdge(
+  tx: Prisma.TransactionClient,
+  input: {
+    sourceNodeVersionId: string;
+    targetNodeId: string;
+    targetNodeVersionId: string;
+    relationType: string;
+    edgeDiscriminator: string;
+    assertedAt: Date;
+  },
+) {
+  const unique = {
+    sourceNodeVersionId: input.sourceNodeVersionId,
+    targetNodeId: input.targetNodeId,
+    relationType: input.relationType,
+    edgeDiscriminator: input.edgeDiscriminator,
+  };
+  let edge = await tx.nodeEdge.findUnique({
+    where: { sourceNodeVersionId_targetNodeId_relationType_edgeDiscriminator: unique },
+  });
+  if (!edge) {
+    edge = await tx.nodeEdge.create({
+      data: {
+        ...unique,
+        status: "source-assertion",
+        provenance: "imported-from-review",
+        assertedAt: input.assertedAt,
+        confirmedTargetNodeVersionId: input.targetNodeVersionId,
+      },
+    });
+  }
+  if (
+    edge.status !== "source-assertion" ||
+    edge.provenance !== "imported-from-review" ||
+    edge.confirmedTargetNodeVersionId !== input.targetNodeVersionId ||
+    edge.confirmedById !== null
+  ) {
+    throw new CanonicalGraphMaterializationError(
+      `Canonical source assertion '${edge.id}' has incompatible semantics.`,
+    );
+  }
+  return edge;
 }
 
 async function stableNode(
@@ -264,9 +355,33 @@ async function exactVersion(
         : { sourceCitationId: input.source.sourceCitationId };
   const existing = await tx.knowledgeNodeVersion.findUnique({ where: selector });
   if (existing) {
-    if (existing.knowledgeNodeId !== input.knowledgeNodeId) {
+    const expected = {
+      knowledgeNodeId: input.knowledgeNodeId,
+      snapshotId: null,
+      sourceReviewVersionId:
+        "sourceReviewVersionId" in input.source ? input.source.sourceReviewVersionId : null,
+      sourceClaimId: "sourceClaimId" in input.source ? input.source.sourceClaimId : null,
+      sourceCitationId: "sourceCitationId" in input.source ? input.source.sourceCitationId : null,
+      sourceSubmissionId: null,
+      inspectionCaptureId: null,
+      capturePayloadHash: null,
+      title: input.title,
+      abstract: input.abstract,
+      text: input.text,
+      contributorsJson: input.contributorsJson,
+      license: input.license,
+      provenanceJson: input.provenanceJson,
+      payloadJson: input.payloadJson,
+      versionDoi: null,
+      conceptDoi: null,
+      isExample: input.isExample,
+    };
+    const mismatch = Object.entries(expected).find(
+      ([key, value]) => existing[key as keyof typeof existing] !== value,
+    );
+    if (mismatch) {
       throw new CanonicalGraphMaterializationError(
-        `Exact source '${Object.values(selector)[0]}' is bound to another graph node.`,
+        `Exact source '${Object.values(selector)[0]}' has incompatible immutable field '${mismatch[0]}'.`,
       );
     }
     return existing;
@@ -289,6 +404,8 @@ async function exactVersion(
 
 type CitationIdentityInput = {
   id: string;
+  workId: string | null;
+  knowledgeNodeId: string | null;
   doi: string | null;
   pmid: string | null;
   openAlexId: string | null;
@@ -299,6 +416,39 @@ async function resolveWorkNode(
   citation: CitationIdentityInput,
   reviewIsExample: boolean,
 ) {
+  if (citation.workId || citation.knowledgeNodeId) {
+    if (!citation.workId || !citation.knowledgeNodeId) {
+      throw new CanonicalGraphMaterializationError(
+        `Citation '${citation.id}' has a partial canonical work binding.`,
+      );
+    }
+    const aliases = citationAliases(citation, reviewIsExample);
+    const matchable = aliases.filter((alias) => !alias.isExample);
+    const [node, existingConflict] = await Promise.all([
+      tx.knowledgeNode.findUnique({
+        where: { id: citation.knowledgeNodeId },
+        include: { aliases: true },
+      }),
+      tx.workIdentityConflict.findUnique({ where: { citationId: citation.id } }),
+    ]);
+    if (
+      !node ||
+      node.kind !== "work" ||
+      node.originType !== "canonical-work" ||
+      node.stableKey !== citation.workId
+    ) {
+      throw new CanonicalGraphMaterializationError(
+        `Citation '${citation.id}' has an incompatible canonical work binding.`,
+      );
+    }
+    if (!existingConflict && !aliasesCompatible(node.aliases, matchable)) {
+      throw new CanonicalGraphMaterializationError(
+        `Citation '${citation.id}' aliases conflict with its canonical work binding.`,
+      );
+    }
+    for (const alias of aliases) await preserveAlias(tx, node.id, alias);
+    return { node, conflict: Boolean(existingConflict) };
+  }
   const aliases = citationAliases(citation, reviewIsExample);
   const matchable = aliases.filter((alias) => !alias.isExample);
   const matches = matchable.length
@@ -344,18 +494,7 @@ async function resolveWorkNode(
     throw new CanonicalGraphMaterializationError("Canonical work node has no stable key.");
   }
   for (const alias of aliases) {
-    await tx.nodeAlias.upsert({
-      where: {
-        knowledgeNodeId_scheme_role_value: {
-          knowledgeNodeId: node.id,
-          scheme: alias.scheme,
-          role: alias.role,
-          value: alias.value,
-        },
-      },
-      update: {},
-      create: { knowledgeNodeId: node.id, ...alias },
-    });
+    await preserveAlias(tx, node.id, alias);
   }
   if (conflict) {
     const evidence = canonicalJson(aliases);
@@ -381,6 +520,31 @@ async function resolveWorkNode(
     }
   }
   return { node, conflict };
+}
+
+async function preserveAlias(
+  tx: Prisma.TransactionClient,
+  knowledgeNodeId: string,
+  alias: NodeAlias,
+): Promise<void> {
+  const key = {
+    knowledgeNodeId,
+    scheme: alias.scheme,
+    role: alias.role,
+    value: alias.value,
+  };
+  const existing = await tx.nodeAlias.findUnique({
+    where: { knowledgeNodeId_scheme_role_value: key },
+  });
+  if (existing) {
+    if (existing.isExample !== alias.isExample) {
+      throw new CanonicalGraphMaterializationError(
+        `Alias '${alias.scheme}:${alias.value}' changed its example provenance.`,
+      );
+    }
+    return;
+  }
+  await tx.nodeAlias.create({ data: { ...key, isExample: alias.isExample } });
 }
 
 function citationAliases(citation: CitationIdentityInput, reviewIsExample: boolean): NodeAlias[] {

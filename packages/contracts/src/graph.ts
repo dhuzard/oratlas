@@ -4,6 +4,7 @@ import {
   knowledgeNodeKindSchema,
   nodeEdgeProvenanceSchema,
   nodeRelationTypeSchema,
+  TRUST_CRITERIA,
   trustVerificationStateSchema,
 } from "./enums.js";
 import { httpsUrlSchema } from "./identifiers.js";
@@ -60,6 +61,7 @@ export const publicGraphTrustSchema = z
     conflictOfInterest: conflictOfInterestSnapshotSchema,
     reviewStatus: assessmentReviewStatusSchema,
     verificationState: trustVerificationStateSchema,
+    assessedCriteria: z.array(z.enum(TRUST_CRITERIA)).optional(),
   })
   .strict();
 export type PublicGraphTrust = z.infer<typeof publicGraphTrustSchema>;

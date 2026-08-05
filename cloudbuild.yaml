@@ -51,8 +51,15 @@ steps:
     args:
       - -ceu
       - |
+        if [[ ! -s /workspace/oratlas-cloudsql-backup-id ]]; then
+          echo "Verified Cloud SQL backup id file is missing; refusing to configure migration job." >&2
+          exit 1
+        fi
         BACKUP_ID="$$(tr -d '\r\n' < /workspace/oratlas-cloudsql-backup-id)"
-        test -n "$${BACKUP_ID}"
+        if [[ ! "$${BACKUP_ID}" =~ ^[A-Za-z0-9._/-]{1,300}$$ ]]; then
+          echo "Verified Cloud SQL backup id file is invalid; refusing to configure migration job." >&2
+          exit 1
+        fi
         gcloud run jobs deploy "${_SERVICE}-migrate" \
           --image="${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPOSITORY}/${_SERVICE}:${BUILD_ID}" \
           --region="${_REGION}" \
@@ -72,13 +79,60 @@ steps:
     args:
       - -ceu
       - |
+        if [[ ! -s /workspace/oratlas-cloudsql-backup-id ]]; then
+          echo "Verified Cloud SQL backup id file is missing; refusing to execute migration job." >&2
+          exit 1
+        fi
         BACKUP_ID="$$(tr -d '\r\n' < /workspace/oratlas-cloudsql-backup-id)"
-        test -n "$${BACKUP_ID}"
+        if [[ ! "$${BACKUP_ID}" =~ ^[A-Za-z0-9._/-]{1,300}$$ ]]; then
+          echo "Verified Cloud SQL backup id file is invalid; refusing to execute migration job." >&2
+          exit 1
+        fi
         echo "Executing migration after verified Cloud SQL backup $${BACKUP_ID}."
         gcloud run jobs execute "${_SERVICE}-migrate" \
           --region="${_REGION}" \
           --wait \
           --quiet
+
+  - id: configure-canonical-backfill-job
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: bash
+    args:
+      - -ceu
+      - |
+        if [[ ! -s /workspace/oratlas-cloudsql-backup-id ]]; then
+          echo "Verified Cloud SQL backup id file is missing; refusing to configure canonical backfill." >&2
+          exit 1
+        fi
+        BACKUP_ID="$$(tr -d '\r\n' < /workspace/oratlas-cloudsql-backup-id)"
+        if [[ ! "$${BACKUP_ID}" =~ ^[A-Za-z0-9._/-]{1,300}$$ ]]; then
+          echo "Verified Cloud SQL backup id file is invalid; refusing to configure canonical backfill." >&2
+          exit 1
+        fi
+        gcloud run jobs deploy "${_SERVICE}-canonical-backfill" \
+          --image="${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPOSITORY}/${_SERVICE}:${BUILD_ID}" \
+          --region="${_REGION}" \
+          --service-account="${_RUNTIME_SERVICE_ACCOUNT}@${PROJECT_ID}.iam.gserviceaccount.com" \
+          --command=pnpm \
+          --args=backfill:canonical-graph,--,--apply,--all,--finalize-contract,--batch-size,100,--manifest,/tmp/canonical-graph-backfill.json \
+          --set-cloudsql-instances="${PROJECT_ID}:${_REGION}:${_CLOUD_SQL_INSTANCE}" \
+          --set-secrets="DATABASE_URL=${_DATABASE_URL_SECRET}:latest" \
+          --set-env-vars="ORATLAS_SCHEMA_BACKUP_ID=$${BACKUP_ID},NODE_ENV=production" \
+          --max-retries=0 \
+          --task-timeout=60m \
+          --quiet
+
+  - id: backfill-and-enforce-canonical-graph
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: gcloud
+    args:
+      - run
+      - jobs
+      - execute
+      - ${_SERVICE}-canonical-backfill
+      - --region=${_REGION}
+      - --wait
+      - --quiet
 
   - id: deploy-service
     name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
@@ -105,6 +159,7 @@ steps:
           ENV_VARS="$${ENV_VARS},NEXT_PUBLIC_BASE_URL=${_NEXT_PUBLIC_BASE_URL}"
         fi
 
+        CANDIDATE_TAG="candidate-$$(printf '%s' '${BUILD_ID}' | tr '[:upper:]_' '[:lower:]-' | cut -c1-48)"
         gcloud run deploy "${_SERVICE}" \
           --image="${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPOSITORY}/${_SERVICE}:${BUILD_ID}" \
           --region="${_REGION}" \
@@ -118,6 +173,8 @@ steps:
           --max-instances=3 \
           --concurrency=30 \
           --timeout=300 \
+          --no-traffic \
+          --tag="$${CANDIDATE_TAG}" \
           --set-cloudsql-instances="${PROJECT_ID}:${_REGION}:${_CLOUD_SQL_INSTANCE}" \
           --set-env-vars="$${ENV_VARS}" \
           --set-secrets="$${SECRETS}" \
@@ -125,7 +182,8 @@ steps:
 
         gcloud run services describe "${_SERVICE}" \
           --region="${_REGION}" \
-          --format='value(status.url)' > /workspace/oratlas-service-url
+          --format="value(status.traffic.filter(\"tag=$${CANDIDATE_TAG}\").url)" > /workspace/oratlas-candidate-url
+        printf '%s\n' "$${CANDIDATE_TAG}" > /workspace/oratlas-candidate-tag
 
   - id: verify-beta-journey
     name: ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPOSITORY}/${_SERVICE}:${BUILD_ID}
@@ -136,11 +194,31 @@ steps:
     args:
       - -ceu
       - |
-        SERVICE_URL="$$(tr -d '\r\n' < /workspace/oratlas-service-url)"
+        if [[ ! -s /workspace/oratlas-candidate-url ]]; then
+          echo "Candidate Cloud Run URL is missing; refusing to run smoke verification." >&2
+          exit 1
+        fi
+        SERVICE_URL="$$(tr -d '\r\n' < /workspace/oratlas-candidate-url)"
         cd /app
         node scripts/smoke-gcp-beta.mjs "$${SERVICE_URL}" \
           --query "$${ORATLAS_BETA_SMOKE_QUERY}" \
           --interest "$${ORATLAS_BETA_SMOKE_INTEREST}"
+
+  - id: promote-service
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: bash
+    args:
+      - -ceu
+      - |
+        if [[ ! -s /workspace/oratlas-candidate-tag ]]; then
+          echo "Verified candidate tag is missing; refusing to promote Cloud Run traffic." >&2
+          exit 1
+        fi
+        CANDIDATE_TAG="$$(tr -d '\r\n' < /workspace/oratlas-candidate-tag)"
+        gcloud run services update-traffic "${_SERVICE}" \
+          --region="${_REGION}" \
+          --to-tags="$${CANDIDATE_TAG}=100" \
+          --quiet
 
 images:
   - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPOSITORY}/${_SERVICE}:${BUILD_ID}

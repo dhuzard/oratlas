@@ -559,6 +559,17 @@ CREATE TABLE "WorkIdentityConflict" (
 );
 
 -- CreateTable
+CREATE TABLE "CanonicalGraphContractState" (
+    "id" INTEGER NOT NULL,
+    "enforced" BOOLEAN NOT NULL DEFAULT false,
+    "backupId" TEXT,
+    "manifestDigest" TEXT,
+    "enforcedAt" TIMESTAMP(3),
+
+    CONSTRAINT "CanonicalGraphContractState_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "ClaimEvidenceRelation" (
     "id" TEXT NOT NULL,
     "nodeEdgeId" TEXT,
@@ -1786,7 +1797,7 @@ ALTER TABLE "Review" ADD CONSTRAINT "Review_currentSynthesisVersionId_fkey" FORE
 ALTER TABLE "Review" ADD CONSTRAINT "Review_repositoryId_fkey" FOREIGN KEY ("repositoryId") REFERENCES "Repository"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Review" ADD CONSTRAINT "Review_knowledgeNodeId_fkey" FOREIGN KEY ("knowledgeNodeId") REFERENCES "KnowledgeNode"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "Review" ADD CONSTRAINT "Review_knowledgeNodeId_fkey" FOREIGN KEY ("knowledgeNodeId") REFERENCES "KnowledgeNode"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "ReviewVersion" ADD CONSTRAINT "ReviewVersion_reviewId_fkey" FOREIGN KEY ("reviewId") REFERENCES "Review"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -1870,13 +1881,13 @@ ALTER TABLE "Claim" ADD CONSTRAINT "Claim_reviewVersionId_fkey" FOREIGN KEY ("re
 ALTER TABLE "Claim" ADD CONSTRAINT "Claim_knowledgeNodeId_fkey" FOREIGN KEY ("knowledgeNodeId") REFERENCES "KnowledgeNode"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "KnowledgeNode" ADD CONSTRAINT "KnowledgeNode_repositoryId_fkey" FOREIGN KEY ("repositoryId") REFERENCES "Repository"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "KnowledgeNode" ADD CONSTRAINT "KnowledgeNode_repositoryId_fkey" FOREIGN KEY ("repositoryId") REFERENCES "Repository"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "KnowledgeNodeVersion" ADD CONSTRAINT "KnowledgeNodeVersion_knowledgeNodeId_fkey" FOREIGN KEY ("knowledgeNodeId") REFERENCES "KnowledgeNode"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "KnowledgeNodeVersion" ADD CONSTRAINT "KnowledgeNodeVersion_snapshotId_fkey" FOREIGN KEY ("snapshotId") REFERENCES "RepositorySnapshot"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "KnowledgeNodeVersion" ADD CONSTRAINT "KnowledgeNodeVersion_snapshotId_fkey" FOREIGN KEY ("snapshotId") REFERENCES "RepositorySnapshot"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "KnowledgeNodeVersion" ADD CONSTRAINT "KnowledgeNodeVersion_sourceReviewVersionId_fkey" FOREIGN KEY ("sourceReviewVersionId") REFERENCES "ReviewVersion"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -1981,7 +1992,7 @@ ALTER TABLE "ExecutionPassportArtifact" ADD CONSTRAINT "ExecutionPassportArtifac
 ALTER TABLE "Citation" ADD CONSTRAINT "Citation_reviewVersionId_fkey" FOREIGN KEY ("reviewVersionId") REFERENCES "ReviewVersion"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Citation" ADD CONSTRAINT "Citation_knowledgeNodeId_fkey" FOREIGN KEY ("knowledgeNodeId") REFERENCES "KnowledgeNode"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "Citation" ADD CONSTRAINT "Citation_knowledgeNodeId_fkey" FOREIGN KEY ("knowledgeNodeId") REFERENCES "KnowledgeNode"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "WorkIdentityConflict" ADD CONSTRAINT "WorkIdentityConflict_citationId_fkey" FOREIGN KEY ("citationId") REFERENCES "Citation"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -1993,7 +2004,7 @@ ALTER TABLE "ClaimEvidenceRelation" ADD CONSTRAINT "ClaimEvidenceRelation_claimI
 ALTER TABLE "ClaimEvidenceRelation" ADD CONSTRAINT "ClaimEvidenceRelation_citationId_fkey" FOREIGN KEY ("citationId") REFERENCES "Citation"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "ClaimEvidenceRelation" ADD CONSTRAINT "ClaimEvidenceRelation_nodeEdgeId_fkey" FOREIGN KEY ("nodeEdgeId") REFERENCES "NodeEdge"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "ClaimEvidenceRelation" ADD CONSTRAINT "ClaimEvidenceRelation_nodeEdgeId_fkey" FOREIGN KEY ("nodeEdgeId") REFERENCES "NodeEdge"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "TrustAssessment" ADD CONSTRAINT "TrustAssessment_claimEvidenceRelationId_fkey" FOREIGN KEY ("claimEvidenceRelationId") REFERENCES "ClaimEvidenceRelation"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
