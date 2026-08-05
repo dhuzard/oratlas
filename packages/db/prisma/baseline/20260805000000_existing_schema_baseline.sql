@@ -1,3 +1,6 @@
+-- Immutable pre-canonical-graph production baseline. Do not regenerate this
+-- file from the evolving Prisma datamodel: populated databases are compared
+-- against these exact deployed objects before the baseline is resolved.
 -- CreateSchema
 CREATE SCHEMA IF NOT EXISTS "public";
 

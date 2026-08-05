@@ -1,18 +1,24 @@
 import { spawnSync } from "node:child_process";
+import { randomBytes } from "node:crypto";
 import { applyDatabaseGuards } from "../src/database-guards.js";
 import { getPrisma } from "../src/index.js";
 import {
   assertProductionBackupId,
+  baselineSchemaUrl,
   planPostgresDeployment,
   POSTGRES_BASELINE_MIGRATION,
   type PostgresDeploymentAction,
 } from "../src/postgres-deployment.js";
 
-function runPrisma(args: string[], allowedExitCodes: number[] = [0]): number {
+function runPrisma(
+  args: string[],
+  allowedExitCodes: number[] = [0],
+  extraEnvironment: NodeJS.ProcessEnv = {},
+): number {
   const executable = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
   const result = spawnSync(executable, ["exec", "prisma", ...args], {
     cwd: new URL("..", import.meta.url),
-    env: process.env,
+    env: { ...process.env, ...extraEnvironment },
     stdio: "inherit",
   });
   if (result.error) throw result.error;
@@ -25,10 +31,53 @@ function runPrisma(args: string[], allowedExitCodes: number[] = [0]): number {
 
 async function tableNames(): Promise<string[]> {
   const prisma = getPrisma();
-  const rows = await prisma.$queryRawUnsafe<Array<{ table_name: string }>>(
-    "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' ORDER BY table_name",
-  );
+  const rows = await prisma.$queryRaw<Array<{ table_name: string }>>`
+    SELECT table_name
+    FROM information_schema.tables
+    WHERE table_schema = 'public'
+    ORDER BY table_name
+  `;
   return rows.map((row) => row.table_name);
+}
+
+async function comparePopulatedDatabaseWithFrozenBaseline(): Promise<number> {
+  const databaseUrl = process.env.DATABASE_URL;
+  if (!databaseUrl) throw new Error("DATABASE_URL is required for PostgreSQL deployment.");
+  const temporarySchema = `oratlas_baseline_${randomBytes(10).toString("hex")}`;
+  const quotedSchema = `"${temporarySchema}"`;
+  const environment = {
+    ORATLAS_BASELINE_DATABASE_URL: baselineSchemaUrl(databaseUrl, temporarySchema),
+  };
+  await prisma.$executeRawUnsafe(`CREATE SCHEMA ${quotedSchema}`);
+  try {
+    runPrisma(
+      [
+        "db",
+        "execute",
+        "--file",
+        "prisma/baseline/20260805000000_existing_schema_baseline.sql",
+        "--schema",
+        "prisma/baseline/datasource.prisma",
+      ],
+      [0],
+      environment,
+    );
+    return runPrisma(
+      [
+        "migrate",
+        "diff",
+        "--from-schema-datasource",
+        "prisma/schema.postgres.prisma",
+        "--to-schema-datasource",
+        "prisma/baseline/datasource.prisma",
+        "--exit-code",
+      ],
+      [0, 1, 2],
+      environment,
+    );
+  } finally {
+    await prisma.$executeRawUnsafe(`DROP SCHEMA ${quotedSchema} CASCADE`);
+  }
 }
 
 async function execute(action: PostgresDeploymentAction): Promise<void> {
@@ -72,18 +121,7 @@ try {
   const applicationTableCount = tables.filter((table) => table !== "_prisma_migrations").length;
   let schemaDiffExitCode: number | undefined;
   if (!hasMigrationTable && applicationTableCount > 0) {
-    schemaDiffExitCode = runPrisma(
-      [
-        "migrate",
-        "diff",
-        "--from-schema-datasource",
-        "prisma/schema.postgres.prisma",
-        "--to-schema-datamodel",
-        "prisma/schema.postgres.prisma",
-        "--exit-code",
-      ],
-      [0, 2],
-    );
+    schemaDiffExitCode = await comparePopulatedDatabaseWithFrozenBaseline();
   }
   const actions = planPostgresDeployment({
     hasMigrationTable,

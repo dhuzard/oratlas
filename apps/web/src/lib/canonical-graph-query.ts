@@ -8,6 +8,7 @@ import {
   canonicalJson,
   nodeAliasSchema,
   publicGraphTrustSchema,
+  TRUST_CRITERIA,
   type CanonicalGraphEdge,
   type CanonicalGraphNodeVersion,
   type CanonicalGraphQuery,
@@ -112,7 +113,6 @@ async function loadIncidentEdges(
     },
     include: {
       sourceNodeVersion: { include: nodeVersionInclude },
-      targetNode: true,
       confirmedTargetNodeVersion: { include: nodeVersionInclude },
       claimEvidenceRelation: {
         include: {
@@ -134,15 +134,18 @@ function incidentEdgeWhere(
   query: CanonicalGraphQuery,
   seedVersionId: string,
 ): Prisma.NodeEdgeWhereInput {
+  const source = query.version
+    ? { sourceNodeVersionId: seedVersionId }
+    : { sourceNodeVersion: { knowledgeNodeId: query.seed } };
+  const target = query.version
+    ? { targetNodeId: query.seed, confirmedTargetNodeVersionId: seedVersionId }
+    : { targetNodeId: query.seed };
   const direction =
     query.direction === "outgoing"
-      ? [{ sourceNodeVersionId: seedVersionId }]
+      ? [source]
       : query.direction === "incoming"
-        ? [{ targetNodeId: query.seed, confirmedTargetNodeVersionId: seedVersionId }]
-        : [
-            { sourceNodeVersionId: seedVersionId },
-            { targetNodeId: query.seed, confirmedTargetNodeVersionId: seedVersionId },
-          ];
+        ? [target]
+        : [source, target];
   return {
     AND: [authoritativeStatusWhere(query.status), { OR: direction }],
     ...(query.relationType ? { relationType: query.relationType } : {}),
@@ -285,6 +288,7 @@ function sourceAssertionTrust(row: LoadedEdge): unknown[] {
       conflictOfInterest: { status: assessment.conflictOfInterestStatus },
       reviewStatus: resolved.effectiveStatus,
       verificationState: resolved.state,
+      assessedCriteria: TRUST_CRITERIA.filter((criterion) => assessment[criterion] !== null),
     };
   });
 }

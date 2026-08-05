@@ -9,9 +9,8 @@ describe("KnowledgeLandscape", () => {
         focus="Disagreements"
         overviewHref="/explore?interest=disagreements"
         focusHrefByNode={{
-          "review:1": "/explore?interest=disagreements&focus=review%3A1",
-          "claim:1": "/explore?interest=disagreements&focus=claim%3A1",
-          "graph:node-data": "/explore?interest=disagreements&focus=graph%3Anode-data",
+          "claim:1": "/explore?interest=disagreements&focus=node-claim",
+          "graph:node-data": "/explore?interest=disagreements&focus=node-data",
         }}
         knownNodeIds={["node-claim"]}
         knownToggleHrefByNode={{
@@ -19,8 +18,14 @@ describe("KnowledgeLandscape", () => {
           "node-data": "/explore?interest=disagreements&known=node-claim&known=node-data",
         }}
         clearKnownHref="/explore?interest=disagreements"
-        anchorsByGraphNodeId={{
-          "node-data": [
+        focusedGraphNodeId={undefined}
+        labelByGraphNodeVersionId={{
+          "version-claim": "A disputed claim",
+          "version-data": "Evaluation dataset",
+          "version-data-old": "Earlier evaluation dataset",
+        }}
+        anchorsByLandscapeNodeId={{
+          "graph:node-data": [
             {
               edgeId: "edge-claim-data",
               relationType: "uses-dataset",
@@ -71,15 +76,29 @@ describe("KnowledgeLandscape", () => {
               graphHref: "/graph?seed=node-data",
               graphRecordHref: "/nodes/node-data/versions/version-data",
             },
+            {
+              id: "graph:node-data:old",
+              kind: "dataset",
+              label: "Earlier evaluation dataset",
+              detail: "Dataset graph node · exact preserved graph version",
+              href: "/nodes/node-data/versions/version-data-old",
+              reasons: ["Another readable occurrence of the stable node"],
+              graphNodeId: "node-data",
+              graphNodeVersionId: "version-data-old",
+              graphHref: "/graph?seed=node-data",
+              graphRecordHref: "/nodes/node-data/versions/version-data-old",
+            },
           ],
           edges: [
             {
+              graphEdgeId: "edge-review-claim",
               sourceId: "review:1",
               targetId: "claim:1",
               label: "asserts",
               relationType: "asserts",
             },
             {
+              graphEdgeId: "edge-claim-data",
               sourceId: "claim:1",
               targetId: "graph:node-data",
               label: "uses dataset",
@@ -103,7 +122,6 @@ describe("KnowledgeLandscape", () => {
     expect(html).toContain("Ordering helps exploration only");
     expect(html).toContain("When these records entered the literature");
     expect(html).toContain("Focus on connections");
-    expect(html).toContain("Nodes worth exploring for this interest");
     expect(html).toContain("Explore graph neighborhood");
     expect(html).toContain("Inspect exact graph version");
     expect(html).toContain("Evaluation dataset");
@@ -111,6 +129,10 @@ describe("KnowledgeLandscape", () => {
     expect(html).toContain("Remove from known set");
     expect(html).toContain("Mark as known");
     expect(html).toContain("Anchored to 1 known graph node");
+    expect(html).toContain("No confirmed direct anchor to your known set");
     expect(html).toContain("uses-dataset");
+    expect(html).toContain("New nodes connected to what you know");
+    expect(html).toContain("A disputed claim");
+    expect(html).toContain('href="/explore?interest=disagreements&amp;focus=node-data"');
   });
 });

@@ -28,9 +28,9 @@ const TOOLS = [
     detail: "Browse editor-published opportunities tied to claims.",
   },
   {
-    href: "/discuss",
-    label: "Grounded Q&A",
-    detail: "Ask questions against accepted records and their evidence.",
+    href: "/explore",
+    label: "Scoped grounded Q&A",
+    detail: "Traverse exact graph records, then discuss only that visible path.",
   },
 ] as const;
 

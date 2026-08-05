@@ -48,6 +48,7 @@ import { publicConfirmedNodeEdgeWhere } from "./node-edge-publication";
 import { tryMapPublicNodeVersion } from "./node-publication";
 import { materializeCanonicalReviewGraph } from "./canonical-graph-materialization";
 import { generateSynthesisReview } from "./synthesis-writer";
+import { readablePublicNodeVersionWhere } from "./public-snapshot-visibility";
 import {
   loadedNodeRelationTrustInclude,
   PUBLIC_NODE_RELATION_TRUST_GLOBAL_LIMIT,
@@ -105,6 +106,7 @@ async function loadCurrentNodeRows(client: PrismaClient, ids?: string[]) {
     include: {
       repository: { select: { owner: true, name: true, canonicalUrl: true } },
       versions: {
+        where: readablePublicNodeVersionWhere,
         orderBy: [{ createdAt: "desc" }, { id: "desc" }],
         take: 1,
         include: { snapshot: { select: { commitSha: true } } },

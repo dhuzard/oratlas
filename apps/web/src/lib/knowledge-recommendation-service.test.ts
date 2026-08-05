@@ -1,97 +1,81 @@
 import { describe, expect, it, vi } from "vitest";
-import type { KnowledgeIndexData } from "@oratlas/knowledge";
-import { createKnowledgeRecommendationResponse } from "./knowledge-recommendation-service.js";
+import {
+  createKnowledgeRecommendationResponse,
+  type CanonicalNodeReference,
+} from "./knowledge-recommendation-service.js";
 
 vi.mock("server-only", () => ({}));
 vi.mock("./db", () => ({ prisma: {} }));
-vi.mock("./knowledge-landscape-service", () => ({
-  createKnowledgeLandscapeResponse: vi.fn(async (_index, query) => ({
-    schemaVersion: "2.0.0",
-    algorithm: {
-      id: "explicit-interest-graph-landscape",
-      version: "2.0.0",
-      purpose: "navigation",
-      limitations: [
-        "not-a-truth-score",
-        "not-a-quality-score",
-        "confirmed-graph-edges-only",
-        "bounded-to-six-claims-ten-evidence-and-twelve-graph-nodes",
-      ],
+
+const selection = {
+  nodes: [],
+  edges: [],
+  recommendations: [
+    {
+      nodeId: "claim-node",
+      nodeVersionId: "claim-version",
+      reasons: ["Canonical disagreement path"],
     },
-    query,
-    landscape: {
-      nodes: [
-        {
-          id: "claim:claim-1",
-          kind: "claim",
-          label: "Hidden rendering label",
-          detail: "Hidden rendering detail",
-          href: "/claims/version/claim-1",
-          reasons: ["Matches your disagreements interest"],
-        },
-        {
-          id: "evidence:doi:10.1000/example",
-          kind: "evidence",
-          label: "Hidden work title",
-          detail: "Hidden work detail",
-          href: "/claims/version/claim-1#linked-evidence",
-          reasons: ["Linked as evidence for a claim in this landscape"],
-        },
-      ],
-      edges: [],
-      matchedClaimCount: 1,
-      shownClaimCount: 1,
-      graphSeedCount: 0,
-      graphNodeCount: 0,
-      timeline: [],
+    {
+      nodeId: "work-node",
+      nodeVersionId: "work-version",
+      reasons: ["Canonical evidence path"],
     },
-  })),
-}));
+  ],
+  matchedClaimCount: 1,
+  seedNodeIds: ["claim-node"],
+};
 
 describe("knowledge recommendation service", () => {
-  it("projects ranked canonical references without rendering fields", async () => {
+  it("projects ranked exact canonical references without rendering fields", async () => {
     const response = await createKnowledgeRecommendationResponse(
-      {} as KnowledgeIndexData,
       { interests: ["disagreements"], knownNodeIds: [] },
-      {
-        resolveReferences: vi.fn(
-          async () =>
-            new Map([
-              ["claim:claim-1", { nodeId: "claim-node", nodeVersionId: "claim-version" }],
-              ["evidence:doi:10.1000/example", { nodeId: "work-node" }],
-            ]),
-        ),
-      },
+      { selectGraph: vi.fn(async () => selection) },
     );
 
-    expect(response.algorithm).toMatchObject({
-      id: "explicit-interest-recommendation",
-      version: "2.0.0",
-      purpose: "recommendation",
-    });
     expect(response.recommendations).toEqual([
       {
         nodeId: "claim-node",
         nodeVersionId: "claim-version",
         rank: 1,
         score: 1,
-        reasons: ["Matches your disagreements interest"],
+        reasons: ["Canonical disagreement path"],
         anchors: [],
       },
       {
         nodeId: "work-node",
+        nodeVersionId: "work-version",
         rank: 2,
         score: 0,
-        reasons: ["Linked as evidence for a claim in this landscape"],
+        reasons: ["Canonical evidence path"],
         anchors: [],
       },
     ]);
-    expect(JSON.stringify(response)).not.toMatch(/Hidden|href|label|detail/);
+    expect(JSON.stringify(response)).not.toMatch(/href|label|detail/);
   });
 
-  it("attaches only confirmed anchor proofs supplied for the explicit known set", async () => {
+  it("keeps distinct exact versions of one stable node", async () => {
+    const response = await createKnowledgeRecommendationResponse(
+      { interests: [], knownNodeIds: [] },
+      {
+        selectGraph: async () => ({
+          ...selection,
+          recommendations: [
+            { nodeId: "work-node", nodeVersionId: "work-v1", reasons: ["First occurrence"] },
+            { nodeId: "work-node", nodeVersionId: "work-v2", reasons: ["Second occurrence"] },
+          ],
+        }),
+      },
+    );
+    expect(response.recommendations.map(({ nodeVersionId }) => nodeVersionId)).toEqual([
+      "work-v1",
+      "work-v2",
+    ]);
+  });
+
+  it("attaches anchor proofs only to their exact recommended version", async () => {
     const resolveAnchors = vi.fn(
-      async () =>
+      async (_recommendations: readonly CanonicalNodeReference[]) =>
         new Map([
           [
             "claim-node",
@@ -104,28 +88,61 @@ describe("knowledge recommendation service", () => {
                 knownNodeId: "known-node",
                 knownNodeVersionId: "known-version",
               },
+              {
+                edgeId: "edge-wrong",
+                relationType: "contradicts" as const,
+                directionFromRecommendation: "incoming" as const,
+                recommendedNodeVersionId: "another-version",
+                knownNodeId: "known-node",
+                knownNodeVersionId: "known-version",
+              },
             ],
           ],
         ]),
     );
     const response = await createKnowledgeRecommendationResponse(
-      {} as KnowledgeIndexData,
-      { interests: ["disagreements"], knownNodeIds: ["known-node"] },
-      {
-        resolveReferences: vi.fn(
-          async () =>
-            new Map([["claim:claim-1", { nodeId: "claim-node", nodeVersionId: "claim-version" }]]),
-        ),
-        resolveAnchors,
-      },
-    );
-
-    expect(resolveAnchors).toHaveBeenCalledWith(
-      [{ nodeId: "claim-node", nodeVersionId: "claim-version" }],
-      ["known-node"],
+      { interests: [], knownNodeIds: ["known-node"] },
+      { selectGraph: async () => selection, resolveAnchors },
     );
     expect(response.recommendations[0]?.anchors).toEqual([
-      expect.objectContaining({ edgeId: "edge-1", knownNodeId: "known-node" }),
+      expect.objectContaining({ edgeId: "edge-1" }),
     ]);
+  });
+
+  it("ranks anchored newcomers first without returning known nodes as new recommendations", async () => {
+    const response = await createKnowledgeRecommendationResponse(
+      { interests: [], knownNodeIds: ["known-node"] },
+      {
+        selectGraph: async () => ({
+          ...selection,
+          recommendations: [
+            { nodeId: "disconnected", nodeVersionId: "disconnected-v1", reasons: ["Later"] },
+            { nodeId: "anchored", nodeVersionId: "anchored-v1", reasons: ["Familiar path"] },
+            { nodeId: "known-node", nodeVersionId: "known-v1", reasons: ["Already known"] },
+          ],
+        }),
+        resolveAnchors: async () =>
+          new Map([
+            [
+              "anchored",
+              [
+                {
+                  edgeId: "anchor-edge",
+                  relationType: "supports" as const,
+                  directionFromRecommendation: "outgoing" as const,
+                  recommendedNodeVersionId: "anchored-v1",
+                  knownNodeId: "known-node",
+                  knownNodeVersionId: "known-v1",
+                },
+              ],
+            ],
+          ]),
+      },
+    );
+    expect(response.recommendations.map(({ nodeId }) => nodeId)).toEqual([
+      "anchored",
+      "disconnected",
+    ]);
+    expect(response.recommendations[0]?.anchors).toHaveLength(1);
   });
 });

@@ -178,7 +178,7 @@ model Review {
   currentSnapshot                RepositorySnapshot?             @relation("currentSnapshot", fields: [currentSnapshotId], references: [id])
   currentSynthesisVersion        ReviewVersion?                  @relation("currentSynthesisHead", fields: [currentSynthesisVersionId], references: [id])
   repository                     Repository?                     @relation(fields: [repositoryId], references: [id])
-  knowledgeNode                  KnowledgeNode?                  @relation("reviewKnowledgeNode", fields: [knowledgeNodeId], references: [id], onDelete: SetNull)
+  knowledgeNode                  KnowledgeNode?                  @relation("reviewKnowledgeNode", fields: [knowledgeNodeId], references: [id], onDelete: Restrict)
   versions                       ReviewVersion[]
   comments                       ReviewComment[]
   lifecycleEvents                ReviewLifecycleEvent[]
@@ -528,7 +528,7 @@ model KnowledgeNode {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  repository            Repository?                @relation(fields: [repositoryId], references: [id])
+  repository            Repository?                @relation(fields: [repositoryId], references: [id], onDelete: Restrict)
   review                Review?                    @relation("reviewKnowledgeNode")
   versions              KnowledgeNodeVersion[]
   incomingEdges         NodeEdge[]                 @relation("targetNode")
@@ -582,7 +582,7 @@ model KnowledgeNodeVersion {
   createdAt             DateTime @default(now())
 
   knowledgeNode        KnowledgeNode              @relation(fields: [knowledgeNodeId], references: [id])
-  snapshot             RepositorySnapshot?        @relation(fields: [snapshotId], references: [id])
+  snapshot             RepositorySnapshot?        @relation(fields: [snapshotId], references: [id], onDelete: Restrict)
   sourceReviewVersion  ReviewVersion?             @relation("reviewGraphVersion", fields: [sourceReviewVersionId], references: [id], onDelete: Restrict)
   sourceClaim          Claim?                     @relation("claimGraphVersion", fields: [sourceClaimId], references: [id], onDelete: Restrict)
   sourceCitation       Citation?                  @relation("citationGraphVersion", fields: [sourceCitationId], references: [id], onDelete: Restrict)
@@ -894,7 +894,7 @@ model Citation {
   rawCitationJson String?
 
   reviewVersion        ReviewVersion           @relation(fields: [reviewVersionId], references: [id])
-  knowledgeNode        KnowledgeNode?          @relation("citationWorkNode", fields: [knowledgeNodeId], references: [id], onDelete: SetNull)
+  knowledgeNode        KnowledgeNode?          @relation("citationWorkNode", fields: [knowledgeNodeId], references: [id], onDelete: Restrict)
   graphVersion         KnowledgeNodeVersion?   @relation("citationGraphVersion")
   workIdentityConflict WorkIdentityConflict?
   evidenceRelations    ClaimEvidenceRelation[]
@@ -920,6 +920,15 @@ model WorkIdentityConflict {
   citation Citation @relation(fields: [citationId], references: [id], onDelete: Restrict)
 }
 
+/// Singleton activation record for the deferred PostgreSQL canonical-graph contract.
+model CanonicalGraphContractState {
+  id             Int       @id
+  enforced       Boolean   @default(false)
+  backupId       String?
+  manifestDigest String?
+  enforcedAt     DateTime?
+}
+
 model ClaimEvidenceRelation {
   id                   String  @id @default(cuid())
   /// Canonical evidence edge; nullable during expand/backfill.
@@ -936,7 +945,7 @@ model ClaimEvidenceRelation {
 
   claim            Claim               @relation(fields: [claimId], references: [id])
   citation         Citation            @relation(fields: [citationId], references: [id])
-  nodeEdge         NodeEdge?           @relation(fields: [nodeEdgeId], references: [id], onDelete: SetNull)
+  nodeEdge         NodeEdge?           @relation(fields: [nodeEdgeId], references: [id], onDelete: Restrict)
   trustAssessments TrustAssessment[]
   challenges       Challenge[]         @relation("challengeRelation")
   adjudications    TrustAdjudication[]

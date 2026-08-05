@@ -1,12 +1,9 @@
 import Link from "next/link";
-import { Badge, CompatibilityBadge } from "@oratlas/ui";
-import { InProcessSearchProvider } from "@oratlas/knowledge";
 import {
-  archiveSearchQuerySchema,
   CLAIM_EVIDENCE_RELATION_TYPES,
   CLAIM_TYPES,
+  type KnowledgeRecommendationAnchor,
 } from "@oratlas/contracts";
-import { TrustVerificationBadge } from "@/components/TrustVerificationBadge";
 import { SpecialistTools } from "@/components/SpecialistTools";
 import { ExplorationIntent } from "@/components/ExplorationIntent";
 import { KnowledgeLandscape } from "@/components/KnowledgeLandscape";
@@ -14,16 +11,30 @@ import { DiscussClient } from "@/app/discuss/DiscussClient";
 import { GraphCurationClient } from "./GraphCurationClient";
 import { EXPLORATION_INTERESTS, normalizeExplorationInterests } from "@/lib/knowledge-landscape";
 import { createKnowledgeLandscapeResponse } from "@/lib/knowledge-landscape-service";
-import { resolveDatabaseAnchors } from "@/lib/knowledge-recommendation-service";
-import { searchArchive } from "@/lib/archive-search";
-import { buildKnowledgeIndex } from "@/lib/index-builder";
+import {
+  hasDiscussableCanonicalClaimOccurrence,
+  issueDiscussionTraversalScope,
+} from "@/lib/discussion-scope";
+import {
+  canonicalReferenceKey,
+  resolveCanonicalReferenceLabels,
+  resolveDatabaseAnchors,
+  type CanonicalNodeReference,
+} from "@/lib/knowledge-recommendation-service";
 import { getCurrentUser, isEditor } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
-type ExploreView = "claims" | "reviews";
-type ArchiveSort = "accepted" | "updated" | "title" | "relevance";
 type SearchParameters = Record<string, string | string[] | undefined>;
+const GRAPH_SCOPE_PARAMETER_KEYS = new Set([
+  "q",
+  "interest",
+  "reviewSlug",
+  "claimType",
+  "relationType",
+  "trustCriterion",
+  "known",
+]);
 
 function first(parameters: SearchParameters, key: string): string | undefined {
   const value = parameters[key];
@@ -36,22 +47,6 @@ function all(parameters: SearchParameters, key: string): string[] {
   return Array.isArray(value) ? value : [value];
 }
 
-function bool(value: string | undefined): boolean | undefined {
-  if (value === "true") return true;
-  if (value === "false") return false;
-  return undefined;
-}
-
-function positivePage(value: string | undefined): number {
-  const parsed = Number(value);
-  return Number.isSafeInteger(parsed) && parsed >= 1 ? parsed : 1;
-}
-
-function archiveSort(value: string | undefined): ArchiveSort {
-  if (value === "updated" || value === "title" || value === "relevance") return value;
-  return "accepted";
-}
-
 export default async function ExplorePage({
   searchParams,
 }: {
@@ -59,51 +54,89 @@ export default async function ExplorePage({
 }) {
   const parameters = await searchParams;
   const get = (key: string) => first(parameters, key);
-  const view: ExploreView = get("view") === "reviews" ? "reviews" : "claims";
   const q = get("q")?.trim() || undefined;
-  const page = positivePage(get("page"));
-  const sort = archiveSort(get("sort"));
   const selectedInterests = normalizeExplorationInterests(all(parameters, "interest"));
   const knownNodeIds = normalizeKnownNodeIds(all(parameters, "known"));
   const requestedLandscapeFocus = get("focus")?.trim() || undefined;
-  const [index, user] = await Promise.all([buildKnowledgeIndex(), getCurrentUser()]);
-  const provider = new InProcessSearchProvider(index);
-
-  const claimResults = provider.searchClaims({
-    q,
-    reviewSlug: get("reviewSlug") || undefined,
-    claimType: get("claimType") || undefined,
-    relationType: get("relationType") || undefined,
-    trustCriterion: get("trustCriterion") || undefined,
-    page: view === "claims" ? page : 1,
-    pageSize: 20,
-  });
-  const landscapeResponse = await createKnowledgeLandscapeResponse(index, {
-    q,
-    interests: selectedInterests,
-    focusNodeId: requestedLandscapeFocus,
-    reviewSlug: get("reviewSlug") || undefined,
-    claimType: get("claimType") || undefined,
-    relationType: get("relationType") || undefined,
-    trustCriterion: get("trustCriterion") || undefined,
-  });
-  const landscape = landscapeResponse.landscape;
-  const graphReferences = [
-    ...new Map(
-      landscape.nodes
-        .filter((node) => node.graphNodeId)
+  const hasExplicitLandscapeScope = Boolean(
+    q ||
+    selectedInterests.length > 0 ||
+    requestedLandscapeFocus ||
+    get("reviewSlug") ||
+    get("claimType") ||
+    get("relationType") ||
+    get("trustCriterion"),
+  );
+  const landscapeResponse = hasExplicitLandscapeScope
+    ? await createKnowledgeLandscapeResponse({
+        q,
+        interests: selectedInterests,
+        focusNodeId: requestedLandscapeFocus,
+        reviewSlug: get("reviewSlug") || undefined,
+        claimType: get("claimType") || undefined,
+        relationType: get("relationType") || undefined,
+        trustCriterion: get("trustCriterion") || undefined,
+      })
+    : undefined;
+  const landscape = landscapeResponse?.landscape;
+  const graphReferences: CanonicalNodeReference[] = [
+    ...new Map<string, CanonicalNodeReference>(
+      (landscape?.nodes ?? [])
+        .filter((node) => node.graphNodeId && node.graphNodeVersionId)
         .map((node) => [
-          node.graphNodeId!,
-          { nodeId: node.graphNodeId!, nodeVersionId: node.graphNodeVersionId },
+          `${node.graphNodeId}\u0000${node.graphNodeVersionId}`,
+          { nodeId: node.graphNodeId!, nodeVersionId: node.graphNodeVersionId! },
         ]),
     ).values(),
   ];
-  const anchorsByGraphNodeId = Object.fromEntries(
-    await resolveDatabaseAnchors(graphReferences, knownNodeIds),
+  const resolvedAnchorsByGraphNodeId: ReadonlyMap<
+    string,
+    readonly KnowledgeRecommendationAnchor[]
+  > =
+    graphReferences.length > 0 && knownNodeIds.length > 0
+      ? await resolveDatabaseAnchors(graphReferences, knownNodeIds)
+      : new Map();
+  const anchorsByLandscapeNodeId = Object.fromEntries(
+    (landscape?.nodes ?? []).map((node) => [
+      node.id,
+      node.graphNodeId && node.graphNodeVersionId
+        ? (resolvedAnchorsByGraphNodeId.get(node.graphNodeId) ?? []).filter(
+            (anchor) => anchor.recommendedNodeVersionId === node.graphNodeVersionId,
+          )
+        : [],
+    ]),
   );
+  const anchoredKnownReferences: CanonicalNodeReference[] = [
+    ...new Map<string, CanonicalNodeReference>(
+      [...resolvedAnchorsByGraphNodeId.values()].flatMap((anchors) =>
+        anchors.map((anchor) => {
+          const reference = {
+            nodeId: anchor.knownNodeId,
+            nodeVersionId: anchor.knownNodeVersionId,
+          };
+          return [canonicalReferenceKey(reference), reference] as const;
+        }),
+      ),
+    ).values(),
+  ];
+  const anchoredKnownLabels =
+    anchoredKnownReferences.length > 0
+      ? await resolveCanonicalReferenceLabels(anchoredKnownReferences)
+      : new Map();
+  const labelByGraphNodeVersionId = Object.fromEntries([
+    ...(landscape?.nodes ?? []).flatMap((node) =>
+      node.graphNodeVersionId ? [[node.graphNodeVersionId, node.label] as const] : [],
+    ),
+    ...anchoredKnownReferences.flatMap((reference) => {
+      const label = anchoredKnownLabels.get(canonicalReferenceKey(reference));
+      return label ? ([[reference.nodeVersionId, label]] as const) : [];
+    }),
+  ]);
   const landscapeOverviewHref = landscapeHref(parameters);
   const landscapeFocusHrefs = Object.fromEntries(
-    landscape.nodes.map((node) => [node.id, landscapeHref(parameters, node.id)]),
+    (landscape?.nodes ?? []).flatMap((node) =>
+      node.graphNodeId ? [[node.id, landscapeHref(parameters, node.graphNodeId)] as const] : [],
+    ),
   );
   const knownToggleHrefByNode = Object.fromEntries(
     graphReferences.map(({ nodeId }) => [
@@ -118,51 +151,29 @@ export default async function ExplorePage({
     ]),
   );
   const clearKnownHref = landscapeHref(parameters, requestedLandscapeFocus, []);
-  const reviewQuery = archiveSearchQuerySchema.parse({
-    contentType: "review",
-    q,
-    domain: get("domain") || undefined,
-    author: get("author") || undefined,
-    hasDoi: bool(get("hasDoi")),
-    hasTrustData: bool(get("hasTrustData")),
-    compatibility: get("compatibility") || undefined,
-    sort,
-    page: view === "reviews" ? page : 1,
-    pageSize: 20,
-  });
-  const reviewResults = await searchArchive(reviewQuery, index);
-  const reviews = index.reviews.map((review) => ({
-    slug: review.reviewSlug,
-    title: review.title,
-  }));
-  const domains = [...new Set(index.reviews.flatMap((review) => review.domains))].sort();
-  const activeFilterCount =
-    view === "claims"
-      ? ["reviewSlug", "claimType", "relationType", "trustCriterion"].filter((key) => get(key))
-          .length
-      : ["author", "domain", "hasDoi", "hasTrustData", "compatibility"].filter((key) => get(key))
-          .length + (sort === "accepted" ? 0 : 1);
-  const hasExplicitLandscapeScope = Boolean(
-    q ||
-    selectedInterests.length > 0 ||
-    requestedLandscapeFocus ||
-    get("reviewSlug") ||
-    get("claimType") ||
-    get("relationType") ||
-    get("trustCriterion"),
+  const activeFilterCount = ["reviewSlug", "claimType", "relationType", "trustCriterion"].filter(
+    (key) => get(key),
+  ).length;
+  const hasTraversableLandscape = Boolean(landscape && graphReferences.length > 0);
+  const hasDiscussableLandscape = Boolean(
+    hasTraversableLandscape && (await hasDiscussableCanonicalClaimOccurrence(graphReferences)),
   );
+  const discussionScope =
+    hasDiscussableLandscape && landscape
+      ? issueDiscussionTraversalScope({ nodes: graphReferences, edges: landscape.edges })
+      : undefined;
+  const user = hasDiscussableLandscape ? await getCurrentUser() : null;
 
   return (
     <>
       <header className="explore-header">
         <p className="home-eyebrow">Explore ORAtlas</p>
-        <h1>Ask Atlas, then inspect the evidence graph</h1>
+        <h1>Traverse the evidence graph</h1>
         <p className="lead">
-          Ask a grounded question over accepted reviews, see the exact claims and citations used,
-          and follow their preserved graph connections. Atlas does not decide scientific truth.
+          Enter through a topic or explicit interest, then move between preserved reviews, claims,
+          evidence, and research objects. Search starts a path; it does not rank a database dump.
         </p>
         <form action="/explore" method="get" role="search" className="explore-search">
-          <input type="hidden" name="view" value={view} />
           {selectedInterests.map((interest) => (
             <input type="hidden" name="interest" value={interest} key={interest} />
           ))}
@@ -180,35 +191,91 @@ export default async function ExplorePage({
             placeholder="Search a claim, review, or author…"
           />
           <button className="btn" type="submit">
-            Search
+            Enter graph
           </button>
         </form>
       </header>
 
-      <ExplorationIntent query={q} selectedInterests={selectedInterests} view={view} />
+      <ExplorationIntent
+        query={q}
+        selectedInterests={selectedInterests}
+        knownNodeIds={knownNodeIds}
+      />
 
-      <section className="explore-ai-workspace" aria-labelledby="atlas-discuss-explore-title">
-        <div className="explore-ai-discuss">
-          <p className="home-eyebrow">Primary Explore workflow</p>
-          <h2 id="atlas-discuss-explore-title">Discuss this landscape with Atlas</h2>
-          <p className="muted">
-            Without an LLM key, Atlas returns a deterministic evidence summary. With your
-            request-scoped key, generated statements must resolve to exact claim–citation edges.
-          </p>
-          <DiscussClient
-            initialQuestion={q ?? ""}
-            scope={hasExplicitLandscapeScope ? landscapeResponse.query : undefined}
-            embedded
-          />
-          {isEditor(user) && hasExplicitLandscapeScope && landscape.graphNodeCount >= 2 ? (
-            <GraphCurationClient
-              scope={landscapeResponse.query}
-              initialQuestion={q ?? "Which graph relations are missing from this landscape?"}
-            />
-          ) : null}
-        </div>
+      <section className="explore-traversal-controls" aria-label="Refine graph traversal">
+        <details className="explore-filter-panel" open={activeFilterCount > 0}>
+          <summary>
+            Refine graph entry{activeFilterCount > 0 ? " (" + activeFilterCount + ")" : ""}
+          </summary>
+          <form action="/explore" method="get" className="filters">
+            {q ? <input type="hidden" name="q" value={q} /> : null}
+            {selectedInterests.map((interest) => (
+              <input type="hidden" name="interest" value={interest} key={interest} />
+            ))}
+            {knownNodeIds.map((nodeId) => (
+              <input type="hidden" name="known" value={nodeId} key={nodeId} />
+            ))}
+            <div className="field">
+              <label htmlFor="reviewSlug">Review slug</label>
+              <input
+                id="reviewSlug"
+                type="text"
+                name="reviewSlug"
+                defaultValue={get("reviewSlug") ?? ""}
+                placeholder="e.g. hippocampal-replay-review"
+              />
+            </div>
+            <div className="field">
+              <label htmlFor="claimType">Claim type</label>
+              <select id="claimType" name="claimType" defaultValue={get("claimType") ?? ""}>
+                <option value="">Any type</option>
+                {CLAIM_TYPES.map((type) => (
+                  <option key={type} value={type}>
+                    {type}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="field">
+              <label htmlFor="relationType">Evidence relation</label>
+              <select
+                id="relationType"
+                name="relationType"
+                defaultValue={get("relationType") ?? ""}
+              >
+                <option value="">Any relation</option>
+                {CLAIM_EVIDENCE_RELATION_TYPES.map((type) => (
+                  <option key={type} value={type}>
+                    {type.replace(/-/g, " ")}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="field">
+              <label htmlFor="trustCriterion">Assessment criterion (TRUST)</label>
+              <input
+                id="trustCriterion"
+                type="text"
+                name="trustCriterion"
+                defaultValue={get("trustCriterion") ?? ""}
+                placeholder="e.g. entailment"
+              />
+            </div>
+            <div className="btn-row">
+              <button className="btn" type="submit">
+                Refine path
+              </button>
+              {activeFilterCount > 0 ? (
+                <Link href={scopeHref(q, selectedInterests, knownNodeIds)}>Clear refinements</Link>
+              ) : null}
+            </div>
+          </form>
+        </details>
+      </section>
+
+      <section className="explore-ai-workspace" aria-label="Evidence graph exploration workspace">
         <div className="explore-ai-landscape">
-          {hasExplicitLandscapeScope ? (
+          {landscape ? (
             <KnowledgeLandscape
               landscape={landscape}
               overviewHref={landscapeOverviewHref}
@@ -216,7 +283,9 @@ export default async function ExplorePage({
               knownNodeIds={knownNodeIds}
               knownToggleHrefByNode={knownToggleHrefByNode}
               clearKnownHref={clearKnownHref}
-              anchorsByGraphNodeId={anchorsByGraphNodeId}
+              anchorsByLandscapeNodeId={anchorsByLandscapeNodeId}
+              labelByGraphNodeVersionId={labelByGraphNodeVersionId}
+              focusedGraphNodeId={requestedLandscapeFocus}
               focus={
                 q ??
                 selectedInterests
@@ -239,323 +308,44 @@ export default async function ExplorePage({
             </section>
           )}
         </div>
+        {hasDiscussableLandscape && landscapeResponse && landscape && discussionScope ? (
+          <div className="explore-ai-discuss">
+            <p className="home-eyebrow">Grounded lens</p>
+            <h2 id="atlas-discuss-explore-title">Discuss the selected path with Atlas</h2>
+            <p className="muted">
+              Discuss compresses this bounded path after you can inspect it. Without an LLM key,
+              Atlas returns a deterministic evidence summary; generated statements must resolve to
+              exact claim–citation edges.
+            </p>
+            <DiscussClient initialQuestion={q ?? ""} scope={discussionScope} embedded />
+            {isEditor(user) && landscape.graphNodeCount >= 2 ? (
+              <GraphCurationClient
+                scope={landscapeResponse.query}
+                initialQuestion={q ?? "Which graph relations are missing from this landscape?"}
+              />
+            ) : null}
+          </div>
+        ) : null}
       </section>
-
-      <nav className="explore-tabs" aria-label="Explore content">
-        <Link
-          href={viewHref("claims", q, selectedInterests, knownNodeIds)}
-          aria-current={view === "claims" ? "page" : undefined}
-        >
-          Claims <span>{claimResults.total}</span>
-        </Link>
-        <Link
-          href={viewHref("reviews", q, selectedInterests, knownNodeIds)}
-          aria-current={view === "reviews" ? "page" : undefined}
-        >
-          Reviews <span>{reviewResults.total}</span>
-        </Link>
-      </nav>
-
-      <div className="explore-toolbar">
-        <p>
-          <strong>{view === "claims" ? claimResults.total : reviewResults.total}</strong>{" "}
-          {view === "claims" ? "claim" : "review"}
-          {(view === "claims" ? claimResults.total : reviewResults.total) === 1 ? "" : "s"}
-          {q ? " matching “" + q + "”" : ""}
-        </p>
-        <details className="explore-filter-panel" open={activeFilterCount > 0}>
-          <summary>
-            Filter results{activeFilterCount > 0 ? " (" + activeFilterCount + ")" : ""}
-          </summary>
-          <form action="/explore" method="get" className="filters">
-            <input type="hidden" name="view" value={view} />
-            {q ? <input type="hidden" name="q" value={q} /> : null}
-            {selectedInterests.map((interest) => (
-              <input type="hidden" name="interest" value={interest} key={interest} />
-            ))}
-            {knownNodeIds.map((nodeId) => (
-              <input type="hidden" name="known" value={nodeId} key={nodeId} />
-            ))}
-            {view === "claims" ? (
-              <>
-                <div className="field">
-                  <label htmlFor="reviewSlug">Review</label>
-                  <select id="reviewSlug" name="reviewSlug" defaultValue={get("reviewSlug") ?? ""}>
-                    <option value="">Any review</option>
-                    {reviews.map((review) => (
-                      <option key={review.slug} value={review.slug}>
-                        {review.title}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="field">
-                  <label htmlFor="claimType">Claim type</label>
-                  <select id="claimType" name="claimType" defaultValue={get("claimType") ?? ""}>
-                    <option value="">Any type</option>
-                    {CLAIM_TYPES.map((type) => (
-                      <option key={type} value={type}>
-                        {type}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="field">
-                  <label htmlFor="relationType">Evidence relation</label>
-                  <select
-                    id="relationType"
-                    name="relationType"
-                    defaultValue={get("relationType") ?? ""}
-                  >
-                    <option value="">Any relation</option>
-                    {CLAIM_EVIDENCE_RELATION_TYPES.map((type) => (
-                      <option key={type} value={type}>
-                        {type.replace(/-/g, " ")}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="field">
-                  <label htmlFor="trustCriterion">Assessment criterion (TRUST)</label>
-                  <input
-                    id="trustCriterion"
-                    type="text"
-                    name="trustCriterion"
-                    defaultValue={get("trustCriterion") ?? ""}
-                    placeholder="e.g. entailment"
-                  />
-                </div>
-              </>
-            ) : (
-              <>
-                <div className="field">
-                  <label htmlFor="author">Author</label>
-                  <input id="author" type="text" name="author" defaultValue={get("author") ?? ""} />
-                </div>
-                <div className="field">
-                  <label htmlFor="domain">Scientific domain</label>
-                  <select id="domain" name="domain" defaultValue={get("domain") ?? ""}>
-                    <option value="">Any domain</option>
-                    {domains.map((domain) => (
-                      <option key={domain} value={domain}>
-                        {domain}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="field">
-                  <label htmlFor="hasDoi">Publication record</label>
-                  <select id="hasDoi" name="hasDoi" defaultValue={get("hasDoi") ?? ""}>
-                    <option value="">DOI or repository-only</option>
-                    <option value="true">Has DOI</option>
-                    <option value="false">Repository-only</option>
-                  </select>
-                </div>
-                <div className="field">
-                  <label htmlFor="hasTrustData">Assessment data</label>
-                  <select
-                    id="hasTrustData"
-                    name="hasTrustData"
-                    defaultValue={get("hasTrustData") ?? ""}
-                  >
-                    <option value="">With or without TRUST data</option>
-                    <option value="true">Has TRUST data</option>
-                    <option value="false">No TRUST data</option>
-                  </select>
-                </div>
-                <div className="field">
-                  <label htmlFor="compatibility">Review structure</label>
-                  <select
-                    id="compatibility"
-                    name="compatibility"
-                    defaultValue={get("compatibility") ?? ""}
-                  >
-                    <option value="">Any compatible structure</option>
-                    <option value="verified-template">Verified template</option>
-                    <option value="compatible">Compatible</option>
-                    <option value="partially-compatible">Partially compatible</option>
-                  </select>
-                </div>
-                <div className="field">
-                  <label htmlFor="sort">Sort by</label>
-                  <select id="sort" name="sort" defaultValue={sort}>
-                    <option value="accepted">Acceptance date</option>
-                    <option value="updated">Update date</option>
-                    <option value="title">Title</option>
-                    <option value="relevance">Relevance</option>
-                  </select>
-                </div>
-              </>
-            )}
-            <div className="btn-row">
-              <button className="btn" type="submit">
-                Apply filters
-              </button>
-              {activeFilterCount > 0 ? (
-                <Link href={viewHref(view, q, selectedInterests, knownNodeIds)}>Clear filters</Link>
-              ) : null}
-            </div>
-          </form>
-        </details>
-      </div>
 
       <SpecialistTools />
 
-      {view === "claims" ? (
-        claimResults.items.length === 0 ? (
-          <p className="empty-state">No claims match this search.</p>
-        ) : (
-          <ol className="explore-results">
-            {claimResults.items.map((claim) => {
-              const supporting = claim.relations.filter(
-                (relation) =>
-                  relation.relationType === "supports" ||
-                  relation.relationType === "partially-supports",
-              ).length;
-              const contradicting = claim.relations.filter(
-                (relation) => relation.relationType === "contradicts",
-              ).length;
-              return (
-                <li key={claim.claimId}>
-                  <article className="explore-result">
-                    <h2>
-                      <Link
-                        href={
-                          "/claims/" +
-                          claim.reviewVersionId +
-                          "/" +
-                          encodeURIComponent(claim.localClaimId)
-                        }
-                      >
-                        {claim.text}
-                      </Link>
-                    </h2>
-                    <div className="meta">
-                      {claim.claimType ? <Badge>{claim.claimType}</Badge> : null}
-                      {supporting > 0 ? (
-                        <Badge tone="success">{supporting} supporting</Badge>
-                      ) : null}
-                      {contradicting > 0 ? (
-                        <Badge tone="warning">{contradicting} contradicting</Badge>
-                      ) : null}
-                      {claim.relations.flatMap((relation) =>
-                        (relation.trustAssessments ?? (relation.trust ? [relation.trust] : [])).map(
-                          (assessment) => (
-                            <TrustVerificationBadge
-                              key={assessment.assessmentId}
-                              state={assessment.verificationState}
-                            />
-                          ),
-                        ),
-                      )}
-                    </div>
-                    <p className="muted">
-                      From{" "}
-                      <Link
-                        href={
-                          "/reviews/" +
-                          claim.reviewSlug +
-                          "/versions/" +
-                          claim.reviewVersionId +
-                          "#" +
-                          claim.anchor
-                        }
-                      >
-                        {claim.reviewTitle}
-                      </Link>
-                    </p>
-                  </article>
-                </li>
-              );
-            })}
-          </ol>
-        )
-      ) : reviewResults.items.length === 0 ? (
-        <p className="empty-state">No reviews match this search.</p>
-      ) : (
-        <ol className="explore-results">
-          {reviewResults.items.map((item) =>
-            item.contentType === "review" ? (
-              <li key={item.slug}>
-                <article className="explore-result">
-                  <h2>
-                    <Link href={"/reviews/" + item.slug}>{item.title}</Link>
-                  </h2>
-                  <div className="meta">
-                    {item.compatibilityLevel ? (
-                      <CompatibilityBadge level={item.compatibilityLevel} />
-                    ) : null}
-                    {item.hasDoi ? (
-                      <Badge tone="success">DOI</Badge>
-                    ) : (
-                      <Badge>repository-only</Badge>
-                    )}
-                    {item.hasTrustData ? <Badge>TRUST data</Badge> : null}
-                    {item.status === "withdrawn" ? <Badge tone="warning">withdrawn</Badge> : null}
-                  </div>
-                  {item.abstract ? <p>{truncate(item.abstract)}</p> : null}
-                  {item.authors.length > 0 ? (
-                    <p className="muted">{item.authors.join(", ")}</p>
-                  ) : null}
-                </article>
-              </li>
-            ) : null,
-          )}
-        </ol>
-      )}
-
-      {pageCount(
-        view === "claims" ? claimResults.total : reviewResults.total,
-        view === "claims" ? claimResults.pageSize : reviewResults.pageSize,
-      ) > 1 ? (
-        <nav className="explore-pagination" aria-label="Explore result pages">
-          {page > 1 ? <Link href={pageHref(parameters, page - 1)}>Previous</Link> : <span />}
-          <span className="muted">
-            Page {page} of{" "}
-            {pageCount(
-              view === "claims" ? claimResults.total : reviewResults.total,
-              view === "claims" ? claimResults.pageSize : reviewResults.pageSize,
-            )}
-          </span>
-          {page <
-          pageCount(
-            view === "claims" ? claimResults.total : reviewResults.total,
-            view === "claims" ? claimResults.pageSize : reviewResults.pageSize,
-          ) ? (
-            <Link href={pageHref(parameters, page + 1)}>Next</Link>
-          ) : (
-            <span />
-          )}
+      <section className="explore-record-indexes" aria-labelledby="explore-record-indexes-title">
+        <div>
+          <p className="home-eyebrow">Complete indexes</p>
+          <h2 id="explore-record-indexes-title">Need an exhaustive record list?</h2>
+          <p>
+            Explore is for connected traversal. The archive and claim explorer remain available for
+            comprehensive lookup, deep links, and agent workflows.
+          </p>
+        </div>
+        <nav aria-label="Complete scholarly indexes">
+          <Link href={claimsIndexHref(parameters)}>Open claim explorer</Link>
+          <Link href={archiveIndexHref(q)}>Open archive</Link>
         </nav>
-      ) : null}
+      </section>
     </>
   );
-}
-
-function viewHref(
-  view: ExploreView,
-  q?: string,
-  interests: string[] = [],
-  knownNodeIds: string[] = [],
-): string {
-  const parameters = new URLSearchParams({ view });
-  if (q) parameters.set("q", q);
-  for (const interest of interests) parameters.append("interest", interest);
-  for (const nodeId of knownNodeIds) parameters.append("known", nodeId);
-  return "/explore?" + parameters;
-}
-
-function pageHref(parameters: SearchParameters, page: number): string {
-  const output = new URLSearchParams();
-  for (const [key, value] of Object.entries(parameters)) {
-    if (key === "page" || !value) continue;
-    const values = Array.isArray(value) ? value : [value];
-    for (const entry of values) {
-      if (entry) output.append(key, entry);
-    }
-  }
-  output.set("page", String(page));
-  return "/explore?" + output;
 }
 
 function landscapeHref(
@@ -566,8 +356,8 @@ function landscapeHref(
   const output = new URLSearchParams();
   for (const [key, value] of Object.entries(parameters)) {
     if (
+      !GRAPH_SCOPE_PARAMETER_KEYS.has(key) ||
       key === "focus" ||
-      key === "page" ||
       (key === "known" && knownNodeIdsOverride !== undefined) ||
       !value
     ) {
@@ -580,23 +370,39 @@ function landscapeHref(
   }
   for (const nodeId of knownNodeIdsOverride ?? []) output.append("known", nodeId);
   if (focusNodeId) output.set("focus", focusNodeId);
-  return "/explore?" + output;
+  return exploreHref(output);
+}
+
+function scopeHref(q?: string, interests: string[] = [], knownNodeIds: string[] = []): string {
+  const output = new URLSearchParams();
+  if (q) output.set("q", q);
+  for (const interest of interests) output.append("interest", interest);
+  for (const nodeId of knownNodeIds) output.append("known", nodeId);
+  return exploreHref(output);
+}
+
+function claimsIndexHref(parameters: SearchParameters): string {
+  const output = new URLSearchParams();
+  for (const key of ["q", "reviewSlug", "claimType", "relationType", "trustCriterion"]) {
+    const value = first(parameters, key);
+    if (value) output.set(key, value);
+  }
+  return output.size > 0 ? `/claims?${output}` : "/claims";
+}
+
+function archiveIndexHref(q?: string): string {
+  if (!q) return "/archive";
+  return `/archive?${new URLSearchParams({ q })}`;
 }
 
 function normalizeKnownNodeIds(values: readonly string[]): string[] {
-  return [
-    ...new Set(
-      values
-        .map((value) => value.trim())
-        .filter((value) => value.length > 0 && value.length <= 200),
-    ),
-  ].slice(0, 100);
+  const normalized = values
+    .map((value) => value.trim())
+    .filter((value) => value.length > 0 && value.length <= 200);
+  return [...new Set(normalized)].slice(0, 100);
 }
 
-function pageCount(total: number, pageSize: number): number {
-  return Math.ceil(total / pageSize);
-}
-
-function truncate(value: string): string {
-  return value.length > 220 ? value.slice(0, 220) + "…" : value;
+function exploreHref(parameters: URLSearchParams): string {
+  const query = parameters.toString();
+  return query ? `/explore?${query}` : "/explore";
 }

@@ -1,5 +1,17 @@
 # Development log
 
+## 2026-08-05 — Production-safe canonical graph rollout
+
+- Added a fail-closed Cloud SQL gate that checks scheduled backups and PITR, creates a synchronous
+  on-demand backup, verifies the exact `SUCCESSFUL` run, and carries its opaque id through migration
+  and canonical backfill jobs without granting backup permissions to the runtime identity.
+- Replaced current-datamodel baseline adoption with an isolated live-to-frozen-baseline comparison;
+  drift and comparison failures remain distinct fail-closed outcomes.
+- Made deployment run the bounded backfill to completion, globally verify it, and activate immutable
+  deferred commit-time graph constraints before staging application traffic.
+- Cloud Run now deploys a tagged no-traffic candidate, smokes that exact revision, and promotes it
+  only on success, leaving the previous revision serving on failure.
+
 ## ORA-A03 — Frozen Ethical Debt integration fixture
 
 - Captured `dhuzard/ethical-debt-AI-review` release `v0.1.0-trust-preview.3` at immutable commit
@@ -17,6 +29,17 @@
   GitHub API request is served from checked-in bytes, so CI remains fully offline.
 
 Chronological record of implementation slices, decisions, and verification outcomes.
+
+## 2026-08-05 — Explore traversal surface
+
+- Made the connected knowledge landscape the primary Explore content and removed both ranked
+  claim/review result lists. Search, interests, and claim/evidence filters now establish or refine a
+  graph entry rather than selecting a row-oriented results view.
+- Kept comprehensive lookup explicit on `/claims` and `/archive`, with scoped handoff links from
+  Explore. Removed legacy `view`, `sort`, and pagination state from newly generated traversal URLs.
+- Moved Atlas Discuss after the inspectable map and labelled it as a bounded grounded lens. Reader
+  known-set state remains explicit in repeated `known` URL parameters across search and interest
+  changes.
 
 ## 2026-08-05 — Guarded PostgreSQL migration baseline
 
