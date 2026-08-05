@@ -21,6 +21,10 @@ state; it does not infer a profile, accept GUI focus state, use behavioral telem
 preserved records. It returns canonical graph references, relative scores, and explanations only;
 agents resolve record content through the reader-agnostic graph API.
 
+An optional repeated `known` parameter is explicit reader-held state. Each recommendation returns
+the exact editor-confirmed edges connecting it to those known identities in `anchors`; no lexical,
+behavioral, or inferred familiarity is accepted.
+
 The internal selection considers at most six claims, ten citation-evidence records, and twelve graph
 identities reached from at most three seed claims. Only explicit graph identities and confirmed
 public graph edges enter this overlay. Its ordering and plain-language reasons support navigation
@@ -29,7 +33,7 @@ Unknown interests fail validation rather than becoming hidden personalization ca
 [agent-facing API guide](knowledge-landscape-api.md) and complete contract in
 [`openapi.yaml`](openapi.yaml).
 
-Atlas Discuss is a bounded lens beside graph traversal, not the canonical Explore front door. When
+Atlas Discuss is a bounded lens following graph traversal, not the canonical Explore front door. When
 an explicit Explore topic, interest, filter, or graph focus is present, its evidence packet is
 selected through the internal landscape service and
 restricted to the exact accepted claim identities in the visible projection. Changing the question

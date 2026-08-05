@@ -45,6 +45,7 @@ export type LandscapeNodeKind = KnowledgeLandscapeNode["kind"];
 
 export const knowledgeLandscapeEdgeSchema = z
   .object({
+    graphEdgeId: z.string().min(1).max(200),
     sourceId: z.string().min(1).max(500),
     targetId: z.string().min(1).max(500),
     label: z.string().min(1).max(100),
@@ -89,8 +90,8 @@ export const knowledgeLandscapeResponseSchema = z
         limitations: z.tuple([
           z.literal("not-a-truth-score"),
           z.literal("not-a-quality-score"),
-          z.literal("confirmed-graph-edges-only"),
-          z.literal("bounded-to-six-claims-ten-evidence-and-twelve-graph-nodes"),
+          z.literal("canonical-source-assertion-and-confirmed-edges"),
+          z.literal("bounded-to-three-entry-neighborhoods-and-twelve-exact-versions"),
         ]),
       })
       .strict(),

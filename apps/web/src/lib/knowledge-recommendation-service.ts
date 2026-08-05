@@ -4,38 +4,101 @@ import {
   KNOWLEDGE_RECOMMENDATION_SCHEMA_VERSION,
   knowledgeRecommendationQuerySchema,
   knowledgeRecommendationResponseSchema,
-  type KnowledgeLandscapeNode,
+  type KnowledgeRecommendationAnchor,
   type KnowledgeRecommendationQuery,
   type KnowledgeRecommendationResponse,
 } from "@oratlas/contracts";
-import type { KnowledgeIndexData } from "@oratlas/knowledge";
 import { prisma } from "./db";
-import { createKnowledgeLandscapeResponse } from "./knowledge-landscape-service";
+import {
+  selectGraphNativeLandscape,
+  type GraphNativeLandscapeSelection,
+} from "./knowledge-landscape-service";
+import { publicConfirmedNodeEdgeWhere } from "./node-edge-publication";
+import { readableCanonicalNodeVersionWhere } from "./public-snapshot-visibility";
 
 export interface CanonicalNodeReference {
   nodeId: string;
-  nodeVersionId?: string;
+  nodeVersionId: string;
 }
 
-export type KnowledgeReferenceResolver = (
-  nodes: readonly KnowledgeLandscapeNode[],
-) => Promise<ReadonlyMap<string, CanonicalNodeReference>>;
+export type KnowledgeAnchorResolver = (
+  recommendations: readonly CanonicalNodeReference[],
+  knownNodeIds: readonly string[],
+) => Promise<ReadonlyMap<string, readonly KnowledgeRecommendationAnchor[]>>;
+
+export function canonicalReferenceKey(reference: CanonicalNodeReference): string {
+  return `${reference.nodeId}\u0000${reference.nodeVersionId}`;
+}
+
+/** Canonical-content labels for renderer-owned known-set and anchor copy. */
+export async function resolveCanonicalReferenceLabels(
+  references: readonly CanonicalNodeReference[],
+): Promise<ReadonlyMap<string, string>> {
+  const versions = await prisma.knowledgeNodeVersion.findMany({
+    where: {
+      ...readableCanonicalNodeVersionWhere,
+      id: { in: [...new Set(references.map(({ nodeVersionId }) => nodeVersionId))] },
+    },
+    include: { knowledgeNode: { include: { aliases: { orderBy: { id: "asc" } } } } },
+  });
+  const requested = new Set(references.map(canonicalReferenceKey));
+  const labels = new Map<string, string>();
+  for (const version of versions) {
+    const key = canonicalReferenceKey({
+      nodeId: version.knowledgeNodeId,
+      nodeVersionId: version.id,
+    });
+    if (!requested.has(key)) continue;
+    const statement = parseStatement(version.payloadJson);
+    labels.set(
+      key,
+      version.title ??
+        version.text ??
+        statement ??
+        version.knowledgeNode.aliases[0]?.value ??
+        `${version.knowledgeNode.kind} ${version.knowledgeNode.localNodeId}`,
+    );
+  }
+  return labels;
+}
 
 export interface KnowledgeRecommendationServiceOptions {
-  resolveReferences?: KnowledgeReferenceResolver;
+  resolveAnchors?: KnowledgeAnchorResolver;
+  selectGraph?: (
+    query: Omit<KnowledgeRecommendationQuery, "knownNodeIds">,
+  ) => Promise<GraphNativeLandscapeSelection>;
 }
 
 export async function createKnowledgeRecommendationResponse(
-  index: KnowledgeIndexData,
   input: KnowledgeRecommendationQuery,
   options: KnowledgeRecommendationServiceOptions = {},
 ): Promise<KnowledgeRecommendationResponse> {
   const query = knowledgeRecommendationQuerySchema.parse(input);
-  const landscape = await createKnowledgeLandscapeResponse(index, query);
-  const resolveReferences = options.resolveReferences ?? resolveDatabaseReferences;
-  const references = await resolveReferences(landscape.landscape.nodes);
-  const ordered = uniqueResolvedNodes(landscape.landscape.nodes, references);
-  const denominator = Math.max(1, ordered.length - 1);
+  const { knownNodeIds, ...landscapeQuery } = query;
+  const selectGraph = options.selectGraph ?? selectGraphNativeLandscape;
+  const selection = await selectGraph(landscapeQuery);
+  const ordered = uniqueResolvedNodes(selection.recommendations).filter(
+    ({ nodeId }) => !knownNodeIds.includes(nodeId),
+  );
+  const resolveAnchors = options.resolveAnchors ?? resolveDatabaseAnchors;
+  const anchors = await resolveAnchors(
+    ordered.map(({ nodeId, nodeVersionId }) => ({ nodeId, nodeVersionId })),
+    knownNodeIds,
+  );
+  const ranked = ordered
+    .map((recommendation, originalIndex) => ({
+      ...recommendation,
+      originalIndex,
+      anchors: (anchors.get(recommendation.nodeId) ?? []).filter(
+        (anchor) => anchor.recommendedNodeVersionId === recommendation.nodeVersionId,
+      ),
+    }))
+    .sort(
+      (left, right) =>
+        Number(right.anchors.length > 0) - Number(left.anchors.length > 0) ||
+        left.originalIndex - right.originalIndex,
+    );
+  const denominator = Math.max(1, ranked.length - 1);
 
   return knowledgeRecommendationResponseSchema.parse({
     schemaVersion: KNOWLEDGE_RECOMMENDATION_SCHEMA_VERSION,
@@ -46,100 +109,138 @@ export async function createKnowledgeRecommendationResponse(
       limitations: [
         "not-a-truth-score",
         "not-a-quality-score",
-        "confirmed-graph-edges-only",
-        "bounded-to-six-claims-ten-evidence-and-twelve-graph-nodes",
+        "canonical-source-assertion-and-confirmed-edges",
+        "bounded-to-three-entry-neighborhoods-and-twelve-exact-versions",
       ],
     },
     query,
-    recommendations: ordered.map(({ reference, reasons }, index) => ({
-      ...reference,
+    recommendations: ranked.map(({ nodeId, nodeVersionId, reasons, anchors }, index) => ({
+      nodeId,
+      nodeVersionId,
       rank: index + 1,
       score: ordered.length === 1 ? 1 : 1 - index / denominator,
       reasons: reasons.slice(0, 10),
+      anchors,
     })),
-    omittedUnboundCount: landscape.landscape.nodes.filter((node) => !references.has(node.id))
-      .length,
+    omittedUnboundCount: 0,
   });
 }
 
+export async function resolveDatabaseAnchors(
+  recommendations: readonly CanonicalNodeReference[],
+  knownNodeIds: readonly string[],
+): Promise<ReadonlyMap<string, readonly KnowledgeRecommendationAnchor[]>> {
+  const recommendedById = new Map<string, CanonicalNodeReference[]>();
+  for (const reference of recommendations) {
+    const list = recommendedById.get(reference.nodeId) ?? [];
+    list.push(reference);
+    recommendedById.set(reference.nodeId, list);
+  }
+  const recommendedNodeIds = [...recommendedById.keys()];
+  const known = [...new Set(knownNodeIds)];
+  const knownSet = new Set(known);
+  if (recommendedNodeIds.length === 0 || known.length === 0) return new Map();
+
+  const edges = await prisma.nodeEdge.findMany({
+    where: {
+      ...publicConfirmedNodeEdgeWhere,
+      sourceNodeVersion: readableCanonicalNodeVersionWhere,
+      confirmedTargetNodeVersion: readableCanonicalNodeVersionWhere,
+      OR: [
+        {
+          sourceNodeVersion: { knowledgeNodeId: { in: recommendedNodeIds } },
+          targetNodeId: { in: known },
+        },
+        {
+          sourceNodeVersion: { knowledgeNodeId: { in: known } },
+          targetNodeId: { in: recommendedNodeIds },
+        },
+      ],
+    },
+    select: {
+      id: true,
+      relationType: true,
+      targetNodeId: true,
+      sourceNodeVersion: { select: { id: true, knowledgeNodeId: true } },
+      confirmedTargetNodeVersion: { select: { id: true, knowledgeNodeId: true } },
+    },
+    orderBy: { id: "asc" },
+  });
+
+  const output = new Map<string, KnowledgeRecommendationAnchor[]>();
+  for (const edge of edges) {
+    const target = edge.confirmedTargetNodeVersion;
+    if (!target || target.knowledgeNodeId !== edge.targetNodeId) continue;
+    const sourceReferences = recommendedById.get(edge.sourceNodeVersion.knowledgeNodeId) ?? [];
+    const targetReferences = recommendedById.get(target.knowledgeNodeId) ?? [];
+    if (knownSet.has(target.knowledgeNodeId)) {
+      for (const sourceReference of sourceReferences) {
+        addAnchor(output, sourceReference, {
+          edgeId: edge.id,
+          relationType: edge.relationType as KnowledgeRecommendationAnchor["relationType"],
+          directionFromRecommendation: "outgoing",
+          recommendedNodeVersionId: edge.sourceNodeVersion.id,
+          knownNodeId: target.knowledgeNodeId,
+          knownNodeVersionId: target.id,
+        });
+      }
+    }
+    if (knownSet.has(edge.sourceNodeVersion.knowledgeNodeId)) {
+      for (const targetReference of targetReferences) {
+        addAnchor(output, targetReference, {
+          edgeId: edge.id,
+          relationType: edge.relationType as KnowledgeRecommendationAnchor["relationType"],
+          directionFromRecommendation: "incoming",
+          recommendedNodeVersionId: target.id,
+          knownNodeId: edge.sourceNodeVersion.knowledgeNodeId,
+          knownNodeVersionId: edge.sourceNodeVersion.id,
+        });
+      }
+    }
+  }
+  return output;
+}
+
+function addAnchor(
+  output: Map<string, KnowledgeRecommendationAnchor[]>,
+  recommendation: CanonicalNodeReference,
+  anchor: KnowledgeRecommendationAnchor,
+): void {
+  if (recommendation.nodeId === anchor.knownNodeId) return;
+  if (
+    recommendation.nodeVersionId &&
+    recommendation.nodeVersionId !== anchor.recommendedNodeVersionId
+  ) {
+    return;
+  }
+  const list = output.get(recommendation.nodeId) ?? [];
+  list.push(anchor);
+  output.set(recommendation.nodeId, list);
+}
+
 function uniqueResolvedNodes(
-  nodes: readonly KnowledgeLandscapeNode[],
-  references: ReadonlyMap<string, CanonicalNodeReference>,
-): Array<{ reference: CanonicalNodeReference; reasons: string[] }> {
-  const output = new Map<string, { reference: CanonicalNodeReference; reasons: string[] }>();
+  nodes: ReadonlyArray<CanonicalNodeReference & { reasons: string[] }>,
+): Array<CanonicalNodeReference & { reasons: string[] }> {
+  const output = new Map<string, CanonicalNodeReference & { reasons: string[] }>();
   for (const node of nodes) {
-    const reference = references.get(node.id);
-    if (!reference) continue;
-    const current = output.get(reference.nodeId);
+    const key = `${node.nodeId}\u0000${node.nodeVersionId}`;
+    const current = output.get(key);
     if (current) {
       current.reasons = [...new Set([...current.reasons, ...node.reasons])];
     } else {
-      output.set(reference.nodeId, { reference, reasons: [...node.reasons] });
+      output.set(key, { ...node, reasons: [...node.reasons] });
     }
   }
   return [...output.values()];
 }
 
-async function resolveDatabaseReferences(
-  nodes: readonly KnowledgeLandscapeNode[],
-): Promise<ReadonlyMap<string, CanonicalNodeReference>> {
-  const references = new Map<string, CanonicalNodeReference>();
-  const claimIds: string[] = [];
-  const reviewVersionIds: string[] = [];
-  const workStableKeys: string[] = [];
-
-  for (const node of nodes) {
-    if (node.graphNodeId) {
-      references.set(node.id, {
-        nodeId: node.graphNodeId,
-        nodeVersionId: node.graphNodeVersionId,
-      });
-    } else if (node.id.startsWith("claim:")) {
-      claimIds.push(node.id.slice("claim:".length));
-    } else if (node.id.startsWith("review:")) {
-      reviewVersionIds.push(node.id.slice("review:".length));
-    } else if (node.id.startsWith("evidence:")) {
-      workStableKeys.push(node.id.slice("evidence:".length));
-    }
+function parseStatement(payloadJson: string): string | undefined {
+  try {
+    const payload = JSON.parse(payloadJson) as { statement?: unknown };
+    return typeof payload.statement === "string" && payload.statement.trim()
+      ? payload.statement
+      : undefined;
+  } catch {
+    return undefined;
   }
-
-  const [claims, reviewVersions, works] = await Promise.all([
-    prisma.claim.findMany({
-      where: { id: { in: claimIds } },
-      select: { id: true, knowledgeNodeId: true, graphVersion: { select: { id: true } } },
-    }),
-    prisma.reviewVersion.findMany({
-      where: { id: { in: reviewVersionIds } },
-      select: {
-        id: true,
-        graphVersion: { select: { id: true } },
-        review: { select: { knowledgeNodeId: true } },
-      },
-    }),
-    prisma.knowledgeNode.findMany({
-      where: { stableKey: { in: workStableKeys }, kind: "work" },
-      select: { id: true, stableKey: true },
-    }),
-  ]);
-
-  for (const claim of claims) {
-    if (claim.knowledgeNodeId) {
-      references.set(`claim:${claim.id}`, {
-        nodeId: claim.knowledgeNodeId,
-        nodeVersionId: claim.graphVersion?.id,
-      });
-    }
-  }
-  for (const version of reviewVersions) {
-    if (version.review.knowledgeNodeId) {
-      references.set(`review:${version.id}`, {
-        nodeId: version.review.knowledgeNodeId,
-        nodeVersionId: version.graphVersion?.id,
-      });
-    }
-  }
-  for (const work of works) {
-    if (work.stableKey) references.set(`evidence:${work.stableKey}`, { nodeId: work.id });
-  }
-  return references;
 }

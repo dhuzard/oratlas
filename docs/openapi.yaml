@@ -69,8 +69,9 @@ components:
     KnowledgeLandscapeEdge:
       type: object
       additionalProperties: false
-      required: [sourceId, targetId, label, relationType]
+      required: [graphEdgeId, sourceId, targetId, label, relationType]
       properties:
+        graphEdgeId: { type: string, minLength: 1, maxLength: 200 }
         sourceId: { type: string, minLength: 1, maxLength: 500 }
         targetId: { type: string, minLength: 1, maxLength: 500 }
         label: { type: string, minLength: 1, maxLength: 100 }
@@ -125,8 +126,8 @@ components:
               prefixItems:
                 - { const: not-a-truth-score }
                 - { const: not-a-quality-score }
-                - { const: confirmed-graph-edges-only }
-                - { const: bounded-to-six-claims-ten-evidence-and-twelve-graph-nodes }
+                - { const: canonical-source-assertion-and-confirmed-edges }
+                - { const: bounded-to-three-entry-neighborhoods-and-twelve-exact-versions }
               minItems: 4
               maxItems: 4
         query: { $ref: "#/components/schemas/KnowledgeLandscapeQuery" }
@@ -164,10 +165,51 @@ components:
         claimType: { type: string, maxLength: 40 }
         relationType: { type: string, maxLength: 40 }
         trustCriterion: { type: string, maxLength: 60 }
+        knownNodeIds:
+          type: array
+          maxItems: 100
+          default: []
+          items: { type: string, minLength: 1, maxLength: 200 }
+    KnowledgeRecommendationAnchor:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          edgeId,
+          relationType,
+          directionFromRecommendation,
+          recommendedNodeVersionId,
+          knownNodeId,
+          knownNodeVersionId,
+        ]
+      properties:
+        edgeId: { type: string, minLength: 1, maxLength: 200 }
+        relationType:
+          type: string
+          enum:
+            [
+              asserts,
+              supports,
+              partially-supports,
+              contradicts,
+              contextualizes,
+              method-source,
+              background,
+              unclear,
+              replicates,
+              extends,
+              uses-dataset,
+              uses-code,
+              derives-from,
+            ]
+        directionFromRecommendation: { type: string, enum: [outgoing, incoming] }
+        recommendedNodeVersionId: { type: string, minLength: 1, maxLength: 200 }
+        knownNodeId: { type: string, minLength: 1, maxLength: 200 }
+        knownNodeVersionId: { type: string, minLength: 1, maxLength: 200 }
     KnowledgeRecommendation:
       type: object
       additionalProperties: false
-      required: [nodeId, rank, score, reasons]
+      required: [nodeId, nodeVersionId, rank, score, reasons, anchors]
       properties:
         nodeId: { type: string, minLength: 1, maxLength: 200 }
         nodeVersionId: { type: string, minLength: 1, maxLength: 200 }
@@ -178,6 +220,9 @@ components:
           minItems: 1
           maxItems: 10
           items: { type: string, minLength: 1, maxLength: 1000 }
+        anchors:
+          type: array
+          items: { $ref: "#/components/schemas/KnowledgeRecommendationAnchor" }
     KnowledgeRecommendationResponse:
       type: object
       additionalProperties: false
@@ -197,8 +242,8 @@ components:
               prefixItems:
                 - { const: not-a-truth-score }
                 - { const: not-a-quality-score }
-                - { const: confirmed-graph-edges-only }
-                - { const: bounded-to-six-claims-ten-evidence-and-twelve-graph-nodes }
+                - { const: canonical-source-assertion-and-confirmed-edges }
+                - { const: bounded-to-three-entry-neighborhoods-and-twelve-exact-versions }
               minItems: 4
               maxItems: 4
         query: { $ref: "#/components/schemas/KnowledgeRecommendationQuery" }
@@ -359,6 +404,23 @@ components:
         assessorType: { type: string, minLength: 1, maxLength: 40 }
         assessorId: { type: string, minLength: 1, maxLength: 200 }
         assessedAt: { type: string, format: date-time }
+        assessedCriteria:
+          type: array
+          items:
+            type: string
+            enum:
+              [
+                identityIntegrity,
+                entailment,
+                sourceAccess,
+                populationRelevance,
+                interventionExposureRelevance,
+                outcomeRelevance,
+                methodologicalSafeguards,
+                statisticalSafeguards,
+                replicationConvergence,
+                conflictDependency,
+              ]
         reviewStatus:
           type: string
           enum: [unverified-import, agent-proposed, human-reviewed, adjudicated, superseded]
@@ -860,7 +922,24 @@ components:
             sourceNodeVersionId: { type: string }
             targetNodeId: { type: string }
             targetNodeVersionId: { type: string }
-            relationType: { type: string }
+            relationType:
+              type: string
+              enum:
+                [
+                  asserts,
+                  supports,
+                  partially-supports,
+                  contradicts,
+                  contextualizes,
+                  method-source,
+                  background,
+                  unclear,
+                  replicates,
+                  extends,
+                  uses-dataset,
+                  uses-code,
+                  derives-from,
+                ]
             status: { const: source-assertion }
             provenance: { const: imported-from-review }
             rationale: { type: string }
@@ -889,7 +968,24 @@ components:
             sourceNodeVersionId: { type: string }
             targetNodeId: { type: string }
             targetNodeVersionId: { type: string }
-            relationType: { type: string }
+            relationType:
+              type: string
+              enum:
+                [
+                  asserts,
+                  supports,
+                  partially-supports,
+                  contradicts,
+                  contextualizes,
+                  method-source,
+                  background,
+                  unclear,
+                  replicates,
+                  extends,
+                  uses-dataset,
+                  uses-code,
+                  derives-from,
+                ]
             status: { const: confirmed }
             provenance: { const: confirmed-by-editor }
             rationale: { type: string }
@@ -1368,18 +1464,33 @@ components:
     DiscussRequest:
       type: object
       additionalProperties: false
-      required: [question]
+      required: [question, scope]
       properties:
         question: { type: string, minLength: 3, maxLength: 1000 }
-        reviewSlugs:
-          type: array
-          maxItems: 50
-          items: { type: string, maxLength: 200 }
         scope:
-          allOf: [{ $ref: "#/components/schemas/KnowledgeLandscapeQuery" }]
-          description: >
-            Optional explicit Explore URL state. The server resolves it through the same bounded
-            landscape service and restricts the evidence packet to the selected claims.
+          type: object
+          additionalProperties: false
+          required: [nodes, edgeIds, signature]
+          description: Server-signed exact canonical graph occurrence set rendered by Explore.
+          properties:
+            nodes:
+              type: array
+              minItems: 1
+              maxItems: 34
+              items:
+                type: object
+                additionalProperties: false
+                required: [nodeId, nodeVersionId]
+                properties:
+                  nodeId: { type: string, minLength: 1, maxLength: 200 }
+                  nodeVersionId: { type: string, minLength: 1, maxLength: 200 }
+            edgeIds:
+              type: array
+              maxItems: 100
+              items: { type: string, minLength: 1, maxLength: 200 }
+            signature:
+              type: string
+              pattern: "^[A-Za-z0-9_-]{43}$"
         llm:
           type: object
           additionalProperties: false
@@ -3045,12 +3156,14 @@ paths:
         "400": { $ref: "#/components/responses/Error" }
   /api/graph:
     get:
-      summary: Traverse one exact canonical graph neighborhood page
+      summary: Traverse one canonical graph adjacency page
       description: >
-        Returns one keyset-paginated adjacency page around an exact canonical node version. Clients
-        expand returned node references with subsequent requests; no viewport depth or cumulative
-        graph cap truncates traversal. Authoritative mode includes source-native review assertions
-        and editor-confirmed edges, while proposals remain outside the canonical representation.
+        Supplying version restricts the keyset-paginated adjacency page to one exact immutable
+        occurrence. Omitting version covers every readable occurrence of the stable seed identity.
+        Every edge still names exact endpoint versions. Clients expand returned node references
+        with subsequent requests; no viewport depth or cumulative graph cap truncates traversal.
+        Authoritative mode includes source-native review assertions and editor-confirmed edges,
+        while proposals remain outside the canonical representation.
       parameters:
         - { name: seed, in: query, required: true, schema: { type: string, maxLength: 200 } }
         - { name: version, in: query, schema: { type: string, maxLength: 200 } }
@@ -3301,6 +3414,13 @@ paths:
         - { name: claimType, in: query, schema: { type: string, maxLength: 40 } }
         - { name: relationType, in: query, schema: { type: string, maxLength: 40 } }
         - { name: trustCriterion, in: query, schema: { type: string, maxLength: 60 } }
+        - name: known
+          in: query
+          description: Explicit reader-held stable graph identities; never inferred or persisted
+          schema:
+            type: array
+            maxItems: 100
+            items: { type: string, minLength: 1, maxLength: 200 }
       responses:
         "200":
           description: Versioned, bounded recommendation overlay
@@ -3480,7 +3600,7 @@ paths:
         "429": { $ref: "#/components/responses/Error" }
   /api/discuss:
     post:
-      summary: Grounded cross-review discussion (deterministic or LLM mode)
+      summary: Grounded discussion over a signed exact Explore traversal
       requestBody:
         required: true
         content:

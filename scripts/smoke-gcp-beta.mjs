@@ -58,7 +58,7 @@ export async function runBetaSmoke(options, request = globalThis.fetch) {
   const response = await (await get(landscapePath)).json();
   if (response?.schemaVersion !== "2.0.0") {
     throw new Error(
-      `Expected landscape schema 2.0.0, received ${String(response?.schemaVersion)}.`,
+      `Expected recommendation schema 2.0.0, received ${String(response?.schemaVersion)}.`,
     );
   }
   if (response?.algorithm?.id !== "explicit-interest-recommendation") {

@@ -28,6 +28,9 @@ knowledge-consensus engine.
 - **The recommendation API is not a second knowledge store.** `GET /api/landscape` returns only
   canonical graph references, relative ranking scores, and reasons. Presentation fields and focus
   state remain in Explore.
+- **Reader familiarity is explicit only.** A caller may submit up to 100 stable graph ids as the
+  request-held known set. Anchors are exact public editor-confirmed edges; ORAtlas does not infer or
+  persist familiarity.
 - **Guided ordering is navigation metadata.** Selection reasons and ordering are deterministic and
   inspectable, but they are not measures of truth, evidence quality, consensus, or TRUST.
 - **First-reader validation has not been run.** The repository contains a privacy-minimal protocol
