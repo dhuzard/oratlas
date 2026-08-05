@@ -306,7 +306,7 @@ CREATE TABLE "KnowledgeNode" (
     "id" TEXT NOT NULL,
     "stableKey" TEXT,
     "originType" TEXT NOT NULL DEFAULT 'repository-object',
-    "repositoryId" TEXT NOT NULL,
+    "repositoryId" TEXT,
     "localNodeId" TEXT NOT NULL,
     "kind" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -319,7 +319,7 @@ CREATE TABLE "KnowledgeNode" (
 CREATE TABLE "KnowledgeNodeVersion" (
     "id" TEXT NOT NULL,
     "knowledgeNodeId" TEXT NOT NULL,
-    "snapshotId" TEXT NOT NULL,
+    "snapshotId" TEXT,
     "sourceReviewVersionId" TEXT,
     "sourceClaimId" TEXT,
     "sourceCitationId" TEXT,
@@ -1854,13 +1854,13 @@ ALTER TABLE "Claim" ADD CONSTRAINT "Claim_reviewVersionId_fkey" FOREIGN KEY ("re
 ALTER TABLE "Claim" ADD CONSTRAINT "Claim_knowledgeNodeId_fkey" FOREIGN KEY ("knowledgeNodeId") REFERENCES "KnowledgeNode"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "KnowledgeNode" ADD CONSTRAINT "KnowledgeNode_repositoryId_fkey" FOREIGN KEY ("repositoryId") REFERENCES "Repository"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "KnowledgeNode" ADD CONSTRAINT "KnowledgeNode_repositoryId_fkey" FOREIGN KEY ("repositoryId") REFERENCES "Repository"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "KnowledgeNodeVersion" ADD CONSTRAINT "KnowledgeNodeVersion_knowledgeNodeId_fkey" FOREIGN KEY ("knowledgeNodeId") REFERENCES "KnowledgeNode"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "KnowledgeNodeVersion" ADD CONSTRAINT "KnowledgeNodeVersion_snapshotId_fkey" FOREIGN KEY ("snapshotId") REFERENCES "RepositorySnapshot"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "KnowledgeNodeVersion" ADD CONSTRAINT "KnowledgeNodeVersion_snapshotId_fkey" FOREIGN KEY ("snapshotId") REFERENCES "RepositorySnapshot"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "KnowledgeNodeVersion" ADD CONSTRAINT "KnowledgeNodeVersion_sourceReviewVersionId_fkey" FOREIGN KEY ("sourceReviewVersionId") REFERENCES "ReviewVersion"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -2252,6 +2252,21 @@ ALTER TABLE "ProtocolDriftProposal" ADD CONSTRAINT "ProtocolDriftProposal_resolv
 
 
 -- Database-native guards also applied after Prisma db push.
+ALTER TABLE "KnowledgeNode" DROP CONSTRAINT IF EXISTS "KnowledgeNode_source_union_check";
+
+ALTER TABLE "KnowledgeNode" ADD CONSTRAINT "KnowledgeNode_source_union_check" CHECK (
+    ("originType" = 'repository-object' AND "repositoryId" IS NOT NULL AND "kind" IN ('claim', 'figure', 'dataset', 'code'))
+    OR ("originType" = 'review-record' AND "repositoryId" IS NULL AND "stableKey" IS NOT NULL AND "kind" = 'review')
+    OR ("originType" = 'claim-occurrence' AND "repositoryId" IS NULL AND "stableKey" IS NOT NULL AND "kind" = 'claim')
+    OR ("originType" = 'canonical-work' AND "repositoryId" IS NULL AND "stableKey" IS NOT NULL AND "kind" = 'work')
+  );
+
+ALTER TABLE "KnowledgeNodeVersion" DROP CONSTRAINT IF EXISTS "KnowledgeNodeVersion_source_union_check";
+
+ALTER TABLE "KnowledgeNodeVersion" ADD CONSTRAINT "KnowledgeNodeVersion_source_union_check" CHECK (
+    (("snapshotId" IS NOT NULL)::int + ("sourceReviewVersionId" IS NOT NULL)::int + ("sourceClaimId" IS NOT NULL)::int + ("sourceCitationId" IS NOT NULL)::int) = 1
+  );
+
 ALTER TABLE "Review" DROP CONSTRAINT IF EXISTS "Review_source_union_check";
 
 ALTER TABLE "Review" ADD CONSTRAINT "Review_source_union_check" CHECK (

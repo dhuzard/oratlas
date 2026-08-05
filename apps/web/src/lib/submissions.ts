@@ -1226,6 +1226,9 @@ async function materializeKnowledgeNodes(
         kind: node.kind,
       },
     });
+    if (!identity.repositoryId) {
+      throw new SubmissionError("Repository-backed node identity lost its repository binding.");
+    }
     try {
       assertKnowledgeNodeMaterializationBinding({
         repository: submission.repository,
@@ -1827,14 +1830,14 @@ async function materializeNodeRelationTrustAssessments(
         proposal.origin === "asserted-by-author" &&
         proposal.sourceSubmissionId === expected.submissionId &&
         proposal.inspectionCaptureId === expected.inspectionCaptureId &&
-        source.knowledgeNode.repository.githubRepositoryId === expected.sourceRepositoryGithubId &&
-        source.snapshot.commitSha === expected.sourceCommitSha;
+        source.knowledgeNode.repository?.githubRepositoryId === expected.sourceRepositoryGithubId &&
+        source.snapshot?.commitSha === expected.sourceCommitSha;
       const exactTarget = subject.evidenceRepository
-        ? target.knowledgeNode.repository.githubRepositoryId ===
+        ? target.knowledgeNode.repository?.githubRepositoryId ===
             subject.evidenceRepository.githubRepositoryId &&
-          target.snapshot.commitSha === subject.evidenceRepository.commitSha
+          target.snapshot?.commitSha === subject.evidenceRepository.commitSha
         : target.knowledgeNode.repositoryId === source.knowledgeNode.repositoryId &&
-          target.snapshot.commitSha === expected.sourceCommitSha;
+          target.snapshot?.commitSha === expected.sourceCommitSha;
       return exactLocal && exactOrigin && exactTarget;
     });
     if (matches.length !== 1) {

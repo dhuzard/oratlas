@@ -242,6 +242,14 @@ function mapNodeAssessment(
 type LoadedNodeVersion = LoadedNodeRelationTrustAssessment["proposal"]["sourceNodeVersion"];
 
 function mapNodeVersion(row: LoadedNodeVersion) {
+  if (
+    !row.snapshotId ||
+    !row.snapshot ||
+    !row.knowledgeNode.repositoryId ||
+    !row.knowledgeNode.repository
+  ) {
+    throw new Error("Repository-backed node provenance is incomplete.");
+  }
   return {
     version: {
       id: row.id,

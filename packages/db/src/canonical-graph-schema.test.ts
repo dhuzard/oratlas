@@ -12,6 +12,14 @@ const migration = readFileSync(
   ),
   "utf8",
 );
+const sourceUnionMigration = readFileSync(
+  resolve(
+    packageRoot,
+    "prisma/migrations/20260805020000_graph_source_union_compatibility/migration.sql",
+  ),
+  "utf8",
+);
+const guards = readFileSync(resolve(packageRoot, "src/database-guards.ts"), "utf8");
 
 describe("canonical graph identity schema expansion", () => {
   it.each([
@@ -52,5 +60,27 @@ describe("canonical graph identity schema expansion", () => {
     expect(baseline).not.toContain('"stableKey"');
     expect(baseline).not.toContain('"sourceReviewVersionId"');
     expect(baseline).not.toContain('"nodeEdgeId"');
+  });
+
+  it.each([
+    ["SQLite", sqliteSchema],
+    ["PostgreSQL", postgresSchema],
+  ])("permits real non-repository source identities in %s", (_provider, schema) => {
+    expect(schema).toMatch(/model KnowledgeNode \{[\s\S]*?repositoryId\s+String\?/);
+    expect(schema).toMatch(/model KnowledgeNodeVersion \{[\s\S]*?snapshotId\s+String\?/);
+  });
+
+  it("relaxes ownership without rewriting data and installs exclusive source guards", () => {
+    expect(sourceUnionMigration).toContain(
+      'ALTER TABLE "KnowledgeNode" ALTER COLUMN "repositoryId" DROP NOT NULL',
+    );
+    expect(sourceUnionMigration).toContain(
+      'ALTER TABLE "KnowledgeNodeVersion" ALTER COLUMN "snapshotId" DROP NOT NULL',
+    );
+    expect(sourceUnionMigration).toContain('"KnowledgeNode_source_union_check"');
+    expect(sourceUnionMigration).toContain('"KnowledgeNodeVersion_source_union_check"');
+    expect(sourceUnionMigration).not.toMatch(/^\s*(?:DELETE|UPDATE)\b/im);
+    expect(guards).toContain("\"originType\" = 'canonical-work'");
+    expect(guards).toContain('(NEW."sourceCitationId" IS NOT NULL)');
   });
 });

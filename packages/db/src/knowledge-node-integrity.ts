@@ -6,7 +6,7 @@
  */
 export interface KnowledgeNodeMaterializationBinding {
   repository: { id: string; githubRepositoryId: string | null };
-  node: { repositoryId: string };
+  node: { repositoryId: string | null };
   snapshot: { id: string; repositoryId: string; commitSha: string };
   submission: {
     id: string;

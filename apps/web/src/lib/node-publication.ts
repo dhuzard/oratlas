@@ -145,6 +145,11 @@ type StoredVersion = {
   snapshot: { commitSha: string };
 };
 
+type StoredVersionInput = Omit<StoredVersion, "snapshotId" | "snapshot"> & {
+  snapshotId: string | null;
+  snapshot: { commitSha: string } | null;
+};
+
 function mapVersion(kind: KnowledgeNodeKind, version: StoredVersion): PublicNodeVersion {
   const contributors = contributorsSchema.parse(
     parseJson(version.contributorsJson, "contributors"),
@@ -185,10 +190,16 @@ function tryMapVersion(
 
 export function tryMapPublicNodeVersion(
   node: { kind: string },
-  version: StoredVersion,
+  version: StoredVersionInput,
 ): PublicNodeVersion | undefined {
+  if (!version.snapshotId || !version.snapshot) return undefined;
   const kind = knowledgeNodeKindSchema.safeParse(node.kind);
-  return kind.success ? tryMapVersion(kind.data, version) : undefined;
+  const repositoryVersion: StoredVersion = {
+    ...version,
+    snapshotId: version.snapshotId,
+    snapshot: version.snapshot,
+  };
+  return kind.success ? tryMapVersion(kind.data, repositoryVersion) : undefined;
 }
 
 function nodeSummary(
@@ -196,10 +207,11 @@ function nodeSummary(
     id: string;
     localNodeId: string;
     kind: string;
-    repository: { owner: string; name: string; canonicalUrl: string };
+    repository: { owner: string; name: string; canonicalUrl: string } | null;
   },
   version: PublicNodeVersion,
 ): PublicNodeSummary {
+  if (!node.repository) throw new Error("Repository-backed node metadata is incomplete.");
   return {
     id: node.id,
     localNodeId: node.localNodeId,
@@ -221,7 +233,7 @@ function relatedNodeVersion(
     id: string;
     localNodeId: string;
     kind: string;
-    repository: { owner: string; name: string; canonicalUrl: string };
+    repository: { owner: string; name: string; canonicalUrl: string } | null;
   },
   version: PublicNodeVersion,
 ): PublicRelatedNodeVersion {
@@ -235,10 +247,11 @@ function tryRelatedNodeVersion(
     id: string;
     localNodeId: string;
     kind: string;
-    repository: { owner: string; name: string; canonicalUrl: string };
+    repository: { owner: string; name: string; canonicalUrl: string } | null;
   },
-  version: StoredVersion,
+  version: StoredVersionInput,
 ): PublicRelatedNodeVersion | undefined {
+  if (!node.repository) return undefined;
   const mapped = tryMapPublicNodeVersion(node, version);
   return mapped ? relatedNodeVersion(node, mapped) : undefined;
 }
@@ -321,6 +334,7 @@ export async function getExactPublicNodeVersions(
   );
   const result = new Map<string, ExactPublicNodeVersionProjection>();
   for (const { row, current, requestedVersionId } of validRows.values()) {
+    if (!row.repository) continue;
     const stored =
       current.id === requestedVersionId
         ? row.versions[0]!
@@ -413,7 +427,7 @@ export async function scanPublicNodeSummaries(
     scannedCandidateCount += acceptedPage.length;
     for (const row of acceptedPage) {
       const storedCurrent = row.versions[0];
-      if (!storedCurrent) continue;
+      if (!storedCurrent || !row.repository) continue;
       const current = tryMapPublicNodeVersion(row, storedCurrent);
       if (current) items.push(nodeSummary(row, current));
     }
@@ -459,12 +473,12 @@ export async function getPublicNode(
       },
     },
   });
-  if (!node || node.versions.length === 0) return null;
+  if (!node || !node.repository || node.versions.length === 0) return null;
   const parsedKind = knowledgeNodeKindSchema.safeParse(node.kind);
   if (!parsedKind.success) return null;
   const kind = parsedKind.data;
   const storedCurrent = node.versions[0]!;
-  const current = tryMapVersion(kind, storedCurrent);
+  const current = tryMapPublicNodeVersion(node, storedCurrent);
   // Never fall back to an older valid version when the newest stored version is corrupt.
   if (!current) return null;
 
@@ -484,7 +498,9 @@ export async function getPublicNode(
   }
   if (!selectedStored) return null;
   const selected =
-    selectedStored.id === storedCurrent.id ? current : tryMapVersion(kind, selectedStored);
+    selectedStored.id === storedCurrent.id
+      ? current
+      : tryMapPublicNodeVersion(node, selectedStored);
   if (!selected) return null;
   const currentVersionId = current.id;
   const historyVersions = node.versions.some((version) => version.id === selectedStored.id)
@@ -707,7 +723,7 @@ export async function getPublicNode(
     if (!hasOwnedConfirmedTargetVersion(edge)) return [];
     const relatedNode = tryRelatedNodeVersion(
       edge.confirmedTargetNodeVersion.knowledgeNode,
-      edge.confirmedTargetNodeVersion as StoredVersion,
+      edge.confirmedTargetNodeVersion,
     );
     if (!relatedNode) return [];
     return [
@@ -728,7 +744,7 @@ export async function getPublicNode(
     if (!hasOwnedConfirmedTargetVersion(edge)) return [];
     const relatedNode = tryRelatedNodeVersion(
       edge.sourceNodeVersion.knowledgeNode,
-      edge.sourceNodeVersion as StoredVersion,
+      edge.sourceNodeVersion,
     );
     if (!relatedNode) return [];
     return [
@@ -810,7 +826,7 @@ export async function getPublicNode(
         ? current
         : storedVersion.id === selected.id
           ? selected
-          : tryMapVersion(kind, storedVersion);
+          : tryMapPublicNodeVersion(node, storedVersion);
     if (!version) return [];
     return [
       {
@@ -826,8 +842,8 @@ export async function getPublicNode(
   const sameClaims = identityRows.flatMap((proposal) => {
     const other = proposal.sourceNodeId === node.id ? proposal.targetNode : proposal.sourceNode;
     const storedVersion = other.versions[0];
-    if (!storedVersion || other.kind !== "claim") return [];
-    const publicVersion = tryMapVersion("claim", storedVersion);
+    if (!storedVersion || !other.repository || other.kind !== "claim") return [];
+    const publicVersion = tryMapPublicNodeVersion(other, storedVersion);
     if (!publicVersion) return [];
     const reviewAssertions = other.linkedClaims
       .filter(

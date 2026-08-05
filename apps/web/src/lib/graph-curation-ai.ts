@@ -124,13 +124,24 @@ async function prepareRunCandidate(candidate: GraphCurationCandidate, evidence: 
       }),
     ),
   );
-  if (!source || !target) throw new Error("A selected node version is no longer available.");
-  const stableKey = (row: typeof source) =>
-    canonicalJson({
+  if (
+    !source?.knowledgeNode.repository ||
+    !source.snapshot ||
+    !target?.knowledgeNode.repository ||
+    !target.snapshot
+  ) {
+    throw new Error("A selected repository-backed node version is no longer available.");
+  }
+  const stableKey = (row: typeof source) => {
+    if (!row.knowledgeNode.repository || !row.snapshot) {
+      throw new Error("A repository-backed node version lost its source identity.");
+    }
+    return canonicalJson({
       githubRepositoryId: row.knowledgeNode.repository.githubRepositoryId,
       localNodeId: row.knowledgeNode.localNodeId,
       commitSha: row.snapshot.commitSha.toLowerCase(),
     });
+  };
   return {
     sourceStableKey: stableKey(source),
     targetStableKey: stableKey(target),

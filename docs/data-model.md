@@ -150,11 +150,13 @@ Source-local claim/citation ids are unique only inside a version. Atlas derives 
 `(reviewVersionId, localId)` and uses canonical DOI/PMID/OpenAlex aliases for work comparison. See
 `docs/evidence-identity.md`.
 
-The canonical-graph migration begins with nullable, unique bindings from reviews, exact review
-versions, claims, citation occurrences, and legacy claim-evidence relations to graph records. The
-first expand migration preserves required repository/snapshot ownership, so it cannot yet
-materialize synthesis reviews or global works without false provenance. A later compatibility
-slice must introduce and constrain the discriminated source union before dual-write starts. See
+The canonical-graph migration adds nullable, unique bindings from reviews, exact review versions,
+claims, citation occurrences, and legacy claim-evidence relations to graph records. Repository
+ownership is optional only under a database-guarded source union: repository objects require a real
+repository, while review, claim-occurrence, and canonical-work nodes require a stable key and no
+repository. Every graph version binds exactly one real source—repository snapshot, review version,
+claim occurrence, or citation occurrence. SQLite triggers and PostgreSQL checks reject zero-source,
+multiple-source, mismatched-kind, and fabricated-repository states. See
 `docs/canonical-graph-identity.md`.
 
 KG-02 keeps ownership repository-scoped: the repository's `owner` identifies the publishing lab in

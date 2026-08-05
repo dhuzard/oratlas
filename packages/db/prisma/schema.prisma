@@ -519,14 +519,16 @@ model KnowledgeNode {
   stableKey    String?  @unique
   /// repository-object | review-record | claim-occurrence | canonical-work
   originType   String   @default("repository-object")
-  repositoryId String
+  /// Required only for repository-object nodes; null for global/review identities.
+  repositoryId String?
+  /// Source-local identity (review id, claim occurrence id, or repository node id).
   localNodeId  String
   /// contracts KNOWLEDGE_NODE_KINDS: review | claim | work | figure | dataset | code
   kind         String
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  repository            Repository                 @relation(fields: [repositoryId], references: [id])
+  repository            Repository?                @relation(fields: [repositoryId], references: [id])
   review                Review?                    @relation("reviewKnowledgeNode")
   versions              KnowledgeNodeVersion[]
   incomingEdges         NodeEdge[]                 @relation("targetNode")
@@ -549,7 +551,8 @@ model KnowledgeNode {
 model KnowledgeNodeVersion {
   id                    String   @id @default(cuid())
   knowledgeNodeId       String
-  snapshotId            String
+  /// Required only for repository-backed versions.
+  snapshotId            String?
   /// Exact relational object bindings. Nullable during expand/backfill.
   sourceReviewVersionId String?  @unique
   sourceClaimId         String?  @unique
@@ -577,7 +580,7 @@ model KnowledgeNodeVersion {
   createdAt             DateTime @default(now())
 
   knowledgeNode        KnowledgeNode              @relation(fields: [knowledgeNodeId], references: [id])
-  snapshot             RepositorySnapshot         @relation(fields: [snapshotId], references: [id])
+  snapshot             RepositorySnapshot?        @relation(fields: [snapshotId], references: [id])
   sourceReviewVersion  ReviewVersion?             @relation("reviewGraphVersion", fields: [sourceReviewVersionId], references: [id], onDelete: Restrict)
   sourceClaim          Claim?                     @relation("claimGraphVersion", fields: [sourceClaimId], references: [id], onDelete: Restrict)
   sourceCitation       Citation?                  @relation("citationGraphVersion", fields: [sourceCitationId], references: [id], onDelete: Restrict)

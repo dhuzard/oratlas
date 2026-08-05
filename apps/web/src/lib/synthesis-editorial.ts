@@ -114,7 +114,7 @@ async function loadCurrentNodeRows(client: PrismaClient, ids?: string[]) {
 
 function mapEvidenceNode(row: CurrentNodeRow) {
   const version = row.versions[0];
-  if (!version) return undefined;
+  if (!version || !row.repository) return undefined;
   const mapped = tryMapPublicNodeVersion(row, version);
   if (!mapped) return undefined;
   return {

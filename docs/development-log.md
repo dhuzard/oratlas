@@ -956,3 +956,14 @@ Two fail-closed gaps were found and intentionally not changed in this audit-only
   applies the new migration. The evolving current-schema DDL is never used to simulate old state.
 - Deferred nullable repository/snapshot ownership and its source-union constraints to the next
   compatibility slice, so no synthesis or global-work row receives fabricated provenance.
+
+## 2026-08-05 — Canonical graph source-union compatibility
+
+- Made repository ownership and repository snapshots optional only where a real review, claim,
+  citation, or global-work source replaces them.
+- Added PostgreSQL checks and equivalent SQLite write guards for node kind/origin compatibility and
+  exactly-one node-version source.
+- Updated repository-only publication, curation, identity, TRUST, and synthesis readers to omit or
+  reject non-repository rows rather than dereference missing provenance.
+- Kept legacy repository publication behavior intact and left dual-write/backfill for the next
+  deployment phases.
