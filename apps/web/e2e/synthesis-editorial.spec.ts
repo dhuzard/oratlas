@@ -13,16 +13,28 @@ test("editor gates generated, rejected, and accepted synthesis drafts", async ({
     where: { localNodeId: "replay-boundary-claim", versions: { some: {} } },
     orderBy: { id: "asc" },
     include: {
-      versions: { orderBy: [{ createdAt: "desc" }, { id: "desc" }], take: 1 },
+      versions: {
+        where: { snapshotId: { not: null } },
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+        take: 1,
+      },
     },
   });
   const opposingNode = await prisma.knowledgeNode.findFirstOrThrow({
     where: { localNodeId: "replay-consolidation-claim", versions: { some: {} } },
     orderBy: { id: "asc" },
-    include: {
-      versions: { orderBy: [{ createdAt: "desc" }, { id: "desc" }], take: 1 },
-    },
   });
+  const opposingRelation = await prisma.nodeEdge.findFirstOrThrow({
+    where: {
+      sourceNodeVersion: { knowledgeNodeId: node.id },
+      targetNodeId: opposingNode.id,
+      relationType: "contradicts",
+      status: "confirmed",
+    },
+    orderBy: { id: "asc" },
+    select: { sourceNodeVersionId: true, confirmedTargetNodeVersionId: true },
+  });
+  expect(opposingRelation.confirmedTargetNodeVersionId).toBeTruthy();
   await page.getByLabel("Seed node ID").fill(node.id);
   const generationResponse = page.waitForResponse(
     (response) =>
@@ -41,10 +53,13 @@ test("editor gates generated, rejected, and accepted synthesis drafts", async ({
   };
   expect(draft.citations).toEqual(
     expect.arrayContaining([
-      expect.objectContaining({ nodeId: node.id, nodeVersionId: node.versions[0]!.id }),
+      expect.objectContaining({
+        nodeId: node.id,
+        nodeVersionId: opposingRelation.sourceNodeVersionId,
+      }),
       expect.objectContaining({
         nodeId: opposingNode.id,
-        nodeVersionId: opposingNode.versions[0]!.id,
+        nodeVersionId: opposingRelation.confirmedTargetNodeVersionId,
       }),
     ]),
   );
