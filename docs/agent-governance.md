@@ -29,6 +29,12 @@ Unknown interests fail validation rather than becoming hidden personalization ca
 [agent-facing API guide](knowledge-landscape-api.md) and complete contract in
 [`openapi.yaml`](openapi.yaml).
 
+Atlas Discuss is the primary Explore workflow. When an explicit Explore topic, interest, filter,
+or graph focus is present, its evidence packet is selected through that same landscape service and
+restricted to the exact accepted claim identities in the visible projection. Changing the question
+may rank within that set but cannot silently broaden it. Generated statement highlighting uses only
+returned claim/citation identifiers that already passed exact edge validation.
+
 ## Where agents ARE used (and how they are governed)
 
 ### Grounded Q&A (Atlas Discuss)

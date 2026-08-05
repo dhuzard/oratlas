@@ -12,6 +12,8 @@ export interface BuildPacketOptions {
   maxClaims?: number;
   /** Restrict to these review slugs (thread scope). */
   reviewSlugs?: string[];
+  /** Restrict to exact accepted claim identities selected by a shared Explore scope. */
+  claimIds?: string[];
   now?: () => Date;
 }
 
@@ -33,6 +35,10 @@ export function buildEvidencePacket(
   if (options.reviewSlugs && options.reviewSlugs.length > 0) {
     const allow = new Set(options.reviewSlugs);
     claims = claims.filter((c) => allow.has(c.reviewSlug));
+  }
+  if (options.claimIds) {
+    const allow = new Set(options.claimIds);
+    claims = claims.filter((claim) => allow.has(claim.claimId));
   }
 
   const ranked = claims

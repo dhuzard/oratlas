@@ -129,24 +129,25 @@ components:
                 - { const: bounded-to-six-claims-ten-evidence-and-twelve-graph-nodes }
               minItems: 4
               maxItems: 4
-        query:
-          type: object
-          additionalProperties: false
-          required: [interests]
-          properties:
-            q: { type: string, minLength: 1, maxLength: 500 }
-            interests:
-              type: array
-              maxItems: 5
-              items:
-                type: string
-                enum: [disagreements, reproducibility, methods-models, data-code, assessed-evidence]
-            focusNodeId: { type: string, minLength: 1, maxLength: 500 }
-            reviewSlug: { type: string, maxLength: 200 }
-            claimType: { type: string, maxLength: 40 }
-            relationType: { type: string, maxLength: 40 }
-            trustCriterion: { type: string, maxLength: 60 }
+        query: { $ref: "#/components/schemas/KnowledgeLandscapeQuery" }
         landscape: { $ref: "#/components/schemas/KnowledgeLandscapeData" }
+    KnowledgeLandscapeQuery:
+      type: object
+      additionalProperties: false
+      required: [interests]
+      properties:
+        q: { type: string, minLength: 1, maxLength: 500 }
+        interests:
+          type: array
+          maxItems: 5
+          items:
+            type: string
+            enum: [disagreements, reproducibility, methods-models, data-code, assessed-evidence]
+        focusNodeId: { type: string, minLength: 1, maxLength: 500 }
+        reviewSlug: { type: string, maxLength: 200 }
+        claimType: { type: string, maxLength: 40 }
+        relationType: { type: string, maxLength: 40 }
+        trustCriterion: { type: string, maxLength: 60 }
     PublicNodeSummary:
       type: object
       additionalProperties: false
@@ -1131,6 +1132,7 @@ components:
           description: Required only for correction; must belong to the same review.
     DiscussRequest:
       type: object
+      additionalProperties: false
       required: [question]
       properties:
         question: { type: string, minLength: 3, maxLength: 1000 }
@@ -1138,6 +1140,11 @@ components:
           type: array
           maxItems: 50
           items: { type: string, maxLength: 200 }
+        scope:
+          allOf: [{ $ref: "#/components/schemas/KnowledgeLandscapeQuery" }]
+          description: >
+            Optional explicit Explore URL state. The server resolves it through the same bounded
+            landscape service and restricts the evidence packet to the selected claims.
         llm:
           type: object
           additionalProperties: false

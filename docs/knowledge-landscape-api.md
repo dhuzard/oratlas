@@ -39,3 +39,16 @@ separate status.
 Unknown interests return `400` rather than silently creating a hidden personalization category. An
 unknown focus ID returns the overview projection, preserving a deterministic and reversible result.
 See `docs/openapi.yaml` for the complete contract.
+
+## Using the same scope with Atlas Discuss
+
+`POST /api/discuss` accepts the normalized landscape `query` object as its optional `scope` field.
+The server resolves that object through the same landscape service, extracts only the exact claim
+identities present in the bounded result, and then ranks within that closed set for the question.
+An empty or lexically irrelevant closed set returns the deterministic insufficient-evidence state;
+it is never broadened to unrelated archive content.
+
+The response includes the resolved scope, selected claim IDs, and a landscape node ID for every
+grounding reference. The Explore UI uses those identifiers to highlight only the validated
+claim–citation path for a selected generated statement. API keys remain outside the query object
+and are never placed in a URL or browser storage.
