@@ -3,9 +3,11 @@ import { existsSync, rmSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, resolve } from "node:path";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import { canonicalGraphQuerySchema, canonicalGraphResponseSchema } from "@oratlas/contracts";
 import { applyDatabaseGuards } from "@oratlas/db";
 import { PrismaClient } from "../../../../packages/db/generated/client/index.js";
 import { materializeCanonicalReviewGraph } from "./canonical-graph-materialization";
+import type * as CanonicalGraphQueryModule from "./canonical-graph-query";
 
 vi.mock("server-only", () => ({}));
 
@@ -17,9 +19,13 @@ let reviewVersionId: string;
 let claimId: string;
 let repositoryId: string;
 let snapshotId: string;
+let canonicalGraph: typeof CanonicalGraphQueryModule;
+let canonicalGraphPrisma: PrismaClient;
 
 describe("canonical review graph materialization", () => {
   beforeAll(async () => {
+    process.env.DATABASE_URL = databaseUrl;
+    process.env.SESSION_SECRET = "canonical-graph-query-integration-secret";
     const require = createRequire(import.meta.url);
     const prismaPackage = require.resolve("prisma/package.json", {
       paths: [resolve(process.cwd(), "packages/db")],
@@ -57,6 +63,8 @@ describe("canonical review graph materialization", () => {
     }
     prisma = new PrismaClient({ datasourceUrl: databaseUrl });
     await applyDatabaseGuards(prisma, "sqlite");
+    ({ prisma: canonicalGraphPrisma } = await import("./db"));
+    canonicalGraph = await import("./canonical-graph-query");
 
     const repository = await prisma.repository.create({
       data: {
@@ -128,9 +136,21 @@ describe("canonical review graph materialization", () => {
         { claimId: claim.id, citationId: second.id, relationType: "supports" },
       ],
     });
+    const assessedRelation = await prisma.claimEvidenceRelation.findFirstOrThrow({
+      where: { claimId: claim.id },
+      orderBy: { id: "asc" },
+    });
+    await prisma.trustAssessment.create({
+      data: {
+        claimEvidenceRelationId: assessedRelation.id,
+        protocolVersion: "TRUST-1.0",
+        assessorType: "agent",
+      },
+    });
   }, 30_000);
 
   afterAll(async () => {
+    await canonicalGraphPrisma?.$disconnect();
     await prisma?.$disconnect();
     for (const path of [
       databasePath,
@@ -152,6 +172,7 @@ describe("canonical review graph materialization", () => {
     expect(second).toEqual(first);
     expect(first).toMatchObject({
       claimCount: 1,
+      reviewAssertionEdgeCount: 1,
       workCount: 2,
       evidenceEdgeCount: 2,
       workIdentityConflictCount: 0,
@@ -201,6 +222,109 @@ describe("canonical review graph materialization", () => {
           nodeEdge.confirmedById === null,
       ),
     ).toBe(true);
+  });
+
+  it("pages exact source-assertion neighborhoods without presentation fields", async () => {
+    const claim = await prisma.claim.findUniqueOrThrow({
+      where: { id: claimId },
+      include: { graphVersion: true },
+    });
+    const first = await canonicalGraph.queryCanonicalGraph(
+      canonicalGraphQuerySchema.parse({
+        seed: claim.knowledgeNodeId,
+        version: claim.graphVersion?.id,
+        status: "source-assertion",
+        direction: "outgoing",
+        limit: 1,
+      }),
+    );
+    expect(canonicalGraphResponseSchema.parse(first)).toEqual(first);
+    expect(first).toMatchObject({
+      schemaVersion: "2.0.0",
+      seed: { nodeId: claim.knowledgeNodeId, nodeVersionId: claim.graphVersion?.id },
+      page: { limit: 1 },
+    });
+    expect(first.edges).toHaveLength(1);
+    expect(first.edges[0]).toMatchObject({
+      sourceNodeId: claim.knowledgeNodeId,
+      sourceNodeVersionId: claim.graphVersion?.id,
+      status: "source-assertion",
+      provenance: "imported-from-review",
+    });
+    expect(first.page.nextCursor).toBeTruthy();
+    expect(
+      first.nodes.find(({ nodeVersionId }) => nodeVersionId === claim.graphVersion?.id),
+    ).toMatchObject({
+      originType: "claim-occurrence",
+      kind: "claim",
+      source: { type: "claim-occurrence", claimId },
+    });
+    expect(JSON.stringify(first)).not.toMatch(/graphHref|recordHref|href/);
+
+    const laterCitation = await prisma.citation.create({
+      data: {
+        reviewVersionId,
+        localCitationId: "citation-after-cursor",
+        doi: "10.1000/after-cursor",
+        title: "Work added after traversal began",
+      },
+    });
+    const laterRelation = await prisma.claimEvidenceRelation.create({
+      data: { claimId, citationId: laterCitation.id, relationType: "contextualizes" },
+    });
+    await prisma.$transaction((tx) => materializeCanonicalReviewGraph(tx, reviewVersionId));
+    const materializedLaterRelation = await prisma.claimEvidenceRelation.findUniqueOrThrow({
+      where: { id: laterRelation.id },
+    });
+
+    const second = await canonicalGraph.queryCanonicalGraph(
+      canonicalGraphQuerySchema.parse({
+        seed: claim.knowledgeNodeId,
+        version: claim.graphVersion?.id,
+        status: "source-assertion",
+        direction: "outgoing",
+        limit: 1,
+        cursor: first.page.nextCursor,
+      }),
+    );
+    expect(second.edges).toHaveLength(1);
+    expect(second.edges[0]?.id).not.toBe(first.edges[0]?.id);
+    expect(second.edges[0]?.id).not.toBe(materializedLaterRelation.nodeEdgeId);
+    expect(second.page.nextCursor).toBeUndefined();
+
+    const fresh = await canonicalGraph.queryCanonicalGraph(
+      canonicalGraphQuerySchema.parse({
+        seed: claim.knowledgeNodeId,
+        version: claim.graphVersion?.id,
+        status: "source-assertion",
+        direction: "outgoing",
+        limit: 10,
+      }),
+    );
+    expect(fresh.edges.map(({ id }) => id)).toContain(materializedLaterRelation.nodeEdgeId);
+    expect(fresh.edges.some(({ trustAssessments }) => trustAssessments.length === 1)).toBe(true);
+
+    const reviewVersion = await prisma.reviewVersion.findUniqueOrThrow({
+      where: { id: reviewVersionId },
+      include: { review: true, graphVersion: true },
+    });
+    const reviewTraversal = await canonicalGraph.queryCanonicalGraph(
+      canonicalGraphQuerySchema.parse({
+        seed: reviewVersion.review.knowledgeNodeId,
+        version: reviewVersion.graphVersion?.id,
+        status: "source-assertion",
+        direction: "outgoing",
+      }),
+    );
+    expect(reviewTraversal.edges).toContainEqual(
+      expect.objectContaining({
+        sourceNodeId: reviewVersion.review.knowledgeNodeId,
+        sourceNodeVersionId: reviewVersion.graphVersion?.id,
+        targetNodeId: claim.knowledgeNodeId,
+        targetNodeVersionId: claim.graphVersion?.id,
+        relationType: "asserts",
+      }),
+    );
   });
 
   it("fails closed to an occurrence work when aliases point at different candidates", async () => {

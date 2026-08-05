@@ -32,7 +32,7 @@ describe("GCP beta smoke", () => {
       }
       if (url.pathname === "/api/graph") {
         return Response.json({
-          nodes: [{ id: "node-1", versionId: "version-1" }],
+          nodes: [{ nodeId: "node-1", nodeVersionId: "version-1" }],
         });
       }
       return new Response("ok");
@@ -52,7 +52,9 @@ describe("GCP beta smoke", () => {
     expect(requested).toContain(
       "https://oratlas.example/api/landscape?q=replay&interest=data-code",
     );
-    expect(requested).toContain("https://oratlas.example/api/graph?seed=node-1&depth=0&limit=1");
+    expect(requested).toContain(
+      "https://oratlas.example/api/graph?seed=node-1&version=version-1&limit=1",
+    );
     expect(requested).toContain("https://oratlas.example/nodes/node-1/versions/version-1");
     expect(requested).toContain("https://oratlas.example/graph?seed=node-1");
   });

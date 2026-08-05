@@ -20,6 +20,7 @@ interface VersionValidation {
   missingReviewBinding: number;
   missingReviewVersionBinding: number;
   missingClaimBindings: number;
+  missingReviewAssertionBindings: number;
   missingCitationBindings: number;
   missingRelationBindings: number;
   semanticMismatchCount: number;
@@ -168,6 +169,7 @@ function requiredValue(args: string[], index: number, flag: string): string {
 type GraphClient = Pick<
   Prisma.TransactionClient,
   | "reviewVersion"
+  | "nodeEdge"
   | "claimEvidenceRelation"
   | "trustAssessment"
   | "trustVerification"
@@ -200,6 +202,16 @@ async function validateVersion(
       citation: { include: { graphVersion: true } },
     },
   });
+  const reviewAssertions = version.graphVersion
+    ? await client.nodeEdge.findMany({
+        where: {
+          sourceNodeVersionId: version.graphVersion.id,
+          relationType: "asserts",
+          status: "source-assertion",
+          provenance: "imported-from-review",
+        },
+      })
+    : [];
   const missingReviewBinding = version.review.knowledgeNode ? 0 : 1;
   const missingReviewVersionBinding = version.graphVersion ? 0 : 1;
   const missingClaimBindings = version.claims.filter(
@@ -207,6 +219,16 @@ async function validateVersion(
   ).length;
   const missingCitationBindings = version.citations.filter(
     ({ workId, knowledgeNode, graphVersion }) => !workId || !knowledgeNode || !graphVersion,
+  ).length;
+  const missingReviewAssertionBindings = version.claims.filter(
+    (claim) =>
+      !reviewAssertions.some(
+        (edge) =>
+          edge.edgeDiscriminator === claim.id &&
+          edge.targetNodeId === claim.knowledgeNodeId &&
+          edge.confirmedTargetNodeVersionId === claim.graphVersion?.id &&
+          edge.confirmedById === null,
+      ),
   ).length;
   const missingRelationBindings = relations.filter(({ nodeEdge }) => !nodeEdge).length;
   const semanticMismatchCount = relations.filter(
@@ -227,6 +249,7 @@ async function validateVersion(
     missingReviewBinding,
     missingReviewVersionBinding,
     missingClaimBindings,
+    missingReviewAssertionBindings,
     missingCitationBindings,
     missingRelationBindings,
     semanticMismatchCount,
@@ -238,6 +261,7 @@ function validationTotal(validation: VersionValidation): number {
     validation.missingReviewBinding +
     validation.missingReviewVersionBinding +
     validation.missingClaimBindings +
+    validation.missingReviewAssertionBindings +
     validation.missingCitationBindings +
     validation.missingRelationBindings +
     validation.semanticMismatchCount

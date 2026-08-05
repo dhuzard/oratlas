@@ -65,6 +65,10 @@ audited identity operation that preserves every alias and old reference.
 
 ## Canonical evidence edge and compatibility projection
 
+Each exact review version has a source-native `asserts` edge to every exact claim occurrence it
+contains. This makes review identity traversable rather than a disconnected label and preserves
+review → claim membership without deriving it in the presentation layer.
+
 Each claim-to-work evidence assertion becomes a canonical edge from the claim's exact node version
 to the stable work node, with an exact target version where the source establishes one. Imported
 repository evidence is a **source assertion**. It is distinct from an editor-confirmed relation and
@@ -99,7 +103,8 @@ deployable and rollback-safe until the final constraint step.
 3. **Backfill.** In bounded, restartable, idempotent batches, create one review node and exact
    version per existing review record; create conflict-aware work identities or occurrence-local
    fallbacks; create explicit per-occurrence claim identities where no reviewed binding exists;
-   and link every relation 1:1 to its canonical edge. Record counts, conflicts, skips, and hashes in
+   add review-to-claim `asserts` edges; and link every evidence relation 1:1 to its canonical edge.
+   Record counts, conflicts, skips, and hashes in
    a validation manifest. Do not invent repositories or snapshots and do not infer cross-version
    claim identity.
 4. **Contract.** After validation reports zero missing, duplicate, or semantically divergent
@@ -117,7 +122,8 @@ repository provenance.
 Dual-write materializes each accepted relational review version in the same database transaction:
 one stable review node and exact version, one non-merged claim-occurrence node and exact version per
 claim, conflict-aware canonical or occurrence-fallback work nodes with exact citation versions, and
-one source-assertion edge per legacy claim-evidence relation. The legacy relation id remains the
+one review `asserts` edge per claim plus one source-assertion edge per legacy claim-evidence
+relation. The legacy relation id remains the
 edge discriminator and its nullable `nodeEdgeId` becomes the 1:1 compatibility binding. Imported
 edges use `source-assertion`/`imported-from-review`; they have no confirmer and never enter the
 editor-confirmed public projection. Title and license are optional for canonical source records, so
@@ -133,7 +139,7 @@ that a production upgrade is safe.
 
 ## Consequences and non-goals
 
-- Canonical traversal can eventually return complete, reader-agnostic graph records while
+- Canonical traversal returns reader-agnostic graph records while
   recommendation and presentation remain derived layers.
 - Review and work are now reserved graph kinds at the shared contract boundary. This ADR alone does
   not make current Prisma or runtime paths accept their payloads.

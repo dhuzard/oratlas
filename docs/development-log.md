@@ -1002,3 +1002,13 @@ Two fail-closed gaps were found and intentionally not changed in this audit-only
   GUI focus state and exposes unresolved compatibility rows through `omittedUnboundCount`.
 - Kept the human Explore rendering model internal and documented Atlas Discuss as a bounded lens
   beside graph traversal rather than the canonical front door.
+
+## Canonical graph traversal API
+
+- Replaced the external `/api/graph` depth/frontier projection with exact-version, one-adjacency-page
+  keyset traversal. Following cursors and expanding returned references can traverse every public
+  authoritative edge without a viewport or cumulative graph cap.
+- Added public source-union projection for repository objects, reviews, claim occurrences, and
+  canonical works, including canonical content, provenance, payload, aliases, and exact source.
+- Included source-native review assertions alongside editor-confirmed relations while keeping
+  proposals and presentation fields outside the canonical contract.

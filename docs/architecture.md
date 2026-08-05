@@ -177,9 +177,10 @@ strict, versioned runtime DTO because later writer and verification slices need 
 while `packages/knowledge` owns the pure deterministic builder and SHA-256 preparation path. The
 builder has no Prisma, React, artifact, network, or execution dependency.
 
-The builder accepts a bounded subgraph supplied by a trusted, unpaginated loader. A paginated
-`GET /api/graph` response is not evidence of global topic completeness and is deliberately not the
-source contract. KG-11 verifies internal closure, declared counts, selector fingerprint, exact
+The builder accepts a bounded subgraph supplied by a trusted, unpaginated loader. A single
+`GET /api/graph` adjacency page is not evidence of traversal completion; callers must follow its
+cursor and explicitly expand returned node/version references. KG-11 verifies internal closure,
+declared counts, selector fingerprint, exact
 node-version ownership, and the full contradiction inventory it receives; loader integration is
 responsible for selecting the complete bounded domain for its seed or canonical topic query.
 Every node retains its repository snapshot, commit, and source provenance. Only editor-confirmed
@@ -193,6 +194,8 @@ role. The identifier whitelist is derived rather than accepted, excludes all exa
 launder an identifier onto another node. Derived tables, canonical JSON, and the hash are available
 only through the source-building path. The packet contains no volatile clock, editorial/private
 records, or agent-run fields, and enforces node, edge, identifier, text, and final-byte caps.
+
+The public graph contract itself is documented in [Canonical graph traversal API](canonical-graph-api.md).
 
 `SynthesisWriter` consumes only a revalidated canonical prepared packet. Its static system prompt
 never interpolates repository content; the exact packet JSON is the user-data field of an explicit,

@@ -7,6 +7,7 @@ export interface CanonicalGraphMaterializationReport {
   reviewNodeId: string;
   reviewNodeVersionId: string;
   claimCount: number;
+  reviewAssertionEdgeCount: number;
   workCount: number;
   evidenceEdgeCount: number;
   workIdentityConflictCount: number;
@@ -75,7 +76,8 @@ export async function materializeCanonicalReviewGraph(
     isExample: version.isExample,
   });
 
-  const claimVersionById = new Map<string, string>();
+  const claimVersionById = new Map<string, { nodeId: string; versionId: string }>();
+  let reviewAssertionEdgeCount = 0;
   for (const claim of version.claims) {
     const explicitlyBound = claim.knowledgeNodeId
       ? await tx.knowledgeNode.findUnique({ where: { id: claim.knowledgeNodeId } })
@@ -119,7 +121,21 @@ export async function materializeCanonicalReviewGraph(
       }),
       isExample: version.isExample,
     });
-    claimVersionById.set(claim.id, graphVersion.id);
+    claimVersionById.set(claim.id, { nodeId: node.id, versionId: graphVersion.id });
+    const reviewAssertion = await exactSourceAssertionEdge(tx, {
+      sourceNodeVersionId: reviewGraphVersion.id,
+      targetNodeId: node.id,
+      targetNodeVersionId: graphVersion.id,
+      relationType: "asserts",
+      edgeDiscriminator: claim.id,
+      assertedAt: version.publishedAt ?? version.createdAt,
+    });
+    if (!reviewAssertion) {
+      throw new CanonicalGraphMaterializationError(
+        `Review assertion for claim '${claim.id}' failed materialization.`,
+      );
+    }
+    reviewAssertionEdgeCount += 1;
   }
 
   const workByCitationId = new Map<string, { nodeId: string; versionId: string }>();
@@ -169,15 +185,15 @@ export async function materializeCanonicalReviewGraph(
   });
   let evidenceEdgeCount = 0;
   for (const relation of relations) {
-    const sourceNodeVersionId = claimVersionById.get(relation.claimId);
+    const source = claimVersionById.get(relation.claimId);
     const target = workByCitationId.get(relation.citationId);
-    if (!sourceNodeVersionId || !target) {
+    if (!source || !target) {
       throw new CanonicalGraphMaterializationError(
         `Relation '${relation.id}' does not resolve to exact graph endpoints.`,
       );
     }
     const unique = {
-      sourceNodeVersionId,
+      sourceNodeVersionId: source.versionId,
       targetNodeId: target.nodeId,
       relationType: relation.relationType,
       edgeDiscriminator: relation.id,
@@ -219,10 +235,55 @@ export async function materializeCanonicalReviewGraph(
     reviewNodeId: reviewNode.id,
     reviewNodeVersionId: reviewGraphVersion.id,
     claimCount: version.claims.length,
+    reviewAssertionEdgeCount,
     workCount: version.citations.length,
     evidenceEdgeCount,
     workIdentityConflictCount,
   };
+}
+
+async function exactSourceAssertionEdge(
+  tx: Prisma.TransactionClient,
+  input: {
+    sourceNodeVersionId: string;
+    targetNodeId: string;
+    targetNodeVersionId: string;
+    relationType: string;
+    edgeDiscriminator: string;
+    assertedAt: Date;
+  },
+) {
+  const unique = {
+    sourceNodeVersionId: input.sourceNodeVersionId,
+    targetNodeId: input.targetNodeId,
+    relationType: input.relationType,
+    edgeDiscriminator: input.edgeDiscriminator,
+  };
+  let edge = await tx.nodeEdge.findUnique({
+    where: { sourceNodeVersionId_targetNodeId_relationType_edgeDiscriminator: unique },
+  });
+  if (!edge) {
+    edge = await tx.nodeEdge.create({
+      data: {
+        ...unique,
+        status: "source-assertion",
+        provenance: "imported-from-review",
+        assertedAt: input.assertedAt,
+        confirmedTargetNodeVersionId: input.targetNodeVersionId,
+      },
+    });
+  }
+  if (
+    edge.status !== "source-assertion" ||
+    edge.provenance !== "imported-from-review" ||
+    edge.confirmedTargetNodeVersionId !== input.targetNodeVersionId ||
+    edge.confirmedById !== null
+  ) {
+    throw new CanonicalGraphMaterializationError(
+      `Canonical source assertion '${edge.id}' has incompatible semantics.`,
+    );
+  }
+  return edge;
 }
 
 async function stableNode(

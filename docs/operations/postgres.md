@@ -84,7 +84,8 @@ Each review version commits in its own serializable transaction. The command has
 TRUST, verification, challenge, response, transition, and adjudication records before and after;
 any change rolls that version back and stops the batch. The manifest reports per-version counts,
 semantic mismatches, protected-ledger digests, the next `--after` cursor, remaining records, and
-whether the corpus is complete. Resume only from the last successful `nextAfter`; retain every
+whether the corpus is complete. Validation includes one exact review `asserts` edge per claim as
+well as every claim-evidence compatibility edge. Resume only from the last successful `nextAfter`; retain every
 manifest with the deployment change record. A dry run never writes, and `--apply` without
 `--manifest` is rejected.
 
