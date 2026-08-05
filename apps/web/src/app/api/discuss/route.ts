@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { getServerEnv } from "@oratlas/config";
 import { getCurrentUser } from "@/lib/auth";
 import { runDiscussion } from "@/lib/discuss";
 import {
@@ -10,17 +11,39 @@ import {
   readJsonBody,
 } from "@/lib/api";
 import { rateLimit, clientKey } from "@/lib/rate-limit";
+import { validateSameOriginJsonRequest } from "@/lib/mutation-request";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
+const requestLlmSchema = z.object({
+  provider: z.enum(["anthropic", "openai"]),
+  apiKey: z.string().trim().min(20).max(500),
+  model: z
+    .string()
+    .trim()
+    .min(1)
+    .max(120)
+    .regex(/^[A-Za-z0-9._:-]+$/)
+    .optional(),
+});
+
 const bodySchema = z.object({
   question: z.string().min(3).max(1000),
   reviewSlugs: z.array(z.string().max(200)).max(50).optional(),
+  llm: requestLlmSchema.optional(),
 });
 
 export async function POST(request: Request) {
   try {
+    const integrity = validateSameOriginJsonRequest(request, getServerEnv().NEXT_PUBLIC_BASE_URL);
+    if (!integrity.ok) {
+      return errorResponse(
+        integrity.status === 415 ? "bad-request" : "forbidden",
+        integrity.message,
+      );
+    }
+
     const user = await getCurrentUser();
     const limit = rateLimit(
       clientKey(request.headers, `discuss:${user?.id ?? "anon"}`),
@@ -33,9 +56,16 @@ export async function POST(request: Request) {
     const body = await readJsonBody(request);
     const parsed = bodySchema.safeParse(body);
     if (!parsed.success)
-      return errorResponse("bad-request", "A question (3–1000 chars) is required.");
+      return errorResponse(
+        "bad-request",
+        "A valid question and optional Anthropic/OpenAI key configuration are required.",
+      );
 
-    const response = await runDiscussion(parsed.data.question, parsed.data.reviewSlugs);
+    const response = await runDiscussion(
+      parsed.data.question,
+      parsed.data.reviewSlugs,
+      parsed.data.llm,
+    );
     return NextResponse.json(response);
   } catch (err) {
     if (err instanceof BodyTooLargeError)

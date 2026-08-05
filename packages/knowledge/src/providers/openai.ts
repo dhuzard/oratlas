@@ -1,0 +1,126 @@
+import { Buffer } from "node:buffer";
+import { type LlmProvider } from "../discuss.js";
+
+export interface OpenAIProviderOptions {
+  apiKey: string;
+  model?: string;
+  baseUrl?: string;
+  fetchImpl?: typeof fetch;
+  timeoutMs?: number;
+}
+
+const MAX_PROVIDER_TOKENS = 8_192;
+const MAX_PROVIDER_RESPONSE_BYTES = 262_144;
+
+/**
+ * Bounded OpenAI Responses API adapter. Request-specific prompts and limits
+ * come from the provider-neutral discussion pipeline; this module performs
+ * transport only and returns all output_text items as one string.
+ */
+export function createOpenAIProvider(options: OpenAIProviderOptions): LlmProvider {
+  const {
+    apiKey,
+    model = "gpt-5.6",
+    baseUrl = "https://api.openai.com",
+    fetchImpl = fetch,
+    timeoutMs = 30_000,
+  } = options;
+
+  return {
+    name: "openai",
+    model,
+    async complete(request): Promise<string> {
+      if (
+        !Number.isInteger(request.maxTokens) ||
+        request.maxTokens < 1 ||
+        request.maxTokens > MAX_PROVIDER_TOKENS
+      ) {
+        throw new Error("LLM token limit is invalid.");
+      }
+      if (
+        !Number.isInteger(request.maxResponseBytes) ||
+        request.maxResponseBytes < 1 ||
+        request.maxResponseBytes > MAX_PROVIDER_RESPONSE_BYTES
+      ) {
+        throw new Error("LLM response byte limit is invalid.");
+      }
+
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeoutMs);
+      try {
+        const res = await fetchImpl(`${baseUrl}/v1/responses`, {
+          method: "POST",
+          signal: controller.signal,
+          headers: {
+            authorization: `Bearer ${apiKey}`,
+            "content-type": "application/json",
+          },
+          body: JSON.stringify({
+            model,
+            instructions: request.system,
+            input: request.user,
+            max_output_tokens: request.maxTokens,
+            store: false,
+          }),
+        });
+        if (!res.ok) {
+          throw new Error(`OpenAI API returned ${res.status}.`);
+        }
+
+        const responseText = await readBoundedResponse(res, request.maxResponseBytes);
+        let json: {
+          output?: Array<{
+            type?: string;
+            content?: Array<{ type?: string; text?: string }>;
+          }>;
+        };
+        try {
+          json = JSON.parse(responseText) as typeof json;
+        } catch {
+          throw new Error("OpenAI API returned invalid JSON.");
+        }
+
+        const text = (json.output ?? [])
+          .filter((item) => item.type === "message")
+          .flatMap((item) => item.content ?? [])
+          .filter((item) => item.type === "output_text" && typeof item.text === "string")
+          .map((item) => item.text)
+          .join("");
+        if (Buffer.byteLength(text, "utf8") > request.maxResponseBytes) {
+          throw new Error("OpenAI completion exceeded the response byte limit.");
+        }
+        return text;
+      } finally {
+        clearTimeout(timer);
+      }
+    },
+  };
+}
+
+async function readBoundedResponse(response: Response, maxBytes: number): Promise<string> {
+  const declared = Number(response.headers.get("content-length"));
+  if (Number.isFinite(declared) && declared > maxBytes) {
+    throw new Error("OpenAI response exceeded the response byte limit.");
+  }
+  if (!response.body) return "";
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    size += value.byteLength;
+    if (size > maxBytes) {
+      await reader.cancel();
+      throw new Error("OpenAI response exceeded the response byte limit.");
+    }
+    chunks.push(value);
+  }
+  const joined = new Uint8Array(size);
+  let offset = 0;
+  for (const chunk of chunks) {
+    joined.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return new TextDecoder("utf-8", { fatal: true }).decode(joined);
+}

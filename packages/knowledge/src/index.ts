@@ -20,6 +20,7 @@ export {
   type LlmDiscussionResult,
 } from "./discuss.js";
 export { createAnthropicProvider, type AnthropicProviderOptions } from "./providers/anthropic.js";
+export { createOpenAIProvider, type OpenAIProviderOptions } from "./providers/openai.js";
 export {
   proposeCrossReviewLinks,
   type LinkProposalDraft,

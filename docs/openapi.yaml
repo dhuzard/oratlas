@@ -1136,7 +1136,23 @@ components:
         question: { type: string, minLength: 3, maxLength: 1000 }
         reviewSlugs:
           type: array
-          items: { type: string }
+          maxItems: 50
+          items: { type: string, maxLength: 200 }
+        llm:
+          type: object
+          additionalProperties: false
+          description: >
+            Optional request-scoped BYOK configuration. Accepted only from a matching same-origin
+            JSON request; the key is used for this answer and is not persisted by ORAtlas.
+          required: [provider, apiKey]
+          properties:
+            provider: { type: string, enum: [anthropic, openai] }
+            apiKey: { type: string, minLength: 20, maxLength: 500, format: password }
+            model:
+              type: string
+              minLength: 1
+              maxLength: 120
+              pattern: "^[A-Za-z0-9._:-]+$"
     CommentCreateRequest:
       type: object
       required: [body]
@@ -3167,6 +3183,7 @@ paths:
       responses:
         "200": { description: Discussion response }
         "400": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
         "429": { $ref: "#/components/responses/Error" }
   /api/reviews/{slug}/comments:
     get:

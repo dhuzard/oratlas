@@ -33,13 +33,17 @@ Unknown interests fail validation rather than becoming hidden personalization ca
 
 ### Grounded Q&A (Atlas Discuss)
 
-- Runs in **deterministic mode** when no LLM key is configured: it retrieves relevant claims,
+- Runs in **deterministic mode** when no LLM key is supplied for the request or configured on the
+  server: it retrieves relevant claims,
   groups them by evidence relation, and returns a structured summary. It does **not** fabricate
   prose pretending to be an AI answer.
 - In **LLM mode**, a provider-neutral adapter receives **only the evidence packet** (never
   unrestricted database access). Packet schema 1.1 requires explicit claim→citation evidence
   edges for every statement. Unknown identifiers, nonexistent edges, or a mismatch between those
   edges and the answer's evidence summary are **rejected and retried once**.
+- Request-scoped BYOK supports Anthropic and OpenAI. The key is accepted only on a same-origin JSON
+  request, is never persisted or logged, and is discarded after the provider call. Provider account
+  terms and charges belong to the user; the selected provider receives the bounded evidence packet.
 - Each run persists an `AgentRun`: provider, model, model version, prompt version, evidence-packet
   hash, exact canonical packet JSON, output, and grounding-validation result. The identical packet
   bytes are hashed, sent to the provider, and persisted. Chain-of-thought is never requested or
