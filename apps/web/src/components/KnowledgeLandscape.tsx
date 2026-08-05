@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import type {
   KnowledgeLandscapeData,
   KnowledgeLandscapeEdge,
@@ -62,6 +65,19 @@ export function KnowledgeLandscape({
   overviewHref: string;
   focusHrefByNode: Record<string, string>;
 }) {
+  const [highlightedNodeIds, setHighlightedNodeIds] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    const onGroundingFocus = (event: Event) => {
+      const detail = (event as CustomEvent<{ nodeIds?: unknown }>).detail;
+      const nodeIds = Array.isArray(detail?.nodeIds)
+        ? detail.nodeIds.filter((id): id is string => typeof id === "string")
+        : [];
+      setHighlightedNodeIds(new Set(nodeIds));
+    };
+    window.addEventListener("oratlas:grounding-focus", onGroundingFocus);
+    return () => window.removeEventListener("oratlas:grounding-focus", onGroundingFocus);
+  }, []);
+
   if (landscape.nodes.length === 0) {
     return (
       <section className="knowledge-landscape-empty" aria-label="Guided knowledge landscape">
@@ -112,6 +128,22 @@ export function KnowledgeLandscape({
             Ordering helps exploration only. It is not a truth, quality, or trust score.
           </p>
         </div>
+      </div>
+
+      <div className="landscape-grounding-status" aria-live="polite">
+        {highlightedNodeIds.size > 0 ? (
+          <>
+            <span>
+              Highlighting {highlightedNodeIds.size} exact graph item
+              {highlightedNodeIds.size === 1 ? "" : "s"} used by the selected statement.
+            </span>
+            <button type="button" onClick={() => setHighlightedNodeIds(new Set())}>
+              Clear highlight
+            </button>
+          </>
+        ) : (
+          <span>Select a grounded statement in Atlas Discuss to highlight its validated path.</span>
+        )}
       </div>
 
       {landscape.graphNodeCount > 0 ? (
@@ -171,11 +203,19 @@ export function KnowledgeLandscape({
               edge={edge}
               source={nodeById.get(edge.sourceId)}
               target={nodeById.get(edge.targetId)}
+              highlighted={
+                highlightedNodeIds.has(edge.sourceId) && highlightedNodeIds.has(edge.targetId)
+              }
               key={`${edge.sourceId}:${edge.targetId}:${index}`}
             />
           ))}
           {nodes.map((node) => (
-            <LandscapeSvgNode node={node} key={node.id} />
+            <LandscapeSvgNode
+              node={node}
+              highlighted={highlightedNodeIds.has(node.id)}
+              dimmed={highlightedNodeIds.size > 0 && !highlightedNodeIds.has(node.id)}
+              key={node.id}
+            />
           ))}
         </svg>
       </div>
@@ -218,7 +258,16 @@ export function KnowledgeLandscape({
               <h3 id={`landscape-${kind}-title`}>{LANE_LABEL[kind]}</h3>
               <ul>
                 {kindNodes.map((node) => (
-                  <li key={node.id}>
+                  <li
+                    className={
+                      highlightedNodeIds.has(node.id)
+                        ? "landscape-detail-highlighted"
+                        : highlightedNodeIds.size > 0
+                          ? "landscape-detail-dimmed"
+                          : undefined
+                    }
+                    key={node.id}
+                  >
                     <a href={node.href}>{node.label}</a>
                     <small>{node.detail}</small>
                     <details className="landscape-reasons">
@@ -274,15 +323,17 @@ function LandscapeEdge({
   edge,
   source,
   target,
+  highlighted,
 }: {
   edge: KnowledgeLandscapeEdge;
   source?: PositionedNode;
   target?: PositionedNode;
+  highlighted: boolean;
 }) {
   if (!source || !target) return null;
   return (
     <g
-      className={`landscape-edge landscape-edge-${edgeTone(edge.relationType)}`}
+      className={`landscape-edge landscape-edge-${edgeTone(edge.relationType)}${highlighted ? " landscape-edge-highlighted" : ""}`}
       data-status={edge.status}
     >
       <line
@@ -297,13 +348,21 @@ function LandscapeEdge({
   );
 }
 
-function LandscapeSvgNode({ node }: { node: PositionedNode }) {
+function LandscapeSvgNode({
+  node,
+  highlighted,
+  dimmed,
+}: {
+  node: PositionedNode;
+  highlighted: boolean;
+  dimmed: boolean;
+}) {
   const width = node.kind === "claim" ? 250 : 190;
   const lines = wrapLabel(node.label, node.kind === "claim" ? 34 : 24);
   return (
     <a href={node.href} aria-label={`${LANE_LABEL[node.kind]}: ${node.label}`}>
       <g
-        className="landscape-node"
+        className={`landscape-node${highlighted ? " landscape-node-highlighted" : ""}${dimmed ? " landscape-node-dimmed" : ""}`}
         data-kind={node.kind}
         transform={`translate(${node.x}, ${node.y})`}
       >

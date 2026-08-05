@@ -20,7 +20,7 @@ test.describe("Public archive browsing", () => {
   test("unified Explore defaults to claims and switches to reviews", async ({ page }) => {
     await page.goto("/explore");
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-      "Claims and scientific reviews",
+      "Ask Atlas, then inspect the evidence graph",
     );
     const contentNavigation = page.getByRole("navigation", { name: "Explore content" });
     await expect(contentNavigation.getByRole("link", { name: /Claims/ })).toHaveAttribute(
@@ -59,8 +59,24 @@ test.describe("Public archive browsing", () => {
     await breadcrumb.getByRole("link", { name: "Explore" }).click();
     await expect(page).toHaveURL(/\/explore\?view=claims/);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-      "Claims and scientific reviews",
+      "Ask Atlas, then inspect the evidence graph",
     );
+  });
+
+  test("Atlas Discuss is central and bounded to explicit Explore state", async ({ page }) => {
+    await page.goto("/explore?q=replay&interest=data-code");
+    await expect(
+      page.getByRole("heading", { name: "Discuss this landscape with Atlas" }),
+    ).toBeVisible();
+    await expect(page.getByLabel("Your question")).toHaveValue("replay");
+    const scope = page.getByLabel("Atlas Discuss evidence scope");
+    await expect(scope).toContainText("Topic: replay");
+    await expect(scope).toContainText("Interests: data-code");
+    await expect(scope).toContainText(/only claims selected by this explicit Explore state/i);
+
+    await page.getByRole("button", { name: "Ask question" }).click();
+    await expect(page.getByText(/Evidence used:.*topic “replay”/i)).toBeVisible();
+    await expect(page.getByTestId("discussion-packet-hash")).toHaveText(/^[a-f0-9]{64}$/);
   });
 
   test("readers can build a personalized graph path from an explicit topic and interest", async ({
@@ -163,13 +179,13 @@ test.describe("Public archive browsing", () => {
   test("unified Explore safely handles malformed public query parameters", async ({ page }) => {
     await page.goto("/explore?page=abc");
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-      "Claims and scientific reviews",
+      "Ask Atlas, then inspect the evidence graph",
     );
     await expect(page.getByText("Page NaN")).toHaveCount(0);
 
     await page.goto("/explore?view=reviews&page=abc&sort=unexpected");
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-      "Claims and scientific reviews",
+      "Ask Atlas, then inspect the evidence graph",
     );
     await expect(page.locator("#sort")).toHaveValue("accepted");
   });

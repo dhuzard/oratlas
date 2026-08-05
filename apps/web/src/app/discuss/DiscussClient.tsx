@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import type { KnowledgeLandscapeQuery } from "@oratlas/contracts";
 import { trustVerificationPresentation } from "@/components/TrustVerificationBadge";
 
 interface EvidenceClaim {
@@ -46,6 +47,12 @@ interface DiscussResponse {
   packetHash: string;
   packetSchemaVersion: "1.1.0";
   references: DiscussionReference[];
+  scope: {
+    kind: "archive" | "review" | "explore";
+    label: string;
+    claimIds: string[];
+    landscapeNodeIds: string[];
+  };
 }
 
 interface DiscussionReference {
@@ -53,10 +60,21 @@ interface DiscussionReference {
   id: string;
   label: string;
   href: string;
+  landscapeNodeId: string;
 }
 
-export function DiscussClient({ initialReview }: { initialReview?: string }) {
-  const [question, setQuestion] = useState("");
+export function DiscussClient({
+  initialReview,
+  initialQuestion = "",
+  scope,
+  embedded = false,
+}: {
+  initialReview?: string;
+  initialQuestion?: string;
+  scope?: KnowledgeLandscapeQuery;
+  embedded?: boolean;
+}) {
+  const [question, setQuestion] = useState(initialQuestion);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [response, setResponse] = useState<DiscussResponse | null>(null);
@@ -65,6 +83,9 @@ export function DiscussClient({ initialReview }: { initialReview?: string }) {
   const [model, setModel] = useState("");
 
   async function ask() {
+    // A new answer has no selected grounding path yet. Clear any highlight from
+    // the previous answer before the request so failures cannot leave stale graph state.
+    highlightLandscape([]);
     setLoading(true);
     setError(null);
     try {
@@ -74,6 +95,7 @@ export function DiscussClient({ initialReview }: { initialReview?: string }) {
         body: JSON.stringify({
           question,
           reviewSlugs: initialReview ? [initialReview] : undefined,
+          scope,
           llm: apiKey.trim()
             ? {
                 provider,
@@ -105,11 +127,21 @@ export function DiscussClient({ initialReview }: { initialReview?: string }) {
 
   return (
     <div>
-      <div className="card">
+      <div className={embedded ? "atlas-discuss-composer" : "card"}>
+        {scope ? (
+          <div className="atlas-discuss-scope" aria-label="Atlas Discuss evidence scope">
+            <strong>Visible evidence scope</strong>
+            <span>{describeScope(scope)}</span>
+            <small>
+              Atlas will use only claims selected by this explicit Explore state. Change the topic,
+              interests, filters, or graph focus to edit it.
+            </small>
+          </div>
+        ) : null}
         <div className="field">
-          <label htmlFor="q">Your question</label>
+          <label htmlFor="atlas-question">Your question</label>
           <textarea
-            id="q"
+            id="atlas-question"
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
             placeholder="e.g. What is the evidence that hippocampal replay supports memory consolidation?"
@@ -194,6 +226,12 @@ export function DiscussClient({ initialReview }: { initialReview?: string }) {
             </code>
           </p>
 
+          <p className="atlas-discuss-resolved-scope">
+            <strong>Evidence used:</strong> {response.scope.label} ·{" "}
+            {response.scope.claimIds.length} selected claim
+            {response.scope.claimIds.length === 1 ? "" : "s"}.
+          </p>
+
           {llm?.answer ? <LlmAnswer answer={llm.answer} references={response.references} /> : null}
           {llm && !llm.answer ? (
             <div className="notice notice-warning">
@@ -221,6 +259,10 @@ interface LlmResult {
     missingEvidence: string[];
     reviewClaimsUsed: string[];
     citationsUsed: string[];
+    grounding: Array<{
+      statement: string;
+      evidenceEdges: Array<{ claimId: string; citationId: string }>;
+    }>;
   };
   error?: string;
 }
@@ -243,6 +285,7 @@ function LlmAnswer({
       <List title="Disagreements" items={answer.disagreements} />
       <List title="Uncertainties" items={answer.uncertainties} />
       <List title="Missing evidence" items={answer.missingEvidence} />
+      <GroundedStatements statements={answer.grounding} references={references} />
       <p className="muted">
         Grounded in {answer.reviewClaimsUsed.length} claim(s) and {answer.citationsUsed.length}{" "}
         citation(s). Every claim–citation edge was validated against the evidence packet. This is
@@ -250,6 +293,52 @@ function LlmAnswer({
       </p>
       <GroundingReferences references={references.filter((reference) => used.has(reference.id))} />
     </div>
+  );
+}
+
+function GroundedStatements({
+  statements,
+  references,
+}: {
+  statements: NonNullable<LlmResult["answer"]>["grounding"];
+  references: DiscussionReference[];
+}) {
+  if (statements.length === 0) return null;
+  const referenceById = new Map(references.map((reference) => [reference.id, reference]));
+  return (
+    <section aria-labelledby="grounded-statements-title">
+      <h3 id="grounded-statements-title" style={{ fontSize: "1.05rem" }}>
+        Inspect grounded statements
+      </h3>
+      <ol className="grounded-statements">
+        {statements.map((statement, index) => {
+          const nodeIds = [
+            ...new Set(
+              statement.evidenceEdges.flatMap((edge) =>
+                [referenceById.get(edge.claimId), referenceById.get(edge.citationId)].flatMap(
+                  (reference) => (reference ? [reference.landscapeNodeId] : []),
+                ),
+              ),
+            ),
+          ];
+          return (
+            <li key={`${index}:${statement.statement}`}>
+              <button
+                type="button"
+                className="grounded-statement"
+                onClick={() => highlightLandscape(nodeIds)}
+              >
+                {statement.statement}
+              </button>
+              <small>
+                {statement.evidenceEdges.length} validated claim–citation edge
+                {statement.evidenceEdges.length === 1 ? "" : "s"} · select to highlight
+              </small>
+            </li>
+          );
+        })}
+      </ol>
+    </section>
   );
 }
 
@@ -346,4 +435,25 @@ function List({ title, items }: { title: string; items: string[] }) {
       </ul>
     </>
   );
+}
+
+function highlightLandscape(nodeIds: string[]) {
+  window.dispatchEvent(
+    new CustomEvent("oratlas:grounding-focus", {
+      detail: { nodeIds },
+    }),
+  );
+}
+
+function describeScope(scope: KnowledgeLandscapeQuery): string {
+  const parts = [
+    scope.q ? `Topic: ${scope.q}` : undefined,
+    scope.interests.length ? `Interests: ${scope.interests.join(", ")}` : undefined,
+    scope.focusNodeId ? `Graph focus: ${scope.focusNodeId}` : undefined,
+    scope.reviewSlug ? `Review: ${scope.reviewSlug}` : undefined,
+    scope.claimType ? `Claim type: ${scope.claimType}` : undefined,
+    scope.relationType ? `Evidence relation: ${scope.relationType}` : undefined,
+    scope.trustCriterion ? `Assessment criterion: ${scope.trustCriterion}` : undefined,
+  ].filter(Boolean);
+  return parts.length ? parts.join(" · ") : "Current bounded Explore landscape";
 }

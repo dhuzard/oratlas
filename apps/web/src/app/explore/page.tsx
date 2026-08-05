@@ -10,6 +10,7 @@ import { TrustVerificationBadge } from "@/components/TrustVerificationBadge";
 import { SpecialistTools } from "@/components/SpecialistTools";
 import { ExplorationIntent } from "@/components/ExplorationIntent";
 import { KnowledgeLandscape } from "@/components/KnowledgeLandscape";
+import { DiscussClient } from "@/app/discuss/DiscussClient";
 import { EXPLORATION_INTERESTS, normalizeExplorationInterests } from "@/lib/knowledge-landscape";
 import { createKnowledgeLandscapeResponse } from "@/lib/knowledge-landscape-service";
 import { searchArchive } from "@/lib/archive-search";
@@ -111,15 +112,24 @@ export default async function ExplorePage({
           .length
       : ["author", "domain", "hasDoi", "hasTrustData", "compatibility"].filter((key) => get(key))
           .length + (sort === "accepted" ? 0 : 1);
+  const hasExplicitLandscapeScope = Boolean(
+    q ||
+    selectedInterests.length > 0 ||
+    requestedLandscapeFocus ||
+    get("reviewSlug") ||
+    get("claimType") ||
+    get("relationType") ||
+    get("trustCriterion"),
+  );
 
   return (
     <>
       <header className="explore-header">
         <p className="home-eyebrow">Explore ORAtlas</p>
-        <h1>Claims and scientific reviews</h1>
+        <h1>Ask Atlas, then inspect the evidence graph</h1>
         <p className="lead">
-          Start with a claim and follow its evidence, assessments, and disagreements—or browse the
-          review records preserved in the archive.
+          Ask a grounded question over accepted reviews, see the exact claims and citations used,
+          and follow their preserved graph connections. Atlas does not decide scientific truth.
         </p>
         <form action="/explore" method="get" role="search" className="explore-search">
           <input type="hidden" name="view" value={view} />
@@ -141,6 +151,52 @@ export default async function ExplorePage({
           </button>
         </form>
       </header>
+
+      <ExplorationIntent query={q} selectedInterests={selectedInterests} view={view} />
+
+      <section className="explore-ai-workspace" aria-labelledby="atlas-discuss-explore-title">
+        <div className="explore-ai-discuss">
+          <p className="home-eyebrow">Primary Explore workflow</p>
+          <h2 id="atlas-discuss-explore-title">Discuss this landscape with Atlas</h2>
+          <p className="muted">
+            Without an LLM key, Atlas returns a deterministic evidence summary. With your
+            request-scoped key, generated statements must resolve to exact claim–citation edges.
+          </p>
+          <DiscussClient
+            initialQuestion={q ?? ""}
+            scope={hasExplicitLandscapeScope ? landscapeResponse.query : undefined}
+            embedded
+          />
+        </div>
+        <div className="explore-ai-landscape">
+          {hasExplicitLandscapeScope ? (
+            <KnowledgeLandscape
+              landscape={landscape}
+              overviewHref={landscapeOverviewHref}
+              focusHrefByNode={landscapeFocusHrefs}
+              focus={
+                q ??
+                selectedInterests
+                  .map(
+                    (selected) =>
+                      EXPLORATION_INTERESTS.find((interest) => interest.id === selected)?.label ??
+                      selected,
+                  )
+                  .join(", ")
+              }
+            />
+          ) : (
+            <section className="knowledge-landscape-empty" aria-label="Guided knowledge landscape">
+              <p className="home-eyebrow">Visible graph scope</p>
+              <h2>Choose a topic, interest, or filter</h2>
+              <p>
+                The graph remains empty until you set an explicit scope. ORAtlas does not infer a
+                hidden profile or silently fill this view with unrelated records.
+              </p>
+            </section>
+          )}
+        </div>
+      </section>
 
       <nav className="explore-tabs" aria-label="Explore content">
         <Link
@@ -296,26 +352,6 @@ export default async function ExplorePage({
           </form>
         </details>
       </div>
-
-      <ExplorationIntent query={q} selectedInterests={selectedInterests} view={view} />
-
-      {q || selectedInterests.length > 0 ? (
-        <KnowledgeLandscape
-          landscape={landscape}
-          overviewHref={landscapeOverviewHref}
-          focusHrefByNode={landscapeFocusHrefs}
-          focus={
-            q ??
-            selectedInterests
-              .map(
-                (selected) =>
-                  EXPLORATION_INTERESTS.find((interest) => interest.id === selected)?.label ??
-                  selected,
-              )
-              .join(", ")
-          }
-        />
-      ) : null}
 
       <SpecialistTools />
 

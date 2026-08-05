@@ -1,7 +1,6 @@
 import "server-only";
 import { getServerEnv } from "@oratlas/config";
 import {
-  buildEvidencePacket,
   createAnthropicProvider,
   createOpenAIProvider,
   discussDeterministic,
@@ -10,21 +9,27 @@ import {
   type LlmDiscussionResult,
   type LlmProvider,
 } from "@oratlas/knowledge";
-import { type DeterministicDiscussionResult } from "@oratlas/contracts";
+import {
+  type DeterministicDiscussionResult,
+  type KnowledgeLandscapeQuery,
+} from "@oratlas/contracts";
 import { buildKnowledgeIndex } from "./index-builder";
 import { prisma } from "./db";
+import { selectDiscussionEvidence, type ResolvedDiscussionScope } from "./discussion-scope";
 
 export interface DiscussionReference {
   kind: "claim" | "citation";
   id: string;
   label: string;
   href: string;
+  landscapeNodeId: string;
 }
 
 interface DiscussionProvenance {
   packetHash: string;
   packetSchemaVersion: "1.1.0";
   references: DiscussionReference[];
+  scope: ResolvedDiscussionScope;
 }
 
 export interface RequestLlmConfig {
@@ -54,16 +59,22 @@ export async function runDiscussion(
   question: string,
   reviewSlugs?: string[],
   requestLlm?: RequestLlmConfig,
+  exploreScope?: KnowledgeLandscapeQuery,
 ): Promise<DiscussionResponse> {
   const env = getServerEnv();
   const index = await buildKnowledgeIndex();
-  const packet = buildEvidencePacket(index, question, { reviewSlugs });
+  const selection = await selectDiscussionEvidence(index, question, {
+    reviewSlugs,
+    explore: exploreScope,
+  });
+  const packet = selection.packet;
   const prepared = prepareEvidencePacket(packet);
   const deterministic = discussDeterministic(packet);
   const provenance = {
     packetHash: prepared.sha256,
     packetSchemaVersion: prepared.packet.schemaVersion,
     references: discussionReferences(prepared.packet),
+    scope: selection.scope,
   };
 
   let provider: LlmProvider | undefined;
@@ -120,7 +131,7 @@ export async function runDiscussion(
 }
 
 function discussionReferences(
-  packet: ReturnType<typeof buildEvidencePacket>,
+  packet: Parameters<typeof prepareEvidencePacket>[0],
 ): DiscussionReference[] {
   const claimHref = (claim: (typeof packet.claims)[number]) =>
     `/claims/${claim.reviewVersionId}/${encodeURIComponent(claim.localClaimId)}`;
@@ -129,6 +140,7 @@ function discussionReferences(
     id: claim.claimId,
     label: claim.text,
     href: claimHref(claim),
+    landscapeNodeId: `claim:${claim.claimId}`,
   }));
   const citations: DiscussionReference[] = packet.citations.flatMap((citation) => {
     const claim = packet.claims.find((candidate) =>
@@ -140,7 +152,8 @@ function discussionReferences(
             kind: "citation" as const,
             id: citation.citationId,
             label: citation.title ?? citation.localCitationId,
-            href: claimHref(claim),
+            href: `${claimHref(claim)}#linked-evidence`,
+            landscapeNodeId: `evidence:${citation.workId}`,
           },
         ]
       : [];

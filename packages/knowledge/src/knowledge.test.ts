@@ -211,6 +211,19 @@ describe("buildEvidencePacket", () => {
     expect(prepared.sha256).toBe(createHash("sha256").update(prepared.json, "utf8").digest("hex"));
     expect(hashEvidencePacket(prepared.json)).toBe(prepared.sha256);
   });
+
+  it("fails closed to exact claim identities selected by Explore", () => {
+    const selectedClaim = sampleIndex.claims.find((claim) => claim.localClaimId === "c-replay-2")!;
+    const packet = buildEvidencePacket(sampleIndex, "memory replay", {
+      claimIds: [selectedClaim.claimId],
+      now,
+    });
+    expect(packet.claims.map((claim) => claim.claimId)).toEqual([selectedClaim.claimId]);
+
+    const empty = buildEvidencePacket(sampleIndex, "memory replay", { claimIds: [], now });
+    expect(empty.claims).toEqual([]);
+    expect(empty.citations).toEqual([]);
+  });
 });
 
 describe("buildDiscussionPrompt", () => {
