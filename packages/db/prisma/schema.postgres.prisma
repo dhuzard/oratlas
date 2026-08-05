@@ -156,6 +156,8 @@ model RepositorySnapshot {
 
 model Review {
   id                        String    @id @default(cuid())
+  /// Stable canonical review-node identity. Nullable during expand/backfill.
+  knowledgeNodeId           String?   @unique
   slug                      String    @unique
   /// Stable repository identity; prevents concurrent duplicate review rows.
   repositoryId              String?   @unique
@@ -180,6 +182,7 @@ model Review {
   currentSnapshot                RepositorySnapshot?             @relation("currentSnapshot", fields: [currentSnapshotId], references: [id])
   currentSynthesisVersion        ReviewVersion?                  @relation("currentSynthesisHead", fields: [currentSynthesisVersionId], references: [id])
   repository                     Repository?                     @relation(fields: [repositoryId], references: [id])
+  knowledgeNode                  KnowledgeNode?                  @relation("reviewKnowledgeNode", fields: [knowledgeNodeId], references: [id], onDelete: SetNull)
   versions                       ReviewVersion[]
   comments                       ReviewComment[]
   lifecycleEvents                ReviewLifecycleEvent[]
@@ -278,6 +281,7 @@ model ReviewVersion {
   supersededByEvents             ReviewLifecycleEvent[]            @relation("lifecycleSupersededVersion")
   federationNotifications        FederationNotification[]
   protocolSnapshots              ProtocolSnapshot[]
+  graphVersion                   KnowledgeNodeVersion?             @relation("reviewGraphVersion")
 
   @@unique([reviewId, snapshotId, sourceSelectionKey])
   @@unique([reviewId, synthesisOrdinal])
@@ -478,8 +482,7 @@ model Identifier {
 model Claim {
   id              String   @id @default(cuid())
   reviewVersionId String
-  /// Optional bridge from legacy review claims to a stable publication node.
-  /// Existing rows remain valid and are not destructively backfilled.
+  /// Stable graph identity. Nullable only during expand/backfill.
   knowledgeNodeId String?
   /// Identifier within the source repository artifacts (e.g. "claim-003").
   localClaimId    String
@@ -497,6 +500,7 @@ model Claim {
 
   reviewVersion      ReviewVersion            @relation(fields: [reviewVersionId], references: [id])
   knowledgeNode      KnowledgeNode?           @relation(fields: [knowledgeNodeId], references: [id])
+  graphVersion       KnowledgeNodeVersion?    @relation("claimGraphVersion")
   evidenceRelations  ClaimEvidenceRelation[]
   linkProposalsFrom  KnowledgeLinkProposal[]  @relation("sourceClaim")
   linkProposalsTo    KnowledgeLinkProposal[]  @relation("targetClaim")
@@ -515,18 +519,24 @@ model Claim {
 /// lives only in immutable KnowledgeNodeVersion snapshots.
 model KnowledgeNode {
   id           String   @id @default(cuid())
+  /// Global stable identity key. Nullable only during expand/backfill.
+  stableKey    String?  @unique
+  /// repository-object | review-record | claim-occurrence | canonical-work
+  originType   String   @default("repository-object")
   repositoryId String
   localNodeId  String
-  /// contracts KNOWLEDGE_NODE_KINDS: claim | figure | dataset | code
+  /// contracts KNOWLEDGE_NODE_KINDS: review | claim | work | figure | dataset | code
   kind         String
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
   repository            Repository                 @relation(fields: [repositoryId], references: [id])
+  review                Review?                    @relation("reviewKnowledgeNode")
   versions              KnowledgeNodeVersion[]
   incomingEdges         NodeEdge[]                 @relation("targetNode")
   incomingEdgeProposals NodeEdgeProposal[]         @relation("proposalTargetNode")
   linkedClaims          Claim[]
+  linkedCitations       Citation[]                 @relation("citationWorkNode")
   aliases               NodeAlias[]
   identityProposalsFrom NodeIdentityProposal[]     @relation("identityProposalSource")
   identityProposalsTo   NodeIdentityProposal[]     @relation("identityProposalTarget")
@@ -534,39 +544,47 @@ model KnowledgeNode {
   synthesisCitations    SynthesisDraftCitation[]
 
   @@unique([repositoryId, localNodeId])
+  @@index([originType])
   @@index([kind])
 }
 
 /// Immutable content snapshot for a node at one exact repository commit. The
 /// bound RepositorySnapshot supplies the commit SHA without duplicating it.
 model KnowledgeNodeVersion {
-  id                  String   @id @default(cuid())
-  knowledgeNodeId     String
-  snapshotId          String
+  id                    String   @id @default(cuid())
+  knowledgeNodeId       String
+  snapshotId            String
+  /// Exact relational object bindings. Nullable during expand/backfill.
+  sourceReviewVersionId String?  @unique
+  sourceClaimId         String?  @unique
+  sourceCitationId      String?  @unique
   /// Submission/capture that first materialized this version. A single
   /// acceptance can publish many nodes, so these provenance FKs are not unique.
-  sourceSubmissionId  String?
-  inspectionCaptureId String?
+  sourceSubmissionId    String?
+  inspectionCaptureId   String?
   /// SHA-256 of the exact canonical inspection capture accepted here.
-  capturePayloadHash  String?
-  title               String
-  abstract            String?
-  text                String?
+  capturePayloadHash    String?
+  title                 String
+  abstract              String?
+  text                  String?
   /// contracts ManifestContributor[] encoded as JSON.
-  contributorsJson    String   @default("[]")
-  license             String
+  contributorsJson      String   @default("[]")
+  license               String
   /// contracts KnowledgeNodeProvenance encoded as JSON.
-  provenanceJson      String
+  provenanceJson        String
   /// Kind-specific contracts KnowledgeNode.payload encoded as JSON.
-  payloadJson         String
-  versionDoi          String?
-  conceptDoi          String?
+  payloadJson           String
+  versionDoi            String?
+  conceptDoi            String?
   /// Synthetic example identifier marker; never render its DOI as outbound.
-  isExample           Boolean  @default(false)
-  createdAt           DateTime @default(now())
+  isExample             Boolean  @default(false)
+  createdAt             DateTime @default(now())
 
   knowledgeNode        KnowledgeNode              @relation(fields: [knowledgeNodeId], references: [id])
   snapshot             RepositorySnapshot         @relation(fields: [snapshotId], references: [id])
+  sourceReviewVersion  ReviewVersion?             @relation("reviewGraphVersion", fields: [sourceReviewVersionId], references: [id], onDelete: Restrict)
+  sourceClaim          Claim?                     @relation("claimGraphVersion", fields: [sourceClaimId], references: [id], onDelete: Restrict)
+  sourceCitation       Citation?                  @relation("citationGraphVersion", fields: [sourceCitationId], references: [id], onDelete: Restrict)
   sourceSubmission     Submission?                @relation("NodeVersionSource", fields: [sourceSubmissionId], references: [id])
   inspectionCapture    InspectionCapture?         @relation("NodeVersionCapture", fields: [inspectionCaptureId], references: [id])
   outgoingEdges        NodeEdge[]                 @relation("sourceNodeVersion")
@@ -600,11 +618,12 @@ model NodeEdge {
   confirmedAt                  DateTime?
   revision                     Int       @default(0)
 
-  sourceNodeVersion          KnowledgeNodeVersion  @relation("sourceNodeVersion", fields: [sourceNodeVersionId], references: [id])
-  targetNode                 KnowledgeNode         @relation("targetNode", fields: [targetNodeId], references: [id])
-  confirmedTargetNodeVersion KnowledgeNodeVersion? @relation("confirmedTargetVersion", fields: [confirmedTargetNodeVersionId], references: [id])
-  confirmedBy                User?                 @relation("nodeEdgeConfirmer", fields: [confirmedById], references: [id])
-  proposals                  NodeEdgeProposal[]    @relation("confirmedProposalEdge")
+  sourceNodeVersion          KnowledgeNodeVersion   @relation("sourceNodeVersion", fields: [sourceNodeVersionId], references: [id])
+  targetNode                 KnowledgeNode          @relation("targetNode", fields: [targetNodeId], references: [id])
+  confirmedTargetNodeVersion KnowledgeNodeVersion?  @relation("confirmedTargetVersion", fields: [confirmedTargetNodeVersionId], references: [id])
+  confirmedBy                User?                  @relation("nodeEdgeConfirmer", fields: [confirmedById], references: [id])
+  proposals                  NodeEdgeProposal[]     @relation("confirmedProposalEdge")
+  claimEvidenceRelation      ClaimEvidenceRelation?
 
   @@unique([sourceNodeVersionId, targetNodeId, relationType])
   @@index([targetNodeId])
@@ -852,6 +871,10 @@ model ExecutionPassportArtifact {
 model Citation {
   id              String  @id @default(cuid())
   reviewVersionId String
+  /// Persisted canonical identity decision; nullable during expand/backfill.
+  workId          String?
+  /// Stable canonical work node; nullable during expand/backfill.
+  knowledgeNodeId String?
   localCitationId String
   doi             String?
   pmid            String?
@@ -868,15 +891,21 @@ model Citation {
   rawCitationJson String?
 
   reviewVersion     ReviewVersion           @relation(fields: [reviewVersionId], references: [id])
+  knowledgeNode     KnowledgeNode?          @relation("citationWorkNode", fields: [knowledgeNodeId], references: [id], onDelete: SetNull)
+  graphVersion      KnowledgeNodeVersion?   @relation("citationGraphVersion")
   evidenceRelations ClaimEvidenceRelation[]
   updateProposals   ClaimUpdateProposal[]
 
   @@unique([reviewVersionId, localCitationId])
   @@index([doi])
+  @@index([workId])
+  @@index([knowledgeNodeId])
 }
 
 model ClaimEvidenceRelation {
   id                   String  @id @default(cuid())
+  /// Canonical evidence edge; nullable during expand/backfill.
+  nodeEdgeId           String? @unique
   claimId              String
   citationId           String
   /// contracts CLAIM_EVIDENCE_RELATION_TYPES
@@ -889,6 +918,7 @@ model ClaimEvidenceRelation {
 
   claim            Claim               @relation(fields: [claimId], references: [id])
   citation         Citation            @relation(fields: [citationId], references: [id])
+  nodeEdge         NodeEdge?           @relation(fields: [nodeEdgeId], references: [id], onDelete: SetNull)
   trustAssessments TrustAssessment[]
   challenges       Challenge[]         @relation("challengeRelation")
   adjudications    TrustAdjudication[]

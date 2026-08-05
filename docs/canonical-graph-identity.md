@@ -1,6 +1,6 @@
 # Canonical graph identity and compatibility migration
 
-Status: **accepted architecture; implementation is phased and not yet deployed**.
+Status: **accepted architecture; additive schema expansion prepared, not yet deployed**.
 
 ## Decision
 
@@ -105,6 +105,12 @@ deployable and rollback-safe until the final constraint step.
 4. **Contract.** After validation reports zero missing, duplicate, or semantically divergent
    bindings, make required claim node/version and 1:1 edge fields non-null, enforce the source-union
    constraints, switch canonical reads to the graph, and retain compatibility projection checks.
+
+The first expand migration intentionally adds only nullable relational bindings and stable-key
+metadata. It does not yet relax the existing required repository/snapshot ownership columns on
+`KnowledgeNode` and `KnowledgeNodeVersion`, so review, synthesis, and global-work rows cannot be
+materialized by this slice. That compatibility change must land before dual-write; readers and
+writers continue on the established representation until then.
 
 The database migration is an upgrade migration, not `db push` and not a production `db:reset`.
 Before the expand migration job, operators must take and verify a real Cloud SQL backup according

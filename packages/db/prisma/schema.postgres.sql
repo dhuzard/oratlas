@@ -65,6 +65,7 @@ CREATE TABLE "RepositorySnapshot" (
 -- CreateTable
 CREATE TABLE "Review" (
     "id" TEXT NOT NULL,
+    "knowledgeNodeId" TEXT,
     "slug" TEXT NOT NULL,
     "repositoryId" TEXT,
     "currentSnapshotId" TEXT,
@@ -303,6 +304,8 @@ CREATE TABLE "Claim" (
 -- CreateTable
 CREATE TABLE "KnowledgeNode" (
     "id" TEXT NOT NULL,
+    "stableKey" TEXT,
+    "originType" TEXT NOT NULL DEFAULT 'repository-object',
     "repositoryId" TEXT NOT NULL,
     "localNodeId" TEXT NOT NULL,
     "kind" TEXT NOT NULL,
@@ -317,6 +320,9 @@ CREATE TABLE "KnowledgeNodeVersion" (
     "id" TEXT NOT NULL,
     "knowledgeNodeId" TEXT NOT NULL,
     "snapshotId" TEXT NOT NULL,
+    "sourceReviewVersionId" TEXT,
+    "sourceClaimId" TEXT,
+    "sourceCitationId" TEXT,
     "sourceSubmissionId" TEXT,
     "inspectionCaptureId" TEXT,
     "capturePayloadHash" TEXT,
@@ -521,6 +527,8 @@ CREATE TABLE "ExecutionPassportArtifact" (
 CREATE TABLE "Citation" (
     "id" TEXT NOT NULL,
     "reviewVersionId" TEXT NOT NULL,
+    "workId" TEXT,
+    "knowledgeNodeId" TEXT,
     "localCitationId" TEXT NOT NULL,
     "doi" TEXT,
     "pmid" TEXT,
@@ -540,6 +548,7 @@ CREATE TABLE "Citation" (
 -- CreateTable
 CREATE TABLE "ClaimEvidenceRelation" (
     "id" TEXT NOT NULL,
+    "nodeEdgeId" TEXT,
     "claimId" TEXT NOT NULL,
     "citationId" TEXT NOT NULL,
     "relationType" TEXT NOT NULL,
@@ -1299,6 +1308,9 @@ CREATE UNIQUE INDEX "Repository_host_owner_name_key" ON "Repository"("host", "ow
 CREATE UNIQUE INDEX "RepositorySnapshot_repositoryId_commitSha_key" ON "RepositorySnapshot"("repositoryId", "commitSha");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "Review_knowledgeNodeId_key" ON "Review"("knowledgeNodeId");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "Review_slug_key" ON "Review"("slug");
 
 -- CreateIndex
@@ -1368,10 +1380,25 @@ CREATE INDEX "Claim_knowledgeNodeId_idx" ON "Claim"("knowledgeNodeId");
 CREATE UNIQUE INDEX "Claim_reviewVersionId_localClaimId_key" ON "Claim"("reviewVersionId", "localClaimId");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "KnowledgeNode_stableKey_key" ON "KnowledgeNode"("stableKey");
+
+-- CreateIndex
+CREATE INDEX "KnowledgeNode_originType_idx" ON "KnowledgeNode"("originType");
+
+-- CreateIndex
 CREATE INDEX "KnowledgeNode_kind_idx" ON "KnowledgeNode"("kind");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "KnowledgeNode_repositoryId_localNodeId_key" ON "KnowledgeNode"("repositoryId", "localNodeId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "KnowledgeNodeVersion_sourceReviewVersionId_key" ON "KnowledgeNodeVersion"("sourceReviewVersionId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "KnowledgeNodeVersion_sourceClaimId_key" ON "KnowledgeNodeVersion"("sourceClaimId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "KnowledgeNodeVersion_sourceCitationId_key" ON "KnowledgeNodeVersion"("sourceCitationId");
 
 -- CreateIndex
 CREATE INDEX "KnowledgeNodeVersion_snapshotId_idx" ON "KnowledgeNodeVersion"("snapshotId");
@@ -1473,7 +1500,16 @@ CREATE UNIQUE INDEX "ExecutionPassportArtifact_passportId_entityId_key" ON "Exec
 CREATE INDEX "Citation_doi_idx" ON "Citation"("doi");
 
 -- CreateIndex
+CREATE INDEX "Citation_workId_idx" ON "Citation"("workId");
+
+-- CreateIndex
+CREATE INDEX "Citation_knowledgeNodeId_idx" ON "Citation"("knowledgeNodeId");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "Citation_reviewVersionId_localCitationId_key" ON "Citation"("reviewVersionId", "localCitationId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "ClaimEvidenceRelation_nodeEdgeId_key" ON "ClaimEvidenceRelation"("nodeEdgeId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "ClaimEvidenceRelation_claimId_citationId_relationType_key" ON "ClaimEvidenceRelation"("claimId", "citationId", "relationType");
@@ -1734,6 +1770,9 @@ ALTER TABLE "Review" ADD CONSTRAINT "Review_currentSynthesisVersionId_fkey" FORE
 ALTER TABLE "Review" ADD CONSTRAINT "Review_repositoryId_fkey" FOREIGN KEY ("repositoryId") REFERENCES "Repository"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "Review" ADD CONSTRAINT "Review_knowledgeNodeId_fkey" FOREIGN KEY ("knowledgeNodeId") REFERENCES "KnowledgeNode"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "ReviewVersion" ADD CONSTRAINT "ReviewVersion_reviewId_fkey" FOREIGN KEY ("reviewId") REFERENCES "Review"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -1822,6 +1861,15 @@ ALTER TABLE "KnowledgeNodeVersion" ADD CONSTRAINT "KnowledgeNodeVersion_knowledg
 
 -- AddForeignKey
 ALTER TABLE "KnowledgeNodeVersion" ADD CONSTRAINT "KnowledgeNodeVersion_snapshotId_fkey" FOREIGN KEY ("snapshotId") REFERENCES "RepositorySnapshot"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "KnowledgeNodeVersion" ADD CONSTRAINT "KnowledgeNodeVersion_sourceReviewVersionId_fkey" FOREIGN KEY ("sourceReviewVersionId") REFERENCES "ReviewVersion"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "KnowledgeNodeVersion" ADD CONSTRAINT "KnowledgeNodeVersion_sourceClaimId_fkey" FOREIGN KEY ("sourceClaimId") REFERENCES "Claim"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "KnowledgeNodeVersion" ADD CONSTRAINT "KnowledgeNodeVersion_sourceCitationId_fkey" FOREIGN KEY ("sourceCitationId") REFERENCES "Citation"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "KnowledgeNodeVersion" ADD CONSTRAINT "KnowledgeNodeVersion_sourceSubmissionId_fkey" FOREIGN KEY ("sourceSubmissionId") REFERENCES "Submission"("id") ON DELETE SET NULL ON UPDATE CASCADE;
@@ -1917,10 +1965,16 @@ ALTER TABLE "ExecutionPassportArtifact" ADD CONSTRAINT "ExecutionPassportArtifac
 ALTER TABLE "Citation" ADD CONSTRAINT "Citation_reviewVersionId_fkey" FOREIGN KEY ("reviewVersionId") REFERENCES "ReviewVersion"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "Citation" ADD CONSTRAINT "Citation_knowledgeNodeId_fkey" FOREIGN KEY ("knowledgeNodeId") REFERENCES "KnowledgeNode"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "ClaimEvidenceRelation" ADD CONSTRAINT "ClaimEvidenceRelation_claimId_fkey" FOREIGN KEY ("claimId") REFERENCES "Claim"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "ClaimEvidenceRelation" ADD CONSTRAINT "ClaimEvidenceRelation_citationId_fkey" FOREIGN KEY ("citationId") REFERENCES "Citation"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ClaimEvidenceRelation" ADD CONSTRAINT "ClaimEvidenceRelation_nodeEdgeId_fkey" FOREIGN KEY ("nodeEdgeId") REFERENCES "NodeEdge"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "TrustAssessment" ADD CONSTRAINT "TrustAssessment_claimEvidenceRelationId_fkey" FOREIGN KEY ("claimEvidenceRelationId") REFERENCES "ClaimEvidenceRelation"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

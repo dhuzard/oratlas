@@ -173,11 +173,15 @@ jobs:
         working-directory: packages/db
         run: pnpm exec prisma generate --schema prisma/schema.postgres.prisma
 
-      - name: Create a populated pre-migration PostgreSQL baseline
+      - name: Create the frozen pre-migration PostgreSQL baseline
         working-directory: packages/db
-        run: pnpm exec prisma db execute --file prisma/schema.postgres.sql --schema prisma/schema.postgres.prisma
+        run: pnpm exec prisma db execute --file prisma/baseline/20260805000000_existing_schema_baseline.sql --schema prisma/schema.postgres.prisma
 
-      - name: Prove schema equivalence, baseline, deploy, and verify guards
+      - name: Mark the already-deployed baseline
+        working-directory: packages/db
+        run: pnpm exec prisma migrate resolve --applied 20260805000000_existing_schema_baseline --schema prisma/schema.postgres.prisma
+
+      - name: Deploy upgrade migrations and verify guards
         run: pnpm db:deploy:postgres
 
       - name: Exercise database-native guards on PostgreSQL

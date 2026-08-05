@@ -945,3 +945,14 @@ Two fail-closed gaps were found and intentionally not changed in this audit-only
   `explicit-interest-graph-landscape@2.0.0`.
 - Added a post-deployment GCP beta gate that verifies readiness and the complete personalized graph
   journey against a known fixture.
+
+## 2026-08-05 — Canonical graph expand migration
+
+- Added nullable, unique graph bindings for reviews, exact review/claim/citation occurrences,
+  canonical cited works, and the legacy claim-evidence compatibility projection.
+- Kept the migration expand-only: no backfill, destructive alteration, inferred identity, or
+  writer/reader cutover occurs in this slice.
+- Pinned upgrade CI to the immutable pre-migration DDL, marks that already-deployed baseline, then
+  applies the new migration. The evolving current-schema DDL is never used to simulate old state.
+- Deferred nullable repository/snapshot ownership and its source-union constraints to the next
+  compatibility slice, so no synthesis or global-work row receives fabricated provenance.

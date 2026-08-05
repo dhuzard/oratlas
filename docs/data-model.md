@@ -13,14 +13,14 @@ suffix, and arrays are JSON-encoded strings. Switching to PostgreSQL is a dataso
 | `User`                                   | Minimal GitHub identity + role     | `githubUserId` OAuth key; normalized login indexed and application-checked        |
 | `Repository`                             | Evolving GitHub project            | immutable `githubRepositoryId`; URL/name remain renameable                        |
 | `RepositorySnapshot`                     | Exact repository state             | **`(repositoryId, commitSha)` unique**                                            |
-| `KnowledgeNode`                          | Stable publication-node identity   | **`(repositoryId, localNodeId)` unique**; contract-validated kind                 |
-| `KnowledgeNodeVersion`                   | Immutable node content snapshot    | **`(knowledgeNodeId, snapshotId)` unique**; capture/submission provenance         |
+| `KnowledgeNode`                          | Stable graph identity              | global `stableKey` expands existing **`(repositoryId, localNodeId)`** identity    |
+| `KnowledgeNodeVersion`                   | Immutable node content snapshot    | exact source-object bindings expand existing repository snapshot identity         |
 | `NodeEdge`                               | Typed graph relation               | **`(sourceNodeVersionId, targetNodeId, relationType)` unique**                    |
 | `NodeEdgeProposal`                       | Attributable edge assertion        | `originKey` unique; revisioned editorial CAS; optional confirmed edge             |
 | `NodeRelationTrustAssessment`            | Imported TRUST for one node edge   | mandatory proposal FK; exact source record and criterion columns                  |
 | `NodeRelationTrustVerification`          | Atlas review of node-edge TRUST    | one-to-one marker; reviewer, role snapshot, rationale, canonical subject hash     |
 | `NodeAlias`                              | Canonical node work-identity key   | per-node scheme/role/value unique; shared values intentionally allowed globally   |
-| `Review`                                 | Public review record               | `slug` unique; `currentSnapshotId`; lifecycle CAS revision                        |
+| `Review`                                 | Public review record               | `slug` unique; nullable 1:1 stable graph binding during migration                 |
 | `ReviewVersion`                          | Immutable version                  | exact snapshot; DOI roles; materialized public lifecycle state                    |
 | `ReviewLifecycleEvent`                   | Append-only scholarly lifecycle    | `(reviewId, revision)` unique; same-review correction/withdrawal/tombstone        |
 | `Person` / `ReviewContributor`           | Authors & roles per version        | contributors ordered by `position`                                                |
@@ -29,8 +29,8 @@ suffix, and arrays are JSON-encoded strings. Switching to PostgreSQL is a dataso
 | `EditorialOverride`                      | Scoped consistency exception       | `(submissionId, checkId)` unique; editor and rationale retained                   |
 | `Identifier`                             | DOIs/ORCID/URL/Zenodo per version  | `relationType` distinguishes version vs concept DOI                               |
 | `Claim`                                  | A review claim                     | `(reviewVersionId, localClaimId)` unique; optional stable-node backlink           |
-| `Citation`                               | A cited source                     | `(reviewVersionId, localCitationId)` unique                                       |
-| `ClaimEvidenceRelation`                  | Claim↔citation relation            | `(claimId, citationId, relationType)` unique                                      |
+| `Citation`                               | A cited-source occurrence          | local identity plus nullable canonical-work binding during migration              |
+| `ClaimEvidenceRelation`                  | Claim↔citation compatibility view  | unique tuple plus nullable 1:1 canonical-edge binding during migration            |
 | `TrustAssessment`                        | Imported TRUST for one relation    | public import state is `unverified-import`; source assertions retained separately |
 | `TrustVerification`                      | Atlas editorial review marker      | one-to-one with assessment; reviewer FK, role snapshot, rationale, subject hash   |
 | `AgentRun`                               | Provenance of an agent action      | model/provider/prompt + prompt/packet/input hashes; validated output              |
@@ -150,9 +150,12 @@ Source-local claim/citation ids are unique only inside a version. Atlas derives 
 `(reviewVersionId, localId)` and uses canonical DOI/PMID/OpenAlex aliases for work comparison. See
 `docs/evidence-identity.md`.
 
-Legacy `Claim` rows may optionally point to a stable `KnowledgeNode`. The nullable foreign key is
-additive: existing review claims remain valid without a backlink, and several historical review
-versions may refer to the same stable concept identity.
+The canonical-graph migration begins with nullable, unique bindings from reviews, exact review
+versions, claims, citation occurrences, and legacy claim-evidence relations to graph records. The
+first expand migration preserves required repository/snapshot ownership, so it cannot yet
+materialize synthesis reviews or global works without false provenance. A later compatibility
+slice must introduce and constrain the discriminated source union before dual-write starts. See
+`docs/canonical-graph-identity.md`.
 
 KG-02 keeps ownership repository-scoped: the repository's `owner` identifies the publishing lab in
 the current GitHub-based POC. A separate organization/lab authority model is not inferred from a
