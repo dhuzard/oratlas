@@ -37,6 +37,11 @@ export type {
   NodeRecordStatus,
 } from "./nodes.js";
 export * from "./sources.js";
+export {
+  buildIngestionExtractionPacket,
+  validateIngestionExtractionProposal,
+  type ExtractionProposalValidation,
+} from "./ai-proposals.js";
 export { extractSourceAssessmentDocuments } from "./source-assessment-documents.js";
 export { enrichCompatibilityFromZenodo, enrichMetadataFromZenodo } from "./zenodo-metadata.js";
 

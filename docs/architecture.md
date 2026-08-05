@@ -74,6 +74,9 @@ need no database.
    metadata → README heuristics) and records field-level provenance (file, path, commit,
    extractor version, timestamp, confidence). It also parses claims / citations /
    relations / TRUST JSONL artifacts and produces the transparent compatibility report.
+   A separate opt-in AI packet builder may prepare bounded, commit- and tree-pinned source text for
+   claim/citation proposals. Every proposed item must retain a validated exact UTF-8 byte span and
+   remains human-review-required; deterministic extraction stays authoritative.
 4. **Review & correct** — the wizard shows extracted values; edits are stored separately
    from extracted values with editor identity and timestamps.
 5. **Validation** — DOI validation (`packages/zenodo`) returns a structured report with

@@ -34,3 +34,4 @@ export * from "./trust-disagreement.js";
 export * from "./trust-adjudication.js";
 export * from "./knowledge-landscape.js";
 export * from "./graph-curation.js";
+export * from "./ingestion-extraction.js";

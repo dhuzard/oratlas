@@ -69,6 +69,10 @@ knowledge-consensus engine.
   adjudication, or a blanket TRUST assessment**. The software agent is not a person; the named
   editor is accountable for curation and the acceptance checklist, not attributed as the author of
   generated prose.
+- The ingestion AI extraction slice currently provides versioned proposal contracts, deterministic
+  commit/tree-pinned packet construction, and fail-closed source-span validation. It does not yet
+  run a provider, persist proposals, or expose a human-review UI; deterministic ingestion remains
+  the only authoritative extraction path.
 
 ## Suggested next production steps
 
