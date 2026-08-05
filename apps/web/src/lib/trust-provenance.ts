@@ -245,6 +245,8 @@ function mapNodeVersion(row: LoadedNodeVersion) {
   if (
     !row.snapshotId ||
     !row.snapshot ||
+    !row.title ||
+    !row.license ||
     !row.knowledgeNode.repositoryId ||
     !row.knowledgeNode.repository
   ) {
@@ -648,9 +650,9 @@ async function loadTrustEditorialQueueItems(): Promise<TrustQueueItem[]> {
         subjectLabel: `${row.proposal.sourceNodeVersion.knowledgeNode.localNodeId} → ${row.proposal.targetNodeVersion.knowledgeNode.localNodeId}`,
         canVerify: resolved.authoritative,
         claimLocalId: row.proposal.sourceNodeVersion.knowledgeNode.localNodeId,
-        claimText: row.proposal.sourceNodeVersion.title,
+        claimText: row.proposal.sourceNodeVersion.title ?? "Unavailable claim text",
         citationLocalId: row.proposal.targetNodeVersion.knowledgeNode.localNodeId,
-        citationTitle: row.proposal.targetNodeVersion.title,
+        citationTitle: row.proposal.targetNodeVersion.title ?? undefined,
         relationType: row.proposal.relationType,
         protocolVersion: row.protocolVersion,
         assessorType: row.assessorType,
@@ -682,9 +684,9 @@ async function loadTrustEditorialQueueItems(): Promise<TrustQueueItem[]> {
         subjectLabel: "Invalid persisted node relation",
         canVerify: false,
         claimLocalId: row.proposal.sourceNodeVersion.knowledgeNode.localNodeId,
-        claimText: row.proposal.sourceNodeVersion.title,
+        claimText: row.proposal.sourceNodeVersion.title ?? "Unavailable claim text",
         citationLocalId: row.proposal.targetNodeVersion.knowledgeNode.localNodeId,
-        citationTitle: row.proposal.targetNodeVersion.title,
+        citationTitle: row.proposal.targetNodeVersion.title ?? undefined,
         relationType: row.proposal.relationType,
         protocolVersion: row.protocolVersion,
         assessorType: row.assessorType,

@@ -20,6 +20,20 @@ const sourceUnionMigration = readFileSync(
   "utf8",
 );
 const guards = readFileSync(resolve(packageRoot, "src/database-guards.ts"), "utf8");
+const sourceRecordMigration = readFileSync(
+  resolve(
+    packageRoot,
+    "prisma/migrations/20260805030000_canonical_source_record_content/migration.sql",
+  ),
+  "utf8",
+);
+const edgeMigration = readFileSync(
+  resolve(
+    packageRoot,
+    "prisma/migrations/20260805040000_node_edge_source_assertions/migration.sql",
+  ),
+  "utf8",
+);
 
 describe("canonical graph identity schema expansion", () => {
   it.each([
@@ -82,5 +96,16 @@ describe("canonical graph identity schema expansion", () => {
     expect(sourceUnionMigration).not.toMatch(/^\s*(?:DELETE|UPDATE)\b/im);
     expect(guards).toContain("\"originType\" = 'canonical-work'");
     expect(guards).toContain('(NEW."sourceCitationId" IS NOT NULL)');
+  });
+
+  it("allows source records to omit presentation fields and keeps occurrence edges distinct", () => {
+    expect(sourceRecordMigration).toContain('ALTER COLUMN "title" DROP NOT NULL');
+    expect(sourceRecordMigration).toContain('ALTER COLUMN "license" DROP NOT NULL');
+    expect(edgeMigration).toContain('ADD COLUMN "edgeDiscriminator"');
+    expect(edgeMigration).toContain(
+      '"sourceNodeVersionId", "targetNodeId", "relationType", "edgeDiscriminator"',
+    );
+    expect(sourceRecordMigration).not.toMatch(/^\s*(?:DELETE|UPDATE)\b/im);
+    expect(edgeMigration).not.toMatch(/^\s*(?:DELETE|UPDATE)\b/im);
   });
 });

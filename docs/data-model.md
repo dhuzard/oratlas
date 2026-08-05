@@ -15,7 +15,7 @@ suffix, and arrays are JSON-encoded strings. Switching to PostgreSQL is a dataso
 | `RepositorySnapshot`                     | Exact repository state             | **`(repositoryId, commitSha)` unique**                                            |
 | `KnowledgeNode`                          | Stable graph identity              | global `stableKey` expands existing **`(repositoryId, localNodeId)`** identity    |
 | `KnowledgeNodeVersion`                   | Immutable node content snapshot    | exact source-object bindings expand existing repository snapshot identity         |
-| `NodeEdge`                               | Typed graph relation               | **`(sourceNodeVersionId, targetNodeId, relationType)` unique**                    |
+| `NodeEdge`                               | Typed graph relation               | source occurrence discriminator preserves 1:1 compatibility bindings              |
 | `NodeEdgeProposal`                       | Attributable edge assertion        | `originKey` unique; revisioned editorial CAS; optional confirmed edge             |
 | `NodeRelationTrustAssessment`            | Imported TRUST for one node edge   | mandatory proposal FK; exact source record and criterion columns                  |
 | `NodeRelationTrustVerification`          | Atlas review of node-edge TRUST    | one-to-one marker; reviewer, role snapshot, rationale, canonical subject hash     |
@@ -29,8 +29,9 @@ suffix, and arrays are JSON-encoded strings. Switching to PostgreSQL is a dataso
 | `EditorialOverride`                      | Scoped consistency exception       | `(submissionId, checkId)` unique; editor and rationale retained                   |
 | `Identifier`                             | DOIs/ORCID/URL/Zenodo per version  | `relationType` distinguishes version vs concept DOI                               |
 | `Claim`                                  | A review claim                     | `(reviewVersionId, localClaimId)` unique; optional stable-node backlink           |
-| `Citation`                               | A cited-source occurrence          | local identity plus nullable canonical-work binding during migration              |
+| `Citation`                               | A cited-source occurrence          | local identity plus canonical/fallback work and exact graph-version bindings      |
 | `ClaimEvidenceRelation`                  | Claim↔citation compatibility view  | unique tuple plus nullable 1:1 canonical-edge binding during migration            |
+| `WorkIdentityConflict`                   | Ambiguous work-alias resolution    | one fail-closed audit record per citation occurrence                              |
 | `TrustAssessment`                        | Imported TRUST for one relation    | public import state is `unverified-import`; source assertions retained separately |
 | `TrustVerification`                      | Atlas editorial review marker      | one-to-one with assessment; reviewer FK, role snapshot, rationale, subject hash   |
 | `AgentRun`                               | Provenance of an agent action      | model/provider/prompt + prompt/packet/input hashes; validated output              |
@@ -158,6 +159,13 @@ repository. Every graph version binds exactly one real source—repository snaps
 claim occurrence, or citation occurrence. SQLite triggers and PostgreSQL checks reject zero-source,
 multiple-source, mismatched-kind, and fabricated-repository states. See
 `docs/canonical-graph-identity.md`.
+
+Accepted repository and synthesis review writes now invoke the canonical materializer inside their
+existing serializable transaction. DOI, PMID, and OpenAlex aliases reuse a work only when the whole
+observed alias set is compatible. Ambiguous aliases create a citation-local fallback work plus a
+`WorkIdentityConflict`; no candidate is selected. Repeated citations to one work retain distinct
+source-assertion edges through the legacy relation id, while editor-confirmed graph edges keep the
+`canonical` discriminator.
 
 KG-02 keeps ownership repository-scoped: the repository's `owner` identifies the publishing lab in
 the current GitHub-based POC. A separate organization/lab authority model is not inferred from a

@@ -967,3 +967,17 @@ Two fail-closed gaps were found and intentionally not changed in this audit-only
   reject non-repository rows rather than dereference missing provenance.
 - Kept legacy repository publication behavior intact and left dual-write/backfill for the next
   deployment phases.
+
+## 2026-08-05 — Canonical graph dual-write
+
+- Added one transaction-scoped, idempotent materializer for accepted repository and synthesis
+  review versions.
+- Created stable review, per-occurrence claim, and conflict-aware cited-work nodes plus exact source
+  versions without repository/snapshot placeholders or required display metadata.
+- Projected each legacy claim-evidence row 1:1 to an imported source-assertion edge. The relation id
+  disambiguates repeated citations to the same work; editor-confirmed edges retain their established
+  lifecycle.
+- Added fail-closed DOI/PMID/OpenAlex conflict records and citation-local fallback works instead of
+  guessing a merge.
+- Preserved legacy relation ids and TRUST subject bytes; new bindings are additive and source
+  assertions have no editor confirmer.

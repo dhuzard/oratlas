@@ -145,9 +145,11 @@ type StoredVersion = {
   snapshot: { commitSha: string };
 };
 
-type StoredVersionInput = Omit<StoredVersion, "snapshotId" | "snapshot"> & {
+type StoredVersionInput = Omit<StoredVersion, "snapshotId" | "snapshot" | "title" | "license"> & {
   snapshotId: string | null;
   snapshot: { commitSha: string } | null;
+  title: string | null;
+  license: string | null;
 };
 
 function mapVersion(kind: KnowledgeNodeKind, version: StoredVersion): PublicNodeVersion {
@@ -192,12 +194,16 @@ export function tryMapPublicNodeVersion(
   node: { kind: string },
   version: StoredVersionInput,
 ): PublicNodeVersion | undefined {
-  if (!version.snapshotId || !version.snapshot) return undefined;
+  if (!version.snapshotId || !version.snapshot || !version.title || !version.license) {
+    return undefined;
+  }
   const kind = knowledgeNodeKindSchema.safeParse(node.kind);
   const repositoryVersion: StoredVersion = {
     ...version,
     snapshotId: version.snapshotId,
     snapshot: version.snapshot,
+    title: version.title,
+    license: version.license,
   };
   return kind.success ? tryMapVersion(kind.data, repositoryVersion) : undefined;
 }

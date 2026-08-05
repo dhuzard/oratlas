@@ -46,6 +46,7 @@ import type { SessionUser } from "./auth";
 import { prisma } from "./db";
 import { publicConfirmedNodeEdgeWhere } from "./node-edge-publication";
 import { tryMapPublicNodeVersion } from "./node-publication";
+import { materializeCanonicalReviewGraph } from "./canonical-graph-materialization";
 import { generateSynthesisReview } from "./synthesis-writer";
 import {
   loadedNodeRelationTrustInclude,
@@ -1545,6 +1546,7 @@ export async function decideSynthesisDraft(
             acceptedAt,
           },
         });
+        await materializeCanonicalReviewGraph(tx, version.id);
         const supersededRegenerationProposals = await tx.synthesisRegenerationProposal.findMany({
           where: {
             reviewId: review.id,

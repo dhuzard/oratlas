@@ -33,6 +33,7 @@ import { materializeAuthorEdgeProposals } from "./node-edge-lifecycle";
 import { ingestNodeRelationTrustAssessment, ingestTrustAssessment } from "./assessment-ingestion";
 import { materializeSameClaimProposals } from "./node-identity-lifecycle";
 import { directEditorialDecisionHash } from "./decision-provenance";
+import { materializeCanonicalReviewGraph } from "./canonical-graph-materialization";
 
 export type { SubmissionPayload } from "./submission-payload";
 
@@ -1188,6 +1189,7 @@ async function materializeReviewPublication(
     anyExample,
   );
   await materializeKnowledge(tx, version.id, payload);
+  await materializeCanonicalReviewGraph(tx, version.id);
   return { reviewId: review.id, versionId: version.id, slug: review.slug };
 }
 

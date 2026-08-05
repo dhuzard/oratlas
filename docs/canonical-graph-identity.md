@@ -1,6 +1,6 @@
 # Canonical graph identity and compatibility migration
 
-Status: **accepted architecture; additive expansion and source-union compatibility prepared, not yet deployed**.
+Status: **accepted architecture; expand, source-union compatibility, and dual-write prepared, not yet deployed**.
 
 ## Decision
 
@@ -112,7 +112,17 @@ database-native discriminated-union guards. Repository nodes require real reposi
 review, claim-occurrence, and work nodes require a global stable key and no repository; every node
 version requires exactly one real source among repository snapshot, review version, claim
 occurrence, or citation occurrence. Existing repository-backed readers fail closed on rows without
-repository provenance. Dual-write remains a separate deployment phase.
+repository provenance.
+
+Dual-write materializes each accepted relational review version in the same database transaction:
+one stable review node and exact version, one non-merged claim-occurrence node and exact version per
+claim, conflict-aware canonical or occurrence-fallback work nodes with exact citation versions, and
+one source-assertion edge per legacy claim-evidence relation. The legacy relation id remains the
+edge discriminator and its nullable `nodeEdgeId` becomes the 1:1 compatibility binding. Imported
+edges use `source-assertion`/`imported-from-review`; they have no confirmer and never enter the
+editor-confirmed public projection. Title and license are optional for canonical source records, so
+the graph stores no invented display metadata. Existing TRUST subject hashes exclude the additive
+binding and remain unchanged.
 
 The database migration is an upgrade migration, not `db push` and not a production `db:reset`.
 Before the expand migration job, operators must take and verify a real Cloud SQL backup according

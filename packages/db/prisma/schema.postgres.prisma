@@ -567,12 +567,14 @@ model KnowledgeNodeVersion {
   inspectionCaptureId   String?
   /// SHA-256 of the exact canonical inspection capture accepted here.
   capturePayloadHash    String?
-  title                 String
+  /// Repository display title; optional for canonical source records.
+  title                 String?
   abstract              String?
   text                  String?
   /// contracts ManifestContributor[] encoded as JSON.
   contributorsJson      String   @default("[]")
-  license               String
+  /// Repository-declared license; optional for canonical source records.
+  license               String?
   /// contracts KnowledgeNodeProvenance encoded as JSON.
   provenanceJson        String
   /// Kind-specific contracts KnowledgeNode.payload encoded as JSON.
@@ -610,6 +612,8 @@ model NodeEdge {
   sourceNodeVersionId          String
   targetNodeId                 String
   relationType                 String
+  /// "canonical" for editorial edges; exact relation id for source assertions.
+  edgeDiscriminator            String    @default("canonical")
   status                       String
   provenance                   String
   rationale                    String?
@@ -628,7 +632,7 @@ model NodeEdge {
   proposals                  NodeEdgeProposal[]     @relation("confirmedProposalEdge")
   claimEvidenceRelation      ClaimEvidenceRelation?
 
-  @@unique([sourceNodeVersionId, targetNodeId, relationType])
+  @@unique([sourceNodeVersionId, targetNodeId, relationType, edgeDiscriminator])
   @@index([targetNodeId])
   @@index([status, relationType])
   @@index([confirmedTargetNodeVersionId])
@@ -893,16 +897,31 @@ model Citation {
   derivedFromJson String  @default("[]")
   rawCitationJson String?
 
-  reviewVersion     ReviewVersion           @relation(fields: [reviewVersionId], references: [id])
-  knowledgeNode     KnowledgeNode?          @relation("citationWorkNode", fields: [knowledgeNodeId], references: [id], onDelete: SetNull)
-  graphVersion      KnowledgeNodeVersion?   @relation("citationGraphVersion")
-  evidenceRelations ClaimEvidenceRelation[]
-  updateProposals   ClaimUpdateProposal[]
+  reviewVersion        ReviewVersion           @relation(fields: [reviewVersionId], references: [id])
+  knowledgeNode        KnowledgeNode?          @relation("citationWorkNode", fields: [knowledgeNodeId], references: [id], onDelete: SetNull)
+  graphVersion         KnowledgeNodeVersion?   @relation("citationGraphVersion")
+  workIdentityConflict WorkIdentityConflict?
+  evidenceRelations    ClaimEvidenceRelation[]
+  updateProposals      ClaimUpdateProposal[]
 
   @@unique([reviewVersionId, localCitationId])
   @@index([doi])
   @@index([workId])
   @@index([knowledgeNodeId])
+}
+
+/// Fail-closed record of ambiguous alias evidence encountered while resolving
+/// a citation occurrence to a canonical work. The occurrence keeps a local
+/// fallback work until an audited identity decision is made.
+model WorkIdentityConflict {
+  id                   String   @id @default(cuid())
+  citationId           String   @unique
+  reason               String
+  aliasEvidenceJson    String
+  candidateNodeIdsJson String
+  createdAt            DateTime @default(now())
+
+  citation Citation @relation(fields: [citationId], references: [id], onDelete: Restrict)
 }
 
 model ClaimEvidenceRelation {

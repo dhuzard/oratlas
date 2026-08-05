@@ -326,11 +326,11 @@ CREATE TABLE "KnowledgeNodeVersion" (
     "sourceSubmissionId" TEXT,
     "inspectionCaptureId" TEXT,
     "capturePayloadHash" TEXT,
-    "title" TEXT NOT NULL,
+    "title" TEXT,
     "abstract" TEXT,
     "text" TEXT,
     "contributorsJson" TEXT NOT NULL DEFAULT '[]',
-    "license" TEXT NOT NULL,
+    "license" TEXT,
     "provenanceJson" TEXT NOT NULL,
     "payloadJson" TEXT NOT NULL,
     "versionDoi" TEXT,
@@ -347,6 +347,7 @@ CREATE TABLE "NodeEdge" (
     "sourceNodeVersionId" TEXT NOT NULL,
     "targetNodeId" TEXT NOT NULL,
     "relationType" TEXT NOT NULL,
+    "edgeDiscriminator" TEXT NOT NULL DEFAULT 'canonical',
     "status" TEXT NOT NULL,
     "provenance" TEXT NOT NULL,
     "rationale" TEXT,
@@ -543,6 +544,18 @@ CREATE TABLE "Citation" (
     "rawCitationJson" TEXT,
 
     CONSTRAINT "Citation_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "WorkIdentityConflict" (
+    "id" TEXT NOT NULL,
+    "citationId" TEXT NOT NULL,
+    "reason" TEXT NOT NULL,
+    "aliasEvidenceJson" TEXT NOT NULL,
+    "candidateNodeIdsJson" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "WorkIdentityConflict_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -1422,7 +1435,7 @@ CREATE INDEX "NodeEdge_status_relationType_idx" ON "NodeEdge"("status", "relatio
 CREATE INDEX "NodeEdge_confirmedTargetNodeVersionId_idx" ON "NodeEdge"("confirmedTargetNodeVersionId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "NodeEdge_sourceNodeVersionId_targetNodeId_relationType_key" ON "NodeEdge"("sourceNodeVersionId", "targetNodeId", "relationType");
+CREATE UNIQUE INDEX "NodeEdge_sourceNodeVersionId_targetNodeId_relationType_edge_key" ON "NodeEdge"("sourceNodeVersionId", "targetNodeId", "relationType", "edgeDiscriminator");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "NodeEdgeProposal_originKey_key" ON "NodeEdgeProposal"("originKey");
@@ -1507,6 +1520,9 @@ CREATE INDEX "Citation_knowledgeNodeId_idx" ON "Citation"("knowledgeNodeId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Citation_reviewVersionId_localCitationId_key" ON "Citation"("reviewVersionId", "localCitationId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "WorkIdentityConflict_citationId_key" ON "WorkIdentityConflict"("citationId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "ClaimEvidenceRelation_nodeEdgeId_key" ON "ClaimEvidenceRelation"("nodeEdgeId");
@@ -1966,6 +1982,9 @@ ALTER TABLE "Citation" ADD CONSTRAINT "Citation_reviewVersionId_fkey" FOREIGN KE
 
 -- AddForeignKey
 ALTER TABLE "Citation" ADD CONSTRAINT "Citation_knowledgeNodeId_fkey" FOREIGN KEY ("knowledgeNodeId") REFERENCES "KnowledgeNode"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "WorkIdentityConflict" ADD CONSTRAINT "WorkIdentityConflict_citationId_fkey" FOREIGN KEY ("citationId") REFERENCES "Citation"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "ClaimEvidenceRelation" ADD CONSTRAINT "ClaimEvidenceRelation_claimId_fkey" FOREIGN KEY ("claimId") REFERENCES "Claim"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
