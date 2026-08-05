@@ -732,10 +732,9 @@ describe.sequential("article lifecycle public boundaries", () => {
     expect(index.reviews.some((review) => review.reviewSlug === "sensitive-review")).toBe(false);
     expect(index.claims).toEqual([]);
     expect(serializedIndex).not.toContain(secretClaim);
-    const discussion = await runtime.discuss.runDiscussion("What does the sensitive review say?", [
-      "sensitive-review",
-    ]);
-    expect(JSON.stringify(discussion)).not.toContain(secretClaim);
+    await expect(
+      runtime.discuss.runDiscussion("What does the sensitive review say?", undefined as never),
+    ).rejects.toThrow("exact traversed graph scope");
   }, 30_000);
 
   it("rolls back the public lifecycle state, event, idempotency claim, and audit on a late crash", async () => {

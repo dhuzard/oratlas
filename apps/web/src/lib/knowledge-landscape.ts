@@ -121,6 +121,7 @@ export function buildKnowledgeLandscape(
         : undefined,
     });
     edges.push({
+      graphEdgeId: `legacy:${reviewNodeId}:${claimNodeId}:asserts`,
       sourceId: reviewNodeId,
       targetId: claimNodeId,
       label: "asserts",
@@ -146,6 +147,7 @@ export function buildKnowledgeLandscape(
       }
       if (includedEvidence.has(evidenceNodeId)) {
         edges.push({
+          graphEdgeId: `legacy:${claimNodeId}:${evidenceNodeId}:${relation.relationType}`,
           sourceId: claimNodeId,
           targetId: evidenceNodeId,
           label: relation.relationType.replace(/-/g, " "),

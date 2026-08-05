@@ -15,22 +15,27 @@ document states where agents are and are **not** used.
 
 ## Agent-facing guided exploration
 
-Agents may read the same bounded knowledge landscape shown to human readers through
-`GET /api/landscape`. The endpoint and Explore page call the same deterministic service and return
-the versioned `explicit-interest-graph-landscape@2.0.0` projection. It accepts only explicit query,
-interest, filter, and optional focus state; it does not infer a profile, use behavioral telemetry,
-or mutate preserved records.
+Agents receive a bounded, derived ranking through `GET /api/landscape`. The versioned
+`explicit-interest-recommendation@2.0.0` contract accepts only explicit query, interest, and filter
+state; it does not infer a profile, accept GUI focus state, use behavioral telemetry, or mutate
+preserved records. It returns canonical graph references, relative scores, and explanations only;
+agents resolve record content through the reader-agnostic graph API.
 
-The response contains at most six claims, ten citation-evidence records, and twelve graph
-identities reached from at most three displayed seed claims. Only explicit claim-to-node identities
-and confirmed public graph edges enter this projection. Its ordering and plain-language selection
-reasons support navigation only and are explicitly not truth, quality, consensus, or TRUST scores.
+An optional repeated `known` parameter is explicit reader-held state. Each recommendation returns
+the exact editor-confirmed edges connecting it to those known identities in `anchors`; no lexical,
+behavioral, or inferred familiarity is accepted.
+
+The internal selection considers at most six claims, ten citation-evidence records, and twelve graph
+identities reached from at most three seed claims. Only explicit graph identities and confirmed
+public graph edges enter this overlay. Its ordering and plain-language reasons support navigation
+only and are explicitly not truth, quality, consensus, or TRUST scores.
 Unknown interests fail validation rather than becoming hidden personalization categories. See the
 [agent-facing API guide](knowledge-landscape-api.md) and complete contract in
 [`openapi.yaml`](openapi.yaml).
 
-Atlas Discuss is the primary Explore workflow. When an explicit Explore topic, interest, filter,
-or graph focus is present, its evidence packet is selected through that same landscape service and
+Atlas Discuss is a bounded lens following graph traversal, not the canonical Explore front door. When
+an explicit Explore topic, interest, filter, or graph focus is present, its evidence packet is
+selected through the internal landscape service and
 restricted to the exact accepted claim identities in the visible projection. Changing the question
 may rank within that set but cannot silently broaden it. Generated statement highlighting uses only
 returned claim/citation identifiers that already passed exact edge validation.

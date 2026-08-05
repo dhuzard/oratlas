@@ -7,6 +7,43 @@ import {
 } from "./enums.js";
 import { commitShaSchema } from "./identifiers.js";
 
+export const discussionTraversalNodeSchema = z
+  .object({
+    nodeId: z.string().trim().min(1).max(200),
+    nodeVersionId: z.string().trim().min(1).max(200),
+  })
+  .strict();
+
+/**
+ * Exact graph occurrence set rendered by Explore. The signature binds the
+ * ordered-independent node/version pairs and edge ids to the server that
+ * rendered them, so callers cannot broaden a discussion packet by editing the
+ * request body.
+ */
+export const discussionTraversalScopeSchema = z
+  .object({
+    nodes: z.array(discussionTraversalNodeSchema).min(1).max(34),
+    edgeIds: z.array(z.string().trim().min(1).max(200)).max(100),
+    signature: z.string().regex(/^[A-Za-z0-9_-]{43}$/),
+  })
+  .strict()
+  .superRefine((scope, ctx) => {
+    const nodeKeys = scope.nodes.map(
+      ({ nodeId, nodeVersionId }) => `${nodeId}\u0000${nodeVersionId}`,
+    );
+    if (new Set(nodeKeys).size !== nodeKeys.length) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["nodes"], message: "Duplicate node." });
+    }
+    if (new Set(scope.edgeIds).size !== scope.edgeIds.length) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["edgeIds"],
+        message: "Duplicate edge id.",
+      });
+    }
+  });
+export type DiscussionTraversalScope = z.infer<typeof discussionTraversalScopeSchema>;
+
 /**
  * Grounded discussion contracts (Atlas Discuss, spec §14).
  *

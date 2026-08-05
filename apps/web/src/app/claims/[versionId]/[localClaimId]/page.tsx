@@ -43,7 +43,7 @@ export default async function ClaimPassportPage({
 
   return (
     <article>
-      <ExploreBreadcrumb current="Claim passport" href="/explore?view=claims" />
+      <ExploreBreadcrumb current="Claim passport" href="/explore" />
       <div className="btn-row" style={{ marginBottom: "0.5rem" }}>
         <Badge>claim passport</Badge>
         {passport.claimType ? <Badge tone="neutral">{passport.claimType}</Badge> : null}

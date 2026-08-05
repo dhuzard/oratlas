@@ -1,73 +1,175 @@
 import {
   KNOWLEDGE_LANDSCAPE_ALGORITHM_VERSION,
   KNOWLEDGE_LANDSCAPE_SCHEMA_VERSION,
+  canonicalGraphResponseSchema,
   knowledgeLandscapeQuerySchema,
   knowledgeLandscapeResponseSchema,
+  type CanonicalGraphEdge,
+  type CanonicalGraphNodeVersion,
+  type CanonicalGraphResponse,
   type ExplorationInterest,
   type KnowledgeLandscapeData,
   type KnowledgeLandscapeEdge,
   type KnowledgeLandscapeNode,
   type KnowledgeLandscapeQuery,
   type KnowledgeLandscapeResponse,
-  type PublicGraphEdge,
-  type PublicGraphNode,
-  type PublicGraphResponse,
 } from "@oratlas/contracts";
-import {
-  InProcessSearchProvider,
-  type IndexedClaim,
-  type KnowledgeIndexData,
-} from "@oratlas/knowledge";
-import { buildKnowledgeLandscape, focusLandscape } from "./knowledge-landscape.js";
+import { type Prisma } from "@oratlas/db";
+import { prisma } from "./db";
+import { readableCanonicalNodeVersionWhere } from "./public-snapshot-visibility";
 
 const MAX_GRAPH_SEEDS = 3;
-const MAX_GRAPH_CANDIDATE_SEEDS = 6;
 const MAX_GRAPH_NODES = 12;
-const MAX_GRAPH_EDGES_PER_SEED = 25;
+const MAX_GRAPH_EDGES = 100;
 
-export type LandscapeGraphProvider = (
+export interface GraphNativeRecommendation {
+  nodeId: string;
+  nodeVersionId: string;
+  reasons: string[];
+}
+
+export interface GraphNativeLandscapeSelection {
+  nodes: CanonicalGraphNodeVersion[];
+  edges: CanonicalGraphEdge[];
+  recommendations: GraphNativeRecommendation[];
+  matchedClaimCount: number;
+  seedNodeIds: string[];
+}
+
+export function canonicalLandscapeNodeId(nodeId: string, nodeVersionId: string): string {
+  return `graph:${nodeId}:${nodeVersionId}`;
+}
+
+export function canonicalOccurrenceHref(nodeId: string, nodeVersionId: string): string {
+  return `/graph/occurrences/${encodeURIComponent(nodeId)}/versions/${encodeURIComponent(nodeVersionId)}`;
+}
+
+export type CanonicalLandscapeGraphProvider = (
   seedNodeId: string,
-) => Promise<PublicGraphResponse | undefined>;
+  seedNodeVersionId?: string,
+) => Promise<CanonicalGraphResponse | undefined>;
+
+export interface CanonicalGraphEntryReference {
+  nodeId: string;
+  nodeVersionId: string;
+}
+
+export type CanonicalGraphEntryProvider = (
+  query: KnowledgeLandscapeQuery,
+) => Promise<CanonicalGraphEntryReference[]>;
 
 export interface KnowledgeLandscapeServiceOptions {
-  graphProvider?: LandscapeGraphProvider;
+  graphProvider?: CanonicalLandscapeGraphProvider;
+  entryProvider?: CanonicalGraphEntryProvider;
+}
+
+/** Reader-neutral selection over canonical graph records. */
+export async function selectGraphNativeLandscape(
+  input: KnowledgeLandscapeQuery,
+  options: KnowledgeLandscapeServiceOptions = {},
+): Promise<GraphNativeLandscapeSelection> {
+  const query = knowledgeLandscapeQuerySchema.parse(input);
+  const entryProvider = options.entryProvider ?? databaseCanonicalEntryProvider;
+  const candidates = query.focusNodeId ? [] : await entryProvider(query);
+  const graphProvider = options.graphProvider ?? databaseCanonicalGraphProvider;
+  const requestedSeeds = (
+    query.focusNodeId ? [{ nodeId: query.focusNodeId, nodeVersionId: undefined }] : candidates
+  ).filter(
+    (value, index, values) =>
+      values.findIndex(
+        (candidate) =>
+          candidate.nodeId === value.nodeId && candidate.nodeVersionId === value.nodeVersionId,
+      ) === index,
+  );
+  const loaded = await Promise.all(
+    requestedSeeds.map(async ({ nodeId, nodeVersionId }) => ({
+      seedNodeId: nodeId,
+      response: await graphProvider(nodeId, nodeVersionId),
+    })),
+  );
+  const eligible = loaded.filter(
+    (entry): entry is typeof entry & { response: CanonicalGraphResponse } => {
+      if (!entry.response) return false;
+      if (entry.seedNodeId === query.focusNodeId) return true;
+      return responseMatchesFilters(entry.response, query);
+    },
+  );
+  const selected = eligible.slice(0, MAX_GRAPH_SEEDS);
+  const nodeByVersion = new Map<string, CanonicalGraphNodeVersion>();
+  const edgeById = new Map<string, CanonicalGraphEdge>();
+  const reasonsByVersion = new Map<string, string[]>();
+
+  for (const { response } of selected) {
+    const seed = response.nodes.find((node) => node.nodeVersionId === response.seed.nodeVersionId);
+    if (!seed) continue;
+    addNode(nodeByVersion, seed);
+    addReasons(
+      reasonsByVersion,
+      seed.nodeVersionId,
+      entryReasons(
+        response,
+        query.interests,
+        Boolean(query.q) && !query.focusNodeId,
+        Boolean(query.focusNodeId),
+      ),
+    );
+    for (const edge of response.edges) {
+      const source = response.nodes.find((node) => node.nodeVersionId === edge.sourceNodeVersionId);
+      const target = response.nodes.find((node) => node.nodeVersionId === edge.targetNodeVersionId);
+      if (!source || !target) continue;
+      if (!nodeByVersion.has(source.nodeVersionId) && nodeByVersion.size >= MAX_GRAPH_NODES)
+        continue;
+      addNode(nodeByVersion, source);
+      if (!nodeByVersion.has(target.nodeVersionId) && nodeByVersion.size >= MAX_GRAPH_NODES)
+        continue;
+      addNode(nodeByVersion, target);
+      edgeById.set(edge.id, edge);
+      addReasons(
+        reasonsByVersion,
+        source.nodeVersionId,
+        endpointReasons(source, edge, query.interests),
+      );
+      addReasons(
+        reasonsByVersion,
+        target.nodeVersionId,
+        endpointReasons(target, edge, query.interests),
+      );
+    }
+  }
+
+  const nodes = [...nodeByVersion.values()].slice(0, MAX_GRAPH_NODES);
+  const versionIds = new Set(nodes.map((node) => node.nodeVersionId));
+  const edges = [...edgeById.values()]
+    .filter(
+      (edge) =>
+        versionIds.has(edge.sourceNodeVersionId) && versionIds.has(edge.targetNodeVersionId),
+    )
+    .slice(0, MAX_GRAPH_EDGES);
+  const recommendations = nodes.map((node) => ({
+    nodeId: node.nodeId,
+    nodeVersionId: node.nodeVersionId,
+    reasons: reasonsByVersion.get(node.nodeVersionId) ?? ["Connected by a canonical graph edge"],
+  }));
+  return {
+    nodes,
+    edges,
+    recommendations,
+    matchedClaimCount: query.focusNodeId
+      ? nodes.some((node) => node.kind === "claim")
+        ? 1
+        : 0
+      : eligible.length,
+    seedNodeIds: selected.map(({ seedNodeId }) => seedNodeId),
+  };
 }
 
 export async function createKnowledgeLandscapeResponse(
-  index: KnowledgeIndexData,
   input: KnowledgeLandscapeQuery,
   options: KnowledgeLandscapeServiceOptions = {},
 ): Promise<KnowledgeLandscapeResponse> {
   const query = knowledgeLandscapeQuerySchema.parse(input);
-  const provider = new InProcessSearchProvider(index);
-  const candidates = provider.searchClaims({
-    q: query.q,
-    reviewSlug: query.reviewSlug,
-    claimType: query.claimType,
-    relationType: query.relationType,
-    trustCriterion: query.trustCriterion,
-    page: 1,
-    pageSize: 40,
-  });
-  const graphProvider = options.graphProvider ?? databaseGraphProvider;
-  const preloadedGraphs = await preloadCandidateGraphs(
-    candidates.items,
-    query.interests,
-    graphProvider,
-  );
-  const overview = buildKnowledgeLandscape(index, candidates.items, query.interests, {
-    query: query.q,
-    graphInterestMatches: graphInterestMatches(preloadedGraphs),
-  });
-  const cachedGraphProvider: LandscapeGraphProvider = async (seedNodeId) =>
-    preloadedGraphs.has(seedNodeId) ? preloadedGraphs.get(seedNodeId) : graphProvider(seedNodeId);
-  const graphLandscape = await addGraphNeighborhoods(
-    overview,
-    query.interests,
-    cachedGraphProvider,
-  );
-  const landscape = focusLandscape(graphLandscape, query.focusNodeId);
-
+  const selection = await selectGraphNativeLandscape(query, options);
+  const landscape = renderLandscape(selection, query.focusNodeId);
   return knowledgeLandscapeResponseSchema.parse({
     schemaVersion: KNOWLEDGE_LANDSCAPE_SCHEMA_VERSION,
     algorithm: {
@@ -77,8 +179,8 @@ export async function createKnowledgeLandscapeResponse(
       limitations: [
         "not-a-truth-score",
         "not-a-quality-score",
-        "confirmed-graph-edges-only",
-        "bounded-to-six-claims-ten-evidence-and-twelve-graph-nodes",
+        "canonical-source-assertion-and-confirmed-edges",
+        "bounded-to-three-entry-neighborhoods-and-twelve-exact-versions",
       ],
     },
     query,
@@ -86,273 +188,304 @@ export async function createKnowledgeLandscapeResponse(
   });
 }
 
-async function preloadCandidateGraphs(
-  candidateClaims: IndexedClaim[],
+function renderLandscape(
+  selection: GraphNativeLandscapeSelection,
+  focusedStableNodeId?: string,
+): KnowledgeLandscapeData {
+  const reasonByVersion = new Map(
+    selection.recommendations.map((recommendation) => [
+      recommendation.nodeVersionId,
+      recommendation.reasons,
+    ]),
+  );
+  const nodes = selection.nodes.map((node) =>
+    renderNode(node, reasonByVersion.get(node.nodeVersionId)),
+  );
+  const idByVersion = new Map(
+    selection.nodes.map((node, index) => [node.nodeVersionId, nodes[index]!.id]),
+  );
+  const edges: KnowledgeLandscapeEdge[] = selection.edges.flatMap((edge) => {
+    const sourceId = idByVersion.get(edge.sourceNodeVersionId);
+    const targetId = idByVersion.get(edge.targetNodeVersionId);
+    if (!sourceId || !targetId) return [];
+    return [
+      {
+        graphEdgeId: edge.id,
+        sourceId,
+        targetId,
+        label: edge.relationType.replaceAll("-", " "),
+        relationType: edge.relationType,
+        ...(edge.status === "confirmed" ? { status: "confirmed" as const } : {}),
+        assessmentCount: edge.trustAssessments.length,
+      },
+    ];
+  });
+  const focusedNode = focusedStableNodeId
+    ? nodes.find((node) => node.graphNodeId === focusedStableNodeId)
+    : undefined;
+  return {
+    nodes,
+    edges,
+    matchedClaimCount: selection.matchedClaimCount,
+    shownClaimCount: nodes.filter((node) => node.kind === "claim").length,
+    graphSeedCount: selection.seedNodeIds.length,
+    graphNodeCount: new Set(nodes.map((node) => node.graphNodeId)).size,
+    timeline: [],
+    ...(focusedNode ? { focusedNodeId: focusedNode.id } : {}),
+  };
+}
+
+function renderNode(node: CanonicalGraphNodeVersion, reasons?: string[]): KnowledgeLandscapeNode {
+  const kind = node.kind === "work" ? "evidence" : node.kind;
+  const label =
+    node.title ??
+    node.text ??
+    statementFromPayload(node.payload) ??
+    node.aliases[0]?.value ??
+    `${node.kind} ${node.localNodeId}`;
+  const href = canonicalOccurrenceHref(node.nodeId, node.nodeVersionId);
+  return {
+    id: canonicalLandscapeNodeId(node.nodeId, node.nodeVersionId),
+    kind,
+    label,
+    detail: `${node.kind === "work" ? "Evidence" : titleCase(node.kind)} · exact canonical version`,
+    href,
+    reasons: reasons?.length ? reasons : ["Connected by a canonical graph edge"],
+    graphNodeId: node.nodeId,
+    graphNodeVersionId: node.nodeVersionId,
+    graphHref: `/graph?seed=${encodeURIComponent(node.nodeId)}`,
+    graphRecordHref: href,
+  };
+}
+
+function entryReasons(
+  response: CanonicalGraphResponse,
   interests: ExplorationInterest[],
-  graphProvider: LandscapeGraphProvider,
-): Promise<Map<string, PublicGraphResponse | undefined>> {
-  if (interests.length === 0) return new Map();
-  const seedIds = [
-    ...new Set(
-      candidateClaims.flatMap((claim) => (claim.knowledgeNodeId ? [claim.knowledgeNodeId] : [])),
-    ),
-  ].slice(0, MAX_GRAPH_CANDIDATE_SEEDS);
-  const responses = await Promise.all(seedIds.map(graphProvider));
-  return new Map(seedIds.map((seedId, index) => [seedId, responses[index]]));
+  hasQuery: boolean,
+  isExplicitFocus: boolean,
+): string[] {
+  const reasons = [
+    ...(isExplicitFocus ? ["Selected as the explicit canonical graph focus"] : []),
+    ...(hasQuery ? ["Matches the declared search entry point"] : []),
+    ...graphInterestReasons(response, interests),
+  ];
+  if (reasons.length === 0) reasons.push("Selected from the declared canonical graph entry point");
+  return reasons.length ? reasons : ["Selected from the canonical graph entry points"];
 }
 
-function graphInterestMatches(
-  responses: ReadonlyMap<string, PublicGraphResponse | undefined>,
-): ReadonlyMap<string, ReadonlySet<ExplorationInterest>> {
-  const output = new Map<string, ReadonlySet<ExplorationInterest>>();
-  for (const [seedId, response] of responses) {
-    if (!response) continue;
-    const matches = new Set<ExplorationInterest>();
-    const confirmedEdges = response.edges.filter((edge) => edge.status === "confirmed");
-    const searchable = response.nodes
-      .map((node) => `${node.title} ${node.abstract ?? ""}`)
-      .join(" ");
-    const relationTypes = new Set(confirmedEdges.map((edge) => edge.relationType));
-    if (
-      response.nodes.some((node) => node.kind === "dataset" || node.kind === "code") ||
-      relationTypes.has("uses-dataset") ||
-      relationTypes.has("uses-code")
-    ) {
-      matches.add("data-code");
-    }
-    if (relationTypes.has("contradicts")) matches.add("disagreements");
-    if (relationTypes.has("replicates") || /replicat|reproduc|robust|convergen/i.test(searchable)) {
-      matches.add("reproducibility");
-    }
-    if (
-      relationTypes.has("uses-dataset") ||
-      relationTypes.has("uses-code") ||
-      /method|model|protocol|algorithm|pipeline|population|cohort|design/i.test(searchable)
-    ) {
-      matches.add("methods-models");
-    }
-    if (confirmedEdges.some((edge) => graphEdgeAssessmentCount(edge) > 0)) {
-      matches.add("assessed-evidence");
-    }
-    output.set(seedId, matches);
-  }
-  return output;
+function graphInterestReasons(
+  response: CanonicalGraphResponse,
+  interests: ExplorationInterest[],
+): string[] {
+  const reasons: string[] = [];
+  const relations = new Set(response.edges.map((edge) => edge.relationType));
+  const searchable = response.nodes
+    .map((node) => `${node.title ?? ""} ${node.abstract ?? ""} ${node.text ?? ""}`)
+    .join(" ");
+  if (
+    interests.includes("data-code") &&
+    (response.nodes.some((node) => node.kind === "dataset" || node.kind === "code") ||
+      relations.has("uses-dataset") ||
+      relations.has("uses-code"))
+  )
+    reasons.push("Its canonical graph neighborhood matches your data & code interest");
+  if (interests.includes("disagreements") && relations.has("contradicts"))
+    reasons.push("Its canonical graph neighborhood contains a contradicts relation");
+  if (
+    interests.includes("reproducibility") &&
+    (relations.has("replicates") || /replicat|reproduc|robust|convergen/i.test(searchable))
+  )
+    reasons.push("Its canonical graph neighborhood matches your reproducibility interest");
+  if (
+    interests.includes("methods-models") &&
+    (relations.has("uses-code") ||
+      relations.has("uses-dataset") ||
+      /method|model|protocol|algorithm|pipeline|population|cohort|design/i.test(searchable))
+  )
+    reasons.push("Its canonical graph neighborhood matches your methods & models interest");
+  if (
+    interests.includes("assessed-evidence") &&
+    response.edges.some((edge) => edge.trustAssessments.length > 0)
+  )
+    reasons.push("Its canonical graph neighborhood contains assessed evidence");
+  return reasons;
 }
 
-async function databaseGraphProvider(seedNodeId: string): Promise<PublicGraphResponse | undefined> {
-  const { GraphQueryError, queryPublicGraph } = await import("./graph-query.js");
+function responseMatchesFilters(
+  response: CanonicalGraphResponse,
+  query: KnowledgeLandscapeQuery,
+): boolean {
+  if (query.interests.length > 0 && graphInterestReasons(response, query.interests).length === 0)
+    return false;
+  if (
+    query.relationType &&
+    !response.edges.some((edge) => edge.relationType === query.relationType)
+  )
+    return false;
+  if (
+    query.trustCriterion &&
+    !response.edges.some((edge) =>
+      edge.trustAssessments.some((assessment) =>
+        assessment.assessedCriteria?.includes(
+          query.trustCriterion as NonNullable<typeof assessment.assessedCriteria>[number],
+        ),
+      ),
+    )
+  )
+    return false;
+  return true;
+}
+
+function endpointReasons(
+  node: CanonicalGraphNodeVersion,
+  edge: CanonicalGraphEdge,
+  interests: ExplorationInterest[],
+): string[] {
+  const reasons = [
+    `Connected by a ${edge.status === "confirmed" ? "confirmed" : "source-asserted"} ${edge.relationType.replaceAll("-", " ")} relation`,
+  ];
+  if (interests.includes("data-code") && (node.kind === "dataset" || node.kind === "code"))
+    reasons.push(`Matches your data & code interest as a ${node.kind} node`);
+  if (interests.includes("assessed-evidence") && edge.trustAssessments.length > 0)
+    reasons.push("The connecting relation has a public assessment");
+  return reasons;
+}
+
+function addNode(
+  nodes: Map<string, CanonicalGraphNodeVersion>,
+  node: CanonicalGraphNodeVersion,
+): void {
+  if (!nodes.has(node.nodeVersionId) && nodes.size < MAX_GRAPH_NODES)
+    nodes.set(node.nodeVersionId, node);
+}
+
+function addReasons(target: Map<string, string[]>, versionId: string, values: string[]): void {
+  target.set(versionId, [...new Set([...(target.get(versionId) ?? []), ...values])]);
+}
+
+function statementFromPayload(payload: unknown): string | undefined {
+  if (!payload || typeof payload !== "object" || !("statement" in payload)) return undefined;
+  return typeof payload.statement === "string" && payload.statement.trim()
+    ? payload.statement
+    : undefined;
+}
+
+function titleCase(value: string): string {
+  return `${value[0]?.toUpperCase() ?? ""}${value.slice(1)}`;
+}
+
+async function databaseCanonicalGraphProvider(
+  seedNodeId: string,
+  seedNodeVersionId?: string,
+): Promise<CanonicalGraphResponse | undefined> {
+  const { CanonicalGraphQueryError, queryCanonicalGraph } =
+    await import("./canonical-graph-query.js");
   try {
-    return await queryPublicGraph({
-      seed: seedNodeId,
-      depth: 1,
-      limit: MAX_GRAPH_EDGES_PER_SEED,
-      edgeStatus: "confirmed",
-    });
+    return canonicalGraphResponseSchema.parse(
+      await queryCanonicalGraph({
+        seed: seedNodeId,
+        ...(seedNodeVersionId ? { version: seedNodeVersionId } : {}),
+        direction: "both",
+        status: "authoritative",
+        limit: MAX_GRAPH_EDGES,
+      }),
+    );
   } catch (error) {
-    // A legacy claim may point to a node without a currently readable public version.
-    // That claim remains in Explore, but it must not produce a fabricated graph projection.
-    if (error instanceof GraphQueryError && error.code === "not-found") return undefined;
+    if (error instanceof CanonicalGraphQueryError && error.code === "not-found") return undefined;
     throw error;
   }
 }
 
-async function addGraphNeighborhoods(
-  landscape: KnowledgeLandscapeData,
-  interests: ExplorationInterest[],
-  graphProvider: LandscapeGraphProvider,
-): Promise<KnowledgeLandscapeData> {
-  const requestedSeedIds = [
-    ...new Set(
-      landscape.nodes.flatMap((node) =>
-        node.kind === "claim" && node.graphNodeId ? [node.graphNodeId] : [],
-      ),
-    ),
-  ].slice(0, MAX_GRAPH_SEEDS);
-  if (requestedSeedIds.length === 0) return landscape;
-
-  const responses = (
-    await Promise.all(
-      requestedSeedIds.map(async (requestedSeedId) => ({
-        requestedSeedId,
-        response: await graphProvider(requestedSeedId),
-      })),
-    )
-  ).filter(
-    (result): result is { requestedSeedId: string; response: PublicGraphResponse } =>
-      result.response !== undefined &&
-      result.response.nodes.some((node) => node.id === result.requestedSeedId),
-  );
-  if (responses.length === 0) {
-    return { ...landscape, nodes: landscape.nodes.map(withoutGraphProjection) };
+async function databaseCanonicalEntryProvider(
+  query: KnowledgeLandscapeQuery,
+): Promise<CanonicalGraphEntryReference[]> {
+  const text = query.q?.trim();
+  // `reviewSlug` is an input identifier bridge only: resolve it once to the review's canonical
+  // node identity, then perform selection exclusively through canonical NodeEdge/NodeVersion rows.
+  if (query.reviewSlug) {
+    const review = await prisma.review.findUnique({
+      where: { slug: query.reviewSlug },
+      select: { knowledgeNodeId: true },
+    });
+    if (!review?.knowledgeNodeId) return [];
+    const edges = await prisma.nodeEdge.findMany({
+      where: {
+        status: "source-assertion",
+        provenance: "imported-from-review",
+        relationType: "asserts",
+        sourceNodeVersion: {
+          knowledgeNodeId: review.knowledgeNodeId,
+          ...readableCanonicalNodeVersionWhere,
+        },
+        confirmedTargetNodeVersion: readableCanonicalNodeVersionWhere,
+      },
+      select: {
+        targetNodeId: true,
+        confirmedTargetNodeVersion: {
+          select: {
+            id: true,
+            knowledgeNodeId: true,
+            title: true,
+            abstract: true,
+            text: true,
+            payloadJson: true,
+          },
+        },
+      },
+      orderBy: { id: "asc" },
+      take: 40,
+    });
+    return edges.flatMap(({ targetNodeId, confirmedTargetNodeVersion: version }) => {
+      if (
+        !version ||
+        version.knowledgeNodeId !== targetNodeId ||
+        !matchesCanonicalText(version, text) ||
+        !payloadMatchesClaimType(version.payloadJson, query.claimType)
+      )
+        return [];
+      return [{ nodeId: targetNodeId, nodeVersionId: version.id }];
+    });
   }
-
-  const nodeById = new Map<string, PublicGraphNode>();
-  const edgeById = new Map<string, PublicGraphEdge>();
-  const availableSeedIds = new Set<string>();
-  for (const { requestedSeedId, response } of responses) {
-    availableSeedIds.add(requestedSeedId);
-    response.nodes.forEach((node) => nodeById.set(node.id, node));
-    response.edges
-      .filter((edge) => edge.status === "confirmed")
-      .forEach((edge) => edgeById.set(edge.id, edge));
-  }
-
-  const graphLandscapeId = new Map<string, string>();
-  const baseNodes = landscape.nodes.map((node) => {
-    if (!node.graphNodeId) return node;
-    if (!availableSeedIds.has(node.graphNodeId)) return withoutGraphProjection(node);
-    const graphNode = nodeById.get(node.graphNodeId);
-    if (!graphNode) return withoutGraphProjection(node);
-    graphLandscapeId.set(graphNode.id, node.id);
-    const connectionCount = incidentEdges(graphNode.id, edgeById.values()).length;
-    return {
-      ...node,
-      graphNodeVersionId: graphNode.versionId,
-      graphRecordHref: exactNodeHref(graphNode),
-      reasons: appendUnique(
-        node.reasons,
-        `${connectionCount} confirmed graph connection${connectionCount === 1 ? "" : "s"}`,
-      ),
-    };
-  });
-
-  const candidateNodes = [...nodeById.values()]
-    .filter((node) => !availableSeedIds.has(node.id))
-    .map((node) => {
-      const edges = incidentEdges(node.id, edgeById.values());
-      const reasons = explainGraphNode(node, edges, interests, availableSeedIds);
-      return { node, edges, reasons, interestReasonCount: reasons.filter(isInterestReason).length };
-    })
-    .sort(
-      (left, right) =>
-        right.interestReasonCount - left.interestReasonCount ||
-        assessedEdgeCount(right.edges) - assessedEdgeCount(left.edges) ||
-        right.edges.length - left.edges.length ||
-        left.node.title.localeCompare(right.node.title) ||
-        left.node.id.localeCompare(right.node.id),
-    );
-
-  const remainingCapacity = Math.max(0, MAX_GRAPH_NODES - availableSeedIds.size);
-  const selectedGraphNodes = candidateNodes.slice(0, remainingCapacity);
-  const nativeNodes: KnowledgeLandscapeNode[] = selectedGraphNodes.map(({ node, reasons }) => {
-    const id = `graph:${node.id}`;
-    graphLandscapeId.set(node.id, id);
-    return {
-      id,
-      // The legacy landscape vocabulary calls cited works "evidence". The
-      // reference-only recommendation contract will remove this translation.
-      kind: node.kind === "work" ? "evidence" : node.kind,
-      label: node.title,
-      detail: `${nodeKindLabel(node.kind)} · exact preserved graph version`,
-      href: exactNodeHref(node),
-      reasons,
-      graphNodeId: node.id,
-      graphNodeVersionId: node.versionId,
-      graphHref: `/graph?seed=${encodeURIComponent(node.id)}`,
-      graphRecordHref: exactNodeHref(node),
-    };
-  });
-
-  const includedGraphIds = new Set(graphLandscapeId.keys());
-  const nativeEdges: KnowledgeLandscapeEdge[] = [...edgeById.values()]
-    .filter(
-      (edge) =>
-        edge.status === "confirmed" &&
-        includedGraphIds.has(edge.sourceNodeId) &&
-        includedGraphIds.has(edge.targetNodeId),
-    )
-    .map((edge) => ({
-      sourceId: graphLandscapeId.get(edge.sourceNodeId)!,
-      targetId: graphLandscapeId.get(edge.targetNodeId)!,
-      label: edge.relationType.replace(/-/g, " "),
-      relationType: edge.relationType,
-      status: "confirmed" as const,
-      assessmentCount: graphEdgeAssessmentCount(edge),
-    }));
-
-  return {
-    ...landscape,
-    nodes: [...baseNodes, ...nativeNodes],
-    edges: [...landscape.edges, ...nativeEdges],
-    graphSeedCount: availableSeedIds.size,
-    graphNodeCount: includedGraphIds.size,
+  const where: Prisma.KnowledgeNodeVersionWhereInput = {
+    ...readableCanonicalNodeVersionWhere,
+    knowledgeNode: { kind: "claim" },
+    ...(text
+      ? {
+          OR: [
+            { title: { contains: text } },
+            { abstract: { contains: text } },
+            { text: { contains: text } },
+          ],
+        }
+      : {}),
   };
+  const rows = await prisma.knowledgeNodeVersion.findMany({
+    where,
+    select: { id: true, knowledgeNodeId: true, payloadJson: true },
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    take: 40,
+  });
+  return rows
+    .filter((row) => payloadMatchesClaimType(row.payloadJson, query.claimType))
+    .map((row) => ({ nodeId: row.knowledgeNodeId, nodeVersionId: row.id }));
 }
 
-function withoutGraphProjection(node: KnowledgeLandscapeNode): KnowledgeLandscapeNode {
-  const recordNode = { ...node };
-  delete recordNode.graphNodeId;
-  delete recordNode.graphNodeVersionId;
-  delete recordNode.graphHref;
-  delete recordNode.graphRecordHref;
-  return recordNode;
+function matchesCanonicalText(
+  version: { title: string | null; abstract: string | null; text: string | null },
+  text?: string,
+): boolean {
+  if (!text) return true;
+  return `${version.title ?? ""} ${version.abstract ?? ""} ${version.text ?? ""}`
+    .toLocaleLowerCase("en")
+    .includes(text.toLocaleLowerCase("en"));
 }
 
-function incidentEdges(nodeId: string, edges: Iterable<PublicGraphEdge>): PublicGraphEdge[] {
-  return [...edges].filter((edge) => edge.sourceNodeId === nodeId || edge.targetNodeId === nodeId);
-}
-
-function explainGraphNode(
-  node: PublicGraphNode,
-  edges: PublicGraphEdge[],
-  interests: ExplorationInterest[],
-  seedIds: Set<string>,
-): string[] {
-  const reasons: string[] = [];
-  const relations = new Set(edges.map((edge) => edge.relationType));
-  const connectsToSeed = edges.some(
-    (edge) => seedIds.has(edge.sourceNodeId) || seedIds.has(edge.targetNodeId),
-  );
-  if (connectsToSeed) reasons.push("Directly connected to a claim selected for your interests");
-  if (interests.includes("data-code") && (node.kind === "dataset" || node.kind === "code")) {
-    reasons.push(`Matches your data & code interest as a ${node.kind} node`);
+function payloadMatchesClaimType(payloadJson: string, claimType?: string): boolean {
+  if (!claimType) return true;
+  try {
+    const payload = JSON.parse(payloadJson) as { claimType?: unknown };
+    return payload.claimType === claimType;
+  } catch {
+    return false;
   }
-  if (interests.includes("disagreements") && relations.has("contradicts")) {
-    reasons.push("Connected by a confirmed contradicts relation");
-  }
-  if (interests.includes("reproducibility") && relations.has("replicates")) {
-    reasons.push("Connected by a confirmed replicates relation");
-  }
-  if (
-    interests.includes("methods-models") &&
-    (/method|model|protocol|algorithm|pipeline/i.test(`${node.title} ${node.abstract ?? ""}`) ||
-      relations.has("uses-code") ||
-      relations.has("uses-dataset"))
-  ) {
-    reasons.push("Matches your methods & models interest through its content or relation");
-  }
-  const assessmentCount = edges.reduce((total, edge) => total + graphEdgeAssessmentCount(edge), 0);
-  if (interests.includes("assessed-evidence") && assessmentCount > 0) {
-    reasons.push(
-      `${assessmentCount} independent graph assessment${assessmentCount === 1 ? "" : "s"}`,
-    );
-  }
-  return reasons.length > 0 ? reasons : ["Connected to a claim selected for this knowledge path"];
-}
-
-function graphEdgeAssessmentCount(edge: PublicGraphEdge): number {
-  if (edge.status !== "confirmed") return 0;
-  return edge.trustAssessments?.length ?? (edge.trust ? 1 : 0);
-}
-
-function assessedEdgeCount(edges: PublicGraphEdge[]): number {
-  return edges.reduce((total, edge) => total + graphEdgeAssessmentCount(edge), 0);
-}
-
-function isInterestReason(reason: string): boolean {
-  return /your |confirmed contradicts|confirmed replicates|independent graph assessment/.test(
-    reason,
-  );
-}
-
-function nodeKindLabel(kind: PublicGraphNode["kind"]): string {
-  return `${kind[0]!.toUpperCase()}${kind.slice(1)} graph node`;
-}
-
-function exactNodeHref(node: PublicGraphNode): string {
-  return `/nodes/${encodeURIComponent(node.id)}/versions/${encodeURIComponent(node.versionId)}`;
-}
-
-function appendUnique(values: string[], value: string): string[] {
-  return values.includes(value) ? values : [...values, value];
 }

@@ -200,7 +200,9 @@ export async function listPendingNodeIdentityProposals() {
       !sourceVersion ||
       !targetVersion ||
       !row.sourceNode.repository ||
-      !row.targetNode.repository
+      !row.targetNode.repository ||
+      !sourceVersion.title ||
+      !targetVersion.title
     ) {
       return [];
     }

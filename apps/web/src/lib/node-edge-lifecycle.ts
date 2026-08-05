@@ -370,10 +370,11 @@ export async function decideNodeEdgeProposal(
             if (requested === "confirmed") {
               const existingEdge = await tx.nodeEdge.findUnique({
                 where: {
-                  sourceNodeVersionId_targetNodeId_relationType: {
+                  sourceNodeVersionId_targetNodeId_relationType_edgeDiscriminator: {
                     sourceNodeVersionId: proposal.sourceNodeVersionId,
                     targetNodeId: proposal.targetNodeId,
                     relationType: proposal.relationType,
+                    edgeDiscriminator: "canonical",
                   },
                 },
                 include: { confirmedBy: { select: { role: true } } },
@@ -500,10 +501,11 @@ export async function decideNodeEdgeProposal(
     }
     const existing = await prisma.nodeEdge.findUnique({
       where: {
-        sourceNodeVersionId_targetNodeId_relationType: {
+        sourceNodeVersionId_targetNodeId_relationType_edgeDiscriminator: {
           sourceNodeVersionId: proposal.sourceNodeVersionId,
           targetNodeId: proposal.targetNodeId,
           relationType: proposal.relationType,
+          edgeDiscriminator: "canonical",
         },
       },
       include: { confirmedBy: { select: { role: true } } },
@@ -540,7 +542,9 @@ export async function listPendingNodeEdgeProposals() {
   return rows.flatMap((row) => {
     if (
       !row.sourceNodeVersion.knowledgeNode.repository ||
-      !row.targetNodeVersion.knowledgeNode.repository
+      !row.targetNodeVersion.knowledgeNode.repository ||
+      !row.sourceNodeVersion.title ||
+      !row.targetNodeVersion.title
     ) {
       return [];
     }

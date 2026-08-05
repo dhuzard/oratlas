@@ -12,7 +12,7 @@ describe("SpecialistTools", () => {
       "/synthesis",
       "/coverage",
       "/replications",
-      "/discuss",
+      "/explore",
     ]) {
       expect(html).toContain(`href="${href}"`);
     }

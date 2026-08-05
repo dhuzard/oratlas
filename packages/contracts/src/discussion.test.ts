@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  discussionTraversalScopeSchema,
   groundedAnswerSchema,
   validateGrounding,
   type EvidencePacket,
@@ -117,5 +118,49 @@ describe("validateGrounding", () => {
 
   it("fails the answer schema closed when no statement has an evidence edge", () => {
     expect(groundedAnswerSchema.safeParse({ ...answer, grounding: [] }).success).toBe(false);
+  });
+});
+
+const signature = "a".repeat(43);
+
+describe("discussion traversal scope contract", () => {
+  it("requires exact node versions and rejects duplicate references", () => {
+    expect(
+      discussionTraversalScopeSchema.safeParse({
+        nodes: [{ nodeId: "node-1", nodeVersionId: "version-1" }],
+        edgeIds: ["edge-1"],
+        signature,
+      }).success,
+    ).toBe(true);
+
+    expect(
+      discussionTraversalScopeSchema.safeParse({
+        nodes: [
+          { nodeId: "node-1", nodeVersionId: "version-1" },
+          { nodeId: "node-1", nodeVersionId: "version-1" },
+        ],
+        edgeIds: [],
+        signature,
+      }).success,
+    ).toBe(false);
+  });
+
+  it("rejects empty, unsigned, and duplicate-edge scopes", () => {
+    expect(
+      discussionTraversalScopeSchema.safeParse({ nodes: [], edgeIds: [], signature }).success,
+    ).toBe(false);
+    expect(
+      discussionTraversalScopeSchema.safeParse({
+        nodes: [{ nodeId: "node-1", nodeVersionId: "version-1" }],
+        edgeIds: [],
+      }).success,
+    ).toBe(false);
+    expect(
+      discussionTraversalScopeSchema.safeParse({
+        nodes: [{ nodeId: "node-1", nodeVersionId: "version-1" }],
+        edgeIds: ["edge-1", "edge-1"],
+        signature,
+      }).success,
+    ).toBe(false);
   });
 });
