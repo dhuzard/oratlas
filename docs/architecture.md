@@ -122,24 +122,26 @@ optional graph-native knowledge landscape. Readers answer what they want to unde
 and explicit interest lenses; the application stores the query, repeated `interest` values,
 filters, and optional `focus` node in the URL rather than an inferred account profile.
 
-`apps/web/src/lib/knowledge-landscape-service.ts` is the shared service boundary for both the
-server-rendered Explore page and `GET /api/landscape`. It searches at most the first 40 matching
-claim candidates. For at most six explicitly bridged candidate claims, it reads one-hop public graph
-neighborhoods and uses those confirmed relations when matching interests such as data and code,
-reproducibility, or disagreements. It never infers a `Claim` → `KnowledgeNode` identity from text.
-The deterministic service returns the versioned `explicit-interest-graph-landscape@2.0.0`
-contract for both GUI and API.
+`apps/web/src/lib/knowledge-landscape-service.ts` builds the rendering model used only by Explore.
+It searches at most the first 40 matching claim candidates. For at most six explicitly bridged
+candidate claims, it reads one-hop public graph neighborhoods and uses those confirmed relations
+when matching interests such as data and code, reproducibility, or disagreements. It never infers a
+`Claim` → `KnowledgeNode` identity from text.
 
-The projection contains at most six claims, ten citation-evidence records, three graph seeds, and
-twelve graph identities. Graph recommendations expose stable node IDs, exact readable version IDs,
-confirmed typed edges, and plain-language selection reasons. It can be reduced to the selected node
-plus its immediate neighbors. An unknown focus returns the overview; the API rejects an unknown
-interest, while the server-rendered page ignores unknown URL interest values before calling the
-service.
+`GET /api/landscape` is the separate `explicit-interest-recommendation@2.0.0` ranking overlay. It
+projects the same deterministic selection to canonical `nodeId`/`nodeVersionId` references, scores,
+and reasons only. Labels, details, hrefs, timelines, and focus state stay in the rendering layer.
 
-The projection ranks paths for exploration, not scientific truth, evidence quality, consensus, or
-TRUST. It never mutates a preserved record, and the canonical claim or review result list remains
-available below the visualization. See [Guided knowledge landscape API](knowledge-landscape-api.md).
+The internal projection contains at most six claims, ten citation-evidence records, three graph
+seeds, and twelve graph identities. Recommendations expose stable node IDs, exact readable version
+IDs when applicable, and plain-language selection reasons. The GUI can reduce its rendering model
+to a selected node plus its immediate neighbors. The recommendation API rejects focus state and
+unknown interests, while the server-rendered page ignores unknown URL interest values before
+calling the service.
+
+The overlay ranks paths for exploration, not scientific truth, evidence quality, consensus, or
+TRUST. It never mutates a preserved record. See the
+[explicit-interest recommendation API](knowledge-landscape-api.md).
 
 ### Grounded Q&A (Atlas Discuss implementation)
 

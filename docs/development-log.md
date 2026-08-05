@@ -993,3 +993,12 @@ Two fail-closed gaps were found and intentionally not changed in this audit-only
   reporting, and a production backup-id gate.
 - Preserved explicit legacy claim-node bindings; backfill adds an exact claim occurrence version to
   that stable node rather than inferring a replacement identity.
+
+# Reference-only recommendation overlay
+
+- Demoted `GET /api/landscape` from a rendered knowledge representation to the versioned
+  `explicit-interest-recommendation@2.0.0` overlay.
+- The endpoint now returns canonical node references, relative scores, and reasons only; it rejects
+  GUI focus state and exposes unresolved compatibility rows through `omittedUnboundCount`.
+- Kept the human Explore rendering model internal and documented Atlas Discuss as a bounded lens
+  beside graph traversal rather than the canonical front door.

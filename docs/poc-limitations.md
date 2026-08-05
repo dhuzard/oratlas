@@ -20,11 +20,14 @@ knowledge-consensus engine.
 - **The knowledge index is rebuilt per request.** Fine at small scale; should be cached with
   invalidation in production.
 - **Guided exploration is explicit and bounded.** ORAtlas does not learn or infer a reader profile.
-  The landscape uses only the submitted query, filters, interests, focus node, explicit
+  The GUI landscape uses only the submitted query, filters, interests, focus node, explicit
   claim-to-node identities, and confirmed public graph relations. It considers at most 40 matching
   claim candidates, preloads at most six bridged graph candidates, and displays at most six claims,
   ten citation-evidence records, three graph seeds, and twelve graph identities. It is an
   orientation aid, not a complete corpus graph.
+- **The recommendation API is not a second knowledge store.** `GET /api/landscape` returns only
+  canonical graph references, relative ranking scores, and reasons. Presentation fields and focus
+  state remain in Explore.
 - **Guided ordering is navigation metadata.** Selection reasons and ordering are deterministic and
   inspectable, but they are not measures of truth, evidence quality, consensus, or TRUST.
 - **First-reader validation has not been run.** The repository contains a privacy-minimal protocol

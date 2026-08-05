@@ -23,20 +23,16 @@ describe("GCP beta smoke", () => {
       if (url.pathname === "/api/landscape") {
         return Response.json({
           schemaVersion: "2.0.0",
-          algorithm: { id: "explicit-interest-graph-landscape" },
-          landscape: {
-            graphSeedCount: 1,
-            graphNodeCount: 2,
-            edges: [{ status: "confirmed", relationType: "uses-dataset" }],
-            nodes: [
-              {
-                graphNodeId: "node-1",
-                graphNodeVersionId: "version-1",
-                graphRecordHref: "/nodes/node-1/versions/version-1",
-                graphHref: "/graph?seed=node-1",
-              },
-            ],
-          },
+          algorithm: { id: "explicit-interest-recommendation" },
+          recommendations: [
+            { nodeId: "node-1", nodeVersionId: "version-1", rank: 1, score: 1, reasons: ["x"] },
+          ],
+          omittedUnboundCount: 0,
+        });
+      }
+      if (url.pathname === "/api/graph") {
+        return Response.json({
+          nodes: [{ id: "node-1", versionId: "version-1" }],
         });
       }
       return new Response("ok");
@@ -49,13 +45,14 @@ describe("GCP beta smoke", () => {
 
     expect(result).toMatchObject({
       status: "ok",
-      graphSeedCount: 1,
-      graphNodeCount: 2,
+      recommendationCount: 1,
+      omittedUnboundCount: 0,
       checkedNodeId: "node-1",
     });
     expect(requested).toContain(
       "https://oratlas.example/api/landscape?q=replay&interest=data-code",
     );
+    expect(requested).toContain("https://oratlas.example/api/graph?seed=node-1&depth=0&limit=1");
     expect(requested).toContain("https://oratlas.example/nodes/node-1/versions/version-1");
     expect(requested).toContain("https://oratlas.example/graph?seed=node-1");
   });

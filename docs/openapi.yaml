@@ -148,6 +148,65 @@ components:
         claimType: { type: string, maxLength: 40 }
         relationType: { type: string, maxLength: 40 }
         trustCriterion: { type: string, maxLength: 60 }
+    KnowledgeRecommendationQuery:
+      type: object
+      additionalProperties: false
+      required: [interests]
+      properties:
+        q: { type: string, minLength: 1, maxLength: 500 }
+        interests:
+          type: array
+          maxItems: 5
+          items:
+            type: string
+            enum: [disagreements, reproducibility, methods-models, data-code, assessed-evidence]
+        reviewSlug: { type: string, maxLength: 200 }
+        claimType: { type: string, maxLength: 40 }
+        relationType: { type: string, maxLength: 40 }
+        trustCriterion: { type: string, maxLength: 60 }
+    KnowledgeRecommendation:
+      type: object
+      additionalProperties: false
+      required: [nodeId, rank, score, reasons]
+      properties:
+        nodeId: { type: string, minLength: 1, maxLength: 200 }
+        nodeVersionId: { type: string, minLength: 1, maxLength: 200 }
+        rank: { type: integer, minimum: 1, maximum: 34 }
+        score: { type: number, minimum: 0, maximum: 1 }
+        reasons:
+          type: array
+          minItems: 1
+          maxItems: 10
+          items: { type: string, minLength: 1, maxLength: 1000 }
+    KnowledgeRecommendationResponse:
+      type: object
+      additionalProperties: false
+      required: [schemaVersion, algorithm, query, recommendations, omittedUnboundCount]
+      properties:
+        schemaVersion: { const: "2.0.0" }
+        algorithm:
+          type: object
+          additionalProperties: false
+          required: [id, version, purpose, limitations]
+          properties:
+            id: { const: explicit-interest-recommendation }
+            version: { const: "2.0.0" }
+            purpose: { const: recommendation }
+            limitations:
+              type: array
+              prefixItems:
+                - { const: not-a-truth-score }
+                - { const: not-a-quality-score }
+                - { const: confirmed-graph-edges-only }
+                - { const: bounded-to-six-claims-ten-evidence-and-twelve-graph-nodes }
+              minItems: 4
+              maxItems: 4
+        query: { $ref: "#/components/schemas/KnowledgeRecommendationQuery" }
+        recommendations:
+          type: array
+          maxItems: 34
+          items: { $ref: "#/components/schemas/KnowledgeRecommendation" }
+        omittedUnboundCount: { type: integer, minimum: 0 }
     PublicNodeSummary:
       type: object
       additionalProperties: false
@@ -3016,12 +3075,11 @@ paths:
         "200": { description: Claim results }
   /api/landscape:
     get:
-      summary: Build the bounded guided knowledge landscape used by Explore
+      summary: Rank canonical graph references from explicit reader interests
       description: >
-        Returns the same explicit-interest selection, graph-native recommendations, inspectable
-        navigation reasons, one-hop focus, and publication-year context as the human Explore view.
-        Graph identities are explicit and graph edges are confirmed. This is navigation metadata,
-        not a truth, evidence-quality, or aggregate TRUST score.
+        Returns only canonical node references, relative ordering scores, and inspectable reasons.
+        Resolve records through the reader-agnostic graph API. The response never includes labels,
+        details, hrefs, timelines, or GUI focus state and is not a truth or evidence-quality score.
       parameters:
         - { name: q, in: query, schema: { type: string, maxLength: 500 } }
         - name: interest
@@ -3032,17 +3090,16 @@ paths:
             items:
               type: string
               enum: [disagreements, reproducibility, methods-models, data-code, assessed-evidence]
-        - { name: focus, in: query, schema: { type: string, maxLength: 500 } }
         - { name: reviewSlug, in: query, schema: { type: string, maxLength: 200 } }
         - { name: claimType, in: query, schema: { type: string, maxLength: 40 } }
         - { name: relationType, in: query, schema: { type: string, maxLength: 40 } }
         - { name: trustCriterion, in: query, schema: { type: string, maxLength: 60 } }
       responses:
         "200":
-          description: Versioned, bounded exploration landscape
+          description: Versioned, bounded recommendation overlay
           content:
             application/json:
-              schema: { $ref: "#/components/schemas/KnowledgeLandscapeResponse" }
+              schema: { $ref: "#/components/schemas/KnowledgeRecommendationResponse" }
         "400": { $ref: "#/components/responses/Error" }
   /api/reviews/{slug}/versions/{versionId}:
     get:

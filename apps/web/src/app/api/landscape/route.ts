@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { knowledgeLandscapeQuerySchema } from "@oratlas/contracts";
+import { knowledgeRecommendationQuerySchema } from "@oratlas/contracts";
 import { errorResponse, handleRouteError } from "@/lib/api";
 import { buildKnowledgeIndex } from "@/lib/index-builder";
-import { createKnowledgeLandscapeResponse } from "@/lib/knowledge-landscape-service";
+import { createKnowledgeRecommendationResponse } from "@/lib/knowledge-recommendation-service";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -12,10 +12,17 @@ const NO_STORE = { "Cache-Control": "no-store, must-revalidate" };
 export async function GET(request: Request) {
   try {
     const parameters = new URL(request.url).searchParams;
-    const parsed = knowledgeLandscapeQuerySchema.safeParse({
+    if (parameters.has("focus")) {
+      return noStore(
+        errorResponse(
+          "bad-request",
+          "The recommendation endpoint does not accept presentation focus state.",
+        ),
+      );
+    }
+    const parsed = knowledgeRecommendationQuerySchema.safeParse({
       q: parameters.get("q") || undefined,
       interests: [...new Set(parameters.getAll("interest"))],
-      focusNodeId: parameters.get("focus") || undefined,
       reviewSlug: parameters.get("reviewSlug") || undefined,
       claimType: parameters.get("claimType") || undefined,
       relationType: parameters.get("relationType") || undefined,
@@ -26,7 +33,7 @@ export async function GET(request: Request) {
     }
 
     const index = await buildKnowledgeIndex();
-    return NextResponse.json(await createKnowledgeLandscapeResponse(index, parsed.data), {
+    return NextResponse.json(await createKnowledgeRecommendationResponse(index, parsed.data), {
       headers: NO_STORE,
     });
   } catch (error) {

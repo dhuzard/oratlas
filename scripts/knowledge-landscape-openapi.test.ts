@@ -5,11 +5,11 @@ import { describe, expect, it } from "vitest";
 
 const openapi = parse(readFileSync(resolve(process.cwd(), "docs/openapi.yaml"), "utf8"));
 
-describe("knowledge landscape OpenAPI surface", () => {
-  it("publishes the bounded navigation contract and typed error", () => {
+describe("knowledge recommendation OpenAPI surface", () => {
+  it("publishes the bounded reference-only contract and typed error", () => {
     const operation = openapi.paths["/api/landscape"].get;
     expect(operation.responses["200"].content["application/json"].schema.$ref).toBe(
-      "#/components/schemas/KnowledgeLandscapeResponse",
+      "#/components/schemas/KnowledgeRecommendationResponse",
     );
     expect(operation.responses["400"].$ref).toBe("#/components/responses/Error");
     expect(
@@ -17,22 +17,20 @@ describe("knowledge landscape OpenAPI surface", () => {
     ).toMatchObject({ schema: { maxItems: 5 } });
   });
 
-  it("labels the algorithm as navigation rather than scientific scoring", () => {
+  it("labels the algorithm as recommendation rather than scientific scoring", () => {
     const schemas = openapi.components.schemas;
     for (const name of [
-      "KnowledgeLandscapeNode",
-      "KnowledgeLandscapeEdge",
-      "KnowledgeLandscapeYear",
-      "KnowledgeLandscapeData",
-      "KnowledgeLandscapeResponse",
+      "KnowledgeRecommendationQuery",
+      "KnowledgeRecommendation",
+      "KnowledgeRecommendationResponse",
     ]) {
       expect(schemas[name].additionalProperties, name).toBe(false);
     }
-    expect(schemas.KnowledgeLandscapeResponse.properties.algorithm.properties.purpose.const).toBe(
-      "navigation",
-    );
     expect(
-      schemas.KnowledgeLandscapeResponse.properties.algorithm.properties.limitations.prefixItems.map(
+      schemas.KnowledgeRecommendationResponse.properties.algorithm.properties.purpose.const,
+    ).toBe("recommendation");
+    expect(
+      schemas.KnowledgeRecommendationResponse.properties.algorithm.properties.limitations.prefixItems.map(
         (item: { const: string }) => item.const,
       ),
     ).toEqual([

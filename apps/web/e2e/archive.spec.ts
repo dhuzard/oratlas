@@ -106,17 +106,18 @@ test.describe("Public archive browsing", () => {
     const apiLandscape = (await apiResponse.json()) as {
       schemaVersion: string;
       algorithm: { id: string; purpose: string; limitations: string[] };
-      landscape: { nodes: unknown[]; graphSeedCount: number; graphNodeCount: number };
+      recommendations: Array<Record<string, unknown>>;
+      omittedUnboundCount: number;
     };
     expect(apiLandscape.schemaVersion).toBe("2.0.0");
-    expect(apiLandscape.algorithm.id).toBe("explicit-interest-graph-landscape");
-    expect(apiLandscape.algorithm.purpose).toBe("navigation");
+    expect(apiLandscape.algorithm.id).toBe("explicit-interest-recommendation");
+    expect(apiLandscape.algorithm.purpose).toBe("recommendation");
     expect(apiLandscape.algorithm.limitations).toContain("not-a-truth-score");
-    expect(apiLandscape.landscape.graphSeedCount).toBeGreaterThanOrEqual(1);
-    expect(apiLandscape.landscape.graphNodeCount).toBeGreaterThanOrEqual(2);
-    expect(apiLandscape.landscape.nodes).toHaveLength(
-      await details.locator(":scope > section > ul > li").count(),
-    );
+    expect(apiLandscape.recommendations.length).toBeGreaterThanOrEqual(1);
+    expect(apiLandscape.recommendations[0]).toHaveProperty("nodeId");
+    expect(apiLandscape.recommendations[0]).not.toHaveProperty("label");
+    expect(apiLandscape.recommendations[0]).not.toHaveProperty("detail");
+    expect(apiLandscape.recommendations[0]).not.toHaveProperty("href");
     await expect(landscape.locator('.landscape-legend [data-relation="confirmed"]')).toHaveText(
       "confirmed graph edge",
     );

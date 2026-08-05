@@ -1,8 +1,8 @@
-# Guided knowledge landscape API
+# Explicit-interest recommendation API
 
-`GET /api/landscape` gives agents the same bounded, graph-native exploration projection that
-readers see in Explore. The endpoint does not infer a profile and does not rewrite or score the
-scientific record.
+`GET /api/landscape` is a derived, reader-specific ranking overlay. It does not return a second
+knowledge representation: every item is only a canonical graph node reference, an ordering score,
+and an explanation. Resolve referenced records through `GET /api/graph`.
 
 ```sh
 curl --get http://localhost:3000/api/landscape \
@@ -11,44 +11,26 @@ curl --get http://localhost:3000/api/landscape \
   --data-urlencode 'interest=disagreements'
 ```
 
-To request the same one-hop view as the GUI, pass a returned node ID as `focus`:
+The `explicit-interest-recommendation@2.0.0` response contains:
 
-```sh
-curl --get http://localhost:3000/api/landscape \
-  --data-urlencode 'interest=disagreements' \
-  --data-urlencode 'focus=claim:RETURNED_CLAIM_ID'
-```
+- the normalized explicit query and interest state;
+- ordered `nodeId` references and an exact `nodeVersionId` when the ranking selected one exact
+  occurrence;
+- relative `rank`, `score`, and human-readable `reasons` that explain only the ordering;
+- `omittedUnboundCount`, which exposes compatibility rows that could not yet resolve to canonical
+  graph identities instead of inventing identifiers;
+- limitations stating that the ordering is neither a truth score nor a quality score.
 
-The response includes:
+It never returns labels, details, record URLs, graph URLs, timelines, or drawing coordinates. Those
+are rendering concerns. `focus` is GUI-only traversal state and returns `400` on this endpoint.
+Unknown interests also return `400` rather than silently creating a hidden personalization category.
 
-- `schemaVersion` and an independent navigation-algorithm version;
-- normalized explicit query and interest state;
-- the same review, claim, evidence, graph node, confirmed edge, explanation, and year objects used
-  by the GUI;
-- stable graph node IDs, exact readable node-version IDs, and links to both the preserved version
-  and its graph neighborhood;
-- machine-readable limitations stating that the ordering is not a truth or quality score;
-- no more than six claims, ten citation-evidence records, three graph seeds, and twelve graph
-  identities.
+The ranking is intentionally bounded to the current six-claim, ten-evidence, twelve-neighbor
+recommendation window. Those bounds limit recommendation work; they do not limit canonical graph
+traversal. The graph remains reader-agnostic and does not store interests or known-set state.
 
-Graph recommendations use only the stored `Claim.knowledgeNodeId` bridge. ORAtlas does not infer
-node identity from lexical similarity. The personalized projection includes confirmed public graph
-edges only; proposed edges remain available through the specialist graph contract with their
-separate status.
+## Atlas Discuss scope
 
-Unknown interests return `400` rather than silently creating a hidden personalization category. An
-unknown focus ID returns the overview projection, preserving a deterministic and reversible result.
-See `docs/openapi.yaml` for the complete contract.
-
-## Using the same scope with Atlas Discuss
-
-`POST /api/discuss` accepts the normalized landscape `query` object as its optional `scope` field.
-The server resolves that object through the same landscape service, extracts only the exact claim
-identities present in the bounded result, and then ranks within that closed set for the question.
-An empty or lexically irrelevant closed set returns the deterministic insufficient-evidence state;
-it is never broadened to unrelated archive content.
-
-The response includes the resolved scope, selected claim IDs, and a landscape node ID for every
-grounding reference. The Explore UI uses those identifiers to highlight only the validated
-claim–citation path for a selected generated statement. API keys remain outside the query object
-and are never placed in a URL or browser storage.
+`POST /api/discuss` continues to accept the explicit Explore scope and resolves it internally to a
+closed evidence packet. Discuss is a bounded, grounded lens over selected graph records; it is not
+the canonical representation and does not broaden an empty or irrelevant packet.

@@ -7,8 +7,8 @@ const state = vi.hoisted(() => ({
 
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/index-builder", () => ({ buildKnowledgeIndex: state.buildIndex }));
-vi.mock("@/lib/knowledge-landscape-service", () => ({
-  createKnowledgeLandscapeResponse: state.createResponse,
+vi.mock("@/lib/knowledge-recommendation-service", () => ({
+  createKnowledgeRecommendationResponse: state.createResponse,
 }));
 
 import { GET } from "./route";
@@ -19,10 +19,10 @@ describe("GET /api/landscape", () => {
     state.createResponse.mockReset().mockResolvedValue({ schemaVersion: "2.0.0" });
   });
 
-  it("passes the GUI's explicit URL state to the shared landscape service", async () => {
+  it("passes explicit ranking input to the recommendation service", async () => {
     const response = await GET(
       new Request(
-        "https://oratlas.test/api/landscape?q=model&interest=disagreements&interest=disagreements&focus=claim%3A1&relationType=contradicts",
+        "https://oratlas.test/api/landscape?q=model&interest=disagreements&interest=disagreements&relationType=contradicts",
       ),
     );
 
@@ -33,10 +33,16 @@ describe("GET /api/landscape", () => {
       expect.objectContaining({
         q: "model",
         interests: ["disagreements"],
-        focusNodeId: "claim:1",
         relationType: "contradicts",
       }),
     );
+  });
+
+  it("rejects GUI-only focus state before reading the archive", async () => {
+    const response = await GET(new Request("https://oratlas.test/api/landscape?focus=claim%3A1"));
+
+    expect(response.status).toBe(400);
+    expect(state.buildIndex).not.toHaveBeenCalled();
   });
 
   it("rejects unknown interests before reading the archive", async () => {

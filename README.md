@@ -42,8 +42,9 @@ The POC ships a restrained, scholarly server-rendered interface:
 - **Editorial dashboard** — validation reports, metadata diff, decisions, formal challenges, and
   the audit log.
 
-Agents can request the same bounded Explore projection through the versioned
-[`GET /api/landscape`](docs/knowledge-landscape-api.md) contract.
+Agents can request a bounded, explicit-interest ranking of canonical graph references through the
+versioned [`GET /api/landscape`](docs/knowledge-landscape-api.md) contract; record content remains
+in the reader-agnostic graph API.
 
 ## Architecture summary
 

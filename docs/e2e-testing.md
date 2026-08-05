@@ -34,7 +34,8 @@ The seeded public Explore journey preserves these user-facing invariants:
 - selected interests persist transparently in the URL across search, filters, tabs, and pages;
 - every visual landscape node has synchronized accessible details and a preserved-record link;
 - selection reasons, publication context, one-hop focus, and overview return remain available;
-- the GUI and `GET /api/landscape` expose the same selected node projection.
+- `GET /api/landscape` exposes only canonical references, ranking scores, and reasons, with no GUI
+  rendering fields.
 
 These browser assertions establish implementation parity, not usability. First-reader comprehension
 and task completion are evaluated separately with the
