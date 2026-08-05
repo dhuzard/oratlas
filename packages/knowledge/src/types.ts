@@ -41,6 +41,8 @@ export interface IndexedCitation {
   localCitationId: string;
   reviewVersionId: string;
   workId: string;
+  /** Exact canonical graph occurrence for this indexed citation. */
+  graphNodeVersionId?: string;
   canonicalWorkAliases: CanonicalWorkAlias[];
   doi?: string;
   pmid?: string;
@@ -92,6 +94,8 @@ export interface IndexedClaim {
   versionDoi?: string;
   /** Explicit bridge to the stable graph identity; never inferred from claim text. */
   knowledgeNodeId?: string;
+  /** Exact canonical graph occurrence for this indexed claim. */
+  graphNodeVersionId?: string;
   relations: IndexedRelation[];
 }
 

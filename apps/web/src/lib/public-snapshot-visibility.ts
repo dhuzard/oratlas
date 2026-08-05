@@ -31,3 +31,22 @@ export const readablePublicNodeVersionWhere = {
     },
   ],
 } satisfies Prisma.KnowledgeNodeVersionWhereInput;
+
+const readablePublishedReviewVersionWhere = {
+  publicState: { in: ["published", "withdrawn"] },
+  review: { is: { status: "published" } },
+} satisfies Prisma.ReviewVersionWhereInput;
+
+/**
+ * Canonical graph records may be repository-backed or exact relational source
+ * records. Every branch independently proves public visibility; absent or
+ * mismatched source bindings fail closed.
+ */
+export const readableCanonicalNodeVersionWhere = {
+  OR: [
+    ...readablePublicNodeVersionWhere.OR,
+    { sourceReviewVersion: { is: readablePublishedReviewVersionWhere } },
+    { sourceClaim: { is: { reviewVersion: { is: readablePublishedReviewVersionWhere } } } },
+    { sourceCitation: { is: { reviewVersion: { is: readablePublishedReviewVersionWhere } } } },
+  ],
+} satisfies Prisma.KnowledgeNodeVersionWhereInput;

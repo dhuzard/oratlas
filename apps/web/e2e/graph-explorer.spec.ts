@@ -1,7 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { test, expect, type APIRequestContext } from "@playwright/test";
 import { getPrisma } from "@oratlas/db";
-import { publicGraphResponseSchema, publicNodeListResponseSchema } from "@oratlas/contracts";
+import { canonicalGraphResponseSchema, publicNodeListResponseSchema } from "@oratlas/contracts";
 
 const prisma = getPrisma();
 
@@ -35,9 +35,10 @@ test("proposals are visibly distinct and remain privacy-minimal", async ({ page,
   await expect(page.locator(".graph-edge").getByText("Proposed", { exact: true })).toBeVisible();
   await expect(page.locator(".graph-edge-proposed")).toHaveCSS("border-top-style", "dashed");
   const api = await request.get(
-    `/api/graph?seed=${encodeURIComponent(proposal.sourceNodeId)}&edgeStatus=proposed&depth=1&limit=50`,
+    `/api/graph?seed=${encodeURIComponent(proposal.sourceNodeId)}&status=authoritative&limit=50`,
   );
   const serialized = JSON.stringify(await api.json());
+  expect(serialized).not.toContain(proposal.id);
   for (const forbidden of [
     "evidenceJson",
     "agentRun",
@@ -208,20 +209,45 @@ async function discoverEdge(
   status: "confirmed" | "proposed",
   relationType?: "contradicts",
 ) {
+  if (status === "proposed") {
+    const proposal = await prisma.nodeEdgeProposal.findFirstOrThrow({
+      where: { status: "proposed", ...(relationType ? { relationType } : {}) },
+      select: {
+        id: true,
+        sourceNodeVersionId: true,
+        targetNodeId: true,
+        targetNodeVersionId: true,
+        sourceNodeVersion: { select: { knowledgeNodeId: true } },
+      },
+    });
+    return {
+      id: proposal.id,
+      sourceNodeId: proposal.sourceNodeVersion.knowledgeNodeId,
+      sourceVersionId: proposal.sourceNodeVersionId,
+      targetNodeId: proposal.targetNodeId,
+      targetVersionId: proposal.targetNodeVersionId,
+    };
+  }
   const nodesResponse = await request.get("/api/nodes?pageSize=50");
   const nodes = publicNodeListResponseSchema.parse(await nodesResponse.json()).items;
   for (const node of nodes) {
     const params = new URLSearchParams({
       seed: node.id,
-      depth: "1",
       limit: "50",
-      edgeStatus: status,
+      status,
     });
     if (relationType) params.set("relationType", relationType);
     const response = await request.get(`/api/graph?${params}`);
     if (!response.ok()) continue;
-    const result = publicGraphResponseSchema.parse(await response.json());
-    if (result.edges[0]) return result.edges[0];
+    const result = canonicalGraphResponseSchema.parse(await response.json());
+    const edge = result.edges[0];
+    if (edge) {
+      return {
+        ...edge,
+        sourceVersionId: edge.sourceNodeVersionId,
+        targetVersionId: edge.targetNodeVersionId,
+      };
+    }
   }
   throw new Error(`Seed data has no ${status} ${relationType ?? ""} edge`);
 }

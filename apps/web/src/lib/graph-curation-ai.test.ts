@@ -4,7 +4,6 @@ import type { KnowledgeLandscapeResponse } from "@oratlas/contracts";
 const mocks = vi.hoisted(() => ({
   agentRunCreate: vi.fn(),
   nodeVersionFindUnique: vi.fn(),
-  buildKnowledgeIndex: vi.fn(),
   createKnowledgeLandscapeResponse: vi.fn(),
   createAgentNodeEdgeProposal: vi.fn(),
   createOpenAIProvider: vi.fn(),
@@ -19,7 +18,6 @@ vi.mock("./db", () => ({
     knowledgeNodeVersion: { findUnique: mocks.nodeVersionFindUnique },
   },
 }));
-vi.mock("./index-builder", () => ({ buildKnowledgeIndex: mocks.buildKnowledgeIndex }));
 vi.mock("./knowledge-landscape-service", () => ({
   createKnowledgeLandscapeResponse: mocks.createKnowledgeLandscapeResponse,
 }));
@@ -44,8 +42,8 @@ const landscape: KnowledgeLandscapeResponse = {
     limitations: [
       "not-a-truth-score",
       "not-a-quality-score",
-      "confirmed-graph-edges-only",
-      "bounded-to-six-claims-ten-evidence-and-twelve-graph-nodes",
+      "canonical-source-assertion-and-confirmed-edges",
+      "bounded-to-three-entry-neighborhoods-and-twelve-exact-versions",
     ],
   },
   query: { interests: [] },
@@ -92,6 +90,7 @@ const landscape: KnowledgeLandscapeResponse = {
     ],
     edges: [
       {
+        graphEdgeId: "edge-uses-code",
         sourceId: "claim:a",
         targetId: "graph:b",
         label: "uses code",
@@ -99,6 +98,7 @@ const landscape: KnowledgeLandscapeResponse = {
         status: "confirmed",
       },
       {
+        graphEdgeId: "edge-supports",
         sourceId: "claim:a",
         targetId: "evidence:work",
         label: "supports",
@@ -151,7 +151,6 @@ describe("graph curation web orchestration", () => {
   it("creates a review proposal without persisting the request-scoped API key", async () => {
     const apiKey = "sk-review-only-secret-not-for-storage";
     const provider = { name: "openai", model: "test-model", complete: vi.fn() };
-    mocks.buildKnowledgeIndex.mockResolvedValue({});
     mocks.createKnowledgeLandscapeResponse.mockResolvedValue(landscape);
     mocks.createOpenAIProvider.mockReturnValue(provider);
     mocks.proposeGraphCuration.mockResolvedValue({
@@ -189,6 +188,7 @@ describe("graph curation web orchestration", () => {
     );
 
     expect(mocks.createOpenAIProvider).toHaveBeenCalledWith({ apiKey, model: "test-model" });
+    expect(mocks.createKnowledgeLandscapeResponse).toHaveBeenCalledWith({ interests: [] });
     expect(result.created).toEqual([{ proposalId: "proposal-1", idempotent: false }]);
     expect(JSON.stringify(mocks.agentRunCreate.mock.calls)).not.toContain(apiKey);
     expect(JSON.stringify(mocks.createAgentNodeEdgeProposal.mock.calls)).not.toContain(apiKey);

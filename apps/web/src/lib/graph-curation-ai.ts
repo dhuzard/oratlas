@@ -16,7 +16,6 @@ import {
   type LlmProvider,
 } from "@oratlas/knowledge";
 import { prisma } from "./db";
-import { buildKnowledgeIndex } from "./index-builder";
 import { createKnowledgeLandscapeResponse } from "./knowledge-landscape-service";
 import { createAgentNodeEdgeProposal } from "./node-edge-lifecycle";
 import type { RequestLlmConfig } from "./discuss";
@@ -26,8 +25,7 @@ export async function runGraphCuration(
   scope: KnowledgeLandscapeQuery,
   requestLlm: RequestLlmConfig,
 ) {
-  const index = await buildKnowledgeIndex();
-  const landscape = await createKnowledgeLandscapeResponse(index, scope);
+  const landscape = await createKnowledgeLandscapeResponse(scope);
   const packet = buildGraphCurationPacket(question, landscape);
   const packetJson = canonicalJson(packet);
   const packetHash = createHash("sha256").update(packetJson).digest("hex");

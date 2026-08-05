@@ -11,7 +11,7 @@ import {
 } from "@oratlas/knowledge";
 import {
   type DeterministicDiscussionResult,
-  type KnowledgeLandscapeQuery,
+  type DiscussionTraversalScope,
 } from "@oratlas/contracts";
 import { buildKnowledgeIndex } from "./index-builder";
 import { prisma } from "./db";
@@ -51,29 +51,25 @@ export type DiscussionResponse =
     } & DiscussionProvenance);
 
 /**
- * Run Atlas Discuss over accepted reviews. Deterministic mode when no LLM key
- * is configured; LLM mode (grounded, identifier-validated) when configured. The
- * deterministic summary is always computed and returned alongside LLM output.
+ * Run Atlas Discuss over a signed exact Explore traversal. Deterministic mode
+ * is used when no LLM key is configured; LLM mode remains grounded and
+ * identifier-validated. The deterministic summary is always returned too.
  */
 export async function runDiscussion(
   question: string,
-  reviewSlugs?: string[],
+  traversalScope: DiscussionTraversalScope,
   requestLlm?: RequestLlmConfig,
-  exploreScope?: KnowledgeLandscapeQuery,
 ): Promise<DiscussionResponse> {
   const env = getServerEnv();
   const index = await buildKnowledgeIndex();
-  const selection = await selectDiscussionEvidence(index, question, {
-    reviewSlugs,
-    explore: exploreScope,
-  });
+  const selection = await selectDiscussionEvidence(index, question, traversalScope);
   const packet = selection.packet;
   const prepared = prepareEvidencePacket(packet);
   const deterministic = discussDeterministic(packet);
   const provenance = {
     packetHash: prepared.sha256,
     packetSchemaVersion: prepared.packet.schemaVersion,
-    references: discussionReferences(prepared.packet),
+    references: discussionReferences(prepared.packet, selection.scope),
     scope: selection.scope,
   };
 
@@ -130,18 +126,25 @@ export async function runDiscussion(
   return { mode: "llm", result, deterministic, ...provenance };
 }
 
-function discussionReferences(
+export function discussionReferences(
   packet: Parameters<typeof prepareEvidencePacket>[0],
+  scope: ResolvedDiscussionScope,
 ): DiscussionReference[] {
   const claimHref = (claim: (typeof packet.claims)[number]) =>
     `/claims/${claim.reviewVersionId}/${encodeURIComponent(claim.localClaimId)}`;
-  const claims: DiscussionReference[] = packet.claims.map((claim) => ({
-    kind: "claim",
-    id: claim.claimId,
-    label: claim.text,
-    href: claimHref(claim),
-    landscapeNodeId: `claim:${claim.claimId}`,
-  }));
+  const claims: DiscussionReference[] = packet.claims.map((claim) => {
+    const exactLandscapeNodeId = scope.claimLandscapeNodeIds[claim.claimId];
+    if (scope.kind === "explore" && !exactLandscapeNodeId) {
+      throw new Error(`Missing exact graph reference for selected claim '${claim.claimId}'.`);
+    }
+    return {
+      kind: "claim",
+      id: claim.claimId,
+      label: claim.text,
+      href: claimHref(claim),
+      landscapeNodeId: exactLandscapeNodeId ?? `claim:${claim.claimId}`,
+    };
+  });
   const citations: DiscussionReference[] = packet.citations.flatMap((citation) => {
     const claim = packet.claims.find((candidate) =>
       candidate.relations.some((relation) => relation.citationId === citation.citationId),
@@ -153,10 +156,26 @@ function discussionReferences(
             id: citation.citationId,
             label: citation.title ?? citation.localCitationId,
             href: `${claimHref(claim)}#linked-evidence`,
-            landscapeNodeId: `evidence:${citation.workId}`,
+            landscapeNodeId: exactCitationLandscapeNodeId(
+              scope,
+              citation.citationId,
+              citation.workId,
+            ),
           },
         ]
       : [];
   });
   return [...claims, ...citations];
+}
+
+function exactCitationLandscapeNodeId(
+  scope: ResolvedDiscussionScope,
+  citationId: string,
+  workId: string,
+): string {
+  const exactLandscapeNodeId = scope.citationLandscapeNodeIds[citationId];
+  if (scope.kind === "explore" && !exactLandscapeNodeId) {
+    throw new Error(`Missing exact graph reference for selected citation '${citationId}'.`);
+  }
+  return exactLandscapeNodeId ?? `evidence:${workId}`;
 }
