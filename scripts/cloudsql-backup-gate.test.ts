@@ -36,7 +36,9 @@ describe("Cloud SQL pre-migration backup gate", () => {
     expect(ids.indexOf("backup-database")).toBeLessThan(ids.indexOf("migrate-database"));
 
     const configure = build.steps.find((step) => step.id === "configure-migration-job");
-    expect(configure?.args).toContain("--args=db:deploy:postgres");
+    const configureCommand = configure?.args?.join("\n") ?? "";
+    expect(configureCommand).toContain("--args=db:deploy:postgres");
+    expect(configureCommand).toContain("ORATLAS_SCHEMA_BACKUP_ID");
 
     const migrate = build.steps.find((step) => step.id === "migrate-database");
     const command = migrate?.args?.join("\n") ?? "";

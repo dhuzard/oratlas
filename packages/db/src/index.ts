@@ -2,6 +2,7 @@ import { PrismaClient } from "../generated/client/index.js";
 import { PLATFORM_VERSION } from "@oratlas/config";
 
 export * from "./knowledge-node-integrity.js";
+export * from "./postgres-deployment.js";
 export * from "./node-aliases.js";
 export * from "./database-guards.js";
 

@@ -41,18 +41,22 @@ This produces `packages/db/prisma/schema.postgres.prisma` — the same models wi
 
 ## Applying the schema in production
 
-Apply the generated Postgres schema against your database:
+Use the guarded production entry point:
 
 ```bash
-pnpm --filter @oratlas/db exec prisma db push --schema prisma/schema.postgres.prisma --skip-generate
-pnpm --filter @oratlas/db db:guards
+ORATLAS_SCHEMA_BACKUP_ID=<verified-backup-id> pnpm db:deploy:postgres
 ```
 
-The second command is required: Prisma `db push` does not install the native source-union,
-synthesis lifecycle/lease, and reference-integrity constraints/triggers. Deployments using committed
-migrations must likewise run `db:guards` after `prisma migrate deploy`. The guard installer is
-idempotent. The committed Postgres DDL is `packages/db/prisma/schema.postgres.sql` and includes the
-same guards for bootstrap workflows.
+On an empty database the wrapper installs the reviewed `schema.postgres.sql` bootstrap, records the
+initial migration baseline, runs `prisma migrate deploy`, and installs the native guards. On a
+populated database that predates migration history, it records the baseline only after
+`prisma migrate diff` proves the live public schema matches the reviewed datamodel exactly. Drift
+or comparison failure stops deployment. Once `_prisma_migrations` exists, only committed migrations
+are deployed. The guard installer remains idempotent and runs after every deployment.
+
+Never use `prisma db push` on a valuable database. The baseline marker is transitional: direct
+`prisma migrate deploy` against a brand-new database does not install the bootstrap DDL, so the
+wrapper remains mandatory.
 
 ## CI gates (tested migrations)
 
@@ -60,7 +64,7 @@ Two jobs in the `CI` workflow keep Postgres support honest on every pull request
 
 - **Drift check** — CI regenerates the Postgres DDL and fails if
   `packages/db/prisma/schema.postgres.sql` differs from the checked-in copy. This is the
-  "tested migrations" gate: the committed DDL must always match what the schema generates.
+  bootstrap drift gate: the committed DDL must always match what the schema generates.
 - **Portability job** — CI pushes the schema, installs and introspects native guards, rejects invalid
   direct writes, and seeds against a real PostgreSQL service on every PR, so a change that only works
   on SQLite cannot merge.
@@ -86,5 +90,5 @@ do not run the entire SQLite-oriented Vitest corpus under a PostgreSQL-generated
 ## Caveat
 
 `db:reset` (delete the file, re-push, re-seed) is **SQLite/dev only**. It has no Postgres
-equivalent — never run it against a production database. Use the standard Prisma
-`migrate deploy` / `db push` flow for Postgres.
+equivalent — never run it against a production database. Use `pnpm db:deploy:postgres` for
+PostgreSQL deployment.

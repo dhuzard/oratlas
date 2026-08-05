@@ -47,22 +47,24 @@ steps:
 
   - id: configure-migration-job
     name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
-    entrypoint: gcloud
+    entrypoint: bash
     args:
-      - run
-      - jobs
-      - deploy
-      - ${_SERVICE}-migrate
-      - --image=${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPOSITORY}/${_SERVICE}:${BUILD_ID}
-      - --region=${_REGION}
-      - --service-account=${_RUNTIME_SERVICE_ACCOUNT}@${PROJECT_ID}.iam.gserviceaccount.com
-      - --command=pnpm
-      - --args=db:deploy:postgres
-      - --set-cloudsql-instances=${PROJECT_ID}:${_REGION}:${_CLOUD_SQL_INSTANCE}
-      - --set-secrets=DATABASE_URL=${_DATABASE_URL_SECRET}:latest
-      - --max-retries=0
-      - --task-timeout=20m
-      - --quiet
+      - -ceu
+      - |
+        BACKUP_ID="$$(tr -d '\r\n' < /workspace/oratlas-cloudsql-backup-id)"
+        test -n "$${BACKUP_ID}"
+        gcloud run jobs deploy "${_SERVICE}-migrate" \
+          --image="${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPOSITORY}/${_SERVICE}:${BUILD_ID}" \
+          --region="${_REGION}" \
+          --service-account="${_RUNTIME_SERVICE_ACCOUNT}@${PROJECT_ID}.iam.gserviceaccount.com" \
+          --command=pnpm \
+          --args=db:deploy:postgres \
+          --set-cloudsql-instances="${PROJECT_ID}:${_REGION}:${_CLOUD_SQL_INSTANCE}" \
+          --set-secrets="DATABASE_URL=${_DATABASE_URL_SECRET}:latest" \
+          --set-env-vars="ORATLAS_SCHEMA_BACKUP_ID=$${BACKUP_ID}" \
+          --max-retries=0 \
+          --task-timeout=20m \
+          --quiet
 
   - id: migrate-database
     name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim

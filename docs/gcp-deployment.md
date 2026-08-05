@@ -190,10 +190,12 @@ code neighborhood matching that query. Override `_BETA_SMOKE_QUERY` and `_BETA_S
 a known real beta record when the example fixtures are not present. The deployment intentionally
 fails its final verification step when the defining personalized graph journey is unavailable.
 
-`db:deploy:postgres` currently uses `prisma db push` against the generated
-PostgreSQL schema, followed by ORAtlas database guards. This is intended to
-bootstrap the POC quickly. Before maintaining valuable production data, replace
-this bootstrap workflow with reviewed and committed Prisma migrations.
+`db:deploy:postgres` is the only supported production entry point. On a new empty database it
+installs the reviewed `schema.postgres.sql` bootstrap and records the initial migration baseline.
+On a populated pre-migration database it first requires Prisma's live-schema diff against the
+reviewed PostgreSQL datamodel to be empty before recording that same baseline. Any drift fails
+closed. Once `_prisma_migrations` exists, deployments use `prisma migrate deploy` followed by the
+ORAtlas database guards. Do not invoke `prisma db push` against valuable data.
 
 ## 7. Set the canonical URL and optionally configure GitHub OAuth
 

@@ -18,6 +18,16 @@
 
 Chronological record of implementation slices, decisions, and verification outcomes.
 
+## 2026-08-05 — Guarded PostgreSQL migration baseline
+
+- Replaced the production `db push` entry point with a wrapper that bootstraps only an empty
+  database, baselines populated databases only after a zero live-schema diff, and otherwise fails
+  closed before `prisma migrate deploy`.
+- Required the verified Cloud SQL backup id inside the production migration job, then retained the
+  idempotent native database guards after committed migrations.
+- Added pure deployment-plan tests for empty, matching legacy, drifted, and already-migrated
+  databases. No live database was baselined by this change.
+
 ## 2026-08-05 — Enforced Cloud SQL pre-migration backup gate
 
 - Added a fail-closed Cloud Build gate that verifies scheduled backups and PITR, creates a

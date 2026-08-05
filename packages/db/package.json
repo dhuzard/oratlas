@@ -13,7 +13,7 @@
     "db:generate": "prisma generate",
     "db:generate:postgres": "prisma generate --schema prisma/schema.postgres.prisma",
     "db:push": "prisma db push && tsx scripts/apply-database-guards.ts",
-    "db:deploy:postgres": "prisma db push --schema prisma/schema.postgres.prisma && tsx scripts/apply-database-guards.ts",
+    "db:deploy:postgres": "tsx scripts/deploy-postgres.ts",
     "db:guards": "tsx scripts/apply-database-guards.ts",
     "db:validate": "prisma validate",
     "db:validate:postgres": "prisma validate --schema prisma/schema.postgres.prisma",
