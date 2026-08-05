@@ -47,9 +47,12 @@ Use the guarded production entry point:
 ORATLAS_SCHEMA_BACKUP_ID=<verified-backup-id> pnpm db:deploy:postgres
 ```
 
-On an empty database the wrapper installs the reviewed `schema.postgres.sql` bootstrap, records the
-initial migration baseline, runs `prisma migrate deploy`, and installs the native guards. On a
-populated database that predates migration history, it records the baseline only after
+On an empty database the wrapper installs the frozen
+`prisma/baseline/20260805000000_existing_schema_baseline.sql`, records the initial migration
+baseline, runs `prisma migrate deploy`, and installs the native guards. The evolving
+`schema.postgres.sql` remains a drift-checked current-schema bootstrap artifact, never the baseline
+for later migrations. On a populated database that predates migration history, the wrapper records
+the baseline only after
 `prisma migrate diff` proves the live public schema matches the reviewed datamodel exactly. Drift
 or comparison failure stops deployment. Once `_prisma_migrations` exists, only committed migrations
 are deployed. The guard installer remains idempotent and runs after every deployment.

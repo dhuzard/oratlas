@@ -38,7 +38,7 @@ async function execute(action: PostgresDeploymentAction): Promise<void> {
         "db",
         "execute",
         "--file",
-        "prisma/schema.postgres.sql",
+        "prisma/baseline/20260805000000_existing_schema_baseline.sql",
         "--schema",
         "prisma/schema.postgres.prisma",
       ]);

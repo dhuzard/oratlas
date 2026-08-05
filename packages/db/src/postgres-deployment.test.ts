@@ -1,7 +1,19 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { assertProductionBackupId, planPostgresDeployment } from "./postgres-deployment.js";
 
 describe("PostgreSQL deployment planning", () => {
+  it("keeps an immutable baseline DDL separate from the evolving bootstrap schema", () => {
+    const packageRoot = resolve(import.meta.dirname, "..");
+    const baseline = readFileSync(
+      resolve(packageRoot, "prisma/baseline/20260805000000_existing_schema_baseline.sql"),
+      "utf8",
+    );
+    expect(baseline).toContain('CREATE TABLE "KnowledgeNode"');
+    expect(baseline).not.toContain('CREATE TABLE "_prisma_migrations"');
+  });
+
   it("bootstraps only an empty database before resolving the baseline", () => {
     expect(planPostgresDeployment({ hasMigrationTable: false, applicationTableCount: 0 })).toEqual([
       "bootstrap-schema",

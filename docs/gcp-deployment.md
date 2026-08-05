@@ -191,7 +191,7 @@ a known real beta record when the example fixtures are not present. The deployme
 fails its final verification step when the defining personalized graph journey is unavailable.
 
 `db:deploy:postgres` is the only supported production entry point. On a new empty database it
-installs the reviewed `schema.postgres.sql` bootstrap and records the initial migration baseline.
+installs the immutable reviewed baseline DDL and records the initial migration baseline.
 On a populated pre-migration database it first requires Prisma's live-schema diff against the
 reviewed PostgreSQL datamodel to be empty before recording that same baseline. Any drift fails
 closed. Once `_prisma_migrations` exists, deployments use `prisma migrate deploy` followed by the
