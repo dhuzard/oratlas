@@ -154,6 +154,19 @@ beforeAll(async () => {
       contentHash: "b".repeat(64),
     },
   });
+  const sourceSubmission = await prisma.submission.create({
+    data: {
+      id: "node-publication-v1",
+      submitterId: user.id,
+      reviewerId: user.id,
+      repositoryId: repository.id,
+      snapshotId: "snapshot-v1",
+      status: "accepted",
+      acceptedNodeSelectionJson: '["claim","claim-reject"]',
+      submittedAt: new Date("2026-01-01T00:00:00.000Z"),
+      reviewedAt: new Date("2026-01-01T00:00:00.000Z"),
+    },
+  });
   await prisma.knowledgeNode.create({
     data: { id: "claim", repositoryId: repository.id, localNodeId: "claim", kind: "claim" },
   });
@@ -162,6 +175,7 @@ beforeAll(async () => {
       id: "claim-v1",
       knowledgeNodeId: "claim",
       snapshotId: "snapshot-v1",
+      sourceSubmissionId: sourceSubmission.id,
       title: "A grounded claim",
       contributorsJson: '[{"displayName":"Reviewer"}]',
       license: "CC-BY-4.0",
@@ -184,6 +198,7 @@ beforeAll(async () => {
       id: "claim-reject-v1",
       knowledgeNodeId: "claim-reject",
       snapshotId: "snapshot-v1",
+      sourceSubmissionId: sourceSubmission.id,
       title: "A grounded claim",
       contributorsJson: '[{"displayName":"Reviewer"}]',
       license: "CC-BY-4.0",
@@ -213,6 +228,22 @@ afterAll(async () => {
       }
   }
 });
+
+async function acceptNodeSnapshot(id: string, snapshotId: string) {
+  return prisma.submission.create({
+    data: {
+      id,
+      submitterId: actor.id,
+      reviewerId: actor.id,
+      repositoryId: "repository-v1",
+      snapshotId,
+      status: "accepted",
+      acceptedNodeSelectionJson: '["claim"]',
+      submittedAt: new Date("2026-01-01T00:00:00.000Z"),
+      reviewedAt: new Date("2026-01-01T00:00:00.000Z"),
+    },
+  });
+}
 
 const acceptance = {
   action: "accept" as const,
@@ -612,11 +643,16 @@ describe.sequential("synthesis editorial lifecycle", () => {
         contentHash: "d".repeat(64),
       },
     });
+    const sourceSubmission = await acceptNodeSnapshot(
+      "node-publication-stale-v2",
+      "snapshot-stale-v2",
+    );
     await prisma.knowledgeNodeVersion.create({
       data: {
         id: "claim-v2",
         knowledgeNodeId: "claim",
         snapshotId: "snapshot-stale-v2",
+        sourceSubmissionId: sourceSubmission.id,
         title: "A changed grounded claim",
         contributorsJson: '[{"displayName":"Reviewer"}]',
         license: "CC-BY-4.0",
@@ -670,6 +706,7 @@ describe.sequential("synthesis editorial lifecycle", () => {
     });
 
     await prisma.knowledgeNodeVersion.delete({ where: { id: "claim-v2" } });
+    await prisma.submission.delete({ where: { id: sourceSubmission.id } });
     await prisma.repositorySnapshot.delete({ where: { id: "snapshot-stale-v2" } });
     const fresh = await staleness.evaluateSynthesisHead(review.id, { client: prisma });
     expect(fresh.status).toBe("fresh");
@@ -721,11 +758,16 @@ describe.sequential("synthesis editorial lifecycle", () => {
         contentHash: "8".repeat(64),
       },
     });
+    const sourceSubmission = await acceptNodeSnapshot(
+      "node-publication-oscillation-v2",
+      "snapshot-oscillation-v2",
+    );
     await prisma.knowledgeNodeVersion.create({
       data: {
         id: "claim-oscillation-v2",
         knowledgeNodeId: "claim",
         snapshotId: "snapshot-oscillation-v2",
+        sourceSubmissionId: sourceSubmission.id,
         title: "Temporary oscillating evidence",
         contributorsJson: '[{"displayName":"Reviewer"}]',
         license: "CC-BY-4.0",
@@ -746,6 +788,7 @@ describe.sequential("synthesis editorial lifecycle", () => {
     expect(stateB.evaluationKey).not.toBe(firstA.evaluationKey);
 
     await prisma.knowledgeNodeVersion.delete({ where: { id: "claim-oscillation-v2" } });
+    await prisma.submission.delete({ where: { id: sourceSubmission.id } });
     await prisma.repositorySnapshot.delete({ where: { id: "snapshot-oscillation-v2" } });
     const recurringA = await staleness.evaluateSynthesisHead(review.id, {
       client: prisma,
@@ -1432,11 +1475,16 @@ describe.sequential("synthesis editorial lifecycle", () => {
         contentHash: "f".repeat(64),
       },
     });
+    const sourceSubmission = await acceptNodeSnapshot(
+      "node-publication-supersession-v2",
+      "snapshot-supersession-v2",
+    );
     await prisma.knowledgeNodeVersion.create({
       data: {
         id: "claim-supersession-v2",
         knowledgeNodeId: "claim",
         snapshotId: "snapshot-supersession-v2",
+        sourceSubmissionId: sourceSubmission.id,
         title: "New evidence before a synthesis acceptance",
         contributorsJson: '[{"displayName":"Reviewer"}]',
         license: "CC-BY-4.0",
@@ -1481,6 +1529,7 @@ describe.sequential("synthesis editorial lifecycle", () => {
       }),
     ).toMatchObject({ actorId: actor.id });
     await prisma.knowledgeNodeVersion.delete({ where: { id: "claim-supersession-v2" } });
+    await prisma.submission.delete({ where: { id: sourceSubmission.id } });
     await prisma.repositorySnapshot.delete({ where: { id: "snapshot-supersession-v2" } });
   });
 

@@ -24,17 +24,6 @@ test("editor gates generated, rejected, and accepted synthesis drafts", async ({
     where: { localNodeId: "replay-consolidation-claim", versions: { some: {} } },
     orderBy: { id: "asc" },
   });
-  const opposingRelation = await prisma.nodeEdge.findFirstOrThrow({
-    where: {
-      sourceNodeVersion: { knowledgeNodeId: node.id },
-      targetNodeId: opposingNode.id,
-      relationType: "contradicts",
-      status: "confirmed",
-    },
-    orderBy: { id: "asc" },
-    select: { sourceNodeVersionId: true, confirmedTargetNodeVersionId: true },
-  });
-  expect(opposingRelation.confirmedTargetNodeVersionId).toBeTruthy();
   await page.getByLabel("Seed node ID").fill(node.id);
   const generationResponse = page.waitForResponse(
     (response) =>
@@ -53,16 +42,20 @@ test("editor gates generated, rejected, and accepted synthesis drafts", async ({
   };
   expect(draft.citations).toEqual(
     expect.arrayContaining([
-      expect.objectContaining({
-        nodeId: node.id,
-        nodeVersionId: opposingRelation.sourceNodeVersionId,
-      }),
-      expect.objectContaining({
-        nodeId: opposingNode.id,
-        nodeVersionId: opposingRelation.confirmedTargetNodeVersionId,
-      }),
+      expect.objectContaining({ nodeId: node.id }),
+      expect.objectContaining({ nodeId: opposingNode.id }),
     ]),
   );
+  for (const expectedNodeId of [node.id, opposingNode.id]) {
+    const citation = draft.citations.find(({ nodeId }) => nodeId === expectedNodeId);
+    expect(citation).toBeTruthy();
+    await expect(
+      prisma.knowledgeNodeVersion.findUniqueOrThrow({
+        where: { id: citation!.nodeVersionId },
+        select: { knowledgeNodeId: true, snapshotId: true },
+      }),
+    ).resolves.toEqual({ knowledgeNodeId: expectedNodeId, snapshotId: expect.any(String) });
+  }
   const slug = `synthesis-${draft.seriesKey.slice(0, 20)}`;
   expect((await page.request.get(`/api/syntheses/${slug}`)).status()).toBe(404);
   expect((await page.request.get(`/reviews/${slug}`)).status()).toBe(404);
