@@ -1,8 +1,5 @@
 import { z } from "zod";
-import {
-  knowledgeNodeKindSchema,
-  nodeRelationTypeSchema,
-} from "./enums.js";
+import { knowledgeNodeKindSchema, nodeRelationTypeSchema } from "./enums.js";
 import { manifestContributorSchema } from "./manifest.js";
 import { nodeAliasSchema } from "./node-identity.js";
 import { publicGraphTrustSchema } from "./graph.js";
