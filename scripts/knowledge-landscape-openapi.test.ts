@@ -39,8 +39,8 @@ describe("knowledge recommendation OpenAPI surface", () => {
     ).toEqual([
       "not-a-truth-score",
       "not-a-quality-score",
-      "confirmed-graph-edges-only",
-      "bounded-to-six-claims-ten-evidence-and-twelve-graph-nodes",
+      "canonical-source-assertion-and-confirmed-edges",
+      "bounded-to-three-entry-neighborhoods-and-twelve-exact-versions",
     ]);
     expect(schemas.KnowledgeRecommendation.required).toContain("anchors");
     expect(schemas.KnowledgeRecommendation.properties.anchors.items.$ref).toBe(

@@ -21,6 +21,10 @@ test.describe("Public archive browsing", () => {
     await page.goto("/explore");
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Traverse the evidence graph");
     await expect(page.locator(".explore-results")).toHaveCount(0);
+    await expect(
+      page.getByRole("heading", { name: "Discuss the selected path with Atlas" }),
+    ).toHaveCount(0);
+    await expect(page.getByLabel("Your question")).toHaveCount(0);
     const indexes = page.getByRole("region", { name: "Need an exhaustive record list?" });
     await expect(indexes.getByRole("link", { name: "Open claim explorer" })).toHaveAttribute(
       "href",
@@ -30,6 +34,22 @@ test.describe("Public archive browsing", () => {
       "href",
       "/archive",
     );
+  });
+
+  test("a known set alone does not silently create a traversed or discussion scope", async ({
+    page,
+  }) => {
+    await page.goto("/explore?known=known-node-without-entry");
+
+    await expect(
+      page.getByRole("heading", { name: "Choose a topic, interest, or filter" }),
+    ).toBeVisible();
+    await expect(page.getByRole("navigation", { name: "Knowledge landscape details" })).toHaveCount(
+      0,
+    );
+    await expect(
+      page.getByRole("heading", { name: "Discuss the selected path with Atlas" }),
+    ).toHaveCount(0);
   });
 
   test("first-time readers can inspect a claim and return to Explore", async ({ page }) => {
@@ -137,7 +157,10 @@ test.describe("Public archive browsing", () => {
     await landscape.getByRole("link", { name: "Clear known set" }).click();
     await expect(page).not.toHaveURL(/known=/);
     await details.getByRole("link", { name: "Focus on connections" }).first().click();
-    await expect(page).toHaveURL(/focus=review%3A/);
+    await expect(page).toHaveURL(/focus=/);
+    const focusedNodeId = new URL(page.url()).searchParams.get("focus");
+    expect(focusedNodeId).toBeTruthy();
+    expect(focusedNodeId).not.toMatch(/^(review|claim|graph):/);
     await expect(landscape.getByRole("heading", { level: 2 })).toContainText("One step from");
     await landscape.getByRole("link", { name: "Return to overview" }).click();
     await expect(page).not.toHaveURL(/focus=/);

@@ -68,7 +68,6 @@ export async function materializeCanonicalReviewGraph(
       sourceType: "review-version",
     }),
     payloadJson: canonicalJson({
-      publicState: version.publicState,
       recordSourceType: version.recordSourceType,
       reviewId: version.review.id,
       reviewVersionId: version.id,
@@ -334,9 +333,33 @@ async function exactVersion(
         : { sourceCitationId: input.source.sourceCitationId };
   const existing = await tx.knowledgeNodeVersion.findUnique({ where: selector });
   if (existing) {
-    if (existing.knowledgeNodeId !== input.knowledgeNodeId) {
+    const expected = {
+      knowledgeNodeId: input.knowledgeNodeId,
+      snapshotId: null,
+      sourceReviewVersionId:
+        "sourceReviewVersionId" in input.source ? input.source.sourceReviewVersionId : null,
+      sourceClaimId: "sourceClaimId" in input.source ? input.source.sourceClaimId : null,
+      sourceCitationId: "sourceCitationId" in input.source ? input.source.sourceCitationId : null,
+      sourceSubmissionId: null,
+      inspectionCaptureId: null,
+      capturePayloadHash: null,
+      title: input.title,
+      abstract: input.abstract,
+      text: input.text,
+      contributorsJson: input.contributorsJson,
+      license: input.license,
+      provenanceJson: input.provenanceJson,
+      payloadJson: input.payloadJson,
+      versionDoi: null,
+      conceptDoi: null,
+      isExample: input.isExample,
+    };
+    const mismatch = Object.entries(expected).find(
+      ([key, value]) => existing[key as keyof typeof existing] !== value,
+    );
+    if (mismatch) {
       throw new CanonicalGraphMaterializationError(
-        `Exact source '${Object.values(selector)[0]}' is bound to another graph node.`,
+        `Exact source '${Object.values(selector)[0]}' has incompatible immutable field '${mismatch[0]}'.`,
       );
     }
     return existing;
@@ -377,8 +400,13 @@ async function resolveWorkNode(
         `Citation '${citation.id}' has a partial canonical work binding.`,
       );
     }
+    const aliases = citationAliases(citation, reviewIsExample);
+    const matchable = aliases.filter((alias) => !alias.isExample);
     const [node, existingConflict] = await Promise.all([
-      tx.knowledgeNode.findUnique({ where: { id: citation.knowledgeNodeId } }),
+      tx.knowledgeNode.findUnique({
+        where: { id: citation.knowledgeNodeId },
+        include: { aliases: true },
+      }),
       tx.workIdentityConflict.findUnique({ where: { citationId: citation.id } }),
     ]);
     if (
@@ -391,6 +419,12 @@ async function resolveWorkNode(
         `Citation '${citation.id}' has an incompatible canonical work binding.`,
       );
     }
+    if (!existingConflict && !aliasesCompatible(node.aliases, matchable)) {
+      throw new CanonicalGraphMaterializationError(
+        `Citation '${citation.id}' aliases conflict with its canonical work binding.`,
+      );
+    }
+    for (const alias of aliases) await preserveAlias(tx, node.id, alias);
     return { node, conflict: Boolean(existingConflict) };
   }
   const aliases = citationAliases(citation, reviewIsExample);
@@ -438,18 +472,7 @@ async function resolveWorkNode(
     throw new CanonicalGraphMaterializationError("Canonical work node has no stable key.");
   }
   for (const alias of aliases) {
-    await tx.nodeAlias.upsert({
-      where: {
-        knowledgeNodeId_scheme_role_value: {
-          knowledgeNodeId: node.id,
-          scheme: alias.scheme,
-          role: alias.role,
-          value: alias.value,
-        },
-      },
-      update: {},
-      create: { knowledgeNodeId: node.id, ...alias },
-    });
+    await preserveAlias(tx, node.id, alias);
   }
   if (conflict) {
     const evidence = canonicalJson(aliases);
@@ -475,6 +498,31 @@ async function resolveWorkNode(
     }
   }
   return { node, conflict };
+}
+
+async function preserveAlias(
+  tx: Prisma.TransactionClient,
+  knowledgeNodeId: string,
+  alias: NodeAlias,
+): Promise<void> {
+  const key = {
+    knowledgeNodeId,
+    scheme: alias.scheme,
+    role: alias.role,
+    value: alias.value,
+  };
+  const existing = await tx.nodeAlias.findUnique({
+    where: { knowledgeNodeId_scheme_role_value: key },
+  });
+  if (existing) {
+    if (existing.isExample !== alias.isExample) {
+      throw new CanonicalGraphMaterializationError(
+        `Alias '${alias.scheme}:${alias.value}' changed its example provenance.`,
+      );
+    }
+    return;
+  }
+  await tx.nodeAlias.create({ data: { ...key, isExample: alias.isExample } });
 }
 
 function citationAliases(citation: CitationIdentityInput, reviewIsExample: boolean): NodeAlias[] {

@@ -1,0 +1,6 @@
+// Datasource-only schema used to compare an existing database with the frozen
+// pre-canonical-graph baseline. Never point this at the live public schema.
+datasource db {
+  provider = "postgresql"
+  url      = env("ORATLAS_BASELINE_DATABASE_URL")
+}

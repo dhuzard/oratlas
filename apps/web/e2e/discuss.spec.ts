@@ -1,53 +1,32 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect } from "@playwright/test";
 
-/**
- * Fill the question field and wait until the submit button enables. In dev,
- * React may hydrate after Playwright's first fill and reset the controlled
- * input, so we refill until the button reflects the value.
- */
-async function askQuestion(page: Page, question: string) {
-  const field = page.getByLabel("Your question");
-  const button = page.getByRole("button", { name: /Ask question/ });
-  await expect(async () => {
-    await field.fill(question);
-    await expect(button).toBeEnabled({ timeout: 1000 });
-  }).toPass({ timeout: 30_000 });
-  await button.click();
-}
-
-test.describe("Grounded Q&A — deterministic mode", () => {
-  test("returns a grounded evidence summary without an LLM key", async ({ page }) => {
+test.describe("Grounded Q&A traversal gate", () => {
+  test("does not expose archive-wide Discuss outside an explicit Explore path", async ({
+    page,
+  }) => {
     await page.goto("/discuss");
-    await page.getByText("Use your own LLM key (optional)").click();
-    await expect(page.getByLabel("Provider")).toHaveValue("anthropic");
-    await expect(page.getByLabel("API key")).toHaveAttribute("type", "password");
-    await expect(page.getByText(/never stored by ORAtlas/i)).toBeVisible();
-    await expect(page.locator('[data-register="open-discussion"]')).toContainText(
-      /not a formal challenge.*neither creates nor changes a TRUST assessment/i,
-    );
-    await expect(page.locator('[data-register="open-discussion"]')).toContainText(
-      /immutable archive/i,
-    );
-    await askQuestion(page, "hippocampal replay memory consolidation");
-    await expect(page.getByText(/Deterministic/).first()).toBeVisible();
-    await expect(page.locator(".notice-info").getByText(/No LLM key was supplied/i)).toBeVisible();
-    await expect(page.getByText(/not independent replication/i)).toBeVisible();
-    await expect(page.getByTestId("discussion-packet-hash")).toHaveText(/^[a-f0-9]{64}$/);
-    const references = page.getByRole("heading", { name: "Grounding references" }).locator("..");
-    const passport = references
-      .getByRole("listitem")
-      .filter({ hasText: "(citation)" })
-      .first()
-      .getByRole("link");
-    await expect(passport).toHaveAttribute("href", /^\/claims\//);
-    const href = await passport.getAttribute("href");
-    const response = await page.request.get(href!);
-    expect(response.ok()).toBeTruthy();
+
+    await expect(page.getByRole("heading", { name: "Grounded Q&A" })).toBeVisible();
+    await expect(
+      page.getByText(/available only after you traverse the canonical graph/i),
+    ).toBeVisible();
+    await expect(page.getByLabel("Your question")).toHaveCount(0);
+    await expect(
+      page.getByRole("link", { name: /Choose a graph path in Explore/i }),
+    ).toHaveAttribute("href", "/explore");
   });
 
-  test("reports insufficient evidence for unrelated questions", async ({ page }) => {
-    await page.goto("/discuss");
-    await askQuestion(page, "lattice gauge quantum chromodynamics confinement topology");
-    await expect(page.getByText(/insufficient|No matching claims/i).first()).toBeVisible();
+  test("rejects direct discussion requests without a signed traversal scope", async ({
+    request,
+  }) => {
+    const response = await request.post("/api/discuss", {
+      data: { question: "What evidence is available?" },
+      headers: { Origin: "http://localhost:3000" },
+    });
+
+    expect(response.status()).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({
+      error: { code: "bad-request" },
+    });
   });
 });

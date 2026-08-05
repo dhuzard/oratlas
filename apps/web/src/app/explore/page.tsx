@@ -1,5 +1,9 @@
 import Link from "next/link";
-import { CLAIM_EVIDENCE_RELATION_TYPES, CLAIM_TYPES } from "@oratlas/contracts";
+import {
+  CLAIM_EVIDENCE_RELATION_TYPES,
+  CLAIM_TYPES,
+  type KnowledgeRecommendationAnchor,
+} from "@oratlas/contracts";
 import { SpecialistTools } from "@/components/SpecialistTools";
 import { ExplorationIntent } from "@/components/ExplorationIntent";
 import { KnowledgeLandscape } from "@/components/KnowledgeLandscape";
@@ -7,8 +11,13 @@ import { DiscussClient } from "@/app/discuss/DiscussClient";
 import { GraphCurationClient } from "./GraphCurationClient";
 import { EXPLORATION_INTERESTS, normalizeExplorationInterests } from "@/lib/knowledge-landscape";
 import { createKnowledgeLandscapeResponse } from "@/lib/knowledge-landscape-service";
-import { resolveDatabaseAnchors } from "@/lib/knowledge-recommendation-service";
-import { buildKnowledgeIndex } from "@/lib/index-builder";
+import { issueDiscussionTraversalScope } from "@/lib/discussion-scope";
+import {
+  canonicalReferenceKey,
+  resolveCanonicalReferenceLabels,
+  resolveDatabaseAnchors,
+  type CanonicalNodeReference,
+} from "@/lib/knowledge-recommendation-service";
 import { getCurrentUser, isEditor } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
@@ -46,33 +55,85 @@ export default async function ExplorePage({
   const selectedInterests = normalizeExplorationInterests(all(parameters, "interest"));
   const knownNodeIds = normalizeKnownNodeIds(all(parameters, "known"));
   const requestedLandscapeFocus = get("focus")?.trim() || undefined;
-  const [index, user] = await Promise.all([buildKnowledgeIndex(), getCurrentUser()]);
-  const landscapeResponse = await createKnowledgeLandscapeResponse(index, {
-    q,
-    interests: selectedInterests,
-    focusNodeId: requestedLandscapeFocus,
-    reviewSlug: get("reviewSlug") || undefined,
-    claimType: get("claimType") || undefined,
-    relationType: get("relationType") || undefined,
-    trustCriterion: get("trustCriterion") || undefined,
-  });
-  const landscape = landscapeResponse.landscape;
-  const graphReferences = [
-    ...new Map(
-      landscape.nodes
-        .filter((node) => node.graphNodeId)
+  const hasExplicitLandscapeScope = Boolean(
+    q ||
+    selectedInterests.length > 0 ||
+    requestedLandscapeFocus ||
+    get("reviewSlug") ||
+    get("claimType") ||
+    get("relationType") ||
+    get("trustCriterion"),
+  );
+  const landscapeResponse = hasExplicitLandscapeScope
+    ? await createKnowledgeLandscapeResponse({
+        q,
+        interests: selectedInterests,
+        focusNodeId: requestedLandscapeFocus,
+        reviewSlug: get("reviewSlug") || undefined,
+        claimType: get("claimType") || undefined,
+        relationType: get("relationType") || undefined,
+        trustCriterion: get("trustCriterion") || undefined,
+      })
+    : undefined;
+  const landscape = landscapeResponse?.landscape;
+  const graphReferences: CanonicalNodeReference[] = [
+    ...new Map<string, CanonicalNodeReference>(
+      (landscape?.nodes ?? [])
+        .filter((node) => node.graphNodeId && node.graphNodeVersionId)
         .map((node) => [
-          node.graphNodeId!,
-          { nodeId: node.graphNodeId!, nodeVersionId: node.graphNodeVersionId },
+          `${node.graphNodeId}\u0000${node.graphNodeVersionId}`,
+          { nodeId: node.graphNodeId!, nodeVersionId: node.graphNodeVersionId! },
         ]),
     ).values(),
   ];
-  const anchorsByGraphNodeId = Object.fromEntries(
-    await resolveDatabaseAnchors(graphReferences, knownNodeIds),
+  const resolvedAnchorsByGraphNodeId: ReadonlyMap<
+    string,
+    readonly KnowledgeRecommendationAnchor[]
+  > =
+    graphReferences.length > 0 && knownNodeIds.length > 0
+      ? await resolveDatabaseAnchors(graphReferences, knownNodeIds)
+      : new Map();
+  const anchorsByLandscapeNodeId = Object.fromEntries(
+    (landscape?.nodes ?? []).map((node) => [
+      node.id,
+      node.graphNodeId && node.graphNodeVersionId
+        ? (resolvedAnchorsByGraphNodeId.get(node.graphNodeId) ?? []).filter(
+            (anchor) => anchor.recommendedNodeVersionId === node.graphNodeVersionId,
+          )
+        : [],
+    ]),
   );
+  const anchoredKnownReferences: CanonicalNodeReference[] = [
+    ...new Map<string, CanonicalNodeReference>(
+      [...resolvedAnchorsByGraphNodeId.values()].flatMap((anchors) =>
+        anchors.map((anchor) => {
+          const reference = {
+            nodeId: anchor.knownNodeId,
+            nodeVersionId: anchor.knownNodeVersionId,
+          };
+          return [canonicalReferenceKey(reference), reference] as const;
+        }),
+      ),
+    ).values(),
+  ];
+  const anchoredKnownLabels =
+    anchoredKnownReferences.length > 0
+      ? await resolveCanonicalReferenceLabels(anchoredKnownReferences)
+      : new Map();
+  const labelByGraphNodeVersionId = Object.fromEntries([
+    ...(landscape?.nodes ?? []).flatMap((node) =>
+      node.graphNodeVersionId ? [[node.graphNodeVersionId, node.label] as const] : [],
+    ),
+    ...anchoredKnownReferences.flatMap((reference) => {
+      const label = anchoredKnownLabels.get(canonicalReferenceKey(reference));
+      return label ? ([[reference.nodeVersionId, label]] as const) : [];
+    }),
+  ]);
   const landscapeOverviewHref = landscapeHref(parameters);
   const landscapeFocusHrefs = Object.fromEntries(
-    landscape.nodes.map((node) => [node.id, landscapeHref(parameters, node.id)]),
+    (landscape?.nodes ?? []).flatMap((node) =>
+      node.graphNodeId ? [[node.id, landscapeHref(parameters, node.graphNodeId)] as const] : [],
+    ),
   );
   const knownToggleHrefByNode = Object.fromEntries(
     graphReferences.map(({ nodeId }) => [
@@ -87,22 +148,21 @@ export default async function ExplorePage({
     ]),
   );
   const clearKnownHref = landscapeHref(parameters, requestedLandscapeFocus, []);
-  const reviews = index.reviews.map((review) => ({
-    slug: review.reviewSlug,
-    title: review.title,
-  }));
   const activeFilterCount = ["reviewSlug", "claimType", "relationType", "trustCriterion"].filter(
     (key) => get(key),
   ).length;
-  const hasExplicitLandscapeScope = Boolean(
-    q ||
-    selectedInterests.length > 0 ||
-    requestedLandscapeFocus ||
-    get("reviewSlug") ||
-    get("claimType") ||
-    get("relationType") ||
-    get("trustCriterion"),
+  const hasTraversableLandscape = Boolean(landscape && graphReferences.length > 0);
+  const hasDiscussableLandscape = Boolean(
+    hasTraversableLandscape &&
+    landscape?.nodes.some(
+      (node) => node.kind === "claim" && node.graphNodeId && node.graphNodeVersionId,
+    ),
   );
+  const discussionScope =
+    hasDiscussableLandscape && landscape
+      ? issueDiscussionTraversalScope({ nodes: graphReferences, edges: landscape.edges })
+      : undefined;
+  const user = hasDiscussableLandscape ? await getCurrentUser() : null;
 
   return (
     <>
@@ -156,15 +216,14 @@ export default async function ExplorePage({
               <input type="hidden" name="known" value={nodeId} key={nodeId} />
             ))}
             <div className="field">
-              <label htmlFor="reviewSlug">Review</label>
-              <select id="reviewSlug" name="reviewSlug" defaultValue={get("reviewSlug") ?? ""}>
-                <option value="">Any review</option>
-                {reviews.map((review) => (
-                  <option key={review.slug} value={review.slug}>
-                    {review.title}
-                  </option>
-                ))}
-              </select>
+              <label htmlFor="reviewSlug">Review slug</label>
+              <input
+                id="reviewSlug"
+                type="text"
+                name="reviewSlug"
+                defaultValue={get("reviewSlug") ?? ""}
+                placeholder="e.g. hippocampal-replay-review"
+              />
             </div>
             <div className="field">
               <label htmlFor="claimType">Claim type</label>
@@ -216,7 +275,7 @@ export default async function ExplorePage({
 
       <section className="explore-ai-workspace" aria-label="Evidence graph exploration workspace">
         <div className="explore-ai-landscape">
-          {hasExplicitLandscapeScope ? (
+          {landscape ? (
             <KnowledgeLandscape
               landscape={landscape}
               overviewHref={landscapeOverviewHref}
@@ -224,7 +283,9 @@ export default async function ExplorePage({
               knownNodeIds={knownNodeIds}
               knownToggleHrefByNode={knownToggleHrefByNode}
               clearKnownHref={clearKnownHref}
-              anchorsByGraphNodeId={anchorsByGraphNodeId}
+              anchorsByLandscapeNodeId={anchorsByLandscapeNodeId}
+              labelByGraphNodeVersionId={labelByGraphNodeVersionId}
+              focusedGraphNodeId={requestedLandscapeFocus}
               focus={
                 q ??
                 selectedInterests
@@ -247,26 +308,24 @@ export default async function ExplorePage({
             </section>
           )}
         </div>
-        <div className="explore-ai-discuss">
-          <p className="home-eyebrow">Grounded lens</p>
-          <h2 id="atlas-discuss-explore-title">Discuss the selected path with Atlas</h2>
-          <p className="muted">
-            Discuss compresses this bounded path after you can inspect it. Without an LLM key, Atlas
-            returns a deterministic evidence summary; generated statements must resolve to exact
-            claim–citation edges.
-          </p>
-          <DiscussClient
-            initialQuestion={q ?? ""}
-            scope={hasExplicitLandscapeScope ? landscapeResponse.query : undefined}
-            embedded
-          />
-          {isEditor(user) && hasExplicitLandscapeScope && landscape.graphNodeCount >= 2 ? (
-            <GraphCurationClient
-              scope={landscapeResponse.query}
-              initialQuestion={q ?? "Which graph relations are missing from this landscape?"}
-            />
-          ) : null}
-        </div>
+        {hasDiscussableLandscape && landscapeResponse && landscape && discussionScope ? (
+          <div className="explore-ai-discuss">
+            <p className="home-eyebrow">Grounded lens</p>
+            <h2 id="atlas-discuss-explore-title">Discuss the selected path with Atlas</h2>
+            <p className="muted">
+              Discuss compresses this bounded path after you can inspect it. Without an LLM key,
+              Atlas returns a deterministic evidence summary; generated statements must resolve to
+              exact claim–citation edges.
+            </p>
+            <DiscussClient initialQuestion={q ?? ""} scope={discussionScope} embedded />
+            {isEditor(user) && landscape.graphNodeCount >= 2 ? (
+              <GraphCurationClient
+                scope={landscapeResponse.query}
+                initialQuestion={q ?? "Which graph relations are missing from this landscape?"}
+              />
+            ) : null}
+          </div>
+        ) : null}
       </section>
 
       <SpecialistTools />
@@ -311,7 +370,7 @@ function landscapeHref(
   }
   for (const nodeId of knownNodeIdsOverride ?? []) output.append("known", nodeId);
   if (focusNodeId) output.set("focus", focusNodeId);
-  return "/explore?" + output;
+  return exploreHref(output);
 }
 
 function scopeHref(q?: string, interests: string[] = [], knownNodeIds: string[] = []): string {
@@ -319,7 +378,7 @@ function scopeHref(q?: string, interests: string[] = [], knownNodeIds: string[] 
   if (q) output.set("q", q);
   for (const interest of interests) output.append("interest", interest);
   for (const nodeId of knownNodeIds) output.append("known", nodeId);
-  return "/explore?" + output;
+  return exploreHref(output);
 }
 
 function claimsIndexHref(parameters: SearchParameters): string {
@@ -337,11 +396,13 @@ function archiveIndexHref(q?: string): string {
 }
 
 function normalizeKnownNodeIds(values: readonly string[]): string[] {
-  return [
-    ...new Set(
-      values
-        .map((value) => value.trim())
-        .filter((value) => value.length > 0 && value.length <= 200),
-    ),
-  ].slice(0, 100);
+  const normalized = values
+    .map((value) => value.trim())
+    .filter((value) => value.length > 0 && value.length <= 200);
+  return [...new Set(normalized)].slice(0, 100);
+}
+
+function exploreHref(parameters: URLSearchParams): string {
+  const query = parameters.toString();
+  return query ? `/explore?${query}` : "/explore";
 }

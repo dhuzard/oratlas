@@ -18,6 +18,11 @@ TRUST, challenge, verification, and adjudication records depend.
 A stable node says _which scholarly object this is_. A node version says _which immutable state of
 that object is being addressed_. Node identity uses an explicit, discriminated source union:
 
+Publication lifecycle (`published`, `withdrawn`, or `tombstoned`) remains mutable access-control
+state outside immutable graph payload bytes. Public graph reads evaluate that state at the
+visibility boundary; changing it cannot make a preserved node version contradict the lifecycle
+ledger.
+
 | Node kind                   | Stable identity source                                   | Exact version source                                            |
 | --------------------------- | -------------------------------------------------------- | --------------------------------------------------------------- |
 | `review`                    | exactly one node for `Review.id`                         | exactly one graph version for each `ReviewVersion.id`           |
@@ -108,8 +113,10 @@ deployable and rollback-safe until the final constraint step.
    a validation manifest. Do not invent repositories or snapshots and do not infer cross-version
    claim identity.
 4. **Contract.** After validation reports zero missing, duplicate, or semantically divergent
-   bindings, make required claim node/version and 1:1 edge fields non-null, enforce the source-union
-   constraints, switch canonical reads to the graph, and retain compatibility projection checks.
+   bindings, activate deferred commit-time constraints for required claim node/version and 1:1 edge
+   bindings, retain the source-union and compatibility projection checks, and switch canonical
+   reads to the graph. Immediate `NOT NULL` is deliberately adapted because a valid publication
+   transaction creates relational rows before materializing their graph projection.
 
 The first expand migration intentionally adds only nullable relational bindings and stable-key
 metadata. The following compatibility migration relaxes repository/snapshot ownership and installs
@@ -136,6 +143,12 @@ to the deployment runbook, record its identifier in the change record, and prove
 is available. `prisma migrate deploy`, backfill, validation, and the contract migration must not
 start unless that backup gate passes. Local `db:reset` remains development-only and is not evidence
 that a production upgrade is safe.
+
+Normal production deployment runs every bounded backfill batch and activates the contract before a
+no-traffic application candidate is staged. Activation locks the relevant tables, repeats global
+semantic validation, and records immutable backup and manifest digests. Once active, deferred
+triggers permit temporary intra-transaction incompleteness but reject incomplete commits and
+destructive changes to canonical source identities, exact versions, or imported source assertions.
 
 ## Consequences and non-goals
 

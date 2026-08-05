@@ -1526,6 +1526,21 @@ textarea {
 .landscape-detail-dimmed {
   opacity: 0.45;
 }
+.landscape-detail-anchored,
+.landscape-detail-disconnected {
+  padding: 0.45rem;
+  border-radius: var(--radius);
+}
+.landscape-detail-anchored {
+  border-left: 3px solid var(--human);
+  background: color-mix(in srgb, var(--human) 7%, var(--surface));
+}
+.landscape-detail-disconnected {
+  border-left: 3px dashed var(--border);
+}
+.landscape-disconnected-note {
+  margin-top: 0.35rem;
+}
 .landscape-reasons,
 .landscape-anchors {
   margin-top: 0.35rem;

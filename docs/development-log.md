@@ -1,5 +1,17 @@
 # Development log
 
+## 2026-08-05 — Production-safe canonical graph rollout
+
+- Added a fail-closed Cloud SQL gate that checks scheduled backups and PITR, creates a synchronous
+  on-demand backup, verifies the exact `SUCCESSFUL` run, and carries its opaque id through migration
+  and canonical backfill jobs without granting backup permissions to the runtime identity.
+- Replaced current-datamodel baseline adoption with an isolated live-to-frozen-baseline comparison;
+  drift and comparison failures remain distinct fail-closed outcomes.
+- Made deployment run the bounded backfill to completion, globally verify it, and activate immutable
+  deferred commit-time graph constraints before staging application traffic.
+- Cloud Run now deploys a tagged no-traffic candidate, smokes that exact revision, and promotes it
+  only on success, leaving the previous revision serving on failure.
+
 ## ORA-A03 — Frozen Ethical Debt integration fixture
 
 - Captured `dhuzard/ethical-debt-AI-review` release `v0.1.0-trust-preview.3` at immutable commit

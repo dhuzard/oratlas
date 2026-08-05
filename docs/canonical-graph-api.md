@@ -23,10 +23,13 @@ The response includes canonical content, provenance, payload, aliases, and sourc
 identity. It contains no `href`, graph link, card detail, drawing coordinate, interest, known-set,
 or recommendation score.
 
-Traversal is one exact adjacency page at a time. Follow `page.nextCursor` until absent, then expand
-any returned `nodeId`/`nodeVersionId` pair with another request. This replaces server-side depth and
-cumulative frontier caps: a high-degree node is page-limited, not silently truncated. Cursors are
-signed and bound to the exact seed version and filters.
+Traversal is one adjacency page at a time. With `version`, adjacency is restricted to that exact
+immutable occurrence. Without `version`, adjacency covers every readable exact version of the
+stable seed identity; this is essential for a global work cited by multiple review occurrences.
+Every returned edge still names exact source and target versions. Follow `page.nextCursor` until
+absent, then expand any returned `nodeId`/`nodeVersionId` pair with another request. This replaces
+server-side depth and cumulative frontier caps: a high-degree node is page-limited, not silently
+truncated. Cursors are signed and bound to the selected seed context and filters.
 
 `status=authoritative` includes both source-native review assertions and editor-confirmed graph
 relations. `source-assertion` and `confirmed` select either class. Proposals, rejected edges, and

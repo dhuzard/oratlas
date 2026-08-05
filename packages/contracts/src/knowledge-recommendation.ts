@@ -35,7 +35,7 @@ export type KnowledgeRecommendationAnchor = z.infer<typeof knowledgeRecommendati
 export const knowledgeRecommendationSchema = z
   .object({
     nodeId: z.string().min(1).max(200),
-    nodeVersionId: z.string().min(1).max(200).optional(),
+    nodeVersionId: z.string().min(1).max(200),
     rank: z.number().int().min(1).max(34),
     /** Relative ordering aid only; never truth, quality, or confidence. */
     score: z.number().min(0).max(1),
@@ -56,8 +56,8 @@ export const knowledgeRecommendationResponseSchema = z
         limitations: z.tuple([
           z.literal("not-a-truth-score"),
           z.literal("not-a-quality-score"),
-          z.literal("confirmed-graph-edges-only"),
-          z.literal("bounded-to-six-claims-ten-evidence-and-twelve-graph-nodes"),
+          z.literal("canonical-source-assertion-and-confirmed-edges"),
+          z.literal("bounded-to-three-entry-neighborhoods-and-twelve-exact-versions"),
         ]),
       })
       .strict(),

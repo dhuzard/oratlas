@@ -1068,9 +1068,11 @@ export default async function ReviewPage({
               <a href="#community-review">Open discussion ({commentList.commentCount})</a> —
               questions, concerns and endorsements from readers.
             </p>
-            <p>Or ask grounded questions across accepted reviews.</p>
-            <Link className="btn btn-secondary" href={`/discuss?review=${review.slug}`}>
-              Open grounded Q&amp;A
+            <p>
+              Or traverse this review's exact graph occurrences before asking a grounded question.
+            </p>
+            <Link className="btn btn-secondary" href={`/explore?reviewSlug=${review.slug}`}>
+              Traverse and discuss
             </Link>
           </Card>
         </aside>

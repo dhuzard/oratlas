@@ -71,5 +71,6 @@ function resetHref(query?: string, knownNodeIds: string[] = []): string {
   const parameters = new URLSearchParams();
   if (query) parameters.set("q", query);
   for (const nodeId of knownNodeIds) parameters.append("known", nodeId);
-  return `/explore?${parameters}`;
+  const serialized = parameters.toString();
+  return serialized ? `/explore?${serialized}` : "/explore";
 }

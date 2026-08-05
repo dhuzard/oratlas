@@ -19,4 +19,13 @@ describe("ExplorationIntent", () => {
     );
     expect(html).not.toContain('name="view"');
   });
+
+  it("does not emit a dangling query marker when resetting the only interest", () => {
+    const html = renderToStaticMarkup(
+      <ExplorationIntent selectedInterests={["disagreements"]} knownNodeIds={[]} />,
+    );
+
+    expect(html).toContain('href="/explore">Reset interests</a>');
+    expect(html).not.toContain('href="/explore?"');
+  });
 });

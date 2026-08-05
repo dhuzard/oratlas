@@ -28,7 +28,7 @@ must retain query parameters that include the edge in the bounded result page.
 Explore accepts repeated `interest` and `known` parameters. The legacy `view`, `sort`, and `page`
 parameters no longer select row-oriented result views. `known` contains explicit canonical
 graph node identifiers selected by the reader; it is URL-held state and is never inferred or
-persisted in the shared graph. Search, filters, view, focus, and known nodes are additive URL state
+persisted in the shared graph. Topic, interests, filters, focus, and known nodes are additive URL state
 and should be retained when constructing a more specific Explore link. Removing `focus` returns to
 the same overview without discarding the other parameters. The accepted interest values,
 focus-node format, and known-set bounds are versioned in the

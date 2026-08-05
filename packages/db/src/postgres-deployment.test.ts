@@ -1,7 +1,11 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import { assertProductionBackupId, planPostgresDeployment } from "./postgres-deployment.js";
+import {
+  assertProductionBackupId,
+  baselineSchemaUrl,
+  planPostgresDeployment,
+} from "./postgres-deployment.js";
 
 describe("PostgreSQL deployment planning", () => {
   it("keeps an immutable baseline DDL separate from the evolving bootstrap schema", () => {
@@ -58,5 +62,20 @@ describe("PostgreSQL deployment planning", () => {
     expect(assertProductionBackupId("1234567890")).toBe("1234567890");
     expect(() => assertProductionBackupId(undefined)).toThrow(/backup/i);
     expect(() => assertProductionBackupId("bad value")).toThrow(/backup/i);
+    expect(assertProductionBackupId("backupRuns/prod_123.4")).toBe("backupRuns/prod_123.4");
+    expect(() => assertProductionBackupId("backup\n123")).toThrow(/backup/i);
+    expect(() => assertProductionBackupId("backup;rm")).toThrow(/backup/i);
+  });
+
+  it("isolates the frozen baseline in a validated temporary schema", () => {
+    expect(
+      baselineSchemaUrl(
+        "postgresql://user:secret@db.example/oratlas?sslmode=require",
+        "oratlas_baseline_0123456789abcdefabcd",
+      ),
+    ).toContain("schema=oratlas_baseline_0123456789abcdefabcd");
+    expect(() => baselineSchemaUrl("postgresql://user@db/oratlas", "public")).toThrow(
+      /temporary baseline/i,
+    );
   });
 });
