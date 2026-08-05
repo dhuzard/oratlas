@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import type { KnowledgeRecommendationAnchor } from "@oratlas/contracts";
 import type {
   KnowledgeLandscapeData,
   KnowledgeLandscapeEdge,
@@ -59,11 +60,19 @@ export function KnowledgeLandscape({
   focus,
   overviewHref,
   focusHrefByNode,
+  knownNodeIds,
+  knownToggleHrefByNode,
+  clearKnownHref,
+  anchorsByGraphNodeId,
 }: {
   landscape: KnowledgeLandscapeData;
   focus: string;
   overviewHref: string;
   focusHrefByNode: Record<string, string>;
+  knownNodeIds: string[];
+  knownToggleHrefByNode: Record<string, string>;
+  clearKnownHref: string;
+  anchorsByGraphNodeId: Record<string, readonly KnowledgeRecommendationAnchor[]>;
 }) {
   const [highlightedNodeIds, setHighlightedNodeIds] = useState<Set<string>>(new Set());
   useEffect(() => {
@@ -126,6 +135,17 @@ export function KnowledgeLandscape({
           </p>
           <p className="landscape-ranking-note">
             Ordering helps exploration only. It is not a truth, quality, or trust score.
+          </p>
+          <p className="landscape-known-set">
+            Your explicit known set contains {knownNodeIds.length} graph node
+            {knownNodeIds.length === 1 ? "" : "s"}. It is held in this URL, not inferred or stored
+            in the shared graph.
+            {knownNodeIds.length > 0 ? (
+              <>
+                {" "}
+                <a href={clearKnownHref}>Clear known set</a>.
+              </>
+            ) : null}
           </p>
         </div>
       </div>
@@ -258,46 +278,18 @@ export function KnowledgeLandscape({
               <h3 id={`landscape-${kind}-title`}>{LANE_LABEL[kind]}</h3>
               <ul>
                 {kindNodes.map((node) => (
-                  <li
-                    className={
-                      highlightedNodeIds.has(node.id)
-                        ? "landscape-detail-highlighted"
-                        : highlightedNodeIds.size > 0
-                          ? "landscape-detail-dimmed"
-                          : undefined
+                  <LandscapeDetail
+                    node={node}
+                    highlightedNodeIds={highlightedNodeIds}
+                    focused={landscape.focusedNodeId === node.id}
+                    focusHref={focusHrefByNode[node.id]}
+                    known={Boolean(node.graphNodeId && knownNodeIds.includes(node.graphNodeId))}
+                    knownToggleHref={
+                      node.graphNodeId ? knownToggleHrefByNode[node.graphNodeId] : undefined
                     }
+                    anchors={node.graphNodeId ? (anchorsByGraphNodeId[node.graphNodeId] ?? []) : []}
                     key={node.id}
-                  >
-                    <a href={node.href}>{node.label}</a>
-                    <small>{node.detail}</small>
-                    <details className="landscape-reasons">
-                      <summary>Why this?</summary>
-                      <ul>
-                        {node.reasons.map((reason) => (
-                          <li key={reason}>{reason}</li>
-                        ))}
-                      </ul>
-                    </details>
-                    {node.graphRecordHref && node.graphRecordHref !== node.href ? (
-                      <a className="landscape-record-link" href={node.graphRecordHref}>
-                        Inspect exact graph version
-                      </a>
-                    ) : null}
-                    {node.graphHref ? (
-                      <a className="landscape-graph-link" href={node.graphHref}>
-                        Explore graph neighborhood
-                      </a>
-                    ) : null}
-                    {landscape.focusedNodeId === node.id ? (
-                      <span className="landscape-focused-label" aria-current="true">
-                        Current focus
-                      </span>
-                    ) : (
-                      <a className="landscape-focus-link" href={focusHrefByNode[node.id]}>
-                        Focus on connections
-                      </a>
-                    )}
-                  </li>
+                  />
                 ))}
               </ul>
             </section>
@@ -305,6 +297,88 @@ export function KnowledgeLandscape({
         })}
       </nav>
     </section>
+  );
+}
+
+function LandscapeDetail({
+  node,
+  highlightedNodeIds,
+  focused,
+  focusHref,
+  known,
+  knownToggleHref,
+  anchors,
+}: {
+  node: KnowledgeLandscapeNode;
+  highlightedNodeIds: ReadonlySet<string>;
+  focused: boolean;
+  focusHref?: string;
+  known: boolean;
+  knownToggleHref?: string;
+  anchors: readonly KnowledgeRecommendationAnchor[];
+}) {
+  return (
+    <li
+      className={
+        highlightedNodeIds.has(node.id)
+          ? "landscape-detail-highlighted"
+          : highlightedNodeIds.size > 0
+            ? "landscape-detail-dimmed"
+            : undefined
+      }
+    >
+      <a href={node.href}>{node.label}</a>
+      <small>{node.detail}</small>
+      {anchors.length > 0 ? (
+        <details className="landscape-anchors">
+          <summary>
+            Anchored to {new Set(anchors.map((anchor) => anchor.knownNodeId)).size} known graph node
+            {new Set(anchors.map((anchor) => anchor.knownNodeId)).size === 1 ? "" : "s"}
+          </summary>
+          <ul>
+            {anchors.map((anchor) => (
+              <li key={`${anchor.edgeId}:${anchor.directionFromRecommendation}`}>
+                {anchor.directionFromRecommendation === "outgoing" ? "Outgoing" : "Incoming"}{" "}
+                <code>{anchor.relationType}</code> edge to known node{" "}
+                <code>{anchor.knownNodeId}</code>
+              </li>
+            ))}
+          </ul>
+        </details>
+      ) : null}
+      <details className="landscape-reasons">
+        <summary>Why this?</summary>
+        <ul>
+          {node.reasons.map((reason) => (
+            <li key={reason}>{reason}</li>
+          ))}
+        </ul>
+      </details>
+      {node.graphRecordHref && node.graphRecordHref !== node.href ? (
+        <a className="landscape-record-link" href={node.graphRecordHref}>
+          Inspect exact graph version
+        </a>
+      ) : null}
+      {node.graphHref ? (
+        <a className="landscape-graph-link" href={node.graphHref}>
+          Explore graph neighborhood
+        </a>
+      ) : null}
+      {knownToggleHref ? (
+        <a className="landscape-known-link" href={knownToggleHref}>
+          {known ? "Remove from known set" : "Mark as known"}
+        </a>
+      ) : null}
+      {focused ? (
+        <span className="landscape-focused-label" aria-current="true">
+          Current focus
+        </span>
+      ) : focusHref ? (
+        <a className="landscape-focus-link" href={focusHref}>
+          Focus on connections
+        </a>
+      ) : null}
+    </li>
   );
 }
 

@@ -11,12 +11,23 @@ curl --get http://localhost:3000/api/landscape \
   --data-urlencode 'interest=disagreements'
 ```
 
+Readers may explicitly declare graph identities they already know. The set is request/URL state,
+not a server profile:
+
+```sh
+curl --get http://localhost:3000/api/landscape \
+  --data-urlencode 'interest=methods-models' \
+  --data-urlencode 'known=KNOWN_NODE_ID'
+```
+
 The `explicit-interest-recommendation@2.0.0` response contains:
 
 - the normalized explicit query and interest state;
 - ordered `nodeId` references and an exact `nodeVersionId` when the ranking selected one exact
   occurrence;
 - relative `rank`, `score`, and human-readable `reasons` that explain only the ordering;
+- an `anchors` array containing only editor-confirmed exact edges between the recommendation and a
+  node in the submitted known set; an empty array means no confirmed anchor was found;
 - `omittedUnboundCount`, which exposes compatibility rows that could not yet resolve to canonical
   graph identities instead of inventing identifiers;
 - limitations stating that the ordering is neither a truth score nor a quality score.

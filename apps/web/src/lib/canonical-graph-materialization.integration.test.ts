@@ -8,6 +8,7 @@ import { applyDatabaseGuards } from "@oratlas/db";
 import { PrismaClient } from "../../../../packages/db/generated/client/index.js";
 import { materializeCanonicalReviewGraph } from "./canonical-graph-materialization";
 import type * as CanonicalGraphQueryModule from "./canonical-graph-query";
+import type * as KnowledgeRecommendationModule from "./knowledge-recommendation-service";
 
 vi.mock("server-only", () => ({}));
 
@@ -21,6 +22,7 @@ let repositoryId: string;
 let snapshotId: string;
 let canonicalGraph: typeof CanonicalGraphQueryModule;
 let canonicalGraphPrisma: PrismaClient;
+let recommendation: typeof KnowledgeRecommendationModule;
 
 describe("canonical review graph materialization", () => {
   beforeAll(async () => {
@@ -65,6 +67,7 @@ describe("canonical review graph materialization", () => {
     await applyDatabaseGuards(prisma, "sqlite");
     ({ prisma: canonicalGraphPrisma } = await import("./db"));
     canonicalGraph = await import("./canonical-graph-query");
+    recommendation = await import("./knowledge-recommendation-service");
 
     const repository = await prisma.repository.create({
       data: {
@@ -325,6 +328,56 @@ describe("canonical review graph materialization", () => {
         relationType: "asserts",
       }),
     );
+  });
+
+  it("anchors recommendations only through exact public editor-confirmed edges", async () => {
+    const claim = await prisma.claim.findUniqueOrThrow({
+      where: { id: claimId },
+      include: { graphVersion: true },
+    });
+    const citation = await prisma.citation.findFirstOrThrow({
+      where: { reviewVersionId, knowledgeNodeId: { not: null } },
+      include: { graphVersion: true },
+      orderBy: { id: "asc" },
+    });
+    const editor = await prisma.user.create({
+      data: { githubLogin: "anchor-editor", role: "EDITOR" },
+    });
+    const edge = await prisma.nodeEdge.create({
+      data: {
+        sourceNodeVersionId: claim.graphVersion!.id,
+        targetNodeId: citation.knowledgeNodeId!,
+        relationType: "contextualizes",
+        status: "confirmed",
+        provenance: "confirmed-by-editor",
+        confirmedTargetNodeVersionId: citation.graphVersion!.id,
+        confirmedById: editor.id,
+        confirmedAt: new Date("2026-08-05T12:00:00.000Z"),
+      },
+    });
+
+    const anchors = await recommendation.resolveDatabaseAnchors(
+      [
+        { nodeId: claim.knowledgeNodeId!, nodeVersionId: claim.graphVersion!.id },
+        { nodeId: citation.knowledgeNodeId!, nodeVersionId: citation.graphVersion!.id },
+      ],
+      [citation.knowledgeNodeId!],
+    );
+    expect(anchors.get(claim.knowledgeNodeId!)).toEqual([
+      {
+        edgeId: edge.id,
+        relationType: "contextualizes",
+        directionFromRecommendation: "outgoing",
+        recommendedNodeVersionId: claim.graphVersion!.id,
+        knownNodeId: citation.knowledgeNodeId!,
+        knownNodeVersionId: citation.graphVersion!.id,
+      },
+    ]);
+    const wrongVersion = await recommendation.resolveDatabaseAnchors(
+      [{ nodeId: claim.knowledgeNodeId!, nodeVersionId: "not-the-edge-version" }],
+      [citation.knowledgeNodeId!],
+    );
+    expect(wrongVersion.get(claim.knowledgeNodeId!)).toBeUndefined();
   });
 
   it("fails closed to an occurrence work when aliases point at different candidates", async () => {

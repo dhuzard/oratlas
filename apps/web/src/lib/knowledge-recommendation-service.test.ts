@@ -52,7 +52,7 @@ describe("knowledge recommendation service", () => {
   it("projects ranked canonical references without rendering fields", async () => {
     const response = await createKnowledgeRecommendationResponse(
       {} as KnowledgeIndexData,
-      { interests: ["disagreements"] },
+      { interests: ["disagreements"], knownNodeIds: [] },
       {
         resolveReferences: vi.fn(
           async () =>
@@ -76,14 +76,56 @@ describe("knowledge recommendation service", () => {
         rank: 1,
         score: 1,
         reasons: ["Matches your disagreements interest"],
+        anchors: [],
       },
       {
         nodeId: "work-node",
         rank: 2,
         score: 0,
         reasons: ["Linked as evidence for a claim in this landscape"],
+        anchors: [],
       },
     ]);
     expect(JSON.stringify(response)).not.toMatch(/Hidden|href|label|detail/);
+  });
+
+  it("attaches only confirmed anchor proofs supplied for the explicit known set", async () => {
+    const resolveAnchors = vi.fn(
+      async () =>
+        new Map([
+          [
+            "claim-node",
+            [
+              {
+                edgeId: "edge-1",
+                relationType: "contradicts" as const,
+                directionFromRecommendation: "incoming" as const,
+                recommendedNodeVersionId: "claim-version",
+                knownNodeId: "known-node",
+                knownNodeVersionId: "known-version",
+              },
+            ],
+          ],
+        ]),
+    );
+    const response = await createKnowledgeRecommendationResponse(
+      {} as KnowledgeIndexData,
+      { interests: ["disagreements"], knownNodeIds: ["known-node"] },
+      {
+        resolveReferences: vi.fn(
+          async () =>
+            new Map([["claim:claim-1", { nodeId: "claim-node", nodeVersionId: "claim-version" }]]),
+        ),
+        resolveAnchors,
+      },
+    );
+
+    expect(resolveAnchors).toHaveBeenCalledWith(
+      [{ nodeId: "claim-node", nodeVersionId: "claim-version" }],
+      ["known-node"],
+    );
+    expect(response.recommendations[0]?.anchors).toEqual([
+      expect.objectContaining({ edgeId: "edge-1", knownNodeId: "known-node" }),
+    ]);
   });
 });

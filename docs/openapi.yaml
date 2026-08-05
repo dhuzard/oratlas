@@ -164,10 +164,51 @@ components:
         claimType: { type: string, maxLength: 40 }
         relationType: { type: string, maxLength: 40 }
         trustCriterion: { type: string, maxLength: 60 }
+        knownNodeIds:
+          type: array
+          maxItems: 100
+          default: []
+          items: { type: string, minLength: 1, maxLength: 200 }
+    KnowledgeRecommendationAnchor:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          edgeId,
+          relationType,
+          directionFromRecommendation,
+          recommendedNodeVersionId,
+          knownNodeId,
+          knownNodeVersionId,
+        ]
+      properties:
+        edgeId: { type: string, minLength: 1, maxLength: 200 }
+        relationType:
+          type: string
+          enum:
+            [
+              asserts,
+              supports,
+              partially-supports,
+              contradicts,
+              contextualizes,
+              method-source,
+              background,
+              unclear,
+              replicates,
+              extends,
+              uses-dataset,
+              uses-code,
+              derives-from,
+            ]
+        directionFromRecommendation: { type: string, enum: [outgoing, incoming] }
+        recommendedNodeVersionId: { type: string, minLength: 1, maxLength: 200 }
+        knownNodeId: { type: string, minLength: 1, maxLength: 200 }
+        knownNodeVersionId: { type: string, minLength: 1, maxLength: 200 }
     KnowledgeRecommendation:
       type: object
       additionalProperties: false
-      required: [nodeId, rank, score, reasons]
+      required: [nodeId, rank, score, reasons, anchors]
       properties:
         nodeId: { type: string, minLength: 1, maxLength: 200 }
         nodeVersionId: { type: string, minLength: 1, maxLength: 200 }
@@ -178,6 +219,9 @@ components:
           minItems: 1
           maxItems: 10
           items: { type: string, minLength: 1, maxLength: 1000 }
+        anchors:
+          type: array
+          items: { $ref: "#/components/schemas/KnowledgeRecommendationAnchor" }
     KnowledgeRecommendationResponse:
       type: object
       additionalProperties: false
@@ -3301,6 +3345,13 @@ paths:
         - { name: claimType, in: query, schema: { type: string, maxLength: 40 } }
         - { name: relationType, in: query, schema: { type: string, maxLength: 40 } }
         - { name: trustCriterion, in: query, schema: { type: string, maxLength: 60 } }
+        - name: known
+          in: query
+          description: Explicit reader-held stable graph identities; never inferred or persisted
+          schema:
+            type: array
+            maxItems: 100
+            items: { type: string, minLength: 1, maxLength: 200 }
       responses:
         "200":
           description: Versioned, bounded recommendation overlay

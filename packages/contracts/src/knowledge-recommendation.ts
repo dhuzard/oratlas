@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { explorationInterestSchema } from "./knowledge-landscape.js";
+import { nodeRelationTypeSchema } from "./enums.js";
 
 export const KNOWLEDGE_RECOMMENDATION_SCHEMA_VERSION = "2.0.0" as const;
 export const KNOWLEDGE_RECOMMENDATION_ALGORITHM_VERSION = "2.0.0" as const;
@@ -13,9 +14,23 @@ export const knowledgeRecommendationQuerySchema = z
     claimType: z.string().max(40).optional(),
     relationType: z.string().max(40).optional(),
     trustCriterion: z.string().max(60).optional(),
+    /** Explicit reader-held state; never inferred or persisted into the graph. */
+    knownNodeIds: z.array(z.string().trim().min(1).max(200)).max(100).default([]),
   })
   .strict();
 export type KnowledgeRecommendationQuery = z.infer<typeof knowledgeRecommendationQuerySchema>;
+
+export const knowledgeRecommendationAnchorSchema = z
+  .object({
+    edgeId: z.string().min(1).max(200),
+    relationType: nodeRelationTypeSchema,
+    directionFromRecommendation: z.enum(["outgoing", "incoming"]),
+    recommendedNodeVersionId: z.string().min(1).max(200),
+    knownNodeId: z.string().min(1).max(200),
+    knownNodeVersionId: z.string().min(1).max(200),
+  })
+  .strict();
+export type KnowledgeRecommendationAnchor = z.infer<typeof knowledgeRecommendationAnchorSchema>;
 
 export const knowledgeRecommendationSchema = z
   .object({
@@ -25,6 +40,7 @@ export const knowledgeRecommendationSchema = z
     /** Relative ordering aid only; never truth, quality, or confidence. */
     score: z.number().min(0).max(1),
     reasons: z.array(z.string().min(1).max(1_000)).min(1).max(10),
+    anchors: z.array(knowledgeRecommendationAnchorSchema),
   })
   .strict();
 export type KnowledgeRecommendation = z.infer<typeof knowledgeRecommendationSchema>;

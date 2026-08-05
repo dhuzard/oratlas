@@ -25,7 +25,14 @@ describe("GCP beta smoke", () => {
           schemaVersion: "2.0.0",
           algorithm: { id: "explicit-interest-recommendation" },
           recommendations: [
-            { nodeId: "node-1", nodeVersionId: "version-1", rank: 1, score: 1, reasons: ["x"] },
+            {
+              nodeId: "node-1",
+              nodeVersionId: "version-1",
+              rank: 1,
+              score: 1,
+              reasons: ["x"],
+              anchors: [],
+            },
           ],
           omittedUnboundCount: 0,
         });

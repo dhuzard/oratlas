@@ -13,6 +13,24 @@ describe("KnowledgeLandscape", () => {
           "claim:1": "/explore?interest=disagreements&focus=claim%3A1",
           "graph:node-data": "/explore?interest=disagreements&focus=graph%3Anode-data",
         }}
+        knownNodeIds={["node-claim"]}
+        knownToggleHrefByNode={{
+          "node-claim": "/explore?interest=disagreements",
+          "node-data": "/explore?interest=disagreements&known=node-claim&known=node-data",
+        }}
+        clearKnownHref="/explore?interest=disagreements"
+        anchorsByGraphNodeId={{
+          "node-data": [
+            {
+              edgeId: "edge-claim-data",
+              relationType: "uses-dataset",
+              directionFromRecommendation: "incoming",
+              recommendedNodeVersionId: "version-data",
+              knownNodeId: "node-claim",
+              knownNodeVersionId: "version-claim",
+            },
+          ],
+        }}
         landscape={{
           matchedClaimCount: 1,
           shownClaimCount: 1,
@@ -89,5 +107,10 @@ describe("KnowledgeLandscape", () => {
     expect(html).toContain("Explore graph neighborhood");
     expect(html).toContain("Inspect exact graph version");
     expect(html).toContain("Evaluation dataset");
+    expect(html).toContain("Your explicit known set contains 1 graph node");
+    expect(html).toContain("Remove from known set");
+    expect(html).toContain("Mark as known");
+    expect(html).toContain("Anchored to 1 known graph node");
+    expect(html).toContain("uses-dataset");
   });
 });

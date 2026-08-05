@@ -14,6 +14,7 @@ import { DiscussClient } from "@/app/discuss/DiscussClient";
 import { GraphCurationClient } from "./GraphCurationClient";
 import { EXPLORATION_INTERESTS, normalizeExplorationInterests } from "@/lib/knowledge-landscape";
 import { createKnowledgeLandscapeResponse } from "@/lib/knowledge-landscape-service";
+import { resolveDatabaseAnchors } from "@/lib/knowledge-recommendation-service";
 import { searchArchive } from "@/lib/archive-search";
 import { buildKnowledgeIndex } from "@/lib/index-builder";
 import { getCurrentUser, isEditor } from "@/lib/auth";
@@ -63,6 +64,7 @@ export default async function ExplorePage({
   const page = positivePage(get("page"));
   const sort = archiveSort(get("sort"));
   const selectedInterests = normalizeExplorationInterests(all(parameters, "interest"));
+  const knownNodeIds = normalizeKnownNodeIds(all(parameters, "known"));
   const requestedLandscapeFocus = get("focus")?.trim() || undefined;
   const [index, user] = await Promise.all([buildKnowledgeIndex(), getCurrentUser()]);
   const provider = new InProcessSearchProvider(index);
@@ -86,10 +88,36 @@ export default async function ExplorePage({
     trustCriterion: get("trustCriterion") || undefined,
   });
   const landscape = landscapeResponse.landscape;
+  const graphReferences = [
+    ...new Map(
+      landscape.nodes
+        .filter((node) => node.graphNodeId)
+        .map((node) => [
+          node.graphNodeId!,
+          { nodeId: node.graphNodeId!, nodeVersionId: node.graphNodeVersionId },
+        ]),
+    ).values(),
+  ];
+  const anchorsByGraphNodeId = Object.fromEntries(
+    await resolveDatabaseAnchors(graphReferences, knownNodeIds),
+  );
   const landscapeOverviewHref = landscapeHref(parameters);
   const landscapeFocusHrefs = Object.fromEntries(
     landscape.nodes.map((node) => [node.id, landscapeHref(parameters, node.id)]),
   );
+  const knownToggleHrefByNode = Object.fromEntries(
+    graphReferences.map(({ nodeId }) => [
+      nodeId,
+      landscapeHref(
+        parameters,
+        requestedLandscapeFocus,
+        knownNodeIds.includes(nodeId)
+          ? knownNodeIds.filter((knownNodeId) => knownNodeId !== nodeId)
+          : [...knownNodeIds, nodeId],
+      ),
+    ]),
+  );
+  const clearKnownHref = landscapeHref(parameters, requestedLandscapeFocus, []);
   const reviewQuery = archiveSearchQuerySchema.parse({
     contentType: "review",
     q,
@@ -138,6 +166,9 @@ export default async function ExplorePage({
           {selectedInterests.map((interest) => (
             <input type="hidden" name="interest" value={interest} key={interest} />
           ))}
+          {knownNodeIds.map((nodeId) => (
+            <input type="hidden" name="known" value={nodeId} key={nodeId} />
+          ))}
           <label htmlFor="explore-q" className="sr-only">
             Search claims, reviews, or authors
           </label>
@@ -182,6 +213,10 @@ export default async function ExplorePage({
               landscape={landscape}
               overviewHref={landscapeOverviewHref}
               focusHrefByNode={landscapeFocusHrefs}
+              knownNodeIds={knownNodeIds}
+              knownToggleHrefByNode={knownToggleHrefByNode}
+              clearKnownHref={clearKnownHref}
+              anchorsByGraphNodeId={anchorsByGraphNodeId}
               focus={
                 q ??
                 selectedInterests
@@ -208,13 +243,13 @@ export default async function ExplorePage({
 
       <nav className="explore-tabs" aria-label="Explore content">
         <Link
-          href={viewHref("claims", q, selectedInterests)}
+          href={viewHref("claims", q, selectedInterests, knownNodeIds)}
           aria-current={view === "claims" ? "page" : undefined}
         >
           Claims <span>{claimResults.total}</span>
         </Link>
         <Link
-          href={viewHref("reviews", q, selectedInterests)}
+          href={viewHref("reviews", q, selectedInterests, knownNodeIds)}
           aria-current={view === "reviews" ? "page" : undefined}
         >
           Reviews <span>{reviewResults.total}</span>
@@ -237,6 +272,9 @@ export default async function ExplorePage({
             {q ? <input type="hidden" name="q" value={q} /> : null}
             {selectedInterests.map((interest) => (
               <input type="hidden" name="interest" value={interest} key={interest} />
+            ))}
+            {knownNodeIds.map((nodeId) => (
+              <input type="hidden" name="known" value={nodeId} key={nodeId} />
             ))}
             {view === "claims" ? (
               <>
@@ -354,7 +392,7 @@ export default async function ExplorePage({
                 Apply filters
               </button>
               {activeFilterCount > 0 ? (
-                <Link href={viewHref(view, q, selectedInterests)}>Clear filters</Link>
+                <Link href={viewHref(view, q, selectedInterests, knownNodeIds)}>Clear filters</Link>
               ) : null}
             </div>
           </form>
@@ -494,10 +532,16 @@ export default async function ExplorePage({
   );
 }
 
-function viewHref(view: ExploreView, q?: string, interests: string[] = []): string {
+function viewHref(
+  view: ExploreView,
+  q?: string,
+  interests: string[] = [],
+  knownNodeIds: string[] = [],
+): string {
   const parameters = new URLSearchParams({ view });
   if (q) parameters.set("q", q);
   for (const interest of interests) parameters.append("interest", interest);
+  for (const nodeId of knownNodeIds) parameters.append("known", nodeId);
   return "/explore?" + parameters;
 }
 
@@ -514,17 +558,39 @@ function pageHref(parameters: SearchParameters, page: number): string {
   return "/explore?" + output;
 }
 
-function landscapeHref(parameters: SearchParameters, focusNodeId?: string): string {
+function landscapeHref(
+  parameters: SearchParameters,
+  focusNodeId?: string,
+  knownNodeIdsOverride?: readonly string[],
+): string {
   const output = new URLSearchParams();
   for (const [key, value] of Object.entries(parameters)) {
-    if (key === "focus" || key === "page" || !value) continue;
+    if (
+      key === "focus" ||
+      key === "page" ||
+      (key === "known" && knownNodeIdsOverride !== undefined) ||
+      !value
+    ) {
+      continue;
+    }
     const values = Array.isArray(value) ? value : [value];
     for (const entry of values) {
       if (entry) output.append(key, entry);
     }
   }
+  for (const nodeId of knownNodeIdsOverride ?? []) output.append("known", nodeId);
   if (focusNodeId) output.set("focus", focusNodeId);
   return "/explore?" + output;
+}
+
+function normalizeKnownNodeIds(values: readonly string[]): string[] {
+  return [
+    ...new Set(
+      values
+        .map((value) => value.trim())
+        .filter((value) => value.length > 0 && value.length <= 200),
+    ),
+  ].slice(0, 100);
 }
 
 function pageCount(total: number, pageSize: number): number {

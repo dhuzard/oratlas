@@ -27,6 +27,7 @@ export async function GET(request: Request) {
       claimType: parameters.get("claimType") || undefined,
       relationType: parameters.get("relationType") || undefined,
       trustCriterion: parameters.get("trustCriterion") || undefined,
+      knownNodeIds: [...new Set(parameters.getAll("known"))],
     });
     if (!parsed.success) {
       return noStore(errorResponse("bad-request", "Invalid knowledge landscape query."));

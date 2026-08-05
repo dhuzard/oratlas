@@ -1012,3 +1012,10 @@ Two fail-closed gaps were found and intentionally not changed in this audit-only
   canonical works, including canonical content, provenance, payload, aliases, and exact source.
 - Included source-native review assertions alongside editor-confirmed relations while keeping
   proposals and presentation fields outside the canonical contract.
+
+## Explicit reader-known anchors
+
+- Added a repeated `known` URL/API parameter capped at 100 stable graph identities. The set is
+  explicit request state and never stored in graph tables or inferred from behavior.
+- Every recommendation now includes an `anchors` array of exact public editor-confirmed edges to
+  the submitted known set, including direction and both exact node versions.

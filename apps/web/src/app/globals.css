@@ -1319,6 +1319,10 @@ textarea {
   color: var(--text-muted);
   font-size: 0.78rem;
 }
+.landscape-known-set {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
 .landscape-start {
   display: grid;
   grid-template-columns: minmax(12rem, 0.7fr) minmax(0, 1.3fr);
@@ -1555,31 +1559,37 @@ textarea {
 .landscape-detail-dimmed {
   opacity: 0.45;
 }
-.landscape-reasons {
+.landscape-reasons,
+.landscape-anchors {
   margin-top: 0.35rem;
   color: var(--text-muted);
   font-size: 0.8rem;
 }
-.landscape-reasons summary {
+.landscape-reasons summary,
+.landscape-anchors summary {
   width: fit-content;
   cursor: pointer;
 }
-.landscape-reasons ul {
+.landscape-reasons ul,
+.landscape-anchors ul {
   margin-top: 0.3rem;
 }
-.landscape-reasons li + li {
+.landscape-reasons li + li,
+.landscape-anchors li + li {
   margin-top: 0.2rem;
 }
 .landscape-focus-link,
 .landscape-record-link,
 .landscape-graph-link,
+.landscape-known-link,
 .landscape-focused-label {
   display: inline-block;
   margin-top: 0.35rem;
   font-size: 0.8rem;
 }
 .landscape-record-link,
-.landscape-graph-link {
+.landscape-graph-link,
+.landscape-known-link {
   margin-right: 0.7rem;
 }
 .landscape-focused-label {

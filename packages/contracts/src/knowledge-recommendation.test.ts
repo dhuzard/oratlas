@@ -7,8 +7,12 @@ import {
 describe("knowledge recommendation contracts", () => {
   it("keeps reader input explicit and excludes landscape focus state", () => {
     expect(
-      knowledgeRecommendationQuerySchema.parse({ q: "replay", interests: ["data-code"] }),
-    ).toEqual({ q: "replay", interests: ["data-code"] });
+      knowledgeRecommendationQuerySchema.parse({
+        q: "replay",
+        interests: ["data-code"],
+        knownNodeIds: ["known-1"],
+      }),
+    ).toEqual({ q: "replay", interests: ["data-code"], knownNodeIds: ["known-1"] });
     expect(
       knowledgeRecommendationQuerySchema.safeParse({ interests: [], focusNodeId: "claim:1" })
         .success,
@@ -37,6 +41,16 @@ describe("knowledge recommendation contracts", () => {
           rank: 1,
           score: 1,
           reasons: ["Connected by a confirmed contradicts relation"],
+          anchors: [
+            {
+              edgeId: "edge-1",
+              relationType: "contradicts",
+              directionFromRecommendation: "incoming",
+              recommendedNodeVersionId: "version-1",
+              knownNodeId: "known-1",
+              knownNodeVersionId: "known-version-1",
+            },
+          ],
         },
       ],
       omittedUnboundCount: 0,

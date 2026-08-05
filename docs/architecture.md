@@ -130,7 +130,9 @@ when matching interests such as data and code, reproducibility, or disagreements
 
 `GET /api/landscape` is the separate `explicit-interest-recommendation@2.0.0` ranking overlay. It
 projects the same deterministic selection to canonical `nodeId`/`nodeVersionId` references, scores,
-and reasons only. Labels, details, hrefs, timelines, and focus state stay in the rendering layer.
+reasons, and confirmed anchors to an explicitly submitted reader-known set. Labels, details, hrefs,
+timelines, and focus state stay in the rendering layer. The known set is request state and is never
+written to graph records or inferred from behavior.
 
 The internal projection contains at most six claims, ten citation-evidence records, three graph
 seeds, and twelve graph identities. Recommendations expose stable node IDs, exact readable version

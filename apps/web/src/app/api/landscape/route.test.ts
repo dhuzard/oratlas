@@ -22,7 +22,7 @@ describe("GET /api/landscape", () => {
   it("passes explicit ranking input to the recommendation service", async () => {
     const response = await GET(
       new Request(
-        "https://oratlas.test/api/landscape?q=model&interest=disagreements&interest=disagreements&relationType=contradicts",
+        "https://oratlas.test/api/landscape?q=model&interest=disagreements&interest=disagreements&relationType=contradicts&known=node-1&known=node-1",
       ),
     );
 
@@ -34,6 +34,7 @@ describe("GET /api/landscape", () => {
         q: "model",
         interests: ["disagreements"],
         relationType: "contradicts",
+        knownNodeIds: ["node-1"],
       }),
     );
   });

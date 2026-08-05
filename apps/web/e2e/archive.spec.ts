@@ -134,6 +134,13 @@ test.describe("Public archive browsing", () => {
     await expect(
       details.getByRole("link", { name: "Inspect exact graph version" }).first(),
     ).toBeVisible();
+    await details.getByRole("link", { name: "Mark as known" }).first().click();
+    await expect(page).toHaveURL(/known=/);
+    await expect(
+      details.getByRole("link", { name: "Remove from known set" }).first(),
+    ).toBeVisible();
+    await landscape.getByRole("link", { name: "Clear known set" }).click();
+    await expect(page).not.toHaveURL(/known=/);
     await details.getByRole("link", { name: "Focus on connections" }).first().click();
     await expect(page).toHaveURL(/focus=review%3A/);
     await expect(landscape.getByRole("heading", { level: 2 })).toContainText("One step from");
