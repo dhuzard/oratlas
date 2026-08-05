@@ -87,9 +87,9 @@ test.describe("Public archive browsing", () => {
     await expect(scope).toContainText(/only these signed, exact node versions and visible edges/i);
 
     await page.getByRole("button", { name: "Ask question" }).click();
-    await expect(
-      page.getByText(/Evidence used:.*exact graph occurrences?.*visible edges?/i),
-    ).toBeVisible();
+    await expect(page.locator(".atlas-discuss-resolved-scope")).toContainText(
+      /\d+ exact graph occurrences? · \d+ visible edges?/i,
+    );
     await expect(page.getByTestId("discussion-packet-hash")).toHaveText(/^[a-f0-9]{64}$/);
   });
 
@@ -141,7 +141,9 @@ test.describe("Public archive browsing", () => {
     ).toHaveCount(0);
 
     await details.getByText("Why this?", { exact: true }).first().click();
-    await expect(details.getByText("Contains a claim in this landscape").first()).toBeVisible();
+    await expect(
+      details.locator(".landscape-reasons").first().getByRole("listitem").first(),
+    ).toBeVisible();
     await expect(
       details.getByRole("link", { name: "Explore graph neighborhood" }).first(),
     ).toBeVisible();
