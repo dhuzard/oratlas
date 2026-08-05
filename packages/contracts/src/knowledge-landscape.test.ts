@@ -24,8 +24,8 @@ describe("knowledge landscape contracts", () => {
         limitations: [
           "not-a-truth-score",
           "not-a-quality-score",
-          "confirmed-graph-edges-only",
-          "bounded-to-six-claims-ten-evidence-and-twelve-graph-nodes",
+          "canonical-source-assertion-and-confirmed-edges",
+          "bounded-to-three-entry-neighborhoods-and-twelve-exact-versions",
         ],
       },
       query: { q: "replication", interests: ["reproducibility"] },

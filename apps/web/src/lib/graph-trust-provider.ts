@@ -8,7 +8,7 @@ import {
 } from "./graph-trust";
 import {
   loadedNodeRelationTrustInclude,
-  projectPublicNodeRelationTrustAssessments,
+  projectCanonicalGraphRelationTrustAssessments,
   type LoadedNodeRelationTrustAssessment,
 } from "./trust-provenance";
 
@@ -57,7 +57,7 @@ export function projectGraphTrustRows(
 
   const result = new Map<string, unknown>();
   for (const [key, group] of groups) {
-    const assessments = projectPublicNodeRelationTrustAssessments(group);
+    const assessments = projectCanonicalGraphRelationTrustAssessments(group);
     if (assessments.length === 0) continue;
     const parsed = publicGraphTrustSchema.array().safeParse(assessments);
     if (!parsed.success) continue;

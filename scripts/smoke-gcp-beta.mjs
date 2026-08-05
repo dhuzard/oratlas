@@ -58,7 +58,7 @@ export async function runBetaSmoke(options, request = globalThis.fetch) {
   const response = await (await get(landscapePath)).json();
   if (response?.schemaVersion !== "2.0.0") {
     throw new Error(
-      `Expected landscape schema 2.0.0, received ${String(response?.schemaVersion)}.`,
+      `Expected recommendation schema 2.0.0, received ${String(response?.schemaVersion)}.`,
     );
   }
   if (response?.algorithm?.id !== "explicit-interest-recommendation") {
@@ -75,10 +75,11 @@ export async function runBetaSmoke(options, request = globalThis.fetch) {
   ) {
     throw new Error("The recommendation leaked presentation fields.");
   }
-  const graphPath = `/api/graph?seed=${encodeURIComponent(recommendation.nodeId)}&depth=0&limit=1`;
+  const graphPath = `/api/graph?seed=${encodeURIComponent(recommendation.nodeId)}&version=${encodeURIComponent(recommendation.nodeVersionId)}&limit=1`;
   const graph = await (await get(graphPath)).json();
   const graphNode = graph?.nodes?.find(
-    (node) => node.id === recommendation.nodeId && node.versionId === recommendation.nodeVersionId,
+    (node) =>
+      node.nodeId === recommendation.nodeId && node.nodeVersionId === recommendation.nodeVersionId,
   );
   if (!graphNode) throw new Error("The canonical graph did not resolve the recommended reference.");
   await get(

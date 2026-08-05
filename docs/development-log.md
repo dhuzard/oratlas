@@ -1,5 +1,17 @@
 # Development log
 
+## 2026-08-05 — Production-safe canonical graph rollout
+
+- Added a fail-closed Cloud SQL gate that checks scheduled backups and PITR, creates a synchronous
+  on-demand backup, verifies the exact `SUCCESSFUL` run, and carries its opaque id through migration
+  and canonical backfill jobs without granting backup permissions to the runtime identity.
+- Replaced current-datamodel baseline adoption with an isolated live-to-frozen-baseline comparison;
+  drift and comparison failures remain distinct fail-closed outcomes.
+- Made deployment run the bounded backfill to completion, globally verify it, and activate immutable
+  deferred commit-time graph constraints before staging application traffic.
+- Cloud Run now deploys a tagged no-traffic candidate, smokes that exact revision, and promotes it
+  only on success, leaving the previous revision serving on failure.
+
 ## ORA-A03 — Frozen Ethical Debt integration fixture
 
 - Captured `dhuzard/ethical-debt-AI-review` release `v0.1.0-trust-preview.3` at immutable commit
@@ -17,6 +29,17 @@
   GitHub API request is served from checked-in bytes, so CI remains fully offline.
 
 Chronological record of implementation slices, decisions, and verification outcomes.
+
+## 2026-08-05 — Explore traversal surface
+
+- Made the connected knowledge landscape the primary Explore content and removed both ranked
+  claim/review result lists. Search, interests, and claim/evidence filters now establish or refine a
+  graph entry rather than selecting a row-oriented results view.
+- Kept comprehensive lookup explicit on `/claims` and `/archive`, with scoped handoff links from
+  Explore. Removed legacy `view`, `sort`, and pagination state from newly generated traversal URLs.
+- Moved Atlas Discuss after the inspectable map and labelled it as a bounded grounded lens. Reader
+  known-set state remains explicit in repeated `known` URL parameters across search and interest
+  changes.
 
 ## 2026-08-05 — Guarded PostgreSQL migration baseline
 
@@ -1002,3 +1025,20 @@ Two fail-closed gaps were found and intentionally not changed in this audit-only
   GUI focus state and exposes unresolved compatibility rows through `omittedUnboundCount`.
 - Kept the human Explore rendering model internal and documented Atlas Discuss as a bounded lens
   beside graph traversal rather than the canonical front door.
+
+## Canonical graph traversal API
+
+- Replaced the external `/api/graph` depth/frontier projection with exact-version, one-adjacency-page
+  keyset traversal. Following cursors and expanding returned references can traverse every public
+  authoritative edge without a viewport or cumulative graph cap.
+- Added public source-union projection for repository objects, reviews, claim occurrences, and
+  canonical works, including canonical content, provenance, payload, aliases, and exact source.
+- Included source-native review assertions alongside editor-confirmed relations while keeping
+  proposals and presentation fields outside the canonical contract.
+
+## Explicit reader-known anchors
+
+- Added a repeated `known` URL/API parameter capped at 100 stable graph identities. The set is
+  explicit request state and never stored in graph tables or inferred from behavior.
+- Every recommendation now includes an `anchors` array of exact public editor-confirmed edges to
+  the submitted known set, including direction and both exact node versions.

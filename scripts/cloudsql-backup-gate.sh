@@ -90,15 +90,19 @@ backup_id=$(printf '%s' "$backup_id" | tr -d '\r\n')
   echo "Refusing migration: the newly created backup could not be identified." >&2
   exit 1
 }
+[[ "$backup_id" =~ ^[A-Za-z0-9._/-]{1,300}$ ]] || {
+  echo "Refusing migration: the returned backup id contains unsafe characters." >&2
+  exit 1
+}
 
 backup_record=$("$gcloud_bin" sql backups describe "$backup_id" \
   --project="$project_id" \
   --instance="$instance_id" \
   --format='csv[no-heading](id,status,description)')
 IFS=',' read -r verified_id backup_status verified_description extra <<<"$backup_record"
-if [[ "$verified_id" != "$backup_id" || "$backup_status" != "SUCCESS" || \
+if [[ "$verified_id" != "$backup_id" || "$backup_status" != "SUCCESSFUL" || \
   "$verified_description" != "$description" || -n "${extra:-}" ]]; then
-  echo "Refusing migration: backup ${backup_id} was not verified as the requested SUCCESS backup." >&2
+  echo "Refusing migration: backup ${backup_id} was not verified as the requested SUCCESSFUL backup." >&2
   exit 1
 fi
 

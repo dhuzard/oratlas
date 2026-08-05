@@ -44,7 +44,7 @@ The POC ships a restrained, scholarly server-rendered interface:
 
 Agents can request a bounded, explicit-interest ranking of canonical graph references through the
 versioned [`GET /api/landscape`](docs/knowledge-landscape-api.md) contract; record content remains
-in the reader-agnostic graph API.
+in the reader-agnostic [`GET /api/graph`](docs/canonical-graph-api.md) traversal API.
 
 ## Architecture summary
 

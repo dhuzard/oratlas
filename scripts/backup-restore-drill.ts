@@ -19,8 +19,24 @@ const require = createRequire(import.meta.url);
 export const PUBLIC_API_PATHS = [
   "/api/reviews/hippocampal-replay-computational-review",
   "/api/nodes?page=1&pageSize=5",
-  "/api/graph?q=replay&depth=1&limit=10",
 ] as const;
+
+export function canonicalGraphPathFromNodeList(bytes: Uint8Array): string {
+  const parsed = JSON.parse(Buffer.from(bytes).toString("utf8")) as {
+    items?: Array<{ id?: unknown }>;
+  };
+  const nodeId = parsed.items?.[0]?.id;
+  if (typeof nodeId !== "string" || nodeId.length === 0) {
+    throw new Error("Node archive did not expose a canonical graph seed for the recovery drill");
+  }
+  const query = new URLSearchParams({
+    seed: nodeId,
+    status: "authoritative",
+    direction: "both",
+    limit: "10",
+  });
+  return `/api/graph?${query}`;
+}
 
 export function assertInside(parent: string, candidate: string): void {
   const parentPath = resolve(parent);
@@ -35,8 +51,10 @@ export function assertEqualSnapshots(
   before: ReadonlyMap<string, Uint8Array>,
   after: ReadonlyMap<string, Uint8Array>,
 ): void {
-  for (const path of PUBLIC_API_PATHS) {
-    const expected = before.get(path);
+  if (before.size !== after.size) {
+    throw new Error("Public API snapshot set diverged after restore");
+  }
+  for (const [path, expected] of before) {
     const actual = after.get(path);
     if (!expected || !actual || !Buffer.from(expected).equals(Buffer.from(actual))) {
       throw new Error(`Public API output diverged after restore: ${path}`);
@@ -108,6 +126,12 @@ async function capture(baseUrl: string): Promise<Map<string, Uint8Array>> {
     if (!response.ok) throw new Error(`${path} returned HTTP ${response.status}`);
     snapshots.set(path, new Uint8Array(await response.arrayBuffer()));
   }
+  const nodeList = snapshots.get(PUBLIC_API_PATHS[1]);
+  if (!nodeList) throw new Error("Node archive snapshot is missing");
+  const graphPath = canonicalGraphPathFromNodeList(nodeList);
+  const graphResponse = await fetch(`${baseUrl}${graphPath}`);
+  if (!graphResponse.ok) throw new Error(`${graphPath} returned HTTP ${graphResponse.status}`);
+  snapshots.set(graphPath, new Uint8Array(await graphResponse.arrayBuffer()));
   return snapshots;
 }
 
@@ -168,7 +192,7 @@ async function main(): Promise<void> {
     const after = await capture(baseUrl);
     assertEqualSnapshots(before, after);
     console.info(
-      `✓ Backup/restore drill preserved ${PUBLIC_API_PATHS.length} public API responses byte-for-byte.`,
+      `✓ Backup/restore drill preserved ${before.size} public API responses byte-for-byte.`,
     );
   } finally {
     await stopServer(server);

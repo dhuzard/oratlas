@@ -7,6 +7,7 @@ export * from "./manifest.js";
 export * from "./knowledge-nodes.js";
 export * from "./node-publication.js";
 export * from "./graph.js";
+export * from "./canonical-graph.js";
 export * from "./subgraph-evidence.js";
 export * from "./synthesis-review.js";
 export * from "./synthesis-editorial.js";

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { knowledgeRecommendationResponseSchema } from "../packages/contracts/src/knowledge-recommendation.js";
 // The deployment smoke is intentionally dependency-free JavaScript so the production image can run it.
 // @ts-expect-error The .mjs smoke script does not publish a TypeScript declaration file.
 import { parseArguments, runBetaSmoke } from "./smoke-gcp-beta.mjs";
@@ -21,18 +22,44 @@ describe("GCP beta smoke", () => {
         return new Response("Show my knowledge path · Nodes worth exploring for this interest");
       }
       if (url.pathname === "/api/landscape") {
-        return Response.json({
+        const recommendationResponse = {
           schemaVersion: "2.0.0",
-          algorithm: { id: "explicit-interest-recommendation" },
+          algorithm: {
+            id: "explicit-interest-recommendation",
+            version: "2.0.0",
+            purpose: "recommendation",
+            limitations: [
+              "not-a-truth-score",
+              "not-a-quality-score",
+              "canonical-source-assertion-and-confirmed-edges",
+              "bounded-to-three-entry-neighborhoods-and-twelve-exact-versions",
+            ],
+          },
+          query: {
+            q: "replay",
+            interests: ["data-code"],
+            knownNodeIds: [],
+          },
           recommendations: [
-            { nodeId: "node-1", nodeVersionId: "version-1", rank: 1, score: 1, reasons: ["x"] },
+            {
+              nodeId: "node-1",
+              nodeVersionId: "version-1",
+              rank: 1,
+              score: 1,
+              reasons: ["x"],
+              anchors: [],
+            },
           ],
           omittedUnboundCount: 0,
-        });
+        };
+        expect(knowledgeRecommendationResponseSchema.parse(recommendationResponse)).toEqual(
+          recommendationResponse,
+        );
+        return Response.json(recommendationResponse);
       }
       if (url.pathname === "/api/graph") {
         return Response.json({
-          nodes: [{ id: "node-1", versionId: "version-1" }],
+          nodes: [{ nodeId: "node-1", nodeVersionId: "version-1" }],
         });
       }
       return new Response("ok");
@@ -52,7 +79,9 @@ describe("GCP beta smoke", () => {
     expect(requested).toContain(
       "https://oratlas.example/api/landscape?q=replay&interest=data-code",
     );
-    expect(requested).toContain("https://oratlas.example/api/graph?seed=node-1&depth=0&limit=1");
+    expect(requested).toContain(
+      "https://oratlas.example/api/graph?seed=node-1&version=version-1&limit=1",
+    );
     expect(requested).toContain("https://oratlas.example/nodes/node-1/versions/version-1");
     expect(requested).toContain("https://oratlas.example/graph?seed=node-1");
   });

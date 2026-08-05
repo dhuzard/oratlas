@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { publicGraphQuerySchema } from "@oratlas/contracts";
+import { canonicalGraphQuerySchema } from "@oratlas/contracts";
 import { errorResponse, handleRouteError } from "@/lib/api";
-import { GraphQueryError, queryPublicGraph } from "@/lib/graph-query";
+import { CanonicalGraphQueryError, queryCanonicalGraph } from "@/lib/canonical-graph-query";
 import { clientKey, rateLimit, rateLimitDefaults, type RateLimitResult } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
@@ -38,26 +38,30 @@ export async function GET(request: Request) {
     }
 
     const params = new URL(request.url).searchParams;
-    const boolean = (name: string) => {
-      const value = params.get(name);
-      return value === null
-        ? undefined
-        : value === "true"
-          ? true
-          : value === "false"
-            ? false
-            : value;
-    };
-    const parsed = publicGraphQuerySchema.safeParse({
+    const allowed = new Set([
+      "seed",
+      "version",
+      "direction",
+      "status",
+      "relationType",
+      "limit",
+      "cursor",
+    ]);
+    if ([...params.keys()].some((name) => !allowed.has(name))) {
+      return graphResponseHeaders(
+        errorResponse("bad-request", "Invalid canonical graph query parameter."),
+        budget,
+        maximum,
+      );
+    }
+    const parsed = canonicalGraphQuerySchema.safeParse({
       seed: params.get("seed") || undefined,
-      q: params.get("q") || undefined,
-      depth: params.has("depth") ? Number(params.get("depth")) : undefined,
+      version: params.get("version") || undefined,
+      direction: params.get("direction") || undefined,
+      status: params.get("status") || undefined,
       limit: params.has("limit") ? Number(params.get("limit")) : undefined,
       cursor: params.get("cursor") || undefined,
-      kind: params.get("kind") || undefined,
       relationType: params.get("relationType") || undefined,
-      edgeStatus: params.get("edgeStatus") || undefined,
-      hasTrust: boolean("hasTrust"),
     });
     if (!parsed.success) {
       return graphResponseHeaders(
@@ -71,13 +75,13 @@ export async function GET(request: Request) {
       );
     }
     return graphResponseHeaders(
-      NextResponse.json(await queryPublicGraph(parsed.data)),
+      NextResponse.json(await queryCanonicalGraph(parsed.data)),
       budget,
       maximum,
     );
   } catch (error) {
     const response =
-      error instanceof GraphQueryError
+      error instanceof CanonicalGraphQueryError
         ? errorResponse(error.code, error.message)
         : handleRouteError(error);
     return graphResponseHeaders(response, budget, maximum);
