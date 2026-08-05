@@ -33,3 +33,15 @@ export function assertProductionBackupId(value: string | undefined): string {
   }
   return value;
 }
+
+export function baselineSchemaUrl(databaseUrl: string, schema: string): string {
+  if (!/^oratlas_baseline_[a-f0-9]{20}$/.test(schema)) {
+    throw new Error("Invalid temporary baseline schema name.");
+  }
+  const parsed = new URL(databaseUrl);
+  if (!/^postgres(?:ql)?:$/.test(parsed.protocol)) {
+    throw new Error("The PostgreSQL deployment wrapper requires a PostgreSQL DATABASE_URL.");
+  }
+  parsed.searchParams.set("schema", schema);
+  return parsed.toString();
+}

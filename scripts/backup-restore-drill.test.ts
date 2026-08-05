@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { backupOutputFromArgs } from "./backup.js";
-import { assertEqualSnapshots, assertInside, PUBLIC_API_PATHS } from "./backup-restore-drill.js";
+import {
+  assertEqualSnapshots,
+  assertInside,
+  canonicalGraphPathFromNodeList,
+  PUBLIC_API_PATHS,
+} from "./backup-restore-drill.js";
 
 describe("backup/restore drill safeguards", () => {
   it("accepts one explicit backup output and rejects ambiguous arguments", () => {
@@ -28,5 +33,16 @@ describe("backup/restore drill safeguards", () => {
     expect(() => assertEqualSnapshots(before, after)).not.toThrow();
     after.set(PUBLIC_API_PATHS[1], Buffer.from("changed"));
     expect(() => assertEqualSnapshots(before, after)).toThrow("diverged after restore");
+  });
+
+  it("derives canonical graph traversal from an exact public node identity", () => {
+    expect(
+      canonicalGraphPathFromNodeList(
+        Buffer.from(JSON.stringify({ items: [{ id: "node id/with spaces" }] })),
+      ),
+    ).toBe("/api/graph?seed=node+id%2Fwith+spaces&status=authoritative&direction=both&limit=10");
+    expect(() => canonicalGraphPathFromNodeList(Buffer.from('{"items":[]}'))).toThrow(
+      "canonical graph seed",
+    );
   });
 });

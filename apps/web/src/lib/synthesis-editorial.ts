@@ -46,7 +46,9 @@ import type { SessionUser } from "./auth";
 import { prisma } from "./db";
 import { publicConfirmedNodeEdgeWhere } from "./node-edge-publication";
 import { tryMapPublicNodeVersion } from "./node-publication";
+import { materializeCanonicalReviewGraph } from "./canonical-graph-materialization";
 import { generateSynthesisReview } from "./synthesis-writer";
+import { readablePublicNodeVersionWhere } from "./public-snapshot-visibility";
 import {
   loadedNodeRelationTrustInclude,
   PUBLIC_NODE_RELATION_TRUST_GLOBAL_LIMIT,
@@ -104,6 +106,7 @@ async function loadCurrentNodeRows(client: PrismaClient, ids?: string[]) {
     include: {
       repository: { select: { owner: true, name: true, canonicalUrl: true } },
       versions: {
+        where: readablePublicNodeVersionWhere,
         orderBy: [{ createdAt: "desc" }, { id: "desc" }],
         take: 1,
         include: { snapshot: { select: { commitSha: true } } },
@@ -114,7 +117,7 @@ async function loadCurrentNodeRows(client: PrismaClient, ids?: string[]) {
 
 function mapEvidenceNode(row: CurrentNodeRow) {
   const version = row.versions[0];
-  if (!version) return undefined;
+  if (!version || !row.repository) return undefined;
   const mapped = tryMapPublicNodeVersion(row, version);
   if (!mapped) return undefined;
   return {
@@ -1545,6 +1548,7 @@ export async function decideSynthesisDraft(
             acceptedAt,
           },
         });
+        await materializeCanonicalReviewGraph(tx, version.id);
         const supersededRegenerationProposals = await tx.synthesisRegenerationProposal.findMany({
           where: {
             reviewId: review.id,

@@ -6,9 +6,10 @@ must not be renamed when presentation changes.
 
 | Object                         | Stable URL pattern                                                            |
 | ------------------------------ | ----------------------------------------------------------------------------- |
-| Explore claims or reviews      | `/explore?view={claims-or-reviews}`                                           |
+| Graph traversal entry          | `/explore?q={topic}`                                                          |
 | Explicit-interest landscape    | `/explore?interest={interest}`                                                |
 | Focused landscape node         | `/explore?interest={interest}&focus={nodeId}`                                 |
+| Reader-held known set          | `/explore?interest={interest}&known={nodeId}`                                 |
 | Review version                 | `/reviews/{reviewSlug}/versions/{reviewVersionId}`                            |
 | Claim passport                 | `/claims/{reviewVersionId}/{localClaimId}`                                    |
 | Citation in a review version   | `/reviews/{reviewSlug}/versions/{reviewVersionId}#citation-{localCitationId}` |
@@ -24,10 +25,14 @@ The unversioned review path remains the discovery URL for the current public rev
 An accepted synthesis links back to its immutable version URL from its masthead. A graph-edge URL
 must retain query parameters that include the edge in the bounded result page.
 
-Explore accepts repeated `interest` parameters. Search, filters, view, and focus are additive URL
-state and should be retained when constructing a more specific Explore link. Removing `focus`
-returns to the same overview without discarding the other parameters. The accepted interest values
-and focus-node format are versioned in the [landscape API contract](knowledge-landscape-api.md).
+Explore accepts repeated `interest` and `known` parameters. The legacy `view`, `sort`, and `page`
+parameters no longer select row-oriented result views. `known` contains explicit canonical
+graph node identifiers selected by the reader; it is URL-held state and is never inferred or
+persisted in the shared graph. Topic, interests, filters, focus, and known nodes are additive URL state
+and should be retained when constructing a more specific Explore link. Removing `focus` returns to
+the same overview without discarding the other parameters. The accepted interest values,
+focus-node format, and known-set bounds are versioned in the
+[landscape API contract](knowledge-landscape-api.md).
 
 Formal challenge anchors identify immutable public challenge records within their review-version
 or knowledge-node context. They must not be reused for a different challenge after moderation or a

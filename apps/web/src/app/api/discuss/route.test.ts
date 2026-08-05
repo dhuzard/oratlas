@@ -60,4 +60,47 @@ describe("Discuss mutation request integrity", () => {
     expect(mocks.getCurrentUser).not.toHaveBeenCalled();
     expect(mocks.runDiscussion).not.toHaveBeenCalled();
   });
+
+  it("rejects a question without an exact traversed graph scope", async () => {
+    const response = await POST(
+      new Request("https://atlas.example/api/discuss", {
+        method: "POST",
+        headers: {
+          Origin: "https://atlas.example",
+          "Content-Type": "application/json",
+          "Sec-Fetch-Site": "same-origin",
+        },
+        body: JSON.stringify({ question: "What evidence is available?" }),
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    expect(mocks.runDiscussion).not.toHaveBeenCalled();
+  });
+
+  it("passes only the exact traversal contract to the discussion runner", async () => {
+    const scope = {
+      nodes: [{ nodeId: "node-1", nodeVersionId: "version-1" }],
+      edgeIds: [],
+      signature: "a".repeat(43),
+    };
+    const response = await POST(
+      new Request("https://atlas.example/api/discuss", {
+        method: "POST",
+        headers: {
+          Origin: "https://atlas.example",
+          "Content-Type": "application/json",
+          "Sec-Fetch-Site": "same-origin",
+        },
+        body: JSON.stringify({ question: "What evidence is available?", scope }),
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(mocks.runDiscussion).toHaveBeenCalledWith(
+      "What evidence is available?",
+      scope,
+      undefined,
+    );
+  });
 });

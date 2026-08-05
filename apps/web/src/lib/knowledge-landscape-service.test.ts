@@ -1,191 +1,172 @@
-import { describe, expect, it } from "vitest";
-import type { PublicGraphNode, PublicGraphResponse } from "@oratlas/contracts";
-import type { KnowledgeIndexData } from "@oratlas/knowledge";
-import { createKnowledgeLandscapeResponse } from "./knowledge-landscape-service.js";
+import { describe, expect, it, vi } from "vitest";
+import type { CanonicalGraphNodeVersion, CanonicalGraphResponse } from "@oratlas/contracts";
+import {
+  createKnowledgeLandscapeResponse,
+  selectGraphNativeLandscape,
+} from "./knowledge-landscape-service.js";
 
-const index: KnowledgeIndexData = {
-  reviews: [],
-  identifierConflicts: [],
-  citations: [],
-  claims: [
-    {
-      claimId: "claim-1",
-      localClaimId: "claim-1",
-      reviewSlug: "review-one",
-      reviewId: "review-1",
-      reviewVersionId: "version-1",
-      reviewTitle: "Review one",
-      text: "A model has a reproducibility disagreement.",
-      anchor: "claim-claim-1",
-      claimType: "empirical",
-      commitSha: "a".repeat(40),
-      relations: [],
-    },
-  ],
-};
+vi.mock("server-only", () => ({}));
+vi.mock("./db", () => ({ prisma: {} }));
 
-describe("knowledge landscape service", () => {
-  it("returns the versioned GUI algorithm without scientific scoring", async () => {
-    const response = await createKnowledgeLandscapeResponse(index, {
-      q: "model",
-      interests: ["methods-models"],
-    });
-
-    expect(response.schemaVersion).toBe("2.0.0");
-    expect(response.algorithm).toMatchObject({
-      id: "explicit-interest-graph-landscape",
-      purpose: "navigation",
-    });
-    expect(response.algorithm.limitations).toContain("not-a-truth-score");
-    expect(response.landscape.nodes.find((node) => node.kind === "claim")?.reasons).toContain(
-      "Matches your methods & models interest",
-    );
-  });
-
-  it("turns explicit claim identities into explainable confirmed graph recommendations", async () => {
-    const graphIndex: KnowledgeIndexData = {
-      ...index,
-      claims: [{ ...index.claims[0]!, knowledgeNodeId: "node-claim" }],
-    };
+describe("graph-native knowledge selection", () => {
+  it("renders exact canonical references and source assertions without relational landscape rows", async () => {
     const response = await createKnowledgeLandscapeResponse(
-      graphIndex,
       { q: "model", interests: ["data-code"] },
-      { graphProvider: async () => graphResponse() },
+      {
+        entryProvider: async () => [{ nodeId: "claim-node", nodeVersionId: "claim-version" }],
+        graphProvider: async () => graphResponse(),
+      },
     );
 
-    expect(response.landscape).toMatchObject({ graphSeedCount: 1, graphNodeCount: 2 });
-    expect(response.landscape.nodes.find((node) => node.kind === "dataset")).toMatchObject({
-      graphNodeId: "node-dataset",
-      graphNodeVersionId: "version-dataset",
-      href: "/nodes/node-dataset/versions/version-dataset",
-      graphHref: "/graph?seed=node-dataset",
-    });
-    expect(response.landscape.nodes.find((node) => node.kind === "dataset")?.reasons).toContain(
-      "Matches your data & code interest as a dataset node",
-    );
-    expect(response.landscape.nodes.find((node) => node.id === "claim:claim-1")?.reasons).toContain(
-      "Its confirmed graph neighborhood matches your data & code interest",
+    expect(response.landscape.nodes).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          kind: "claim",
+          graphNodeId: "claim-node",
+          graphNodeVersionId: "claim-version",
+        }),
+        expect.objectContaining({
+          kind: "dataset",
+          graphNodeId: "dataset-node",
+          graphNodeVersionId: "dataset-version",
+          href: "/graph/occurrences/dataset-node/versions/dataset-version",
+        }),
+      ]),
     );
     expect(response.landscape.edges).toContainEqual(
-      expect.objectContaining({
-        sourceId: "claim:claim-1",
-        targetId: "graph:node-dataset",
+      expect.objectContaining({ relationType: "uses-dataset", status: "confirmed" }),
+    );
+  });
+
+  it("applies relation and TRUST criterion filters to canonical edges", async () => {
+    const options = {
+      entryProvider: async () => [{ nodeId: "claim-node", nodeVersionId: "claim-version" }],
+      graphProvider: async () => graphResponse(),
+    };
+    const matching = await selectGraphNativeLandscape(
+      {
+        interests: [],
         relationType: "uses-dataset",
-        status: "confirmed",
-      }),
-    );
-  });
-
-  it("does not expose a graph link when the bridged node has no readable public version", async () => {
-    const response = await createKnowledgeLandscapeResponse(
-      {
-        ...index,
-        claims: [{ ...index.claims[0]!, knowledgeNodeId: "unreadable-node" }],
+        trustCriterion: "entailment",
       },
-      { q: "model", interests: [] },
-      { graphProvider: async () => undefined },
+      options,
     );
-
-    const claim = response.landscape.nodes.find((node) => node.kind === "claim");
-    expect(claim).toBeDefined();
-    expect(claim).not.toHaveProperty("graphNodeId");
-    expect(claim).not.toHaveProperty("graphHref");
-    expect(response.landscape.graphNodeCount).toBe(0);
+    const wrongRelation = await selectGraphNativeLandscape(
+      { interests: [], relationType: "contradicts" },
+      options,
+    );
+    const wrongCriterion = await selectGraphNativeLandscape(
+      { interests: [], trustCriterion: "sourceAccess" },
+      options,
+    );
+    expect(matching.matchedClaimCount).toBe(1);
+    expect(wrongRelation.nodes).toEqual([]);
+    expect(wrongCriterion.nodes).toEqual([]);
   });
 
-  it("trusts only requested seeds and confirmed provider edges", async () => {
-    const mixedStatusGraph = graphResponse();
-    mixedStatusGraph.seedNodeIds = [
-      "node-claim",
-      "unrequested-1",
-      "unrequested-2",
-      "unrequested-3",
-    ];
-    mixedStatusGraph.edges.push({
-      id: "edge-proposed",
-      sourceNodeId: "node-claim",
-      sourceVersionId: "version-claim",
-      targetNodeId: "node-dataset",
-      targetVersionId: "version-dataset",
-      relationType: "contradicts",
-      status: "proposed",
-      provenance: "proposed-by-agent",
-      proposedAt: "2026-08-04T12:00:00.000Z",
+  it("passes canonical entry filters to discovery and counts all matches before display caps", async () => {
+    const entryProvider = vi.fn(async (query) => {
+      expect(query).toMatchObject({
+        q: "model",
+        reviewSlug: "review-one",
+        claimType: "empirical",
+      });
+      return Array.from({ length: 8 }, (_, index) => ({
+        nodeId: `claim-${index}`,
+        nodeVersionId: `version-${index}`,
+      }));
     });
-
-    const response = await createKnowledgeLandscapeResponse(
+    const result = await selectGraphNativeLandscape(
       {
-        ...index,
-        claims: [
-          {
-            ...index.claims[0]!,
-            text: "A model produced an estimate.",
-            knowledgeNodeId: "node-claim",
-          },
-        ],
+        q: "model",
+        interests: [],
+        reviewSlug: "review-one",
+        claimType: "empirical",
       },
-      { q: "model", interests: ["data-code", "disagreements"] },
-      { graphProvider: async () => mixedStatusGraph },
+      {
+        entryProvider,
+        graphProvider: async (nodeId, nodeVersionId) => graphResponse(nodeId, nodeVersionId),
+      },
     );
+    expect(entryProvider).toHaveBeenCalledOnce();
+    expect(result.matchedClaimCount).toBe(8);
+    expect(result.seedNodeIds).toHaveLength(3);
+  });
 
-    expect(response.landscape.graphSeedCount).toBe(1);
-    expect(response.landscape.edges).not.toContainEqual(
-      expect.objectContaining({ relationType: "contradicts" }),
+  it("treats focus as the exclusive stable-node seed", async () => {
+    const entryProvider = vi.fn(async () => {
+      throw new Error("focus must not query default entry candidates");
+    });
+    const graphProvider = vi.fn(async (nodeId: string) => graphResponse(nodeId));
+    const result = await selectGraphNativeLandscape(
+      { interests: [], focusNodeId: "focused-node" },
+      { entryProvider, graphProvider },
     );
-    expect(
-      response.landscape.nodes.find((node) => node.id === "claim:claim-1")?.reasons,
-    ).not.toContain("Its confirmed graph neighborhood matches your disagreements interest");
+    expect(entryProvider).not.toHaveBeenCalled();
+    expect(graphProvider).toHaveBeenCalledWith("focused-node", undefined);
+    expect(result.seedNodeIds).toEqual(["focused-node"]);
   });
 });
 
 function graphNode(
-  id: string,
-  versionId: string,
-  kind: PublicGraphNode["kind"],
+  nodeId: string,
+  nodeVersionId: string,
+  kind: CanonicalGraphNodeVersion["kind"],
   title: string,
-): PublicGraphNode {
+): CanonicalGraphNodeVersion {
   return {
-    id,
-    localNodeId: id,
+    nodeId,
+    nodeVersionId,
+    stableKey: `${kind}:${nodeId}`,
+    localNodeId: nodeId,
+    originType: kind === "claim" ? "claim-occurrence" : "repository-object",
     kind,
-    repository: { owner: "example", name: "review", url: "https://github.com/example/review" },
-    versionId,
-    snapshotId: `snapshot-${id}`,
-    commitSha: "b".repeat(40),
+    source:
+      kind === "claim"
+        ? { type: "claim-occurrence", claimId: `source-${nodeId}` }
+        : { type: "repository-snapshot", snapshotId: `snapshot-${nodeId}` },
     title,
-    provenance: {
-      sourcePath: `nodes/${id}.json`,
-      repositoryUrl: "https://github.com/example/review",
-      commitSha: "b".repeat(40),
-      declaredAt: "2026-08-04T12:00:00.000Z",
-    },
-    identifiers: [],
-    createdAt: "2026-08-04T12:00:00.000Z",
+    contributors: [],
+    provenance: {},
+    payload: kind === "claim" ? { statement: title, claimType: "empirical" } : {},
+    aliases: [],
+    isExample: false,
+    createdAt: "2026-08-05T12:00:00.000Z",
   };
 }
 
-function graphResponse(): PublicGraphResponse {
+function graphResponse(
+  seedNodeId = "claim-node",
+  seedNodeVersionId = "claim-version",
+): CanonicalGraphResponse {
+  const claim = graphNode(seedNodeId, seedNodeVersionId, "claim", "A model claim");
+  const dataset = graphNode("dataset-node", "dataset-version", "dataset", "Dataset");
   return {
-    schemaVersion: "1.0.0",
-    seedNodeIds: ["node-claim"],
-    depth: 1,
-    nodes: [
-      graphNode("node-claim", "version-claim", "claim", "A model claim"),
-      graphNode("node-dataset", "version-dataset", "dataset", "Evaluation dataset"),
-    ],
+    schemaVersion: "2.0.0",
+    seed: { nodeId: seedNodeId, nodeVersionId: seedNodeVersionId },
+    nodes: [claim, dataset],
     edges: [
       {
-        id: "edge-1",
-        sourceNodeId: "node-claim",
-        sourceVersionId: "version-claim",
-        targetNodeId: "node-dataset",
-        targetVersionId: "version-dataset",
+        id: `edge-${seedNodeId}`,
+        sourceNodeId: seedNodeId,
+        sourceNodeVersionId: seedNodeVersionId,
+        targetNodeId: dataset.nodeId,
+        targetNodeVersionId: dataset.nodeVersionId,
         relationType: "uses-dataset",
         status: "confirmed",
         provenance: "confirmed-by-editor",
-        confirmedAt: "2026-08-04T12:00:00.000Z",
+        confirmedAt: "2026-08-05T12:00:00.000Z",
+        trustAssessments: [
+          {
+            protocolVersion: "TRUST-1.0",
+            conflictOfInterest: { status: "not-provided" },
+            reviewStatus: "unverified-import",
+            verificationState: "unverified-import",
+            assessedCriteria: ["entailment"],
+          },
+        ],
       },
     ],
-    page: { limit: 25 },
+    page: { limit: 100 },
   };
 }

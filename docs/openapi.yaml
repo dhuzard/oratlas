@@ -69,8 +69,9 @@ components:
     KnowledgeLandscapeEdge:
       type: object
       additionalProperties: false
-      required: [sourceId, targetId, label, relationType]
+      required: [graphEdgeId, sourceId, targetId, label, relationType]
       properties:
+        graphEdgeId: { type: string, minLength: 1, maxLength: 200 }
         sourceId: { type: string, minLength: 1, maxLength: 500 }
         targetId: { type: string, minLength: 1, maxLength: 500 }
         label: { type: string, minLength: 1, maxLength: 100 }
@@ -125,8 +126,8 @@ components:
               prefixItems:
                 - { const: not-a-truth-score }
                 - { const: not-a-quality-score }
-                - { const: confirmed-graph-edges-only }
-                - { const: bounded-to-six-claims-ten-evidence-and-twelve-graph-nodes }
+                - { const: canonical-source-assertion-and-confirmed-edges }
+                - { const: bounded-to-three-entry-neighborhoods-and-twelve-exact-versions }
               minItems: 4
               maxItems: 4
         query: { $ref: "#/components/schemas/KnowledgeLandscapeQuery" }
@@ -148,6 +149,109 @@ components:
         claimType: { type: string, maxLength: 40 }
         relationType: { type: string, maxLength: 40 }
         trustCriterion: { type: string, maxLength: 60 }
+    KnowledgeRecommendationQuery:
+      type: object
+      additionalProperties: false
+      required: [interests]
+      properties:
+        q: { type: string, minLength: 1, maxLength: 500 }
+        interests:
+          type: array
+          maxItems: 5
+          items:
+            type: string
+            enum: [disagreements, reproducibility, methods-models, data-code, assessed-evidence]
+        reviewSlug: { type: string, maxLength: 200 }
+        claimType: { type: string, maxLength: 40 }
+        relationType: { type: string, maxLength: 40 }
+        trustCriterion: { type: string, maxLength: 60 }
+        knownNodeIds:
+          type: array
+          maxItems: 100
+          default: []
+          items: { type: string, minLength: 1, maxLength: 200 }
+    KnowledgeRecommendationAnchor:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          edgeId,
+          relationType,
+          directionFromRecommendation,
+          recommendedNodeVersionId,
+          knownNodeId,
+          knownNodeVersionId,
+        ]
+      properties:
+        edgeId: { type: string, minLength: 1, maxLength: 200 }
+        relationType:
+          type: string
+          enum:
+            [
+              asserts,
+              supports,
+              partially-supports,
+              contradicts,
+              contextualizes,
+              method-source,
+              background,
+              unclear,
+              replicates,
+              extends,
+              uses-dataset,
+              uses-code,
+              derives-from,
+            ]
+        directionFromRecommendation: { type: string, enum: [outgoing, incoming] }
+        recommendedNodeVersionId: { type: string, minLength: 1, maxLength: 200 }
+        knownNodeId: { type: string, minLength: 1, maxLength: 200 }
+        knownNodeVersionId: { type: string, minLength: 1, maxLength: 200 }
+    KnowledgeRecommendation:
+      type: object
+      additionalProperties: false
+      required: [nodeId, nodeVersionId, rank, score, reasons, anchors]
+      properties:
+        nodeId: { type: string, minLength: 1, maxLength: 200 }
+        nodeVersionId: { type: string, minLength: 1, maxLength: 200 }
+        rank: { type: integer, minimum: 1, maximum: 34 }
+        score: { type: number, minimum: 0, maximum: 1 }
+        reasons:
+          type: array
+          minItems: 1
+          maxItems: 10
+          items: { type: string, minLength: 1, maxLength: 1000 }
+        anchors:
+          type: array
+          items: { $ref: "#/components/schemas/KnowledgeRecommendationAnchor" }
+    KnowledgeRecommendationResponse:
+      type: object
+      additionalProperties: false
+      required: [schemaVersion, algorithm, query, recommendations, omittedUnboundCount]
+      properties:
+        schemaVersion: { const: "2.0.0" }
+        algorithm:
+          type: object
+          additionalProperties: false
+          required: [id, version, purpose, limitations]
+          properties:
+            id: { const: explicit-interest-recommendation }
+            version: { const: "2.0.0" }
+            purpose: { const: recommendation }
+            limitations:
+              type: array
+              prefixItems:
+                - { const: not-a-truth-score }
+                - { const: not-a-quality-score }
+                - { const: canonical-source-assertion-and-confirmed-edges }
+                - { const: bounded-to-three-entry-neighborhoods-and-twelve-exact-versions }
+              minItems: 4
+              maxItems: 4
+        query: { $ref: "#/components/schemas/KnowledgeRecommendationQuery" }
+        recommendations:
+          type: array
+          maxItems: 34
+          items: { $ref: "#/components/schemas/KnowledgeRecommendation" }
+        omittedUnboundCount: { type: integer, minimum: 0 }
     PublicNodeSummary:
       type: object
       additionalProperties: false
@@ -300,6 +404,23 @@ components:
         assessorType: { type: string, minLength: 1, maxLength: 40 }
         assessorId: { type: string, minLength: 1, maxLength: 200 }
         assessedAt: { type: string, format: date-time }
+        assessedCriteria:
+          type: array
+          items:
+            type: string
+            enum:
+              [
+                identityIntegrity,
+                entailment,
+                sourceAccess,
+                populationRelevance,
+                interventionExposureRelevance,
+                outcomeRelevance,
+                methodologicalSafeguards,
+                statisticalSafeguards,
+                replicationConvergence,
+                conflictDependency,
+              ]
         reviewStatus:
           type: string
           enum: [unverified-import, agent-proposed, human-reviewed, adjudicated, superseded]
@@ -690,6 +811,216 @@ components:
           required: [limit]
           properties:
             limit: { type: integer, minimum: 1, maximum: 50 }
+            nextCursor: { type: string, maxLength: 768 }
+    CanonicalGraphSource:
+      oneOf:
+        - type: object
+          additionalProperties: false
+          required: [type, snapshotId]
+          properties:
+            type: { const: repository-snapshot }
+            snapshotId: { type: string }
+        - type: object
+          additionalProperties: false
+          required: [type, reviewVersionId]
+          properties:
+            type: { const: review-version }
+            reviewVersionId: { type: string }
+        - type: object
+          additionalProperties: false
+          required: [type, claimId]
+          properties:
+            type: { const: claim-occurrence }
+            claimId: { type: string }
+        - type: object
+          additionalProperties: false
+          required: [type, citationId]
+          properties:
+            type: { const: citation-occurrence }
+            citationId: { type: string }
+    CanonicalGraphNodeVersion:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          nodeId,
+          nodeVersionId,
+          localNodeId,
+          originType,
+          kind,
+          source,
+          contributors,
+          provenance,
+          payload,
+          aliases,
+          isExample,
+          createdAt,
+        ]
+      properties:
+        nodeId: { type: string, description: Stable graph identity }
+        nodeVersionId: { type: string, description: Exact immutable occurrence/version }
+        stableKey: { type: string }
+        localNodeId: { type: string }
+        originType:
+          type: string
+          enum: [repository-object, review-record, claim-occurrence, canonical-work]
+        kind: { type: string, enum: [review, claim, work, figure, dataset, code] }
+        source: { $ref: "#/components/schemas/CanonicalGraphSource" }
+        repository:
+          type: object
+          additionalProperties: false
+          required: [id, owner, name, canonicalUrl, commitSha]
+          properties:
+            id: { type: string }
+            owner: { type: string }
+            name: { type: string }
+            canonicalUrl: { type: string, format: uri }
+            commitSha: { type: string, pattern: "^(?:[0-9a-f]{40}|[0-9a-f]{64})$" }
+        title: { type: string }
+        abstract: { type: string }
+        text: { type: string }
+        contributors: { type: array, items: { type: object } }
+        license: { type: string }
+        provenance: {}
+        payload: {}
+        aliases:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [scheme, role, value, isExample]
+            properties:
+              scheme: { type: string, enum: [doi, pmid, openalex] }
+              role:
+                type: string
+                enum: [version-doi, concept-doi, artifact-doi, work-doi, work-pmid, work-openalex]
+              value: { type: string }
+              isExample: { type: boolean }
+        versionDoi: { type: string }
+        conceptDoi: { type: string }
+        isExample: { type: boolean }
+        createdAt: { type: string, format: date-time }
+    CanonicalGraphEdge:
+      oneOf:
+        - type: object
+          additionalProperties: false
+          required:
+            [
+              id,
+              sourceNodeId,
+              sourceNodeVersionId,
+              targetNodeId,
+              targetNodeVersionId,
+              relationType,
+              status,
+              provenance,
+              trustAssessments,
+            ]
+          properties:
+            id: { type: string }
+            sourceNodeId: { type: string }
+            sourceNodeVersionId: { type: string }
+            targetNodeId: { type: string }
+            targetNodeVersionId: { type: string }
+            relationType:
+              type: string
+              enum:
+                [
+                  asserts,
+                  supports,
+                  partially-supports,
+                  contradicts,
+                  contextualizes,
+                  method-source,
+                  background,
+                  unclear,
+                  replicates,
+                  extends,
+                  uses-dataset,
+                  uses-code,
+                  derives-from,
+                ]
+            status: { const: source-assertion }
+            provenance: { const: imported-from-review }
+            rationale: { type: string }
+            assertedAt: { type: string, format: date-time }
+            trustAssessments:
+              type: array
+              items: { $ref: "#/components/schemas/PublicGraphTrust" }
+        - type: object
+          additionalProperties: false
+          required:
+            [
+              id,
+              sourceNodeId,
+              sourceNodeVersionId,
+              targetNodeId,
+              targetNodeVersionId,
+              relationType,
+              status,
+              provenance,
+              confirmedAt,
+              trustAssessments,
+            ]
+          properties:
+            id: { type: string }
+            sourceNodeId: { type: string }
+            sourceNodeVersionId: { type: string }
+            targetNodeId: { type: string }
+            targetNodeVersionId: { type: string }
+            relationType:
+              type: string
+              enum:
+                [
+                  asserts,
+                  supports,
+                  partially-supports,
+                  contradicts,
+                  contextualizes,
+                  method-source,
+                  background,
+                  unclear,
+                  replicates,
+                  extends,
+                  uses-dataset,
+                  uses-code,
+                  derives-from,
+                ]
+            status: { const: confirmed }
+            provenance: { const: confirmed-by-editor }
+            rationale: { type: string }
+            assertedAt: { type: string, format: date-time }
+            confirmedAt: { type: string, format: date-time }
+            trustAssessments:
+              type: array
+              items: { $ref: "#/components/schemas/PublicGraphTrust" }
+    CanonicalGraphResponse:
+      type: object
+      additionalProperties: false
+      required: [schemaVersion, seed, nodes, edges, page]
+      properties:
+        schemaVersion: { const: "2.0.0" }
+        seed:
+          type: object
+          additionalProperties: false
+          required: [nodeId, nodeVersionId]
+          properties:
+            nodeId: { type: string }
+            nodeVersionId: { type: string }
+        nodes:
+          type: array
+          maxItems: 201
+          items: { $ref: "#/components/schemas/CanonicalGraphNodeVersion" }
+        edges:
+          type: array
+          maxItems: 100
+          items: { $ref: "#/components/schemas/CanonicalGraphEdge" }
+        page:
+          type: object
+          additionalProperties: false
+          required: [limit]
+          properties:
+            limit: { type: integer, minimum: 1, maximum: 100 }
             nextCursor: { type: string, maxLength: 768 }
     ExecutionPassportRegistration:
       type: object
@@ -1133,18 +1464,33 @@ components:
     DiscussRequest:
       type: object
       additionalProperties: false
-      required: [question]
+      required: [question, scope]
       properties:
         question: { type: string, minLength: 3, maxLength: 1000 }
-        reviewSlugs:
-          type: array
-          maxItems: 50
-          items: { type: string, maxLength: 200 }
         scope:
-          allOf: [{ $ref: "#/components/schemas/KnowledgeLandscapeQuery" }]
-          description: >
-            Optional explicit Explore URL state. The server resolves it through the same bounded
-            landscape service and restricts the evidence packet to the selected claims.
+          type: object
+          additionalProperties: false
+          required: [nodes, edgeIds, signature]
+          description: Server-signed exact canonical graph occurrence set rendered by Explore.
+          properties:
+            nodes:
+              type: array
+              minItems: 1
+              maxItems: 34
+              items:
+                type: object
+                additionalProperties: false
+                required: [nodeId, nodeVersionId]
+                properties:
+                  nodeId: { type: string, minLength: 1, maxLength: 200 }
+                  nodeVersionId: { type: string, minLength: 1, maxLength: 200 }
+            edgeIds:
+              type: array
+              maxItems: 100
+              items: { type: string, minLength: 1, maxLength: 200 }
+            signature:
+              type: string
+              pattern: "^[A-Za-z0-9_-]{43}$"
         llm:
           type: object
           additionalProperties: false
@@ -2061,7 +2407,20 @@ components:
             {
               type: string,
               enum:
-                [supports, contradicts, replicates, extends, uses-dataset, uses-code, derives-from],
+                [
+                  supports,
+                  partially-supports,
+                  contradicts,
+                  contextualizes,
+                  method-source,
+                  background,
+                  unclear,
+                  replicates,
+                  extends,
+                  uses-dataset,
+                  uses-code,
+                  derives-from,
+                ],
             }
         trustPolicy: { const: authoritative-current-relation-trust-v1 }
         currentVersionPolicy: { const: newest-valid-no-history-fallback }
@@ -2797,40 +3156,60 @@ paths:
         "400": { $ref: "#/components/responses/Error" }
   /api/graph:
     get:
-      summary: Query a bounded public knowledge subgraph by seed node or topic
+      summary: Traverse one canonical graph adjacency page
       description: >
-        Traverses canonical directed edges in both directions, so contradictions appear from
-        either endpoint without duplicating or reversing their edge identity. Confirmed edges are
-        the default. The proposed view is privacy-minimal and never exposes rejected/superseded
-        proposals, raw evidence, agent runs, reviewer identity, review notes or audit data.
+        Supplying version restricts the keyset-paginated adjacency page to one exact immutable
+        occurrence. Omitting version covers every readable occurrence of the stable seed identity.
+        Every edge still names exact endpoint versions. Clients expand returned node references
+        with subsequent requests; no viewport depth or cumulative graph cap truncates traversal.
+        Authoritative mode includes source-native review assertions and editor-confirmed edges,
+        while proposals remain outside the canonical representation.
       parameters:
-        - { name: seed, in: query, schema: { type: string, maxLength: 200 } }
-        - { name: q, in: query, schema: { type: string, maxLength: 500 } }
-        - { name: depth, in: query, schema: { type: integer, minimum: 0, maximum: 3, default: 1 } }
+        - { name: seed, in: query, required: true, schema: { type: string, maxLength: 200 } }
+        - { name: version, in: query, schema: { type: string, maxLength: 200 } }
+        - {
+            name: direction,
+            in: query,
+            schema: { type: string, enum: [outgoing, incoming, both], default: both },
+          }
+        - {
+            name: status,
+            in: query,
+            schema:
+              {
+                type: string,
+                enum: [authoritative, source-assertion, confirmed],
+                default: authoritative,
+              },
+          }
         - {
             name: limit,
             in: query,
-            schema: { type: integer, minimum: 1, maximum: 50, default: 25 },
+            schema: { type: integer, minimum: 1, maximum: 100, default: 25 },
           }
         - { name: cursor, in: query, schema: { type: string, maxLength: 768 } }
-        - { name: kind, in: query, schema: { type: string, enum: [claim, figure, dataset, code] } }
         - name: relationType
           in: query
           schema:
             {
               type: string,
               enum:
-                [supports, contradicts, replicates, extends, uses-dataset, uses-code, derives-from],
+                [
+                  asserts,
+                  supports,
+                  partially-supports,
+                  contradicts,
+                  contextualizes,
+                  method-source,
+                  background,
+                  unclear,
+                  replicates,
+                  extends,
+                  uses-dataset,
+                  uses-code,
+                  derives-from,
+                ],
             }
-        - {
-            name: edgeStatus,
-            in: query,
-            schema: { type: string, enum: [confirmed, proposed], default: confirmed },
-          }
-        - name: hasTrust
-          in: query
-          description: Filter edges by presence of an exact relation-scoped TRUST assessment
-          schema: { type: boolean }
       responses:
         "200":
           description: One cursor page of exact-version graph nodes and edges
@@ -2841,7 +3220,7 @@ paths:
               { schema: { type: integer }, description: Fixed-window reset as Unix epoch seconds }
           content:
             application/json:
-              schema: { $ref: "#/components/schemas/PublicGraphResponse" }
+              schema: { $ref: "#/components/schemas/CanonicalGraphResponse" }
         "400": { $ref: "#/components/responses/Error" }
         "404": { $ref: "#/components/responses/Error" }
         "429":
@@ -3016,12 +3395,11 @@ paths:
         "200": { description: Claim results }
   /api/landscape:
     get:
-      summary: Build the bounded guided knowledge landscape used by Explore
+      summary: Rank canonical graph references from explicit reader interests
       description: >
-        Returns the same explicit-interest selection, graph-native recommendations, inspectable
-        navigation reasons, one-hop focus, and publication-year context as the human Explore view.
-        Graph identities are explicit and graph edges are confirmed. This is navigation metadata,
-        not a truth, evidence-quality, or aggregate TRUST score.
+        Returns only canonical node references, relative ordering scores, and inspectable reasons.
+        Resolve records through the reader-agnostic graph API. The response never includes labels,
+        details, hrefs, timelines, or GUI focus state and is not a truth or evidence-quality score.
       parameters:
         - { name: q, in: query, schema: { type: string, maxLength: 500 } }
         - name: interest
@@ -3032,17 +3410,23 @@ paths:
             items:
               type: string
               enum: [disagreements, reproducibility, methods-models, data-code, assessed-evidence]
-        - { name: focus, in: query, schema: { type: string, maxLength: 500 } }
         - { name: reviewSlug, in: query, schema: { type: string, maxLength: 200 } }
         - { name: claimType, in: query, schema: { type: string, maxLength: 40 } }
         - { name: relationType, in: query, schema: { type: string, maxLength: 40 } }
         - { name: trustCriterion, in: query, schema: { type: string, maxLength: 60 } }
+        - name: known
+          in: query
+          description: Explicit reader-held stable graph identities; never inferred or persisted
+          schema:
+            type: array
+            maxItems: 100
+            items: { type: string, minLength: 1, maxLength: 200 }
       responses:
         "200":
-          description: Versioned, bounded exploration landscape
+          description: Versioned, bounded recommendation overlay
           content:
             application/json:
-              schema: { $ref: "#/components/schemas/KnowledgeLandscapeResponse" }
+              schema: { $ref: "#/components/schemas/KnowledgeRecommendationResponse" }
         "400": { $ref: "#/components/responses/Error" }
   /api/reviews/{slug}/versions/{versionId}:
     get:
@@ -3216,7 +3600,7 @@ paths:
         "429": { $ref: "#/components/responses/Error" }
   /api/discuss:
     post:
-      summary: Grounded cross-review discussion (deterministic or LLM mode)
+      summary: Grounded discussion over a signed exact Explore traversal
       requestBody:
         required: true
         content:

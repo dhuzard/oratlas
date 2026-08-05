@@ -379,19 +379,26 @@ async function mergeNodeEdgeTargets(
 ): Promise<void> {
   if (!(await tableExists(tx, "NodeEdge"))) return;
   const edges = await tx.$queryRawUnsafe<
-    Array<{ id: string; sourceNodeVersionId: string; relationType: string }>
+    Array<{
+      id: string;
+      sourceNodeVersionId: string;
+      relationType: string;
+      edgeDiscriminator: string;
+    }>
   >(
-    `SELECT id, sourceNodeVersionId, relationType FROM NodeEdge
+    `SELECT id, sourceNodeVersionId, relationType, edgeDiscriminator FROM NodeEdge
       WHERE targetNodeId = ? ORDER BY id`,
     loserNodeId,
   );
   for (const edge of edges) {
     const duplicate = await tx.$queryRawUnsafe<Array<{ id: string }>>(
       `SELECT id FROM NodeEdge
-        WHERE sourceNodeVersionId = ? AND targetNodeId = ? AND relationType = ? LIMIT 1`,
+        WHERE sourceNodeVersionId = ? AND targetNodeId = ? AND relationType = ?
+          AND edgeDiscriminator = ? LIMIT 1`,
       edge.sourceNodeVersionId,
       survivorNodeId,
       edge.relationType,
+      edge.edgeDiscriminator,
     );
     if (duplicate[0]) {
       await assertNodeEdgesEquivalent(tx, duplicate[0].id, edge.id);
@@ -414,19 +421,21 @@ async function mergeNodeEdgeSources(
 ): Promise<void> {
   if (!(await tableExists(tx, "NodeEdge"))) return;
   const edges = await tx.$queryRawUnsafe<
-    Array<{ id: string; targetNodeId: string; relationType: string }>
+    Array<{ id: string; targetNodeId: string; relationType: string; edgeDiscriminator: string }>
   >(
-    `SELECT id, targetNodeId, relationType FROM NodeEdge
+    `SELECT id, targetNodeId, relationType, edgeDiscriminator FROM NodeEdge
       WHERE sourceNodeVersionId = ? ORDER BY id`,
     loserVersionId,
   );
   for (const edge of edges) {
     const duplicate = await tx.$queryRawUnsafe<Array<{ id: string }>>(
       `SELECT id FROM NodeEdge
-        WHERE sourceNodeVersionId = ? AND targetNodeId = ? AND relationType = ? LIMIT 1`,
+        WHERE sourceNodeVersionId = ? AND targetNodeId = ? AND relationType = ?
+          AND edgeDiscriminator = ? LIMIT 1`,
       survivorVersionId,
       edge.targetNodeId,
       edge.relationType,
+      edge.edgeDiscriminator,
     );
     if (duplicate[0]) {
       await assertNodeEdgesEquivalent(tx, duplicate[0].id, edge.id);
