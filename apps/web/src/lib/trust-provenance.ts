@@ -1,6 +1,7 @@
 import "server-only";
 import {
   publicGraphTrustSchema,
+  TRUST_CRITERIA,
   type PlatformTrustReviewStatus,
   type PublicGraphTrust,
 } from "@oratlas/contracts";
@@ -66,9 +67,13 @@ export type LoadedNodeRelationTrustAssessment = Prisma.NodeRelationTrustAssessme
 export const PUBLIC_NODE_RELATION_TRUST_GLOBAL_LIMIT = 10_000;
 export const PUBLIC_NODE_RELATION_TRUST_PER_KEY_LIMIT = 50;
 
-export interface PublicNodeRelationTrustSummary extends PublicGraphTrust {
+export interface PublicNodeRelationTrustSummary extends Omit<PublicGraphTrust, "assessedCriteria"> {
   assessmentId: string;
   assessorType: string;
+}
+
+export interface CanonicalGraphRelationTrustSummary extends PublicNodeRelationTrustSummary {
+  assessedCriteria: NonNullable<PublicGraphTrust["assessedCriteria"]>;
 }
 
 export interface ResolvedTrustAssessment extends ResolvedTrustVerification {
@@ -201,6 +206,28 @@ export function projectPublicNodeRelationTrustAssessments(
   return orderTrustAssessments(candidates).map(({ value }) => value);
 }
 
+/**
+ * Canonical graph reads expose the names of assessed TRUST dimensions so a
+ * reader-agnostic traversal can filter them. Keep that graph-only extension
+ * out of the legacy public-node publication contract, whose strict trust
+ * shape adds the complete `criteria` profile at its own boundary.
+ */
+export function projectCanonicalGraphRelationTrustAssessments(
+  rows: readonly LoadedNodeRelationTrustAssessment[],
+): CanonicalGraphRelationTrustSummary[] {
+  const rowsById = new Map(rows.map((row) => [row.id, row]));
+  return projectPublicNodeRelationTrustAssessments(rows).flatMap((assessment) => {
+    const row = rowsById.get(assessment.assessmentId);
+    if (!row) return [];
+    return [
+      {
+        ...assessment,
+        assessedCriteria: TRUST_CRITERIA.filter((criterion) => row[criterion] !== null),
+      },
+    ];
+  });
+}
+
 function mapNodeAssessment(
   row: LoadedNodeRelationTrustAssessment,
 ): ReviewedNodeRelationAssessmentInput {
@@ -242,6 +269,16 @@ function mapNodeAssessment(
 type LoadedNodeVersion = LoadedNodeRelationTrustAssessment["proposal"]["sourceNodeVersion"];
 
 function mapNodeVersion(row: LoadedNodeVersion) {
+  if (
+    !row.snapshotId ||
+    !row.snapshot ||
+    !row.title ||
+    !row.license ||
+    !row.knowledgeNode.repositoryId ||
+    !row.knowledgeNode.repository
+  ) {
+    throw new Error("Repository-backed node provenance is incomplete.");
+  }
   return {
     version: {
       id: row.id,
@@ -640,9 +677,9 @@ async function loadTrustEditorialQueueItems(): Promise<TrustQueueItem[]> {
         subjectLabel: `${row.proposal.sourceNodeVersion.knowledgeNode.localNodeId} → ${row.proposal.targetNodeVersion.knowledgeNode.localNodeId}`,
         canVerify: resolved.authoritative,
         claimLocalId: row.proposal.sourceNodeVersion.knowledgeNode.localNodeId,
-        claimText: row.proposal.sourceNodeVersion.title,
+        claimText: row.proposal.sourceNodeVersion.title ?? "Unavailable claim text",
         citationLocalId: row.proposal.targetNodeVersion.knowledgeNode.localNodeId,
-        citationTitle: row.proposal.targetNodeVersion.title,
+        citationTitle: row.proposal.targetNodeVersion.title ?? undefined,
         relationType: row.proposal.relationType,
         protocolVersion: row.protocolVersion,
         assessorType: row.assessorType,
@@ -674,9 +711,9 @@ async function loadTrustEditorialQueueItems(): Promise<TrustQueueItem[]> {
         subjectLabel: "Invalid persisted node relation",
         canVerify: false,
         claimLocalId: row.proposal.sourceNodeVersion.knowledgeNode.localNodeId,
-        claimText: row.proposal.sourceNodeVersion.title,
+        claimText: row.proposal.sourceNodeVersion.title ?? "Unavailable claim text",
         citationLocalId: row.proposal.targetNodeVersion.knowledgeNode.localNodeId,
-        citationTitle: row.proposal.targetNodeVersion.title,
+        citationTitle: row.proposal.targetNodeVersion.title ?? undefined,
         relationType: row.proposal.relationType,
         protocolVersion: row.protocolVersion,
         assessorType: row.assessorType,

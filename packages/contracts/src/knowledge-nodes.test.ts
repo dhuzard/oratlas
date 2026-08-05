@@ -179,7 +179,12 @@ describe("nodeEdgeSchema", () => {
   it("accepts every relation type in the public contract", () => {
     const relationTypes = [
       "supports",
+      "partially-supports",
       "contradicts",
+      "contextualizes",
+      "method-source",
+      "background",
+      "unclear",
       "replicates",
       "extends",
       "uses-dataset",
@@ -197,6 +202,21 @@ describe("nodeEdgeSchema", () => {
         }).success,
       ).toBe(true);
     }
+  });
+
+  it("represents imported review evidence without editorial confirmation", () => {
+    expect(
+      nodeEdgeSchema.parse({
+        sourceNodeId: "claim:primary-result",
+        targetNodeId: "work:10.1000-example",
+        relationType: "partially-supports",
+        provenance: "imported-from-review",
+        status: "source-assertion",
+      }),
+    ).toMatchObject({
+      provenance: "imported-from-review",
+      status: "source-assertion",
+    });
   });
 
   it("rejects unknown lifecycle and provenance values", () => {

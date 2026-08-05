@@ -58,34 +58,43 @@ export async function runBetaSmoke(options, request = globalThis.fetch) {
   const response = await (await get(landscapePath)).json();
   if (response?.schemaVersion !== "2.0.0") {
     throw new Error(
-      `Expected landscape schema 2.0.0, received ${String(response?.schemaVersion)}.`,
+      `Expected recommendation schema 2.0.0, received ${String(response?.schemaVersion)}.`,
     );
   }
-  if (response?.algorithm?.id !== "explicit-interest-graph-landscape") {
-    throw new Error("The graph-native landscape algorithm is not active.");
+  if (response?.algorithm?.id !== "explicit-interest-recommendation") {
+    throw new Error("The reference-only recommendation algorithm is not active.");
   }
-  const landscape = response?.landscape;
-  if (!landscape || landscape.graphSeedCount < 1 || landscape.graphNodeCount < 2) {
-    throw new Error("The beta fixture did not produce a bridged claim and graph neighbor.");
-  }
-  const confirmedEdge = landscape.edges?.find((edge) => edge.status === "confirmed");
-  if (!confirmedEdge) throw new Error("The personalized graph has no confirmed edge.");
-  const graphNode = landscape.nodes?.find(
-    (node) => node.graphNodeVersionId && node.graphRecordHref && node.graphHref,
+  const recommendation = response?.recommendations?.find(
+    (candidate) => candidate.nodeId && candidate.nodeVersionId,
   );
-  if (!graphNode) throw new Error("No recommended node exposes exact-version and graph links.");
-  await get(graphNode.graphRecordHref);
-  await get(graphNode.graphHref);
+  if (!recommendation) {
+    throw new Error("The beta fixture did not produce an exact canonical graph reference.");
+  }
+  if (
+    ["label", "detail", "href", "graphHref", "graphRecordHref"].some((key) => key in recommendation)
+  ) {
+    throw new Error("The recommendation leaked presentation fields.");
+  }
+  const graphPath = `/api/graph?seed=${encodeURIComponent(recommendation.nodeId)}&version=${encodeURIComponent(recommendation.nodeVersionId)}&limit=1`;
+  const graph = await (await get(graphPath)).json();
+  const graphNode = graph?.nodes?.find(
+    (node) =>
+      node.nodeId === recommendation.nodeId && node.nodeVersionId === recommendation.nodeVersionId,
+  );
+  if (!graphNode) throw new Error("The canonical graph did not resolve the recommended reference.");
+  await get(
+    `/nodes/${encodeURIComponent(recommendation.nodeId)}/versions/${encodeURIComponent(recommendation.nodeVersionId)}`,
+  );
+  await get(`/graph?seed=${encodeURIComponent(recommendation.nodeId)}`);
 
   return {
     status: "ok",
     query: options.query,
     interests: options.interests,
-    graphSeedCount: landscape.graphSeedCount,
-    graphNodeCount: landscape.graphNodeCount,
-    confirmedRelation: confirmedEdge.relationType,
-    checkedNodeId: graphNode.graphNodeId,
-    checkedNodeVersionId: graphNode.graphNodeVersionId,
+    recommendationCount: response.recommendations.length,
+    omittedUnboundCount: response.omittedUnboundCount,
+    checkedNodeId: recommendation.nodeId,
+    checkedNodeVersionId: recommendation.nodeVersionId,
   };
 }
 

@@ -19,7 +19,13 @@ behavioral telemetry in the evaluation file.
    distinction independently.
 4. Ask them to focus on one graph node, explain why it appeared, inspect its exact preserved version,
    and return to the overview. Record whether each step succeeds.
-5. For participants who use or agree to try keyboard navigation, repeat the focus-and-return journey
+5. Ask them to mark one node as known, identify a newcomer connected to it by a confirmed edge, and
+   distinguish that anchored newcomer from any item explicitly marked as disconnected. Record
+   whether they can name the familiar endpoint without interpreting an opaque identifier.
+6. Ask them to use Atlas Discuss only after inspecting the path, then identify which visible graph
+   items bounded the answer. Record whether they understand Discuss as a lens over the selected path
+   rather than a search over the whole archive.
+7. For participants who use or agree to try keyboard navigation, repeat the focus-and-return journey
    without a pointer. Record only completion, not disability or assistive-technology details.
 
 ## Recording and reporting

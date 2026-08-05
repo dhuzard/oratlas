@@ -13,15 +13,16 @@ test("editor gates generated, rejected, and accepted synthesis drafts", async ({
     where: { localNodeId: "replay-boundary-claim", versions: { some: {} } },
     orderBy: { id: "asc" },
     include: {
-      versions: { orderBy: [{ createdAt: "desc" }, { id: "desc" }], take: 1 },
+      versions: {
+        where: { snapshotId: { not: null } },
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+        take: 1,
+      },
     },
   });
   const opposingNode = await prisma.knowledgeNode.findFirstOrThrow({
     where: { localNodeId: "replay-consolidation-claim", versions: { some: {} } },
     orderBy: { id: "asc" },
-    include: {
-      versions: { orderBy: [{ createdAt: "desc" }, { id: "desc" }], take: 1 },
-    },
   });
   await page.getByLabel("Seed node ID").fill(node.id);
   const generationResponse = page.waitForResponse(
@@ -41,13 +42,20 @@ test("editor gates generated, rejected, and accepted synthesis drafts", async ({
   };
   expect(draft.citations).toEqual(
     expect.arrayContaining([
-      expect.objectContaining({ nodeId: node.id, nodeVersionId: node.versions[0]!.id }),
-      expect.objectContaining({
-        nodeId: opposingNode.id,
-        nodeVersionId: opposingNode.versions[0]!.id,
-      }),
+      expect.objectContaining({ nodeId: node.id }),
+      expect.objectContaining({ nodeId: opposingNode.id }),
     ]),
   );
+  for (const expectedNodeId of [node.id, opposingNode.id]) {
+    const citation = draft.citations.find(({ nodeId }) => nodeId === expectedNodeId);
+    expect(citation).toBeTruthy();
+    await expect(
+      prisma.knowledgeNodeVersion.findUniqueOrThrow({
+        where: { id: citation!.nodeVersionId },
+        select: { knowledgeNodeId: true, snapshotId: true },
+      }),
+    ).resolves.toEqual({ knowledgeNodeId: expectedNodeId, snapshotId: expect.any(String) });
+  }
   const slug = `synthesis-${draft.seriesKey.slice(0, 20)}`;
   expect((await page.request.get(`/api/syntheses/${slug}`)).status()).toBe(404);
   expect((await page.request.get(`/reviews/${slug}`)).status()).toBe(404);

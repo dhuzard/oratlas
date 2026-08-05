@@ -1,6 +1,8 @@
 import type { PrismaClient } from "../generated/client/index.js";
 
 export const DATABASE_GUARD_NAMES = [
+  "KnowledgeNode_source_union_check",
+  "KnowledgeNodeVersion_source_union_check",
   "Review_source_union_check",
   "ReviewVersion_source_union_check",
   "SynthesisDraft_status_check",
@@ -38,6 +40,17 @@ export const POSTGRES_DATABASE_GUARD_TRIGGER_NAMES = [
 ] as const;
 
 export const POSTGRES_DATABASE_GUARD_SQL = [
+  'ALTER TABLE "KnowledgeNode" DROP CONSTRAINT IF EXISTS "KnowledgeNode_source_union_check"',
+  `ALTER TABLE "KnowledgeNode" ADD CONSTRAINT "KnowledgeNode_source_union_check" CHECK (
+    ("originType" = 'repository-object' AND "repositoryId" IS NOT NULL AND "kind" IN ('claim', 'figure', 'dataset', 'code'))
+    OR ("originType" = 'review-record' AND "repositoryId" IS NULL AND "stableKey" IS NOT NULL AND "kind" = 'review')
+    OR ("originType" = 'claim-occurrence' AND "repositoryId" IS NULL AND "stableKey" IS NOT NULL AND "kind" = 'claim')
+    OR ("originType" = 'canonical-work' AND "repositoryId" IS NULL AND "stableKey" IS NOT NULL AND "kind" = 'work')
+  )`,
+  'ALTER TABLE "KnowledgeNodeVersion" DROP CONSTRAINT IF EXISTS "KnowledgeNodeVersion_source_union_check"',
+  `ALTER TABLE "KnowledgeNodeVersion" ADD CONSTRAINT "KnowledgeNodeVersion_source_union_check" CHECK (
+    (("snapshotId" IS NOT NULL)::int + ("sourceReviewVersionId" IS NOT NULL)::int + ("sourceClaimId" IS NOT NULL)::int + ("sourceCitationId" IS NOT NULL)::int) = 1
+  )`,
   'ALTER TABLE "Review" DROP CONSTRAINT IF EXISTS "Review_source_union_check"',
   `ALTER TABLE "Review" ADD CONSTRAINT "Review_source_union_check" CHECK (
     ("reviewType" = 'ai-synthesis' AND "repositoryId" IS NULL AND "currentSnapshotId" IS NULL AND "synthesisSeriesKey" IS NOT NULL)
@@ -270,6 +283,15 @@ export const POSTGRES_DATABASE_GUARD_SQL = [
 ] as const;
 
 const sqliteGuardConditions = {
+  KnowledgeNode: `CASE WHEN
+    (NEW."originType" = 'repository-object' AND NEW."repositoryId" IS NOT NULL AND NEW."kind" IN ('claim', 'figure', 'dataset', 'code'))
+    OR (NEW."originType" = 'review-record' AND NEW."repositoryId" IS NULL AND NEW."stableKey" IS NOT NULL AND NEW."kind" = 'review')
+    OR (NEW."originType" = 'claim-occurrence' AND NEW."repositoryId" IS NULL AND NEW."stableKey" IS NOT NULL AND NEW."kind" = 'claim')
+    OR (NEW."originType" = 'canonical-work' AND NEW."repositoryId" IS NULL AND NEW."stableKey" IS NOT NULL AND NEW."kind" = 'work')
+    THEN 1 ELSE 0 END`,
+  KnowledgeNodeVersion: `CASE WHEN
+    ((NEW."snapshotId" IS NOT NULL) + (NEW."sourceReviewVersionId" IS NOT NULL) + (NEW."sourceClaimId" IS NOT NULL) + (NEW."sourceCitationId" IS NOT NULL)) = 1
+    THEN 1 ELSE 0 END`,
   Review: `CASE WHEN
     (NEW."reviewType" = 'ai-synthesis' AND NEW."repositoryId" IS NULL AND NEW."currentSnapshotId" IS NULL AND NEW."synthesisSeriesKey" IS NOT NULL)
     OR ((NEW."reviewType" IS NULL OR NEW."reviewType" <> 'ai-synthesis') AND NEW."synthesisSeriesKey" IS NULL AND NEW."currentSynthesisVersionId" IS NULL)
