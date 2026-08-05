@@ -202,13 +202,16 @@ BEGIN
     IF TG_OP = 'DELETE' THEN RETURN OLD; END IF;
     RETURN NEW;
   END IF;
-  IF TG_TABLE_NAME = 'KnowledgeNodeVersion'
-    AND (OLD."sourceReviewVersionId" IS NOT NULL OR OLD."sourceClaimId" IS NOT NULL OR OLD."sourceCitationId" IS NOT NULL)
-  THEN RAISE EXCEPTION 'Canonical graph contract: exact source versions are immutable'; END IF;
-  IF TG_TABLE_NAME = 'NodeEdge' AND OLD."status" = 'source-assertion' AND OLD."provenance" = 'imported-from-review'
-  THEN RAISE EXCEPTION 'Canonical graph contract: imported source assertions are immutable'; END IF;
-  IF TG_TABLE_NAME = 'KnowledgeNode' AND OLD."originType" IN ('review-record', 'claim-occurrence', 'canonical-work')
-  THEN RAISE EXCEPTION 'Canonical graph contract: canonical source identities are immutable'; END IF;
+  IF TG_TABLE_NAME = 'KnowledgeNodeVersion' THEN
+    IF OLD."sourceReviewVersionId" IS NOT NULL OR OLD."sourceClaimId" IS NOT NULL OR OLD."sourceCitationId" IS NOT NULL
+    THEN RAISE EXCEPTION 'Canonical graph contract: exact source versions are immutable'; END IF;
+  ELSIF TG_TABLE_NAME = 'NodeEdge' THEN
+    IF OLD."status" = 'source-assertion' AND OLD."provenance" = 'imported-from-review'
+    THEN RAISE EXCEPTION 'Canonical graph contract: imported source assertions are immutable'; END IF;
+  ELSIF TG_TABLE_NAME = 'KnowledgeNode' THEN
+    IF OLD."originType" IN ('review-record', 'claim-occurrence', 'canonical-work')
+    THEN RAISE EXCEPTION 'Canonical graph contract: canonical source identities are immutable'; END IF;
+  END IF;
   IF TG_OP = 'DELETE' THEN RETURN OLD; END IF;
   RETURN NEW;
 END;

@@ -130,6 +130,9 @@ describe("canonical graph identity schema expansion", () => {
     expect(contractMigration).toContain("LOCK TABLE");
     expect(contractMigration).toContain('BEFORE UPDATE OR DELETE ON "KnowledgeNodeVersion"');
     expect(contractMigration).toContain('BEFORE UPDATE OR DELETE ON "NodeEdge"');
+    expect(contractMigration).toContain("IF TG_TABLE_NAME = 'KnowledgeNodeVersion' THEN");
+    expect(contractMigration).toContain("ELSIF TG_TABLE_NAME = 'NodeEdge' THEN");
+    expect(contractMigration).toContain("ELSIF TG_TABLE_NAME = 'KnowledgeNode' THEN");
     expect(contractMigration).toContain("state singleton cannot be deleted");
     expect(contractMigration).toContain("RETURN false");
     expect(contractMigration).toContain("RETURN true");
