@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   buildEvidencePacket: vi.fn(),
   findNodeVersions: vi.fn(),
+  findDiscussableOccurrence: vi.fn(),
   findEdges: vi.fn(),
 }));
 
@@ -15,7 +16,10 @@ vi.mock("@oratlas/knowledge", () => ({
 }));
 vi.mock("./db", () => ({
   prisma: {
-    knowledgeNodeVersion: { findMany: mocks.findNodeVersions },
+    knowledgeNodeVersion: {
+      findMany: mocks.findNodeVersions,
+      findFirst: mocks.findDiscussableOccurrence,
+    },
     nodeEdge: { findMany: mocks.findEdges },
   },
 }));
@@ -25,6 +29,7 @@ vi.mock("./knowledge-landscape-service", () => ({
 }));
 
 import {
+  hasDiscussableCanonicalClaimOccurrence,
   issueDiscussionTraversalScope,
   selectDiscussionEvidence,
   verifyDiscussionTraversalScope,
@@ -33,6 +38,29 @@ import {
 describe("exact Atlas Discuss traversal scope", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it("gates Discuss on a resolvable exact claim occurrence", async () => {
+    mocks.findDiscussableOccurrence.mockResolvedValueOnce({ id: "claim-version" });
+    await expect(
+      hasDiscussableCanonicalClaimOccurrence([
+        { nodeId: "claim-node", nodeVersionId: "claim-version" },
+      ]),
+    ).resolves.toBe(true);
+    expect(mocks.findDiscussableOccurrence).toHaveBeenCalledWith({
+      where: expect.objectContaining({
+        sourceClaimId: { not: null },
+        OR: [{ id: "claim-version", knowledgeNodeId: "claim-node" }],
+      }),
+      select: { id: true },
+    });
+
+    mocks.findDiscussableOccurrence.mockResolvedValueOnce(null);
+    await expect(
+      hasDiscussableCanonicalClaimOccurrence([
+        { nodeId: "native-node", nodeVersionId: "native-version" },
+      ]),
+    ).resolves.toBe(false);
   });
 
   it("rejects an empty traversal before signing or selecting archive evidence", () => {

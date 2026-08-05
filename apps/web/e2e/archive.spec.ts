@@ -66,8 +66,8 @@ test.describe("Public archive browsing", () => {
 
     const details = page.getByRole("navigation", { name: "Knowledge landscape details" });
     await details.locator('section[aria-labelledby="landscape-claim-title"] a').first().click();
-    await expect(page).toHaveURL(/\/nodes\/[^/]+\/versions\/[^/]+$/);
-    await expect(page.getByText("Historical immutable version")).toBeVisible();
+    await expect(page).toHaveURL(/\/graph\/occurrences\/[^/]+\/versions\/[^/]+$/);
+    await expect(page.getByText("Exact canonical occurrence", { exact: true })).toBeVisible();
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
 
     await page.goBack();
@@ -76,7 +76,7 @@ test.describe("Public archive browsing", () => {
   });
 
   test("Atlas Discuss is a bounded lens after the traversable graph", async ({ page }) => {
-    await page.goto("/explore?q=replay&interest=data-code");
+    await page.goto("/explore?q=replay");
     await expect(
       page.getByRole("heading", { name: "Discuss the selected path with Atlas" }),
     ).toBeVisible();
@@ -139,6 +139,9 @@ test.describe("Public archive browsing", () => {
     await expect(
       landscape.getByRole("heading", { name: "When these records entered the literature" }),
     ).toHaveCount(0);
+    await expect(
+      page.getByRole("heading", { name: "Discuss the selected path with Atlas" }),
+    ).toHaveCount(0);
 
     await details.getByText("Why this?", { exact: true }).first().click();
     await expect(
@@ -146,9 +149,6 @@ test.describe("Public archive browsing", () => {
     ).toBeVisible();
     await expect(
       details.getByRole("link", { name: "Explore graph neighborhood" }).first(),
-    ).toBeVisible();
-    await expect(
-      details.getByRole("link", { name: "Inspect exact graph version" }).first(),
     ).toBeVisible();
     await details.getByRole("link", { name: "Mark as known" }).first().click();
     await expect(page).toHaveURL(/known=/);

@@ -29,7 +29,7 @@ describe("graph-native knowledge selection", () => {
           kind: "dataset",
           graphNodeId: "dataset-node",
           graphNodeVersionId: "dataset-version",
-          href: "/nodes/dataset-node/versions/dataset-version",
+          href: "/graph/occurrences/dataset-node/versions/dataset-version",
         }),
       ]),
     );

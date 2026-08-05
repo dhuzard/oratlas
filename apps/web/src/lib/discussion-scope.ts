@@ -37,6 +37,25 @@ type VisibleGraphScope = {
   edges: readonly { graphEdgeId: string }[];
 };
 
+/** Whether an exact visible graph scope contains a public claim occurrence Discuss can resolve. */
+export async function hasDiscussableCanonicalClaimOccurrence(
+  nodes: readonly { nodeId: string; nodeVersionId: string }[],
+): Promise<boolean> {
+  if (nodes.length === 0) return false;
+  const occurrence = await prisma.knowledgeNodeVersion.findFirst({
+    where: {
+      sourceClaimId: { not: null },
+      ...readableCanonicalNodeVersionWhere,
+      OR: nodes.map(({ nodeId, nodeVersionId }) => ({
+        id: nodeVersionId,
+        knowledgeNodeId: nodeId,
+      })),
+    },
+    select: { id: true },
+  });
+  return Boolean(occurrence);
+}
+
 /** Bind the exact canonical occurrences rendered by Explore to this server. */
 export function issueDiscussionTraversalScope(
   visible: VisibleGraphScope,

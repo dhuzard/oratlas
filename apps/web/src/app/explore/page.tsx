@@ -11,7 +11,10 @@ import { DiscussClient } from "@/app/discuss/DiscussClient";
 import { GraphCurationClient } from "./GraphCurationClient";
 import { EXPLORATION_INTERESTS, normalizeExplorationInterests } from "@/lib/knowledge-landscape";
 import { createKnowledgeLandscapeResponse } from "@/lib/knowledge-landscape-service";
-import { issueDiscussionTraversalScope } from "@/lib/discussion-scope";
+import {
+  hasDiscussableCanonicalClaimOccurrence,
+  issueDiscussionTraversalScope,
+} from "@/lib/discussion-scope";
 import {
   canonicalReferenceKey,
   resolveCanonicalReferenceLabels,
@@ -153,10 +156,7 @@ export default async function ExplorePage({
   ).length;
   const hasTraversableLandscape = Boolean(landscape && graphReferences.length > 0);
   const hasDiscussableLandscape = Boolean(
-    hasTraversableLandscape &&
-    landscape?.nodes.some(
-      (node) => node.kind === "claim" && node.graphNodeId && node.graphNodeVersionId,
-    ),
+    hasTraversableLandscape && (await hasDiscussableCanonicalClaimOccurrence(graphReferences)),
   );
   const discussionScope =
     hasDiscussableLandscape && landscape

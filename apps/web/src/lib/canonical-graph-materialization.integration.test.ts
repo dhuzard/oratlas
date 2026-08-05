@@ -123,6 +123,7 @@ describe("canonical review graph materialization", () => {
         localCitationId: "citation-1",
         doi: "https://doi.org/10.1000/SHARED",
         title: "Shared work, first occurrence",
+        authorsJson: JSON.stringify(["Ada Researcher", "Grace Reviewer"]),
       },
     });
     const second = await prisma.citation.create({
@@ -211,6 +212,10 @@ describe("canonical review graph materialization", () => {
       new Set(["work:doi:10.1000/shared"]),
     );
     expect(citations.every(({ graphVersion }) => graphVersion?.sourceCitationId)).toBe(true);
+    expect(JSON.parse(citations[0]!.graphVersion!.contributorsJson)).toEqual([
+      { displayName: "Ada Researcher" },
+      { displayName: "Grace Reviewer" },
+    ]);
 
     const relations = await prisma.claimEvidenceRelation.findMany({
       where: { claimId },

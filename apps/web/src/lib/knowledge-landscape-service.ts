@@ -40,6 +40,10 @@ export function canonicalLandscapeNodeId(nodeId: string, nodeVersionId: string):
   return `graph:${nodeId}:${nodeVersionId}`;
 }
 
+export function canonicalOccurrenceHref(nodeId: string, nodeVersionId: string): string {
+  return `/graph/occurrences/${encodeURIComponent(nodeId)}/versions/${encodeURIComponent(nodeVersionId)}`;
+}
+
 export type CanonicalLandscapeGraphProvider = (
   seedNodeId: string,
   seedNodeVersionId?: string,
@@ -239,7 +243,7 @@ function renderNode(node: CanonicalGraphNodeVersion, reasons?: string[]): Knowle
     statementFromPayload(node.payload) ??
     node.aliases[0]?.value ??
     `${node.kind} ${node.localNodeId}`;
-  const href = `/nodes/${encodeURIComponent(node.nodeId)}/versions/${encodeURIComponent(node.nodeVersionId)}`;
+  const href = canonicalOccurrenceHref(node.nodeId, node.nodeVersionId);
   return {
     id: canonicalLandscapeNodeId(node.nodeId, node.nodeVersionId),
     kind,

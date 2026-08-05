@@ -158,7 +158,7 @@ export async function materializeCanonicalReviewGraph(
       title: citation.title,
       abstract: null,
       text: citation.rawCitationJson,
-      contributorsJson: citation.authorsJson,
+      contributorsJson: canonicalCitationContributors(citation.id, citation.authorsJson),
       license: null,
       provenanceJson: canonicalJson({
         citationId: citation.id,
@@ -239,6 +239,28 @@ export async function materializeCanonicalReviewGraph(
     evidenceEdgeCount,
     workIdentityConflictCount,
   };
+}
+
+function canonicalCitationContributors(citationId: string, authorsJson: string): string {
+  let authors: unknown;
+  try {
+    authors = JSON.parse(authorsJson);
+  } catch {
+    throw new CanonicalGraphMaterializationError(
+      `Citation '${citationId}' has malformed author provenance.`,
+    );
+  }
+  if (!Array.isArray(authors) || authors.some((author) => typeof author !== "string")) {
+    throw new CanonicalGraphMaterializationError(
+      `Citation '${citationId}' authors must be a JSON string array.`,
+    );
+  }
+  return canonicalJson(
+    authors
+      .map((author) => author.trim())
+      .filter(Boolean)
+      .map((displayName) => ({ displayName })),
+  );
 }
 
 async function exactSourceAssertionEdge(
