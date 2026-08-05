@@ -69,6 +69,20 @@ describe.skipIf(!enabled)("PostgreSQL database guards", () => {
 
   it("validates final deferred state and keeps later finalization repeatable", async () => {
     const client = contractPrisma!;
+    await expect(
+      client.$queryRaw`
+        SELECT "oratlas_finalize_canonical_graph_contract"(
+          ${null}::text, ${"a".repeat(64)}
+        ) AS activated
+      `,
+    ).rejects.toThrow(/activation metadata is invalid/i);
+    await expect(
+      client.$queryRaw`
+        SELECT "oratlas_finalize_canonical_graph_contract"(
+          ${"a".repeat(301)}, ${"a".repeat(64)}
+        ) AS activated
+      `,
+    ).rejects.toThrow(/activation metadata is invalid/i);
     const first = await client.$queryRaw<Array<{ activated: boolean }>>`
       SELECT "oratlas_finalize_canonical_graph_contract"(
         ${"backupRuns/first"}, ${"a".repeat(64)}
@@ -145,8 +159,11 @@ describe.skipIf(!enabled)("PostgreSQL database guards", () => {
       Array<{ tgname: string; definition: string }>
     >`
       SELECT tgname, pg_get_triggerdef(oid) AS definition
-      FROM pg_trigger
-      WHERE tgname IN ('DecisionLetter_immutable_delete_guard', 'EditorialDecisionProvenance_immutable_delete_guard')
+      FROM pg_trigger AS trigger
+      JOIN pg_class AS relation ON relation.oid = trigger.tgrelid
+      JOIN pg_namespace AS namespace ON namespace.oid = relation.relnamespace
+      WHERE namespace.nspname = current_schema()
+        AND tgname IN ('DecisionLetter_immutable_delete_guard', 'EditorialDecisionProvenance_immutable_delete_guard')
     `;
     expect(immutableDeleteTriggers).toHaveLength(2);
     expect(

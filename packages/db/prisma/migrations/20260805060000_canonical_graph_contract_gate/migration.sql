@@ -45,7 +45,13 @@ CREATE TABLE "CanonicalGraphContractState" (
   CONSTRAINT "CanonicalGraphContractState_singleton_check" CHECK ("id" = 1),
   CONSTRAINT "CanonicalGraphContractState_shape_check" CHECK (
     ("enforced" = false AND "backupId" IS NULL AND "manifestDigest" IS NULL AND "enforcedAt" IS NULL)
-    OR ("enforced" = true AND "backupId" ~ '^[A-Za-z0-9._/-]{1,300}$' AND "manifestDigest" ~ '^[a-f0-9]{64}$' AND "enforcedAt" IS NOT NULL)
+    OR ("enforced" = true
+      AND "backupId" IS NOT NULL
+      AND char_length("backupId") BETWEEN 1 AND 300
+      AND "backupId" ~ '^[A-Za-z0-9._/-]+$'
+      AND "manifestDigest" IS NOT NULL
+      AND "manifestDigest" ~ '^[a-f0-9]{64}$'
+      AND "enforcedAt" IS NOT NULL)
   )
 );
 INSERT INTO "CanonicalGraphContractState" ("id", "enforced") VALUES (1, false);
@@ -218,7 +224,12 @@ CREATE OR REPLACE FUNCTION "oratlas_finalize_canonical_graph_contract"(
   supplied_backup_id text, supplied_manifest_digest text
 ) RETURNS boolean AS $$
 BEGIN
-  IF supplied_backup_id !~ '^[A-Za-z0-9._/-]{1,300}$' OR supplied_manifest_digest !~ '^[a-f0-9]{64}$' THEN
+  IF supplied_backup_id IS NULL
+    OR char_length(supplied_backup_id) NOT BETWEEN 1 AND 300
+    OR supplied_backup_id !~ '^[A-Za-z0-9._/-]+$'
+    OR supplied_manifest_digest IS NULL
+    OR supplied_manifest_digest !~ '^[a-f0-9]{64}$'
+  THEN
     RAISE EXCEPTION 'Canonical graph contract activation metadata is invalid';
   END IF;
   LOCK TABLE "Review", "ReviewVersion", "Claim", "Citation", "ClaimEvidenceRelation",

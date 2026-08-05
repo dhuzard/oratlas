@@ -133,6 +133,10 @@ describe("canonical graph identity schema expansion", () => {
     expect(contractMigration).toContain("state singleton cannot be deleted");
     expect(contractMigration).toContain("RETURN false");
     expect(contractMigration).toContain("RETURN true");
+    expect(contractMigration).toContain('"backupId" IS NOT NULL');
+    expect(contractMigration).toContain('char_length("backupId") BETWEEN 1 AND 300');
+    expect(contractMigration).toContain("supplied_backup_id IS NULL");
+    expect(contractMigration).not.toContain("[A-Za-z0-9._/-]{1,300}");
     expect(contractMigration).toContain("ON DELETE RESTRICT");
     expect(contractMigration).toContain("Publication lifecycle is mutable access-control state");
     expect(contractMigration).toContain('v."payloadJson"::jsonb = jsonb_build_object');
