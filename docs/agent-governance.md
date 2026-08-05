@@ -113,6 +113,23 @@ private until a human editor confirms or rejects it in the existing queue. Gener
 a public edge, TRUST assessment, consensus label, confidence score, or scientific-truth decision.
 The request-scoped provider key is cleared by the client and never written to the run or proposal.
 
+### Claim and evidence extraction proposals during ingestion
+
+AI extraction is an optional proposal layer after deterministic inspection; it never replaces the
+manifest, JSONL, metadata, compatibility, DOI, or provenance extractors. The versioned packet is
+pinned to the explicitly selected repository commit and tree, includes at most twelve eligible text
+files within fixed byte budgets, and hashes every exact file. Proposed claims and citations must
+name a packet file and an exact UTF-8 byte span whose SHA-256 is independently verified. Citation
+text must equal that source span, and relations may reference only proposal identifiers in the same
+validated output.
+
+Validated output is still `human-review-required`: it is not an accepted claim, evidence relation,
+public graph edge, TRUST assessment, consensus label, or scientific finding. Unknown files,
+out-of-bounds or multibyte-splitting spans, changed hashes, duplicate identifiers, dangling
+relations, and schema extensions fail closed. This slice defines the provider-neutral packet and
+validation boundary; provider execution, durable proposal storage, and the ingestion review UI must
+preserve those constraints when added.
+
 ## Provenance and audit
 
 Every agent action records its provenance (`AgentRun`, `KnowledgeLinkProposal.agentProvenance`,
