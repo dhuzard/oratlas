@@ -227,11 +227,17 @@ describe.sequential("knowledge-node persistence", () => {
     expect(tracedVersion.sourceSubmission?.id).toBe(submission.id);
     expect(tracedVersion.inspectionCapture?.payloadHash).toBe(capture.payloadHash);
     expect(tracedVersion.capturePayloadHash).toBe(capture.payloadHash);
+    expect(tracedVersion.knowledgeNode.repositoryId).toBe(repository.id);
+    const tracedSnapshot = tracedVersion.snapshot;
+    expect(tracedSnapshot).not.toBeNull();
+    if (!tracedVersion.knowledgeNode.repositoryId || !tracedSnapshot) {
+      throw new Error("Expected repository-backed test node provenance.");
+    }
     expect(() =>
       assertKnowledgeNodeMaterializationBinding({
         repository,
         node: tracedVersion.knowledgeNode,
-        snapshot: tracedVersion.snapshot,
+        snapshot: tracedSnapshot,
         submission: tracedVersion.sourceSubmission!,
         capture: tracedVersion.inspectionCapture!,
         version: tracedVersion,

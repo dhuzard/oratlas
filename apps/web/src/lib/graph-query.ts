@@ -86,6 +86,7 @@ async function loadSeedRows(ids?: string[]) {
 }
 
 function mapGraphNode(node: GraphNodeRow, version: GraphVersion): PublicGraphNode | undefined {
+  if (!node.repository) return undefined;
   const mapped = tryMapPublicNodeVersion(node, version);
   if (!mapped) return undefined;
   const parsed = publicGraphNodeSchema.safeParse({

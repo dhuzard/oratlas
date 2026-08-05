@@ -42,8 +42,9 @@ The POC ships a restrained, scholarly server-rendered interface:
 - **Editorial dashboard** — validation reports, metadata diff, decisions, formal challenges, and
   the audit log.
 
-Agents can request the same bounded Explore projection through the versioned
-[`GET /api/landscape`](docs/knowledge-landscape-api.md) contract.
+Agents can request a bounded, explicit-interest ranking of canonical graph references through the
+versioned [`GET /api/landscape`](docs/knowledge-landscape-api.md) contract; record content remains
+in the reader-agnostic [`GET /api/graph`](docs/canonical-graph-api.md) traversal API.
 
 ## Architecture summary
 
@@ -71,6 +72,12 @@ CLI scripts; the web app is server-rendered Next.js (App Router).
 | `docs`                         | Architecture, governance, schemas, deployment                        |
 
 Full detail: [`docs/architecture.md`](docs/architecture.md).
+
+The accepted canonical-graph direction gives reviews and cited works stable node identities without
+inventing repository provenance or rewriting existing TRUST/challenge subjects. Its production
+migration is intentionally not part of the enum change: it requires a verified Cloud SQL backup and
+an expand → dual-write → backfill → contract rollout. See
+[`docs/canonical-graph-identity.md`](docs/canonical-graph-identity.md).
 
 ## Local setup
 
@@ -245,6 +252,7 @@ A full inventory of limitations lives in [`docs/poc-limitations.md`](docs/poc-li
 | Document                                                                                       | Contents                                                  |
 | ---------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
 | [`docs/architecture.md`](docs/architecture.md)                                                 | Monorepo layout, package boundaries, swappable interfaces |
+| [`docs/canonical-graph-identity.md`](docs/canonical-graph-identity.md)                         | Canonical identities, compatibility invariants, migration |
 | [`docs/data-model.md`](docs/data-model.md)                                                     | Prisma schema walkthrough                                 |
 | [`docs/submission-workflow.md`](docs/submission-workflow.md)                                   | UI flow, capture capability, editorial pipeline           |
 | [`docs/article-lifecycle.md`](docs/article-lifecycle.md)                                       | Article reader, version diff, corrections, tombstones     |

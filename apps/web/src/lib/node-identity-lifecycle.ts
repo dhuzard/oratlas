@@ -50,7 +50,7 @@ export async function materializeSameClaimProposals(
   }
   const candidates = rows.flatMap((row): NodeIdentityCandidate[] => {
     const version = row.versions[0];
-    if (!version) return [];
+    if (!version || !row.repositoryId) return [];
     try {
       const payload = JSON.parse(version.payloadJson) as {
         statement?: unknown;
@@ -196,7 +196,16 @@ export async function listPendingNodeIdentityProposals() {
   return rows.flatMap((row) => {
     const sourceVersion = row.sourceNode.versions[0];
     const targetVersion = row.targetNode.versions[0];
-    if (!sourceVersion || !targetVersion) return [];
+    if (
+      !sourceVersion ||
+      !targetVersion ||
+      !row.sourceNode.repository ||
+      !row.targetNode.repository ||
+      !sourceVersion.title ||
+      !targetVersion.title
+    ) {
+      return [];
+    }
     return [
       {
         id: row.id,

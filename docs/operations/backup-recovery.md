@@ -45,6 +45,27 @@ The current service objectives are:
 Recommended: daily automated backups, plus an on-demand backup immediately before any schema
 migration or destructive maintenance (see the migration notes in [postgres.md](./postgres.md)).
 
+The GCP pipeline enforces that pre-migration recovery point. It fails closed unless scheduled
+backups and point-in-time recovery are enabled, creates an on-demand backup synchronously, verifies
+the exact backup has status `SUCCESSFUL`, and records its opaque id before the migration job can execute.
+This proves that a recovery point exists; it does not replace a staging restore drill proving that
+the recovery path works.
+
+The gate creates a managed Cloud SQL backup, not a `pg_dump` file. Inspect and restore that exact
+recovery point with Cloud SQL tooling:
+
+```bash
+gcloud sql backups describe BACKUP_ID --instance="$SQL_INSTANCE" --project="$PROJECT_ID"
+gcloud sql backups restore BACKUP_ID \
+  --restore-instance="$SQL_INSTANCE" \
+  --project="$PROJECT_ID"
+```
+
+Restore is destructive to the target instance. Rehearse it against a staging or clone instance
+and verify the schema, canonical contract state, readiness, and representative public records
+before restoring production. `scripts/restore.ts` can guide dump-file restoration but cannot
+consume a managed Cloud SQL backup id.
+
 ## Recovery drill
 
 Run this end to end periodically so recovery is proven, not assumed:

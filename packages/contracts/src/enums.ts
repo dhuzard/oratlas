@@ -77,14 +77,27 @@ export const reviewTypeSchema = z.enum(REVIEW_TYPES);
 export type ReviewType = z.infer<typeof reviewTypeSchema>;
 
 /** First-class publication objects in the Atlas knowledge graph. */
-export const KNOWLEDGE_NODE_KINDS = ["claim", "figure", "dataset", "code"] as const;
+export const KNOWLEDGE_NODE_KINDS = [
+  "claim",
+  "figure",
+  "dataset",
+  "code",
+  "review",
+  "work",
+] as const;
 export const knowledgeNodeKindSchema = z.enum(KNOWLEDGE_NODE_KINDS);
 export type KnowledgeNodeKind = z.infer<typeof knowledgeNodeKindSchema>;
 
 /** Directed semantic relation between two knowledge nodes. */
 export const NODE_RELATION_TYPES = [
+  "asserts",
   "supports",
+  "partially-supports",
   "contradicts",
+  "contextualizes",
+  "method-source",
+  "background",
+  "unclear",
   "replicates",
   "extends",
   "uses-dataset",
@@ -96,6 +109,7 @@ export type NodeRelationType = z.infer<typeof nodeRelationTypeSchema>;
 
 /** Who asserted the current public meaning of a node edge. */
 export const NODE_EDGE_PROVENANCES = [
+  "imported-from-review",
   "asserted-by-author",
   "proposed-by-agent",
   "confirmed-by-editor",
@@ -104,7 +118,13 @@ export const nodeEdgeProvenanceSchema = z.enum(NODE_EDGE_PROVENANCES);
 export type NodeEdgeProvenance = z.infer<typeof nodeEdgeProvenanceSchema>;
 
 /** Editorial lifecycle for node edges. Only confirmed edges are authoritative. */
-export const NODE_EDGE_STATUSES = ["proposed", "confirmed", "rejected", "superseded"] as const;
+export const NODE_EDGE_STATUSES = [
+  "source-assertion",
+  "proposed",
+  "confirmed",
+  "rejected",
+  "superseded",
+] as const;
 export const nodeEdgeStatusSchema = z.enum(NODE_EDGE_STATUSES);
 export type NodeEdgeStatus = z.infer<typeof nodeEdgeStatusSchema>;
 
