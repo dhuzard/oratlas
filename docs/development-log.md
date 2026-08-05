@@ -18,6 +18,17 @@
 
 Chronological record of implementation slices, decisions, and verification outcomes.
 
+## 2026-08-05 — Explore traversal surface
+
+- Made the connected knowledge landscape the primary Explore content and removed both ranked
+  claim/review result lists. Search, interests, and claim/evidence filters now establish or refine a
+  graph entry rather than selecting a row-oriented results view.
+- Kept comprehensive lookup explicit on `/claims` and `/archive`, with scoped handoff links from
+  Explore. Removed legacy `view`, `sort`, and pagination state from newly generated traversal URLs.
+- Moved Atlas Discuss after the inspectable map and labelled it as a bounded grounded lens. Reader
+  known-set state remains explicit in repeated `known` URL parameters across search and interest
+  changes.
+
 ## 2026-08-05 — Guarded PostgreSQL migration baseline
 
 - Replaced the production `db push` entry point with a wrapper that bootstraps only an empty

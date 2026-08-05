@@ -33,7 +33,7 @@ Unknown interests fail validation rather than becoming hidden personalization ca
 [agent-facing API guide](knowledge-landscape-api.md) and complete contract in
 [`openapi.yaml`](openapi.yaml).
 
-Atlas Discuss is a bounded lens beside graph traversal, not the canonical Explore front door. When
+Atlas Discuss is a bounded lens following graph traversal, not the canonical Explore front door. When
 an explicit Explore topic, interest, filter, or graph focus is present, its evidence packet is
 selected through the internal landscape service and
 restricted to the exact accepted claim identities in the visible projection. Changing the question

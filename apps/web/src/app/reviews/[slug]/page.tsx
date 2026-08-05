@@ -229,7 +229,7 @@ export default async function ReviewPage({
         dangerouslySetInnerHTML={{ __html: serializeJsonForHtml(jsonLd) }}
       />
 
-      <ExploreBreadcrumb current="Review record" href="/explore?view=reviews" />
+      <ExploreBreadcrumb current="Review record" href="/explore" />
 
       <div className="btn-row" style={{ marginBottom: "0.5rem" }}>
         <StatusPill status={review.status} />

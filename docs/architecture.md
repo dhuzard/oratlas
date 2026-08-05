@@ -117,10 +117,12 @@ the same interface later.
 
 ### Guided exploration
 
-`/explore` is the primary public discovery surface. It combines claim and review search with an
-optional graph-native knowledge landscape. Readers answer what they want to understand with a topic
-and explicit interest lenses; the application stores the query, repeated `interest` values,
-filters, and optional `focus` node in the URL rather than an inferred account profile.
+`/explore` is the primary public discovery surface and the graph landscape is its main content.
+Search supplies an entry point into connected traversal; Explore does not append ranked claim or
+review rows beneath the graph. Readers answer what they want to understand with a topic and explicit
+interest lenses; the application stores the query, repeated `interest` and `known` values, filters,
+and optional `focus` node in the URL rather than an inferred account profile. Exhaustive lookup stays
+available on the separate `/claims` and `/archive` indexes.
 
 `apps/web/src/lib/knowledge-landscape-service.ts` builds the rendering model used only by Explore.
 It searches at most the first 40 matching claim candidates. For at most six explicitly bridged
@@ -134,7 +136,7 @@ reasons, and confirmed anchors to an explicitly submitted reader-known set. Labe
 timelines, and focus state stay in the rendering layer. The known set is request state and is never
 written to graph records or inferred from behavior.
 
-The internal projection contains at most six claims, ten citation-evidence records, three graph
+The human rendering projection contains at most six claims, ten citation-evidence records, three graph
 seeds, and twelve graph identities. Recommendations expose stable node IDs, exact readable version
 IDs when applicable, and plain-language selection reasons. The GUI can reduce its rendering model
 to a selected node plus its immediate neighbors. The recommendation API rejects focus state and
@@ -142,7 +144,8 @@ unknown interests, while the server-rendered page ignores unknown URL interest v
 calling the service.
 
 The overlay ranks paths for exploration, not scientific truth, evidence quality, consensus, or
-TRUST. It never mutates a preserved record. See the
+TRUST. Atlas Discuss follows the visible map as a bounded grounded lens instead of serving as the
+Explore front door. Neither surface mutates a preserved record. See the
 [explicit-interest recommendation API](knowledge-landscape-api.md).
 
 ### Grounded Q&A (Atlas Discuss implementation)

@@ -17,25 +17,19 @@ test.describe("Public archive browsing", () => {
     await expect(page.getByRole("link", { name: /Hippocampal Replay/ }).first()).toBeVisible();
   });
 
-  test("unified Explore defaults to claims and switches to reviews", async ({ page }) => {
+  test("Explore is a traversal surface with separate exhaustive indexes", async ({ page }) => {
     await page.goto("/explore");
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-      "Ask Atlas, then inspect the evidence graph",
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Traverse the evidence graph");
+    await expect(page.locator(".explore-results")).toHaveCount(0);
+    const indexes = page.getByRole("region", { name: "Need an exhaustive record list?" });
+    await expect(indexes.getByRole("link", { name: "Open claim explorer" })).toHaveAttribute(
+      "href",
+      "/claims",
     );
-    const contentNavigation = page.getByRole("navigation", { name: "Explore content" });
-    await expect(contentNavigation.getByRole("link", { name: /Claims/ })).toHaveAttribute(
-      "aria-current",
-      "page",
+    await expect(indexes.getByRole("link", { name: "Open archive" })).toHaveAttribute(
+      "href",
+      "/archive",
     );
-    await expect(page.locator(".explore-result").first()).toBeVisible();
-
-    await contentNavigation.getByRole("link", { name: /Reviews/ }).click();
-    await expect(page).toHaveURL(/\/explore\?view=reviews/);
-    await expect(contentNavigation.getByRole("link", { name: /Reviews/ })).toHaveAttribute(
-      "aria-current",
-      "page",
-    );
-    await expect(page.getByRole("link", { name: /Hippocampal Replay/ }).first()).toBeVisible();
   });
 
   test("first-time readers can inspect a claim and return to Explore", async ({ page }) => {
@@ -44,30 +38,31 @@ test.describe("Public archive browsing", () => {
       "The arXiv for AI-generated scientific reviews.",
     );
 
-    await page.getByRole("button", { name: "Explore claims and evidence" }).click();
-    await expect(page).toHaveURL(/\/explore\?view=claims/);
+    await page.getByLabel("Search claims, reviews, or authors").fill("replay");
+    await page.getByRole("button", { name: "Enter the evidence graph" }).click();
+    await expect(page).toHaveURL(/\/explore\?q=replay/);
 
-    await page.locator(".explore-result h2 a").first().click();
+    const details = page.getByRole("navigation", { name: "Knowledge landscape details" });
+    await details.locator('section[aria-labelledby="landscape-claim-title"] a').first().click();
     await expect(page).toHaveURL(/\/claims\/[^/]+\/[^/]+$/);
     await expect(page.getByRole("navigation", { name: "Inspect this claim" })).toBeVisible();
 
     const breadcrumb = page.getByRole("navigation", { name: "Breadcrumb" });
     await expect(breadcrumb.getByRole("link", { name: "Explore" })).toHaveAttribute(
       "href",
-      "/explore?view=claims",
+      "/explore",
     );
     await breadcrumb.getByRole("link", { name: "Explore" }).click();
-    await expect(page).toHaveURL(/\/explore\?view=claims/);
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-      "Ask Atlas, then inspect the evidence graph",
-    );
+    await expect(page).toHaveURL(/\/explore$/);
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Traverse the evidence graph");
   });
 
-  test("Atlas Discuss is central and bounded to explicit Explore state", async ({ page }) => {
+  test("Atlas Discuss is a bounded lens after the traversable graph", async ({ page }) => {
     await page.goto("/explore?q=replay&interest=data-code");
     await expect(
-      page.getByRole("heading", { name: "Discuss this landscape with Atlas" }),
+      page.getByRole("heading", { name: "Discuss the selected path with Atlas" }),
     ).toBeVisible();
+    await expect(page.locator(".explore-ai-landscape + .explore-ai-discuss")).toHaveCount(1);
     await expect(page.getByLabel("Your question")).toHaveValue("replay");
     const scope = page.getByLabel("Atlas Discuss evidence scope");
     await expect(scope).toContainText("Topic: replay");
@@ -186,16 +181,13 @@ test.describe("Public archive browsing", () => {
 
   test("unified Explore safely handles malformed public query parameters", async ({ page }) => {
     await page.goto("/explore?page=abc");
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-      "Ask Atlas, then inspect the evidence graph",
-    );
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Traverse the evidence graph");
     await expect(page.getByText("Page NaN")).toHaveCount(0);
 
     await page.goto("/explore?view=reviews&page=abc&sort=unexpected");
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-      "Ask Atlas, then inspect the evidence graph",
-    );
-    await expect(page.locator("#sort")).toHaveValue("accepted");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Traverse the evidence graph");
+    await expect(page.locator(".explore-results")).toHaveCount(0);
+    await expect(page.locator("#sort")).toHaveCount(0);
   });
 
   test("archive filters to repository-only reviews", async ({ page }) => {
@@ -210,7 +202,7 @@ test.describe("Public archive browsing", () => {
     await expect(page.getByRole("heading", { level: 1 })).toContainText("Hippocampal Replay");
     await expect(
       page.getByRole("navigation", { name: "Breadcrumb" }).getByRole("link", { name: "Explore" }),
-    ).toHaveAttribute("href", "/explore?view=reviews");
+    ).toHaveAttribute("href", "/explore");
     const inspectionPath = page.getByRole("navigation", { name: "Inspect this review" });
     await expect(inspectionPath.getByRole("link", { name: /Original record/ })).toHaveAttribute(
       "href",

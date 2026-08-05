@@ -4,11 +4,11 @@ import { EXPLORATION_INTERESTS, type ExplorationInterest } from "@/lib/knowledge
 export function ExplorationIntent({
   query,
   selectedInterests,
-  view,
+  knownNodeIds,
 }: {
   query?: string;
   selectedInterests: ExplorationInterest[];
-  view: "claims" | "reviews";
+  knownNodeIds: string[];
 }) {
   return (
     <section className="exploration-intent" aria-labelledby="exploration-intent-title">
@@ -17,11 +17,14 @@ export function ExplorationIntent({
         <h2 id="exploration-intent-title">What do you want to understand?</h2>
         <p>
           Describe a topic, then choose the lenses that matter to you. ORAtlas will show a small,
-          explainable path through matching graph nodes. The complete results remain below.
+          explainable path through matching graph nodes. Complete record indexes remain separately
+          available when you need exhaustive lookup.
         </p>
       </div>
       <form action="/explore" method="get">
-        <input type="hidden" name="view" value={view} />
+        {knownNodeIds.map((nodeId) => (
+          <input type="hidden" name="known" value={nodeId} key={nodeId} />
+        ))}
         <div className="field exploration-topic">
           <label htmlFor="exploration-topic">Topic or question</label>
           <input
@@ -56,7 +59,7 @@ export function ExplorationIntent({
             Show my knowledge path
           </button>
           {selectedInterests.length > 0 ? (
-            <Link href={resetHref(view, query)}>Reset interests</Link>
+            <Link href={resetHref(query, knownNodeIds)}>Reset interests</Link>
           ) : null}
         </div>
       </form>
@@ -64,8 +67,9 @@ export function ExplorationIntent({
   );
 }
 
-function resetHref(view: "claims" | "reviews", query?: string): string {
-  const parameters = new URLSearchParams({ view });
+function resetHref(query?: string, knownNodeIds: string[] = []): string {
+  const parameters = new URLSearchParams();
   if (query) parameters.set("q", query);
+  for (const nodeId of knownNodeIds) parameters.append("known", nodeId);
   return `/explore?${parameters}`;
 }
