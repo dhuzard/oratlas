@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { knowledgeLandscapeQuerySchema } from "@oratlas/contracts";
 import { getServerEnv } from "@oratlas/config";
 import { getCurrentUser } from "@/lib/auth";
 import { runDiscussion } from "@/lib/discuss";
@@ -28,14 +29,25 @@ const requestLlmSchema = z.object({
     .optional(),
 });
 
-const bodySchema = z.object({
-  question: z.string().min(3).max(1000),
-  reviewSlugs: z.array(z.string().max(200)).max(50).optional(),
-  llm: requestLlmSchema.optional(),
-});
+const bodySchema = z
+  .object({
+    question: z.string().min(3).max(1000),
+    reviewSlugs: z.array(z.string().max(200)).max(50).optional(),
+    scope: knowledgeLandscapeQuerySchema.optional(),
+    llm: requestLlmSchema.optional(),
+  })
+  .strict();
 
 export async function POST(request: Request) {
   try {
+    const integrity = validateSameOriginJsonRequest(request, getServerEnv().NEXT_PUBLIC_BASE_URL);
+    if (!integrity.ok) {
+      return errorResponse(
+        integrity.status === 415 ? "bad-request" : "forbidden",
+        integrity.message,
+      );
+    }
+
     const user = await getCurrentUser();
     const limit = rateLimit(
       clientKey(request.headers, `discuss:${user?.id ?? "anon"}`),
@@ -53,20 +65,11 @@ export async function POST(request: Request) {
         "A valid question and optional Anthropic/OpenAI key configuration are required.",
       );
 
-    if (parsed.data.llm) {
-      const integrity = validateSameOriginJsonRequest(request, getServerEnv().NEXT_PUBLIC_BASE_URL);
-      if (!integrity.ok) {
-        return errorResponse(
-          integrity.status === 415 ? "bad-request" : "forbidden",
-          integrity.message,
-        );
-      }
-    }
-
     const response = await runDiscussion(
       parsed.data.question,
       parsed.data.reviewSlugs,
       parsed.data.llm,
+      parsed.data.scope,
     );
     return NextResponse.json(response);
   } catch (err) {
