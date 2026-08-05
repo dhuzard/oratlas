@@ -11,10 +11,12 @@ import { SpecialistTools } from "@/components/SpecialistTools";
 import { ExplorationIntent } from "@/components/ExplorationIntent";
 import { KnowledgeLandscape } from "@/components/KnowledgeLandscape";
 import { DiscussClient } from "@/app/discuss/DiscussClient";
+import { GraphCurationClient } from "./GraphCurationClient";
 import { EXPLORATION_INTERESTS, normalizeExplorationInterests } from "@/lib/knowledge-landscape";
 import { createKnowledgeLandscapeResponse } from "@/lib/knowledge-landscape-service";
 import { searchArchive } from "@/lib/archive-search";
 import { buildKnowledgeIndex } from "@/lib/index-builder";
+import { getCurrentUser, isEditor } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -62,7 +64,7 @@ export default async function ExplorePage({
   const sort = archiveSort(get("sort"));
   const selectedInterests = normalizeExplorationInterests(all(parameters, "interest"));
   const requestedLandscapeFocus = get("focus")?.trim() || undefined;
-  const index = await buildKnowledgeIndex();
+  const [index, user] = await Promise.all([buildKnowledgeIndex(), getCurrentUser()]);
   const provider = new InProcessSearchProvider(index);
 
   const claimResults = provider.searchClaims({
@@ -167,6 +169,12 @@ export default async function ExplorePage({
             scope={hasExplicitLandscapeScope ? landscapeResponse.query : undefined}
             embedded
           />
+          {isEditor(user) && hasExplicitLandscapeScope && landscape.graphNodeCount >= 2 ? (
+            <GraphCurationClient
+              scope={landscapeResponse.query}
+              initialQuestion={q ?? "Which graph relations are missing from this landscape?"}
+            />
+          ) : null}
         </div>
         <div className="explore-ai-landscape">
           {hasExplicitLandscapeScope ? (

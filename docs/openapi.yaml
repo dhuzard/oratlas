@@ -1160,6 +1160,21 @@ components:
               minLength: 1
               maxLength: 120
               pattern: "^[A-Za-z0-9._:-]+$"
+    GraphCurationRequest:
+      type: object
+      additionalProperties: false
+      required: [question, scope, llm]
+      properties:
+        question: { type: string, minLength: 3, maxLength: 1000 }
+        scope: { $ref: "#/components/schemas/KnowledgeLandscapeQuery" }
+        llm:
+          type: object
+          additionalProperties: false
+          required: [provider, apiKey]
+          properties:
+            provider: { type: string, enum: [anthropic, openai] }
+            apiKey: { type: string, minLength: 20, maxLength: 500, format: password }
+            model: { type: string, minLength: 1, maxLength: 120, pattern: "^[A-Za-z0-9._:-]+$" }
     CommentCreateRequest:
       type: object
       required: [body]
@@ -2616,6 +2631,26 @@ paths:
         "403": { $ref: "#/components/responses/Error" }
         "409": { $ref: "#/components/responses/Error" }
         "415": { $ref: "#/components/responses/Error" }
+  /api/editorial/graph-curation:
+    post:
+      summary: Generate private, schema-grounded graph relation proposals (editor only)
+      description: >
+        Resolves an explicit bounded Explore scope, permits only existing node-version and
+        landscape identifiers, and creates private NodeEdgeProposal records. It never confirms or
+        publishes an edge. The request-scoped provider key is not persisted.
+      security: [{ session: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/GraphCurationRequest" }
+      responses:
+        "200": { description: Private proposals created or a bounded abstention returned }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "415": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/Error" }
   /api/editorial/trust:
     post:
       summary: Record a hash-bound Atlas structural review of an imported TRUST assessment

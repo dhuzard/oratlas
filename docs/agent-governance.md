@@ -99,6 +99,20 @@ normalized text similarity) as **proposals** (`status = proposed`), never facts.
 identifier clusters are flagged and excluded from alias-based linking. The public UI labels
 unreviewed proposals as such. States: `proposed` → `accepted` / `rejected` / `superseded`.
 
+### AI-assisted graph curation
+
+Only authenticated editors can request AI graph curation from an explicit bounded Explore scope.
+The provider receives at most twelve existing public node versions and their confirmed edges. Its
+strict JSON output may reference only packet node-version and landscape identifiers, an allowed
+relation type, a rationale, and exact basis nodes. Unknown identifiers, self-edges, duplicates,
+already-confirmed edges, prose fences, and schema extensions are rejected.
+
+Each accepted candidate is persisted through the existing `NodeEdgeProposal` lifecycle as
+`proposed-by-agent`, linked to a succeeded `AgentRun` and its canonical packet hash. It remains
+private until a human editor confirms or rejects it in the existing queue. Generation cannot create
+a public edge, TRUST assessment, consensus label, confidence score, or scientific-truth decision.
+The request-scoped provider key is cleared by the client and never written to the run or proposal.
+
 ## Provenance and audit
 
 Every agent action records its provenance (`AgentRun`, `KnowledgeLinkProposal.agentProvenance`,
