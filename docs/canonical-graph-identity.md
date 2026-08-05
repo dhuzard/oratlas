@@ -1,6 +1,6 @@
 # Canonical graph identity and compatibility migration
 
-Status: **accepted architecture; expand, source-union compatibility, and dual-write prepared, not yet deployed**.
+Status: **accepted architecture; expand, source-union, dual-write, and guarded backfill prepared, not yet deployed**.
 
 ## Decision
 

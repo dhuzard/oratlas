@@ -15,6 +15,8 @@ const databaseUrl = `file:./${fileName}`;
 let prisma: PrismaClient;
 let reviewVersionId: string;
 let claimId: string;
+let repositoryId: string;
+let snapshotId: string;
 
 describe("canonical review graph materialization", () => {
   beforeAll(async () => {
@@ -73,6 +75,8 @@ describe("canonical review graph materialization", () => {
         contentHash: "b".repeat(64),
       },
     });
+    repositoryId = repository.id;
+    snapshotId = snapshot.id;
     const review = await prisma.review.create({
       data: {
         slug: "canonical-graph-fixture",
@@ -251,6 +255,47 @@ describe("canonical review graph materialization", () => {
     expect(resolved.knowledgeNodeId).not.toBe(pmidWork.id);
     expect(resolved.workIdentityConflict).toMatchObject({
       reason: "incompatible-or-ambiguous-alias-set",
+    });
+  });
+
+  it("preserves an explicit legacy claim-node identity and adds only its exact occurrence", async () => {
+    const node = await prisma.knowledgeNode.create({
+      data: {
+        repositoryId,
+        localNodeId: "explicit-claim-node",
+        kind: "claim",
+        versions: {
+          create: {
+            snapshotId,
+            title: "Explicit repository claim",
+            contributorsJson: "[]",
+            license: "CC-BY-4.0",
+            provenanceJson: '{"sourcePath":"claims.json"}',
+            payloadJson: '{"statement":"Explicit claim","qualifiers":[]}',
+          },
+        },
+      },
+    });
+    const claim = await prisma.claim.create({
+      data: {
+        reviewVersionId,
+        knowledgeNodeId: node.id,
+        localClaimId: "claim-explicit",
+        text: "Explicitly bound legacy claim.",
+        normalizedText: "explicitly bound legacy claim.",
+      },
+    });
+
+    await prisma.$transaction((tx) => materializeCanonicalReviewGraph(tx, reviewVersionId));
+    const rebound = await prisma.claim.findUniqueOrThrow({
+      where: { id: claim.id },
+      include: { graphVersion: true },
+    });
+    expect(rebound.knowledgeNodeId).toBe(node.id);
+    expect(rebound.graphVersion).toMatchObject({
+      knowledgeNodeId: node.id,
+      sourceClaimId: claim.id,
+      snapshotId: null,
     });
   });
 });

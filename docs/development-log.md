@@ -981,3 +981,15 @@ Two fail-closed gaps were found and intentionally not changed in this audit-only
   guessing a merge.
 - Preserved legacy relation ids and TRUST subject bytes; new bindings are additive and source
   assertions have no editor confirmer.
+
+## 2026-08-05 — Canonical graph backfill and validation runner
+
+- Added a bounded, cursor-resumable CLI whose default mode is read-only validation and whose apply
+  mode requires both an explicit flag and a retained manifest.
+- Wrapped each review version in a serializable transaction and verified that scoped TRUST,
+  verification, challenge, response, transition, and adjudication bytes have an identical SHA-256
+  before and after materialization.
+- Added per-version missing-binding and edge-semantic validation, fail-fast behavior, next-cursor
+  reporting, and a production backup-id gate.
+- Preserved explicit legacy claim-node bindings; backfill adds an exact claim occurrence version to
+  that stable node rather than inferring a replacement identity.

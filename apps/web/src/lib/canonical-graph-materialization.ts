@@ -77,13 +77,22 @@ export async function materializeCanonicalReviewGraph(
 
   const claimVersionById = new Map<string, string>();
   for (const claim of version.claims) {
-    const node = await stableNode(tx, {
-      stableKey: `claim:${claim.id}`,
-      originType: "claim-occurrence",
-      localNodeId: claim.id,
-      kind: "claim",
-    });
-    assertNullableBinding("claim", claim.knowledgeNodeId, node.id);
+    const explicitlyBound = claim.knowledgeNodeId
+      ? await tx.knowledgeNode.findUnique({ where: { id: claim.knowledgeNodeId } })
+      : null;
+    if (claim.knowledgeNodeId && (!explicitlyBound || explicitlyBound.kind !== "claim")) {
+      throw new CanonicalGraphMaterializationError(
+        `Claim '${claim.id}' has an invalid explicit graph identity binding.`,
+      );
+    }
+    const node =
+      explicitlyBound ??
+      (await stableNode(tx, {
+        stableKey: `claim:${claim.id}`,
+        originType: "claim-occurrence",
+        localNodeId: claim.id,
+        kind: "claim",
+      }));
     if (!claim.knowledgeNodeId) {
       await tx.claim.update({ where: { id: claim.id }, data: { knowledgeNodeId: node.id } });
     }
@@ -289,6 +298,8 @@ async function exactVersion(
 
 type CitationIdentityInput = {
   id: string;
+  workId: string | null;
+  knowledgeNodeId: string | null;
   doi: string | null;
   pmid: string | null;
   openAlexId: string | null;
@@ -299,6 +310,28 @@ async function resolveWorkNode(
   citation: CitationIdentityInput,
   reviewIsExample: boolean,
 ) {
+  if (citation.workId || citation.knowledgeNodeId) {
+    if (!citation.workId || !citation.knowledgeNodeId) {
+      throw new CanonicalGraphMaterializationError(
+        `Citation '${citation.id}' has a partial canonical work binding.`,
+      );
+    }
+    const [node, existingConflict] = await Promise.all([
+      tx.knowledgeNode.findUnique({ where: { id: citation.knowledgeNodeId } }),
+      tx.workIdentityConflict.findUnique({ where: { citationId: citation.id } }),
+    ]);
+    if (
+      !node ||
+      node.kind !== "work" ||
+      node.originType !== "canonical-work" ||
+      node.stableKey !== citation.workId
+    ) {
+      throw new CanonicalGraphMaterializationError(
+        `Citation '${citation.id}' has an incompatible canonical work binding.`,
+      );
+    }
+    return { node, conflict: Boolean(existingConflict) };
+  }
   const aliases = citationAliases(citation, reviewIsExample);
   const matchable = aliases.filter((alias) => !alias.isExample);
   const matches = matchable.length

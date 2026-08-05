@@ -61,6 +61,33 @@ Never use `prisma db push` on a valuable database. The baseline marker is transi
 `prisma migrate deploy` against a brand-new database does not install the bootstrap DDL, so the
 wrapper remains mandatory.
 
+## Canonical graph backfill
+
+Deploy the expand, source-union, and dual-write releases before backfilling existing review
+versions. First run a read-only bounded validation batch:
+
+```bash
+pnpm backfill:canonical-graph -- --batch-size 100 --manifest canonical-graph-validate.json
+```
+
+Apply requires an explicit flag and a retained manifest. In production it also requires the exact
+backup id produced by the verified Cloud SQL gate:
+
+```bash
+NODE_ENV=production \
+ORATLAS_SCHEMA_BACKUP_ID=<verified-backup-id> \
+pnpm backfill:canonical-graph -- --apply --batch-size 100 \
+  --manifest canonical-graph-backfill-001.json
+```
+
+Each review version commits in its own serializable transaction. The command hashes its scoped
+TRUST, verification, challenge, response, transition, and adjudication records before and after;
+any change rolls that version back and stops the batch. The manifest reports per-version counts,
+semantic mismatches, protected-ledger digests, the next `--after` cursor, remaining records, and
+whether the corpus is complete. Resume only from the last successful `nextAfter`; retain every
+manifest with the deployment change record. A dry run never writes, and `--apply` without
+`--manifest` is rejected.
+
 ## CI gates (tested migrations)
 
 Two jobs in the `CI` workflow keep Postgres support honest on every pull request:
