@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { knowledgeLandscapeQuerySchema } from "@oratlas/contracts";
 import { getServerEnv } from "@oratlas/config";
 import { getCurrentUser } from "@/lib/auth";
 import { runDiscussion } from "@/lib/discuss";
@@ -29,14 +28,11 @@ const requestLlmSchema = z.object({
     .optional(),
 });
 
-const bodySchema = z
-  .object({
-    question: z.string().min(3).max(1000),
-    reviewSlugs: z.array(z.string().max(200)).max(50).optional(),
-    scope: knowledgeLandscapeQuerySchema.optional(),
-    llm: requestLlmSchema.optional(),
-  })
-  .strict();
+const bodySchema = z.object({
+  question: z.string().min(3).max(1000),
+  reviewSlugs: z.array(z.string().max(200)).max(50).optional(),
+  llm: requestLlmSchema.optional(),
+});
 
 export async function POST(request: Request) {
   try {
@@ -69,7 +65,6 @@ export async function POST(request: Request) {
       parsed.data.question,
       parsed.data.reviewSlugs,
       parsed.data.llm,
-      parsed.data.scope,
     );
     return NextResponse.json(response);
   } catch (err) {
