@@ -106,8 +106,8 @@ describe.skipIf(!enabled)("PostgreSQL database guards", () => {
           VALUES ('deferred-valid-review', 'deferred-valid-review', 'Deferred valid', 'published', CURRENT_TIMESTAMP)
         `;
         await tx.$executeRaw`
-          INSERT INTO "KnowledgeNode" ("id", "stableKey", "originType", "localNodeId", "kind")
-          VALUES ('deferred-valid-node', 'review:deferred-valid-review', 'review-record', 'deferred-valid-review', 'review')
+          INSERT INTO "KnowledgeNode" ("id", "stableKey", "originType", "localNodeId", "kind", "updatedAt")
+          VALUES ('deferred-valid-node', 'review:deferred-valid-review', 'review-record', 'deferred-valid-review', 'review', CURRENT_TIMESTAMP)
         `;
         await tx.$executeRaw`
           UPDATE "Review" SET "knowledgeNodeId" = 'deferred-valid-node'
@@ -158,7 +158,7 @@ describe.skipIf(!enabled)("PostgreSQL database guards", () => {
     const immutableDeleteTriggers = await prisma.$queryRaw<
       Array<{ tgname: string; definition: string }>
     >`
-      SELECT tgname, pg_get_triggerdef(oid) AS definition
+      SELECT tgname, pg_get_triggerdef(trigger.oid) AS definition
       FROM pg_trigger AS trigger
       JOIN pg_class AS relation ON relation.oid = trigger.tgrelid
       JOIN pg_namespace AS namespace ON namespace.oid = relation.relnamespace
