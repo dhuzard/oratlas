@@ -22,6 +22,12 @@ export {
 export { createAnthropicProvider, type AnthropicProviderOptions } from "./providers/anthropic.js";
 export { createOpenAIProvider, type OpenAIProviderOptions } from "./providers/openai.js";
 export {
+  proposeGraphCuration,
+  graphCurationSystemPrompt,
+  GRAPH_CURATION_PROMPT_VERSION,
+  type GraphCurationRunResult,
+} from "./graph-curation.js";
+export {
   proposeCrossReviewLinks,
   type LinkProposalDraft,
   type LinkProposerOptions,

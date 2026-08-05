@@ -1131,6 +1131,21 @@ textarea {
   text-decoration: underline;
   cursor: pointer;
 }
+.graph-curation-control {
+  margin-top: 1rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--border);
+}
+.graph-curation-control > summary {
+  color: var(--text);
+  font-weight: 650;
+  cursor: pointer;
+}
+.graph-curation-control .filters {
+  display: grid;
+  gap: 0.65rem;
+  margin: 0.75rem 0;
+}
 .explore-tabs {
   display: flex;
   gap: 1.5rem;
