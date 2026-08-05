@@ -18,10 +18,13 @@ test.describe("Grounded Q&A traversal gate", () => {
 
   test("rejects direct discussion requests without a signed traversal scope", async ({
     request,
-  }) => {
+  }, testInfo) => {
+    const baseURL = testInfo.project.use.baseURL;
+    if (typeof baseURL !== "string") throw new Error("Playwright baseURL is required");
+
     const response = await request.post("/api/discuss", {
       data: { question: "What evidence is available?" },
-      headers: { Origin: "http://localhost:3000" },
+      headers: { Origin: new URL(baseURL).origin },
     });
 
     expect(response.status()).toBe(400);

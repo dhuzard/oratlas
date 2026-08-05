@@ -52,7 +52,9 @@ test.describe("Public archive browsing", () => {
     ).toHaveCount(0);
   });
 
-  test("first-time readers can inspect a claim and return to Explore", async ({ page }) => {
+  test("first-time readers can inspect an exact graph occurrence and return to Explore", async ({
+    page,
+  }) => {
     await page.goto("/");
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(
       "The arXiv for AI-generated scientific reviews.",
@@ -64,16 +66,12 @@ test.describe("Public archive browsing", () => {
 
     const details = page.getByRole("navigation", { name: "Knowledge landscape details" });
     await details.locator('section[aria-labelledby="landscape-claim-title"] a').first().click();
-    await expect(page).toHaveURL(/\/claims\/[^/]+\/[^/]+$/);
-    await expect(page.getByRole("navigation", { name: "Inspect this claim" })).toBeVisible();
+    await expect(page).toHaveURL(/\/nodes\/[^/]+\/versions\/[^/]+$/);
+    await expect(page.getByText("Historical immutable version")).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
 
-    const breadcrumb = page.getByRole("navigation", { name: "Breadcrumb" });
-    await expect(breadcrumb.getByRole("link", { name: "Explore" })).toHaveAttribute(
-      "href",
-      "/explore",
-    );
-    await breadcrumb.getByRole("link", { name: "Explore" }).click();
-    await expect(page).toHaveURL(/\/explore$/);
+    await page.goBack();
+    await expect(page).toHaveURL(/\/explore\?q=replay/);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Traverse the evidence graph");
   });
 
@@ -85,12 +83,13 @@ test.describe("Public archive browsing", () => {
     await expect(page.locator(".explore-ai-landscape + .explore-ai-discuss")).toHaveCount(1);
     await expect(page.getByLabel("Your question")).toHaveValue("replay");
     const scope = page.getByLabel("Atlas Discuss evidence scope");
-    await expect(scope).toContainText("Topic: replay");
-    await expect(scope).toContainText("Interests: data-code");
-    await expect(scope).toContainText(/only claims selected by this explicit Explore state/i);
+    await expect(scope).toContainText(/\d+ exact graph occurrences? · \d+ visible edges?/);
+    await expect(scope).toContainText(/only these signed, exact node versions and visible edges/i);
 
     await page.getByRole("button", { name: "Ask question" }).click();
-    await expect(page.getByText(/Evidence used:.*topic “replay”/i)).toBeVisible();
+    await expect(
+      page.getByText(/Evidence used:.*exact graph occurrences?.*visible edges?/i),
+    ).toBeVisible();
     await expect(page.getByTestId("discussion-packet-hash")).toHaveText(/^[a-f0-9]{64}$/);
   });
 
@@ -139,7 +138,7 @@ test.describe("Public archive browsing", () => {
     await expect(landscape.getByText("Ordering helps exploration only")).toBeVisible();
     await expect(
       landscape.getByRole("heading", { name: "When these records entered the literature" }),
-    ).toBeVisible();
+    ).toHaveCount(0);
 
     await details.getByText("Why this?", { exact: true }).first().click();
     await expect(details.getByText("Contains a claim in this landscape").first()).toBeVisible();
@@ -190,9 +189,9 @@ test.describe("Public archive browsing", () => {
       "href",
       "/replications",
     );
-    await expect(tools.getByRole("link", { name: /Grounded Q&A/ })).toHaveAttribute(
+    await expect(tools.getByRole("link", { name: /Scoped grounded Q&A/ })).toHaveAttribute(
       "href",
-      "/discuss",
+      "/explore",
     );
 
     await tools.getByRole("link", { name: /Coverage gaps/ }).click();
