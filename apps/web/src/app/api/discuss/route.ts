@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { knowledgeLandscapeQuerySchema } from "@oratlas/contracts";
+import { discussionTraversalScopeSchema } from "@oratlas/contracts";
 import { getServerEnv } from "@oratlas/config";
 import { getCurrentUser } from "@/lib/auth";
 import { runDiscussion } from "@/lib/discuss";
+import { DiscussionScopeError } from "@/lib/discussion-scope";
 import {
   BadJsonError,
   BodyTooLargeError,
@@ -32,8 +33,7 @@ const requestLlmSchema = z.object({
 const bodySchema = z
   .object({
     question: z.string().min(3).max(1000),
-    reviewSlugs: z.array(z.string().max(200)).max(50).optional(),
-    scope: knowledgeLandscapeQuerySchema.optional(),
+    scope: discussionTraversalScopeSchema,
     llm: requestLlmSchema.optional(),
   })
   .strict();
@@ -62,20 +62,16 @@ export async function POST(request: Request) {
     if (!parsed.success)
       return errorResponse(
         "bad-request",
-        "A valid question and optional Anthropic/OpenAI key configuration are required.",
+        "A valid question, exact traversed graph scope, and optional Anthropic/OpenAI key configuration are required.",
       );
 
-    const response = await runDiscussion(
-      parsed.data.question,
-      parsed.data.reviewSlugs,
-      parsed.data.llm,
-      parsed.data.scope,
-    );
+    const response = await runDiscussion(parsed.data.question, parsed.data.scope, parsed.data.llm);
     return NextResponse.json(response);
   } catch (err) {
     if (err instanceof BodyTooLargeError)
       return errorResponse("payload-too-large", "Request body too large.");
     if (err instanceof BadJsonError) return errorResponse("bad-request", "Invalid JSON body.");
+    if (err instanceof DiscussionScopeError) return errorResponse(err.code, err.message);
     return handleRouteError(err);
   }
 }

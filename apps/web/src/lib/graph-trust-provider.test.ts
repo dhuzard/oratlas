@@ -22,7 +22,7 @@ vi.mock("./db.js", () => ({
 }));
 vi.mock("./trust-provenance.js", () => ({
   loadedNodeRelationTrustInclude: { proposal: true },
-  projectPublicNodeRelationTrustAssessments: projectAssessments,
+  projectCanonicalGraphRelationTrustAssessments: projectAssessments,
 }));
 
 import { databaseGraphTrustProvider } from "./graph-trust-provider.js";

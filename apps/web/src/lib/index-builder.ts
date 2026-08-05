@@ -45,12 +45,13 @@ export async function buildKnowledgeIndex(): Promise<KnowledgeIndexData> {
           snapshot: true,
           claims: {
             include: {
+              graphVersion: { select: { id: true } },
               evidenceRelations: {
                 include: { citation: true, trustAssessments: { include: { verification: true } } },
               },
             },
           },
-          citations: true,
+          citations: { include: { graphVersion: { select: { id: true } } } },
         },
       },
     },
@@ -143,7 +144,8 @@ export async function buildKnowledgeIndex(): Promise<KnowledgeIndexData> {
         citationId,
         localCitationId: citation.localCitationId,
         reviewVersionId: version.id,
-        workId: aliases[0] ?? citationId,
+        workId: citation.workId ?? aliases[0] ?? citationId,
+        graphNodeVersionId: citation.graphVersion?.id,
         canonicalWorkAliases: aliases,
         doi: citation.doi ?? undefined,
         pmid: citation.pmid ?? undefined,
@@ -221,6 +223,7 @@ export async function buildKnowledgeIndex(): Promise<KnowledgeIndexData> {
         sourceAnchor: claim.anchor ?? undefined,
         claimType: claim.claimType ?? undefined,
         knowledgeNodeId: claim.knowledgeNodeId ?? undefined,
+        graphNodeVersionId: claim.graphVersion?.id,
         versionDoi: version.versionDoi ?? undefined,
         commitSha: version.snapshot.commitSha,
         relations,

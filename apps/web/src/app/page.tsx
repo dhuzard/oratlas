@@ -20,7 +20,6 @@ export default async function HomePage() {
         </p>
 
         <form action="/explore" method="get" role="search" className="home-search">
-          <input type="hidden" name="view" value="claims" />
           <label htmlFor="home-q" className="sr-only">
             Search claims, reviews, or authors
           </label>
@@ -31,7 +30,7 @@ export default async function HomePage() {
             placeholder="Search a claim, review, or author…"
           />
           <button className="btn" type="submit">
-            Explore claims and evidence
+            Enter the evidence graph
           </button>
         </form>
 
@@ -91,7 +90,7 @@ export default async function HomePage() {
             <p className="home-eyebrow">From the archive</p>
             <h2 id="latest-reviews-title">Latest reviews</h2>
           </div>
-          <Link href="/explore?view=reviews">Browse the archive</Link>
+          <Link href="/archive">Browse the archive</Link>
         </div>
 
         {recent.length === 0 ? (

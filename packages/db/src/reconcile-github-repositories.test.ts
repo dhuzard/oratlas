@@ -306,10 +306,11 @@ async function createLegacySchema(client: PrismaClient): Promise<void> {
     )`,
     `CREATE TABLE NodeEdge (
       id TEXT PRIMARY KEY, sourceNodeVersionId TEXT, targetNodeId TEXT, relationType TEXT,
+      edgeDiscriminator TEXT NOT NULL DEFAULT 'canonical',
       status TEXT, provenance TEXT, rationale TEXT, assertedAt TEXT,
       confirmedTargetNodeVersionId TEXT, confirmedById TEXT, confirmedAt TEXT,
       revision INTEGER, createdAt TEXT, updatedAt TEXT,
-      UNIQUE(sourceNodeVersionId, targetNodeId, relationType)
+      UNIQUE(sourceNodeVersionId, targetNodeId, relationType, edgeDiscriminator)
     )`,
     `CREATE TABLE NodeEdgeProposal (
       id TEXT PRIMARY KEY, originKey TEXT UNIQUE, sourceStableKey TEXT, targetStableKey TEXT,
@@ -387,11 +388,11 @@ async function seedDuplicateIdentityGraph(client: PrismaClient): Promise<void> {
   );
   await client.$executeRawUnsafe(
     `INSERT INTO NodeEdge VALUES
-      ('edge-old', 'node-version-old', 'node-old', 'supports', 'confirmed',
+      ('edge-old', 'node-version-old', 'node-old', 'supports', 'canonical', 'confirmed',
        'confirmed-by-editor', 'Same rationale', '2026-01-03T00:00:00.000Z',
        'node-version-old', 'editor', '2026-01-03T00:00:00.000Z', 0,
        '2026-01-03T00:00:00.000Z', '2026-01-03T00:00:00.000Z'),
-      ('edge-new', 'node-version-new', 'node-new', 'supports', 'confirmed',
+      ('edge-new', 'node-version-new', 'node-new', 'supports', 'canonical', 'confirmed',
        'confirmed-by-editor', 'Same rationale', '2026-01-03T00:00:00.000Z',
        'node-version-new', 'editor', '2026-01-03T00:00:00.000Z', 0,
        '2026-01-03T00:00:00.000Z', '2026-01-03T00:00:00.000Z')`,

@@ -117,29 +117,36 @@ the same interface later.
 
 ### Guided exploration
 
-`/explore` is the primary public discovery surface. It combines claim and review search with an
-optional graph-native knowledge landscape. Readers answer what they want to understand with a topic
-and explicit interest lenses; the application stores the query, repeated `interest` values,
-filters, and optional `focus` node in the URL rather than an inferred account profile.
+`/explore` is the primary public discovery surface and the graph landscape is its main content.
+Search supplies an entry point into connected traversal; Explore does not append ranked claim or
+review rows beneath the graph. Readers answer what they want to understand with a topic and explicit
+interest lenses; the application stores the query, repeated `interest` and `known` values, filters,
+and optional `focus` node in the URL rather than an inferred account profile. Exhaustive lookup stays
+available on the separate `/claims` and `/archive` indexes.
 
-`apps/web/src/lib/knowledge-landscape-service.ts` is the shared service boundary for both the
-server-rendered Explore page and `GET /api/landscape`. It searches at most the first 40 matching
-claim candidates. For at most six explicitly bridged candidate claims, it reads one-hop public graph
-neighborhoods and uses those confirmed relations when matching interests such as data and code,
-reproducibility, or disagreements. It never infers a `Claim` → `KnowledgeNode` identity from text.
-The deterministic service returns the versioned `explicit-interest-graph-landscape@2.0.0`
-contract for both GUI and API.
+`apps/web/src/lib/knowledge-landscape-service.ts` builds the rendering model used only by Explore.
+It searches at most the first 40 matching claim candidates. For at most six explicitly bridged
+candidate claims, it reads one-hop public graph neighborhoods and uses those confirmed relations
+when matching interests such as data and code, reproducibility, or disagreements. It never infers a
+`Claim` → `KnowledgeNode` identity from text.
 
-The projection contains at most six claims, ten citation-evidence records, three graph seeds, and
-twelve graph identities. Graph recommendations expose stable node IDs, exact readable version IDs,
-confirmed typed edges, and plain-language selection reasons. It can be reduced to the selected node
-plus its immediate neighbors. An unknown focus returns the overview; the API rejects an unknown
-interest, while the server-rendered page ignores unknown URL interest values before calling the
-service.
+`GET /api/landscape` is the separate `explicit-interest-recommendation@2.0.0` ranking overlay. It
+projects the same deterministic selection to canonical `nodeId`/`nodeVersionId` references, scores,
+reasons, and confirmed anchors to an explicitly submitted reader-known set. Labels, details, hrefs,
+timelines, and focus state stay in the rendering layer. The known set is request state and is never
+written to graph records or inferred from behavior.
 
-The projection ranks paths for exploration, not scientific truth, evidence quality, consensus, or
-TRUST. It never mutates a preserved record, and the canonical claim or review result list remains
-available below the visualization. See [Guided knowledge landscape API](knowledge-landscape-api.md).
+The human rendering projection contains at most six claims, ten citation-evidence records, three graph
+seeds, and twelve graph identities. Recommendations expose stable node IDs, exact readable version
+IDs when applicable, and plain-language selection reasons. The GUI can reduce its rendering model
+to a selected node plus its immediate neighbors. The recommendation API rejects focus state and
+unknown interests, while the server-rendered page ignores unknown URL interest values before
+calling the service.
+
+The overlay ranks paths for exploration, not scientific truth, evidence quality, consensus, or
+TRUST. Atlas Discuss follows the visible map as a bounded grounded lens instead of serving as the
+Explore front door. Neither surface mutates a preserved record. See the
+[explicit-interest recommendation API](knowledge-landscape-api.md).
 
 ### Grounded Q&A (Atlas Discuss implementation)
 
@@ -175,9 +182,10 @@ strict, versioned runtime DTO because later writer and verification slices need 
 while `packages/knowledge` owns the pure deterministic builder and SHA-256 preparation path. The
 builder has no Prisma, React, artifact, network, or execution dependency.
 
-The builder accepts a bounded subgraph supplied by a trusted, unpaginated loader. A paginated
-`GET /api/graph` response is not evidence of global topic completeness and is deliberately not the
-source contract. KG-11 verifies internal closure, declared counts, selector fingerprint, exact
+The builder accepts a bounded subgraph supplied by a trusted, unpaginated loader. A single
+`GET /api/graph` adjacency page is not evidence of traversal completion; callers must follow its
+cursor and explicitly expand returned node/version references. KG-11 verifies internal closure,
+declared counts, selector fingerprint, exact
 node-version ownership, and the full contradiction inventory it receives; loader integration is
 responsible for selecting the complete bounded domain for its seed or canonical topic query.
 Every node retains its repository snapshot, commit, and source provenance. Only editor-confirmed
@@ -191,6 +199,8 @@ role. The identifier whitelist is derived rather than accepted, excludes all exa
 launder an identifier onto another node. Derived tables, canonical JSON, and the hash are available
 only through the source-building path. The packet contains no volatile clock, editorial/private
 records, or agent-run fields, and enforces node, edge, identifier, text, and final-byte caps.
+
+The public graph contract itself is documented in [Canonical graph traversal API](canonical-graph-api.md).
 
 `SynthesisWriter` consumes only a revalidated canonical prepared packet. Its static system prompt
 never interpolates repository content; the exact packet JSON is the user-data field of an explicit,
