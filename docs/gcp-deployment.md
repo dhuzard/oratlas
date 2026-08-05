@@ -123,6 +123,7 @@ gcloud iam service-accounts describe "$RUNTIME_SA" >/dev/null 2>&1 || \
 # The account that executes Cloud Build pushes the image and deploys Cloud Run.
 for ROLE in \
   roles/artifactregistry.writer \
+  roles/cloudsql.editor \
   roles/run.admin \
   roles/secretmanager.viewer; do
   gcloud projects add-iam-policy-binding "$PROJECT_ID" \
@@ -135,8 +136,8 @@ gcloud iam service-accounts add-iam-policy-binding "$RUNTIME_SA" \
   --member="serviceAccount:${BUILD_SA}" \
   --role="roles/iam.serviceAccountUser"
 
-# The Cloud Run service and migration job—not the build account—read secrets
-# and connect to Cloud SQL.
+# The Cloud Run service and migration job read secrets and connect to Cloud SQL.
+# They do not receive backup-management permissions.
 for ROLE in \
   roles/cloudsql.client \
   roles/secretmanager.secretAccessor; do
@@ -168,11 +169,20 @@ gcloud builds submit \
 The build performs these steps:
 
 1. build and push the container image;
-2. create or update the `${SERVICE}-migrate` Cloud Run Job;
-3. execute `pnpm db:deploy:postgres` against Cloud SQL;
-4. deploy the Cloud Run service and expose it publicly;
-5. run the beta journey smoke against readiness, the homepage promise, personalized Explore,
+2. verify that scheduled Cloud SQL backups and point-in-time recovery are enabled, create a
+   synchronous on-demand backup, verify its `SUCCESS` status, and record its exact id;
+3. create or update the `${SERVICE}-migrate` Cloud Run Job;
+4. execute `pnpm db:deploy:postgres` against Cloud SQL only when that verified id is present;
+5. deploy the Cloud Run service and expose it publicly;
+6. run the beta journey smoke against readiness, the homepage promise, personalized Explore,
    `GET /api/landscape`, a confirmed graph edge, and exact node-version navigation.
+
+The backup step runs as the build identity, not the runtime identity. The working configuration
+above grants the predefined Cloud SQL Editor role. For least privilege, replace it with a custom
+role containing only `cloudsql.instances.get`, `cloudsql.backupRuns.create`,
+`cloudsql.backupRuns.list`, and `cloudsql.backupRuns.get`, scoped to the production instance where
+your IAM policy supports that condition. Missing permissions, disabled backup protection, a failed
+backup, or an empty backup id stops the build before the migration job executes.
 
 The default beta fixture is `q=replay&interest=data-code`. Before deployment, the Cloud SQL data
 must therefore contain a readable claim with an explicit graph identity and a confirmed dataset or

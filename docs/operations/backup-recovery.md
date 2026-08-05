@@ -45,6 +45,12 @@ The current service objectives are:
 Recommended: daily automated backups, plus an on-demand backup immediately before any schema
 migration or destructive maintenance (see the migration notes in [postgres.md](./postgres.md)).
 
+The GCP pipeline enforces that pre-migration recovery point. It fails closed unless scheduled
+backups and point-in-time recovery are enabled, creates an on-demand backup synchronously, verifies
+the exact backup has status `SUCCESS`, and records its id before the migration job can execute.
+This proves that a recovery point exists; it does not replace a staging restore drill proving that
+the recovery path works.
+
 ## Recovery drill
 
 Run this end to end periodically so recovery is proven, not assumed:

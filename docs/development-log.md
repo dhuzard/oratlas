@@ -18,6 +18,14 @@
 
 Chronological record of implementation slices, decisions, and verification outcomes.
 
+## 2026-08-05 — Enforced Cloud SQL pre-migration backup gate
+
+- Added a fail-closed Cloud Build gate that verifies scheduled backups and PITR, creates a
+  synchronous on-demand backup, verifies `SUCCESS`, and records its exact id before migration.
+- Kept backup-management permission on the build identity rather than the runtime service account;
+  documented the four-permission custom-role target and the broader Cloud SQL Editor fallback.
+- Added static command-ordering tests without contacting or changing a live Google Cloud project.
+
 ## 2026-08-05 — Canonical graph identity contract
 
 - Accepted the stable identity/source-union design: one stable node per review, one exact graph

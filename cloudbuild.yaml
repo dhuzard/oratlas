@@ -33,6 +33,18 @@ steps:
       - push
       - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPOSITORY}/${_SERVICE}:${BUILD_ID}
 
+  - id: backup-database
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: bash
+    args:
+      - -ceu
+      - |
+        bash /workspace/scripts/cloudsql-backup-gate.sh \
+          --project="${PROJECT_ID}" \
+          --instance="${_CLOUD_SQL_INSTANCE}" \
+          --build-id="${BUILD_ID}" \
+          --output=/workspace/oratlas-cloudsql-backup-id
+
   - id: configure-migration-job
     name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
     entrypoint: gcloud
@@ -54,15 +66,17 @@ steps:
 
   - id: migrate-database
     name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
-    entrypoint: gcloud
+    entrypoint: bash
     args:
-      - run
-      - jobs
-      - execute
-      - ${_SERVICE}-migrate
-      - --region=${_REGION}
-      - --wait
-      - --quiet
+      - -ceu
+      - |
+        BACKUP_ID="$$(tr -d '\r\n' < /workspace/oratlas-cloudsql-backup-id)"
+        test -n "$${BACKUP_ID}"
+        echo "Executing migration after verified Cloud SQL backup $${BACKUP_ID}."
+        gcloud run jobs execute "${_SERVICE}-migrate" \
+          --region="${_REGION}" \
+          --wait \
+          --quiet
 
   - id: deploy-service
     name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
