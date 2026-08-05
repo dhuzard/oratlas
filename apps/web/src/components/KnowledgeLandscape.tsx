@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import type { KnowledgeRecommendationAnchor } from "@oratlas/contracts";
 import type {
   KnowledgeLandscapeData,
   KnowledgeLandscapeEdge,
@@ -59,11 +60,23 @@ export function KnowledgeLandscape({
   focus,
   overviewHref,
   focusHrefByNode,
+  knownNodeIds,
+  knownToggleHrefByNode,
+  clearKnownHref,
+  anchorsByLandscapeNodeId,
+  labelByGraphNodeVersionId,
+  focusedGraphNodeId,
 }: {
   landscape: KnowledgeLandscapeData;
   focus: string;
   overviewHref: string;
   focusHrefByNode: Record<string, string>;
+  knownNodeIds: string[];
+  knownToggleHrefByNode: Record<string, string>;
+  clearKnownHref: string;
+  anchorsByLandscapeNodeId: Record<string, readonly KnowledgeRecommendationAnchor[]>;
+  labelByGraphNodeVersionId: Record<string, string>;
+  focusedGraphNodeId?: string;
 }) {
   const [highlightedNodeIds, setHighlightedNodeIds] = useState<Set<string>>(new Set());
   useEffect(() => {
@@ -91,11 +104,24 @@ export function KnowledgeLandscape({
     );
   }
 
-  const { nodes, height } = positionNodes(landscape.nodes);
+  const orderedNodes = orderNodesForKnownSet(
+    landscape.nodes,
+    knownNodeIds,
+    anchorsByLandscapeNodeId,
+  );
+  const anchoredNewcomerCount = orderedNodes.filter(
+    (node) =>
+      node.graphNodeId &&
+      !knownNodeIds.includes(node.graphNodeId) &&
+      (anchorsByLandscapeNodeId[node.id]?.length ?? 0) > 0,
+  ).length;
+  const { nodes, height } = positionNodes(orderedNodes);
   const nodeById = new Map(nodes.map((node) => [node.id, node]));
-  const focusedNode = landscape.focusedNodeId
-    ? landscape.nodes.find((node) => node.id === landscape.focusedNodeId)
-    : undefined;
+  const focusedNode = focusedGraphNodeId
+    ? landscape.nodes.find((node) => node.graphNodeId === focusedGraphNodeId)
+    : landscape.focusedNodeId
+      ? landscape.nodes.find((node) => node.id === landscape.focusedNodeId)
+      : undefined;
 
   return (
     <section className="knowledge-landscape" aria-label="Guided knowledge landscape">
@@ -127,6 +153,17 @@ export function KnowledgeLandscape({
           <p className="landscape-ranking-note">
             Ordering helps exploration only. It is not a truth, quality, or trust score.
           </p>
+          <p className="landscape-known-set">
+            Your explicit known set contains {knownNodeIds.length} graph node
+            {knownNodeIds.length === 1 ? "" : "s"}. It is held in this URL, not inferred or stored
+            in the shared graph.
+            {knownNodeIds.length > 0 ? (
+              <>
+                {" "}
+                <a href={clearKnownHref}>Clear known set</a>.
+              </>
+            ) : null}
+          </p>
         </div>
       </div>
 
@@ -150,18 +187,28 @@ export function KnowledgeLandscape({
         <section className="landscape-start" aria-labelledby="landscape-start-title">
           <div>
             <p className="home-eyebrow">Start here</p>
-            <h3 id="landscape-start-title">Nodes worth exploring for this interest</h3>
+            <h3 id="landscape-start-title">
+              {knownNodeIds.length > 0
+                ? anchoredNewcomerCount > 0
+                  ? "New nodes connected to what you know"
+                  : "No confirmed direct anchors in this path"
+                : "Nodes worth exploring for this interest"}
+            </h3>
             <p>
-              These records are connected through explicit identities and confirmed graph edges.
+              {knownNodeIds.length > 0
+                ? anchoredNewcomerCount > 0
+                  ? "Anchored newcomers appear first; disconnected records remain visible and explicitly marked."
+                  : "The selected path is still visible, but none of its newcomers has a confirmed direct edge to your known set."
+                : "These records are connected through explicit identities and confirmed graph edges."}
             </p>
           </div>
           <ol>
-            {landscape.nodes
+            {orderedNodes
               .filter((node) => node.graphNodeId)
               .slice(0, 3)
               .map((node) => (
                 <li key={node.id}>
-                  <a href={node.href}>{node.label}</a>
+                  <a href={focusHrefByNode[node.id] ?? node.href}>{node.label}</a>
                   <small>{node.reasons[0]}</small>
                 </li>
               ))}
@@ -212,6 +259,7 @@ export function KnowledgeLandscape({
           {nodes.map((node) => (
             <LandscapeSvgNode
               node={node}
+              href={focusHrefByNode[node.id] ?? node.href}
               highlighted={highlightedNodeIds.has(node.id)}
               dimmed={highlightedNodeIds.size > 0 && !highlightedNodeIds.has(node.id)}
               key={node.id}
@@ -251,53 +299,31 @@ export function KnowledgeLandscape({
 
       <nav className="knowledge-landscape-list" aria-label="Knowledge landscape details">
         {DETAIL_KINDS.map((kind) => {
-          const kindNodes = landscape.nodes.filter((node) => node.kind === kind);
+          const kindNodes = orderedNodes.filter((node) => node.kind === kind);
           if (kindNodes.length === 0) return null;
           return (
             <section aria-labelledby={`landscape-${kind}-title`} key={kind}>
               <h3 id={`landscape-${kind}-title`}>{LANE_LABEL[kind]}</h3>
               <ul>
                 {kindNodes.map((node) => (
-                  <li
-                    className={
-                      highlightedNodeIds.has(node.id)
-                        ? "landscape-detail-highlighted"
-                        : highlightedNodeIds.size > 0
-                          ? "landscape-detail-dimmed"
-                          : undefined
+                  <LandscapeDetail
+                    node={node}
+                    highlightedNodeIds={highlightedNodeIds}
+                    focused={
+                      focusedGraphNodeId
+                        ? node.graphNodeId === focusedGraphNodeId
+                        : landscape.focusedNodeId === node.id
                     }
+                    focusHref={focusHrefByNode[node.id]}
+                    known={Boolean(node.graphNodeId && knownNodeIds.includes(node.graphNodeId))}
+                    knownToggleHref={
+                      node.graphNodeId ? knownToggleHrefByNode[node.graphNodeId] : undefined
+                    }
+                    anchors={anchorsByLandscapeNodeId[node.id] ?? []}
+                    knownNodeIds={knownNodeIds}
+                    labelByGraphNodeVersionId={labelByGraphNodeVersionId}
                     key={node.id}
-                  >
-                    <a href={node.href}>{node.label}</a>
-                    <small>{node.detail}</small>
-                    <details className="landscape-reasons">
-                      <summary>Why this?</summary>
-                      <ul>
-                        {node.reasons.map((reason) => (
-                          <li key={reason}>{reason}</li>
-                        ))}
-                      </ul>
-                    </details>
-                    {node.graphRecordHref && node.graphRecordHref !== node.href ? (
-                      <a className="landscape-record-link" href={node.graphRecordHref}>
-                        Inspect exact graph version
-                      </a>
-                    ) : null}
-                    {node.graphHref ? (
-                      <a className="landscape-graph-link" href={node.graphHref}>
-                        Explore graph neighborhood
-                      </a>
-                    ) : null}
-                    {landscape.focusedNodeId === node.id ? (
-                      <span className="landscape-focused-label" aria-current="true">
-                        Current focus
-                      </span>
-                    ) : (
-                      <a className="landscape-focus-link" href={focusHrefByNode[node.id]}>
-                        Focus on connections
-                      </a>
-                    )}
-                  </li>
+                  />
                 ))}
               </ul>
             </section>
@@ -305,6 +331,109 @@ export function KnowledgeLandscape({
         })}
       </nav>
     </section>
+  );
+}
+
+function LandscapeDetail({
+  node,
+  highlightedNodeIds,
+  focused,
+  focusHref,
+  known,
+  knownToggleHref,
+  anchors,
+  knownNodeIds,
+  labelByGraphNodeVersionId,
+}: {
+  node: KnowledgeLandscapeNode;
+  highlightedNodeIds: ReadonlySet<string>;
+  focused: boolean;
+  focusHref?: string;
+  known: boolean;
+  knownToggleHref?: string;
+  anchors: readonly KnowledgeRecommendationAnchor[];
+  knownNodeIds: readonly string[];
+  labelByGraphNodeVersionId: Readonly<Record<string, string>>;
+}) {
+  const anchorCount = new Set(anchors.map((anchor) => anchor.knownNodeId)).size;
+  const isDisconnectedNewcomer = Boolean(
+    node.graphNodeId &&
+    !knownNodeIds.includes(node.graphNodeId) &&
+    knownNodeIds.length > 0 &&
+    anchorCount === 0,
+  );
+  const className = [
+    highlightedNodeIds.has(node.id)
+      ? "landscape-detail-highlighted"
+      : highlightedNodeIds.size > 0
+        ? "landscape-detail-dimmed"
+        : undefined,
+    anchorCount > 0 ? "landscape-detail-anchored" : undefined,
+    isDisconnectedNewcomer ? "landscape-detail-disconnected" : undefined,
+  ]
+    .filter(Boolean)
+    .join(" ");
+  return (
+    <li className={className || undefined}>
+      <a href={node.href}>{node.label}</a>
+      <small>{node.detail}</small>
+      {anchorCount > 0 ? (
+        <details className="landscape-anchors">
+          <summary>
+            Anchored to {anchorCount} known graph node{anchorCount === 1 ? "" : "s"}
+          </summary>
+          <ul>
+            {anchors.map((anchor) => (
+              <li key={`${anchor.edgeId}:${anchor.directionFromRecommendation}`}>
+                {anchor.directionFromRecommendation === "outgoing" ? "Outgoing" : "Incoming"}{" "}
+                <code>{anchor.relationType}</code> edge to{" "}
+                <strong>
+                  {labelByGraphNodeVersionId[anchor.knownNodeVersionId] ??
+                    "a node in your known set"}
+                </strong>
+              </li>
+            ))}
+          </ul>
+        </details>
+      ) : null}
+      {isDisconnectedNewcomer ? (
+        <small className="landscape-disconnected-note">
+          No confirmed direct anchor to your known set.
+        </small>
+      ) : null}
+      <details className="landscape-reasons">
+        <summary>Why this?</summary>
+        <ul>
+          {node.reasons.map((reason) => (
+            <li key={reason}>{reason}</li>
+          ))}
+        </ul>
+      </details>
+      {node.graphRecordHref && node.graphRecordHref !== node.href ? (
+        <a className="landscape-record-link" href={node.graphRecordHref}>
+          Inspect exact graph version
+        </a>
+      ) : null}
+      {node.graphHref ? (
+        <a className="landscape-graph-link" href={node.graphHref}>
+          Explore graph neighborhood
+        </a>
+      ) : null}
+      {knownToggleHref ? (
+        <a className="landscape-known-link" href={knownToggleHref}>
+          {known ? "Remove from known set" : "Mark as known"}
+        </a>
+      ) : null}
+      {focused ? (
+        <span className="landscape-focused-label" aria-current="true">
+          Current focus
+        </span>
+      ) : focusHref ? (
+        <a className="landscape-focus-link" href={focusHref}>
+          Focus on connections
+        </a>
+      ) : null}
+    </li>
   );
 }
 
@@ -350,17 +479,19 @@ function LandscapeEdge({
 
 function LandscapeSvgNode({
   node,
+  href,
   highlighted,
   dimmed,
 }: {
   node: PositionedNode;
+  href: string;
   highlighted: boolean;
   dimmed: boolean;
 }) {
   const width = node.kind === "claim" ? 250 : 190;
   const lines = wrapLabel(node.label, node.kind === "claim" ? 34 : 24);
   return (
-    <a href={node.href} aria-label={`${LANE_LABEL[node.kind]}: ${node.label}`}>
+    <a href={href} aria-label={`${LANE_LABEL[node.kind]}: ${node.label}`}>
       <g
         className={`landscape-node${highlighted ? " landscape-node-highlighted" : ""}${dimmed ? " landscape-node-dimmed" : ""}`}
         data-kind={node.kind}
@@ -377,6 +508,27 @@ function LandscapeSvgNode({
       </g>
     </a>
   );
+}
+
+function orderNodesForKnownSet(
+  nodes: readonly KnowledgeLandscapeNode[],
+  knownNodeIds: readonly string[],
+  anchorsByLandscapeNodeId: Readonly<Record<string, readonly KnowledgeRecommendationAnchor[]>>,
+): KnowledgeLandscapeNode[] {
+  if (knownNodeIds.length === 0) return [...nodes];
+  const known = new Set(knownNodeIds);
+  const priority = (node: KnowledgeLandscapeNode): number => {
+    if (!node.graphNodeId) return 3;
+    if ((anchorsByLandscapeNodeId[node.id]?.length ?? 0) > 0 && !known.has(node.graphNodeId)) {
+      return 0;
+    }
+    if (known.has(node.graphNodeId)) return 1;
+    return 2;
+  };
+  return nodes
+    .map((node, index) => ({ node, index }))
+    .sort((left, right) => priority(left.node) - priority(right.node) || left.index - right.index)
+    .map(({ node }) => node);
 }
 
 function positionNodes(nodes: KnowledgeLandscapeNode[]): {

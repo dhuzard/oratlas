@@ -1,6 +1,11 @@
-import { afterAll, describe, expect, it } from "vitest";
+import { spawnSync } from "node:child_process";
+import { randomBytes } from "node:crypto";
+import { resolve } from "node:path";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { PrismaClient } from "../generated/client/index.js";
 import {
   applyDatabaseGuards,
+  baselineSchemaUrl,
   DATABASE_GUARD_NAMES,
   getPrisma,
   POSTGRES_DATABASE_GUARD_TRIGGER_NAMES,
@@ -8,9 +13,133 @@ import {
 
 const enabled = Boolean(process.env.DATABASE_GUARD_TEST_DATABASE_URL);
 const prisma = getPrisma();
+let contractPrisma: PrismaClient | undefined;
+let contractSchema: string | undefined;
+
+function runPrismaInSchema(databaseUrl: string, args: string[]): void {
+  const executable = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
+  const result = spawnSync(executable, ["exec", "prisma", ...args], {
+    cwd: resolve(import.meta.dirname, ".."),
+    env: { ...process.env, DATABASE_URL: databaseUrl },
+    encoding: "utf8",
+  });
+  if (result.status !== 0) {
+    throw new Error(`Isolated contract migration failed: ${result.stderr || result.stdout}`);
+  }
+}
 
 describe.skipIf(!enabled)("PostgreSQL database guards", () => {
-  afterAll(async () => prisma.$disconnect());
+  beforeAll(async () => {
+    contractSchema = `oratlas_baseline_${randomBytes(10).toString("hex")}`;
+    const databaseUrl = baselineSchemaUrl(
+      process.env.DATABASE_GUARD_TEST_DATABASE_URL!,
+      contractSchema,
+    );
+    await prisma.$executeRawUnsafe(`CREATE SCHEMA "${contractSchema}"`);
+    runPrismaInSchema(databaseUrl, [
+      "db",
+      "execute",
+      "--file",
+      "prisma/baseline/20260805000000_existing_schema_baseline.sql",
+      "--schema",
+      "prisma/schema.postgres.prisma",
+    ]);
+    runPrismaInSchema(databaseUrl, [
+      "migrate",
+      "resolve",
+      "--applied",
+      "20260805000000_existing_schema_baseline",
+      "--schema",
+      "prisma/schema.postgres.prisma",
+    ]);
+    runPrismaInSchema(databaseUrl, [
+      "migrate",
+      "deploy",
+      "--schema",
+      "prisma/schema.postgres.prisma",
+    ]);
+    contractPrisma = new PrismaClient({ datasourceUrl: databaseUrl });
+  }, 60_000);
+
+  afterAll(async () => {
+    await contractPrisma?.$disconnect();
+    if (contractSchema) await prisma.$executeRawUnsafe(`DROP SCHEMA "${contractSchema}" CASCADE`);
+    await prisma.$disconnect();
+  });
+
+  it("validates final deferred state and keeps later finalization repeatable", async () => {
+    const client = contractPrisma!;
+    await expect(
+      client.$queryRaw`
+        SELECT "oratlas_finalize_canonical_graph_contract"(
+          ${null}::text, ${"a".repeat(64)}
+        ) AS activated
+      `,
+    ).rejects.toThrow(/activation metadata is invalid/i);
+    await expect(
+      client.$queryRaw`
+        SELECT "oratlas_finalize_canonical_graph_contract"(
+          ${"a".repeat(301)}, ${"a".repeat(64)}
+        ) AS activated
+      `,
+    ).rejects.toThrow(/activation metadata is invalid/i);
+    const first = await client.$queryRaw<Array<{ activated: boolean }>>`
+      SELECT "oratlas_finalize_canonical_graph_contract"(
+        ${"backupRuns/first"}, ${"a".repeat(64)}
+      ) AS activated
+    `;
+    expect(first[0]?.activated).toBe(true);
+    const second = await client.$queryRaw<Array<{ activated: boolean }>>`
+      SELECT "oratlas_finalize_canonical_graph_contract"(
+        ${"backupRuns/later"}, ${"b".repeat(64)}
+      ) AS activated
+    `;
+    expect(second[0]?.activated).toBe(false);
+    const state = await client.canonicalGraphContractState.findUniqueOrThrow({ where: { id: 1 } });
+    expect(state.backupId).toBe("backupRuns/first");
+    expect(state.manifestDigest).toBe("a".repeat(64));
+
+    await expect(
+      client.$transaction(async (tx) => {
+        await tx.$executeRaw`
+          INSERT INTO "Review" ("id", "slug", "title", "status", "updatedAt")
+          VALUES ('deferred-valid-review', 'deferred-valid-review', 'Deferred valid', 'published', CURRENT_TIMESTAMP)
+        `;
+        await tx.$executeRaw`
+          INSERT INTO "KnowledgeNode" ("id", "stableKey", "originType", "localNodeId", "kind", "updatedAt")
+          VALUES ('deferred-valid-node', 'review:deferred-valid-review', 'review-record', 'deferred-valid-review', 'review', CURRENT_TIMESTAMP)
+        `;
+        await tx.$executeRaw`
+          UPDATE "Review" SET "knowledgeNodeId" = 'deferred-valid-node'
+          WHERE "id" = 'deferred-valid-review'
+        `;
+      }),
+    ).resolves.toBeUndefined();
+
+    await expect(
+      client.$executeRaw`DELETE FROM "KnowledgeNode" WHERE "id" = 'deferred-valid-node'`,
+    ).rejects.toThrow(/canonical graph contract/i);
+    await expect(
+      client.$executeRaw`DELETE FROM "CanonicalGraphContractState" WHERE "id" = 1`,
+    ).rejects.toThrow(/cannot be deleted/i);
+
+    await expect(
+      client.$executeRaw`
+        INSERT INTO "Review" ("id", "slug", "title", "status", "updatedAt")
+        VALUES ('deferred-invalid-review', 'deferred-invalid-review', 'Deferred invalid', 'published', CURRENT_TIMESTAMP)
+      `,
+    ).rejects.toThrow(/canonical graph contract/i);
+
+    await expect(
+      client.$transaction(async (tx) => {
+        await tx.$executeRaw`
+          INSERT INTO "Review" ("id", "slug", "title", "status", "updatedAt")
+          VALUES ('deferred-transient-review', 'deferred-transient-review', 'Transient', 'published', CURRENT_TIMESTAMP)
+        `;
+        await tx.$executeRaw`DELETE FROM "Review" WHERE "id" = 'deferred-transient-review'`;
+      }),
+    ).resolves.toBeUndefined();
+  }, 60_000);
 
   it("installs every constraint and trigger and rejects invalid direct writes", async () => {
     await applyDatabaseGuards(prisma, "postgresql");
@@ -29,9 +158,12 @@ describe.skipIf(!enabled)("PostgreSQL database guards", () => {
     const immutableDeleteTriggers = await prisma.$queryRaw<
       Array<{ tgname: string; definition: string }>
     >`
-      SELECT tgname, pg_get_triggerdef(oid) AS definition
-      FROM pg_trigger
-      WHERE tgname IN ('DecisionLetter_immutable_delete_guard', 'EditorialDecisionProvenance_immutable_delete_guard')
+      SELECT tgname, pg_get_triggerdef(trigger.oid) AS definition
+      FROM pg_trigger AS trigger
+      JOIN pg_class AS relation ON relation.oid = trigger.tgrelid
+      JOIN pg_namespace AS namespace ON namespace.oid = relation.relnamespace
+      WHERE namespace.nspname = current_schema()
+        AND tgname IN ('DecisionLetter_immutable_delete_guard', 'EditorialDecisionProvenance_immutable_delete_guard')
     `;
     expect(immutableDeleteTriggers).toHaveLength(2);
     expect(

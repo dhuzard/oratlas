@@ -213,8 +213,12 @@ export async function createAgentNodeEdgeProposal(input: {
   }
   if (!source || !target) throw new NodeEdgeLifecycleError("Node version not found.", "not-found");
   if (
+    !source.knowledgeNode.repository ||
     !source.knowledgeNode.repository.githubRepositoryId ||
-    !target.knowledgeNode.repository.githubRepositoryId
+    !source.snapshot ||
+    !target.knowledgeNode.repository ||
+    !target.knowledgeNode.repository.githubRepositoryId ||
+    !target.snapshot
   ) {
     throw new NodeEdgeLifecycleError("Immutable repository identities are required.", "conflict");
   }
@@ -366,10 +370,11 @@ export async function decideNodeEdgeProposal(
             if (requested === "confirmed") {
               const existingEdge = await tx.nodeEdge.findUnique({
                 where: {
-                  sourceNodeVersionId_targetNodeId_relationType: {
+                  sourceNodeVersionId_targetNodeId_relationType_edgeDiscriminator: {
                     sourceNodeVersionId: proposal.sourceNodeVersionId,
                     targetNodeId: proposal.targetNodeId,
                     relationType: proposal.relationType,
+                    edgeDiscriminator: "canonical",
                   },
                 },
                 include: { confirmedBy: { select: { role: true } } },
@@ -496,10 +501,11 @@ export async function decideNodeEdgeProposal(
     }
     const existing = await prisma.nodeEdge.findUnique({
       where: {
-        sourceNodeVersionId_targetNodeId_relationType: {
+        sourceNodeVersionId_targetNodeId_relationType_edgeDiscriminator: {
           sourceNodeVersionId: proposal.sourceNodeVersionId,
           targetNodeId: proposal.targetNodeId,
           relationType: proposal.relationType,
+          edgeDiscriminator: "canonical",
         },
       },
       include: { confirmedBy: { select: { role: true } } },
@@ -533,26 +539,38 @@ export async function listPendingNodeEdgeProposals() {
     orderBy: [{ createdAt: "asc" }, { id: "asc" }],
     take: 200,
   });
-  return rows.map((row) => ({
-    id: row.id,
-    revision: row.revision,
-    origin: row.origin,
-    relationType: row.relationType,
-    rationale: row.rationale ?? "No rationale supplied.",
-    source: {
-      id: row.sourceNodeVersion.knowledgeNode.id,
-      localNodeId: row.sourceNodeVersion.knowledgeNode.localNodeId,
-      title: row.sourceNodeVersion.title,
-      repository: row.sourceNodeVersion.knowledgeNode.repository.canonicalUrl,
-    },
-    target: {
-      id: row.targetNodeVersion.knowledgeNode.id,
-      localNodeId: row.targetNodeVersion.knowledgeNode.localNodeId,
-      title: row.targetNodeVersion.title,
-      repository: row.targetNodeVersion.knowledgeNode.repository.canonicalUrl,
-    },
-    agentRunId: row.agentRun?.id,
-  }));
+  return rows.flatMap((row) => {
+    if (
+      !row.sourceNodeVersion.knowledgeNode.repository ||
+      !row.targetNodeVersion.knowledgeNode.repository ||
+      !row.sourceNodeVersion.title ||
+      !row.targetNodeVersion.title
+    ) {
+      return [];
+    }
+    return [
+      {
+        id: row.id,
+        revision: row.revision,
+        origin: row.origin,
+        relationType: row.relationType,
+        rationale: row.rationale ?? "No rationale supplied.",
+        source: {
+          id: row.sourceNodeVersion.knowledgeNode.id,
+          localNodeId: row.sourceNodeVersion.knowledgeNode.localNodeId,
+          title: row.sourceNodeVersion.title,
+          repository: row.sourceNodeVersion.knowledgeNode.repository.canonicalUrl,
+        },
+        target: {
+          id: row.targetNodeVersion.knowledgeNode.id,
+          localNodeId: row.targetNodeVersion.knowledgeNode.localNodeId,
+          title: row.targetNodeVersion.title,
+          repository: row.targetNodeVersion.knowledgeNode.repository.canonicalUrl,
+        },
+        agentRunId: row.agentRun?.id,
+      },
+    ];
+  });
 }
 
 /** Public authoritative projection. Rejected/superseded/proposed records never enter it. */

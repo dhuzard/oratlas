@@ -123,6 +123,7 @@ gcloud iam service-accounts describe "$RUNTIME_SA" >/dev/null 2>&1 || \
 # The account that executes Cloud Build pushes the image and deploys Cloud Run.
 for ROLE in \
   roles/artifactregistry.writer \
+  roles/cloudsql.editor \
   roles/run.admin \
   roles/secretmanager.viewer; do
   gcloud projects add-iam-policy-binding "$PROJECT_ID" \
@@ -135,8 +136,8 @@ gcloud iam service-accounts add-iam-policy-binding "$RUNTIME_SA" \
   --member="serviceAccount:${BUILD_SA}" \
   --role="roles/iam.serviceAccountUser"
 
-# The Cloud Run service and migration job—not the build account—read secrets
-# and connect to Cloud SQL.
+# The Cloud Run service and migration job read secrets and connect to Cloud SQL.
+# They do not receive backup-management permissions.
 for ROLE in \
   roles/cloudsql.client \
   roles/secretmanager.secretAccessor; do
@@ -168,11 +169,28 @@ gcloud builds submit \
 The build performs these steps:
 
 1. build and push the container image;
-2. create or update the `${SERVICE}-migrate` Cloud Run Job;
-3. execute `pnpm db:deploy:postgres` against Cloud SQL;
-4. deploy the Cloud Run service and expose it publicly;
-5. run the beta journey smoke against readiness, the homepage promise, personalized Explore,
-   `GET /api/landscape`, a confirmed graph edge, and exact node-version navigation.
+2. verify that scheduled Cloud SQL backups and point-in-time recovery are enabled, create a
+   synchronous on-demand backup, verify its `SUCCESSFUL` status, and record its exact id;
+3. create or update the `${SERVICE}-migrate` Cloud Run Job;
+4. execute `pnpm db:deploy:postgres` against Cloud SQL only when that verified id is present;
+5. run the bounded canonical-graph backfill to completion and activate its deferred contract after
+   a locked whole-corpus validation;
+6. deploy a tagged Cloud Run candidate with `--no-traffic`, leaving the serving revision unchanged;
+7. run the beta journey smoke against that candidate's tag URL; and
+8. route traffic to that exact tag only after the smoke succeeds.
+
+The backup step runs as the build identity, not the runtime identity. The working configuration
+above grants the predefined Cloud SQL Editor role. For least privilege, replace it with a custom
+role containing only `cloudsql.instances.get`, `cloudsql.backupRuns.create`,
+`cloudsql.backupRuns.list`, and `cloudsql.backupRuns.get`, scoped to the production instance where
+your IAM policy supports that condition. Missing permissions, disabled backup protection, a failed
+backup, or an empty backup id stops the build before the migration job executes.
+
+The canonical backfill job has database and secret access but no backup-management permission. It
+receives the verified opaque backup id, processes every review version in bounded serializable
+transactions, and activates the contract before a candidate service is staged. Later deployments
+revalidate an already-active contract without rewriting its original activation metadata. Any
+migration, backfill, contract, or candidate-smoke failure leaves the old revision serving.
 
 The default beta fixture is `q=replay&interest=data-code`. Before deployment, the Cloud SQL data
 must therefore contain a readable claim with an explicit graph identity and a confirmed dataset or
@@ -180,10 +198,13 @@ code neighborhood matching that query. Override `_BETA_SMOKE_QUERY` and `_BETA_S
 a known real beta record when the example fixtures are not present. The deployment intentionally
 fails its final verification step when the defining personalized graph journey is unavailable.
 
-`db:deploy:postgres` currently uses `prisma db push` against the generated
-PostgreSQL schema, followed by ORAtlas database guards. This is intended to
-bootstrap the POC quickly. Before maintaining valuable production data, replace
-this bootstrap workflow with reviewed and committed Prisma migrations.
+`db:deploy:postgres` is the only supported production entry point. On a new empty database it
+installs the immutable reviewed baseline DDL and records the initial migration baseline.
+On a populated pre-migration database it installs the immutable baseline into a uniquely named
+temporary schema and requires the live-to-frozen-baseline diff to be empty before recording that
+baseline. The temporary schema is always removed. Drift and comparison errors fail closed. Once
+`_prisma_migrations` exists, deployments use `prisma migrate deploy` followed by the ORAtlas
+database guards. Do not invoke `prisma db push` against valuable data.
 
 ## 7. Set the canonical URL and optionally configure GitHub OAuth
 
@@ -286,6 +307,6 @@ Before importing real or irreplaceable data:
 
 - enable automated backups and point-in-time recovery;
 - test `pg_dump` and restore;
-- replace `prisma db push` with committed migrations;
+- use only the committed-migration deployment wrapper;
 - test migration and rollback against a staging database;
 - use a dedicated runtime service account with least privilege.

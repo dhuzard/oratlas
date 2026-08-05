@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import type { KnowledgeLandscapeQuery } from "@oratlas/contracts";
+import type { DiscussionTraversalScope } from "@oratlas/contracts";
 import { trustVerificationPresentation } from "@/components/TrustVerificationBadge";
 
 interface EvidenceClaim {
@@ -64,14 +64,12 @@ interface DiscussionReference {
 }
 
 export function DiscussClient({
-  initialReview,
   initialQuestion = "",
   scope,
   embedded = false,
 }: {
-  initialReview?: string;
   initialQuestion?: string;
-  scope?: KnowledgeLandscapeQuery;
+  scope: DiscussionTraversalScope;
   embedded?: boolean;
 }) {
   const [question, setQuestion] = useState(initialQuestion);
@@ -94,7 +92,6 @@ export function DiscussClient({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           question,
-          reviewSlugs: initialReview ? [initialReview] : undefined,
           scope,
           llm: apiKey.trim()
             ? {
@@ -128,16 +125,14 @@ export function DiscussClient({
   return (
     <div>
       <div className={embedded ? "atlas-discuss-composer" : "card"}>
-        {scope ? (
-          <div className="atlas-discuss-scope" aria-label="Atlas Discuss evidence scope">
-            <strong>Visible evidence scope</strong>
-            <span>{describeScope(scope)}</span>
-            <small>
-              Atlas will use only claims selected by this explicit Explore state. Change the topic,
-              interests, filters, or graph focus to edit it.
-            </small>
-          </div>
-        ) : null}
+        <div className="atlas-discuss-scope" aria-label="Atlas Discuss evidence scope">
+          <strong>Visible evidence scope</strong>
+          <span>{describeScope(scope)}</span>
+          <small>
+            Atlas will use only these signed, exact node versions and visible edges. Change the
+            Explore path to edit the scope.
+          </small>
+        </div>
         <div className="field">
           <label htmlFor="atlas-question">Your question</label>
           <textarea
@@ -146,7 +141,6 @@ export function DiscussClient({
             onChange={(e) => setQuestion(e.target.value)}
             placeholder="e.g. What is the evidence that hippocampal replay supports memory consolidation?"
           />
-          {initialReview ? <small>Scoped to review: {initialReview}</small> : null}
         </div>
         <details style={{ marginBottom: "1rem" }}>
           <summary>Use your own LLM key (optional)</summary>
@@ -445,15 +439,6 @@ function highlightLandscape(nodeIds: string[]) {
   );
 }
 
-function describeScope(scope: KnowledgeLandscapeQuery): string {
-  const parts = [
-    scope.q ? `Topic: ${scope.q}` : undefined,
-    scope.interests.length ? `Interests: ${scope.interests.join(", ")}` : undefined,
-    scope.focusNodeId ? `Graph focus: ${scope.focusNodeId}` : undefined,
-    scope.reviewSlug ? `Review: ${scope.reviewSlug}` : undefined,
-    scope.claimType ? `Claim type: ${scope.claimType}` : undefined,
-    scope.relationType ? `Evidence relation: ${scope.relationType}` : undefined,
-    scope.trustCriterion ? `Assessment criterion: ${scope.trustCriterion}` : undefined,
-  ].filter(Boolean);
-  return parts.length ? parts.join(" · ") : "Current bounded Explore landscape";
+function describeScope(scope: DiscussionTraversalScope): string {
+  return `${scope.nodes.length} exact graph occurrence${scope.nodes.length === 1 ? "" : "s"} · ${scope.edgeIds.length} visible edge${scope.edgeIds.length === 1 ? "" : "s"}`;
 }

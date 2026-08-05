@@ -11,7 +11,7 @@ const databasePath = join(tmpdir(), `oratlas-decision-guards-${process.pid}-${Da
 const databaseUrl = `file:${databasePath.replaceAll("\\", "/")}?connection_limit=1`;
 let prisma: PrismaClient;
 
-describe("SQLite immutable editorial decision guards", () => {
+describe("SQLite database guards", () => {
   beforeAll(async () => {
     execFileSync(
       process.execPath,
@@ -69,4 +69,40 @@ describe("SQLite immutable editorial decision guards", () => {
       );
     },
   );
+
+  it("accepts canonical work identity and rejects incomplete source unions", async () => {
+    const suffix = `${Date.now()}`;
+    const work = await prisma.knowledgeNode.create({
+      data: {
+        stableKey: `work:doi:10.1000/${suffix}`,
+        originType: "canonical-work",
+        localNodeId: `work-${suffix}`,
+        kind: "work",
+      },
+    });
+    expect(work.repositoryId).toBeNull();
+
+    await expect(
+      prisma.knowledgeNode.create({
+        data: {
+          originType: "repository-object",
+          localNodeId: `invalid-${suffix}`,
+          kind: "claim",
+        },
+      }),
+    ).rejects.toThrow();
+
+    await expect(
+      prisma.knowledgeNodeVersion.create({
+        data: {
+          knowledgeNodeId: work.id,
+          title: "Missing exact source",
+          contributorsJson: "[]",
+          license: "CC0-1.0",
+          provenanceJson: "{}",
+          payloadJson: "{}",
+        },
+      }),
+    ).rejects.toThrow();
+  });
 });

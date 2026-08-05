@@ -173,12 +173,16 @@ jobs:
         working-directory: packages/db
         run: pnpm exec prisma generate --schema prisma/schema.postgres.prisma
 
-      - name: Push schema to PostgreSQL
+      - name: Create the frozen pre-migration PostgreSQL baseline
         working-directory: packages/db
-        run: pnpm exec prisma db push --schema prisma/schema.postgres.prisma --skip-generate
+        run: pnpm exec prisma db execute --file prisma/baseline/20260805000000_existing_schema_baseline.sql --schema prisma/schema.postgres.prisma
 
-      - name: Apply and verify database-native guards
-        run: pnpm --filter @oratlas/db db:guards
+      - name: Mark the already-deployed baseline
+        working-directory: packages/db
+        run: pnpm exec prisma migrate resolve --applied 20260805000000_existing_schema_baseline --schema prisma/schema.postgres.prisma
+
+      - name: Deploy upgrade migrations and verify guards
+        run: pnpm db:deploy:postgres
 
       - name: Exercise database-native guards on PostgreSQL
         run: pnpm exec vitest run packages/db/src/database-guards.integration.test.ts
@@ -200,6 +204,7 @@ jobs:
 
       - name: Exercise serializable publication races on PostgreSQL
         run: |
+          # This is a disposable per-suite schema, not a deployment database.
           pnpm --filter @oratlas/db exec prisma db push --schema prisma/schema.postgres.prisma --skip-generate
           pnpm --filter @oratlas/db db:guards
           pnpm exec vitest run apps/web/src/lib/atomic-publication.integration.test.ts
