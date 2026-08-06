@@ -172,8 +172,6 @@ export async function listChallengeSubjectOptions(
   );
 }
 
-/** Interim §5 default, deliberately isolated so governance can replace it. */
-
 export async function listChallenges(
   slug: string,
   reviewVersionId: string,
@@ -581,17 +579,21 @@ export async function listOpenChallengePage(
   const items: ChallengeQueueItem[] = [];
   for (const row of pageRows) {
     try {
-      await assertChallengeContainerReadable(prisma, row);
+      const readableContainer =
+        (row.reviewVersionId !== null &&
+          row.nodeEdgeProposalId === null &&
+          row.reviewVersion !== null &&
+          isExactChallengeVersion(row.reviewVersion)) ||
+        (row.reviewVersionId === null &&
+          row.nodeEdgeProposalId !== null &&
+          row.nodeContainer !== null);
+      if (!readableContainer) {
+        throw new ChallengeError("Challenges are closed on this public container.", "forbidden");
+      }
       assertChallengeLedger(row, row.activeChallengerSubjectKey);
       assertChallengeResponseIntegrity(row, row.response);
-      await assertChallengeSubjectIntegrity(prisma, row);
+      const subject = await assertChallengeSubjectIntegrity(prisma, row);
       if (!challengeContentStatusSchema.safeParse(row.contentStatus).success) continue;
-      const subject = await resolveChallengeSubject(
-        prisma,
-        row.reviewVersionId,
-        rowSubject(row)!,
-        row.nodeEdgeProposalId,
-      );
       items.push({
         id: row.id,
         status: row.status as "open" | "author-responded",

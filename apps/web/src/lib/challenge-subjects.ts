@@ -309,7 +309,7 @@ export async function assertChallengeSubjectIntegrity(
     canonicalSubjectHash: string;
     subjectRefJson: string;
   },
-): Promise<void> {
+): Promise<ResolvedSubject> {
   const input = rowSubject(row);
   if (!input) throw new ChallengeError("Challenge subject binding is invalid.", "conflict");
   const current = await resolveChallengeSubject(
@@ -321,4 +321,5 @@ export async function assertChallengeSubjectIntegrity(
   if (current.hash !== row.canonicalSubjectHash || current.refJson !== row.subjectRefJson) {
     throw new ChallengeError("Challenge subject integrity check failed.", "conflict");
   }
+  return current;
 }

@@ -3,8 +3,7 @@ import type {
   ChallengeSubjectInput,
   PublicChallenge,
 } from "@oratlas/contracts";
-import type { Prisma } from "@oratlas/db";
-import type { prisma } from "./db";
+import type { Prisma, PrismaClient } from "@oratlas/db";
 
 export class ChallengeError extends Error {
   constructor(
@@ -23,7 +22,7 @@ export const CHALLENGE_TRANSACTION_ATTEMPTS = 3;
 export const MAX_NODE_CHALLENGE_CONTAINERS = 200;
 export const MAX_NODE_CHALLENGE_PAGE_SIZE = 100;
 
-export type Db = Prisma.TransactionClient | typeof prisma;
+export type Db = Prisma.TransactionClient | PrismaClient;
 
 export type ResolvedSubject = {
   type: ChallengeSubjectInput["type"];
