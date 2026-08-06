@@ -80,5 +80,3 @@ export async function isNodeChallengeContributorOfRecord(
   }
   return false;
 }
-
-/** Public node register/export for exact node-relation adjudication challenges. */
