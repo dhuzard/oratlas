@@ -188,7 +188,9 @@ steps:
 
         gcloud run services describe "${_SERVICE}" \
           --region="${_REGION}" \
-          --format="value(status.traffic.filter(\"tag=$${CANDIDATE_TAG}\").url)" > /workspace/oratlas-candidate-url
+          --format=json | python3 -c \
+          'import json, sys; tag = sys.argv[1]; traffic = json.load(sys.stdin)["status"]["traffic"]; print(next(item["url"] for item in traffic if item.get("tag") == tag))' \
+          "$${CANDIDATE_TAG}" > /workspace/oratlas-candidate-url
         printf '%s\n' "$${CANDIDATE_TAG}" > /workspace/oratlas-candidate-tag
 
   - id: verify-beta-journey
