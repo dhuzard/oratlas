@@ -1,3 +1,5 @@
+import "server-only";
+
 export { compareSynthesisPackets } from "@oratlas/knowledge";
 export { evaluateSynthesisHead, scanAcceptedSyntheses } from "./synthesis-staleness-evaluation";
 export {

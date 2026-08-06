@@ -1,3 +1,4 @@
+import "server-only";
 import { createHash } from "node:crypto";
 import { Prisma, type PrismaClient } from "@oratlas/db";
 import type { SessionUser } from "./auth";
