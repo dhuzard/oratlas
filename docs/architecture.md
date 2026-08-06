@@ -59,13 +59,15 @@ identity: one node represents a `Review`, each `ReviewVersion` represents an exa
 and claims bind both a stable node and their exact occurrence without inferred continuity across
 versions. Cited works use conflict-aware global aliases with an occurrence-local fallback.
 
-Migration is additive and phased. `ClaimEvidenceRelation` remains the stable compatibility subject
+Migration was additive and phased. `ClaimEvidenceRelation` remains the stable compatibility subject
 linked 1:1 to a canonical evidence edge so existing TRUST, challenge, and adjudication ids and
 hashes do not change. Repository-imported edges remain source assertions, distinct from editorially
 confirmed relations. Review-backed records never receive fake repository snapshots. See
 [Canonical graph identity and compatibility migration](canonical-graph-identity.md) for the
-accepted invariants, backup gate, and expand/dual-write/backfill/contract sequence. Runtime and
-database implementation have not yet shipped.
+accepted invariants, backup gate, and expand/dual-write/backfill/contract sequence. The runtime,
+database models, materialization, and public traversal API have shipped; the
+[architecture audit](architecture-audit.md) records the current implementation boundaries and
+remaining incremental refactoring work.
 
 ## Key flows
 
