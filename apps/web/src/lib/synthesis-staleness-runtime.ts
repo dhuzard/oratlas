@@ -2,6 +2,7 @@ import "server-only";
 import { createHash } from "node:crypto";
 import { Prisma, type PrismaClient } from "@oratlas/db";
 import type { SessionUser } from "./auth";
+import { withPrismaRetryPolicy } from "./db-retry";
 import {
   SYNTHESIS_STALENESS_SERIALIZABLE_ATTEMPTS,
   SynthesisStalenessError,
@@ -25,19 +26,11 @@ export async function runSerializable<T>(
   client: PrismaClient,
   operation: () => Promise<T>,
 ): Promise<T> {
-  let last: unknown;
-  for (let attempt = 0; attempt < SYNTHESIS_STALENESS_SERIALIZABLE_ATTEMPTS; attempt += 1) {
-    try {
-      return await operation();
-    } catch (error) {
-      last = error;
-      if (
-        !(error instanceof Prisma.PrismaClientKnownRequestError) ||
-        (error.code !== "P2034" && error.code !== "P2002") ||
-        attempt === SYNTHESIS_STALENESS_SERIALIZABLE_ATTEMPTS - 1
-      )
-        throw error;
-    }
-  }
-  throw last;
+  void client;
+  return withPrismaRetryPolicy(operation, {
+    maxAttempts: SYNTHESIS_STALENESS_SERIALIZABLE_ATTEMPTS,
+    isRetryable: (error) =>
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      (error.code === "P2002" || error.code === "P2034"),
+  });
 }
