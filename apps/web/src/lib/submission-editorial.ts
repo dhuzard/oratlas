@@ -7,7 +7,7 @@ import {
 } from "@oratlas/contracts";
 import type { Prisma } from "@oratlas/db";
 import { prisma } from "./db";
-import { prismaCode, uniqueTargets } from "./db-retry";
+import { BOUNDED_SERIALIZABLE_TRANSACTION_OPTIONS, prismaCode, uniqueTargets } from "./db-retry";
 import { directEditorialDecisionHash } from "./decision-provenance";
 import { sha256 } from "./hash";
 import { parseAndVerifyCapture, type InspectionCapturePayload } from "./inspection-captures";
@@ -510,11 +510,7 @@ export async function acceptSubmission(
     transactionClient
       ? operation(transactionClient)
       : withSubmissionSqliteRetry(() =>
-          prisma.$transaction(operation, {
-            maxWait: 5_000,
-            timeout: 15_000,
-            isolationLevel: "Serializable",
-          }),
+          prisma.$transaction(operation, BOUNDED_SERIALIZABLE_TRANSACTION_OPTIONS),
         );
 
   if (transactionClient) return run();
@@ -798,11 +794,7 @@ export async function decideSubmission(
   };
   if (transactionClient) return operation(transactionClient);
   return withSubmissionSqliteRetry(() =>
-    prisma.$transaction(operation, {
-      maxWait: 5_000,
-      timeout: 15_000,
-      isolationLevel: "Serializable",
-    }),
+    prisma.$transaction(operation, BOUNDED_SERIALIZABLE_TRANSACTION_OPTIONS),
   );
 }
 

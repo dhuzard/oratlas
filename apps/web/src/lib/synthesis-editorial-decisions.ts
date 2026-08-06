@@ -1,5 +1,5 @@
 import "server-only";
-import { Prisma, type PrismaClient } from "@oratlas/db";
+import type { PrismaClient } from "@oratlas/db";
 import {
   canonicalJson,
   editorialSynthesisDraftSchema,
@@ -23,6 +23,7 @@ import {
 } from "@oratlas/knowledge";
 import type { SessionUser } from "./auth";
 import { prisma } from "./db";
+import { prismaCode, SERIALIZABLE_TRANSACTION_OPTIONS, withPrismaRetryPolicy } from "./db-retry";
 import { materializeCanonicalReviewGraph } from "./canonical-graph-materialization";
 import {
   SYNTHESIS_TRANSACTION_ATTEMPTS,
@@ -277,28 +278,16 @@ export function assertEditorialActor(
 }
 
 export async function runSerializable<T>(operation: () => Promise<T>): Promise<T> {
-  let lastError: unknown;
-  for (let attempt = 0; attempt < SYNTHESIS_TRANSACTION_ATTEMPTS; attempt += 1) {
-    try {
-      return await operation();
-    } catch (error) {
-      lastError = error;
-      const code =
-        typeof error === "object" && error !== null && "code" in error
-          ? String((error as { code?: unknown }).code)
-          : undefined;
-      if (!["P1008", "P2002", "P2028", "P2034"].includes(code ?? "")) throw error;
-    }
-  }
-  throw mapTransactionError(lastError);
+  return withPrismaRetryPolicy(operation, {
+    maxAttempts: SYNTHESIS_TRANSACTION_ATTEMPTS,
+    isRetryable: (error) => ["P1008", "P2002", "P2028", "P2034"].includes(prismaCode(error) ?? ""),
+    mapExhaustedError: mapTransactionError,
+  });
 }
 
 export function mapTransactionError(error: unknown): Error {
   if (error instanceof SynthesisEditorialError) return error;
-  const code =
-    typeof error === "object" && error !== null && "code" in error
-      ? String((error as { code?: unknown }).code)
-      : undefined;
+  const code = prismaCode(error);
   if (["P1008", "P2002", "P2028", "P2034"].includes(code ?? "")) {
     return new SynthesisEditorialError(
       "Synthesis state changed concurrently; reload and retry.",
@@ -324,92 +313,260 @@ export async function decideSynthesisDraft(
   const operationHash = digest(canonicalJson(input));
 
   return runSerializable(() =>
-    client.$transaction(
-      async (tx) => {
-        const currentActor = await tx.user.findUnique({ where: { id: actor.id } });
-        if (!currentActor || (currentActor.role !== "EDITOR" && currentActor.role !== "ADMIN")) {
-          throw new SynthesisEditorialError("Editor role required.", "forbidden");
-        }
-        const priorClaim = await tx.idempotencyKey.findUnique({ where: { key: operationKey } });
-        const draft = await tx.synthesisDraft.findUnique({
-          where: { id: draftId },
-          include: {
-            agentRun: true,
-            memberships: {
-              orderBy: { position: "asc" },
-              include: { nodeVersion: { select: { knowledgeNodeId: true } } },
-            },
-            citations: {
-              orderBy: [{ location: "asc" }, { citationIndex: "asc" }],
-              include: { nodeVersion: { select: { knowledgeNodeId: true } } },
-            },
-            acceptedBy: { select: { githubLogin: true, displayName: true, role: true } },
-            reviewVersion: {
-              select: { id: true, synthesisOrdinal: true, review: { select: { slug: true } } },
-            },
+    client.$transaction(async (tx) => {
+      const currentActor = await tx.user.findUnique({ where: { id: actor.id } });
+      if (!currentActor || (currentActor.role !== "EDITOR" && currentActor.role !== "ADMIN")) {
+        throw new SynthesisEditorialError("Editor role required.", "forbidden");
+      }
+      const priorClaim = await tx.idempotencyKey.findUnique({ where: { key: operationKey } });
+      const draft = await tx.synthesisDraft.findUnique({
+        where: { id: draftId },
+        include: {
+          agentRun: true,
+          memberships: {
+            orderBy: { position: "asc" },
+            include: { nodeVersion: { select: { knowledgeNodeId: true } } },
           },
-        });
-        if (!draft) throw new SynthesisEditorialError("Synthesis draft not found.", "not-found");
-        if (priorClaim) {
-          if (priorClaim.requestHash !== operationHash) {
-            throw new SynthesisEditorialError(
-              "Idempotency key is bound to a different decision.",
-              "conflict",
-            );
-          }
-          return {
-            status: draft.status,
-            revision: draft.revision,
-            reviewSlug: draft.reviewVersion?.review.slug,
-            reviewVersionId: draft.reviewVersion?.id,
-          };
-        }
-        if (draft.status !== "pending" || draft.revision !== input.expectedRevision) {
-          throw new SynthesisEditorialError("Draft changed; reload before deciding.", "conflict");
-        }
-        // Reuse the same fail-closed checks on the transaction snapshot.
-        const integrity = assertDraftIntegrity(draft as LoadedDraft);
-        await tx.idempotencyKey.create({ data: { key: operationKey, requestHash: operationHash } });
-        const nextRevision = draft.revision + 1;
-        const claimed = await tx.synthesisDraft.updateMany({
-          where: { id: draft.id, status: "pending", revision: input.expectedRevision },
-          data: { revision: nextRevision },
-        });
-        if (claimed.count !== 1) {
+          citations: {
+            orderBy: [{ location: "asc" }, { citationIndex: "asc" }],
+            include: { nodeVersion: { select: { knowledgeNodeId: true } } },
+          },
+          acceptedBy: { select: { githubLogin: true, displayName: true, role: true } },
+          reviewVersion: {
+            select: { id: true, synthesisOrdinal: true, review: { select: { slug: true } } },
+          },
+        },
+      });
+      if (!draft) throw new SynthesisEditorialError("Synthesis draft not found.", "not-found");
+      if (priorClaim) {
+        if (priorClaim.requestHash !== operationHash) {
           throw new SynthesisEditorialError(
-            "Draft changed concurrently; reload and retry.",
+            "Idempotency key is bound to a different decision.",
             "conflict",
           );
         }
+        return {
+          status: draft.status,
+          revision: draft.revision,
+          reviewSlug: draft.reviewVersion?.review.slug,
+          reviewVersionId: draft.reviewVersion?.id,
+        };
+      }
+      if (draft.status !== "pending" || draft.revision !== input.expectedRevision) {
+        throw new SynthesisEditorialError("Draft changed; reload before deciding.", "conflict");
+      }
+      // Reuse the same fail-closed checks on the transaction snapshot.
+      const integrity = assertDraftIntegrity(draft as LoadedDraft);
+      await tx.idempotencyKey.create({ data: { key: operationKey, requestHash: operationHash } });
+      const nextRevision = draft.revision + 1;
+      const claimed = await tx.synthesisDraft.updateMany({
+        where: { id: draft.id, status: "pending", revision: input.expectedRevision },
+        data: { revision: nextRevision },
+      });
+      if (claimed.count !== 1) {
+        throw new SynthesisEditorialError(
+          "Draft changed concurrently; reload and retry.",
+          "conflict",
+        );
+      }
 
-        if (input.action !== "accept") {
-          const status = input.action === "reject" ? "rejected" : "regeneration-requested";
-          await tx.synthesisDraft.update({
-            where: { id: draft.id },
-            data: { status, decisionRationale: input.rationale },
-          });
-          await tx.agentRun.update({
-            where: { id: draft.agentRunId },
-            data: { humanReviewStatus: "rejected" },
-          });
-          await tx.auditEvent.create({
-            data: {
-              actorId: currentActor.id,
-              action:
-                input.action === "reject"
-                  ? "synthesis.draft.rejected"
-                  : "synthesis.draft.regeneration-requested",
-              subjectType: "synthesisDraft",
-              subjectId: draft.id,
-              idempotencyKey: operationKey,
-              detailsJson: canonicalJson({ revision: nextRevision, rationale: input.rationale }),
+      if (input.action !== "accept") {
+        const status = input.action === "reject" ? "rejected" : "regeneration-requested";
+        await tx.synthesisDraft.update({
+          where: { id: draft.id },
+          data: { status, decisionRationale: input.rationale },
+        });
+        await tx.agentRun.update({
+          where: { id: draft.agentRunId },
+          data: { humanReviewStatus: "rejected" },
+        });
+        await tx.auditEvent.create({
+          data: {
+            actorId: currentActor.id,
+            action:
+              input.action === "reject"
+                ? "synthesis.draft.rejected"
+                : "synthesis.draft.regeneration-requested",
+            subjectType: "synthesisDraft",
+            subjectId: draft.id,
+            idempotencyKey: operationKey,
+            detailsJson: canonicalJson({ revision: nextRevision, rationale: input.rationale }),
+          },
+        });
+        return { status, revision: nextRevision };
+      }
+
+      const existingReview = await tx.review.findUnique({
+        where: { synthesisSeriesKey: draft.seriesKey },
+        include: {
+          currentSynthesisVersion: {
+            select: {
+              id: true,
+              reviewId: true,
+              recordSourceType: true,
+              synthesisOrdinal: true,
+              synthesisDraftId: true,
+              acceptedPredecessorVersionId: true,
+              versionDoi: true,
+              conceptDoi: true,
+              synthesisDraft: {
+                select: {
+                  id: true,
+                  status: true,
+                  reviewId: true,
+                  versionDoi: true,
+                  conceptDoi: true,
+                },
+              },
             },
-          });
-          return { status, revision: nextRevision };
+          },
+        },
+      });
+      const previousVersion = existingReview?.currentSynthesisVersion;
+      if (
+        existingReview &&
+        (!previousVersion ||
+          existingReview.reviewType !== "ai-synthesis" ||
+          existingReview.repositoryId !== null ||
+          existingReview.currentSnapshotId !== null ||
+          previousVersion.reviewId !== existingReview.id ||
+          previousVersion.recordSourceType !== "synthesis" ||
+          !previousVersion.synthesisOrdinal ||
+          !previousVersion.synthesisDraftId)
+      ) {
+        throw new SynthesisEditorialError(
+          "Current synthesis head has invalid source lineage.",
+          "conflict",
+        );
+      }
+      if ((draft.previousAcceptedDraftId ?? null) !== (previousVersion?.synthesisDraftId ?? null)) {
+        throw new SynthesisEditorialError(
+          "Draft was generated from a stale accepted synthesis head.",
+          "conflict",
+        );
+      }
+      let canonicalSeriesConceptDoi: string | null = null;
+      if (existingReview && previousVersion) {
+        const acceptedHistory = await tx.reviewVersion.findMany({
+          where: { reviewId: existingReview.id, recordSourceType: "synthesis" },
+          orderBy: { synthesisOrdinal: "asc" },
+          select: {
+            id: true,
+            synthesisOrdinal: true,
+            versionDoi: true,
+            conceptDoi: true,
+            synthesisDraft: {
+              select: {
+                id: true,
+                status: true,
+                reviewId: true,
+                versionDoi: true,
+                conceptDoi: true,
+              },
+            },
+          },
+        });
+        const historicalConcepts = new Set<string>();
+        if (acceptedHistory.at(-1)?.id !== previousVersion.id) {
+          throw new SynthesisEditorialError(
+            "Current synthesis head is not the latest accepted series version.",
+            "conflict",
+          );
         }
-
-        const existingReview = await tx.review.findUnique({
-          where: { synthesisSeriesKey: draft.seriesKey },
+        for (const acceptedVersion of acceptedHistory) {
+          const acceptedDraft = acceptedVersion.synthesisDraft;
+          const doiPair = liveSynthesisDoiPairSchema.safeParse({
+            versionDoi: acceptedVersion.versionDoi ?? undefined,
+            conceptDoi: acceptedVersion.conceptDoi ?? undefined,
+          });
+          if (
+            !acceptedVersion.synthesisOrdinal ||
+            !acceptedDraft ||
+            acceptedDraft.status !== "accepted" ||
+            acceptedDraft.reviewId !== existingReview.id ||
+            acceptedVersion.versionDoi !== acceptedDraft.versionDoi ||
+            acceptedVersion.conceptDoi !== acceptedDraft.conceptDoi ||
+            !doiPair.success ||
+            (doiPair.data.versionDoi ?? null) !== acceptedVersion.versionDoi ||
+            (doiPair.data.conceptDoi ?? null) !== acceptedVersion.conceptDoi
+          ) {
+            throw new SynthesisEditorialError(
+              "Accepted synthesis DOI lineage is corrupt.",
+              "conflict",
+            );
+          }
+          if (acceptedVersion.conceptDoi) historicalConcepts.add(acceptedVersion.conceptDoi);
+        }
+        if (historicalConcepts.size > 1) {
+          throw new SynthesisEditorialError(
+            "Accepted synthesis history has inconsistent concept DOI roles.",
+            "conflict",
+          );
+        }
+        canonicalSeriesConceptDoi = historicalConcepts.values().next().value ?? null;
+        if ((previousVersion.conceptDoi ?? null) !== canonicalSeriesConceptDoi) {
+          throw new SynthesisEditorialError(
+            "Current synthesis head does not match the canonical series concept DOI.",
+            "conflict",
+          );
+        }
+      }
+      const ordinal = (previousVersion?.synthesisOrdinal ?? 0) + 1;
+      const slug = slugForSeries(draft.seriesKey);
+      if (previousVersion && canonicalSeriesConceptDoi !== (input.conceptDoi ?? null)) {
+        throw new SynthesisEditorialError(
+          "Concept DOI must remain stable for the synthesis series.",
+          "conflict",
+        );
+      }
+      if (input.versionDoi) {
+        const reused = await tx.reviewVersion.findFirst({
+          where: {
+            recordSourceType: "synthesis",
+            OR: [{ versionDoi: input.versionDoi }, { conceptDoi: input.versionDoi }],
+          },
+          select: { id: true },
+        });
+        if (reused) {
+          throw new SynthesisEditorialError(
+            "Version DOI is already assigned to a synthesis identifier.",
+            "conflict",
+          );
+        }
+      }
+      if (input.conceptDoi) {
+        const crossRole = await tx.reviewVersion.findFirst({
+          where: { recordSourceType: "synthesis", versionDoi: input.conceptDoi },
+          select: { id: true },
+        });
+        const otherSeries = await tx.reviewVersion.findFirst({
+          where: {
+            recordSourceType: "synthesis",
+            conceptDoi: input.conceptDoi,
+            ...(existingReview ? { reviewId: { not: existingReview.id } } : {}),
+          },
+          select: { id: true },
+        });
+        if (crossRole || otherSeries) {
+          throw new SynthesisEditorialError(
+            "Concept DOI is already assigned to another synthesis role or series.",
+            "conflict",
+          );
+        }
+      }
+      let review = existingReview;
+      if (!review) {
+        review = await tx.review.create({
+          data: {
+            slug,
+            synthesisSeriesKey: draft.seriesKey,
+            title: integrity.document.title,
+            abstract: integrity.document.summary,
+            reviewType: "ai-synthesis",
+            licenseSpdx: input.licenseSpdx,
+            status: "published",
+            acceptedAt: new Date(),
+          },
           include: {
             currentSynthesisVersion: {
               select: {
@@ -434,349 +591,172 @@ export async function decideSynthesisDraft(
             },
           },
         });
-        const previousVersion = existingReview?.currentSynthesisVersion;
-        if (
-          existingReview &&
-          (!previousVersion ||
-            existingReview.reviewType !== "ai-synthesis" ||
-            existingReview.repositoryId !== null ||
-            existingReview.currentSnapshotId !== null ||
-            previousVersion.reviewId !== existingReview.id ||
-            previousVersion.recordSourceType !== "synthesis" ||
-            !previousVersion.synthesisOrdinal ||
-            !previousVersion.synthesisDraftId)
-        ) {
-          throw new SynthesisEditorialError(
-            "Current synthesis head has invalid source lineage.",
-            "conflict",
-          );
-        }
-        if (
-          (draft.previousAcceptedDraftId ?? null) !== (previousVersion?.synthesisDraftId ?? null)
-        ) {
-          throw new SynthesisEditorialError(
-            "Draft was generated from a stale accepted synthesis head.",
-            "conflict",
-          );
-        }
-        let canonicalSeriesConceptDoi: string | null = null;
-        if (existingReview && previousVersion) {
-          const acceptedHistory = await tx.reviewVersion.findMany({
-            where: { reviewId: existingReview.id, recordSourceType: "synthesis" },
-            orderBy: { synthesisOrdinal: "asc" },
-            select: {
-              id: true,
-              synthesisOrdinal: true,
-              versionDoi: true,
-              conceptDoi: true,
-              synthesisDraft: {
-                select: {
-                  id: true,
-                  status: true,
-                  reviewId: true,
-                  versionDoi: true,
-                  conceptDoi: true,
-                },
+      }
+      if (review.repositoryId || review.currentSnapshotId || review.reviewType !== "ai-synthesis") {
+        throw new SynthesisEditorialError(
+          "Review source identity is not a synthesis series.",
+          "conflict",
+        );
+      }
+      const acceptedAt = new Date();
+      const version = await tx.reviewVersion.create({
+        data: {
+          reviewId: review.id,
+          recordSourceType: "synthesis",
+          synthesisDraftId: draft.id,
+          sourceSelectionKey: `${draft.seriesKey}:${ordinal}`,
+          title: integrity.document.title,
+          abstract: integrity.document.summary,
+          metadataJson: canonicalJson({ reviewType: "ai-synthesis", license: input.licenseSpdx }),
+          isExample: false,
+          publishedAt: acceptedAt,
+          synthesisDocumentJson: draft.documentJson,
+          synthesisOrdinal: ordinal,
+          synthesisGenerationMode: draft.generationMode,
+          synthesisPipelineId: draft.pipelineSoftwareId,
+          synthesisPipelineKind: draft.pipelineSoftwareKind,
+          synthesisPipelineName: draft.pipelineSoftwareName,
+          synthesisPipelineVersion: draft.pipelineSoftwareVersion,
+          synthesisProvider: draft.provider,
+          synthesisModel: draft.model,
+          synthesisModelVersion: draft.modelVersion,
+          synthesisPromptVersion: draft.promptVersion,
+          synthesisPromptHash: draft.promptHash,
+          synthesisPacketHash: draft.packetHash,
+          synthesisDocumentHash: draft.documentHash,
+          synthesisGeneratedAt: draft.generatedAt,
+          synthesisAcceptedAt: acceptedAt,
+          synthesisApprovedById: currentActor.id,
+          synthesisApproverRole: currentActor.role,
+          synthesisApproverDisplayName: currentActor.displayName ?? currentActor.githubLogin,
+          synthesisApproverGithubLogin: currentActor.githubLogin,
+          synthesisChecklistVersion: SYNTHESIS_ACCEPTANCE_CHECKLIST_VERSION,
+          synthesisAttributionPolicyVersion: SYNTHESIS_ATTRIBUTION_POLICY_VERSION,
+          synthesisMaterializationPolicyVersion: SYNTHESIS_MATERIALIZATION_POLICY_VERSION,
+          synthesisRightsStatement: input.rightsStatement,
+          synthesisLicenseSpdx: input.licenseSpdx,
+          versionDoi: input.versionDoi,
+          conceptDoi: input.conceptDoi,
+          acceptedPredecessorVersionId: previousVersion?.id,
+          synthesisAttributions: {
+            create: [
+              {
+                position: 0,
+                kind: "software-agent",
+                displayName: draft.pipelineSoftwareName,
+                role: "synthesis-generation",
+                softwareVersion: draft.pipelineSoftwareVersion,
               },
-            },
-          });
-          const historicalConcepts = new Set<string>();
-          if (acceptedHistory.at(-1)?.id !== previousVersion.id) {
-            throw new SynthesisEditorialError(
-              "Current synthesis head is not the latest accepted series version.",
-              "conflict",
-            );
-          }
-          for (const acceptedVersion of acceptedHistory) {
-            const acceptedDraft = acceptedVersion.synthesisDraft;
-            const doiPair = liveSynthesisDoiPairSchema.safeParse({
-              versionDoi: acceptedVersion.versionDoi ?? undefined,
-              conceptDoi: acceptedVersion.conceptDoi ?? undefined,
-            });
-            if (
-              !acceptedVersion.synthesisOrdinal ||
-              !acceptedDraft ||
-              acceptedDraft.status !== "accepted" ||
-              acceptedDraft.reviewId !== existingReview.id ||
-              acceptedVersion.versionDoi !== acceptedDraft.versionDoi ||
-              acceptedVersion.conceptDoi !== acceptedDraft.conceptDoi ||
-              !doiPair.success ||
-              (doiPair.data.versionDoi ?? null) !== acceptedVersion.versionDoi ||
-              (doiPair.data.conceptDoi ?? null) !== acceptedVersion.conceptDoi
-            ) {
-              throw new SynthesisEditorialError(
-                "Accepted synthesis DOI lineage is corrupt.",
-                "conflict",
-              );
-            }
-            if (acceptedVersion.conceptDoi) historicalConcepts.add(acceptedVersion.conceptDoi);
-          }
-          if (historicalConcepts.size > 1) {
-            throw new SynthesisEditorialError(
-              "Accepted synthesis history has inconsistent concept DOI roles.",
-              "conflict",
-            );
-          }
-          canonicalSeriesConceptDoi = historicalConcepts.values().next().value ?? null;
-          if ((previousVersion.conceptDoi ?? null) !== canonicalSeriesConceptDoi) {
-            throw new SynthesisEditorialError(
-              "Current synthesis head does not match the canonical series concept DOI.",
-              "conflict",
-            );
-          }
-        }
-        const ordinal = (previousVersion?.synthesisOrdinal ?? 0) + 1;
-        const slug = slugForSeries(draft.seriesKey);
-        if (previousVersion && canonicalSeriesConceptDoi !== (input.conceptDoi ?? null)) {
-          throw new SynthesisEditorialError(
-            "Concept DOI must remain stable for the synthesis series.",
-            "conflict",
-          );
-        }
-        if (input.versionDoi) {
-          const reused = await tx.reviewVersion.findFirst({
-            where: {
-              recordSourceType: "synthesis",
-              OR: [{ versionDoi: input.versionDoi }, { conceptDoi: input.versionDoi }],
-            },
-            select: { id: true },
-          });
-          if (reused) {
-            throw new SynthesisEditorialError(
-              "Version DOI is already assigned to a synthesis identifier.",
-              "conflict",
-            );
-          }
-        }
-        if (input.conceptDoi) {
-          const crossRole = await tx.reviewVersion.findFirst({
-            where: { recordSourceType: "synthesis", versionDoi: input.conceptDoi },
-            select: { id: true },
-          });
-          const otherSeries = await tx.reviewVersion.findFirst({
-            where: {
-              recordSourceType: "synthesis",
-              conceptDoi: input.conceptDoi,
-              ...(existingReview ? { reviewId: { not: existingReview.id } } : {}),
-            },
-            select: { id: true },
-          });
-          if (crossRole || otherSeries) {
-            throw new SynthesisEditorialError(
-              "Concept DOI is already assigned to another synthesis role or series.",
-              "conflict",
-            );
-          }
-        }
-        let review = existingReview;
-        if (!review) {
-          review = await tx.review.create({
-            data: {
-              slug,
-              synthesisSeriesKey: draft.seriesKey,
-              title: integrity.document.title,
-              abstract: integrity.document.summary,
-              reviewType: "ai-synthesis",
-              licenseSpdx: input.licenseSpdx,
-              status: "published",
-              acceptedAt: new Date(),
-            },
-            include: {
-              currentSynthesisVersion: {
-                select: {
-                  id: true,
-                  reviewId: true,
-                  recordSourceType: true,
-                  synthesisOrdinal: true,
-                  synthesisDraftId: true,
-                  acceptedPredecessorVersionId: true,
-                  versionDoi: true,
-                  conceptDoi: true,
-                  synthesisDraft: {
-                    select: {
-                      id: true,
-                      status: true,
-                      reviewId: true,
-                      versionDoi: true,
-                      conceptDoi: true,
-                    },
-                  },
-                },
+              {
+                position: 1,
+                kind: "approving-editor",
+                displayName: currentActor.displayName ?? currentActor.githubLogin,
+                role: "editorial-approval",
+                userId: currentActor.id,
+                userRoleSnapshot: currentActor.role,
+                githubLoginSnapshot: currentActor.githubLogin,
               },
-            },
-          });
-        }
-        if (
-          review.repositoryId ||
-          review.currentSnapshotId ||
-          review.reviewType !== "ai-synthesis"
-        ) {
-          throw new SynthesisEditorialError(
-            "Review source identity is not a synthesis series.",
-            "conflict",
-          );
-        }
-        const acceptedAt = new Date();
-        const version = await tx.reviewVersion.create({
-          data: {
-            reviewId: review.id,
-            recordSourceType: "synthesis",
-            synthesisDraftId: draft.id,
-            sourceSelectionKey: `${draft.seriesKey}:${ordinal}`,
-            title: integrity.document.title,
-            abstract: integrity.document.summary,
-            metadataJson: canonicalJson({ reviewType: "ai-synthesis", license: input.licenseSpdx }),
-            isExample: false,
-            publishedAt: acceptedAt,
-            synthesisDocumentJson: draft.documentJson,
-            synthesisOrdinal: ordinal,
-            synthesisGenerationMode: draft.generationMode,
-            synthesisPipelineId: draft.pipelineSoftwareId,
-            synthesisPipelineKind: draft.pipelineSoftwareKind,
-            synthesisPipelineName: draft.pipelineSoftwareName,
-            synthesisPipelineVersion: draft.pipelineSoftwareVersion,
-            synthesisProvider: draft.provider,
-            synthesisModel: draft.model,
-            synthesisModelVersion: draft.modelVersion,
-            synthesisPromptVersion: draft.promptVersion,
-            synthesisPromptHash: draft.promptHash,
-            synthesisPacketHash: draft.packetHash,
-            synthesisDocumentHash: draft.documentHash,
-            synthesisGeneratedAt: draft.generatedAt,
-            synthesisAcceptedAt: acceptedAt,
-            synthesisApprovedById: currentActor.id,
-            synthesisApproverRole: currentActor.role,
-            synthesisApproverDisplayName: currentActor.displayName ?? currentActor.githubLogin,
-            synthesisApproverGithubLogin: currentActor.githubLogin,
-            synthesisChecklistVersion: SYNTHESIS_ACCEPTANCE_CHECKLIST_VERSION,
-            synthesisAttributionPolicyVersion: SYNTHESIS_ATTRIBUTION_POLICY_VERSION,
-            synthesisMaterializationPolicyVersion: SYNTHESIS_MATERIALIZATION_POLICY_VERSION,
-            synthesisRightsStatement: input.rightsStatement,
-            synthesisLicenseSpdx: input.licenseSpdx,
-            versionDoi: input.versionDoi,
-            conceptDoi: input.conceptDoi,
-            acceptedPredecessorVersionId: previousVersion?.id,
-            synthesisAttributions: {
-              create: [
-                {
-                  position: 0,
-                  kind: "software-agent",
-                  displayName: draft.pipelineSoftwareName,
-                  role: "synthesis-generation",
-                  softwareVersion: draft.pipelineSoftwareVersion,
-                },
-                {
-                  position: 1,
-                  kind: "approving-editor",
-                  displayName: currentActor.displayName ?? currentActor.githubLogin,
-                  role: "editorial-approval",
-                  userId: currentActor.id,
-                  userRoleSnapshot: currentActor.role,
-                  githubLoginSnapshot: currentActor.githubLogin,
-                },
-              ],
-            },
+            ],
           },
-        });
-        await tx.review.update({
-          where: { id: review.id },
-          data: {
-            currentSynthesisVersionId: version.id,
-            title: version.title,
-            abstract: version.abstract,
-            licenseSpdx: input.licenseSpdx,
-            acceptedAt,
-          },
-        });
-        await materializeCanonicalReviewGraph(tx, version.id);
-        const supersededRegenerationProposals = await tx.synthesisRegenerationProposal.findMany({
-          where: {
-            reviewId: review.id,
-            status: "open",
-            acceptedReviewVersionId: { not: version.id },
-          },
-          select: { id: true, acceptedReviewVersionId: true },
-        });
-        await tx.synthesisRegenerationProposal.updateMany({
-          where: {
-            reviewId: review.id,
-            status: "open",
-            acceptedReviewVersionId: { not: version.id },
-          },
-          data: { status: "superseded", openHeadKey: null },
-        });
-        await tx.synthesisDraft.update({
-          where: { id: draft.id },
-          data: {
-            status: "accepted",
-            acceptedAt,
-            acceptedById: currentActor.id,
-            acceptedByRoleSnapshot: currentActor.role,
-            acceptedByDisplayName: currentActor.displayName ?? currentActor.githubLogin,
-            acceptedByGithubLogin: currentActor.githubLogin,
-            decisionRationale: input.rationale,
-            checklistJson: canonicalJson(input.checklist),
-            checklistVersion: SYNTHESIS_ACCEPTANCE_CHECKLIST_VERSION,
-            rightsStatement: input.rightsStatement,
-            licenseSpdx: input.licenseSpdx,
-            versionDoi: input.versionDoi,
-            conceptDoi: input.conceptDoi,
-            reviewId: review.id,
-          },
-        });
-        await tx.agentRun.update({
-          where: { id: draft.agentRunId },
-          data: { humanReviewStatus: "approved" },
-        });
-        await tx.auditEvent.createMany({
-          data: [
-            {
-              actorId: currentActor.id,
-              action: "synthesis.draft.accepted",
-              subjectType: "synthesisDraft",
-              subjectId: draft.id,
-              idempotencyKey: operationKey,
-              detailsJson: canonicalJson({
-                reviewId: review.id,
-                reviewVersionId: version.id,
-                ordinal,
-              }),
-            },
-            {
-              actorId: currentActor.id,
-              action: "review.synthesis-published",
-              subjectType: "reviewVersion",
-              subjectId: version.id,
-              idempotencyKey: `${operationKey}:published`,
-              detailsJson: canonicalJson({
-                reviewSlug: review.slug,
-                seriesKey: draft.seriesKey,
-                ordinal,
-              }),
-            },
-            ...supersededRegenerationProposals.map((proposal) => ({
-              actorId: currentActor.id,
-              action: "synthesis.regeneration-proposal.superseded",
-              subjectType: "synthesisRegenerationProposal",
-              subjectId: proposal.id,
-              idempotencyKey: `synthesis-staleness:proposal:${proposal.id}:superseded:head:${version.id}`,
-              detailsJson: canonicalJson({
-                cause: "accepted-head-changed",
-                reviewId: review.id,
-                previousAcceptedReviewVersionId: proposal.acceptedReviewVersionId,
-                currentAcceptedReviewVersionId: version.id,
-              }),
-            })),
-          ],
-        });
-        return {
+        },
+      });
+      await tx.review.update({
+        where: { id: review.id },
+        data: {
+          currentSynthesisVersionId: version.id,
+          title: version.title,
+          abstract: version.abstract,
+          licenseSpdx: input.licenseSpdx,
+          acceptedAt,
+        },
+      });
+      await materializeCanonicalReviewGraph(tx, version.id);
+      const supersededRegenerationProposals = await tx.synthesisRegenerationProposal.findMany({
+        where: {
+          reviewId: review.id,
+          status: "open",
+          acceptedReviewVersionId: { not: version.id },
+        },
+        select: { id: true, acceptedReviewVersionId: true },
+      });
+      await tx.synthesisRegenerationProposal.updateMany({
+        where: {
+          reviewId: review.id,
+          status: "open",
+          acceptedReviewVersionId: { not: version.id },
+        },
+        data: { status: "superseded", openHeadKey: null },
+      });
+      await tx.synthesisDraft.update({
+        where: { id: draft.id },
+        data: {
           status: "accepted",
-          revision: nextRevision,
-          reviewSlug: review.slug,
-          reviewVersionId: version.id,
-        };
-      },
-      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
-    ),
+          acceptedAt,
+          acceptedById: currentActor.id,
+          acceptedByRoleSnapshot: currentActor.role,
+          acceptedByDisplayName: currentActor.displayName ?? currentActor.githubLogin,
+          acceptedByGithubLogin: currentActor.githubLogin,
+          decisionRationale: input.rationale,
+          checklistJson: canonicalJson(input.checklist),
+          checklistVersion: SYNTHESIS_ACCEPTANCE_CHECKLIST_VERSION,
+          rightsStatement: input.rightsStatement,
+          licenseSpdx: input.licenseSpdx,
+          versionDoi: input.versionDoi,
+          conceptDoi: input.conceptDoi,
+          reviewId: review.id,
+        },
+      });
+      await tx.agentRun.update({
+        where: { id: draft.agentRunId },
+        data: { humanReviewStatus: "approved" },
+      });
+      await tx.auditEvent.createMany({
+        data: [
+          {
+            actorId: currentActor.id,
+            action: "synthesis.draft.accepted",
+            subjectType: "synthesisDraft",
+            subjectId: draft.id,
+            idempotencyKey: operationKey,
+            detailsJson: canonicalJson({
+              reviewId: review.id,
+              reviewVersionId: version.id,
+              ordinal,
+            }),
+          },
+          {
+            actorId: currentActor.id,
+            action: "review.synthesis-published",
+            subjectType: "reviewVersion",
+            subjectId: version.id,
+            idempotencyKey: `${operationKey}:published`,
+            detailsJson: canonicalJson({
+              reviewSlug: review.slug,
+              seriesKey: draft.seriesKey,
+              ordinal,
+            }),
+          },
+          ...supersededRegenerationProposals.map((proposal) => ({
+            actorId: currentActor.id,
+            action: "synthesis.regeneration-proposal.superseded",
+            subjectType: "synthesisRegenerationProposal",
+            subjectId: proposal.id,
+            idempotencyKey: `synthesis-staleness:proposal:${proposal.id}:superseded:head:${version.id}`,
+            detailsJson: canonicalJson({
+              cause: "accepted-head-changed",
+              reviewId: review.id,
+              previousAcceptedReviewVersionId: proposal.acceptedReviewVersionId,
+              currentAcceptedReviewVersionId: version.id,
+            }),
+          })),
+        ],
+      });
+      return {
+        status: "accepted",
+        revision: nextRevision,
+        reviewSlug: review.slug,
+        reviewVersionId: version.id,
+      };
+    }, SERIALIZABLE_TRANSACTION_OPTIONS),
   );
 }
