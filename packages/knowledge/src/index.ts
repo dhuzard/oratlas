@@ -123,6 +123,7 @@ export {
   type SynthesisSectionTextDelta,
   type SynthesisTextReplacement,
 } from "./synthesis-delta.js";
+export { compareSynthesisPackets } from "./synthesis-staleness.js";
 export {
   defineGroundingEvalFixture,
   evaluateGroundingFixtures,

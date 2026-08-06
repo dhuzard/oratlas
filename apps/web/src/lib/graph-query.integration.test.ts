@@ -6,10 +6,13 @@ import { existsSync, rmSync } from "node:fs";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import {
   canonicalJson,
+  canonicalGraphQuerySchema,
+  canonicalGraphResponseSchema,
   publicGraphQuerySchema,
   publicGraphResponseSchema,
 } from "@oratlas/contracts";
 import type { PrismaClient } from "@oratlas/db";
+import type * as CanonicalGraphQuery from "./canonical-graph-query";
 import type * as GraphQuery from "./graph-query";
 
 vi.mock("server-only", () => ({}));
@@ -21,6 +24,7 @@ const CURSOR_SECRET = "kg08-integration-cursor-secret";
 
 let prisma: PrismaClient;
 let graph: typeof GraphQuery;
+let canonicalGraph: typeof CanonicalGraphQuery;
 let sourceNodeId: string;
 let targetNodeId: string;
 let confirmedContradictionId: string;
@@ -67,6 +71,7 @@ beforeAll(async () => {
   }
   ({ prisma } = await import("./db"));
   graph = await import("./graph-query");
+  canonicalGraph = await import("./canonical-graph-query");
 
   const repository = await prisma.repository.create({
     data: {
@@ -270,6 +275,82 @@ async function query(
 }
 
 describe.sequential("public graph query", () => {
+  it("keeps canonical records and graph presentation aligned only on shared exact edge identity", async () => {
+    const presentation = await query({
+      seed: sourceNodeId,
+      depth: 1,
+      edgeStatus: "confirmed",
+      relationType: "contradicts",
+    });
+    const canonical = await canonicalGraph.queryCanonicalGraph(
+      canonicalGraphQuerySchema.parse({
+        seed: sourceNodeId,
+        version: sourceVersionId,
+        direction: "both",
+        status: "confirmed",
+        relationType: "contradicts",
+        limit: 50,
+      }),
+    );
+
+    expect(publicGraphResponseSchema.parse(presentation)).toEqual(presentation);
+    expect(canonicalGraphResponseSchema.parse(canonical)).toEqual(canonical);
+    expect(canonical.schemaVersion).toBe("2.0.0");
+    expect(presentation.schemaVersion).toBe("1.0.0");
+    expect(canonical.seed).toEqual({ nodeId: sourceNodeId, nodeVersionId: sourceVersionId });
+    expect(presentation.seedNodeIds).toEqual([sourceNodeId]);
+
+    const presentationCore = presentation.edges.map((edge) => ({
+      id: edge.id,
+      sourceNodeId: edge.sourceNodeId,
+      sourceNodeVersionId: edge.sourceVersionId,
+      targetNodeId: edge.targetNodeId,
+      targetNodeVersionId: edge.targetVersionId,
+      relationType: edge.relationType,
+      status: edge.status,
+      provenance: edge.provenance,
+    }));
+    const canonicalCore = canonical.edges.map((edge) => ({
+      id: edge.id,
+      sourceNodeId: edge.sourceNodeId,
+      sourceNodeVersionId: edge.sourceNodeVersionId,
+      targetNodeId: edge.targetNodeId,
+      targetNodeVersionId: edge.targetNodeVersionId,
+      relationType: edge.relationType,
+      status: edge.status,
+      provenance: edge.provenance,
+    }));
+    expect(canonicalCore).toEqual(presentationCore);
+
+    const canonicalSeed = canonical.nodes.find((node) => node.nodeVersionId === sourceVersionId);
+    const presentationSeed = presentation.nodes.find((node) => node.versionId === sourceVersionId);
+    expect(canonicalSeed).toEqual(
+      expect.objectContaining({
+        nodeId: sourceNodeId,
+        source: { type: "repository-snapshot", snapshotId: expect.any(String) },
+        payload: { qualifiers: [], statement: "Memory replay supports consolidation." },
+      }),
+    );
+    expect(presentationSeed).toEqual(
+      expect.objectContaining({
+        id: sourceNodeId,
+        repository: {
+          owner: "graph-lab",
+          name: "public-graph",
+          url: "https://github.com/graph-lab/public-graph",
+        },
+      }),
+    );
+    expect(presentationSeed).not.toHaveProperty("payload");
+
+    expect(
+      publicGraphQuerySchema.safeParse({ seed: sourceNodeId, edgeStatus: "proposed" }).success,
+    ).toBe(true);
+    expect(
+      canonicalGraphQuerySchema.safeParse({ seed: sourceNodeId, status: "proposed" }).success,
+    ).toBe(false);
+  });
+
   it("traverses contradictions symmetrically without changing their canonical direction or id", async () => {
     const fromSource = await query({ seed: sourceNodeId, depth: 1 });
     const fromTarget = await query({ seed: targetNodeId, depth: 1 });

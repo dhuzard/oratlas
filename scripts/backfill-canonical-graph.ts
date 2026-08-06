@@ -2,11 +2,13 @@ import { createHash } from "node:crypto";
 import { writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { canonicalJson } from "@oratlas/contracts";
-import { assertProductionBackupId, getPrisma, type Prisma } from "@oratlas/db";
 import {
+  assertProductionBackupId,
+  getPrisma,
   materializeCanonicalReviewGraph,
   type CanonicalGraphMaterializationReport,
-} from "../apps/web/src/lib/canonical-graph-materialization.js";
+  type Prisma,
+} from "@oratlas/db";
 import {
   canonicalValidationTotal,
   countMissingReviewAssertions,

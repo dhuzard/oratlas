@@ -256,6 +256,7 @@ A full inventory of limitations lives in [`docs/poc-limitations.md`](docs/poc-li
 | [`docs/canonical-graph-identity.md`](docs/canonical-graph-identity.md)                         | Canonical identities, compatibility invariants, migration |
 | [`docs/data-model.md`](docs/data-model.md)                                                     | Prisma schema walkthrough                                 |
 | [`docs/submission-workflow.md`](docs/submission-workflow.md)                                   | UI flow, capture capability, editorial pipeline           |
+| [`docs/retry-policies.md`](docs/retry-policies.md)                                             | Retry budgets, classifiers, and transaction options       |
 | [`docs/article-lifecycle.md`](docs/article-lifecycle.md)                                       | Article reader, version diff, corrections, tombstones     |
 | [`docs/doi-and-versioning.md`](docs/doi-and-versioning.md)                                     | Version vs concept DOI, validation report semantics       |
 | [`docs/trust-model.md`](docs/trust-model.md)                                                   | TRUST dimensions, relation-level attachment, aggregation  |

@@ -1,5 +1,4 @@
-import { getPrisma } from "@oratlas/db";
-import { materializeCanonicalReviewGraph } from "../apps/web/src/lib/canonical-graph-materialization.js";
+import { getPrisma, materializeCanonicalReviewGraph } from "@oratlas/db";
 
 const prisma = getPrisma();
 

@@ -39,7 +39,7 @@
     "eval:grounding": "pnpm --silent exec tsx scripts/eval-grounding.ts",
     "eval:exploration": "pnpm --silent exec tsx scripts/eval-first-time-exploration.ts",
     "smoke:gcp-beta": "node scripts/smoke-gcp-beta.mjs",
-    "refresh:syntheses": "tsx --conditions=react-server scripts/refresh-syntheses.ts",
+    "refresh:syntheses": "tsx --conditions=react-server apps/web/src/cli/refresh-syntheses.ts",
     "backfill:canonical-graph": "pnpm --filter @oratlas/db exec tsx --conditions=react-server ../../scripts/backfill-canonical-graph.ts",
     "release:notes": "tsx scripts/release-notes.ts"
   },
