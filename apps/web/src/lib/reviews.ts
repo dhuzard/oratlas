@@ -32,6 +32,7 @@ import {
   type StoredCompatibilityReport,
 } from "./compatibility-report";
 import { directEditorialDecisionHash } from "./decision-provenance";
+import { parsePocEvaluation, type PocEvaluation } from "./poc-evaluation";
 
 function publicConflictStatus(value: string) {
   const parsed = conflictOfInterestStatusSchema.safeParse(value);
@@ -123,6 +124,7 @@ export interface ReviewDetail {
   compatibilityReport?: StoredCompatibilityReport;
   compatibilityFacets?: FacetCompatibilityReport;
   sourceAssessmentDocuments?: SourceAssessmentDocumentsReport;
+  pocEvaluation?: PocEvaluation;
   contributors: Array<{
     displayName: string;
     orcid?: string;
@@ -309,6 +311,7 @@ export async function getReviewDetail(
     reviewType?: string;
     license?: string;
     sourceAssessmentDocuments?: unknown;
+    pocEvaluation?: unknown;
   }>(version.metadataJson, {});
   const compatibilityReport = compatibilityReportFromStoredJson(
     version.metadataJson,
@@ -509,6 +512,7 @@ export async function getReviewDetail(
     sourceAssessmentDocuments: sourceAssessmentDocuments.success
       ? sourceAssessmentDocuments.data
       : undefined,
+    pocEvaluation: parsePocEvaluation(meta.pocEvaluation),
     contributors: version.contributors.map((c) => ({
       displayName: c.person.displayName,
       orcid: c.person.orcid ?? undefined,

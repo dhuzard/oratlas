@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { knowledgeNodeSchema, nodeEdgeSchema } from "@oratlas/contracts";
-import { pendingSubmission, seedKnowledgeNodes, seedNodeEdges, seedReviews } from "./data.js";
+import {
+  openscopeP3DataRelease,
+  pendingSubmission,
+  seedKnowledgeNodes,
+  seedNodeEdges,
+  seedReviews,
+  templateDemoReview,
+  vipComputationalReview,
+} from "./data.js";
 
 describe("seed snapshot identities", () => {
   it("uses full hexadecimal Git object ids", () => {
@@ -11,6 +19,45 @@ describe("seed snapshot identities", () => {
     for (const objectId of objectIds) {
       expect(objectId).toMatch(/^(?:[0-9a-f]{40}|[0-9a-f]{64})$/);
     }
+  });
+
+  it("pins the requested public repositories and keeps their POC roles explicit", () => {
+    expect(seedReviews.map((review) => review.repository.canonicalUrl)).toEqual(
+      expect.arrayContaining([
+        "https://github.com/AllenNeuralDynamics/ComputationalReviewTemplate",
+        "https://github.com/AllenNeuralDynamics/ComputationalReviewVIP",
+        "https://github.com/jeromelecoq/openscope_p3_data_release_paper",
+      ]),
+    );
+    expect(templateDemoReview).toMatchObject({
+      claims: [],
+      pocEvaluation: { corpusRole: "structural-control" },
+    });
+    expect(vipComputationalReview.pocEvaluation).toMatchObject({ corpusRole: "ai-review" });
+    expect(openscopeP3DataRelease.pocEvaluation).toMatchObject({ corpusRole: "data-release" });
+    for (const review of [templateDemoReview, vipComputationalReview, openscopeP3DataRelease]) {
+      expect(review.repository.githubRepositoryId).toMatch(/^\d+$/);
+      expect(review.snapshot.treeSha).toMatch(/^[0-9a-f]{40}$/);
+      expect(review.snapshot.preserveSyntheticArticle).toBe(false);
+      expect(review.version.isExample).toBe(true);
+      expect(review.pocEvaluation?.limitations.length).toBeGreaterThan(0);
+      expect(review.pocEvaluation?.suggestedFixes.length).toBeGreaterThan(0);
+    }
+  });
+
+  it("keeps findings distinct from capabilities in the source-derived corpus", () => {
+    expect(vipComputationalReview.claims).toHaveLength(4);
+    expect(vipComputationalReview.relations).toHaveLength(6);
+    expect(vipComputationalReview.citations.every((citation) => !citation.isExample)).toBe(true);
+
+    const capability = openscopeP3DataRelease.claims.find(
+      (claim) => claim.localId === "alternative-hypotheses",
+    );
+    expect(capability).toMatchObject({ claimType: "hypothesis-capability" });
+    expect(capability?.qualification).toMatch(/not evidence/i);
+    expect(
+      openscopeP3DataRelease.claims.some((claim) => claim.claimType === "provenance-limitation"),
+    ).toBe(true);
   });
 });
 

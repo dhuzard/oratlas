@@ -219,6 +219,31 @@ test.describe("Public archive browsing", () => {
     await expect(page.getByText(/repository-only/i).first()).toBeVisible();
   });
 
+  test("source-derived POC reviews expose limitations and remain traversable", async ({ page }) => {
+    await page.goto("/reviews/vip-cortical-interneurons-critical-review");
+
+    const stressTest = page.locator("section.card").filter({
+      has: page.getByRole("heading", { name: "POC scientific stress test" }),
+    });
+    await expect(stressTest).toContainText("Four representative synthesis claims");
+    await expect(
+      stressTest.getByRole("heading", { name: "Limitations to challenge" }),
+    ).toBeVisible();
+    await expect(stressTest).toContainText("403 of 3,816 citation triples");
+    await expect(stressTest.getByRole("heading", { name: "Suggested fixes" })).toBeVisible();
+    await expect(stressTest).toContainText("claim, citation, relation, and TRUST JSONL");
+
+    await page.goto("/explore?q=disinhibition");
+    const landscape = page.getByRole("region", { name: "Guided knowledge landscape" });
+    await expect(landscape).toContainText(
+      "Disinhibition is a reproducible component of VIP interneuron function",
+    );
+
+    await page.goto("/reviews/openscope-predictive-processing-data-release");
+    await expect(page.getByText("hypothesis-capability", { exact: true })).toBeVisible();
+    await expect(page.getByText(/not evidence that either alternative is true/i)).toBeVisible();
+  });
+
   test("review page shows repository, commit, DOI distinction, claims and TRUST", async ({
     page,
   }) => {

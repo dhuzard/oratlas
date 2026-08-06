@@ -278,6 +278,32 @@ export default async function ReviewPage({
         <ArtifactOutcomes report={review.compatibilityReport} />
       </Card>
 
+      {review.pocEvaluation ? (
+        <Card title="POC scientific stress test">
+          <div className="btn-row">
+            <Badge tone="warning">source-derived POC</Badge>
+            <Badge>{review.pocEvaluation.corpusRole.replace(/-/g, " ")}</Badge>
+          </div>
+          <p>{review.pocEvaluation.sourceCoverage}</p>
+          <h3>Limitations to challenge</h3>
+          <ul>
+            {review.pocEvaluation.limitations.map((limitation) => (
+              <li key={limitation}>{limitation}</li>
+            ))}
+          </ul>
+          <h3>Suggested fixes</h3>
+          <ul>
+            {review.pocEvaluation.suggestedFixes.map((fix) => (
+              <li key={fix}>{fix}</li>
+            ))}
+          </ul>
+          <p className="muted">
+            These are explicit POC evaluation notes, not peer-review findings. Use the formal
+            challenge register below to contest an exact claim or evidence relation.
+          </p>
+        </Card>
+      ) : null}
+
       {isHistoricalRoute ? (
         <Notice tone="info" title="Immutable historical version">
           You are viewing version {review.version.semanticVersion ?? review.version.id}. Its
