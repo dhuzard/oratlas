@@ -35,6 +35,29 @@ describe("seed snapshot identities", () => {
     });
     expect(vipComputationalReview.pocEvaluation).toMatchObject({ corpusRole: "ai-review" });
     expect(openscopeP3DataRelease.pocEvaluation).toMatchObject({ corpusRole: "data-release" });
+    expect(
+      [templateDemoReview, vipComputationalReview, openscopeP3DataRelease].map((review) => ({
+        repository: review.repository.canonicalUrl,
+        commitSha: review.snapshot.commitSha,
+        treeSha: review.snapshot.treeSha,
+      })),
+    ).toEqual([
+      {
+        repository: "https://github.com/AllenNeuralDynamics/ComputationalReviewTemplate",
+        commitSha: "7312d15c12443031d9806a0550a4e665bd45ca92",
+        treeSha: "79fb257b33ff0a7fa6582058b7c5074e6dbe27fc",
+      },
+      {
+        repository: "https://github.com/AllenNeuralDynamics/ComputationalReviewVIP",
+        commitSha: "a04f01d37994c6a14e4bc7ec1b3d0a869144e98d",
+        treeSha: "383880f47d3cc8e5c6142fb210108f2940f82256",
+      },
+      {
+        repository: "https://github.com/jeromelecoq/openscope_p3_data_release_paper",
+        commitSha: "4cb9f3125a103d8eaa14650302a4ffdf3eb74daf",
+        treeSha: "122d82e4f6f037cbb0bacaa2a0d9a6beaa67ce44",
+      },
+    ]);
     for (const review of [templateDemoReview, vipComputationalReview, openscopeP3DataRelease]) {
       expect(review.repository.githubRepositoryId).toMatch(/^\d+$/);
       expect(review.snapshot.treeSha).toMatch(/^[0-9a-f]{40}$/);
