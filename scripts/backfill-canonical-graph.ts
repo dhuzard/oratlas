@@ -41,6 +41,11 @@ interface ManifestEntry {
   error?: string;
 }
 
+// A review is the atomic resume unit. Production reviews can contain thousands
+// of graph writes, so the interactive transaction must be bounded by the job's
+// workload envelope rather than Prisma's short request-oriented default.
+const REVIEW_BACKFILL_TRANSACTION_TIMEOUT_MS = 10 * 60 * 1_000;
+
 async function main(): Promise<void> {
   const options = parseOptions(process.argv.slice(2));
   const prisma = getPrisma();
@@ -94,7 +99,10 @@ async function main(): Promise<void> {
                 }
                 return { materialization, validation, protectedLedgerDigest: after };
               },
-              { isolationLevel: "Serializable", timeout: 30_000 },
+              {
+                isolationLevel: "Serializable",
+                timeout: REVIEW_BACKFILL_TRANSACTION_TIMEOUT_MS,
+              },
             );
             entries.push({ reviewVersionId: id, status: "materialized", ...result });
           } catch (error) {
