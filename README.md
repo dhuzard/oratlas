@@ -252,6 +252,7 @@ A full inventory of limitations lives in [`docs/poc-limitations.md`](docs/poc-li
 | Document                                                                                       | Contents                                                  |
 | ---------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
 | [`docs/architecture.md`](docs/architecture.md)                                                 | Monorepo layout, package boundaries, swappable interfaces |
+| [`docs/architecture-audit.md`](docs/architecture-audit.md)                                     | Current implementation audit and incremental refactoring  |
 | [`docs/canonical-graph-identity.md`](docs/canonical-graph-identity.md)                         | Canonical identities, compatibility invariants, migration |
 | [`docs/data-model.md`](docs/data-model.md)                                                     | Prisma schema walkthrough                                 |
 | [`docs/submission-workflow.md`](docs/submission-workflow.md)                                   | UI flow, capture capability, editorial pipeline           |
