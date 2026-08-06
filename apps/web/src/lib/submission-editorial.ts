@@ -602,11 +602,16 @@ function acceptanceOperationHash(
     canonicalJson({
       reviewerId,
       note: note ?? null,
-      overrides: [...overrides].sort(
-        (left, right) =>
-          left.checkId.localeCompare(right.checkId) ||
-          left.rationale.localeCompare(right.rationale),
-      ),
+      overrides: overrides
+        .map((override) => ({
+          checkId: override.checkId,
+          rationale: override.rationale.trim(),
+        }))
+        .sort(
+          (left, right) =>
+            left.checkId.localeCompare(right.checkId) ||
+            left.rationale.localeCompare(right.rationale),
+        ),
       selectedNodeIds,
       conflictOfInterest: conflictOutcome.conflictOfInterest,
       administratorOverride: conflictOutcome.administratorOverride,

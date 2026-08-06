@@ -461,41 +461,71 @@ export async function materializeNodeRelationTrustAssessments(
       },
     },
   });
+  const proposalIndex = new Map<string, typeof proposals>();
+  const sourceNodeIds = new Set<string>();
+  const targetNodeIds = new Set<string>();
+  const indexProposal = (key: string, proposal: (typeof proposals)[number]) => {
+    const bucket = proposalIndex.get(key) ?? [];
+    bucket.push(proposal);
+    proposalIndex.set(key, bucket);
+  };
+  for (const proposal of proposals) {
+    const source = proposal.sourceNodeVersion;
+    const target = proposal.targetNodeVersion;
+    sourceNodeIds.add(source.knowledgeNode.localNodeId);
+    targetNodeIds.add(target.knowledgeNode.localNodeId);
+    const exactOrigin =
+      proposal.origin === "asserted-by-author" &&
+      proposal.sourceSubmissionId === expected.submissionId &&
+      proposal.inspectionCaptureId === expected.inspectionCaptureId &&
+      source.knowledgeNode.repository?.githubRepositoryId === expected.sourceRepositoryGithubId &&
+      source.snapshot?.commitSha === expected.sourceCommitSha;
+    if (!exactOrigin) continue;
+    const common = [
+      source.knowledgeNode.localNodeId,
+      source.knowledgeNode.kind,
+      target.knowledgeNode.localNodeId,
+      target.knowledgeNode.kind,
+      proposal.relationType,
+    ];
+    indexProposal(
+      canonicalJson([
+        ...common,
+        "external",
+        target.knowledgeNode.repository?.githubRepositoryId ?? null,
+        target.snapshot?.commitSha ?? null,
+      ]),
+      proposal,
+    );
+    if (target.knowledgeNode.repositoryId === source.knowledgeNode.repositoryId) {
+      indexProposal(
+        canonicalJson([...common, "local", target.snapshot?.commitSha ?? null]),
+        proposal,
+      );
+    }
+  }
   const created: string[] = [];
   for (const record of records) {
-    const matches = proposals.filter((proposal) => {
-      const subject = record.subject;
-      const source = proposal.sourceNodeVersion;
-      const target = proposal.targetNodeVersion;
-      const exactLocal =
-        source.knowledgeNode.localNodeId === subject.claimNodeId &&
-        source.knowledgeNode.kind === "claim" &&
-        target.knowledgeNode.localNodeId === subject.evidenceNodeId &&
-        target.knowledgeNode.kind === subject.evidenceKind &&
-        proposal.relationType === subject.relationType;
-      const exactOrigin =
-        proposal.origin === "asserted-by-author" &&
-        proposal.sourceSubmissionId === expected.submissionId &&
-        proposal.inspectionCaptureId === expected.inspectionCaptureId &&
-        source.knowledgeNode.repository?.githubRepositoryId === expected.sourceRepositoryGithubId &&
-        source.snapshot?.commitSha === expected.sourceCommitSha;
-      const exactTarget = subject.evidenceRepository
-        ? target.knowledgeNode.repository?.githubRepositoryId ===
-            subject.evidenceRepository.githubRepositoryId &&
-          target.snapshot?.commitSha === subject.evidenceRepository.commitSha
-        : target.knowledgeNode.repositoryId === source.knowledgeNode.repositoryId &&
-          target.snapshot?.commitSha === expected.sourceCommitSha;
-      return exactLocal && exactOrigin && exactTarget;
-    });
+    const subject = record.subject;
+    const common = [
+      subject.claimNodeId,
+      "claim",
+      subject.evidenceNodeId,
+      subject.evidenceKind,
+      subject.relationType,
+    ];
+    const key = subject.evidenceRepository
+      ? canonicalJson([
+          ...common,
+          "external",
+          subject.evidenceRepository.githubRepositoryId,
+          subject.evidenceRepository.commitSha,
+        ])
+      : canonicalJson([...common, "local", expected.sourceCommitSha]);
+    const matches = proposalIndex.get(key) ?? [];
     if (matches.length !== 1) {
-      const sourceAccepted = proposals.some(
-        (proposal) =>
-          proposal.sourceNodeVersion.knowledgeNode.localNodeId === record.subject.claimNodeId,
-      );
-      const targetAccepted = proposals.some(
-        (proposal) =>
-          proposal.targetNodeVersion.knowledgeNode.localNodeId === record.subject.evidenceNodeId,
-      );
+      const sourceAccepted = sourceNodeIds.has(record.subject.claimNodeId);
+      const targetAccepted = targetNodeIds.has(record.subject.evidenceNodeId);
       if (!sourceAccepted || (!record.subject.evidenceRepository && !targetAccepted)) continue;
       throw new SubmissionError(
         `Node-relation TRUST ${record.subject.claimNodeId}→${record.subject.evidenceNodeId} does not match exactly one accepted author edge.`,
