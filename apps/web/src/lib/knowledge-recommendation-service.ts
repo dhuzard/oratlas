@@ -13,6 +13,7 @@ import {
   selectGraphNativeLandscape,
   type GraphNativeLandscapeSelection,
 } from "./knowledge-landscape-service";
+import { canonicalNodeDisplayLabel } from "./canonical-node-label";
 import { publicConfirmedNodeEdgeWhere } from "./node-edge-publication";
 import { readableCanonicalNodeVersionWhere } from "./public-snapshot-visibility";
 
@@ -49,14 +50,18 @@ export async function resolveCanonicalReferenceLabels(
       nodeVersionId: version.id,
     });
     if (!requested.has(key)) continue;
-    const statement = parseStatement(version.payloadJson);
+    const payload = parsePayload(version.payloadJson);
     labels.set(
       key,
-      version.title ??
-        version.text ??
-        statement ??
-        version.knowledgeNode.aliases[0]?.value ??
-        `${version.knowledgeNode.kind} ${version.knowledgeNode.localNodeId}`,
+      canonicalNodeDisplayLabel({
+        kind: version.knowledgeNode.kind,
+        localNodeId: version.knowledgeNode.localNodeId,
+        title: version.title,
+        abstract: version.abstract,
+        text: version.text,
+        payload,
+        aliases: version.knowledgeNode.aliases,
+      }),
     );
   }
   return labels;
@@ -234,12 +239,9 @@ function uniqueResolvedNodes(
   return [...output.values()];
 }
 
-function parseStatement(payloadJson: string): string | undefined {
+function parsePayload(payloadJson: string): unknown {
   try {
-    const payload = JSON.parse(payloadJson) as { statement?: unknown };
-    return typeof payload.statement === "string" && payload.statement.trim()
-      ? payload.statement
-      : undefined;
+    return JSON.parse(payloadJson) as unknown;
   } catch {
     return undefined;
   }
