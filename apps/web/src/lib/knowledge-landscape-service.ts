@@ -15,12 +15,14 @@ import {
   type KnowledgeLandscapeResponse,
 } from "@oratlas/contracts";
 import { type Prisma } from "@oratlas/db";
+import { canonicalNodeDisplayLabel } from "./canonical-node-label";
 import { prisma } from "./db";
 import { readableCanonicalNodeVersionWhere } from "./public-snapshot-visibility";
 
 const MAX_GRAPH_SEEDS = 3;
 const MAX_GRAPH_NODES = 12;
 const MAX_GRAPH_EDGES = 100;
+const MAX_HUMAN_CLAIMS = 6;
 
 export interface GraphNativeRecommendation {
   nodeId: string;
@@ -198,11 +200,16 @@ function renderLandscape(
       recommendation.reasons,
     ]),
   );
-  const nodes = selection.nodes.map((node) =>
+  const visibleCanonicalNodes = selectHumanVisibleNodes(
+    selection.nodes,
+    selection.edges,
+    focusedStableNodeId,
+  );
+  const nodes = visibleCanonicalNodes.map((node) =>
     renderNode(node, reasonByVersion.get(node.nodeVersionId)),
   );
   const idByVersion = new Map(
-    selection.nodes.map((node, index) => [node.nodeVersionId, nodes[index]!.id]),
+    visibleCanonicalNodes.map((node, index) => [node.nodeVersionId, nodes[index]!.id]),
   );
   const edges: KnowledgeLandscapeEdge[] = selection.edges.flatMap((edge) => {
     const sourceId = idByVersion.get(edge.sourceNodeVersionId);
@@ -237,12 +244,7 @@ function renderLandscape(
 
 function renderNode(node: CanonicalGraphNodeVersion, reasons?: string[]): KnowledgeLandscapeNode {
   const kind = node.kind === "work" ? "evidence" : node.kind;
-  const label =
-    node.title ??
-    node.text ??
-    statementFromPayload(node.payload) ??
-    node.aliases[0]?.value ??
-    `${node.kind} ${node.localNodeId}`;
+  const label = canonicalNodeDisplayLabel(node);
   const href = canonicalOccurrenceHref(node.nodeId, node.nodeVersionId);
   return {
     id: canonicalLandscapeNodeId(node.nodeId, node.nodeVersionId),
@@ -256,6 +258,44 @@ function renderNode(node: CanonicalGraphNodeVersion, reasons?: string[]): Knowle
     graphHref: `/graph?seed=${encodeURIComponent(node.nodeId)}`,
     graphRecordHref: href,
   };
+}
+
+function selectHumanVisibleNodes(
+  nodes: readonly CanonicalGraphNodeVersion[],
+  edges: readonly CanonicalGraphEdge[],
+  focusedStableNodeId?: string,
+): CanonicalGraphNodeVersion[] {
+  const claims = nodes.filter((node) => node.kind === "claim");
+  if (claims.length <= MAX_HUMAN_CLAIMS) return [...nodes];
+
+  const focusedClaim = focusedStableNodeId
+    ? claims.find((node) => node.nodeId === focusedStableNodeId)
+    : undefined;
+  const visibleClaims = [
+    ...(focusedClaim ? [focusedClaim] : []),
+    ...claims.filter((node) => node.nodeVersionId !== focusedClaim?.nodeVersionId),
+  ].slice(0, MAX_HUMAN_CLAIMS);
+  const visibleClaimVersions = new Set(visibleClaims.map((node) => node.nodeVersionId));
+  const focusedVersion = focusedStableNodeId
+    ? nodes.find((node) => node.nodeId === focusedStableNodeId)?.nodeVersionId
+    : undefined;
+  const connectedNonClaimVersions = new Set<string>();
+  for (const edge of edges) {
+    const sourceIsEntry =
+      visibleClaimVersions.has(edge.sourceNodeVersionId) ||
+      edge.sourceNodeVersionId === focusedVersion;
+    const targetIsEntry =
+      visibleClaimVersions.has(edge.targetNodeVersionId) ||
+      edge.targetNodeVersionId === focusedVersion;
+    if (sourceIsEntry) connectedNonClaimVersions.add(edge.targetNodeVersionId);
+    if (targetIsEntry) connectedNonClaimVersions.add(edge.sourceNodeVersionId);
+  }
+  return nodes.filter((node) => {
+    if (node.kind === "claim") return visibleClaimVersions.has(node.nodeVersionId);
+    return (
+      node.nodeVersionId === focusedVersion || connectedNonClaimVersions.has(node.nodeVersionId)
+    );
+  });
 }
 
 function entryReasons(
@@ -361,13 +401,6 @@ function addNode(
 
 function addReasons(target: Map<string, string[]>, versionId: string, values: string[]): void {
   target.set(versionId, [...new Set([...(target.get(versionId) ?? []), ...values])]);
-}
-
-function statementFromPayload(payload: unknown): string | undefined {
-  if (!payload || typeof payload !== "object" || !("statement" in payload)) return undefined;
-  return typeof payload.statement === "string" && payload.statement.trim()
-    ? payload.statement
-    : undefined;
 }
 
 function titleCase(value: string): string {

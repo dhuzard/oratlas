@@ -106,26 +106,130 @@ describe("graph-native knowledge selection", () => {
     expect(graphProvider).toHaveBeenCalledWith("focused-node", undefined);
     expect(result.seedNodeIds).toEqual(["focused-node"]);
   });
+
+  it("uses a compact identifier instead of raw citation JSON for untitled work nodes", async () => {
+    const rawCitation = '{"doi":"10.14573/altex.2504091","id":"Hartung2025a","source":"primary"}';
+    const response = await createKnowledgeLandscapeResponse(
+      { interests: [], focusNodeId: "claim-node" },
+      {
+        entryProvider: async () => [],
+        graphProvider: async () => {
+          const claim = graphNode("claim-node", "claim-version", "claim", "A model claim");
+          const work: CanonicalGraphNodeVersion = {
+            ...graphNode("work-node", "work-version", "work", undefined),
+            originType: "canonical-work",
+            source: { type: "citation-occurrence", citationId: "citation-one" },
+            text: rawCitation,
+            payload: {
+              doi: "10.14573/altex.2504091",
+              id: "Hartung2025a",
+              source: "primary",
+            },
+          };
+          return {
+            schemaVersion: "2.0.0",
+            seed: { nodeId: claim.nodeId, nodeVersionId: claim.nodeVersionId },
+            nodes: [claim, work],
+            edges: [
+              {
+                id: "edge-claim-work",
+                sourceNodeId: claim.nodeId,
+                sourceNodeVersionId: claim.nodeVersionId,
+                targetNodeId: work.nodeId,
+                targetNodeVersionId: work.nodeVersionId,
+                relationType: "supports",
+                status: "source-assertion",
+                provenance: "imported-from-review",
+                trustAssessments: [],
+              },
+            ],
+            page: { limit: 100 },
+          };
+        },
+      },
+    );
+
+    const evidence = response.landscape.nodes.find((node) => node.kind === "evidence");
+    expect(evidence?.label).toBe("DOI 10.14573/altex.2504091");
+    expect(JSON.stringify(response.landscape)).not.toContain(rawCitation);
+  });
+
+  it("bounds focused human rendering without truncating graph-native selection", async () => {
+    const review = graphNode("review-node", "review-version", "review", "A preserved review");
+    const claims = Array.from({ length: 11 }, (_, index) =>
+      graphNode(`claim-${index}`, `claim-version-${index}`, "claim", `Claim ${index}`),
+    );
+    const graph: CanonicalGraphResponse = {
+      schemaVersion: "2.0.0",
+      seed: { nodeId: review.nodeId, nodeVersionId: review.nodeVersionId },
+      nodes: [review, ...claims],
+      edges: claims.map((claim, index) => ({
+        id: `edge-review-claim-${index}`,
+        sourceNodeId: review.nodeId,
+        sourceNodeVersionId: review.nodeVersionId,
+        targetNodeId: claim.nodeId,
+        targetNodeVersionId: claim.nodeVersionId,
+        relationType: "asserts" as const,
+        status: "source-assertion" as const,
+        provenance: "imported-from-review" as const,
+        trustAssessments: [],
+      })),
+      page: { limit: 100 },
+    };
+    const options = {
+      entryProvider: async () => [],
+      graphProvider: async () => graph,
+    };
+
+    const selection = await selectGraphNativeLandscape(
+      { interests: [], focusNodeId: review.nodeId },
+      options,
+    );
+    const response = await createKnowledgeLandscapeResponse(
+      { interests: [], focusNodeId: review.nodeId },
+      options,
+    );
+
+    expect(selection.nodes.filter((node) => node.kind === "claim")).toHaveLength(11);
+    expect(response.landscape.shownClaimCount).toBe(6);
+    expect(response.landscape.nodes.filter((node) => node.kind === "claim")).toHaveLength(6);
+    expect(response.landscape.nodes).toContainEqual(
+      expect.objectContaining({ graphNodeId: review.nodeId }),
+    );
+    const visibleIds = new Set(response.landscape.nodes.map((node) => node.id));
+    expect(
+      response.landscape.edges.every(
+        (edge) => visibleIds.has(edge.sourceId) && visibleIds.has(edge.targetId),
+      ),
+    ).toBe(true);
+  });
 });
 
 function graphNode(
   nodeId: string,
   nodeVersionId: string,
   kind: CanonicalGraphNodeVersion["kind"],
-  title: string,
+  title: string | undefined,
 ): CanonicalGraphNodeVersion {
   return {
     nodeId,
     nodeVersionId,
     stableKey: `${kind}:${nodeId}`,
     localNodeId: nodeId,
-    originType: kind === "claim" ? "claim-occurrence" : "repository-object",
+    originType:
+      kind === "claim"
+        ? "claim-occurrence"
+        : kind === "review"
+          ? "review-record"
+          : kind === "work"
+            ? "canonical-work"
+            : "repository-object",
     kind,
     source:
       kind === "claim"
         ? { type: "claim-occurrence", claimId: `source-${nodeId}` }
         : { type: "repository-snapshot", snapshotId: `snapshot-${nodeId}` },
-    title,
+    ...(title ? { title } : {}),
     contributors: [],
     provenance: {},
     payload: kind === "claim" ? { statement: title, claimType: "empirical" } : {},

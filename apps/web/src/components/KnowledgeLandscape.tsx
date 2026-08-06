@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { KnowledgeRecommendationAnchor } from "@oratlas/contracts";
 import type {
   KnowledgeLandscapeData,
@@ -79,6 +79,12 @@ export function KnowledgeLandscape({
   focusedGraphNodeId?: string;
 }) {
   const [highlightedNodeIds, setHighlightedNodeIds] = useState<Set<string>>(new Set());
+  const visualRef = useRef<HTMLDivElement>(null);
+  const focusedNode = focusedGraphNodeId
+    ? landscape.nodes.find((node) => node.graphNodeId === focusedGraphNodeId)
+    : landscape.focusedNodeId
+      ? landscape.nodes.find((node) => node.id === landscape.focusedNodeId)
+      : undefined;
   useEffect(() => {
     const onGroundingFocus = (event: Event) => {
       const detail = (event as CustomEvent<{ nodeIds?: unknown }>).detail;
@@ -90,6 +96,12 @@ export function KnowledgeLandscape({
     window.addEventListener("oratlas:grounding-focus", onGroundingFocus);
     return () => window.removeEventListener("oratlas:grounding-focus", onGroundingFocus);
   }, []);
+  useEffect(() => {
+    const visual = visualRef.current;
+    if (!visual || !focusedNode || visual.scrollWidth <= visual.clientWidth) return;
+    const focusX = LANE_X[LANE_FOR_KIND[focusedNode.kind]];
+    visual.scrollLeft = (focusX / 920) * visual.scrollWidth - visual.clientWidth / 2;
+  }, [focusedNode]);
 
   if (landscape.nodes.length === 0) {
     return (
@@ -117,11 +129,6 @@ export function KnowledgeLandscape({
   ).length;
   const { nodes, height } = positionNodes(orderedNodes);
   const nodeById = new Map(nodes.map((node) => [node.id, node]));
-  const focusedNode = focusedGraphNodeId
-    ? landscape.nodes.find((node) => node.graphNodeId === focusedGraphNodeId)
-    : landscape.focusedNodeId
-      ? landscape.nodes.find((node) => node.id === landscape.focusedNodeId)
-      : undefined;
 
   return (
     <section className="knowledge-landscape" aria-label="Guided knowledge landscape">
@@ -221,7 +228,7 @@ export function KnowledgeLandscape({
         </p>
       )}
 
-      <div className="knowledge-landscape-visual" tabIndex={0}>
+      <div className="knowledge-landscape-visual" tabIndex={0} ref={visualRef}>
         <svg
           viewBox={`0 0 920 ${height}`}
           role="img"
@@ -262,6 +269,7 @@ export function KnowledgeLandscape({
               href={focusHrefByNode[node.id] ?? node.href}
               highlighted={highlightedNodeIds.has(node.id)}
               dimmed={highlightedNodeIds.size > 0 && !highlightedNodeIds.has(node.id)}
+              focused={node.id === focusedNode?.id}
               key={node.id}
             />
           ))}
@@ -375,7 +383,9 @@ function LandscapeDetail({
     .join(" ");
   return (
     <li className={className || undefined}>
-      <a href={node.href}>{node.label}</a>
+      <a className="landscape-primary-link" href={node.href} title={node.label}>
+        {node.label}
+      </a>
       <small>{node.detail}</small>
       {anchorCount > 0 ? (
         <details className="landscape-anchors">
@@ -409,30 +419,32 @@ function LandscapeDetail({
           ))}
         </ul>
       </details>
-      {node.graphRecordHref && node.graphRecordHref !== node.href ? (
-        <a className="landscape-record-link" href={node.graphRecordHref}>
-          Inspect exact graph version
-        </a>
-      ) : null}
-      {node.graphHref ? (
-        <a className="landscape-graph-link" href={node.graphHref}>
-          Explore graph neighborhood
-        </a>
-      ) : null}
-      {knownToggleHref ? (
-        <a className="landscape-known-link" href={knownToggleHref}>
-          {known ? "Remove from known set" : "Mark as known"}
-        </a>
-      ) : null}
-      {focused ? (
-        <span className="landscape-focused-label" aria-current="true">
-          Current focus
-        </span>
-      ) : focusHref ? (
-        <a className="landscape-focus-link" href={focusHref}>
-          Focus on connections
-        </a>
-      ) : null}
+      <div className="landscape-detail-actions">
+        {node.graphRecordHref && node.graphRecordHref !== node.href ? (
+          <a className="landscape-record-link" href={node.graphRecordHref}>
+            Inspect exact graph version
+          </a>
+        ) : null}
+        {node.graphHref ? (
+          <a className="landscape-graph-link" href={node.graphHref}>
+            Explore graph neighborhood
+          </a>
+        ) : null}
+        {knownToggleHref ? (
+          <a className="landscape-known-link" href={knownToggleHref}>
+            {known ? "Remove from known set" : "Mark as known"}
+          </a>
+        ) : null}
+        {focused ? (
+          <span className="landscape-focused-label" aria-current="true">
+            Current focus
+          </span>
+        ) : focusHref ? (
+          <a className="landscape-focus-link" href={focusHref}>
+            Focus on connections
+          </a>
+        ) : null}
+      </div>
     </li>
   );
 }
@@ -482,21 +494,24 @@ function LandscapeSvgNode({
   href,
   highlighted,
   dimmed,
+  focused,
 }: {
   node: PositionedNode;
   href: string;
   highlighted: boolean;
   dimmed: boolean;
+  focused: boolean;
 }) {
   const width = node.kind === "claim" ? 250 : 190;
   const lines = wrapLabel(node.label, node.kind === "claim" ? 34 : 24);
   return (
     <a href={href} aria-label={`${LANE_LABEL[node.kind]}: ${node.label}`}>
       <g
-        className={`landscape-node${highlighted ? " landscape-node-highlighted" : ""}${dimmed ? " landscape-node-dimmed" : ""}`}
+        className={`landscape-node${focused ? " landscape-node-focused" : ""}${highlighted ? " landscape-node-highlighted" : ""}${dimmed ? " landscape-node-dimmed" : ""}`}
         data-kind={node.kind}
         transform={`translate(${node.x}, ${node.y})`}
       >
+        <title>{node.label}</title>
         <rect x={-width / 2} y="-28" width={width} height="56" rx="7" />
         <text textAnchor="middle">
           {lines.map((line, index) => (
@@ -541,7 +556,7 @@ function positionNodes(nodes: KnowledgeLandscapeNode[]): {
       (lane) => nodes.filter((node) => LANE_FOR_KIND[node.kind] === lane).length,
     ),
   );
-  const height = Math.max(320, maxLaneCount * 78 + 70);
+  const height = Math.max(240, maxLaneCount * 78 + 70);
   const positioned = (["reviews", "claims", "objects"] as const).flatMap((lane) => {
     const laneNodes = nodes.filter((node) => LANE_FOR_KIND[node.kind] === lane);
     return laneNodes.map((node, index) => ({
@@ -554,21 +569,21 @@ function positionNodes(nodes: KnowledgeLandscapeNode[]): {
 }
 
 function wrapLabel(value: string, width: number): string[] {
-  const words = value.split(/\s+/);
+  let remaining = value.replace(/\s+/g, " ").trim();
+  if (!remaining) return [];
   const lines: string[] = [];
-  let current = "";
-  for (const word of words) {
-    const candidate = current ? `${current} ${word}` : word;
-    if (candidate.length <= width) {
-      current = candidate;
-    } else {
-      if (current) lines.push(current);
-      current = word;
+  while (remaining && lines.length < 2) {
+    if (remaining.length <= width) {
+      lines.push(remaining);
+      remaining = "";
+      break;
     }
-    if (lines.length === 2) break;
+    const preferredBreak = remaining.lastIndexOf(" ", width);
+    const breakAt = preferredBreak >= Math.floor(width * 0.55) ? preferredBreak : width;
+    lines.push(remaining.slice(0, breakAt).trimEnd());
+    remaining = remaining.slice(breakAt).trimStart();
   }
-  if (current && lines.length < 2) lines.push(current);
-  if (words.join(" ").length > lines.join(" ").length && lines.length > 0) {
+  if (remaining && lines.length > 0) {
     lines[lines.length - 1] = `${lines[lines.length - 1]!.replace(/[.,;:]$/, "")}…`;
   }
   return lines;
