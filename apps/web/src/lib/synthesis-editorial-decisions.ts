@@ -23,6 +23,7 @@ import {
 } from "@oratlas/knowledge";
 import type { SessionUser } from "./auth";
 import { prisma } from "./db";
+import { prismaCode, withPrismaRetryPolicy } from "./db-retry";
 import { materializeCanonicalReviewGraph } from "./canonical-graph-materialization";
 import {
   SYNTHESIS_TRANSACTION_ATTEMPTS,
@@ -277,28 +278,16 @@ export function assertEditorialActor(
 }
 
 export async function runSerializable<T>(operation: () => Promise<T>): Promise<T> {
-  let lastError: unknown;
-  for (let attempt = 0; attempt < SYNTHESIS_TRANSACTION_ATTEMPTS; attempt += 1) {
-    try {
-      return await operation();
-    } catch (error) {
-      lastError = error;
-      const code =
-        typeof error === "object" && error !== null && "code" in error
-          ? String((error as { code?: unknown }).code)
-          : undefined;
-      if (!["P1008", "P2002", "P2028", "P2034"].includes(code ?? "")) throw error;
-    }
-  }
-  throw mapTransactionError(lastError);
+  return withPrismaRetryPolicy(operation, {
+    maxAttempts: SYNTHESIS_TRANSACTION_ATTEMPTS,
+    isRetryable: (error) => ["P1008", "P2002", "P2028", "P2034"].includes(prismaCode(error) ?? ""),
+    mapExhaustedError: mapTransactionError,
+  });
 }
 
 export function mapTransactionError(error: unknown): Error {
   if (error instanceof SynthesisEditorialError) return error;
-  const code =
-    typeof error === "object" && error !== null && "code" in error
-      ? String((error as { code?: unknown }).code)
-      : undefined;
+  const code = prismaCode(error);
   if (["P1008", "P2002", "P2028", "P2034"].includes(code ?? "")) {
     return new SynthesisEditorialError(
       "Synthesis state changed concurrently; reload and retry.",
