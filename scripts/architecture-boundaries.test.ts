@@ -67,6 +67,18 @@ function importsApplicationInternals(importer: string, specifier: string): boole
   return resolvedWorkspaceImport(importer, specifier)?.startsWith("apps/") === true;
 }
 
+function importsPrismaClient(importer: string, specifier: string): boolean {
+  const resolved = resolvedWorkspaceImport(importer, specifier);
+  return (
+    specifier === "prisma" ||
+    specifier.startsWith("prisma/") ||
+    specifier === "@prisma/client" ||
+    specifier.startsWith("@prisma/client/") ||
+    resolved === "packages/db/generated" ||
+    resolved?.startsWith("packages/db/generated/") === true
+  );
+}
+
 describe("architecture import boundaries", () => {
   it("keeps packages and root scripts independent from application internals", () => {
     const violations: string[] = [];
@@ -88,13 +100,7 @@ describe("architecture import boundaries", () => {
       const path = workspacePath(file);
       const packageName = path.split("/")[1];
       for (const specifier of moduleSpecifiers(file)) {
-        const resolved = resolvedWorkspaceImport(file, specifier);
-        const importsPrisma =
-          specifier === "prisma" ||
-          specifier.startsWith("prisma/") ||
-          specifier === "@prisma/client" ||
-          specifier.startsWith("@prisma/client/") ||
-          resolved?.startsWith("packages/db/generated/") === true;
+        const importsPrisma = importsPrismaClient(file, specifier);
         const importsNext =
           specifier === "next" || specifier.startsWith("next/") || specifier === "server-only";
         if ((packageName !== "db" && importsPrisma) || importsNext) {
@@ -108,6 +114,12 @@ describe("architecture import boundaries", () => {
     expect(violations.sort()).toEqual([]);
   });
 
+  it("recognizes both the generated Prisma root and its descendants", () => {
+    const importer = resolve(ROOT, "packages/knowledge/src/probe.ts");
+    expect(importsPrismaClient(importer, "../../db/generated")).toBe(true);
+    expect(importsPrismaClient(importer, "../../db/generated/client")).toBe(true);
+  });
+
   it("keeps workspace package dependencies acyclic", () => {
     const packageDirectories = readdirSync(resolve(ROOT, "packages"), { withFileTypes: true })
       .filter((entry) => entry.isDirectory())
@@ -117,10 +129,19 @@ describe("architecture import boundaries", () => {
       const manifest = JSON.parse(readFileSync(join(directory, "package.json"), "utf8")) as {
         name: string;
         dependencies?: Record<string, string>;
+        devDependencies?: Record<string, string>;
+        peerDependencies?: Record<string, string>;
+        optionalDependencies?: Record<string, string>;
       };
+      const dependencyNames = new Set([
+        ...Object.keys(manifest.dependencies ?? {}),
+        ...Object.keys(manifest.devDependencies ?? {}),
+        ...Object.keys(manifest.peerDependencies ?? {}),
+        ...Object.keys(manifest.optionalDependencies ?? {}),
+      ]);
       graph.set(
         manifest.name,
-        Object.keys(manifest.dependencies ?? {}).filter((name) => name.startsWith("@oratlas/")),
+        [...dependencyNames].filter((name) => name.startsWith("@oratlas/")),
       );
     }
 
