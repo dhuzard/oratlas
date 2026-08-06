@@ -11,8 +11,8 @@ substitutions:
   _GITHUB_TOKEN_SECRET: oratlas-github-token
   _ADMIN_GITHUB_USER_IDS: ""
   _NEXT_PUBLIC_BASE_URL: ""
-  _BETA_SMOKE_QUERY: replay
-  _BETA_SMOKE_INTEREST: data-code
+  _BETA_SMOKE_QUERY: model
+  _BETA_SMOKE_INTEREST: methods-models
 
 options:
   logging: CLOUD_LOGGING_ONLY
@@ -159,7 +159,13 @@ steps:
           ENV_VARS="$${ENV_VARS},NEXT_PUBLIC_BASE_URL=${_NEXT_PUBLIC_BASE_URL}"
         fi
 
-        CANDIDATE_TAG="candidate-$$(printf '%s' '${BUILD_ID}' | tr '[:upper:]_' '[:lower:]-' | cut -c1-48)"
+        SERVICE_NAME="${_SERVICE}"
+        CANDIDATE_TAG_MAX_LENGTH=$$((46 - $${#SERVICE_NAME}))
+        if (( CANDIDATE_TAG_MAX_LENGTH < 12 )); then
+          echo "Service name leaves insufficient room for a unique Cloud Run candidate tag." >&2
+          exit 1
+        fi
+        CANDIDATE_TAG="$$(printf 'candidate-%s' '${BUILD_ID}' | tr '[:upper:]_' '[:lower:]-' | cut -c1-"$${CANDIDATE_TAG_MAX_LENGTH}")"
         gcloud run deploy "${_SERVICE}" \
           --image="${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPOSITORY}/${_SERVICE}:${BUILD_ID}" \
           --region="${_REGION}" \

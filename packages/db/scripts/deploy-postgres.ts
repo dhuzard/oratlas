@@ -1,9 +1,13 @@
 import { spawnSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { applyDatabaseGuards } from "../src/database-guards.js";
 import { getPrisma } from "../src/index.js";
 import {
   assertProductionBackupId,
+  baselineDatamodelForPublicSchema,
   baselineSchemaUrl,
   planPostgresDeployment,
   POSTGRES_BASELINE_MIGRATION,
@@ -29,6 +33,21 @@ function runPrisma(
   return status;
 }
 
+function capturePrisma(args: string[], extraEnvironment: NodeJS.ProcessEnv = {}): string {
+  const executable = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
+  const result = spawnSync(executable, ["exec", "prisma", ...args], {
+    cwd: new URL("..", import.meta.url),
+    env: { ...process.env, ...extraEnvironment },
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "inherit"],
+  });
+  if (result.error) throw result.error;
+  if (result.status !== 0) {
+    throw new Error(`Prisma command failed with exit code ${result.status ?? 1}.`);
+  }
+  return result.stdout;
+}
+
 async function tableNames(): Promise<string[]> {
   const prisma = getPrisma();
   const rows = await prisma.$queryRaw<Array<{ table_name: string }>>`
@@ -48,6 +67,8 @@ async function comparePopulatedDatabaseWithFrozenBaseline(): Promise<number> {
   const environment = {
     ORATLAS_BASELINE_DATABASE_URL: baselineSchemaUrl(databaseUrl, temporarySchema),
   };
+  const datamodelDirectory = mkdtempSync(join(tmpdir(), "oratlas-baseline-datamodel-"));
+  const datamodelPath = join(datamodelDirectory, "baseline.prisma");
   await prisma.$executeRawUnsafe(`CREATE SCHEMA ${quotedSchema}`);
   try {
     runPrisma(
@@ -62,14 +83,22 @@ async function comparePopulatedDatabaseWithFrozenBaseline(): Promise<number> {
       [0],
       environment,
     );
+    const baselineDatamodel = baselineDatamodelForPublicSchema(
+      capturePrisma(
+        ["db", "pull", "--schema", "prisma/baseline/datasource.prisma", "--print"],
+        environment,
+      ),
+      temporarySchema,
+    );
+    writeFileSync(datamodelPath, baselineDatamodel, { encoding: "utf8", mode: 0o600 });
     return runPrisma(
       [
         "migrate",
         "diff",
         "--from-schema-datasource",
         "prisma/schema.postgres.prisma",
-        "--to-schema-datasource",
-        "prisma/baseline/datasource.prisma",
+        "--to-schema-datamodel",
+        datamodelPath,
         "--exit-code",
       ],
       [0, 1, 2],
@@ -77,6 +106,7 @@ async function comparePopulatedDatabaseWithFrozenBaseline(): Promise<number> {
     );
   } finally {
     await prisma.$executeRawUnsafe(`DROP SCHEMA ${quotedSchema} CASCADE`);
+    rmSync(datamodelDirectory, { recursive: true, force: true });
   }
 }
 

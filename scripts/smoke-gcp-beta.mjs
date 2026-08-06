@@ -83,7 +83,7 @@ export async function runBetaSmoke(options, request = globalThis.fetch) {
   );
   if (!graphNode) throw new Error("The canonical graph did not resolve the recommended reference.");
   await get(
-    `/nodes/${encodeURIComponent(recommendation.nodeId)}/versions/${encodeURIComponent(recommendation.nodeVersionId)}`,
+    `/graph/occurrences/${encodeURIComponent(recommendation.nodeId)}/versions/${encodeURIComponent(recommendation.nodeVersionId)}`,
   );
   await get(`/graph?seed=${encodeURIComponent(recommendation.nodeId)}`);
 

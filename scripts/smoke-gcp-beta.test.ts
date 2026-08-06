@@ -82,7 +82,9 @@ describe("GCP beta smoke", () => {
     expect(requested).toContain(
       "https://oratlas.example/api/graph?seed=node-1&version=version-1&limit=1",
     );
-    expect(requested).toContain("https://oratlas.example/nodes/node-1/versions/version-1");
+    expect(requested).toContain(
+      "https://oratlas.example/graph/occurrences/node-1/versions/version-1",
+    );
     expect(requested).toContain("https://oratlas.example/graph?seed=node-1");
   });
 

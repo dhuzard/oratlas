@@ -11,6 +11,9 @@ const script = readFileSync(scriptPath, "utf8");
 const build = parse(readFileSync(resolve(root, "cloudbuild.yaml"), "utf8")) as {
   steps: Array<{ id: string; args?: string[] }>;
 };
+const rootPackage = JSON.parse(readFileSync(resolve(root, "package.json"), "utf8")) as {
+  scripts: Record<string, string>;
+};
 const temporaryDirectories: string[] = [];
 
 afterEach(() => {
@@ -23,6 +26,7 @@ function runGate(
   configuration = "True,True",
   status = "SUCCESSFUL",
   backupId = "backupRuns/prod_123.4",
+  argumentStyle: "split" | "equals" = "split",
 ) {
   const directory = mkdtempSync(join(tmpdir(), "oratlas-cloudsql-gate-"));
   temporaryDirectories.push(directory);
@@ -47,17 +51,25 @@ exit 64
   chmodSync(fakeGcloud, 0o755);
   const result = spawnSync(
     "bash",
-    [
-      scriptPath,
-      "--project",
-      "oratlas-prod1",
-      "--instance",
-      "oratlas-postgres",
-      "--build-id",
-      "build-1",
-      "--output",
-      output,
-    ],
+    argumentStyle === "equals"
+      ? [
+          scriptPath,
+          "--project=oratlas-prod1",
+          "--instance=oratlas-postgres",
+          "--build-id=build-1",
+          `--output=${output}`,
+        ]
+      : [
+          scriptPath,
+          "--project",
+          "oratlas-prod1",
+          "--instance",
+          "oratlas-postgres",
+          "--build-id",
+          "build-1",
+          "--output",
+          output,
+        ],
     {
       encoding: "utf8",
       env: {
@@ -91,6 +103,15 @@ describe("Cloud SQL pre-migration backup gate", () => {
       expect(commands.indexOf("sql backups list")).toBeLessThan(
         commands.indexOf("sql backups describe"),
       );
+    },
+  );
+
+  it.runIf(process.platform !== "win32")(
+    "accepts the equals-style arguments used by Cloud Build",
+    () => {
+      const { output, result } = runGate("True,True", "SUCCESSFUL", "backup-123", "equals");
+      expect(result.status, result.stderr).toBe(0);
+      expect(readFileSync(output, "utf8")).toBe("backup-123\n");
     },
   );
 
@@ -133,6 +154,7 @@ describe("Cloud SQL pre-migration backup gate", () => {
     const deploy = build.steps.find(({ id }) => id === "deploy-service")?.args?.join("\n") ?? "";
     expect(deploy).toContain("--no-traffic");
     expect(deploy).toContain("--tag=");
+    expect(deploy).toContain("CANDIDATE_TAG_MAX_LENGTH=$$((46 - $${#SERVICE_NAME}))");
     const promote = build.steps.find(({ id }) => id === "promote-service")?.args?.join("\n") ?? "";
     expect(promote).toContain("--to-tags=");
     const configureMigration =
@@ -143,5 +165,8 @@ describe("Cloud SQL pre-migration backup gate", () => {
       "";
     expect(configureBackfill).toContain("--all,--finalize-contract");
     expect(configureBackfill).toContain("ORATLAS_SCHEMA_BACKUP_ID");
+    expect(rootPackage.scripts["backfill:canonical-graph"]).toContain(
+      "pnpm --filter @oratlas/db exec tsx",
+    );
   });
 });
