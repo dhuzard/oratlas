@@ -1,8 +1,12 @@
 # Architecture audit and incremental refactoring plan
 
-Tracking issue: [#142](https://github.com/dhuzard/oratlas/issues/142)  
-Baseline: `origin/main` at `8074e84` (2026-08-06)  
-Status: initial code-grounded audit; first boundary-enforcement increment implemented locally
+Tracking issue: [#142](https://github.com/dhuzard/oratlas/issues/142)
+
+Baseline: `origin/main` at `8074e84` (2026-08-06)
+
+Status: initial code-grounded audit; first boundary-enforcement increment proposed in
+[#143](https://github.com/dhuzard/oratlas/pull/143). Merge the implementation PR before this
+documentation update.
 
 ## Executive summary
 
@@ -202,7 +206,8 @@ packages.
 workflow module) without changing its transaction-client API. Split synthesis staleness into pure
 selection/policy in `packages/knowledge` plus explicit DB adapters for web and CLI callers.
 
-**First increment:** the canonical materializer now belongs to and is exported by `packages/db`;
+**First increment ([#143](https://github.com/dhuzard/oratlas/pull/143)):** the canonical materializer
+now belongs to and is exported by `packages/db`;
 the web path is a temporary forwarding facade. Canonical backfill/seed scripts consume the package
 export. The synthesis refresh CLI moved under `apps/web/src/cli`, accurately keeping the current
 application-owned composition in the app until its pure policy can be extracted.
@@ -231,8 +236,9 @@ already bypass the intended direction.
 only high-value rules: packages must not import apps; domain packages must not import Prisma/Next;
 scripts must compose package exports rather than private web modules.
 
-**First increment:** `scripts/architecture-boundaries.test.ts` enforces those three rules and also
-checks that workspace package dependencies remain acyclic.
+**First increment ([#143](https://github.com/dhuzard/oratlas/pull/143)):**
+`scripts/architecture-boundaries.test.ts` enforces those three rules and also checks that workspace
+package dependencies remain acyclic.
 
 ### F7 — Persistence and integrity utilities are repeated at workflow level
 
