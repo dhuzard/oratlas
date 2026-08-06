@@ -15,7 +15,6 @@ import {
 import { compareSynthesisPackets } from "@oratlas/knowledge";
 import type { SessionUser } from "./auth";
 import { prisma } from "./db";
-import { SERIALIZABLE_TRANSACTION_OPTIONS } from "./db-retry";
 import {
   getPublicSynthesisReview,
   loadPreparedSynthesisPacket,
@@ -212,230 +211,233 @@ export async function evaluateSynthesisHead(
   const evaluatedAt = options.now?.() ?? new Date();
 
   return runSerializable(client, () =>
-    client.$transaction(async (tx) => {
-      const currentHead = await tx.review.findUnique({
-        where: { id: head.review.id },
-        select: { currentSynthesisVersionId: true },
-      });
-      if (currentHead?.currentSynthesisVersionId !== head.version.id) {
-        throw new SynthesisStalenessError(
-          "Synthesis head changed during freshness evaluation.",
-          "conflict",
-        );
-      }
-      let evaluation = await tx.synthesisStalenessEvaluation.findUnique({
-        where: { evaluationKey },
-      });
-      if (!evaluation) {
-        evaluation = await tx.synthesisStalenessEvaluation.create({
-          data: {
-            evaluationKey,
-            policyVersion: SYNTHESIS_STALENESS_POLICY_VERSION,
-            reviewId: head.review.id,
-            acceptedReviewVersionId: head.version.id,
-            acceptedDraftId: head.draft.id,
-            seriesKey: head.draft.seriesKey,
-            selectorJson: head.draft.selectorJson,
-            selectorHash: head.draft.selectorHash,
-            acceptedMaterializationPolicyVersion: head.draft.materializationPolicyVersion,
-            evaluatedMaterializationPolicyVersion,
-            acceptedPacketHash: head.draft.packetHash,
-            acceptedPacketJson: head.draft.packetJson,
-            evaluatedPacketHash,
-            evaluatedPacketJson,
-            failureCode,
-            failureFingerprint,
-            status,
-            reasonCodesJson: canonicalJson(orderedReasons),
-            affectedReferencesJson: canonicalJson(storedAffected),
-            affectedReferenceCount: uniqueAffected.length,
-            affectedReferencesTruncated: uniqueAffected.length > storedAffected.length,
-            evaluatedAt,
-          },
+    client.$transaction(
+      async (tx) => {
+        const currentHead = await tx.review.findUnique({
+          where: { id: head.review.id },
+          select: { currentSynthesisVersionId: true },
         });
-        await tx.auditEvent.create({
-          data: {
-            actorId: options.actor?.id,
-            action: "synthesis.staleness-evaluated",
-            subjectType: "synthesisStalenessEvaluation",
-            subjectId: evaluation.id,
-            idempotencyKey: `synthesis-staleness:evaluation:${evaluationKey}`,
-            detailsJson: canonicalJson({
-              reviewId: head.review.id,
-              acceptedReviewVersionId: head.version.id,
-              evaluationKey,
-              policyVersion: SYNTHESIS_STALENESS_POLICY_VERSION,
-              status,
-              reasonCodes: orderedReasons,
-              affectedReferenceCount: uniqueAffected.length,
-              affectedReferencesTruncated: uniqueAffected.length > storedAffected.length,
-            }),
-          },
-        });
-      }
-
-      const previousObservation = await tx.synthesisStalenessHead.findUnique({
-        where: { acceptedReviewVersionId: head.version.id },
-      });
-      let observationChanged = false;
-      let observationRevision = previousObservation?.revision ?? 0;
-      if (!previousObservation) {
-        await tx.synthesisStalenessHead.create({
-          data: {
-            acceptedReviewVersionId: head.version.id,
-            reviewId: head.review.id,
-            currentEvaluationId: evaluation.id,
-            observedAt: evaluatedAt,
-          },
-        });
-        observationChanged = true;
-      } else if (previousObservation.currentEvaluationId !== evaluation.id) {
-        const changed = await tx.synthesisStalenessHead.updateMany({
-          where: {
-            acceptedReviewVersionId: head.version.id,
-            currentEvaluationId: previousObservation.currentEvaluationId,
-            revision: previousObservation.revision,
-          },
-          data: {
-            currentEvaluationId: evaluation.id,
-            revision: { increment: 1 },
-            observedAt: evaluatedAt,
-          },
-        });
-        if (changed.count !== 1) {
+        if (currentHead?.currentSynthesisVersionId !== head.version.id) {
           throw new SynthesisStalenessError(
-            "Synthesis freshness observation changed concurrently.",
+            "Synthesis head changed during freshness evaluation.",
             "conflict",
           );
         }
-        observationRevision = previousObservation.revision + 1;
-        observationChanged = true;
-      }
-      if (observationChanged) {
-        await tx.auditEvent.create({
-          data: {
-            actorId: options.actor?.id,
-            action: "synthesis.staleness-observed",
-            subjectType: "reviewVersion",
-            subjectId: head.version.id,
-            idempotencyKey: `synthesis-staleness:head:${head.version.id}:observation:${observationRevision}`,
-            detailsJson: canonicalJson({
+        let evaluation = await tx.synthesisStalenessEvaluation.findUnique({
+          where: { evaluationKey },
+        });
+        if (!evaluation) {
+          evaluation = await tx.synthesisStalenessEvaluation.create({
+            data: {
+              evaluationKey,
+              policyVersion: SYNTHESIS_STALENESS_POLICY_VERSION,
               reviewId: head.review.id,
               acceptedReviewVersionId: head.version.id,
-              observationRevision,
-              previousEvaluationKey: previousObservation
-                ? (
-                    await tx.synthesisStalenessEvaluation.findUniqueOrThrow({
-                      where: { id: previousObservation.currentEvaluationId },
-                      select: { evaluationKey: true },
-                    })
-                  ).evaluationKey
-                : null,
-              currentEvaluationKey: evaluationKey,
+              acceptedDraftId: head.draft.id,
+              seriesKey: head.draft.seriesKey,
+              selectorJson: head.draft.selectorJson,
+              selectorHash: head.draft.selectorHash,
+              acceptedMaterializationPolicyVersion: head.draft.materializationPolicyVersion,
+              evaluatedMaterializationPolicyVersion,
+              acceptedPacketHash: head.draft.packetHash,
+              acceptedPacketJson: head.draft.packetJson,
+              evaluatedPacketHash,
+              evaluatedPacketJson,
+              failureCode,
+              failureFingerprint,
               status,
-              reasonCodes: orderedReasons,
-            }),
-          },
-        });
-      }
-
-      const obsoleteHeadProposals = await tx.synthesisRegenerationProposal.findMany({
-        where: {
-          reviewId: head.review.id,
-          status: "open",
-          acceptedReviewVersionId: { not: head.version.id },
-        },
-        select: { id: true, acceptedReviewVersionId: true },
-      });
-      await tx.synthesisRegenerationProposal.updateMany({
-        where: {
-          reviewId: head.review.id,
-          status: "open",
-          acceptedReviewVersionId: { not: head.version.id },
-        },
-        data: { status: "superseded", openHeadKey: null },
-      });
-      if (obsoleteHeadProposals.length > 0) {
-        await tx.auditEvent.createMany({
-          data: obsoleteHeadProposals.map((proposal) => ({
-            actorId: options.actor?.id,
-            action: "synthesis.regeneration-proposal.superseded",
-            subjectType: "synthesisRegenerationProposal",
-            subjectId: proposal.id,
-            idempotencyKey: `synthesis-staleness:proposal:${proposal.id}:superseded:head:${head.version.id}`,
-            detailsJson: canonicalJson({
-              cause: "accepted-head-changed",
-              reviewId: head.review.id,
-              previousAcceptedReviewVersionId: proposal.acceptedReviewVersionId,
-              currentAcceptedReviewVersionId: head.version.id,
-            }),
-          })),
-        });
-      }
-      const open = await tx.synthesisRegenerationProposal.findUnique({
-        where: { openHeadKey: head.version.id },
-      });
-      if (observationChanged) {
-        if (open) {
-          await tx.synthesisRegenerationProposal.update({
-            where: { id: open.id },
-            data: { status: "superseded", openHeadKey: null },
+              reasonCodesJson: canonicalJson(orderedReasons),
+              affectedReferencesJson: canonicalJson(storedAffected),
+              affectedReferenceCount: uniqueAffected.length,
+              affectedReferencesTruncated: uniqueAffected.length > storedAffected.length,
+              evaluatedAt,
+            },
           });
           await tx.auditEvent.create({
             data: {
               actorId: options.actor?.id,
-              action: "synthesis.regeneration-proposal.superseded",
-              subjectType: "synthesisRegenerationProposal",
-              subjectId: open.id,
-              idempotencyKey: `synthesis-staleness:proposal:${open.id}:superseded:observation:${observationRevision}`,
+              action: "synthesis.staleness-evaluated",
+              subjectType: "synthesisStalenessEvaluation",
+              subjectId: evaluation.id,
+              idempotencyKey: `synthesis-staleness:evaluation:${evaluationKey}`,
               detailsJson: canonicalJson({
-                cause: status === "fresh" ? "evaluated-fresh" : "changed-stale-observation",
                 reviewId: head.review.id,
                 acceptedReviewVersionId: head.version.id,
                 evaluationKey,
-                observationRevision,
+                policyVersion: SYNTHESIS_STALENESS_POLICY_VERSION,
+                status,
+                reasonCodes: orderedReasons,
+                affectedReferenceCount: uniqueAffected.length,
+                affectedReferencesTruncated: uniqueAffected.length > storedAffected.length,
               }),
             },
           });
         }
-        if (status === "stale") {
-          const proposal = await tx.synthesisRegenerationProposal.create({
+
+        const previousObservation = await tx.synthesisStalenessHead.findUnique({
+          where: { acceptedReviewVersionId: head.version.id },
+        });
+        let observationChanged = false;
+        let observationRevision = previousObservation?.revision ?? 0;
+        if (!previousObservation) {
+          await tx.synthesisStalenessHead.create({
             data: {
-              evaluationId: evaluation.id,
-              reviewId: head.review.id,
               acceptedReviewVersionId: head.version.id,
-              openHeadKey: head.version.id,
+              reviewId: head.review.id,
+              currentEvaluationId: evaluation.id,
+              observedAt: evaluatedAt,
             },
           });
+          observationChanged = true;
+        } else if (previousObservation.currentEvaluationId !== evaluation.id) {
+          const changed = await tx.synthesisStalenessHead.updateMany({
+            where: {
+              acceptedReviewVersionId: head.version.id,
+              currentEvaluationId: previousObservation.currentEvaluationId,
+              revision: previousObservation.revision,
+            },
+            data: {
+              currentEvaluationId: evaluation.id,
+              revision: { increment: 1 },
+              observedAt: evaluatedAt,
+            },
+          });
+          if (changed.count !== 1) {
+            throw new SynthesisStalenessError(
+              "Synthesis freshness observation changed concurrently.",
+              "conflict",
+            );
+          }
+          observationRevision = previousObservation.revision + 1;
+          observationChanged = true;
+        }
+        if (observationChanged) {
           await tx.auditEvent.create({
             data: {
               actorId: options.actor?.id,
-              action: "synthesis.regeneration-proposal.created",
-              subjectType: "synthesisRegenerationProposal",
-              subjectId: proposal.id,
-              idempotencyKey: `synthesis-staleness:head:${head.version.id}:observation:${observationRevision}:proposal`,
+              action: "synthesis.staleness-observed",
+              subjectType: "reviewVersion",
+              subjectId: head.version.id,
+              idempotencyKey: `synthesis-staleness:head:${head.version.id}:observation:${observationRevision}`,
               detailsJson: canonicalJson({
                 reviewId: head.review.id,
                 acceptedReviewVersionId: head.version.id,
-                evaluationKey,
                 observationRevision,
+                previousEvaluationKey: previousObservation
+                  ? (
+                      await tx.synthesisStalenessEvaluation.findUniqueOrThrow({
+                        where: { id: previousObservation.currentEvaluationId },
+                        select: { evaluationKey: true },
+                      })
+                    ).evaluationKey
+                  : null,
+                currentEvaluationKey: evaluationKey,
+                status,
                 reasonCodes: orderedReasons,
               }),
             },
           });
         }
-      }
-      return {
-        evaluationKey,
-        reviewSlug: head.review.slug,
-        acceptedReviewVersionId: head.version.id,
-        status,
-        reasonCodes: orderedReasons,
-        affectedReferences: storedAffected,
-        affectedReferenceCount: uniqueAffected.length,
-        affectedReferencesTruncated: uniqueAffected.length > storedAffected.length,
-      };
-    }, SERIALIZABLE_TRANSACTION_OPTIONS),
+
+        const obsoleteHeadProposals = await tx.synthesisRegenerationProposal.findMany({
+          where: {
+            reviewId: head.review.id,
+            status: "open",
+            acceptedReviewVersionId: { not: head.version.id },
+          },
+          select: { id: true, acceptedReviewVersionId: true },
+        });
+        await tx.synthesisRegenerationProposal.updateMany({
+          where: {
+            reviewId: head.review.id,
+            status: "open",
+            acceptedReviewVersionId: { not: head.version.id },
+          },
+          data: { status: "superseded", openHeadKey: null },
+        });
+        if (obsoleteHeadProposals.length > 0) {
+          await tx.auditEvent.createMany({
+            data: obsoleteHeadProposals.map((proposal) => ({
+              actorId: options.actor?.id,
+              action: "synthesis.regeneration-proposal.superseded",
+              subjectType: "synthesisRegenerationProposal",
+              subjectId: proposal.id,
+              idempotencyKey: `synthesis-staleness:proposal:${proposal.id}:superseded:head:${head.version.id}`,
+              detailsJson: canonicalJson({
+                cause: "accepted-head-changed",
+                reviewId: head.review.id,
+                previousAcceptedReviewVersionId: proposal.acceptedReviewVersionId,
+                currentAcceptedReviewVersionId: head.version.id,
+              }),
+            })),
+          });
+        }
+        const open = await tx.synthesisRegenerationProposal.findUnique({
+          where: { openHeadKey: head.version.id },
+        });
+        if (observationChanged) {
+          if (open) {
+            await tx.synthesisRegenerationProposal.update({
+              where: { id: open.id },
+              data: { status: "superseded", openHeadKey: null },
+            });
+            await tx.auditEvent.create({
+              data: {
+                actorId: options.actor?.id,
+                action: "synthesis.regeneration-proposal.superseded",
+                subjectType: "synthesisRegenerationProposal",
+                subjectId: open.id,
+                idempotencyKey: `synthesis-staleness:proposal:${open.id}:superseded:observation:${observationRevision}`,
+                detailsJson: canonicalJson({
+                  cause: status === "fresh" ? "evaluated-fresh" : "changed-stale-observation",
+                  reviewId: head.review.id,
+                  acceptedReviewVersionId: head.version.id,
+                  evaluationKey,
+                  observationRevision,
+                }),
+              },
+            });
+          }
+          if (status === "stale") {
+            const proposal = await tx.synthesisRegenerationProposal.create({
+              data: {
+                evaluationId: evaluation.id,
+                reviewId: head.review.id,
+                acceptedReviewVersionId: head.version.id,
+                openHeadKey: head.version.id,
+              },
+            });
+            await tx.auditEvent.create({
+              data: {
+                actorId: options.actor?.id,
+                action: "synthesis.regeneration-proposal.created",
+                subjectType: "synthesisRegenerationProposal",
+                subjectId: proposal.id,
+                idempotencyKey: `synthesis-staleness:head:${head.version.id}:observation:${observationRevision}:proposal`,
+                detailsJson: canonicalJson({
+                  reviewId: head.review.id,
+                  acceptedReviewVersionId: head.version.id,
+                  evaluationKey,
+                  observationRevision,
+                  reasonCodes: orderedReasons,
+                }),
+              },
+            });
+          }
+        }
+        return {
+          evaluationKey,
+          reviewSlug: head.review.slug,
+          acceptedReviewVersionId: head.version.id,
+          status,
+          reasonCodes: orderedReasons,
+          affectedReferences: storedAffected,
+          affectedReferenceCount: uniqueAffected.length,
+          affectedReferencesTruncated: uniqueAffected.length > storedAffected.length,
+        };
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+    ),
   );
 }
 

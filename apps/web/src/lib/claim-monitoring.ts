@@ -13,10 +13,7 @@ import {
 import { type Prisma } from "@oratlas/db";
 import { type TrustVerificationState } from "@oratlas/trust";
 import { prisma } from "./db";
-import {
-  BOUNDED_SERIALIZABLE_TRANSACTION_OPTIONS,
-  withSqliteRetry as sharedWithSqliteRetry,
-} from "./db-retry";
+import { withSqliteRetry as sharedWithSqliteRetry } from "./db-retry";
 import { isReadablePublicState } from "./review-lifecycle";
 import { getPublicNode } from "./node-publication";
 import {
@@ -114,83 +111,86 @@ export async function registerCitationStatus(
   );
 
   return withRetry(() =>
-    prisma.$transaction(async (tx) => {
-      const record = await tx.citationStatusRecord.create({
-        data: {
-          workAlias: aliases[0]!,
-          status: parsed.status,
-          source: parsed.source,
-          evidenceUrl: parsed.evidenceUrl,
-          note: parsed.note,
-          recordedById: actor.id,
-        },
-      });
-      // One proposal per claim and signal: dedupe in application code so no
-      // unique violation ever fires inside the transaction (a caught P2002
-      // would abort the whole transaction on Postgres).
-      const targetByClaim = new Map<string, { citationId: string; relationType: string }>();
-      for (const citation of affected) {
-        for (const relation of citation.evidenceRelations) {
-          if (!targetByClaim.has(relation.claimId)) {
-            targetByClaim.set(relation.claimId, {
-              citationId: citation.id,
-              relationType: relation.relationType,
-            });
-          }
-        }
-      }
-      const affectedClaimIds = [...targetByClaim.keys()];
-      for (const [claimId, target] of targetByClaim) {
-        await tx.claimUpdateProposal.create({
+    prisma.$transaction(
+      async (tx) => {
+        const record = await tx.citationStatusRecord.create({
           data: {
-            statusRecordId: record.id,
-            claimId,
-            citationId: target.citationId,
-            rationale:
-              `Cited work ${aliases[0]} was marked "${parsed.status}" (source: ${parsed.source}). ` +
-              `This claim relies on it via a "${target.relationType}" relation.`,
+            workAlias: aliases[0]!,
+            status: parsed.status,
+            source: parsed.source,
+            evidenceUrl: parsed.evidenceUrl,
+            note: parsed.note,
+            recordedById: actor.id,
           },
         });
-      }
-      await tx.auditEvent.create({
-        data: {
-          actorId: actor.id,
-          action: "monitoring.status-registered",
-          subjectType: "citation-status",
-          subjectId: record.id,
-          detailsJson: canonicalJson({
-            workAlias: aliases[0],
-            status: parsed.status,
-            proposalsOpened: affectedClaimIds.length,
-          }),
-        },
-      });
-      const editors = await tx.user.findMany({
-        where: { role: { in: ["EDITOR", "ADMIN"] } },
-        select: { id: true },
-      });
-      for (const editor of editors) {
-        await tx.notification.create({
+        // One proposal per claim and signal: dedupe in application code so no
+        // unique violation ever fires inside the transaction (a caught P2002
+        // would abort the whole transaction on Postgres).
+        const targetByClaim = new Map<string, { citationId: string; relationType: string }>();
+        for (const citation of affected) {
+          for (const relation of citation.evidenceRelations) {
+            if (!targetByClaim.has(relation.claimId)) {
+              targetByClaim.set(relation.claimId, {
+                citationId: citation.id,
+                relationType: relation.relationType,
+              });
+            }
+          }
+        }
+        const affectedClaimIds = [...targetByClaim.keys()];
+        for (const [claimId, target] of targetByClaim) {
+          await tx.claimUpdateProposal.create({
+            data: {
+              statusRecordId: record.id,
+              claimId,
+              citationId: target.citationId,
+              rationale:
+                `Cited work ${aliases[0]} was marked "${parsed.status}" (source: ${parsed.source}). ` +
+                `This claim relies on it via a "${target.relationType}" relation.`,
+            },
+          });
+        }
+        await tx.auditEvent.create({
           data: {
-            userId: editor.id,
-            kind: "evidence-alert",
+            actorId: actor.id,
+            action: "monitoring.status-registered",
             subjectType: "citation-status",
             subjectId: record.id,
-            payloadJson: canonicalJson({
-              kind: "citation-status",
+            detailsJson: canonicalJson({
+              workAlias: aliases[0],
               status: parsed.status,
               proposalsOpened: affectedClaimIds.length,
             }),
           },
         });
-      }
-      return {
-        statusRecordId: record.id,
-        workAlias: aliases[0]!,
-        proposalsOpened: affectedClaimIds.length,
-        affectedClaimIds,
-      };
-    }, BOUNDED_SERIALIZABLE_TRANSACTION_OPTIONS),
+        const editors = await tx.user.findMany({
+          where: { role: { in: ["EDITOR", "ADMIN"] } },
+          select: { id: true },
+        });
+        for (const editor of editors) {
+          await tx.notification.create({
+            data: {
+              userId: editor.id,
+              kind: "evidence-alert",
+              subjectType: "citation-status",
+              subjectId: record.id,
+              payloadJson: canonicalJson({
+                kind: "citation-status",
+                status: parsed.status,
+                proposalsOpened: affectedClaimIds.length,
+              }),
+            },
+          });
+        }
+        return {
+          statusRecordId: record.id,
+          workAlias: aliases[0]!,
+          proposalsOpened: affectedClaimIds.length,
+          affectedClaimIds,
+        };
+      },
+      { maxWait: 5_000, timeout: 15_000, isolationLevel: "Serializable" },
+    ),
   );
 }
 
@@ -205,29 +205,32 @@ export async function resolveProposal(
   }
   const parsed = proposalResolutionSchema.parse(resolution);
   return withRetry(() =>
-    prisma.$transaction(async (tx) => {
-      const changed = await tx.claimUpdateProposal.updateMany({
-        where: { id: proposalId, status: "open" },
-        data: {
-          status: parsed.resolution,
-          resolvedById: actor.id,
-          resolutionNote: parsed.note,
-          resolvedAt: new Date(),
-        },
-      });
-      if (changed.count !== 1) {
-        throw new MonitoringError("Proposal not found or already resolved.", "conflict");
-      }
-      await tx.auditEvent.create({
-        data: {
-          actorId: actor.id,
-          action: "monitoring.proposal-resolved",
-          subjectType: "claim-update-proposal",
-          subjectId: proposalId,
-          detailsJson: canonicalJson({ resolution: parsed.resolution }),
-        },
-      });
-    }, BOUNDED_SERIALIZABLE_TRANSACTION_OPTIONS),
+    prisma.$transaction(
+      async (tx) => {
+        const changed = await tx.claimUpdateProposal.updateMany({
+          where: { id: proposalId, status: "open" },
+          data: {
+            status: parsed.resolution,
+            resolvedById: actor.id,
+            resolutionNote: parsed.note,
+            resolvedAt: new Date(),
+          },
+        });
+        if (changed.count !== 1) {
+          throw new MonitoringError("Proposal not found or already resolved.", "conflict");
+        }
+        await tx.auditEvent.create({
+          data: {
+            actorId: actor.id,
+            action: "monitoring.proposal-resolved",
+            subjectType: "claim-update-proposal",
+            subjectId: proposalId,
+            detailsJson: canonicalJson({ resolution: parsed.resolution }),
+          },
+        });
+      },
+      { maxWait: 5_000, timeout: 15_000, isolationLevel: "Serializable" },
+    ),
   );
 }
 

@@ -1,5 +1,5 @@
 import "server-only";
-import type { PrismaClient } from "@oratlas/db";
+import { Prisma, type PrismaClient } from "@oratlas/db";
 import {
   canonicalJson,
   synthesisRegenerationProposalDecisionSchema,
@@ -8,7 +8,6 @@ import {
 } from "@oratlas/contracts";
 import type { SessionUser } from "./auth";
 import { prisma } from "./db";
-import { SERIALIZABLE_TRANSACTION_OPTIONS } from "./db-retry";
 import { getPublicSynthesisReview } from "./synthesis-editorial";
 import { validateStoredSynthesisStaleness } from "./synthesis-staleness-integrity";
 import {
@@ -135,118 +134,129 @@ export async function decideSynthesisRegenerationProposal(
   const input = synthesisRegenerationProposalDecisionSchema.parse(inputValue);
   const inputHash = digest(canonicalJson(input));
   return runSerializable(client, () =>
-    client.$transaction(async (tx) => {
-      const currentActor = await tx.user.findUnique({ where: { id: actor.id } });
-      if (!currentActor || (currentActor.role !== "EDITOR" && currentActor.role !== "ADMIN")) {
-        throw new SynthesisStalenessError("Editor role required.", "forbidden");
-      }
-      const proposal = await tx.synthesisRegenerationProposal.findUnique({
-        where: { id: proposalId },
-        include: {
-          review: { select: { currentSynthesisVersionId: true, slug: true } },
-          evaluation: true,
-          acceptedReviewVersion: {
-            select: {
-              reviewId: true,
-              synthesisDraftId: true,
-              synthesisStalenessHead: {
-                select: { reviewId: true, currentEvaluationId: true, observedAt: true },
-              },
-              synthesisDraft: {
-                select: {
-                  id: true,
-                  seriesKey: true,
-                  selectorJson: true,
-                  selectorHash: true,
-                  materializationPolicyVersion: true,
-                  packetJson: true,
-                  packetHash: true,
+    client.$transaction(
+      async (tx) => {
+        const currentActor = await tx.user.findUnique({ where: { id: actor.id } });
+        if (!currentActor || (currentActor.role !== "EDITOR" && currentActor.role !== "ADMIN")) {
+          throw new SynthesisStalenessError("Editor role required.", "forbidden");
+        }
+        const proposal = await tx.synthesisRegenerationProposal.findUnique({
+          where: { id: proposalId },
+          include: {
+            review: { select: { currentSynthesisVersionId: true, slug: true } },
+            evaluation: true,
+            acceptedReviewVersion: {
+              select: {
+                reviewId: true,
+                synthesisDraftId: true,
+                synthesisStalenessHead: {
+                  select: { reviewId: true, currentEvaluationId: true, observedAt: true },
+                },
+                synthesisDraft: {
+                  select: {
+                    id: true,
+                    seriesKey: true,
+                    selectorJson: true,
+                    selectorHash: true,
+                    materializationPolicyVersion: true,
+                    packetJson: true,
+                    packetHash: true,
+                  },
                 },
               },
             },
           },
-        },
-      });
-      if (!proposal) throw new SynthesisStalenessError("Proposal not found.", "not-found");
-      if (proposal.status !== "open") {
+        });
+        if (!proposal) throw new SynthesisStalenessError("Proposal not found.", "not-found");
+        if (proposal.status !== "open") {
+          if (
+            proposal.resolutionIdempotencyKey === input.idempotencyKey &&
+            proposal.resolutionInputHash === inputHash
+          )
+            return { status: proposal.status, revision: proposal.revision };
+          throw new SynthesisStalenessError("Proposal is no longer open.", "conflict");
+        }
+        if (proposal.review.currentSynthesisVersionId !== proposal.acceptedReviewVersionId) {
+          throw new SynthesisStalenessError(
+            "Proposal targets an obsolete synthesis head.",
+            "conflict",
+          );
+        }
         if (
-          proposal.resolutionIdempotencyKey === input.idempotencyKey &&
-          proposal.resolutionInputHash === inputHash
-        )
-          return { status: proposal.status, revision: proposal.revision };
-        throw new SynthesisStalenessError("Proposal is no longer open.", "conflict");
-      }
-      if (proposal.review.currentSynthesisVersionId !== proposal.acceptedReviewVersionId) {
-        throw new SynthesisStalenessError(
-          "Proposal targets an obsolete synthesis head.",
-          "conflict",
-        );
-      }
-      if (!(await getPublicSynthesisReview(proposal.review.slug, tx as unknown as PrismaClient))) {
-        throw new SynthesisStalenessError(
-          "Accepted synthesis baseline is no longer valid.",
-          "conflict",
-        );
-      }
-      const observation = proposal.acceptedReviewVersion.synthesisStalenessHead;
-      const draft = proposal.acceptedReviewVersion.synthesisDraft;
-      if (!observation || !draft) {
-        throw new SynthesisStalenessError("Proposal evaluation is no longer current.", "conflict");
-      }
-      const validated = validateStoredSynthesisStaleness(
-        proposal.evaluation,
-        {
-          reviewId: proposal.reviewId,
-          acceptedReviewVersionId: proposal.acceptedReviewVersionId,
-          acceptedDraftId: draft.id,
-          seriesKey: draft.seriesKey,
-          selectorJson: draft.selectorJson,
-          selectorHash: draft.selectorHash,
-          materializationPolicyVersion: draft.materializationPolicyVersion,
-          packetJson: draft.packetJson,
-          packetHash: draft.packetHash,
-        },
-        observation.observedAt,
-      );
-      if (
-        validated?.freshness.status !== "stale" ||
-        proposal.acceptedReviewVersion.synthesisDraftId !== draft.id ||
-        proposal.acceptedReviewVersion.reviewId !== proposal.reviewId ||
-        observation.reviewId !== proposal.reviewId ||
-        observation.currentEvaluationId !== proposal.evaluation.id
-      ) {
-        throw new SynthesisStalenessError("Proposal evaluation is no longer current.", "conflict");
-      }
-      const status = input.action === "dismiss" ? "dismissed" : "regeneration-requested";
-      const changed = await tx.synthesisRegenerationProposal.updateMany({
-        where: { id: proposal.id, status: "open", revision: input.expectedRevision },
-        data: {
-          status,
-          revision: { increment: 1 },
-          openHeadKey: null,
-          resolvedById: currentActor.id,
-          resolvedAt: new Date(),
-          resolutionRationale: input.rationale,
-          resolutionIdempotencyKey: input.idempotencyKey,
-          resolutionInputHash: inputHash,
-        },
-      });
-      if (changed.count !== 1) {
-        throw new SynthesisStalenessError("Proposal revision changed concurrently.", "conflict");
-      }
-      await tx.auditEvent.create({
-        data: {
-          actorId: currentActor.id,
-          action: `synthesis.regeneration-proposal.${status}`,
-          subjectType: "synthesisRegenerationProposal",
-          subjectId: proposal.id,
-          idempotencyKey: `synthesis-regeneration-proposal:${proposal.id}:${input.idempotencyKey}`,
-          detailsJson: canonicalJson({
+          !(await getPublicSynthesisReview(proposal.review.slug, tx as unknown as PrismaClient))
+        ) {
+          throw new SynthesisStalenessError(
+            "Accepted synthesis baseline is no longer valid.",
+            "conflict",
+          );
+        }
+        const observation = proposal.acceptedReviewVersion.synthesisStalenessHead;
+        const draft = proposal.acceptedReviewVersion.synthesisDraft;
+        if (!observation || !draft) {
+          throw new SynthesisStalenessError(
+            "Proposal evaluation is no longer current.",
+            "conflict",
+          );
+        }
+        const validated = validateStoredSynthesisStaleness(
+          proposal.evaluation,
+          {
+            reviewId: proposal.reviewId,
             acceptedReviewVersionId: proposal.acceptedReviewVersionId,
-          }),
-        },
-      });
-      return { status, revision: proposal.revision + 1 };
-    }, SERIALIZABLE_TRANSACTION_OPTIONS),
+            acceptedDraftId: draft.id,
+            seriesKey: draft.seriesKey,
+            selectorJson: draft.selectorJson,
+            selectorHash: draft.selectorHash,
+            materializationPolicyVersion: draft.materializationPolicyVersion,
+            packetJson: draft.packetJson,
+            packetHash: draft.packetHash,
+          },
+          observation.observedAt,
+        );
+        if (
+          validated?.freshness.status !== "stale" ||
+          proposal.acceptedReviewVersion.synthesisDraftId !== draft.id ||
+          proposal.acceptedReviewVersion.reviewId !== proposal.reviewId ||
+          observation.reviewId !== proposal.reviewId ||
+          observation.currentEvaluationId !== proposal.evaluation.id
+        ) {
+          throw new SynthesisStalenessError(
+            "Proposal evaluation is no longer current.",
+            "conflict",
+          );
+        }
+        const status = input.action === "dismiss" ? "dismissed" : "regeneration-requested";
+        const changed = await tx.synthesisRegenerationProposal.updateMany({
+          where: { id: proposal.id, status: "open", revision: input.expectedRevision },
+          data: {
+            status,
+            revision: { increment: 1 },
+            openHeadKey: null,
+            resolvedById: currentActor.id,
+            resolvedAt: new Date(),
+            resolutionRationale: input.rationale,
+            resolutionIdempotencyKey: input.idempotencyKey,
+            resolutionInputHash: inputHash,
+          },
+        });
+        if (changed.count !== 1) {
+          throw new SynthesisStalenessError("Proposal revision changed concurrently.", "conflict");
+        }
+        await tx.auditEvent.create({
+          data: {
+            actorId: currentActor.id,
+            action: `synthesis.regeneration-proposal.${status}`,
+            subjectType: "synthesisRegenerationProposal",
+            subjectId: proposal.id,
+            idempotencyKey: `synthesis-regeneration-proposal:${proposal.id}:${input.idempotencyKey}`,
+            detailsJson: canonicalJson({
+              acceptedReviewVersionId: proposal.acceptedReviewVersionId,
+            }),
+          },
+        });
+        return { status, revision: proposal.revision + 1 };
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+    ),
   );
 }

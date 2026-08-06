@@ -22,11 +22,7 @@ import {
 } from "@oratlas/contracts";
 import { type Prisma } from "@oratlas/db";
 import { prisma } from "./db";
-import {
-  BOUNDED_SERIALIZABLE_TRANSACTION_OPTIONS,
-  prismaCode,
-  withSqliteRetry as sharedWithSqliteRetry,
-} from "./db-retry";
+import { prismaCode, withSqliteRetry as sharedWithSqliteRetry } from "./db-retry";
 import { sha256 } from "./hash";
 import {
   acceptSubmissionInTransaction,
@@ -144,62 +140,65 @@ export async function assignEditor(
     throw new LifecycleError("A declared conflict needs a statement (≥10 characters).");
   }
   return withRetry(() =>
-    prisma.$transaction(async (tx) => {
-      const submission = await tx.submission.findUnique({ where: { id: submissionId } });
-      if (!submission) throw new LifecycleError("Submission not found.", "not-found");
-      if (!ASSIGNABLE_STATUSES.has(submission.status)) {
-        throw new LifecycleError(
-          `Submission is ${submission.status}; editors can no longer be assigned.`,
-          "conflict",
-        );
-      }
-      const editor = await tx.user.findUnique({ where: { id: editorId } });
-      if (!editor || !isEditorRole(editor.role)) {
-        throw new LifecycleError("Assignee must hold the editor role.");
-      }
-      if (editorId === submission.submitterId) {
-        throw new LifecycleError(
-          "An editor can never be assigned to their own submission.",
-          "conflict",
-        );
-      }
-      const status = parsedCoi.declared ? "recused" : "active";
-      let assignment;
-      try {
-        assignment = await tx.editorAssignment.create({
-          data: {
-            submissionId,
-            editorId,
-            assignedById: actor.id,
-            status,
-            coiDeclared: parsedCoi.declared,
-            coiStatement: parsedCoi.statement || null,
-          },
-        });
-      } catch (error) {
-        if (prismaCode(error) === "P2002") {
+    prisma.$transaction(
+      async (tx) => {
+        const submission = await tx.submission.findUnique({ where: { id: submissionId } });
+        if (!submission) throw new LifecycleError("Submission not found.", "not-found");
+        if (!ASSIGNABLE_STATUSES.has(submission.status)) {
           throw new LifecycleError(
-            "This editor is already assigned to the submission.",
+            `Submission is ${submission.status}; editors can no longer be assigned.`,
             "conflict",
           );
         }
-        throw error;
-      }
-      await audit(tx, actor.id, "editorial.editor-assigned", "submission", submissionId, {
-        editorLogin: editor.githubLogin,
-        status,
-        coiDeclared: parsedCoi.declared,
-      });
-      await notify(
-        tx,
-        [editorId],
-        parsedCoi.declared ? "editor-recused" : "editor-assigned",
-        "submission",
-        submissionId,
-        { assignedBy: actor.id },
-      );
-      return { assignmentId: assignment.id, status };
-    }, BOUNDED_SERIALIZABLE_TRANSACTION_OPTIONS),
+        const editor = await tx.user.findUnique({ where: { id: editorId } });
+        if (!editor || !isEditorRole(editor.role)) {
+          throw new LifecycleError("Assignee must hold the editor role.");
+        }
+        if (editorId === submission.submitterId) {
+          throw new LifecycleError(
+            "An editor can never be assigned to their own submission.",
+            "conflict",
+          );
+        }
+        const status = parsedCoi.declared ? "recused" : "active";
+        let assignment;
+        try {
+          assignment = await tx.editorAssignment.create({
+            data: {
+              submissionId,
+              editorId,
+              assignedById: actor.id,
+              status,
+              coiDeclared: parsedCoi.declared,
+              coiStatement: parsedCoi.statement || null,
+            },
+          });
+        } catch (error) {
+          if (prismaCode(error) === "P2002") {
+            throw new LifecycleError(
+              "This editor is already assigned to the submission.",
+              "conflict",
+            );
+          }
+          throw error;
+        }
+        await audit(tx, actor.id, "editorial.editor-assigned", "submission", submissionId, {
+          editorLogin: editor.githubLogin,
+          status,
+          coiDeclared: parsedCoi.declared,
+        });
+        await notify(
+          tx,
+          [editorId],
+          parsedCoi.declared ? "editor-recused" : "editor-assigned",
+          "submission",
+          submissionId,
+          { assignedBy: actor.id },
+        );
+        return { assignmentId: assignment.id, status };
+      },
+      { maxWait: 5_000, timeout: 15_000, isolationLevel: "Serializable" },
+    ),
   );
 }
 
@@ -214,33 +213,41 @@ export async function recuseEditor(
     throw new LifecycleError("A recusal statement of 10–2000 characters is required.");
   }
   return withRetry(() =>
-    prisma.$transaction(async (tx) => {
-      const assignment = await tx.editorAssignment.findUnique({ where: { id: assignmentId } });
-      if (!assignment) throw new LifecycleError("Assignment not found.", "not-found");
-      if (assignment.editorId !== actor.id && actor.role !== "ADMIN") {
-        throw new LifecycleError("Only the assigned editor or an admin can recuse.", "forbidden");
-      }
-      const changed = await tx.editorAssignment.updateMany({
-        where: { id: assignmentId, status: "active" },
-        data: { status: "recused", coiDeclared: true, coiStatement: trimmed },
-      });
-      if (changed.count !== 1) {
-        throw new LifecycleError("Only an active assignment can be recused.", "conflict");
-      }
-      await audit(tx, actor.id, "editorial.editor-recused", "submission", assignment.submissionId, {
-        assignmentId,
-      });
-      await notify(
-        tx,
-        [assignment.assignedById],
-        "editor-recused",
-        "submission",
-        assignment.submissionId,
-        {
-          assignmentId,
-        },
-      );
-    }, BOUNDED_SERIALIZABLE_TRANSACTION_OPTIONS),
+    prisma.$transaction(
+      async (tx) => {
+        const assignment = await tx.editorAssignment.findUnique({ where: { id: assignmentId } });
+        if (!assignment) throw new LifecycleError("Assignment not found.", "not-found");
+        if (assignment.editorId !== actor.id && actor.role !== "ADMIN") {
+          throw new LifecycleError("Only the assigned editor or an admin can recuse.", "forbidden");
+        }
+        const changed = await tx.editorAssignment.updateMany({
+          where: { id: assignmentId, status: "active" },
+          data: { status: "recused", coiDeclared: true, coiStatement: trimmed },
+        });
+        if (changed.count !== 1) {
+          throw new LifecycleError("Only an active assignment can be recused.", "conflict");
+        }
+        await audit(
+          tx,
+          actor.id,
+          "editorial.editor-recused",
+          "submission",
+          assignment.submissionId,
+          { assignmentId },
+        );
+        await notify(
+          tx,
+          [assignment.assignedById],
+          "editor-recused",
+          "submission",
+          assignment.submissionId,
+          {
+            assignmentId,
+          },
+        );
+      },
+      { maxWait: 5_000, timeout: 15_000, isolationLevel: "Serializable" },
+    ),
   );
 }
 
@@ -250,46 +257,49 @@ export async function openReviewRound(
   submissionId: string,
 ): Promise<{ roundId: string; roundNumber: number }> {
   return withRetry(() =>
-    prisma.$transaction(async (tx) => {
-      const submission = await tx.submission.findUnique({
-        where: { id: submissionId },
-        include: { submitter: true },
-      });
-      if (!submission) throw new LifecycleError("Submission not found.", "not-found");
-      if (submission.status !== "pending-editorial-review") {
-        throw new LifecycleError(
-          `Rounds can only open while a submission is pending editorial review (currently ${submission.status}).`,
-          "conflict",
-        );
-      }
-      const assignment = await tx.editorAssignment.findUnique({
-        where: { submissionId_editorId: { submissionId, editorId: actor.id } },
-      });
-      if (assignment?.status !== "active") {
-        throw new LifecycleError(
-          "Only an actively assigned, non-recused editor can open a round.",
-          "forbidden",
-        );
-      }
-      const openRound = await tx.reviewRound.findFirst({
-        where: { submissionId, status: "open" },
-      });
-      if (openRound) {
-        throw new LifecycleError("A round is already open for this submission.", "conflict");
-      }
-      const roundNumber = (await tx.reviewRound.count({ where: { submissionId } })) + 1;
-      const round = await tx.reviewRound.create({
-        data: { submissionId, roundNumber, openedById: actor.id },
-      });
-      await audit(tx, actor.id, "editorial.round-opened", "submission", submissionId, {
-        roundId: round.id,
-        roundNumber,
-      });
-      await notify(tx, [submission.submitterId], "round-opened", "review-round", round.id, {
-        roundNumber,
-      });
-      return { roundId: round.id, roundNumber };
-    }, BOUNDED_SERIALIZABLE_TRANSACTION_OPTIONS),
+    prisma.$transaction(
+      async (tx) => {
+        const submission = await tx.submission.findUnique({
+          where: { id: submissionId },
+          include: { submitter: true },
+        });
+        if (!submission) throw new LifecycleError("Submission not found.", "not-found");
+        if (submission.status !== "pending-editorial-review") {
+          throw new LifecycleError(
+            `Rounds can only open while a submission is pending editorial review (currently ${submission.status}).`,
+            "conflict",
+          );
+        }
+        const assignment = await tx.editorAssignment.findUnique({
+          where: { submissionId_editorId: { submissionId, editorId: actor.id } },
+        });
+        if (assignment?.status !== "active") {
+          throw new LifecycleError(
+            "Only an actively assigned, non-recused editor can open a round.",
+            "forbidden",
+          );
+        }
+        const openRound = await tx.reviewRound.findFirst({
+          where: { submissionId, status: "open" },
+        });
+        if (openRound) {
+          throw new LifecycleError("A round is already open for this submission.", "conflict");
+        }
+        const roundNumber = (await tx.reviewRound.count({ where: { submissionId } })) + 1;
+        const round = await tx.reviewRound.create({
+          data: { submissionId, roundNumber, openedById: actor.id },
+        });
+        await audit(tx, actor.id, "editorial.round-opened", "submission", submissionId, {
+          roundId: round.id,
+          roundNumber,
+        });
+        await notify(tx, [submission.submitterId], "round-opened", "review-round", round.id, {
+          roundNumber,
+        });
+        return { roundId: round.id, roundNumber };
+      },
+      { maxWait: 5_000, timeout: 15_000, isolationLevel: "Serializable" },
+    ),
   );
 }
 
@@ -309,68 +319,71 @@ export async function submitReviewReport(
   const bodyJson = canonicalJson(parsedBody);
   const bodyHash = sha256(bodyJson);
   return withRetry(() =>
-    prisma.$transaction(async (tx) => {
-      const round = await tx.reviewRound.findUnique({
-        where: { id: roundId },
-        include: { submission: true },
-      });
-      if (!round) throw new LifecycleError("Review round not found.", "not-found");
-      if (round.status !== "open") {
-        throw new LifecycleError("This round is decided; reports are closed.", "conflict");
-      }
-      if (round.submission.submitterId === actor.id) {
-        throw new LifecycleError("The submitter cannot review their own submission.", "conflict");
-      }
-      const editorAssignment = await tx.editorAssignment.findUnique({
-        where: {
-          submissionId_editorId: { submissionId: round.submissionId, editorId: actor.id },
-        },
-      });
-      if (editorAssignment) {
-        throw new LifecycleError(
-          "An assigned editor cannot also act as a formal reviewer for the same submission.",
-          "conflict",
-        );
-      }
-      const reviewer = await tx.user.findUniqueOrThrow({ where: { id: actor.id } });
-      let report;
-      try {
-        report = await tx.formalReviewReport.create({
-          data: {
-            roundId,
-            reviewerId: actor.id,
-            reviewerOrcid: reviewer.orcid,
-            reviewerOrcidVerified: Boolean(reviewer.orcid && reviewer.orcidVerifiedAt),
-            recommendation: parsedRecommendation,
-            bodyJson,
-            bodyHash,
-            coiStatement: coiStatement?.trim() || null,
+    prisma.$transaction(
+      async (tx) => {
+        const round = await tx.reviewRound.findUnique({
+          where: { id: roundId },
+          include: { submission: true },
+        });
+        if (!round) throw new LifecycleError("Review round not found.", "not-found");
+        if (round.status !== "open") {
+          throw new LifecycleError("This round is decided; reports are closed.", "conflict");
+        }
+        if (round.submission.submitterId === actor.id) {
+          throw new LifecycleError("The submitter cannot review their own submission.", "conflict");
+        }
+        const editorAssignment = await tx.editorAssignment.findUnique({
+          where: {
+            submissionId_editorId: { submissionId: round.submissionId, editorId: actor.id },
           },
         });
-      } catch (error) {
-        if (prismaCode(error) === "P2002") {
+        if (editorAssignment) {
           throw new LifecycleError(
-            "A report already exists for this reviewer and round; reports are immutable.",
+            "An assigned editor cannot also act as a formal reviewer for the same submission.",
             "conflict",
           );
         }
-        throw error;
-      }
-      await audit(tx, actor.id, "editorial.report-submitted", "review-round", roundId, {
-        reportId: report.id,
-        recommendation: parsedRecommendation,
-        bodyHash,
-      });
-      await notify(
-        tx,
-        await activeEditorIds(tx, round.submissionId),
-        "report-submitted",
-        "review-round",
-        roundId,
-        { reportId: report.id },
-      );
-      return { reportId: report.id, bodyHash };
-    }, BOUNDED_SERIALIZABLE_TRANSACTION_OPTIONS),
+        const reviewer = await tx.user.findUniqueOrThrow({ where: { id: actor.id } });
+        let report;
+        try {
+          report = await tx.formalReviewReport.create({
+            data: {
+              roundId,
+              reviewerId: actor.id,
+              reviewerOrcid: reviewer.orcid,
+              reviewerOrcidVerified: Boolean(reviewer.orcid && reviewer.orcidVerifiedAt),
+              recommendation: parsedRecommendation,
+              bodyJson,
+              bodyHash,
+              coiStatement: coiStatement?.trim() || null,
+            },
+          });
+        } catch (error) {
+          if (prismaCode(error) === "P2002") {
+            throw new LifecycleError(
+              "A report already exists for this reviewer and round; reports are immutable.",
+              "conflict",
+            );
+          }
+          throw error;
+        }
+        await audit(tx, actor.id, "editorial.report-submitted", "review-round", roundId, {
+          reportId: report.id,
+          recommendation: parsedRecommendation,
+          bodyHash,
+        });
+        await notify(
+          tx,
+          await activeEditorIds(tx, round.submissionId),
+          "report-submitted",
+          "review-round",
+          roundId,
+          { reportId: report.id },
+        );
+        return { reportId: report.id, bodyHash };
+      },
+      { maxWait: 5_000, timeout: 15_000, isolationLevel: "Serializable" },
+    ),
   );
 }
 
@@ -384,35 +397,38 @@ export async function submitAuthorResponse(
   const bodyJson = canonicalJson(parsedBody);
   const bodyHash = sha256(bodyJson);
   return withRetry(() =>
-    prisma.$transaction(async (tx) => {
-      const round = await tx.reviewRound.findUnique({
-        where: { id: roundId },
-        include: { submission: true },
-      });
-      if (!round) throw new LifecycleError("Review round not found.", "not-found");
-      if (round.status !== "open") {
-        throw new LifecycleError("This round is decided; responses are closed.", "conflict");
-      }
-      if (round.submission.submitterId !== actor.id) {
-        throw new LifecycleError("Only the submitter can respond to this round.", "forbidden");
-      }
-      const response = await tx.authorResponse.create({
-        data: { roundId, authorId: actor.id, bodyJson, bodyHash },
-      });
-      await audit(tx, actor.id, "editorial.author-responded", "review-round", roundId, {
-        responseId: response.id,
-        bodyHash,
-      });
-      await notify(
-        tx,
-        await activeEditorIds(tx, round.submissionId),
-        "author-responded",
-        "review-round",
-        roundId,
-        { responseId: response.id },
-      );
-      return { responseId: response.id, bodyHash };
-    }, BOUNDED_SERIALIZABLE_TRANSACTION_OPTIONS),
+    prisma.$transaction(
+      async (tx) => {
+        const round = await tx.reviewRound.findUnique({
+          where: { id: roundId },
+          include: { submission: true },
+        });
+        if (!round) throw new LifecycleError("Review round not found.", "not-found");
+        if (round.status !== "open") {
+          throw new LifecycleError("This round is decided; responses are closed.", "conflict");
+        }
+        if (round.submission.submitterId !== actor.id) {
+          throw new LifecycleError("Only the submitter can respond to this round.", "forbidden");
+        }
+        const response = await tx.authorResponse.create({
+          data: { roundId, authorId: actor.id, bodyJson, bodyHash },
+        });
+        await audit(tx, actor.id, "editorial.author-responded", "review-round", roundId, {
+          responseId: response.id,
+          bodyHash,
+        });
+        await notify(
+          tx,
+          await activeEditorIds(tx, round.submissionId),
+          "author-responded",
+          "review-round",
+          roundId,
+          { responseId: response.id },
+        );
+        return { responseId: response.id, bodyHash };
+      },
+      { maxWait: 5_000, timeout: 15_000, isolationLevel: "Serializable" },
+    ),
   );
 }
 
@@ -466,227 +482,238 @@ export async function issueDecision(
   );
 
   return withRetry(() =>
-    prisma.$transaction(async (tx) => {
-      const currentActor = await tx.user.findUnique({
-        where: { id: actor.id },
-        select: { role: true, githubLogin: true },
-      });
-      if (!currentActor || !isEditorRole(currentActor.role)) {
-        throw new LifecycleError("Only a current editor can issue a decision.", "forbidden");
-      }
-      const round = await tx.reviewRound.findUnique({
-        where: { id: roundId },
-        include: { submission: true, decisionLetter: true },
-      });
-      if (!round) throw new LifecycleError("Review round not found.", "not-found");
-      const directlyInvolved =
-        round.submission.submitterId === actor.id ||
-        Boolean(
-          await tx.formalReviewReport.findFirst({
-            where: { roundId, reviewerId: actor.id },
-            select: { id: true },
-          }),
-        );
-      if (directlyInvolved && !conflictOutcome.administratorOverride) {
-        throw new LifecycleError(
-          "Direct self-involvement requires recusal or an explicit administrator override.",
-          "forbidden",
-        );
-      }
-      if (conflictOutcome.administratorOverride) {
-        if (!directlyInvolved) {
-          throw new LifecycleError(
-            "An administrator override is valid only for direct self-involvement.",
-          );
+    prisma.$transaction(
+      async (tx) => {
+        const currentActor = await tx.user.findUnique({
+          where: { id: actor.id },
+          select: { role: true, githubLogin: true },
+        });
+        if (!currentActor || !isEditorRole(currentActor.role)) {
+          throw new LifecycleError("Only a current editor can issue a decision.", "forbidden");
         }
-        if (currentActor.role !== "ADMIN") {
+        const round = await tx.reviewRound.findUnique({
+          where: { id: roundId },
+          include: { submission: true, decisionLetter: true },
+        });
+        if (!round) throw new LifecycleError("Review round not found.", "not-found");
+        const directlyInvolved =
+          round.submission.submitterId === actor.id ||
+          Boolean(
+            await tx.formalReviewReport.findFirst({
+              where: { roundId, reviewerId: actor.id },
+              select: { id: true },
+            }),
+          );
+        if (directlyInvolved && !conflictOutcome.administratorOverride) {
           throw new LifecycleError(
-            "Administrator role required for a recusal override.",
+            "Direct self-involvement requires recusal or an explicit administrator override.",
             "forbidden",
           );
         }
-        if (conflictOutcome.conflictOfInterest.status !== "conflict-declared") {
-          throw new LifecycleError("An administrator override requires conflict-declared.");
+        if (conflictOutcome.administratorOverride) {
+          if (!directlyInvolved) {
+            throw new LifecycleError(
+              "An administrator override is valid only for direct self-involvement.",
+            );
+          }
+          if (currentActor.role !== "ADMIN") {
+            throw new LifecycleError(
+              "Administrator role required for a recusal override.",
+              "forbidden",
+            );
+          }
+          if (conflictOutcome.conflictOfInterest.status !== "conflict-declared") {
+            throw new LifecycleError("An administrator override requires conflict-declared.");
+          }
         }
-      }
-      const priorClaim = await tx.idempotencyKey.findUnique({ where: { key: operationKey } });
-      if (priorClaim) {
-        if (priorClaim.requestHash !== operationHash) {
-          throw new LifecycleError(
-            "This round decision is bound to a different payload.",
-            "conflict",
-          );
-        }
-        const storedLetter = round.decisionLetter;
-        const storedConflict = storedLetter
-          ? conflictOfInterestStatusSchema.safeParse(storedLetter.conflictOfInterestStatus)
-          : null;
-        const storedDecisionHash =
-          storedLetter?.decisionHash &&
-          storedLetter.editorGithubLoginSnapshot &&
-          storedLetter.editorRoleSnapshot &&
-          storedConflict?.success
-            ? formalEditorialDecisionHash({
-                roundId: round.id,
-                submissionId: round.submissionId,
-                actor: {
-                  githubLogin: storedLetter.editorGithubLoginSnapshot,
-                  role: storedLetter.editorRoleSnapshot,
-                },
-                decision: storedLetter.decision,
-                bodyHash: storedLetter.bodyHash,
-                conflictOfInterest: { status: storedConflict.data },
-                override:
-                  storedLetter.administratorOverride &&
-                  storedLetter.administratorOverrideGithubLoginSnapshot &&
-                  storedLetter.administratorOverrideAt
-                    ? {
-                        administratorGithubLogin:
-                          storedLetter.administratorOverrideGithubLoginSnapshot,
-                        exercisedAt: storedLetter.administratorOverrideAt,
-                      }
-                    : null,
+        const priorClaim = await tx.idempotencyKey.findUnique({ where: { key: operationKey } });
+        if (priorClaim) {
+          if (priorClaim.requestHash !== operationHash) {
+            throw new LifecycleError(
+              "This round decision is bound to a different payload.",
+              "conflict",
+            );
+          }
+          const storedLetter = round.decisionLetter;
+          const storedConflict = storedLetter
+            ? conflictOfInterestStatusSchema.safeParse(storedLetter.conflictOfInterestStatus)
+            : null;
+          const storedDecisionHash =
+            storedLetter?.decisionHash &&
+            storedLetter.editorGithubLoginSnapshot &&
+            storedLetter.editorRoleSnapshot &&
+            storedConflict?.success
+              ? formalEditorialDecisionHash({
+                  roundId: round.id,
+                  submissionId: round.submissionId,
+                  actor: {
+                    githubLogin: storedLetter.editorGithubLoginSnapshot,
+                    role: storedLetter.editorRoleSnapshot,
+                  },
+                  decision: storedLetter.decision,
+                  bodyHash: storedLetter.bodyHash,
+                  conflictOfInterest: { status: storedConflict.data },
+                  override:
+                    storedLetter.administratorOverride &&
+                    storedLetter.administratorOverrideGithubLoginSnapshot &&
+                    storedLetter.administratorOverrideAt
+                      ? {
+                          administratorGithubLogin:
+                            storedLetter.administratorOverrideGithubLoginSnapshot,
+                          exercisedAt: storedLetter.administratorOverrideAt,
+                        }
+                      : null,
+                })
+              : null;
+          if (
+            round.status !== "decided" ||
+            storedLetter?.editorId !== actor.id ||
+            storedLetter.decision !== parsedDecision ||
+            storedLetter.bodyHash !== bodyHash ||
+            storedDecisionHash === null ||
+            storedLetter.decisionHash !== storedDecisionHash ||
+            storedLetter.conflictOfInterestStatus !== conflictOutcome.conflictOfInterest.status ||
+            storedLetter.administratorOverride !== conflictOutcome.administratorOverride
+          ) {
+            throw new LifecycleError(
+              "Round decision idempotency record is incomplete.",
+              "conflict",
+            );
+          }
+          const review = round.submission.resultingReviewId
+            ? await tx.review.findUnique({
+                where: { id: round.submission.resultingReviewId },
+                select: { slug: true },
               })
             : null;
-        if (
-          round.status !== "decided" ||
-          storedLetter?.editorId !== actor.id ||
-          storedLetter.decision !== parsedDecision ||
-          storedLetter.bodyHash !== bodyHash ||
-          storedDecisionHash === null ||
-          storedLetter.decisionHash !== storedDecisionHash ||
-          storedLetter.conflictOfInterestStatus !== conflictOutcome.conflictOfInterest.status ||
-          storedLetter.administratorOverride !== conflictOutcome.administratorOverride
-        ) {
-          throw new LifecycleError("Round decision idempotency record is incomplete.", "conflict");
+          return { decision: parsedDecision, reviewSlug: review?.slug };
         }
-        const review = round.submission.resultingReviewId
-          ? await tx.review.findUnique({
-              where: { id: round.submission.resultingReviewId },
-              select: { slug: true },
-            })
-          : null;
-        return { decision: parsedDecision, reviewSlug: review?.slug };
-      }
-      if (round.status !== "open" || round.decisionLetter) {
-        throw new LifecycleError("This round already has a decision.", "conflict");
-      }
-      const overrideAt = conflictOutcome.administratorOverride ? new Date() : null;
-      const decisionHash = formalEditorialDecisionHash({
-        roundId: round.id,
-        submissionId: round.submissionId,
-        actor: { githubLogin: currentActor.githubLogin, role: currentActor.role },
-        decision: parsedDecision,
-        bodyHash,
-        conflictOfInterest: conflictOutcome.conflictOfInterest,
-        override:
-          conflictOutcome.administratorOverride && overrideAt
-            ? {
-                administratorGithubLogin: currentActor.githubLogin,
-                exercisedAt: overrideAt,
-              }
-            : null,
-      });
-      const assignment = await tx.editorAssignment.findUnique({
-        where: {
-          submissionId_editorId: { submissionId: round.submissionId, editorId: actor.id },
-        },
-      });
-      if (
-        assignment?.status !== "active" &&
-        !(
-          assignment?.status === "recused" &&
-          directlyInvolved &&
-          conflictOutcome.administratorOverride &&
-          currentActor.role === "ADMIN"
-        )
-      ) {
-        throw new LifecycleError(
-          "Only an actively assigned, non-recused editor can issue a decision.",
-          "forbidden",
-        );
-      }
+        if (round.status !== "open" || round.decisionLetter) {
+          throw new LifecycleError("This round already has a decision.", "conflict");
+        }
+        const overrideAt = conflictOutcome.administratorOverride ? new Date() : null;
+        const decisionHash = formalEditorialDecisionHash({
+          roundId: round.id,
+          submissionId: round.submissionId,
+          actor: { githubLogin: currentActor.githubLogin, role: currentActor.role },
+          decision: parsedDecision,
+          bodyHash,
+          conflictOfInterest: conflictOutcome.conflictOfInterest,
+          override:
+            conflictOutcome.administratorOverride && overrideAt
+              ? {
+                  administratorGithubLogin: currentActor.githubLogin,
+                  exercisedAt: overrideAt,
+                }
+              : null,
+        });
+        const assignment = await tx.editorAssignment.findUnique({
+          where: {
+            submissionId_editorId: { submissionId: round.submissionId, editorId: actor.id },
+          },
+        });
+        if (
+          assignment?.status !== "active" &&
+          !(
+            assignment?.status === "recused" &&
+            directlyInvolved &&
+            conflictOutcome.administratorOverride &&
+            currentActor.role === "ADMIN"
+          )
+        ) {
+          throw new LifecycleError(
+            "Only an actively assigned, non-recused editor can issue a decision.",
+            "forbidden",
+          );
+        }
 
-      let reviewSlug: string | undefined;
-      if (parsedDecision === "accept") {
-        reviewSlug = (
-          await acceptSubmissionInTransaction(
+        let reviewSlug: string | undefined;
+        if (parsedDecision === "accept") {
+          reviewSlug = (
+            await acceptSubmissionInTransaction(
+              tx,
+              round.submissionId,
+              actor.id,
+              note,
+              overrides,
+              selectedNodeIds,
+              round.id,
+              conflictOutcome,
+            )
+          ).reviewSlug;
+        } else {
+          await decideSubmissionInTransaction(
             tx,
             round.submissionId,
             actor.id,
+            parsedDecision === "reject" ? "reject" : "request-changes",
             note,
-            overrides,
-            selectedNodeIds,
             round.id,
             conflictOutcome,
-          )
-        ).reviewSlug;
-      } else {
-        await decideSubmissionInTransaction(
-          tx,
-          round.submissionId,
-          actor.id,
-          parsedDecision === "reject" ? "reject" : "request-changes",
-          note,
-          round.id,
-          conflictOutcome,
-        );
-      }
+          );
+        }
 
-      await tx.decisionLetter.create({
-        data: {
-          roundId,
-          editorId: actor.id,
-          editorGithubLoginSnapshot: currentActor.githubLogin,
-          editorRoleSnapshot: currentActor.role,
-          decision: parsedDecision,
-          bodyJson,
-          bodyHash,
-          decisionHash,
-          conflictOfInterestStatus: conflictOutcome.conflictOfInterest.status,
-          administratorOverride: conflictOutcome.administratorOverride,
-          administratorOverrideById: conflictOutcome.administratorOverride ? actor.id : null,
-          administratorOverrideGithubLoginSnapshot: conflictOutcome.administratorOverride
-            ? currentActor.githubLogin
-            : null,
-          administratorOverrideAt: overrideAt,
-        },
-      });
-      const closed = await tx.reviewRound.updateMany({
-        where: { id: roundId, status: "open" },
-        data: { status: "decided", decidedAt: new Date() },
-      });
-      if (closed.count !== 1) {
-        throw new LifecycleError("Round was decided concurrently.", "conflict");
-      }
-      if (parsedDecision !== "request-changes") {
-        await tx.editorAssignment.updateMany({
-          where: { submissionId: round.submissionId, status: "active" },
-          data: { status: "completed" },
+        await tx.decisionLetter.create({
+          data: {
+            roundId,
+            editorId: actor.id,
+            editorGithubLoginSnapshot: currentActor.githubLogin,
+            editorRoleSnapshot: currentActor.role,
+            decision: parsedDecision,
+            bodyJson,
+            bodyHash,
+            decisionHash,
+            conflictOfInterestStatus: conflictOutcome.conflictOfInterest.status,
+            administratorOverride: conflictOutcome.administratorOverride,
+            administratorOverrideById: conflictOutcome.administratorOverride ? actor.id : null,
+            administratorOverrideGithubLoginSnapshot: conflictOutcome.administratorOverride
+              ? currentActor.githubLogin
+              : null,
+            administratorOverrideAt: overrideAt,
+          },
         });
-      }
-      await audit(
-        tx,
-        actor.id,
-        "editorial.decision-issued",
-        "review-round",
-        roundId,
-        {
-          decision: parsedDecision,
-          bodyHash,
-          decisionHash,
-          reviewSlug,
-          conflictOfInterest: conflictOutcome.conflictOfInterest,
-          administratorOverride: conflictOutcome.administratorOverride,
-        },
-        operationKey,
-        operationHash,
-      );
-      await notify(tx, [round.submission.submitterId], "decision-issued", "review-round", roundId, {
-        decision: parsedDecision,
-      });
-      return { decision: parsedDecision, reviewSlug };
-    }, BOUNDED_SERIALIZABLE_TRANSACTION_OPTIONS),
+        const closed = await tx.reviewRound.updateMany({
+          where: { id: roundId, status: "open" },
+          data: { status: "decided", decidedAt: new Date() },
+        });
+        if (closed.count !== 1) {
+          throw new LifecycleError("Round was decided concurrently.", "conflict");
+        }
+        if (parsedDecision !== "request-changes") {
+          await tx.editorAssignment.updateMany({
+            where: { submissionId: round.submissionId, status: "active" },
+            data: { status: "completed" },
+          });
+        }
+        await audit(
+          tx,
+          actor.id,
+          "editorial.decision-issued",
+          "review-round",
+          roundId,
+          {
+            decision: parsedDecision,
+            bodyHash,
+            decisionHash,
+            reviewSlug,
+            conflictOfInterest: conflictOutcome.conflictOfInterest,
+            administratorOverride: conflictOutcome.administratorOverride,
+          },
+          operationKey,
+          operationHash,
+        );
+        await notify(
+          tx,
+          [round.submission.submitterId],
+          "decision-issued",
+          "review-round",
+          roundId,
+          { decision: parsedDecision },
+        );
+        return { decision: parsedDecision, reviewSlug };
+      },
+      { maxWait: 5_000, timeout: 15_000, isolationLevel: "Serializable" },
+    ),
   );
 }
 

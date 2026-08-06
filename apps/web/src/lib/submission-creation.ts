@@ -12,7 +12,7 @@ import {
 import type { Prisma } from "@oratlas/db";
 import { normalizeDoi } from "@oratlas/zenodo";
 import { prisma } from "./db";
-import { BOUNDED_SERIALIZABLE_TRANSACTION_OPTIONS, prismaCode, uniqueTargets } from "./db-retry";
+import { prismaCode, uniqueTargets } from "./db-retry";
 import { sha256 } from "./hash";
 import { buildValidationReport } from "./ingest";
 import {
@@ -89,170 +89,178 @@ export async function createSubmission(
 
   const persist = () =>
     withSubmissionSqliteRetry(() =>
-      prisma.$transaction(async (tx) => {
-        const locked = await tx.inspectionCapture.findUnique({
-          where: { tokenHash },
-          include: { submission: true },
-        });
-        if (!locked) throw new SubmissionError("Inspection capability is invalid.", "bad-request");
-        assertCaptureUsable(locked, input.submitterId, new Date());
-        const exact = verifyCapture(locked);
-        if (
-          exact.report.selectedSource?.commitSha !== captured.report.selectedSource?.commitSha ||
-          locked.payloadHash !== capture.payloadHash
-        ) {
-          throw new SubmissionError("Inspection capture changed before submission.", "conflict");
-        }
-
-        const repository = await resolveRepository(tx, exact);
-        const source = exact.report.selectedSource!;
-        const snapshotKey = {
-          repositoryId_commitSha: {
-            repositoryId: repository.id,
-            commitSha: source.commitSha,
-          },
-        };
-        const storageReport = repositorySnapshotReport(exact);
-        // Preserved content is copied to the durable snapshot here; the
-        // inspection capture row is an expiring capability, never the
-        // archive's only copy of accepted file bytes.
-        const preservedFilesJson = canonicalJson(preservedFilesFromCapture(exact));
-        const snapshot = await tx.repositorySnapshot.upsert({
-          where: snapshotKey,
-          update: { sourceTreeSha: source.treeSha, preservedFilesJson },
-          create: {
-            repositoryId: repository.id,
-            commitSha: source.commitSha,
-            sourceTreeSha: source.treeSha,
-            sourceCreatedAt: source.sourceCreatedAt ? new Date(source.sourceCreatedAt) : undefined,
-            inspectionStatus: exact.report.status,
-            inspectionReportJson: canonicalJson(storageReport),
-            manifestJson: exact.extraction.manifest
-              ? canonicalJson(exact.extraction.manifest)
-              : null,
-            preservedFilesJson,
-            contentHash: sourceContentHash(exact),
-          },
-        });
-        if (snapshot.sourceTreeSha !== source.treeSha) {
-          throw new SubmissionError(
-            "Stored snapshot tree does not match the selected commit tree.",
-            "conflict",
-          );
-        }
-
-        let previous = null;
-        if (input.previousSubmissionId) {
-          previous = await tx.submission.findUnique({
-            where: { id: input.previousSubmissionId },
-            include: { editorAssignments: true },
+      prisma.$transaction(
+        async (tx) => {
+          const locked = await tx.inspectionCapture.findUnique({
+            where: { tokenHash },
+            include: { submission: true },
           });
-          if (!previous) {
-            throw new SubmissionError("Previous submission not found.", "bad-request");
+          if (!locked)
+            throw new SubmissionError("Inspection capability is invalid.", "bad-request");
+          assertCaptureUsable(locked, input.submitterId, new Date());
+          const exact = verifyCapture(locked);
+          if (
+            exact.report.selectedSource?.commitSha !== captured.report.selectedSource?.commitSha ||
+            locked.payloadHash !== capture.payloadHash
+          ) {
+            throw new SubmissionError("Inspection capture changed before submission.", "conflict");
           }
-          if (previous.submitterId !== input.submitterId) {
-            throw new SubmissionError(
-              "A resubmission must come from the original submitter.",
-              "conflict",
-            );
-          }
-          if (previous.repositoryId !== repository.id) {
-            throw new SubmissionError(
-              "A resubmission must target the same repository.",
-              "conflict",
-            );
-          }
-          if (previous.status !== "changes-requested") {
-            throw new SubmissionError(
-              `Only a changes-requested submission can be resubmitted (currently ${previous.status}).`,
-              "conflict",
-            );
-          }
-        }
 
-        const submission = await tx.submission.create({
-          data: {
-            submitterId: input.submitterId,
-            repositoryId: repository.id,
-            snapshotId: snapshot.id,
-            inspectionCaptureId: locked.id,
-            previousSubmissionId: previous?.id,
-            sourceKind: source.kind,
-            sourceBranch: source.branch,
-            sourceSelectionKey: sourceSelectionKey(source),
-            releaseTag: source.releaseTag,
-            releaseUrl: source.releaseUrl,
-            tagObjectSha: source.tagObjectSha,
-            sourceCreatedAt: source.sourceCreatedAt ? new Date(source.sourceCreatedAt) : undefined,
-            status,
-            extractedMetadataJson: canonicalJson(exact.extraction.metadata),
-            editedMetadataJson: canonicalJson(editedMetadata ?? { edits: {} }),
-            validationReportJson: canonicalJson(validation),
-            publicationConsistencyJson: validation.publicationConsistency
-              ? canonicalJson(validation.publicationConsistency)
-              : null,
-            submittedPayloadJson,
-            submittedPayloadHash: sha256(submittedPayloadJson),
-            submittedAt: new Date(),
-          },
-        });
-        if (previous) {
-          // The revision replaces the changes-requested submission and the
-          // editorial team carries over with continuity notifications.
-          const superseded = await tx.submission.updateMany({
-            where: { id: previous.id, status: "changes-requested" },
-            data: { status: "superseded" },
-          });
-          if (superseded.count !== 1) {
-            throw new SubmissionError("Previous submission changed concurrently.", "conflict");
-          }
-          for (const assignment of previous.editorAssignments) {
-            if (assignment.status !== "active") continue;
-            await tx.editorAssignment.create({
-              data: {
-                submissionId: submission.id,
-                editorId: assignment.editorId,
-                assignedById: assignment.assignedById,
-                status: "active",
-                coiDeclared: assignment.coiDeclared,
-                coiStatement: assignment.coiStatement,
-              },
-            });
-            await tx.notification.create({
-              data: {
-                userId: assignment.editorId,
-                kind: "submission-resubmitted",
-                subjectType: "submission",
-                subjectId: submission.id,
-                payloadJson: canonicalJson({ previousSubmissionId: previous.id }),
-              },
-            });
-          }
-        }
-        await tx.inspectionCapture.update({
-          where: { id: locked.id },
-          data: { consumedAt: new Date() },
-        });
-        await claimSubmissionIdempotency(tx, `submission.finalized:${locked.id}`);
-        await tx.auditEvent.create({
-          data: {
-            actorId: input.submitterId,
-            action: "submission.finalized",
-            subjectType: "submission",
-            subjectId: submission.id,
-            idempotencyKey: `submission.finalized:${locked.id}`,
-            detailsJson: canonicalJson({
-              status,
-              repository: exact.report.repo.canonicalUrl,
-              githubRepositoryId: exact.report.githubRepositoryId,
+          const repository = await resolveRepository(tx, exact);
+          const source = exact.report.selectedSource!;
+          const snapshotKey = {
+            repositoryId_commitSha: {
+              repositoryId: repository.id,
               commitSha: source.commitSha,
-              capturePayloadHash: locked.payloadHash,
+            },
+          };
+          const storageReport = repositorySnapshotReport(exact);
+          // Preserved content is copied to the durable snapshot here; the
+          // inspection capture row is an expiring capability, never the
+          // archive's only copy of accepted file bytes.
+          const preservedFilesJson = canonicalJson(preservedFilesFromCapture(exact));
+          const snapshot = await tx.repositorySnapshot.upsert({
+            where: snapshotKey,
+            update: { sourceTreeSha: source.treeSha, preservedFilesJson },
+            create: {
+              repositoryId: repository.id,
+              commitSha: source.commitSha,
+              sourceTreeSha: source.treeSha,
+              sourceCreatedAt: source.sourceCreatedAt
+                ? new Date(source.sourceCreatedAt)
+                : undefined,
+              inspectionStatus: exact.report.status,
+              inspectionReportJson: canonicalJson(storageReport),
+              manifestJson: exact.extraction.manifest
+                ? canonicalJson(exact.extraction.manifest)
+                : null,
+              preservedFilesJson,
+              contentHash: sourceContentHash(exact),
+            },
+          });
+          if (snapshot.sourceTreeSha !== source.treeSha) {
+            throw new SubmissionError(
+              "Stored snapshot tree does not match the selected commit tree.",
+              "conflict",
+            );
+          }
+
+          let previous = null;
+          if (input.previousSubmissionId) {
+            previous = await tx.submission.findUnique({
+              where: { id: input.previousSubmissionId },
+              include: { editorAssignments: true },
+            });
+            if (!previous) {
+              throw new SubmissionError("Previous submission not found.", "bad-request");
+            }
+            if (previous.submitterId !== input.submitterId) {
+              throw new SubmissionError(
+                "A resubmission must come from the original submitter.",
+                "conflict",
+              );
+            }
+            if (previous.repositoryId !== repository.id) {
+              throw new SubmissionError(
+                "A resubmission must target the same repository.",
+                "conflict",
+              );
+            }
+            if (previous.status !== "changes-requested") {
+              throw new SubmissionError(
+                `Only a changes-requested submission can be resubmitted (currently ${previous.status}).`,
+                "conflict",
+              );
+            }
+          }
+
+          const submission = await tx.submission.create({
+            data: {
+              submitterId: input.submitterId,
+              repositoryId: repository.id,
+              snapshotId: snapshot.id,
+              inspectionCaptureId: locked.id,
               previousSubmissionId: previous?.id,
-            }),
-          },
-        });
-        return { submissionId: submission.id, status };
-      }, BOUNDED_SERIALIZABLE_TRANSACTION_OPTIONS),
+              sourceKind: source.kind,
+              sourceBranch: source.branch,
+              sourceSelectionKey: sourceSelectionKey(source),
+              releaseTag: source.releaseTag,
+              releaseUrl: source.releaseUrl,
+              tagObjectSha: source.tagObjectSha,
+              sourceCreatedAt: source.sourceCreatedAt
+                ? new Date(source.sourceCreatedAt)
+                : undefined,
+              status,
+              extractedMetadataJson: canonicalJson(exact.extraction.metadata),
+              editedMetadataJson: canonicalJson(editedMetadata ?? { edits: {} }),
+              validationReportJson: canonicalJson(validation),
+              publicationConsistencyJson: validation.publicationConsistency
+                ? canonicalJson(validation.publicationConsistency)
+                : null,
+              submittedPayloadJson,
+              submittedPayloadHash: sha256(submittedPayloadJson),
+              submittedAt: new Date(),
+            },
+          });
+          if (previous) {
+            // The revision replaces the changes-requested submission and the
+            // editorial team carries over with continuity notifications.
+            const superseded = await tx.submission.updateMany({
+              where: { id: previous.id, status: "changes-requested" },
+              data: { status: "superseded" },
+            });
+            if (superseded.count !== 1) {
+              throw new SubmissionError("Previous submission changed concurrently.", "conflict");
+            }
+            for (const assignment of previous.editorAssignments) {
+              if (assignment.status !== "active") continue;
+              await tx.editorAssignment.create({
+                data: {
+                  submissionId: submission.id,
+                  editorId: assignment.editorId,
+                  assignedById: assignment.assignedById,
+                  status: "active",
+                  coiDeclared: assignment.coiDeclared,
+                  coiStatement: assignment.coiStatement,
+                },
+              });
+              await tx.notification.create({
+                data: {
+                  userId: assignment.editorId,
+                  kind: "submission-resubmitted",
+                  subjectType: "submission",
+                  subjectId: submission.id,
+                  payloadJson: canonicalJson({ previousSubmissionId: previous.id }),
+                },
+              });
+            }
+          }
+          await tx.inspectionCapture.update({
+            where: { id: locked.id },
+            data: { consumedAt: new Date() },
+          });
+          await claimSubmissionIdempotency(tx, `submission.finalized:${locked.id}`);
+          await tx.auditEvent.create({
+            data: {
+              actorId: input.submitterId,
+              action: "submission.finalized",
+              subjectType: "submission",
+              subjectId: submission.id,
+              idempotencyKey: `submission.finalized:${locked.id}`,
+              detailsJson: canonicalJson({
+                status,
+                repository: exact.report.repo.canonicalUrl,
+                githubRepositoryId: exact.report.githubRepositoryId,
+                commitSha: source.commitSha,
+                capturePayloadHash: locked.payloadHash,
+                previousSubmissionId: previous?.id,
+              }),
+            },
+          });
+          return { submissionId: submission.id, status };
+        },
+        { maxWait: 5_000, timeout: 15_000, isolationLevel: "Serializable" },
+      ),
     );
 
   for (let uniqueAttempt = 0; ; uniqueAttempt += 1) {
