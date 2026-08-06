@@ -45,3 +45,29 @@ export function baselineSchemaUrl(databaseUrl: string, schema: string): string {
   parsed.searchParams.set("schema", schema);
   return parsed.toString();
 }
+
+export function baselineDatamodelForPublicSchema(
+  datamodel: string,
+  temporarySchema: string,
+): string {
+  if (!/^oratlas_baseline_[a-f0-9]{20}$/.test(temporarySchema)) {
+    throw new Error("Invalid temporary baseline schema name.");
+  }
+  const datasourceSchemas = new RegExp(
+    `^\\s*schemas\\s*=\\s*\\["${temporarySchema}"\\]\\s*$`,
+    "gm",
+  );
+  const modelSchema = new RegExp(`^\\s*@@schema\\("${temporarySchema}"\\)\\s*$`, "gm");
+  const baselineDatasourceUrl = /env\("ORATLAS_BASELINE_DATABASE_URL"\)/g;
+  const normalized = datamodel
+    .replace(datasourceSchemas, "")
+    .replace(modelSchema, "")
+    .replace(baselineDatasourceUrl, 'env("DATABASE_URL")');
+  if (normalized.includes(temporarySchema)) {
+    throw new Error("Temporary baseline schema leaked into the normalized datamodel.");
+  }
+  if (normalized.includes("ORATLAS_BASELINE_DATABASE_URL")) {
+    throw new Error("Temporary baseline datasource leaked into the normalized datamodel.");
+  }
+  return normalized;
+}

@@ -14,20 +14,36 @@ output_path=""
 
 while (($# > 0)); do
   case "$1" in
+    --project=*)
+      project_id="${1#*=}"
+      shift
+      ;;
     --project)
       (($# >= 2)) || usage
       project_id="$2"
       shift 2
+      ;;
+    --instance=*)
+      instance_id="${1#*=}"
+      shift
       ;;
     --instance)
       (($# >= 2)) || usage
       instance_id="$2"
       shift 2
       ;;
+    --build-id=*)
+      build_id="${1#*=}"
+      shift
+      ;;
     --build-id)
       (($# >= 2)) || usage
       build_id="$2"
       shift 2
+      ;;
+    --output=*)
+      output_path="${1#*=}"
+      shift
       ;;
     --output)
       (($# >= 2)) || usage

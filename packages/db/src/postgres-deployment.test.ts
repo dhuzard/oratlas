@@ -3,13 +3,47 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   assertProductionBackupId,
+  baselineDatamodelForPublicSchema,
   baselineSchemaUrl,
   planPostgresDeployment,
 } from "./postgres-deployment.js";
 
+const packageRoot = resolve(import.meta.dirname, "..");
+const deploymentScript = readFileSync(resolve(packageRoot, "scripts/deploy-postgres.ts"), "utf8");
+
 describe("PostgreSQL deployment planning", () => {
+  it("removes only the validated temporary namespace from an introspected baseline", () => {
+    const temporarySchema = "oratlas_baseline_0123456789abcdefabcd";
+    const introspected = `datasource db {
+  provider = "postgresql"
+  url      = env("ORATLAS_BASELINE_DATABASE_URL")
+  schemas  = ["${temporarySchema}"]
+}
+
+model Claim {
+  id String @id
+
+  @@index([id])
+  @@schema("${temporarySchema}")
+}`;
+    const normalized = baselineDatamodelForPublicSchema(introspected, temporarySchema);
+    expect(normalized).not.toContain(temporarySchema);
+    expect(normalized).not.toContain("ORATLAS_BASELINE_DATABASE_URL");
+    expect(normalized).toContain('url      = env("DATABASE_URL")');
+    expect(normalized).toContain("model Claim");
+    expect(normalized).toContain("@@index([id])");
+    expect(() => baselineDatamodelForPublicSchema(introspected, "public")).toThrow(
+      /temporary baseline/i,
+    );
+  });
+
+  it("compares against a schema-neutral introspection of the frozen baseline", () => {
+    expect(deploymentScript).toContain('"db", "pull"');
+    expect(deploymentScript).toContain('"--to-schema-datamodel"');
+    expect(deploymentScript).not.toContain('"--to-schema-datasource"');
+  });
+
   it("keeps an immutable baseline DDL separate from the evolving bootstrap schema", () => {
-    const packageRoot = resolve(import.meta.dirname, "..");
     const baseline = readFileSync(
       resolve(packageRoot, "prisma/baseline/20260805000000_existing_schema_baseline.sql"),
       "utf8",

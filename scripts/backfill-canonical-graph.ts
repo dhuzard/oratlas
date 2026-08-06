@@ -207,6 +207,7 @@ function parseOptions(args: string[]): Options {
   const options: Options = { apply: false, all: false, batchSize: 100, finalizeContract: false };
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index]!;
+    if (arg === "--" && index === 0) continue;
     if (arg === "--apply") options.apply = true;
     else if (arg === "--all") options.all = true;
     else if (arg === "--finalize-contract") options.finalizeContract = true;
