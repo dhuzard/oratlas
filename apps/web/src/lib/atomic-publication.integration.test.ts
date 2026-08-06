@@ -563,6 +563,14 @@ describe.sequential("atomic publication integration", () => {
       },
     ]);
     expect(result.idempotent).toBe(false);
+    await expect(
+      runtime.acceptSubmission(submission.submissionId, editorId, undefined, [
+        {
+          checkId: "metadata-commit",
+          rationale: "  The editor verified the intended historical commit independently.  ",
+        },
+      ]),
+    ).resolves.toMatchObject({ idempotent: true });
     const override = await runtime.prisma.editorialOverride.findUnique({
       where: {
         submissionId_checkId: { submissionId: submission.submissionId, checkId: "metadata-commit" },
