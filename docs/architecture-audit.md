@@ -2,10 +2,10 @@
 
 Tracking issue: [#142](https://github.com/dhuzard/oratlas/issues/142)
 
-Baseline: `origin/main` at `8074e84` (2026-08-06)
+Baseline commit: `8074e84` (the tip of `main` on 2026-08-06)
 
-Status: initial code-grounded audit; first boundary-enforcement increment proposed in
-[#143](https://github.com/dhuzard/oratlas/pull/143). Merge the implementation PR before this
+Status: initial code-grounded audit. It reflects the first boundary-enforcement increment proposed
+in [#143](https://github.com/dhuzard/oratlas/pull/143), which is tracked as a dependency of this
 documentation update.
 
 ## Executive summary
@@ -44,9 +44,17 @@ Generated Prisma code and dependency directories were excluded.
 | Production modules in `apps/web/src/lib`                     | 76 / about 24,600 lines |
 | Production web-lib modules coupled to the DB boundary        |                      46 |
 
-The inventory can be reproduced with `rg --files`, filtering `*.test.*` and `*.spec.*`, and with
-the workspace dependency declarations in each `package.json`. Counts are a navigation aid, not a
-quality metric.
+The inventory file counts can be reproduced from the repository root in PowerShell:
+
+```powershell
+rg --files apps packages scripts -g '*.ts' -g '*.tsx' -g '!*.test.*' -g '!*.spec.*' | Measure-Object -Line
+rg --files apps/web/src/lib -g '*.ts' -g '*.tsx' -g '!*.test.*' -g '!*.spec.*' | Measure-Object -Line
+rg --files apps/web/src/app -g 'route.ts' | Measure-Object -Line
+rg --files apps/web/src/app -g 'page.tsx' | Measure-Object -Line
+```
+
+Workspace dependency observations come from each `package.json`. Counts are a navigation aid, not
+a quality metric.
 
 ## Current boundaries
 
