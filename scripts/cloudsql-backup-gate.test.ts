@@ -154,6 +154,7 @@ describe("Cloud SQL pre-migration backup gate", () => {
     const deploy = build.steps.find(({ id }) => id === "deploy-service")?.args?.join("\n") ?? "";
     expect(deploy).toContain("--no-traffic");
     expect(deploy).toContain("--tag=");
+    expect(deploy).toContain("CANDIDATE_TAG_MAX_LENGTH=$$((46 - $${#SERVICE_NAME}))");
     const promote = build.steps.find(({ id }) => id === "promote-service")?.args?.join("\n") ?? "";
     expect(promote).toContain("--to-tags=");
     const configureMigration =
