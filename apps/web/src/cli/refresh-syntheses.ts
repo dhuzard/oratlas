@@ -1,5 +1,5 @@
-import { scanAcceptedSyntheses } from "../apps/web/src/lib/synthesis-staleness.js";
-import { prisma } from "../apps/web/src/lib/db.js";
+import { scanAcceptedSyntheses } from "../lib/synthesis-staleness.js";
+import { prisma } from "../lib/db.js";
 
 async function main(): Promise<void> {
   try {
