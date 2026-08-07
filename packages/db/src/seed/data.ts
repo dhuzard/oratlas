@@ -95,7 +95,8 @@ export interface SeedReview {
   title: string;
   abstract: string;
   reviewType: ReviewType;
-  licenseSpdx: string;
+  /** Verified SPDX expression. Omit when the pinned source declares no license. */
+  licenseSpdx?: string;
   status: string;
   publishedReviewUrl?: string;
   repository: {
@@ -861,9 +862,7 @@ export const openscopeP3DataRelease: SeedReview = {
   abstract:
     "Source-derived ORAtlas POC fixture pinned to the OpenScope P3 reproducible MyST publication. It exposes study-design and data-resource claims—not completed scientific findings—so ORAtlas can test whether Explore distinguishes what a dataset enables from what the evidence has established.",
   reviewType: "data-release",
-  licenseSpdx: "NOASSERTION",
   status: "published",
-  publishedReviewUrl: "https://allenneuraldynamics.github.io/openscope_p3_data_release_paper/",
   repository: {
     githubRepositoryId: "1323617740",
     owner: "jeromelecoq",
@@ -873,8 +872,6 @@ export const openscopeP3DataRelease: SeedReview = {
     description:
       "Reproducible MyST publication for the OpenScope predictive-processing data release.",
     topics: ["neuroscience", "predictive-processing", "data-release", "nwb", "myst"],
-    homepageUrl: "https://allenneuraldynamics.github.io/openscope_p3_data_release_paper/",
-    pagesUrl: "https://allenneuraldynamics.github.io/openscope_p3_data_release_paper/",
   },
   snapshot: {
     commitSha: "4cb9f3125a103d8eaa14650302a4ffdf3eb74daf",
@@ -1048,6 +1045,7 @@ export const openscopeP3DataRelease: SeedReview = {
       "Four representative study-design/resource/provenance claims and six links; no scientific outcome claim is asserted.",
     limitations: [
       "The current ORAtlas deterministic ingest recognizes the repository as compatible but extracts zero structured claims because it publishes no ORAtlas claim/evidence artifacts.",
+      "The pinned staging repository declares no license and targets a future AllenNeuralDynamics organization publication in its README/MyST configuration; ORAtlas asserts neither a license nor a live publication URL for this capture.",
       "The abstract and final limitations are unfinished and the author list is provisional at the pinned commit.",
       "Neuropixels, mesoscope, and SLAP2 measurements are not paired over the same cells and SLAP2 covers only the motor cohort.",
       "DANDI identifiers point to draft datasets, so the exact data bytes are not yet immutably versioned in the manuscript.",

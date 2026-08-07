@@ -36,6 +36,8 @@ describe("seed snapshot identities", () => {
     });
     expect(vipComputationalReview.pocEvaluation).toMatchObject({ corpusRole: "ai-review" });
     expect(openscopeP3DataRelease.pocEvaluation).toMatchObject({ corpusRole: "data-release" });
+    expect(openscopeP3DataRelease.licenseSpdx).toBeUndefined();
+    expect(openscopeP3DataRelease.publishedReviewUrl).toBeUndefined();
     expect(
       [templateDemoReview, vipComputationalReview, openscopeP3DataRelease].map((review) => ({
         repository: review.repository.canonicalUrl,
