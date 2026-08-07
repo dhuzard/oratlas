@@ -250,8 +250,8 @@ export function CommentsSection({
           Ask questions, raise concerns, suggest evidence, or endorse findings. Comments can address
           the whole review, a claim, or text selected in the MyST reader and are publicly attributed
           to your account. Authors can follow the thread; agents can read its JSON-LD
-          representation. Discussion is not a TRUST assessment, formal challenge, editorial
-          decision, or change to the immutable review.
+          representation. Comments are not TRUST assessments, formal challenges, editorial
+          decisions, or changes to the immutable review.
         </p>
         <p>
           <Link
