@@ -45,6 +45,26 @@ export const discussionTraversalScopeSchema = z
 export type DiscussionTraversalScope = z.infer<typeof discussionTraversalScopeSchema>;
 
 /**
+ * Request-scoped provider credentials shared by every BYOK route. Keeping the
+ * strict bounds in contracts prevents API routes from accepting different key
+ * or model shapes over time.
+ */
+export const requestLlmConfigSchema = z
+  .object({
+    provider: z.enum(["anthropic", "openai"]),
+    apiKey: z.string().trim().min(20).max(500),
+    model: z
+      .string()
+      .trim()
+      .min(1)
+      .max(120)
+      .regex(/^[A-Za-z0-9._:-]+$/)
+      .optional(),
+  })
+  .strict();
+export type RequestLlmConfig = z.infer<typeof requestLlmConfigSchema>;
+
+/**
  * Grounded discussion contracts (Atlas Discuss, spec §14).
  *
  * The knowledge unit is an evidence packet — review metadata + claims +

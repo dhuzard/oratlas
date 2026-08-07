@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   discussionTraversalScopeSchema,
   groundedAnswerSchema,
+  requestLlmConfigSchema,
   validateGrounding,
   type EvidencePacket,
   type GroundedAnswer,
@@ -160,6 +161,25 @@ describe("discussion traversal scope contract", () => {
         nodes: [{ nodeId: "node-1", nodeVersionId: "version-1" }],
         edgeIds: ["edge-1", "edge-1"],
         signature,
+      }).success,
+    ).toBe(false);
+  });
+});
+
+describe("request-scoped provider credentials", () => {
+  it("shares strict bounded credentials without permitting persistence controls", () => {
+    expect(
+      requestLlmConfigSchema.safeParse({
+        provider: "openai",
+        apiKey: "sk-test-key-with-enough-characters",
+        model: "gpt-model-1",
+      }).success,
+    ).toBe(true);
+    expect(
+      requestLlmConfigSchema.safeParse({
+        provider: "openai",
+        apiKey: "sk-test-key-with-enough-characters",
+        persist: true,
       }).success,
     ).toBe(false);
   });

@@ -185,7 +185,8 @@ export function DiscussClient({
           <small>
             The key is sent once to ORAtlas over this request, used server-side for this answer,
             never stored by ORAtlas, and cleared from this form afterward. The selected provider
-            receives the bounded evidence packet under your account.
+            receives the bounded evidence packet under your account. If you are not signed in, the
+            answer is response-only and no AgentRun is stored.
           </small>
         </details>
 
@@ -208,8 +209,9 @@ export function DiscussClient({
 
           {response.mode === "deterministic" && response.llmAvailable === false ? (
             <div className="notice notice-info">
-              No LLM key was supplied and no server provider is configured. Atlas is showing the
-              deterministic structured evidence summary; no generated prose was attempted.
+              No LLM key was supplied or a server provider was unavailable for this request. Atlas
+              is showing the deterministic structured evidence summary; no generated prose was
+              attempted.
             </div>
           ) : null}
 
