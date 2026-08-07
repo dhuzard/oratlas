@@ -156,7 +156,8 @@ describe("AI synthesis governance policy drift", () => {
     const page = read("apps/web/src/app/reviews/[slug]/page.tsx");
     const synthesisReader = read("apps/web/src/app/reviews/[slug]/SynthesisReader.tsx");
     const publicReader = `${page}\n${synthesisReader}`;
-    const publicLoader = read("apps/web/src/lib/synthesis-editorial.ts");
+    const publicLoader = read("apps/web/src/lib/synthesis-public.ts");
+    const editorialDecisions = read("apps/web/src/lib/synthesis-editorial-decisions.ts");
     const editorialPanel = read("apps/web/src/app/editorial/SynthesisDraftPanel.tsx");
     expect(publicReader).toContain("SYNTHESIS_PUBLIC_AI_LABEL");
     expect(publicReader).toContain("SYNTHESIS_PUBLIC_SCOPE_NOTICE");
@@ -165,7 +166,7 @@ describe("AI synthesis governance policy drift", () => {
     expect(publicReader).not.toContain("isExample={false}");
     expect(publicReader).toContain("synthesis.freshness.status");
     expect(publicLoader).toContain("version.isExample !== false");
-    expect(publicLoader).toContain("isExample: false");
+    expect(editorialDecisions).toContain("isExample: false");
     expect(editorialPanel).toContain("draft.document.sections.map");
     expect(editorialPanel).toContain('type="checkbox"');
     expect(editorialPanel).toContain("synthesisDraftDecisionSchema.safeParse");
