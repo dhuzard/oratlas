@@ -129,11 +129,11 @@ async function seedReview(review: SeedReview, editorId: string) {
       inspectionReportJson: JSON.stringify(inspectionReport),
       sourceTreeSha: treeSha,
       manifestJson: null,
-      preservedFilesJson: canonicalJson(
-        preserveSyntheticArticle
-          ? { "README.md": { size: articleBytes, truncated: false, content: article } }
-          : {},
-      ),
+      preservedFilesJson: preserveSyntheticArticle
+        ? canonicalJson({
+            "README.md": { size: articleBytes, truncated: false, content: article },
+          })
+        : null,
       contentHash: contentHash({ repo: repo.canonicalUrl, sha: review.snapshot.commitSha }),
     },
   });
