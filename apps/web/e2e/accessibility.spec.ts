@@ -12,6 +12,8 @@ const PAGES: Array<{ name: string; path: string }> = [
   { name: "home", path: "/" },
   { name: "explore", path: "/explore" },
   { name: "archive", path: "/archive" },
+  { name: "create and deposit guide", path: "/create-review" },
+  { name: "review comparison", path: "/compare" },
   { name: "review", path: "/reviews/hippocampal-replay-computational-review" },
   { name: "contradiction map", path: "/synthesis" },
   { name: "replication marketplace", path: "/replications" },

@@ -7,12 +7,22 @@ test.describe("Public archive browsing", () => {
       "The arXiv for AI-generated scientific reviews",
     );
     const primaryNavigation = page.getByRole("navigation", { name: "Primary" });
-    await expect(primaryNavigation.getByRole("link", { name: "Explore" })).toHaveAttribute(
+    await expect(primaryNavigation.getByRole("link", { name: "Reviews" })).toHaveAttribute(
+      "href",
+      "/archive",
+    );
+    await expect(primaryNavigation.getByRole("link", { name: "Explore evidence" })).toHaveAttribute(
       "href",
       "/explore",
     );
-    await expect(primaryNavigation.getByRole("link", { name: "Submit a review" })).toBeVisible();
-    await expect(primaryNavigation.getByRole("link", { name: "How it works" })).toBeVisible();
+    await expect(primaryNavigation.getByRole("link", { name: "Compare" })).toHaveAttribute(
+      "href",
+      "/compare",
+    );
+    await expect(primaryNavigation.getByRole("link", { name: "Create & deposit" })).toHaveAttribute(
+      "href",
+      "/create-review",
+    );
     await expect(primaryNavigation.getByRole("link", { name: "Graph" })).toHaveCount(0);
     await expect(page.getByRole("link", { name: /Hippocampal Replay/ }).first()).toBeVisible();
   });
@@ -52,7 +62,7 @@ test.describe("Public archive browsing", () => {
     ).toHaveCount(0);
   });
 
-  test("first-time readers can inspect an exact graph occurrence and return to Explore", async ({
+  test("first-time readers search deposited reviews before entering specialist tools", async ({
     page,
   }) => {
     await page.goto("/");
@@ -61,18 +71,41 @@ test.describe("Public archive browsing", () => {
     );
 
     await page.getByLabel("Search claims, reviews, or authors").fill("replay");
-    await page.getByRole("button", { name: "Enter the evidence graph" }).click();
-    await expect(page).toHaveURL(/\/explore\?q=replay/);
+    await page.getByRole("button", { name: "Search the review archive" }).click();
+    await expect(page).toHaveURL(/\/archive\?.*contentType=review/);
+    await expect(page).toHaveURL(/q=replay/);
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("AI review archive");
+    await expect(page.getByRole("link", { name: /Hippocampal Replay/ }).first()).toBeVisible();
+  });
 
-    const details = page.getByRole("navigation", { name: "Knowledge landscape details" });
-    await details.locator('section[aria-labelledby="landscape-claim-title"] a').first().click();
-    await expect(page).toHaveURL(/\/graph\/occurrences\/[^/]+\/versions\/[^/]+$/);
-    await expect(page.getByText("Exact canonical occurrence", { exact: true })).toBeVisible();
-    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+  test("authors understand the Allen generation to ORAtlas deposit handoff", async ({ page }) => {
+    await page.goto("/create-review");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+      "Create an AI review, then deposit it",
+    );
+    await expect(page.getByRole("heading", { name: "Allen AIreview workflow" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Open Review Atlas" })).toBeVisible();
+    await expect(page.getByText("21 gated phases")).toBeVisible();
+    await expect(page.getByRole("link", { name: "Deposit a review" })).toHaveAttribute(
+      "href",
+      "/submit",
+    );
+  });
 
-    await page.goBack();
-    await expect(page).toHaveURL(/\/explore\?q=replay/);
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Traverse the evidence graph");
+  test("readers can compare claim, evidence and TRUST coverage", async ({ page }) => {
+    await page.goto("/compare");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+      "Compare reviews, evidence and TRUST",
+    );
+    await expect(page.getByText("Coverage, not a leaderboard")).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: /VIP Cortical Interneurons/i }).first(),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: /OpenScope Predictive Processing/i }).first(),
+    ).toBeVisible();
+    await expect(page.getByText("TRUST records", { exact: true }).first()).toBeVisible();
+    await expect(page.getByRole("link", { name: "Inspect claim passport" }).first()).toBeVisible();
   });
 
   test("Atlas Discuss is a bounded lens after the traversable graph", async ({ page }) => {
@@ -250,10 +283,10 @@ test.describe("Public archive browsing", () => {
     await page.goto("/reviews/hippocampal-replay-computational-review");
     await expect(page.getByRole("heading", { level: 1 })).toContainText("Hippocampal Replay");
     await expect(
-      page.getByRole("navigation", { name: "Breadcrumb" }).getByRole("link", { name: "Explore" }),
-    ).toHaveAttribute("href", "/explore");
+      page.getByRole("navigation", { name: "Breadcrumb" }).getByRole("link", { name: "Reviews" }),
+    ).toHaveAttribute("href", "/archive");
     const inspectionPath = page.getByRole("navigation", { name: "Inspect this review" });
-    await expect(inspectionPath.getByRole("link", { name: /Original record/ })).toHaveAttribute(
+    await expect(inspectionPath.getByRole("link", { name: /Read review/ })).toHaveAttribute(
       "href",
       "#original-record",
     );
@@ -261,11 +294,11 @@ test.describe("Public archive browsing", () => {
       "href",
       "#linked-evidence",
     );
-    await expect(inspectionPath.getByRole("link", { name: /Assessments/ })).toHaveAttribute(
+    await expect(inspectionPath.getByRole("link", { name: /TRUST/ })).toHaveAttribute(
       "href",
       "#assessments",
     );
-    await expect(inspectionPath.getByRole("link", { name: /Disagreements/ })).toHaveAttribute(
+    await expect(inspectionPath.getByRole("link", { name: /Discuss & challenge/ })).toHaveAttribute(
       "href",
       "#disagreements",
     );

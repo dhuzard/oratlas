@@ -41,14 +41,21 @@ interface CommentFormProps {
   reviewSlug: string;
   claims: CommentClaimOption[];
   parentId?: string;
+  initialClaimLocalId?: string;
   onDone?: () => void;
 }
 
-function CommentForm({ reviewSlug, claims, parentId, onDone }: CommentFormProps) {
+function CommentForm({
+  reviewSlug,
+  claims,
+  parentId,
+  initialClaimLocalId,
+  onDone,
+}: CommentFormProps) {
   const router = useRouter();
   const [body, setBody] = useState("");
   const [kind, setKind] = useState<CommentKind>(parentId ? "comment" : "question");
-  const [claimLocalId, setClaimLocalId] = useState("");
+  const [claimLocalId, setClaimLocalId] = useState(initialClaimLocalId ?? "");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const isReply = Boolean(parentId);
@@ -188,12 +195,14 @@ export function CommentsSection({
   claims,
   viewer,
   readOnly = false,
+  initialClaimLocalId,
 }: {
   reviewSlug: string;
   list: ReviewCommentList;
   claims: CommentClaimOption[];
   viewer: CommentViewer | null;
   readOnly?: boolean;
+  initialClaimLocalId?: string;
 }) {
   const router = useRouter();
   const [replyTo, setReplyTo] = useState<string | null>(null);
@@ -241,7 +250,11 @@ export function CommentsSection({
             This discussion is bound to an immutable historical review version and is read-only.
           </p>
         ) : viewer ? (
-          <CommentForm reviewSlug={reviewSlug} claims={claims} />
+          <CommentForm
+            reviewSlug={reviewSlug}
+            claims={claims}
+            initialClaimLocalId={initialClaimLocalId}
+          />
         ) : (
           <p className="notice notice-info">
             <Link href="/signin">Sign in</Link> to join the discussion — comments are attributed and

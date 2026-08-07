@@ -21,7 +21,7 @@ export default async function ArchivePage({
   const get = (k: string) => (Array.isArray(sp[k]) ? sp[k]?.[0] : (sp[k] as string | undefined));
 
   const query = archiveSearchQuerySchema.parse({
-    contentType: get("contentType") || "all",
+    contentType: get("contentType") || "review",
     nodeKind: get("nodeKind") || undefined,
     q: get("q") || undefined,
     domain: get("domain") || undefined,
@@ -42,10 +42,21 @@ export default async function ArchivePage({
 
   return (
     <>
-      <h1>Archive</h1>
+      <header className="page-hero archive-hero">
+        <p className="home-eyebrow">Open Review Atlas</p>
+        <h1>AI review archive</h1>
+        <p className="lead">
+          Discover deposited, versioned AI-generated scientific reviews. Open a record to read its
+          preserved article, claims, evidence, TRUST assessments and public challenges.
+        </p>
+        <div className="btn-row">
+          <Link href="/compare">Compare reviews</Link>
+          <Link href="/create-review">Create &amp; deposit</Link>
+        </div>
+      </header>
       <p className="muted">
-        {results.total} publication(s){query.q ? ` matching “${query.q}”` : ""}. Acceptance is not
-        peer review.
+        {results.total} record(s){query.q ? ` matching “${query.q}”` : ""}. Archive acceptance is
+        not peer review or scientific endorsement.
       </p>
       {results.synthesisCandidateScan.limitReached ? (
         <p className="notice">
@@ -175,8 +186,8 @@ export default async function ArchivePage({
                   name="contentType"
                   defaultValue={query.contentType ?? "all"}
                 >
-                  <option value="all">Repository reviews, nodes, and AI syntheses</option>
-                  <option value="review">Repository reviews</option>
+                  <option value="review">Deposited reviews</option>
+                  <option value="all">All archive records</option>
                   <option value="node">Research objects</option>
                   <option value="synthesis">Accepted AI syntheses</option>
                 </select>
