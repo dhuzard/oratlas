@@ -42,8 +42,9 @@ an exact repository version for editorial consideration.
 - The default path is **review → claim passport → evidence → assessment or disagreement → preserved
   source context**. Repository, release/tag/commit, version, AI/run provenance, and editorial status
   remain visible.
-- Comments may address the whole review or an exact claim. Formal challenges may target an exact
-  claim, claim–evidence relation, or assessment criterion.
+- Comments may address the whole review, an exact claim, or a selected passage in a preserved MyST
+  page. Formal challenges may target an exact claim, claim–evidence relation, or assessment
+  criterion.
 - Support attributed questions, concerns, suggestions, endorsements, and one-level replies. Clearly
   distinguish open discussion, formal challenge, TRUST assessment, and editorial decision.
 - A comment never edits an accepted review in place. An addressed suggestion must link to its
@@ -57,9 +58,10 @@ an exact repository version for editorial consideration.
 The reader captures the Markdown and notebook files explicitly listed by the pinned `myst.yml`
 table of contents, parses them into a sanitized MyST AST, and renders source TRUST v2 assertions as
 a provenance-distinct layer. Repository HTML, iframes, styles, and plugins are never executed.
-Relative figures resolve against the exact accepted commit. Exact passage discussion anchors remain
-follow-up work tracked in [#160](https://github.com/dhuzard/oratlas/issues/160); the UI must not imply
-that whole-review or claim comments are already passage annotations.
+Relative figures resolve against the exact accepted commit. Passage comments store a source hash,
+page path, rendered-text position, and quote-with-context selector. They are version-bound,
+highlighted in the reader, and exposed as public W3C-style JSON-LD annotations for agents. A reply
+inherits its parent passage; neither comments nor annotations mutate the archived source.
 
 ## 3. Let the knowledge graph evolve without hidden mutation
 
@@ -99,8 +101,8 @@ accepted records:
 2. GitHub sign-in → repository inspection → exact-version capture → validation → editorial status →
    public immutable review.
 3. Full review and figures → claim → evidence → assessment/disagreement → provenance.
-4. Claim comment → reply → formal challenge or update proposal → resolution or new version → diff
-   and lineage.
+4. Select a preserved passage → attributed comment → author reply → formal challenge or update
+   proposal → resolution or new version → diff and lineage.
 5. Explore at least two reviews → grounded multi-review answer → exact source highlighting → draft
    or published synthesis, without mutating source reviews.
 

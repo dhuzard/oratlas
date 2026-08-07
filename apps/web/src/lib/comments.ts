@@ -1,15 +1,22 @@
 import "server-only";
 import {
+  canonicalJson,
   claimDomAnchor,
   isExactCommitSha,
+  normalizeGitHubLogin,
+  passageCommentAnchorSchema,
+  preservedFilesSchema,
   type CommentKind,
   type CreateCommentInput,
+  type PassageCommentAnchor,
   type ReviewComment,
   type ReviewCommentList,
 } from "@oratlas/contracts";
-import { prisma } from "./db";
+import { parseJsonColumn, prisma } from "./db";
 import { isEditor, type SessionUser } from "./auth";
 import { isReadablePublicState, isTombstonedState } from "./review-lifecycle";
+import { sha256 } from "./hash";
+import { buildMystArticle } from "./article-reader";
 
 export class CommentError extends Error {
   constructor(
@@ -28,6 +35,9 @@ type CommentRow = {
   kind: string;
   status: string;
   body: string;
+  targetDocumentPath: string | null;
+  targetSelectorJson: string | null;
+  targetSelectorHash: string | null;
   createdAt: Date;
   author: { githubLogin: string; displayName: string | null; role: string };
   claim: { localClaimId: string; anchor: string | null; reviewVersionId: string } | null;
@@ -38,8 +48,37 @@ const commentInclude = {
   claim: { select: { localClaimId: true, anchor: true, reviewVersionId: true } },
 } as const;
 
+function passageMatchesRenderedText(text: string, anchor: PassageCommentAnchor): boolean {
+  const content = Array.from(text);
+  const exact = Array.from(anchor.textQuote.exact);
+  const { start, end } = anchor.textPosition;
+  if (end > content.length || end - start !== exact.length) return false;
+  if (content.slice(start, end).join("") !== anchor.textQuote.exact) return false;
+  if (anchor.textQuote.prefix) {
+    const prefix = Array.from(anchor.textQuote.prefix);
+    if (
+      content.slice(Math.max(0, start - prefix.length), start).join("") !== anchor.textQuote.prefix
+    )
+      return false;
+  }
+  if (anchor.textQuote.suffix) {
+    const suffix = Array.from(anchor.textQuote.suffix);
+    if (content.slice(end, end + suffix.length).join("") !== anchor.textQuote.suffix) return false;
+  }
+  return true;
+}
+
 function toDto(row: CommentRow, selectedVersionId: string): Omit<ReviewComment, "replies"> {
   const removed = row.status !== "visible";
+  const parsedAnchor = row.targetSelectorJson
+    ? passageCommentAnchorSchema.safeParse(parseJsonColumn<unknown>(row.targetSelectorJson, null))
+    : undefined;
+  const anchor =
+    parsedAnchor?.success &&
+    parsedAnchor.data.documentPath === row.targetDocumentPath &&
+    sha256(canonicalJson(parsedAnchor.data)) === row.targetSelectorHash
+      ? parsedAnchor.data
+      : undefined;
   return {
     id: row.id,
     reviewVersionId: row.reviewVersionId ?? row.claim?.reviewVersionId ?? selectedVersionId,
@@ -52,6 +91,7 @@ function toDto(row: CommentRow, selectedVersionId: string): Omit<ReviewComment, 
     claimAnchor: row.claim
       ? claimDomAnchor(row.claim.reviewVersionId, row.claim.localClaimId)
       : undefined,
+    anchor,
     createdAt: row.createdAt.toISOString(),
   };
 }
@@ -163,7 +203,17 @@ export async function createReviewComment(
               id: true,
               publicState: true,
               publishedAt: true,
-              snapshot: { select: { commitSha: true } },
+              snapshot: {
+                select: {
+                  commitSha: true,
+                  preservedFilesJson: true,
+                  repository: { select: { owner: true, name: true } },
+                },
+              },
+              sourceSubmission: { select: { submitterId: true } },
+              contributors: {
+                select: { person: { select: { githubLogin: true } } },
+              },
             },
           },
         },
@@ -186,6 +236,46 @@ export async function createReviewComment(
         throw new CommentError("Comments are closed on this withheld review version.");
       }
 
+      let passageAnchor: PassageCommentAnchor | undefined;
+      let targetSelectorJson: string | undefined;
+      let targetSelectorHash: string | undefined;
+      if (input.anchor) {
+        if (input.parentId) {
+          throw new CommentError("Replies inherit the parent passage and cannot retarget it.");
+        }
+        const files = preservedFilesSchema.safeParse(
+          parseJsonColumn<unknown>(currentVersion.snapshot?.preservedFilesJson, null),
+        );
+        const article = files.success
+          ? buildMystArticle({
+              files: files.data,
+              repositoryOwner: currentVersion.snapshot.repository.owner,
+              repositoryName: currentVersion.snapshot.repository.name,
+              commitSha: currentVersion.snapshot.commitSha,
+            })
+          : null;
+        const targetPage = article?.pages.find(
+          (candidate) => candidate.path === input.anchor?.documentPath,
+        );
+        if (!targetPage) {
+          throw new CommentError(
+            "The selected document is not a preserved rendered MyST page for this version.",
+          );
+        }
+        if (
+          targetPage.sha256 !== input.anchor.sourceSha256 ||
+          !passageMatchesRenderedText(targetPage.renderedText, input.anchor)
+        ) {
+          throw new CommentError(
+            "The selected passage does not match the immutable rendered source version.",
+            "conflict",
+          );
+        }
+        passageAnchor = input.anchor;
+        targetSelectorJson = canonicalJson(passageAnchor);
+        targetSelectorHash = sha256(targetSelectorJson);
+      }
+
       let claimId: string | undefined;
       if (input.claimLocalId) {
         const claim = await tx.claim.findUnique({
@@ -202,6 +292,7 @@ export async function createReviewComment(
       }
 
       let parentId: string | undefined;
+      let repliedToAuthorId: string | undefined;
       if (input.parentId) {
         const parent = await tx.reviewComment.findUnique({
           where: { id: input.parentId },
@@ -211,6 +302,7 @@ export async function createReviewComment(
             reviewId: true,
             reviewVersionId: true,
             status: true,
+            authorId: true,
             claim: { select: { reviewVersionId: true } },
           },
         });
@@ -226,6 +318,7 @@ export async function createReviewComment(
         }
         // Threads stay one level deep: replying to a reply joins its thread.
         parentId = parent.parentId ?? parent.id;
+        repliedToAuthorId = parent.authorId;
       }
 
       // Lock and compare both lifecycle epoch and current snapshot before the
@@ -262,17 +355,69 @@ export async function createReviewComment(
           authorId: author.id,
           parentId,
           claimId,
+          targetDocumentPath: passageAnchor?.documentPath,
+          targetSelectorJson,
+          targetSelectorHash,
           kind: input.kind,
           body: input.body,
         },
       });
+      const notificationRecipients = new Set<string>();
+      if (currentVersion.sourceSubmission?.submitterId) {
+        notificationRecipients.add(currentVersion.sourceSubmission.submitterId);
+      }
+      const contributorLogins = currentVersion.contributors.flatMap(({ person }) =>
+        person.githubLogin ? [person.githubLogin] : [],
+      );
+      const normalizedContributorLogins = new Set(contributorLogins.map(normalizeGitHubLogin));
+      if (normalizedContributorLogins.size > 0) {
+        const contributorUsers = await tx.user.findMany({
+          where: {
+            OR: [
+              { githubLoginNormalized: { in: [...normalizedContributorLogins] } },
+              { githubLogin: { in: contributorLogins } },
+            ],
+          },
+          select: { id: true, githubLogin: true },
+        });
+        for (const contributorUser of contributorUsers) {
+          if (normalizedContributorLogins.has(normalizeGitHubLogin(contributorUser.githubLogin))) {
+            notificationRecipients.add(contributorUser.id);
+          }
+        }
+      }
+      if (repliedToAuthorId) notificationRecipients.add(repliedToAuthorId);
+      notificationRecipients.delete(author.id);
+      if (notificationRecipients.size > 0) {
+        await tx.notification.createMany({
+          data: [...notificationRecipients].map((userId) => ({
+            userId,
+            kind: "review-comment-created",
+            subjectType: "reviewComment",
+            subjectId: comment.id,
+            payloadJson: canonicalJson({
+              reviewSlug: slug,
+              reviewVersionId,
+              documentPath: passageAnchor?.documentPath,
+              parentId,
+            }),
+          })),
+        });
+      }
       await tx.auditEvent.create({
         data: {
           actorId: author.id,
           action: "comment.created",
           subjectType: "reviewComment",
           subjectId: comment.id,
-          detailsJson: JSON.stringify({ reviewSlug: slug, kind: input.kind, parentId, claimId }),
+          detailsJson: canonicalJson({
+            reviewSlug: slug,
+            kind: input.kind,
+            parentId,
+            claimId,
+            targetDocumentPath: passageAnchor?.documentPath,
+            targetSelectorHash,
+          }),
         },
       });
       return { id: comment.id };

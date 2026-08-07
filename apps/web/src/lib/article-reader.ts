@@ -46,6 +46,8 @@ export interface ArticlePage {
   depth: number;
   sha256: string;
   ast: MystNode;
+  /** Canonical textContent projection used by immutable passage selectors. */
+  renderedText: string;
   toc: Array<{ id: string; level: number; text: string }>;
   trustClaims: SourceTrustClaim[];
 }
@@ -273,6 +275,21 @@ function textOf(node: MystNode | undefined): string {
   if (!node) return "";
   if (typeof node.value === "string") return node.value;
   return (node.children ?? []).map(textOf).join("");
+}
+
+/** Mirror the text emitted by ORAtlas's custom MyST renderers without executing repository code. */
+export function renderedTextFromMystAst(node: MystNode | undefined): string {
+  if (!node) return "";
+  if (node.type === "trustClaimMarker") {
+    const claim = node.trustClaim as SourceTrustClaim | undefined;
+    if (!claim) return "";
+    return `TRUST${claim.overallScore ?? ""}${claim.label?.replace(/_/g, " ") ?? ""}`;
+  }
+  if (node.type === "image") {
+    return typeof node.title === "string" ? safeUnicode(node.title) : "";
+  }
+  if (typeof node.value === "string") return safeUnicode(node.value);
+  return (node.children ?? []).map(renderedTextFromMystAst).join("");
 }
 
 function objectValue(value: unknown): Record<string, unknown> | undefined {
@@ -603,6 +620,7 @@ export function buildMystArticle(input: {
       depth: entry.depth,
       sha256: sha256(content),
       ast,
+      renderedText: renderedTextFromMystAst(ast),
       toc: pageToc,
       trustClaims,
     });

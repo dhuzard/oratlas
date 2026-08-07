@@ -1067,6 +1067,9 @@ CREATE TABLE "ReviewComment" (
     "authorId" TEXT NOT NULL,
     "parentId" TEXT,
     "claimId" TEXT,
+    "targetDocumentPath" TEXT,
+    "targetSelectorJson" TEXT,
+    "targetSelectorHash" TEXT,
     "kind" TEXT NOT NULL DEFAULT 'comment',
     "body" TEXT NOT NULL,
     "status" TEXT NOT NULL DEFAULT 'visible',
@@ -1720,6 +1723,9 @@ CREATE INDEX "ReviewComment_reviewId_createdAt_idx" ON "ReviewComment"("reviewId
 
 -- CreateIndex
 CREATE INDEX "ReviewComment_reviewVersionId_createdAt_idx" ON "ReviewComment"("reviewVersionId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "ReviewComment_reviewVersionId_targetDocumentPath_createdAt_idx" ON "ReviewComment"("reviewVersionId", "targetDocumentPath", "createdAt");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "KnowledgeLinkProposal_sourceClaimId_targetClaimId_proposedR_key" ON "KnowledgeLinkProposal"("sourceClaimId", "targetClaimId", "proposedRelation");

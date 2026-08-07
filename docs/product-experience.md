@@ -13,8 +13,9 @@ computational-review workflow rather than replacing it:
    editor decides whether it enters the archive.
 3. **Inspect** — readers discover the versioned record and move from its preserved article to exact
    claims, citations, evidence relations, and TRUST assessments.
-4. **Respond** — attributed comments, formal challenges, assessment disagreements, and later
-   versions remain separate records. They never rewrite the deposited source.
+4. **Respond** — readers select an exact passage, claim, or review and leave attributed comments;
+   formal challenges, assessment disagreements, and later versions remain separate records. They
+   never rewrite the deposited source.
 5. **Compare** — review-level coverage and claim-level records can be placed side by side without
    creating a universal score or ranking.
 
@@ -48,6 +49,9 @@ surfaces. They do not compete with the four primary public journeys.
 The reader captures the Markdown and notebook files listed by the pinned `myst.yml` table of
 contents and renders a sanitized MyST AST from the immutable database snapshot. Repository HTML,
 JavaScript, styles, and plugins are never executed. Source TRUST v2 remains visually and
-semantically distinct from Atlas verification. Direct citation and passage comment anchors require
-the separately reviewed annotation data-model extension; mutable upstream Pages output is never the
-archived record.
+semantically distinct from Atlas verification. Selected-text comments use a version-bound page
+path, preserved-source hash, and W3C TextQuote/TextPosition selectors whose positions count Unicode
+code points in the canonical rendered-page text. The server accepts an anchor only when its quote,
+context, positions, page path, and source hash match that immutable projection. The reader highlights
+these threads and publishes them through a JSON-LD AnnotationPage for human and agent consumers.
+Mutable upstream Pages output is never the archived record.

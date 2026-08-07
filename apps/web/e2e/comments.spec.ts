@@ -57,6 +57,39 @@ test.describe("Open discussion", () => {
     // …and survives a full reload (it was persisted, not just optimistic state).
     await page.reload();
     await expect(page.locator("#community-review").getByText(body)).toBeVisible();
+
+    // The same discussion model accepts a source-bound selection from the MyST reader.
+    const passage = page.locator(".myst-selectable-body p").first();
+    const selectedText = (await passage.textContent())?.trim() ?? "";
+    expect(selectedText.length).toBeGreaterThan(0);
+    await passage.evaluate((element) => {
+      const selection = globalThis.getSelection();
+      const range = document.createRange();
+      range.selectNodeContents(element);
+      selection?.removeAllRanges();
+      selection?.addRange(range);
+      element.dispatchEvent(new MouseEvent("mouseup", { bubbles: true }));
+    });
+    await page.getByRole("button", { name: "Comment on passage" }).click();
+    const composer = page.locator(".passage-composer");
+    await expect(composer).toContainText(selectedText);
+
+    const passageBody = `Passage question ${Date.now()}`;
+    await composer.getByLabel("Your comment").fill(passageBody);
+    const [passageResponse] = await Promise.all([
+      page.waitForResponse(
+        (response) =>
+          response.url().includes("/comments") && response.request().method() === "POST",
+        { timeout: 30_000 },
+      ),
+      composer.getByRole("button", { name: "Post on this passage" }).click(),
+    ]);
+    expect(passageResponse.ok()).toBeTruthy();
+    const discussion = page.locator("#community-review");
+    await expect(discussion.getByText(passageBody)).toBeVisible();
+    await expect(
+      discussion.locator(".comment-passage").filter({ hasText: selectedText }),
+    ).toBeVisible();
   });
 
   test("a contextual claim action preselects the discussion subject", async ({ page }) => {

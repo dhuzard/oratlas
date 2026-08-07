@@ -185,6 +185,14 @@ function AuthorLine({
           on {comment.claimLocalId}
         </a>
       ) : null}
+      {comment.anchor ? (
+        <a
+          className="mono"
+          href={`?articlePage=${encodeURIComponent(comment.anchor.documentPath)}#myst-active-page`}
+        >
+          on passage in {comment.anchor.documentPath}
+        </a>
+      ) : null}
     </div>
   );
 }
@@ -240,9 +248,17 @@ export function CommentsSection({
         </h2>
         <p className="muted comment-intro">
           Ask questions, raise concerns, suggest evidence, or endorse findings. Comments can address
-          the whole review or a specific claim and are publicly attributed to your account. They are
-          open discussion, not TRUST assessments, formal challenges, formal review reports,
-          editorial decisions, or changes to the immutable archived review.
+          the whole review, a claim, or text selected in the MyST reader and are publicly attributed
+          to your account. Authors can follow the thread; agents can read its JSON-LD
+          representation. Comments are not TRUST assessments, formal challenges, editorial
+          decisions, or changes to the immutable review.
+        </p>
+        <p>
+          <Link
+            href={`/api/reviews/${encodeURIComponent(reviewSlug)}/versions/${encodeURIComponent(list.reviewVersionId)}/annotations`}
+          >
+            Machine-readable annotations (JSON-LD)
+          </Link>
         </p>
 
         {readOnly ? (
@@ -274,12 +290,17 @@ export function CommentsSection({
         ) : (
           <ul className="comment-list">
             {list.comments.map((comment) => (
-              <li className="comment" key={comment.id}>
+              <li className="comment" id={`comment-${comment.id}`} key={comment.id}>
                 {comment.status === "removed" ? (
                   <p className="muted comment-removed">Comment removed.</p>
                 ) : (
                   <>
                     <AuthorLine comment={comment} />
+                    {comment.anchor ? (
+                      <blockquote className="comment-passage">
+                        “{comment.anchor.textQuote.exact}”
+                      </blockquote>
+                    ) : null}
                     <p className="comment-body">{comment.body}</p>
                     <div className="btn-row comment-actions">
                       {viewer && !readOnly ? (

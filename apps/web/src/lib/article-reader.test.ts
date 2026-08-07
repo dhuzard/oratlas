@@ -97,6 +97,7 @@ describe("preserved article reader", () => {
       "content/intro.md",
       "content/results.md",
     ]);
+    expect(article?.pages[0]?.renderedText).toBe("IntroductionA rich review.");
     expect(article?.pages[1]?.trustClaims[0]).toMatchObject({
       claimId: "claim-1",
       overallScore: 85,

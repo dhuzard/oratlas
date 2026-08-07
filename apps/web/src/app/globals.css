@@ -1397,6 +1397,62 @@ textarea {
 .myst-context-panel li + li {
   margin-top: 0.35rem;
 }
+.myst-selectable-body ::selection {
+  background: color-mix(in srgb, var(--accent) 24%, transparent);
+}
+::highlight(oratlas-comments) {
+  background: color-mix(in srgb, var(--warn) 28%, transparent);
+  text-decoration: underline dotted color-mix(in srgb, var(--warn) 75%, var(--text));
+}
+.passage-comment-trigger {
+  position: fixed;
+  z-index: 40;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  box-shadow: 0 0.45rem 1.5rem rgb(0 0 0 / 18%);
+  background: var(--accent);
+  color: var(--accent-contrast, white);
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.passage-composer blockquote,
+.comment-passage {
+  margin: 0.8rem 0;
+  padding: 0.65rem 0.8rem;
+  border-left: 3px solid var(--accent);
+  background: var(--surface-2);
+  color: var(--text-muted);
+  font-size: 0.86rem;
+}
+.passage-composer textarea {
+  min-height: 8rem;
+}
+.passage-comment-summary {
+  margin-top: 1.25rem;
+}
+.passage-comment-summary > a {
+  display: block;
+  padding: 0.55rem 0;
+  border-top: 1px solid var(--border);
+  color: var(--text);
+  text-decoration: none;
+}
+.passage-comment-summary > a:hover {
+  color: var(--accent);
+}
+.passage-comment-summary span {
+  display: block;
+  margin-top: 0.2rem;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+.myst-agent-link {
+  margin-top: 1.25rem;
+  font-size: 0.8rem;
+}
 .source-trust-inspector-heading {
   display: flex;
   align-items: start;

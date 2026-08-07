@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Badge } from "@oratlas/ui";
 import { type ArticleDocument } from "@/lib/article-reader";
+import type { ReviewCommentList } from "@oratlas/contracts";
 import { EnrichedMystReader } from "./EnrichedMystReader";
 
 interface AnchoredClaim {
@@ -14,11 +15,19 @@ export function ArticleReader({
   document,
   claims,
   reviewSlug,
+  reviewVersionId,
+  comments,
+  canComment,
+  initialPagePath,
   discussionEnabled = true,
 }: {
   document: ArticleDocument;
   claims: AnchoredClaim[];
   reviewSlug: string;
+  reviewVersionId: string;
+  comments: ReviewCommentList["comments"];
+  canComment: boolean;
+  initialPagePath?: string;
   discussionEnabled?: boolean;
 }) {
   return (
@@ -42,7 +51,15 @@ export function ArticleReader({
           </p>
         </details>
       </header>
-      <EnrichedMystReader document={document} />
+      <EnrichedMystReader
+        document={document}
+        reviewSlug={reviewSlug}
+        reviewVersionId={reviewVersionId}
+        comments={comments}
+        canComment={canComment}
+        discussionEnabled={discussionEnabled}
+        initialPagePath={initialPagePath}
+      />
       {claims.length > 0 ? (
         <section aria-labelledby="atlas-claim-index">
           <h3 id="atlas-claim-index">Atlas claim anchors</h3>

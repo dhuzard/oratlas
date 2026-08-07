@@ -1622,26 +1622,32 @@ model DiscussionMessage {
 /// Distinct from DiscussionThread/Message, which persist AI-grounded Q&A.
 /// Bodies are plain text only and always rendered escaped (never raw HTML).
 model ReviewComment {
-  id              String    @id @default(cuid())
-  reviewId        String
+  id                 String    @id @default(cuid())
+  reviewId           String
   /// Immutable review version this comment was made against. Nullable only
   /// for legacy rows created before version-scoped discussion.
-  reviewVersionId String?
-  authorId        String
+  reviewVersionId    String?
+  authorId           String
   /// Top-level comment when null; threads are one level deep (replies).
-  parentId        String?
+  parentId           String?
   /// Optional claim this comment is anchored to (claim-level commentary).
-  claimId         String?
+  claimId            String?
+  /// Repository-relative MyST page for an exact passage annotation.
+  targetDocumentPath String?
+  /// Canonical contracts passageCommentAnchorSchema JSON. Immutable after creation.
+  targetSelectorJson String?
+  /// SHA-256 of targetSelectorJson for stable machine identity and deduplication.
+  targetSelectorHash String?
   /// contracts COMMENT_KINDS: comment | question | concern | suggestion | endorsement
-  kind            String    @default("comment")
-  body            String
+  kind               String    @default("comment")
+  body               String
   /// contracts COMMENT_STATUSES: visible | removed
-  status          String    @default("visible")
+  status             String    @default("visible")
   /// User id of the remover (author or editor); no FK to keep moderation light.
-  removedById     String?
-  removedAt       DateTime?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  removedById        String?
+  removedAt          DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
   review        Review          @relation(fields: [reviewId], references: [id])
   reviewVersion ReviewVersion?  @relation(fields: [reviewVersionId], references: [id])
@@ -1652,6 +1658,7 @@ model ReviewComment {
 
   @@index([reviewId, createdAt])
   @@index([reviewVersionId, createdAt])
+  @@index([reviewVersionId, targetDocumentPath, createdAt])
 }
 
 /// Conservative automated cross-review link proposals (spec §15).

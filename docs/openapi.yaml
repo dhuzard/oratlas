@@ -1522,6 +1522,7 @@ components:
         llm: { $ref: "#/components/schemas/RequestLlmConfig" }
     CommentCreateRequest:
       type: object
+      additionalProperties: false
       required: [body]
       properties:
         body: { type: string, minLength: 1, maxLength: 5000 }
@@ -1532,9 +1533,68 @@ components:
         claimLocalId:
           type: string
           description: Local id of a claim in the review's current version to anchor the comment to.
+        anchor: { $ref: "#/components/schemas/PassageCommentAnchor" }
         parentId:
           type: string
           description: Id of the comment being replied to. Threads are one level deep.
+    PassageCommentAnchor:
+      type: object
+      additionalProperties: false
+      required: [schemaVersion, representation, documentPath, sourceSha256, textQuote, textPosition]
+      properties:
+        schemaVersion: { const: 1.0.0 }
+        representation: { const: myst-rendered-text-v1 }
+        documentPath: { type: string, minLength: 1, maxLength: 512 }
+        sourceSha256: { type: string, pattern: "^[0-9a-f]{64}$" }
+        astNodeId: { type: string, minLength: 1, maxLength: 240 }
+        textQuote:
+          type: object
+          additionalProperties: false
+          required: [type, exact]
+          properties:
+            type: { const: TextQuoteSelector }
+            exact: { type: string, minLength: 1, maxLength: 2000 }
+            prefix: { type: string, maxLength: 256 }
+            suffix: { type: string, maxLength: 256 }
+        textPosition:
+          type: object
+          description: Unicode code-point offsets into the canonical myst-rendered-text-v1 page projection.
+          additionalProperties: false
+          required: [type, start, end]
+          properties:
+            type: { const: TextPositionSelector }
+            start:
+              type: integer
+              minimum: 0
+              maximum: 10000000
+              description: Inclusive Unicode code-point offset.
+            end:
+              type: integer
+              minimum: 1
+              maximum: 10000000
+              description: Exclusive Unicode code-point offset.
+    WebAnnotationPage:
+      type: object
+      description: Public W3C Web Annotation projection of visible version-bound discussion.
+      required: ["@context", id, type, partOf, items]
+      properties:
+        "@context": { type: array, items: {} }
+        id: { type: string, format: uri }
+        type: { const: AnnotationPage }
+        partOf: { type: string, format: uri }
+        items:
+          type: array
+          items:
+            type: object
+            required: [id, type, motivation, created, body, target]
+            properties:
+              id: { type: string, format: uri-reference }
+              type: { const: Annotation }
+              motivation: { const: commenting }
+              created: { type: string, format: date-time }
+              creator: { type: object }
+              body: { type: object }
+              target: {}
     PublicReviewTrustAssessment:
       type: object
       additionalProperties: false
@@ -3460,6 +3520,20 @@ paths:
         - { name: versionId, in: path, required: true, schema: { type: string } }
       responses:
         "200": { description: Version-scoped threaded comment list }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/reviews/{slug}/versions/{versionId}/annotations:
+    get:
+      summary: List visible version-bound discussion as W3C Web Annotations
+      description: Provides selected-passage, claim, and whole-review comment targets for human clients and autonomous agents. Removed comment bodies are never exported.
+      parameters:
+        - { name: slug, in: path, required: true, schema: { type: string } }
+        - { name: versionId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: W3C JSON-LD AnnotationPage
+          content:
+            application/ld+json:
+              schema: { $ref: "#/components/schemas/WebAnnotationPage" }
         "404": { $ref: "#/components/responses/Error" }
   /api/reviews/{slug}/versions/{versionId}/challenges:
     get:
