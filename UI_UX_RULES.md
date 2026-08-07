@@ -19,9 +19,9 @@ A first-time visitor should understand within ten seconds that:
 - GitHub sign-in is required for deposit and attributable participation; and
 - archive acceptance is an **editorial decision**, not peer review, correctness, or consensus.
 
-The primary actions are **Browse reviews**, **Explore evidence**, **Compare reviews**, and **Create
-& deposit**. Review generation happens in the Allen workflow; ORAtlas explains that workflow and
-then accepts an exact repository version for editorial consideration.
+The primary actions are **Reviews**, **Explore evidence**, **Compare**, and **Create & deposit**.
+Review generation happens in the Allen workflow; ORAtlas explains that workflow and then accepts
+an exact repository version for editorial consideration.
 
 ### Five-step author flow
 
