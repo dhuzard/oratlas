@@ -14,6 +14,7 @@ RUN apt-get update \
 WORKDIR /app
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY patches patches
 COPY apps/web/package.json apps/web/package.json
 COPY packages/atlas-check/package.json packages/atlas-check/package.json
 COPY packages/config/package.json packages/config/package.json
