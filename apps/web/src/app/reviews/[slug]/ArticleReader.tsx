@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Card, Badge } from "@oratlas/ui";
 import { type ArticleBlock, type ArticleDocument } from "@/lib/article-reader";
 
@@ -27,16 +28,21 @@ function Heading({ block }: { block: Extract<ArticleBlock, { kind: "heading" }> 
 export function ArticleReader({
   document,
   claims,
+  reviewSlug,
+  discussionEnabled = true,
 }: {
   document: ArticleDocument;
   claims: AnchoredClaim[];
+  reviewSlug: string;
+  discussionEnabled?: boolean;
 }) {
   return (
-    <Card title="Preserved scholarly article">
+    <Card title="Read the preserved MyST / Markdown review">
       <p className="muted">
         Read from the accepted database snapshot, never from the mutable upstream repository.
-        Repository HTML is never executed. Source <span className="mono">{document.path}</span> ·
-        SHA-256 <span className="mono">{document.sha256}</span>
+        Repository HTML and MyST plugins are never executed. ORAtlas safely renders the captured
+        document structure. Source <span className="mono">{document.path}</span> · SHA-256{" "}
+        <span className="mono">{document.sha256}</span>
       </p>
       {document.toc.length > 0 ? (
         <nav aria-label="Article table of contents">
@@ -84,6 +90,13 @@ export function ArticleReader({
                 <Badge>{claim.localClaimId}</Badge>
                 {claim.section ? <span className="muted">§ {claim.section}</span> : null}
                 <a href={`#${claim.anchor}-evidence`}>Evidence and discussion</a>
+                {discussionEnabled ? (
+                  <Link
+                    href={`/reviews/${encodeURIComponent(reviewSlug)}?commentOn=${encodeURIComponent(claim.localClaimId)}#community-review`}
+                  >
+                    Comment on this claim
+                  </Link>
+                ) : null}
               </div>
             </div>
           ))}

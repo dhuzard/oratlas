@@ -24,4 +24,13 @@ describe("ExploreBreadcrumb", () => {
     expect(html).toContain('href="/explore"');
     expect(html).toContain('href="/replications"');
   });
+
+  it("can return archive readers to the review-first root", () => {
+    const html = renderToStaticMarkup(
+      <ExploreBreadcrumb current="Review record" href="/archive" rootLabel="Reviews" />,
+    );
+
+    expect(html).toContain('href="/archive"');
+    expect(html).toContain(">Reviews</a>");
+  });
 });

@@ -15,30 +15,32 @@ export default async function HomePage() {
         <p className="home-eyebrow">Open Review Atlas</p>
         <h1 id="home-title">The arXiv for AI-generated scientific reviews.</h1>
         <p className="lead">
-          Inspect a scientific claim, its linked evidence, and the independent assessments or
-          disagreements around it—without rewriting the original record.
+          Generate a review with the Allen AIreview workflow, deposit an exact public version here,
+          then let the community read, compare, comment on and challenge its scientific record.
         </p>
 
-        <form action="/explore" method="get" role="search" className="home-search">
+        <form action="/archive" method="get" role="search" className="home-search">
+          <input type="hidden" name="contentType" value="review" />
           <label htmlFor="home-q" className="sr-only">
-            Search claims, reviews, or authors
+            Search reviews, topics, or authors
           </label>
           <input
             id="home-q"
             type="search"
             name="q"
-            placeholder="Search a claim, review, or author…"
+            placeholder="Search a review, topic, or author…"
           />
           <button className="btn" type="submit">
-            Enter the evidence graph
+            Search the review archive
           </button>
         </form>
 
         <div className="home-actions">
-          <Link className="btn btn-secondary" href="/submit">
-            Submit a review
+          <Link className="btn btn-secondary" href="/archive">
+            Browse all reviews
           </Link>
-          <Link href="#how-it-works">How ORAtlas works</Link>
+          <Link href="/create-review">Create &amp; deposit a review</Link>
+          <Link href="/compare">Compare reviews</Link>
         </div>
 
         <p className="home-note">
@@ -50,10 +52,10 @@ export default async function HomePage() {
       <section id="how-it-works" className="home-how" aria-labelledby="how-it-works-title">
         <div className="home-section-intro">
           <p className="home-eyebrow">How it works</p>
-          <h2 id="how-it-works-title">Follow a review from claim to evidence.</h2>
+          <h2 id="how-it-works-title">One workflow from generation to scientific exchange.</h2>
           <p>
-            ORAtlas keeps the published record, supporting material, and later assessments connected
-            without confusing one for another.
+            AIreview creates the review; ORAtlas archives and connects it. The source record, later
+            assessments and community responses stay distinct.
           </p>
         </div>
         <div className="home-principles">
@@ -61,24 +63,24 @@ export default async function HomePage() {
             <span className="home-principle-index" aria-hidden="true">
               01
             </span>
-            <h3>Preserved record</h3>
-            <p>Each accepted review version remains identifiable, attributable, and unchanged.</p>
+            <h3>Generate with AIreview</h3>
+            <p>Use the Allen template’s gated evidence, drafting, criticism and MyST workflow.</p>
           </article>
           <article>
             <span className="home-principle-index" aria-hidden="true">
               02
             </span>
-            <h3>Claims linked to evidence</h3>
-            <p>Inspect what a review claims and the exact sources or artifacts connected to it.</p>
+            <h3>Deposit an exact version</h3>
+            <p>ORAtlas captures a public commit or release as an attributable, immutable record.</p>
           </article>
           <article>
             <span className="home-principle-index" aria-hidden="true">
               03
             </span>
-            <h3>Assessments stay independent</h3>
+            <h3>Inspect and challenge</h3>
             <p>
-              Assessments, challenges, and disagreements remain separate records—not a universal
-              score.
+              Read the review, compare claims and evidence, and add separate comments, challenges or
+              TRUST assessments.
             </p>
           </article>
         </div>

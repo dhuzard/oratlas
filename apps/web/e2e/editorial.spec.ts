@@ -6,7 +6,7 @@ test.describe("Editorial workflow (mock auth)", () => {
     await page.getByRole("button", { name: /Sign in as submitter/ }).click();
     await expect(page).toHaveURL(/\/submit/);
     await expect(page.getByRole("heading", { level: 1 })).toContainText(
-      "Submit a review or knowledge nodes",
+      "Deposit a review or knowledge nodes",
     );
   });
 

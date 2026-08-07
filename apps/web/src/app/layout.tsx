@@ -36,9 +36,10 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
               Open Review <span>Atlas</span>
             </Link>
             <nav className="main-nav" aria-label="Primary">
-              <Link href="/explore">Explore</Link>
-              <Link href="/submit">Submit a review</Link>
-              <Link href="/#how-it-works">How it works</Link>
+              <Link href="/archive">Reviews</Link>
+              <Link href="/explore">Explore evidence</Link>
+              <Link href="/compare">Compare</Link>
+              <Link href="/create-review">Create &amp; deposit</Link>
               {isEditor(user) ? <Link href="/editorial">Editorial</Link> : null}
               {user ? (
                 <span className="signed-in-user">

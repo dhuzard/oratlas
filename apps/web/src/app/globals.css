@@ -971,6 +971,156 @@ textarea {
   }
 }
 
+/* Primary archive, author and comparison journeys. */
+.page-hero {
+  max-width: 64rem;
+  padding: clamp(2.5rem, 6vw, 4.5rem) 0 2rem;
+}
+.page-hero h1 {
+  max-width: 24ch;
+  margin: 0 0 0.8rem;
+  font-size: clamp(2.2rem, 5vw, 3.6rem);
+  line-height: 1.08;
+  text-wrap: balance;
+}
+.page-hero .lead {
+  max-width: 64ch;
+  margin: 0;
+  color: var(--text-muted);
+  font-family: var(--font-serif);
+  font-size: clamp(1.08rem, 2vw, 1.3rem);
+}
+.archive-hero {
+  padding-bottom: 1rem;
+}
+.comparison-page,
+.create-review-page {
+  display: grid;
+  gap: clamp(1.5rem, 4vw, 3rem);
+}
+.comparison-picker {
+  display: grid;
+  grid-template-columns: minmax(14rem, 1fr) auto minmax(14rem, 1fr) auto;
+  gap: 0.8rem;
+  align-items: end;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.comparison-picker .field {
+  margin: 0;
+}
+.comparison-picker select {
+  width: 100%;
+}
+.comparison-versus {
+  padding-bottom: 0.55rem;
+  color: var(--text-muted);
+  font-family: var(--font-serif);
+  font-style: italic;
+}
+.comparison-columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+.comparison-columns > * {
+  min-width: 0;
+}
+.comparison-columns .card {
+  height: 100%;
+}
+.comparison-columns h3 {
+  margin: 0.7rem 0 0.25rem;
+  overflow-wrap: anywhere;
+  font-size: 1.2rem;
+}
+.comparison-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.55rem;
+  margin: 1rem 0;
+}
+.comparison-metrics div {
+  padding: 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+.comparison-metrics dt {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  line-height: 1.25;
+}
+.comparison-metrics dd {
+  margin: 0.15rem 0 0;
+  font-family: var(--font-serif);
+  font-size: 1.5rem;
+  font-weight: 650;
+}
+.comparison-types {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+.comparison-claims .comparison-columns > section > h3 {
+  min-height: 3rem;
+  margin-top: 0;
+}
+.comparison-claims .card + .card {
+  margin-top: 0.75rem;
+}
+.responsibility-split,
+.author-steps,
+.deposit-checklist {
+  scroll-margin-top: 1rem;
+}
+.workflow-steps {
+  display: grid;
+  margin: 1.5rem 0 0;
+  padding: 0;
+  border-top: 1px solid var(--border);
+  list-style: none;
+}
+.workflow-steps li {
+  display: grid;
+  grid-template-columns: 2.5rem minmax(0, 1fr);
+  gap: 1rem;
+  padding: 1.2rem 0;
+  border-bottom: 1px solid var(--border);
+}
+.workflow-steps h3,
+.workflow-steps p {
+  margin: 0;
+}
+.workflow-steps p {
+  max-width: 66ch;
+  margin-top: 0.35rem;
+  color: var(--text-muted);
+}
+.check-list {
+  padding-left: 1.25rem;
+}
+.check-list li + li {
+  margin-top: 0.45rem;
+}
+
+@media (max-width: 850px) {
+  .comparison-picker {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .comparison-versus {
+    display: none;
+  }
+  .comparison-columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .comparison-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 /* Unified claim-first exploration. */
 .explore-header {
   max-width: 58rem;
