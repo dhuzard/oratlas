@@ -56,7 +56,8 @@ export type DiscussionResponse =
 
 /**
  * Run Atlas Discuss over a signed exact Explore traversal. Deterministic mode
- * is used when no LLM key is configured; LLM mode remains grounded and
+ * is used when no request key is supplied and the server provider is either
+ * unavailable or disallowed for this caller. LLM mode remains grounded and
  * identifier-validated. The deterministic summary is always returned too.
  */
 export async function runDiscussion(

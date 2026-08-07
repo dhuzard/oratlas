@@ -44,8 +44,8 @@ returned claim/citation identifiers that already passed exact edge validation.
 
 ### Grounded Q&A (Atlas Discuss)
 
-- Runs in **deterministic mode** when no LLM key is supplied for the request or configured on the
-  server: it retrieves relevant claims,
+- Runs in **deterministic mode** when no LLM key is supplied for the request and a server provider
+  is unavailable or disallowed for that caller: it retrieves relevant claims,
   groups them by evidence relation, and returns a structured summary. It does **not** fabricate
   prose pretending to be an AI answer.
 - In **LLM mode**, a provider-neutral adapter receives **only the evidence packet** (never
