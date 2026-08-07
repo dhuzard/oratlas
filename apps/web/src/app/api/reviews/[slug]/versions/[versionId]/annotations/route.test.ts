@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const state = vi.hoisted(() => ({ list: vi.fn() }));
 
 vi.mock("server-only", () => ({}));
+vi.mock("@/lib/base-url", () => ({ appBaseUrl: () => "https://oratlas.test" }));
 vi.mock("@/lib/comments", () => ({ listReviewComments: state.list }));
 
 import { GET } from "./route";
@@ -23,13 +24,14 @@ describe("GET version annotations", () => {
 
   it("serves an interoperable JSON-LD AnnotationPage", async () => {
     const response = await GET(
-      new Request("https://oratlas.test/api/reviews/review-one/versions/version-1/annotations"),
+      new Request("https://0.0.0.0:8080/api/reviews/review-one/versions/version-1/annotations"),
       params,
     );
     expect(response.status).toBe(200);
     expect(response.headers.get("content-type")).toContain("application/ld+json");
     expect(response.headers.get("link")).toContain("http://www.w3.org/ns/anno.jsonld");
     await expect(response.json()).resolves.toMatchObject({
+      id: "https://oratlas.test/api/reviews/review-one/versions/version-1/annotations",
       type: "AnnotationPage",
       partOf: "https://oratlas.test/reviews/review-one/versions/version-1",
       items: [],
