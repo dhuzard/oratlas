@@ -251,6 +251,7 @@ export function CommentsSection({
           </p>
         ) : viewer ? (
           <CommentForm
+            key={`${reviewSlug}:${initialClaimLocalId ?? "review"}`}
             reviewSlug={reviewSlug}
             claims={claims}
             initialClaimLocalId={initialClaimLocalId}

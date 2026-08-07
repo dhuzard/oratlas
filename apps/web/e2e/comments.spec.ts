@@ -66,5 +66,13 @@ test.describe("Open discussion", () => {
     await page.goto(`${REVIEW}?commentOn=claim-001#community-review`);
 
     await expect(page.getByLabel("About")).toHaveValue("claim-001");
+
+    await page
+      .locator(".claim-card", { hasText: "claim-002" })
+      .last()
+      .getByRole("link", { name: "Comment on this claim" })
+      .click();
+    await expect(page).toHaveURL(/commentOn=claim-002/);
+    await expect(page.getByLabel("About")).toHaveValue("claim-002");
   });
 });
