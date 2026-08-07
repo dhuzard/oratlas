@@ -254,10 +254,13 @@ test.describe("Public archive browsing", () => {
 
   test("source-derived POC reviews expose limitations and remain traversable", async ({ page }) => {
     await page.goto("/reviews/vip-cortical-interneurons-critical-review");
-    await page
-      .locator("details.review-record-disclosure > summary")
-      .getByText("Source checks & specialist notes")
-      .click();
+    const recordDisclosure = page.locator("details.review-record-disclosure");
+    if ((await recordDisclosure.getAttribute("open")) === null) {
+      await recordDisclosure
+        .locator(":scope > summary")
+        .getByText("Source checks & specialist notes")
+        .click();
+    }
 
     const stressTest = page.locator("section.card").filter({
       has: page.getByRole("heading", { name: "POC scientific stress test" }),
@@ -306,6 +309,19 @@ test.describe("Public archive browsing", () => {
       "href",
       "#disagreements",
     );
+    expect(
+      await page
+        .locator(
+          "#linked-evidence, #assessments, #community-review, #disagreements, #record-details",
+        )
+        .evaluateAll((sections) => sections.map((section) => section.id)),
+    ).toEqual([
+      "linked-evidence",
+      "assessments",
+      "community-review",
+      "disagreements",
+      "record-details",
+    ]);
     // Version DOI and concept DOI are distinct rows (exact: these are <dt>
     // labels, and page prose such as comments may mention the same phrase).
     await expect(page.getByText("Version DOI", { exact: true })).toBeVisible();

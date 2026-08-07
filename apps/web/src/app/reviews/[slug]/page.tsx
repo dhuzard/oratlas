@@ -311,6 +311,7 @@ export default async function ReviewPage({
             <a
               className="btn btn-secondary"
               href={review.publishedReviewUrl}
+              target="_blank"
               rel="noopener noreferrer"
             >
               Open full MyST site <span aria-hidden="true">↗</span>
@@ -576,162 +577,6 @@ export default async function ReviewPage({
 
       <div className="review-content-flow">
         <div className="review-primary-column">
-          <div className="review-source-details" id="record-details">
-            <Card title="Repository, version & identifiers">
-              <p className="prov-legend">
-                <ProvenanceBadge kind="repository-fact">Repository facts</ProvenanceBadge>
-              </p>
-              <DefinitionList
-                items={[
-                  {
-                    term: "Repository",
-                    value: (
-                      <a href={review.repository.canonicalUrl} className="mono">
-                        {review.repository.owner}/{review.repository.name}
-                      </a>
-                    ),
-                  },
-                  {
-                    term: "Exact commit",
-                    value: <span className="mono">{review.snapshot.commitSha || "—"}</span>,
-                  },
-                  {
-                    term: "Exact tree",
-                    value: <span className="mono">{review.snapshot.treeSha || "—"}</span>,
-                  },
-                  {
-                    term: "Archival ID (SWHID)",
-                    value: revisionSwhid ? (
-                      review.version.isExample ? (
-                        <span>
-                          <span className="mono">{revisionSwhid}</span>{" "}
-                          <Badge tone="warning">example — not archived</Badge>
-                        </span>
-                      ) : (
-                        <a className="mono" href={swhidArchiveUrl(revisionSwhid)}>
-                          {revisionSwhid}
-                        </a>
-                      )
-                    ) : (
-                      <span className="muted">—</span>
-                    ),
-                  },
-                  {
-                    term: "Source selection",
-                    value: review.version.sourceKind ?? "legacy capture",
-                  },
-                  {
-                    term: "Release",
-                    value: review.version.releaseTag ? (
-                      review.version.releaseUrl ? (
-                        <a href={review.version.releaseUrl}>{review.version.releaseTag}</a>
-                      ) : (
-                        review.version.releaseTag
-                      )
-                    ) : (
-                      <span className="muted">no release (repository-only)</span>
-                    ),
-                  },
-                  {
-                    term: "Version DOI",
-                    value: (
-                      <DoiValue
-                        value={review.version.versionDoi}
-                        isExample={review.version.isExample}
-                      />
-                    ),
-                  },
-                  {
-                    term: "Concept DOI",
-                    value: (
-                      <DoiValue
-                        value={review.version.conceptDoi}
-                        isExample={review.version.isExample}
-                      />
-                    ),
-                  },
-                  {
-                    term: "Zenodo record",
-                    value: review.version.zenodoRecordId ? (
-                      <span className="mono">{review.version.zenodoRecordId}</span>
-                    ) : (
-                      <span className="muted">—</span>
-                    ),
-                  },
-                  {
-                    term: "Published review",
-                    value: review.publishedReviewUrl ? (
-                      <a href={review.publishedReviewUrl}>{review.publishedReviewUrl}</a>
-                    ) : (
-                      <span className="muted">—</span>
-                    ),
-                  },
-                  {
-                    term: "License",
-                    value: review.licenseSpdx ?? <span className="muted">—</span>,
-                  },
-                ]}
-              />
-              {!review.version.versionDoi && !review.version.conceptDoi ? (
-                <Notice tone="info" title="Repository-only review">
-                  This review has no DOI. The repository owner can connect the repository to Zenodo
-                  and publish a GitHub release to mint one. See{" "}
-                  <a href="https://docs.github.com/repositories/archiving-a-github-repository/referencing-and-citing-content">
-                    the Zenodo–GitHub workflow
-                  </a>
-                  . Note that GitHub default-branch content may differ from a deposited release; the
-                  exact reviewed state is the commit above.
-                </Notice>
-              ) : null}
-              {review.version.capturePayloadHash ? (
-                <p className="mono muted" style={{ overflowWrap: "anywhere" }}>
-                  Accepted capture SHA-256 {review.version.capturePayloadHash}
-                </p>
-              ) : null}
-            </Card>
-
-            {review.version.publicationConsistency ? (
-              <Card title="Release / DOI / commit consistency">
-                <StatusPill status={review.version.publicationConsistency.status} />
-                <ul>
-                  {review.version.publicationConsistency.checks.map((check) => (
-                    <li key={check.id}>
-                      <span className="mono">{check.id}</span>: {check.outcome} —{" "}
-                      {check.description}
-                      {check.details ? ` (${check.details})` : ""}
-                    </li>
-                  ))}
-                </ul>
-                {review.version.editorialOverrides.length > 0 ? (
-                  <Notice tone="warning" title="Editorial exceptions">
-                    <ul>
-                      {review.version.editorialOverrides.map((override) => (
-                        <li key={override.checkId}>
-                          <span className="mono">{override.checkId}</span> — recorded by @
-                          {override.editorLogin}, {override.createdAt.slice(0, 10)}
-                        </li>
-                      ))}
-                    </ul>
-                  </Notice>
-                ) : null}
-                {review.version.editorialDecision ? (
-                  <p className="muted">
-                    Editorial decision by @{review.version.editorialDecision.actorLogin}:{" "}
-                    {review.version.editorialDecision.decision} · conflict of interest:{" "}
-                    {review.version.editorialDecision.conflictOfInterest.status}
-                    {review.version.editorialDecision.administratorOverride
-                      ? ` · ADMIN override by @${review.version.editorialDecision.administratorOverride.administrator.githubLogin} at ${review.version.editorialDecision.administratorOverride.exercisedAt}`
-                      : ""}
-                  </p>
-                ) : null}
-                <p className="muted">
-                  This report verifies identifier and source consistency. It does not judge the
-                  scientific correctness of the review.
-                </p>
-              </Card>
-            ) : null}
-          </div>
-
           <span id="linked-evidence" className="inspection-anchor" />
           <header className="review-section-heading">
             <p className="review-eyebrow">Structured inspection</p>
@@ -1047,6 +892,27 @@ export default async function ReviewPage({
             </p>
           </header>
 
+          <CommentsSection
+            reviewSlug={review.slug}
+            list={commentList}
+            claims={review.claims.map((c) => ({
+              localClaimId: c.localClaimId,
+              anchor: c.anchor,
+              text: c.text,
+            }))}
+            viewer={
+              user
+                ? {
+                    githubLogin: user.githubLogin,
+                    displayName: user.displayName,
+                    isEditor: isEditor(user),
+                  }
+                : null
+            }
+            readOnly={isHistoricalRoute}
+            initialClaimLocalId={initialCommentClaim}
+          />
+
           <div id="disagreements" className="inspection-anchor review-challenges-zone">
             <Card
               title={`Disagreements and formal challenges (${disagreementEntries.length + challengeList.challenges.length})`}
@@ -1087,26 +953,161 @@ export default async function ReviewPage({
             />
           </div>
 
-          <CommentsSection
-            reviewSlug={review.slug}
-            list={commentList}
-            claims={review.claims.map((c) => ({
-              localClaimId: c.localClaimId,
-              anchor: c.anchor,
-              text: c.text,
-            }))}
-            viewer={
-              user
-                ? {
-                    githubLogin: user.githubLogin,
-                    displayName: user.displayName,
-                    isEditor: isEditor(user),
-                  }
-                : null
-            }
-            readOnly={isHistoricalRoute}
-            initialClaimLocalId={initialCommentClaim}
-          />
+          <div className="review-source-details" id="record-details">
+            <Card title="Repository, version & identifiers">
+              <p className="prov-legend">
+                <ProvenanceBadge kind="repository-fact">Repository facts</ProvenanceBadge>
+              </p>
+              <DefinitionList
+                items={[
+                  {
+                    term: "Repository",
+                    value: (
+                      <a href={review.repository.canonicalUrl} className="mono">
+                        {review.repository.owner}/{review.repository.name}
+                      </a>
+                    ),
+                  },
+                  {
+                    term: "Exact commit",
+                    value: <span className="mono">{review.snapshot.commitSha || "—"}</span>,
+                  },
+                  {
+                    term: "Exact tree",
+                    value: <span className="mono">{review.snapshot.treeSha || "—"}</span>,
+                  },
+                  {
+                    term: "Archival ID (SWHID)",
+                    value: revisionSwhid ? (
+                      review.version.isExample ? (
+                        <span>
+                          <span className="mono">{revisionSwhid}</span>{" "}
+                          <Badge tone="warning">example — not archived</Badge>
+                        </span>
+                      ) : (
+                        <a className="mono" href={swhidArchiveUrl(revisionSwhid)}>
+                          {revisionSwhid}
+                        </a>
+                      )
+                    ) : (
+                      <span className="muted">—</span>
+                    ),
+                  },
+                  {
+                    term: "Source selection",
+                    value: review.version.sourceKind ?? "legacy capture",
+                  },
+                  {
+                    term: "Release",
+                    value: review.version.releaseTag ? (
+                      review.version.releaseUrl ? (
+                        <a href={review.version.releaseUrl}>{review.version.releaseTag}</a>
+                      ) : (
+                        review.version.releaseTag
+                      )
+                    ) : (
+                      <span className="muted">no release (repository-only)</span>
+                    ),
+                  },
+                  {
+                    term: "Version DOI",
+                    value: (
+                      <DoiValue
+                        value={review.version.versionDoi}
+                        isExample={review.version.isExample}
+                      />
+                    ),
+                  },
+                  {
+                    term: "Concept DOI",
+                    value: (
+                      <DoiValue
+                        value={review.version.conceptDoi}
+                        isExample={review.version.isExample}
+                      />
+                    ),
+                  },
+                  {
+                    term: "Zenodo record",
+                    value: review.version.zenodoRecordId ? (
+                      <span className="mono">{review.version.zenodoRecordId}</span>
+                    ) : (
+                      <span className="muted">—</span>
+                    ),
+                  },
+                  {
+                    term: "Published review",
+                    value: review.publishedReviewUrl ? (
+                      <a href={review.publishedReviewUrl}>{review.publishedReviewUrl}</a>
+                    ) : (
+                      <span className="muted">—</span>
+                    ),
+                  },
+                  {
+                    term: "License",
+                    value: review.licenseSpdx ?? <span className="muted">—</span>,
+                  },
+                ]}
+              />
+              {!review.version.versionDoi && !review.version.conceptDoi ? (
+                <Notice tone="info" title="Repository-only review">
+                  This review has no DOI. The repository owner can connect the repository to Zenodo
+                  and publish a GitHub release to mint one. See{" "}
+                  <a href="https://docs.github.com/repositories/archiving-a-github-repository/referencing-and-citing-content">
+                    the Zenodo–GitHub workflow
+                  </a>
+                  . Note that GitHub default-branch content may differ from a deposited release; the
+                  exact reviewed state is the commit above.
+                </Notice>
+              ) : null}
+              {review.version.capturePayloadHash ? (
+                <p className="mono muted" style={{ overflowWrap: "anywhere" }}>
+                  Accepted capture SHA-256 {review.version.capturePayloadHash}
+                </p>
+              ) : null}
+            </Card>
+
+            {review.version.publicationConsistency ? (
+              <Card title="Release / DOI / commit consistency">
+                <StatusPill status={review.version.publicationConsistency.status} />
+                <ul>
+                  {review.version.publicationConsistency.checks.map((check) => (
+                    <li key={check.id}>
+                      <span className="mono">{check.id}</span>: {check.outcome} —{" "}
+                      {check.description}
+                      {check.details ? ` (${check.details})` : ""}
+                    </li>
+                  ))}
+                </ul>
+                {review.version.editorialOverrides.length > 0 ? (
+                  <Notice tone="warning" title="Editorial exceptions">
+                    <ul>
+                      {review.version.editorialOverrides.map((override) => (
+                        <li key={override.checkId}>
+                          <span className="mono">{override.checkId}</span> — recorded by @
+                          {override.editorLogin}, {override.createdAt.slice(0, 10)}
+                        </li>
+                      ))}
+                    </ul>
+                  </Notice>
+                ) : null}
+                {review.version.editorialDecision ? (
+                  <p className="muted">
+                    Editorial decision by @{review.version.editorialDecision.actorLogin}:{" "}
+                    {review.version.editorialDecision.decision} · conflict of interest:{" "}
+                    {review.version.editorialDecision.conflictOfInterest.status}
+                    {review.version.editorialDecision.administratorOverride
+                      ? ` · ADMIN override by @${review.version.editorialDecision.administratorOverride.administrator.githubLogin} at ${review.version.editorialDecision.administratorOverride.exercisedAt}`
+                      : ""}
+                  </p>
+                ) : null}
+                <p className="muted">
+                  This report verifies identifier and source consistency. It does not judge the
+                  scientific correctness of the review.
+                </p>
+              </Card>
+            ) : null}
+          </div>
         </div>
 
         <aside className="review-utility-panel" aria-labelledby="review-tools-title">
