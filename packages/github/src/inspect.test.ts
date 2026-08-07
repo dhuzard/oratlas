@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_LIMITS, inspectRepository, extractDoisFromText } from "./inspect.js";
+import {
+  DEFAULT_LIMITS,
+  inspectRepository,
+  extractDoisFromText,
+  mystDocumentPaths,
+} from "./inspect.js";
 import { createFakeTransport } from "./testing.js";
 import {
   CLAIM_NODE_JSON,
@@ -13,9 +18,17 @@ describe("inspectRepository", () => {
   it("allows bounded enriched-review artifacts while retaining a shared cap", () => {
     expect(DEFAULT_LIMITS).toMatchObject({
       maxFileBytes: 3 * 1024 * 1024,
-      maxTotalBytes: 6 * 1024 * 1024,
-      maxFileCount: 24,
+      maxTotalBytes: 16 * 1024 * 1024,
+      maxFileCount: 96,
     });
+  });
+
+  it("extracts only safe Markdown and notebook paths from a nested MyST TOC", () => {
+    expect(
+      mystDocumentPaths(
+        `project:\n  toc:\n    - file: README.md\n    - title: Chapters\n      children:\n        - file: content/results.md\n        - file: content/analysis.ipynb\n        - file: ../secret.md\n        - file: https://example.com/remote.md\n`,
+      ),
+    ).toEqual(["README.md", "content/results.md", "content/analysis.ipynb"]);
   });
 
   it("fetches large textual content from the immutable tree blob", async () => {
@@ -75,6 +88,8 @@ describe("inspectRepository", () => {
     expect(report.pagesUrl).toBe("https://example-lab.github.io/hippocampal-replay-review/");
     expect(Object.keys(report.files)).toContain("review-manifest.json");
     expect(Object.keys(report.files)).toContain("knowledge/claims.jsonl");
+    expect(report.files["content/00_frontmatter.md"]?.content).toContain("Abstract");
+    expect(report.files["content/provenance.md"]?.content).toContain("Pipeline run log");
     expect(report.files["review-manifest.json"]?.content).toContain("schemaVersion");
   });
 

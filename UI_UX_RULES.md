@@ -52,13 +52,14 @@ an exact repository version for editorial consideration.
 - Graphs disclose why records appear, result bounds or truncation, and honest empty states. Demo
   content is unmistakably labelled.
 
-### Current POC boundary
+### Current safe-rendering boundary
 
-The safe reader currently preserves one captured Markdown/MyST document and structured claim
-annotations. Full multi-file MyST tree preservation and exact citation or mention discussion
-anchors are follow-up work tracked in
-[#160](https://github.com/dhuzard/oratlas/issues/160); the UI must state this limitation rather
-than imply full MyST fidelity.
+The reader captures the Markdown and notebook files explicitly listed by the pinned `myst.yml`
+table of contents, parses them into a sanitized MyST AST, and renders source TRUST v2 assertions as
+a provenance-distinct layer. Repository HTML, iframes, styles, and plugins are never executed.
+Relative figures resolve against the exact accepted commit. Exact passage discussion anchors remain
+follow-up work tracked in [#160](https://github.com/dhuzard/oratlas/issues/160); the UI must not imply
+that whole-review or claim comments are already passage annotations.
 
 ## 3. Let the knowledge graph evolve without hidden mutation
 

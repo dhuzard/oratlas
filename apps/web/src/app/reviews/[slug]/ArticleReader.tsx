@@ -1,28 +1,13 @@
 import Link from "next/link";
 import { Badge } from "@oratlas/ui";
-import { type ArticleBlock, type ArticleDocument } from "@/lib/article-reader";
+import { type ArticleDocument } from "@/lib/article-reader";
+import { EnrichedMystReader } from "./EnrichedMystReader";
 
 interface AnchoredClaim {
   anchor: string;
   localClaimId: string;
   text: string;
   section?: string;
-}
-
-function Heading({ block }: { block: Extract<ArticleBlock, { kind: "heading" }> }) {
-  const props = { id: block.id, children: block.text };
-  switch (block.level) {
-    case 1:
-      return <h2 {...props} />;
-    case 2:
-      return <h3 {...props} />;
-    case 3:
-      return <h4 {...props} />;
-    case 4:
-      return <h5 {...props} />;
-    default:
-      return <h6 {...props} />;
-  }
 }
 
 export function ArticleReader({
@@ -50,46 +35,14 @@ export function ArticleReader({
           <p className="muted">
             Read from the accepted database snapshot, never from the mutable upstream repository.
             Repository HTML and MyST plugins are never executed. ORAtlas safely renders the captured
-            document structure. Source <span className="mono">{document.path}</span> · SHA-256{" "}
-            <span className="mono">{document.sha256}</span>
+            document structure. {document.pages.length} preserved page
+            {document.pages.length === 1 ? "" : "s"} · {document.sourceTrustCount} source TRUST
+            annotation{document.sourceTrustCount === 1 ? "" : "s"} · rendering{" "}
+            <span className="mono">{document.rendering}</span>
           </p>
         </details>
       </header>
-      {document.toc.length > 0 ? (
-        <details className="review-reader-toc" open>
-          <summary>Contents</summary>
-          <nav aria-label="Article table of contents">
-            <ol>
-              {document.toc.map((entry) => (
-                <li key={entry.id} style={{ marginLeft: `${Math.max(entry.level - 1, 0)}rem` }}>
-                  <a href={`#${entry.id}`}>{entry.text}</a>
-                </li>
-              ))}
-            </ol>
-          </nav>
-        </details>
-      ) : null}
-      <div className="prose preserved-article">
-        {document.blocks.map((block, index) => {
-          if (block.kind === "heading") return <Heading block={block} key={block.id} />;
-          if (block.kind === "paragraph") return <p key={index}>{block.text}</p>;
-          if (block.kind === "code") {
-            return (
-              <pre key={index}>
-                <code>{block.text}</code>
-              </pre>
-            );
-          }
-          const List = block.ordered ? "ol" : "ul";
-          return (
-            <List key={index}>
-              {block.items.map((item, itemIndex) => (
-                <li key={itemIndex}>{item}</li>
-              ))}
-            </List>
-          );
-        })}
-      </div>
+      <EnrichedMystReader document={document} />
       {claims.length > 0 ? (
         <section aria-labelledby="atlas-claim-index">
           <h3 id="atlas-claim-index">Atlas claim anchors</h3>

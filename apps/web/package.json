@@ -11,6 +11,7 @@
     "test:e2e": "playwright test"
   },
   "dependencies": {
+    "@myst-theme/providers": "1.3.1",
     "@oratlas/config": "workspace:*",
     "@oratlas/contracts": "workspace:*",
     "@oratlas/db": "workspace:*",
@@ -24,10 +25,13 @@
     "@oratlas/trust": "workspace:*",
     "@oratlas/ui": "workspace:*",
     "@oratlas/zenodo": "workspace:*",
+    "myst-parser": "1.7.3",
+    "myst-to-react": "1.3.1",
     "next": "^15.3.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "server-only": "^0.0.1",
+    "yaml": "^2.9.0",
     "zod": "^3.25.0"
   },
   "devDependencies": {
