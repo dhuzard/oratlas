@@ -11,11 +11,11 @@ export const metadata: Metadata = {
     template: "%s · Open Review Atlas",
   },
   description:
-    "The arXiv for AI-generated scientific reviews: inspect claims, linked evidence, and independent assessments or disagreements without rewriting the original record.",
+    "The arXiv for AI-generated scientific reviews: discover preserved reviews, then inspect their claims, evidence, assessments, and disagreements.",
   openGraph: {
     title: "Open Review Atlas",
     description:
-      "Inspect claims, linked evidence, and independent assessments across versioned AI-generated scientific reviews.",
+      "Discover preserved AI-generated scientific reviews and inspect their claims, evidence, assessments, and disagreements.",
     type: "website",
   },
   robots: { index: true, follow: true },

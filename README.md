@@ -2,12 +2,12 @@
 
 **The arXiv for AI-generated scientific reviews.**
 
-ORAtlas is a proof-of-concept public archive where readers can inspect a scientific claim, its
-linked evidence, and the independent assessments, challenges, or disagreements around it—without
-rewriting the original record. It provides a claim-first path through preserved reviews while
-keeping every source, assessment, and later interpretation distinct.
+ORAtlas is a proof-of-concept public archive where readers first discover and read deposited AI
+reviews, then inspect a scientific claim, its linked evidence, and the independent assessments,
+challenges, or disagreements around it—without rewriting the original record. It keeps every
+source, assessment, and later interpretation distinct.
 
-Authors do not upload manuscripts. They submit the URL of a public GitHub repository containing
+Authors do not upload manuscripts. They deposit the URL of a public GitHub repository containing
 a review built with, forked from, or structurally compatible with the
 [AllenNeuralDynamics/ComputationalReviewTemplate](https://github.com/AllenNeuralDynamics/ComputationalReviewTemplate).
 The platform inspects the repository, extracts metadata deterministically, validates optional
@@ -23,18 +23,21 @@ briefs, and editor-accepted AI synthesis build on those records without silently
 
 The POC ships a restrained, scholarly server-rendered interface:
 
-- **Home** — the central promise, claim-first search, a short explanation, and recently accepted
-  reviews.
-- **Explore** — asks what the reader wants to understand, then uses the declared topic and interest
-  lenses to recommend a bounded path through explicitly linked graph nodes. Every recommendation
-  explains why it appeared and links to the exact preserved node version; the complete canonical
-  result list remains available below it.
+- **Reviews** — the review-first archive for searching and browsing accepted, immutable deposits.
+- **Create & deposit** — a practical guide from the Allen AI-review workflow to exact-version
+  repository inspection, validation, and editorial deposit.
+- **Compare** — a neutral side-by-side view of review coverage, claims, evidence relations, and
+  TRUST records, without a universal score or ranking.
+- **Explore evidence** — asks what the reader wants to understand, then uses the declared topic and
+  interest lenses to recommend a bounded path through explicitly linked graph nodes. Every
+  recommendation explains why it appeared and links to the exact preserved node version; the
+  complete canonical result list remains available below it.
 - **Claim passport** — one claim with its linked evidence, assessments, disagreements, provenance,
   and preserved review context.
 - **Review record** — the archived article, exact claim anchors, repository and commit identity,
   citations, TRUST assessments, version diff, challenges, and lifecycle notices.
-- **Submission wizard** — repository → inspect → editable metadata with per-field provenance →
-  validate → submit.
+- **Deposit wizard** — repository → inspect → editable metadata with per-field provenance →
+  validate → deposit for an editorial decision.
 - **Specialist tools** — Research objects, Evidence graph, Disagreement map, Coverage gaps,
   Replication briefs, and Grounded Q&A, available when deeper analysis is useful.
 - **AI synthesis review** — editor-accepted, software-generated long-form review with exact
@@ -179,7 +182,11 @@ datasource provider to `postgresql`, set `SESSION_SECRET`, run `prisma migrate d
 `pnpm --filter @oratlas/web build && pnpm --filter @oratlas/web start`. See
 [`docs/deployment.md`](docs/deployment.md).
 
-## How authors submit a GitHub review
+## How authors create and deposit an AI review
+
+Authors first generate and verify the review in a repository based on the
+[AllenNeuralDynamics Computational Review Template](https://github.com/AllenNeuralDynamics/ComputationalReviewTemplate).
+ORAtlas then deposits one exact, immutable repository version into its editorial workflow:
 
 1. Sign in with GitHub (or the dev mock).
 2. Paste a **public** GitHub repository URL. The platform normalizes and validates it
@@ -191,7 +198,7 @@ datasource provider to `postgresql`, set `SESSION_SECRET`, run `prisma migrate d
 4. Review and correct the extracted metadata. Edits are stored separately from extracted values.
 5. Review the validation report (compatibility, DOI validation, release, completeness, evidence
    and TRUST availability).
-6. Submit the user-bound, 30-minute, single-use capture capability. GitHub is not read again.
+6. Deposit the user-bound, 30-minute, single-use capture capability. GitHub is not read again.
    The canonical capture and immutable snapshot enter the editorial workflow.
 7. An editor accepts, rejects, or requests changes. Acceptance is transactional and idempotent;
    failed release/DOI/commit checks require separate, audited override rationales.
@@ -201,7 +208,7 @@ Corrections link immutable versions; withdrawals remain visibly marked but are r
 Grounded Q&A. Tombstones fail closed across pages, APIs, comments, search, claims, discussion,
 assets, exports and feeds. See [`docs/article-lifecycle.md`](docs/article-lifecycle.md).
 
-You do **not** need to own the submitted repository; you are recorded as the submitter, distinct
+You do **not** need to own the deposited repository; you are recorded as the depositor, distinct
 from the repository's authors and maintainers.
 
 ## How Zenodo DOI linking works
@@ -285,6 +292,7 @@ A full inventory of limitations lives in [`docs/poc-limitations.md`](docs/poc-li
 | [`docs/operations/`](docs/operations/README.md)                                                | Backups, observability, Postgres, privacy & takedown      |
 | [`docs/poc-limitations.md`](docs/poc-limitations.md)                                           | What the POC deliberately does not do                     |
 | [`docs/poc-review-corpus.md`](docs/poc-review-corpus.md)                                       | Real-repository POC corpus, critiques, and fixes          |
+| [`UI_UX_RULES.md`](UI_UX_RULES.md)                                                             | Normative UI journeys, terminology, and release gates     |
 | [`docs/product-experience.md`](docs/product-experience.md)                                     | Product model, primary journeys, and UX semantics         |
 | [`docs/openapi.yaml`](docs/openapi.yaml)                                                       | API description                                           |
 | [`PLAN.md`](PLAN.md)                                                                           | Shipped implementation plan                               |

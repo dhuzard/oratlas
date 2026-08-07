@@ -1,5 +1,8 @@
 # ORAtlas product experience
 
+This document explains the product model, information architecture, and scientific semantics. The
+normative UI terminology and release gates live in [`UI_UX_RULES.md`](../UI_UX_RULES.md).
+
 ORAtlas is a public archive for AI-generated scientific reviews. It complements the Allen
 computational-review workflow rather than replacing it:
 
