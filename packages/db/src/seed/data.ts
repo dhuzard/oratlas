@@ -11,6 +11,8 @@ import {
   type AssessmentReviewStatus,
   type ClaimType,
   type KnowledgeNode,
+  type LinkProposalStatus,
+  type LinkProposalType,
   type NodeEdge,
   type ReviewType,
   type TrustOrdinal,
@@ -1327,7 +1329,23 @@ export const pendingSubmission = {
 };
 
 /** Human-reviewable cross-review proposals; none are promoted to evidence automatically. */
-export const linkProposals = [
+export interface SeedLinkProposal {
+  sourceReviewSlug: string;
+  sourceClaimLocalId: string;
+  targetReviewSlug: string;
+  targetClaimLocalId: string;
+  proposedRelation: LinkProposalType;
+  rationale: string;
+  features: {
+    sharedCitations: string[];
+    normalizedTokenOverlap: number;
+    method: string;
+  };
+  agentProvenance: string;
+  status: LinkProposalStatus;
+}
+
+export const linkProposals: SeedLinkProposal[] = [
   {
     sourceReviewSlug: reviewWithDoi.slug,
     sourceClaimLocalId: "claim-001",
@@ -1345,9 +1363,9 @@ export const linkProposals = [
     sourceClaimLocalId: "vip-contextual-disinhibition",
     targetReviewSlug: openscopeP3DataRelease.slug,
     targetClaimLocalId: "cross-context-design",
-    proposedRelation: "methodologically-relevant",
+    proposedRelation: "methodological-dependency",
     rationale:
-      "The OpenScope cross-context design could test context-conditioned cortical circuit predictions, but this conceptual connection is not itself supporting evidence for the VIP synthesis.",
+      "The OpenScope cross-context design is a potential methodological dependency for testing context-conditioned cortical circuit predictions, but this proposal is not itself supporting evidence for the VIP synthesis.",
     features: {
       sharedCitations: [],
       normalizedTokenOverlap: 0.08,

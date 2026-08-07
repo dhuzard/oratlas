@@ -891,7 +891,13 @@ async function main() {
     const targetClaimId = claimIdsBySlug
       .get(proposal.targetReviewSlug)
       ?.get(proposal.targetClaimLocalId);
-    if (!sourceClaimId || !targetClaimId) continue;
+    if (!sourceClaimId || !targetClaimId) {
+      throw new Error(
+        `Cannot seed cross-review link proposal: unresolved ${!sourceClaimId ? "source" : "target"} claim ` +
+          `(${proposal.sourceReviewSlug}:${proposal.sourceClaimLocalId} -> ` +
+          `${proposal.targetReviewSlug}:${proposal.targetClaimLocalId}).`,
+      );
+    }
     await prisma.knowledgeLinkProposal.create({
       data: {
         sourceClaimId,

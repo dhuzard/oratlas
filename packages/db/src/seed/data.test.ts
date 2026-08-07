@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { knowledgeNodeSchema, nodeEdgeSchema } from "@oratlas/contracts";
+import { knowledgeNodeSchema, linkProposalTypeSchema, nodeEdgeSchema } from "@oratlas/contracts";
 import {
+  linkProposals,
   openscopeP3DataRelease,
   pendingSubmission,
   seedKnowledgeNodes,
@@ -83,6 +84,24 @@ describe("seed snapshot identities", () => {
     expect(
       openscopeP3DataRelease.claims.some((claim) => claim.claimType === "provenance-limitation"),
     ).toBe(true);
+  });
+
+  it("keeps cross-review proposals typed and connected to seeded claims", () => {
+    const claimKeys = new Set(
+      seedReviews.flatMap((review) =>
+        review.claims.map((claim) => `${review.slug}:${claim.localId}`),
+      ),
+    );
+
+    for (const proposal of linkProposals) {
+      expect(linkProposalTypeSchema.safeParse(proposal.proposedRelation).success).toBe(true);
+      expect(claimKeys.has(`${proposal.sourceReviewSlug}:${proposal.sourceClaimLocalId}`)).toBe(
+        true,
+      );
+      expect(claimKeys.has(`${proposal.targetReviewSlug}:${proposal.targetClaimLocalId}`)).toBe(
+        true,
+      );
+    }
   });
 });
 
