@@ -2,12 +2,12 @@
 
 **The arXiv for AI-generated scientific reviews.**
 
-ORAtlas is a proof-of-concept public archive where readers can inspect a scientific claim, its
-linked evidence, and the independent assessments, challenges, or disagreements around it—without
-rewriting the original record. It provides a claim-first path through preserved reviews while
-keeping every source, assessment, and later interpretation distinct.
+ORAtlas is a proof-of-concept public archive where readers first discover and read deposited AI
+reviews, then inspect a scientific claim, its linked evidence, and the independent assessments,
+challenges, or disagreements around it—without rewriting the original record. It keeps every
+source, assessment, and later interpretation distinct.
 
-Authors do not upload manuscripts. They submit the URL of a public GitHub repository containing
+Authors do not upload manuscripts. They deposit the URL of a public GitHub repository containing
 a review built with, forked from, or structurally compatible with the
 [AllenNeuralDynamics/ComputationalReviewTemplate](https://github.com/AllenNeuralDynamics/ComputationalReviewTemplate).
 The platform inspects the repository, extracts metadata deterministically, validates optional
@@ -23,18 +23,21 @@ briefs, and editor-accepted AI synthesis build on those records without silently
 
 The POC ships a restrained, scholarly server-rendered interface:
 
-- **Home** — the central promise, claim-first search, a short explanation, and recently accepted
-  reviews.
-- **Explore** — asks what the reader wants to understand, then uses the declared topic and interest
-  lenses to recommend a bounded path through explicitly linked graph nodes. Every recommendation
-  explains why it appeared and links to the exact preserved node version; the complete canonical
-  result list remains available below it.
+- **Reviews** — the review-first archive for searching and browsing accepted, immutable deposits.
+- **Create & deposit** — a practical guide from the Allen AI-review workflow to exact-version
+  repository inspection, validation, and editorial deposit.
+- **Compare** — a neutral side-by-side view of review coverage, claims, evidence relations, and
+  TRUST records, without a universal score or ranking.
+- **Explore evidence** — asks what the reader wants to understand, then uses the declared topic and
+  interest lenses to recommend a bounded path through explicitly linked graph nodes. Every
+  recommendation explains why it appeared and links to the exact preserved node version; the
+  complete canonical result list remains available below it.
 - **Claim passport** — one claim with its linked evidence, assessments, disagreements, provenance,
   and preserved review context.
 - **Review record** — the archived article, exact claim anchors, repository and commit identity,
   citations, TRUST assessments, version diff, challenges, and lifecycle notices.
-- **Submission wizard** — repository → inspect → editable metadata with per-field provenance →
-  validate → submit.
+- **Deposit wizard** — repository → inspect → editable metadata with per-field provenance →
+  validate → deposit for an editorial decision.
 - **Specialist tools** — Research objects, Evidence graph, Disagreement map, Coverage gaps,
   Replication briefs, and Grounded Q&A, available when deeper analysis is useful.
 - **AI synthesis review** — editor-accepted, software-generated long-form review with exact
@@ -285,6 +288,7 @@ A full inventory of limitations lives in [`docs/poc-limitations.md`](docs/poc-li
 | [`docs/operations/`](docs/operations/README.md)                                                | Backups, observability, Postgres, privacy & takedown      |
 | [`docs/poc-limitations.md`](docs/poc-limitations.md)                                           | What the POC deliberately does not do                     |
 | [`docs/poc-review-corpus.md`](docs/poc-review-corpus.md)                                       | Real-repository POC corpus, critiques, and fixes          |
+| [`UI_UX_RULES.md`](UI_UX_RULES.md)                                                             | Normative UI journeys, terminology, and release gates     |
 | [`docs/product-experience.md`](docs/product-experience.md)                                     | Product model, primary journeys, and UX semantics         |
 | [`docs/openapi.yaml`](docs/openapi.yaml)                                                       | API description                                           |
 | [`PLAN.md`](PLAN.md)                                                                           | Shipped implementation plan                               |

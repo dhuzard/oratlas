@@ -4,6 +4,10 @@
 > Readers must be able to inspect a preserved review, move to a claim and its evidence, discuss or
 > challenge it, and derive new synthesis without overwriting the original record.
 
+This file is the normative UI and release contract. See
+[`docs/product-experience.md`](docs/product-experience.md) for the information architecture,
+scientific semantics, and current implementation boundary.
+
 ## 1. Make the operating model obvious
 
 A first-time visitor should understand within ten seconds that:
@@ -12,11 +16,12 @@ A first-time visitor should understand within ten seconds that:
   the official
   [AllenNeuralDynamics Computational Review Template](https://github.com/AllenNeuralDynamics/ComputationalReviewTemplate);
 - ORAtlas captures an **exact release, tag, or commit** rather than accepting a manuscript upload;
-- GitHub sign-in is required for submission and attributable participation; and
+- GitHub sign-in is required for deposit and attributable participation; and
 - archive acceptance is an **editorial decision**, not peer review, correctness, or consensus.
 
-The primary actions are **Generate an AI review**, **Submit a GitHub review**, and **Explore claims
-and evidence**.
+The primary actions are **Browse reviews**, **Explore evidence**, **Compare reviews**, and **Create
+& deposit**. Review generation happens in the Allen workflow; ORAtlas explains that workflow and
+then accepts an exact repository version for editorial consideration.
 
 ### Five-step author flow
 
@@ -27,7 +32,7 @@ and evidence**.
 4. Push the complete repository and publish an immutable tag or GitHub release. A Zenodo DOI is
    recommended, not required.
 5. Sign in to ORAtlas, paste the repository URL, choose the exact source version, verify the
-   extracted metadata and validation report, and submit it for acceptance, changes, or rejection.
+   extracted metadata and validation report, and deposit it for acceptance, changes, or rejection.
 
 ## 2. Preserve the review first and anchor participation
 
@@ -46,6 +51,14 @@ and evidence**.
   readable but read-only; moderation leaves an auditable tombstone.
 - Graphs disclose why records appear, result bounds or truncation, and honest empty states. Demo
   content is unmistakably labelled.
+
+### Current POC boundary
+
+The safe reader currently preserves one captured Markdown/MyST document and structured claim
+annotations. Full multi-file MyST tree preservation and exact citation or mention discussion
+anchors are follow-up work tracked in
+[#160](https://github.com/dhuzard/oratlas/issues/160); the UI must state this limitation rather
+than imply full MyST fidelity.
 
 ## 3. Let the knowledge graph evolve without hidden mutation
 
@@ -81,7 +94,7 @@ and evidence**.
 A route or button is not sufficient. Releases must verify these journeys with real, non-demo
 accepted records:
 
-1. Home → Allen template guidance → clear submission instructions.
+1. Home → review archive → Create & deposit → Allen template guidance → clear deposit instructions.
 2. GitHub sign-in → repository inspection → exact-version capture → validation → editorial status →
    public immutable review.
 3. Full review and figures → claim → evidence → assessment/disagreement → provenance.
@@ -96,6 +109,6 @@ exact source versions.
 
 ## Language rules
 
-Use **submit repository**, **accepted into the archive**, **AI-generated synthesis**, **proposed
+Use **deposit repository**, **accepted into the archive**, **AI-generated synthesis**, **proposed
 relation**, and **editor-confirmed relation**. Avoid **upload paper**, **peer-reviewed**, **truth
 score**, or **consensus** unless the underlying record explicitly supports that wording.
