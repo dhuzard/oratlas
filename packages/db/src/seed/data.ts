@@ -9,8 +9,10 @@
  */
 import {
   type AssessmentReviewStatus,
+  type ClaimType,
   type KnowledgeNode,
   type NodeEdge,
+  type ReviewType,
   type TrustOrdinal,
 } from "@oratlas/contracts";
 
@@ -35,7 +37,7 @@ export interface SeedClaim {
   text: string;
   section?: string;
   anchor?: string;
-  claimType?: string;
+  claimType?: ClaimType;
   qualification?: string;
   scope?: {
     population?: string;
@@ -90,7 +92,7 @@ export interface SeedReview {
   slug: string;
   title: string;
   abstract: string;
-  reviewType: string;
+  reviewType: ReviewType;
   licenseSpdx: string;
   status: string;
   publishedReviewUrl?: string;

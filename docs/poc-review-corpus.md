@@ -60,8 +60,8 @@ article under an upstream filename; readers are sent to the pinned repository an
 
 1. Add an upstream export from the Computational Review pipeline to ORAtlas claim, citation,
    relation, and TRUST JSONL, including per-triple verification outcomes.
-2. Add first-class claim semantics for `finding`, `synthesis`, `model-derived`, `study-design`,
-   `resource-capability`, and `hypothesis-capability`, with result-only filters in Explore.
+2. Add grouped labels and result-only filters in Explore for the first-class `synthesis`,
+   `model-derived`, `study-design`, `resource-capability`, and `hypothesis-capability` semantics.
 3. Add structured species, area, layer, state, subtype, cohort, modality, and dataset-version facets
    so comparisons do not silently cross incompatible scopes.
 4. Promote immutable dataset releases and analysis outputs to first-class evidence nodes instead of
