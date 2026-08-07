@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Card, Badge } from "@oratlas/ui";
 import { type ArticleBlock, type ArticleDocument } from "@/lib/article-reader";
 
@@ -90,11 +91,11 @@ export function ArticleReader({
                 {claim.section ? <span className="muted">§ {claim.section}</span> : null}
                 <a href={`#${claim.anchor}-evidence`}>Evidence and discussion</a>
                 {discussionEnabled ? (
-                  <a
+                  <Link
                     href={`/reviews/${encodeURIComponent(reviewSlug)}?commentOn=${encodeURIComponent(claim.localClaimId)}#community-review`}
                   >
                     Comment on this claim
-                  </a>
+                  </Link>
                 ) : null}
               </div>
             </div>

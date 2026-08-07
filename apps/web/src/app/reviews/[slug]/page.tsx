@@ -186,15 +186,15 @@ export default async function ReviewPage({
   }
 
   const supportingByCitation = new Map<string, number>();
-  const claimIdsByCitation = new Map<string, string[]>();
+  const claimIdsByCitation = new Map<string, Set<string>>();
   for (const c of review.claims) {
     for (const r of c.relations) {
       supportingByCitation.set(
         r.citationLocalId,
         (supportingByCitation.get(r.citationLocalId) ?? 0) + 1,
       );
-      const claimIds = claimIdsByCitation.get(r.citationLocalId) ?? [];
-      if (!claimIds.includes(c.localClaimId)) claimIds.push(c.localClaimId);
+      const claimIds = claimIdsByCitation.get(r.citationLocalId) ?? new Set<string>();
+      claimIds.add(c.localClaimId);
       claimIdsByCitation.set(r.citationLocalId, claimIds);
     }
   }
@@ -869,16 +869,18 @@ export default async function ReviewPage({
                         <td>
                           {supportingByCitation.get(c.localCitationId) ?? 0} claim(s)
                           {!isHistoricalRoute
-                            ? (claimIdsByCitation.get(c.localCitationId) ?? []).map((claimId) => (
-                                <span key={claimId}>
-                                  {" "}
-                                  <Link
-                                    href={`/reviews/${encodeURIComponent(review.slug)}?commentOn=${encodeURIComponent(claimId)}#community-review`}
-                                  >
-                                    discuss via {claimId}
-                                  </Link>
-                                </span>
-                              ))
+                            ? [...(claimIdsByCitation.get(c.localCitationId) ?? [])].map(
+                                (claimId) => (
+                                  <span key={claimId}>
+                                    {" "}
+                                    <Link
+                                      href={`/reviews/${encodeURIComponent(review.slug)}?commentOn=${encodeURIComponent(claimId)}#community-review`}
+                                    >
+                                      discuss via {claimId}
+                                    </Link>
+                                  </span>
+                                ),
+                              )
                             : null}
                         </td>
                       </tr>
