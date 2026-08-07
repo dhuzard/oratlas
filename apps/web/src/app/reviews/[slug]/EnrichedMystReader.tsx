@@ -203,7 +203,6 @@ function selectionFrom(
     return null;
   }
   const renderedText = container.textContent ?? "";
-  if (renderedText !== canonicalText) return null;
   const before = range.cloneRange();
   before.selectNodeContents(container);
   before.setEnd(range.startContainer, range.startOffset);
@@ -212,9 +211,37 @@ function selectionFrom(
   const exact = rawExact.trim();
   if (!exact || codePointLength(exact) > 2_000) return null;
   const startCodeUnit = before.toString().length + leading;
-  const start = codePointLength(renderedText.slice(0, startCodeUnit));
+  const expectedStart = codePointLength(renderedText.slice(0, startCodeUnit));
+  const domCodePoints = Array.from(renderedText);
+  const domPrefix = domCodePoints.slice(Math.max(0, expectedStart - 96), expectedStart).join("");
+  const domSuffix = domCodePoints
+    .slice(expectedStart + codePointLength(exact), expectedStart + codePointLength(exact) + 96)
+    .join("");
+  let canonicalOffset = canonicalText.indexOf(exact);
+  let bestStart = -1;
+  let bestDistance = Number.POSITIVE_INFINITY;
+  const canonicalCodePoints = Array.from(canonicalText);
+  while (canonicalOffset >= 0) {
+    const candidateStart = codePointLength(canonicalText.slice(0, canonicalOffset));
+    const candidatePrefix = canonicalCodePoints
+      .slice(Math.max(0, candidateStart - 96), candidateStart)
+      .join("");
+    const candidateSuffix = canonicalCodePoints
+      .slice(candidateStart + codePointLength(exact), candidateStart + codePointLength(exact) + 96)
+      .join("");
+    const distance =
+      Math.abs(candidateStart - expectedStart) +
+      (candidatePrefix === domPrefix ? 0 : 10_000) +
+      (candidateSuffix === domSuffix ? 0 : 10_000);
+    if (distance < bestDistance) {
+      bestStart = candidateStart;
+      bestDistance = distance;
+    }
+    canonicalOffset = canonicalText.indexOf(exact, canonicalOffset + exact.length);
+  }
+  if (bestStart < 0) return null;
+  const start = bestStart;
   const end = start + codePointLength(exact);
-  const renderedCodePoints = Array.from(renderedText);
   const element =
     range.startContainer instanceof Element
       ? range.startContainer
@@ -233,8 +260,8 @@ function selectionFrom(
       textQuote: {
         type: "TextQuoteSelector" as const,
         exact,
-        prefix: renderedCodePoints.slice(Math.max(0, start - 96), start).join(""),
-        suffix: renderedCodePoints.slice(end, end + 96).join(""),
+        prefix: canonicalCodePoints.slice(Math.max(0, start - 96), start).join(""),
+        suffix: canonicalCodePoints.slice(end, end + 96).join(""),
       },
       textPosition: { type: "TextPositionSelector" as const, start, end },
     },
