@@ -182,7 +182,11 @@ datasource provider to `postgresql`, set `SESSION_SECRET`, run `prisma migrate d
 `pnpm --filter @oratlas/web build && pnpm --filter @oratlas/web start`. See
 [`docs/deployment.md`](docs/deployment.md).
 
-## How authors submit a GitHub review
+## How authors create and deposit an AI review
+
+Authors first generate and verify the review in a repository based on the
+[AllenNeuralDynamics Computational Review Template](https://github.com/AllenNeuralDynamics/ComputationalReviewTemplate).
+ORAtlas then deposits one exact, immutable repository version into its editorial workflow:
 
 1. Sign in with GitHub (or the dev mock).
 2. Paste a **public** GitHub repository URL. The platform normalizes and validates it
@@ -194,7 +198,7 @@ datasource provider to `postgresql`, set `SESSION_SECRET`, run `prisma migrate d
 4. Review and correct the extracted metadata. Edits are stored separately from extracted values.
 5. Review the validation report (compatibility, DOI validation, release, completeness, evidence
    and TRUST availability).
-6. Submit the user-bound, 30-minute, single-use capture capability. GitHub is not read again.
+6. Deposit the user-bound, 30-minute, single-use capture capability. GitHub is not read again.
    The canonical capture and immutable snapshot enter the editorial workflow.
 7. An editor accepts, rejects, or requests changes. Acceptance is transactional and idempotent;
    failed release/DOI/commit checks require separate, audited override rationales.
@@ -204,7 +208,7 @@ Corrections link immutable versions; withdrawals remain visibly marked but are r
 Grounded Q&A. Tombstones fail closed across pages, APIs, comments, search, claims, discussion,
 assets, exports and feeds. See [`docs/article-lifecycle.md`](docs/article-lifecycle.md).
 
-You do **not** need to own the submitted repository; you are recorded as the submitter, distinct
+You do **not** need to own the deposited repository; you are recorded as the depositor, distinct
 from the repository's authors and maintainers.
 
 ## How Zenodo DOI linking works
