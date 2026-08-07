@@ -60,6 +60,15 @@ export const CLAIM_TYPES = [
   "normative",
   "summary",
   "other",
+  // Epistemic roles needed to keep review synthesis and research capabilities
+  // distinct from result-bearing claims. Append-only for repository compatibility.
+  "synthesis",
+  "model-derived",
+  "translational",
+  "study-design",
+  "resource-capability",
+  "hypothesis-capability",
+  "provenance-limitation",
 ] as const;
 export const claimTypeSchema = z.enum(CLAIM_TYPES);
 export type ClaimType = z.infer<typeof claimTypeSchema>;
@@ -72,6 +81,7 @@ export const REVIEW_TYPES = [
   "narrative-review",
   "meta-analysis",
   "other",
+  "data-release",
 ] as const;
 export const reviewTypeSchema = z.enum(REVIEW_TYPES);
 export type ReviewType = z.infer<typeof reviewTypeSchema>;

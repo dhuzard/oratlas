@@ -1,16 +1,20 @@
 /**
  * Seed data (spec §20).
  *
- * IMPORTANT: every identifier here is synthetic. DOIs use the reserved
- * documentation-style `10.5555/` prefix and are flagged `isExample`, so the UI
- * never renders them as resolvable outbound links. The ComputationalReviewTemplate
- * repository is included as a *structural demonstration*, not as a submitted
- * scientific review.
+ * The corpus deliberately mixes synthetic fixtures with source-derived POC
+ * records pinned to real public repositories. Source-derived records remain
+ * flagged as example data: they exercise claims, Explore, TRUST, discussion,
+ * and challenges without pretending that ORAtlas performed peer review or a
+ * complete import of the upstream publication.
  */
 import {
   type AssessmentReviewStatus,
+  type ClaimType,
   type KnowledgeNode,
+  type LinkProposalStatus,
+  type LinkProposalType,
   type NodeEdge,
+  type ReviewType,
   type TrustOrdinal,
 } from "@oratlas/contracts";
 
@@ -35,7 +39,7 @@ export interface SeedClaim {
   text: string;
   section?: string;
   anchor?: string;
-  claimType?: string;
+  claimType?: ClaimType;
   qualification?: string;
   scope?: {
     population?: string;
@@ -90,11 +94,13 @@ export interface SeedReview {
   slug: string;
   title: string;
   abstract: string;
-  reviewType: string;
-  licenseSpdx: string;
+  reviewType: ReviewType;
+  /** Verified SPDX expression. Omit when the pinned source declares no license. */
+  licenseSpdx?: string;
   status: string;
   publishedReviewUrl?: string;
   repository: {
+    githubRepositoryId?: string;
     owner: string;
     name: string;
     canonicalUrl: string;
@@ -106,7 +112,10 @@ export interface SeedReview {
   };
   snapshot: {
     commitSha: string;
+    treeSha?: string;
     branch: string;
+    sourceCreatedAt?: string;
+    preserveSyntheticArticle?: boolean;
     releaseTag?: string;
     releaseUrl?: string;
   };
@@ -118,6 +127,7 @@ export interface SeedReview {
     releaseTag?: string;
     isExample: boolean;
   };
+  acceptedAt?: string;
   contributors: Array<{
     displayName: string;
     givenName?: string;
@@ -133,6 +143,12 @@ export interface SeedReview {
   relations: SeedRelation[];
   metadataProvenanceNote: string;
   compatibilityLevel: string;
+  pocEvaluation?: {
+    corpusRole: "structural-control" | "ai-review" | "data-release";
+    sourceCoverage: string;
+    limitations: string[];
+    suggestedFixes: string[];
+  };
 }
 
 export interface SeedKnowledgeNode {
@@ -149,6 +165,25 @@ export interface SeedNodeEdge {
 }
 
 const sha = (seed: string) => seed.padEnd(40, "0").slice(0, 40);
+
+function sourceDerivedTrust(rationale: string, limitations: string[]): SeedTrust {
+  return {
+    assessorType: "agent",
+    assessorId: "oratlas-poc-curator",
+    assessedAt: "2026-08-06T18:00:00.000Z",
+    reviewStatus: "agent-proposed",
+    criteria: {
+      entailment: { rating: "moderate", rationale },
+      sourceAccess: {
+        rating: "high",
+        rationale: "The source repository and cited public identifiers were accessible.",
+      },
+    },
+    limitations,
+    aggregateScore: null,
+    aggregateMethod: null,
+  };
+}
 
 /** Accepted review WITH a GitHub release and a (synthetic) Zenodo DOI. */
 export const reviewWithDoi: SeedReview = {
@@ -532,6 +567,7 @@ export const templateDemoReview: SeedReview = {
   status: "published",
   publishedReviewUrl: "https://allenneuraldynamics.github.io/ComputationalReviewTemplate/",
   repository: {
+    githubRepositoryId: "1213045955",
     owner: "AllenNeuralDynamics",
     name: "ComputationalReviewTemplate",
     canonicalUrl: "https://github.com/AllenNeuralDynamics/ComputationalReviewTemplate",
@@ -541,19 +577,19 @@ export const templateDemoReview: SeedReview = {
     pagesUrl: "https://allenneuraldynamics.github.io/ComputationalReviewTemplate/",
   },
   snapshot: {
-    commitSha: sha("deadc0deca11ab1e0000"),
+    commitSha: "7312d15c12443031d9806a0550a4e665bd45ca92",
+    treeSha: "79fb257b33ff0a7fa6582058b7c5074e6dbe27fc",
     branch: "main",
-    releaseTag: "v1.0.0",
-    releaseUrl:
-      "https://github.com/AllenNeuralDynamics/ComputationalReviewTemplate/releases/tag/v1.0.0",
+    sourceCreatedAt: "2026-07-26T04:14:28.000Z",
+    preserveSyntheticArticle: false,
   },
   version: {
     semanticVersion: "1.0.0",
     // The template's real Zenodo DOI is documented in its README; we do not
     // assert it as a submitted review's DOI here, so it stays flagged example.
-    releaseTag: "v1.0.0",
     isExample: true,
   },
+  acceptedAt: "2026-08-06T18:00:00.000Z",
   contributors: [
     {
       displayName: "Allen Institute for Neural Dynamics",
@@ -568,9 +604,469 @@ export const templateDemoReview: SeedReview = {
   relations: [],
   metadataProvenanceNote: "myst.yml + repository metadata",
   compatibilityLevel: "verified-template",
+  pocEvaluation: {
+    corpusRole: "structural-control",
+    sourceCoverage:
+      "Pinned repository identity and compatibility only; no scientific claims are imported.",
+    limitations: [
+      "This is a workflow template, not an evidence-bearing scientific review.",
+      "Template compatibility says nothing about claim quality, citation entailment, or consensus.",
+    ],
+    suggestedFixes: [
+      "Keep structural controls visibly separate from evidence-bearing records in Archive and Explore.",
+      "Use the template to publish review-manifest.json and machine-readable claim/evidence artifacts.",
+    ],
+  },
 };
 
-export const seedReviews = [reviewWithDoi, repositoryOnlyReview, templateDemoReview];
+/** Source-derived POC record: a large AI-assisted review with representative claims only. */
+export const vipComputationalReview: SeedReview = {
+  slug: "vip-cortical-interneurons-critical-review",
+  title: "VIP Cortical Interneurons: A Critical Reassessment of the Disinhibition Framework",
+  abstract:
+    "Source-derived ORAtlas POC fixture pinned to the AI-assisted VIP computational review. The upstream review critically reassesses cortical VIP interneuron disinhibition; this Atlas record intentionally imports only four representative synthesis claims so the claim, Explore, TRUST, discussion, and challenge paths can be evaluated without implying a complete 3,816-triple import.",
+  reviewType: "computational-literature-review",
+  licenseSpdx: "MIT",
+  status: "published",
+  publishedReviewUrl: "https://allenneuraldynamics.github.io/ComputationalReviewVIP/",
+  repository: {
+    githubRepositoryId: "1213080148",
+    owner: "AllenNeuralDynamics",
+    name: "ComputationalReviewVIP",
+    canonicalUrl: "https://github.com/AllenNeuralDynamics/ComputationalReviewVIP",
+    defaultBranch: "main",
+    description:
+      "AI-assisted critical literature review of vasoactive-intestinal-peptide-expressing cortical interneurons.",
+    topics: ["neuroscience", "vip-interneurons", "computational-review", "myst"],
+    homepageUrl: "https://allenneuraldynamics.github.io/ComputationalReviewVIP/",
+    pagesUrl: "https://allenneuraldynamics.github.io/ComputationalReviewVIP/",
+  },
+  snapshot: {
+    commitSha: "a04f01d37994c6a14e4bc7ec1b3d0a869144e98d",
+    treeSha: "383880f47d3cc8e5c6142fb210108f2940f82256",
+    branch: "main",
+    sourceCreatedAt: "2026-07-26T04:14:28.000Z",
+    preserveSyntheticArticle: false,
+  },
+  version: { semanticVersion: "2.0.0", isExample: true },
+  acceptedAt: "2026-08-06T18:05:00.000Z",
+  contributors: [
+    {
+      displayName: "Jérôme Lecoq",
+      givenName: "Jérôme",
+      familyName: "Lecoq",
+      githubLogin: "jeromelecoq",
+      roles: ["conceptualization", "methodology", "supervision", "review and editing"],
+    },
+    {
+      displayName: "Expert Review Pipeline v27",
+      roles: ["AI-assisted evidence synthesis", "drafting", "citation verification"],
+    },
+  ],
+  keywords: [
+    "VIP interneurons",
+    "cortical disinhibition",
+    "inhibition-stabilized networks",
+    "cell-type heterogeneity",
+  ],
+  domains: ["Neuroscience", "Computational Neuroscience"],
+  claims: [
+    {
+      localId: "vip-contextual-disinhibition",
+      text: "VIP interneuron function is state-modulated and disinhibitory at the cortical-subclass average, while sign, magnitude, gain regime, target compartment, and connectional asymmetry vary with area, behavioral context, and subtype.",
+      section: "Introduction",
+      anchor: "sec-introduction",
+      claimType: "synthesis",
+      qualification:
+        "This is a broad review-level synthesis dominated by rodent evidence; it is not a universal cell-level rule.",
+      scope: { population: "cortical VIP interneurons", model: "primarily mouse cortex" },
+    },
+    {
+      localId: "vip-component-not-definition",
+      text: "Disinhibition is a reproducible component of VIP interneuron function, but current evidence does not support treating it as the defining function of the entire class.",
+      section: "Local Circuit Motifs and the Disinhibition Framework",
+      anchor: "sec-disinhibition-framework",
+      claimType: "synthesis",
+      qualification:
+        "Direct VIP→PV, VIP→pyramidal, and other pathways can alter the net effect across preparations.",
+    },
+    {
+      localId: "vip-operating-point",
+      text: "The same VIP→SST→pyramidal connectivity can produce pyramidal facilitation or suppression depending on network operating point and weakly constrained parameters.",
+      section: "Introduction",
+      anchor: "sec-introduction",
+      claimType: "model-derived",
+      qualification:
+        "This is a model-conditioned prediction; wiring alone does not determine the sign of the net response.",
+      scope: { method: "circuit and inhibition-stabilized network models" },
+    },
+    {
+      localId: "vip-cross-species",
+      text: "Mouse VIP circuit conclusions transfer to human cortex only with quantitative qualifications because t-type proportions, laminar distributions, and morphologies diverge.",
+      section: "Introduction",
+      anchor: "sec-introduction",
+      claimType: "translational",
+      qualification: "Subclass conservation does not establish equivalence of circuit effects.",
+      scope: { population: "mouse and human cortex" },
+    },
+  ],
+  citations: [
+    {
+      localId: "Pi2013",
+      doi: "10.1038/nature12676",
+      title: "Cortical interneurons that specialize in disinhibitory control",
+      authors: ["Pi HJ", "Hangya B", "Kvitsiani D", "Sanders JI", "Huang ZJ", "Kepecs A"],
+      year: 2013,
+      source: "Nature",
+    },
+    {
+      localId: "Pfeffer2013",
+      doi: "10.1038/nn.3446",
+      title:
+        "Inhibition of inhibition in visual cortex: the logic of connections between molecularly distinct interneurons",
+      authors: ["Pfeffer CK", "Xue M", "He M", "Huang ZJ", "Scanziani M"],
+      year: 2013,
+      source: "Nature Neuroscience",
+    },
+    {
+      localId: "Pakan2016",
+      doi: "10.7554/elife.14985",
+      title:
+        "Behavioral-state modulation of inhibition is context-dependent and cell type specific in mouse visual cortex",
+      authors: ["Pakan JMP", "Lowe SC", "Dylda E", "Keemink SW", "Rochefort NL"],
+      year: 2016,
+      source: "eLife",
+    },
+    {
+      localId: "Dipoppa2018",
+      doi: "10.1016/j.neuron.2018.03.037",
+      title:
+        "Vision and Locomotion Shape the Interactions between Neuron Types in Mouse Visual Cortex",
+      authors: ["Dipoppa M", "Ranson A", "Krumin M", "Pachitariu M", "Carandini M", "Harris KD"],
+      year: 2018,
+      source: "Neuron",
+    },
+    {
+      localId: "Sanzeni2020",
+      doi: "10.7554/elife.54875",
+      title: "Inhibition stabilization is a widespread property of cortical networks",
+      authors: ["Sanzeni A", "Akitake B", "Goldbach HC", "Brunel N", "Histed MH"],
+      year: 2020,
+      source: "eLife",
+    },
+    {
+      localId: "Hodge2019",
+      doi: "10.1038/s41586-019-1506-7",
+      title: "Conserved cell types with divergent features in human versus mouse cortex",
+      authors: ["Hodge RD", "Bakken TE", "Miller JA", "Tasic B", "Zeng H", "Lein ES"],
+      year: 2019,
+      source: "Nature",
+    },
+  ],
+  relations: [
+    {
+      claimLocalId: "vip-contextual-disinhibition",
+      citationLocalId: "Pi2013",
+      relationType: "supports",
+      supportDirection: "positive",
+      trust: sourceDerivedTrust(
+        "The cited study directly reports a VIP-mediated disinhibitory circuit in mouse cortex.",
+        [
+          "One circuit preparation cannot establish the review's cross-area subclass-average synthesis.",
+        ],
+      ),
+    },
+    {
+      claimLocalId: "vip-contextual-disinhibition",
+      citationLocalId: "Pfeffer2013",
+      relationType: "supports",
+      supportDirection: "positive",
+      trust: sourceDerivedTrust(
+        "The cited connectivity study supports preferential VIP inhibition of SST interneurons.",
+        [
+          "Connectivity measurements do not by themselves determine the net in-vivo operating regime.",
+        ],
+      ),
+    },
+    {
+      claimLocalId: "vip-component-not-definition",
+      citationLocalId: "Pakan2016",
+      relationType: "partially-supports",
+      supportDirection: "mixed",
+      trust: sourceDerivedTrust(
+        "The study reports context- and cell-type-dependent inhibitory modulation relevant to limits of a uniform motif.",
+        ["The evidence is from mouse visual cortex and does not cover the full VIP subclass."],
+      ),
+    },
+    {
+      claimLocalId: "vip-component-not-definition",
+      citationLocalId: "Dipoppa2018",
+      relationType: "partially-supports",
+      supportDirection: "mixed",
+      trust: sourceDerivedTrust(
+        "The study shows behavioral context changes interactions among cortical neuron types.",
+        [
+          "Context dependence qualifies but does not independently prove every alternative VIP pathway.",
+        ],
+      ),
+    },
+    {
+      claimLocalId: "vip-operating-point",
+      citationLocalId: "Sanzeni2020",
+      relationType: "partially-supports",
+      supportDirection: "mixed",
+      trust: sourceDerivedTrust(
+        "Inhibition stabilization supplies a plausible operating-regime mechanism for paradoxical network effects.",
+        ["The paper is not a direct test of this exact VIP→SST synthesis claim."],
+      ),
+    },
+    {
+      claimLocalId: "vip-cross-species",
+      citationLocalId: "Hodge2019",
+      relationType: "supports",
+      supportDirection: "positive",
+      trust: sourceDerivedTrust(
+        "The comparative taxonomy reports conserved cell classes alongside divergent human and mouse features.",
+        [
+          "Cell-type divergence does not directly quantify every functional VIP circuit difference.",
+        ],
+      ),
+    },
+  ],
+  metadataProvenanceNote:
+    "Pinned upstream README, review introduction, disinhibition section, bibliography, evidence packages, and verification summary; manually curated representative POC subset.",
+  compatibilityLevel: "compatible",
+  pocEvaluation: {
+    corpusRole: "ai-review",
+    sourceCoverage:
+      "Four representative synthesis claims and six evidence links from a review reporting 3,816 citation triples; not a complete import.",
+    limitations: [
+      "The current ORAtlas deterministic ingest recognizes the repository as compatible but extracts zero structured claims because no review-manifest/ORAtlas JSONL mapping is published.",
+      "The upstream audit reports 403 of 3,816 citation triples (10.6%) as insufficient evidence after its verification budget.",
+      "Actor–critic separation and a passing pipeline gate are process evidence, not independent human peer review or scientific correctness.",
+      "Broad subclass claims aggregate heterogeneous species, areas, layers, behavioral states, and VIP subtypes.",
+    ],
+    suggestedFixes: [
+      "Publish review-manifest.json plus claim, citation, relation, and TRUST JSONL artifacts generated from the upstream triple ledger.",
+      "Carry VERIFIED, NEEDS_FIX, and INSUFFICIENT_EVIDENCE outcomes onto each exact claim–citation relation.",
+      "Add species, area, layer, state, and subtype facets so Explore can compare like with like.",
+      "Prioritize independent expert adjudication for high-impact synthesis claims and unresolved evidence triples.",
+    ],
+  },
+};
+
+/** Source-derived POC record: a reproducible data release, not a completed review. */
+export const openscopeP3DataRelease: SeedReview = {
+  slug: "openscope-predictive-processing-data-release",
+  title: "OpenScope Predictive Processing Community Project - Data Release",
+  abstract:
+    "Source-derived ORAtlas POC fixture pinned to the OpenScope P3 reproducible MyST publication. It exposes study-design and data-resource claims—not completed scientific findings—so ORAtlas can test whether Explore distinguishes what a dataset enables from what the evidence has established.",
+  reviewType: "data-release",
+  status: "published",
+  repository: {
+    githubRepositoryId: "1323617740",
+    owner: "jeromelecoq",
+    name: "openscope_p3_data_release_paper",
+    canonicalUrl: "https://github.com/jeromelecoq/openscope_p3_data_release_paper",
+    defaultBranch: "main",
+    description:
+      "Reproducible MyST publication for the OpenScope predictive-processing data release.",
+    topics: ["neuroscience", "predictive-processing", "data-release", "nwb", "myst"],
+  },
+  snapshot: {
+    commitSha: "4cb9f3125a103d8eaa14650302a4ffdf3eb74daf",
+    treeSha: "122d82e4f6f037cbb0bacaa2a0d9a6beaa67ce44",
+    branch: "main",
+    sourceCreatedAt: "2026-08-04T16:55:11.000Z",
+    preserveSyntheticArticle: false,
+  },
+  version: { semanticVersion: "0.1.0", isExample: true },
+  acceptedAt: "2026-08-06T18:10:00.000Z",
+  contributors: [
+    {
+      displayName: "OpenScope Predictive Processing Community Project",
+      roles: ["community authorship (provisional)", "data collection", "methodology"],
+    },
+    {
+      displayName: "Jérôme Lecoq",
+      givenName: "Jérôme",
+      familyName: "Lecoq",
+      githubLogin: "jeromelecoq",
+      roles: ["maintainer", "methodology", "software"],
+    },
+  ],
+  keywords: [
+    "predictive processing",
+    "mismatch responses",
+    "Neuropixels",
+    "two-photon imaging",
+    "SLAP2",
+  ],
+  domains: ["Neuroscience", "Open Data", "Reproducible Research"],
+  claims: [
+    {
+      localId: "cross-context-design",
+      text: "The data release uses four prediction-violation paradigms and shared control blocks to enable direct cross-context comparison of mismatch responses.",
+      section: "Experimental design",
+      anchor: "experimental-design",
+      claimType: "study-design",
+      qualification:
+        "The design enables comparison; fixed session order and cohort-specific habituation still constrain causal interpretation.",
+      scope: { population: "head-fixed mice", method: "four visual mismatch paradigms" },
+    },
+    {
+      localId: "multimodal-resource",
+      text: "The project combines Neuropixels and mesoscope recordings, with SLAP2 subcellular imaging, to support analyses across spatial and temporal scales.",
+      section: "What gap this dataset fills",
+      anchor: "large-scale-multi-modal-population-recordings",
+      claimType: "resource-capability",
+      qualification:
+        "The modalities do not measure the same cells or all cohorts, so cross-scale integration is inferential rather than paired.",
+    },
+    {
+      localId: "alternative-hypotheses",
+      text: "The dataset is designed to test whether different mismatch responses use specialized mechanisms or share a common computational principle.",
+      section: "Relationship to the companion review",
+      anchor: "relationship-to-the-companion-review",
+      claimType: "hypothesis-capability",
+      qualification:
+        "This states what the resource can test; it is not evidence that either alternative is true.",
+    },
+    {
+      localId: "pinned-wip-status",
+      text: "At the pinned commit, the manuscript remains work in progress: its abstract and final limitations are unfinished, authorship is provisional, and immutable dataset versions still need to be pinned.",
+      section: "Limitations and migration status",
+      anchor: "limitations",
+      claimType: "provenance-limitation",
+    },
+  ],
+  citations: [
+    {
+      localId: "pinned-manuscript",
+      title: "OpenScope Predictive Processing Community Project - Data Release (pinned manuscript)",
+      authors: ["OpenScope Predictive Processing Community Project"],
+      year: 2026,
+      source: "GitHub commit 4cb9f3125a103d8eaa14650302a4ffdf3eb74daf, index.md",
+    },
+    {
+      localId: "migration-status",
+      title: "Google Doc to MyST migration status",
+      authors: ["OpenScope Predictive Processing Community Project"],
+      year: 2026,
+      source: "GitHub commit 4cb9f3125a103d8eaa14650302a4ffdf3eb74daf, docs/MIGRATION.md",
+    },
+    {
+      localId: "dandi-001637",
+      title: "OpenScope P3 Neuropixels electrophysiology data",
+      source: "DANDI Archive",
+      datasetIds: ["DANDI:001637"],
+    },
+    {
+      localId: "dandi-001768",
+      title: "OpenScope P3 mesoscope imaging data",
+      source: "DANDI Archive",
+      datasetIds: ["DANDI:001768"],
+    },
+  ],
+  relations: [
+    {
+      claimLocalId: "cross-context-design",
+      citationLocalId: "pinned-manuscript",
+      relationType: "supports",
+      supportDirection: "positive",
+      trust: sourceDerivedTrust(
+        "The pinned methods enumerate four paradigms and a shared sequence of control blocks.",
+        [
+          "Fixed ordering and different habituation histories may confound some context comparisons.",
+        ],
+      ),
+    },
+    {
+      claimLocalId: "multimodal-resource",
+      citationLocalId: "dandi-001637",
+      relationType: "partially-supports",
+      supportDirection: "positive",
+      trust: sourceDerivedTrust(
+        "The public DANDI identifier exposes the Neuropixels component of the resource.",
+        ["The referenced Dandiset was a mutable draft at the pinned manuscript commit."],
+      ),
+    },
+    {
+      claimLocalId: "multimodal-resource",
+      citationLocalId: "dandi-001768",
+      relationType: "partially-supports",
+      supportDirection: "positive",
+      trust: sourceDerivedTrust(
+        "The public DANDI identifier exposes the mesoscope component of the resource.",
+        [
+          "SLAP2 coverage is not established by this Dandiset; modalities are not paired cell-for-cell.",
+        ],
+      ),
+    },
+    {
+      claimLocalId: "alternative-hypotheses",
+      citationLocalId: "pinned-manuscript",
+      relationType: "supports",
+      supportDirection: "positive",
+      trust: sourceDerivedTrust(
+        "The pinned manuscript explicitly frames the specialized-mechanism and common-principle alternatives.",
+        [
+          "A stated analysis capability is not an observed result or validation of predictive processing.",
+        ],
+      ),
+    },
+    {
+      claimLocalId: "pinned-wip-status",
+      citationLocalId: "pinned-manuscript",
+      relationType: "supports",
+      supportDirection: "positive",
+      trust: sourceDerivedTrust(
+        "The manuscript visibly labels its abstract, limitations, and authorship as unfinished or provisional.",
+        ["The status is exact only for the pinned commit and may change upstream."],
+      ),
+    },
+    {
+      claimLocalId: "pinned-wip-status",
+      citationLocalId: "migration-status",
+      relationType: "supports",
+      supportDirection: "positive",
+      trust: sourceDerivedTrust(
+        "The migration document lists unresolved figure, author, metadata, and data-version tasks.",
+        ["This is maintainer-authored project status, not an independent audit."],
+      ),
+    },
+  ],
+  metadataProvenanceNote:
+    "Pinned upstream README, index.md, docs/MIGRATION.md, and repository metadata; manually curated study-design and provenance claims for the POC.",
+  compatibilityLevel: "compatible",
+  pocEvaluation: {
+    corpusRole: "data-release",
+    sourceCoverage:
+      "Four representative study-design/resource/provenance claims and six links; no scientific outcome claim is asserted.",
+    limitations: [
+      "The current ORAtlas deterministic ingest recognizes the repository as compatible but extracts zero structured claims because it publishes no ORAtlas claim/evidence artifacts.",
+      "The pinned staging repository declares no license and targets a future AllenNeuralDynamics organization publication in its README/MyST configuration; ORAtlas asserts neither a license nor a live publication URL for this capture.",
+      "The abstract and final limitations are unfinished and the author list is provisional at the pinned commit.",
+      "Neuropixels, mesoscope, and SLAP2 measurements are not paired over the same cells and SLAP2 covers only the motor cohort.",
+      "DANDI identifiers point to draft datasets, so the exact data bytes are not yet immutably versioned in the manuscript.",
+      "The analysis plan mixes confirmatory hypotheses with exploratory choices and does not yet establish scientific outcomes.",
+    ],
+    suggestedFixes: [
+      "Finalize the abstract, limitations, authorship, figure sources, and publication license.",
+      "Pin released DANDI versions and exact analysis-code releases for every result and figure.",
+      "Separate prespecified confirmatory tests from exploratory analyses and document order/habituation confounds.",
+      "Publish review-manifest.json and typed dataset/claim JSONL so ORAtlas can ingest resource capabilities without mislabeling them as findings.",
+    ],
+  },
+};
+
+export const seedReviews = [
+  reviewWithDoi,
+  repositoryOnlyReview,
+  templateDemoReview,
+  vipComputationalReview,
+  openscopeP3DataRelease,
+];
 
 /** Repository and exact snapshot for a second, independent node-publishing lab. */
 export const replicationLabRepository = {
@@ -830,23 +1326,53 @@ export const pendingSubmission = {
   status: "pending-editorial-review",
 };
 
-/**
- * One cross-review link proposal: claim-001 of the replay review shares an
- * evidence theme with claim-001 of the attention review (both empirical
- * synchrony/consolidation claims). Deterministic normalized-text overlap.
- */
-export const linkProposal = {
-  sourceReviewSlug: reviewWithDoi.slug,
-  sourceClaimLocalId: "claim-001",
-  targetReviewSlug: repositoryOnlyReview.slug,
-  targetClaimLocalId: "claim-001",
-  proposedRelation: "semantically-similar-claims",
-  rationale:
-    "Both are empirical claims linking coordinated neural activity (ripple replay / gamma synchrony) to a cognitive outcome; normalized token overlap exceeded the proposal threshold.",
-  features: { sharedCitations: [], normalizedTokenOverlap: 0.21, method: "lexical-jaccard" },
-  agentProvenance: `${EXTRACTOR_VERSION}:link-proposer`,
-  status: "proposed",
-};
+/** Human-reviewable cross-review proposals; none are promoted to evidence automatically. */
+export interface SeedLinkProposal {
+  sourceReviewSlug: string;
+  sourceClaimLocalId: string;
+  targetReviewSlug: string;
+  targetClaimLocalId: string;
+  proposedRelation: LinkProposalType;
+  rationale: string;
+  features: {
+    sharedCitations: string[];
+    normalizedTokenOverlap: number;
+    method: string;
+  };
+  agentProvenance: string;
+  status: LinkProposalStatus;
+}
+
+export const linkProposals: SeedLinkProposal[] = [
+  {
+    sourceReviewSlug: reviewWithDoi.slug,
+    sourceClaimLocalId: "claim-001",
+    targetReviewSlug: repositoryOnlyReview.slug,
+    targetClaimLocalId: "claim-001",
+    proposedRelation: "semantically-similar-claims",
+    rationale:
+      "Both are empirical claims linking coordinated neural activity (ripple replay / gamma synchrony) to a cognitive outcome; normalized token overlap exceeded the proposal threshold.",
+    features: { sharedCitations: [], normalizedTokenOverlap: 0.21, method: "lexical-jaccard" },
+    agentProvenance: `${EXTRACTOR_VERSION}:link-proposer`,
+    status: "proposed",
+  },
+  {
+    sourceReviewSlug: vipComputationalReview.slug,
+    sourceClaimLocalId: "vip-contextual-disinhibition",
+    targetReviewSlug: openscopeP3DataRelease.slug,
+    targetClaimLocalId: "cross-context-design",
+    proposedRelation: "methodological-dependency",
+    rationale:
+      "The OpenScope cross-context design is a potential methodological dependency for testing context-conditioned cortical circuit predictions, but this proposal is not itself supporting evidence for the VIP synthesis.",
+    features: {
+      sharedCitations: [],
+      normalizedTokenOverlap: 0.08,
+      method: "curated-poc-stress-test",
+    },
+    agentProvenance: "oratlas-poc-curator:source-derived-corpus-v1",
+    status: "proposed",
+  },
+];
 
 export interface SeedComment {
   reviewSlug: string;
@@ -890,6 +1416,66 @@ export const seedComments: SeedComment[] = [
     kind: "concern",
     claimLocalId: "claim-001",
     body: "The evidence base here leans on a single lab's recordings. A note on replication scope would help readers calibrate how far this generalizes.",
+  },
+  {
+    reviewSlug: vipComputationalReview.slug,
+    authorLogin: "atlas-submitter",
+    kind: "concern",
+    claimLocalId: "vip-contextual-disinhibition",
+    body: "ORAtlas currently shows only a curated sample from a 3,816-triple review, while the upstream repository reports 403 insufficient-evidence triples. Readers cannot yet tell whether those unresolved triples affect this synthesis claim.",
+  },
+  {
+    reviewSlug: vipComputationalReview.slug,
+    authorLogin: "atlas-editor",
+    kind: "suggestion",
+    claimLocalId: "vip-contextual-disinhibition",
+    body: "Publish the upstream claim/citation ledger as ORAtlas JSONL and bind every verification outcome to its exact relation; then prioritize expert adjudication for unresolved links supporting broad synthesis claims.",
+    replyTo: 0,
+  },
+  {
+    reviewSlug: vipComputationalReview.slug,
+    authorLogin: "atlas-submitter",
+    kind: "question",
+    claimLocalId: "vip-operating-point",
+    body: "Which parts of the facilitation-versus-suppression statement are observed in vivo and which are consequences of inhibition-stabilized model assumptions?",
+  },
+  {
+    reviewSlug: vipComputationalReview.slug,
+    authorLogin: "atlas-editor",
+    kind: "suggestion",
+    claimLocalId: "vip-operating-point",
+    body: "Split model-derived predictions from empirical observations and facet both by area, layer, state, species, and VIP subtype before Explore compares them.",
+    replyTo: 2,
+  },
+  {
+    reviewSlug: openscopeP3DataRelease.slug,
+    authorLogin: "atlas-submitter",
+    kind: "concern",
+    claimLocalId: "alternative-hypotheses",
+    body: "The repository describes analyses that the dataset enables, not completed results. Explore must not rank this capability statement as evidence that either predictive-processing hypothesis is true.",
+  },
+  {
+    reviewSlug: openscopeP3DataRelease.slug,
+    authorLogin: "atlas-editor",
+    kind: "suggestion",
+    claimLocalId: "alternative-hypotheses",
+    body: "Keep hypothesis-capability as a distinct claim type and require result-bearing claims to cite immutable analysis outputs before they can support a scientific conclusion.",
+    replyTo: 0,
+  },
+  {
+    reviewSlug: openscopeP3DataRelease.slug,
+    authorLogin: "atlas-submitter",
+    kind: "concern",
+    claimLocalId: "multimodal-resource",
+    body: "The modalities are not paired over the same cells, SLAP2 covers only one cohort, and the DANDI links are drafts. Cross-scale language could overstate direct comparability.",
+  },
+  {
+    reviewSlug: openscopeP3DataRelease.slug,
+    authorLogin: "atlas-editor",
+    kind: "suggestion",
+    claimLocalId: "multimodal-resource",
+    body: "Pin released DANDI versions, expose cohort/modality coverage as structured scope, and label cross-modality integration as inferential unless observations are explicitly paired.",
+    replyTo: 2,
   },
 ];
 

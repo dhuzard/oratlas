@@ -17,7 +17,7 @@ import { upsertNodeAlias } from "../node-aliases.js";
 import {
   EXTRACTOR_VERSION,
   TRUST_PROTOCOL_VERSION,
-  linkProposal,
+  linkProposals,
   pendingSubmission,
   replicationLabRepository,
   seedComments,
@@ -48,11 +48,22 @@ function buildMetadataJson(review: SeedReview) {
     reviewType: review.reviewType,
     license: review.licenseSpdx,
     extractorVersion: EXTRACTOR_VERSION,
+    ...(review.pocEvaluation ? { pocEvaluation: review.pocEvaluation } : {}),
   });
 }
 
+function parseSeedDate(value: string | undefined, fallback: string, field: string): Date {
+  const parsed = new Date(value ?? fallback);
+  if (Number.isNaN(parsed.getTime())) {
+    throw new Error(`Invalid ${field} seed date: ${value ?? fallback}`);
+  }
+  return parsed;
+}
+
 async function seedReview(review: SeedReview, editorId: string) {
-  const githubRepositoryId = String(Number.parseInt(sha256(review.slug).slice(0, 12), 16));
+  const githubRepositoryId =
+    review.repository.githubRepositoryId ??
+    String(Number.parseInt(sha256(review.slug).slice(0, 12), 16));
   const repo = await prisma.repository.create({
     data: {
       host: "github.com",
@@ -70,7 +81,7 @@ async function seedReview(review: SeedReview, editorId: string) {
     },
   });
 
-  const treeSha = `${review.snapshot.commitSha.slice(0, -1)}f`;
+  const treeSha = review.snapshot.treeSha ?? `${review.snapshot.commitSha.slice(0, -1)}f`;
   const article = [
     `# ${review.title}`,
     "",
@@ -81,20 +92,30 @@ async function seedReview(review: SeedReview, editorId: string) {
     ...review.claims.flatMap((claim) => [`- ${claim.text}`, ""]),
   ].join("\n");
   const articleBytes = Buffer.byteLength(article, "utf8");
+  const preserveSyntheticArticle = review.snapshot.preserveSyntheticArticle !== false;
   const inspectionReport = {
     schemaVersion: "1.0.0",
     githubRepositoryId,
     repositoryUrl: review.repository.canonicalUrl,
     commitSha: review.snapshot.commitSha,
     treeSha,
-    files: {
-      "README.md": {
-        size: articleBytes,
-        truncated: false,
-        contentHash: sha256(article),
-      },
-    },
+    files: preserveSyntheticArticle
+      ? {
+          "README.md": {
+            size: articleBytes,
+            truncated: false,
+            contentHash: sha256(article),
+          },
+        }
+      : {},
   };
+
+  const sourceCreatedAt = parseSeedDate(
+    review.snapshot.sourceCreatedAt,
+    "2026-06-01T00:00:00.000Z",
+    "sourceCreatedAt",
+  );
+  const acceptedAt = parseSeedDate(review.acceptedAt, "2026-06-15T00:00:00.000Z", "acceptedAt");
 
   const snapshot = await prisma.repositorySnapshot.create({
     data: {
@@ -103,14 +124,16 @@ async function seedReview(review: SeedReview, editorId: string) {
       branch: review.snapshot.branch,
       releaseTag: review.snapshot.releaseTag,
       releaseUrl: review.snapshot.releaseUrl,
-      sourceCreatedAt: new Date("2026-06-01T00:00:00.000Z"),
+      sourceCreatedAt,
       inspectionStatus: "succeeded",
       inspectionReportJson: JSON.stringify(inspectionReport),
       sourceTreeSha: treeSha,
       manifestJson: null,
-      preservedFilesJson: canonicalJson({
-        "README.md": { size: articleBytes, truncated: false, content: article },
-      }),
+      preservedFilesJson: preserveSyntheticArticle
+        ? canonicalJson({
+            "README.md": { size: articleBytes, truncated: false, content: article },
+          })
+        : null,
       contentHash: contentHash({ repo: repo.canonicalUrl, sha: review.snapshot.commitSha }),
     },
   });
@@ -126,7 +149,7 @@ async function seedReview(review: SeedReview, editorId: string) {
       licenseSpdx: review.licenseSpdx,
       publishedReviewUrl: review.publishedReviewUrl,
       status: review.status,
-      acceptedAt: new Date("2026-06-15T00:00:00.000Z"),
+      acceptedAt,
     },
   });
 
@@ -139,7 +162,7 @@ async function seedReview(review: SeedReview, editorId: string) {
       sourceSelectionKey: review.snapshot.releaseTag
         ? `release:${review.snapshot.releaseTag}`
         : `default-branch:${review.snapshot.branch}`,
-      sourceCreatedAt: new Date("2026-06-01T00:00:00.000Z"),
+      sourceCreatedAt,
       semanticVersion: review.version.semanticVersion,
       title: review.title,
       abstract: review.abstract,
@@ -150,7 +173,7 @@ async function seedReview(review: SeedReview, editorId: string) {
       releaseTag: review.version.releaseTag,
       releaseUrl: review.snapshot.releaseUrl,
       isExample: review.version.isExample,
-      publishedAt: new Date("2026-06-15T00:00:00.000Z"),
+      publishedAt: acceptedAt,
     },
   });
 
@@ -859,26 +882,43 @@ async function main() {
   });
   console.info("  · seeded pending submission");
 
-  // Cross-review link proposal
-  const sourceClaims = claimIdsBySlug.get(linkProposal.sourceReviewSlug);
-  const targetClaims = claimIdsBySlug.get(linkProposal.targetReviewSlug);
-  const sourceClaimId = sourceClaims?.get(linkProposal.sourceClaimLocalId);
-  const targetClaimId = targetClaims?.get(linkProposal.targetClaimLocalId);
-  if (sourceClaimId && targetClaimId) {
+  // Cross-review link proposals remain human-reviewable and never become evidence automatically.
+  let seededLinkProposals = 0;
+  for (const proposal of linkProposals) {
+    const sourceClaimId = claimIdsBySlug
+      .get(proposal.sourceReviewSlug)
+      ?.get(proposal.sourceClaimLocalId);
+    const targetClaimId = claimIdsBySlug
+      .get(proposal.targetReviewSlug)
+      ?.get(proposal.targetClaimLocalId);
+    if (!sourceClaimId || !targetClaimId) {
+      const missingClaims =
+        !sourceClaimId && !targetClaimId
+          ? "source and target claims"
+          : !sourceClaimId
+            ? "source claim"
+            : "target claim";
+      throw new Error(
+        `Cannot seed cross-review link proposal: unresolved ${missingClaims} ` +
+          `(${proposal.sourceReviewSlug}:${proposal.sourceClaimLocalId} -> ` +
+          `${proposal.targetReviewSlug}:${proposal.targetClaimLocalId}).`,
+      );
+    }
     await prisma.knowledgeLinkProposal.create({
       data: {
         sourceClaimId,
         targetClaimId,
-        proposedRelation: linkProposal.proposedRelation,
-        featuresJson: JSON.stringify(linkProposal.features),
-        semanticSimilarity: linkProposal.features.normalizedTokenOverlap,
-        rationale: linkProposal.rationale,
-        agentProvenance: linkProposal.agentProvenance,
-        status: linkProposal.status,
+        proposedRelation: proposal.proposedRelation,
+        featuresJson: JSON.stringify(proposal.features),
+        semanticSimilarity: proposal.features.normalizedTokenOverlap,
+        rationale: proposal.rationale,
+        agentProvenance: proposal.agentProvenance,
+        status: proposal.status,
       },
     });
-    console.info("  · seeded cross-review link proposal");
+    seededLinkProposals += 1;
   }
+  console.info(`  · seeded ${seededLinkProposals} cross-review link proposal(s)`);
 
   // Evidence-monitoring fixture: one retraction signal on a cited work of the
   // replay review, opening a human-reviewable update proposal (issue #3).

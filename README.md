@@ -125,13 +125,15 @@ pnpm --filter @oratlas/db db:validate  # validate the Prisma schema
 ## Seeding
 
 `db:seed` loads: an accepted review **with** a GitHub release and a (synthetic) Zenodo DOI, an
-accepted **repository-only** review, the reference template as a structural demonstration, a
-**pending** submission, multiple claims/citations, supporting and contradicting relations, five
-repository TRUST assertions (including an explicit-null source aggregate), one separate Atlas
-structural-review marker, and one cross-review link proposal.
+accepted **repository-only** review, the reference template as a structural control, source-derived
+POC records for the VIP computational review and OpenScope P3 data release, a **pending** submission,
+multiple claims/citations, supporting and contradicting relations, repository TRUST assertions,
+one separate Atlas structural-review marker, and human-reviewable cross-review link proposals.
 
-All example identifiers use the reserved documentation DOI prefix `10.5555/` and are flagged so
-the UI never renders them as resolvable outbound links.
+Synthetic DOI identifiers use the reserved documentation prefix `10.5555/` and are never rendered
+as resolvable links. Real citation DOIs in the source-derived corpus remain linkable, while the
+records themselves stay visibly flagged as POC example data. See
+[`docs/poc-review-corpus.md`](docs/poc-review-corpus.md) for coverage and limitations.
 
 ## Testing
 
@@ -282,6 +284,7 @@ A full inventory of limitations lives in [`docs/poc-limitations.md`](docs/poc-li
 | [`docs/deployment.md`](docs/deployment.md)                                                     | Production deployment                                     |
 | [`docs/operations/`](docs/operations/README.md)                                                | Backups, observability, Postgres, privacy & takedown      |
 | [`docs/poc-limitations.md`](docs/poc-limitations.md)                                           | What the POC deliberately does not do                     |
+| [`docs/poc-review-corpus.md`](docs/poc-review-corpus.md)                                       | Real-repository POC corpus, critiques, and fixes          |
 | [`docs/openapi.yaml`](docs/openapi.yaml)                                                       | API description                                           |
 | [`PLAN.md`](PLAN.md)                                                                           | Shipped implementation plan                               |
 | [`ORATLAS_BACKLOG.md`](ORATLAS_BACKLOG.md)                                                     | Canonical active backlog                                  |
