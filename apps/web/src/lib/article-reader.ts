@@ -475,7 +475,9 @@ function transformMystNode(input: MystNode, context: TransformContext): MystNode
     }
   }
   if (node.type === "heading") {
-    const depth = typeof node.depth === "number" ? Math.min(Math.max(node.depth, 1), 6) : 2;
+    // The review record already owns the page-level h1. Preserved source h1s
+    // begin at h2 so the full article remains a valid nested document.
+    const depth = typeof node.depth === "number" ? Math.min(Math.max(node.depth, 2), 6) : 2;
     const text = textOf(node) || "Section";
     const id = `myst-${context.pageId}-${context.toc.length + 1}-${slugPart(text) || "section"}`;
     node.depth = depth;
@@ -591,6 +593,7 @@ export function buildMystArticle(input: {
     });
   }
   const first = pages[0]!;
+  const legacy = parsePreservedMarkdown(input.files[first.path]!.content);
   return {
     path: first.path,
     sha256: first.sha256,
@@ -599,7 +602,7 @@ export function buildMystArticle(input: {
     navigation: pages.map(({ id: pageId, path, title, depth }) => ({ pageId, path, title, depth })),
     sourceTrustCount: pages.reduce((sum, page) => sum + page.trustClaims.length, 0),
     rendering: declared.length > 0 ? "myst-ast" : "safe-markdown",
-    blocks: [],
+    blocks: legacy.blocks,
   };
 }
 

@@ -1,0 +1,10 @@
+diff --git a/dist/index.js b/dist/index.js
+index 1fad52cf1e958ca56865e3d70b155eed86de2f38..42745ed2a9705e23031fd43ad1ee2a7e2b46bd07 100644
+--- a/dist/index.js
++++ b/dist/index.js
+@@ -1,4 +1,4 @@
+-import { escapeHtml } from "markdown-it/lib/common/utils.js";
++import { escapeHtml } from "markdown-it/lib/common/utils.mjs";
+ const OptionDefaults = {
+     allow_space: true,
+     allow_digits: true,
