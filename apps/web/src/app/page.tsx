@@ -45,7 +45,8 @@ export default async function HomePage() {
 
         <p className="home-note">
           ORAtlas preserves public, versioned review records. Archive acceptance is not peer review
-          or scientific endorsement.
+          or scientific endorsement. Comments, challenges and later assessments remain separate;
+          they never rewrite the preserved record.
         </p>
       </section>
 

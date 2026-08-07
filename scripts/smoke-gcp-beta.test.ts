@@ -15,7 +15,7 @@ describe("GCP beta smoke", () => {
       }
       if (url.pathname === "/") {
         return new Response(
-          "The arXiv for AI-generated scientific reviews — without rewriting the original record",
+          "The arXiv for AI-generated scientific reviews — never rewrite the preserved record",
         );
       }
       if (url.pathname === "/explore") {

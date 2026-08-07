@@ -45,7 +45,7 @@ export async function runBetaSmoke(options, request = globalThis.fetch) {
 
   const homepage = await (await get("/")).text();
   assertIncludes(homepage, "The arXiv for AI-generated scientific reviews", "homepage promise");
-  assertIncludes(homepage, "without rewriting the original record", "preservation promise");
+  assertIncludes(homepage, "never rewrite the preserved record", "preservation promise");
 
   const parameters = new URLSearchParams({ q: options.query });
   options.interests.forEach((interest) => parameters.append("interest", interest));
