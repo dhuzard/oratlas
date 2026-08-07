@@ -55,10 +55,13 @@ returned claim/citation identifiers that already passed exact edge validation.
 - Request-scoped BYOK supports Anthropic and OpenAI. The key is accepted only on a same-origin JSON
   request, is never persisted or logged, and is discarded after the provider call. Provider account
   terms and charges belong to the user; the selected provider receives the bounded evidence packet.
-- Each run persists an `AgentRun`: provider, model, model version, prompt version, evidence-packet
-  hash, exact canonical packet JSON, output, and grounding-validation result. The identical packet
-  bytes are hashed, sent to the provider, and persisted. Chain-of-thought is never requested or
-  exposed.
+  Anonymous BYOK calls have a tighter per-client budget and remain response-only: they cannot grow
+  the provenance store. Anonymous requests without BYOK stay deterministic and cannot spend the
+  server-managed provider key.
+- Provider-backed calls made by signed-in users persist an `AgentRun`: provider, model, model
+  version, prompt version, evidence-packet hash, exact canonical packet JSON, output, and
+  grounding-validation result. The identical packet bytes are hashed, sent to the provider, and
+  persisted. Chain-of-thought is never requested or exposed.
 - Answers must distinguish agreement, disagreement, and missing evidence, note whether supporting
   TRUST is a repository assertion or has a current Atlas structural-review marker, and must **not imply consensus from the number of
   reviews** (several reviews citing the same source are not independent replication).

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { knowledgeLandscapeQuerySchema } from "@oratlas/contracts";
+import { knowledgeLandscapeQuerySchema, requestLlmConfigSchema } from "@oratlas/contracts";
 import { getServerEnv } from "@oratlas/config";
 import { requireEditor } from "@/lib/auth";
 import {
@@ -21,19 +21,7 @@ const bodySchema = z
   .object({
     question: z.string().trim().min(3).max(1_000),
     scope: knowledgeLandscapeQuerySchema,
-    llm: z
-      .object({
-        provider: z.enum(["anthropic", "openai"]),
-        apiKey: z.string().trim().min(20).max(500),
-        model: z
-          .string()
-          .trim()
-          .min(1)
-          .max(120)
-          .regex(/^[A-Za-z0-9._:-]+$/)
-          .optional(),
-      })
-      .strict(),
+    llm: requestLlmConfigSchema,
   })
   .strict();
 

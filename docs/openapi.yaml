@@ -1461,6 +1461,21 @@ components:
         supersedesVersionId:
           type: string
           description: Required only for correction; must belong to the same review.
+    RequestLlmConfig:
+      type: object
+      additionalProperties: false
+      description: >
+        Request-scoped provider credentials. The key is validated, used for the current request
+        only, and never written to the database, audit events, URLs, or browser storage.
+      required: [provider, apiKey]
+      properties:
+        provider: { type: string, enum: [anthropic, openai] }
+        apiKey: { type: string, minLength: 20, maxLength: 500, format: password }
+        model:
+          type: string
+          minLength: 1
+          maxLength: 120
+          pattern: "^[A-Za-z0-9._:-]+$"
     DiscussRequest:
       type: object
       additionalProperties: false
@@ -1492,20 +1507,11 @@ components:
               type: string
               pattern: "^[A-Za-z0-9_-]{43}$"
         llm:
-          type: object
-          additionalProperties: false
+          allOf: [{ $ref: "#/components/schemas/RequestLlmConfig" }]
           description: >
             Optional request-scoped BYOK configuration. Accepted only from a matching same-origin
             JSON request; the key is used for this answer and is not persisted by ORAtlas.
-          required: [provider, apiKey]
-          properties:
-            provider: { type: string, enum: [anthropic, openai] }
-            apiKey: { type: string, minLength: 20, maxLength: 500, format: password }
-            model:
-              type: string
-              minLength: 1
-              maxLength: 120
-              pattern: "^[A-Za-z0-9._:-]+$"
+            Anonymous BYOK calls have a tighter per-client budget and create no AgentRun.
     GraphCurationRequest:
       type: object
       additionalProperties: false
@@ -1513,14 +1519,7 @@ components:
       properties:
         question: { type: string, minLength: 3, maxLength: 1000 }
         scope: { $ref: "#/components/schemas/KnowledgeLandscapeQuery" }
-        llm:
-          type: object
-          additionalProperties: false
-          required: [provider, apiKey]
-          properties:
-            provider: { type: string, enum: [anthropic, openai] }
-            apiKey: { type: string, minLength: 20, maxLength: 500, format: password }
-            model: { type: string, minLength: 1, maxLength: 120, pattern: "^[A-Za-z0-9._:-]+$" }
+        llm: { $ref: "#/components/schemas/RequestLlmConfig" }
     CommentCreateRequest:
       type: object
       required: [body]

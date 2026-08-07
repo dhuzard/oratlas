@@ -7,6 +7,7 @@ import {
   type GraphCurationPacket,
   type KnowledgeLandscapeQuery,
   type KnowledgeLandscapeResponse,
+  type RequestLlmConfig,
 } from "@oratlas/contracts";
 import {
   canonicalJson,
@@ -18,7 +19,6 @@ import {
 import { prisma } from "./db";
 import { createKnowledgeLandscapeResponse } from "./knowledge-landscape-service";
 import { createAgentNodeEdgeProposal } from "./node-edge-lifecycle";
-import type { RequestLlmConfig } from "./discuss";
 
 export async function runGraphCuration(
   question: string,

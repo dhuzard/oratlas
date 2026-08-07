@@ -12,6 +12,7 @@ import {
 import {
   type DeterministicDiscussionResult,
   type DiscussionTraversalScope,
+  type RequestLlmConfig,
 } from "@oratlas/contracts";
 import { buildKnowledgeIndex } from "./index-builder";
 import { prisma } from "./db";
@@ -32,10 +33,13 @@ interface DiscussionProvenance {
   scope: ResolvedDiscussionScope;
 }
 
-export interface RequestLlmConfig {
-  provider: "anthropic" | "openai";
-  apiKey: string;
-  model?: string;
+export type { RequestLlmConfig } from "@oratlas/contracts";
+
+export interface RunDiscussionOptions {
+  /** Allow an operator-configured provider when the request does not supply one. */
+  allowServerProvider?: boolean;
+  /** Persist provider provenance. Anonymous calls are intentionally response-only. */
+  persistAgentRun?: boolean;
 }
 
 export type DiscussionResponse =
@@ -59,6 +63,7 @@ export async function runDiscussion(
   question: string,
   traversalScope: DiscussionTraversalScope,
   requestLlm?: RequestLlmConfig,
+  options: RunDiscussionOptions = {},
 ): Promise<DiscussionResponse> {
   const env = getServerEnv();
   const index = await buildKnowledgeIndex();
@@ -85,7 +90,7 @@ export async function runDiscussion(
             apiKey: requestLlm.apiKey,
             model: requestLlm.model,
           });
-  } else if (env.llmEnabled && env.ANTHROPIC_API_KEY) {
+  } else if ((options.allowServerProvider ?? true) && env.llmEnabled && env.ANTHROPIC_API_KEY) {
     provider = createAnthropicProvider({
       apiKey: env.ANTHROPIC_API_KEY,
       model: env.LLM_MODEL,
@@ -104,24 +109,25 @@ export async function runDiscussion(
   const startedAt = new Date();
   const result = await discussWithLlm(provider, prepared);
 
-  // Persist the agent run for provenance (spec §14).
-  await prisma.agentRun.create({
-    data: {
-      agentType: "discussion-answer",
-      modelProvider: result.provider,
-      modelName: result.model,
-      modelVersion: result.modelVersion,
-      promptVersion: result.promptVersion,
-      inputHash: prepared.sha256,
-      // The exact canonical bytes hashed above and sent to the provider.
-      inputReferencesJson: prepared.json,
-      outputJson: result.answer ? JSON.stringify(result.answer) : undefined,
-      status: result.answer ? "succeeded" : "failed",
-      startedAt,
-      completedAt: new Date(),
-      error: result.error,
-    },
-  });
+  if (options.persistAgentRun ?? true) {
+    await prisma.agentRun.create({
+      data: {
+        agentType: "discussion-answer",
+        modelProvider: result.provider,
+        modelName: result.model,
+        modelVersion: result.modelVersion,
+        promptVersion: result.promptVersion,
+        inputHash: prepared.sha256,
+        // The exact canonical bytes hashed above and sent to the provider.
+        inputReferencesJson: prepared.json,
+        outputJson: result.answer ? JSON.stringify(result.answer) : undefined,
+        status: result.answer ? "succeeded" : "failed",
+        startedAt,
+        completedAt: new Date(),
+        error: result.error,
+      },
+    });
+  }
 
   return { mode: "llm", result, deterministic, ...provenance };
 }
