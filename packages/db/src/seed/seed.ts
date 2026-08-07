@@ -892,8 +892,14 @@ async function main() {
       .get(proposal.targetReviewSlug)
       ?.get(proposal.targetClaimLocalId);
     if (!sourceClaimId || !targetClaimId) {
+      const missingClaims =
+        !sourceClaimId && !targetClaimId
+          ? "source and target claims"
+          : !sourceClaimId
+            ? "source claim"
+            : "target claim";
       throw new Error(
-        `Cannot seed cross-review link proposal: unresolved ${!sourceClaimId ? "source" : "target"} claim ` +
+        `Cannot seed cross-review link proposal: unresolved ${missingClaims} ` +
           `(${proposal.sourceReviewSlug}:${proposal.sourceClaimLocalId} -> ` +
           `${proposal.targetReviewSlug}:${proposal.targetClaimLocalId}).`,
       );
