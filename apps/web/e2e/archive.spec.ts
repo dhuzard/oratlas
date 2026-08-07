@@ -70,7 +70,7 @@ test.describe("Public archive browsing", () => {
       "The arXiv for AI-generated scientific reviews.",
     );
 
-    await page.getByLabel("Search claims, reviews, or authors").fill("replay");
+    await page.getByLabel("Search reviews, topics, or authors").fill("replay");
     await page.getByRole("button", { name: "Search the review archive" }).click();
     await expect(page).toHaveURL(/\/archive\?.*contentType=review/);
     await expect(page).toHaveURL(/q=replay/);

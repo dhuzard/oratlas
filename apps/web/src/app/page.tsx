@@ -22,13 +22,13 @@ export default async function HomePage() {
         <form action="/archive" method="get" role="search" className="home-search">
           <input type="hidden" name="contentType" value="review" />
           <label htmlFor="home-q" className="sr-only">
-            Search claims, reviews, or authors
+            Search reviews, topics, or authors
           </label>
           <input
             id="home-q"
             type="search"
             name="q"
-            placeholder="Search a claim, review, or author…"
+            placeholder="Search a review, topic, or author…"
           />
           <button className="btn" type="submit">
             Search the review archive
