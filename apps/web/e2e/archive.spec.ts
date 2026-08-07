@@ -254,6 +254,10 @@ test.describe("Public archive browsing", () => {
 
   test("source-derived POC reviews expose limitations and remain traversable", async ({ page }) => {
     await page.goto("/reviews/vip-cortical-interneurons-critical-review");
+    await page
+      .locator("details.review-record-disclosure > summary")
+      .getByText("Source checks & specialist notes")
+      .click();
 
     const stressTest = page.locator("section.card").filter({
       has: page.getByRole("heading", { name: "POC scientific stress test" }),
