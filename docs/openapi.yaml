@@ -1558,12 +1558,21 @@ components:
             suffix: { type: string, maxLength: 256 }
         textPosition:
           type: object
+          description: Unicode code-point offsets into the canonical myst-rendered-text-v1 page projection.
           additionalProperties: false
           required: [type, start, end]
           properties:
             type: { const: TextPositionSelector }
-            start: { type: integer, minimum: 0, maximum: 10000000 }
-            end: { type: integer, minimum: 1, maximum: 10000000 }
+            start:
+              type: integer
+              minimum: 0
+              maximum: 10000000
+              description: Inclusive Unicode code-point offset.
+            end:
+              type: integer
+              minimum: 1
+              maximum: 10000000
+              description: Exclusive Unicode code-point offset.
     WebAnnotationPage:
       type: object
       description: Public W3C Web Annotation projection of visible version-bound discussion.

@@ -50,6 +50,8 @@ The reader captures the Markdown and notebook files listed by the pinned `myst.y
 contents and renders a sanitized MyST AST from the immutable database snapshot. Repository HTML,
 JavaScript, styles, and plugins are never executed. Source TRUST v2 remains visually and
 semantically distinct from Atlas verification. Selected-text comments use a version-bound page
-path, preserved-source hash, and W3C TextQuote/TextPosition selectors. The reader highlights these
-threads and publishes them through a JSON-LD AnnotationPage for human and agent consumers. Mutable
-upstream Pages output is never the archived record.
+path, preserved-source hash, and W3C TextQuote/TextPosition selectors whose positions count Unicode
+code points in the canonical rendered-page text. The server accepts an anchor only when its quote,
+context, positions, page path, and source hash match that immutable projection. The reader highlights
+these threads and publishes them through a JSON-LD AnnotationPage for human and agent consumers.
+Mutable upstream Pages output is never the archived record.

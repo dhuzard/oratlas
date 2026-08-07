@@ -26,12 +26,24 @@ export type CommentStatus = z.infer<typeof commentStatusSchema>;
 
 export const COMMENT_BODY_MAX = 5_000;
 
+/** W3C text selectors count Unicode code points, not UTF-16 code units. */
+export function unicodeCodePointLength(value: string): number {
+  return Array.from(value).length;
+}
+
+const selectorTextSchema = (maximum: number) =>
+  z.string().refine((value) => unicodeCodePointLength(value) <= maximum, {
+    message: `Text must contain at most ${maximum} Unicode code points.`,
+  });
+
 export const textQuoteSelectorSchema = z
   .object({
     type: z.literal("TextQuoteSelector"),
-    exact: z.string().min(1).max(2_000),
-    prefix: z.string().max(256).optional(),
-    suffix: z.string().max(256).optional(),
+    exact: selectorTextSchema(2_000).refine((value) => unicodeCodePointLength(value) > 0, {
+      message: "Exact text cannot be empty.",
+    }),
+    prefix: selectorTextSchema(256).optional(),
+    suffix: selectorTextSchema(256).optional(),
   })
   .strict();
 
@@ -64,7 +76,10 @@ export const passageCommentAnchorSchema = z
   })
   .strict()
   .superRefine((anchor, context) => {
-    if (anchor.textPosition.end - anchor.textPosition.start !== anchor.textQuote.exact.length) {
+    if (
+      anchor.textPosition.end - anchor.textPosition.start !==
+      unicodeCodePointLength(anchor.textQuote.exact)
+    ) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
         message: "Text position length must match the exact selected quote.",
@@ -74,16 +89,18 @@ export const passageCommentAnchorSchema = z
   });
 export type PassageCommentAnchor = z.infer<typeof passageCommentAnchorSchema>;
 
-export const createCommentInputSchema = z.object({
-  body: z.string().trim().min(1, "Comment cannot be empty.").max(COMMENT_BODY_MAX),
-  kind: commentKindSchema.default("comment"),
-  /** Local claim id (e.g. "claim-003") within the review's current version. */
-  claimLocalId: z.string().trim().min(1).max(200).optional(),
-  /** Exact selected passage in the immutable rendered review version. */
-  anchor: passageCommentAnchorSchema.optional(),
-  /** Id of the comment being replied to. */
-  parentId: z.string().trim().min(1).max(200).optional(),
-});
+export const createCommentInputSchema = z
+  .object({
+    body: z.string().trim().min(1, "Comment cannot be empty.").max(COMMENT_BODY_MAX),
+    kind: commentKindSchema.default("comment"),
+    /** Local claim id (e.g. "claim-003") within the review's current version. */
+    claimLocalId: z.string().trim().min(1).max(200).optional(),
+    /** Exact selected passage in the immutable rendered review version. */
+    anchor: passageCommentAnchorSchema.optional(),
+    /** Id of the comment being replied to. */
+    parentId: z.string().trim().min(1).max(200).optional(),
+  })
+  .strict();
 export type CreateCommentInput = z.infer<typeof createCommentInputSchema>;
 
 export const commentAuthorSchema = z.object({

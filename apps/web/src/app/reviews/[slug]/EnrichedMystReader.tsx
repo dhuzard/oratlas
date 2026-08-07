@@ -21,6 +21,7 @@ import {
   type ReviewCommentList,
 } from "@oratlas/contracts";
 import type { ArticleDocument, MystNode, SourceTrustClaim } from "@/lib/article-reader";
+import { passageThreadsForPage, visiblePassageContributionCount } from "@/lib/passage-comments";
 
 interface ReaderState {
   openPage(path: string): void;
@@ -173,7 +174,28 @@ const KIND_LABELS: Record<CommentKind, string> = {
   endorsement: "Endorsement",
 };
 
-function selectionFrom(container: HTMLElement, sourceSha256: string, documentPath: string) {
+function codePointLength(value: string): number {
+  return Array.from(value).length;
+}
+
+function codePointOffsetToCodeUnit(value: string, offset: number): number {
+  if (offset < 0) return -1;
+  let codePoints = 0;
+  let codeUnits = 0;
+  for (const character of value) {
+    if (codePoints === offset) return codeUnits;
+    codePoints++;
+    codeUnits += character.length;
+  }
+  return codePoints === offset ? codeUnits : -1;
+}
+
+function selectionFrom(
+  container: HTMLElement,
+  canonicalText: string,
+  sourceSha256: string,
+  documentPath: string,
+) {
   const selection = globalThis.getSelection();
   if (!selection || selection.rangeCount !== 1 || selection.isCollapsed) return null;
   const range = selection.getRangeAt(0);
@@ -181,15 +203,18 @@ function selectionFrom(container: HTMLElement, sourceSha256: string, documentPat
     return null;
   }
   const renderedText = container.textContent ?? "";
+  if (renderedText !== canonicalText) return null;
   const before = range.cloneRange();
   before.selectNodeContents(container);
   before.setEnd(range.startContainer, range.startOffset);
   const rawExact = range.toString();
   const leading = rawExact.length - rawExact.trimStart().length;
   const exact = rawExact.trim();
-  if (!exact || exact.length > 2_000) return null;
-  const start = before.toString().length + leading;
-  const end = start + exact.length;
+  if (!exact || codePointLength(exact) > 2_000) return null;
+  const startCodeUnit = before.toString().length + leading;
+  const start = codePointLength(renderedText.slice(0, startCodeUnit));
+  const end = start + codePointLength(exact);
+  const renderedCodePoints = Array.from(renderedText);
   const element =
     range.startContainer instanceof Element
       ? range.startContainer
@@ -208,8 +233,8 @@ function selectionFrom(container: HTMLElement, sourceSha256: string, documentPat
       textQuote: {
         type: "TextQuoteSelector" as const,
         exact,
-        prefix: renderedText.slice(Math.max(0, start - 96), start),
-        suffix: renderedText.slice(end, end + 96),
+        prefix: renderedCodePoints.slice(Math.max(0, start - 96), start).join(""),
+        suffix: renderedCodePoints.slice(end, end + 96).join(""),
       },
       textPosition: { type: "TextPositionSelector" as const, start, end },
     },
@@ -219,7 +244,8 @@ function selectionFrom(container: HTMLElement, sourceSha256: string, documentPat
 }
 
 function findQuoteOffset(text: string, anchor: PassageCommentAnchor): number {
-  const expected = anchor.textPosition.start;
+  const expected = codePointOffsetToCodeUnit(text, anchor.textPosition.start);
+  if (expected < 0) return -1;
   if (text.slice(expected, expected + anchor.textQuote.exact.length) === anchor.textQuote.exact) {
     return expected;
   }
@@ -232,8 +258,11 @@ function findQuoteOffset(text: string, anchor: PassageCommentAnchor): number {
     const suffixStart = cursor + anchor.textQuote.exact.length;
     const suffixMatches =
       !anchor.textQuote.suffix || text.slice(suffixStart).startsWith(anchor.textQuote.suffix);
+    const cursorCodePoint = codePointLength(text.slice(0, cursor));
     const distance =
-      Math.abs(cursor - expected) + (prefixMatches ? 0 : 10_000) + (suffixMatches ? 0 : 10_000);
+      Math.abs(cursorCodePoint - anchor.textPosition.start) +
+      (prefixMatches ? 0 : 10_000) +
+      (suffixMatches ? 0 : 10_000);
     if (distance < bestDistance) {
       best = cursor;
       bestDistance = distance;
@@ -379,10 +408,7 @@ export function EnrichedMystReader({
   const page =
     document.pages.find((candidate) => candidate.path === activePath) ?? document.pages[0];
   const passageComments = useMemo(
-    () =>
-      comments.filter(
-        (comment) => comment.status === "visible" && comment.anchor?.documentPath === page?.path,
-      ),
+    () => passageThreadsForPage(comments, page?.path),
     [comments, page?.path],
   );
   const state = useMemo<ReaderState>(
@@ -406,6 +432,15 @@ export function EnrichedMystReader({
     }),
     [document.pages],
   );
+
+  useEffect(() => {
+    if (initialPagePath && document.pages.some((candidate) => candidate.path === initialPagePath)) {
+      setActivePath(initialPagePath);
+      setSelectedTrust(null);
+      setDraftPassage(null);
+      setSelectionAction(null);
+    }
+  }, [document.pages, initialPagePath]);
 
   useEffect(() => {
     const container = articleBody.current;
@@ -443,7 +478,12 @@ export function EnrichedMystReader({
 
   function captureSelection() {
     if (!discussionEnabled || !articleBody.current) return;
-    const selected = selectionFrom(articleBody.current, activePage.sha256, activePage.path);
+    const selected = selectionFrom(
+      articleBody.current,
+      activePage.renderedText,
+      activePage.sha256,
+      activePage.path,
+    );
     setSelectionAction(selected);
   }
 
@@ -512,7 +552,7 @@ export function EnrichedMystReader({
                       <a href="#community-review" key={comment.id}>
                         “{comment.anchor?.textQuote.exact.slice(0, 100)}
                         {(comment.anchor?.textQuote.exact.length ?? 0) > 100 ? "…" : ""}”
-                        <span>{1 + comment.replies.length} contribution(s)</span>
+                        <span>{visiblePassageContributionCount(comment)} contribution(s)</span>
                       </a>
                     ))}
                   </div>

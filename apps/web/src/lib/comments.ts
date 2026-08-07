@@ -3,6 +3,7 @@ import {
   canonicalJson,
   claimDomAnchor,
   isExactCommitSha,
+  normalizeGitHubLogin,
   passageCommentAnchorSchema,
   preservedFilesSchema,
   type CommentKind,
@@ -15,6 +16,7 @@ import { parseJsonColumn, prisma } from "./db";
 import { isEditor, type SessionUser } from "./auth";
 import { isReadablePublicState, isTombstonedState } from "./review-lifecycle";
 import { sha256 } from "./hash";
+import { buildMystArticle } from "./article-reader";
 
 export class CommentError extends Error {
   constructor(
@@ -45,6 +47,26 @@ const commentInclude = {
   author: { select: { githubLogin: true, displayName: true, role: true } },
   claim: { select: { localClaimId: true, anchor: true, reviewVersionId: true } },
 } as const;
+
+function passageMatchesRenderedText(text: string, anchor: PassageCommentAnchor): boolean {
+  const content = Array.from(text);
+  const exact = Array.from(anchor.textQuote.exact);
+  const { start, end } = anchor.textPosition;
+  if (end > content.length || end - start !== exact.length) return false;
+  if (content.slice(start, end).join("") !== anchor.textQuote.exact) return false;
+  if (anchor.textQuote.prefix) {
+    const prefix = Array.from(anchor.textQuote.prefix);
+    if (
+      content.slice(Math.max(0, start - prefix.length), start).join("") !== anchor.textQuote.prefix
+    )
+      return false;
+  }
+  if (anchor.textQuote.suffix) {
+    const suffix = Array.from(anchor.textQuote.suffix);
+    if (content.slice(end, end + suffix.length).join("") !== anchor.textQuote.suffix) return false;
+  }
+  return true;
+}
 
 function toDto(row: CommentRow, selectedVersionId: string): Omit<ReviewComment, "replies"> {
   const removed = row.status !== "visible";
@@ -181,8 +203,17 @@ export async function createReviewComment(
               id: true,
               publicState: true,
               publishedAt: true,
-              snapshot: { select: { commitSha: true, preservedFilesJson: true } },
+              snapshot: {
+                select: {
+                  commitSha: true,
+                  preservedFilesJson: true,
+                  repository: { select: { owner: true, name: true } },
+                },
+              },
               sourceSubmission: { select: { submitterId: true } },
+              contributors: {
+                select: { person: { select: { githubLogin: true } } },
+              },
             },
           },
         },
@@ -215,13 +246,28 @@ export async function createReviewComment(
         const files = preservedFilesSchema.safeParse(
           parseJsonColumn<unknown>(currentVersion.snapshot?.preservedFilesJson, null),
         );
-        const source = files.success ? files.data[input.anchor.documentPath] : undefined;
-        if (!source || source.truncated) {
-          throw new CommentError("The selected MyST document is not preserved for this version.");
-        }
-        if (sha256(source.content) !== input.anchor.sourceSha256) {
+        const article = files.success
+          ? buildMystArticle({
+              files: files.data,
+              repositoryOwner: currentVersion.snapshot.repository.owner,
+              repositoryName: currentVersion.snapshot.repository.name,
+              commitSha: currentVersion.snapshot.commitSha,
+            })
+          : null;
+        const targetPage = article?.pages.find(
+          (candidate) => candidate.path === input.anchor?.documentPath,
+        );
+        if (!targetPage) {
           throw new CommentError(
-            "The selected passage does not match the immutable source version.",
+            "The selected document is not a preserved rendered MyST page for this version.",
+          );
+        }
+        if (
+          targetPage.sha256 !== input.anchor.sourceSha256 ||
+          !passageMatchesRenderedText(targetPage.renderedText, input.anchor)
+        ) {
+          throw new CommentError(
+            "The selected passage does not match the immutable rendered source version.",
             "conflict",
           );
         }
@@ -319,6 +365,26 @@ export async function createReviewComment(
       const notificationRecipients = new Set<string>();
       if (currentVersion.sourceSubmission?.submitterId) {
         notificationRecipients.add(currentVersion.sourceSubmission.submitterId);
+      }
+      const contributorLogins = currentVersion.contributors.flatMap(({ person }) =>
+        person.githubLogin ? [person.githubLogin] : [],
+      );
+      const normalizedContributorLogins = new Set(contributorLogins.map(normalizeGitHubLogin));
+      if (normalizedContributorLogins.size > 0) {
+        const contributorUsers = await tx.user.findMany({
+          where: {
+            OR: [
+              { githubLoginNormalized: { in: [...normalizedContributorLogins] } },
+              { githubLogin: { in: contributorLogins } },
+            ],
+          },
+          select: { id: true, githubLogin: true },
+        });
+        for (const contributorUser of contributorUsers) {
+          if (normalizedContributorLogins.has(normalizeGitHubLogin(contributorUser.githubLogin))) {
+            notificationRecipients.add(contributorUser.id);
+          }
+        }
       }
       if (repliedToAuthorId) notificationRecipients.add(repliedToAuthorId);
       notificationRecipients.delete(author.id);
