@@ -287,14 +287,14 @@ export default async function ReviewPage({
           <p>{review.pocEvaluation.sourceCoverage}</p>
           <h3>Limitations to challenge</h3>
           <ul>
-            {review.pocEvaluation.limitations.map((limitation) => (
-              <li key={limitation}>{limitation}</li>
+            {review.pocEvaluation.limitations.map((limitation, index) => (
+              <li key={`limitation-${index}`}>{limitation}</li>
             ))}
           </ul>
           <h3>Suggested fixes</h3>
           <ul>
-            {review.pocEvaluation.suggestedFixes.map((fix) => (
-              <li key={fix}>{fix}</li>
+            {review.pocEvaluation.suggestedFixes.map((fix, index) => (
+              <li key={`suggested-fix-${index}`}>{fix}</li>
             ))}
           </ul>
           <p className="muted">

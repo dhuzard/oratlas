@@ -52,6 +52,14 @@ function buildMetadataJson(review: SeedReview) {
   });
 }
 
+function parseSeedDate(value: string | undefined, fallback: string, field: string): Date {
+  const parsed = new Date(value ?? fallback);
+  if (Number.isNaN(parsed.getTime())) {
+    throw new Error(`Invalid ${field} seed date: ${value ?? fallback}`);
+  }
+  return parsed;
+}
+
 async function seedReview(review: SeedReview, editorId: string) {
   const githubRepositoryId =
     review.repository.githubRepositoryId ??
@@ -102,8 +110,12 @@ async function seedReview(review: SeedReview, editorId: string) {
       : {},
   };
 
-  const sourceCreatedAt = new Date(review.snapshot.sourceCreatedAt ?? "2026-06-01T00:00:00.000Z");
-  const acceptedAt = new Date(review.acceptedAt ?? "2026-06-15T00:00:00.000Z");
+  const sourceCreatedAt = parseSeedDate(
+    review.snapshot.sourceCreatedAt,
+    "2026-06-01T00:00:00.000Z",
+    "sourceCreatedAt",
+  );
+  const acceptedAt = parseSeedDate(review.acceptedAt, "2026-06-15T00:00:00.000Z", "acceptedAt");
 
   const snapshot = await prisma.repositorySnapshot.create({
     data: {

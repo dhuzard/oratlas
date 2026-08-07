@@ -71,7 +71,9 @@ describe("seed snapshot identities", () => {
   it("keeps findings distinct from capabilities in the source-derived corpus", () => {
     expect(vipComputationalReview.claims).toHaveLength(4);
     expect(vipComputationalReview.relations).toHaveLength(6);
-    expect(vipComputationalReview.citations.every((citation) => !citation.isExample)).toBe(true);
+    expect(vipComputationalReview.citations.every((citation) => citation.isExample !== true)).toBe(
+      true,
+    );
 
     const capability = openscopeP3DataRelease.claims.find(
       (claim) => claim.localId === "alternative-hypotheses",
