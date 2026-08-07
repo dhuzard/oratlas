@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
-import { buildMystArticle, parsePreservedMarkdown, safeUnicode } from "./article-reader";
+import { buildMystArticle, parsePreservedMarkdown, safeUnicode, safeUrl } from "./article-reader";
 
 describe("preserved article reader", () => {
   it("creates deterministic structure while leaving raw HTML inert text", () => {
@@ -24,6 +24,35 @@ describe("preserved article reader", () => {
   it("repairs unpaired UTF-16 surrogates before UTF-8 output", () => {
     expect(safeUnicode(`before\ud800after\udc00`)).toBe("before�after�");
     expect(safeUnicode("valid 🧪 français தமிழ்")).toBe("valid 🧪 français தமிழ்");
+  });
+
+  it("accepts only secure external links, fragments, and repository-relative paths", () => {
+    expect(safeUrl("https://example.org/review")).toBe("https://example.org/review");
+    expect(safeUrl("mailto:author@example.org")).toBe("mailto:author@example.org");
+    expect(safeUrl("#results")).toBe("#results");
+    expect(safeUrl("../figures/result.png")).toBe("../figures/result.png");
+    expect(safeUrl("http://example.org/review")).toBeUndefined();
+    expect(safeUrl("//example.org/review")).toBeUndefined();
+    expect(safeUrl("/absolute/path")).toBeUndefined();
+    expect(safeUrl("\\\\example.org\\review")).toBeUndefined();
+    expect(safeUrl("javascript:alert(1)")).toBeUndefined();
+  });
+
+  it("bounds traversal depth for untrusted source TRUST JSON", () => {
+    const depth = 10_000;
+    const deeplyNested = '{"nested":'.repeat(depth) + '{"claim_id":"too-deep"}' + "}".repeat(depth);
+
+    const article = buildMystArticle({
+      files: {
+        "README.md": preserved("# Safe review"),
+        "knowledge/claim_graph.json": preserved(deeplyNested),
+      },
+      repositoryOwner: "lab",
+      repositoryName: "review",
+      commitSha: "c".repeat(40),
+    });
+
+    expect(article?.sourceTrustCount).toBe(0);
   });
 
   it("builds a multi-page MyST reader and resolves source TRUST without merging it", () => {

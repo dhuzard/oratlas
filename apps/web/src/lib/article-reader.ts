@@ -80,6 +80,9 @@ const TRUST_GRAPH_PATHS = [
   "knowledge/claim_index.json",
 ] as const;
 
+const MAX_TRUST_JSON_DEPTH = 64;
+const MAX_TRUST_JSON_NODES = 100_000;
+
 /** Replace invalid UTF-16 scalar sequences before framework UTF-8 encoding. */
 export function safeUnicode(input: string): string {
   let output = "";
@@ -329,18 +332,29 @@ function sourceTrustFromRecord(record: Record<string, unknown>): SourceTrustClai
 function trustIndex(files: PreservedFiles): Map<string, SourceTrustClaim> {
   const index = new Map<string, SourceTrustClaim>();
   let visited = 0;
-  const visit = (value: unknown): void => {
-    if (visited++ > 100_000 || !value) return;
-    if (Array.isArray(value)) {
-      for (const item of value) visit(item);
-      return;
-    }
-    const record = objectValue(value);
-    if (!record) return;
-    const claim = sourceTrustFromRecord(record);
-    if (claim && !index.has(claim.claimId)) index.set(claim.claimId, claim);
-    for (const child of Object.values(record)) {
-      if (child && typeof child === "object") visit(child);
+  const visit = (root: unknown): void => {
+    const pending: Array<{ value: unknown; depth: number }> = [{ value: root, depth: 0 }];
+    while (pending.length > 0 && visited < MAX_TRUST_JSON_NODES) {
+      const current = pending.pop()!;
+      visited++;
+      if (!current.value) continue;
+      if (Array.isArray(current.value)) {
+        if (current.depth >= MAX_TRUST_JSON_DEPTH) continue;
+        for (const item of current.value) {
+          pending.push({ value: item, depth: current.depth + 1 });
+        }
+        continue;
+      }
+      const record = objectValue(current.value);
+      if (!record) continue;
+      const claim = sourceTrustFromRecord(record);
+      if (claim && !index.has(claim.claimId)) index.set(claim.claimId, claim);
+      if (current.depth >= MAX_TRUST_JSON_DEPTH) continue;
+      for (const child of Object.values(record)) {
+        if (child && typeof child === "object") {
+          pending.push({ value: child, depth: current.depth + 1 });
+        }
+      }
     }
   };
   for (const path of TRUST_GRAPH_PATHS) {
@@ -365,10 +379,11 @@ function directiveOptions(node: MystNode): Record<string, string> {
   return result;
 }
 
-function safeUrl(url: string): string | undefined {
+export function safeUrl(url: string): string | undefined {
   const value = safeUnicode(url).trim();
   if (!value) return undefined;
-  if (/^(?:https?:|mailto:|#)/i.test(value)) return value;
+  if (/^(?:https:|mailto:|#)/i.test(value)) return value;
+  if (/^[\\/]/.test(value)) return undefined;
   if (/^[a-z][a-z0-9+.-]*:/i.test(value)) return undefined;
   return value;
 }
@@ -457,7 +472,7 @@ function transformMystNode(input: MystNode, context: TransformContext): MystNode
     const url = safeUrl(node.url);
     if (!url) return { type: "text", value: textOf(input), key };
     node.url = url;
-    if (!/^(?:https?:|mailto:|#)/i.test(url)) {
+    if (!/^(?:https:|mailto:|#)/i.test(url)) {
       const path = resolveRepoPath(context.pagePath, url);
       if (path && context.pagePaths.has(path)) node.articlePagePath = path;
     }
@@ -465,7 +480,7 @@ function transformMystNode(input: MystNode, context: TransformContext): MystNode
   if (node.type === "image" && typeof node.url === "string") {
     const url = safeUrl(node.url);
     if (!url) return null;
-    if (!/^(?:https?:|#)/i.test(url)) {
+    if (!/^(?:https:|#)/i.test(url)) {
       const path = resolveRepoPath(context.pagePath, url);
       if (!path) return null;
       node.url = `https://raw.githubusercontent.com/${encodeURIComponent(context.repositoryOwner)}/${encodeURIComponent(context.repositoryName)}/${context.commitSha}/${path.split("/").map(encodeURIComponent).join("/")}`;
