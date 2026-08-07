@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, rmSync } from "node:fs";
 import { createRequire } from "node:module";
+import { createHash } from "node:crypto";
 import { dirname, resolve } from "node:path";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { type PrismaClient } from "@oratlas/db";
@@ -623,6 +624,46 @@ describe.sequential("article lifecycle public boundaries", () => {
       { kind: "comment", body: "A valid comment committed before the tombstone." },
     );
     expect(commentBeforeTombstone.id).toBeTruthy();
+    const currentSource = `${article}\nRevised.`;
+    const passageComment = await runtime.comments.createReviewComment(
+      "sensitive-review",
+      {
+        id: commenterId,
+        githubLogin: "lifecycle-commenter",
+        displayName: null,
+        avatarUrl: null,
+        profileUrl: null,
+        role: "USER",
+      },
+      {
+        kind: "question",
+        body: "A version-bound question on the preserved passage.",
+        anchor: {
+          schemaVersion: "1.0.0",
+          representation: "myst-rendered-text-v1",
+          documentPath: "README.md",
+          sourceSha256: createHash("sha256").update(currentSource).digest("hex"),
+          textQuote: { type: "TextQuoteSelector", exact: secretTitle },
+          textPosition: {
+            type: "TextPositionSelector",
+            start: 0,
+            end: secretTitle.length,
+          },
+        },
+      },
+    );
+    const versionComments = await runtime.comments.listReviewComments(
+      "sensitive-review",
+      version2Id,
+    );
+    expect(
+      versionComments?.comments.find((comment) => comment.id === passageComment.id)?.anchor,
+    ).toMatchObject({ documentPath: "README.md", textQuote: { exact: secretTitle } });
+    expect(
+      await runtime.prisma.notification.count({
+        where: { kind: "review-comment-created", subjectId: passageComment.id },
+      }),
+    ).toBe(1);
 
     await runtime.prisma.reviewVersion.update({
       where: { id: version1Id },

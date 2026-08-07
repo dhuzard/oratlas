@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isSafeRepoRelativePath } from "./paths.js";
 
 /**
  * Review commentary contracts — the human scholarly-exchange layer on a
@@ -25,11 +26,61 @@ export type CommentStatus = z.infer<typeof commentStatusSchema>;
 
 export const COMMENT_BODY_MAX = 5_000;
 
+export const textQuoteSelectorSchema = z
+  .object({
+    type: z.literal("TextQuoteSelector"),
+    exact: z.string().min(1).max(2_000),
+    prefix: z.string().max(256).optional(),
+    suffix: z.string().max(256).optional(),
+  })
+  .strict();
+
+export const textPositionSelectorSchema = z
+  .object({
+    type: z.literal("TextPositionSelector"),
+    start: z.number().int().nonnegative().max(10_000_000),
+    end: z.number().int().positive().max(10_000_000),
+  })
+  .strict()
+  .refine((selector) => selector.end > selector.start, {
+    message: "Text position end must be greater than start.",
+    path: ["end"],
+  });
+
+/** Immutable target for a selection in ORAtlas's rendered MyST representation. */
+export const passageCommentAnchorSchema = z
+  .object({
+    schemaVersion: z.literal("1.0.0"),
+    representation: z.literal("myst-rendered-text-v1"),
+    documentPath: z
+      .string()
+      .min(1)
+      .max(512)
+      .refine(isSafeRepoRelativePath, "Document path must be repository-relative and safe."),
+    sourceSha256: z.string().regex(/^[0-9a-f]{64}$/),
+    astNodeId: z.string().min(1).max(240).optional(),
+    textQuote: textQuoteSelectorSchema,
+    textPosition: textPositionSelectorSchema,
+  })
+  .strict()
+  .superRefine((anchor, context) => {
+    if (anchor.textPosition.end - anchor.textPosition.start !== anchor.textQuote.exact.length) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Text position length must match the exact selected quote.",
+        path: ["textPosition", "end"],
+      });
+    }
+  });
+export type PassageCommentAnchor = z.infer<typeof passageCommentAnchorSchema>;
+
 export const createCommentInputSchema = z.object({
   body: z.string().trim().min(1, "Comment cannot be empty.").max(COMMENT_BODY_MAX),
   kind: commentKindSchema.default("comment"),
   /** Local claim id (e.g. "claim-003") within the review's current version. */
   claimLocalId: z.string().trim().min(1).max(200).optional(),
+  /** Exact selected passage in the immutable rendered review version. */
+  anchor: passageCommentAnchorSchema.optional(),
   /** Id of the comment being replied to. */
   parentId: z.string().trim().min(1).max(200).optional(),
 });
@@ -52,6 +103,7 @@ const commentBaseSchema = z.object({
   author: commentAuthorSchema.nullable(),
   claimLocalId: z.string().optional(),
   claimAnchor: z.string().optional(),
+  anchor: passageCommentAnchorSchema.optional(),
   createdAt: z.string(),
 });
 

@@ -206,6 +206,9 @@ export default async function ReviewPage({
   )
     ? requestedCommentClaim
     : undefined;
+  const initialArticlePage = Array.isArray(query.articlePage)
+    ? query.articlePage[0]
+    : query.articlePage;
   const evidenceRelationCount = review.claims.reduce(
     (count, claim) => count + claim.relations.length,
     0,
@@ -385,6 +388,10 @@ export default async function ReviewPage({
         <ArticleReader
           document={preservedArticle}
           reviewSlug={review.slug}
+          reviewVersionId={review.version.id}
+          comments={commentList.comments}
+          canComment={Boolean(user) && !isHistoricalRoute}
+          initialPagePath={initialArticlePage}
           discussionEnabled={!isHistoricalRoute}
           claims={review.claims.map((claim) => ({
             anchor: claim.anchor,

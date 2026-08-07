@@ -3,6 +3,7 @@ import {
   COMMENT_BODY_MAX,
   COMMENT_KINDS,
   createCommentInputSchema,
+  passageCommentAnchorSchema,
   reviewCommentListSchema,
 } from "./comments.js";
 
@@ -45,6 +46,45 @@ describe("createCommentInputSchema", () => {
     });
     expect(parsed.claimLocalId).toBe("claim-002");
     expect(parsed.parentId).toBe("cmt_123");
+  });
+
+  it("accepts immutable W3C-style passage selectors", () => {
+    const anchor = {
+      schemaVersion: "1.0.0",
+      representation: "myst-rendered-text-v1",
+      documentPath: "sections/results.md",
+      sourceSha256: "a".repeat(64),
+      textQuote: {
+        type: "TextQuoteSelector",
+        exact: "The observed effect was robust.",
+        prefix: "Results: ",
+        suffix: " Across cohorts.",
+      },
+      textPosition: { type: "TextPositionSelector", start: 24, end: 55 },
+    };
+    expect(createCommentInputSchema.parse({ body: "Can you clarify?", anchor }).anchor).toEqual(
+      anchor,
+    );
+  });
+
+  it("rejects unsafe passage paths and invalid position ranges", () => {
+    const base = {
+      schemaVersion: "1.0.0",
+      representation: "myst-rendered-text-v1",
+      sourceSha256: "b".repeat(64),
+      textQuote: { type: "TextQuoteSelector", exact: "passage" },
+      textPosition: { type: "TextPositionSelector", start: 10, end: 17 },
+    };
+    expect(
+      passageCommentAnchorSchema.safeParse({ ...base, documentPath: "../secret.md" }).success,
+    ).toBe(false);
+    expect(
+      passageCommentAnchorSchema.safeParse({
+        ...base,
+        documentPath: "review.md",
+        textPosition: { type: "TextPositionSelector", start: 10, end: 10 },
+      }).success,
+    ).toBe(false);
   });
 });
 
