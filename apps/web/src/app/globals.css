@@ -1127,6 +1127,259 @@ textarea {
   padding: clamp(2.5rem, 6vw, 4.5rem) 0 1.5rem;
 }
 
+/* Review page: reading first, structured inspection second, record machinery last. */
+.review-hero {
+  margin: 0 0 1.5rem;
+  padding: clamp(1.5rem, 4vw, 3rem) 0 1.5rem;
+  border-bottom: 1px solid var(--border);
+}
+.review-status-row {
+  margin-bottom: 1.35rem;
+}
+.review-eyebrow {
+  margin: 0 0 0.35rem;
+  color: var(--accent);
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+.review-hero h1 {
+  max-width: 24ch;
+  margin: 0;
+  font-size: clamp(2.15rem, 5vw, 3.65rem);
+  letter-spacing: -0.025em;
+}
+.review-byline {
+  margin: 0.8rem 0 0;
+  color: var(--text-muted);
+}
+.review-version-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 1.2rem;
+  margin: 0.55rem 0 0;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+.review-version-line span + span::before {
+  content: "·";
+  margin-right: 1.2rem;
+  color: var(--border);
+}
+.review-abstract {
+  max-width: 72ch;
+  margin: 1.5rem 0 0;
+  font-family: var(--font-serif);
+  font-size: clamp(1.08rem, 2vw, 1.25rem);
+  line-height: 1.65;
+}
+.review-tags {
+  margin-top: 1rem;
+}
+.review-primary-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin-top: 1.5rem;
+}
+.review-secondary-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.2rem;
+  margin-top: 0.8rem;
+  font-size: 0.9rem;
+}
+.review-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  max-width: 48rem;
+  margin: 1.75rem 0 0;
+  padding: 1rem 0 0;
+  border-top: 1px solid var(--border);
+}
+.review-metrics div {
+  padding: 0 1rem;
+  border-left: 1px solid var(--border);
+}
+.review-metrics div:first-child {
+  padding-left: 0;
+  border-left: 0;
+}
+.review-metrics dt {
+  font-family: var(--font-serif);
+  font-size: 1.55rem;
+  font-weight: 600;
+  line-height: 1.15;
+}
+.review-metrics dd {
+  margin: 0.15rem 0 0;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+}
+
+.review-reader {
+  margin: 1.5rem 0 2.5rem;
+  padding: clamp(1.35rem, 4vw, 3rem);
+  border: 1px solid var(--border);
+  border-top: 4px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: 0 1rem 2.5rem rgb(0 0 0 / 5%);
+}
+.review-reader-header,
+.review-reader > .prose,
+.review-reader > section {
+  max-width: 72ch;
+  margin-right: auto;
+  margin-left: auto;
+}
+.review-reader-header h2 {
+  margin: 0;
+  font-size: clamp(1.8rem, 3vw, 2.5rem);
+}
+.review-reader-header > p:last-of-type {
+  color: var(--text-muted);
+}
+.review-reader-source {
+  margin: 1rem 0;
+  font-size: 0.88rem;
+}
+.review-reader-source summary,
+.review-reader-toc summary,
+.review-record-disclosure > summary {
+  cursor: pointer;
+  color: var(--accent);
+  font-weight: 600;
+}
+.review-reader-toc {
+  max-width: 72ch;
+  margin: 1.5rem auto;
+  padding: 0.85rem 1rem;
+  border-left: 3px solid var(--border);
+  background: var(--surface-2);
+}
+.review-reader-toc ol {
+  margin-bottom: 0;
+}
+.review-reader .preserved-article {
+  font-family: var(--font-serif);
+  font-size: 1.08rem;
+  line-height: 1.78;
+}
+.review-reader .preserved-article h2,
+.review-reader .preserved-article h3,
+.review-reader .preserved-article h4 {
+  scroll-margin-top: 2rem;
+}
+.article-claim-marker {
+  border-width: 0 0 0 3px;
+  background: var(--surface-2);
+}
+
+.review-record-disclosure {
+  margin: -1rem 0 2.5rem;
+  border-bottom: 1px solid var(--border);
+}
+.review-record-disclosure > summary {
+  padding: 1rem 0;
+  list-style-position: outside;
+}
+.review-record-disclosure > summary span,
+.review-record-disclosure > summary small {
+  display: block;
+}
+.review-record-disclosure > summary small {
+  margin-top: 0.15rem;
+  color: var(--text-muted);
+  font-weight: 400;
+}
+.review-record-disclosure-content {
+  padding: 0.5rem 0 1.25rem;
+}
+
+.review-content-flow {
+  display: block;
+}
+.review-primary-column {
+  display: flex;
+  flex-direction: column;
+}
+.review-section-heading {
+  max-width: 72ch;
+  margin: 1rem 0 1.25rem;
+}
+.review-section-heading h2 {
+  margin: 0;
+  font-size: clamp(1.65rem, 3vw, 2.25rem);
+}
+.review-section-heading > p:last-child {
+  margin: 0.5rem 0 0;
+  color: var(--text-muted);
+}
+.review-discussion-heading {
+  margin-top: 3rem;
+}
+.review-source-details {
+  margin-top: 3rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--border);
+}
+.review-source-details::before {
+  display: block;
+  margin-bottom: 1rem;
+  color: var(--text-muted);
+  content: "Source, identifiers & acceptance checks";
+  font-family: var(--font-serif);
+  font-size: 1.35rem;
+  font-weight: 600;
+}
+.review-utility-panel {
+  margin-top: 2rem;
+  padding: clamp(1rem, 3vw, 2rem);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+.review-utility-panel .card {
+  box-shadow: none;
+}
+
+@media (min-width: 900px) {
+  .review-utility-panel {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+  }
+  .review-utility-panel > .review-section-heading {
+    grid-column: 1 / -1;
+  }
+  .review-utility-panel .card {
+    margin: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .review-primary-actions .btn {
+    width: 100%;
+    text-align: center;
+  }
+  .review-metrics {
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem 0;
+  }
+  .review-metrics div:nth-child(3) {
+    padding-left: 0;
+    border-left: 0;
+  }
+  .review-version-line span + span::before {
+    display: none;
+  }
+  .review-reader {
+    margin-right: -0.35rem;
+    margin-left: -0.35rem;
+  }
+}
+
 /* A compact, shared reading order for review and claim inspection. */
 .inspection-path {
   margin: 1.25rem 0 1.5rem;

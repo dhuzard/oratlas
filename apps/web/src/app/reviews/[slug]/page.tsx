@@ -248,22 +248,110 @@ export default async function ReviewPage({
 
       <ExploreBreadcrumb current="Review record" href="/archive" rootLabel="Reviews" />
 
-      <div className="btn-row" style={{ marginBottom: "0.5rem" }}>
-        <StatusPill status={review.status} />
-        {review.compatibilityLevel ? (
-          <CompatibilityBadge level={review.compatibilityLevel} />
-        ) : null}
-        {review.version.isExample ? <Badge tone="warning">example data</Badge> : null}
-      </div>
+      <header className="review-hero">
+        <div className="btn-row review-status-row">
+          <StatusPill status={review.status} />
+          {review.compatibilityLevel ? (
+            <CompatibilityBadge level={review.compatibilityLevel} />
+          ) : null}
+          {review.version.isExample ? <Badge tone="warning">example data</Badge> : null}
+        </div>
 
-      <h1>{review.title}</h1>
-      {review.abstract ? <p className="prose">{review.abstract}</p> : null}
-      <div className="btn-row">
-        <Link href={`/compare?left=${encodeURIComponent(review.slug)}`}>Compare this review</Link>
-        <Link href={`/explore?reviewSlug=${encodeURIComponent(review.slug)}`}>
-          Explore connected evidence
-        </Link>
-      </div>
+        <p className="review-eyebrow">Versioned scientific review</p>
+        <h1>{review.title}</h1>
+
+        {review.contributors.length > 0 ? (
+          <p className="review-byline">
+            {review.contributors.map((contributor, index) => (
+              <span key={`${contributor.displayName}-${index}`}>
+                {index > 0 ? ", " : ""}
+                {contributor.displayName}
+                {contributor.orcid ? (
+                  contributor.isExampleOrcid ? (
+                    <span className="mono"> ({contributor.orcid}, example)</span>
+                  ) : (
+                    <a href={`https://orcid.org/${contributor.orcid}`} className="mono">
+                      {" "}
+                      ({contributor.orcid})
+                    </a>
+                  )
+                ) : null}
+              </span>
+            ))}
+          </p>
+        ) : null}
+
+        <p className="review-version-line">
+          <span>
+            {review.version.semanticVersion ?? review.version.releaseTag ?? "Archived version"}
+          </span>
+          {review.acceptedAt ? <span>Accepted {review.acceptedAt.slice(0, 10)}</span> : null}
+          {review.version.versionDoi ? <span>DOI {review.version.versionDoi}</span> : null}
+          {review.licenseSpdx ? <span>{review.licenseSpdx}</span> : null}
+        </p>
+
+        {review.abstract ? <p className="review-abstract">{review.abstract}</p> : null}
+
+        {review.keywords.length > 0 || review.domains.length > 0 ? (
+          <ul className="tag-list review-tags">
+            {review.domains.map((domain) => (
+              <li key={`d-${domain}`}>{domain}</li>
+            ))}
+            {review.keywords.map((keyword) => (
+              <li key={`k-${keyword}`}>{keyword}</li>
+            ))}
+          </ul>
+        ) : null}
+
+        <div className="review-primary-actions">
+          <a className="btn btn-primary" href="#original-record">
+            Read preserved review
+          </a>
+          {review.publishedReviewUrl ? (
+            <a
+              className="btn btn-secondary"
+              href={review.publishedReviewUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Open full MyST site <span aria-hidden="true">↗</span>
+            </a>
+          ) : null}
+          <a className="btn btn-secondary" href="#linked-evidence">
+            Claims &amp; trust
+          </a>
+          <a className="btn btn-secondary" href="#community-review">
+            Discuss
+          </a>
+        </div>
+
+        <nav className="review-secondary-actions" aria-label="Review utilities">
+          <Link href={`/compare?left=${encodeURIComponent(review.slug)}`}>Compare review</Link>
+          <Link href={`/explore?reviewSlug=${encodeURIComponent(review.slug)}`}>
+            Explore connections
+          </Link>
+          <a href="#record-details">Source &amp; versions</a>
+        </nav>
+
+        <dl className="review-metrics" aria-label="Review activity summary">
+          <div>
+            <dt>{review.claims.length}</dt>
+            <dd>Claims</dd>
+          </div>
+          <div>
+            <dt>{review.citations.length}</dt>
+            <dd>Citations</dd>
+          </div>
+          <div>
+            <dt>{assessmentEntries.length}</dt>
+            <dd>TRUST assessments</dd>
+          </div>
+          <div>
+            <dt>{commentList.commentCount + challengeList.challenges.length}</dt>
+            <dd>Comments &amp; challenges</dd>
+          </div>
+        </dl>
+      </header>
 
       <InspectionPath
         label="Inspect this review"
@@ -293,365 +381,211 @@ export default async function ReviewPage({
 
       <span id="original-record" className="inspection-anchor" />
 
-      <Card title="Source artifact outcomes">
-        <p className="muted">
-          Inspection results for the accepted repository snapshot. These describe source artifacts,
-          not whether this particular review has claims or relations.
-        </p>
-        <ArtifactOutcomes report={review.compatibilityReport} />
-      </Card>
-
-      {review.pocEvaluation ? (
-        <Card title="POC scientific stress test">
-          <div className="btn-row">
-            <Badge tone="warning">source-derived POC</Badge>
-            <Badge>{review.pocEvaluation.corpusRole.replace(/-/g, " ")}</Badge>
-          </div>
-          <p>{review.pocEvaluation.sourceCoverage}</p>
-          <h3>Limitations to challenge</h3>
-          <ul>
-            {review.pocEvaluation.limitations.map((limitation, index) => (
-              <li key={`limitation-${index}`}>{limitation}</li>
-            ))}
-          </ul>
-          <h3>Suggested fixes</h3>
-          <ul>
-            {review.pocEvaluation.suggestedFixes.map((fix, index) => (
-              <li key={`suggested-fix-${index}`}>{fix}</li>
-            ))}
-          </ul>
-          <p className="muted">
-            These are explicit POC evaluation notes, not peer-review findings. Use the formal
-            challenge register below to contest an exact claim or evidence relation.
-          </p>
-        </Card>
-      ) : null}
-
-      {isHistoricalRoute ? (
-        <Notice tone="info" title="Immutable historical version">
-          You are viewing version {review.version.semanticVersion ?? review.version.id}. Its
-          snapshot, evidence and version-scoped discussion are preserved exactly. Historical
-          comments are read-only.{" "}
-          <Link href={`/reviews/${review.slug}`}>View the current version</Link>.
+      {preservedArticle ? (
+        <ArticleReader
+          document={preservedArticle}
+          reviewSlug={review.slug}
+          discussionEnabled={!isHistoricalRoute}
+          claims={review.claims.map((claim) => ({
+            anchor: claim.anchor,
+            localClaimId: claim.localClaimId,
+            text: claim.text,
+            section: claim.section,
+          }))}
+        />
+      ) : (
+        <Notice tone="info" title="No complete preserved article file">
+          This version still exposes its immutable metadata and evidence graph, but no complete,
+          non-truncated Markdown article was captured for the reader.
         </Notice>
-      ) : null}
+      )}
 
-      {review.sourceAssessmentDocuments?.documents.some(
-        (document) => document.status !== "absent",
-      ) ? (
-        <Card title="Source-declared assessment methodology">
-          <p>
-            These documents are preserved exactly as source provenance. ORAtlas does not parse their
-            Markdown, infer ratings, or treat them as Atlas verification.
-          </p>
-          <ul>
-            {review.sourceAssessmentDocuments.documents
-              .filter((document) => document.status !== "absent")
-              .map((document) => (
-                <li key={document.path}>
-                  {document.status === "preserved" ? (
-                    <a
-                      href={`/api/reviews/${encodeURIComponent(review.slug)}/versions/${encodeURIComponent(review.version.id)}/files/${encodeURIComponent(document.path)}`}
-                    >
-                      {document.path}
-                    </a>
-                  ) : (
-                    document.path
-                  )}{" "}
-                  <span className="muted">
-                    — methodology declared by source
-                    {document.status === "unavailable" ? "; unavailable within capture limits" : ""}
-                  </span>
-                </li>
-              ))}
-          </ul>
-        </Card>
-      ) : null}
-
-      {review.publicState === "withdrawn" ? (
-        <Notice tone="error" title="Withdrawn version">
-          This version remains visible as part of the scholarly record but should not be relied
-          upon. See the attributable lifecycle notice below.
-        </Notice>
-      ) : null}
-
-      {review.lifecycleEvents.map((event) => {
-        const isCorrection = event.kind === "correction";
-        const isCorrectedVersion = isCorrection && event.reviewVersionId === review.version.id;
-        const isSupersededVersion = isCorrection && event.supersedesVersionId === review.version.id;
-        return (
-          <Notice
-            key={event.id}
-            tone={event.kind === "withdrawal" ? "error" : "warning"}
-            title={
-              isCorrectedVersion
-                ? "Correction published"
-                : isSupersededVersion
-                  ? "Superseded by a corrected version"
-                  : "Lifecycle notice"
-            }
-          >
-            {event.reason} — @{event.actorLogin}, {event.createdAt.slice(0, 10)}.
-            {isCorrectedVersion && event.supersedesVersionId ? (
-              <>
-                {" "}
-                <Link href={`/reviews/${review.slug}/versions/${event.supersedesVersionId}`}>
-                  View the prior version
-                </Link>
-                .
-              </>
-            ) : null}
-            {isSupersededVersion ? (
-              <>
-                {" "}
-                <Link href={`/reviews/${review.slug}/versions/${event.reviewVersionId}`}>
-                  View the corrected version
-                </Link>
-                .
-              </>
-            ) : null}
-          </Notice>
-        );
-      })}
-
-      {protocolDrift?.snapshots.length ? (
-        <Card title={`Protocol Drift Radar (${protocolDrift.openCount} open)`}>
-          <p className="muted">
-            Registered protocol snapshots are compared exactly with structured claim scope.
-            Differences are human-review proposals, not misconduct findings.
-          </p>
-          {protocolDrift.snapshots.map((snapshot) => (
-            <div className="claim-card" key={snapshot.id}>
-              <div className="btn-row">
-                <Badge>{snapshot.registry}</Badge>
-                <a href={snapshot.sourceUrl} rel="noopener noreferrer">
-                  {snapshot.sourceId}
-                </a>
-                <span className="mono muted">version {snapshot.sourceVersion}</span>
-              </div>
-              <p className="mono muted" style={{ fontSize: "0.8rem" }}>
-                captured {snapshot.fetchedAt} · SHA-256 {snapshot.contentHash}
-              </p>
-              {snapshot.proposals.map((proposal) => (
-                <p key={proposal.id}>
-                  <StatusPill status={proposal.status} /> <strong>{proposal.category}</strong>:{" "}
-                  {proposal.rationale}
-                </p>
-              ))}
-            </div>
-          ))}
-          <p>
-            <Link href={`/api/protocols/reviews/${review.version.id}`}>
-              Machine-readable summary
-            </Link>
-          </p>
-        </Card>
-      ) : null}
-
-      {review.contributors.length > 0 ? (
-        <p className="muted">
-          {review.contributors.map((c, i) => (
-            <span key={i}>
-              {i > 0 ? ", " : ""}
-              {c.displayName}
-              {c.orcid ? (
-                c.isExampleOrcid ? (
-                  <span className="mono"> ({c.orcid}, example)</span>
-                ) : (
-                  <a href={`https://orcid.org/${c.orcid}`} className="mono">
-                    {" "}
-                    ({c.orcid})
-                  </a>
-                )
-              ) : null}
-            </span>
-          ))}
-        </p>
-      ) : null}
-
-      {review.keywords.length > 0 || review.domains.length > 0 ? (
-        <ul className="tag-list">
-          {review.domains.map((d) => (
-            <li key={`d-${d}`}>{d}</li>
-          ))}
-          {review.keywords.map((k) => (
-            <li key={`k-${k}`}>{k}</li>
-          ))}
-        </ul>
-      ) : null}
-
-      <div className="grid layout-2">
-        <div>
-          <Card title="Repository, version & identifiers">
-            <p className="prov-legend">
-              <ProvenanceBadge kind="repository-fact">Repository facts</ProvenanceBadge>
+      <details
+        className="review-record-disclosure"
+        open={
+          isHistoricalRoute ||
+          review.publicState === "withdrawn" ||
+          review.lifecycleEvents.length > 0
+        }
+      >
+        <summary>
+          <span>
+            <strong>Source checks &amp; specialist notes</strong>
+            <small>Artifact validation, methodology, lifecycle and protocol drift</small>
+          </span>
+        </summary>
+        <div className="review-record-disclosure-content">
+          <Card title="Source artifact outcomes">
+            <p className="muted">
+              Inspection results for the accepted repository snapshot. These describe source
+              artifacts, not whether this particular review has claims or relations.
             </p>
-            <DefinitionList
-              items={[
-                {
-                  term: "Repository",
-                  value: (
-                    <a href={review.repository.canonicalUrl} className="mono">
-                      {review.repository.owner}/{review.repository.name}
-                    </a>
-                  ),
-                },
-                {
-                  term: "Exact commit",
-                  value: <span className="mono">{review.snapshot.commitSha || "—"}</span>,
-                },
-                {
-                  term: "Exact tree",
-                  value: <span className="mono">{review.snapshot.treeSha || "—"}</span>,
-                },
-                {
-                  term: "Archival ID (SWHID)",
-                  value: revisionSwhid ? (
-                    review.version.isExample ? (
-                      <span>
-                        <span className="mono">{revisionSwhid}</span>{" "}
-                        <Badge tone="warning">example — not archived</Badge>
-                      </span>
-                    ) : (
-                      <a className="mono" href={swhidArchiveUrl(revisionSwhid)}>
-                        {revisionSwhid}
-                      </a>
-                    )
-                  ) : (
-                    <span className="muted">—</span>
-                  ),
-                },
-                {
-                  term: "Source selection",
-                  value: review.version.sourceKind ?? "legacy capture",
-                },
-                {
-                  term: "Release",
-                  value: review.version.releaseTag ? (
-                    review.version.releaseUrl ? (
-                      <a href={review.version.releaseUrl}>{review.version.releaseTag}</a>
-                    ) : (
-                      review.version.releaseTag
-                    )
-                  ) : (
-                    <span className="muted">no release (repository-only)</span>
-                  ),
-                },
-                {
-                  term: "Version DOI",
-                  value: (
-                    <DoiValue
-                      value={review.version.versionDoi}
-                      isExample={review.version.isExample}
-                    />
-                  ),
-                },
-                {
-                  term: "Concept DOI",
-                  value: (
-                    <DoiValue
-                      value={review.version.conceptDoi}
-                      isExample={review.version.isExample}
-                    />
-                  ),
-                },
-                {
-                  term: "Zenodo record",
-                  value: review.version.zenodoRecordId ? (
-                    <span className="mono">{review.version.zenodoRecordId}</span>
-                  ) : (
-                    <span className="muted">—</span>
-                  ),
-                },
-                {
-                  term: "Published review",
-                  value: review.publishedReviewUrl ? (
-                    <a href={review.publishedReviewUrl}>{review.publishedReviewUrl}</a>
-                  ) : (
-                    <span className="muted">—</span>
-                  ),
-                },
-                { term: "License", value: review.licenseSpdx ?? <span className="muted">—</span> },
-              ]}
-            />
-            {!review.version.versionDoi && !review.version.conceptDoi ? (
-              <Notice tone="info" title="Repository-only review">
-                This review has no DOI. The repository owner can connect the repository to Zenodo
-                and publish a GitHub release to mint one. See{" "}
-                <a href="https://docs.github.com/repositories/archiving-a-github-repository/referencing-and-citing-content">
-                  the Zenodo–GitHub workflow
-                </a>
-                . Note that GitHub default-branch content may differ from a deposited release; the
-                exact reviewed state is the commit above.
-              </Notice>
-            ) : null}
-            {review.version.capturePayloadHash ? (
-              <p className="mono muted" style={{ overflowWrap: "anywhere" }}>
-                Accepted capture SHA-256 {review.version.capturePayloadHash}
-              </p>
-            ) : null}
+            <ArtifactOutcomes report={review.compatibilityReport} />
           </Card>
 
-          {review.version.publicationConsistency ? (
-            <Card title="Release / DOI / commit consistency">
-              <StatusPill status={review.version.publicationConsistency.status} />
+          {review.pocEvaluation ? (
+            <Card title="POC scientific stress test">
+              <div className="btn-row">
+                <Badge tone="warning">source-derived POC</Badge>
+                <Badge>{review.pocEvaluation.corpusRole.replace(/-/g, " ")}</Badge>
+              </div>
+              <p>{review.pocEvaluation.sourceCoverage}</p>
+              <h3>Limitations to challenge</h3>
               <ul>
-                {review.version.publicationConsistency.checks.map((check) => (
-                  <li key={check.id}>
-                    <span className="mono">{check.id}</span>: {check.outcome} — {check.description}
-                    {check.details ? ` (${check.details})` : ""}
-                  </li>
+                {review.pocEvaluation.limitations.map((limitation, index) => (
+                  <li key={`limitation-${index}`}>{limitation}</li>
                 ))}
               </ul>
-              {review.version.editorialOverrides.length > 0 ? (
-                <Notice tone="warning" title="Editorial exceptions">
-                  <ul>
-                    {review.version.editorialOverrides.map((override) => (
-                      <li key={override.checkId}>
-                        <span className="mono">{override.checkId}</span> — recorded by @
-                        {override.editorLogin}, {override.createdAt.slice(0, 10)}
-                      </li>
-                    ))}
-                  </ul>
-                </Notice>
-              ) : null}
-              {review.version.editorialDecision ? (
-                <p className="muted">
-                  Editorial decision by @{review.version.editorialDecision.actorLogin}:{" "}
-                  {review.version.editorialDecision.decision} · conflict of interest:{" "}
-                  {review.version.editorialDecision.conflictOfInterest.status}
-                  {review.version.editorialDecision.administratorOverride
-                    ? ` · ADMIN override by @${review.version.editorialDecision.administratorOverride.administrator.githubLogin} at ${review.version.editorialDecision.administratorOverride.exercisedAt}`
-                    : ""}
-                </p>
-              ) : null}
+              <h3>Suggested fixes</h3>
+              <ul>
+                {review.pocEvaluation.suggestedFixes.map((fix, index) => (
+                  <li key={`suggested-fix-${index}`}>{fix}</li>
+                ))}
+              </ul>
               <p className="muted">
-                This report verifies identifier and source consistency. It does not judge the
-                scientific correctness of the review.
+                These are explicit POC evaluation notes, not peer-review findings. Use the formal
+                challenge register below to contest an exact claim or evidence relation.
               </p>
             </Card>
           ) : null}
 
-          {preservedArticle ? (
-            <ArticleReader
-              document={preservedArticle}
-              reviewSlug={review.slug}
-              discussionEnabled={!isHistoricalRoute}
-              claims={review.claims.map((claim) => ({
-                anchor: claim.anchor,
-                localClaimId: claim.localClaimId,
-                text: claim.text,
-                section: claim.section,
-              }))}
-            />
-          ) : (
-            <Notice tone="info" title="No complete preserved article file">
-              This version still exposes its immutable metadata and evidence graph, but no complete,
-              non-truncated Markdown article was captured for the reader.
+          {isHistoricalRoute ? (
+            <Notice tone="info" title="Immutable historical version">
+              You are viewing version {review.version.semanticVersion ?? review.version.id}. Its
+              snapshot, evidence and version-scoped discussion are preserved exactly. Historical
+              comments are read-only.{" "}
+              <Link href={`/reviews/${review.slug}`}>View the current version</Link>.
             </Notice>
-          )}
+          ) : null}
 
+          {review.sourceAssessmentDocuments?.documents.some(
+            (document) => document.status !== "absent",
+          ) ? (
+            <Card title="Source-declared assessment methodology">
+              <p>
+                These documents are preserved exactly as source provenance. ORAtlas does not parse
+                their Markdown, infer ratings, or treat them as Atlas verification.
+              </p>
+              <ul>
+                {review.sourceAssessmentDocuments.documents
+                  .filter((document) => document.status !== "absent")
+                  .map((document) => (
+                    <li key={document.path}>
+                      {document.status === "preserved" ? (
+                        <a
+                          href={`/api/reviews/${encodeURIComponent(review.slug)}/versions/${encodeURIComponent(review.version.id)}/files/${encodeURIComponent(document.path)}`}
+                        >
+                          {document.path}
+                        </a>
+                      ) : (
+                        document.path
+                      )}{" "}
+                      <span className="muted">
+                        — methodology declared by source
+                        {document.status === "unavailable"
+                          ? "; unavailable within capture limits"
+                          : ""}
+                      </span>
+                    </li>
+                  ))}
+              </ul>
+            </Card>
+          ) : null}
+
+          {review.publicState === "withdrawn" ? (
+            <Notice tone="error" title="Withdrawn version">
+              This version remains visible as part of the scholarly record but should not be relied
+              upon. See the attributable lifecycle notice below.
+            </Notice>
+          ) : null}
+
+          {review.lifecycleEvents.map((event) => {
+            const isCorrection = event.kind === "correction";
+            const isCorrectedVersion = isCorrection && event.reviewVersionId === review.version.id;
+            const isSupersededVersion =
+              isCorrection && event.supersedesVersionId === review.version.id;
+            return (
+              <Notice
+                key={event.id}
+                tone={event.kind === "withdrawal" ? "error" : "warning"}
+                title={
+                  isCorrectedVersion
+                    ? "Correction published"
+                    : isSupersededVersion
+                      ? "Superseded by a corrected version"
+                      : "Lifecycle notice"
+                }
+              >
+                {event.reason} — @{event.actorLogin}, {event.createdAt.slice(0, 10)}.
+                {isCorrectedVersion && event.supersedesVersionId ? (
+                  <>
+                    {" "}
+                    <Link href={`/reviews/${review.slug}/versions/${event.supersedesVersionId}`}>
+                      View the prior version
+                    </Link>
+                    .
+                  </>
+                ) : null}
+                {isSupersededVersion ? (
+                  <>
+                    {" "}
+                    <Link href={`/reviews/${review.slug}/versions/${event.reviewVersionId}`}>
+                      View the corrected version
+                    </Link>
+                    .
+                  </>
+                ) : null}
+              </Notice>
+            );
+          })}
+
+          {protocolDrift?.snapshots.length ? (
+            <Card title={`Protocol Drift Radar (${protocolDrift.openCount} open)`}>
+              <p className="muted">
+                Registered protocol snapshots are compared exactly with structured claim scope.
+                Differences are human-review proposals, not misconduct findings.
+              </p>
+              {protocolDrift.snapshots.map((snapshot) => (
+                <div className="claim-card" key={snapshot.id}>
+                  <div className="btn-row">
+                    <Badge>{snapshot.registry}</Badge>
+                    <a href={snapshot.sourceUrl} rel="noopener noreferrer">
+                      {snapshot.sourceId}
+                    </a>
+                    <span className="mono muted">version {snapshot.sourceVersion}</span>
+                  </div>
+                  <p className="mono muted" style={{ fontSize: "0.8rem" }}>
+                    captured {snapshot.fetchedAt} · SHA-256 {snapshot.contentHash}
+                  </p>
+                  {snapshot.proposals.map((proposal) => (
+                    <p key={proposal.id}>
+                      <StatusPill status={proposal.status} /> <strong>{proposal.category}</strong>:{" "}
+                      {proposal.rationale}
+                    </p>
+                  ))}
+                </div>
+              ))}
+              <p>
+                <Link href={`/api/protocols/reviews/${review.version.id}`}>
+                  Machine-readable summary
+                </Link>
+              </p>
+            </Card>
+          ) : null}
+        </div>
+      </details>
+
+      <div className="review-content-flow">
+        <div className="review-primary-column">
           <span id="linked-evidence" className="inspection-anchor" />
+          <header className="review-section-heading">
+            <p className="review-eyebrow">Structured inspection</p>
+            <h2>Claims &amp; trust</h2>
+            <p>
+              Inspect each claim, the evidence connected to it, and independent TRUST assessments.
+              These records describe coverage and provenance, not a universal quality score.
+            </p>
+          </header>
           <Card title="Claims and linked evidence">
             {review.claims.length === 0 ? (
               <p className="muted">No claims were extracted for this review.</p>
@@ -949,7 +883,37 @@ export default async function ReviewPage({
             </section>
           ) : null}
 
-          <div id="disagreements" className="inspection-anchor">
+          <header className="review-section-heading review-discussion-heading">
+            <p className="review-eyebrow">Participate</p>
+            <h2>Discussion &amp; review</h2>
+            <p>
+              Ask a question or comment on an exact claim. Formal challenges remain a separate,
+              attributable process and never rewrite the preserved review.
+            </p>
+          </header>
+
+          <CommentsSection
+            reviewSlug={review.slug}
+            list={commentList}
+            claims={review.claims.map((c) => ({
+              localClaimId: c.localClaimId,
+              anchor: c.anchor,
+              text: c.text,
+            }))}
+            viewer={
+              user
+                ? {
+                    githubLogin: user.githubLogin,
+                    displayName: user.displayName,
+                    isEditor: isEditor(user),
+                  }
+                : null
+            }
+            readOnly={isHistoricalRoute}
+            initialClaimLocalId={initialCommentClaim}
+          />
+
+          <div id="disagreements" className="inspection-anchor review-challenges-zone">
             <Card
               title={`Disagreements and formal challenges (${disagreementEntries.length + challengeList.challenges.length})`}
             >
@@ -989,29 +953,172 @@ export default async function ReviewPage({
             />
           </div>
 
-          <CommentsSection
-            reviewSlug={review.slug}
-            list={commentList}
-            claims={review.claims.map((c) => ({
-              localClaimId: c.localClaimId,
-              anchor: c.anchor,
-              text: c.text,
-            }))}
-            viewer={
-              user
-                ? {
-                    githubLogin: user.githubLogin,
-                    displayName: user.displayName,
-                    isEditor: isEditor(user),
-                  }
-                : null
-            }
-            readOnly={isHistoricalRoute}
-            initialClaimLocalId={initialCommentClaim}
-          />
+          <div className="review-source-details" id="record-details">
+            <Card title="Repository, version & identifiers">
+              <p className="prov-legend">
+                <ProvenanceBadge kind="repository-fact">Repository facts</ProvenanceBadge>
+              </p>
+              <DefinitionList
+                items={[
+                  {
+                    term: "Repository",
+                    value: (
+                      <a href={review.repository.canonicalUrl} className="mono">
+                        {review.repository.owner}/{review.repository.name}
+                      </a>
+                    ),
+                  },
+                  {
+                    term: "Exact commit",
+                    value: <span className="mono">{review.snapshot.commitSha || "—"}</span>,
+                  },
+                  {
+                    term: "Exact tree",
+                    value: <span className="mono">{review.snapshot.treeSha || "—"}</span>,
+                  },
+                  {
+                    term: "Archival ID (SWHID)",
+                    value: revisionSwhid ? (
+                      review.version.isExample ? (
+                        <span>
+                          <span className="mono">{revisionSwhid}</span>{" "}
+                          <Badge tone="warning">example — not archived</Badge>
+                        </span>
+                      ) : (
+                        <a className="mono" href={swhidArchiveUrl(revisionSwhid)}>
+                          {revisionSwhid}
+                        </a>
+                      )
+                    ) : (
+                      <span className="muted">—</span>
+                    ),
+                  },
+                  {
+                    term: "Source selection",
+                    value: review.version.sourceKind ?? "legacy capture",
+                  },
+                  {
+                    term: "Release",
+                    value: review.version.releaseTag ? (
+                      review.version.releaseUrl ? (
+                        <a href={review.version.releaseUrl}>{review.version.releaseTag}</a>
+                      ) : (
+                        review.version.releaseTag
+                      )
+                    ) : (
+                      <span className="muted">no release (repository-only)</span>
+                    ),
+                  },
+                  {
+                    term: "Version DOI",
+                    value: (
+                      <DoiValue
+                        value={review.version.versionDoi}
+                        isExample={review.version.isExample}
+                      />
+                    ),
+                  },
+                  {
+                    term: "Concept DOI",
+                    value: (
+                      <DoiValue
+                        value={review.version.conceptDoi}
+                        isExample={review.version.isExample}
+                      />
+                    ),
+                  },
+                  {
+                    term: "Zenodo record",
+                    value: review.version.zenodoRecordId ? (
+                      <span className="mono">{review.version.zenodoRecordId}</span>
+                    ) : (
+                      <span className="muted">—</span>
+                    ),
+                  },
+                  {
+                    term: "Published review",
+                    value: review.publishedReviewUrl ? (
+                      <a href={review.publishedReviewUrl}>{review.publishedReviewUrl}</a>
+                    ) : (
+                      <span className="muted">—</span>
+                    ),
+                  },
+                  {
+                    term: "License",
+                    value: review.licenseSpdx ?? <span className="muted">—</span>,
+                  },
+                ]}
+              />
+              {!review.version.versionDoi && !review.version.conceptDoi ? (
+                <Notice tone="info" title="Repository-only review">
+                  This review has no DOI. The repository owner can connect the repository to Zenodo
+                  and publish a GitHub release to mint one. See{" "}
+                  <a href="https://docs.github.com/repositories/archiving-a-github-repository/referencing-and-citing-content">
+                    the Zenodo–GitHub workflow
+                  </a>
+                  . Note that GitHub default-branch content may differ from a deposited release; the
+                  exact reviewed state is the commit above.
+                </Notice>
+              ) : null}
+              {review.version.capturePayloadHash ? (
+                <p className="mono muted" style={{ overflowWrap: "anywhere" }}>
+                  Accepted capture SHA-256 {review.version.capturePayloadHash}
+                </p>
+              ) : null}
+            </Card>
+
+            {review.version.publicationConsistency ? (
+              <Card title="Release / DOI / commit consistency">
+                <StatusPill status={review.version.publicationConsistency.status} />
+                <ul>
+                  {review.version.publicationConsistency.checks.map((check) => (
+                    <li key={check.id}>
+                      <span className="mono">{check.id}</span>: {check.outcome} —{" "}
+                      {check.description}
+                      {check.details ? ` (${check.details})` : ""}
+                    </li>
+                  ))}
+                </ul>
+                {review.version.editorialOverrides.length > 0 ? (
+                  <Notice tone="warning" title="Editorial exceptions">
+                    <ul>
+                      {review.version.editorialOverrides.map((override) => (
+                        <li key={override.checkId}>
+                          <span className="mono">{override.checkId}</span> — recorded by @
+                          {override.editorLogin}, {override.createdAt.slice(0, 10)}
+                        </li>
+                      ))}
+                    </ul>
+                  </Notice>
+                ) : null}
+                {review.version.editorialDecision ? (
+                  <p className="muted">
+                    Editorial decision by @{review.version.editorialDecision.actorLogin}:{" "}
+                    {review.version.editorialDecision.decision} · conflict of interest:{" "}
+                    {review.version.editorialDecision.conflictOfInterest.status}
+                    {review.version.editorialDecision.administratorOverride
+                      ? ` · ADMIN override by @${review.version.editorialDecision.administratorOverride.administrator.githubLogin} at ${review.version.editorialDecision.administratorOverride.exercisedAt}`
+                      : ""}
+                  </p>
+                ) : null}
+                <p className="muted">
+                  This report verifies identifier and source consistency. It does not judge the
+                  scientific correctness of the review.
+                </p>
+              </Card>
+            ) : null}
+          </div>
         </div>
 
-        <aside>
+        <aside className="review-utility-panel" aria-labelledby="review-tools-title">
+          <header className="review-section-heading">
+            <p className="review-eyebrow">Record details</p>
+            <h2 id="review-tools-title">Provenance &amp; utilities</h2>
+            <p>
+              Technical verification, preservation formats and version history remain available
+              without competing with the reading experience.
+            </p>
+          </header>
           <Card title="Compatibility">
             {review.compatibilityLevel ? (
               <CompatibilityBadge level={review.compatibilityLevel} />

@@ -94,6 +94,13 @@ test.describe("honest optional-artifact outcomes", () => {
 async function claimsOutcomeRow(page: Page, fixture: ArtifactOutcomeFixture) {
   await page.goto(`/reviews/${fixture.slug}`);
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Artifact outcome:");
+  const recordDisclosure = page.locator("details.review-record-disclosure");
+  if ((await recordDisclosure.getAttribute("open")) === null) {
+    await recordDisclosure
+      .locator(":scope > summary")
+      .getByText("Source checks & specialist notes")
+      .click();
+  }
   const outcomes = page.locator("dl.artifact-outcomes");
   await expect(outcomes).toBeVisible();
   return outcomes.locator(":scope > div").filter({ hasText: /^Claims/ });

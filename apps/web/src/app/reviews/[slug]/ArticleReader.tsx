@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Card, Badge } from "@oratlas/ui";
+import { Badge } from "@oratlas/ui";
 import { type ArticleBlock, type ArticleDocument } from "@/lib/article-reader";
 
 interface AnchoredClaim {
@@ -37,24 +37,37 @@ export function ArticleReader({
   discussionEnabled?: boolean;
 }) {
   return (
-    <Card title="Read the preserved MyST / Markdown review">
-      <p className="muted">
-        Read from the accepted database snapshot, never from the mutable upstream repository.
-        Repository HTML and MyST plugins are never executed. ORAtlas safely renders the captured
-        document structure. Source <span className="mono">{document.path}</span> · SHA-256{" "}
-        <span className="mono">{document.sha256}</span>
-      </p>
+    <section className="review-reader" aria-labelledby="preserved-review-title">
+      <header className="review-reader-header">
+        <p className="review-eyebrow">Preserved article</p>
+        <h2 id="preserved-review-title">Read the review</h2>
+        <p>
+          This is the immutable article captured with the accepted review version. Claims and
+          discussion remain linked to their exact record.
+        </p>
+        <details className="review-reader-source">
+          <summary>Snapshot and rendering details</summary>
+          <p className="muted">
+            Read from the accepted database snapshot, never from the mutable upstream repository.
+            Repository HTML and MyST plugins are never executed. ORAtlas safely renders the captured
+            document structure. Source <span className="mono">{document.path}</span> · SHA-256{" "}
+            <span className="mono">{document.sha256}</span>
+          </p>
+        </details>
+      </header>
       {document.toc.length > 0 ? (
-        <nav aria-label="Article table of contents">
-          <h3>Contents</h3>
-          <ol>
-            {document.toc.map((entry) => (
-              <li key={entry.id} style={{ marginLeft: `${Math.max(entry.level - 1, 0)}rem` }}>
-                <a href={`#${entry.id}`}>{entry.text}</a>
-              </li>
-            ))}
-          </ol>
-        </nav>
+        <details className="review-reader-toc" open>
+          <summary>Contents</summary>
+          <nav aria-label="Article table of contents">
+            <ol>
+              {document.toc.map((entry) => (
+                <li key={entry.id} style={{ marginLeft: `${Math.max(entry.level - 1, 0)}rem` }}>
+                  <a href={`#${entry.id}`}>{entry.text}</a>
+                </li>
+              ))}
+            </ol>
+          </nav>
+        </details>
       ) : null}
       <div className="prose preserved-article">
         {document.blocks.map((block, index) => {
@@ -84,7 +97,7 @@ export function ArticleReader({
             Platform-owned anchors remain exact and stable even when repository headings change.
           </p>
           {claims.map((claim) => (
-            <div className="claim-card" id={claim.anchor} key={claim.anchor}>
+            <div className="claim-card article-claim-marker" id={claim.anchor} key={claim.anchor}>
               <p className="claim-text">{claim.text}</p>
               <div className="btn-row">
                 <Badge>{claim.localClaimId}</Badge>
@@ -102,6 +115,6 @@ export function ArticleReader({
           ))}
         </section>
       ) : null}
-    </Card>
+    </section>
   );
 }
