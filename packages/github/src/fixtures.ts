@@ -299,6 +299,8 @@ export const templateCompatibleFixture: FakeRepoFixture = {
     "CITATION.cff": CITATION_CFF,
     ".zenodo.json": ZENODO_JSON,
     "content/references.bib": "@article{wilson1994, title={Reactivation}, year={1994}}",
+    "content/00_frontmatter.md": "# Abstract\nReplay supports systems consolidation.",
+    "content/evidence_database.md": "# Evidence database\nStructured evidence records.",
     "content/provenance.md": "# Provenance\nPipeline run log.",
     "provenance.json": JSON.stringify({ pipeline: "expert-review", version: "29" }),
     "knowledge/claims.jsonl": CLAIMS_JSONL,

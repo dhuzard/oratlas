@@ -45,8 +45,9 @@ surfaces. They do not compete with the four primary public journeys.
 
 ## Current safe-rendering boundary
 
-The reader renders captured Markdown/MyST structure from the immutable database snapshot and never
-executes repository HTML, JavaScript, or MyST plugins. Structured claim annotations link that source
-record to evidence, discussion, and challenges. Full multi-file MyST AST fidelity and direct
-citation/mention comment anchors require a separately reviewed preservation and data-model
-extension; the interface must not pretend mutable upstream Pages output is the archived record.
+The reader captures the Markdown and notebook files listed by the pinned `myst.yml` table of
+contents and renders a sanitized MyST AST from the immutable database snapshot. Repository HTML,
+JavaScript, styles, and plugins are never executed. Source TRUST v2 remains visually and
+semantically distinct from Atlas verification. Direct citation and passage comment anchors require
+the separately reviewed annotation data-model extension; mutable upstream Pages output is never the
+archived record.

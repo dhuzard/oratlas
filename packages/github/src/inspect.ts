@@ -1,5 +1,6 @@
 import {
   MAX_NODE_MANIFEST_BYTES,
+  isSafeRepoRelativePath,
   type InspectionReport,
   type NodeManifest,
   type NodeManifestSource,
@@ -10,6 +11,7 @@ import {
   validateReviewManifest,
   validateNodeManifest,
 } from "@oratlas/contracts";
+import { parse as parseYaml } from "yaml";
 import { parseGithubRepoUrl } from "./url.js";
 import { createFetchTransport, type GithubTransport } from "./transport.js";
 
@@ -24,8 +26,8 @@ export interface InspectionLimits {
 
 export const DEFAULT_LIMITS: InspectionLimits = {
   maxFileBytes: 3 * 1024 * 1024, // 3 MiB per file
-  maxTotalBytes: 6 * 1024 * 1024, // 6 MiB total fetched content
-  maxFileCount: 24, // well-known files fetched with content
+  maxTotalBytes: 16 * 1024 * 1024, // bounded article, knowledge and metadata package
+  maxFileCount: 96, // includes the MyST table of contents, not the whole repository
   maxTreeEntries: 5000, // directory traversal bound
 };
 
@@ -52,6 +54,9 @@ const WELL_KNOWN_FILES = [
   "readme.md",
   "provenance.json",
   "provenance/provenance.json",
+  "knowledge/claim_graph.json",
+  "knowledge/claim_index.json",
+  "knowledge/trust_score_report.json",
 ];
 
 const PERMITTED_EXTENSIONS = new Set([
@@ -64,7 +69,43 @@ const PERMITTED_EXTENSIONS = new Set([
   ".bib",
   ".toml",
   ".txt",
+  ".ipynb",
 ]);
+
+const MAX_MYST_DOCUMENTS = 64;
+
+/** Resolve only explicit, repository-local documents from a MyST project TOC. */
+export function mystDocumentPaths(content: string): string[] {
+  let parsed: unknown;
+  try {
+    parsed = parseYaml(content);
+  } catch {
+    return [];
+  }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return [];
+  const project = (parsed as Record<string, unknown>).project;
+  if (!project || typeof project !== "object" || Array.isArray(project)) return [];
+  const toc = (project as Record<string, unknown>).toc;
+  const found: string[] = [];
+  const visit = (value: unknown): void => {
+    if (found.length >= MAX_MYST_DOCUMENTS || !value) return;
+    if (Array.isArray(value)) {
+      for (const item of value) visit(item);
+      return;
+    }
+    if (typeof value !== "object") return;
+    const entry = value as Record<string, unknown>;
+    if (typeof entry.file === "string") {
+      const path = entry.file.replace(/\\/g, "/").replace(/^\.\//, "");
+      if (isSafeRepoRelativePath(path) && /\.(?:md|ipynb)$/i.test(path) && !found.includes(path)) {
+        found.push(path);
+      }
+    }
+    if (entry.children) visit(entry.children);
+  };
+  visit(toc);
+  return found;
+}
 
 function extensionOf(path: string): string {
   const base = path.slice(path.lastIndexOf("/") + 1);
@@ -569,6 +610,29 @@ export async function inspectRepository(
       warnings.push(
         `Suppressed ${ambiguousPaths.length} generic content path(s) because a valid node manifest requires artifact-safe explicit fetching.`,
       );
+    }
+  }
+
+  // MyST is a multi-document format. Capture the exact files explicitly
+  // listed by the pinned project's TOC; never crawl arbitrary Markdown paths.
+  const mystPath = treePaths.has("myst.yml")
+    ? "myst.yml"
+    : treePaths.has("myst.yaml")
+      ? "myst.yaml"
+      : undefined;
+  if (mystPath) {
+    if (!files[mystPath]) await fetchFile(mystPath);
+    toFetch.delete(mystPath);
+    const mystConfig = files[mystPath]?.content;
+    if (mystConfig) {
+      for (const path of mystDocumentPaths(mystConfig)) {
+        if (fileFetchAttempts >= limits.maxFileCount) {
+          warnFileFetchCap();
+          break;
+        }
+        await fetchFile(path);
+        toFetch.delete(path);
+      }
     }
   }
 
