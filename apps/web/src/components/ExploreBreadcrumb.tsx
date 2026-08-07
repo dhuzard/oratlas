@@ -8,15 +8,17 @@ interface BreadcrumbParent {
 export function ExploreBreadcrumb({
   current,
   href = "/explore",
+  rootLabel = "Explore",
   parent,
 }: {
   current: string;
   href?: string;
+  rootLabel?: string;
   parent?: BreadcrumbParent;
 }) {
   return (
     <nav className="explore-breadcrumb" aria-label="Breadcrumb">
-      <Link href={href}>Explore</Link>
+      <Link href={href}>{rootLabel}</Link>
       <span aria-hidden="true">/</span>
       {parent ? (
         <>

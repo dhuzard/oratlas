@@ -285,6 +285,7 @@ A full inventory of limitations lives in [`docs/poc-limitations.md`](docs/poc-li
 | [`docs/operations/`](docs/operations/README.md)                                                | Backups, observability, Postgres, privacy & takedown      |
 | [`docs/poc-limitations.md`](docs/poc-limitations.md)                                           | What the POC deliberately does not do                     |
 | [`docs/poc-review-corpus.md`](docs/poc-review-corpus.md)                                       | Real-repository POC corpus, critiques, and fixes          |
+| [`docs/product-experience.md`](docs/product-experience.md)                                     | Product model, primary journeys, and UX semantics         |
 | [`docs/openapi.yaml`](docs/openapi.yaml)                                                       | API description                                           |
 | [`PLAN.md`](PLAN.md)                                                                           | Shipped implementation plan                               |
 | [`ORATLAS_BACKLOG.md`](ORATLAS_BACKLOG.md)                                                     | Canonical active backlog                                  |

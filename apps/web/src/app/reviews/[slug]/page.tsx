@@ -88,10 +88,15 @@ function DoiValue({ value, isExample = false }: { value?: string; isExample?: bo
 
 export default async function ReviewPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string; versionId?: string }>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { slug, versionId } = await params;
+  const query: Record<string, string | string[] | undefined> = searchParams
+    ? await searchParams
+    : {};
   const synthesis = versionId ? null : await getPublicSynthesisReview(slug);
   if (synthesis) {
     const [reading, requestHeaders] = await Promise.all([
@@ -181,14 +186,26 @@ export default async function ReviewPage({
   }
 
   const supportingByCitation = new Map<string, number>();
+  const claimIdsByCitation = new Map<string, Set<string>>();
   for (const c of review.claims) {
     for (const r of c.relations) {
       supportingByCitation.set(
         r.citationLocalId,
         (supportingByCitation.get(r.citationLocalId) ?? 0) + 1,
       );
+      const claimIds = claimIdsByCitation.get(r.citationLocalId) ?? new Set<string>();
+      claimIds.add(c.localClaimId);
+      claimIdsByCitation.set(r.citationLocalId, claimIds);
     }
   }
+  const requestedCommentClaim = Array.isArray(query.commentOn)
+    ? query.commentOn[0]
+    : query.commentOn;
+  const initialCommentClaim = review.claims.some(
+    (claim) => claim.localClaimId === requestedCommentClaim,
+  )
+    ? requestedCommentClaim
+    : undefined;
   const evidenceRelationCount = review.claims.reduce(
     (count, claim) => count + claim.relations.length,
     0,
@@ -229,7 +246,7 @@ export default async function ReviewPage({
         dangerouslySetInnerHTML={{ __html: serializeJsonForHtml(jsonLd) }}
       />
 
-      <ExploreBreadcrumb current="Review record" href="/explore" />
+      <ExploreBreadcrumb current="Review record" href="/archive" rootLabel="Reviews" />
 
       <div className="btn-row" style={{ marginBottom: "0.5rem" }}>
         <StatusPill status={review.status} />
@@ -241,14 +258,20 @@ export default async function ReviewPage({
 
       <h1>{review.title}</h1>
       {review.abstract ? <p className="prose">{review.abstract}</p> : null}
+      <div className="btn-row">
+        <Link href={`/compare?left=${encodeURIComponent(review.slug)}`}>Compare this review</Link>
+        <Link href={`/explore?reviewSlug=${encodeURIComponent(review.slug)}`}>
+          Explore connected evidence
+        </Link>
+      </div>
 
       <InspectionPath
         label="Inspect this review"
         steps={[
           {
             href: "#original-record",
-            label: "Original record",
-            detail: "Article, version and source",
+            label: "Read review",
+            detail: "Preserved MyST / Markdown and source",
           },
           {
             href: "#linked-evidence",
@@ -257,13 +280,13 @@ export default async function ReviewPage({
           },
           {
             href: "#assessments",
-            label: "Assessments",
-            detail: formatCountLabel(assessmentEntries.length, "separate record"),
+            label: "TRUST",
+            detail: formatCountLabel(assessmentEntries.length, "separate assessment"),
           },
           {
             href: "#disagreements",
-            label: "Disagreements",
-            detail: `${disagreementEntries.length + challengeList.challenges.length} recorded`,
+            label: "Discuss & challenge",
+            detail: `${commentList.commentCount} comments · ${disagreementEntries.length + challengeList.challenges.length} challenges/disagreements`,
           },
         ]}
       />
@@ -612,6 +635,8 @@ export default async function ReviewPage({
           {preservedArticle ? (
             <ArticleReader
               document={preservedArticle}
+              reviewSlug={review.slug}
+              discussionEnabled={!isHistoricalRoute}
               claims={review.claims.map((claim) => ({
                 anchor: claim.anchor,
                 localClaimId: claim.localClaimId,
@@ -663,6 +688,13 @@ export default async function ReviewPage({
                         <a href="#community-review">
                           {claimComments} discussion comment{claimComments === 1 ? "" : "s"}
                         </a>
+                      ) : null}
+                      {!isHistoricalRoute ? (
+                        <Link
+                          href={`/reviews/${encodeURIComponent(review.slug)}?commentOn=${encodeURIComponent(claim.localClaimId)}#community-review`}
+                        >
+                          Comment on this claim
+                        </Link>
                       ) : null}
                     </div>
                     {claim.qualification ? (
@@ -834,7 +866,23 @@ export default async function ReviewPage({
                             "—"
                           )}
                         </td>
-                        <td>{supportingByCitation.get(c.localCitationId) ?? 0} claim(s)</td>
+                        <td>
+                          {supportingByCitation.get(c.localCitationId) ?? 0} claim(s)
+                          {!isHistoricalRoute
+                            ? [...(claimIdsByCitation.get(c.localCitationId) ?? [])].map(
+                                (claimId) => (
+                                  <span key={claimId}>
+                                    {" "}
+                                    <Link
+                                      href={`/reviews/${encodeURIComponent(review.slug)}?commentOn=${encodeURIComponent(claimId)}#community-review`}
+                                    >
+                                      discuss via {claimId}
+                                    </Link>
+                                  </span>
+                                ),
+                              )
+                            : null}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -959,6 +1007,7 @@ export default async function ReviewPage({
                 : null
             }
             readOnly={isHistoricalRoute}
+            initialClaimLocalId={initialCommentClaim}
           />
         </div>
 
