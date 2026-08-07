@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { parsePocEvaluation } from "./poc-evaluation";
+import { POC_CORPUS_ROLES, parsePocEvaluation, type PocCorpusRole } from "./poc-evaluation";
 
 describe("POC corpus evaluation metadata", () => {
+  it("derives the public role type from the runtime vocabulary", () => {
+    const roles: readonly PocCorpusRole[] = POC_CORPUS_ROLES;
+    expect(roles).toEqual(["structural-control", "ai-review", "data-release"]);
+  });
+
   it("accepts a bounded, actionable source assessment", () => {
     expect(
       parsePocEvaluation({

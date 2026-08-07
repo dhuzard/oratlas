@@ -1,4 +1,5 @@
-export type PocCorpusRole = "structural-control" | "ai-review" | "data-release";
+export const POC_CORPUS_ROLES = ["structural-control", "ai-review", "data-release"] as const;
+export type PocCorpusRole = (typeof POC_CORPUS_ROLES)[number];
 
 export interface PocEvaluation {
   corpusRole: PocCorpusRole;
@@ -7,7 +8,11 @@ export interface PocEvaluation {
   suggestedFixes: string[];
 }
 
-const CORPUS_ROLES = new Set<PocCorpusRole>(["structural-control", "ai-review", "data-release"]);
+const CORPUS_ROLES = new Set<string>(POC_CORPUS_ROLES);
+
+function isPocCorpusRole(value: unknown): value is PocCorpusRole {
+  return typeof value === "string" && CORPUS_ROLES.has(value);
+}
 
 function boundedText(value: unknown): string | undefined {
   if (typeof value !== "string") return undefined;
@@ -29,17 +34,11 @@ export function parsePocEvaluation(value: unknown): PocEvaluation | undefined {
   const sourceCoverage = boundedText(record.sourceCoverage);
   const limitations = boundedList(record.limitations);
   const suggestedFixes = boundedList(record.suggestedFixes);
-  if (
-    typeof corpusRole !== "string" ||
-    !CORPUS_ROLES.has(corpusRole as PocCorpusRole) ||
-    !sourceCoverage ||
-    !limitations ||
-    !suggestedFixes
-  ) {
+  if (!isPocCorpusRole(corpusRole) || !sourceCoverage || !limitations || !suggestedFixes) {
     return undefined;
   }
   return {
-    corpusRole: corpusRole as PocCorpusRole,
+    corpusRole,
     sourceCoverage,
     limitations,
     suggestedFixes,
