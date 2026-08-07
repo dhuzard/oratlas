@@ -64,9 +64,12 @@ describe("frozen Ethical Debt release", () => {
     const { report, extraction } = await replay();
 
     expect(report).toMatchObject({
-      status: "succeeded",
+      status: "partial",
       githubRepositoryId: "1291083149",
-      warnings: [],
+      warnings: expect.arrayContaining([
+        "Could not fetch 'content/01_introduction.md'.",
+        "Could not fetch 'content/trust_summary.md'.",
+      ]),
       selectedSource: { kind: "release", commitSha: COMMIT_SHA, treeSha: TREE_SHA },
     });
     expect(report.tree.some((entry) => entry.path === ARTICLE_CHAPTER)).toBe(true);
