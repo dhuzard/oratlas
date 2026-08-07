@@ -76,6 +76,10 @@ different versions side by side is allowed because display is not a comparison o
 Any future crosswalk must be a separately governed editorial artifact; it cannot be inferred in
 code from similar names, criteria, or version numbers.
 
+The canonical [assessment-protocol interoperability boundary](assessment-protocol-interoperability.md)
+defines how ORAtlas preserves, labels, and displays imported TRUST.md and Computational Review
+TRUST records without converting them into ORAtlas-native assessments.
+
 ## Repository assertions and platform verification
 
 ### Multiple assessments on one relation
