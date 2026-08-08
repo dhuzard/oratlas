@@ -1,12 +1,31 @@
 # ORAtlas UI/UX rules
 
-> **ORAtlas is a GitHub-native archive and interaction layer for AI-generated scientific reviews.**
-> Readers must be able to inspect a preserved review, move to a claim and its evidence, discuss or
-> challenge it, and derive new synthesis without overwriting the original record.
+> **ORAtlas is one canonical knowledge graph built from preserved, versioned AI-generated scientific
+> reviews, with two equally important ways to consume it: agents through the API and people through
+> a simple, didactic, visual interface.**
 
-This file is the normative UI and release contract. See
-[`docs/product-experience.md`](docs/product-experience.md) for the information architecture,
-scientific semantics, and current implementation boundary.
+This file is the normative UI, API-access, and release contract. See
+[`docs/product-experience.md`](docs/product-experience.md) for the wider information architecture and
+scientific semantics.
+
+```mermaid
+flowchart LR
+  R["GitHub AI reviews<br/>exact release, tag, or commit"] --> V["Immutable review versions"]
+  V --> G[("Canonical knowledge graph<br/>claims · evidence · assessments<br/>disagreements · provenance")]
+  G --> API["Versioned API<br/>AI agents and computational workflows"]
+  G --> UI["Didactic visual Explore<br/>human readers"]
+  API --> S["Grounded comparison<br/>and synthesis"]
+  UI --> S
+  API --> P["Comments · challenges<br/>relation proposals"]
+  UI --> P
+  P --> E["Editorial review<br/>and explicit confirmation"]
+  E --> G
+```
+
+**Design invariant:** the website is not the database, and the API is not a secondary export of the
+website. Both expose the same identities, versions, relationships, provenance, and governance state.
+Agents must never need to scrape the GUI; people must never need to understand the graph schema
+before they can explore it.
 
 ## 1. Make the operating model obvious
 
@@ -15,103 +34,142 @@ A first-time visitor should understand within ten seconds that:
 - reviews originate in **public GitHub repositories** built with, forked from, or compatible with
   the official
   [AllenNeuralDynamics Computational Review Template](https://github.com/AllenNeuralDynamics/ComputationalReviewTemplate);
-- ORAtlas captures an **exact release, tag, or commit** rather than accepting a manuscript upload;
-- GitHub sign-in is required for deposit and attributable participation; and
+- ORAtlas captures an **exact release, tag, or commit**, not a manuscript upload;
+- accepted reviews become immutable source records whose claims, evidence, assessments,
+  disagreements, and provenance form a knowledge graph;
+- public records are available through both a visual website and a documented machine API;
+- GitHub sign-in is required for deposit and attributable participation, not ordinary reading of
+  public records; and
 - archive acceptance is an **editorial decision**, not peer review, correctness, or consensus.
 
-The primary actions are **Reviews**, **Explore evidence**, **Compare**, and **Create & deposit**.
-Review generation happens in the Allen workflow; ORAtlas explains that workflow and then accepts
-an exact repository version for editorial consideration.
+The primary human actions are **Reviews**, **Explore**, **Compare**, and **Create & deposit**. A visible
+**API & agents** entry point must lead directly to documentation, schemas, examples, and endpoints.
 
 ### Five-step author flow
 
 1. Create a repository from the AllenNeuralDynamics template.
-2. Configure the title and scope, then run the template review pipeline.
+2. Configure the scope and run the review pipeline.
 3. Check the review, evidence packages, figures, provenance, and pipeline gates; do not present
    partial output as complete.
-4. Push the complete repository and publish an immutable tag or GitHub release. A Zenodo DOI is
-   recommended, not required.
-5. Sign in to ORAtlas, paste the repository URL, choose the exact source version, verify the
-   extracted metadata and validation report, and deposit it for acceptance, changes, or rejection.
+4. Push the repository and publish an immutable tag or GitHub release. A Zenodo DOI is recommended,
+   not required.
+5. Sign in to ORAtlas, select the exact source version, verify the extracted metadata and validation
+   report, and deposit it for acceptance, changes, or rejection.
 
-## 2. Preserve the review first and anchor participation
+## 2. Design one graph for two first-class interfaces
 
-- The complete review must remain easy to read; the graph and Atlas Discuss must not replace or
-  bury it. Figures and plots must be readable, expandable, captioned, and linked to exact source
-  provenance.
-- The default path is **review → claim passport → evidence → assessment or disagreement → preserved
-  source context**. Repository, release/tag/commit, version, AI/run provenance, and editorial status
+### 2.1 AI agents and computational workflows: API first
+
+- The API is a complete product surface. An agent can discover reviews, retrieve immutable versions,
+  enumerate claims and evidence, traverse typed relations, inspect assessments and disagreements,
+  and follow update lineage **without a web page, browser session, or DOM scraping**.
+- Publish a prominent API landing page with an OpenAPI contract, machine-readable schemas,
+  authentication and rate-limit rules, and a copyable quick start:
+  **retrieve review → list claims → traverse evidence → inspect provenance and disagreements**.
+- Public accepted records should be readable without GitHub authentication unless a documented
+  safety or rate-limiting exception applies. Authenticated writes remain attributable.
+- Use stable canonical identifiers and versioned endpoints and schemas. Every response identifies the
+  exact entity version, provenance, lifecycle state, relation state, and corresponding human page.
+- Use database-native cursor pagination for every node and edge collection. Every bounded response
+  states whether it is complete, truncated, filtered, or still pageable.
+- Expose a versioned graph snapshot and change feed so agents can synchronize incrementally.
+  Deterministic filters, ordering, errors, and idempotent writes are part of the agent UX.
+- The API and GUI must use the same canonical graph or immutable event/store. A GUI-only core action
+  is an incomplete feature; optional identity bridges must not become permanent architecture.
+
+### 2.2 Human readers: didactic, visual, and personalized
+
+- Start from a plain-language question, topic, review, or declared interest. Offer a small number of
+  explanatory starter paths rather than opening on a dense, unlabeled graph.
+- Treat the graph as an **explanatory map**, not a decorative node cloud. Consistent visual semantics
+  distinguish reviews, claims, evidence, assessments, disagreements, datasets, code, versions, and
+  proposed versus confirmed relations.
+- Every visible node or edge should answer: **What is this? Why am I seeing it? What supports it? How
+  does it connect to earlier knowledge? What changed?** Plain-language explanations precede
+  specialist metadata.
+- Make new-to-old connections explicit through typed relations such as **confirms, contradicts,
+  extends, updates, reuses evidence from**, or **no confirmed connection**. Never manufacture a link
+  merely to avoid an isolated node.
+- Use progressive disclosure: explanatory path first, source review and claim passport second, full
+  graph indexes and specialist controls on demand. The complete review remains easy to read.
+- Personalization may use explicitly selected interests, domains, preferred depth, or saved topics.
+  It must be transparent, reversible, and explain every recommendation. It changes ranking and
+  presentation, never canonical graph state. An unpersonalized view and reset control remain
+  available.
+- Preserve orientation: the active question, selected path, source review, graph neighborhood, and
+  return route remain visible. Provide labels, legends, keyboard access, non-color cues, responsive
+  layouts, and a readable non-graph alternative.
+
+## 3. Preserve records and govern participation
+
+- The archived review is primary. Figures and plots remain readable, expandable, captioned, and
+  linked to exact source provenance.
+- The default evidence path is **review → claim → evidence → assessment or disagreement → preserved
+  source context**. Repository, commit/tag/release, version, AI/run provenance, and editorial status
   remain visible.
-- Comments may address the whole review, an exact claim, or a selected passage in a preserved MyST
-  page. Formal challenges may target an exact claim, claim–evidence relation, or assessment
-  criterion.
-- Support attributed questions, concerns, suggestions, endorsements, and one-level replies. Clearly
-  distinguish open discussion, formal challenge, TRUST assessment, and editorial decision.
-- A comment never edits an accepted review in place. An addressed suggestion must link to its
-  resolution, replacement GitHub version, diff, and lineage. Historical-version discussions remain
-  readable but read-only; moderation leaves an auditable tombstone.
-- Graphs disclose why records appear, result bounds or truncation, and honest empty states. Demo
-  content is unmistakably labelled.
+- Comments may address a review, exact claim, claim–evidence relation, or preserved passage. Clearly
+  distinguish discussion, formal challenge, TRUST assessment, editorial decision, and graph-change
+  proposal.
+- A comment never edits an accepted review. Resolution links to an answer, editorial decision, or
+  replacement GitHub version with diff and lineage. Historical discussions remain readable;
+  moderation leaves an auditable tombstone.
+- Reviews, versions, claims, evidence, assessments, discussions, and typed relations are canonical
+  graph entities with stable identities and immutable versions, or are generated from one canonical
+  immutable store.
+- Humans and LLMs may propose a relation; only an explicit editor-confirmed proposal becomes a
+  canonical edge. A comment is not automatically an edge, and an editor-approved isolated concept
+  is valid.
+- Every node and edge exposes provenance, exact version, attribution, rationale, status
+  (`proposed` or `confirmed`), and change history. Semantic similarity may suggest a link but never
+  silently merges identities, sources, or conflicting interpretations.
+- Safe rendering never executes repository HTML, iframes, styles, or plugins. Passage annotations
+  are version-bound, source-anchored, and available to agents in machine-readable form.
 
-### Current safe-rendering boundary
+## 4. Turn exploration into grounded, reviewable synthesis
 
-The reader captures the Markdown and notebook files explicitly listed by the pinned `myst.yml`
-table of contents, parses them into a sanitized MyST AST, and renders source TRUST v2 assertions as
-a provenance-distinct layer. Repository HTML, iframes, styles, and plugins are never executed.
-Relative figures resolve against the exact accepted commit. Passage comments store a source hash,
-page path, rendered-text position, and quote-with-context selector. They are version-bound,
-highlighted in the reader, and exposed as public W3C-style JSON-LD annotations for agents. A reply
-inherits its parent passage; neither comments nor annotations mutate the archived source.
-
-## 3. Let the knowledge graph evolve without hidden mutation
-
-- Reviews, immutable versions, claims, evidence, figures, datasets, code, and typed relationships
-  are canonical graph entities with stable identities and immutable versions.
-- Comments, challenges, and update or link proposals are attributable records anchored to exact
-  graph subjects. **A comment is not automatically a scientific graph edge.**
-- Humans and LLMs may propose a relationship; only an explicit editor-confirmed proposal becomes a
-  public canonical edge. Never invent an edge to force connectivity. An editor-approved new root or
-  isolated concept is valid.
-- Every node and edge exposes provenance, exact version, status (`proposed` or `confirmed`), and
-  change history. Semantic similarity may suggest a link but never silently merges identities,
-  evidence works, or conflicting interpretations.
-
-## 4. Make Explore and Atlas Discuss one grounded workflow
-
-- Explore starts from an explicit question, topic, or interest and offers a small set of explanatory
-  starter paths. Complete indexes and specialist controls use progressive disclosure.
-- The selected graph path and source records remain visible before or beside Atlas Discuss.
-- Cross-review synthesis uses canonical identities, confirmed relations, or clearly labelled
-  reviewable proposals. Shared underlying sources are grouped so repeated citation does not create
-  false consensus; disagreements, scope differences, missing evidence, and uncertainty remain
-  visible.
-- Every generated statement cites exact node versions and source reviews and highlights its
-  supporting path. Model/provider, task or prompt, run, evidence packet, and generation status are
-  inspectable.
-- An LLM may propose links or draft a synthesis. It may not rewrite a preserved review or confirm an
-  edge. A saved or published synthesis is a **separate, versioned derivative record** with source
+- Explore and Atlas Discuss form one workflow: the selected graph path and source records remain
+  visible before or beside any generated answer.
+- Cross-review synthesis uses canonical identities, confirmed relations, or clearly labeled
+  proposals. Shared sources are grouped so repeated citation does not create false consensus;
+  disagreements, scope differences, missing evidence, and uncertainty remain visible.
+- Every generated statement cites exact node versions, source reviews, and its supporting graph path.
+  Model/provider, task or prompt, run, evidence packet, and generation status are inspectable through
+  both GUI and API.
+- An LLM may propose links or draft synthesis. It may not rewrite a preserved review or confirm an
+  edge. A saved or published synthesis is a separate, versioned derivative record with source
   lineage, software provenance, staleness detection, and an accountable editorial decision.
 
-## 5. End-to-end release gate
+## 5. End-to-end release gates
 
-A route or button is not sufficient. Releases must verify these journeys with real, non-demo
-accepted records:
+A route, diagram, or button is not sufficient. Verify these journeys with real, non-demo records:
 
-1. Home → review archive → Create & deposit → Allen template guidance → clear deposit instructions.
-2. GitHub sign-in → repository inspection → exact-version capture → validation → editorial status →
-   public immutable review.
-3. Full review and figures → claim → evidence → assessment/disagreement → provenance.
-4. Select a preserved passage → attributed comment → author reply → formal challenge or update
-   proposal → resolution or new version → diff and lineage.
-5. Explore at least two reviews → grounded multi-review answer → exact source highlighting → draft
-   or published synthesis, without mutating source reviews.
+1. Home → Create & deposit → Allen template guidance → GitHub sign-in → exact-version capture →
+   validation → editorial status → public immutable review.
+2. Full review and figures → claim → evidence → assessment/disagreement → provenance.
+3. API documentation → copyable quick start → retrieve a real review → list claims → traverse
+   evidence and disagreement records, without the GUI.
+4. Paginate real node and edge collections with explicit completeness metadata; obtain a graph
+   snapshot and consume a versioned change feed event.
+5. Question or declared interest → explained starter paths → reason for each recommendation → full
+   unpersonalized result set and reset control.
+6. Newly accepted review → explicit typed, confirmed connections to older insights—or **no confirmed
+   connection**—with relation proposals shown separately as non-canonical → supporting evidence and
+   provenance.
+7. Claim or passage → comment → reply → challenge or relation proposal → editorial resolution or new
+   version → diff, graph transition, and lineage.
+8. Explore at least two reviews → grounded multi-review answer → exact source highlighting → saved or
+   published synthesis without mutating source reviews.
+9. Confirm that the same entities, proposals, status changes, and synthesis records appear through
+   API and GUI with identical canonical identities.
 
-Fail the release when a core action is a placeholder, demo content appears real, the graph shows
-unrelated records, an accepted review cannot be read in full, or an LLM statement cannot resolve to
-exact source versions.
+Fail the release when a core action is a placeholder, demo content appears real, an accepted review
+cannot be read in full, an agent must scrape HTML, a bounded API response hides truncation,
+personalization cannot be reset, a graph link lacks an explanation, or an LLM statement cannot
+resolve to exact source versions.
 
 ## Language rules
 
-Use **deposit repository**, **accepted into the archive**, **AI-generated synthesis**, **proposed
-relation**, and **editor-confirmed relation**. Avoid **upload paper**, **peer-reviewed**, **truth
-score**, or **consensus** unless the underlying record explicitly supports that wording.
+Use **canonical knowledge graph**, **API & agents**, **visual Explore**, **deposit repository**,
+**accepted into the archive**, **AI-generated synthesis**, **proposed relation**, and
+**editor-confirmed relation**. Avoid **upload paper**, **peer-reviewed**, **truth score**, or
+**consensus** unless the underlying record explicitly supports that wording.
