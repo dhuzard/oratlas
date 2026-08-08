@@ -25,6 +25,17 @@ const archiveSynthesisFreshnessSchema = synthesisFreshnessBaseSchema
  */
 export const ARCHIVE_SYNTHESIS_CANDIDATE_SCAN_LIMIT = 500 as const;
 
+const relativePublicLinkSchema = z.string().regex(/^\/(?!\/)/);
+
+export const archiveResultLinksSchema = z
+  .object({
+    self: relativePublicLinkSchema,
+    html: relativePublicLinkSchema,
+    exactVersion: relativePublicLinkSchema,
+  })
+  .strict();
+export type ArchiveResultLinks = z.infer<typeof archiveResultLinksSchema>;
+
 /** Archive search query (spec §13, §16). */
 export const archiveSearchQuerySchema = z.object({
   contentType: z.enum(["all", "review", "node", "synthesis"]).optional(),
@@ -73,6 +84,7 @@ export const archiveSearchResponseSchema = z
             status: z.string(),
             score: z.number(),
             sortDate: z.string().datetime().optional(),
+            links: archiveResultLinksSchema,
           })
           .strict(),
         z
@@ -81,6 +93,7 @@ export const archiveSearchResponseSchema = z
             node: publicNodeSummarySchema,
             score: z.number(),
             sortDate: z.string().datetime(),
+            links: archiveResultLinksSchema,
           })
           .strict(),
         z
@@ -93,6 +106,7 @@ export const archiveSearchResponseSchema = z
             freshness: archiveSynthesisFreshnessSchema,
             score: z.number(),
             sortDate: z.string().datetime(),
+            links: archiveResultLinksSchema,
           })
           .strict(),
       ]),

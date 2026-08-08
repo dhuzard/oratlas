@@ -4,6 +4,7 @@ import { errorResponse, handleRouteError } from "@/lib/api";
 import { CanonicalGraphQueryError, queryCanonicalGraph } from "@/lib/canonical-graph-query";
 import { clientKey, rateLimit, rateLimitDefaults, type RateLimitResult } from "@/lib/rate-limit";
 import { addDiscoveryHeaders } from "@/lib/public-discovery";
+import { addNextPageLink } from "@/lib/hypermedia-links";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -75,10 +76,11 @@ export async function GET(request: Request) {
         maximum,
       );
     }
-    return graphResponseHeaders(
-      NextResponse.json(await queryCanonicalGraph(parsed.data)),
-      budget,
-      maximum,
+    const graph = await queryCanonicalGraph(parsed.data);
+    return addNextPageLink(
+      graphResponseHeaders(NextResponse.json(graph), budget, maximum),
+      request.url,
+      graph.page.nextCursor,
     );
   } catch (error) {
     const response =

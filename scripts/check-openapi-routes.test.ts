@@ -160,6 +160,7 @@ describe("synthesis OpenAPI contracts", () => {
     for (const schema of [
       "ArchiveRepositoryReviewResult",
       "ArchiveNodeResult",
+      "ArchiveResultLinks",
       "ArchiveSynthesisFreshness",
       "ArchiveSynthesisResult",
       "ArchiveSynthesisCandidateScan",
@@ -175,6 +176,7 @@ describe("synthesis OpenAPI contracts", () => {
     expect(synthesis).toContain("contentType: { const: synthesis }");
     expect(synthesis).toContain('$ref: "#/components/schemas/PublicSynthesisVersion"');
     expect(synthesis).toContain('$ref: "#/components/schemas/ArchiveSynthesisFreshness"');
+    expect(synthesis).toContain('$ref: "#/components/schemas/ArchiveResultLinks"');
 
     const freshness = component("ArchiveSynthesisFreshness");
     expect(freshness).toContain("enum: [unchecked, fresh, stale]");

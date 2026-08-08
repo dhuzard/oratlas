@@ -102,6 +102,11 @@ export async function searchArchive(
             )
           : 0,
       sortDate: node.updatedAt,
+      links: {
+        self: `/api/nodes/${encodeURIComponent(node.id)}`,
+        html: `/nodes/${encodeURIComponent(node.id)}`,
+        exactVersion: `/api/nodes/${encodeURIComponent(node.id)}/versions/${encodeURIComponent(node.currentVersionId)}`,
+      },
     }))
     .filter((node) => !hasQuery || node.score > 0);
   const reviews = reviewRows.map((review) => ({
@@ -117,6 +122,11 @@ export async function searchArchive(
     status: review.status,
     score: review.score,
     sortDate: query.sort === "updated" ? review.updatedAt : review.acceptedAt,
+    links: {
+      self: `/api/reviews/${encodeURIComponent(review.reviewSlug)}`,
+      html: `/reviews/${encodeURIComponent(review.reviewSlug)}`,
+      exactVersion: `/api/reviews/${encodeURIComponent(review.reviewSlug)}/versions/${encodeURIComponent(review.reviewVersionId)}`,
+    },
   }));
   const syntheses = synthesisRows
     .map((synthesis) => ({
@@ -131,6 +141,11 @@ export async function searchArchive(
           ? lexicalScore(qTokens, tokenSet(`${synthesis.title} ${synthesis.abstract}`))
           : 0,
       sortDate: synthesis.acceptedAt,
+      links: {
+        self: `/api/syntheses/${encodeURIComponent(synthesis.slug)}`,
+        html: `/reviews/${encodeURIComponent(synthesis.slug)}`,
+        exactVersion: `/reviews/${encodeURIComponent(synthesis.slug)}/syntheses/${encodeURIComponent(synthesis.version.id)}`,
+      },
     }))
     .filter((synthesis) => !hasQuery || synthesis.score > 0);
   const combined = [...reviews, ...nodes, ...syntheses].sort((left, right) => {

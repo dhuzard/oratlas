@@ -220,6 +220,20 @@ describe("archive discovery", () => {
       "synthesis:gamma-stale",
     ]);
     expect(new Set(keys).size).toBe(5);
+    expect(first.items[0]).toMatchObject({
+      links: {
+        self: "/api/syntheses/alpha-fresh",
+        html: "/reviews/alpha-fresh",
+        exactVersion: "/reviews/alpha-fresh/syntheses/alpha-fresh-version-1",
+      },
+    });
+    expect(second.items[0]).toMatchObject({
+      links: {
+        self: "/api/reviews/repository-review",
+        html: "/reviews/repository-review",
+        exactVersion: "/api/reviews/repository-review/versions/repository-version-1",
+      },
+    });
   });
 
   it("supports distinct type filters and text search without cross-type leakage", async () => {
@@ -245,6 +259,51 @@ describe("archive discovery", () => {
     );
     expect(text.items).toHaveLength(1);
     expect(text.items[0]).toMatchObject({ contentType: "synthesis", slug: "gamma-stale" });
+  });
+
+  it("percent-encodes every dynamic hypermedia path segment", async () => {
+    const encodedSources: ArchiveSearchSources = {
+      index: {
+        ...reviewIndex,
+        reviews: reviewIndex.reviews.map((review) => ({
+          ...review,
+          reviewSlug: "review / β",
+          reviewVersionId: "review-version / 1",
+        })),
+      },
+      nodes: [{ ...node, id: "node / β", currentVersionId: "node-version / 1" }],
+      syntheses: [
+        {
+          ...sources.syntheses[0]!,
+          slug: "synthesis / β",
+          version: { id: "synthesis-version / 1", ordinal: 1, isCurrent: true },
+        },
+      ],
+    };
+    const result = await searchArchive(
+      archiveSearchQuerySchema.parse({ sort: "title", pageSize: 10 }),
+      encodedSources,
+    );
+    const links = result.items.map((item) => item.links);
+    expect(links).toEqual(
+      expect.arrayContaining([
+        {
+          self: "/api/reviews/review%20%2F%20%CE%B2",
+          html: "/reviews/review%20%2F%20%CE%B2",
+          exactVersion: "/api/reviews/review%20%2F%20%CE%B2/versions/review-version%20%2F%201",
+        },
+        {
+          self: "/api/nodes/node%20%2F%20%CE%B2",
+          html: "/nodes/node%20%2F%20%CE%B2",
+          exactVersion: "/api/nodes/node%20%2F%20%CE%B2/versions/node-version%20%2F%201",
+        },
+        {
+          self: "/api/syntheses/synthesis%20%2F%20%CE%B2",
+          html: "/reviews/synthesis%20%2F%20%CE%B2",
+          exactVersion: "/reviews/synthesis%20%2F%20%CE%B2/syntheses/synthesis-version%20%2F%201",
+        },
+      ]),
+    );
   });
 
   it("preserves authoritative fresh, stale, and unchecked synthesis summaries", async () => {

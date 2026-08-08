@@ -413,6 +413,33 @@ export interface ClaimPassport {
     versionId: string;
     localClaimId: string;
   }>;
+  links: {
+    self: string;
+    html: string;
+    review: string;
+    reviewVersion: string;
+    graph?: string;
+  };
+}
+
+export function claimPassportLinks(
+  reviewSlug: string,
+  versionId: string,
+  localClaimId: string,
+  graphIdentity?: { nodeId: string; nodeVersionId: string },
+) {
+  const encodedSlug = encodeURIComponent(reviewSlug);
+  const encodedVersionId = encodeURIComponent(versionId);
+  const encodedLocalClaimId = encodeURIComponent(localClaimId);
+  return {
+    self: `/api/claims/${encodedVersionId}/${encodedLocalClaimId}`,
+    html: `/claims/${encodedVersionId}/${encodedLocalClaimId}`,
+    review: `/api/reviews/${encodedSlug}`,
+    reviewVersion: `/api/reviews/${encodedSlug}/versions/${encodedVersionId}`,
+    graph: graphIdentity
+      ? `/api/graph?seed=${encodeURIComponent(graphIdentity.nodeId)}&version=${encodeURIComponent(graphIdentity.nodeVersionId)}&status=authoritative`
+      : undefined,
+  };
 }
 
 /**
@@ -464,6 +491,14 @@ export async function getClaimPassport(
   const protocolDrift = await getPublicProtocolSummary(version.id, claim.localClaimId);
   if (!protocolDrift) return null;
   const publicNode = claim.knowledgeNodeId ? await getPublicNode(claim.knowledgeNodeId) : null;
+  const graphIdentity = publicNode
+    ? {
+        nodeId: publicNode.id,
+        nodeVersionId: publicNode.version.id,
+        kind: publicNode.kind,
+        title: publicNode.version.title,
+      }
+    : undefined;
 
   return {
     claimId: globalClaimId(version.id, claim.localClaimId),
@@ -530,14 +565,7 @@ export async function getClaimPassport(
     alerts: claim.updateProposals.map(proposalDto),
     executionPassports,
     protocolDrift,
-    graphIdentity: publicNode
-      ? {
-          nodeId: publicNode.id,
-          nodeVersionId: publicNode.version.id,
-          kind: publicNode.kind,
-          title: publicNode.version.title,
-        }
-      : undefined,
+    graphIdentity,
     alsoAssertedIn: (publicNode?.sameClaims ?? []).flatMap((sameClaim) =>
       sameClaim.reviewAssertions.map((assertion) => ({
         proposalId: sameClaim.proposalId,
@@ -546,6 +574,7 @@ export async function getClaimPassport(
         ...assertion,
       })),
     ),
+    links: claimPassportLinks(review.slug, version.id, claim.localClaimId, graphIdentity),
   };
 }
 

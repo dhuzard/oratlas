@@ -102,6 +102,10 @@ export interface ReviewClaim {
   claimType?: string;
   qualification?: string;
   relations: ReviewRelation[];
+  links: {
+    self: string;
+    html: string;
+  };
 }
 
 export interface ReviewDetail {
@@ -210,6 +214,34 @@ export interface ReviewDetail {
   }>;
   limitations: string[];
   identifierConflicts: WorkIdentityAssertion[];
+  links: {
+    self: string;
+    html: string;
+    exactVersion: string;
+  };
+}
+
+export function reviewDetailLinks(slug: string, versionId: string, exact: boolean) {
+  const encodedSlug = encodeURIComponent(slug);
+  const encodedVersionId = encodeURIComponent(versionId);
+  const currentApi = `/api/reviews/${encodedSlug}`;
+  const currentHtml = `/reviews/${encodedSlug}`;
+  const exactApi = `${currentApi}/versions/${encodedVersionId}`;
+  const exactHtml = `${currentHtml}/versions/${encodedVersionId}`;
+  return {
+    self: exact ? exactApi : currentApi,
+    html: exact ? exactHtml : currentHtml,
+    exactVersion: exactApi,
+  };
+}
+
+export function reviewClaimLinks(versionId: string, localClaimId: string) {
+  const encodedVersionId = encodeURIComponent(versionId);
+  const encodedLocalClaimId = encodeURIComponent(localClaimId);
+  return {
+    self: `/api/claims/${encodedVersionId}/${encodedLocalClaimId}`,
+    html: `/claims/${encodedVersionId}/${encodedLocalClaimId}`,
+  };
 }
 
 export async function getReviewDetail(
@@ -298,6 +330,7 @@ export async function getReviewDetail(
       citations: [],
       limitations: [],
       identifierConflicts: [],
+      links: reviewDetailLinks(review.slug, version.id, Boolean(requestedVersionId)),
     };
   }
 
@@ -339,6 +372,7 @@ export async function getReviewDetail(
     sourceAnchor: claim.anchor ?? undefined,
     claimType: claim.claimType ?? undefined,
     qualification: claim.qualification ?? undefined,
+    links: reviewClaimLinks(version.id, claim.localClaimId),
     relations: claim.evidenceRelations.map((rel) => {
       const trustRows = orderTrustAssessments(
         rel.trustAssessments.map((assessment) => {
@@ -610,6 +644,7 @@ export async function getReviewDetail(
         aliases: identity.aliases,
       })),
     ),
+    links: reviewDetailLinks(review.slug, version.id, Boolean(requestedVersionId)),
   };
 }
 
