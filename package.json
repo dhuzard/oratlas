@@ -37,6 +37,7 @@
     "validate-doi": "tsx scripts/validate-doi.ts",
     "atlas-check": "tsx scripts/atlas-check.ts",
     "atlas-check:json": "tsx scripts/atlas-check.ts --format json",
+    "agent-contract:check": "tsx scripts/check-agent-navigation.ts",
     "capture:fixture": "tsx scripts/capture-github-fixture.ts",
     "eval:grounding": "pnpm --silent exec tsx scripts/eval-grounding.ts",
     "eval:exploration": "pnpm --silent exec tsx scripts/eval-first-time-exploration.ts",
