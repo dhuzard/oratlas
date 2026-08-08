@@ -28,6 +28,11 @@ components:
         RFC 8288 service discovery links and, when another cursor page exists, a rel="next"
         link that preserves the bound graph query.
       schema: { type: string }
+    ReviewNavigation:
+      description: >
+        RFC 8288 service discovery links plus an alternate human representation and conditional
+        RFC 5829 latest-version, version-history, predecessor-version, and successor-version links.
+      schema: { type: string }
   responses:
     Error:
       description: Structured error
@@ -3642,7 +3647,7 @@ paths:
         "200":
           description: Review detail with complete relation-scoped assessment sets
           headers:
-            Link: { $ref: "#/components/headers/ServiceDiscovery" }
+            Link: { $ref: "#/components/headers/ReviewNavigation" }
           content:
             application/json:
               schema: { $ref: "#/components/schemas/PublicReviewDetail" }
@@ -3701,7 +3706,7 @@ paths:
         "200":
           description: Version-scoped review detail with complete relation-scoped assessment sets
           headers:
-            Link: { $ref: "#/components/headers/ServiceDiscovery" }
+            Link: { $ref: "#/components/headers/ReviewNavigation" }
           content:
             application/json:
               schema: { $ref: "#/components/schemas/PublicReviewDetail" }

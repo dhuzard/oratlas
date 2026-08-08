@@ -495,14 +495,23 @@ describe("agent hypermedia in OpenAPI", () => {
   it("documents service discovery response headers on the linked public journey", () => {
     for (const [path, method] of [
       ["/api/search", "get"],
-      ["/api/reviews/{slug}", "get"],
-      ["/api/reviews/{slug}/versions/{versionId}", "get"],
       ["/api/claims/{versionId}/{localClaimId}", "get"],
     ] as const) {
       expect(paths[path][method].responses["200"].headers.Link.$ref).toBe(
         "#/components/headers/ServiceDiscovery",
       );
     }
+  });
+
+  it("documents review version-navigation relations", () => {
+    for (const path of ["/api/reviews/{slug}", "/api/reviews/{slug}/versions/{versionId}"]) {
+      expect(paths[path].get.responses["200"].headers.Link.$ref).toBe(
+        "#/components/headers/ReviewNavigation",
+      );
+    }
+    expect(openapi.components.headers.ReviewNavigation.description).toContain(
+      "predecessor-version",
+    );
   });
 
   it("documents cursor-preserving graph navigation and rate-limit recovery headers", () => {
