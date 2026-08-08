@@ -44,7 +44,7 @@ export function expectedOpenApiArtifact(): string {
 }
 
 export function checkOpenApiArtifact(current: string): boolean {
-  return current === expectedOpenApiArtifact();
+  return current.replace(/\r\n?/g, "\n") === expectedOpenApiArtifact();
 }
 
 function main(): void {
@@ -56,7 +56,7 @@ function main(): void {
     } catch {
       // Report the same actionable drift message for a missing artifact.
     }
-    if (current !== expected) {
+    if (!checkOpenApiArtifact(current)) {
       console.error("Generated OpenAPI artifacts are stale. Run: pnpm openapi:generate");
       process.exitCode = 1;
       return;

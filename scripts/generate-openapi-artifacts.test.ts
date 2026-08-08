@@ -27,6 +27,8 @@ describe("OpenAPI artifact generation", () => {
     const source = readFileSync(sourcePath, "utf8");
     const artifact = readFileSync(artifactPath, "utf8");
     expect(checkOpenApiArtifact(artifact)).toBe(true);
+    const crlfArtifact = artifact.replace(/\r\n?/g, "\n").replaceAll("\n", "\r\n");
+    expect(checkOpenApiArtifact(crlfArtifact)).toBe(true);
 
     const parsed = parse(source) as { servers: Array<{ url: string }> };
     expect(parsed.servers[0]?.url).toBe("/");
