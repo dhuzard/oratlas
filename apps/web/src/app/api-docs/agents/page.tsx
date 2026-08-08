@@ -34,8 +34,12 @@ export default function AgentGuidePage() {
         Resolve stable identifiers to exact review and node versions before analysis or citation.
         Use canonical graph traversal for preserved scientific relations. Personalized landscape or
         recommendation projections answer an explicit interest and are not canonical graph state.
-        Inspect the exact version&apos;s scholarly JSON, JSON-LD provenance, RO-Crate, DocMap, JATS,
-        citation exports, and preservation manifest when the task requires them.
+        Every graph node tuple resolves to the human exact-occurrence path{" "}
+        <code>
+          /graph/occurrences/{`{nodeId}`}/versions/{`{nodeVersionId}`}
+        </code>
+        . Inspect the exact version&apos;s scholarly JSON, JSON-LD provenance, RO-Crate, DocMap,
+        JATS, citation exports, and preservation manifest when the task requires them.
       </p>
 
       <h2>Interpret relations carefully</h2>
