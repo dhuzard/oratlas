@@ -45,6 +45,8 @@ paths:
             Retry-After:
               schema:
                 type: integer
+  /api/nodes/{id}/versions/{versionId}:
+    get: {}
 `;
 
 const advertisedPaths = [
@@ -111,7 +113,15 @@ function graphResponse(
   );
 }
 
-function createFetch(options: { crossOriginDiscovery?: boolean; badNextQuery?: boolean } = {}): {
+function createFetch(
+  options: {
+    crossOriginDiscovery?: boolean;
+    missingDiscovery?: boolean;
+    crossOriginRedirect?: boolean;
+    badNextQuery?: boolean;
+    brokenExactEndpoint?: boolean;
+  } = {},
+): {
   fetchImpl: FetchLike;
   requests: Array<{ method: string; url: URL }>;
 } {
@@ -123,9 +133,14 @@ function createFetch(options: { crossOriginDiscovery?: boolean; badNextQuery?: b
     requests.push({ method: init?.method ?? "GET", url });
 
     if (url.pathname === "/llms.txt") {
-      const urls = advertisedPaths.map((path) => `[entry](${ORIGIN}${path})`);
+      const urls = advertisedPaths
+        .filter((path) => !options.missingDiscovery || path !== "/openapi.yaml")
+        .map((path) => `[entry](${ORIGIN}${path})`);
       if (options.crossOriginDiscovery) urls.push("[bad](https://evil.test/archive)");
       return text(urls.join("\n"), { headers: { "Content-Type": "text/plain; charset=utf-8" } });
+    }
+    if (url.pathname === "/api-docs" && options.crossOriginRedirect) {
+      return text("redirect", { status: 302, headers: { Location: "https://evil.test/docs" } });
     }
     if (url.pathname === "/openapi.yaml") return text(openapi);
     if (
@@ -228,6 +243,15 @@ function createFetch(options: { crossOriginDiscovery?: boolean; badNextQuery?: b
         },
       });
     }
+    const exactNodeMatch = url.pathname.match(/^\/api\/nodes\/([^/]+)\/versions\/([^/]+)$/u);
+    if (exactNodeMatch) {
+      const nodeId = decodeURIComponent(exactNodeMatch[1]!);
+      const nodeVersionId = decodeURIComponent(exactNodeMatch[2]!);
+      if (options.brokenExactEndpoint && nodeId === "target") {
+        return json({ error: "not found" }, { status: 404 });
+      }
+      return json({ id: nodeId, version: { id: nodeVersionId } });
+    }
     if (url.pathname === "/api/graph") {
       const exact = url.searchParams.has("version");
       const cursor = url.searchParams.get("cursor");
@@ -307,10 +331,31 @@ describe("checkAgentNavigation", () => {
     expect(requests.some((entry) => entry.url.origin === "https://evil.test")).toBe(false);
   });
 
+  it("requires the discovery map and rejects cross-origin redirects", async () => {
+    await expect(
+      checkAgentNavigation(new URL(ORIGIN), createFetch({ missingDiscovery: true }).fetchImpl),
+    ).rejects.toThrow(/missing required link \/openapi\.yaml/);
+
+    const redirected = createFetch({ crossOriginRedirect: true });
+    await expect(checkAgentNavigation(new URL(ORIGIN), redirected.fetchImpl)).rejects.toThrow(
+      /redirects cross-origin/,
+    );
+    expect(redirected.requests.some((entry) => entry.url.origin === "https://evil.test")).toBe(
+      false,
+    );
+  });
+
   it("rejects a rel=next URL that drops a graph query parameter", async () => {
     const { fetchImpl } = createFetch({ badNextQuery: true });
     await expect(checkAgentNavigation(new URL(ORIGIN), fetchImpl)).rejects.toThrow(
       /preserve all non-cursor/,
+    );
+  });
+
+  it("rejects a graph edge whose exact endpoint does not resolve", async () => {
+    const { fetchImpl } = createFetch({ brokenExactEndpoint: true });
+    await expect(checkAgentNavigation(new URL(ORIGIN), fetchImpl)).rejects.toThrow(
+      /Exact graph endpoint target@target-version returned HTTP 404/,
     );
   });
 });

@@ -15,7 +15,15 @@ const REQUIRED_OPENAPI_OPERATIONS = [
   "/api/reviews/{slug}/versions/{versionId}",
   "/api/claims/{versionId}/{localClaimId}",
   "/api/graph",
+  "/api/nodes/{id}/versions/{versionId}",
 ] as const;
+const REQUIRED_DISCOVERY_PATHS = new Set([
+  "/api-docs",
+  "/api-docs/agents",
+  "/openapi.yaml",
+  "/api/search",
+  "/api/graph",
+]);
 const DISCOVERY_PATHS = new Set([
   "/api-docs",
   "/openapi.yaml",
@@ -164,11 +172,24 @@ function contractUrl(value: unknown, baseUrl: URL, label: string): URL {
 }
 
 async function request(fetchImpl: FetchLike, url: URL, accept: string): Promise<Response> {
-  return fetchImpl(url, {
+  const response = await fetchImpl(url, {
     method: "GET",
     headers: { Accept: accept },
+    redirect: "manual",
     signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
   });
+  if (response.status >= 300 && response.status < 400) {
+    const location = response.headers.get("location");
+    if (location) {
+      const redirected = new URL(location, url);
+      invariant(
+        redirected.origin === url.origin,
+        `${url.href} redirects cross-origin to ${redirected.href}.`,
+      );
+    }
+    throw new AgentContractError(`${url.href} unexpectedly redirects (HTTP ${response.status}).`);
+  }
+  return response;
 }
 
 async function json<T>(
@@ -198,6 +219,7 @@ async function checkDiscovery(fetchImpl: FetchLike, baseUrl: URL): Promise<numbe
     "/llms.txt must advertise machine-readable and human-readable entry points.",
   );
 
+  const advertisedPaths = new Set<string>();
   for (const advertised of links) {
     const url = new URL(advertised);
     invariant(
@@ -208,11 +230,19 @@ async function checkDiscovery(fetchImpl: FetchLike, baseUrl: URL): Promise<numbe
       !url.search && !url.hash && DISCOVERY_PATHS.has(url.pathname),
       `/llms.txt advertises an unexpected URL: ${advertised}`,
     );
+    advertisedPaths.add(url.pathname);
     const resolved = await request(fetchImpl, url, "*/*");
-    invariant(
-      resolved.status !== 404 && resolved.status < 500,
-      `${advertised} does not resolve (HTTP ${resolved.status}).`,
-    );
+    if (url.pathname === "/api/graph") {
+      invariant(
+        resolved.status === 400,
+        `${advertised} must expose its parameter contract with HTTP 400, got ${resolved.status}.`,
+      );
+    } else {
+      invariant(resolved.ok, `${advertised} does not resolve (HTTP ${resolved.status}).`);
+    }
+  }
+  for (const required of REQUIRED_DISCOVERY_PATHS) {
+    invariant(advertisedPaths.has(required), `/llms.txt is missing required link ${required}.`);
   }
   return links.length;
 }
@@ -397,6 +427,7 @@ async function walkGraph(
   initial: URL,
   baseUrl: URL,
   expectedSeed: { nodeId: string; nodeVersionId?: string },
+  checkedEndpoints: Set<string> = new Set(),
 ): Promise<{ pages: number; edges: number; statuses: Set<string> }> {
   const visitedUrls = new Set<string>();
   const visitedCursors = new Set<string>();
@@ -422,6 +453,28 @@ async function walkGraph(
     checkRateLimitHeaders(response);
     checkGraphPage(body, { nodeId: expectedSeed.nodeId, nodeVersionId: resolvedSeedVersion });
     resolvedSeedVersion ??= body.seed.nodeVersionId;
+    for (const edge of body.edges) {
+      for (const [nodeId, nodeVersionId] of [
+        [edge.sourceNodeId, edge.sourceNodeVersionId],
+        [edge.targetNodeId, edge.targetNodeVersionId],
+      ] as const) {
+        const key = `${nodeId}\u0000${nodeVersionId}`;
+        if (checkedEndpoints.has(key)) continue;
+        checkedEndpoints.add(key);
+        const endpoint = new URL(
+          `/api/nodes/${encodeURIComponent(nodeId)}/versions/${encodeURIComponent(nodeVersionId)}`,
+          baseUrl,
+        );
+        const { body: exactNode } = await json<{
+          id: string;
+          version: { id: string };
+        }>(fetchImpl, endpoint, `Exact graph endpoint ${nodeId}@${nodeVersionId}`);
+        invariant(
+          exactNode.id === nodeId && exactNode.version.id === nodeVersionId,
+          `Exact graph endpoint ${nodeId}@${nodeVersionId} returned a different identity.`,
+        );
+      }
+    }
     edgeCount += body.edges.length;
     for (const edge of body.edges) statuses.add(edge.status);
     current = nextPageUrl(response, body, current, baseUrl);
@@ -575,19 +628,27 @@ export async function checkAgentNavigation(
     "Graph link must request authoritative edges.",
   );
   exactGraphUrl.searchParams.set("limit", "2");
+  const checkedGraphEndpoints = new Set<string>();
   const exactGraph = await walkGraph(
     fetchImpl,
     exactGraphUrl,
     baseUrl,
     graphPassport.graphIdentity,
+    checkedGraphEndpoints,
   );
   invariant(exactGraph.edges > 0, "Exact graph traversal returned no deterministic fixture edges.");
 
   const stableGraphUrl = new URL(exactGraphUrl);
   stableGraphUrl.searchParams.delete("version");
-  const stableGraph = await walkGraph(fetchImpl, stableGraphUrl, baseUrl, {
-    nodeId: graphPassport.graphIdentity.nodeId,
-  });
+  const stableGraph = await walkGraph(
+    fetchImpl,
+    stableGraphUrl,
+    baseUrl,
+    {
+      nodeId: graphPassport.graphIdentity.nodeId,
+    },
+    checkedGraphEndpoints,
+  );
   invariant(
     stableGraph.statuses.has("source-assertion") && stableGraph.statuses.has("confirmed"),
     "Stable authoritative graph traversal must expose both source assertions and confirmed edges.",
