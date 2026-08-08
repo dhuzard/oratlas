@@ -59,7 +59,9 @@ describe("NEXT_PUBLIC_BASE_URL", () => {
     "https://api.localhost",
     "https://127.0.0.2",
     "https://0.0.0.0",
+    "https://[::]",
     "https://[::1]",
+    "https://[0:0:0:0:0:0:0:1]",
   ])("rejects a local production origin: %s", (url) => {
     expect(() =>
       getServerEnv({
