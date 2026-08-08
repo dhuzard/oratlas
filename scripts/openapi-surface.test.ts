@@ -507,9 +507,7 @@ describe("agent hypermedia in OpenAPI", () => {
 
   it("documents cursor-preserving graph navigation and rate-limit recovery headers", () => {
     const responses = paths["/api/graph"].get.responses;
-    expect(responses["200"].headers.Link.$ref).toBe(
-      "#/components/headers/GraphNavigation",
-    );
+    expect(responses["200"].headers.Link.$ref).toBe("#/components/headers/GraphNavigation");
     expect(responses["429"].headers["Retry-After"]).toBeDefined();
   });
 });
