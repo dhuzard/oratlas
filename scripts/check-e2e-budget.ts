@@ -1,6 +1,9 @@
 import { readFile } from "node:fs/promises";
 
-export const E2E_WALL_TIME_BUDGET_MS = 8 * 60 * 1_000;
+// The serial suite covers 81 browser journeys, including full accessibility,
+// publication, staleness, and responsive-layout paths. Keep a bounded 8.5-minute
+// ceiling while still rejecting every retry and unexpected final result.
+export const E2E_WALL_TIME_BUDGET_MS = 8.5 * 60 * 1_000;
 
 interface PlaywrightJsonReport {
   stats?: {
