@@ -54,6 +54,7 @@ jobs:
         run: pnpm drill:backup-restore
         env:
           ORATLAS_DRILL_TEMP_ROOT: ${{ runner.temp }}
+          NEXT_PUBLIC_BASE_URL: https://ci.oratlas.example
 
   verify:
     runs-on: ubuntu-latest
