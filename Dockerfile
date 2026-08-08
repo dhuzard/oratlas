@@ -1,5 +1,7 @@
 FROM node:22-bookworm-slim AS build
 
+ARG NEXT_PUBLIC_BASE_URL
+
 ENV PNPM_HOME=/pnpm
 ENV PATH=$PNPM_HOME:$PATH
 ENV COREPACK_HOME=/corepack
@@ -39,10 +41,12 @@ COPY . .
 # continues to use packages/db/prisma/schema.prisma (SQLite).
 RUN pnpm --filter @oratlas/db exec prisma generate --schema prisma/schema.postgres.prisma
 
-# Next.js evaluates server modules while collecting page data. Supply a
-# non-secret build-only value so production validation can complete; Cloud Run
-# injects the real SESSION_SECRET at runtime from Secret Manager.
-RUN SESSION_SECRET=oratlas-build-only-placeholder-not-used-at-runtime \
+# Next.js evaluates server modules while collecting page data. Supply the
+# canonical public origin at build time; Cloud Run injects the same origin and
+# the real SESSION_SECRET at runtime.
+RUN test -n "$NEXT_PUBLIC_BASE_URL" \
+  && NEXT_PUBLIC_BASE_URL="$NEXT_PUBLIC_BASE_URL" \
+  SESSION_SECRET=oratlas-build-only-placeholder-not-used-at-runtime \
   pnpm --filter @oratlas/web build
 
 RUN pnpm install --prod --frozen-lockfile

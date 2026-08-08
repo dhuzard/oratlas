@@ -60,6 +60,7 @@ jobs:
           pnpm --filter @oratlas/web build
         env:
           SESSION_SECRET: release-build-secret
+          NEXT_PUBLIC_BASE_URL: https://release.oratlas.example
 
       - name: Create GitHub release
         run: gh release create "$GITHUB_REF_NAME" --verify-tag --title "$GITHUB_REF_NAME" --notes-file "$RUNNER_TEMP/release-notes.md"

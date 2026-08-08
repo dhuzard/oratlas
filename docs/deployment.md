@@ -28,12 +28,14 @@ server; Next.js App Router with server actions and API routes).
    - `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` — enable real GitHub OAuth. With the callback at
      `${NEXT_PUBLIC_BASE_URL}/api/auth/github/callback`.
    - `LLM_PROVIDER=anthropic` + `ANTHROPIC_API_KEY` + `LLM_MODEL` — enable Atlas Discuss LLM mode.
-   - `NEXT_PUBLIC_BASE_URL` — canonical base URL.
+   - `NEXT_PUBLIC_BASE_URL` — **required in production**; canonical HTTPS origin without a path,
+     query, or fragment. Supply the same value while building and running the application.
    - Do **not** set `AUTH_MOCK` in production; the mock sign-in is refused there regardless.
 3. **Build & run**
    ```bash
    pnpm install --frozen-lockfile
    pnpm --filter @oratlas/db db:generate
+   export NEXT_PUBLIC_BASE_URL=https://atlas.example
    pnpm --filter @oratlas/web build
    pnpm --filter @oratlas/web start   # or: next start behind your process manager
    ```

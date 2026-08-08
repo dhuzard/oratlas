@@ -3,6 +3,7 @@ import { canonicalGraphQuerySchema } from "@oratlas/contracts";
 import { errorResponse, handleRouteError } from "@/lib/api";
 import { CanonicalGraphQueryError, queryCanonicalGraph } from "@/lib/canonical-graph-query";
 import { clientKey, rateLimit, rateLimitDefaults, type RateLimitResult } from "@/lib/rate-limit";
+import { addDiscoveryHeaders } from "@/lib/public-discovery";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -18,7 +19,7 @@ function graphResponseHeaders(
     response.headers.set("RateLimit-Remaining", String(budget.remaining));
     response.headers.set("RateLimit-Reset", String(Math.ceil(budget.resetAt / 1_000)));
   }
-  return response;
+  return addDiscoveryHeaders(response);
 }
 
 export async function GET(request: Request) {

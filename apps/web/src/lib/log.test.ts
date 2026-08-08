@@ -8,6 +8,7 @@ import { createLogger, logger, serializeError } from "@/lib/log";
 // Provide a secret so @oratlas/config does not emit its own console warning
 // (and does not throw when we exercise the production branch below).
 vi.stubEnv("SESSION_SECRET", "test-session-secret");
+vi.stubEnv("NEXT_PUBLIC_BASE_URL", "https://atlas.example");
 
 function setNodeEnv(value: "development" | "test" | "production"): void {
   vi.stubEnv("NODE_ENV", value);
@@ -22,6 +23,7 @@ afterEach(() => {
   vi.restoreAllMocks();
   vi.unstubAllEnvs();
   vi.stubEnv("SESSION_SECRET", "test-session-secret");
+  vi.stubEnv("NEXT_PUBLIC_BASE_URL", "https://atlas.example");
   resetServerEnvCache();
 });
 

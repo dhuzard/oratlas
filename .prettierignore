@@ -8,3 +8,4 @@ test-results
 pnpm-lock.yaml
 packages/db/generated
 CHANGELOG.md
+apps/web/src/generated/openapi-artifacts.ts

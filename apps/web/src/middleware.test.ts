@@ -1,6 +1,8 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 import { middleware } from "./middleware.js";
+
+vi.mock("server-only", () => ({}));
 
 describe("CSP middleware", () => {
   it("binds the same fresh nonce to the request and response policy", () => {
@@ -12,5 +14,11 @@ describe("CSP middleware", () => {
     expect(nonce).toBeTruthy();
     expect(response.headers.get("x-middleware-request-x-nonce")).toBe(nonce);
     expect(response.headers.get("x-middleware-request-content-security-policy")).toBe(policy);
+  });
+
+  it("advertises service documentation on public discovery pages", () => {
+    const response = middleware(new NextRequest("https://oratlas.example/api-docs"));
+    expect(response.headers.get("link")).toContain('rel="service-desc"');
+    expect(response.headers.get("link")).toContain('rel="service-doc"');
   });
 });

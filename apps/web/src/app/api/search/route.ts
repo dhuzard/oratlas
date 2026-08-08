@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { archiveSearchQuerySchema } from "@oratlas/contracts";
 import { errorResponse, handleRouteError } from "@/lib/api";
 import { searchArchive } from "@/lib/archive-search";
+import { addDiscoveryHeaders } from "@/lib/public-discovery";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -29,7 +30,7 @@ export async function GET(request: Request) {
     });
     if (!parsed.success) return errorResponse("bad-request", "Invalid search query.");
 
-    return NextResponse.json(await searchArchive(parsed.data));
+    return addDiscoveryHeaders(NextResponse.json(await searchArchive(parsed.data)));
   } catch (err) {
     return handleRouteError(err);
   }

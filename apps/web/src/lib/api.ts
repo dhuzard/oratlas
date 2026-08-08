@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { apiError, type ApiErrorCode } from "@oratlas/contracts";
 import { AuthError } from "./auth";
+import { addDiscoveryHeaders } from "./public-discovery";
 
 const STATUS_BY_CODE: Record<ApiErrorCode, number> = {
   "bad-request": 400,
@@ -19,7 +20,9 @@ export function errorResponse(
   message: string,
   details?: string[],
 ): NextResponse {
-  return NextResponse.json(apiError(code, message, details), { status: STATUS_BY_CODE[code] });
+  return addDiscoveryHeaders(
+    NextResponse.json(apiError(code, message, details), { status: STATUS_BY_CODE[code] }),
+  );
 }
 
 /** Convert thrown errors into typed responses without leaking stack traces. */

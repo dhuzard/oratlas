@@ -23,6 +23,8 @@ steps:
     name: gcr.io/cloud-builders/docker
     args:
       - build
+      - --build-arg
+      - NEXT_PUBLIC_BASE_URL=${_NEXT_PUBLIC_BASE_URL}
       - --tag
       - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPOSITORY}/${_SERVICE}:${BUILD_ID}
       - .
@@ -148,17 +150,18 @@ steps:
           SECRETS="$${SECRETS},GITHUB_TOKEN=${_GITHUB_TOKEN_SECRET}:latest"
         fi
 
-        ENV_VARS="NODE_ENV=production"
+        if [[ -z "${_NEXT_PUBLIC_BASE_URL}" ]]; then
+          echo "_NEXT_PUBLIC_BASE_URL must be the canonical HTTPS production origin." >&2
+          exit 1
+        fi
+
+        ENV_VARS="NODE_ENV=production,NEXT_PUBLIC_BASE_URL=${_NEXT_PUBLIC_BASE_URL}"
         if [[ -n "${_GITHUB_CLIENT_ID}" ]]; then
           ENV_VARS="$${ENV_VARS},GITHUB_CLIENT_ID=${_GITHUB_CLIENT_ID}"
         fi
         if [[ -n "${_ADMIN_GITHUB_USER_IDS}" ]]; then
           ENV_VARS="$${ENV_VARS},ADMIN_GITHUB_USER_IDS=${_ADMIN_GITHUB_USER_IDS}"
         fi
-        if [[ -n "${_NEXT_PUBLIC_BASE_URL}" ]]; then
-          ENV_VARS="$${ENV_VARS},NEXT_PUBLIC_BASE_URL=${_NEXT_PUBLIC_BASE_URL}"
-        fi
-
         SERVICE_NAME="${_SERVICE}"
         CANDIDATE_TAG_MAX_LENGTH=$$((46 - $${#SERVICE_NAME}))
         if (( CANDIDATE_TAG_MAX_LENGTH < 12 )); then

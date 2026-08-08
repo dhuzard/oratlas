@@ -23,7 +23,7 @@ const serverEnvSchema = z.object({
   LLM_PROVIDER: z.string().optional(),
   ANTHROPIC_API_KEY: z.string().optional(),
   LLM_MODEL: z.string().default("claude-sonnet-5"),
-  NEXT_PUBLIC_BASE_URL: z.string().default("http://localhost:3000"),
+  NEXT_PUBLIC_BASE_URL: z.string().url().default("http://localhost:3000"),
   // Rate limiting (per identity+route). In-process for the POC; a shared store
   // (Redis) is the production swap. Coerced from strings so env vars parse.
   RATE_LIMIT_MAX: z.coerce.number().int().positive().default(10),
@@ -68,6 +68,33 @@ export function getServerEnv(env: NodeJS.ProcessEnv = process.env): ServerEnv {
   if (cached && env === process.env) return cached;
   const parsed = serverEnvSchema.parse(env);
   const isProduction = parsed.NODE_ENV === "production";
+
+  const baseUrl = new URL(parsed.NEXT_PUBLIC_BASE_URL);
+  if (
+    baseUrl.pathname !== "/" ||
+    baseUrl.search ||
+    baseUrl.hash ||
+    baseUrl.username ||
+    baseUrl.password
+  ) {
+    throw new Error(
+      "NEXT_PUBLIC_BASE_URL must be an origin without credentials, path, query or fragment.",
+    );
+  }
+  if (isProduction && !env.NEXT_PUBLIC_BASE_URL?.trim()) {
+    throw new Error("NEXT_PUBLIC_BASE_URL is required in production.");
+  }
+  const hostname = baseUrl.hostname.toLowerCase().replace(/\.$/, "");
+  const localProductionHost =
+    hostname === "localhost" ||
+    hostname.endsWith(".localhost") ||
+    /^127(?:\.\d{1,3}){3}$/.test(hostname) ||
+    hostname === "0.0.0.0" ||
+    hostname === "[::]" ||
+    hostname === "[::1]";
+  if (isProduction && (baseUrl.protocol !== "https:" || localProductionHost)) {
+    throw new Error("NEXT_PUBLIC_BASE_URL must use a non-local HTTPS origin in production.");
+  }
 
   if (isProduction && !parsed.SESSION_SECRET) {
     throw new Error("SESSION_SECRET is required in production.");

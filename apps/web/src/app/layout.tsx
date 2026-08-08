@@ -4,6 +4,7 @@ import { type Metadata } from "next";
 import Link from "next/link";
 import { getServerEnv } from "@oratlas/config";
 import { getCurrentUser, isEditor } from "@/lib/auth";
+import { PUBLIC_PATHS } from "@/lib/public-discovery";
 
 export const metadata: Metadata = {
   title: {
@@ -26,6 +27,10 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   const env = getServerEnv();
   return (
     <html lang="en">
+      <head>
+        <link rel="service-desc" href={PUBLIC_PATHS.openapiYaml} type="application/yaml" />
+        <link rel="service-doc" href={PUBLIC_PATHS.apiDocs} type="text/html" />
+      </head>
       <body>
         <a className="skip-link" href="#main">
           Skip to content
@@ -40,6 +45,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
               <Link href="/explore">Explore evidence</Link>
               <Link href="/compare">Compare</Link>
               <Link href="/create-review">Create &amp; deposit</Link>
+              <Link href={PUBLIC_PATHS.apiDocs}>API &amp; agents</Link>
               {isEditor(user) ? <Link href="/editorial">Editorial</Link> : null}
               {user ? (
                 <span className="signed-in-user">
@@ -64,6 +70,8 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
               and a DOI does not establish scientific quality.
             </p>
             <p className="muted">
+              <Link href={PUBLIC_PATHS.apiDocs}>API &amp; agents</Link>
+              {" · "}
               {env.mockAuthEnabled ? "Development mode: mock sign-in enabled. " : ""}
               Reference template:{" "}
               <a href="https://github.com/AllenNeuralDynamics/ComputationalReviewTemplate">
