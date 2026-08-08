@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   AgentContractError,
   checkAgentNavigation,
+  HOSTILE_ARCHIVED_LOCAL_ID,
   HOSTILE_ARCHIVED_TEXT,
   parseBaseUrl,
   type FetchLike,
@@ -11,7 +12,7 @@ import {
 const ORIGIN = "https://atlas.test";
 const SLUG = "hippocampal-replay-computational-review";
 const VERSION = "version-1";
-const CLAIM = "claim-hostile";
+const CLAIM = HOSTILE_ARCHIVED_LOCAL_ID;
 const GRAPH_CLAIM = "claim-001";
 const NODE = "node-1";
 const NODE_VERSION = "node-version-1";
