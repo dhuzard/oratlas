@@ -190,6 +190,19 @@ describe.sequential("claim monitoring and passports", () => {
     expect(passport!.alerts.filter((alert) => alert.status === "open")).toHaveLength(1);
     expect(passport!.lineage).toHaveLength(1);
     expect(passport!.lineage[0]!.isThisVersion).toBe(true);
+    expect(passport!.links).toMatchObject({
+      self: `/api/claims/${versionId}/claim-hit`,
+      html: `/claims/${versionId}/claim-hit`,
+      review: `/api/reviews/${reviewSlug}`,
+      reviewVersion: `/api/reviews/${reviewSlug}/versions/${versionId}`,
+    });
+    if (passport!.graphIdentity) {
+      expect(passport!.links.graph).toBe(
+        `/api/graph?seed=${encodeURIComponent(passport!.graphIdentity.nodeId)}&version=${encodeURIComponent(passport!.graphIdentity.nodeVersionId)}&status=authoritative`,
+      );
+    } else {
+      expect(passport!.links.graph).toBeUndefined();
+    }
     expect(await monitoring.getClaimPassport(versionId, "no-such-claim")).toBeNull();
 
     const proposalId = (await monitoring.listOpenProposals())[0]!.id;

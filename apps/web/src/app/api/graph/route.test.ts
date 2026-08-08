@@ -77,6 +77,44 @@ describe("GET /api/graph", () => {
     );
   });
 
+  it("advertises the next page without dropping graph query state or discovery links", async () => {
+    state.query.mockResolvedValueOnce({
+      schemaVersion: "2.0.0",
+      seed: { nodeId: "n1", nodeVersionId: "v1" },
+      nodes: [],
+      edges: [],
+      page: { limit: 2, nextCursor: "signed cursor/+" },
+    });
+    const response = await GET(
+      new Request(
+        "https://oratlas.test/api/graph?seed=n1&version=v1&direction=incoming&status=confirmed&relationType=supports&limit=2&cursor=old",
+      ),
+    );
+
+    const links = response.headers.get("link");
+    expect(links).toContain('rel="service-desc"');
+    expect(links).toContain('rel="service-doc"');
+    const nextTarget = links
+      ?.split(",")
+      .find((value) => value.includes('rel="next"'))
+      ?.match(/<([^>]+)>/)?.[1];
+    const next = new URL(nextTarget!, "https://oratlas.test");
+    expect(Object.fromEntries(next.searchParams)).toEqual({
+      seed: "n1",
+      version: "v1",
+      direction: "incoming",
+      status: "confirmed",
+      relationType: "supports",
+      limit: "2",
+      cursor: "signed cursor/+",
+    });
+  });
+
+  it("does not advertise a next page when the response has no cursor", async () => {
+    const response = await GET(new Request("https://oratlas.test/api/graph?seed=n1"));
+    expect(response.headers.get("link")).not.toContain('rel="next"');
+  });
+
   it("applies no-store and rate metadata to unexpected errors", async () => {
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
     state.query.mockRejectedValueOnce(new Error("private database detail"));

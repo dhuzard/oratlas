@@ -24,6 +24,11 @@ describe("archive search contracts", () => {
             freshness: { status: "stale", affectedReferenceCount: 3 },
             score: 0,
             sortDate: "2026-07-17T12:00:00.000Z",
+            links: {
+              self: "/api/syntheses/accepted-synthesis",
+              html: "/reviews/accepted-synthesis",
+              exactVersion: "/reviews/accepted-synthesis/syntheses/version-1",
+            },
           },
         ],
       }).items[0],
@@ -49,6 +54,11 @@ describe("archive search contracts", () => {
           freshness: { status: "fresh", affectedReferenceCount: 0 },
           score: 0,
           sortDate: "2026-07-17T12:00:00.000Z",
+          links: {
+            self: "/api/syntheses/accepted-synthesis",
+            html: "/reviews/accepted-synthesis",
+            exactVersion: "/reviews/accepted-synthesis/syntheses/version-1",
+          },
         },
       ],
     };
@@ -57,6 +67,17 @@ describe("archive search contracts", () => {
       archiveSearchResponseSchema.safeParse({
         ...base,
         items: [{ ...synthesisItem, freshness: { status: "stale" } }],
+      }).success,
+    ).toBe(false);
+    expect(
+      archiveSearchResponseSchema.safeParse({
+        ...base,
+        items: [
+          {
+            ...synthesisItem,
+            links: { ...synthesisItem.links, self: "//hostile.example/synthesis" },
+          },
+        ],
       }).success,
     ).toBe(false);
     expect(

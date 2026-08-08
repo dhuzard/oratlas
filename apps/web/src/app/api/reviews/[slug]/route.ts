@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getReviewDetail } from "@/lib/reviews";
 import { errorResponse, handleRouteError } from "@/lib/api";
 import { addDiscoveryHeaders } from "@/lib/public-discovery";
+import { addReviewHypermediaLinks } from "@/lib/hypermedia-links";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -11,7 +12,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ slu
     const { slug } = await params;
     const review = await getReviewDetail(slug);
     if (!review) return errorResponse("not-found", "Review not found.");
-    return addDiscoveryHeaders(NextResponse.json(review));
+    return addReviewHypermediaLinks(addDiscoveryHeaders(NextResponse.json(review)), review, false);
   } catch (err) {
     return handleRouteError(err);
   }

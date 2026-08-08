@@ -138,7 +138,7 @@ describe("challenge OpenAPI surface", () => {
         ],
       },
       PublicReviewClaim: {
-        required: ["subjectId", "claimId", "localClaimId", "text", "anchor", "relations"],
+        required: ["subjectId", "claimId", "localClaimId", "text", "anchor", "relations", "links"],
         properties: [
           "subjectId",
           "claimId",
@@ -150,6 +150,7 @@ describe("challenge OpenAPI surface", () => {
           "claimType",
           "qualification",
           "relations",
+          "links",
         ],
       },
       PublicReviewLifecycleEvent: {
@@ -383,6 +384,7 @@ describe("D01 assessment provenance in OpenAPI", () => {
       "citations",
       "limitations",
       "identifierConflicts",
+      "links",
     ]);
     expect(Object.keys(review.properties)).toEqual([
       "slug",
@@ -412,11 +414,14 @@ describe("D01 assessment provenance in OpenAPI", () => {
       "citations",
       "limitations",
       "identifierConflicts",
+      "links",
     ]);
     for (const name of [
       "PublicReviewTrustAssessment",
       "PublicReviewRelation",
       "PublicReviewClaim",
+      "PublicReviewClaimLinks",
+      "PublicReviewLinks",
       "PublicReviewDetail",
       "PublicReviewLifecycleEvent",
       "PublicReviewContributor",
@@ -441,6 +446,78 @@ describe("D01 assessment provenance in OpenAPI", () => {
         "application/json"
       ].schema.$ref,
     ).toBe("#/components/schemas/PublicReviewDetail");
+    expect(schemas.PublicReviewClaim.required).toContain("links");
+    expect(schemas.PublicReviewDetail.properties.links.$ref).toBe(
+      "#/components/schemas/PublicReviewLinks",
+    );
+  });
+});
+
+describe("agent hypermedia in OpenAPI", () => {
+  it("documents strict search, review, and claim-passport links", () => {
+    for (const name of [
+      "ArchiveResultLinks",
+      "PublicReviewClaimLinks",
+      "PublicReviewLinks",
+      "ClaimPassportTrustAssessment",
+      "ClaimPassportEvidence",
+      "ClaimPassportLineage",
+      "ClaimPassportAlert",
+      "ClaimPassportGraphIdentity",
+      "ClaimPassportAlsoAssertedIn",
+      "ClaimPassportLinks",
+      "ClaimPassport",
+    ]) {
+      expect(schemas[name].additionalProperties, name).toBe(false);
+    }
+    for (const name of [
+      "ArchiveRepositoryReviewResult",
+      "ArchiveNodeResult",
+      "ArchiveSynthesisResult",
+    ]) {
+      expect(schemas[name].required).toContain("links");
+      expect(schemas[name].properties.links.$ref).toBe("#/components/schemas/ArchiveResultLinks");
+    }
+    const claimResponse = paths["/api/claims/{versionId}/{localClaimId}"].get.responses["200"];
+    expect(claimResponse.content["application/json"].schema.$ref).toBe(
+      "#/components/schemas/ClaimPassport",
+    );
+    expect(schemas.ClaimPassport.required).toContain("links");
+    expect(schemas.ClaimPassportLinks.required).toEqual([
+      "self",
+      "html",
+      "review",
+      "reviewVersion",
+    ]);
+    expect(schemas.ClaimPassportLinks.properties.graph.pattern).toBe("^/api/graph\\?");
+  });
+
+  it("documents service discovery response headers on the linked public journey", () => {
+    for (const [path, method] of [
+      ["/api/search", "get"],
+      ["/api/claims/{versionId}/{localClaimId}", "get"],
+    ] as const) {
+      expect(paths[path][method].responses["200"].headers.Link.$ref).toBe(
+        "#/components/headers/ServiceDiscovery",
+      );
+    }
+  });
+
+  it("documents review version-navigation relations", () => {
+    for (const path of ["/api/reviews/{slug}", "/api/reviews/{slug}/versions/{versionId}"]) {
+      expect(paths[path].get.responses["200"].headers.Link.$ref).toBe(
+        "#/components/headers/ReviewNavigation",
+      );
+    }
+    expect(openapi.components.headers.ReviewNavigation.description).toContain(
+      "predecessor-version",
+    );
+  });
+
+  it("documents cursor-preserving graph navigation and rate-limit recovery headers", () => {
+    const responses = paths["/api/graph"].get.responses;
+    expect(responses["200"].headers.Link.$ref).toBe("#/components/headers/GraphNavigation");
+    expect(responses["429"].headers["Retry-After"]).toBeDefined();
   });
 });
 

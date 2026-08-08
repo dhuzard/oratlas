@@ -19,6 +19,20 @@ components:
       type: apiKey
       in: cookie
       name: oratlas_session
+  headers:
+    ServiceDiscovery:
+      description: RFC 8288 links to the machine-readable service description and human documentation.
+      schema: { type: string }
+    GraphNavigation:
+      description: >
+        RFC 8288 service discovery links and, when another cursor page exists, a rel="next"
+        link that preserves the bound graph query.
+      schema: { type: string }
+    ReviewNavigation:
+      description: >
+        RFC 8288 service discovery links plus an alternate human representation and conditional
+        RFC 5829 latest-version, version-history, predecessor-version, and successor-version links.
+      schema: { type: string }
   responses:
     Error:
       description: Structured error
@@ -274,10 +288,19 @@ components:
             url: { type: string, format: uri }
         currentVersionId: { type: string }
         updatedAt: { type: string, format: date-time }
+    ArchiveResultLinks:
+      type: object
+      additionalProperties: false
+      required: [self, html, exactVersion]
+      properties:
+        self: { type: string, pattern: "^/(?!/)" }
+        html: { type: string, pattern: "^/(?!/)" }
+        exactVersion: { type: string, pattern: "^/(?!/)" }
     ArchiveRepositoryReviewResult:
       type: object
       additionalProperties: false
-      required: [contentType, slug, title, authors, domains, hasDoi, hasTrustData, status, score]
+      required:
+        [contentType, slug, title, authors, domains, hasDoi, hasTrustData, status, score, links]
       properties:
         contentType: { const: review }
         slug: { type: string, minLength: 1 }
@@ -291,15 +314,17 @@ components:
         status: { type: string }
         score: { type: number }
         sortDate: { type: string, format: date-time }
+        links: { $ref: "#/components/schemas/ArchiveResultLinks" }
     ArchiveNodeResult:
       type: object
       additionalProperties: false
-      required: [contentType, node, score, sortDate]
+      required: [contentType, node, score, sortDate, links]
       properties:
         contentType: { const: node }
         node: { $ref: "#/components/schemas/PublicNodeSummary" }
         score: { type: number }
         sortDate: { type: string, format: date-time }
+        links: { $ref: "#/components/schemas/ArchiveResultLinks" }
     ArchiveSynthesisFreshness:
       type: object
       additionalProperties: false
@@ -319,7 +344,7 @@ components:
     ArchiveSynthesisResult:
       type: object
       additionalProperties: false
-      required: [contentType, slug, title, abstract, version, freshness, score, sortDate]
+      required: [contentType, slug, title, abstract, version, freshness, score, sortDate, links]
       properties:
         contentType: { const: synthesis }
         slug: { type: string, minLength: 1, maxLength: 200 }
@@ -329,6 +354,7 @@ components:
         freshness: { $ref: "#/components/schemas/ArchiveSynthesisFreshness" }
         score: { type: number }
         sortDate: { type: string, format: date-time }
+        links: { $ref: "#/components/schemas/ArchiveResultLinks" }
     ArchiveSynthesisCandidateScan:
       type: object
       additionalProperties: false
@@ -1679,7 +1705,7 @@ components:
     PublicReviewClaim:
       type: object
       additionalProperties: false
-      required: [subjectId, claimId, localClaimId, text, anchor, relations]
+      required: [subjectId, claimId, localClaimId, text, anchor, relations, links]
       properties:
         subjectId: { type: string }
         claimId: { type: string }
@@ -1691,6 +1717,22 @@ components:
         claimType: { type: string }
         qualification: { type: string }
         relations: { type: array, items: { $ref: "#/components/schemas/PublicReviewRelation" } }
+        links: { $ref: "#/components/schemas/PublicReviewClaimLinks" }
+    PublicReviewClaimLinks:
+      type: object
+      additionalProperties: false
+      required: [self, html]
+      properties:
+        self: { type: string, pattern: "^/api/claims/" }
+        html: { type: string, pattern: "^/claims/" }
+    PublicReviewLinks:
+      type: object
+      additionalProperties: false
+      required: [self, html, exactVersion]
+      properties:
+        self: { type: string, pattern: "^/api/reviews/" }
+        html: { type: string, pattern: "^/reviews/" }
+        exactVersion: { type: string, pattern: "^/api/reviews/.+/versions/" }
     PublicReviewDetail:
       type: object
       additionalProperties: false
@@ -1717,6 +1759,7 @@ components:
           citations,
           limitations,
           identifierConflicts,
+          links,
         ]
       properties:
         slug: { type: string }
@@ -1758,6 +1801,165 @@ components:
         identifierConflicts:
           type: array
           items: { $ref: "#/components/schemas/PublicWorkIdentityAssertion" }
+        links: { $ref: "#/components/schemas/PublicReviewLinks" }
+    ClaimPassportTrustAssessment:
+      type: object
+      additionalProperties: false
+      required: [assessmentId, protocolVersion, reviewStatus, verificationState]
+      properties:
+        assessmentId: { type: string }
+        protocolVersion: { type: string }
+        reviewStatus: { type: string }
+        verificationState: { type: string }
+    ClaimPassportEvidence:
+      type: object
+      additionalProperties: false
+      required:
+        [id, relationType, citationLocalId, citationIsExample, hasTrustAssessment, trustAssessments]
+      properties:
+        id: { type: string }
+        relationType: { type: string }
+        supportDirection: { type: string }
+        sourceLocation: { type: string }
+        citationLocalId: { type: string }
+        citationTitle: { type: string }
+        citationDoi: { type: string }
+        citationIsExample: { type: boolean }
+        hasTrustAssessment: { type: boolean }
+        trustAssessments:
+          type: array
+          items: { $ref: "#/components/schemas/ClaimPassportTrustAssessment" }
+        trust: { $ref: "#/components/schemas/ClaimPassportTrustAssessment" }
+    ClaimPassportLineage:
+      type: object
+      additionalProperties: false
+      required: [versionId, isCurrent, isThisVersion, textChanged]
+      properties:
+        versionId: { type: string }
+        semanticVersion: { type: string }
+        publishedAt: { type: string, format: date-time }
+        isCurrent: { type: boolean }
+        isThisVersion: { type: boolean }
+        textChanged: { type: boolean }
+    ClaimPassportAlert:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          id,
+          status,
+          rationale,
+          citationStatus,
+          workAlias,
+          source,
+          claimLocalId,
+          claimText,
+          reviewVersionId,
+          passportPath,
+          createdAt,
+        ]
+      properties:
+        id: { type: string }
+        status: { type: string }
+        rationale: { type: string }
+        citationStatus: { type: string }
+        workAlias: { type: string }
+        source: { type: string }
+        evidenceUrl: { type: string, format: uri }
+        claimLocalId: { type: string }
+        claimText: { type: string }
+        reviewSlug: { type: string }
+        reviewVersionId: { type: string }
+        passportPath: { type: string, pattern: "^/claims/" }
+        createdAt: { type: string, format: date-time }
+        resolvedByLogin: { type: string }
+        resolutionNote: { type: string }
+        resolvedAt: { type: string, format: date-time }
+    ClaimPassportGraphIdentity:
+      type: object
+      additionalProperties: false
+      required: [nodeId, nodeVersionId, kind, title]
+      properties:
+        nodeId: { type: string }
+        nodeVersionId: { type: string }
+        kind: { type: string }
+        title: { type: string }
+    ClaimPassportAlsoAssertedIn:
+      type: object
+      additionalProperties: false
+      required: [proposalId, nodeId, title, reviewSlug, reviewTitle, versionId, localClaimId]
+      properties:
+        proposalId: { type: string }
+        nodeId: { type: string }
+        title: { type: string }
+        reviewSlug: { type: string }
+        reviewTitle: { type: string }
+        versionId: { type: string }
+        localClaimId: { type: string }
+    ClaimPassportLinks:
+      type: object
+      additionalProperties: false
+      required: [self, html, review, reviewVersion]
+      properties:
+        self: { type: string, pattern: "^/api/claims/" }
+        html: { type: string, pattern: "^/claims/" }
+        review: { type: string, pattern: "^/api/reviews/" }
+        reviewVersion: { type: string, pattern: "^/api/reviews/.+/versions/" }
+        graph: { type: string, pattern: "^/api/graph\\?" }
+    ClaimPassport:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          claimId,
+          localClaimId,
+          anchor,
+          text,
+          reviewSlug,
+          reviewTitle,
+          versionId,
+          isExample,
+          evidence,
+          lineage,
+          alerts,
+          executionPassports,
+          protocolDrift,
+          alsoAssertedIn,
+          links,
+        ]
+      properties:
+        claimId: { type: string }
+        localClaimId: { type: string }
+        anchor: { type: string }
+        text: { type: string }
+        section: { type: string }
+        claimType: { type: string }
+        qualification: { type: string }
+        reviewSlug: { type: string }
+        reviewTitle: { type: string }
+        versionId: { type: string }
+        semanticVersion: { type: string }
+        publishedAt: { type: string, format: date-time }
+        isExample: { type: boolean }
+        compatibilityReport: {}
+        evidence:
+          type: array
+          items: { $ref: "#/components/schemas/ClaimPassportEvidence" }
+        lineage:
+          type: array
+          items: { $ref: "#/components/schemas/ClaimPassportLineage" }
+        alerts:
+          type: array
+          items: { $ref: "#/components/schemas/ClaimPassportAlert" }
+        executionPassports:
+          type: array
+          items: { type: object }
+        protocolDrift: { $ref: "#/components/schemas/ProtocolDriftSummary" }
+        graphIdentity: { $ref: "#/components/schemas/ClaimPassportGraphIdentity" }
+        alsoAssertedIn:
+          type: array
+          items: { $ref: "#/components/schemas/ClaimPassportAlsoAssertedIn" }
+        links: { $ref: "#/components/schemas/ClaimPassportLinks" }
     PublicReviewLifecycleEvent:
       type: object
       additionalProperties: false
@@ -3211,6 +3413,8 @@ paths:
       responses:
         "200":
           description: Deterministically merged, possibly bounded archive result page
+          headers:
+            Link: { $ref: "#/components/headers/ServiceDiscovery" }
           content:
             application/json:
               schema: { $ref: "#/components/schemas/ArchiveSearchResponse" }
@@ -3275,6 +3479,7 @@ paths:
         "200":
           description: One cursor page of exact-version graph nodes and edges
           headers:
+            Link: { $ref: "#/components/headers/GraphNavigation" }
             RateLimit-Limit: { schema: { type: integer }, description: Configured request budget }
             RateLimit-Remaining: { schema: { type: integer }, description: Requests remaining }
             RateLimit-Reset:
@@ -3441,6 +3646,8 @@ paths:
       responses:
         "200":
           description: Review detail with complete relation-scoped assessment sets
+          headers:
+            Link: { $ref: "#/components/headers/ReviewNavigation" }
           content:
             application/json:
               schema: { $ref: "#/components/schemas/PublicReviewDetail" }
@@ -3498,6 +3705,8 @@ paths:
       responses:
         "200":
           description: Version-scoped review detail with complete relation-scoped assessment sets
+          headers:
+            Link: { $ref: "#/components/headers/ReviewNavigation" }
           content:
             application/json:
               schema: { $ref: "#/components/schemas/PublicReviewDetail" }
@@ -3860,7 +4069,13 @@ paths:
         - { name: versionId, in: path, required: true, schema: { type: string } }
         - { name: localClaimId, in: path, required: true, schema: { type: string } }
       responses:
-        "200": { description: Claim passport }
+        "200":
+          description: Claim passport with exact review and canonical graph transitions
+          headers:
+            Link: { $ref: "#/components/headers/ServiceDiscovery" }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ClaimPassport" }
         "404": { $ref: "#/components/responses/Error" }
   /api/execution-passports/{id}:
     get:
