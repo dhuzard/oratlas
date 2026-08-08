@@ -45,8 +45,6 @@ paths:
             Retry-After:
               schema:
                 type: integer
-  /api/nodes/{id}/versions/{versionId}:
-    get: {}
 `;
 
 const advertisedPaths = [
@@ -243,14 +241,16 @@ function createFetch(
         },
       });
     }
-    const exactNodeMatch = url.pathname.match(/^\/api\/nodes\/([^/]+)\/versions\/([^/]+)$/u);
-    if (exactNodeMatch) {
-      const nodeId = decodeURIComponent(exactNodeMatch[1]!);
-      const nodeVersionId = decodeURIComponent(exactNodeMatch[2]!);
+    const occurrenceMatch = url.pathname.match(
+      /^\/graph\/occurrences\/([^/]+)\/versions\/([^/]+)$/u,
+    );
+    if (occurrenceMatch) {
+      const nodeId = decodeURIComponent(occurrenceMatch[1]!);
+      const nodeVersionId = decodeURIComponent(occurrenceMatch[2]!);
       if (options.brokenExactEndpoint && nodeId === "target") {
-        return json({ error: "not found" }, { status: 404 });
+        return text("not found", { status: 404 });
       }
-      return json({ id: nodeId, version: { id: nodeVersionId } });
+      return text(`<main><span>${nodeId}</span><span>${nodeVersionId}</span></main>`);
     }
     if (url.pathname === "/api/graph") {
       const exact = url.searchParams.has("version");

@@ -15,7 +15,6 @@ const REQUIRED_OPENAPI_OPERATIONS = [
   "/api/reviews/{slug}/versions/{versionId}",
   "/api/claims/{versionId}/{localClaimId}",
   "/api/graph",
-  "/api/nodes/{id}/versions/{versionId}",
 ] as const;
 const REQUIRED_DISCOVERY_PATHS = new Set([
   "/api-docs",
@@ -462,15 +461,17 @@ async function walkGraph(
         if (checkedEndpoints.has(key)) continue;
         checkedEndpoints.add(key);
         const endpoint = new URL(
-          `/api/nodes/${encodeURIComponent(nodeId)}/versions/${encodeURIComponent(nodeVersionId)}`,
+          `/graph/occurrences/${encodeURIComponent(nodeId)}/versions/${encodeURIComponent(nodeVersionId)}`,
           baseUrl,
         );
-        const { body: exactNode } = await json<{
-          id: string;
-          version: { id: string };
-        }>(fetchImpl, endpoint, `Exact graph endpoint ${nodeId}@${nodeVersionId}`);
+        const exactNode = await request(fetchImpl, endpoint, "text/html");
         invariant(
-          exactNode.id === nodeId && exactNode.version.id === nodeVersionId,
+          exactNode.ok,
+          `Exact graph endpoint ${nodeId}@${nodeVersionId} returned HTTP ${exactNode.status}.`,
+        );
+        const exactNodeHtml = await exactNode.text();
+        invariant(
+          exactNodeHtml.includes(nodeId) && exactNodeHtml.includes(nodeVersionId),
           `Exact graph endpoint ${nodeId}@${nodeVersionId} returned a different identity.`,
         );
       }
