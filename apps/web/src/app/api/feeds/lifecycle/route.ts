@@ -4,6 +4,7 @@ import { appBaseUrl } from "@/lib/base-url";
 import { prisma } from "@/lib/db";
 import { handleRouteError } from "@/lib/api";
 import { lifecycleEventDto } from "@/lib/review-lifecycle";
+import { addDiscoveryHeaders } from "@/lib/public-discovery";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -36,18 +37,20 @@ export async function GET() {
         commitSha: row.reviewVersion.snapshot!.commitSha,
         url: `${base}/reviews/${row.review.slug}/versions/${row.reviewVersionId}`,
       }));
-    return NextResponse.json(
-      {
-        schemaVersion: "1.0.0",
-        generatedAt: new Date().toISOString(),
-        events,
-      },
-      {
-        headers: {
-          "Cache-Control": "no-store, must-revalidate",
-          Pragma: "no-cache",
+    return addDiscoveryHeaders(
+      NextResponse.json(
+        {
+          schemaVersion: "1.0.0",
+          generatedAt: new Date().toISOString(),
+          events,
         },
-      },
+        {
+          headers: {
+            "Cache-Control": "no-store, must-revalidate",
+            Pragma: "no-cache",
+          },
+        },
+      ),
     );
   } catch (error) {
     return handleRouteError(error);

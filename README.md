@@ -110,7 +110,7 @@ All documented in [`.env.example`](.env.example). Summary:
 | `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET`        | no       | Enables real GitHub OAuth                                      |
 | `AUTH_MOCK`                                        | no       | `1` enables the dev-only mock sign-in (ignored in production)  |
 | `LLM_PROVIDER` / `ANTHROPIC_API_KEY` / `LLM_MODEL` | no       | Enables Grounded Q&A LLM mode                                  |
-| `NEXT_PUBLIC_BASE_URL`                             | no       | Canonical base URL for links / Open Graph                      |
+| `NEXT_PUBLIC_BASE_URL`                             | prod     | Canonical HTTPS origin for links and public discovery          |
 | `EXECUTION_PASSPORT_TRUSTED_KEYS_JSON`             | no       | Explicit offline Ed25519 signer trust policy                   |
 
 No paid external service is required to run the POC. Without an LLM key, Grounded Q&A runs in
@@ -178,7 +178,8 @@ replace running the study.
 ## Deployment
 
 Deployable to any Node-compatible platform. Set `DATABASE_URL` to PostgreSQL, change the Prisma
-datasource provider to `postgresql`, set `SESSION_SECRET`, run `prisma migrate deploy`, then
+datasource provider to `postgresql`, set `SESSION_SECRET` and the canonical HTTPS
+`NEXT_PUBLIC_BASE_URL` for both build and runtime, run `prisma migrate deploy`, then run
 `pnpm --filter @oratlas/web build && pnpm --filter @oratlas/web start`. See
 [`docs/deployment.md`](docs/deployment.md).
 

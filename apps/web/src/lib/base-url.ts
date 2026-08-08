@@ -1,4 +1,4 @@
-import { getServerEnv } from "@oratlas/config";
+import { canonicalOrigin } from "./public-discovery";
 
 /**
  * Configured application origin without a trailing slash. Canonical version
@@ -6,5 +6,5 @@ import { getServerEnv } from "@oratlas/config";
  * must agree exactly.
  */
 export function appBaseUrl(): string {
-  return getServerEnv().NEXT_PUBLIC_BASE_URL.replace(/\/+$/, "");
+  return canonicalOrigin().origin;
 }

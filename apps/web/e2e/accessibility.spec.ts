@@ -13,6 +13,7 @@ const PAGES: Array<{ name: string; path: string }> = [
   { name: "explore", path: "/explore" },
   { name: "archive", path: "/archive" },
   { name: "create and deposit guide", path: "/create-review" },
+  { name: "API and agents", path: "/api-docs" },
   { name: "review comparison", path: "/compare" },
   { name: "review", path: "/reviews/hippocampal-replay-computational-review" },
   { name: "contradiction map", path: "/synthesis" },

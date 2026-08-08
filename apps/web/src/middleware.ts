@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { buildContentSecurityPolicy } from "./lib/content-security-policy";
+import { addDiscoveryHeaders } from "./lib/public-discovery";
 
 export function middleware(request: NextRequest) {
   // 128 bits of request-local entropy, represented using CSP nonce-safe hex.
@@ -14,13 +15,17 @@ export function middleware(request: NextRequest) {
 
   const response = NextResponse.next({ request: { headers: requestHeaders } });
   response.headers.set("Content-Security-Policy", policy);
+  if (request.nextUrl.pathname === "/" || request.nextUrl.pathname.startsWith("/api-docs")) {
+    addDiscoveryHeaders(response);
+  }
   return response;
 }
 
 export const config = {
   matcher: [
     {
-      source: "/((?!api|_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml).*)",
+      source:
+        "/((?!api(?:/|$)|_next/static|_next/image|favicon.ico|robots\\.txt|sitemap\\.xml|llms\\.txt|openapi\\.(?:yaml|json)|\\.well-known(?:/|$)).*)",
       missing: [
         { type: "header", key: "next-router-prefetch" },
         { type: "header", key: "purpose", value: "prefetch" },

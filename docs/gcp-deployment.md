@@ -158,12 +158,41 @@ specific repository, secrets, and Cloud Run resources.
 
 ## 6. Submit the deployment
 
-From the repository root:
+The canonical HTTPS service origin is required while building and at runtime. For an existing
+service, obtain it first:
+
+```bash
+export SERVICE_URL="$(gcloud run services describe "$SERVICE" \
+  --region="$REGION" \
+  --format='value(status.url)')"
+```
+
+For a brand-new service, use an internally approved image pinned by digest to create a private,
+no-traffic bootstrap revision so Google assigns the stable origin. The bootstrap remains
+unauthenticated-inaccessible and uses the dedicated runtime identity; the verified build below
+replaces it before public traffic is enabled:
+
+```bash
+export BOOTSTRAP_IMAGE="REGION-docker.pkg.dev/PROJECT/REPOSITORY/bootstrap@sha256:DIGEST"
+case "$BOOTSTRAP_IMAGE" in *@sha256:*) ;; *) echo "A digest-pinned bootstrap image is required" >&2; exit 1;; esac
+gcloud run deploy "$SERVICE" \
+  --image="$BOOTSTRAP_IMAGE" \
+  --region="$REGION" \
+  --service-account="$RUNTIME_SA" \
+  --no-allow-unauthenticated \
+  --no-traffic \
+  --quiet
+export SERVICE_URL="$(gcloud run services describe "$SERVICE" \
+  --region="$REGION" \
+  --format='value(status.url)')"
+```
+
+Then, from the repository root:
 
 ```bash
 gcloud builds submit \
   --config=cloudbuild.yaml \
-  --substitutions="_REGION=${REGION},_SERVICE=${SERVICE},_RUNTIME_SERVICE_ACCOUNT=${RUNTIME_SERVICE_ACCOUNT},_CLOUD_SQL_INSTANCE=${SQL_INSTANCE},_NEXT_PUBLIC_BASE_URL="
+  --substitutions="_REGION=${REGION},_SERVICE=${SERVICE},_RUNTIME_SERVICE_ACCOUNT=${RUNTIME_SERVICE_ACCOUNT},_CLOUD_SQL_INSTANCE=${SQL_INSTANCE},_NEXT_PUBLIC_BASE_URL=${SERVICE_URL}"
 ```
 
 The build performs these steps:
@@ -206,7 +235,7 @@ baseline. The temporary schema is always removed. Drift and comparison errors fa
 `_prisma_migrations` exists, deployments use `prisma migrate deploy` followed by the ORAtlas
 database guards. Do not invoke `prisma db push` against valuable data.
 
-## 7. Set the canonical URL and optionally configure GitHub OAuth
+## 7. Verify the canonical URL and optionally configure GitHub OAuth
 
 Retrieve the deployed service URL:
 
@@ -217,15 +246,9 @@ export SERVICE_URL="$(gcloud run services describe "$SERVICE" \
 echo "$SERVICE_URL"
 ```
 
-Redeploy once with the canonical URL even when GitHub OAuth is not enabled.
-Origin validation, redirects, and canonical links must not retain the local
-development default:
-
-```bash
-gcloud builds submit \
-  --config=cloudbuild.yaml \
-  --substitutions="_REGION=${REGION},_SERVICE=${SERVICE},_RUNTIME_SERVICE_ACCOUNT=${RUNTIME_SERVICE_ACCOUNT},_CLOUD_SQL_INSTANCE=${SQL_INSTANCE},_NEXT_PUBLIC_BASE_URL=${SERVICE_URL}"
-```
+The value must match the origin passed to the build. Production startup rejects an absent,
+localhost, non-HTTPS, or path-bearing value so discovery and canonical links cannot publish an
+incorrect origin.
 
 To enable GitHub sign-in, create or update the GitHub OAuth App with:
 

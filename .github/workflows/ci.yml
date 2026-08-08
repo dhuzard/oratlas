@@ -48,11 +48,13 @@ jobs:
         run: pnpm --filter @oratlas/web build
         env:
           SESSION_SECRET: backup-restore-build-secret
+          NEXT_PUBLIC_BASE_URL: https://ci.oratlas.example
 
       - name: Back up, destroy, restore, and compare public APIs
         run: pnpm drill:backup-restore
         env:
           ORATLAS_DRILL_TEMP_ROOT: ${{ runner.temp }}
+          NEXT_PUBLIC_BASE_URL: https://ci.oratlas.example
 
   verify:
     runs-on: ubuntu-latest
@@ -124,6 +126,7 @@ jobs:
         run: pnpm --filter @oratlas/web build
         env:
           SESSION_SECRET: ci-build-secret
+          NEXT_PUBLIC_BASE_URL: https://ci.oratlas.example
 
   postgres:
     # Proves the schema is portable: push + seed the generated PostgreSQL schema
