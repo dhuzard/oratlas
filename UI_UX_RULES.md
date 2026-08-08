@@ -80,7 +80,7 @@ The primary human actions are **Reviews**, **Explore**, **Compare**, and **Creat
 ### 2.2 Human readers: didactic, visual, and personalized
 
 - Start from a plain-language question, topic, review, or declared interest. Offer a small number of
-  explanatory starter paths rather than opening on a dense, unlabelled graph.
+  explanatory starter paths rather than opening on a dense, unlabeled graph.
 - Treat the graph as an **explanatory map**, not a decorative node cloud. Consistent visual semantics
   distinguish reviews, claims, evidence, assessments, disagreements, datasets, code, versions, and
   proposed versus confirmed relations.
@@ -96,8 +96,8 @@ The primary human actions are **Reviews**, **Explore**, **Compare**, and **Creat
   It must be transparent, reversible, and explain every recommendation. It changes ranking and
   presentation, never canonical graph state. An unpersonalized view and reset control remain
   available.
-- Preserve orientation: the active question, selected path, source review, graph neighbourhood, and
-  return route remain visible. Provide labels, legends, keyboard access, non-colour cues, responsive
+- Preserve orientation: the active question, selected path, source review, graph neighborhood, and
+  return route remain visible. Provide labels, legends, keyboard access, non-color cues, responsive
   layouts, and a readable non-graph alternative.
 
 ## 3. Preserve records and govern participation
@@ -129,7 +129,7 @@ The primary human actions are **Reviews**, **Explore**, **Compare**, and **Creat
 
 - Explore and Atlas Discuss form one workflow: the selected graph path and source records remain
   visible before or beside any generated answer.
-- Cross-review synthesis uses canonical identities, confirmed relations, or clearly labelled
+- Cross-review synthesis uses canonical identities, confirmed relations, or clearly labeled
   proposals. Shared sources are grouped so repeated citation does not create false consensus;
   disagreements, scope differences, missing evidence, and uncertainty remain visible.
 - Every generated statement cites exact node versions, source reviews, and its supporting graph path.
@@ -149,11 +149,12 @@ A route, diagram, or button is not sufficient. Verify these journeys with real, 
 3. API documentation → copyable quick start → retrieve a real review → list claims → traverse
    evidence and disagreement records, without the GUI.
 4. Paginate real node and edge collections with explicit completeness metadata; obtain a graph
-   snapshot and consume a versioned change-feed event.
+   snapshot and consume a versioned change feed event.
 5. Question or declared interest → explained starter paths → reason for each recommendation → full
    unpersonalized result set and reset control.
-6. Newly accepted review → confirmed, contradicted, extended, updated, reused, proposed, or absent
-   links to older insights → supporting evidence and provenance.
+6. Newly accepted review → explicit typed, confirmed connections to older insights—or **no confirmed
+   connection**—with relation proposals shown separately as non-canonical → supporting evidence and
+   provenance.
 7. Claim or passage → comment → reply → challenge or relation proposal → editorial resolution or new
    version → diff, graph transition, and lineage.
 8. Explore at least two reviews → grounded multi-review answer → exact source highlighting → saved or
