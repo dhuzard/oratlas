@@ -84,14 +84,18 @@ export function getServerEnv(env: NodeJS.ProcessEnv = process.env): ServerEnv {
   if (isProduction && !env.NEXT_PUBLIC_BASE_URL?.trim()) {
     throw new Error("NEXT_PUBLIC_BASE_URL is required in production.");
   }
-  const hostname = baseUrl.hostname.toLowerCase().replace(/\.$/, "");
+  const serializedHostname = baseUrl.hostname.toLowerCase().replace(/\.$/u, "");
+  const hostname =
+    serializedHostname.startsWith("[") && serializedHostname.endsWith("]")
+      ? serializedHostname.slice(1, -1)
+      : serializedHostname;
   const localProductionHost =
     hostname === "localhost" ||
     hostname.endsWith(".localhost") ||
-    /^127(?:\.\d{1,3}){3}$/.test(hostname) ||
+    /^127(?:\.\d{1,3}){3}$/u.test(hostname) ||
     hostname === "0.0.0.0" ||
-    hostname === "[::]" ||
-    hostname === "[::1]";
+    hostname === "::" ||
+    hostname === "::1";
   if (isProduction && (baseUrl.protocol !== "https:" || localProductionHost)) {
     throw new Error("NEXT_PUBLIC_BASE_URL must use a non-local HTTPS origin in production.");
   }
