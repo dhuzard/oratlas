@@ -281,7 +281,10 @@ jobs:
             exit 1
           fi
 
-          BASE_URL="${BASE_URL}" pnpm agent-contract:check
+          if ! BASE_URL="${BASE_URL}" pnpm agent-contract:check; then
+            cat "${server_log}"
+            exit 1
+          fi
 
       - name: Install Playwright browser
         run: pnpm --filter @oratlas/web exec playwright install --with-deps chromium
