@@ -40,7 +40,11 @@ export default defineConfig({
   testDir: "./e2e",
   fullyParallel: false,
   workers: 1,
-  timeout: 60_000,
+  // A complete synthesis editorial journey includes generation, publication,
+  // accessibility, responsive rendering, freshness scanning, and regeneration.
+  // Keep enough per-test headroom while the separate suite budget still rejects
+  // slow runs, retries, and unexpected outcomes.
+  timeout: 90_000,
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI
     ? [["line"], ["json", { outputFile: "test-results/e2e-results.json" }]]

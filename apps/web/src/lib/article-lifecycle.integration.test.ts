@@ -14,6 +14,7 @@ import { type getProcessHistory } from "./editorial-lifecycle";
 import { type getReviewLifecycle, type recordReviewLifecycleEvent } from "./review-lifecycle";
 import { type buildKnowledgeIndex } from "./index-builder";
 import { type runDiscussion } from "./discuss";
+import { type listSitemapRecords } from "./sitemap-records";
 
 vi.mock("server-only", () => ({}));
 
@@ -61,6 +62,7 @@ type Runtime = {
   };
   indexBuilder: { buildKnowledgeIndex: typeof buildKnowledgeIndex };
   discuss: { runDiscussion: typeof runDiscussion };
+  sitemapRecords: { listSitemapRecords: typeof listSitemapRecords };
 };
 
 let runtime: Runtime;
@@ -101,6 +103,7 @@ beforeAll(async () => {
     },
     indexBuilder: await import("./index-builder"),
     discuss: await import("./discuss"),
+    sitemapRecords: await import("./sitemap-records"),
   };
 
   const editor = await prisma.user.create({
@@ -773,6 +776,12 @@ describe.sequential("article lifecycle public boundaries", () => {
     expect(index.reviews.some((review) => review.reviewSlug === "sensitive-review")).toBe(false);
     expect(index.claims).toEqual([]);
     expect(serializedIndex).not.toContain(secretClaim);
+    const sitemapPaths = (await runtime.sitemapRecords.listSitemapRecords()).map(
+      (record) => record.path,
+    );
+    expect(sitemapPaths).not.toContain("/reviews/sensitive-review");
+    expect(sitemapPaths).not.toContain(`/reviews/sensitive-review/versions/${version2Id}`);
+    expect(sitemapPaths).toContain(`/reviews/sensitive-review/versions/${version1Id}`);
     await expect(
       runtime.discuss.runDiscussion("What does the sensitive review say?", undefined as never),
     ).rejects.toThrow("exact traversed graph scope");

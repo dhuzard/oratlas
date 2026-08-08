@@ -248,6 +248,44 @@ jobs:
       - name: Set up database (push + seed)
         run: pnpm --filter @oratlas/db db:push && pnpm --filter @oratlas/db db:seed
 
+      - name: Exercise the live agent navigation contract
+        env:
+          BASE_URL: http://127.0.0.1:3101
+          NEXT_PUBLIC_BASE_URL: http://127.0.0.1:3101
+          SESSION_SECRET: agent-contract-ci-secret
+        run: |
+          set -euo pipefail
+          server_log="${RUNNER_TEMP}/oratlas-agent-contract-server.log"
+          pnpm --filter @oratlas/web exec next dev -H 127.0.0.1 -p 3101 >"${server_log}" 2>&1 &
+          server_pid=$!
+          cleanup() {
+            kill "${server_pid}" 2>/dev/null || true
+            wait "${server_pid}" 2>/dev/null || true
+          }
+          trap cleanup EXIT
+
+          ready=0
+          for attempt in {1..60}; do
+            if curl --fail --silent --show-error "${BASE_URL}/api/health/ready" >/dev/null; then
+              ready=1
+              break
+            fi
+            if ! kill -0 "${server_pid}" 2>/dev/null; then
+              cat "${server_log}"
+              exit 1
+            fi
+            sleep 1
+          done
+          if [[ "${ready}" -ne 1 ]]; then
+            cat "${server_log}"
+            exit 1
+          fi
+
+          if ! BASE_URL="${BASE_URL}" pnpm agent-contract:check; then
+            cat "${server_log}"
+            exit 1
+          fi
+
       - name: Install Playwright browser
         run: pnpm --filter @oratlas/web exec playwright install --with-deps chromium
 
