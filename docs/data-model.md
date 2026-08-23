@@ -43,6 +43,10 @@ suffix, and arrays are JSON-encoded strings. Switching to PostgreSQL is a dataso
 | `Challenge`                              | Formal objection to exact subject  | server-derived subject JSON + SHA-256; version, challenger, grounds, lifecycle    |
 | `ChallengeTransition`                    | Append-only challenge lifecycle    | `(challengeId, revision)` unique; actor and role snapshot                         |
 | `KnowledgeLinkProposal`                  | Cross-review link proposal         | `(source, target, relation)` unique; `status`                                     |
+| `Publication`                            | Stable source-publication identity | `stableKey` unique; record-source union; nullable 1:1 legacy review projection    |
+| `PublicationVersion`                     | One exact observed version         | **`(publicationId, sourcesSha256)` unique**; immutable; URL is never identity     |
+| `PublicationCapture`                     | Exactly what ORAtlas observed      | append-only bytes and digests; no update, no delete                               |
+| `PublicationClaimOccurrence`             | One claim occurrence in a version  | `(publicationVersionId, sourceLocalClaimId)` unique; write-once canonical binding |
 | `AuditEvent`                             | Append-only audit trail            | operation key + `(subjectType, subjectId)` indexed                                |
 | `IdempotencyKey`                         | Retry-safe operation claim         | primary-key uniqueness; same decision transaction                                 |
 
@@ -175,6 +179,50 @@ Legacy repository reconciliation is conservative for graph records. Colliding no
 merged only when their kinds match; colliding versions, aliases, and edges are deduplicated only
 when every immutable semantic/provenance field is exactly equal. Any mismatch aborts the
 transaction for manual resolution rather than silently choosing one scholarly record.
+
+## The generic publication boundary
+
+`Review` is one _type_ of publication, not the federation object. `Publication`,
+`PublicationVersion`, `PublicationCapture`, and `PublicationClaimOccurrence` are the boundary an
+independently hosted publication is observed through, and the boundary legacy review storage
+projects into. They are deliberately separate from `KnowledgeNode`: a source occurrence is never
+canonical graph identity.
+
+- A `Publication` is keyed from durable identity evidence — a git source, a concept DOI, an
+  author-declared identifier plus a URL origin, an ORAtlas registration key, or an existing
+  `Review`. A canonical URL alone is never a basis, and neither is a version DOI or an archive
+  digest: each of those identifies one version, not the publication that persists across versions.
+  `identityEvidenceJson` retains the chosen basis so the keying decision stays auditable.
+- A `PublicationVersion` is identified by `(publication, sourcesSha256)`. The digest is the
+  publication's own digest over its complete document set, so a plain website with no repository,
+  DOI or archive still has an exact, recomputable version identity. Uniqueness is scoped to the
+  publication rather than global, because two distinct publications may legitimately publish
+  identical bytes. Adapter metadata lives in one closed, versioned, discriminated union stored as
+  `adapterBindingJson`; the generic layer has no toolchain-specific columns.
+- `structuralProvenance` is `published-structure` or `source-byte`. These are structural states
+  only: they record what ORAtlas checked about the published protocol structure and, where the
+  source bytes were obtainable, about those bytes. Neither is scientific validation, and neither
+  may be described as verified, trustworthy, confirmed, or peer reviewed. TRUST remains separate
+  and relation-specific. A version with no source descriptor is refused `source-byte` at the
+  database layer.
+- A `PublicationCapture` is append-only on both providers: `UPDATE` and `DELETE` are rejected by a
+  trigger, so bytes and digests can never silently mutate once later phases begin writing them. An
+  observed `PublicationVersion` is likewise immutable.
+- A `PublicationClaimOccurrence` is an exact occurrence, never a canonical identity. Equal text, an
+  equal source-local id in different versions, an equal `declarationSha256`, an equal
+  `sourcesSha256`, position and similarity are all explicitly non-identities.
+  `declarationSha256` is indexed but not unique. Its nullable `knowledgeNodeId` records an
+  explicit, reviewed identity decision: it is never inferred, is write-once, and nothing writes it
+  yet.
+- `KnowledgeNodeVersion` gains a nullable, unique `sourcePublicationClaimOccurrenceId`. The exact
+  version source union stays exclusive — exactly one real source, now counted across five columns
+  instead of four — and the `KnowledgeNode` origin union is unchanged. This is an expand-only step;
+  no writer materializes such a version.
+
+Existing `Review`, `ReviewVersion`, `Claim`, `Citation`, and `ClaimEvidenceRelation` storage is
+unchanged in shape, meaning and public API. `Publication.reviewId` is the nullable projection
+binding: a review projection owns exactly one review and an external publication owns none.
+See `docs/external-publications.md`.
 
 ## The five information kinds
 

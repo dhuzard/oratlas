@@ -20,6 +20,7 @@ packages/
   execution-passports/ Offline Workflow Run crate + signed-attestation verification
   federation/          Bounded offline COAR Notify validation and immutable projections
   knowledge/           Search provider, evidence packets, discussion engine, link proposals
+  publications/        Generic publication boundary: identity, structural provenance, adapters
   ui/                  Reusable accessible React primitives
 scripts/               Ingestion / validation / evaluation / maintenance CLIs (tsx)
 docs/                  Architecture, governance, schema and deployment documentation
@@ -44,6 +45,7 @@ packages/atlas-check (bounded local evidence CI; depends only on contracts + Zod
 packages/protocols (offline registry adapters and protocol-drift comparison)
 packages/execution-passports (offline Workflow Run provenance verification)
 packages/federation (bounded COAR Notify parsing; depends only on contracts + Zod)
+packages/publications (generic publication boundary; depends only on contracts + Zod)
 packages/knowledge/replication (evidence-gap triage and replication marketplace)
 ```
 
@@ -68,6 +70,43 @@ accepted invariants, backup gate, and expand/dual-write/backfill/contract sequen
 database models, materialization, and public traversal API have shipped; the
 [architecture audit](architecture-audit.md) records the current implementation boundaries and
 remaining incremental refactoring work.
+
+## The generic publication boundary
+
+ORAtlas archives reviews it ingests from GitHub repositories, and a review is one _type_ of
+publication rather than the federation object. An independently hosted publication — a MyST site, a
+journal article, a preprint — publishes its own machine-readable declarations and never contacts
+ORAtlas during its build or validation.
+
+```
+legacy review storage            external publication
+ (Review / ReviewVersion)         (registered manifest)
+        │                                 │
+        │ projection                      │ native record
+        ▼                                 ▼
+              Publication / PublicationVersion
+                          │
+                          │  explicit, reviewed identity decision
+                          ▼
+              canonical KnowledgeNode / KnowledgeNodeVersion
+```
+
+Publication identity is separate from exact version identity, and a canonical URL is never
+identity: a `PublicationVersion` is keyed by `(publication, sourcesSha256)`. A
+`PublicationCapture` is exactly what ORAtlas observed and is append-only at the database layer. A
+`PublicationClaimOccurrence` is one declaration at one exact place and is never a canonical claim
+identity — equal text, an equal local id, an equal declaration digest and an equal source digest
+are all explicit non-identities.
+
+Verification uses one structural vocabulary, `published-structure` and `source-byte`. Both are
+structural provenance states about what ORAtlas checked; neither is scientific validation, and
+neither may be described as verified, trustworthy, confirmed, or peer reviewed. TRUST stays
+separate and relation-specific.
+
+Adapter and target metadata are closed, versioned discriminated unions, so a JATS or Quarto
+producer is a new variant rather than a change to the boundary. Registration, fetching and
+canonical materialization are deliberately not implemented; see
+[Externally hosted publications](external-publications.md).
 
 ## Key flows
 
