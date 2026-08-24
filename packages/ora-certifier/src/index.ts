@@ -73,6 +73,11 @@ export class OraCertificationService {
         evaluation,
         metadata: evaluation.executionMetadata,
       });
+      if (recorded.structuredOutputSha256 !== evaluation.executionMetadata.structuredOutputSha256) {
+        throw new Error(
+          "Recorded execution output hash does not match the evaluator structured-output hash.",
+        );
+      }
       const candidate = submitCertificationResultSchema.parse({
         schemaVersion: CERTIFICATION_RESULT_SCHEMA_VERSION,
         packetSha256: frozen.packetSha256,
@@ -87,7 +92,7 @@ export class OraCertificationService {
           model: evaluation.executionMetadata.model,
           modelVersion: evaluation.executionMetadata.modelVersion,
           promptVersion: evaluation.executionMetadata.promptVersion,
-          structuredOutputSha256: recorded.structuredOutputSha256,
+          structuredOutputSha256: evaluation.executionMetadata.structuredOutputSha256,
         },
       });
       const result = await this.client.submitResult(run.id, candidate);

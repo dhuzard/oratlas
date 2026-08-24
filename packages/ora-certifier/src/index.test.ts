@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { describe, expect, it, vi } from "vitest";
 import { canonicalJson, type PublicationVersionPacket } from "@oratlas/contracts";
-import { CertifierApiClient, OraCertificationService } from "./index.js";
+import { CertifierApiClient, OraCertificationService, type OraExecutionRecorder } from "./index.js";
 import { createDeterministicOraTestEvaluator, type OraTestScenario } from "./testing.js";
 
 const sha = (value: string) => createHash("sha256").update(value).digest("hex");
@@ -152,9 +152,12 @@ describe("ORA API-only certification service", () => {
     async (scenario, outcome) => {
       const { client, requests } = apiHarness();
       const recorder = {
-        recordSucceeded: vi
-          .fn()
-          .mockResolvedValue({ agentRunId: "agent-run-1", structuredOutputSha256: sha("output") }),
+        recordSucceeded: vi.fn(
+          async (input: Parameters<OraExecutionRecorder["recordSucceeded"]>[0]) => ({
+            agentRunId: "agent-run-1",
+            structuredOutputSha256: input.metadata.structuredOutputSha256,
+          }),
+        ),
       };
       const completed = await new OraCertificationService(
         client,
@@ -242,6 +245,34 @@ describe("ORA API-only certification service", () => {
     });
   });
 
+  it("fails the run when recorded and evaluated structured-output hashes diverge", async () => {
+    const { client, requests } = apiHarness();
+    const evaluation = await createDeterministicOraTestEvaluator("strong").evaluate({
+      packet,
+      protocol: (await import("@oratlas/contracts")).ORA_SCIENTIFIC_MERIT_PROTOCOL_DEFINITION,
+    });
+    await expect(
+      new OraCertificationService(
+        client,
+        { evaluate: vi.fn().mockResolvedValue(evaluation) },
+        {
+          recordSucceeded: vi
+            .fn()
+            .mockResolvedValue({ agentRunId: "agent", structuredOutputSha256: sha("mismatch") }),
+        },
+      ).certify({
+        publicationVersionId: "version-1",
+        certificationProtocolId: "protocol-1",
+        idempotencyKey: "structured-output-hash-mismatch",
+      }),
+    ).rejects.toThrow(/output hash does not match/);
+    expect(requests.map((request) => `${request.method} ${request.path}`)).toEqual([
+      "POST /api/certification-runs",
+      "GET /api/certification-runs/run-1/input",
+      "POST /api/certification-runs/run-1/transition",
+    ]);
+  });
+
   it("binds result outcome to deterministic criteria rather than an evaluator field", async () => {
     const { client, requests } = apiHarness();
     const base = await createDeterministicOraTestEvaluator("failure").evaluate({
@@ -250,9 +281,10 @@ describe("ORA API-only certification service", () => {
     });
     const evaluator = { evaluate: vi.fn().mockResolvedValue({ ...base, outcome: "certified" }) };
     const completed = await new OraCertificationService(client, evaluator, {
-      recordSucceeded: vi
-        .fn()
-        .mockResolvedValue({ agentRunId: "agent", structuredOutputSha256: sha("output") }),
+      recordSucceeded: vi.fn().mockResolvedValue({
+        agentRunId: "agent",
+        structuredOutputSha256: base.executionMetadata.structuredOutputSha256,
+      }),
     }).certify({
       publicationVersionId: "version-1",
       certificationProtocolId: "protocol-1",
