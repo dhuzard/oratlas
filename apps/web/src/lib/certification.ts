@@ -429,7 +429,12 @@ export async function createCertificationRun(
   const inputPacketJson = canonicalJson(packet);
   const snapshotHash = digest(inputPacketJson);
   for (const section of definition.requireCompleteSections) {
-    if (packet.completeness[section].truncated)
+    const incomplete =
+      section === "content"
+        ? packet.completeness.content.truncated ||
+          packet.completeness.content.coverage !== "complete"
+        : packet.completeness[section].truncated;
+    if (incomplete)
       throw new CertificationError(
         "conflict",
         `Protocol requires a complete ${section} packet section.`,
@@ -701,8 +706,17 @@ function validateEvidence(
   packet: PublicationVersionPacket,
 ) {
   if (reference.type === "external-immutable-resource") return;
+  // CertificationRun rows created before packet 1.2 remain valid immutable
+  // inputs. They have no content member, so new content references must be
+  // treated as absent instead of crashing a legacy result submission.
+  const contentDocuments: Array<{ id: string }> = Array.isArray(
+    (packet as { content?: unknown }).content,
+  )
+    ? packet.content
+    : [];
   const values: Record<string, string[]> = {
     "publication-occurrence": packet.occurrences.map((value) => value.id),
+    "publication-content-document": contentDocuments.map((value) => value.id),
     "canonical-node-version": packet.occurrences.flatMap((value) =>
       value.canonicalBinding ? [value.canonicalBinding.knowledgeNodeVersionId] : [],
     ),

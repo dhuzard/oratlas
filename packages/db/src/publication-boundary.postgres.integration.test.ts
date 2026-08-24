@@ -116,7 +116,23 @@ describe.skipIf(!enabled)("publication boundary on PostgreSQL", () => {
 
   it("rejects updating or deleting an observed capture", async () => {
     const publication = await createPublication();
-    const version = await createVersion(publication.id);
+    const contentCorpusJson = JSON.stringify([
+      {
+        id: "publication-content:postgres-methods",
+        text: "Exact immutable methods text.",
+      },
+    ]);
+    const version = await createVersion(publication.id, {
+      contentCorpusJson,
+      contentCorpusSha256: digest("c"),
+      contentCompletenessJson: JSON.stringify({
+        returnedDocuments: 1,
+        totalDocumentsKnown: 1,
+        truncated: false,
+        coverage: "complete",
+      }),
+    });
+    expect(version.contentCorpusJson).toBe(contentCorpusJson);
     const capture = await prisma.publicationCapture.create({
       data: {
         publicationVersionId: version.id,
@@ -141,6 +157,9 @@ describe.skipIf(!enabled)("publication boundary on PostgreSQL", () => {
     ).rejects.toThrow(/An observed publication version is immutable/);
     await expect(
       prisma.$executeRaw`UPDATE "PublicationVersion" SET "observedPublicationBaseUrl" = 'https://evil.example/' WHERE "id" = ${version.id}`,
+    ).rejects.toThrow(/An observed publication version is immutable/);
+    await expect(
+      prisma.$executeRaw`UPDATE "PublicationVersion" SET "contentCorpusJson" = '[]' WHERE "id" = ${version.id}`,
     ).rejects.toThrow(/An observed publication version is immutable/);
   });
 

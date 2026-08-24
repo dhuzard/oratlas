@@ -318,6 +318,7 @@ export const POSTGRES_DATABASE_GUARD_SQL = [
     "structuralProvenance" IN ('published-structure', 'source-byte')
     AND ("structuralProvenance" = 'published-structure' OR "sourceDescriptorJson" IS NOT NULL)
     AND "sourcesSha256" ~ '^[a-f0-9]{64}$'
+    AND "contentCorpusSha256" ~ '^[a-f0-9]{64}$'
     AND "adapterType" IN ('myst')
   )`,
   'ALTER TABLE "PublicationCapture" DROP CONSTRAINT IF EXISTS "PublicationCapture_shape_check"',
@@ -651,6 +652,8 @@ const sqliteGuardConditions = {
     AND (NEW."structuralProvenance" = 'published-structure' OR NEW."sourceDescriptorJson" IS NOT NULL)
     AND length(NEW."sourcesSha256") = 64
     AND NEW."sourcesSha256" NOT GLOB '*[^a-f0-9]*'
+    AND length(NEW."contentCorpusSha256") = 64
+    AND NEW."contentCorpusSha256" NOT GLOB '*[^a-f0-9]*'
     AND NEW."adapterType" IN ('myst')
     THEN 1 ELSE 0 END`,
   PublicationCapture: `CASE WHEN

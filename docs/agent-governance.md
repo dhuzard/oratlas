@@ -25,8 +25,11 @@ External publications use that same graph. A `publication-claim-occurrence` sour
 publication/version, authoritative external target, capture identities, optional
 `publisherCanonicalUrl`, and distinct capture-derived `observedPublicationBaseUrl`. Agents may follow the generic,
 SHA-256-bound publication-version packet for bounded occurrences, public production assertions,
-and public confirmed relations; the packet carries completeness flags and excludes raw captures,
-private AgentRun prompts/output, private proposals and hidden assessments. Production mode is
+normalized inert scientific content, and public confirmed relations. Packet schema 1.2 freezes
+that content before certification and carries explicit complete/partial/unknown/unsupported
+coverage; agents must not fetch the mutable publication later or describe the corpus as scientific
+validation. The packet excludes raw captures, private AgentRun prompts/output, private proposals
+and hidden assessments. Production mode is
 descriptive provenance, not authorship, merit, correctness, TRUST, review, or certification.
 Matching text, local IDs or digests never authorize identity merging. Reviewed publication-transfer
 relations are explicit provenance records and do not imply claim continuity.

@@ -3,6 +3,7 @@ import { createHash, createHmac } from "node:crypto";
 import {
   canonicalJson,
   externalPublicationRegistrationResultSchema,
+  normalizedPublicationContentSchema,
   normalizedPublicationProductionAssertionSchema,
   publicationIdentityEvidenceSchema,
   type ExternalPublicationRegistrationResult,
@@ -11,6 +12,7 @@ import {
 import {
   createHardenedRemoteFetcher,
   verifyExternalPublication,
+  publicationArtifactIdentitySha256,
   type VerifiedExternalPublication,
 } from "@oratlas/publications";
 import { deriveObservedPublicationBaseUrl } from "@oratlas/db";
@@ -80,27 +82,37 @@ function observedPublicationBaseUrl(verified: VerifiedExternalPublication): stri
   return baseUrl;
 }
 
-function artifactIdentitySha256(
-  artifact: VerifiedExternalPublication["artifacts"][number],
-): string {
-  const locatorType = artifact.declaredPath === undefined ? "url" : "path";
-  const locator = artifact.declaredPath ?? artifact.requestedUrl ?? artifact.observedUrl;
-  if (locator === undefined) {
-    throw new PublicationRegistrationConflictError(
-      `The ${artifact.artifactKind} artifact has no stable declared path or URL.`,
-    );
-  }
-  return createHash("sha256")
-    .update(`${artifact.artifactKind}\n${locatorType}\n${locator}`, "utf8")
-    .digest("hex");
-}
-
 async function persistVerifiedExternalPublicationOnce(
   verified: VerifiedExternalPublication,
   actorId: string,
 ): Promise<ExternalPublicationRegistrationResult> {
   const { publication, version, occurrences } = verified.normalized;
   const observedBaseUrl = observedPublicationBaseUrl(verified);
+  const content = normalizedPublicationContentSchema.parse(
+    verified.normalized.content ?? {
+      documents: [],
+      completeness: {
+        returnedDocuments: 0,
+        totalDocumentsKnown: null,
+        truncated: false,
+        coverage: "unsupported",
+      },
+    },
+  );
+  const artifactByIdentity = new Map(
+    verified.artifacts.map((artifact) => [publicationArtifactIdentitySha256(artifact), artifact]),
+  );
+  for (const document of content.documents) {
+    const artifact = artifactByIdentity.get(document.sourceArtifactIdentitySha256);
+    if (!artifact || artifact.contentSha256 !== document.sourceArtifactSha256) {
+      throw new PublicationRegistrationConflictError(
+        `Content document '${document.id}' is not bound to its exact captured artifact.`,
+      );
+    }
+  }
+  const contentCorpusJson = canonicalJson(content.documents);
+  const contentCorpusSha256 = createHash("sha256").update(contentCorpusJson, "utf8").digest("hex");
+  const contentCompletenessJson = canonicalJson(content.completeness);
   return prisma.$transaction(async (tx) => {
     let publicationRow = await tx.publication.findUnique({
       where: { stableKey: publication.stableKey },
@@ -146,6 +158,9 @@ async function persistVerifiedExternalPublicationOnce(
           sourceDescriptorJson: version.source === undefined ? null : canonicalJson(version.source),
           structuralProvenance: version.structuralProvenance,
           verificationWarningsJson: canonicalJson(version.verificationWarnings),
+          contentCorpusJson,
+          contentCorpusSha256,
+          contentCompletenessJson,
           observedAt: new Date(version.observedAt),
         },
       });
@@ -160,7 +175,10 @@ async function persistVerifiedExternalPublicationOnce(
         versionRow.sourceDescriptorJson,
         version.source === undefined ? undefined : canonicalJson(version.source),
       ) ||
-      versionRow.structuralProvenance !== version.structuralProvenance
+      versionRow.structuralProvenance !== version.structuralProvenance ||
+      versionRow.contentCorpusJson !== contentCorpusJson ||
+      versionRow.contentCorpusSha256 !== contentCorpusSha256 ||
+      versionRow.contentCompletenessJson !== contentCompletenessJson
     ) {
       throw new PublicationRegistrationConflictError(
         "The exact publication version conflicts with its previous immutable observation.",
@@ -211,7 +229,7 @@ async function persistVerifiedExternalPublicationOnce(
 
     let manifestCaptureId: string | undefined;
     for (const artifact of verified.artifacts) {
-      const identitySha256 = artifactIdentitySha256(artifact);
+      const identitySha256 = publicationArtifactIdentitySha256(artifact);
       const contentBytes = new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(
         artifact.bytes,
       );

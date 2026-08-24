@@ -16,7 +16,12 @@ import {
   type MystClaimRecord,
   type MystPublicationManifest,
 } from "./adapters/myst.js";
-import type { NormalizedPublication, PublicationAdapter } from "./adapter.js";
+import {
+  publicationArtifactIdentitySha256,
+  type CapturedPublicationArtifact,
+  type NormalizedPublication,
+  type PublicationAdapter,
+} from "./adapter.js";
 
 const digest = (value: string) => createHash("sha256").update(value).digest("hex");
 
@@ -146,6 +151,32 @@ const syntheticAdapter: PublicationAdapter<
       occurrences: [occurrence],
     };
   },
+  normalizeContent(artifacts, context) {
+    const captured = artifacts[0]!;
+    const text = new TextDecoder().decode(captured.bytes);
+    return {
+      documents: [
+        {
+          id: `synthetic-content:${digest(context.publicationVersionStableKey)}`,
+          title: "Synthetic methods",
+          role: "methods",
+          sourcePath: captured.declaredPath ?? null,
+          publishedUrl: null,
+          representation: "source-text",
+          text,
+          sha256: digest(text),
+          sourceArtifactIdentitySha256: publicationArtifactIdentitySha256(captured),
+          sourceArtifactSha256: captured.contentSha256,
+        },
+      ],
+      completeness: {
+        returnedDocuments: 1,
+        totalDocumentsKnown: 1,
+        truncated: false,
+        coverage: "complete",
+      },
+    };
+  },
   resolvePublishedTarget({ baseUrl, fragment }) {
     return new URL(`#${fragment}`, baseUrl).href;
   },
@@ -224,6 +255,36 @@ describe("generic publication adapter boundary", () => {
         fragment: "result-1",
       }),
     ).toBe("https://format.example/article/#result-1");
+    const bytes = Buffer.from("Synthetic adapter methods text.");
+    const captured: CapturedPublicationArtifact = {
+      artifactKind: "source-document",
+      declaredPath: "article.test",
+      mediaType: "text/plain",
+      bytes,
+      contentSha256: digest(bytes.toString()),
+    };
+    const content = syntheticAdapter.normalizeContent?.([captured], {
+      publicationVersionStableKey: normalized.version.stableKey,
+      publicationBaseUrl: "https://format.example/article/",
+      limits: {
+        maxDocuments: 10,
+        maxBytesPerDocument: 10_000,
+        maxTotalBytes: 10_000,
+        maxTextLength: 10_000,
+        maxNodesPerDocument: 1_000,
+      },
+    });
+    expect(content?.documents[0]).toMatchObject({
+      role: "methods",
+      representation: "source-text",
+      text: "Synthetic adapter methods text.",
+    });
+    expect(content?.completeness.coverage).toBe("complete");
+  });
+
+  it("keeps content support optional instead of fabricating a corpus", () => {
+    const { normalizeContent: _unsupported, ...withoutContent } = syntheticAdapter;
+    expect(withoutContent).not.toHaveProperty("normalizeContent");
   });
 
   it("keeps AI/software production actors out of scholarly contributor semantics", () => {

@@ -1345,6 +1345,9 @@ CREATE TABLE "PublicationVersion" (
     "sourceDescriptorJson" TEXT,
     "structuralProvenance" TEXT NOT NULL,
     "verificationWarningsJson" TEXT NOT NULL DEFAULT '[]',
+    "contentCorpusJson" TEXT NOT NULL DEFAULT '[]',
+    "contentCorpusSha256" TEXT NOT NULL DEFAULT '4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945',
+    "contentCompletenessJson" TEXT NOT NULL DEFAULT '{"coverage":"unsupported","returnedDocuments":0,"totalDocumentsKnown":null,"truncated":false}',
     "observedAt" TIMESTAMP(3) NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
@@ -3074,6 +3077,7 @@ ALTER TABLE "PublicationVersion" ADD CONSTRAINT "PublicationVersion_provenance_c
     "structuralProvenance" IN ('published-structure', 'source-byte')
     AND ("structuralProvenance" = 'published-structure' OR "sourceDescriptorJson" IS NOT NULL)
     AND "sourcesSha256" ~ '^[a-f0-9]{64}$'
+    AND "contentCorpusSha256" ~ '^[a-f0-9]{64}$'
     AND "adapterType" IN ('myst')
   );
 

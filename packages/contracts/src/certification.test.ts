@@ -22,9 +22,31 @@ describe("generic certification contracts", () => {
         criteria: [criterion],
         assessmentModes: ["human", "ai", "hybrid"],
         outcomes: ["certified", "not-certified", "inconclusive"],
-        requireCompleteSections: ["occurrences"],
+        requireCompleteSections: ["occurrences", "content"],
       }),
     ).toMatchObject({ criteria: [{ id: "generic-evidence" }] });
+  });
+
+  it("lets protocol evidence address normalized content without defining evaluator criteria", () => {
+    expect(
+      submitCertificationResultSchema.parse({
+        schemaVersion: "1.0.0",
+        packetSha256: "a".repeat(64),
+        criteria: [
+          {
+            criterionId: "generic-evidence",
+            status: "pass",
+            rationale: "The protocol assessed the captured content document.",
+            evidenceRefs: [
+              { type: "publication-content-document", id: "publication-content:document-1" },
+            ],
+          },
+        ],
+        outcome: "certified",
+        conflictOfInterest: { status: "none-declared" },
+        independence: { declared: true, statement: "Independent generic assessment." },
+      }).criteria[0]?.evidenceRefs[0],
+    ).toEqual({ type: "publication-content-document", id: "publication-content:document-1" });
   });
 
   it("rejects duplicate criterion definitions and result rows", () => {

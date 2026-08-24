@@ -118,14 +118,16 @@ Canonical ORAtlas KG
 The framework-free `PublicationAdapter` receives only parsed input and bytes already captured by
 the hardened registration layer. It recognizes and validates a manifest, declares required
 artifacts, validates captures, verifies published structure, normalizes generic publication and
-occurrence records, and resolves exact targets. It never fetches the network, executes publication
-code or plugins, or infers production history. MyST 0.2.0 is one implementation of that contract.
+occurrence records, may normalize a bounded plain-text content corpus, and resolves exact targets.
+It never fetches the network, executes publication code or plugins, or infers production history.
+MyST 0.2.0 is one implementation of that contract.
 
 Production history is optional, exact-version, and append-only:
 
 ```
 PublicationVersion
        │
+       ├── normalized scientific content corpus
        └── Production provenance assertions
              human / AI-assisted / agentic / hybrid / unspecified
 ```
@@ -167,6 +169,7 @@ existing reviewed canonical identity mechanism explicitly binds them.
 Publication                  which publication this is, across its versions
   └── PublicationVersion     one exact immutable version ORAtlas observed
         ├── PublicationCapture             exactly what ORAtlas observed, byte for byte
+        ├── normalized content corpus       deterministic inert evaluation text
         └── PublicationClaimOccurrence     one claim declaration at one exact place
 ```
 
@@ -218,6 +221,11 @@ external deep link, including its exact source anchor.
 The uniqueness constraint is `(publicationId, sourcesSha256)`, deliberately **not** a global
 unique on the digest: two distinct publications may legitimately publish identical bytes.
 
+The version also stores canonical JSON for its normalized content corpus, the corpus SHA-256, and
+honest coverage metadata. These fields are written with the version and protected by the same
+SQLite/PostgreSQL immutability guards. Extraction code is never rerun to rewrite an old version.
+Changed source bytes produce a new version and a separately bound corpus.
+
 Adapter metadata lives in one closed, versioned, discriminated union
 (`publicationAdapterBindingSchema`) stored as `adapterBindingJson`, with a generic
 `adapterType` column beside it. There is no `mystXrefId` or `mystHtmlId` column anywhere in
@@ -234,6 +242,28 @@ Captures are append-only at the database layer on both providers: `UPDATE` and `
 rejected by a trigger, so captured bytes can never silently mutate once a later phase starts
 writing them. An observed `PublicationVersion` is likewise closed to both — it records what
 ORAtlas saw, so correcting it means observing again, not editing the record.
+
+## Normalized scientific content
+
+Secure registration uses the publication's bounded cross-reference inventory to capture declared
+structured page data. Claim-bearing pages are mandatory; additional inventory pages are captured
+only within maximum document, per-document byte, total corpus byte, AST-node, artifact, operation,
+and normalized-text limits. MyST normalization walks a conservative allowlist of inert AST nodes
+for headings, prose, lists, equations, tables, captions, and bounded code text. HTML, scripts,
+iframes, executable/plugin output, unknown directives, event handlers, and hidden UI state are not
+preserved or executed.
+
+Each document records its optional semantic role, source path, published address, representation,
+plain text and text SHA-256, plus the immutable source capture identity and byte digest. Published
+structured text is labelled `published-structured-text`; it is never called source-byte verified.
+Roles remain null when a heading does not establish one safely.
+
+Completeness reports `returnedDocuments`, `totalDocumentsKnown`, `truncated`, and `coverage`.
+MyST 0.2.0 exposes a cross-reference inventory but no authoritative whole-document manifest, so
+its coverage is reported as `partial` (or `unknown` when no text can be extracted), even when every
+known inventory page was captured. An adapter with no content support records `unsupported` and an
+empty corpus; it never fabricates content. The normalized corpus is an evaluation representation,
+not a claim that ORAtlas scientifically validated the publication.
 
 ### `PublicationClaimOccurrence`
 
@@ -351,9 +381,11 @@ materialization boundary. A future normalized adapter occurrence can use the sam
 
 The canonical occurrence page links to the exact external target as “Open original publication”.
 Agents traverse the same identity and provenance via `/api/graph`. The deterministic
-`GET /api/publication-versions/{id}/packet` returns bounded captures, occurrences, bindings, public
-confirmed relations, completeness flags, hypermedia and a SHA-256 over canonical packet content.
-It excludes raw capture blobs and private proposals.
+`GET /api/publication-versions/{id}/packet` schema 1.2.0 returns bounded captures, the persisted
+content corpus, occurrences, bindings, public confirmed relations, completeness flags, hypermedia
+and a SHA-256 over canonical packet content. The content-only projection is
+`GET /api/publication-versions/{id}/content`; neither route performs an external fetch. Both exclude
+raw capture blobs and private proposals.
 
 ORAtlas's safe reader natively recognizes `:::{oratlas:claim} source-local-id` without loading
 `@oratlas/myst` or any external plugin. It renders the body through the existing sanitized MyST

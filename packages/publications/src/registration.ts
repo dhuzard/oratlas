@@ -16,7 +16,12 @@ import {
   type MystPublicationManifest,
 } from "./adapters/myst.js";
 import { PublicationAdapterError, type NormalizedPublication } from "./adapter.js";
-import type { RemoteFetcher, RemoteFetchResult, RemoteHttpProvenance } from "./remote-fetch.js";
+import {
+  RemoteFetchError,
+  type RemoteFetcher,
+  type RemoteFetchResult,
+  type RemoteHttpProvenance,
+} from "./remote-fetch.js";
 
 export const DEFAULT_PUBLICATION_REGISTRATION_LIMITS = {
   manifestBytes: 256 * 1024,
@@ -25,6 +30,10 @@ export const DEFAULT_PUBLICATION_REGISTRATION_LIMITS = {
   reviewManifestBytes: 256 * 1024,
   reviewClaimsBytes: 8 * 1024 * 1024,
   pageDataBytes: 8 * 1024 * 1024,
+  contentDocumentBytes: 8 * 1024 * 1024,
+  contentTotalBytes: 32 * 1024 * 1024,
+  contentTextLength: 1_000_000,
+  maxContentDocuments: 32,
   sourceDocumentBytes: 4 * 1024 * 1024,
   sourceTotalBytes: 32 * 1024 * 1024,
   maxClaimRecords: 5_000,
@@ -33,7 +42,9 @@ export const DEFAULT_PUBLICATION_REGISTRATION_LIMITS = {
   totalOperationTimeoutMs: 30_000,
 } as const;
 
-export type PublicationRegistrationLimits = typeof DEFAULT_PUBLICATION_REGISTRATION_LIMITS;
+export type PublicationRegistrationLimits = {
+  [K in keyof typeof DEFAULT_PUBLICATION_REGISTRATION_LIMITS]: number;
+};
 
 export class PublicationRegistrationError extends Error {
   constructor(
@@ -599,26 +610,77 @@ export async function verifyExternalPublication(
       pageRecords.push(record);
       recordsByPage.set(reference.data, pageRecords);
     }
-    if (artifacts.length + recordsByPage.size > limits.maxArtifacts) {
+    const allPagePaths = [
+      ...new Set(parsedXref.data.references.map((reference) => reference.data)),
+    ].sort();
+    const requiredPagePaths = [...recordsByPage.keys()].sort();
+    const optionalPagePaths = allPagePaths.filter((path) => !recordsByPage.has(path));
+    const reservedSourceArtifactSlots =
+      manifest.publication.source &&
+      input.sourceResolver &&
+      manifest.artifacts.claims.declarations !== "review-manifest" &&
+      records.length > 0
+        ? new Set(records.map((record) => record.source.documentPath)).size
+        : 0;
+    const availablePageSlots = Math.min(
+      limits.maxContentDocuments,
+      Math.max(0, limits.maxArtifacts - artifacts.length - reservedSourceArtifactSlots),
+    );
+    if (requiredPagePaths.length > availablePageSlots) {
       throw new PublicationRegistrationError(
         "limit-exceeded",
-        `The publication requires more than ${limits.maxArtifacts} artifacts.`,
+        "The publication's claim-bearing pages exceed the bounded content-document limit.",
       );
     }
-    for (const [pagePath, pageRecords] of recordsByPage) {
-      const pageResponse = await input.fetcher.fetch(
-        artifactUrl(manifestResponse.finalUrl, pagePath),
-        {
-          maxBytes: limits.pageDataBytes,
+    const selectedPagePaths = [
+      ...requiredPagePaths,
+      ...optionalPagePaths.slice(0, availablePageSlots - requiredPagePaths.length),
+    ];
+    let capturedPageBytes = 0;
+    for (const pagePath of selectedPagePaths) {
+      const pageRecords = recordsByPage.get(pagePath) ?? [];
+      const required = pageRecords.length > 0;
+      const remainingBytes = limits.contentTotalBytes - capturedPageBytes;
+      if (remainingBytes <= 0) {
+        if (required) {
+          throw new PublicationRegistrationError(
+            "limit-exceeded",
+            "The publication's claim-bearing pages exceed the total content-byte limit.",
+          );
+        }
+        break;
+      }
+      let pageResponse: RemoteFetchResult;
+      try {
+        pageResponse = await input.fetcher.fetch(artifactUrl(manifestResponse.finalUrl, pagePath), {
+          maxBytes: Math.min(limits.pageDataBytes, limits.contentDocumentBytes, remainingBytes),
           acceptedMediaTypes: JSON_MEDIA_TYPES,
           signal: controller.signal,
-        },
-      );
+        });
+      } catch (error) {
+        if (required || !(error instanceof RemoteFetchError)) throw error;
+        warnings.push(
+          `Content coverage is partial: optional published page '${pagePath}' could not be captured within the registration boundary.`,
+        );
+        continue;
+      }
+      capturedPageBytes += pageResponse.bytes.byteLength;
+      let publishedClaimNodeKeys: Set<string>;
+      try {
+        const page = parseJson(pageResponse.bytes, `Published page data ${pagePath}`);
+        const mdast =
+          typeof page === "object" && page !== null
+            ? (page as { mdast?: unknown }).mdast
+            : undefined;
+        publishedClaimNodeKeys = indexPublishedClaimNodes(mdast, limits.maxPageNodes);
+      } catch (error) {
+        if (required || !(error instanceof PublicationRegistrationError)) throw error;
+        warnings.push(
+          `Content coverage is partial: optional published page '${pagePath}' was not a bounded valid structured document.`,
+        );
+        continue;
+      }
       artifacts.push(capture("published-page-data", pageResponse, pagePath));
-      const page = parseJson(pageResponse.bytes, `Published page data ${pagePath}`);
-      const mdast =
-        typeof page === "object" && page !== null ? (page as { mdast?: unknown }).mdast : undefined;
-      const publishedClaimNodeKeys = indexPublishedClaimNodes(mdast, limits.maxPageNodes);
       for (const record of pageRecords) {
         if (
           !publishedClaimNodeKeys.has(
@@ -696,6 +758,27 @@ export async function verifyExternalPublication(
         verificationWarnings: warnings,
       },
     );
+    normalized.content = mystPublicationAdapter.normalizeContent
+      ? mystPublicationAdapter.normalizeContent(artifacts, {
+          publicationVersionStableKey: normalized.version.stableKey,
+          publicationBaseUrl: baseUrl,
+          limits: {
+            maxDocuments: limits.maxContentDocuments,
+            maxBytesPerDocument: limits.contentDocumentBytes,
+            maxTotalBytes: limits.contentTotalBytes,
+            maxTextLength: limits.contentTextLength,
+            maxNodesPerDocument: limits.maxPageNodes,
+          },
+        })
+      : {
+          documents: [],
+          completeness: {
+            returnedDocuments: 0,
+            totalDocumentsKnown: null,
+            truncated: false,
+            coverage: "unsupported",
+          },
+        };
     return {
       manifest,
       normalized,

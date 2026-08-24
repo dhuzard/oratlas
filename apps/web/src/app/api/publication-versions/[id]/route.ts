@@ -52,6 +52,13 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     warnings: parseJsonColumn(version.verificationWarningsJson, []),
     observedAt: version.observedAt.toISOString(),
     packetHref: `/api/publication-versions/${version.id}/packet`,
+    contentHref: `/api/publication-versions/${version.id}/content`,
+    contentCompleteness: parseJsonColumn(version.contentCompletenessJson, {
+      returnedDocuments: 0,
+      totalDocumentsKnown: null,
+      truncated: false,
+      coverage: "unsupported",
+    }),
     productionProvenanceHref: `/api/publication-versions/${version.id}/production-provenance`,
     productionAssertionCount: version._count.productionAssertions,
     certificationsHref: `/api/publication-versions/${version.id}/certifications`,

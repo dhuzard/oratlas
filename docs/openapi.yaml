@@ -91,6 +91,7 @@ components:
               enum:
                 [
                   publication-occurrence,
+                  publication-content-document,
                   canonical-node-version,
                   canonical-relation,
                   trust-assessment,
@@ -197,6 +198,80 @@ components:
             capture: { type: string, pattern: "^/api/publication-captures/" }
             publication: { type: string, pattern: "^/api/publications/" }
             publicationVersion: { type: string, pattern: "^/api/publication-versions/" }
+    PublicationContentDocument:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          id,
+          title,
+          role,
+          sourcePath,
+          publishedUrl,
+          representation,
+          text,
+          sha256,
+          sourceArtifactIdentitySha256,
+          sourceArtifactSha256,
+        ]
+      properties:
+        id: { type: string, minLength: 1, maxLength: 200 }
+        title: { type: [string, "null"], minLength: 1, maxLength: 500 }
+        role:
+          type: [string, "null"]
+          enum:
+            [
+              abstract,
+              introduction,
+              methods,
+              results,
+              discussion,
+              limitations,
+              references,
+              supplementary,
+              other,
+              null,
+            ]
+        sourcePath: { type: [string, "null"] }
+        publishedUrl: { type: [string, "null"], format: uri }
+        representation: { enum: [published-structured-text, source-text] }
+        text:
+          type: string
+          minLength: 1
+          maxLength: 1000000
+          description: Deterministic inert plain text; never executable publication markup.
+        sha256: { type: string, pattern: "^[0-9a-f]{64}$" }
+        sourceArtifactIdentitySha256: { type: string, pattern: "^[0-9a-f]{64}$" }
+        sourceArtifactSha256: { type: string, pattern: "^[0-9a-f]{64}$" }
+    PublicationContentCompleteness:
+      type: object
+      additionalProperties: false
+      required: [returnedDocuments, totalDocumentsKnown, truncated, coverage]
+      properties:
+        returnedDocuments: { type: integer, minimum: 0 }
+        totalDocumentsKnown: { type: [integer, "null"], minimum: 0 }
+        truncated: { type: boolean }
+        coverage: { enum: [complete, partial, unknown, unsupported] }
+    PublicationVersionContent:
+      type: object
+      additionalProperties: false
+      required: [schemaVersion, publicationVersionId, content, completeness, sha256, links]
+      properties:
+        schemaVersion: { const: "1.0.0" }
+        publicationVersionId: { type: string, minLength: 1 }
+        content:
+          type: array
+          maxItems: 64
+          items: { $ref: "#/components/schemas/PublicationContentDocument" }
+        completeness: { $ref: "#/components/schemas/PublicationContentCompleteness" }
+        sha256: { type: string, pattern: "^[0-9a-f]{64}$" }
+        links:
+          type: object
+          additionalProperties: false
+          required: [publicationVersion, packet]
+          properties:
+            publicationVersion: { type: string, pattern: "^/api/publication-versions/" }
+            packet: { type: string, pattern: "^/api/publication-versions/" }
     PublicationVersionPacket:
       type: object
       additionalProperties: false
@@ -206,6 +281,7 @@ components:
           publication,
           version,
           captures,
+          content,
           occurrences,
           productionProvenance,
           relations,
@@ -215,7 +291,7 @@ components:
           sha256,
         ]
       properties:
-        schemaVersion: { const: "1.1.0" }
+        schemaVersion: { const: "1.2.0" }
         publication: { type: object }
         version:
           type: object
@@ -227,6 +303,13 @@ components:
           maxItems: 1000
           description: Capture identities and provenance metadata; never retained artifact bytes.
           items: { type: object }
+        content:
+          type: array
+          maxItems: 64
+          description: >
+            Immutable deterministic scientific-text evaluation corpus normalized from captured
+            artifacts. This representation is not a scientific validation of the article.
+          items: { $ref: "#/components/schemas/PublicationContentDocument" }
         occurrences:
           type: array
           maxItems: 500
@@ -248,7 +331,9 @@ components:
           items: { $ref: "#/components/schemas/PublicChallenge" }
         completeness:
           type: object
-          description: Returned/total/truncated metadata for every bounded packet collection.
+          description: >
+            Returned/total/truncated metadata for every bounded packet collection, including
+            explicit complete, partial, unknown, or unsupported content coverage.
         links:
           type: object
           description: Root-relative packet, publication and exact-version links.
@@ -3804,10 +3889,11 @@ paths:
     get:
       summary: Read a deterministic public packet for one exact publication version
       description: >
-        Returns bounded publication and capture provenance, claim occurrences, canonical bindings,
-        public production assertions, public confirmed relations, completeness metadata,
-        hypermedia, a packet schema version and a deterministic SHA-256. Raw captured bytes,
-        private AgentRun internals, private proposals, and hidden assessments are excluded.
+        Returns bounded publication and capture provenance, the immutable normalized scientific
+        content corpus, claim occurrences, canonical bindings, public production assertions,
+        public confirmed relations, completeness metadata, hypermedia, a packet schema version
+        and a deterministic SHA-256. Raw captured bytes, private AgentRun internals, private
+        proposals, and hidden assessments are excluded.
       parameters:
         - { name: id, in: path, required: true, schema: { type: string } }
       responses:
@@ -3816,6 +3902,22 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/PublicationVersionPacket" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+  /api/publication-versions/{id}/content:
+    get:
+      summary: Read the immutable normalized content corpus for one exact publication version
+      description: >
+        Returns deterministic inert plain scientific text and honest coverage metadata derived
+        only from artifacts captured during secure registration. No external fetch occurs.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Exact persisted content corpus and its SHA-256
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PublicationVersionContent" }
         "404": { $ref: "#/components/responses/Error" }
         "409": { $ref: "#/components/responses/Error" }
   /api/certifiers:

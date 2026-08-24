@@ -9,6 +9,7 @@ import { canonicalJson, type PublicationType } from "@oratlas/contracts";
 import {
   createHardenedRemoteFetcher,
   normalizeMystPublication,
+  publicationArtifactIdentitySha256,
   verifyExternalPublication,
   type RemoteFetcher,
   type VerifiedExternalPublication,
@@ -229,6 +230,57 @@ function federationFixture(site: "a" | "b"): VerifiedExternalPublication {
   };
 }
 
+function withContent(
+  fixture: VerifiedExternalPublication,
+  text: string,
+): VerifiedExternalPublication {
+  const pageIndex = fixture.artifacts.findIndex(
+    (artifact) =>
+      artifact.artifactKind === "published-page-data" && artifact.declaredPath === "pages/one.json",
+  );
+  const pageBytes = Buffer.from(
+    JSON.stringify({
+      mdast: {
+        type: "root",
+        children: [
+          { type: "heading", depth: 1, children: [{ type: "text", value: "Results" }] },
+          { type: "paragraph", children: [{ type: "text", value: text }] },
+        ],
+      },
+    }),
+  );
+  fixture.artifacts[pageIndex] = {
+    ...fixture.artifacts[pageIndex]!,
+    bytes: pageBytes,
+    contentSha256: sha(pageBytes.toString("utf8")),
+  };
+  const artifact = fixture.artifacts[pageIndex]!;
+  const normalizedText = `# Results\n\n${text}`;
+  fixture.normalized.content = {
+    documents: [
+      {
+        id: `publication-content:${sha(fixture.normalized.version.stableKey)}`,
+        title: "Results",
+        role: "results",
+        sourcePath: artifact.declaredPath ?? null,
+        publishedUrl: "https://example.org/review/results/",
+        representation: "published-structured-text",
+        text: normalizedText,
+        sha256: sha(normalizedText),
+        sourceArtifactIdentitySha256: publicationArtifactIdentitySha256(artifact),
+        sourceArtifactSha256: artifact.contentSha256,
+      },
+    ],
+    completeness: {
+      returnedDocuments: 1,
+      totalDocumentsKnown: 2,
+      truncated: true,
+      coverage: "partial",
+    },
+  };
+  return fixture;
+}
+
 async function verifyFederationSite(site: "a" | "b"): Promise<VerifiedExternalPublication> {
   const fixture = federationFixture(site);
   const claims = fixture.normalized.occurrences.map((occurrence) => ({
@@ -259,12 +311,28 @@ async function verifyFederationSite(site: "a" | "b"): Promise<VerifiedExternalPu
   const page = {
     mdast: {
       type: "root",
-      children: claims.map((claim) => ({
-        type: "container",
-        identifier: claim.id,
-        html_id: claim.target.type === "myst-xref" ? claim.target.htmlId : claim.id,
-        data: { oratlas: { kind: "claim", id: claim.id } },
-      })),
+      children: [
+        ...claims.map((claim) => ({
+          type: "container",
+          identifier: claim.id,
+          html_id: claim.target.type === "myst-xref" ? claim.target.htmlId : claim.id,
+          data: { oratlas: { kind: "claim", id: claim.id } },
+        })),
+        {
+          type: "heading",
+          depth: 1,
+          children: [{ type: "text", value: "Results" }],
+        },
+        {
+          type: "paragraph",
+          children: [
+            {
+              type: "text",
+              value: `The captured scientific results for site ${site.toUpperCase()} are immutable.`,
+            },
+          ],
+        },
+      ],
     },
   };
   const files = new Map<string, readonly [string, string]>([
@@ -380,6 +448,17 @@ describe("external publication registration persistence", () => {
     expect(replay.replayed).toBe(true);
     expect(replay.captureId).toBe(first.captureId);
     expect(replay.publicationVersionId).toBe(first.publicationVersionId);
+    const unsupportedContent = await prisma.publicationVersion.findUniqueOrThrow({
+      where: { id: first.publicationVersionId },
+      select: { contentCorpusJson: true, contentCompletenessJson: true },
+    });
+    expect(unsupportedContent.contentCorpusJson).toBe("[]");
+    expect(JSON.parse(unsupportedContent.contentCompletenessJson)).toEqual({
+      coverage: "unsupported",
+      returnedDocuments: 0,
+      totalDocumentsKnown: null,
+      truncated: false,
+    });
 
     const conflicting = verifiedFixture();
     const conflictingBytes = Buffer.from('{"mdast":{"type":"root","changed":true}}');
@@ -481,6 +560,48 @@ describe("external publication registration persistence", () => {
         assertedById: null,
       },
     ]);
+  });
+
+  it("binds a new immutable content corpus to each changed publication version", async () => {
+    const first = await persist(
+      withContent(
+        verifiedFixture(sha("content-document-set-v1")),
+        "The first version reports the primary outcome.",
+      ),
+      editorId,
+    );
+    const changed = await persist(
+      withContent(
+        verifiedFixture(sha("content-document-set-v2")),
+        "The second version reports the revised primary outcome.",
+      ),
+      editorId,
+    );
+    expect(changed.publicationVersionId).not.toBe(first.publicationVersionId);
+    const versions = await prisma.publicationVersion.findMany({
+      where: { id: { in: [first.publicationVersionId, changed.publicationVersionId] } },
+      orderBy: { sourcesSha256: "asc" },
+      select: {
+        id: true,
+        contentCorpusJson: true,
+        contentCorpusSha256: true,
+        contentCompletenessJson: true,
+      },
+    });
+    expect(new Set(versions.map((version) => version.contentCorpusJson)).size).toBe(2);
+    for (const version of versions) {
+      expect(sha(version.contentCorpusJson)).toBe(version.contentCorpusSha256);
+      expect(JSON.parse(version.contentCompletenessJson)).toMatchObject({
+        returnedDocuments: 1,
+        coverage: "partial",
+      });
+    }
+    await expect(
+      prisma.publicationVersion.update({
+        where: { id: first.publicationVersionId },
+        data: { contentCorpusJson: "[]" },
+      }),
+    ).rejects.toThrow();
   });
 
   it("federates two independent sites through the one canonical graph", async () => {
@@ -633,6 +754,26 @@ describe("external publication registration persistence", () => {
       observedPublicationBaseUrl: observedBBase,
     });
     expect(packet.occurrences).toHaveLength(2);
+    expect(packet.schemaVersion).toBe("1.2.0");
+    expect(packet.content).toHaveLength(1);
+    expect(packet.content[0]).toMatchObject({
+      role: "results",
+      representation: "published-structured-text",
+      sourcePath: "content/results.json",
+    });
+    expect(packet.content[0]?.text).toContain("captured scientific results");
+    expect(packet.completeness.content).toEqual({
+      returnedDocuments: 1,
+      totalDocumentsKnown: 1,
+      truncated: false,
+      coverage: "partial",
+    });
+    const contentProjection = await (
+      await import("./publication-content")
+    ).getPublicationVersionContent(siteB.publicationVersionId);
+    expect(contentProjection.content).toEqual(packet.content);
+    expect(contentProjection.completeness).toEqual(packet.completeness.content);
+    expect(sha(canonicalJson(contentProjection.content))).toBe(contentProjection.sha256);
     expect(
       packet.occurrences.find((occurrence) => occurrence.sourceLocalClaimId === "claim-b1"),
     ).toMatchObject({ publishedTargetUrl: exactB1Url, links: { originalPublication: exactB1Url } });

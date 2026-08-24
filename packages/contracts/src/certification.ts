@@ -63,6 +63,7 @@ export const certificationCriterionSchema = z
 
 export const CERTIFICATION_PACKET_SECTIONS = [
   "captures",
+  "content",
   "occurrences",
   "productionProvenance",
   "relations",
@@ -74,7 +75,7 @@ export const certificationProtocolDefinitionSchema = z
     criteria: z.array(certificationCriterionSchema).min(1).max(100),
     assessmentModes: z.array(certificationAssessmentModeSchema).min(1).max(3),
     outcomes: z.array(certificationOutcomeSchema).min(1).max(4),
-    requireCompleteSections: z.array(certificationPacketSectionSchema).max(5).default([]),
+    requireCompleteSections: z.array(certificationPacketSectionSchema).max(6).default([]),
   })
   .strict()
   .superRefine((value, context) => {
@@ -137,6 +138,7 @@ export const createCertificationRunSchema = z
 
 const packetEvidenceSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("publication-occurrence"), id: z.string().min(1) }).strict(),
+  z.object({ type: z.literal("publication-content-document"), id: z.string().min(1) }).strict(),
   z.object({ type: z.literal("canonical-node-version"), id: z.string().min(1) }).strict(),
   z.object({ type: z.literal("canonical-relation"), id: z.string().min(1) }).strict(),
   z.object({ type: z.literal("trust-assessment"), id: z.string().min(1) }).strict(),

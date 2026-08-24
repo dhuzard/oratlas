@@ -17,6 +17,7 @@ import { resolveObservedPublicationBaseUrl } from "@oratlas/db";
 import { queryCanonicalGraph } from "./canonical-graph-query";
 import { publicConfirmedNodeEdgeWhere } from "./node-edge-publication";
 import { listPublicationProductionProvenance } from "./publication-provenance";
+import { parsePersistedPublicationContent, PublicationContentError } from "./publication-content";
 
 export class PublicationVersionPacketError extends Error {
   constructor(message: string) {
@@ -48,6 +49,13 @@ export async function getPublicationVersionPacket(id: string) {
     throw new PublicationVersionPacketError(
       "Publication version has no valid observed publication base URL.",
     );
+  }
+  let content;
+  try {
+    content = parsePersistedPublicationContent(version);
+  } catch (error) {
+    if (!(error instanceof PublicationContentError)) throw error;
+    throw new PublicationVersionPacketError(error.message);
   }
 
   const captures = version.captures.slice(0, PUBLICATION_VERSION_PACKET_CAPTURE_LIMIT);
@@ -128,6 +136,7 @@ export async function getPublicationVersionPacket(id: string) {
       byteLength: capture.byteLength,
       structuralProvenance: capture.structuralProvenance,
     })),
+    content: content.documents,
     occurrences: occurrences.map((occurrence) => {
       if (!occurrence.publishedUrl) {
         throw new PublicationVersionPacketError(
@@ -170,6 +179,7 @@ export async function getPublicationVersionPacket(id: string) {
     challenges: [],
     completeness: {
       captures: section(captures.length, version._count.captures),
+      content: content.completeness,
       occurrences: section(occurrences.length, version._count.claimOccurrences),
       productionProvenance: productionProvenance.completeness,
       relations: section(relations.length, totalRelations),
@@ -179,6 +189,7 @@ export async function getPublicationVersionPacket(id: string) {
       self: `/api/publication-versions/${version.id}/packet`,
       publication: `/api/publications/${version.publication.id}`,
       publicationVersion: `/api/publication-versions/${version.id}`,
+      content: `/api/publication-versions/${version.id}/content`,
       productionProvenance: `/api/publication-versions/${version.id}/production-provenance`,
     },
   };

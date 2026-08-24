@@ -29,6 +29,7 @@ import {
   type PublicationAdapter,
   type PublicationAdapterNormalizationContext,
 } from "../adapter.js";
+import { normalizeMystPublicationContent } from "./myst-content.js";
 
 /**
  * The `myst` adapter: dhuzard/oratlas-myst schema version 0.2.0.
@@ -519,5 +520,6 @@ export const mystPublicationAdapter: PublicationAdapter<
       verificationWarnings: context.verificationWarnings ?? [],
     });
   },
+  normalizeContent: normalizeMystPublicationContent,
   resolvePublishedTarget: resolveMystAdapterPublishedTarget,
 };
