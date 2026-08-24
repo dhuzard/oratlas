@@ -25,13 +25,17 @@ describe("external certifier acceptance client", () => {
     });
     await client.getInput("run-1");
     await client.submitResult("run-1", { outcome: "inconclusive" });
+    await client.transitionRun("run-2", { status: "failed", reason: "Evaluator unavailable." });
     await client.listPublicResults("v1");
     expect(run).toMatchObject({ method: "POST" });
-    expect(fetcher).toHaveBeenCalledTimes(4);
+    expect(fetcher).toHaveBeenCalledTimes(5);
     expect(fetcher.mock.calls[0]?.[1]?.headers).toMatchObject({ authorization: "Bearer secret" });
   });
   it("contains no database or internal package dependency", () => {
-    const source = readFileSync(resolve(process.cwd(), "scripts/certifier-api-client.ts"), "utf8");
+    const source = readFileSync(
+      resolve(process.cwd(), "packages/certifier-client/src/index.ts"),
+      "utf8",
+    );
     expect(source).not.toMatch(/@prisma|PrismaClient|@oratlas\/|src\/lib|\.\.\//);
   });
 });

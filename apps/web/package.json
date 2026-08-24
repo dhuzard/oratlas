@@ -21,6 +21,7 @@
     "@oratlas/federation": "workspace:*",
     "@oratlas/github": "workspace:*",
     "@oratlas/knowledge": "workspace:*",
+    "@oratlas/ora-certifier": "workspace:*",
     "@oratlas/protocols": "workspace:*",
     "@oratlas/publications": "workspace:*",
     "@oratlas/trust": "workspace:*",

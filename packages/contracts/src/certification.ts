@@ -135,6 +135,15 @@ export const createCertificationRunSchema = z
     idempotencyKey: z.string().min(8).max(200),
   })
   .strict();
+export const certificationRunTerminalTransitionSchema = z
+  .object({
+    status: z.enum(["failed", "cancelled"]),
+    reason: z.string().trim().min(1).max(4_000),
+  })
+  .strict();
+export type CertificationRunTerminalTransition = z.infer<
+  typeof certificationRunTerminalTransitionSchema
+>;
 
 const packetEvidenceSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("publication-occurrence"), id: z.string().min(1) }).strict(),

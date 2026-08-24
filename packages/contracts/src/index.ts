@@ -41,3 +41,4 @@ export * from "./knowledge-recommendation.js";
 export * from "./graph-curation.js";
 export * from "./ingestion-extraction.js";
 export * from "./certification.js";
+export * from "./ora-certification.js";

@@ -2195,6 +2195,8 @@ model CertificationRun {
   capturedAt           DateTime
   startedAt            DateTime?
   completedAt          DateTime?
+  /// Immutable explanation for an owner-requested failed/cancelled terminal transition.
+  terminalReason       String?
   createdAt            DateTime  @default(now())
 
   publicationVersion PublicationVersion    @relation(fields: [publicationVersionId], references: [id], onDelete: Restrict)

@@ -3,6 +3,7 @@ import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import {
   canonicalJson,
   certificationProtocolDefinitionSchema,
+  certificationRunTerminalTransitionSchema,
   publicCertificationSummarySchema,
   submitCertificationResultSchema,
   type CertificationEvidenceReference,
@@ -504,6 +505,7 @@ function mapRun(row: CertificationRun, replayed = false) {
     certificationProtocolId: row.protocolId,
     assessmentMode: row.assessmentMode,
     status: row.status,
+    terminalReason: row.terminalReason,
     externalRunReference: row.externalRunReference,
     input: {
       packetSchemaVersion: row.packetSchemaVersion,
@@ -512,11 +514,13 @@ function mapRun(row: CertificationRun, replayed = false) {
       completeness: JSON.parse(row.completenessJson),
     },
     createdAt: row.createdAt.toISOString(),
+    completedAt: row.completedAt?.toISOString() ?? null,
     replayed,
     links: {
       self: `/api/certification-runs/${row.id}`,
       input: `/api/certification-runs/${row.id}/input`,
       result: `/api/certification-runs/${row.id}/result`,
+      transition: `/api/certification-runs/${row.id}/transition`,
     },
   };
 }
@@ -547,6 +551,62 @@ export async function getCertificationInput(id: string, certifierId: string) {
   };
 }
 
+export async function transitionCertificationRun(
+  id: string,
+  raw: unknown,
+  auth: { certifierId: string; credentialId?: string },
+) {
+  const input = certificationRunTerminalTransitionSchema.parse(raw);
+  const transition = async () => {
+    const current = await prisma.certificationRun.findUnique({ where: { id } });
+    if (!current) throw new CertificationError("not-found", "Certification run not found.");
+    if (current.certifierId !== auth.certifierId)
+      throw new CertificationError("forbidden", "Certification run belongs to another certifier.");
+    if (current.status === input.status && current.terminalReason === input.reason)
+      return { ...mapRun(current, true), replayed: true };
+    if (["completed", "failed", "cancelled"].includes(current.status))
+      throw new CertificationError("conflict", "Certification run already has a different terminal state.");
+
+    const completedAt = new Date();
+    const updated = await prisma.$transaction(
+      async (tx) => {
+        const claimed = await tx.certificationRun.updateMany({
+          where: { id, certifierId: auth.certifierId, status: { in: ["requested", "running"] } },
+          data: { status: input.status, terminalReason: input.reason, completedAt },
+        });
+        if (claimed.count !== 1) return null;
+        const row = await tx.certificationRun.findUniqueOrThrow({ where: { id } });
+        await tx.auditEvent.create({
+          data: {
+            action: `certification.run-${input.status}`,
+            subjectType: "certification-run",
+            subjectId: id,
+            idempotencyKey: `certification-run:${id}:${input.status}`,
+            detailsJson: canonicalJson({
+              certifierId: auth.certifierId,
+              credentialId: auth.credentialId,
+              reason: input.reason,
+            }),
+          },
+        });
+        return row;
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+    );
+    if (updated) return mapRun(updated);
+    const raced = await prisma.certificationRun.findUnique({ where: { id } });
+    if (raced?.status === input.status && raced.terminalReason === input.reason)
+      return { ...mapRun(raced, true), replayed: true };
+    throw new CertificationError("conflict", "Certification run concurrently reached another state.");
+  };
+  try {
+    return await transition();
+  } catch (error) {
+    if (prismaCode(error) === "P2034") return transition();
+    throw error;
+  }
+}
+
 export async function submitCertificationResult(
   runId: string,
   raw: SubmitCertificationResult,
@@ -565,6 +625,8 @@ export async function submitCertificationResult(
     where: { certificationRunId: runId },
   });
   if (existing) return replayResult(existing, candidateJson);
+  if (run.status !== "running")
+    throw new CertificationError("conflict", "Certification run is not open for result submission.");
   if (
     run.inputPacketSha256 !== input.packetSha256 ||
     digest(run.inputPacketJson) !== run.inputPacketSha256
@@ -861,6 +923,8 @@ export async function getPublicCertificationResult(id: string) {
     include: {
       certifier: true,
       protocol: true,
+      run: true,
+      agentRun: true,
       lifecycleEvents: { orderBy: [{ createdAt: "asc" }, { id: "asc" }] },
     },
   });
@@ -874,7 +938,28 @@ export async function getPublicCertificationResult(id: string) {
       version: row.protocol.protocolVersion,
       sha256: row.protocol.protocolSha256,
       title: row.protocol.title,
+      definition: JSON.parse(row.protocol.protocolJson),
     },
+    input: {
+      packetSha256: row.run.inputPacketSha256,
+      packetSchemaVersion: row.run.packetSchemaVersion,
+      capturedAt: row.run.capturedAt.toISOString(),
+      completeness: JSON.parse(row.run.completenessJson),
+    },
+    execution: row.agentRun
+      ? {
+          agentRunId: row.agentRun.id,
+          status: row.agentRun.status,
+          agentType: row.agentRun.agentType,
+          provider: row.agentRun.modelProvider,
+          model: row.agentRun.modelName,
+          modelVersion: row.agentRun.modelVersion,
+          promptVersion: row.agentRun.promptVersion,
+          packetHash: row.agentRun.packetHash,
+          startedAt: row.agentRun.startedAt.toISOString(),
+          completedAt: row.agentRun.completedAt?.toISOString() ?? null,
+        }
+      : null,
   };
 }
 export async function addCertificationLifecycle(

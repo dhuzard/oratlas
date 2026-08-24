@@ -22,7 +22,11 @@ const serverEnvSchema = z.object({
   AUTH_MOCK: z.string().optional(),
   LLM_PROVIDER: z.string().optional(),
   ANTHROPIC_API_KEY: z.string().optional(),
+  OPENAI_API_KEY: z.string().optional(),
   LLM_MODEL: z.string().default("claude-sonnet-5"),
+  ORA_CERTIFIER_API_TOKEN: z.string().optional(),
+  ORA_EVALUATOR_PROVIDER: z.enum(["anthropic", "openai"]).optional(),
+  ORA_EVALUATOR_MODEL: z.string().min(1).max(120).optional(),
   NEXT_PUBLIC_BASE_URL: z.string().url().default("http://localhost:3000"),
   // Rate limiting (per identity+route). In-process for the POC; a shared store
   // (Redis) is the production swap. Coerced from strings so env vars parse.
@@ -41,6 +45,7 @@ export type ServerEnv = z.infer<typeof serverEnvSchema> & {
   githubOauthEnabled: boolean;
   adminGithubUserIds: readonly string[];
   llmEnabled: boolean;
+  oraCertificationEnabled: boolean;
   sessionSecret: string;
 };
 
@@ -113,6 +118,12 @@ export function getServerEnv(env: NodeJS.ProcessEnv = process.env): ServerEnv {
   // Never silently enable mock authentication in production (spec §5).
   const mockAuthEnabled = !isProduction && parsed.AUTH_MOCK === "1";
   const llmEnabled = parsed.LLM_PROVIDER === "anthropic" && Boolean(parsed.ANTHROPIC_API_KEY);
+  const oraProviderAvailable =
+    (parsed.ORA_EVALUATOR_PROVIDER === "anthropic" && Boolean(parsed.ANTHROPIC_API_KEY)) ||
+    (parsed.ORA_EVALUATOR_PROVIDER === "openai" && Boolean(parsed.OPENAI_API_KEY));
+  const oraCertificationEnabled = Boolean(
+    parsed.ORA_CERTIFIER_API_TOKEN && parsed.ORA_EVALUATOR_MODEL && oraProviderAvailable,
+  );
 
   const result: ServerEnv = {
     ...parsed,
@@ -121,6 +132,7 @@ export function getServerEnv(env: NodeJS.ProcessEnv = process.env): ServerEnv {
     githubOauthEnabled,
     adminGithubUserIds,
     llmEnabled,
+    oraCertificationEnabled,
     sessionSecret,
   };
   if (env === process.env) cached = result;

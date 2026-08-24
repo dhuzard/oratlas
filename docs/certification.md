@@ -99,8 +99,9 @@ An external certifier needs only documented HTTP APIs:
 4. `POST /api/certification-runs/{id}/result` with protocol-valid criteria and evidence.
 5. `GET /api/publication-versions/{id}/certifications` to observe all public results.
 
-The framework-free example in `scripts/certifier-api-client.ts` performs this journey with `fetch`
-only. It imports no ORAtlas package and has no repository or database access.
+The framework-free implementation in `packages/certifier-client` performs this journey with
+`fetch` only and has no repository or database access. `scripts/certifier-api-client.ts` is its
+public example entrypoint.
 
 ## Epistemic separation
 
