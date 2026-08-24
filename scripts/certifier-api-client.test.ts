@@ -30,9 +30,20 @@ describe("external certifier acceptance client", () => {
     await client.listPublicResults("v1");
     expect(run).toMatchObject({ method: "POST" });
     expect(fetcher).toHaveBeenCalledTimes(5);
-    const headers = new Headers(fetcher.mock.calls[0]?.[1]?.headers);
-    expect(headers.get("authorization")).toBe(`Bearer ${credential}`);
-    expect(headers.get("content-type")).toBe("application/json");
+    const postHeaders = new Headers(fetcher.mock.calls[0]?.[1]?.headers);
+    expect(postHeaders.get("authorization")).toBe(`Bearer ${credential}`);
+    expect(postHeaders.get("accept")).toBe("application/json");
+    expect(postHeaders.get("content-type")).toBe("application/json");
+
+    const getHeaders = new Headers(fetcher.mock.calls[1]?.[1]?.headers);
+    expect(getHeaders.get("authorization")).toBe(`Bearer ${credential}`);
+    expect(getHeaders.get("accept")).toBe("application/json");
+    expect(getHeaders.has("content-type")).toBe(false);
+
+    const publicHeaders = new Headers(fetcher.mock.calls[4]?.[1]?.headers);
+    expect(publicHeaders.has("authorization")).toBe(false);
+    expect(publicHeaders.get("accept")).toBe("application/json");
+    expect(publicHeaders.has("content-type")).toBe(false);
   });
   it("contains no database or internal package dependency", () => {
     const source = readFileSync(

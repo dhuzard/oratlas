@@ -42,6 +42,7 @@ export class CertifierApiClient {
         `/api/publication-versions/${encodeURIComponent(publicationVersionId)}/certifications`,
         this.baseUrl,
       ),
+      { headers: { accept: "application/json" } },
     );
     if (!response.ok) throw new Error(`ORAtlas public API returned ${response.status}.`);
     return response.json();
@@ -49,7 +50,10 @@ export class CertifierApiClient {
   private async request(path: string, init: RequestInit = {}) {
     const headers = new Headers(init.headers);
     headers.set("authorization", `Bearer ${this.token}`);
-    headers.set("content-type", "application/json");
+    headers.set("accept", "application/json");
+    if (init.body != null && !headers.has("content-type")) {
+      headers.set("content-type", "application/json");
+    }
     const response = await this.fetcher(new URL(path, this.baseUrl), {
       ...init,
       headers,
