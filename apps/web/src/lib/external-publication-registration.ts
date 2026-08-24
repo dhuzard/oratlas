@@ -3,6 +3,7 @@ import { createHash, createHmac } from "node:crypto";
 import {
   canonicalJson,
   externalPublicationRegistrationResultSchema,
+  normalizedPublicationProductionAssertionSchema,
   publicationIdentityEvidenceSchema,
   type ExternalPublicationRegistrationResult,
   type PublicationType,
@@ -164,6 +165,48 @@ async function persistVerifiedExternalPublicationOnce(
       throw new PublicationRegistrationConflictError(
         "The exact publication version conflicts with its previous immutable observation.",
       );
+    }
+
+    for (const rawAssertion of verified.normalized.productionAssertions ?? []) {
+      const assertion = normalizedPublicationProductionAssertionSchema.parse(rawAssertion);
+      const existingAssertion = await tx.publicationProductionAssertion.findUnique({
+        where: {
+          publicationVersionId_sourceAssertionKey: {
+            publicationVersionId: versionRow.id,
+            sourceAssertionKey: assertion.sourceAssertionKey,
+          },
+        },
+      });
+      if (!existingAssertion) {
+        replayed = false;
+        await tx.publicationProductionAssertion.create({
+          data: {
+            publicationVersionId: versionRow.id,
+            sourceAssertionKey: assertion.sourceAssertionKey,
+            mode: assertion.mode,
+            actorsJson: canonicalJson(assertion.actors),
+            activitiesJson: canonicalJson(assertion.activities),
+            statement: assertion.statement,
+            strength: assertion.strength,
+            publicEvidenceUrl: assertion.publicEvidenceUrl,
+            assertedAt: new Date(version.observedAt),
+          },
+        });
+      } else if (
+        existingAssertion.mode !== assertion.mode ||
+        existingAssertion.actorsJson !== canonicalJson(assertion.actors) ||
+        existingAssertion.activitiesJson !== canonicalJson(assertion.activities) ||
+        !sameOptional(existingAssertion.statement, assertion.statement) ||
+        existingAssertion.strength !== assertion.strength ||
+        !sameOptional(existingAssertion.publicEvidenceUrl, assertion.publicEvidenceUrl) ||
+        existingAssertion.agentRunId !== null ||
+        existingAssertion.executionPassportId !== null ||
+        existingAssertion.supersedesAssertionId !== null
+      ) {
+        throw new PublicationRegistrationConflictError(
+          `Production assertion '${assertion.sourceAssertionKey}' conflicts with its immutable observation.`,
+        );
+      }
     }
 
     let manifestCaptureId: string | undefined;

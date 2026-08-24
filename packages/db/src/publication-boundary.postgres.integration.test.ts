@@ -215,4 +215,65 @@ describe.skipIf(!enabled)("publication boundary on PostgreSQL", () => {
     });
     expect(delegated.text).toContain("Authoritative text");
   });
+
+  it("enforces append-only production assertions and reviewed transfer decisions", async () => {
+    const editor = await prisma.user.create({
+      data: { githubLogin: unique("production-editor"), role: "EDITOR" },
+    });
+    const source = await createPublication();
+    const target = await createPublication();
+    const version = await createVersion(source.id);
+    await expect(
+      prisma.publicationProductionAssertion.create({
+        data: {
+          publicationVersionId: version.id,
+          mode: "agentic",
+          strength: "oratlas-attested",
+          assertedById: editor.id,
+          assertedAt: new Date(),
+        },
+      }),
+    ).rejects.toThrow();
+    const assertion = await prisma.publicationProductionAssertion.create({
+      data: {
+        publicationVersionId: version.id,
+        mode: "human",
+        activitiesJson: JSON.stringify(["authoring"]),
+        strength: "source-declared",
+        assertedById: editor.id,
+        assertedAt: new Date(),
+      },
+    });
+    const relation = await prisma.publicationRelation.create({
+      data: {
+        sourcePublicationId: source.id,
+        targetPublicationId: target.id,
+        relationType: "moved-to",
+        rationale: "An editor reviewed the explicit public host transfer declaration.",
+        reviewedById: editor.id,
+        reviewedAt: new Date(),
+      },
+    });
+    await expect(
+      prisma.publicationProductionAssertion.update({
+        where: { id: assertion.id },
+        data: { mode: "unspecified" },
+      }),
+    ).rejects.toThrow(/append-only/);
+    await expect(prisma.publicationRelation.delete({ where: { id: relation.id } })).rejects.toThrow(
+      /append-only/,
+    );
+    await expect(
+      prisma.publicationRelation.create({
+        data: {
+          sourcePublicationId: source.id,
+          targetPublicationId: source.id,
+          relationType: "same-publication-continuation",
+          rationale: "Self-relations cannot stand in for durable publication identity evidence.",
+          reviewedById: editor.id,
+          reviewedAt: new Date(),
+        },
+      }),
+    ).rejects.toThrow();
+  });
 });

@@ -114,6 +114,21 @@ the human and agent deep link. The versioned publication packet exposes the same
 state to agents. See
 [Externally hosted publications](external-publications.md).
 
+The framework-free `PublicationAdapter` makes that split executable: adapters describe and verify
+format structure over already captured bytes and return generic records; they do not fetch,
+execute plugins, or infer authorship. The frozen MyST 0.2.0 path is the first implementation. A
+test-only synthetic implementation proves that another normalized target reaches the unchanged
+canonical materializer; it is not advertised format support.
+
+Production provenance is a separate append-only edge off one exact `PublicationVersion`, not a
+field on `Publication` and not part of adapter selection. Human and ARS-produced MyST documents use
+the identical MyST adapter. Optional source declarations and ORAtlas execution attestations remain
+distinguishable, production software remains separate from scholarly contributors, and the public
+version packet hashes the bounded public assertion state. Reviewed `PublicationRelation` records
+describe otherwise ambiguous host/format transfer without merging publications or claims. No
+production mode or transfer relation confers scientific merit, TRUST, peer review, or
+certification.
+
 ```
 Site A ─┐
         ├─→ Publication boundary

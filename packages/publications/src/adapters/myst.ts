@@ -13,11 +13,8 @@ import {
   safeRepoRelativePathSchema,
   sourceLocalClaimIdSchema,
   sourceLocalPublicationIdSchema,
-  type PublicationClaimOccurrenceRecord,
-  type PublicationRecord,
   type PublicationStructuralProvenance,
   type PublicationType,
-  type PublicationVersionRecord,
 } from "@oratlas/contracts";
 import {
   derivePublicationIdentityEvidence,
@@ -25,6 +22,13 @@ import {
   publicationStableKey,
   publicationVersionStableKey,
 } from "../identity.js";
+import {
+  PublicationAdapterError,
+  type CapturedPublicationArtifact,
+  type NormalizedPublication,
+  type PublicationAdapter,
+  type PublicationAdapterNormalizationContext,
+} from "../adapter.js";
 
 /**
  * The `myst` adapter: dhuzard/oratlas-myst schema version 0.2.0.
@@ -39,13 +43,6 @@ import {
  * something to ignore. An unimplemented `schemaVersion`, `adapter.type` or
  * `target.type` is rejected rather than partially read.
  */
-
-export class PublicationAdapterError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "PublicationAdapterError";
-  }
-}
 
 /** Claim types the 0.2.0 protocol permits — a subset of ORAtlas's own list. */
 const MYST_CLAIM_TYPES = [
@@ -183,12 +180,6 @@ export interface NormalizeMystPublicationInput {
   >;
   /** Persisted explanation of any source-byte verification limitation. */
   verificationWarnings?: readonly string[];
-}
-
-export interface NormalizedPublication {
-  publication: PublicationRecord;
-  version: PublicationVersionRecord;
-  occurrences: PublicationClaimOccurrenceRecord[];
 }
 
 /** UTF-16 code-unit comparison, as the protocol's ordering rule requires. */
@@ -372,3 +363,161 @@ export function normalizeMystPublication(
 
   return { publication, version, occurrences };
 }
+
+export interface MystAdapterArtifactsInput {
+  manifest: MystPublicationManifest;
+  artifacts: readonly CapturedPublicationArtifact[];
+}
+
+export interface MystPublishedStructureInput {
+  claims: readonly MystClaimRecord[];
+  /** Claim ids whose inventory target and published page node were both checked. */
+  verifiedClaimIds: ReadonlySet<string>;
+}
+
+export interface MystAdapterNormalizeInput {
+  manifest: MystPublicationManifest;
+  claims: readonly MystClaimRecord[];
+  delegatedDeclarations?: ReadonlyMap<
+    string,
+    { text: string; claimType?: string; qualification?: string }
+  >;
+}
+
+export interface MystPublishedTargetInput {
+  publicationBaseUrl: string;
+  inventoryUrl: string;
+  htmlId?: string;
+}
+
+function resolveMystAdapterPublishedTarget(input: MystPublishedTargetInput): string {
+  const hasControlCharacter = Array.from(input.inventoryUrl).some((character) => {
+    const codePoint = character.codePointAt(0)!;
+    return codePoint <= 0x1f || codePoint === 0x7f;
+  });
+  if (
+    input.inventoryUrl.length > 2_000 ||
+    !input.inventoryUrl.startsWith("/") ||
+    input.inventoryUrl.startsWith("//") ||
+    input.inventoryUrl.includes("\\") ||
+    hasControlCharacter
+  ) {
+    throw new PublicationAdapterError("A MyST inventory entry has an unsafe published URL.");
+  }
+  const base = new URL(
+    input.publicationBaseUrl.endsWith("/")
+      ? input.publicationBaseUrl
+      : `${input.publicationBaseUrl}/`,
+  );
+  const resolved = new URL(input.inventoryUrl.replace(/^\/+/, ""), base);
+  if (resolved.origin !== base.origin || !resolved.pathname.startsWith(base.pathname)) {
+    throw new PublicationAdapterError(
+      "A MyST inventory URL resolves outside the publication root.",
+    );
+  }
+  if (input.htmlId) resolved.hash = input.htmlId;
+  return resolved.href;
+}
+
+/** Frozen MyST 0.2.0 as one implementation of the generic adapter boundary. */
+export const mystPublicationAdapter: PublicationAdapter<
+  MystPublicationManifest,
+  MystAdapterArtifactsInput,
+  MystPublishedStructureInput,
+  MystAdapterNormalizeInput,
+  MystPublishedTargetInput
+> = {
+  type: "myst",
+  supportedProtocolVersions: [MYST_PUBLICATION_PROTOCOL_VERSION],
+  recognizeManifest(value) {
+    return (
+      typeof value === "object" &&
+      value !== null &&
+      (value as { schemaVersion?: unknown }).schemaVersion === MYST_PUBLICATION_PROTOCOL_VERSION &&
+      typeof (value as { adapter?: unknown }).adapter === "object" &&
+      (value as { adapter?: { type?: unknown } }).adapter?.type === "myst"
+    );
+  },
+  validateManifest(value) {
+    const parsed = mystPublicationManifestSchema.safeParse(value);
+    if (!parsed.success) {
+      throw new PublicationAdapterError(
+        "The publication manifest does not satisfy the closed MyST 0.2.0 contract.",
+      );
+    }
+    return parsed.data;
+  },
+  describeRequiredArtifacts(manifest) {
+    return [
+      {
+        artifactKind: "claim-stream",
+        declaredPath: manifest.artifacts.claims.path,
+        required: true,
+      },
+      {
+        artifactKind: "cross-reference-inventory",
+        declaredPath: manifest.adapter.xref,
+        required: true,
+      },
+      ...(manifest.oratlas
+        ? [
+            {
+              artifactKind: "review-manifest" as const,
+              declaredPath: manifest.oratlas.reviewManifest,
+              required: manifest.artifacts.claims.declarations === "review-manifest",
+            },
+          ]
+        : []),
+    ];
+  },
+  validateCapturedArtifacts({ manifest, artifacts }) {
+    for (const requirement of this.describeRequiredArtifacts(manifest)) {
+      if (
+        requirement.required &&
+        !artifacts.some(
+          (artifact) =>
+            artifact.artifactKind === requirement.artifactKind &&
+            artifact.declaredPath === requirement.declaredPath,
+        )
+      ) {
+        throw new PublicationAdapterError(
+          `The captured publication is missing ${requirement.artifactKind} '${requirement.declaredPath}'.`,
+        );
+      }
+    }
+    const claims = artifacts.find(
+      (artifact) =>
+        artifact.artifactKind === "claim-stream" &&
+        artifact.declaredPath === manifest.artifacts.claims.path,
+    );
+    if (claims?.contentSha256 !== manifest.artifacts.claims.sha256) {
+      throw new PublicationAdapterError("The captured claims digest does not match the manifest.");
+    }
+  },
+  verifyPublishedStructure({ claims, verifiedClaimIds }) {
+    for (const claim of claims) {
+      if (!verifiedClaimIds.has(claim.id)) {
+        throw new PublicationAdapterError(
+          `Published structure does not contain the exact claim target '${claim.id}'.`,
+        );
+      }
+    }
+  },
+  normalize(input, context: PublicationAdapterNormalizationContext) {
+    return normalizeMystPublication({
+      manifest: input.manifest,
+      claims: input.claims,
+      publicationType: context.publicationType,
+      structuralProvenance: context.structuralProvenance,
+      observedAt: context.observedAt,
+      ...(context.registrationKey === undefined
+        ? {}
+        : { registrationKey: context.registrationKey }),
+      ...(input.delegatedDeclarations === undefined
+        ? {}
+        : { delegatedDeclarations: input.delegatedDeclarations }),
+      verificationWarnings: context.verificationWarnings ?? [],
+    });
+  },
+  resolvePublishedTarget: resolveMystAdapterPublishedTarget,
+};

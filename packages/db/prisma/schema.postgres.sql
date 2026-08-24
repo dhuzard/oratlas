@@ -1352,6 +1352,42 @@ CREATE TABLE "PublicationVersion" (
 );
 
 -- CreateTable
+CREATE TABLE "PublicationProductionAssertion" (
+    "id" TEXT NOT NULL,
+    "publicationVersionId" TEXT NOT NULL,
+    "sourceAssertionKey" TEXT,
+    "mode" TEXT NOT NULL,
+    "actorsJson" TEXT NOT NULL DEFAULT '[]',
+    "activitiesJson" TEXT NOT NULL DEFAULT '[]',
+    "statement" TEXT,
+    "strength" TEXT NOT NULL,
+    "publicEvidenceUrl" TEXT,
+    "agentRunId" TEXT,
+    "executionPassportId" TEXT,
+    "supersedesAssertionId" TEXT,
+    "assertedById" TEXT,
+    "assertedAt" TIMESTAMP(3) NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "PublicationProductionAssertion_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "PublicationRelation" (
+    "id" TEXT NOT NULL,
+    "sourcePublicationId" TEXT NOT NULL,
+    "targetPublicationId" TEXT NOT NULL,
+    "relationType" TEXT NOT NULL,
+    "rationale" TEXT NOT NULL,
+    "publicEvidenceUrl" TEXT,
+    "reviewedById" TEXT NOT NULL,
+    "reviewedAt" TIMESTAMP(3) NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "PublicationRelation_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "PublicationCapture" (
     "id" TEXT NOT NULL,
     "publicationVersionId" TEXT NOT NULL,
@@ -1899,6 +1935,30 @@ CREATE INDEX "PublicationVersion_structuralProvenance_idx" ON "PublicationVersio
 CREATE UNIQUE INDEX "PublicationVersion_publicationId_sourcesSha256_key" ON "PublicationVersion"("publicationId", "sourcesSha256");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "PublicationProductionAssertion_supersedesAssertionId_key" ON "PublicationProductionAssertion"("supersedesAssertionId");
+
+-- CreateIndex
+CREATE INDEX "PublicationProductionAssertion_publicationVersionId_asserte_idx" ON "PublicationProductionAssertion"("publicationVersionId", "assertedAt");
+
+-- CreateIndex
+CREATE INDEX "PublicationProductionAssertion_agentRunId_idx" ON "PublicationProductionAssertion"("agentRunId");
+
+-- CreateIndex
+CREATE INDEX "PublicationProductionAssertion_executionPassportId_idx" ON "PublicationProductionAssertion"("executionPassportId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "PublicationProductionAssertion_publicationVersionId_sourceA_key" ON "PublicationProductionAssertion"("publicationVersionId", "sourceAssertionKey");
+
+-- CreateIndex
+CREATE INDEX "PublicationRelation_sourcePublicationId_reviewedAt_idx" ON "PublicationRelation"("sourcePublicationId", "reviewedAt");
+
+-- CreateIndex
+CREATE INDEX "PublicationRelation_targetPublicationId_reviewedAt_idx" ON "PublicationRelation"("targetPublicationId", "reviewedAt");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "PublicationRelation_sourcePublicationId_targetPublicationId_key" ON "PublicationRelation"("sourcePublicationId", "targetPublicationId", "relationType");
+
+-- CreateIndex
 CREATE INDEX "PublicationCapture_publicationVersionId_idx" ON "PublicationCapture"("publicationVersionId");
 
 -- CreateIndex
@@ -2427,6 +2487,30 @@ ALTER TABLE "Publication" ADD CONSTRAINT "Publication_reviewId_fkey" FOREIGN KEY
 ALTER TABLE "PublicationVersion" ADD CONSTRAINT "PublicationVersion_publicationId_fkey" FOREIGN KEY ("publicationId") REFERENCES "Publication"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "PublicationProductionAssertion" ADD CONSTRAINT "PublicationProductionAssertion_publicationVersionId_fkey" FOREIGN KEY ("publicationVersionId") REFERENCES "PublicationVersion"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "PublicationProductionAssertion" ADD CONSTRAINT "PublicationProductionAssertion_agentRunId_fkey" FOREIGN KEY ("agentRunId") REFERENCES "AgentRun"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "PublicationProductionAssertion" ADD CONSTRAINT "PublicationProductionAssertion_executionPassportId_fkey" FOREIGN KEY ("executionPassportId") REFERENCES "ExecutionPassport"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "PublicationProductionAssertion" ADD CONSTRAINT "PublicationProductionAssertion_assertedById_fkey" FOREIGN KEY ("assertedById") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "PublicationProductionAssertion" ADD CONSTRAINT "PublicationProductionAssertion_supersedesAssertionId_fkey" FOREIGN KEY ("supersedesAssertionId") REFERENCES "PublicationProductionAssertion"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "PublicationRelation" ADD CONSTRAINT "PublicationRelation_sourcePublicationId_fkey" FOREIGN KEY ("sourcePublicationId") REFERENCES "Publication"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "PublicationRelation" ADD CONSTRAINT "PublicationRelation_targetPublicationId_fkey" FOREIGN KEY ("targetPublicationId") REFERENCES "Publication"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "PublicationRelation" ADD CONSTRAINT "PublicationRelation_reviewedById_fkey" FOREIGN KEY ("reviewedById") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "PublicationCapture" ADD CONSTRAINT "PublicationCapture_publicationVersionId_fkey" FOREIGN KEY ("publicationVersionId") REFERENCES "PublicationVersion"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -2785,6 +2869,22 @@ ALTER TABLE "PublicationClaimOccurrence" ADD CONSTRAINT "PublicationClaimOccurre
     OR ("declarationAuthority" = 'review-manifest' AND "text" IS NOT NULL)
   );
 
+ALTER TABLE "PublicationProductionAssertion" DROP CONSTRAINT IF EXISTS "PublicationProductionAssertion_shape_check";
+
+ALTER TABLE "PublicationProductionAssertion" ADD CONSTRAINT "PublicationProductionAssertion_shape_check" CHECK (
+    "mode" IN ('human', 'ai-assisted', 'agentic', 'hybrid', 'unspecified')
+    AND (("strength" = 'source-declared' AND "agentRunId" IS NULL AND "executionPassportId" IS NULL)
+      OR ("strength" = 'oratlas-attested' AND ("agentRunId" IS NOT NULL OR "executionPassportId" IS NOT NULL)))
+    AND ("supersedesAssertionId" IS NULL OR "supersedesAssertionId" <> "id")
+  );
+
+ALTER TABLE "PublicationRelation" DROP CONSTRAINT IF EXISTS "PublicationRelation_shape_check";
+
+ALTER TABLE "PublicationRelation" ADD CONSTRAINT "PublicationRelation_shape_check" CHECK (
+    "sourcePublicationId" <> "targetPublicationId"
+    AND "relationType" IN ('same-publication-continuation', 'mirror-of', 'moved-to', 'derived-from', 'republication-of', 'version-of')
+  );
+
 CREATE OR REPLACE FUNCTION "oratlas_protect_publication_identity"() RETURNS trigger AS $$
     BEGIN
       IF NEW."stableKey" IS DISTINCT FROM OLD."stableKey"
@@ -2859,3 +2959,19 @@ DROP TRIGGER IF EXISTS "PublicationClaimOccurrence_immutable_guard" ON "Publicat
 
 CREATE TRIGGER "PublicationClaimOccurrence_immutable_guard" BEFORE UPDATE OR DELETE ON "PublicationClaimOccurrence"
     FOR EACH ROW EXECUTE FUNCTION "oratlas_protect_publication_claim_occurrence"();
+
+CREATE OR REPLACE FUNCTION "oratlas_reject_publication_provenance_mutation"() RETURNS trigger AS $$
+    BEGIN
+      RAISE EXCEPTION 'Publication provenance and transfer decisions are append-only';
+    END;
+  $$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS "PublicationProductionAssertion_immutable_guard" ON "PublicationProductionAssertion";
+
+CREATE TRIGGER "PublicationProductionAssertion_immutable_guard" BEFORE UPDATE OR DELETE ON "PublicationProductionAssertion"
+    FOR EACH ROW EXECUTE FUNCTION "oratlas_reject_publication_provenance_mutation"();
+
+DROP TRIGGER IF EXISTS "PublicationRelation_immutable_guard" ON "PublicationRelation";
+
+CREATE TRIGGER "PublicationRelation_immutable_guard" BEFORE UPDATE OR DELETE ON "PublicationRelation"
+    FOR EACH ROW EXECUTE FUNCTION "oratlas_reject_publication_provenance_mutation"();

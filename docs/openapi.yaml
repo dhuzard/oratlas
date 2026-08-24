@@ -121,6 +121,7 @@ components:
           version,
           captures,
           occurrences,
+          productionProvenance,
           relations,
           challenges,
           completeness,
@@ -128,7 +129,7 @@ components:
           sha256,
         ]
       properties:
-        schemaVersion: { const: "1.0.0" }
+        schemaVersion: { const: "1.1.0" }
         publication: { type: object }
         version:
           type: object
@@ -144,6 +145,13 @@ components:
           type: array
           maxItems: 500
           items: { type: object }
+        productionProvenance:
+          type: array
+          maxItems: 200
+          description: >
+            Public append-only production assertions. Production mode is provenance, never a
+            scientific quality, certification, or TRUST state.
+          items: { $ref: "#/components/schemas/PublicationProductionAssertion" }
         relations:
           type: array
           maxItems: 2000
@@ -162,6 +170,117 @@ components:
           type: string
           pattern: "^[0-9a-f]{64}$"
           description: SHA-256 of canonical packet JSON before this sha256 member is added.
+    PublicationProductionActor:
+      type: object
+      additionalProperties: false
+      required: [kind]
+      properties:
+        kind: { type: string, enum: [person, organization, software, workflow, ai-system] }
+        name: { type: string, minLength: 1, maxLength: 300 }
+        identifier: { type: string, minLength: 1, maxLength: 500 }
+        version: { type: string, minLength: 1, maxLength: 120 }
+        provider: { type: string, minLength: 1, maxLength: 200 }
+        model: { type: string, minLength: 1, maxLength: 200 }
+        modelVersion: { type: string, minLength: 1, maxLength: 120 }
+        publicUrl: { type: string, format: uri, pattern: "^https://", maxLength: 2000 }
+    PublicationProductionMutation:
+      type: object
+      additionalProperties: false
+      required: [mode, actors, activities, strength]
+      properties:
+        mode: { type: string, enum: [human, ai-assisted, agentic, hybrid, unspecified] }
+        actors:
+          type: array
+          maxItems: 64
+          items: { $ref: "#/components/schemas/PublicationProductionActor" }
+        activities:
+          type: array
+          maxItems: 32
+          items:
+            type: string
+            enum:
+              [
+                study-design,
+                evidence-search,
+                evidence-synthesis,
+                data-analysis,
+                drafting,
+                authoring,
+                editing,
+                reviewing,
+                figure-generation,
+                code-generation,
+                other,
+              ]
+        statement: { type: string, minLength: 1, maxLength: 5000 }
+        strength: { type: string, enum: [source-declared, oratlas-attested] }
+        publicEvidenceUrl: { type: string, format: uri, pattern: "^https://", maxLength: 2000 }
+        agentRunId: { type: string, minLength: 1, maxLength: 200 }
+        executionPassportId: { type: string, minLength: 1, maxLength: 200 }
+        supersedesAssertionId: { type: string, minLength: 1, maxLength: 200 }
+    PublicationProductionAssertion:
+      allOf:
+        - { $ref: "#/components/schemas/PublicationProductionMutation" }
+        - type: object
+          required:
+            [
+              id,
+              publicationVersionId,
+              sourceAssertionKey,
+              lifecycleState,
+              supersedesAssertionId,
+              supersededByAssertionId,
+              assertedBy,
+              assertedAt,
+              links,
+            ]
+          properties:
+            id: { type: string }
+            publicationVersionId: { type: string }
+            sourceAssertionKey: { type: [string, "null"] }
+            statement: { type: [string, "null"] }
+            publicEvidenceUrl: { type: [string, "null"], format: uri }
+            agentRunId: { type: [string, "null"] }
+            executionPassportId: { type: [string, "null"] }
+            lifecycleState: { type: string, enum: [active, superseded] }
+            supersedesAssertionId: { type: [string, "null"] }
+            supersededByAssertionId: { type: [string, "null"] }
+            assertedBy: { type: [object, "null"] }
+            assertedAt: { type: string, format: date-time }
+            links: { type: object }
+    PublicationRelationMutation:
+      type: object
+      additionalProperties: false
+      required: [targetPublicationId, relationType, rationale]
+      properties:
+        targetPublicationId: { type: string, minLength: 1, maxLength: 200 }
+        relationType:
+          type: string
+          enum:
+            [
+              same-publication-continuation,
+              mirror-of,
+              moved-to,
+              derived-from,
+              republication-of,
+              version-of,
+            ]
+        rationale: { type: string, minLength: 20, maxLength: 5000 }
+        publicEvidenceUrl: { type: string, format: uri, pattern: "^https://", maxLength: 2000 }
+    PublicationRelation:
+      allOf:
+        - { $ref: "#/components/schemas/PublicationRelationMutation" }
+        - type: object
+          required:
+            [id, sourcePublicationId, direction, publicEvidenceUrl, reviewedBy, reviewedAt, links]
+          properties:
+            id: { type: string }
+            sourcePublicationId: { type: string }
+            publicEvidenceUrl: { type: [string, "null"], format: uri }
+            direction: { type: string, enum: [outgoing, incoming] }
+            reviewedBy: { type: object }
+            reviewedAt: { type: string, format: date-time }
+            links: { type: object }
     KnowledgeLandscapeNode:
       type: object
       additionalProperties: false
@@ -3394,6 +3513,61 @@ paths:
         "404": { $ref: "#/components/responses/Error" }
         "409": { $ref: "#/components/responses/Error" }
         "415": { $ref: "#/components/responses/Error" }
+  /api/editorial/publication-versions/{id}/production-provenance:
+    post:
+      summary: Append a reviewed production-provenance assertion to one exact version
+      description: >
+        Editor-only append. Source declarations remain distinct from ORAtlas attestations.
+        Corrections create a successor assertion and preserve the prior row. Production mode does
+        not imply scientific merit, certification, or TRUST.
+      security: [{ session: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PublicationProductionMutation" }
+      responses:
+        "201":
+          description: Immutable production assertion created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PublicationProductionAssertion" }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "413": { $ref: "#/components/responses/Error" }
+        "415": { $ref: "#/components/responses/Error" }
+  /api/editorial/publications/{id}/relations:
+    post:
+      summary: Record an explicit reviewed publication transfer or provenance relation
+      description: >
+        Editor-only append. This decision never merges publication identities and is never inferred
+        from titles, contributors, text, digests, URLs, or source-local identifiers.
+      security: [{ session: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PublicationRelationMutation" }
+      responses:
+        "201":
+          description: Reviewed publication relationship recorded
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PublicationRelation" }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "413": { $ref: "#/components/responses/Error" }
+        "415": { $ref: "#/components/responses/Error" }
   /api/publications/{id}:
     get:
       summary: Read one generic publication and its observed versions
@@ -3401,6 +3575,15 @@ paths:
         - { name: id, in: path, required: true, schema: { type: string } }
       responses:
         "200": { description: Generic publication resource }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/publications/{id}/relations:
+    get:
+      summary: Read bounded explicit publication transfer and provenance relations
+      description: Returns reviewed decisions only; continuity is never inferred.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Bounded incoming and outgoing publication relationships }
         "404": { $ref: "#/components/responses/Error" }
   /api/publication-versions/{id}:
     get:
@@ -3410,14 +3593,26 @@ paths:
       responses:
         "200": { description: Immutable publication-version metadata }
         "404": { $ref: "#/components/responses/Error" }
+  /api/publication-versions/{id}/production-provenance:
+    get:
+      summary: Read bounded public production provenance for one exact version
+      description: >
+        Returns source-declared and ORAtlas-attested assertions with append-only lifecycle state.
+        It never returns private AgentRun prompts, model output, credentials, or workflow internals.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Bounded public production provenance assertions }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
   /api/publication-versions/{id}/packet:
     get:
       summary: Read a deterministic public packet for one exact publication version
       description: >
         Returns bounded publication and capture provenance, claim occurrences, canonical bindings,
-        public confirmed relations, completeness metadata, hypermedia, a packet schema version and
-        a deterministic SHA-256. Raw captured bytes, private proposals, and hidden assessments are
-        excluded.
+        public production assertions, public confirmed relations, completeness metadata,
+        hypermedia, a packet schema version and a deterministic SHA-256. Raw captured bytes,
+        private AgentRun internals, private proposals, and hidden assessments are excluded.
       parameters:
         - { name: id, in: path, required: true, schema: { type: string } }
       responses:

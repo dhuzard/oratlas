@@ -10,7 +10,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   const version = await prisma.publicationVersion.findUnique({
     where: { id },
     include: {
-      _count: { select: { captures: true, claimOccurrences: true } },
+      _count: { select: { captures: true, claimOccurrences: true, productionAssertions: true } },
       captures: {
         select: {
           id: true,
@@ -45,6 +45,8 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     warnings: parseJsonColumn(version.verificationWarningsJson, []),
     observedAt: version.observedAt.toISOString(),
     packetHref: `/api/publication-versions/${version.id}/packet`,
+    productionProvenanceHref: `/api/publication-versions/${version.id}/production-provenance`,
+    productionAssertionCount: version._count.productionAssertions,
     claimOccurrenceCount: version._count.claimOccurrences,
     captures: version.captures.map((capture) => ({
       id: capture.id,

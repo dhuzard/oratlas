@@ -80,6 +80,8 @@ model User {
   trustAdjudications             TrustAdjudication[]               @relation("trustAdjudicator")
   adjudicatorDesignation         TrustAdjudicatorDesignation?      @relation("designatedAdjudicator")
   adjudicatorDesignationsMade    TrustAdjudicatorDesignation[]     @relation("adjudicatorDesignator")
+  productionAssertions           PublicationProductionAssertion[]  @relation("productionAssertionActor")
+  publicationRelationsReviewed   PublicationRelation[]             @relation("publicationRelationReviewer")
 
   @@index([githubLoginNormalized])
 }
@@ -838,10 +840,11 @@ model ExecutionPassport {
   registeredAt       DateTime @default(now())
   verifiedAt         DateTime @default(now())
 
-  registeredBy   User                        @relation("passportRegistrant", fields: [registeredById], references: [id])
-  lastVerifiedBy User                        @relation("passportVerifier", fields: [lastVerifiedById], references: [id])
-  claims         ExecutionPassportClaim[]
-  artifacts      ExecutionPassportArtifact[]
+  registeredBy         User                             @relation("passportRegistrant", fields: [registeredById], references: [id])
+  lastVerifiedBy       User                             @relation("passportVerifier", fields: [lastVerifiedById], references: [id])
+  claims               ExecutionPassportClaim[]
+  artifacts            ExecutionPassportArtifact[]
+  productionAssertions PublicationProductionAssertion[]
 
   @@index([verificationStatus, registeredAt])
   @@index([commitSha])
@@ -1351,6 +1354,7 @@ model AgentRun {
   nodeEdgeProposals        NodeEdgeProposal[]
   synthesisDraft           SynthesisDraft?
   synthesisGenerationClaim SynthesisGenerationRequestClaim?
+  productionAssertions     PublicationProductionAssertion[]
 }
 
 /// Private immutable model output awaiting an explicit editorial decision.
@@ -2022,8 +2026,10 @@ model Publication {
   createdAt                DateTime @default(now())
   updatedAt                DateTime @updatedAt
 
-  review   Review?              @relation("reviewPublicationProjection", fields: [reviewId], references: [id], onDelete: Restrict)
-  versions PublicationVersion[]
+  review            Review?               @relation("reviewPublicationProjection", fields: [reviewId], references: [id], onDelete: Restrict)
+  versions          PublicationVersion[]
+  outgoingRelations PublicationRelation[] @relation("publicationRelationSource")
+  incomingRelations PublicationRelation[] @relation("publicationRelationTarget")
 
   @@index([publicationType])
   @@index([recordSource])
@@ -2067,15 +2073,79 @@ model PublicationVersion {
   observedAt                 DateTime
   createdAt                  DateTime @default(now())
 
-  publication      Publication                  @relation(fields: [publicationId], references: [id], onDelete: Restrict)
-  captures         PublicationCapture[]
-  claimOccurrences PublicationClaimOccurrence[]
+  publication          Publication                      @relation(fields: [publicationId], references: [id], onDelete: Restrict)
+  captures             PublicationCapture[]
+  claimOccurrences     PublicationClaimOccurrence[]
+  productionAssertions PublicationProductionAssertion[]
 
   /// Distinct publications may legitimately share a sourcesSha256, so exact
   /// version identity is scoped to its publication rather than global.
   @@unique([publicationId, sourcesSha256])
   @@index([publicationId])
   @@index([structuralProvenance])
+}
+
+/// Optional append-only declaration of how one exact publication version was
+/// produced. Production actors are not scholarly contributors, and neither
+/// the mode nor its evidence says anything about scientific merit.
+model PublicationProductionAssertion {
+  id                    String   @id @default(cuid())
+  publicationVersionId  String
+  /// Adapter-supplied stable key for source declarations; null for editorial
+  /// ORAtlas attestations.
+  sourceAssertionKey    String?
+  /// contracts PUBLICATION_PRODUCTION_MODES.
+  mode                  String
+  /// Canonical JSON arrays using the bounded production actor/activity schemas.
+  actorsJson            String   @default("[]")
+  activitiesJson        String   @default("[]")
+  statement             String?
+  /// source-declared | oratlas-attested.
+  strength              String
+  publicEvidenceUrl     String?
+  agentRunId            String?
+  executionPassportId   String?
+  /// Corrections are new immutable assertions pointing at the assertion they
+  /// replace. The prior row is never rewritten.
+  supersedesAssertionId String?  @unique
+  assertedById          String?
+  assertedAt            DateTime
+  createdAt             DateTime @default(now())
+
+  publicationVersion PublicationVersion              @relation(fields: [publicationVersionId], references: [id], onDelete: Restrict)
+  agentRun           AgentRun?                       @relation(fields: [agentRunId], references: [id], onDelete: Restrict)
+  executionPassport  ExecutionPassport?              @relation(fields: [executionPassportId], references: [id], onDelete: Restrict)
+  assertedBy         User?                           @relation("productionAssertionActor", fields: [assertedById], references: [id], onDelete: Restrict)
+  supersedes         PublicationProductionAssertion? @relation("productionAssertionSupersession", fields: [supersedesAssertionId], references: [id], onDelete: Restrict)
+  supersededBy       PublicationProductionAssertion? @relation("productionAssertionSupersession")
+
+  @@unique([publicationVersionId, sourceAssertionKey])
+  @@index([publicationVersionId, assertedAt])
+  @@index([agentRunId])
+  @@index([executionPassportId])
+}
+
+/// Explicit reviewed provenance/transfer relationship between two publication
+/// identities. It records a decision; it never merges either publication.
+model PublicationRelation {
+  id                  String   @id @default(cuid())
+  sourcePublicationId String
+  targetPublicationId String
+  /// contracts PUBLICATION_RELATION_TYPES.
+  relationType        String
+  rationale           String
+  publicEvidenceUrl   String?
+  reviewedById        String
+  reviewedAt          DateTime
+  createdAt           DateTime @default(now())
+
+  sourcePublication Publication @relation("publicationRelationSource", fields: [sourcePublicationId], references: [id], onDelete: Restrict)
+  targetPublication Publication @relation("publicationRelationTarget", fields: [targetPublicationId], references: [id], onDelete: Restrict)
+  reviewedBy        User        @relation("publicationRelationReviewer", fields: [reviewedById], references: [id], onDelete: Restrict)
+
+  @@unique([sourcePublicationId, targetPublicationId, relationType])
+  @@index([sourcePublicationId, reviewedAt])
+  @@index([targetPublicationId, reviewedAt])
 }
 
 /// Immutable record of exactly what ORAtlas observed for one artifact of one

@@ -46,8 +46,11 @@ export default function AgentGuidePage() {
         <code>publication-claim-occurrence</code> includes the exact publication, version, capture
         identities, authoritative external target URL, optional publisher canonical URL, and
         separately observed publication base. Follow its publication-version packet for a bounded,
-        digest-stable view of all captured occurrences and public graph bindings; never infer claim
-        identity from matching text, source-local IDs, or digests.
+        digest-stable view of all captured occurrences, public production assertions, and public
+        graph bindings. Production mode describes declared or attested history, not authorship,
+        scientific merit, TRUST, review, or certification. Publication transfer relations are
+        attributable records and never imply claim continuity; never infer identity from matching
+        text, source-local IDs, or digests.
       </p>
 
       <h2>Interpret relations carefully</h2>

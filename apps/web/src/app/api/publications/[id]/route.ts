@@ -18,6 +18,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     recordSource: publication.recordSource,
     sourceLocalPublicationId: publication.sourceLocalPublicationId,
     identityEvidence: parseJsonColumn(publication.identityEvidenceJson, null),
+    relationsHref: `/api/publications/${publication.id}/relations`,
     versions: publication.versions.map((version) => ({
       id: version.id,
       sourcesSha256: version.sourcesSha256,

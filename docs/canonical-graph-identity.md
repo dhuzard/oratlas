@@ -184,3 +184,10 @@ destructive changes to canonical source identities, exact versions, or imported 
 - No alias conflict or missing identifier is papered over with a guessed global work.
 - No reader profile, recommendation score, label, link, or viewport cap belongs to canonical node
   identity.
+- Publication adapter type, host, and production mode are provenance, not canonical claim identity.
+  A format/host transfer preserves each historical version and occurrence. Even when two versions
+  belong to one durable `Publication`, equal local ids, text, or declaration digests never merge
+  their claims; only the existing explicit reviewed occurrence binding can establish that identity.
+- A reviewed `PublicationRelation` explains continuity or transfer between publication records but
+  never merges those records, their versions, or their graph nodes. Production provenance and
+  transfer decisions add no scientific merit, TRUST status, peer-review state, or certification.
