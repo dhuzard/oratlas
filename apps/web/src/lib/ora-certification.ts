@@ -12,8 +12,6 @@ import {
   ORA_SCIENTIFIC_MERIT_SYSTEM_PROMPT,
   createAnthropicProvider,
   createOpenAIProvider,
-  type CertificationEvaluation,
-  type CertificationEvaluationExecutionMetadata,
   type LlmProvider,
 } from "@oratlas/knowledge";
 import {
@@ -116,11 +114,7 @@ export async function initiateOraCertification(publicationVersionId: string) {
 }
 
 class DatabaseOraExecutionRecorder implements OraExecutionRecorder {
-  async recordSucceeded(input: {
-    packetSha256: string;
-    evaluation: CertificationEvaluation;
-    metadata: CertificationEvaluationExecutionMetadata;
-  }) {
+  async recordSucceeded(input: Parameters<OraExecutionRecorder["recordSucceeded"]>[0]) {
     const outputJson = canonicalJson({
       criteria: input.evaluation.criteria,
       limitations: input.evaluation.limitations,
