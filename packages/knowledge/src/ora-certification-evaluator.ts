@@ -130,26 +130,33 @@ function validateOraEvidence(
 }
 
 function addPacketLimitations(limitations: string[], packet: PublicationVersionPacket): string[] {
-  const values = new Set(limitations);
-  values.add(
+  const required = new Set<string>();
+  required.add(
     "Pilot machine assessment; it is not definitive peer review or a statement of universal scientific truth.",
   );
   if (packet.completeness.content.coverage !== "complete") {
-    values.add(
+    required.add(
       `Scientific content coverage was ${packet.completeness.content.coverage}; unavailable material was not treated as absent.`,
     );
   }
   if (packet.version.structuralProvenance !== "source-byte") {
-    values.add(
+    required.add(
       "Declared source bytes were unavailable; assessment used the captured published structure.",
     );
   }
   if (collectIds(packet, new Set(["trustAssessmentId", "assessmentId"])).length === 0) {
-    values.add("No TRUST assessment identifiers were available in the frozen packet.");
+    required.add("No TRUST assessment identifiers were available in the frozen packet.");
   }
-  values.add(
+  required.add(
     "The packet challenges section is not a complete challenge registry, including when empty.",
   );
+  // Required packet caveats take precedence over model-supplied limitations
+  // while preserving the generic result contract's maximum of 50 entries.
+  const values = new Set(required);
+  for (const limitation of limitations) {
+    if (values.size >= 50) break;
+    values.add(limitation);
+  }
   return [...values];
 }
 

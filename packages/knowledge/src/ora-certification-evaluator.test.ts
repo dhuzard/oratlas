@@ -140,6 +140,32 @@ describe("ORA AI evaluator", () => {
     expect(complete).toHaveBeenCalledTimes(2);
   });
 
+  it("retains required packet caveats without exceeding the 50-limitation contract", async () => {
+    const modelLimitations = Array.from(
+      { length: 50 },
+      (_, index) => `Synthetic model limitation ${index + 1}.`,
+    );
+    const complete = vi.fn().mockResolvedValue(
+      canonicalJson({
+        ...JSON.parse(output()),
+        limitations: modelLimitations,
+      }),
+    );
+    const result = await new OraScientificMeritEvaluator({
+      name: "fixture-provider",
+      model: "fixture-model",
+      complete,
+    }).evaluate({ packet, protocol: ORA_SCIENTIFIC_MERIT_PROTOCOL_DEFINITION });
+    expect(result.limitations).toHaveLength(50);
+    expect(result.limitations).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining("partial"),
+        expect.stringContaining("TRUST"),
+        expect.stringContaining("challenges"),
+      ]),
+    );
+  });
+
   it("does not accept a model-selected final outcome", async () => {
     const complete = vi.fn().mockResolvedValue(output("content-1", { outcome: "certified" }));
     await expect(

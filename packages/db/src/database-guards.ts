@@ -951,7 +951,7 @@ export async function applyDatabaseGuards(
           ? `WHEN NEW."publicationVersionId" IS NOT OLD."publicationVersionId" OR NEW."certifierId" IS NOT OLD."certifierId" OR NEW."protocolId" IS NOT OLD."protocolId" OR NEW."assessmentMode" IS NOT OLD."assessmentMode" OR NEW."idempotencyKey" IS NOT OLD."idempotencyKey" OR NEW."inputPacketJson" IS NOT OLD."inputPacketJson" OR NEW."inputPacketSha256" IS NOT OLD."inputPacketSha256" OR NEW."packetSchemaVersion" IS NOT OLD."packetSchemaVersion" OR NEW."completenessJson" IS NOT OLD."completenessJson" OR NEW."capturedAt" IS NOT OLD."capturedAt" OR (OLD."status" IN ('completed', 'failed', 'cancelled') AND (NEW."status" IS NOT OLD."status" OR NEW."completedAt" IS NOT OLD."completedAt" OR NEW."terminalReason" IS NOT OLD."terminalReason"))`
           : "";
       await tx.$executeRawUnsafe(
-        `CREATE TRIGGER "${name}" BEFORE ${operation} ON "CertificationRun" FOR EACH ROW ${when} BEGIN SELECT RAISE(ABORT, 'Certification run input snapshot is immutable'); END`,
+        `CREATE TRIGGER "${name}" BEFORE ${operation} ON "CertificationRun" FOR EACH ROW ${when} BEGIN SELECT RAISE(ABORT, 'Certification run immutable fields cannot be changed'); END`,
       );
     }
     for (const table of ["TrustAdjudication", "TrustAdjudicationReference"] as const) {
