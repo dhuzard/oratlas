@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { describe, expect, it, vi } from "vitest";
-import type { PublicationVersionPacket } from "@oratlas/contracts";
+import { canonicalJson, type PublicationVersionPacket } from "@oratlas/contracts";
 import { CertifierApiClient, OraCertificationService } from "./index.js";
 import { createDeterministicOraTestEvaluator, type OraTestScenario } from "./testing.js";
 
@@ -111,6 +111,22 @@ function apiHarness() {
 }
 
 describe("ORA API-only certification service", () => {
+  it("hashes the exact deterministic structured evaluator output", async () => {
+    const evaluation = await createDeterministicOraTestEvaluator("strong").evaluate({
+      packet,
+      protocol: (await import("@oratlas/contracts")).ORA_SCIENTIFIC_MERIT_PROTOCOL_DEFINITION,
+    });
+
+    expect(evaluation.executionMetadata.structuredOutputSha256).toBe(
+      sha(
+        canonicalJson({
+          criteria: evaluation.criteria,
+          limitations: evaluation.limitations,
+        }),
+      ),
+    );
+  });
+
   it("rejects a drifted protocol even when all criterion ids are unchanged", async () => {
     const protocol = (await import("@oratlas/contracts")).ORA_SCIENTIFIC_MERIT_PROTOCOL_DEFINITION;
     await expect(

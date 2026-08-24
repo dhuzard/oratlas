@@ -755,7 +755,9 @@ function validateResult(
         "bad-request",
         `Status is not allowed for criterion '${result.criterionId}'.`,
       );
-    if (criterion.evidenceRequired && result.evidenceRefs.length === 0)
+    const evidenceRequired =
+      criterion.evidenceRequired || criterion.evidenceRequiredForStatuses?.includes(result.status);
+    if (evidenceRequired && result.evidenceRefs.length === 0)
       throw new CertificationError(
         "bad-request",
         `Criterion '${result.criterionId}' requires evidence.`,

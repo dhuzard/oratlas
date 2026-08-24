@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import {
   ORA_SCIENTIFIC_MERIT_PROMPT_VERSION,
   ORA_SCIENTIFIC_MERIT_PROTOCOL_DEFINITION,
@@ -34,11 +35,12 @@ export function createDeterministicOraTestEvaluator(
           evidenceRefs: status === "insufficient-evidence" ? [] : [evidence],
         };
       });
+      const limitations = [
+        "Deterministic synthetic CI fixture; not a scientific assessment of a real publication.",
+      ];
       return {
         criteria,
-        limitations: [
-          "Deterministic synthetic CI fixture; not a scientific assessment of a real publication.",
-        ],
+        limitations,
         executionMetadata: {
           provider: "deterministic-test",
           model: `ora-${scenario}-fixture`,
@@ -47,7 +49,9 @@ export function createDeterministicOraTestEvaluator(
           attempts: 1,
           startedAt: "2026-01-01T00:00:00.000Z",
           completedAt: "2026-01-01T00:00:00.001Z",
-          structuredOutputSha256: "0".repeat(64),
+          structuredOutputSha256: createHash("sha256")
+            .update(canonicalJson({ criteria, limitations }))
+            .digest("hex"),
         },
       };
     },

@@ -190,7 +190,8 @@ const definition: CertificationProtocolDefinition = {
       description: "Generic packet evidence criterion.",
       required: true,
       allowedStatuses: ["pass", "concern", "fail", "insufficient-evidence"],
-      evidenceRequired: true,
+      evidenceRequired: false,
+      evidenceRequiredForStatuses: ["pass", "concern", "fail"],
     },
   ],
   assessmentModes: ["human"],
@@ -408,6 +409,34 @@ describe("generic certification platform", () => {
       service.submitCertificationResult(
         runA.id,
         { ...result(inputA.packetSha256, "hallucinated") },
+        authA,
+      ),
+    ).rejects.toMatchObject({ code: "bad-request" });
+    const evidenceLessRun = await service.createCertificationRun(
+      {
+        publicationVersionId: versionId,
+        certificationProtocolId: protocolA.id,
+        assessmentMode: "human",
+        idempotencyKey: "institute-a-evidence-less-pass",
+      },
+      authA,
+    );
+    const evidenceLessInput = await service.getCertificationInput(
+      evidenceLessRun.id,
+      certifierA.id,
+    );
+    await expect(
+      service.submitCertificationResult(
+        evidenceLessRun.id,
+        {
+          ...result(evidenceLessInput.packetSha256, occurrenceId),
+          criteria: [
+            {
+              ...result(evidenceLessInput.packetSha256, occurrenceId).criteria[0]!,
+              evidenceRefs: [],
+            },
+          ],
+        },
         authA,
       ),
     ).rejects.toMatchObject({ code: "bad-request" });

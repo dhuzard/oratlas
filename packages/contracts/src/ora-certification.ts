@@ -18,6 +18,7 @@ export const ORA_SCIENTIFIC_MERIT_OUTCOME_RULE_VERSION =
   "ora-scientific-merit-outcome-0.1.0" as const;
 
 const allowedStatuses = [...CERTIFICATION_CRITERION_STATUSES];
+const evidenceRequiredForStatuses = ["pass", "concern", "fail"] as const;
 
 /** Immutable public definition of the pilot. Changes require a new protocol version. */
 export const ORA_SCIENTIFIC_MERIT_PROTOCOL_DEFINITION = certificationProtocolDefinitionSchema.parse(
@@ -36,6 +37,7 @@ export const ORA_SCIENTIFIC_MERIT_PROTOCOL_DEFINITION = certificationProtocolDef
         required: true,
         allowedStatuses,
         evidenceRequired: false,
+        evidenceRequiredForStatuses,
       },
       {
         id: "c2",
@@ -45,6 +47,7 @@ export const ORA_SCIENTIFIC_MERIT_PROTOCOL_DEFINITION = certificationProtocolDef
         required: true,
         allowedStatuses,
         evidenceRequired: false,
+        evidenceRequiredForStatuses,
       },
       {
         id: "c3",
@@ -54,6 +57,7 @@ export const ORA_SCIENTIFIC_MERIT_PROTOCOL_DEFINITION = certificationProtocolDef
         required: true,
         allowedStatuses,
         evidenceRequired: false,
+        evidenceRequiredForStatuses,
       },
       {
         id: "c4",
@@ -63,6 +67,7 @@ export const ORA_SCIENTIFIC_MERIT_PROTOCOL_DEFINITION = certificationProtocolDef
         required: true,
         allowedStatuses,
         evidenceRequired: false,
+        evidenceRequiredForStatuses,
       },
       {
         id: "c5",
@@ -72,6 +77,7 @@ export const ORA_SCIENTIFIC_MERIT_PROTOCOL_DEFINITION = certificationProtocolDef
         required: true,
         allowedStatuses,
         evidenceRequired: false,
+        evidenceRequiredForStatuses,
       },
       {
         id: "c6",
@@ -81,6 +87,7 @@ export const ORA_SCIENTIFIC_MERIT_PROTOCOL_DEFINITION = certificationProtocolDef
         required: true,
         allowedStatuses,
         evidenceRequired: false,
+        evidenceRequiredForStatuses,
       },
       {
         id: "c7",
@@ -90,6 +97,7 @@ export const ORA_SCIENTIFIC_MERIT_PROTOCOL_DEFINITION = certificationProtocolDef
         required: true,
         allowedStatuses,
         evidenceRequired: false,
+        evidenceRequiredForStatuses,
       },
       {
         id: "c8",
@@ -99,6 +107,7 @@ export const ORA_SCIENTIFIC_MERIT_PROTOCOL_DEFINITION = certificationProtocolDef
         required: true,
         allowedStatuses,
         evidenceRequired: false,
+        evidenceRequiredForStatuses,
       },
       {
         id: "c9",
@@ -108,6 +117,7 @@ export const ORA_SCIENTIFIC_MERIT_PROTOCOL_DEFINITION = certificationProtocolDef
         required: true,
         allowedStatuses,
         evidenceRequired: false,
+        evidenceRequiredForStatuses,
       },
       {
         id: "c10",
@@ -117,6 +127,7 @@ export const ORA_SCIENTIFIC_MERIT_PROTOCOL_DEFINITION = certificationProtocolDef
         required: true,
         allowedStatuses,
         evidenceRequired: false,
+        evidenceRequiredForStatuses,
       },
     ],
   },

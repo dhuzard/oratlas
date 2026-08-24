@@ -51,6 +51,11 @@ describe("ORA Scientific Merit Pilot 0.1.0 contract", () => {
     expect(ORA_SCIENTIFIC_MERIT_PROTOCOL_DEFINITION.requireCompleteSections).not.toContain(
       "content",
     );
+    expect(
+      ORA_SCIENTIFIC_MERIT_PROTOCOL_DEFINITION.criteria.map(
+        (criterion) => criterion.evidenceRequiredForStatuses,
+      ),
+    ).toEqual(Array.from({ length: 10 }, () => ["pass", "concern", "fail"]));
     expect(ORA_SCIENTIFIC_MERIT_OUTCOME_RULE_VERSION).toBe("ora-scientific-merit-outcome-0.1.0");
   });
 
