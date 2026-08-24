@@ -35,53 +35,58 @@ model User {
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
 
-  submissions                    Submission[]                      @relation("submitter")
-  editorialDecisions             Submission[]                      @relation("reviewer")
-  discussionThreads              DiscussionThread[]
-  reviewComments                 ReviewComment[]
-  auditEvents                    AuditEvent[]
-  trustVerifications             TrustVerification[]               @relation("trustReviewer")
-  nodeRelationTrustVerifications NodeRelationTrustVerification[]   @relation("nodeRelationTrustReviewer")
-  inspectionCaptures             InspectionCapture[]
-  editorialOverrides             EditorialOverride[]
-  lifecycleEvents                ReviewLifecycleEvent[]            @relation("lifecycleActor")
-  editorAssignments              EditorAssignment[]                @relation("assignmentEditor")
-  assignmentsMade                EditorAssignment[]                @relation("assignmentAssigner")
-  roundsOpened                   ReviewRound[]                     @relation("roundOpener")
-  formalReports                  FormalReviewReport[]              @relation("formalReviewer")
-  authorResponses                AuthorResponse[]                  @relation("respondingAuthor")
-  decisionLetters                DecisionLetter[]                  @relation("decisionEditor")
-  notifications                  Notification[]                    @relation("notificationUser")
-  statusRecords                  CitationStatusRecord[]            @relation("statusRecorder")
-  proposalsResolved              ClaimUpdateProposal[]             @relation("proposalResolver")
-  protocolSnapshots              ProtocolSnapshot[]                @relation("protocolSnapshotCreator")
-  protocolProposalsResolved      ProtocolDriftProposal[]           @relation("protocolProposalResolver")
-  passportsRegistered            ExecutionPassport[]               @relation("passportRegistrant")
-  passportsVerified              ExecutionPassport[]               @relation("passportVerifier")
-  federationResolved             FederationNotification[]          @relation("federationResolver")
-  replicationBriefsCreated       ReplicationBrief[]                @relation("replicationCreator")
-  replicationBriefsPublished     ReplicationBrief[]                @relation("replicationPublisher")
-  replicationBriefsClaimed       ReplicationBrief[]                @relation("replicationClaimant")
-  replicationBriefsCompleted     ReplicationBrief[]                @relation("replicationCompleter")
-  replicationBriefsWithdrawn     ReplicationBrief[]                @relation("replicationWithdrawer")
-  nodeEdgeProposalsReviewed      NodeEdgeProposal[]                @relation("nodeEdgeProposalReviewer")
-  nodeIdentityProposalsReviewed  NodeIdentityProposal[]            @relation("nodeIdentityProposalReviewer")
-  nodeEdgesConfirmed             NodeEdge[]                        @relation("nodeEdgeConfirmer")
-  synthesisDraftsApproved        SynthesisDraft[]                  @relation("synthesisDraftApprover")
-  synthesisVersionsApproved      ReviewVersion[]                   @relation("synthesisVersionApprover")
-  synthesisAttributions          SynthesisAttributionContributor[] @relation("synthesisAttributionUser")
-  synthesisRegenerationResolved  SynthesisRegenerationProposal[]   @relation("synthesisRegenerationResolver")
-  challengesFiled                Challenge[]                       @relation("challengeChallenger")
-  challengeTransitions           ChallengeTransition[]             @relation("challengeTransitionActor")
-  challengeResponses             ChallengeResponse[]               @relation("challengeResponder")
-  challengeContentRemovals       Challenge[]                       @relation("challengeContentRemover")
-  challengeResponseRemovals      ChallengeResponse[]               @relation("challengeResponseRemover")
-  nodeChallengeContributions     ChallengeResponse[]               @relation("nodeChallengeContributor")
-  trustAdjudications             TrustAdjudication[]               @relation("trustAdjudicator")
-  adjudicatorDesignation         TrustAdjudicatorDesignation?      @relation("designatedAdjudicator")
-  adjudicatorDesignationsMade    TrustAdjudicatorDesignation[]     @relation("adjudicatorDesignator")
-  productionAssertions           PublicationProductionAssertion[]  @relation("productionAssertionActor")
-  publicationRelationsReviewed   PublicationRelation[]             @relation("publicationRelationReviewer")
+  submissions                     Submission[]                      @relation("submitter")
+  editorialDecisions              Submission[]                      @relation("reviewer")
+  discussionThreads               DiscussionThread[]
+  reviewComments                  ReviewComment[]
+  auditEvents                     AuditEvent[]
+  trustVerifications              TrustVerification[]               @relation("trustReviewer")
+  nodeRelationTrustVerifications  NodeRelationTrustVerification[]   @relation("nodeRelationTrustReviewer")
+  inspectionCaptures              InspectionCapture[]
+  editorialOverrides              EditorialOverride[]
+  lifecycleEvents                 ReviewLifecycleEvent[]            @relation("lifecycleActor")
+  editorAssignments               EditorAssignment[]                @relation("assignmentEditor")
+  assignmentsMade                 EditorAssignment[]                @relation("assignmentAssigner")
+  roundsOpened                    ReviewRound[]                     @relation("roundOpener")
+  formalReports                   FormalReviewReport[]              @relation("formalReviewer")
+  authorResponses                 AuthorResponse[]                  @relation("respondingAuthor")
+  decisionLetters                 DecisionLetter[]                  @relation("decisionEditor")
+  notifications                   Notification[]                    @relation("notificationUser")
+  statusRecords                   CitationStatusRecord[]            @relation("statusRecorder")
+  proposalsResolved               ClaimUpdateProposal[]             @relation("proposalResolver")
+  protocolSnapshots               ProtocolSnapshot[]                @relation("protocolSnapshotCreator")
+  protocolProposalsResolved       ProtocolDriftProposal[]           @relation("protocolProposalResolver")
+  passportsRegistered             ExecutionPassport[]               @relation("passportRegistrant")
+  passportsVerified               ExecutionPassport[]               @relation("passportVerifier")
+  federationResolved              FederationNotification[]          @relation("federationResolver")
+  replicationBriefsCreated        ReplicationBrief[]                @relation("replicationCreator")
+  replicationBriefsPublished      ReplicationBrief[]                @relation("replicationPublisher")
+  replicationBriefsClaimed        ReplicationBrief[]                @relation("replicationClaimant")
+  replicationBriefsCompleted      ReplicationBrief[]                @relation("replicationCompleter")
+  replicationBriefsWithdrawn      ReplicationBrief[]                @relation("replicationWithdrawer")
+  nodeEdgeProposalsReviewed       NodeEdgeProposal[]                @relation("nodeEdgeProposalReviewer")
+  nodeIdentityProposalsReviewed   NodeIdentityProposal[]            @relation("nodeIdentityProposalReviewer")
+  nodeEdgesConfirmed              NodeEdge[]                        @relation("nodeEdgeConfirmer")
+  synthesisDraftsApproved         SynthesisDraft[]                  @relation("synthesisDraftApprover")
+  synthesisVersionsApproved       ReviewVersion[]                   @relation("synthesisVersionApprover")
+  synthesisAttributions           SynthesisAttributionContributor[] @relation("synthesisAttributionUser")
+  synthesisRegenerationResolved   SynthesisRegenerationProposal[]   @relation("synthesisRegenerationResolver")
+  challengesFiled                 Challenge[]                       @relation("challengeChallenger")
+  challengeTransitions            ChallengeTransition[]             @relation("challengeTransitionActor")
+  challengeResponses              ChallengeResponse[]               @relation("challengeResponder")
+  challengeContentRemovals        Challenge[]                       @relation("challengeContentRemover")
+  challengeResponseRemovals       ChallengeResponse[]               @relation("challengeResponseRemover")
+  nodeChallengeContributions      ChallengeResponse[]               @relation("nodeChallengeContributor")
+  trustAdjudications              TrustAdjudication[]               @relation("trustAdjudicator")
+  adjudicatorDesignation          TrustAdjudicatorDesignation?      @relation("designatedAdjudicator")
+  adjudicatorDesignationsMade     TrustAdjudicatorDesignation[]     @relation("adjudicatorDesignator")
+  productionAssertions            PublicationProductionAssertion[]  @relation("productionAssertionActor")
+  publicationRelationsReviewed    PublicationRelation[]             @relation("publicationRelationReviewer")
+  certifiersCreated               Certifier[]                       @relation("certifierCreator")
+  certificationCredentialsIssued  CertifierCredential[]             @relation("credentialIssuer")
+  certificationCredentialsRevoked CertifierCredential[]             @relation("credentialRevoker")
+  certificationRunsRequested      CertificationRun[]                @relation("certificationRunRequester")
+  certificationLifecycleEvents    CertificationLifecycleEvent[]     @relation("certificationLifecycleActor")
 
   @@index([githubLoginNormalized])
 }
@@ -845,6 +850,7 @@ model ExecutionPassport {
   claims               ExecutionPassportClaim[]
   artifacts            ExecutionPassportArtifact[]
   productionAssertions PublicationProductionAssertion[]
+  certificationResults CertificationResult[]
 
   @@index([verificationStatus, registeredAt])
   @@index([commitSha])
@@ -1355,6 +1361,7 @@ model AgentRun {
   synthesisDraft           SynthesisDraft?
   synthesisGenerationClaim SynthesisGenerationRequestClaim?
   productionAssertions     PublicationProductionAssertion[]
+  certificationResults     CertificationResult[]
 }
 
 /// Private immutable model output awaiting an explicit editorial decision.
@@ -2077,12 +2084,176 @@ model PublicationVersion {
   captures             PublicationCapture[]
   claimOccurrences     PublicationClaimOccurrence[]
   productionAssertions PublicationProductionAssertion[]
+  certificationRuns    CertificationRun[]
+  certificationResults CertificationResult[]
 
   /// Distinct publications may legitimately share a sourcesSha256, so exact
   /// version identity is scoped to its publication rather than global.
   @@unique([publicationId, sourcesSha256])
   @@index([publicationId])
   @@index([structuralProvenance])
+}
+
+/// Accountable organization which owns immutable certification protocols.
+/// Certification results are attributed assertions, never global truth state.
+model Certifier {
+  id            String    @id @default(cuid())
+  slug          String    @unique
+  name          String
+  description   String
+  publicUrl     String?
+  governanceUrl String?
+  publicContact String?
+  /// active | suspended | retired
+  status        String    @default("active")
+  createdById   String
+  createdAt     DateTime  @default(now())
+  activatedAt   DateTime?
+  retiredAt     DateTime?
+
+  createdBy       User                          @relation("certifierCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  protocols       CertificationProtocol[]
+  credentials     CertifierCredential[]
+  runs            CertificationRun[]
+  results         CertificationResult[]
+  lifecycleEvents CertificationLifecycleEvent[]
+
+  @@index([status, name])
+}
+
+/// One exact immutable version of a certifier-owned protocol.
+model CertificationProtocol {
+  id                   String   @id @default(cuid())
+  certifierId          String
+  seriesKey            String
+  protocolVersion      String
+  title                String
+  description          String
+  protocolJson         String
+  protocolSha256       String
+  /// active | retired
+  status               String   @default("active")
+  supersedesProtocolId String?  @unique
+  createdAt            DateTime @default(now())
+
+  certifier    Certifier              @relation(fields: [certifierId], references: [id], onDelete: Restrict)
+  supersedes   CertificationProtocol? @relation("CertificationProtocolSupersession", fields: [supersedesProtocolId], references: [id], onDelete: Restrict)
+  supersededBy CertificationProtocol? @relation("CertificationProtocolSupersession")
+  runs         CertificationRun[]
+  results      CertificationResult[]
+
+  @@unique([certifierId, seriesKey, protocolVersion])
+  @@index([certifierId, status])
+}
+
+/// Scoped machine credential. The secret is displayed once; only its digest is retained.
+model CertifierCredential {
+  id          String    @id @default(cuid())
+  certifierId String
+  label       String
+  tokenPrefix String    @unique
+  tokenHash   String    @unique
+  scopesJson  String
+  expiresAt   DateTime?
+  revokedAt   DateTime?
+  issuedById  String
+  revokedById String?
+  createdAt   DateTime  @default(now())
+  lastUsedAt  DateTime?
+
+  certifier Certifier @relation(fields: [certifierId], references: [id], onDelete: Restrict)
+  issuedBy  User      @relation("credentialIssuer", fields: [issuedById], references: [id], onDelete: Restrict)
+  revokedBy User?     @relation("credentialRevoker", fields: [revokedById], references: [id], onDelete: Restrict)
+
+  @@index([certifierId, revokedAt])
+}
+
+/// One exact certification execution with an immutable captured packet input.
+model CertificationRun {
+  id                   String    @id @default(cuid())
+  publicationVersionId String
+  certifierId          String
+  protocolId           String
+  assessmentMode       String
+  /// requested | running | completed | failed | cancelled
+  status               String    @default("requested")
+  requestedById        String?
+  externalRunReference String?
+  idempotencyKey       String
+  inputPacketJson      String
+  inputPacketSha256    String
+  packetSchemaVersion  String
+  completenessJson     String
+  capturedAt           DateTime
+  startedAt            DateTime?
+  completedAt          DateTime?
+  createdAt            DateTime  @default(now())
+
+  publicationVersion PublicationVersion    @relation(fields: [publicationVersionId], references: [id], onDelete: Restrict)
+  certifier          Certifier             @relation(fields: [certifierId], references: [id], onDelete: Restrict)
+  protocol           CertificationProtocol @relation(fields: [protocolId], references: [id], onDelete: Restrict)
+  requestedBy        User?                 @relation("certificationRunRequester", fields: [requestedById], references: [id], onDelete: Restrict)
+  result             CertificationResult?
+
+  @@unique([certifierId, idempotencyKey])
+  @@index([publicationVersionId, createdAt])
+  @@index([protocolId, status])
+}
+
+/// Immutable attributed certification assertion for one exact run and subject.
+model CertificationResult {
+  id                     String   @id @default(cuid())
+  certificationRunId     String   @unique
+  publicationVersionId   String
+  certifierId            String
+  protocolId             String
+  inputPacketSha256      String
+  assessmentMode         String
+  criteriaJson           String
+  outcome                String
+  limitationsJson        String
+  conflictOfInterestJson String
+  independenceJson       String
+  provenanceJson         String
+  resultJson             String
+  resultSha256           String
+  agentRunId             String?
+  executionPassportId    String?
+  supersedesResultId     String?  @unique
+  issuedAt               DateTime
+  createdAt              DateTime @default(now())
+
+  run                CertificationRun              @relation(fields: [certificationRunId], references: [id], onDelete: Restrict)
+  publicationVersion PublicationVersion            @relation(fields: [publicationVersionId], references: [id], onDelete: Restrict)
+  certifier          Certifier                     @relation(fields: [certifierId], references: [id], onDelete: Restrict)
+  protocol           CertificationProtocol         @relation(fields: [protocolId], references: [id], onDelete: Restrict)
+  agentRun           AgentRun?                     @relation(fields: [agentRunId], references: [id], onDelete: Restrict)
+  executionPassport  ExecutionPassport?            @relation(fields: [executionPassportId], references: [id], onDelete: Restrict)
+  supersedes         CertificationResult?          @relation("CertificationResultSupersession", fields: [supersedesResultId], references: [id], onDelete: Restrict)
+  supersededBy       CertificationResult?          @relation("CertificationResultSupersession")
+  lifecycleEvents    CertificationLifecycleEvent[]
+
+  @@index([publicationVersionId, issuedAt])
+  @@index([certifierId, issuedAt])
+}
+
+/// Append-only result lifecycle; the immutable assertion is never rewritten or deleted.
+model CertificationLifecycleEvent {
+  id               String   @id @default(cuid())
+  resultId         String
+  /// issued | superseded | withdrawn | revoked
+  kind             String
+  reason           String?
+  actorUserId      String?
+  actorCertifierId String?
+  createdAt        DateTime @default(now())
+
+  result         CertificationResult @relation(fields: [resultId], references: [id], onDelete: Restrict)
+  actorUser      User?               @relation("certificationLifecycleActor", fields: [actorUserId], references: [id], onDelete: Restrict)
+  actorCertifier Certifier?          @relation(fields: [actorCertifierId], references: [id], onDelete: Restrict)
+
+  @@index([resultId, createdAt])
+  @@unique([resultId, kind])
 }
 
 /// Optional append-only declaration of how one exact publication version was

@@ -10,6 +10,30 @@ vi.mock("@/lib/canonical-graph-query", () => ({
   },
   queryCanonicalGraph: state.query,
 }));
+vi.mock("@/lib/certification", () => ({
+  listPublicationVersionCertifications: vi.fn().mockResolvedValue({
+    certifications: [
+      {
+        id: "certification-1",
+        href: "/api/certification-results/certification-1",
+        certifier: { name: "Institute X" },
+        protocol: { title: "Reproducibility", version: "2.0.0" },
+        outcome: "certified-with-conditions",
+        assessmentMode: "human",
+        issuedAt: "2026-08-24T12:00:00.000Z",
+        lifecycle: [
+          { kind: "issued", reason: null, createdAt: "2026-08-24T12:00:00.000Z" },
+          {
+            kind: "withdrawn",
+            reason: "Withdrawn by the certifier.",
+            createdAt: "2026-08-25T12:00:00.000Z",
+          },
+        ],
+        lifecycleState: "withdrawn",
+      },
+    ],
+  }),
+}));
 
 import CanonicalOccurrencePage from "./page";
 
@@ -64,5 +88,9 @@ describe("external publication canonical occurrence page", () => {
     expect(html).toContain(
       "publication publication-b, version publication-version-b, claim claim-b1",
     );
+    expect(html).toContain("Certifications");
+    expect(html).toContain("Institute X");
+    expect(html).toContain("Reproducibility v2.0.0: certified with conditions");
+    expect(html).toContain("lifecycle: withdrawn");
   });
 });

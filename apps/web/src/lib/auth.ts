@@ -71,6 +71,12 @@ export async function requireEditor(): Promise<SessionUser> {
   return user;
 }
 
+export async function requireAdmin(): Promise<SessionUser> {
+  const user = await requireUser();
+  if (user.role !== "ADMIN") throw new AuthError("Administrator role required.", 403);
+  return user;
+}
+
 export class AuthError extends Error {
   constructor(
     message: string,

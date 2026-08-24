@@ -233,6 +233,20 @@ canonical graph identity.
   version source union stays exclusive — exactly one real source, now counted across five columns
   instead of four — and the `KnowledgeNode` origin union is unchanged. External occurrences
   materialize as ordinary `claim-occurrence` / `claim` nodes, never a second graph.
+- A `Certifier` is an admin-controlled accountable organization. Its scoped credentials retain
+  only a digest, optional expiry, revocation state, and audited issuer/revoker; they are not editor
+  or graph-governance identities.
+- A `CertificationProtocol` is one immutable certifier-owned `(seriesKey, protocolVersion)` with
+  canonical `protocolJson` and SHA-256. Criteria, permitted modes/outcomes, and completeness policy
+  belong to that exact version; no ORA-specific evaluator is encoded here.
+- A `CertificationRun` binds one exact `PublicationVersion` to one exact protocol and stores the
+  common packet's exact canonical JSON, full snapshot digest, schema version, capture time, and
+  completeness. Database guards allow lifecycle status to advance but reject snapshot rewrites.
+- A `CertificationResult` is the one immutable result accepted for a run. Database-native binding
+  guards repeat the exact subject, certifier, protocol, assessment mode, and input hash invariants.
+  Typed criterion evidence is validated against the frozen packet before insertion.
+  `CertificationLifecycleEvent` appends issued/superseded/withdrawn/revoked history. Results from
+  multiple certifiers coexist; nothing adds a certified boolean or universal score.
 
 Existing `Review`, `ReviewVersion`, `Claim`, `Citation`, and `ClaimEvidenceRelation` storage is
 unchanged in shape, meaning and public API. `Publication.reviewId` is the nullable projection

@@ -6,6 +6,7 @@ import {
   POSTGRES_DATABASE_GUARD_TRIGGER_NAMES,
   SQLITE_DATABASE_GUARD_NAMES,
   SQLITE_PUBLICATION_IMMUTABLE_GUARD_NAMES,
+  SQLITE_CERTIFICATION_IMMUTABLE_GUARD_NAMES,
 } from "./database-guards.js";
 
 const packageRoot = resolve(import.meta.dirname, "..");
@@ -31,6 +32,10 @@ const productionTransferMigration = readFileSync(
   ),
   "utf8",
 );
+const certificationMigration = readFileSync(
+  resolve(packageRoot, "prisma/migrations/20260824060000_generic_certification/migration.sql"),
+  "utf8",
+);
 
 const PUBLICATION_MODELS = [
   "Publication",
@@ -41,6 +46,14 @@ const PUBLICATION_MODELS = [
 const PUBLICATION_PROVENANCE_MODELS = [
   "PublicationProductionAssertion",
   "PublicationRelation",
+] as const;
+const CERTIFICATION_MODELS = [
+  "Certifier",
+  "CertificationProtocol",
+  "CertifierCredential",
+  "CertificationRun",
+  "CertificationResult",
+  "CertificationLifecycleEvent",
 ] as const;
 
 function modelBlock(schema: string, model: string): string {
@@ -60,6 +73,27 @@ describe("publication boundary schema parity", () => {
       expect(modelBlock(postgresSchema, model)).toBe(modelBlock(sqliteSchema, model));
     },
   );
+
+  it.each(CERTIFICATION_MODELS)(
+    "declares certification model %s identically on SQLite and PostgreSQL",
+    (model) => {
+      expect(modelBlock(postgresSchema, model)).toBe(modelBlock(sqliteSchema, model));
+    },
+  );
+
+  it("keeps certification exact-version-bound and separate from TRUST and publication identity", () => {
+    const result = modelBlock(sqliteSchema, "CertificationResult");
+    expect(result).toMatch(/publicationVersionId\s+String\b/);
+    expect(result).toMatch(/certifierId\s+String\b/);
+    expect(result).toMatch(/protocolId\s+String\b/);
+    expect(result).toMatch(/inputPacketSha256\s+String\b/);
+    expect(modelBlock(sqliteSchema, "Publication")).not.toMatch(
+      /certified|scientificScore|trustScore/i,
+    );
+    expect(modelBlock(sqliteSchema, "PublicationVersion")).not.toMatch(
+      /certified|scientificScore|trustScore/i,
+    );
+  });
 
   it("binds production assertions to exact versions without contributor or publication fields", () => {
     for (const schema of [sqliteSchema, postgresSchema]) {
@@ -269,6 +303,15 @@ describe("publication boundary guard coverage", () => {
       "PublicationRelation_immutable_guard_update",
       "PublicationRelation_immutable_guard_delete",
     ]);
+    for (const model of CERTIFICATION_MODELS) {
+      expect(SQLITE_DATABASE_GUARD_NAMES).toContain(`${model}_guard_insert`);
+      expect(SQLITE_DATABASE_GUARD_NAMES).toContain(`${model}_guard_update`);
+    }
+    expect(SQLITE_CERTIFICATION_IMMUTABLE_GUARD_NAMES).toContain(
+      "CertificationResult_immutable_guard_update",
+    );
+    expect(certificationMigration).toContain('CREATE TRIGGER "CertificationResult_binding_guard"');
+    expect(postgresDdl).toContain('CREATE TRIGGER "CertificationResult_binding_guard"');
   });
 
   it("never labels structural provenance as a scientific state", () => {

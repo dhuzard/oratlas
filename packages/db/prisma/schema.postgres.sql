@@ -1352,6 +1352,121 @@ CREATE TABLE "PublicationVersion" (
 );
 
 -- CreateTable
+CREATE TABLE "Certifier" (
+    "id" TEXT NOT NULL,
+    "slug" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "description" TEXT NOT NULL,
+    "publicUrl" TEXT,
+    "governanceUrl" TEXT,
+    "publicContact" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'active',
+    "createdById" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "activatedAt" TIMESTAMP(3),
+    "retiredAt" TIMESTAMP(3),
+
+    CONSTRAINT "Certifier_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "CertificationProtocol" (
+    "id" TEXT NOT NULL,
+    "certifierId" TEXT NOT NULL,
+    "seriesKey" TEXT NOT NULL,
+    "protocolVersion" TEXT NOT NULL,
+    "title" TEXT NOT NULL,
+    "description" TEXT NOT NULL,
+    "protocolJson" TEXT NOT NULL,
+    "protocolSha256" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'active',
+    "supersedesProtocolId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "CertificationProtocol_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "CertifierCredential" (
+    "id" TEXT NOT NULL,
+    "certifierId" TEXT NOT NULL,
+    "label" TEXT NOT NULL,
+    "tokenPrefix" TEXT NOT NULL,
+    "tokenHash" TEXT NOT NULL,
+    "scopesJson" TEXT NOT NULL,
+    "expiresAt" TIMESTAMP(3),
+    "revokedAt" TIMESTAMP(3),
+    "issuedById" TEXT NOT NULL,
+    "revokedById" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "lastUsedAt" TIMESTAMP(3),
+
+    CONSTRAINT "CertifierCredential_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "CertificationRun" (
+    "id" TEXT NOT NULL,
+    "publicationVersionId" TEXT NOT NULL,
+    "certifierId" TEXT NOT NULL,
+    "protocolId" TEXT NOT NULL,
+    "assessmentMode" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'requested',
+    "requestedById" TEXT,
+    "externalRunReference" TEXT,
+    "idempotencyKey" TEXT NOT NULL,
+    "inputPacketJson" TEXT NOT NULL,
+    "inputPacketSha256" TEXT NOT NULL,
+    "packetSchemaVersion" TEXT NOT NULL,
+    "completenessJson" TEXT NOT NULL,
+    "capturedAt" TIMESTAMP(3) NOT NULL,
+    "startedAt" TIMESTAMP(3),
+    "completedAt" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "CertificationRun_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "CertificationResult" (
+    "id" TEXT NOT NULL,
+    "certificationRunId" TEXT NOT NULL,
+    "publicationVersionId" TEXT NOT NULL,
+    "certifierId" TEXT NOT NULL,
+    "protocolId" TEXT NOT NULL,
+    "inputPacketSha256" TEXT NOT NULL,
+    "assessmentMode" TEXT NOT NULL,
+    "criteriaJson" TEXT NOT NULL,
+    "outcome" TEXT NOT NULL,
+    "limitationsJson" TEXT NOT NULL,
+    "conflictOfInterestJson" TEXT NOT NULL,
+    "independenceJson" TEXT NOT NULL,
+    "provenanceJson" TEXT NOT NULL,
+    "resultJson" TEXT NOT NULL,
+    "resultSha256" TEXT NOT NULL,
+    "agentRunId" TEXT,
+    "executionPassportId" TEXT,
+    "supersedesResultId" TEXT,
+    "issuedAt" TIMESTAMP(3) NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "CertificationResult_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "CertificationLifecycleEvent" (
+    "id" TEXT NOT NULL,
+    "resultId" TEXT NOT NULL,
+    "kind" TEXT NOT NULL,
+    "reason" TEXT,
+    "actorUserId" TEXT,
+    "actorCertifierId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "CertificationLifecycleEvent_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "PublicationProductionAssertion" (
     "id" TEXT NOT NULL,
     "publicationVersionId" TEXT NOT NULL,
@@ -1935,6 +2050,57 @@ CREATE INDEX "PublicationVersion_structuralProvenance_idx" ON "PublicationVersio
 CREATE UNIQUE INDEX "PublicationVersion_publicationId_sourcesSha256_key" ON "PublicationVersion"("publicationId", "sourcesSha256");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "Certifier_slug_key" ON "Certifier"("slug");
+
+-- CreateIndex
+CREATE INDEX "Certifier_status_name_idx" ON "Certifier"("status", "name");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "CertificationProtocol_supersedesProtocolId_key" ON "CertificationProtocol"("supersedesProtocolId");
+
+-- CreateIndex
+CREATE INDEX "CertificationProtocol_certifierId_status_idx" ON "CertificationProtocol"("certifierId", "status");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "CertificationProtocol_certifierId_seriesKey_protocolVersion_key" ON "CertificationProtocol"("certifierId", "seriesKey", "protocolVersion");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "CertifierCredential_tokenPrefix_key" ON "CertifierCredential"("tokenPrefix");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "CertifierCredential_tokenHash_key" ON "CertifierCredential"("tokenHash");
+
+-- CreateIndex
+CREATE INDEX "CertifierCredential_certifierId_revokedAt_idx" ON "CertifierCredential"("certifierId", "revokedAt");
+
+-- CreateIndex
+CREATE INDEX "CertificationRun_publicationVersionId_createdAt_idx" ON "CertificationRun"("publicationVersionId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "CertificationRun_protocolId_status_idx" ON "CertificationRun"("protocolId", "status");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "CertificationRun_certifierId_idempotencyKey_key" ON "CertificationRun"("certifierId", "idempotencyKey");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "CertificationResult_certificationRunId_key" ON "CertificationResult"("certificationRunId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "CertificationResult_supersedesResultId_key" ON "CertificationResult"("supersedesResultId");
+
+-- CreateIndex
+CREATE INDEX "CertificationResult_publicationVersionId_issuedAt_idx" ON "CertificationResult"("publicationVersionId", "issuedAt");
+
+-- CreateIndex
+CREATE INDEX "CertificationResult_certifierId_issuedAt_idx" ON "CertificationResult"("certifierId", "issuedAt");
+
+-- CreateIndex
+CREATE INDEX "CertificationLifecycleEvent_resultId_createdAt_idx" ON "CertificationLifecycleEvent"("resultId", "createdAt");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "CertificationLifecycleEvent_resultId_kind_key" ON "CertificationLifecycleEvent"("resultId", "kind");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "PublicationProductionAssertion_supersedesAssertionId_key" ON "PublicationProductionAssertion"("supersedesAssertionId");
 
 -- CreateIndex
@@ -2487,6 +2653,66 @@ ALTER TABLE "Publication" ADD CONSTRAINT "Publication_reviewId_fkey" FOREIGN KEY
 ALTER TABLE "PublicationVersion" ADD CONSTRAINT "PublicationVersion_publicationId_fkey" FOREIGN KEY ("publicationId") REFERENCES "Publication"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "Certifier" ADD CONSTRAINT "Certifier_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "CertificationProtocol" ADD CONSTRAINT "CertificationProtocol_certifierId_fkey" FOREIGN KEY ("certifierId") REFERENCES "Certifier"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "CertificationProtocol" ADD CONSTRAINT "CertificationProtocol_supersedesProtocolId_fkey" FOREIGN KEY ("supersedesProtocolId") REFERENCES "CertificationProtocol"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "CertifierCredential" ADD CONSTRAINT "CertifierCredential_certifierId_fkey" FOREIGN KEY ("certifierId") REFERENCES "Certifier"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "CertifierCredential" ADD CONSTRAINT "CertifierCredential_issuedById_fkey" FOREIGN KEY ("issuedById") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "CertifierCredential" ADD CONSTRAINT "CertifierCredential_revokedById_fkey" FOREIGN KEY ("revokedById") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "CertificationRun" ADD CONSTRAINT "CertificationRun_publicationVersionId_fkey" FOREIGN KEY ("publicationVersionId") REFERENCES "PublicationVersion"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "CertificationRun" ADD CONSTRAINT "CertificationRun_certifierId_fkey" FOREIGN KEY ("certifierId") REFERENCES "Certifier"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "CertificationRun" ADD CONSTRAINT "CertificationRun_protocolId_fkey" FOREIGN KEY ("protocolId") REFERENCES "CertificationProtocol"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "CertificationRun" ADD CONSTRAINT "CertificationRun_requestedById_fkey" FOREIGN KEY ("requestedById") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "CertificationResult" ADD CONSTRAINT "CertificationResult_certificationRunId_fkey" FOREIGN KEY ("certificationRunId") REFERENCES "CertificationRun"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "CertificationResult" ADD CONSTRAINT "CertificationResult_publicationVersionId_fkey" FOREIGN KEY ("publicationVersionId") REFERENCES "PublicationVersion"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "CertificationResult" ADD CONSTRAINT "CertificationResult_certifierId_fkey" FOREIGN KEY ("certifierId") REFERENCES "Certifier"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "CertificationResult" ADD CONSTRAINT "CertificationResult_protocolId_fkey" FOREIGN KEY ("protocolId") REFERENCES "CertificationProtocol"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "CertificationResult" ADD CONSTRAINT "CertificationResult_agentRunId_fkey" FOREIGN KEY ("agentRunId") REFERENCES "AgentRun"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "CertificationResult" ADD CONSTRAINT "CertificationResult_executionPassportId_fkey" FOREIGN KEY ("executionPassportId") REFERENCES "ExecutionPassport"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "CertificationResult" ADD CONSTRAINT "CertificationResult_supersedesResultId_fkey" FOREIGN KEY ("supersedesResultId") REFERENCES "CertificationResult"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "CertificationLifecycleEvent" ADD CONSTRAINT "CertificationLifecycleEvent_resultId_fkey" FOREIGN KEY ("resultId") REFERENCES "CertificationResult"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "CertificationLifecycleEvent" ADD CONSTRAINT "CertificationLifecycleEvent_actorUserId_fkey" FOREIGN KEY ("actorUserId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "CertificationLifecycleEvent" ADD CONSTRAINT "CertificationLifecycleEvent_actorCertifierId_fkey" FOREIGN KEY ("actorCertifierId") REFERENCES "Certifier"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "PublicationProductionAssertion" ADD CONSTRAINT "PublicationProductionAssertion_publicationVersionId_fkey" FOREIGN KEY ("publicationVersionId") REFERENCES "PublicationVersion"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -2885,6 +3111,53 @@ ALTER TABLE "PublicationRelation" ADD CONSTRAINT "PublicationRelation_shape_chec
     AND "relationType" IN ('same-publication-continuation', 'mirror-of', 'moved-to', 'derived-from', 'republication-of', 'version-of')
   );
 
+ALTER TABLE "Certifier" DROP CONSTRAINT IF EXISTS "Certifier_shape_check";
+
+ALTER TABLE "Certifier" ADD CONSTRAINT "Certifier_shape_check" CHECK (
+    "status" IN ('active', 'suspended', 'retired')
+    AND (("status" = 'retired' AND "retiredAt" IS NOT NULL) OR "status" <> 'retired')
+  );
+
+ALTER TABLE "CertificationProtocol" DROP CONSTRAINT IF EXISTS "CertificationProtocol_shape_check";
+
+ALTER TABLE "CertificationProtocol" ADD CONSTRAINT "CertificationProtocol_shape_check" CHECK (
+    "status" IN ('active', 'retired') AND length("protocolSha256") = 64
+    AND ("supersedesProtocolId" IS NULL OR "supersedesProtocolId" <> "id")
+  );
+
+ALTER TABLE "CertifierCredential" DROP CONSTRAINT IF EXISTS "CertifierCredential_shape_check";
+
+ALTER TABLE "CertifierCredential" ADD CONSTRAINT "CertifierCredential_shape_check" CHECK (
+    length("tokenPrefix") = 12 AND length("tokenHash") = 64
+    AND "scopesJson" IN ('["certification:read"]', '["certification:submit"]', '["certification:read","certification:submit"]')
+    AND (("revokedAt" IS NULL AND "revokedById" IS NULL) OR ("revokedAt" IS NOT NULL AND "revokedById" IS NOT NULL))
+  );
+
+ALTER TABLE "CertificationRun" DROP CONSTRAINT IF EXISTS "CertificationRun_shape_check";
+
+ALTER TABLE "CertificationRun" ADD CONSTRAINT "CertificationRun_shape_check" CHECK (
+    "assessmentMode" IN ('human', 'ai', 'hybrid')
+    AND "status" IN ('requested', 'running', 'completed', 'failed', 'cancelled')
+    AND length("inputPacketSha256") = 64
+    AND (("status" = 'completed' AND "completedAt" IS NOT NULL) OR "status" <> 'completed')
+  );
+
+ALTER TABLE "CertificationResult" DROP CONSTRAINT IF EXISTS "CertificationResult_shape_check";
+
+ALTER TABLE "CertificationResult" ADD CONSTRAINT "CertificationResult_shape_check" CHECK (
+    "assessmentMode" IN ('human', 'ai', 'hybrid')
+    AND "outcome" IN ('certified', 'certified-with-conditions', 'not-certified', 'inconclusive')
+    AND length("inputPacketSha256") = 64 AND length("resultSha256") = 64
+    AND ("supersedesResultId" IS NULL OR "supersedesResultId" <> "id")
+  );
+
+ALTER TABLE "CertificationLifecycleEvent" DROP CONSTRAINT IF EXISTS "CertificationLifecycleEvent_shape_check";
+
+ALTER TABLE "CertificationLifecycleEvent" ADD CONSTRAINT "CertificationLifecycleEvent_shape_check" CHECK (
+    "kind" IN ('issued', 'superseded', 'withdrawn', 'revoked')
+    AND (("actorUserId" IS NOT NULL)::int + ("actorCertifierId" IS NOT NULL)::int) = 1
+  );
+
 CREATE OR REPLACE FUNCTION "oratlas_protect_publication_identity"() RETURNS trigger AS $$
     BEGIN
       IF NEW."stableKey" IS DISTINCT FROM OLD."stableKey"
@@ -2975,3 +3248,67 @@ DROP TRIGGER IF EXISTS "PublicationRelation_immutable_guard" ON "PublicationRela
 
 CREATE TRIGGER "PublicationRelation_immutable_guard" BEFORE UPDATE OR DELETE ON "PublicationRelation"
     FOR EACH ROW EXECUTE FUNCTION "oratlas_reject_publication_provenance_mutation"();
+
+CREATE OR REPLACE FUNCTION "oratlas_protect_certification"() RETURNS trigger AS $$
+    BEGIN
+      IF TG_TABLE_NAME = 'CertificationProtocol' AND TG_OP = 'UPDATE' THEN
+        IF NEW."certifierId" IS DISTINCT FROM OLD."certifierId" OR NEW."seriesKey" IS DISTINCT FROM OLD."seriesKey"
+          OR NEW."protocolVersion" IS DISTINCT FROM OLD."protocolVersion" OR NEW."title" IS DISTINCT FROM OLD."title"
+          OR NEW."description" IS DISTINCT FROM OLD."description" OR NEW."protocolJson" IS DISTINCT FROM OLD."protocolJson"
+          OR NEW."protocolSha256" IS DISTINCT FROM OLD."protocolSha256" OR NEW."supersedesProtocolId" IS DISTINCT FROM OLD."supersedesProtocolId"
+          OR NEW."createdAt" IS DISTINCT FROM OLD."createdAt"
+        THEN RAISE EXCEPTION 'Certification protocol definition is immutable'; END IF;
+        RETURN NEW;
+      END IF;
+      IF TG_TABLE_NAME = 'CertificationRun' AND TG_OP = 'UPDATE' THEN
+        IF NEW."publicationVersionId" IS DISTINCT FROM OLD."publicationVersionId"
+          OR NEW."certifierId" IS DISTINCT FROM OLD."certifierId"
+          OR NEW."protocolId" IS DISTINCT FROM OLD."protocolId"
+          OR NEW."assessmentMode" IS DISTINCT FROM OLD."assessmentMode"
+          OR NEW."idempotencyKey" IS DISTINCT FROM OLD."idempotencyKey"
+          OR NEW."inputPacketJson" IS DISTINCT FROM OLD."inputPacketJson"
+          OR NEW."inputPacketSha256" IS DISTINCT FROM OLD."inputPacketSha256"
+          OR NEW."packetSchemaVersion" IS DISTINCT FROM OLD."packetSchemaVersion"
+          OR NEW."completenessJson" IS DISTINCT FROM OLD."completenessJson"
+          OR NEW."capturedAt" IS DISTINCT FROM OLD."capturedAt"
+        THEN RAISE EXCEPTION 'Certification run input snapshot is immutable'; END IF;
+        RETURN NEW;
+      END IF;
+      RAISE EXCEPTION 'Certification protocol, result, and lifecycle records are append-only';
+    END;
+  $$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS "CertificationProtocol_immutable_guard" ON "CertificationProtocol";
+
+CREATE TRIGGER "CertificationProtocol_immutable_guard" BEFORE UPDATE OR DELETE ON "CertificationProtocol" FOR EACH ROW EXECUTE FUNCTION "oratlas_protect_certification"();
+
+DROP TRIGGER IF EXISTS "CertificationRun_snapshot_immutable_guard" ON "CertificationRun";
+
+CREATE TRIGGER "CertificationRun_snapshot_immutable_guard" BEFORE UPDATE OR DELETE ON "CertificationRun" FOR EACH ROW EXECUTE FUNCTION "oratlas_protect_certification"();
+
+DROP TRIGGER IF EXISTS "CertificationResult_immutable_guard" ON "CertificationResult";
+
+CREATE TRIGGER "CertificationResult_immutable_guard" BEFORE UPDATE OR DELETE ON "CertificationResult" FOR EACH ROW EXECUTE FUNCTION "oratlas_protect_certification"();
+
+DROP TRIGGER IF EXISTS "CertificationLifecycleEvent_immutable_guard" ON "CertificationLifecycleEvent";
+
+CREATE TRIGGER "CertificationLifecycleEvent_immutable_guard" BEFORE UPDATE OR DELETE ON "CertificationLifecycleEvent" FOR EACH ROW EXECUTE FUNCTION "oratlas_protect_certification"();
+
+CREATE OR REPLACE FUNCTION "oratlas_validate_certification_result_binding"() RETURNS trigger AS $$
+    BEGIN
+      IF NOT EXISTS (SELECT 1 FROM "CertificationRun" r WHERE r."id" = NEW."certificationRunId"
+        AND r."publicationVersionId" = NEW."publicationVersionId" AND r."certifierId" = NEW."certifierId"
+        AND r."protocolId" = NEW."protocolId" AND r."assessmentMode" = NEW."assessmentMode"
+        AND r."inputPacketSha256" = NEW."inputPacketSha256")
+      THEN RAISE EXCEPTION 'Certification result does not exactly match its run'; END IF;
+      IF NEW."supersedesResultId" IS NOT NULL AND NOT EXISTS (SELECT 1 FROM "CertificationResult" p
+        WHERE p."id" = NEW."supersedesResultId" AND p."publicationVersionId" = NEW."publicationVersionId"
+        AND p."certifierId" = NEW."certifierId" AND p."protocolId" = NEW."protocolId")
+      THEN RAISE EXCEPTION 'Certification supersession binding is invalid'; END IF;
+      RETURN NEW;
+    END;
+  $$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS "CertificationResult_binding_guard" ON "CertificationResult";
+
+CREATE TRIGGER "CertificationResult_binding_guard" BEFORE INSERT ON "CertificationResult" FOR EACH ROW EXECUTE FUNCTION "oratlas_validate_certification_result_binding"();

@@ -293,6 +293,16 @@ idempotency and verification possible without storing prompts, rejected raw resp
 
 ## Trust boundaries
 
+### Generic certification boundary
+
+Certification is a separate attributed assertion layer over the common PublicationVersion packet;
+see [Generic certification infrastructure](certification.md). Each run freezes exact canonical
+packet JSON, its full snapshot SHA-256, packet schema version, and completeness before an external
+certifier evaluates it. Immutable, versioned protocols and results are certifier-owned. Results may
+disagree and never become a boolean or aggregate field on `Publication`/`PublicationVersion`.
+Scoped hashed credentials reach only certification read/submit routes. Certification cannot mutate
+the canonical graph, TRUST, production provenance, publication transfer, or source records.
+
 - All repository content is untrusted: rendered as plain text (React escaping), never as
   HTML; artifact paths validated against traversal; no code execution; no builds of
   submitted repositories.

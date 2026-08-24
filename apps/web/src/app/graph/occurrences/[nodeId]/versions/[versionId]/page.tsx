@@ -5,6 +5,7 @@ import type { CanonicalGraphNodeVersion } from "@oratlas/contracts";
 import { SpecialistToolBreadcrumb } from "@/components/SpecialistTools";
 import { CanonicalGraphQueryError, queryCanonicalGraph } from "@/lib/canonical-graph-query";
 import { canonicalOccurrenceHref } from "@/lib/knowledge-landscape-service";
+import { listPublicationVersionCertifications } from "@/lib/certification";
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +26,11 @@ export default async function CanonicalOccurrencePage({ params }: OccurrencePage
   const occurrence = await loadOccurrence(nodeId, versionId);
   if (!occurrence) notFound();
   const { node, graph } = occurrence;
+  const certifications =
+    node.source.type === "publication-claim-occurrence"
+      ? (await listPublicationVersionCertifications(node.source.publicationVersionId))
+          .certifications
+      : [];
   const nodeByVersion = new Map(
     graph.nodes.map((candidate) => [candidate.nodeVersionId, candidate]),
   );
@@ -128,6 +134,32 @@ export default async function CanonicalOccurrencePage({ params }: OccurrencePage
               JSON for this exact occurrence
             </a>
           </Card>
+          {node.source.type === "publication-claim-occurrence" ? (
+            <Card title="Certifications">
+              {certifications.length === 0 ? (
+                <p className="muted">
+                  No attributed certification results for this exact publication version.
+                </p>
+              ) : (
+                <ul>
+                  {certifications.map((certification) => (
+                    <li key={certification.id}>
+                      <a href={certification.href}>{certification.certifier.name}</a>
+                      <br />
+                      {certification.protocol.title} v{certification.protocol.version}:{" "}
+                      {String(certification.outcome).replaceAll("-", " ")}
+                      <br />
+                      <span className="muted">
+                        {certification.assessmentMode} assessment ·{" "}
+                        {certification.issuedAt.slice(0, 10)} · lifecycle:{" "}
+                        {String(certification.lifecycleState).replaceAll("-", " ")}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Card>
+          ) : null}
         </aside>
       </div>
     </article>
