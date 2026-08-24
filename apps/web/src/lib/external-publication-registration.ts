@@ -1,0 +1,285 @@
+import "server-only";
+import { createHmac } from "node:crypto";
+import {
+  canonicalJson,
+  externalPublicationRegistrationResultSchema,
+  publicationIdentityEvidenceSchema,
+  type ExternalPublicationRegistrationResult,
+  type PublicationType,
+} from "@oratlas/contracts";
+import {
+  createHardenedRemoteFetcher,
+  verifyExternalPublication,
+  type VerifiedExternalPublication,
+} from "@oratlas/publications";
+import { prisma } from "./db";
+import { createPublicationSourceResolver } from "./publication-source-resolver";
+import { getServerEnv } from "@oratlas/config";
+
+export class PublicationRegistrationConflictError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "PublicationRegistrationConflictError";
+  }
+}
+
+async function registrationKeyFor(manifestUrl: string): Promise<string> {
+  const previous = await prisma.publicationCapture.findFirst({
+    where: { artifactKind: "publication-manifest", requestedUrl: manifestUrl },
+    orderBy: { createdAt: "asc" },
+    select: {
+      publicationVersion: {
+        select: { publication: { select: { identityEvidenceJson: true } } },
+      },
+    },
+  });
+  if (previous) {
+    try {
+      const evidence = publicationIdentityEvidenceSchema.parse(
+        JSON.parse(previous.publicationVersion.publication.identityEvidenceJson),
+      );
+      if (evidence.basis === "registration") return evidence.registrationKey;
+    } catch {
+      throw new PublicationRegistrationConflictError(
+        "A previous registration has invalid identity provenance.",
+      );
+    }
+  }
+  // Opaque and deterministic for concurrent first registrations of the exact
+  // same endpoint. Existing captures remain authoritative if the secret is
+  // rotated; the URL itself is never stored as publication stableKey evidence.
+  return `external-registration:${createHmac("sha256", getServerEnv().sessionSecret)
+    .update(new URL(manifestUrl).href, "utf8")
+    .digest("hex")}`;
+}
+
+function sameOptional(left: string | null, right: string | undefined): boolean {
+  return left === (right ?? null);
+}
+
+async function persistVerifiedExternalPublicationOnce(
+  verified: VerifiedExternalPublication,
+  actorId: string,
+): Promise<ExternalPublicationRegistrationResult> {
+  const { publication, version, occurrences } = verified.normalized;
+  return prisma.$transaction(async (tx) => {
+    let publicationRow = await tx.publication.findUnique({
+      where: { stableKey: publication.stableKey },
+    });
+    if (!publicationRow) {
+      publicationRow = await tx.publication.create({
+        data: {
+          stableKey: publication.stableKey,
+          publicationType: publication.publicationType,
+          recordSource: publication.recordSource,
+          identityEvidenceJson: canonicalJson(publication.identityEvidence),
+          sourceLocalPublicationId: publication.sourceLocalPublicationId,
+        },
+      });
+    } else if (
+      publicationRow.recordSource !== publication.recordSource ||
+      publicationRow.identityEvidenceJson !== canonicalJson(publication.identityEvidence)
+    ) {
+      throw new PublicationRegistrationConflictError(
+        "The stable publication identity conflicts with an existing record.",
+      );
+    }
+
+    let replayed = true;
+    let versionRow = await tx.publicationVersion.findUnique({
+      where: { stableKey: version.stableKey },
+    });
+    if (!versionRow) {
+      replayed = false;
+      versionRow = await tx.publicationVersion.create({
+        data: {
+          publicationId: publicationRow.id,
+          stableKey: version.stableKey,
+          sourceLocalPublicationId: version.sourceLocalPublicationId,
+          sourcesSha256: version.sourcesSha256,
+          versionLabel: version.versionLabel,
+          title: version.title,
+          canonicalUrl: version.canonicalUrl,
+          adapterType: version.adapter.type,
+          adapterBindingJson: canonicalJson(version.adapter),
+          sourceDescriptorJson: version.source === undefined ? null : canonicalJson(version.source),
+          structuralProvenance: version.structuralProvenance,
+          verificationWarningsJson: canonicalJson(version.verificationWarnings),
+          observedAt: new Date(version.observedAt),
+        },
+      });
+    } else if (
+      versionRow.publicationId !== publicationRow.id ||
+      versionRow.sourcesSha256 !== version.sourcesSha256 ||
+      versionRow.adapterBindingJson !== canonicalJson(version.adapter) ||
+      !sameOptional(
+        versionRow.sourceDescriptorJson,
+        version.source === undefined ? undefined : canonicalJson(version.source),
+      ) ||
+      versionRow.structuralProvenance !== version.structuralProvenance
+    ) {
+      throw new PublicationRegistrationConflictError(
+        "The exact publication version conflicts with its previous immutable observation.",
+      );
+    }
+
+    let manifestCaptureId: string | undefined;
+    for (const artifact of verified.artifacts) {
+      let captureRow = await tx.publicationCapture.findFirst({
+        where: {
+          publicationVersionId: versionRow.id,
+          artifactKind: artifact.artifactKind,
+          contentSha256: artifact.contentSha256,
+        },
+      });
+      if (!captureRow) {
+        replayed = false;
+        captureRow = await tx.publicationCapture.create({
+          data: {
+            publicationVersionId: versionRow.id,
+            artifactKind: artifact.artifactKind,
+            declaredPath: artifact.declaredPath,
+            observedUrl: artifact.observedUrl,
+            requestedUrl: artifact.requestedUrl,
+            mediaType: artifact.mediaType,
+            contentSha256: artifact.contentSha256,
+            byteLength: artifact.bytes.byteLength,
+            contentBytes: new TextDecoder("utf-8", { fatal: true }).decode(artifact.bytes),
+            declaredSha256: artifact.declaredSha256,
+            structuralProvenance: version.structuralProvenance,
+            httpProvenanceJson: canonicalJson(artifact.provenance ?? {}),
+            capturedAt: new Date(version.observedAt),
+          },
+        });
+      }
+      if (artifact.artifactKind === "publication-manifest") manifestCaptureId = captureRow.id;
+    }
+    if (!manifestCaptureId) {
+      throw new PublicationRegistrationConflictError("The manifest capture was not persisted.");
+    }
+
+    for (const occurrence of occurrences) {
+      const existing = await tx.publicationClaimOccurrence.findUnique({
+        where: { stableKey: occurrence.stableKey },
+      });
+      const declaration = occurrence.declaration;
+      const authoritativeDeclaration =
+        declaration.authority === "publication-source"
+          ? declaration
+          : verified.delegatedDeclarations?.get(occurrence.sourceLocalClaimId);
+      if (!authoritativeDeclaration) {
+        throw new PublicationRegistrationConflictError(
+          `Claim occurrence ${occurrence.sourceLocalClaimId} has no authoritative declaration.`,
+        );
+      }
+      if (existing) {
+        if (
+          existing.publicationVersionId !== versionRow.id ||
+          existing.targetJson !== canonicalJson(occurrence.target) ||
+          existing.sourceBindingJson !== canonicalJson(occurrence.sourceBinding) ||
+          existing.selectorJson !== canonicalJson(occurrence.selector) ||
+          existing.declarationSha256 !== occurrence.declarationSha256 ||
+          existing.declarationAuthority !== declaration.authority ||
+          existing.text !== authoritativeDeclaration.text ||
+          !sameOptional(existing.claimType, authoritativeDeclaration.claimType) ||
+          !sameOptional(existing.qualification, authoritativeDeclaration.qualification)
+        ) {
+          throw new PublicationRegistrationConflictError(
+            `Claim occurrence ${occurrence.sourceLocalClaimId} conflicts with its immutable capture.`,
+          );
+        }
+        continue;
+      }
+      replayed = false;
+      await tx.publicationClaimOccurrence.create({
+        data: {
+          publicationVersionId: versionRow.id,
+          sourceLocalClaimId: occurrence.sourceLocalClaimId,
+          stableKey: occurrence.stableKey,
+          targetJson: canonicalJson(occurrence.target),
+          sourceBindingJson: canonicalJson(occurrence.sourceBinding),
+          selectorJson: canonicalJson(occurrence.selector),
+          declarationSha256: occurrence.declarationSha256,
+          declarationAuthority: declaration.authority,
+          text: authoritativeDeclaration.text,
+          claimType: authoritativeDeclaration.claimType,
+          qualification: authoritativeDeclaration.qualification,
+        },
+      });
+    }
+
+    await tx.auditEvent.create({
+      data: {
+        actorId,
+        action: "external-publication.register",
+        subjectType: "publication-version",
+        subjectId: versionRow.id,
+        detailsJson: canonicalJson({
+          manifestCaptureId,
+          manifestSchemaVersion: verified.manifest.schemaVersion,
+          adapterType: verified.manifest.adapter.type,
+          claimOccurrenceCount: occurrences.length,
+          verificationLevel: versionRow.structuralProvenance,
+          warnings: verified.warnings,
+          replayed,
+        }),
+      },
+    });
+
+    return externalPublicationRegistrationResultSchema.parse({
+      schemaVersion: "1.0.0",
+      captureId: manifestCaptureId,
+      publicationId: publicationRow.id,
+      publicationVersionId: versionRow.id,
+      manifestSchemaVersion: verified.manifest.schemaVersion,
+      adapterType: verified.manifest.adapter.type,
+      claimOccurrenceCount: occurrences.length,
+      verificationLevel: versionRow.structuralProvenance,
+      warnings: verified.warnings,
+      replayed,
+      links: {
+        capture: `/api/publication-captures/${manifestCaptureId}`,
+        publication: `/api/publications/${publicationRow.id}`,
+        publicationVersion: `/api/publication-versions/${versionRow.id}`,
+      },
+    });
+  });
+}
+
+function isUniqueWriteRace(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    (error as { code?: unknown }).code === "P2002"
+  );
+}
+
+/** Retry one rolled-back uniqueness race so concurrent identical registration is idempotent. */
+export async function persistVerifiedExternalPublication(
+  verified: VerifiedExternalPublication,
+  actorId: string,
+): Promise<ExternalPublicationRegistrationResult> {
+  try {
+    return await persistVerifiedExternalPublicationOnce(verified, actorId);
+  } catch (error) {
+    if (!isUniqueWriteRace(error)) throw error;
+    return persistVerifiedExternalPublicationOnce(verified, actorId);
+  }
+}
+
+export async function registerExternalPublication(input: {
+  manifestUrl: string;
+  publicationType: PublicationType;
+  actorId: string;
+}): Promise<ExternalPublicationRegistrationResult> {
+  const registrationKey = await registrationKeyFor(input.manifestUrl);
+  const verified = await verifyExternalPublication({
+    manifestUrl: input.manifestUrl,
+    publicationType: input.publicationType,
+    registrationKey,
+    fetcher: createHardenedRemoteFetcher(),
+    sourceResolver: createPublicationSourceResolver(),
+  });
+  return persistVerifiedExternalPublication(verified, input.actorId);
+}

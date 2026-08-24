@@ -2061,6 +2061,8 @@ model PublicationVersion {
   /// contracts PUBLICATION_STRUCTURAL_PROVENANCE_LEVELS. Structural only:
   /// published-structure | source-byte. Never a scientific validation state.
   structuralProvenance     String
+  /// Recorded reasons a declared source did not reach source-byte provenance.
+  verificationWarningsJson String   @default("[]")
   observedAt               DateTime
   createdAt                DateTime @default(now())
 
@@ -2088,6 +2090,8 @@ model PublicationCapture {
   declaredPath         String?
   /// Absolute location the bytes were observed at, when one exists.
   observedUrl          String?
+  /// Absolute URL requested before redirects, retained independently.
+  requestedUrl         String?
   mediaType            String
   /// SHA-256 over the exact observed bytes. Always recomputed, never copied.
   contentSha256        String
@@ -2098,6 +2102,8 @@ model PublicationCapture {
   /// Digest the publication declared for this artifact, retained separately
   /// from the digest ORAtlas computed.
   declaredSha256       String?
+  /// Canonical JSON of selected response headers, status, and redirect chain.
+  httpProvenanceJson   String   @default("{}")
   /// contracts PUBLICATION_STRUCTURAL_PROVENANCE_LEVELS reached by this capture.
   structuralProvenance String
   capturedAt           DateTime
@@ -2136,8 +2142,8 @@ model PublicationClaimOccurrence {
   declarationSha256    String
   /// contracts PUBLICATION_CLAIM_DECLARATION_AUTHORITIES.
   declarationAuthority String
-  /// Semantic declaration; present only when the publication source is the
-  /// declaration authority.
+  /// Semantic declaration loaded from the one declared authority: either the
+  /// publication-source record or the delegated review-manifest claim stream.
   text                 String?
   claimType            String?
   qualification        String?

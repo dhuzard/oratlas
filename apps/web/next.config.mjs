@@ -10,6 +10,7 @@ const nextConfig = {
     "@oratlas/extractor",
     "@oratlas/github",
     "@oratlas/knowledge",
+    "@oratlas/publications",
     "@oratlas/trust",
     "@oratlas/ui",
     "@oratlas/zenodo",

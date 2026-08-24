@@ -502,16 +502,16 @@ describe("publication boundary on SQLite", () => {
       await expect(
         createOccurrence(version.id, {
           declarationAuthority: "review-manifest",
-          text: "Restated text.",
+          text: null,
+          claimType: null,
+          qualification: null,
         }),
       ).rejects.toThrow();
       const bound = await createOccurrence(version.id, {
         declarationAuthority: "review-manifest",
-        text: null,
-        claimType: null,
-        qualification: null,
+        text: "Authoritative text from the delegated review manifest.",
       });
-      expect(bound.text).toBeNull();
+      expect(bound.text).toContain("Authoritative text");
     });
   });
 });

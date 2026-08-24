@@ -14,3 +14,5 @@ export * from "./identity.js";
 export * from "./structural-provenance.js";
 export * from "./review-projection.js";
 export * from "./adapters/myst.js";
+export * from "./remote-fetch.js";
+export * from "./registration.js";

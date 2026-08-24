@@ -95,6 +95,9 @@ importers:
       '@oratlas/protocols':
         specifier: workspace:*
         version: link:../../packages/protocols
+      '@oratlas/publications':
+        specifier: workspace:*
+        version: link:../../packages/publications
       '@oratlas/trust':
         specifier: workspace:*
         version: link:../../packages/trust

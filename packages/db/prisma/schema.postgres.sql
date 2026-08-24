@@ -1343,6 +1343,7 @@ CREATE TABLE "PublicationVersion" (
     "adapterBindingJson" TEXT NOT NULL,
     "sourceDescriptorJson" TEXT,
     "structuralProvenance" TEXT NOT NULL,
+    "verificationWarningsJson" TEXT NOT NULL DEFAULT '[]',
     "observedAt" TIMESTAMP(3) NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
@@ -1356,11 +1357,13 @@ CREATE TABLE "PublicationCapture" (
     "artifactKind" TEXT NOT NULL,
     "declaredPath" TEXT,
     "observedUrl" TEXT,
+    "requestedUrl" TEXT,
     "mediaType" TEXT NOT NULL,
     "contentSha256" TEXT NOT NULL,
     "byteLength" INTEGER NOT NULL,
     "contentBytes" TEXT,
     "declaredSha256" TEXT,
+    "httpProvenanceJson" TEXT NOT NULL DEFAULT '{}',
     "structuralProvenance" TEXT NOT NULL,
     "capturedAt" TIMESTAMP(3) NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -2765,7 +2768,7 @@ ALTER TABLE "PublicationCapture" DROP CONSTRAINT IF EXISTS "PublicationCapture_s
 
 ALTER TABLE "PublicationCapture" ADD CONSTRAINT "PublicationCapture_shape_check" CHECK (
     "structuralProvenance" IN ('published-structure', 'source-byte')
-    AND "artifactKind" IN ('publication-manifest', 'cross-reference-inventory', 'claim-stream', 'review-manifest')
+    AND "artifactKind" IN ('publication-manifest', 'cross-reference-inventory', 'claim-stream', 'review-manifest', 'review-claim-stream', 'published-page-data', 'source-document')
     AND "contentSha256" ~ '^[a-f0-9]{64}$'
     AND ("declaredSha256" IS NULL OR "declaredSha256" ~ '^[a-f0-9]{64}$')
     AND "byteLength" >= 0
@@ -2775,7 +2778,7 @@ ALTER TABLE "PublicationClaimOccurrence" DROP CONSTRAINT IF EXISTS "PublicationC
 
 ALTER TABLE "PublicationClaimOccurrence" ADD CONSTRAINT "PublicationClaimOccurrence_declaration_check" CHECK (
     ("declarationAuthority" = 'publication-source' AND "text" IS NOT NULL)
-    OR ("declarationAuthority" = 'review-manifest' AND "text" IS NULL AND "claimType" IS NULL AND "qualification" IS NULL)
+    OR ("declarationAuthority" = 'review-manifest' AND "text" IS NOT NULL)
   );
 
 CREATE OR REPLACE FUNCTION "oratlas_protect_publication_identity"() RETURNS trigger AS $$

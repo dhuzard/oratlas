@@ -187,9 +187,23 @@ describe.skipIf(!enabled)("publication boundary on PostgreSQL", () => {
           selectorJson: "{}",
           declarationSha256: digest("c"),
           declarationAuthority: "review-manifest",
-          text: "Restated text the review manifest owns.",
+          text: null,
         },
       }),
     ).rejects.toThrow();
+    const delegated = await prisma.publicationClaimOccurrence.create({
+      data: {
+        publicationVersionId: version.id,
+        sourceLocalClaimId: "review-manifest-owned-valid",
+        stableKey: unique("publication-claim-occurrence:v1"),
+        targetJson: "{}",
+        sourceBindingJson: "{}",
+        selectorJson: "{}",
+        declarationSha256: digest("d"),
+        declarationAuthority: "review-manifest",
+        text: "Authoritative text from the delegated review manifest.",
+      },
+    });
+    expect(delegated.text).toContain("Authoritative text");
   });
 });
