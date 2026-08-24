@@ -25,6 +25,7 @@ export const API_ERROR_CODES = [
   "conflict",
   "rate-limited",
   "payload-too-large",
+  "unsupported-media-type",
   "upstream-error",
   "internal-error",
 ] as const;

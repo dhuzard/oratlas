@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { externalPublicationRegistrationRequestSchema } from "@oratlas/contracts";
-import { PublicationRegistrationError, RemoteFetchError } from "@oratlas/publications";
+import {
+  PublicationAdapterError,
+  PublicationRegistrationError,
+  RemoteFetchError,
+} from "@oratlas/publications";
 import { requireEditor, getServerEnv } from "@/lib/auth";
 import {
   BadJsonError,
@@ -25,7 +29,7 @@ export async function POST(request: Request) {
     const integrity = validateSameOriginJsonRequest(request, getServerEnv().NEXT_PUBLIC_BASE_URL);
     if (!integrity.ok) {
       return errorResponse(
-        integrity.status === 415 ? "bad-request" : "forbidden",
+        integrity.status === 415 ? "unsupported-media-type" : "forbidden",
         integrity.message,
       );
     }
@@ -71,6 +75,12 @@ export async function POST(request: Request) {
         error.code === "unsupported-protocol"
           ? "The manifest schema version is not supported."
           : "The external publication does not satisfy the registration contract.",
+      );
+    }
+    if (error instanceof PublicationAdapterError) {
+      return errorResponse(
+        "bad-request",
+        "The external publication does not satisfy the registration contract.",
       );
     }
     if (error instanceof RemoteFetchError) {
