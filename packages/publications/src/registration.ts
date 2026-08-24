@@ -650,6 +650,12 @@ export async function verifyExternalPublication(
         );
       } else {
         const documentPaths = [...new Set(records.map((record) => record.source.documentPath))];
+        if (artifacts.length + documentPaths.length > limits.maxArtifacts) {
+          throw new PublicationRegistrationError(
+            "limit-exceeded",
+            `The publication requires more than ${limits.maxArtifacts} artifacts.`,
+          );
+        }
         try {
           const documents = await input.sourceResolver.resolve(source, documentPaths, {
             signal: controller.signal,
