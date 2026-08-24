@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 
-// The two serial shards cover 83 browser journeys, including full accessibility,
+// The four serial shards cover 83 browser journeys, including full accessibility,
 // publication, staleness, and responsive-layout paths. Keep a bounded 8.5-minute
 // ceiling while still rejecting every retry and unexpected final result.
 export const E2E_WALL_TIME_BUDGET_MS = 8.5 * 60 * 1_000;
