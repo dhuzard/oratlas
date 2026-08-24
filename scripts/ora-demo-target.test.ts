@@ -21,9 +21,12 @@ describe("deterministic ORA demo target safety", () => {
     );
   });
 
-  it.each(["file:///tmp/demo", "https://atlas.example/production", "https://u:p@localhost"])(
-    "rejects a non-origin target: %s",
-    (url) =>
-      expect(() => assertSafeOraDemoBaseUrl(url, true)).toThrow(/must be an HTTP\(S\) origin/),
+  it.each([
+    "not a URL",
+    "file:///tmp/demo",
+    "https://atlas.example/production",
+    "https://u:p@localhost",
+  ])("rejects a non-origin target: %s", (url) =>
+    expect(() => assertSafeOraDemoBaseUrl(url, true)).toThrow(/must be an HTTP\(S\) origin/),
   );
 });

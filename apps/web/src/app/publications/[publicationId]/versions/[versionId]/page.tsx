@@ -92,7 +92,14 @@ export default async function PublicationVersionPage({
               <p>
                 Exact PublicationVersion <span className="mono">{version.id}</span>
               </p>
-              <p>Protocol: ORA Scientific Merit Pilot · v0.1.0 · AI assessment</p>
+              {readiness.protocol ? (
+                <p>
+                  Protocol: {readiness.protocol.title} · v{readiness.protocol.version} ·{" "}
+                  {readiness.assessmentMode.toUpperCase()} assessment
+                </p>
+              ) : (
+                <p>Protocol: ORA Scientific Merit Pilot 0.1.0 is not active.</p>
+              )}
               <p>
                 Frozen content state: {completeness.coverage}; {completeness.returnedDocuments}{" "}
                 document(s); corpus SHA <span className="mono">{version.contentCorpusSha256}</span>.

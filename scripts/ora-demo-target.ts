@@ -1,6 +1,13 @@
 /** Fail closed before a deterministic fixture can contact an unintended deployment. */
 export function assertSafeOraDemoBaseUrl(rawBaseUrl: string, allowRemote: boolean): string {
-  const url = new URL(rawBaseUrl);
+  const invalidTargetMessage =
+    "The ORA demo target must be an HTTP(S) origin without credentials or a path.";
+  let url: URL;
+  try {
+    url = new URL(rawBaseUrl);
+  } catch {
+    throw new Error(invalidTargetMessage);
+  }
   if (
     !["http:", "https:"].includes(url.protocol) ||
     url.pathname !== "/" ||
@@ -9,7 +16,7 @@ export function assertSafeOraDemoBaseUrl(rawBaseUrl: string, allowRemote: boolea
     url.username ||
     url.password
   ) {
-    throw new Error("The ORA demo target must be an HTTP(S) origin without credentials or a path.");
+    throw new Error(invalidTargetMessage);
   }
 
   const serializedHostname = url.hostname.toLowerCase().replace(/\.$/u, "");
