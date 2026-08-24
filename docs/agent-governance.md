@@ -150,6 +150,17 @@ preserve those constraints when added.
 
 ## Provenance and audit
 
+### Certification is a separate agent role
+
+Agents must not conflate source assertions, capture/structural provenance, production provenance,
+canonical graph confirmation, TRUST assessments, and certification. A certification agent consumes
+the immutable input returned from `/api/certification-runs/{id}/input`; it must echo the full
+snapshot SHA-256 and may cite only typed identifiers present in that snapshot (or immutable HTTPS
+resources with a digest). AI/hybrid results retain a succeeded `AgentRun` or verified
+`ExecutionPassport` link and safe provider/model/version/output-hash metadata, never secrets or
+reasoning. A certification result cannot create graph facts, alter TRUST, or speak for ORAtlas.
+See [Generic certification infrastructure](certification.md) and the public OpenAPI contract.
+
 Every agent action records its provenance (`AgentRun`, `KnowledgeLinkProposal.agentProvenance`,
 `FieldProvenance`). Editorially meaningful changes are written to the append-only `AuditEvent`
 log. Prompt versions and protocol versions are recorded so results are reproducible and

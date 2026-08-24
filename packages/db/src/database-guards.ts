@@ -27,6 +27,12 @@ export const DATABASE_GUARD_NAMES = [
   "PublicationClaimOccurrence_declaration_check",
   "PublicationProductionAssertion_shape_check",
   "PublicationRelation_shape_check",
+  "Certifier_shape_check",
+  "CertificationProtocol_shape_check",
+  "CertifierCredential_shape_check",
+  "CertificationRun_shape_check",
+  "CertificationResult_shape_check",
+  "CertificationLifecycleEvent_shape_check",
 ] as const;
 
 export const POSTGRES_DATABASE_GUARD_TRIGGER_NAMES = [
@@ -49,6 +55,11 @@ export const POSTGRES_DATABASE_GUARD_TRIGGER_NAMES = [
   "PublicationClaimOccurrence_immutable_guard",
   "PublicationProductionAssertion_immutable_guard",
   "PublicationRelation_immutable_guard",
+  "CertificationProtocol_immutable_guard",
+  "CertificationRun_snapshot_immutable_guard",
+  "CertificationResult_immutable_guard",
+  "CertificationLifecycleEvent_immutable_guard",
+  "CertificationResult_binding_guard",
 ] as const;
 
 export const POSTGRES_DATABASE_GUARD_SQL = [
@@ -337,6 +348,41 @@ export const POSTGRES_DATABASE_GUARD_SQL = [
     "sourcePublicationId" <> "targetPublicationId"
     AND "relationType" IN ('same-publication-continuation', 'mirror-of', 'moved-to', 'derived-from', 'republication-of', 'version-of')
   )`,
+  'ALTER TABLE "Certifier" DROP CONSTRAINT IF EXISTS "Certifier_shape_check"',
+  `ALTER TABLE "Certifier" ADD CONSTRAINT "Certifier_shape_check" CHECK (
+    "status" IN ('active', 'suspended', 'retired')
+    AND (("status" = 'retired' AND "retiredAt" IS NOT NULL) OR "status" <> 'retired')
+  )`,
+  'ALTER TABLE "CertificationProtocol" DROP CONSTRAINT IF EXISTS "CertificationProtocol_shape_check"',
+  `ALTER TABLE "CertificationProtocol" ADD CONSTRAINT "CertificationProtocol_shape_check" CHECK (
+    "status" IN ('active', 'retired') AND length("protocolSha256") = 64
+    AND ("supersedesProtocolId" IS NULL OR "supersedesProtocolId" <> "id")
+  )`,
+  'ALTER TABLE "CertifierCredential" DROP CONSTRAINT IF EXISTS "CertifierCredential_shape_check"',
+  `ALTER TABLE "CertifierCredential" ADD CONSTRAINT "CertifierCredential_shape_check" CHECK (
+    length("tokenPrefix") = 12 AND length("tokenHash") = 64
+    AND "scopesJson" IN ('["certification:read"]', '["certification:submit"]', '["certification:read","certification:submit"]')
+    AND (("revokedAt" IS NULL AND "revokedById" IS NULL) OR ("revokedAt" IS NOT NULL AND "revokedById" IS NOT NULL))
+  )`,
+  'ALTER TABLE "CertificationRun" DROP CONSTRAINT IF EXISTS "CertificationRun_shape_check"',
+  `ALTER TABLE "CertificationRun" ADD CONSTRAINT "CertificationRun_shape_check" CHECK (
+    "assessmentMode" IN ('human', 'ai', 'hybrid')
+    AND "status" IN ('requested', 'running', 'completed', 'failed', 'cancelled')
+    AND length("inputPacketSha256") = 64
+    AND (("status" = 'completed' AND "completedAt" IS NOT NULL) OR "status" <> 'completed')
+  )`,
+  'ALTER TABLE "CertificationResult" DROP CONSTRAINT IF EXISTS "CertificationResult_shape_check"',
+  `ALTER TABLE "CertificationResult" ADD CONSTRAINT "CertificationResult_shape_check" CHECK (
+    "assessmentMode" IN ('human', 'ai', 'hybrid')
+    AND "outcome" IN ('certified', 'certified-with-conditions', 'not-certified', 'inconclusive')
+    AND length("inputPacketSha256") = 64 AND length("resultSha256") = 64
+    AND ("supersedesResultId" IS NULL OR "supersedesResultId" <> "id")
+  )`,
+  'ALTER TABLE "CertificationLifecycleEvent" DROP CONSTRAINT IF EXISTS "CertificationLifecycleEvent_shape_check"',
+  `ALTER TABLE "CertificationLifecycleEvent" ADD CONSTRAINT "CertificationLifecycleEvent_shape_check" CHECK (
+    "kind" IN ('issued', 'superseded', 'withdrawn', 'revoked')
+    AND (("actorUserId" IS NOT NULL)::int + ("actorCertifierId" IS NOT NULL)::int) = 1
+  )`,
 
   // A publication's identity key and the evidence it was keyed from are fixed.
   // Presentation fields may still be corrected editorially.
@@ -420,6 +466,58 @@ export const POSTGRES_DATABASE_GUARD_SQL = [
   'DROP TRIGGER IF EXISTS "PublicationRelation_immutable_guard" ON "PublicationRelation"',
   `CREATE TRIGGER "PublicationRelation_immutable_guard" BEFORE UPDATE OR DELETE ON "PublicationRelation"
     FOR EACH ROW EXECUTE FUNCTION "oratlas_reject_publication_provenance_mutation"()`,
+  `CREATE OR REPLACE FUNCTION "oratlas_protect_certification"() RETURNS trigger AS $$
+    BEGIN
+      IF TG_TABLE_NAME = 'CertificationProtocol' AND TG_OP = 'UPDATE' THEN
+        IF NEW."certifierId" IS DISTINCT FROM OLD."certifierId" OR NEW."seriesKey" IS DISTINCT FROM OLD."seriesKey"
+          OR NEW."protocolVersion" IS DISTINCT FROM OLD."protocolVersion" OR NEW."title" IS DISTINCT FROM OLD."title"
+          OR NEW."description" IS DISTINCT FROM OLD."description" OR NEW."protocolJson" IS DISTINCT FROM OLD."protocolJson"
+          OR NEW."protocolSha256" IS DISTINCT FROM OLD."protocolSha256" OR NEW."supersedesProtocolId" IS DISTINCT FROM OLD."supersedesProtocolId"
+          OR NEW."createdAt" IS DISTINCT FROM OLD."createdAt"
+        THEN RAISE EXCEPTION 'Certification protocol definition is immutable'; END IF;
+        RETURN NEW;
+      END IF;
+      IF TG_TABLE_NAME = 'CertificationRun' AND TG_OP = 'UPDATE' THEN
+        IF NEW."publicationVersionId" IS DISTINCT FROM OLD."publicationVersionId"
+          OR NEW."certifierId" IS DISTINCT FROM OLD."certifierId"
+          OR NEW."protocolId" IS DISTINCT FROM OLD."protocolId"
+          OR NEW."assessmentMode" IS DISTINCT FROM OLD."assessmentMode"
+          OR NEW."idempotencyKey" IS DISTINCT FROM OLD."idempotencyKey"
+          OR NEW."inputPacketJson" IS DISTINCT FROM OLD."inputPacketJson"
+          OR NEW."inputPacketSha256" IS DISTINCT FROM OLD."inputPacketSha256"
+          OR NEW."packetSchemaVersion" IS DISTINCT FROM OLD."packetSchemaVersion"
+          OR NEW."completenessJson" IS DISTINCT FROM OLD."completenessJson"
+          OR NEW."capturedAt" IS DISTINCT FROM OLD."capturedAt"
+        THEN RAISE EXCEPTION 'Certification run input snapshot is immutable'; END IF;
+        RETURN NEW;
+      END IF;
+      RAISE EXCEPTION 'Certification protocol, result, and lifecycle records are append-only';
+    END;
+  $$ LANGUAGE plpgsql`,
+  'DROP TRIGGER IF EXISTS "CertificationProtocol_immutable_guard" ON "CertificationProtocol"',
+  `CREATE TRIGGER "CertificationProtocol_immutable_guard" BEFORE UPDATE OR DELETE ON "CertificationProtocol" FOR EACH ROW EXECUTE FUNCTION "oratlas_protect_certification"()`,
+  'DROP TRIGGER IF EXISTS "CertificationRun_snapshot_immutable_guard" ON "CertificationRun"',
+  `CREATE TRIGGER "CertificationRun_snapshot_immutable_guard" BEFORE UPDATE OR DELETE ON "CertificationRun" FOR EACH ROW EXECUTE FUNCTION "oratlas_protect_certification"()`,
+  'DROP TRIGGER IF EXISTS "CertificationResult_immutable_guard" ON "CertificationResult"',
+  `CREATE TRIGGER "CertificationResult_immutable_guard" BEFORE UPDATE OR DELETE ON "CertificationResult" FOR EACH ROW EXECUTE FUNCTION "oratlas_protect_certification"()`,
+  'DROP TRIGGER IF EXISTS "CertificationLifecycleEvent_immutable_guard" ON "CertificationLifecycleEvent"',
+  `CREATE TRIGGER "CertificationLifecycleEvent_immutable_guard" BEFORE UPDATE OR DELETE ON "CertificationLifecycleEvent" FOR EACH ROW EXECUTE FUNCTION "oratlas_protect_certification"()`,
+  `CREATE OR REPLACE FUNCTION "oratlas_validate_certification_result_binding"() RETURNS trigger AS $$
+    BEGIN
+      IF NOT EXISTS (SELECT 1 FROM "CertificationRun" r WHERE r."id" = NEW."certificationRunId"
+        AND r."publicationVersionId" = NEW."publicationVersionId" AND r."certifierId" = NEW."certifierId"
+        AND r."protocolId" = NEW."protocolId" AND r."assessmentMode" = NEW."assessmentMode"
+        AND r."inputPacketSha256" = NEW."inputPacketSha256")
+      THEN RAISE EXCEPTION 'Certification result does not exactly match its run'; END IF;
+      IF NEW."supersedesResultId" IS NOT NULL AND NOT EXISTS (SELECT 1 FROM "CertificationResult" p
+        WHERE p."id" = NEW."supersedesResultId" AND p."publicationVersionId" = NEW."publicationVersionId"
+        AND p."certifierId" = NEW."certifierId" AND p."protocolId" = NEW."protocolId")
+      THEN RAISE EXCEPTION 'Certification supersession binding is invalid'; END IF;
+      RETURN NEW;
+    END;
+  $$ LANGUAGE plpgsql`,
+  'DROP TRIGGER IF EXISTS "CertificationResult_binding_guard" ON "CertificationResult"',
+  `CREATE TRIGGER "CertificationResult_binding_guard" BEFORE INSERT ON "CertificationResult" FOR EACH ROW EXECUTE FUNCTION "oratlas_validate_certification_result_binding"()`,
 ] as const;
 
 const sqliteGuardConditions = {
@@ -579,6 +677,26 @@ const sqliteGuardConditions = {
     NEW."sourcePublicationId" <> NEW."targetPublicationId"
     AND NEW."relationType" IN ('same-publication-continuation', 'mirror-of', 'moved-to', 'derived-from', 'republication-of', 'version-of')
     THEN 1 ELSE 0 END`,
+  Certifier: `CASE WHEN NEW."status" IN ('active', 'suspended', 'retired')
+    AND ((NEW."status" = 'retired' AND NEW."retiredAt" IS NOT NULL) OR NEW."status" <> 'retired') THEN 1 ELSE 0 END`,
+  CertificationProtocol: `CASE WHEN NEW."status" IN ('active', 'retired')
+    AND length(NEW."protocolSha256") = 64 AND (NEW."supersedesProtocolId" IS NULL OR NEW."supersedesProtocolId" <> NEW."id") THEN 1 ELSE 0 END`,
+  CertifierCredential: `CASE WHEN length(NEW."tokenPrefix") = 12 AND length(NEW."tokenHash") = 64
+    AND NEW."scopesJson" IN ('["certification:read"]', '["certification:submit"]', '["certification:read","certification:submit"]')
+    AND ((NEW."revokedAt" IS NULL AND NEW."revokedById" IS NULL) OR (NEW."revokedAt" IS NOT NULL AND NEW."revokedById" IS NOT NULL)) THEN 1 ELSE 0 END`,
+  CertificationRun: `CASE WHEN NEW."assessmentMode" IN ('human', 'ai', 'hybrid')
+    AND NEW."status" IN ('requested', 'running', 'completed', 'failed', 'cancelled') AND length(NEW."inputPacketSha256") = 64
+    AND ((NEW."status" = 'completed' AND NEW."completedAt" IS NOT NULL) OR NEW."status" <> 'completed') THEN 1 ELSE 0 END`,
+  CertificationResult: `CASE WHEN NEW."assessmentMode" IN ('human', 'ai', 'hybrid')
+    AND NEW."outcome" IN ('certified', 'certified-with-conditions', 'not-certified', 'inconclusive')
+    AND length(NEW."inputPacketSha256") = 64 AND length(NEW."resultSha256") = 64
+    AND (NEW."supersedesResultId" IS NULL OR NEW."supersedesResultId" <> NEW."id")
+    AND EXISTS (SELECT 1 FROM "CertificationRun" r WHERE r."id" = NEW."certificationRunId"
+      AND r."publicationVersionId" = NEW."publicationVersionId" AND r."certifierId" = NEW."certifierId"
+      AND r."protocolId" = NEW."protocolId" AND r."assessmentMode" = NEW."assessmentMode"
+      AND r."inputPacketSha256" = NEW."inputPacketSha256") THEN 1 ELSE 0 END`,
+  CertificationLifecycleEvent: `CASE WHEN NEW."kind" IN ('issued', 'superseded', 'withdrawn', 'revoked')
+    AND ((NEW."actorUserId" IS NOT NULL) + (NEW."actorCertifierId" IS NOT NULL)) = 1 THEN 1 ELSE 0 END`,
   TrustAdjudicationReference: `CASE WHEN
     ((NEW."trustAssessmentId" IS NOT NULL AND NEW."nodeRelationTrustAssessmentId" IS NULL AND NEW."assessmentId" = NEW."trustAssessmentId")
       OR (NEW."trustAssessmentId" IS NULL AND NEW."nodeRelationTrustAssessmentId" IS NOT NULL AND NEW."assessmentId" = NEW."nodeRelationTrustAssessmentId"))
@@ -610,6 +728,17 @@ export const SQLITE_PUBLICATION_IMMUTABLE_GUARD_NAMES = [
   "PublicationProductionAssertion_immutable_guard_delete",
   "PublicationRelation_immutable_guard_update",
   "PublicationRelation_immutable_guard_delete",
+] as const;
+
+export const SQLITE_CERTIFICATION_IMMUTABLE_GUARD_NAMES = [
+  "CertificationProtocol_immutable_guard_update",
+  "CertificationProtocol_immutable_guard_delete",
+  "CertificationRun_snapshot_immutable_guard_update",
+  "CertificationRun_snapshot_immutable_guard_delete",
+  "CertificationResult_immutable_guard_update",
+  "CertificationResult_immutable_guard_delete",
+  "CertificationLifecycleEvent_immutable_guard_update",
+  "CertificationLifecycleEvent_immutable_guard_delete",
 ] as const;
 
 export const SQLITE_ASSESSMENT_COI_IMMUTABLE_GUARD_NAMES = [
@@ -776,6 +905,38 @@ export async function applyDatabaseGuards(
           END
         `);
       }
+    }
+    for (const table of ["CertificationResult", "CertificationLifecycleEvent"] as const) {
+      for (const operation of ["UPDATE", "DELETE"] as const) {
+        const name = `${table}_immutable_guard_${operation.toLowerCase()}`;
+        await tx.$executeRawUnsafe(`DROP TRIGGER IF EXISTS "${name}"`);
+        await tx.$executeRawUnsafe(
+          `CREATE TRIGGER "${name}" BEFORE ${operation} ON "${table}" FOR EACH ROW BEGIN SELECT RAISE(ABORT, 'Certification records are append-only'); END`,
+        );
+      }
+    }
+    await tx.$executeRawUnsafe(
+      'DROP TRIGGER IF EXISTS "CertificationProtocol_immutable_guard_update"',
+    );
+    await tx.$executeRawUnsafe(
+      `CREATE TRIGGER "CertificationProtocol_immutable_guard_update" BEFORE UPDATE ON "CertificationProtocol" FOR EACH ROW WHEN NEW."certifierId" IS NOT OLD."certifierId" OR NEW."seriesKey" IS NOT OLD."seriesKey" OR NEW."protocolVersion" IS NOT OLD."protocolVersion" OR NEW."title" IS NOT OLD."title" OR NEW."description" IS NOT OLD."description" OR NEW."protocolJson" IS NOT OLD."protocolJson" OR NEW."protocolSha256" IS NOT OLD."protocolSha256" OR NEW."supersedesProtocolId" IS NOT OLD."supersedesProtocolId" OR NEW."createdAt" IS NOT OLD."createdAt" BEGIN SELECT RAISE(ABORT, 'Certification protocol definition is immutable'); END`,
+    );
+    await tx.$executeRawUnsafe(
+      'DROP TRIGGER IF EXISTS "CertificationProtocol_immutable_guard_delete"',
+    );
+    await tx.$executeRawUnsafe(
+      `CREATE TRIGGER "CertificationProtocol_immutable_guard_delete" BEFORE DELETE ON "CertificationProtocol" FOR EACH ROW BEGIN SELECT RAISE(ABORT, 'Certification protocol history is append-only'); END`,
+    );
+    for (const operation of ["UPDATE", "DELETE"] as const) {
+      const name = `CertificationRun_snapshot_immutable_guard_${operation.toLowerCase()}`;
+      await tx.$executeRawUnsafe(`DROP TRIGGER IF EXISTS "${name}"`);
+      const when =
+        operation === "UPDATE"
+          ? `WHEN NEW."publicationVersionId" IS NOT OLD."publicationVersionId" OR NEW."certifierId" IS NOT OLD."certifierId" OR NEW."protocolId" IS NOT OLD."protocolId" OR NEW."assessmentMode" IS NOT OLD."assessmentMode" OR NEW."idempotencyKey" IS NOT OLD."idempotencyKey" OR NEW."inputPacketJson" IS NOT OLD."inputPacketJson" OR NEW."inputPacketSha256" IS NOT OLD."inputPacketSha256" OR NEW."packetSchemaVersion" IS NOT OLD."packetSchemaVersion" OR NEW."completenessJson" IS NOT OLD."completenessJson" OR NEW."capturedAt" IS NOT OLD."capturedAt"`
+          : "";
+      await tx.$executeRawUnsafe(
+        `CREATE TRIGGER "${name}" BEFORE ${operation} ON "CertificationRun" FOR EACH ROW ${when} BEGIN SELECT RAISE(ABORT, 'Certification run input snapshot is immutable'); END`,
+      );
     }
     for (const table of ["TrustAdjudication", "TrustAdjudicationReference"] as const) {
       const name = `${table}_immutable_guard`;
