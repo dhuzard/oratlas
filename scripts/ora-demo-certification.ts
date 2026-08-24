@@ -5,10 +5,14 @@ import { ORA_SCIENTIFIC_MERIT_SYSTEM_PROMPT } from "@oratlas/knowledge";
 import type { OraExecutionRecorder } from "@oratlas/ora-certifier";
 import { CertifierApiClient, OraCertificationService } from "@oratlas/ora-certifier";
 import { createDeterministicOraTestEvaluator } from "@oratlas/ora-certifier/testing";
+import { assertSafeOraDemoBaseUrl } from "./ora-demo-target";
 
 if (process.env.NODE_ENV === "production")
   throw new Error("The deterministic ORA demo evaluator is forbidden in production.");
-const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
+const baseUrl = assertSafeOraDemoBaseUrl(
+  process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000",
+  process.env.ORA_DEMO_ALLOW_REMOTE === "1",
+);
 const token = process.env.ORA_CERTIFIER_API_TOKEN;
 if (!token)
   throw new Error("ORA_CERTIFIER_API_TOKEN is required. Issue an ephemeral ORA credential first.");

@@ -114,6 +114,8 @@ certifier/protocol, but deliberately does not write a CertificationResult direct
 server and an ephemeral scoped ORA token, run `pnpm demo:ora-certification`. That development-only
 script runs the deterministic strong fixture through the real run/input/result HTTP journey and
 creates a real AgentRun plus an `ORA Certified · Pilot` result. It refuses production execution.
+It also refuses non-local targets by default; `ORA_DEMO_ALLOW_REMOTE=1` is an explicit escape hatch
+only for an isolated remote demo deployment and does not override the production-mode prohibition.
 
 Later PublicationVersions inherit nothing. Each needs a new run, packet snapshot, evaluation, and
 result. Withdrawal, revocation, and supersession remain visible lifecycle history and remove the
