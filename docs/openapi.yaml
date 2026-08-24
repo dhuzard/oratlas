@@ -4101,7 +4101,13 @@ paths:
       parameters:
         - { name: publicationVersionId, in: query, required: true, schema: { type: string } }
       responses:
-        "200": { description: Exact protocol, packet content state, assessment mode, and provider availability }
+        "200":
+          {
+            description: Exact protocol,
+            packet content state,
+            assessment mode,
+            and provider availability,
+          }
         "401": { $ref: "#/components/responses/Error" }
         "403": { $ref: "#/components/responses/Error" }
         "404": { $ref: "#/components/responses/Error" }

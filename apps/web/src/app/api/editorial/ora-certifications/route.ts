@@ -18,7 +18,8 @@ export async function GET(request: Request) {
   try {
     await requireEditor();
     const publicationVersionId = new URL(request.url).searchParams.get("publicationVersionId");
-    if (!publicationVersionId) return errorResponse("bad-request", "publicationVersionId is required.");
+    if (!publicationVersionId)
+      return errorResponse("bad-request", "publicationVersionId is required.");
     return NextResponse.json(await getOraCertificationReadiness(publicationVersionId));
   } catch (error) {
     return handleRouteError(error);

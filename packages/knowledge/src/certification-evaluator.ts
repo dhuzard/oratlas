@@ -29,4 +29,3 @@ export interface CertificationEvaluator {
     protocol: CertificationProtocolDefinition;
   }): Promise<CertificationEvaluation>;
 }
-

@@ -60,10 +60,11 @@ export class OraScientificMeritEvaluator implements CertificationEvaluator {
         const parsed = oraScientificMeritEvaluationSchema.parse(JSON.parse(raw));
         validateOraEvidence(parsed, packet);
         const completedAt = new Date();
-        const structuredOutput = canonicalJson(parsed);
+        const limitations = addPacketLimitations(parsed.limitations, packet);
+        const structuredOutput = canonicalJson({ criteria: parsed.criteria, limitations });
         return {
-          ...parsed,
-          limitations: addPacketLimitations(parsed.limitations, packet),
+          criteria: parsed.criteria,
+          limitations,
           executionMetadata: {
             provider: this.provider.name,
             model: this.provider.model,
@@ -79,7 +80,9 @@ export class OraScientificMeritEvaluator implements CertificationEvaluator {
         lastError = error instanceof Error ? error.message : String(error);
       }
     }
-    throw new Error(`ORA scientific-merit evaluation failed after ${MAX_ATTEMPTS} attempts: ${lastError}`);
+    throw new Error(
+      `ORA scientific-merit evaluation failed after ${MAX_ATTEMPTS} attempts: ${lastError}`,
+    );
   }
 }
 
@@ -97,10 +100,20 @@ function validateOraEvidence(
     ["publication-content-document", new Set(packet.content.map((item) => item.id))],
     ["publication-occurrence", new Set(packet.occurrences.map((item) => item.id))],
     ["capture", new Set(packet.captures.map((item) => item.id))],
-    ["canonical-node-version", new Set(packet.occurrences.flatMap((item) => item.canonicalBinding ? [item.canonicalBinding.knowledgeNodeVersionId] : []))],
+    [
+      "canonical-node-version",
+      new Set(
+        packet.occurrences.flatMap((item) =>
+          item.canonicalBinding ? [item.canonicalBinding.knowledgeNodeVersionId] : [],
+        ),
+      ),
+    ],
     ["canonical-relation", new Set(packet.relations.map((item) => item.id))],
     ["production-provenance", new Set(packet.productionProvenance.map((item) => item.id))],
-    ["trust-assessment", new Set(collectIds(packet, new Set(["trustAssessmentId", "assessmentId"])))],
+    [
+      "trust-assessment",
+      new Set(collectIds(packet, new Set(["trustAssessmentId", "assessmentId"]))),
+    ],
   ]);
   for (const criterion of evaluation.criteria) {
     for (const reference of criterion.evidenceRefs) {
@@ -108,7 +121,9 @@ function validateOraEvidence(
         throw new Error("ORA Pilot evidence must be an exact identifier in the frozen packet.");
       }
       if (!allowed.get(reference.type)?.has(reference.id)) {
-        throw new Error(`ORA evaluator cited an unknown packet reference: ${reference.type}:${reference.id}.`);
+        throw new Error(
+          `ORA evaluator cited an unknown packet reference: ${reference.type}:${reference.id}.`,
+        );
       }
     }
   }
@@ -116,17 +131,25 @@ function validateOraEvidence(
 
 function addPacketLimitations(limitations: string[], packet: PublicationVersionPacket): string[] {
   const values = new Set(limitations);
-  values.add("Pilot machine assessment; it is not definitive peer review or a statement of universal scientific truth.");
+  values.add(
+    "Pilot machine assessment; it is not definitive peer review or a statement of universal scientific truth.",
+  );
   if (packet.completeness.content.coverage !== "complete") {
-    values.add(`Scientific content coverage was ${packet.completeness.content.coverage}; unavailable material was not treated as absent.`);
+    values.add(
+      `Scientific content coverage was ${packet.completeness.content.coverage}; unavailable material was not treated as absent.`,
+    );
   }
   if (packet.version.structuralProvenance !== "source-byte") {
-    values.add("Declared source bytes were unavailable; assessment used the captured published structure.");
+    values.add(
+      "Declared source bytes were unavailable; assessment used the captured published structure.",
+    );
   }
   if (collectIds(packet, new Set(["trustAssessmentId", "assessmentId"])).length === 0) {
     values.add("No TRUST assessment identifiers were available in the frozen packet.");
   }
-  values.add("The packet challenges section is not a complete challenge registry, including when empty.");
+  values.add(
+    "The packet challenges section is not a complete challenge registry, including when empty.",
+  );
   return [...values];
 }
 
@@ -149,4 +172,3 @@ function sha256(value: string) {
 // Compile-time guard against accidentally widening ORA evidence beyond the
 // existing generic evidence contract.
 void (undefined as CertificationEvidenceReference | undefined);
-

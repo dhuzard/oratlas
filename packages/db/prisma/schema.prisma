@@ -2262,8 +2262,8 @@ model CertificationLifecycleEvent {
   actorUser      User?               @relation("certificationLifecycleActor", fields: [actorUserId], references: [id], onDelete: Restrict)
   actorCertifier Certifier?          @relation(fields: [actorCertifierId], references: [id], onDelete: Restrict)
 
-  @@index([resultId, createdAt])
   @@unique([resultId, kind])
+  @@index([resultId, createdAt])
 }
 
 /// Optional append-only declaration of how one exact publication version was

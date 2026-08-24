@@ -19,5 +19,10 @@ export function oraPilotPresentation(input: {
     return null;
   const active = input.lifecycleState === "issued";
   const label = ORA_PILOT_LABELS[input.outcome as keyof typeof ORA_PILOT_LABELS];
-  return label ? { label: active ? label : `${label} · ${input.lifecycleState}`, active } : null;
+  return label
+    ? {
+        label: active ? label : `ORA assessment · Pilot · ${input.lifecycleState}`,
+        active,
+      }
+    : null;
 }

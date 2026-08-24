@@ -2,9 +2,17 @@
 
 import { useState } from "react";
 
-export function OraInitiateButton({ publicationVersionId, available }: { publicationVersionId: string; available: boolean }) {
+export function OraInitiateButton({
+  publicationVersionId,
+  available,
+}: {
+  publicationVersionId: string;
+  available: boolean;
+}) {
   const [state, setState] = useState<"idle" | "running" | "done" | "error">("idle");
-  const [message, setMessage] = useState(available ? "" : "Real ORA evaluator configuration is unavailable.");
+  const [message, setMessage] = useState(
+    available ? "" : "Real ORA evaluator configuration is unavailable.",
+  );
   async function initiate() {
     setState("running");
     const response = await fetch("/api/editorial/ora-certifications", {
@@ -19,11 +27,18 @@ export function OraInitiateButton({ publicationVersionId, available }: { publica
       return;
     }
     setState("done");
-    setMessage(`${body.replayed ? "Existing" : "New"} ORA result: ${body.outcome}. Reload to inspect it.`);
+    setMessage(
+      `${body.replayed ? "Existing" : "New"} ORA result: ${body.outcome}. Reload to inspect it.`,
+    );
   }
   return (
     <div>
-      <button className="btn" type="button" disabled={!available || state === "running" || state === "done"} onClick={initiate}>
+      <button
+        className="btn"
+        type="button"
+        disabled={!available || state === "running" || state === "done"}
+        onClick={initiate}
+      >
         {state === "running" ? "Assessing frozen packet…" : "Initiate ORA Pilot assessment"}
       </button>
       {message ? <p className={state === "error" ? "error" : "muted"}>{message}</p> : null}

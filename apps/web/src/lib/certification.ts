@@ -565,7 +565,10 @@ export async function transitionCertificationRun(
     if (current.status === input.status && current.terminalReason === input.reason)
       return { ...mapRun(current, true), replayed: true };
     if (["completed", "failed", "cancelled"].includes(current.status))
-      throw new CertificationError("conflict", "Certification run already has a different terminal state.");
+      throw new CertificationError(
+        "conflict",
+        "Certification run already has a different terminal state.",
+      );
 
     const completedAt = new Date();
     const updated = await prisma.$transaction(
@@ -597,7 +600,10 @@ export async function transitionCertificationRun(
     const raced = await prisma.certificationRun.findUnique({ where: { id } });
     if (raced?.status === input.status && raced.terminalReason === input.reason)
       return { ...mapRun(raced, true), replayed: true };
-    throw new CertificationError("conflict", "Certification run concurrently reached another state.");
+    throw new CertificationError(
+      "conflict",
+      "Certification run concurrently reached another state.",
+    );
   };
   try {
     return await transition();
@@ -626,7 +632,10 @@ export async function submitCertificationResult(
   });
   if (existing) return replayResult(existing, candidateJson);
   if (run.status !== "running")
-    throw new CertificationError("conflict", "Certification run is not open for result submission.");
+    throw new CertificationError(
+      "conflict",
+      "Certification run is not open for result submission.",
+    );
   if (
     run.inputPacketSha256 !== input.packetSha256 ||
     digest(run.inputPacketJson) !== run.inputPacketSha256

@@ -21,13 +21,15 @@ describe("ORA pilot presentation", () => {
   it("does not present withdrawn, revoked, or superseded results as current", () => {
     for (const lifecycleState of ["withdrawn", "revoked", "superseded"]) {
       expect(oraPilotPresentation({ ...base, outcome: "certified", lifecycleState })).toEqual({
-        label: `ORA Certified · Pilot · ${lifecycleState}`,
+        label: `ORA assessment · Pilot · ${lifecycleState}`,
         active: false,
       });
     }
   });
 
   it("does not brand an independent certifier as ORA", () => {
-    expect(oraPilotPresentation({ ...base, certifier: { slug: "independent" }, outcome: "certified" })).toBeNull();
+    expect(
+      oraPilotPresentation({ ...base, certifier: { slug: "independent" }, outcome: "certified" }),
+    ).toBeNull();
   });
 });

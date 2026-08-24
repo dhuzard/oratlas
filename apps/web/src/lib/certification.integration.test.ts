@@ -5,6 +5,7 @@ import { join, resolve } from "node:path";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import {
   canonicalJson,
+  ORA_SCIENTIFIC_MERIT_PROTOCOL_DEFINITION,
   publicCertificationSummarySchema,
   type CertificationProtocolDefinition,
 } from "@oratlas/contracts";
@@ -23,6 +24,7 @@ import type {
   revokeCertifierCredential,
   setCertifierStatus,
   submitCertificationResult,
+  transitionCertificationRun,
 } from "./certification";
 
 vi.mock("server-only", () => ({}));
@@ -45,6 +47,7 @@ type CertificationService = {
   revokeCertifierCredential: typeof revokeCertifierCredential;
   setCertifierStatus: typeof setCertifierStatus;
   submitCertificationResult: typeof submitCertificationResult;
+  transitionCertificationRun: typeof transitionCertificationRun;
 };
 let service: CertificationService;
 let adminId: string;
@@ -741,6 +744,88 @@ describe("generic certification platform", () => {
     ).toBe(1);
   });
 
+  it("converges concurrent owner terminal transitions with one immutable audit event", async () => {
+    const certifier = await service.createCertifier(
+      {
+        slug: "terminal-transition-fixture",
+        name: "Terminal Transition Fixture",
+        description: "Exercises generic owner-scoped failed run transitions.",
+      },
+      adminId,
+    );
+    const protocol = await service.createCertificationProtocol(
+      {
+        certifierId: certifier.id,
+        seriesKey: "terminal-transition",
+        version: "1.0.0",
+        title: "Terminal transition",
+        description: "Failure handling fixture.",
+        definition,
+      },
+      adminId,
+    );
+    const credential = await service.issueCertifierCredential(
+      certifier.id,
+      { label: "terminal-owner", scopes: ["certification:read", "certification:submit"] },
+      adminId,
+    );
+    const auth = await service.authenticateCertifier(
+      request(credential.token),
+      "certification:submit",
+    );
+    const run = await service.createCertificationRun(
+      {
+        publicationVersionId: versionId,
+        certificationProtocolId: protocol.id,
+        assessmentMode: "human",
+        idempotencyKey: "terminal-transition-run",
+      },
+      auth,
+    );
+    const transitions = await Promise.all([
+      service.transitionCertificationRun(
+        run.id,
+        { status: "failed", reason: "Provider unavailable." },
+        auth,
+      ),
+      service.transitionCertificationRun(
+        run.id,
+        { status: "failed", reason: "Provider unavailable." },
+        auth,
+      ),
+    ]);
+    expect(transitions.map((item) => item.replayed).sort()).toEqual([false, true]);
+    expect(transitions[0]).toMatchObject({
+      status: "failed",
+      terminalReason: "Provider unavailable.",
+    });
+    expect(
+      await prisma.auditEvent.count({
+        where: { action: "certification.run-failed", subjectId: run.id },
+      }),
+    ).toBe(1);
+    await expect(
+      service.transitionCertificationRun(
+        run.id,
+        { status: "cancelled", reason: "Different." },
+        auth,
+      ),
+    ).rejects.toMatchObject({ code: "conflict" });
+    await expect(
+      service.submitCertificationResult(
+        run.id,
+        result(run.input.packetSha256, "certification-occurrence-1"),
+        auth,
+      ),
+    ).rejects.toMatchObject({ code: "conflict" });
+    await expect(
+      prisma.certificationRun.update({
+        where: { id: run.id },
+        data: { terminalReason: "rewritten" },
+      }),
+    ).rejects.toThrow();
+  });
+
   it("records unsupported content explicitly and rejects a content-complete protocol", async () => {
     const certifier = await service.createCertifier(
       {
@@ -895,5 +980,161 @@ describe("generic certification platform", () => {
         }),
       ]),
     );
+  });
+
+  it("runs ORA as an ordinary certifier through the same HTTP route boundary with exact AgentRun provenance", async () => {
+    const certifier = await service.createCertifier(
+      {
+        slug: "ora",
+        name: "ORA",
+        description: "Reference certification service using the generic ORAtlas certification API.",
+      },
+      adminId,
+    );
+    const protocol = await service.createCertificationProtocol(
+      {
+        certifierId: certifier.id,
+        seriesKey: "scientific-merit-pilot",
+        version: "0.1.0",
+        title: "ORA Scientific Merit Pilot",
+        description: "Pilot reporting and evidential-support assessment; not scientific truth.",
+        definition: ORA_SCIENTIFIC_MERIT_PROTOCOL_DEFINITION,
+      },
+      adminId,
+    );
+    const credential = await service.issueCertifierCredential(
+      certifier.id,
+      { label: "ora-service", scopes: ["certification:read", "certification:submit"] },
+      adminId,
+    );
+    const [runsRoute, inputRoute, resultRoute, transitionRoute, oraPackage, oraTesting] =
+      await Promise.all([
+        import("../app/api/certification-runs/route"),
+        import("../app/api/certification-runs/[id]/input/route"),
+        import("../app/api/certification-runs/[id]/result/route"),
+        import("../app/api/certification-runs/[id]/transition/route"),
+        import("@oratlas/ora-certifier"),
+        import("@oratlas/ora-certifier/testing"),
+      ]);
+    const httpCalls: string[] = [];
+    const routeFetch = async (requestInfo: URL | RequestInfo, init?: RequestInit) => {
+      const url = new URL(String(requestInfo));
+      const request = new Request(url, init);
+      httpCalls.push(`${request.method} ${url.pathname}`);
+      if (url.pathname === "/api/certification-runs") return runsRoute.POST(request);
+      const match = /^\/api\/certification-runs\/([^/]+)\/(input|result|transition)$/.exec(
+        url.pathname,
+      );
+      if (!match) throw new Error(`Unexpected ORA route ${url.pathname}`);
+      const context = { params: Promise.resolve({ id: decodeURIComponent(match[1]!) }) };
+      if (match[2] === "input") return inputRoute.GET(request, context);
+      if (match[2] === "result") return resultRoute.POST(request, context);
+      return transitionRoute.POST(request, context);
+    };
+    const recorder = {
+      async recordSucceeded(input: {
+        packetSha256: string;
+        evaluation: { criteria: unknown; limitations: unknown };
+        metadata: {
+          provider: string;
+          model: string;
+          modelVersion?: string;
+          promptVersion: string;
+          startedAt: string;
+          completedAt: string;
+        };
+      }) {
+        const outputJson = canonicalJson({
+          criteria: input.evaluation.criteria,
+          limitations: input.evaluation.limitations,
+        });
+        const agentRun = await prisma.agentRun.create({
+          data: {
+            agentType: "external-certification",
+            modelProvider: input.metadata.provider,
+            modelName: input.metadata.model,
+            modelVersion: input.metadata.modelVersion,
+            promptVersion: input.metadata.promptVersion,
+            packetHash: input.packetSha256,
+            inputHash: input.packetSha256,
+            inputReferencesJson: canonicalJson({ packetSha256: input.packetSha256 }),
+            outputJson,
+            status: "succeeded",
+            startedAt: new Date(input.metadata.startedAt),
+            completedAt: new Date(input.metadata.completedAt),
+          },
+        });
+        return { agentRunId: agentRun.id, structuredOutputSha256: sha(outputJson) };
+      },
+    };
+    const completed = await new oraPackage.OraCertificationService(
+      new oraPackage.CertifierApiClient(
+        "https://atlas.example",
+        credential.token,
+        routeFetch as typeof fetch,
+      ),
+      oraTesting.createDeterministicOraTestEvaluator("strong"),
+      recorder,
+    ).certify({
+      publicationVersionId: versionId,
+      certificationProtocolId: protocol.id,
+      idempotencyKey: "ora-api-only-strong-fixture",
+    });
+    expect(completed.outcome).toBe("certified");
+    expect(completed.input.packet).toMatchObject({
+      schemaVersion: "1.2.0",
+      content: [expect.objectContaining({ id: "publication-content:certification-methods" })],
+    });
+    expect(httpCalls).toEqual([
+      "POST /api/certification-runs",
+      expect.stringMatching(/^GET \/api\/certification-runs\/[^/]+\/input$/),
+      expect.stringMatching(/^POST \/api\/certification-runs\/[^/]+\/result$/),
+    ]);
+    const persisted = await prisma.certificationResult.findUniqueOrThrow({
+      where: { certificationRunId: completed.run.id },
+      include: { agentRun: true },
+    });
+    expect(persisted.outcome).toBe("certified");
+    expect(persisted.agentRun).toMatchObject({
+      agentType: "external-certification",
+      status: "succeeded",
+      packetHash: completed.input.packetSha256,
+    });
+    expect(JSON.parse(persisted.conflictOfInterestJson)).toEqual({ status: "not-provided" });
+    expect(JSON.parse(persisted.independenceJson).statement).toMatch(
+      /independently of the publication's declared production workflow/,
+    );
+
+    const failedService = new oraPackage.OraCertificationService(
+      new oraPackage.CertifierApiClient(
+        "https://atlas.example",
+        credential.token,
+        routeFetch as typeof fetch,
+      ),
+      { evaluate: vi.fn().mockRejectedValue(new Error("provider unavailable")) },
+      recorder,
+    );
+    await expect(
+      failedService.certify({
+        publicationVersionId: versionId,
+        certificationProtocolId: protocol.id,
+        idempotencyKey: "ora-api-only-provider-failure",
+      }),
+    ).rejects.toThrow("provider unavailable");
+    const failedRun = await prisma.certificationRun.findUniqueOrThrow({
+      where: {
+        certifierId_idempotencyKey: {
+          certifierId: certifier.id,
+          idempotencyKey: "ora-api-only-provider-failure",
+        },
+      },
+    });
+    expect(failedRun).toMatchObject({
+      status: "failed",
+      terminalReason: "ORA evaluator failed: provider unavailable",
+    });
+    expect(
+      await prisma.certificationResult.count({ where: { certificationRunId: failedRun.id } }),
+    ).toBe(0);
   });
 });

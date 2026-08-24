@@ -1425,6 +1425,7 @@ CREATE TABLE "CertificationRun" (
     "capturedAt" TIMESTAMP(3) NOT NULL,
     "startedAt" TIMESTAMP(3),
     "completedAt" TIMESTAMP(3),
+    "terminalReason" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "CertificationRun_pkey" PRIMARY KEY ("id")
@@ -3143,7 +3144,10 @@ ALTER TABLE "CertificationRun" ADD CONSTRAINT "CertificationRun_shape_check" CHE
     "assessmentMode" IN ('human', 'ai', 'hybrid')
     AND "status" IN ('requested', 'running', 'completed', 'failed', 'cancelled')
     AND length("inputPacketSha256") = 64
-    AND (("status" = 'completed' AND "completedAt" IS NOT NULL) OR "status" <> 'completed')
+    AND ((("status" IN ('completed', 'failed', 'cancelled')) AND "completedAt" IS NOT NULL)
+      OR ("status" IN ('requested', 'running') AND "completedAt" IS NULL))
+    AND (("status" IN ('failed', 'cancelled') AND "terminalReason" IS NOT NULL AND length("terminalReason") BETWEEN 1 AND 4000)
+      OR ("status" IN ('requested', 'running', 'completed') AND "terminalReason" IS NULL))
   );
 
 ALTER TABLE "CertificationResult" DROP CONSTRAINT IF EXISTS "CertificationResult_shape_check";
@@ -3276,6 +3280,10 @@ CREATE OR REPLACE FUNCTION "oratlas_protect_certification"() RETURNS trigger AS 
           OR NEW."completenessJson" IS DISTINCT FROM OLD."completenessJson"
           OR NEW."capturedAt" IS DISTINCT FROM OLD."capturedAt"
         THEN RAISE EXCEPTION 'Certification run input snapshot is immutable'; END IF;
+        IF OLD."status" IN ('completed', 'failed', 'cancelled') AND (
+          NEW."status" IS DISTINCT FROM OLD."status" OR NEW."completedAt" IS DISTINCT FROM OLD."completedAt"
+          OR NEW."terminalReason" IS DISTINCT FROM OLD."terminalReason"
+        ) THEN RAISE EXCEPTION 'Certification run terminal state is immutable'; END IF;
         RETURN NEW;
       END IF;
       RAISE EXCEPTION 'Certification protocol, result, and lifecycle records are append-only';

@@ -13,16 +13,15 @@ export const ORA_CERTIFIER_NAME = "ORA" as const;
 export const ORA_SCIENTIFIC_MERIT_SERIES = "scientific-merit-pilot" as const;
 export const ORA_SCIENTIFIC_MERIT_VERSION = "0.1.0" as const;
 export const ORA_SCIENTIFIC_MERIT_TITLE = "ORA Scientific Merit Pilot" as const;
-export const ORA_SCIENTIFIC_MERIT_PROMPT_VERSION =
-  "ora-scientific-merit-pilot-0.1.0" as const;
+export const ORA_SCIENTIFIC_MERIT_PROMPT_VERSION = "ora-scientific-merit-pilot-0.1.0" as const;
 export const ORA_SCIENTIFIC_MERIT_OUTCOME_RULE_VERSION =
   "ora-scientific-merit-outcome-0.1.0" as const;
 
 const allowedStatuses = [...CERTIFICATION_CRITERION_STATUSES];
 
 /** Immutable public definition of the pilot. Changes require a new protocol version. */
-export const ORA_SCIENTIFIC_MERIT_PROTOCOL_DEFINITION =
-  certificationProtocolDefinitionSchema.parse({
+export const ORA_SCIENTIFIC_MERIT_PROTOCOL_DEFINITION = certificationProtocolDefinitionSchema.parse(
+  {
     assessmentModes: ["ai", "hybrid"],
     outcomes: [...CERTIFICATION_OUTCOMES],
     // Partial content is intentionally permitted. Completeness constrains the
@@ -120,7 +119,8 @@ export const ORA_SCIENTIFIC_MERIT_PROTOCOL_DEFINITION =
         evidenceRequired: false,
       },
     ],
-  }) satisfies CertificationProtocolDefinition;
+  },
+) satisfies CertificationProtocolDefinition;
 
 export const ORA_SCIENTIFIC_MERIT_CRITERION_IDS =
   ORA_SCIENTIFIC_MERIT_PROTOCOL_DEFINITION.criteria.map((criterion) => criterion.id);
@@ -190,7 +190,8 @@ export function deriveOraScientificMeritOutcome(
   if (
     (completeness.returnedDocuments === 0 || completeness.coverage === "unsupported") &&
     ["c4", "c5", "c6"].some(
-      (id) => criteria.find((criterion) => criterion.criterionId === id)?.status !== "not-applicable",
+      (id) =>
+        criteria.find((criterion) => criterion.criterionId === id)?.status !== "not-applicable",
     )
   )
     return "inconclusive" as const;

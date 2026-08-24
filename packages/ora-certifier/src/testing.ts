@@ -9,7 +9,9 @@ import type { CertificationEvaluator } from "@oratlas/knowledge";
 export type OraTestScenario = "strong" | "concern" | "failure" | "incomplete";
 
 /** Deterministic CI-only evaluator. It is deliberately absent from the production export. */
-export function createDeterministicOraTestEvaluator(scenario: OraTestScenario): CertificationEvaluator {
+export function createDeterministicOraTestEvaluator(
+  scenario: OraTestScenario,
+): CertificationEvaluator {
   return {
     async evaluate({ packet, protocol }) {
       if (
@@ -56,7 +58,8 @@ export function createDeterministicOraTestEvaluator(scenario: OraTestScenario): 
 
 function firstEvidence(packet: PublicationVersionPacket): CertificationEvidenceReference {
   if (packet.content[0]) return { type: "publication-content-document", id: packet.content[0].id };
-  if (packet.occurrences[0]) return { type: "publication-occurrence", id: packet.occurrences[0].id };
+  if (packet.occurrences[0])
+    return { type: "publication-occurrence", id: packet.occurrences[0].id };
   if (packet.captures[0]) return { type: "capture", id: packet.captures[0].id };
   throw new Error("Synthetic fixture must contain at least one packet evidence object.");
 }

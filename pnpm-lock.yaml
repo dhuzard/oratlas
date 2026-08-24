@@ -23,6 +23,9 @@ importers:
       '@eslint/js':
         specifier: ^9.39.4
         version: 9.39.4
+      '@oratlas/certifier-client':
+        specifier: workspace:*
+        version: link:packages/certifier-client
       '@types/node':
         specifier: ^22.15.0
         version: 22.20.1

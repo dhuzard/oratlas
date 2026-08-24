@@ -14,13 +14,22 @@ const completeness = {
 };
 const evidence = { type: "publication-content-document" as const, id: "content-1" };
 
-function criteria(overrides: Record<string, "pass" | "concern" | "fail" | "not-applicable" | "insufficient-evidence"> = {}) {
+function criteria(
+  overrides: Record<
+    string,
+    "pass" | "concern" | "fail" | "not-applicable" | "insufficient-evidence"
+  > = {},
+) {
   return oraScientificMeritCriterionResultsSchema.parse(
     ORA_SCIENTIFIC_MERIT_PROTOCOL_DEFINITION.criteria.map((criterion) => ({
       criterionId: criterion.id,
       status: overrides[criterion.id] ?? "pass",
       rationale: `Fixture rationale for ${criterion.id}.`,
-      evidenceRefs: ["insufficient-evidence", "not-applicable"].includes(overrides[criterion.id] ?? "pass") ? [] : [evidence],
+      evidenceRefs: ["insufficient-evidence", "not-applicable"].includes(
+        overrides[criterion.id] ?? "pass",
+      )
+        ? []
+        : [evidence],
     })),
   );
 }
@@ -28,9 +37,20 @@ function criteria(overrides: Record<string, "pass" | "concern" | "fail" | "not-a
 describe("ORA Scientific Merit Pilot 0.1.0 contract", () => {
   it("defines ten immutable explicit criteria without requiring globally complete content", () => {
     expect(ORA_SCIENTIFIC_MERIT_PROTOCOL_DEFINITION.criteria.map((item) => item.id)).toEqual([
-      "c1", "c2", "c3", "c4", "c5", "c6", "c7", "c8", "c9", "c10",
+      "c1",
+      "c2",
+      "c3",
+      "c4",
+      "c5",
+      "c6",
+      "c7",
+      "c8",
+      "c9",
+      "c10",
     ]);
-    expect(ORA_SCIENTIFIC_MERIT_PROTOCOL_DEFINITION.requireCompleteSections).not.toContain("content");
+    expect(ORA_SCIENTIFIC_MERIT_PROTOCOL_DEFINITION.requireCompleteSections).not.toContain(
+      "content",
+    );
     expect(ORA_SCIENTIFIC_MERIT_OUTCOME_RULE_VERSION).toBe("ora-scientific-merit-outcome-0.1.0");
   });
 
@@ -71,7 +91,7 @@ describe("ORA Scientific Merit Pilot 0.1.0 contract", () => {
     ).toThrow();
     expect(() =>
       oraScientificMeritCriterionResultsSchema.parse(
-        criteria().map((item, index) => index === 0 ? { ...item, evidenceRefs: [] } : item),
+        criteria().map((item, index) => (index === 0 ? { ...item, evidenceRefs: [] } : item)),
       ),
     ).toThrow();
   });

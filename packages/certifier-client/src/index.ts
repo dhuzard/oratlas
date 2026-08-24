@@ -27,7 +27,10 @@ export class CertifierApiClient {
       body: JSON.stringify(result),
     });
   }
-  async transitionRun(runId: string, transition: { status: "failed" | "cancelled"; reason: string }) {
+  async transitionRun(
+    runId: string,
+    transition: { status: "failed" | "cancelled"; reason: string },
+  ) {
     return this.request(`/api/certification-runs/${encodeURIComponent(runId)}/transition`, {
       method: "POST",
       body: JSON.stringify(transition),
@@ -35,7 +38,10 @@ export class CertifierApiClient {
   }
   async listPublicResults(publicationVersionId: string) {
     const response = await this.fetcher(
-      new URL(`/api/publication-versions/${encodeURIComponent(publicationVersionId)}/certifications`, this.baseUrl),
+      new URL(
+        `/api/publication-versions/${encodeURIComponent(publicationVersionId)}/certifications`,
+        this.baseUrl,
+      ),
     );
     if (!response.ok) throw new Error(`ORAtlas public API returned ${response.status}.`);
     return response.json();
@@ -58,7 +64,10 @@ export class CertifierApiClient {
 }
 
 export class CertifierApiError extends Error {
-  constructor(public readonly status: number, public readonly responseBody: string) {
+  constructor(
+    public readonly status: number,
+    public readonly responseBody: string,
+  ) {
     super(`ORAtlas certifier API returned ${status}.`);
     this.name = "CertifierApiError";
   }

@@ -86,7 +86,7 @@ export class OraCertificationService {
         },
       });
       const result = await this.client.submitResult(run.id, candidate);
-      return { run, input: frozen, evaluation, outcome, result };
+      return { run, input: { ...frozen, packet }, evaluation, outcome, result };
     } catch (error) {
       try {
         await this.client.transitionRun(run.id, {

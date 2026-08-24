@@ -9,6 +9,7 @@ import {
   createCertifier,
   getCertificationInput,
   submitCertificationResult,
+  transitionCertificationRun,
 } from "./certification";
 
 const enabled = Boolean(process.env.CERTIFICATION_TEST_DATABASE_URL);
@@ -171,5 +172,40 @@ describe.skipIf(!enabled)("certification result races on PostgreSQL", () => {
     expect(
       (await prisma.certificationRun.findUniqueOrThrow({ where: { id: run.id } })).status,
     ).toBe("completed");
+
+    const failedRun = await prisma.certificationRun.create({
+      data: {
+        publicationVersionId: version.id,
+        certifierId: certifier.id,
+        protocolId: protocol.id,
+        assessmentMode: "human",
+        status: "running",
+        idempotencyKey: `failed-race-${suffix}`,
+        inputPacketJson: packetJson,
+        inputPacketSha256: sha(packetJson),
+        packetSchemaVersion: packet.schemaVersion,
+        completenessJson: canonicalJson(packet.completeness),
+        capturedAt: new Date(),
+        startedAt: new Date(),
+      },
+    });
+    const terminalResults = await Promise.all([
+      transitionCertificationRun(
+        failedRun.id,
+        { status: "failed", reason: "Concurrent provider failure." },
+        { certifierId: certifier.id },
+      ),
+      transitionCertificationRun(
+        failedRun.id,
+        { status: "failed", reason: "Concurrent provider failure." },
+        { certifierId: certifier.id },
+      ),
+    ]);
+    expect(terminalResults.map((result) => result.replayed).sort()).toEqual([false, true]);
+    expect(
+      await prisma.auditEvent.count({
+        where: { action: "certification.run-failed", subjectId: failedRun.id },
+      }),
+    ).toBe(1);
   });
 });

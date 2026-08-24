@@ -3,13 +3,13 @@ import { createHash } from "node:crypto";
 import { getServerEnv } from "@oratlas/config";
 import {
   ORA_CERTIFIER_SLUG,
-  ORA_SCIENTIFIC_MERIT_PROMPT_VERSION,
   ORA_SCIENTIFIC_MERIT_SERIES,
   ORA_SCIENTIFIC_MERIT_VERSION,
   canonicalJson,
 } from "@oratlas/contracts";
 import {
   OraScientificMeritEvaluator,
+  ORA_SCIENTIFIC_MERIT_SYSTEM_PROMPT,
   createAnthropicProvider,
   createOpenAIProvider,
   type CertificationEvaluation,
@@ -61,7 +61,12 @@ export async function getOraCertificationReadiness(publicationVersionId: string)
       contentCorpusSha256: version.contentCorpusSha256,
     },
     protocol: protocol
-      ? { id: protocol.id, series: protocol.seriesKey, version: protocol.protocolVersion, title: protocol.title }
+      ? {
+          id: protocol.id,
+          series: protocol.seriesKey,
+          version: protocol.protocolVersion,
+          title: protocol.title,
+        }
       : null,
     assessmentMode: "ai" as const,
   };
@@ -72,19 +77,27 @@ export async function initiateOraCertification(publicationVersionId: string) {
   if (!env.oraCertificationEnabled || !env.ORA_CERTIFIER_API_TOKEN)
     throw new OraCertificationUnavailableError();
   const readiness = await getOraCertificationReadiness(publicationVersionId);
-  if (!readiness.protocol) throw new OraCertificationUnavailableError("ORA Pilot 0.1.0 is not active.");
+  if (!readiness.protocol)
+    throw new OraCertificationUnavailableError("ORA Pilot 0.1.0 is not active.");
 
   const idempotencyKey = `ora:${readiness.protocol.id}:${publicationVersionId}`;
   const existing = await prisma.certificationRun.findUnique({
-    where: { certifierId_idempotencyKey: {
-      certifierId: (await prisma.certifier.findUniqueOrThrow({ where: { slug: ORA_CERTIFIER_SLUG } })).id,
-      idempotencyKey,
-    } },
+    where: {
+      certifierId_idempotencyKey: {
+        certifierId: (
+          await prisma.certifier.findUniqueOrThrow({ where: { slug: ORA_CERTIFIER_SLUG } })
+        ).id,
+        idempotencyKey,
+      },
+    },
     include: { result: true },
   });
-  if (existing?.result) return { replayed: true, resultId: existing.result.id, outcome: existing.result.outcome };
+  if (existing?.result)
+    return { replayed: true, resultId: existing.result.id, outcome: existing.result.outcome };
   if (existing && existing.status !== "running")
-    throw new Error(`Existing ORA certification run is ${existing.status}; use a new deliberate run key to retry.`);
+    throw new Error(
+      `Existing ORA certification run is ${existing.status}; use a new deliberate run key to retry.`,
+    );
 
   const provider = configuredOraProvider(env);
   const service = new OraCertificationService(
@@ -120,7 +133,7 @@ class DatabaseOraExecutionRecorder implements OraExecutionRecorder {
         modelName: input.metadata.model,
         modelVersion: input.metadata.modelVersion,
         promptVersion: input.metadata.promptVersion,
-        promptHash: sha256(ORA_SCIENTIFIC_MERIT_PROMPT_VERSION),
+        promptHash: sha256(ORA_SCIENTIFIC_MERIT_SYSTEM_PROMPT),
         packetHash: input.packetSha256,
         inputHash: input.packetSha256,
         inputReferencesJson: canonicalJson({
@@ -141,7 +154,10 @@ function configuredOraProvider(env: ReturnType<typeof getServerEnv>): LlmProvide
   if (!env.ORA_EVALUATOR_PROVIDER || !env.ORA_EVALUATOR_MODEL)
     throw new OraCertificationUnavailableError();
   if (env.ORA_EVALUATOR_PROVIDER === "anthropic" && env.ANTHROPIC_API_KEY)
-    return createAnthropicProvider({ apiKey: env.ANTHROPIC_API_KEY, model: env.ORA_EVALUATOR_MODEL });
+    return createAnthropicProvider({
+      apiKey: env.ANTHROPIC_API_KEY,
+      model: env.ORA_EVALUATOR_MODEL,
+    });
   if (env.ORA_EVALUATOR_PROVIDER === "openai" && env.OPENAI_API_KEY)
     return createOpenAIProvider({ apiKey: env.OPENAI_API_KEY, model: env.ORA_EVALUATOR_MODEL });
   throw new OraCertificationUnavailableError();

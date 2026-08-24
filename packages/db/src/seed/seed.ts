@@ -754,7 +754,7 @@ async function main() {
       captures: {
         create: {
           id: "ora-demo-publication-capture",
-          artifactKind: "page-data",
+          artifactKind: "published-page-data",
           artifactIdentitySha256: demoArtifactIdentity,
           declaredPath: "article.md",
           observedUrl: "https://demo.oratlas.org/scientific-merit-pilot/article/",
