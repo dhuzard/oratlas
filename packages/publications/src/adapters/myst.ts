@@ -176,6 +176,13 @@ export interface NormalizeMystPublicationInput {
   observedAt: string;
   /** Opaque ORAtlas registration key, used only when no durable evidence exists. */
   registrationKey?: string;
+  /** Authoritative declarations loaded from a delegated ORAtlas review-manifest stream. */
+  delegatedDeclarations?: ReadonlyMap<
+    string,
+    { text: string; claimType?: string; qualification?: string }
+  >;
+  /** Persisted explanation of any source-byte verification limitation. */
+  verificationWarnings?: readonly string[];
 }
 
 export interface NormalizedPublication {
@@ -264,6 +271,25 @@ export function normalizeMystPublication(
       );
     }
   }
+  if (authority === "review-manifest") {
+    if (input.delegatedDeclarations !== undefined) {
+      const recordIds = new Set(records.map((record) => record.id));
+      for (const id of recordIds) {
+        if (!input.delegatedDeclarations.has(id)) {
+          throw new PublicationAdapterError(
+            `The authoritative review-manifest claim stream does not declare claim "${id}".`,
+          );
+        }
+      }
+      for (const id of input.delegatedDeclarations.keys()) {
+        if (!recordIds.has(id)) {
+          throw new PublicationAdapterError(
+            `The authoritative review-manifest claim "${id}" has no MyST source occurrence.`,
+          );
+        }
+      }
+    }
+  }
 
   const identityEvidence = derivePublicationIdentityEvidence({
     ...(manifest.publication.id === undefined
@@ -316,6 +342,7 @@ export function normalizeMystPublication(
     },
     ...(manifest.publication.source === undefined ? {} : { source: manifest.publication.source }),
     structuralProvenance: input.structuralProvenance,
+    verificationWarnings: [...(input.verificationWarnings ?? [])],
     observedAt: input.observedAt,
   });
 

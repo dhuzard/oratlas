@@ -1,8 +1,73 @@
 # Externally hosted publications
 
-Status: **phase 1 — generic publication boundary only.** The models, contracts and
-database guards described here exist. Registration, fetching, canonical materialization,
-graph snapshots and change feeds do not, and are named as deferred at the end.
+Status: **phase 2 — secure registration and immutable capture.** The generic boundary,
+editor-authenticated registration, hardened external fetch, schema-0.2.0 MyST verification,
+immutable capture and source-occurrence materialization described here exist. Canonical graph
+materialization, cross-publication relations, snapshots and change feeds remain deferred.
+
+## Registering an external publication
+
+An editor registers the publication-side discovery document, not a repository and not a page:
+
+```http
+POST /api/editorial/publications/register
+Content-Type: application/json
+
+{
+  "manifestUrl": "https://lab.org/review/oratlas.manifest.json",
+  "publicationType": "review-article"
+}
+```
+
+`publicationType` is optional and defaults to `other`, because portable protocol 0.2.0 does not
+declare it. The operation requires the normal ORAtlas editor session, exact same-origin mutation
+headers and rate limits. Operators should use the returned `links.capture`, `links.publication`
+and `links.publicationVersion` resources as the canonical API locations. A `201` means at least
+one immutable record was created; a byte-identical replay returns `200` with `replayed: true`.
+
+The registration pipeline is deliberately non-executable:
+
+```
+manifest URL → safe bounded fetch → exact byte capture → closed 0.2.0 validation
+             → declared artifact capture → published-structure checks
+             → optional exact source-byte checks → atomic source-occurrence materialization
+```
+
+ORAtlas never runs JavaScript, HTML, a MyST plugin, a repository command or publication code.
+Every redirect is validated again. DNS answers are checked for loopback, private, link-local,
+metadata-service, reserved and internal destinations, and the accepted address is pinned for the
+connection. Responses, redirects, records, artifacts, page-data traversal and the whole operation
+are bounded. All paths are revalidated before resolution. Identifiers such as xref target ids and
+canonical URLs are not unrestricted fetch instructions.
+
+The captured manifest keeps both the requested and final URL, exact UTF-8 bytes, recomputed digest,
+capture time, status, bounded selected headers and the complete validated redirect chain. The same
+is retained for claims, xref, page-data, delegated review-manifest artifacts and safely obtainable
+source documents. Artifact rows and observed publication versions are database-guarded against
+update and deletion.
+
+### Verification outcomes
+
+Every successful response states either `published-structure` or `source-byte`. A normal deployed
+site with no retrievable Markdown is complete at `published-structure`; this is not an error and is
+not scientific verification. `source-byte` is currently attempted only for a canonical public
+GitHub repository with a full immutable commit, using ORAtlas's fixed-origin GitHub transport. DOI,
+archive, a git source without a commit, delegated records that omit declaration-digest inputs, and
+other repository hosts are not claimed as supported. The reason is recorded in the version's
+warnings and returned to the operator; a source failure never masquerades as `source-byte`.
+
+When `artifacts.claims.declarations` is `review-manifest`, ORAtlas fetches and validates the declared
+ORAtlas review manifest and its authoritative claims stream. The MyST claims stream contributes
+only occurrence bindings. Both id sets must agree exactly; ORAtlas never merges two authorities or
+picks fields heuristically.
+
+### Ownership is separate
+
+Successful registration proves only what bytes ORAtlas observed and structurally checked. It does
+**not** prove that the registering editor owns or controls an arbitrary publication URL. URL-control
+proof is a separate governance/security problem; phase 2 implements no `.well-known`, DNS or
+repository challenge and exposes no ownership boolean. Deployments must therefore keep this
+operation editorial until a real ownership mechanism and policy exist.
 
 ## Why this exists
 
@@ -91,7 +156,7 @@ ORAtlas saw, so correcting it means observing again, not editing the record.
 One `oratlas:claim`-style declaration at one exact location in one exact version. It stores
 the source-local claim id, a typed target descriptor, the byte-level source binding
 (document path, document digest, line span, block digest), the source-frame selector, the
-declaration digest, and the declaration itself when the publication source owns it.
+declaration digest, and the declaration loaded from exactly one declared authority.
 
 Uniqueness is `(publicationVersionId, sourceLocalClaimId)`: a source-local id is unique only
 inside one publication version. `declarationSha256` is indexed but **not** unique.
@@ -140,7 +205,7 @@ decision is recorded. It is null until such a decision is made, is never written
 inference, and is write-once: a database trigger rejects rewriting it, and rejects every
 other mutation of the occurrence.
 
-Nothing in phase 1 writes it.
+Nothing in phase 2 writes it.
 
 ## Transitional architecture
 
@@ -172,7 +237,7 @@ existing review projects into, without writing anything.
 The projection is deliberately partial. A `PublicationVersion` needs an exact
 `sourcesSha256` over a document set and an adapter binding; a legacy `ReviewVersion` has
 neither. Projecting review _versions_ needs an `atlas-review` adapter variant with a defined
-version digest, which is not part of phase 1.
+version digest, which is not part of phase 2.
 
 ## Canonical graph extension
 
@@ -197,27 +262,50 @@ See [Canonical graph identity and compatibility migration](canonical-graph-ident
 
 ## Where the code lives
 
-| Path                                                 | Contents                                                      |
-| ---------------------------------------------------- | ------------------------------------------------------------- |
-| `packages/contracts/src/publications.ts`             | the generic boundary contracts and vocabularies               |
-| `packages/publications/src/identity.ts`              | stable keys and fail-closed identity evidence                 |
-| `packages/publications/src/structural-provenance.ts` | which structural level a set of checks reached                |
-| `packages/publications/src/review-projection.ts`     | legacy review → generic publication projection                |
-| `packages/publications/src/adapters/myst.ts`         | the pinned 0.2.0 adapter: validate and normalize, never fetch |
-| `packages/db/prisma/schema.prisma`                   | the four models (PostgreSQL variant is generated from it)     |
-| `packages/db/src/database-guards.ts`                 | the SQLite and PostgreSQL guards for both providers           |
+### Portable protocol boundary and drift
+
+ORAtlas does not depend at runtime on `@oratlas/myst` or its parser/plugin stack. The two portable
+0.2.0 objects are represented as closed Zod schemas in
+`packages/publications/src/adapters/myst.ts`; ORAtlas's own generic records remain in
+`@oratlas/contracts`. The implementation was reconciled against `dhuzard/oratlas-myst` current head
+`51336a5446b449d4d661a4f46d8f8913a0bac2cb` (2026-08-24), including `SPEC.md`, both JSON schemas,
+`src/contracts` and `docs/integration-oratlas.md`. At that revision the upstream schema file
+fingerprints were:
+
+- `oratlas-manifest.schema.json`: `433ba00c1e1721694e4823a94284f16fc4aa9c969dd761fa21cd92d7c228a319`
+- `oratlas-claim.schema.json`: `ea327a04598d50df774b527ddd169cf2f4b0c7772b978b0b95d14c1b8630d4d2`
+
+Schema drift is fail-closed at runtime: only the literal `0.2.0` version and known adapter/target
+variants parse, and every represented object is closed against unknown keys. Contract tests cover
+the upstream examples, ordering, delegation and selector/path invariants. When upstream publishes a
+new schema version, maintainers must compare the current specification and fingerprints, add a new
+explicit adapter variant and fixtures, and only then admit it; changing a `0.2.0` interpretation in
+place is forbidden.
+
+| Path                                                            | Contents                                                       |
+| --------------------------------------------------------------- | -------------------------------------------------------------- |
+| `packages/contracts/src/publications.ts`                        | the generic boundary contracts and vocabularies                |
+| `packages/publications/src/identity.ts`                         | stable keys and fail-closed identity evidence                  |
+| `packages/publications/src/structural-provenance.ts`            | which structural level a set of checks reached                 |
+| `packages/publications/src/review-projection.ts`                | legacy review → generic publication projection                 |
+| `packages/publications/src/adapters/myst.ts`                    | the pinned 0.2.0 adapter: validate and normalize, never fetch  |
+| `packages/publications/src/remote-fetch.ts`                     | the reusable DNS-pinned SSRF and response-limit boundary       |
+| `packages/publications/src/registration.ts`                     | capture and structural verification over externally seen bytes |
+| `apps/web/src/lib/external-publication-registration.ts`         | atomic, idempotent persistence and typed result                |
+| `apps/web/src/app/api/editorial/publications/register/route.ts` | editor-authenticated registration operation                    |
+| `packages/db/prisma/schema.prisma`                              | the four models (PostgreSQL variant is generated from it)      |
+| `packages/db/src/database-guards.ts`                            | the SQLite and PostgreSQL guards for both providers            |
 
 `@oratlas/publications` is framework-free like every other domain package: no Prisma, no
-React, no network, no filesystem, and it never executes publication content.
+React and no filesystem. Its one network module is the explicit hardened boundary; callers
+inject both remote fetching and source retrieval in tests. It never executes publication content.
 
 ## Deliberately deferred
 
 These are **not** implemented, and none of them should be inferred from what is:
 
-- **Registration and fetching.** There is no endpoint that accepts a manifest URL, no
-  bounded fetch client, no redirect policy, no re-check or polling loop, and no ownership
-  proof for whoever registers a URL. Everything in `@oratlas/publications` operates on
-  artifacts a caller already holds.
+- **Automatic re-check and ownership proof.** Registration is an editor-triggered operation;
+  there is no polling loop, `.well-known`/DNS/repository challenge or ownership assertion.
 - **Canonical materialization.** Nothing writes `PublicationClaimOccurrence.knowledgeNodeId`
   or `KnowledgeNodeVersion.sourcePublicationClaimOccurrenceId`.
 - **Review version projection.** Needs an `atlas-review` adapter variant with a defined

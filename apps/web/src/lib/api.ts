@@ -11,6 +11,7 @@ const STATUS_BY_CODE: Record<ApiErrorCode, number> = {
   conflict: 409,
   "rate-limited": 429,
   "payload-too-large": 413,
+  "unsupported-media-type": 415,
   "upstream-error": 502,
   "internal-error": 500,
 };

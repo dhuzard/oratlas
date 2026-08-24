@@ -66,6 +66,50 @@ components:
             details:
               type: array
               items: { type: string }
+    ExternalPublicationRegistrationRequest:
+      type: object
+      additionalProperties: false
+      required: [manifestUrl]
+      properties:
+        manifestUrl: { type: string, format: uri, pattern: "^https://", maxLength: 2000 }
+        publicationType:
+          type: string
+          default: other
+          enum: [review-article, research-article, methods-article, preprint, living-review, other]
+    ExternalPublicationRegistrationResult:
+      type: object
+      additionalProperties: false
+      required:
+        - schemaVersion
+        - captureId
+        - publicationId
+        - publicationVersionId
+        - manifestSchemaVersion
+        - adapterType
+        - claimOccurrenceCount
+        - verificationLevel
+        - warnings
+        - replayed
+        - links
+      properties:
+        schemaVersion: { const: "1.0.0" }
+        captureId: { type: string, minLength: 1 }
+        publicationId: { type: string, minLength: 1 }
+        publicationVersionId: { type: string, minLength: 1 }
+        manifestSchemaVersion: { const: "0.2.0" }
+        adapterType: { const: myst }
+        claimOccurrenceCount: { type: integer, minimum: 0 }
+        verificationLevel: { type: string, enum: [published-structure, source-byte] }
+        warnings: { type: array, items: { type: string } }
+        replayed: { type: boolean }
+        links:
+          type: object
+          additionalProperties: false
+          required: [capture, publication, publicationVersion]
+          properties:
+            capture: { type: string, pattern: "^/api/publication-captures/" }
+            publication: { type: string, pattern: "^/api/publications/" }
+            publicationVersion: { type: string, pattern: "^/api/publication-versions/" }
     KnowledgeLandscapeNode:
       type: object
       additionalProperties: false
@@ -3202,6 +3246,64 @@ paths:
         "403": { $ref: "#/components/responses/Error" }
         "415": { $ref: "#/components/responses/Error" }
         "429": { $ref: "#/components/responses/Error" }
+  /api/editorial/publications/register:
+    post:
+      summary: Safely register and immutably capture an externally hosted publication
+      description: >
+        Editor-only, exact same-origin JSON operation. Fetches schema-0.2.0 publication bytes
+        through the hardened SSRF boundary, verifies published structure, attempts exact source-byte
+        verification only for supported immutable sources, and atomically materializes publication,
+        version, capture and source-occurrence records. It does not create canonical graph relations.
+      security: [{ session: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ExternalPublicationRegistrationRequest" }
+      responses:
+        "200":
+          description: Idempotent replay of an existing immutable registration
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ExternalPublicationRegistrationResult" }
+        "201":
+          description: New immutable capture or publication version created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ExternalPublicationRegistrationResult" }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "413": { $ref: "#/components/responses/Error" }
+        "415": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/Error" }
+        "502": { $ref: "#/components/responses/Error" }
+  /api/publications/{id}:
+    get:
+      summary: Read one generic publication and its observed versions
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Generic publication resource }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/publication-versions/{id}:
+    get:
+      summary: Read one exact external publication version and its capture links
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Immutable publication-version metadata }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/publication-captures/{id}:
+    get:
+      summary: Read immutable external publication capture provenance
+      description: Returns capture metadata and digests; retained artifact bytes are not reflected.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Immutable capture provenance }
+        "404": { $ref: "#/components/responses/Error" }
   /api/validate-doi:
     post:
       summary: Validate a DOI and return a structured report

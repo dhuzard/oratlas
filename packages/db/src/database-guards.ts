@@ -308,7 +308,8 @@ export const POSTGRES_DATABASE_GUARD_SQL = [
   'ALTER TABLE "PublicationCapture" DROP CONSTRAINT IF EXISTS "PublicationCapture_shape_check"',
   `ALTER TABLE "PublicationCapture" ADD CONSTRAINT "PublicationCapture_shape_check" CHECK (
     "structuralProvenance" IN ('published-structure', 'source-byte')
-    AND "artifactKind" IN ('publication-manifest', 'cross-reference-inventory', 'claim-stream', 'review-manifest')
+    AND "artifactKind" IN ('publication-manifest', 'cross-reference-inventory', 'claim-stream', 'review-manifest', 'review-claim-stream', 'published-page-data', 'source-document')
+    AND "artifactIdentitySha256" ~ '^[a-f0-9]{64}$'
     AND "contentSha256" ~ '^[a-f0-9]{64}$'
     AND ("declaredSha256" IS NULL OR "declaredSha256" ~ '^[a-f0-9]{64}$')
     AND "byteLength" >= 0
@@ -318,7 +319,7 @@ export const POSTGRES_DATABASE_GUARD_SQL = [
   'ALTER TABLE "PublicationClaimOccurrence" DROP CONSTRAINT IF EXISTS "PublicationClaimOccurrence_declaration_check"',
   `ALTER TABLE "PublicationClaimOccurrence" ADD CONSTRAINT "PublicationClaimOccurrence_declaration_check" CHECK (
     ("declarationAuthority" = 'publication-source' AND "text" IS NOT NULL)
-    OR ("declarationAuthority" = 'review-manifest' AND "text" IS NULL AND "claimType" IS NULL AND "qualification" IS NULL)
+    OR ("declarationAuthority" = 'review-manifest' AND "text" IS NOT NULL)
   )`,
 
   // A publication's identity key and the evidence it was keyed from are fixed.
@@ -527,7 +528,9 @@ const sqliteGuardConditions = {
     THEN 1 ELSE 0 END`,
   PublicationCapture: `CASE WHEN
     NEW."structuralProvenance" IN ('published-structure', 'source-byte')
-    AND NEW."artifactKind" IN ('publication-manifest', 'cross-reference-inventory', 'claim-stream', 'review-manifest')
+    AND NEW."artifactKind" IN ('publication-manifest', 'cross-reference-inventory', 'claim-stream', 'review-manifest', 'review-claim-stream', 'published-page-data', 'source-document')
+    AND length(NEW."artifactIdentitySha256") = 64
+    AND NEW."artifactIdentitySha256" NOT GLOB '*[^a-f0-9]*'
     AND length(NEW."contentSha256") = 64
     AND NEW."contentSha256" NOT GLOB '*[^a-f0-9]*'
     AND (NEW."declaredSha256" IS NULL OR (length(NEW."declaredSha256") = 64 AND NEW."declaredSha256" NOT GLOB '*[^a-f0-9]*'))
@@ -535,7 +538,7 @@ const sqliteGuardConditions = {
     THEN 1 ELSE 0 END`,
   PublicationClaimOccurrence: `CASE WHEN
     (NEW."declarationAuthority" = 'publication-source' AND NEW."text" IS NOT NULL)
-    OR (NEW."declarationAuthority" = 'review-manifest' AND NEW."text" IS NULL AND NEW."claimType" IS NULL AND NEW."qualification" IS NULL)
+    OR (NEW."declarationAuthority" = 'review-manifest' AND NEW."text" IS NOT NULL)
     THEN 1 ELSE 0 END`,
   TrustAdjudicationReference: `CASE WHEN
     ((NEW."trustAssessmentId" IS NOT NULL AND NEW."nodeRelationTrustAssessmentId" IS NULL AND NEW."assessmentId" = NEW."trustAssessmentId")

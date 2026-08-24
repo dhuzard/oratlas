@@ -122,6 +122,9 @@ export const PUBLICATION_CAPTURE_ARTIFACT_KINDS = [
   "cross-reference-inventory",
   "claim-stream",
   "review-manifest",
+  "review-claim-stream",
+  "published-page-data",
+  "source-document",
 ] as const;
 export const publicationCaptureArtifactKindSchema = z.enum(PUBLICATION_CAPTURE_ARTIFACT_KINDS);
 export type PublicationCaptureArtifactKind = z.infer<typeof publicationCaptureArtifactKindSchema>;
@@ -396,6 +399,8 @@ export const publicationVersionRecordSchema = z
     adapter: publicationAdapterBindingSchema,
     source: publicationSourceDescriptorSchema.optional(),
     structuralProvenance: publicationStructuralProvenanceSchema,
+    /** Recorded reason(s) a declared source did not reach source-byte provenance. */
+    verificationWarnings: z.array(z.string().min(1).max(1_000)).max(100).default([]),
     observedAt: z.string().datetime(),
   })
   .strict()
@@ -425,6 +430,8 @@ export const publicationCaptureRecordSchema = z
     declaredPath: safeRepoRelativePathSchema.optional(),
     /** Absolute location the bytes were observed at, when one exists. */
     observedUrl: publicationHttpsUrlSchema.optional(),
+    /** URL requested before redirects, retained separately from the final observed URL. */
+    requestedUrl: publicationHttpsUrlSchema.optional(),
     mediaType: z.string().min(1).max(120),
     /** SHA-256 over the exact observed bytes. Always recomputed, never copied. */
     contentSha256: publicationSha256Schema,
@@ -436,6 +443,44 @@ export const publicationCaptureRecordSchema = z
   })
   .strict();
 export type PublicationCaptureRecord = z.infer<typeof publicationCaptureRecordSchema>;
+
+/** Editor-authenticated request to register one externally hosted protocol manifest. */
+export const externalPublicationRegistrationRequestSchema = z
+  .object({
+    manifestUrl: publicationHttpsUrlSchema,
+    /** Schema 0.2.0 does not declare a publication type; editors may supply one. */
+    publicationType: publicationTypeSchema.default("other"),
+  })
+  .strict();
+export type ExternalPublicationRegistrationRequest = z.infer<
+  typeof externalPublicationRegistrationRequestSchema
+>;
+
+/** Typed result of immutable external-publication registration. */
+export const externalPublicationRegistrationResultSchema = z
+  .object({
+    schemaVersion: z.literal("1.0.0"),
+    captureId: z.string().min(1),
+    publicationId: z.string().min(1),
+    publicationVersionId: z.string().min(1),
+    manifestSchemaVersion: z.literal(MYST_PUBLICATION_PROTOCOL_VERSION),
+    adapterType: publicationAdapterTypeSchema,
+    claimOccurrenceCount: z.number().int().nonnegative(),
+    verificationLevel: publicationStructuralProvenanceSchema,
+    warnings: z.array(z.string().min(1).max(1_000)).max(100),
+    replayed: z.boolean(),
+    links: z
+      .object({
+        capture: z.string().startsWith("/"),
+        publication: z.string().startsWith("/"),
+        publicationVersion: z.string().startsWith("/"),
+      })
+      .strict(),
+  })
+  .strict();
+export type ExternalPublicationRegistrationResult = z.infer<
+  typeof externalPublicationRegistrationResultSchema
+>;
 
 /**
  * One exact occurrence of a claim declaration in one publication version.
