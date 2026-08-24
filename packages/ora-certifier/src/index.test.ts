@@ -178,6 +178,39 @@ describe("ORA API-only certification service", () => {
     });
   });
 
+  it("fails the run when evaluator provenance uses another prompt contract", async () => {
+    const { client, requests } = apiHarness();
+    const evaluation = await createDeterministicOraTestEvaluator("strong").evaluate({
+      packet,
+      protocol: (await import("@oratlas/contracts")).ORA_SCIENTIFIC_MERIT_PROTOCOL_DEFINITION,
+    });
+    const recorder = { recordSucceeded: vi.fn() };
+    await expect(
+      new OraCertificationService(
+        client,
+        {
+          evaluate: vi.fn().mockResolvedValue({
+            ...evaluation,
+            executionMetadata: {
+              ...evaluation.executionMetadata,
+              promptVersion: "different-prompt-contract",
+            },
+          }),
+        },
+        recorder,
+      ).certify({
+        publicationVersionId: "version-1",
+        certificationProtocolId: "protocol-1",
+        idempotencyKey: "prompt-version-mismatch",
+      }),
+    ).rejects.toThrow(/prompt version does not match/);
+    expect(recorder.recordSucceeded).not.toHaveBeenCalled();
+    expect(requests.at(-1)).toMatchObject({
+      path: "/api/certification-runs/run-1/transition",
+      body: expect.objectContaining({ status: "failed" }),
+    });
+  });
+
   it("binds result outcome to deterministic criteria rather than an evaluator field", async () => {
     const { client, requests } = apiHarness();
     const base = await createDeterministicOraTestEvaluator("failure").evaluate({

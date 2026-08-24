@@ -58,6 +58,11 @@ export class OraCertificationService {
         packet,
         protocol: ORA_SCIENTIFIC_MERIT_PROTOCOL_DEFINITION,
       });
+      if (evaluation.executionMetadata.promptVersion !== ORA_SCIENTIFIC_MERIT_PROMPT_VERSION) {
+        throw new Error(
+          "Evaluator prompt version does not match ORA Scientific Merit Pilot 0.1.0.",
+        );
+      }
       const outcome = deriveOraScientificMeritOutcome(
         evaluation.criteria,
         packet.completeness.content,
@@ -81,7 +86,7 @@ export class OraCertificationService {
           provider: evaluation.executionMetadata.provider,
           model: evaluation.executionMetadata.model,
           modelVersion: evaluation.executionMetadata.modelVersion,
-          promptVersion: ORA_SCIENTIFIC_MERIT_PROMPT_VERSION,
+          promptVersion: evaluation.executionMetadata.promptVersion,
           structuredOutputSha256: recorded.structuredOutputSha256,
         },
       });

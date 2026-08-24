@@ -12,9 +12,9 @@ export function oraPilotPresentation(input: {
   lifecycleState: string;
 }) {
   if (
-    input.certifier.slug !== "ora" ||
-    input.protocol.seriesKey !== "scientific-merit-pilot" ||
-    input.protocol.version !== "0.1.0"
+    input.certifier.slug !== ORA_CERTIFIER_SLUG ||
+    input.protocol.seriesKey !== ORA_SCIENTIFIC_MERIT_SERIES ||
+    input.protocol.version !== ORA_SCIENTIFIC_MERIT_VERSION
   )
     return null;
   const active = input.lifecycleState === "issued";
@@ -26,3 +26,8 @@ export function oraPilotPresentation(input: {
       }
     : null;
 }
+import {
+  ORA_CERTIFIER_SLUG,
+  ORA_SCIENTIFIC_MERIT_SERIES,
+  ORA_SCIENTIFIC_MERIT_VERSION,
+} from "@oratlas/contracts";
