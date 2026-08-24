@@ -190,6 +190,7 @@ model Review {
   synthesisStalenessHeads        SynthesisStalenessHead[]
   synthesisStalenessEvaluations  SynthesisStalenessEvaluation[]
   synthesisRegenerationProposals SynthesisRegenerationProposal[]
+  publicationProjection          Publication?                    @relation("reviewPublicationProjection")
 }
 
 model ReviewVersion {
@@ -532,18 +533,19 @@ model KnowledgeNode {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  repository            Repository?                @relation(fields: [repositoryId], references: [id], onDelete: Restrict)
-  review                Review?                    @relation("reviewKnowledgeNode")
+  repository            Repository?                  @relation(fields: [repositoryId], references: [id], onDelete: Restrict)
+  review                Review?                      @relation("reviewKnowledgeNode")
   versions              KnowledgeNodeVersion[]
-  incomingEdges         NodeEdge[]                 @relation("targetNode")
-  incomingEdgeProposals NodeEdgeProposal[]         @relation("proposalTargetNode")
+  incomingEdges         NodeEdge[]                   @relation("targetNode")
+  incomingEdgeProposals NodeEdgeProposal[]           @relation("proposalTargetNode")
   linkedClaims          Claim[]
-  linkedCitations       Citation[]                 @relation("citationWorkNode")
+  linkedCitations       Citation[]                   @relation("citationWorkNode")
   aliases               NodeAlias[]
-  identityProposalsFrom NodeIdentityProposal[]     @relation("identityProposalSource")
-  identityProposalsTo   NodeIdentityProposal[]     @relation("identityProposalTarget")
+  identityProposalsFrom NodeIdentityProposal[]       @relation("identityProposalSource")
+  identityProposalsTo   NodeIdentityProposal[]       @relation("identityProposalTarget")
   synthesisMemberships  SynthesisDraftMembership[]
   synthesisCitations    SynthesisDraftCitation[]
+  publicationClaims     PublicationClaimOccurrence[] @relation("publicationClaimNode")
 
   @@unique([repositoryId, localNodeId])
   @@index([originType])
@@ -553,51 +555,55 @@ model KnowledgeNode {
 /// Immutable content snapshot for a node at one exact repository commit. The
 /// bound RepositorySnapshot supplies the commit SHA without duplicating it.
 model KnowledgeNodeVersion {
-  id                    String   @id @default(cuid())
-  knowledgeNodeId       String
+  id                                 String   @id @default(cuid())
+  knowledgeNodeId                    String
   /// Required only for repository-backed versions.
-  snapshotId            String?
+  snapshotId                         String?
   /// Exact relational object bindings. Nullable during expand/backfill.
-  sourceReviewVersionId String?  @unique
-  sourceClaimId         String?  @unique
-  sourceCitationId      String?  @unique
+  sourceReviewVersionId              String?  @unique
+  sourceClaimId                      String?  @unique
+  sourceCitationId                   String?  @unique
+  /// Expand-only external-publication occurrence source. The exclusive source
+  /// union already admits it; no writer materializes one yet.
+  sourcePublicationClaimOccurrenceId String?  @unique
   /// Submission/capture that first materialized this version. A single
   /// acceptance can publish many nodes, so these provenance FKs are not unique.
-  sourceSubmissionId    String?
-  inspectionCaptureId   String?
+  sourceSubmissionId                 String?
+  inspectionCaptureId                String?
   /// SHA-256 of the exact canonical inspection capture accepted here.
-  capturePayloadHash    String?
+  capturePayloadHash                 String?
   /// Repository display title; optional for canonical source records.
-  title                 String?
-  abstract              String?
-  text                  String?
+  title                              String?
+  abstract                           String?
+  text                               String?
   /// contracts ManifestContributor[] encoded as JSON.
-  contributorsJson      String   @default("[]")
+  contributorsJson                   String   @default("[]")
   /// Repository-declared license; optional for canonical source records.
-  license               String?
+  license                            String?
   /// contracts KnowledgeNodeProvenance encoded as JSON.
-  provenanceJson        String
+  provenanceJson                     String
   /// Kind-specific contracts KnowledgeNode.payload encoded as JSON.
-  payloadJson           String
-  versionDoi            String?
-  conceptDoi            String?
+  payloadJson                        String
+  versionDoi                         String?
+  conceptDoi                         String?
   /// Synthetic example identifier marker; never render its DOI as outbound.
-  isExample             Boolean  @default(false)
-  createdAt             DateTime @default(now())
+  isExample                          Boolean  @default(false)
+  createdAt                          DateTime @default(now())
 
-  knowledgeNode        KnowledgeNode              @relation(fields: [knowledgeNodeId], references: [id])
-  snapshot             RepositorySnapshot?        @relation(fields: [snapshotId], references: [id], onDelete: Restrict)
-  sourceReviewVersion  ReviewVersion?             @relation("reviewGraphVersion", fields: [sourceReviewVersionId], references: [id], onDelete: Restrict)
-  sourceClaim          Claim?                     @relation("claimGraphVersion", fields: [sourceClaimId], references: [id], onDelete: Restrict)
-  sourceCitation       Citation?                  @relation("citationGraphVersion", fields: [sourceCitationId], references: [id], onDelete: Restrict)
-  sourceSubmission     Submission?                @relation("NodeVersionSource", fields: [sourceSubmissionId], references: [id])
-  inspectionCapture    InspectionCapture?         @relation("NodeVersionCapture", fields: [inspectionCaptureId], references: [id])
-  outgoingEdges        NodeEdge[]                 @relation("sourceNodeVersion")
-  proposedEdgesFrom    NodeEdgeProposal[]         @relation("proposalSourceVersion")
-  proposedAsTarget     NodeEdgeProposal[]         @relation("proposalTargetVersion")
-  confirmedAsTarget    NodeEdge[]                 @relation("confirmedTargetVersion")
-  synthesisMemberships SynthesisDraftMembership[]
-  synthesisCitations   SynthesisDraftCitation[]
+  knowledgeNode                    KnowledgeNode               @relation(fields: [knowledgeNodeId], references: [id])
+  snapshot                         RepositorySnapshot?         @relation(fields: [snapshotId], references: [id], onDelete: Restrict)
+  sourceReviewVersion              ReviewVersion?              @relation("reviewGraphVersion", fields: [sourceReviewVersionId], references: [id], onDelete: Restrict)
+  sourceClaim                      Claim?                      @relation("claimGraphVersion", fields: [sourceClaimId], references: [id], onDelete: Restrict)
+  sourceCitation                   Citation?                   @relation("citationGraphVersion", fields: [sourceCitationId], references: [id], onDelete: Restrict)
+  sourcePublicationClaimOccurrence PublicationClaimOccurrence? @relation("publicationClaimGraphVersion", fields: [sourcePublicationClaimOccurrenceId], references: [id], onDelete: Restrict)
+  sourceSubmission                 Submission?                 @relation("NodeVersionSource", fields: [sourceSubmissionId], references: [id])
+  inspectionCapture                InspectionCapture?          @relation("NodeVersionCapture", fields: [inspectionCaptureId], references: [id])
+  outgoingEdges                    NodeEdge[]                  @relation("sourceNodeVersion")
+  proposedEdgesFrom                NodeEdgeProposal[]          @relation("proposalSourceVersion")
+  proposedAsTarget                 NodeEdgeProposal[]          @relation("proposalTargetVersion")
+  confirmedAsTarget                NodeEdge[]                  @relation("confirmedTargetVersion")
+  synthesisMemberships             SynthesisDraftMembership[]
+  synthesisCitations               SynthesisDraftCitation[]
 
   @@unique([knowledgeNodeId, snapshotId])
   @@index([snapshotId])
@@ -1987,4 +1993,165 @@ model ProtocolDriftProposal {
 
   @@index([snapshotId, status])
   @@index([status, createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// Generic publication boundary (docs/external-publications.md).
+//
+// A Review is one TYPE of publication, not the federation object. These models
+// are the boundary an independently hosted publication is observed through and
+// that legacy review storage projects into. They are deliberately separate
+// from KnowledgeNode: a source occurrence is never canonical graph identity.
+// ---------------------------------------------------------------------------
+
+/// Stable identity of one source publication across its versions. Never an
+/// ORAtlas canonical graph node, and never keyed by a URL alone.
+model Publication {
+  id                       String   @id @default(cuid())
+  /// Global federation key derived from durable identity evidence only.
+  stableKey                String   @unique
+  /// contracts PUBLICATION_TYPES: review-article | research-article |
+  /// methods-article | preprint | living-review | other.
+  publicationType          String
+  /// contracts PUBLICATION_RECORD_SOURCES:
+  /// external-publication | atlas-review-projection.
+  recordSource             String
+  /// contracts publicationIdentityEvidenceSchema encoded as JSON. Retained so
+  /// the keying decision stays auditable and is never re-derived from a URL.
+  identityEvidenceJson     String
+  /// Author-declared identifier, stable across versions. Evidence, not identity.
+  sourceLocalPublicationId String?
+  /// Legacy projection binding. Exactly one publication may project one review.
+  reviewId                 String?  @unique
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+
+  review   Review?              @relation("reviewPublicationProjection", fields: [reviewId], references: [id], onDelete: Restrict)
+  versions PublicationVersion[]
+
+  @@index([publicationType])
+  @@index([recordSource])
+}
+
+/// One exact, immutable, externally observed publication version. Identity is
+/// (publication, sourcesSha256); the canonical URL is addressing metadata.
+model PublicationVersion {
+  id                       String   @id @default(cuid())
+  publicationId            String
+  /// Exact version key derived from the publication identity plus sourcesSha256.
+  stableKey                String   @unique
+  /// Source-local publication id as observed on this exact version.
+  sourceLocalPublicationId String?
+  /// The publication's own digest over its complete document set.
+  sourcesSha256            String
+  versionLabel             String?
+  title                    String?
+  /// Absolute https URL this version was served from, when one was declared.
+  canonicalUrl             String?
+  /// contracts PUBLICATION_ADAPTER_TYPES. Generic; toolchain fields never leak
+  /// into their own columns.
+  adapterType              String
+  /// contracts publicationAdapterBindingSchema encoded as JSON: closed,
+  /// discriminated and carrying its own pinned external protocol version.
+  adapterBindingJson       String
+  /// contracts publicationSourceDescriptorSchema encoded as JSON. Null when the
+  /// publication declares no obtainable source, which caps structural
+  /// provenance at published-structure.
+  sourceDescriptorJson     String?
+  /// contracts PUBLICATION_STRUCTURAL_PROVENANCE_LEVELS. Structural only:
+  /// published-structure | source-byte. Never a scientific validation state.
+  structuralProvenance     String
+  observedAt               DateTime
+  createdAt                DateTime @default(now())
+
+  publication      Publication                  @relation(fields: [publicationId], references: [id], onDelete: Restrict)
+  captures         PublicationCapture[]
+  claimOccurrences PublicationClaimOccurrence[]
+
+  /// Distinct publications may legitimately share a sourcesSha256, so exact
+  /// version identity is scoped to its publication rather than global.
+  @@unique([publicationId, sourcesSha256])
+  @@index([publicationId])
+  @@index([structuralProvenance])
+}
+
+/// Immutable record of exactly what ORAtlas observed for one artifact of one
+/// publication version. Append-only at the database layer: observed bytes and
+/// digests can never be silently rewritten.
+model PublicationCapture {
+  id                   String   @id @default(cuid())
+  publicationVersionId String
+  /// contracts PUBLICATION_CAPTURE_ARTIFACT_KINDS.
+  artifactKind         String
+  /// Publication-relative path the artifact was declared at, re-validated
+  /// against the safe-path rule before it was ever resolved.
+  declaredPath         String?
+  /// Absolute location the bytes were observed at, when one exists.
+  observedUrl          String?
+  mediaType            String
+  /// SHA-256 over the exact observed bytes. Always recomputed, never copied.
+  contentSha256        String
+  byteLength           Int
+  /// Exact observed bytes. Nullable so a later phase can retain the digest
+  /// alone for an artifact too large to store inline.
+  contentBytes         String?
+  /// Digest the publication declared for this artifact, retained separately
+  /// from the digest ORAtlas computed.
+  declaredSha256       String?
+  /// contracts PUBLICATION_STRUCTURAL_PROVENANCE_LEVELS reached by this capture.
+  structuralProvenance String
+  capturedAt           DateTime
+  createdAt            DateTime @default(now())
+
+  publicationVersion PublicationVersion @relation(fields: [publicationVersionId], references: [id], onDelete: Restrict)
+
+  @@unique([publicationVersionId, artifactKind, contentSha256])
+  @@index([publicationVersionId])
+  @@index([contentSha256])
+}
+
+/// One exact occurrence of a claim declaration in one publication version.
+///
+/// This is not a canonical claim identity. ORAtlas must never infer that two
+/// occurrences are the same claim from equal text, an equal source-local id in
+/// different versions, an equal declarationSha256, an equal sourcesSha256,
+/// position, ordering or similarity.
+model PublicationClaimOccurrence {
+  id                   String   @id @default(cuid())
+  publicationVersionId String
+  /// Author-chosen id, unique only inside one publication version.
+  sourceLocalClaimId   String
+  /// Atlas-derived occurrence key, scoped to the exact version.
+  stableKey            String   @unique
+  /// contracts publicationClaimTargetSchema encoded as JSON. Adapter-specific
+  /// target metadata stays inside this typed union.
+  targetJson           String
+  /// contracts publicationClaimSourceBindingSchema encoded as JSON.
+  sourceBindingJson    String
+  /// contracts publicationClaimSelectorSchema encoded as JSON, carrying its
+  /// explicit frame so source offsets are never mixed with rendered offsets.
+  selectorJson         String
+  /// Content digest over the declaration alone. Deliberately not unique:
+  /// equal bytes are not one canonical claim.
+  declarationSha256    String
+  /// contracts PUBLICATION_CLAIM_DECLARATION_AUTHORITIES.
+  declarationAuthority String
+  /// Semantic declaration; present only when the publication source is the
+  /// declaration authority.
+  text                 String?
+  claimType            String?
+  qualification        String?
+  /// Explicit, reviewed canonical binding. Never inferred; null until an
+  /// audited identity decision sets it, and immutable once set.
+  knowledgeNodeId      String?
+  createdAt            DateTime @default(now())
+
+  publicationVersion PublicationVersion    @relation(fields: [publicationVersionId], references: [id], onDelete: Restrict)
+  knowledgeNode      KnowledgeNode?        @relation("publicationClaimNode", fields: [knowledgeNodeId], references: [id], onDelete: Restrict)
+  graphVersion       KnowledgeNodeVersion? @relation("publicationClaimGraphVersion")
+
+  @@unique([publicationVersionId, sourceLocalClaimId])
+  @@index([publicationVersionId])
+  @@index([declarationSha256])
+  @@index([knowledgeNodeId])
 }

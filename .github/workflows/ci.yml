@@ -192,6 +192,11 @@ jobs:
         env:
           DATABASE_GUARD_TEST_DATABASE_URL: "postgresql://oratlas:oratlas@localhost:5432/oratlas"
 
+      - name: Exercise the publication boundary guards on PostgreSQL
+        run: pnpm exec vitest run packages/db/src/publication-boundary.postgres.integration.test.ts
+        env:
+          PUBLICATION_BOUNDARY_TEST_DATABASE_URL: "postgresql://oratlas:oratlas@localhost:5432/oratlas"
+
       - name: Seed PostgreSQL
         run: pnpm --filter @oratlas/db db:seed
 

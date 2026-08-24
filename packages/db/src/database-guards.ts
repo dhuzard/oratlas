@@ -21,6 +21,10 @@ export const DATABASE_GUARD_NAMES = [
   "TrustAdjudicatorDesignation_state_check",
   "TrustAdjudication_shape_check",
   "TrustAdjudicationReference_shape_check",
+  "Publication_record_source_check",
+  "PublicationVersion_provenance_check",
+  "PublicationCapture_shape_check",
+  "PublicationClaimOccurrence_declaration_check",
 ] as const;
 
 export const POSTGRES_DATABASE_GUARD_TRIGGER_NAMES = [
@@ -37,6 +41,10 @@ export const POSTGRES_DATABASE_GUARD_TRIGGER_NAMES = [
   "TrustAdjudicationReference_subject_guard",
   "Challenge_adjudication_container_guard",
   "ChallengeResponse_contributor_container_guard",
+  "Publication_identity_immutable_guard",
+  "PublicationVersion_immutable_guard",
+  "PublicationCapture_immutable_guard",
+  "PublicationClaimOccurrence_immutable_guard",
 ] as const;
 
 export const POSTGRES_DATABASE_GUARD_SQL = [
@@ -49,7 +57,7 @@ export const POSTGRES_DATABASE_GUARD_SQL = [
   )`,
   'ALTER TABLE "KnowledgeNodeVersion" DROP CONSTRAINT IF EXISTS "KnowledgeNodeVersion_source_union_check"',
   `ALTER TABLE "KnowledgeNodeVersion" ADD CONSTRAINT "KnowledgeNodeVersion_source_union_check" CHECK (
-    (("snapshotId" IS NOT NULL)::int + ("sourceReviewVersionId" IS NOT NULL)::int + ("sourceClaimId" IS NOT NULL)::int + ("sourceCitationId" IS NOT NULL)::int) = 1
+    (("snapshotId" IS NOT NULL)::int + ("sourceReviewVersionId" IS NOT NULL)::int + ("sourceClaimId" IS NOT NULL)::int + ("sourceCitationId" IS NOT NULL)::int + ("sourcePublicationClaimOccurrenceId" IS NOT NULL)::int) = 1
   )`,
   'ALTER TABLE "Review" DROP CONSTRAINT IF EXISTS "Review_source_union_check"',
   `ALTER TABLE "Review" ADD CONSTRAINT "Review_source_union_check" CHECK (
@@ -280,6 +288,108 @@ export const POSTGRES_DATABASE_GUARD_SQL = [
   'DROP TRIGGER IF EXISTS "SynthesisDraftCitation_reference_guard" ON "SynthesisDraftCitation"',
   `CREATE TRIGGER "SynthesisDraftCitation_reference_guard" BEFORE INSERT OR UPDATE ON "SynthesisDraftCitation"
     FOR EACH ROW EXECUTE FUNCTION "oratlas_validate_synthesis_citation_reference"()`,
+
+  // Generic publication boundary. A review projection owns exactly one review;
+  // a natively registered external publication owns none.
+  'ALTER TABLE "Publication" DROP CONSTRAINT IF EXISTS "Publication_record_source_check"',
+  `ALTER TABLE "Publication" ADD CONSTRAINT "Publication_record_source_check" CHECK (
+    ("recordSource" = 'external-publication' AND "reviewId" IS NULL)
+    OR ("recordSource" = 'atlas-review-projection' AND "reviewId" IS NOT NULL)
+  )`,
+  // Structural provenance is never a scientific validation state, and
+  // source-byte provenance is unreachable without an obtainable source.
+  'ALTER TABLE "PublicationVersion" DROP CONSTRAINT IF EXISTS "PublicationVersion_provenance_check"',
+  `ALTER TABLE "PublicationVersion" ADD CONSTRAINT "PublicationVersion_provenance_check" CHECK (
+    "structuralProvenance" IN ('published-structure', 'source-byte')
+    AND ("structuralProvenance" = 'published-structure' OR "sourceDescriptorJson" IS NOT NULL)
+    AND "sourcesSha256" ~ '^[a-f0-9]{64}$'
+    AND "adapterType" IN ('myst')
+  )`,
+  'ALTER TABLE "PublicationCapture" DROP CONSTRAINT IF EXISTS "PublicationCapture_shape_check"',
+  `ALTER TABLE "PublicationCapture" ADD CONSTRAINT "PublicationCapture_shape_check" CHECK (
+    "structuralProvenance" IN ('published-structure', 'source-byte')
+    AND "artifactKind" IN ('publication-manifest', 'cross-reference-inventory', 'claim-stream', 'review-manifest')
+    AND "contentSha256" ~ '^[a-f0-9]{64}$'
+    AND ("declaredSha256" IS NULL OR "declaredSha256" ~ '^[a-f0-9]{64}$')
+    AND "byteLength" >= 0
+  )`,
+  // Exactly one artifact owns a claim declaration: the publication source, or
+  // the review manifest the publication ships.
+  'ALTER TABLE "PublicationClaimOccurrence" DROP CONSTRAINT IF EXISTS "PublicationClaimOccurrence_declaration_check"',
+  `ALTER TABLE "PublicationClaimOccurrence" ADD CONSTRAINT "PublicationClaimOccurrence_declaration_check" CHECK (
+    ("declarationAuthority" = 'publication-source' AND "text" IS NOT NULL)
+    OR ("declarationAuthority" = 'review-manifest' AND "text" IS NULL AND "claimType" IS NULL AND "qualification" IS NULL)
+  )`,
+
+  // A publication's identity key and the evidence it was keyed from are fixed.
+  // Presentation fields may still be corrected editorially.
+  `CREATE OR REPLACE FUNCTION "oratlas_protect_publication_identity"() RETURNS trigger AS $$
+    BEGIN
+      IF NEW."stableKey" IS DISTINCT FROM OLD."stableKey"
+        OR NEW."recordSource" IS DISTINCT FROM OLD."recordSource"
+        OR NEW."identityEvidenceJson" IS DISTINCT FROM OLD."identityEvidenceJson"
+        OR NEW."reviewId" IS DISTINCT FROM OLD."reviewId"
+      THEN
+        RAISE EXCEPTION 'Publication identity is immutable';
+      END IF;
+      RETURN NEW;
+    END;
+  $$ LANGUAGE plpgsql`,
+  'DROP TRIGGER IF EXISTS "Publication_identity_immutable_guard" ON "Publication"',
+  `CREATE TRIGGER "Publication_identity_immutable_guard" BEFORE UPDATE ON "Publication"
+    FOR EACH ROW EXECUTE FUNCTION "oratlas_protect_publication_identity"()`,
+
+  `CREATE OR REPLACE FUNCTION "oratlas_protect_publication_version"() RETURNS trigger AS $$
+    BEGIN
+      RAISE EXCEPTION 'An observed publication version is immutable';
+    END;
+  $$ LANGUAGE plpgsql`,
+  'DROP TRIGGER IF EXISTS "PublicationVersion_immutable_guard" ON "PublicationVersion"',
+  `CREATE TRIGGER "PublicationVersion_immutable_guard" BEFORE UPDATE OR DELETE ON "PublicationVersion"
+    FOR EACH ROW EXECUTE FUNCTION "oratlas_protect_publication_version"()`,
+
+  `CREATE OR REPLACE FUNCTION "oratlas_protect_publication_capture"() RETURNS trigger AS $$
+    BEGIN
+      RAISE EXCEPTION 'Publication capture bytes are immutable';
+    END;
+  $$ LANGUAGE plpgsql`,
+  'DROP TRIGGER IF EXISTS "PublicationCapture_immutable_guard" ON "PublicationCapture"',
+  `CREATE TRIGGER "PublicationCapture_immutable_guard" BEFORE UPDATE OR DELETE ON "PublicationCapture"
+    FOR EACH ROW EXECUTE FUNCTION "oratlas_protect_publication_capture"()`,
+
+  // A source occurrence is immutable. Its canonical binding is write-once and
+  // set only by an explicit reviewed decision; it is never rewritten.
+  `CREATE OR REPLACE FUNCTION "oratlas_protect_publication_claim_occurrence"() RETURNS trigger AS $$
+    BEGIN
+      IF TG_OP = 'DELETE' THEN
+        RAISE EXCEPTION 'A publication claim occurrence is immutable';
+      END IF;
+      IF NEW."publicationVersionId" IS DISTINCT FROM OLD."publicationVersionId"
+        OR NEW."sourceLocalClaimId" IS DISTINCT FROM OLD."sourceLocalClaimId"
+        OR NEW."stableKey" IS DISTINCT FROM OLD."stableKey"
+        OR NEW."targetJson" IS DISTINCT FROM OLD."targetJson"
+        OR NEW."sourceBindingJson" IS DISTINCT FROM OLD."sourceBindingJson"
+        OR NEW."selectorJson" IS DISTINCT FROM OLD."selectorJson"
+        OR NEW."declarationSha256" IS DISTINCT FROM OLD."declarationSha256"
+        OR NEW."declarationAuthority" IS DISTINCT FROM OLD."declarationAuthority"
+        OR NEW."text" IS DISTINCT FROM OLD."text"
+        OR NEW."claimType" IS DISTINCT FROM OLD."claimType"
+        OR NEW."qualification" IS DISTINCT FROM OLD."qualification"
+        OR NEW."createdAt" IS DISTINCT FROM OLD."createdAt"
+      THEN
+        RAISE EXCEPTION 'A publication claim occurrence is immutable';
+      END IF;
+      IF OLD."knowledgeNodeId" IS NOT NULL
+        AND NEW."knowledgeNodeId" IS DISTINCT FROM OLD."knowledgeNodeId"
+      THEN
+        RAISE EXCEPTION 'A canonical claim binding cannot be rewritten';
+      END IF;
+      RETURN NEW;
+    END;
+  $$ LANGUAGE plpgsql`,
+  'DROP TRIGGER IF EXISTS "PublicationClaimOccurrence_immutable_guard" ON "PublicationClaimOccurrence"',
+  `CREATE TRIGGER "PublicationClaimOccurrence_immutable_guard" BEFORE UPDATE OR DELETE ON "PublicationClaimOccurrence"
+    FOR EACH ROW EXECUTE FUNCTION "oratlas_protect_publication_claim_occurrence"()`,
 ] as const;
 
 const sqliteGuardConditions = {
@@ -290,7 +400,7 @@ const sqliteGuardConditions = {
     OR (NEW."originType" = 'canonical-work' AND NEW."repositoryId" IS NULL AND NEW."stableKey" IS NOT NULL AND NEW."kind" = 'work')
     THEN 1 ELSE 0 END`,
   KnowledgeNodeVersion: `CASE WHEN
-    ((NEW."snapshotId" IS NOT NULL) + (NEW."sourceReviewVersionId" IS NOT NULL) + (NEW."sourceClaimId" IS NOT NULL) + (NEW."sourceCitationId" IS NOT NULL)) = 1
+    ((NEW."snapshotId" IS NOT NULL) + (NEW."sourceReviewVersionId" IS NOT NULL) + (NEW."sourceClaimId" IS NOT NULL) + (NEW."sourceCitationId" IS NOT NULL) + (NEW."sourcePublicationClaimOccurrenceId" IS NOT NULL)) = 1
     THEN 1 ELSE 0 END`,
   Review: `CASE WHEN
     (NEW."reviewType" = 'ai-synthesis' AND NEW."repositoryId" IS NULL AND NEW."currentSnapshotId" IS NULL AND NEW."synthesisSeriesKey" IS NOT NULL)
@@ -404,6 +514,29 @@ const sqliteGuardConditions = {
     AND ((NEW."administratorOverride" = 0 AND NEW."administratorOverrideById" IS NULL AND NEW."administratorOverrideGithubLoginSnapshot" IS NULL AND NEW."administratorOverrideAt" IS NULL)
       OR (NEW."administratorOverride" = 1 AND NEW."conflictOfInterestStatus" = 'conflict-declared' AND NEW."adjudicatorRoleSnapshot" = 'ADMIN' AND NEW."administratorOverrideById" = NEW."adjudicatorId" AND NEW."administratorOverrideGithubLoginSnapshot" IS NOT NULL AND NEW."administratorOverrideAt" IS NOT NULL))
     THEN 1 ELSE 0 END`,
+  Publication: `CASE WHEN
+    (NEW."recordSource" = 'external-publication' AND NEW."reviewId" IS NULL)
+    OR (NEW."recordSource" = 'atlas-review-projection' AND NEW."reviewId" IS NOT NULL)
+    THEN 1 ELSE 0 END`,
+  PublicationVersion: `CASE WHEN
+    NEW."structuralProvenance" IN ('published-structure', 'source-byte')
+    AND (NEW."structuralProvenance" = 'published-structure' OR NEW."sourceDescriptorJson" IS NOT NULL)
+    AND length(NEW."sourcesSha256") = 64
+    AND NEW."sourcesSha256" NOT GLOB '*[^a-f0-9]*'
+    AND NEW."adapterType" IN ('myst')
+    THEN 1 ELSE 0 END`,
+  PublicationCapture: `CASE WHEN
+    NEW."structuralProvenance" IN ('published-structure', 'source-byte')
+    AND NEW."artifactKind" IN ('publication-manifest', 'cross-reference-inventory', 'claim-stream', 'review-manifest')
+    AND length(NEW."contentSha256") = 64
+    AND NEW."contentSha256" NOT GLOB '*[^a-f0-9]*'
+    AND (NEW."declaredSha256" IS NULL OR (length(NEW."declaredSha256") = 64 AND NEW."declaredSha256" NOT GLOB '*[^a-f0-9]*'))
+    AND NEW."byteLength" >= 0
+    THEN 1 ELSE 0 END`,
+  PublicationClaimOccurrence: `CASE WHEN
+    (NEW."declarationAuthority" = 'publication-source' AND NEW."text" IS NOT NULL)
+    OR (NEW."declarationAuthority" = 'review-manifest' AND NEW."text" IS NULL AND NEW."claimType" IS NULL AND NEW."qualification" IS NULL)
+    THEN 1 ELSE 0 END`,
   TrustAdjudicationReference: `CASE WHEN
     ((NEW."trustAssessmentId" IS NOT NULL AND NEW."nodeRelationTrustAssessmentId" IS NULL AND NEW."assessmentId" = NEW."trustAssessmentId")
       OR (NEW."trustAssessmentId" IS NULL AND NEW."nodeRelationTrustAssessmentId" IS NOT NULL AND NEW."assessmentId" = NEW."nodeRelationTrustAssessmentId"))
@@ -422,6 +555,16 @@ export const SQLITE_DATABASE_GUARD_NAMES = Object.keys(sqliteGuardConditions).fl
   `${table}_guard_insert`,
   `${table}_guard_update`,
 ]);
+
+export const SQLITE_PUBLICATION_IMMUTABLE_GUARD_NAMES = [
+  "Publication_identity_immutable_guard",
+  "PublicationVersion_immutable_guard_update",
+  "PublicationVersion_immutable_guard_delete",
+  "PublicationCapture_immutable_guard_update",
+  "PublicationCapture_immutable_guard_delete",
+  "PublicationClaimOccurrence_immutable_guard_update",
+  "PublicationClaimOccurrence_immutable_guard_delete",
+] as const;
 
 export const SQLITE_ASSESSMENT_COI_IMMUTABLE_GUARD_NAMES = [
   "TrustAssessment_coi_immutable_guard",
@@ -502,6 +645,77 @@ export async function applyDatabaseGuards(
         END
       `);
     }
+    // A publication's identity key and the evidence it was keyed from are fixed.
+    // Presentation fields may still be corrected editorially.
+    await tx.$executeRawUnsafe('DROP TRIGGER IF EXISTS "Publication_identity_immutable_guard"');
+    await tx.$executeRawUnsafe(`
+      CREATE TRIGGER "Publication_identity_immutable_guard"
+      BEFORE UPDATE ON "Publication"
+      FOR EACH ROW WHEN
+        NEW."stableKey" IS NOT OLD."stableKey"
+        OR NEW."recordSource" IS NOT OLD."recordSource"
+        OR NEW."identityEvidenceJson" IS NOT OLD."identityEvidenceJson"
+        OR NEW."reviewId" IS NOT OLD."reviewId"
+      BEGIN
+        SELECT RAISE(ABORT, 'Publication identity is immutable');
+      END
+    `);
+    // A publication version and its captures are exactly what ORAtlas observed:
+    // no update, no delete, so captured bytes can never silently mutate.
+    for (const [table, message] of [
+      ["PublicationVersion", "An observed publication version is immutable"],
+      ["PublicationCapture", "Publication capture bytes are immutable"],
+    ] as const) {
+      for (const operation of ["UPDATE", "DELETE"] as const) {
+        const name = `${table}_immutable_guard_${operation.toLowerCase()}`;
+        await tx.$executeRawUnsafe(`DROP TRIGGER IF EXISTS "${name}"`);
+        await tx.$executeRawUnsafe(`
+          CREATE TRIGGER "${name}"
+          BEFORE ${operation} ON "${table}"
+          FOR EACH ROW
+          BEGIN
+            SELECT RAISE(ABORT, '${message}');
+          END
+        `);
+      }
+    }
+    // A source occurrence is immutable. Its canonical binding is write-once and
+    // set only by an explicit reviewed decision; it is never rewritten.
+    await tx.$executeRawUnsafe(
+      'DROP TRIGGER IF EXISTS "PublicationClaimOccurrence_immutable_guard_update"',
+    );
+    await tx.$executeRawUnsafe(`
+      CREATE TRIGGER "PublicationClaimOccurrence_immutable_guard_update"
+      BEFORE UPDATE ON "PublicationClaimOccurrence"
+      FOR EACH ROW WHEN
+        NEW."publicationVersionId" IS NOT OLD."publicationVersionId"
+        OR NEW."sourceLocalClaimId" IS NOT OLD."sourceLocalClaimId"
+        OR NEW."stableKey" IS NOT OLD."stableKey"
+        OR NEW."targetJson" IS NOT OLD."targetJson"
+        OR NEW."sourceBindingJson" IS NOT OLD."sourceBindingJson"
+        OR NEW."selectorJson" IS NOT OLD."selectorJson"
+        OR NEW."declarationSha256" IS NOT OLD."declarationSha256"
+        OR NEW."declarationAuthority" IS NOT OLD."declarationAuthority"
+        OR NEW."text" IS NOT OLD."text"
+        OR NEW."claimType" IS NOT OLD."claimType"
+        OR NEW."qualification" IS NOT OLD."qualification"
+        OR NEW."createdAt" IS NOT OLD."createdAt"
+        OR (OLD."knowledgeNodeId" IS NOT NULL AND NEW."knowledgeNodeId" IS NOT OLD."knowledgeNodeId")
+      BEGIN
+        SELECT RAISE(ABORT, 'A publication claim occurrence is immutable');
+      END
+    `);
+    await tx.$executeRawUnsafe(
+      'DROP TRIGGER IF EXISTS "PublicationClaimOccurrence_immutable_guard_delete"',
+    );
+    await tx.$executeRawUnsafe(`
+      CREATE TRIGGER "PublicationClaimOccurrence_immutable_guard_delete"
+      BEFORE DELETE ON "PublicationClaimOccurrence"
+      FOR EACH ROW
+      BEGIN
+        SELECT RAISE(ABORT, 'A publication claim occurrence is immutable');
+      END
+    `);
     for (const table of ["TrustAdjudication", "TrustAdjudicationReference"] as const) {
       const name = `${table}_immutable_guard`;
       for (const operation of ["UPDATE", "DELETE"] as const) {

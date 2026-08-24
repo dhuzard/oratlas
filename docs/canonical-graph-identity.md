@@ -35,6 +35,27 @@ a review-backed version uses its real `ReviewVersion`. Synthesis reviews therefo
 fake repositories, snapshots, commits, trees, or captures. Database constraints and write services
 must reject zero-source and multiple-source states.
 
+### External publication occurrences
+
+The union admits one further real source: an external `PublicationClaimOccurrence`, through the
+nullable, unique `KnowledgeNodeVersion.sourcePublicationClaimOccurrenceId`. The union stays
+exclusive — exactly one real source per node version, now counted across five columns rather than
+four — and the stable-identity union above is unchanged, because such an occurrence would
+materialize as an ordinary `claim-occurrence` node with a global stable key and no repository. No
+new node kind is introduced and canonical identity does not change shape.
+
+This is the expand step only. No writer materializes an external-publication node version, and the
+public canonical graph response contract still names four source variants; `mapNodeVersion` fails
+closed on a source it cannot name, which is correct until a materializer and a response variant
+ship together. The dormant contract's immutability trigger was extended to cover the new column, so
+activation protects it exactly as it protects the other four.
+
+A source occurrence is emphatically not canonical identity. `PublicationClaimOccurrence` carries a
+nullable, write-once `knowledgeNodeId` for an explicit, reviewed identity decision; ORAtlas must not
+derive it from equal text, an equal source-local id in different versions, an equal
+`declarationSha256`, an equal `sourcesSha256`, position, ordering or similarity. See
+`docs/external-publications.md`.
+
 There is one stable `review` node per `Review`, not one per release. Every `ReviewVersion` maps to
 one exact version of that node, including repository and synthesis versions. The mapping is unique
 in both directions. Changing the review head changes a projection; it never changes historical

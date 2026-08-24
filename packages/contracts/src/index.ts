@@ -6,6 +6,7 @@ export * from "./paths.js";
 export * from "./manifest.js";
 export * from "./knowledge-nodes.js";
 export * from "./node-publication.js";
+export * from "./publications.js";
 export * from "./graph.js";
 export * from "./canonical-graph.js";
 export * from "./subgraph-evidence.js";

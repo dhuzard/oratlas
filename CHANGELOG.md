@@ -8,6 +8,17 @@ exports; this is intentionally not a broader compatibility promise.
 
 ## [Unreleased]
 
+### Added
+
+- Generic publication boundary for independently hosted scientific publications:
+  `Publication`, `PublicationVersion`, `PublicationCapture` and `PublicationClaimOccurrence`,
+  with contracts in `@oratlas/contracts` and framework-free domain logic in
+  `@oratlas/publications`. `Review` becomes one supported publication type. Registration and
+  fetching are not implemented; see `docs/external-publications.md`.
+- Structural provenance vocabulary (`published-structure`, `source-byte`), which records what
+  ORAtlas structurally checked and is never a scientific validation state.
+- Expand-only external-publication source for the canonical graph's exact-version union.
+
 ## [0.1.0] - 2026-07-20
 
 ### Added
