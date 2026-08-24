@@ -1,3 +1,9 @@
+import {
+  ORA_CERTIFIER_SLUG,
+  ORA_SCIENTIFIC_MERIT_SERIES,
+  ORA_SCIENTIFIC_MERIT_VERSION,
+} from "@oratlas/contracts";
+
 export const ORA_PILOT_LABELS = {
   certified: "ORA Certified · Pilot",
   "certified-with-conditions": "ORA Certified with conditions · Pilot",
@@ -26,8 +32,3 @@ export function oraPilotPresentation(input: {
       }
     : null;
 }
-import {
-  ORA_CERTIFIER_SLUG,
-  ORA_SCIENTIFIC_MERIT_SERIES,
-  ORA_SCIENTIFIC_MERIT_VERSION,
-} from "@oratlas/contracts";
