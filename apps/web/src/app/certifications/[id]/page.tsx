@@ -59,7 +59,8 @@ export default async function CertificationDetailPage({
             {criteria.map((criterion) => (
               <section key={criterion.criterionId}>
                 <h2>
-                  {criterion.criterionId.toUpperCase()} — {definitions.get(criterion.criterionId)}
+                  {criterion.criterionId.toUpperCase()} —{" "}
+                  {definitions.get(criterion.criterionId) ?? "Unknown protocol criterion"}
                 </h2>
                 <StatusPill status={criterion.status} />
                 <p>{criterion.rationale}</p>

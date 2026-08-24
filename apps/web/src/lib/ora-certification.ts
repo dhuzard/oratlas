@@ -19,7 +19,7 @@ import {
   OraCertificationService,
   type OraExecutionRecorder,
 } from "@oratlas/ora-certifier";
-import { prisma } from "./db";
+import { parseJsonColumn, prisma } from "./db";
 
 export class OraCertificationUnavailableError extends Error {
   constructor(message = "Real ORA certification is not configured on this server.") {
@@ -55,7 +55,12 @@ export async function getOraCertificationReadiness(publicationVersionId: string)
     publicationVersion: {
       id: version.id,
       title: version.title,
-      contentCompleteness: JSON.parse(version.contentCompletenessJson),
+      contentCompleteness: parseJsonColumn(version.contentCompletenessJson, {
+        returnedDocuments: 0,
+        totalDocumentsKnown: null,
+        truncated: true,
+        coverage: "unsupported" as const,
+      }),
       contentCorpusSha256: version.contentCorpusSha256,
     },
     protocol: protocol
