@@ -105,6 +105,15 @@ function resetFixture(
             html_id: "claim-1",
             data: { oratlas: { kind: "claim", id: "claim-1" } },
           },
+          {
+            type: "heading",
+            depth: 1,
+            children: [{ type: "text", value: "Results" }],
+          },
+          {
+            type: "paragraph",
+            children: [{ type: "text", value: "The primary scientific result is reported here." }],
+          },
         ],
       },
     } as const);
@@ -171,6 +180,98 @@ describe("external publication registration verification", () => {
     ]);
     expect(result.resolvedClaimUrls.get("claim-1")).toBe(
       "https://example.org/journal/review/results#claim-1",
+    );
+    expect(result.normalized.content?.documents).toHaveLength(1);
+    expect(result.normalized.content?.documents[0]).toMatchObject({
+      role: "results",
+      sourcePath: "content/results.json",
+      representation: "published-structured-text",
+      publishedUrl: "https://example.org/journal/review/results",
+    });
+    expect(result.normalized.content?.documents[0]?.text).toContain("primary scientific result");
+    expect(result.normalized.content?.completeness).toEqual({
+      returnedDocuments: 1,
+      totalDocumentsKnown: 1,
+      truncated: false,
+      coverage: "partial",
+    });
+  });
+
+  it("captures a bounded inventory-derived corpus and reports truncation honestly", async () => {
+    resetFixture({
+      xref: {
+        references: [
+          { identifier: "claim-1", url: "/results", data: "content/results.json" },
+          { identifier: "introduction", url: "/introduction", data: "content/introduction.json" },
+        ],
+      },
+    });
+    files.set("/review/content/introduction.json", {
+      type: "application/json",
+      body: JSON.stringify({
+        mdast: {
+          type: "root",
+          children: [
+            {
+              type: "heading",
+              depth: 1,
+              children: [{ type: "text", value: "Introduction" }],
+            },
+            {
+              type: "paragraph",
+              children: [{ type: "text", value: "This study addresses an important gap." }],
+            },
+          ],
+        },
+      }),
+    });
+    const completeInventoryCapture = await verify();
+    expect(completeInventoryCapture.normalized.content?.documents).toHaveLength(2);
+    expect(completeInventoryCapture.normalized.content?.completeness).toMatchObject({
+      totalDocumentsKnown: 2,
+      truncated: false,
+      coverage: "partial",
+    });
+
+    const bounded = await verifyExternalPublication({
+      manifestUrl: `http://fixture.test:${port}/review/oratlas.manifest.json`,
+      publicationType: "other",
+      registrationKey: "fixture-registration",
+      fetcher: fetcher(),
+      limits: { maxContentDocuments: 1 },
+    });
+    expect(bounded.normalized.content?.documents).toHaveLength(1);
+    expect(bounded.normalized.content?.completeness).toEqual({
+      returnedDocuments: 1,
+      totalDocumentsKnown: 2,
+      truncated: true,
+      coverage: "partial",
+    });
+  });
+
+  it("omits a malformed optional content page without weakening claim verification", async () => {
+    resetFixture({
+      xref: {
+        references: [
+          { identifier: "claim-1", url: "/results", data: "content/results.json" },
+          { identifier: "appendix", url: "/appendix", data: "content/appendix.json" },
+        ],
+      },
+    });
+    files.set("/review/content/appendix.json", {
+      type: "application/json",
+      body: "{not-json}",
+    });
+    const result = await verify();
+    expect(result.normalized.occurrences).toHaveLength(1);
+    expect(result.normalized.content?.documents).toHaveLength(1);
+    expect(result.normalized.content?.completeness).toMatchObject({
+      totalDocumentsKnown: 2,
+      truncated: true,
+      coverage: "partial",
+    });
+    expect(result.warnings).toContain(
+      "Content coverage is partial: optional published page 'content/appendix.json' was not a bounded valid structured document.",
     );
   });
 
@@ -353,6 +454,48 @@ describe("external publication registration verification", () => {
       },
     };
     expect((await verify(resolver)).normalized.version.structuralProvenance).toBe("source-byte");
+  });
+
+  it("does not let optional content pages displace source-byte captures", async () => {
+    resetFixture({
+      sourceDescriptor: {
+        type: "git",
+        repository: "https://github.com/lab/review",
+        commit: "0123456789abcdef0123456789abcdef01234567",
+      },
+      xref: {
+        references: [
+          { identifier: "claim-1", url: "/results", data: "content/results.json" },
+          { identifier: "appendix", url: "/appendix", data: "content/appendix.json" },
+        ],
+      },
+    });
+    files.set("/review/content/appendix.json", {
+      type: "application/json",
+      body: JSON.stringify({
+        mdast: {
+          type: "root",
+          children: [{ type: "paragraph", children: [{ type: "text", value: "Appendix" }] }],
+        },
+      }),
+    });
+    const resolver: PublicationSourceResolver = {
+      async resolve() {
+        return [{ path: "results.md", bytes: Buffer.from(source), mediaType: "text/markdown" }];
+      },
+    };
+    const result = await verifyExternalPublication({
+      manifestUrl: `http://fixture.test:${port}/review/oratlas.manifest.json`,
+      publicationType: "other",
+      registrationKey: "fixture-registration",
+      fetcher: fetcher(),
+      sourceResolver: resolver,
+      limits: { maxArtifacts: 5 },
+    });
+    expect(result.normalized.version.structuralProvenance).toBe("source-byte");
+    expect(result.normalized.content?.documents).toHaveLength(1);
+    expect(result.normalized.content?.completeness.truncated).toBe(true);
+    expect(result.artifacts.map((artifact) => artifact.artifactKind)).toContain("source-document");
   });
 
   it("records why an unavailable source does not masquerade as source-byte", async () => {

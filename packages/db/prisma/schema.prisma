@@ -2077,6 +2077,14 @@ model PublicationVersion {
   structuralProvenance       String
   /// Recorded reasons a declared source did not reach source-byte provenance.
   verificationWarningsJson   String   @default("[]")
+  /// Canonical JSON array of deterministic plain-text content documents.
+  /// Persisted on this immutable version so later extractor changes cannot
+  /// rewrite the representation supplied to certification.
+  contentCorpusJson          String   @default("[]")
+  /// SHA-256 of contentCorpusJson.
+  contentCorpusSha256        String   @default("4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945")
+  /// Canonical publicationContentCompletenessSchema JSON.
+  contentCompletenessJson    String   @default("{\"coverage\":\"unsupported\",\"returnedDocuments\":0,\"totalDocumentsKnown\":null,\"truncated\":false}")
   observedAt                 DateTime
   createdAt                  DateTime @default(now())
 

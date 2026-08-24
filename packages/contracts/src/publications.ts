@@ -131,18 +131,6 @@ export const PUBLICATION_CAPTURE_ARTIFACT_KINDS = [
 export const publicationCaptureArtifactKindSchema = z.enum(PUBLICATION_CAPTURE_ARTIFACT_KINDS);
 export type PublicationCaptureArtifactKind = z.infer<typeof publicationCaptureArtifactKindSchema>;
 
-/** Selector frames ORAtlas accepts for a publication claim occurrence. */
-export const PUBLICATION_CLAIM_SELECTOR_REPRESENTATIONS = [
-  "oratlas-myst-source-utf8-v1",
-  "oratlas-source-utf8-v1",
-] as const;
-export const publicationClaimSelectorRepresentationSchema = z.enum(
-  PUBLICATION_CLAIM_SELECTOR_REPRESENTATIONS,
-);
-export type PublicationClaimSelectorRepresentation = z.infer<
-  typeof publicationClaimSelectorRepresentationSchema
->;
-
 export const publicationSha256Schema = z.string().regex(/^[0-9a-f]{64}$/, {
   message: "Must be a lowercase 64-character SHA-256 hex digest.",
 });
@@ -155,6 +143,154 @@ export const publicationHttpsUrlSchema = z
   .refine((value) => value.startsWith("https://"), {
     message: "Only https:// URLs are accepted.",
   });
+
+/** Toolchain-neutral roles for normalized scientific content. Roles are optional when uncertain. */
+export const PUBLICATION_CONTENT_ROLES = [
+  "abstract",
+  "introduction",
+  "methods",
+  "results",
+  "discussion",
+  "limitations",
+  "references",
+  "supplementary",
+  "other",
+] as const;
+export const publicationContentRoleSchema = z.enum(PUBLICATION_CONTENT_ROLES);
+export type PublicationContentRole = z.infer<typeof publicationContentRoleSchema>;
+
+/** Which immutable captured representation produced normalized plain text. */
+export const PUBLICATION_CONTENT_REPRESENTATIONS = [
+  "published-structured-text",
+  "source-text",
+] as const;
+export const publicationContentRepresentationSchema = z.enum(PUBLICATION_CONTENT_REPRESENTATIONS);
+export type PublicationContentRepresentation = z.infer<
+  typeof publicationContentRepresentationSchema
+>;
+
+export const PUBLICATION_CONTENT_COVERAGE = [
+  "complete",
+  "partial",
+  "unknown",
+  "unsupported",
+] as const;
+export const publicationContentCoverageSchema = z.enum(PUBLICATION_CONTENT_COVERAGE);
+
+export const PUBLICATION_CONTENT_DOCUMENT_LIMIT = 64;
+export const PUBLICATION_CONTENT_TEXT_LIMIT = 1_000_000;
+
+/** Immutable, deterministic plain-text evaluation representation of one captured document. */
+export const publicationContentDocumentSchema = z
+  .object({
+    id: z.string().min(1).max(200),
+    title: z.string().min(1).max(500).nullable(),
+    role: publicationContentRoleSchema.nullable(),
+    sourcePath: safeRepoRelativePathSchema.nullable(),
+    publishedUrl: publicationHttpsUrlSchema.nullable(),
+    representation: publicationContentRepresentationSchema,
+    text: z.string().min(1).max(PUBLICATION_CONTENT_TEXT_LIMIT),
+    sha256: publicationSha256Schema,
+    /** Stable identity of the immutable capture slot which supplied the bytes. */
+    sourceArtifactIdentitySha256: publicationSha256Schema,
+    /** SHA-256 of the exact captured source artifact bytes. */
+    sourceArtifactSha256: publicationSha256Schema,
+  })
+  .strict();
+export type PublicationContentDocument = z.infer<typeof publicationContentDocumentSchema>;
+
+export const publicationContentCompletenessSchema = z
+  .object({
+    returnedDocuments: z.number().int().nonnegative(),
+    totalDocumentsKnown: z.number().int().nonnegative().nullable(),
+    truncated: z.boolean(),
+    coverage: publicationContentCoverageSchema,
+  })
+  .strict()
+  .superRefine((value, context) => {
+    if (value.totalDocumentsKnown !== null && value.returnedDocuments > value.totalDocumentsKnown) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["returnedDocuments"],
+        message: "Returned content documents cannot exceed the known total.",
+      });
+    }
+    if (
+      value.totalDocumentsKnown !== null &&
+      value.returnedDocuments < value.totalDocumentsKnown &&
+      !value.truncated
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["truncated"],
+        message: "Missing known content documents must be reported as truncated.",
+      });
+    }
+    if (value.coverage === "complete") {
+      if (
+        value.truncated ||
+        value.totalDocumentsKnown === null ||
+        value.returnedDocuments !== value.totalDocumentsKnown
+      ) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["coverage"],
+          message: "Complete coverage requires an untruncated known total.",
+        });
+      }
+    }
+    if (
+      value.coverage === "unsupported" &&
+      (value.returnedDocuments !== 0 || value.totalDocumentsKnown !== null || value.truncated)
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["coverage"],
+        message: "Unsupported content must not fabricate documents or coverage.",
+      });
+    }
+  });
+export type PublicationContentCompleteness = z.infer<typeof publicationContentCompletenessSchema>;
+
+export const normalizedPublicationContentSchema = z
+  .object({
+    documents: z.array(publicationContentDocumentSchema).max(PUBLICATION_CONTENT_DOCUMENT_LIMIT),
+    completeness: publicationContentCompletenessSchema,
+  })
+  .strict()
+  .superRefine((value, context) => {
+    if (value.completeness.returnedDocuments !== value.documents.length) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["completeness", "returnedDocuments"],
+        message: "Returned content-document metadata must match the document array.",
+      });
+    }
+    const seenIds = new Set<string>();
+    for (const [index, document] of value.documents.entries()) {
+      if (seenIds.has(document.id)) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["documents", index, "id"],
+          message: "Content document ids must be unique within a publication version.",
+        });
+      }
+      seenIds.add(document.id);
+    }
+  });
+export type NormalizedPublicationContent = z.infer<typeof normalizedPublicationContentSchema>;
+
+/** Selector frames ORAtlas accepts for a publication claim occurrence. */
+export const PUBLICATION_CLAIM_SELECTOR_REPRESENTATIONS = [
+  "oratlas-myst-source-utf8-v1",
+  "oratlas-source-utf8-v1",
+] as const;
+export const publicationClaimSelectorRepresentationSchema = z.enum(
+  PUBLICATION_CLAIM_SELECTOR_REPRESENTATIONS,
+);
+export type PublicationClaimSelectorRepresentation = z.infer<
+  typeof publicationClaimSelectorRepresentationSchema
+>;
 
 /**
  * Source-local claim id: chosen by the publication's author, unique only
@@ -570,7 +706,7 @@ export type PublicationClaimMaterializationResult = z.infer<
   typeof publicationClaimMaterializationResultSchema
 >;
 
-export const PUBLICATION_VERSION_PACKET_SCHEMA_VERSION = "1.1.0" as const;
+export const PUBLICATION_VERSION_PACKET_SCHEMA_VERSION = "1.2.0" as const;
 export const PUBLICATION_VERSION_PACKET_OCCURRENCE_LIMIT = 500;
 export const PUBLICATION_VERSION_PACKET_CAPTURE_LIMIT = 1_000;
 export const PUBLICATION_VERSION_PACKET_RELATION_LIMIT = 2_000;
@@ -625,6 +761,7 @@ export const publicationVersionPacketSchema = z
           .strict(),
       )
       .max(PUBLICATION_VERSION_PACKET_CAPTURE_LIMIT),
+    content: z.array(publicationContentDocumentSchema).max(PUBLICATION_CONTENT_DOCUMENT_LIMIT),
     occurrences: z
       .array(
         z
@@ -666,6 +803,7 @@ export const publicationVersionPacketSchema = z
     completeness: z
       .object({
         captures: packetCompletenessSectionSchema,
+        content: publicationContentCompletenessSchema,
         occurrences: packetCompletenessSectionSchema,
         productionProvenance: packetCompletenessSectionSchema,
         relations: packetCompletenessSectionSchema,
@@ -677,12 +815,33 @@ export const publicationVersionPacketSchema = z
         self: z.string().startsWith("/"),
         publication: z.string().startsWith("/"),
         publicationVersion: z.string().startsWith("/"),
+        content: z.string().startsWith("/"),
         productionProvenance: z.string().startsWith("/"),
       })
       .strict(),
     sha256: publicationSha256Schema,
   })
-  .strict();
+  .strict()
+  .superRefine((value, context) => {
+    if (value.completeness.content.returnedDocuments !== value.content.length) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["completeness", "content", "returnedDocuments"],
+        message: "Packet content completeness must match the returned content array.",
+      });
+    }
+    const seenIds = new Set<string>();
+    for (const [index, document] of value.content.entries()) {
+      if (seenIds.has(document.id)) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["content", index, "id"],
+          message: "Packet content document ids must be unique.",
+        });
+      }
+      seenIds.add(document.id);
+    }
+  });
 export type PublicationVersionPacket = z.infer<typeof publicationVersionPacketSchema>;
 
 /**

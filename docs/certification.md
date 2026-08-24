@@ -29,15 +29,38 @@ immutable input snapshot
 
 ## Exact input and completeness
 
-Starting a run builds and validates the current common PublicationVersion packet v1.1.0. ORAtlas
-stores its exact canonical JSON, the SHA-256 of those exact JSON bytes, its packet schema version,
-capture time, and completeness object. That snapshot never changes. Later canonical bindings,
-relations, production assertions, or public assessments may change the live packet but cannot
-reinterpret an old certification.
+Starting a run builds and validates the current common PublicationVersion packet v1.2.0. It
+contains the persisted normalized scientific content corpus alongside identity, captures, claims,
+production provenance and the public ORAtlas knowledge state. ORAtlas stores its exact canonical
+JSON, the SHA-256 of those exact JSON bytes, its packet schema version, capture time, and
+completeness object. That snapshot never changes. Later canonical bindings, relations, production
+assertions, public assessments, or changes to the external website may affect future observations
+but cannot reinterpret an old certification. A run never fetches the mutable website after it
+begins.
 
 Protocols specify which packet sections must be complete. A run fails closed if one of those
-sections is truncated. Other protocols may explicitly accept incomplete inputs; the result still
-exposes the exact captured completeness state.
+sections is truncated. For `content`, completeness additionally requires `coverage: complete`; a
+bounded maximum, `partial`, `unknown`, or `unsupported` never masquerades as whole-publication
+coverage. Other protocols may explicitly accept incomplete inputs; the result still exposes the
+exact captured completeness state.
+
+```text
+PublicationVersion
+       │
+       ├── exact source/captures
+       ├── claim occurrences
+       ├── normalized scientific content corpus
+       └── public ORAtlas knowledge state
+                │
+                ▼
+        PublicationVersion packet 1.2
+                │
+                ▼
+        CertificationRun snapshot
+```
+
+The normalized content corpus is deterministic inert evaluation text, not a statement that
+ORAtlas has scientifically validated the article.
 
 ## Protocol and result contracts
 

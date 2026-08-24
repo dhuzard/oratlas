@@ -36,6 +36,10 @@ const certificationMigration = readFileSync(
   resolve(packageRoot, "prisma/migrations/20260824060000_generic_certification/migration.sql"),
   "utf8",
 );
+const contentCorpusMigration = readFileSync(
+  resolve(packageRoot, "prisma/migrations/20260824070000_publication_content_corpus/migration.sql"),
+  "utf8",
+);
 
 const PUBLICATION_MODELS = [
   "Publication",
@@ -120,6 +124,9 @@ describe("publication boundary schema parity", () => {
       expect(version).not.toMatch(/canonicalUrl\s+String\??\s+@unique/);
       expect(version).toMatch(/observedPublicationBaseUrl\s+String\?/);
       expect(version).not.toMatch(/observedPublicationBaseUrl\s+String\??\s+@unique/);
+      expect(version).toMatch(/contentCorpusJson\s+String/);
+      expect(version).toMatch(/contentCorpusSha256\s+String/);
+      expect(version).toMatch(/contentCompletenessJson\s+String/);
     }
   });
 
@@ -225,6 +232,17 @@ describe("the publication boundary migration", () => {
       expect(POSTGRES_DATABASE_GUARD_TRIGGER_NAMES).toContain(trigger);
       expect(postgresDdl).toContain(`CREATE TRIGGER "${trigger}"`);
     }
+  });
+
+  it("adds persisted content only to the already immutable exact version", () => {
+    for (const column of ["contentCorpusJson", "contentCorpusSha256", "contentCompletenessJson"]) {
+      expect(contentCorpusMigration).toContain(`ADD COLUMN "${column}"`);
+    }
+    expect(contentCorpusMigration).not.toMatch(/^\s*(?:UPDATE|DELETE|TRUNCATE)\b/im);
+    expect(contentCorpusMigration).not.toMatch(/\bDROP\s+(?:COLUMN|TABLE)\b/i);
+    expect(contentCorpusMigration).not.toContain("@neuronautix/myst");
+    expect(contentCorpusMigration).toContain("\"contentCorpusSha256\" ~ '^[a-f0-9]{64}$'");
+    expect(guards).toContain("\"contentCorpusSha256\" ~ '^[a-f0-9]{64}$'");
   });
 
   it("keeps the node-version source union exclusive rather than weakening it", () => {

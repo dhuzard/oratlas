@@ -432,6 +432,9 @@ describe("publication boundary on SQLite", () => {
         prisma.$executeRaw`UPDATE "PublicationVersion" SET "sourcesSha256" = ${SOURCES_V2} WHERE "id" = ${version.id}`,
       ).rejects.toThrow("An observed publication version is immutable");
       await expect(
+        prisma.$executeRaw`UPDATE "PublicationVersion" SET "contentCorpusJson" = '[]' WHERE "id" = ${version.id}`,
+      ).rejects.toThrow("An observed publication version is immutable");
+      await expect(
         prisma.$executeRaw`DELETE FROM "PublicationVersion" WHERE "id" = ${version.id}`,
       ).rejects.toThrow("An observed publication version is immutable");
     });

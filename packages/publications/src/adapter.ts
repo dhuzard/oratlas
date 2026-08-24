@@ -1,4 +1,6 @@
+import { createHash } from "node:crypto";
 import type {
+  NormalizedPublicationContent,
   NormalizedPublicationProductionAssertion,
   PublicationCaptureArtifactKind,
   PublicationClaimOccurrenceRecord,
@@ -26,6 +28,8 @@ export interface NormalizedPublication<
   occurrences: Array<Omit<PublicationClaimOccurrenceRecord, "target"> & { target: TTarget }>;
   /** Optional source declarations. Legacy formats normally return none. */
   productionAssertions?: NormalizedPublicationProductionAssertion[];
+  /** Optional scientific text normalized only from already captured bytes. */
+  content?: NormalizedPublicationContent;
 }
 
 /** Bytes are supplied by the hardened caller; an adapter never performs I/O. */
@@ -50,6 +54,39 @@ export interface PublicationAdapterNormalizationContext {
   observedAt: string;
   registrationKey?: string;
   verificationWarnings?: readonly string[];
+}
+
+export interface PublicationContentNormalizationLimits {
+  maxDocuments: number;
+  maxBytesPerDocument: number;
+  maxTotalBytes: number;
+  maxTextLength: number;
+  maxNodesPerDocument: number;
+}
+
+export interface PublicationAdapterContentNormalizationContext {
+  publicationVersionStableKey: string;
+  publicationBaseUrl: string;
+  limits: PublicationContentNormalizationLimits;
+}
+
+/** Stable capture-slot identity; equal bytes observed at two paths remain distinct. */
+export function publicationArtifactIdentitySha256(
+  artifact: Pick<CapturedPublicationArtifact, "artifactKind" | "declaredPath"> & {
+    requestedUrl?: string;
+    observedUrl?: string;
+  },
+): string {
+  const locatorType = artifact.declaredPath === undefined ? "url" : "path";
+  const locator = artifact.declaredPath ?? artifact.requestedUrl ?? artifact.observedUrl;
+  if (locator === undefined) {
+    throw new PublicationAdapterError(
+      `The ${artifact.artifactKind} artifact has no stable declared path or URL.`,
+    );
+  }
+  return createHash("sha256")
+    .update(`${artifact.artifactKind}\n${locatorType}\n${locator}`, "utf8")
+    .digest("hex");
 }
 
 /**
@@ -79,5 +116,10 @@ export interface PublicationAdapter<
   validateCapturedArtifacts(input: TArtifactsInput): void;
   verifyPublishedStructure(input: TStructureInput): void;
   normalize(input: TNormalizeInput, context: PublicationAdapterNormalizationContext): TNormalized;
+  /** Optional pure normalization over bytes which the hardened caller already captured. */
+  normalizeContent?(
+    artifacts: readonly CapturedPublicationArtifact[],
+    context: PublicationAdapterContentNormalizationContext,
+  ): NormalizedPublicationContent;
   resolvePublishedTarget(input: TTargetInput): string;
 }

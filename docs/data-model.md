@@ -213,6 +213,10 @@ canonical graph identity.
 - A `PublicationCapture` is append-only on both providers: `UPDATE` and `DELETE` are rejected by a
   trigger, so bytes and digests can never silently mutate once later phases begin writing them. An
   observed `PublicationVersion` is likewise immutable.
+- A `PublicationVersion` persists canonical normalized content JSON, its SHA-256, and explicit
+  content completeness. Documents are inert plain text bound to exact capture identities and byte
+  digests. The corpus is an evaluation representation, not scientific validation. It is written
+  once with the exact version; old versions are never backfilled from a mutable website.
 - A `PublicationClaimOccurrence` is an exact occurrence, never a canonical identity. Equal text, an
   equal source-local id in different versions, an equal `declarationSha256`, an equal
   `sourcesSha256`, position and similarity are all explicitly non-identities.
@@ -240,8 +244,9 @@ canonical graph identity.
   canonical `protocolJson` and SHA-256. Criteria, permitted modes/outcomes, and completeness policy
   belong to that exact version; no ORA-specific evaluator is encoded here.
 - A `CertificationRun` binds one exact `PublicationVersion` to one exact protocol and stores the
-  common packet's exact canonical JSON, full snapshot digest, schema version, capture time, and
-  completeness. Database guards allow lifecycle status to advance but reject snapshot rewrites.
+  common packet 1.2's exact canonical JSON—including scientific content—full snapshot digest,
+  schema version, capture time, and completeness. Database guards allow lifecycle status to
+  advance but reject snapshot rewrites.
 - A `CertificationResult` is the one immutable result accepted for a run. Database-native binding
   guards repeat the exact subject, certifier, protocol, assessment mode, and input hash invariants.
   Typed criterion evidence is validated against the frozen packet before insertion.

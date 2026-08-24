@@ -84,6 +84,21 @@ beforeAll(async () => {
       sourceLocalPublicationId: "cert-fixture",
     },
   });
+  const contentText = "Methods\n\nWe used a prespecified scientific evaluation protocol.";
+  const contentCorpusJson = canonicalJson([
+    {
+      id: "publication-content:certification-methods",
+      title: "Methods",
+      role: "methods",
+      sourcePath: "content/methods.json",
+      publishedUrl: "https://publisher.example/article/methods/",
+      representation: "published-structured-text",
+      text: contentText,
+      sha256: sha(contentText),
+      sourceArtifactIdentitySha256: sha("manifest-slot"),
+      sourceArtifactSha256: sha("manifest"),
+    },
+  ]);
   const version = await prisma.publicationVersion.create({
     data: {
       publicationId: publication.id,
@@ -104,6 +119,14 @@ beforeAll(async () => {
       }),
       structuralProvenance: "published-structure",
       verificationWarningsJson: "[]",
+      contentCorpusJson,
+      contentCorpusSha256: sha(contentCorpusJson),
+      contentCompletenessJson: canonicalJson({
+        returnedDocuments: 1,
+        totalDocumentsKnown: 1,
+        truncated: false,
+        coverage: "complete",
+      }),
       observedAt: new Date("2026-08-24T10:00:00.000Z"),
     },
   });
@@ -169,7 +192,7 @@ const definition: CertificationProtocolDefinition = {
   ],
   assessmentModes: ["human"],
   outcomes: ["certified", "not-certified", "inconclusive"],
-  requireCompleteSections: ["occurrences"],
+  requireCompleteSections: ["occurrences", "content"],
 };
 function request(token: string) {
   return new Request("https://atlas.example/api/certification-runs", {
@@ -305,8 +328,45 @@ describe("generic certification platform", () => {
     ).rejects.toMatchObject({ code: "conflict" });
     const inputA = await service.getCertificationInput(runA.id, certifierA.id);
     expect(sha(canonicalJson(inputA.packet))).toBe(inputA.packetSha256);
+    expect(inputA.packet.schemaVersion).toBe("1.2.0");
     expect(inputA.packet.version.publisherCanonicalUrl).toBeNull();
+    expect(inputA.packet.content).toEqual([
+      expect.objectContaining({
+        id: "publication-content:certification-methods",
+        role: "methods",
+        text: expect.stringContaining("prespecified scientific evaluation protocol"),
+      }),
+    ]);
+    expect(inputA.packet.completeness.content).toEqual({
+      returnedDocuments: 1,
+      totalDocumentsKnown: 1,
+      truncated: false,
+      coverage: "complete",
+    });
+    const { sha256: _packetDigest, ...packetWithoutDigest } = inputA.packet;
+    expect(
+      sha(
+        canonicalJson({
+          ...packetWithoutDigest,
+          content: inputA.packet.content.map((document: { text: string }) => ({
+            ...document,
+            text: `${document.text} changed`,
+          })),
+        }),
+      ),
+    ).not.toBe(inputA.packet.sha256);
     const occurrenceId = inputA.packet.occurrences[0].id as string;
+    expect(inputA.packet.occurrences[0].canonicalBinding).toBeNull();
+    await (
+      await import("./external-publication-materialization")
+    ).materializeExternalPublicationClaim(occurrenceId, adminId);
+    const livePacketAfterGraphChange = await (
+      await import("./publication-version-packet")
+    ).getPublicationVersionPacket(versionId);
+    expect(livePacketAfterGraphChange.occurrences[0]?.canonicalBinding).not.toBeNull();
+    expect((await service.getCertificationInput(runA.id, certifierA.id)).packet).toEqual(
+      inputA.packet,
+    );
     await prisma.publicationProductionAssertion.create({
       data: {
         publicationVersionId: versionId,
@@ -322,6 +382,15 @@ describe("generic certification platform", () => {
     expect((await service.getCertificationInput(runA.id, certifierA.id)).packetSha256).toBe(
       inputA.packetSha256,
     );
+    expect((await service.getCertificationInput(runA.id, certifierA.id)).packet.content).toEqual(
+      inputA.packet.content,
+    );
+    await expect(
+      prisma.publicationVersion.update({
+        where: { id: versionId },
+        data: { contentCorpusJson: "[]" },
+      }),
+    ).rejects.toThrow();
     await expect(
       prisma.certificationRun.update({ where: { id: runA.id }, data: { inputPacketJson: "{}" } }),
     ).rejects.toThrow();
@@ -585,7 +654,7 @@ describe("generic certification platform", () => {
     expect(withdrawnSummary.lifecycle.map((event) => event.kind)).toEqual(["issued", "withdrawn"]);
     expect(withdrawnSummary.lifecycleState).toBe("withdrawn");
     expect(await prisma.trustAssessment.count()).toBe(0);
-    expect(await prisma.knowledgeNode.count()).toBe(0);
+    expect(await prisma.knowledgeNode.count()).toBe(1);
     expect(await prisma.publicationRelation.count()).toBe(0);
     expect(
       await prisma.publicationProductionAssertion.count({
@@ -670,6 +739,74 @@ describe("generic certification platform", () => {
         },
       }),
     ).toBe(1);
+  });
+
+  it("records unsupported content explicitly and rejects a content-complete protocol", async () => {
+    const certifier = await service.createCertifier(
+      {
+        slug: "content-required-fixture",
+        name: "Content Required Fixture",
+        description: "Requires a complete generic content section.",
+      },
+      adminId,
+    );
+    const protocol = await service.createCertificationProtocol(
+      {
+        certifierId: certifier.id,
+        seriesKey: "content-required",
+        version: "1.0.0",
+        title: "Content required",
+        description: "Generic completeness policy fixture.",
+        definition,
+      },
+      adminId,
+    );
+    const credential = await service.issueCertifierCredential(
+      certifier.id,
+      { label: "content-reader", scopes: ["certification:read", "certification:submit"] },
+      adminId,
+    );
+    const auth = await service.authenticateCertifier(
+      request(credential.token),
+      "certification:submit",
+    );
+    const subject = await prisma.publicationVersion.findUniqueOrThrow({
+      where: { id: versionId },
+      select: { publicationId: true },
+    });
+    const unsupported = await prisma.publicationVersion.create({
+      data: {
+        publicationId: subject.publicationId,
+        stableKey: "certification-version-without-content-adapter",
+        sourcesSha256: sha("source-without-content-adapter"),
+        observedPublicationBaseUrl: "https://publisher.example/article/unsupported/",
+        adapterType: "myst",
+        adapterBindingJson: canonicalJson({ type: "myst", protocolVersion: "0.2.0" }),
+        structuralProvenance: "published-structure",
+        observedAt: new Date("2026-08-24T15:00:00.000Z"),
+      },
+    });
+    const packet = await (
+      await import("./publication-version-packet")
+    ).getPublicationVersionPacket(unsupported.id);
+    expect(packet.content).toEqual([]);
+    expect(packet.completeness.content).toEqual({
+      returnedDocuments: 0,
+      totalDocumentsKnown: null,
+      truncated: false,
+      coverage: "unsupported",
+    });
+    await expect(
+      service.createCertificationRun(
+        {
+          publicationVersionId: unsupported.id,
+          certificationProtocolId: protocol.id,
+          assessmentMode: "human",
+          idempotencyKey: "content-required-unsupported-run",
+        },
+        auth,
+      ),
+    ).rejects.toMatchObject({ code: "conflict" });
   });
 
   it("completes the third-party journey through documented HTTP route boundaries only", async () => {
