@@ -7,6 +7,7 @@ import {
 } from "./comments.js";
 import { commitShaSchema, doiSchema } from "./identifiers.js";
 import { safeRepoRelativePathSchema } from "./paths.js";
+import { publicationAdapterTypeSchema } from "./publication-adapters.js";
 import { canonicalGraphEdgeSchema } from "./canonical-graph.js";
 import { publicChallengeSchema } from "./challenges.js";
 
@@ -97,11 +98,6 @@ export const publicationStructuralProvenanceSchema = z.enum(
   PUBLICATION_STRUCTURAL_PROVENANCE_LEVELS,
 );
 export type PublicationStructuralProvenance = z.infer<typeof publicationStructuralProvenanceSchema>;
-
-/** Authoring toolchains ORAtlas implements an adapter for. Closed on purpose. */
-export const PUBLICATION_ADAPTER_TYPES = ["myst"] as const;
-export const publicationAdapterTypeSchema = z.enum(PUBLICATION_ADAPTER_TYPES);
-export type PublicationAdapterType = z.infer<typeof publicationAdapterTypeSchema>;
 
 /** Pinned external protocol version of the `myst` adapter (dhuzard/oratlas-myst). */
 export const MYST_PUBLICATION_PROTOCOL_VERSION = "0.2.0" as const;
@@ -591,7 +587,8 @@ export const publicationVersionPacketSchema = z
         sourceLocalPublicationId: sourceLocalPublicationIdSchema.nullable(),
         versionLabel: z.string().nullable(),
         title: z.string().nullable(),
-        originalPublicationUrl: publicationHttpsUrlSchema,
+        publisherCanonicalUrl: publicationHttpsUrlSchema.nullable(),
+        observedPublicationBaseUrl: publicationHttpsUrlSchema,
         adapterType: publicationAdapterTypeSchema,
         structuralProvenance: publicationStructuralProvenanceSchema,
         observedAt: z.string().datetime(),

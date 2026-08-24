@@ -15,7 +15,7 @@ import {
   type CanonicalGraphResponse,
 } from "@oratlas/contracts";
 import { getServerEnv } from "@oratlas/config";
-import { type Prisma } from "@oratlas/db";
+import { resolveObservedPublicationBaseUrl, type Prisma } from "@oratlas/db";
 import { prisma } from "./db";
 import { databaseGraphTrustProvider } from "./graph-trust-provider";
 import { graphTrustLookupKey } from "./graph-trust";
@@ -60,7 +60,15 @@ const nodeVersionInclude = {
       publicationVersion: {
         include: {
           publication: true,
-          captures: { select: { id: true }, orderBy: { id: "asc" } },
+          captures: {
+            select: {
+              id: true,
+              artifactKind: true,
+              observedUrl: true,
+              requestedUrl: true,
+            },
+            orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+          },
         },
       },
     },
@@ -189,6 +197,10 @@ function parseStoredJson(value: string, label: string): unknown {
 
 function mapNodeVersion(version: LoadedCanonicalVersion): CanonicalGraphNodeVersion {
   const node = version.knowledgeNode;
+  const externalOccurrence = version.sourcePublicationClaimOccurrence;
+  const observedPublicationBaseUrl = externalOccurrence
+    ? resolveObservedPublicationBaseUrl(externalOccurrence.publicationVersion)
+    : null;
   const source = version.snapshotId
     ? { type: "repository-snapshot" as const, snapshotId: version.snapshotId }
     : version.sourceReviewVersionId
@@ -198,31 +210,24 @@ function mapNodeVersion(version: LoadedCanonicalVersion): CanonicalGraphNodeVers
         : version.sourceCitationId
           ? { type: "citation-occurrence" as const, citationId: version.sourceCitationId }
           : version.sourcePublicationClaimOccurrenceId &&
-              version.sourcePublicationClaimOccurrence?.publishedUrl &&
-              version.sourcePublicationClaimOccurrence.publicationVersion.canonicalUrl
+              externalOccurrence?.publishedUrl &&
+              observedPublicationBaseUrl
             ? {
                 type: "publication-claim-occurrence" as const,
                 publicationClaimOccurrenceId: version.sourcePublicationClaimOccurrenceId,
-                publicationId:
-                  version.sourcePublicationClaimOccurrence.publicationVersion.publicationId,
-                publicationVersionId: version.sourcePublicationClaimOccurrence.publicationVersionId,
-                publicationType:
-                  version.sourcePublicationClaimOccurrence.publicationVersion.publication
-                    .publicationType,
-                sourceLocalClaimId: version.sourcePublicationClaimOccurrence.sourceLocalClaimId,
-                adapterType:
-                  version.sourcePublicationClaimOccurrence.publicationVersion.adapterType,
-                structuralProvenance:
-                  version.sourcePublicationClaimOccurrence.publicationVersion.structuralProvenance,
-                originalPublicationUrl:
-                  version.sourcePublicationClaimOccurrence.publicationVersion.canonicalUrl,
-                publishedTargetUrl: version.sourcePublicationClaimOccurrence.publishedUrl,
-                captureIds:
-                  version.sourcePublicationClaimOccurrence.publicationVersion.captures.map(
-                    (capture) => capture.id,
-                  ),
-                sourcesSha256:
-                  version.sourcePublicationClaimOccurrence.publicationVersion.sourcesSha256,
+                publicationId: externalOccurrence.publicationVersion.publicationId,
+                publicationVersionId: externalOccurrence.publicationVersionId,
+                publicationType: externalOccurrence.publicationVersion.publication.publicationType,
+                sourceLocalClaimId: externalOccurrence.sourceLocalClaimId,
+                adapterType: externalOccurrence.publicationVersion.adapterType,
+                structuralProvenance: externalOccurrence.publicationVersion.structuralProvenance,
+                publisherCanonicalUrl: externalOccurrence.publicationVersion.canonicalUrl,
+                observedPublicationBaseUrl,
+                publishedTargetUrl: externalOccurrence.publishedUrl,
+                captureIds: externalOccurrence.publicationVersion.captures.map(
+                  (capture) => capture.id,
+                ),
+                sourcesSha256: externalOccurrence.publicationVersion.sourcesSha256,
               }
             : undefined;
   if (!source) {

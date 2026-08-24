@@ -538,10 +538,10 @@ export async function listPendingNodeEdgeProposals() {
   return rows.flatMap((row) => {
     const sourceRepository =
       row.sourceNodeVersion.knowledgeNode.repository?.canonicalUrl ??
-      row.sourceNodeVersion.sourcePublicationClaimOccurrence?.publicationVersion.canonicalUrl;
+      row.sourceNodeVersion.sourcePublicationClaimOccurrence?.publishedUrl;
     const targetRepository =
       row.targetNodeVersion.knowledgeNode.repository?.canonicalUrl ??
-      row.targetNodeVersion.sourcePublicationClaimOccurrence?.publicationVersion.canonicalUrl;
+      row.targetNodeVersion.sourcePublicationClaimOccurrence?.publishedUrl;
     if (!sourceRepository || !targetRepository) return [];
     return [
       {

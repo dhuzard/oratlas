@@ -108,7 +108,10 @@ producer is a new variant rather than a change to the boundary. Registration and
 normalize to `PublicationClaimOccurrence`; the generic database materializer then atomically joins
 that occurrence to the existing canonical graph without inspecting the adapter. Two independently
 hosted MyST fixtures prove four distinct claims plus one editor-confirmed cross-site contradiction.
-The versioned publication packet exposes the same bounded public state to agents. See
+One fixture deliberately omits the protocol-optional publisher canonical URL: its immutable
+manifest capture supplies a separately named observed base while the exact published target remains
+the human and agent deep link. The versioned publication packet exposes the same bounded public
+state to agents. See
 [Externally hosted publications](external-publications.md).
 
 ```

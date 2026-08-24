@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma, parseJsonColumn } from "@/lib/db";
 import { errorResponse } from "@/lib/api";
+import { resolveObservedPublicationBaseUrl } from "@oratlas/db";
 
 export const dynamic = "force-dynamic";
 
@@ -10,10 +11,22 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     where: { id },
     include: {
       _count: { select: { captures: true, claimOccurrences: true } },
-      captures: { select: { id: true, artifactKind: true }, orderBy: { createdAt: "asc" } },
+      captures: {
+        select: {
+          id: true,
+          artifactKind: true,
+          observedUrl: true,
+          requestedUrl: true,
+        },
+        orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+      },
     },
   });
   if (!version) return errorResponse("not-found", "Publication version not found.");
+  const observedPublicationBaseUrl = resolveObservedPublicationBaseUrl(version);
+  if (!observedPublicationBaseUrl) {
+    return errorResponse("conflict", "Publication version has no valid observed addressing.");
+  }
   return NextResponse.json({
     schemaVersion: "1.0.0",
     id: version.id,
@@ -23,7 +36,8 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     sourceLocalPublicationId: version.sourceLocalPublicationId,
     versionLabel: version.versionLabel,
     title: version.title,
-    canonicalUrl: version.canonicalUrl,
+    publisherCanonicalUrl: version.canonicalUrl,
+    observedPublicationBaseUrl,
     adapterType: version.adapterType,
     adapter: parseJsonColumn(version.adapterBindingJson, null),
     source: parseJsonColumn(version.sourceDescriptorJson, null),

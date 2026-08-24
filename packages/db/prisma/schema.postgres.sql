@@ -1339,6 +1339,7 @@ CREATE TABLE "PublicationVersion" (
     "versionLabel" TEXT,
     "title" TEXT,
     "canonicalUrl" TEXT,
+    "observedPublicationBaseUrl" TEXT,
     "adapterType" TEXT NOT NULL,
     "adapterBindingJson" TEXT NOT NULL,
     "sourceDescriptorJson" TEXT,

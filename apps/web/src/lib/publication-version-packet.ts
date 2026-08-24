@@ -12,6 +12,7 @@ import {
   type CanonicalGraphEdge,
 } from "@oratlas/contracts";
 import { prisma } from "./db";
+import { resolveObservedPublicationBaseUrl } from "@oratlas/db";
 import { queryCanonicalGraph } from "./canonical-graph-query";
 import { publicConfirmedNodeEdgeWhere } from "./node-edge-publication";
 
@@ -28,7 +29,7 @@ export async function getPublicationVersionPacket(id: string) {
     include: {
       publication: true,
       captures: {
-        orderBy: { id: "asc" },
+        orderBy: [{ createdAt: "asc" }, { id: "asc" }],
         take: PUBLICATION_VERSION_PACKET_CAPTURE_LIMIT + 1,
       },
       claimOccurrences: {
@@ -40,8 +41,11 @@ export async function getPublicationVersionPacket(id: string) {
     },
   });
   if (!version) throw new PublicationVersionPacketError("Publication version not found.");
-  if (!version.canonicalUrl) {
-    throw new PublicationVersionPacketError("Publication version has no original publication URL.");
+  const observedBaseUrl = resolveObservedPublicationBaseUrl(version);
+  if (!observedBaseUrl) {
+    throw new PublicationVersionPacketError(
+      "Publication version has no valid observed publication base URL.",
+    );
   }
 
   const captures = version.captures.slice(0, PUBLICATION_VERSION_PACKET_CAPTURE_LIMIT);
@@ -105,7 +109,8 @@ export async function getPublicationVersionPacket(id: string) {
       sourceLocalPublicationId: version.sourceLocalPublicationId,
       versionLabel: version.versionLabel,
       title: version.title,
-      originalPublicationUrl: version.canonicalUrl,
+      publisherCanonicalUrl: version.canonicalUrl,
+      observedPublicationBaseUrl: observedBaseUrl,
       adapterType: version.adapterType,
       structuralProvenance: version.structuralProvenance,
       observedAt: version.observedAt.toISOString(),

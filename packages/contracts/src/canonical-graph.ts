@@ -3,6 +3,7 @@ import { knowledgeNodeKindSchema, nodeRelationTypeSchema } from "./enums.js";
 import { manifestContributorSchema } from "./manifest.js";
 import { nodeAliasSchema } from "./node-identity.js";
 import { publicGraphTrustSchema } from "./graph.js";
+import { publicationAdapterTypeSchema } from "./publication-adapters.js";
 
 export const CANONICAL_GRAPH_SCHEMA_VERSION = "2.0.0" as const;
 export const CANONICAL_GRAPH_MAX_PAGE_SIZE = 100;
@@ -40,9 +41,10 @@ export const canonicalGraphSourceSchema = z.discriminatedUnion("type", [
         "other",
       ]),
       sourceLocalClaimId: z.string().min(1).max(120),
-      adapterType: z.literal("myst"),
+      adapterType: publicationAdapterTypeSchema,
       structuralProvenance: z.enum(["published-structure", "source-byte"]),
-      originalPublicationUrl: z.string().url().startsWith("https://").max(2_000),
+      publisherCanonicalUrl: z.string().url().startsWith("https://").max(2_000).nullable(),
+      observedPublicationBaseUrl: z.string().url().startsWith("https://").max(2_000),
       publishedTargetUrl: z.string().url().startsWith("https://").max(2_000),
       captureIds: z.array(z.string().min(1)).max(1_000),
       sourcesSha256: z.string().regex(/^[0-9a-f]{64}$/),

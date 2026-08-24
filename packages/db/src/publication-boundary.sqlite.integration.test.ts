@@ -61,6 +61,7 @@ async function createVersion(publicationId: string, overrides: Record<string, un
       }),
       structuralProvenance: "published-structure",
       canonicalUrl: "https://publication.example/article/",
+      observedPublicationBaseUrl: "https://observed.example/article/",
       observedAt: new Date("2026-08-23T00:00:00.000Z"),
       ...overrides,
     },
@@ -555,6 +556,24 @@ describe("publication boundary on SQLite", () => {
       expect(stored.graphVersion?.id).toBe(first.knowledgeNodeVersionId);
       expect(stored.graphVersion?.sourcePublicationClaimOccurrenceId).toBe(occurrence.id);
       expect(stored.graphVersion?.snapshotId).toBeNull();
+    });
+
+    it("materializes from observed addressing when the publisher declares no canonical URL", async () => {
+      const publication = await createPublication();
+      const version = await createVersion(publication.id, { canonicalUrl: null });
+      const occurrence = await createOccurrence(version.id, {
+        publishedUrl: "https://observed.example/article/results/#hpa-axis-mediation",
+      });
+
+      const result = await prisma.$transaction((tx) =>
+        materializePublicationClaimOccurrence(tx, occurrence.id),
+      );
+      const graphVersion = await prisma.knowledgeNodeVersion.findUniqueOrThrow({
+        where: { id: result.knowledgeNodeVersionId },
+      });
+      expect(JSON.parse(graphVersion.provenanceJson)).toMatchObject({
+        repositoryUrl: "https://observed.example/article/",
+      });
     });
 
     it("never merges equal text, local ids, or digests across exact versions", async () => {

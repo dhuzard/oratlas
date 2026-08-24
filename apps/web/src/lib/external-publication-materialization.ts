@@ -6,7 +6,7 @@ import {
 } from "@oratlas/db";
 import { prisma } from "./db";
 
-export async function materializeExternalPublicationClaim(occurrenceId: string, actorId: string) {
+async function materializeExternalPublicationClaimOnce(occurrenceId: string, actorId: string) {
   const report = await prisma.$transaction(async (tx) => {
     const result = await materializePublicationClaimOccurrence(tx, occurrenceId);
     if (!result.idempotent) {
@@ -27,6 +27,25 @@ export async function materializeExternalPublicationClaim(occurrenceId: string, 
     return result;
   });
   return materializationResponse(report);
+}
+
+function isUniqueWriteRace(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    (error as { code?: unknown }).code === "P2002"
+  );
+}
+
+/** Retry one rolled-back uniqueness race so concurrent exact requests converge. */
+export async function materializeExternalPublicationClaim(occurrenceId: string, actorId: string) {
+  try {
+    return await materializeExternalPublicationClaimOnce(occurrenceId, actorId);
+  } catch (error) {
+    if (!isUniqueWriteRace(error)) throw error;
+    return materializeExternalPublicationClaimOnce(occurrenceId, actorId);
+  }
 }
 
 function materializationResponse(report: PublicationClaimMaterializationReport) {

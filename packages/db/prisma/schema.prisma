@@ -2032,35 +2032,40 @@ model Publication {
 /// One exact, immutable, externally observed publication version. Identity is
 /// (publication, sourcesSha256); the canonical URL is addressing metadata.
 model PublicationVersion {
-  id                       String   @id @default(cuid())
-  publicationId            String
+  id                         String   @id @default(cuid())
+  publicationId              String
   /// Exact version key derived from the publication identity plus sourcesSha256.
-  stableKey                String   @unique
+  stableKey                  String   @unique
   /// Source-local publication id as observed on this exact version.
-  sourceLocalPublicationId String?
+  sourceLocalPublicationId   String?
   /// The publication's own digest over its complete document set.
-  sourcesSha256            String
-  versionLabel             String?
-  title                    String?
-  /// Absolute https URL this version was served from, when one was declared.
-  canonicalUrl             String?
+  sourcesSha256              String
+  versionLabel               String?
+  title                      String?
+  /// Publisher-declared absolute https canonical URL, when one was declared.
+  /// Optional protocol metadata; ORAtlas never fabricates it.
+  canonicalUrl               String?
+  /// Deterministic directory URL derived from the observed publication-manifest
+  /// final URL (or requested URL when no final URL was retained). Never copied
+  /// into canonicalUrl and nullable only for pre-Phase-3 captured rows.
+  observedPublicationBaseUrl String?
   /// contracts PUBLICATION_ADAPTER_TYPES. Generic; toolchain fields never leak
   /// into their own columns.
-  adapterType              String
+  adapterType                String
   /// contracts publicationAdapterBindingSchema encoded as JSON: closed,
   /// discriminated and carrying its own pinned external protocol version.
-  adapterBindingJson       String
+  adapterBindingJson         String
   /// contracts publicationSourceDescriptorSchema encoded as JSON. Null when the
   /// publication declares no obtainable source, which caps structural
   /// provenance at published-structure.
-  sourceDescriptorJson     String?
+  sourceDescriptorJson       String?
   /// contracts PUBLICATION_STRUCTURAL_PROVENANCE_LEVELS. Structural only:
   /// published-structure | source-byte. Never a scientific validation state.
-  structuralProvenance     String
+  structuralProvenance       String
   /// Recorded reasons a declared source did not reach source-byte provenance.
-  verificationWarningsJson String   @default("[]")
-  observedAt               DateTime
-  createdAt                DateTime @default(now())
+  verificationWarningsJson   String   @default("[]")
+  observedAt                 DateTime
+  createdAt                  DateTime @default(now())
 
   publication      Publication                  @relation(fields: [publicationId], references: [id], onDelete: Restrict)
   captures         PublicationCapture[]

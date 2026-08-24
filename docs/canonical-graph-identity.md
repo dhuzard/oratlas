@@ -46,9 +46,12 @@ new node kind is introduced and canonical identity does not change shape.
 
 This source is active. The adapter-neutral materializer atomically creates the ordinary canonical
 claim/version and writes both sides of the occurrence binding. The public graph contract names all
-five source variants and projects bounded external provenance. Existing review, claim, citation and
-repository materializers are unchanged. Database guards protect the fifth source exactly as they
-protect the other four.
+five source variants and projects bounded external provenance. Its `adapterType` uses the shared
+publication-adapter vocabulary rather than a graph-local MyST literal. Optional
+`publisherCanonicalUrl`, required capture-derived `observedPublicationBaseUrl`, and authoritative
+`publishedTargetUrl` remain separate address roles. Existing review, claim, citation and repository
+materializers are unchanged. Database guards protect the fifth source exactly as they protect the
+other four.
 
 A source occurrence is emphatically not canonical identity. `PublicationClaimOccurrence` carries a
 nullable, write-once `knowledgeNodeId` for an explicit, reviewed identity decision; ORAtlas does not

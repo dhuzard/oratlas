@@ -10,11 +10,11 @@ import {
   createHardenedRemoteFetcher,
   normalizeMystPublication,
   verifyExternalPublication,
+  type RemoteFetcher,
   type VerifiedExternalPublication,
 } from "@oratlas/publications";
 import {
   applyDatabaseGuards,
-  materializePublicationClaimOccurrence,
   type PublicationClaimMaterializationReport,
   type PrismaClient,
 } from "@oratlas/db";
@@ -173,7 +173,7 @@ function federationFixture(site: "a" | "b"): VerifiedExternalPublication {
     generator: { name: "@oratlas/myst", version: "0.2.0" },
     publication: {
       id: `publication-${site}`,
-      canonicalUrl: origin,
+      ...(site === "a" ? { canonicalUrl: origin } : {}),
       version: { sourcesSha256: sha(`site-${site}-document-set`) },
     },
     adapter: { type: "myst" as const, xref: "myst.xref.json" },
@@ -285,18 +285,44 @@ async function verifyFederationSite(site: "a" | "b"): Promise<VerifiedExternalPu
   });
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   const port = (server.address() as { port: number }).port;
+  const transport = createHardenedRemoteFetcher({
+    allowHttpForTests: true,
+    allowPrivateAddressesForTests: true,
+    allowNonDefaultPortsForTests: true,
+    resolver: async () => [{ address: "127.0.0.1", family: 4 }],
+  });
+  const fetcher: RemoteFetcher = {
+    async fetch(url, request) {
+      const transportUrl = new URL(url);
+      transportUrl.protocol = "http:";
+      const result = await transport.fetch(transportUrl.href, request);
+      const observedHttps = (value: string) => {
+        const observed = new URL(value);
+        observed.protocol = "https:";
+        return observed.href;
+      };
+      return {
+        ...result,
+        requestedUrl: observedHttps(result.requestedUrl),
+        finalUrl: observedHttps(result.finalUrl),
+        provenance: {
+          ...result.provenance,
+          redirects: result.provenance.redirects.map((redirect) => ({
+            ...redirect,
+            from: observedHttps(redirect.from),
+            to: observedHttps(redirect.to),
+          })),
+        },
+      };
+    },
+  };
   try {
     return await verifyExternalPublication({
-      manifestUrl: `http://site-${site}.test:${port}/publication/oratlas.manifest.json`,
+      manifestUrl: `https://site-${site}.test:${port}/publication/oratlas.manifest.json`,
       publicationType: "research-article",
       registrationKey: `registration-${site}`,
       now: () => new Date(observedAt),
-      fetcher: createHardenedRemoteFetcher({
-        allowHttpForTests: true,
-        allowPrivateAddressesForTests: true,
-        allowNonDefaultPortsForTests: true,
-        resolver: async () => [{ address: "127.0.0.1", family: 4 }],
-      }),
+      fetcher,
     });
   } finally {
     await new Promise<void>((resolve, reject) =>
@@ -415,6 +441,16 @@ describe("external publication registration persistence", () => {
   it("federates two independent sites through the one canonical graph", async () => {
     const verifiedA = await verifyFederationSite("a");
     const verifiedB = await verifyFederationSite("b");
+    expect(verifiedB.manifest.publication.canonicalUrl).toBeUndefined();
+    expect(verifiedB.warnings).toContain(
+      "The manifest declares no canonicalUrl; published links use the observed manifest root.",
+    );
+    const exactB1Url = verifiedB.resolvedClaimUrls.get("claim-b1")!;
+    const observedBBase = new URL(
+      ".",
+      verifiedB.artifacts.find((artifact) => artifact.artifactKind === "publication-manifest")!
+        .observedUrl!,
+    ).href;
     expect(verifiedA.artifacts.map((artifact) => artifact.artifactKind)).toEqual([
       "publication-manifest",
       "claim-stream",
@@ -430,6 +466,12 @@ describe("external publication registration persistence", () => {
     const siteA = await persist(verifiedA, editorId);
     const siteB = await persist(verifiedB, editorId);
     expect(siteA.publicationId).not.toBe(siteB.publicationId);
+    expect(
+      await prisma.publicationVersion.findUniqueOrThrow({
+        where: { id: siteB.publicationVersionId },
+        select: { canonicalUrl: true, observedPublicationBaseUrl: true },
+      }),
+    ).toEqual({ canonicalUrl: null, observedPublicationBaseUrl: observedBBase });
     expect((await persist(verifiedA, editorId)).replayed).toBe(true);
     expect((await persist(verifiedB, editorId)).replayed).toBe(true);
 
@@ -440,10 +482,11 @@ describe("external publication registration persistence", () => {
       orderBy: { sourceLocalClaimId: "asc" },
     });
     expect(occurrences).toHaveLength(4);
+    const materializationService = await import("./external-publication-materialization");
     const reports: PublicationClaimMaterializationReport[] = [];
     for (const occurrence of occurrences) {
       reports.push(
-        await prisma.$transaction((tx) => materializePublicationClaimOccurrence(tx, occurrence.id)),
+        await materializationService.materializeExternalPublicationClaim(occurrence.id, editorId),
       );
     }
     expect(new Set(reports.map((report) => report.knowledgeNodeId)).size).toBe(4);
@@ -520,9 +563,19 @@ describe("external publication registration persistence", () => {
     ).toEqual(
       expect.arrayContaining([
         "https://site-a.example/publication/results/#source-claim-a1",
-        "https://site-b.example/publication/results/#source-claim-b1",
+        exactB1Url,
       ]),
     );
+    const graphB1 = graph.nodes.find(
+      (node) =>
+        node.source.type === "publication-claim-occurrence" &&
+        node.source.sourceLocalClaimId === "claim-b1",
+    );
+    expect(graphB1?.source).toMatchObject({
+      publisherCanonicalUrl: null,
+      observedPublicationBaseUrl: observedBBase,
+      publishedTargetUrl: exactB1Url,
+    });
 
     const packetService = await import("./publication-version-packet");
     const packet = await packetService.getPublicationVersionPacket(siteB.publicationVersionId);
@@ -530,7 +583,14 @@ describe("external publication registration persistence", () => {
       siteB.publicationVersionId,
     );
     expect(replayedPacket).toEqual(packet);
+    expect(packet.version).toMatchObject({
+      publisherCanonicalUrl: null,
+      observedPublicationBaseUrl: observedBBase,
+    });
     expect(packet.occurrences).toHaveLength(2);
+    expect(
+      packet.occurrences.find((occurrence) => occurrence.sourceLocalClaimId === "claim-b1"),
+    ).toMatchObject({ publishedTargetUrl: exactB1Url, links: { originalPublication: exactB1Url } });
     expect(packet.relations).toHaveLength(1);
     expect(packet.completeness.occurrences).toEqual({ returned: 2, total: 2, truncated: false });
     expect(JSON.stringify(packet)).not.toContain("contentBytes");

@@ -44,7 +44,8 @@ export default function AgentGuidePage() {
       <p>
         External publication claims use the same canonical graph API. A graph node whose source is
         <code>publication-claim-occurrence</code> includes the exact publication, version, capture
-        identities, and external target URL. Follow its publication-version packet for a bounded,
+        identities, authoritative external target URL, optional publisher canonical URL, and
+        separately observed publication base. Follow its publication-version packet for a bounded,
         digest-stable view of all captured occurrences and public graph bindings; never infer claim
         identity from matching text, source-local IDs, or digests.
       </p>

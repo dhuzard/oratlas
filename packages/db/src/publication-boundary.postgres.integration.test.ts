@@ -41,6 +41,7 @@ async function createVersion(publicationId: string, overrides: Record<string, un
       adapterType: "myst",
       adapterBindingJson: JSON.stringify({ type: "myst", protocolVersion: "0.2.0" }),
       structuralProvenance: "published-structure",
+      observedPublicationBaseUrl: "https://observed.example/article/",
       observedAt: new Date("2026-08-23T00:00:00.000Z"),
       ...overrides,
     },
@@ -137,6 +138,9 @@ describe.skipIf(!enabled)("publication boundary on PostgreSQL", () => {
     ).rejects.toThrow(/Publication capture bytes are immutable/);
     await expect(
       prisma.$executeRaw`UPDATE "PublicationVersion" SET "title" = 'Rewritten' WHERE "id" = ${version.id}`,
+    ).rejects.toThrow(/An observed publication version is immutable/);
+    await expect(
+      prisma.$executeRaw`UPDATE "PublicationVersion" SET "observedPublicationBaseUrl" = 'https://evil.example/' WHERE "id" = ${version.id}`,
     ).rejects.toThrow(/An observed publication version is immutable/);
   });
 

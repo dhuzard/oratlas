@@ -8,6 +8,7 @@ import {
   publicationHttpsUrlSchema,
 } from "@oratlas/contracts";
 import type { Prisma } from "../generated/client/index.js";
+import { resolveObservedPublicationBaseUrl } from "./publication-addressing.js";
 
 export class PublicationClaimMaterializationError extends Error {
   constructor(message: string) {
@@ -38,7 +39,15 @@ export async function materializePublicationClaimOccurrence(
       publicationVersion: {
         include: {
           publication: true,
-          captures: { select: { id: true }, orderBy: { id: "asc" } },
+          captures: {
+            select: {
+              id: true,
+              artifactKind: true,
+              observedUrl: true,
+              requestedUrl: true,
+            },
+            orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+          },
         },
       },
       graphVersion: true,
@@ -69,18 +78,27 @@ export async function materializePublicationClaimOccurrence(
     "claim selector",
   );
   const version = occurrence.publicationVersion;
-  const canonicalUrl = publicationHttpsUrlSchema.safeParse(version.canonicalUrl);
-  if (!canonicalUrl.success) {
+  const observedBaseUrl = resolveObservedPublicationBaseUrl(version);
+  if (!observedBaseUrl) {
     throw new PublicationClaimMaterializationError(
-      "The publication version has no verified original publication URL.",
+      "The publication version has no valid observed publication base URL.",
     );
   }
+  const publisherCanonicalUrl = publicationHttpsUrlSchema.safeParse(version.canonicalUrl);
+  if (version.canonicalUrl !== null && !publisherCanonicalUrl.success) {
+    throw new PublicationClaimMaterializationError(
+      "The publication version has an invalid publisher-declared canonical URL.",
+    );
+  }
+  const provenanceAddress = publisherCanonicalUrl.success
+    ? publisherCanonicalUrl.data
+    : observedBaseUrl;
 
   if (occurrence.graphVersion) {
     assertExactBinding(occurrence, occurrence.graphVersion.knowledgeNodeId);
     assertGraphVersion(
       occurrence.graphVersion,
-      expectedVersionFields(occurrence, canonicalUrl.data),
+      expectedVersionFields(occurrence, provenanceAddress),
     );
     return {
       publicationClaimOccurrenceId: occurrence.id,
@@ -121,7 +139,7 @@ export async function materializePublicationClaimOccurrence(
     }
   }
 
-  const fields = expectedVersionFields(occurrence, canonicalUrl.data, {
+  const fields = expectedVersionFields(occurrence, provenanceAddress, {
     target,
     sourceBinding,
     selector,
@@ -135,10 +153,21 @@ export async function materializePublicationClaimOccurrence(
     },
   });
   if (!occurrence.knowledgeNodeId) {
-    await tx.publicationClaimOccurrence.update({
-      where: { id: occurrence.id },
+    const binding = await tx.publicationClaimOccurrence.updateMany({
+      where: { id: occurrence.id, knowledgeNodeId: null },
       data: { knowledgeNodeId: node.id },
     });
+    if (binding.count !== 1) {
+      const current = await tx.publicationClaimOccurrence.findUnique({
+        where: { id: occurrence.id },
+        select: { id: true, knowledgeNodeId: true },
+      });
+      if (!current || current.knowledgeNodeId !== node.id) {
+        throw new PublicationClaimMaterializationError(
+          `Occurrence '${occurrence.id}' has a conflicting canonical identity binding.`,
+        );
+      }
+    }
   } else {
     assertExactBinding(occurrence, node.id);
   }
@@ -184,7 +213,7 @@ function expectedVersionFields(
       publication: { publicationType: string };
     };
   },
-  canonicalUrl: string,
+  publicationBaseUrl: string,
   parsed?: { target: unknown; sourceBinding: unknown; selector: unknown; captureIds: string[] },
 ) {
   const sourceBinding = parsed?.sourceBinding ?? JSON.parse(occurrence.sourceBindingJson);
@@ -199,7 +228,7 @@ function expectedVersionFields(
       knowledgeNodeProvenanceSchema.parse({
         sourcePath: path,
         sourcePointer: `publication-claim:${occurrence.id}`,
-        repositoryUrl: canonicalUrl,
+        repositoryUrl: publicationBaseUrl,
         declaredAt: occurrence.publicationVersion.observedAt.toISOString(),
       }),
     ),

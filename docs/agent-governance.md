@@ -22,7 +22,8 @@ preserved records. It returns canonical graph references, relative scores, and e
 agents resolve record content through the reader-agnostic graph API.
 
 External publications use that same graph. A `publication-claim-occurrence` source names the exact
-publication/version, external target and capture identities. Agents may follow the generic,
+publication/version, authoritative external target, capture identities, optional
+`publisherCanonicalUrl`, and distinct capture-derived `observedPublicationBaseUrl`. Agents may follow the generic,
 SHA-256-bound publication-version packet for bounded occurrences and public confirmed relations;
 the packet carries completeness flags and excludes raw captures, private proposals and hidden
 assessments. Matching text, local IDs or digests never authorize identity merging.

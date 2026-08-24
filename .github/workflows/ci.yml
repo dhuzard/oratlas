@@ -197,6 +197,11 @@ jobs:
         env:
           PUBLICATION_BOUNDARY_TEST_DATABASE_URL: "postgresql://oratlas:oratlas@localhost:5432/oratlas"
 
+      - name: Exercise concurrent external occurrence materialization on PostgreSQL
+        run: pnpm exec vitest run apps/web/src/lib/external-publication-materialization.postgres.integration.test.ts
+        env:
+          PUBLICATION_MATERIALIZATION_TEST_DATABASE_URL: "postgresql://oratlas:oratlas@localhost:5432/oratlas"
+
       - name: Seed PostgreSQL
         run: pnpm --filter @oratlas/db db:seed
 

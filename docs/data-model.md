@@ -198,7 +198,10 @@ canonical graph identity.
   DOI or archive still has an exact, recomputable version identity. Uniqueness is scoped to the
   publication rather than global, because two distinct publications may legitimately publish
   identical bytes. Adapter metadata lives in one closed, versioned, discriminated union stored as
-  `adapterBindingJson`; the generic layer has no toolchain-specific columns.
+  `adapterBindingJson`; the generic layer has no toolchain-specific columns. Publisher-declared
+  `canonicalUrl` remains nullable and unmodified. The separate nullable
+  `observedPublicationBaseUrl` is populated for new captures from the manifest's observed/requested
+  URL; older rows derive it from their immutable manifest capture.
 - `structuralProvenance` is `published-structure` or `source-byte`. These are structural states
   only: they record what ORAtlas checked about the published protocol structure and, where the
   source bytes were obtainable, about those bytes. Neither is scientific validation, and neither

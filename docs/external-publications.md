@@ -130,7 +130,15 @@ version, not the publication that persists across versions.
 Identity is `(publication, sourcesSha256)`. `sourcesSha256` is the publication's own digest
 over its complete document set; it always exists, including for a plain website with no
 repository, DOI or archive. That is what lets ORAtlas tell version 1 from version 2 without
-guessing from a mutable URL. The canonical URL is retained as addressing metadata.
+guessing from a mutable URL.
+
+The protocol's publisher-declared `publication.canonicalUrl` is optional. When present it is
+retained unchanged as `canonicalUrl`; ORAtlas never invents it. Separately, every new registration
+derives `observedPublicationBaseUrl` from the immutable manifest capture's final URL (falling back
+to its requested URL). Pre-Phase-3 rows derive the same value from that retained capture at read
+time. Public graph and packet DTOs name these distinctly as `publisherCanonicalUrl` and
+`observedPublicationBaseUrl`. The occurrence's `publishedTargetUrl` remains the authoritative
+external deep link, including its exact source anchor.
 
 The uniqueness constraint is `(publicationId, sourcesSha256)`, deliberately **not** a global
 unique on the digest: two distinct publications may legitimately publish identical bytes.
@@ -211,7 +219,9 @@ other mutation of the occurrence.
 matching `KnowledgeNodeVersion.sourcePublicationClaimOccurrenceId` in one transaction. An unseen
 occurrence receives a new canonical claim identity. Exact replay is idempotent; a pre-existing
 incompatible binding or version fails closed. Continuity across publication versions remains an
-explicit reviewed choice.
+explicit reviewed choice. Concurrent exact requests use the same rolled-back uniqueness-race retry
+discipline as registration: one creates, one returns an idempotent replay, and only the creating
+transaction writes the audit event.
 
 ## Transitional architecture
 
@@ -255,9 +265,10 @@ materialize as an ordinary `claim-occurrence` node, so no new node kind is intro
 canonical graph identity does not change shape.
 
 The fifth source is active. `canonicalGraphSourceSchema` exposes bounded publication, version,
-adapter, structural-level, capture-identity, original-URL and exact-target provenance without raw
-capture bytes. The exactly-one-source database constraint remains `= 1` across all five source
-columns on SQLite and PostgreSQL.
+shared adapter vocabulary, structural-level, capture identity, optional publisher-canonical
+addressing, observed addressing and exact-target provenance without raw capture bytes. The
+exactly-one-source database constraint remains `= 1` across all five source columns on SQLite and
+PostgreSQL.
 
 The generic materializer lives in `packages/db` and consumes only
 `PublicationClaimOccurrence`. MyST resolves its target URL before persistence and disappears at the

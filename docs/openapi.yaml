@@ -130,7 +130,11 @@ components:
       properties:
         schemaVersion: { const: "1.0.0" }
         publication: { type: object }
-        version: { type: object }
+        version:
+          type: object
+          description: >
+            Exact version identity plus optional publisherCanonicalUrl and the distinct required
+            observedPublicationBaseUrl derived from the immutable manifest capture.
         captures:
           type: array
           maxItems: 1000
@@ -970,7 +974,8 @@ components:
               sourceLocalClaimId,
               adapterType,
               structuralProvenance,
-              originalPublicationUrl,
+              publisherCanonicalUrl,
+              observedPublicationBaseUrl,
               publishedTargetUrl,
               captureIds,
               sourcesSha256,
@@ -996,7 +1001,8 @@ components:
             sourceLocalClaimId: { type: string, maxLength: 120 }
             adapterType: { type: string, enum: [myst] }
             structuralProvenance: { type: string, enum: [published-structure, source-byte] }
-            originalPublicationUrl: { type: string, format: uri }
+            publisherCanonicalUrl: { type: [string, "null"], format: uri }
+            observedPublicationBaseUrl: { type: string, format: uri }
             publishedTargetUrl: { type: string, format: uri }
             captureIds: { type: array, maxItems: 1000, items: { type: string } }
             sourcesSha256: { type: string, pattern: "^[0-9a-f]{64}$" }
