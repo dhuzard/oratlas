@@ -3,6 +3,7 @@ import {
   canonicalJson,
   knowledgeNodeSchema,
   nodeEdgeSchema,
+  ORA_SCIENTIFIC_MERIT_PROTOCOL_DEFINITION,
   type CompatibilityReport,
   type SubmissionValidationReport,
   type TrustRecord,
@@ -651,6 +652,125 @@ async function main() {
     });
     users.set(u.githubLogin, row.id);
   }
+
+  const oraCertifier = await prisma.certifier.create({
+    data: {
+      id: "ora-reference-certifier",
+      slug: "ora",
+      name: "ORA",
+      description:
+        "Reference certification service operated through ORAtlas infrastructure. ORA assertions are attributed pilot assessments, not ORAtlas truth.",
+      status: "active",
+      createdById: users.get("atlas-editor")!,
+      activatedAt: new Date("2026-08-24T08:00:00.000Z"),
+    },
+  });
+  const oraProtocolJson = canonicalJson(ORA_SCIENTIFIC_MERIT_PROTOCOL_DEFINITION);
+  await prisma.certificationProtocol.create({
+    data: {
+      id: "ora-scientific-merit-pilot-0-1-0",
+      certifierId: oraCertifier.id,
+      seriesKey: "scientific-merit-pilot",
+      protocolVersion: "0.1.0",
+      title: "ORA Scientific Merit Pilot",
+      description:
+        "Pilot assessment of scientific reporting and evidential support visible in one exact frozen PublicationVersion packet; not definitive peer review or a truth determination.",
+      protocolJson: oraProtocolJson,
+      protocolSha256: sha256(oraProtocolJson),
+      status: "active",
+    },
+  });
+  console.info("  · seeded ORA reference certifier and Scientific Merit Pilot 0.1.0");
+
+  const demoText = [
+    "Demo / synthetic publication",
+    "Objective: test whether a prespecified intervention changes a synthetic outcome.",
+    "Methods: synthetic units were assigned by a prespecified deterministic rule; analysis and uncertainty intervals were defined before observation.",
+    "Results: the synthetic effect and uncertainty interval are reported with the generated data and code manifest.",
+    "Limitations: this fixture is not a real study and supports only end-to-end platform testing.",
+    "Ethics and conflicts: no people, animals, or real-world observations are involved.",
+  ].join("\n\n");
+  const demoArtifactIdentity = sha256("ora-demo-content-slot");
+  const demoArtifactHash = sha256(demoText);
+  const demoContentJson = canonicalJson([
+    {
+      id: "publication-content:ora-demo-article",
+      title: "Demo / synthetic scientific merit fixture",
+      role: "other",
+      sourcePath: "article.md",
+      publishedUrl: "https://demo.oratlas.org/scientific-merit-pilot/article/",
+      representation: "published-structured-text",
+      text: demoText,
+      sha256: demoArtifactHash,
+      sourceArtifactIdentitySha256: demoArtifactIdentity,
+      sourceArtifactSha256: demoArtifactHash,
+    },
+  ]);
+  const demoPublication = await prisma.publication.create({
+    data: {
+      id: "ora-demo-publication",
+      stableKey: "registration:ora-scientific-merit-demo",
+      publicationType: "research-article",
+      recordSource: "external-publication",
+      identityEvidenceJson: canonicalJson({
+        basis: "registration",
+        registrationKey: "ora-scientific-merit-demo",
+      }),
+      sourceLocalPublicationId: "ora-scientific-merit-demo",
+    },
+  });
+  await prisma.publicationVersion.create({
+    data: {
+      id: "ora-demo-publication-version",
+      publicationId: demoPublication.id,
+      stableKey: "ora-scientific-merit-demo:v1",
+      sourceLocalPublicationId: "ora-scientific-merit-demo",
+      sourcesSha256: sha256("ora-scientific-merit-demo-v1"),
+      versionLabel: "v1",
+      title: "Demo / synthetic scientific merit fixture",
+      canonicalUrl: null,
+      observedPublicationBaseUrl: "https://demo.oratlas.org/scientific-merit-pilot/",
+      adapterType: "myst",
+      adapterBindingJson: canonicalJson({
+        type: "myst",
+        protocolVersion: "0.2.0",
+        crossReferenceInventoryPath: "myst.xref.json",
+        generatorName: "oratlas-synthetic-fixture",
+        generatorVersion: "1.0.0",
+      }),
+      structuralProvenance: "published-structure",
+      verificationWarningsJson: canonicalJson([
+        "Demo / synthetic fixture; it is not an observed real scientific publication.",
+      ]),
+      contentCorpusJson: demoContentJson,
+      contentCorpusSha256: sha256(demoContentJson),
+      contentCompletenessJson: canonicalJson({
+        returnedDocuments: 1,
+        totalDocumentsKnown: 1,
+        truncated: false,
+        coverage: "complete",
+      }),
+      observedAt: new Date("2026-08-24T08:00:00.000Z"),
+      captures: {
+        create: {
+          id: "ora-demo-publication-capture",
+          artifactKind: "published-page-data",
+          artifactIdentitySha256: demoArtifactIdentity,
+          declaredPath: "article.md",
+          observedUrl: "https://demo.oratlas.org/scientific-merit-pilot/article/",
+          requestedUrl: "https://demo.oratlas.org/scientific-merit-pilot/article/",
+          mediaType: "text/markdown",
+          contentSha256: demoArtifactHash,
+          byteLength: Buffer.byteLength(demoText, "utf8"),
+          contentBytes: demoText,
+          httpProvenanceJson: canonicalJson({ synthetic: true }),
+          structuralProvenance: "published-structure",
+          capturedAt: new Date("2026-08-24T08:00:00.000Z"),
+        },
+      },
+    },
+  });
+  console.info("  · seeded clearly labeled ORA demo/synthetic PublicationVersion");
 
   // Reviews
   const claimIdsBySlug = new Map<string, Map<string, string>>();

@@ -6,6 +6,7 @@ import { SpecialistToolBreadcrumb } from "@/components/SpecialistTools";
 import { CanonicalGraphQueryError, queryCanonicalGraph } from "@/lib/canonical-graph-query";
 import { canonicalOccurrenceHref } from "@/lib/knowledge-landscape-service";
 import { listPublicationVersionCertifications } from "@/lib/certification";
+import { oraPilotPresentation } from "@/lib/ora-certification-presentation";
 
 export const dynamic = "force-dynamic";
 
@@ -144,7 +145,9 @@ export default async function CanonicalOccurrencePage({ params }: OccurrencePage
                 <ul>
                   {certifications.map((certification) => (
                     <li key={certification.id}>
-                      <a href={certification.href}>{certification.certifier.name}</a>
+                      <a href={`/certifications/${certification.id}`}>
+                        {oraPilotPresentation(certification)?.label ?? certification.certifier.name}
+                      </a>
                       <br />
                       {certification.protocol.title} v{certification.protocol.version}:{" "}
                       {String(certification.outcome).replaceAll("-", " ")}

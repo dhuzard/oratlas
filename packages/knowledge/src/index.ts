@@ -125,6 +125,15 @@ export {
 } from "./synthesis-delta.js";
 export { compareSynthesisPackets } from "./synthesis-staleness.js";
 export {
+  type CertificationEvaluation,
+  type CertificationEvaluationExecutionMetadata,
+  type CertificationEvaluator,
+} from "./certification-evaluator.js";
+export {
+  OraScientificMeritEvaluator,
+  ORA_SCIENTIFIC_MERIT_SYSTEM_PROMPT,
+} from "./ora-certification-evaluator.js";
+export {
   defineGroundingEvalFixture,
   evaluateGroundingFixtures,
   prepareGroundingEvalFixtures,

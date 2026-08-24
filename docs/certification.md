@@ -96,11 +96,15 @@ An external certifier needs only documented HTTP APIs:
 1. `POST /api/certification-runs` with one exact version, protocol, mode, and idempotency key.
 2. `GET /api/certification-runs/{id}/input` to receive the immutable snapshot and hash.
 3. Evaluate outside ORAtlas.
-4. `POST /api/certification-runs/{id}/result` with protocol-valid criteria and evidence.
-5. `GET /api/publication-versions/{id}/certifications` to observe all public results.
+4. On success, `POST /api/certification-runs/{id}/result` with protocol-valid criteria and evidence.
+5. If evaluation cannot complete, instead `POST /api/certification-runs/{id}/transition` with
+   `failed` or `cancelled` and an explicit reason. Only the owning certifier can close its open run;
+   an exact terminal replay is idempotent and a conflicting transition is rejected.
+6. `GET /api/publication-versions/{id}/certifications` to observe all public results.
 
-The framework-free example in `scripts/certifier-api-client.ts` performs this journey with `fetch`
-only. It imports no ORAtlas package and has no repository or database access.
+The framework-free implementation in `packages/certifier-client` performs this journey with
+`fetch` only and has no repository or database access. `scripts/certifier-api-client.ts` is its
+public example entrypoint.
 
 ## Epistemic separation
 

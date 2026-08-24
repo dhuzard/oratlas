@@ -2195,6 +2195,8 @@ model CertificationRun {
   capturedAt           DateTime
   startedAt            DateTime?
   completedAt          DateTime?
+  /// Immutable explanation for an owner-requested failed/cancelled terminal transition.
+  terminalReason       String?
   createdAt            DateTime  @default(now())
 
   publicationVersion PublicationVersion    @relation(fields: [publicationVersionId], references: [id], onDelete: Restrict)
@@ -2260,8 +2262,8 @@ model CertificationLifecycleEvent {
   actorUser      User?               @relation("certificationLifecycleActor", fields: [actorUserId], references: [id], onDelete: Restrict)
   actorCertifier Certifier?          @relation(fields: [actorCertifierId], references: [id], onDelete: Restrict)
 
-  @@index([resultId, createdAt])
   @@unique([resultId, kind])
+  @@index([resultId, createdAt])
 }
 
 /// Optional append-only declaration of how one exact publication version was

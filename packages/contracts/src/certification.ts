@@ -58,6 +58,11 @@ export const certificationCriterionSchema = z
     required: z.boolean(),
     allowedStatuses: z.array(certificationCriterionStatusSchema).min(1).max(5),
     evidenceRequired: z.boolean().default(false),
+    evidenceRequiredForStatuses: z
+      .array(certificationCriterionStatusSchema)
+      .min(1)
+      .max(5)
+      .optional(),
   })
   .strict();
 
@@ -86,6 +91,25 @@ export const certificationProtocolDefinitionSchema = z
         message: "Criterion ids must be unique.",
       });
     }
+    value.criteria.forEach((criterion, index) => {
+      const statuses = criterion.evidenceRequiredForStatuses ?? [];
+      if (new Set(statuses).size !== statuses.length) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["criteria", index, "evidenceRequiredForStatuses"],
+          message: "Evidence-required statuses must be unique.",
+        });
+      }
+      for (const status of statuses) {
+        if (!criterion.allowedStatuses.includes(status)) {
+          context.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["criteria", index, "evidenceRequiredForStatuses"],
+            message: `Evidence cannot be required for disallowed status '${status}'.`,
+          });
+        }
+      }
+    });
     for (const field of ["assessmentModes", "outcomes", "requireCompleteSections"] as const) {
       if (new Set(value[field]).size !== value[field].length) {
         context.addIssue({
@@ -135,6 +159,15 @@ export const createCertificationRunSchema = z
     idempotencyKey: z.string().min(8).max(200),
   })
   .strict();
+export const certificationRunTerminalTransitionSchema = z
+  .object({
+    status: z.enum(["failed", "cancelled"]),
+    reason: z.string().trim().min(1).max(4_000),
+  })
+  .strict();
+export type CertificationRunTerminalTransition = z.infer<
+  typeof certificationRunTerminalTransitionSchema
+>;
 
 const packetEvidenceSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("publication-occurrence"), id: z.string().min(1) }).strict(),
@@ -164,6 +197,7 @@ export const certificationCriterionResultSchema = z
     evidenceRefs: z.array(certificationEvidenceReferenceSchema).max(100).default([]),
   })
   .strict();
+export type CertificationCriterionResult = z.infer<typeof certificationCriterionResultSchema>;
 export const submitCertificationResultSchema = z
   .object({
     schemaVersion: z.literal(CERTIFICATION_RESULT_SCHEMA_VERSION),

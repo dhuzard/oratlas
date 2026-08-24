@@ -23,6 +23,9 @@ importers:
       '@eslint/js':
         specifier: ^9.39.4
         version: 9.39.4
+      '@oratlas/certifier-client':
+        specifier: workspace:*
+        version: link:packages/certifier-client
       '@types/node':
         specifier: ^22.15.0
         version: 22.20.1
@@ -92,6 +95,9 @@ importers:
       '@oratlas/knowledge':
         specifier: workspace:*
         version: link:../../packages/knowledge
+      '@oratlas/ora-certifier':
+        specifier: workspace:*
+        version: link:../../packages/ora-certifier
       '@oratlas/protocols':
         specifier: workspace:*
         version: link:../../packages/protocols
@@ -175,6 +181,12 @@ importers:
       vitest:
         specifier: ^3.1.4
         version: 3.2.7(@types/node@22.20.1)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.23.0)(yaml@2.9.0)
+
+  packages/certifier-client:
+    devDependencies:
+      typescript:
+        specifier: ^5.8.3
+        version: 5.9.3
 
   packages/config:
     dependencies:
@@ -337,6 +349,22 @@ importers:
       vitest:
         specifier: ^3.1.4
         version: 3.2.7(@types/node@22.20.1)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.23.0)(yaml@2.9.0)
+
+  packages/ora-certifier:
+    dependencies:
+      '@oratlas/certifier-client':
+        specifier: workspace:*
+        version: link:../certifier-client
+      '@oratlas/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+      '@oratlas/knowledge':
+        specifier: workspace:*
+        version: link:../knowledge
+    devDependencies:
+      typescript:
+        specifier: ^5.8.3
+        version: 5.9.3
 
   packages/protocols:
     dependencies:

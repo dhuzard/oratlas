@@ -164,6 +164,13 @@ components:
             promptVersion: { type: string, minLength: 1, maxLength: 120 }
             structuredOutputSha256: { type: string, pattern: "^[0-9a-f]{64}$" }
         supersedesCertificationResultId: { type: string, minLength: 1 }
+    CertificationRunTerminalTransition:
+      type: object
+      additionalProperties: false
+      required: [status, reason]
+      properties:
+        status: { enum: [failed, cancelled] }
+        reason: { type: string, minLength: 1, maxLength: 4000 }
     ExternalPublicationRegistrationResult:
       type: object
       additionalProperties: false
@@ -4027,6 +4034,27 @@ paths:
         "409": { $ref: "#/components/responses/Error" }
         "413": { $ref: "#/components/responses/Error" }
         "415": { $ref: "#/components/responses/Error" }
+  /api/certification-runs/{id}/transition:
+    post:
+      summary: Mark an owned open certification run failed or cancelled
+      description: The terminal reason is immutable and audited; exact concurrent duplicates replay idempotently.
+      security: [{ certifierBearer: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CertificationRunTerminalTransition" }
+      responses:
+        "200": { description: Terminal transition or exact idempotent replay }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "413": { $ref: "#/components/responses/Error" }
+        "415": { $ref: "#/components/responses/Error" }
   /api/certification-results/{id}:
     get:
       summary: Read one public attributed certification result and lifecycle
@@ -4066,6 +4094,40 @@ paths:
         "401": { $ref: "#/components/responses/Error" }
         "403": { $ref: "#/components/responses/Error" }
         "409": { $ref: "#/components/responses/Error" }
+  /api/editorial/ora-certifications:
+    get:
+      summary: Inspect controlled ORA Pilot readiness for one exact PublicationVersion
+      security: [{ session: [] }]
+      parameters:
+        - { name: publicationVersionId, in: query, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Exact protocol, packet content state, assessment mode, and provider availability
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+    post:
+      summary: Initiate one idempotent ORA Pilot assessment as an editor
+      description: Available only with explicit server-side ORA credential and evaluator configuration; certification writes use the generic certifier HTTP API.
+      security: [{ session: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [publicationVersionId]
+              properties:
+                publicationVersionId: { type: string }
+      responses:
+        "201": { description: New result or deterministic idempotent replay }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "415": { $ref: "#/components/responses/Error" }
+        "502": { $ref: "#/components/responses/Error" }
   /api/editorial/certifiers/{id}/status:
     post:
       summary: Suspend, activate, or retire a certifier as an administrator

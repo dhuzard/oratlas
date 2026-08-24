@@ -44,9 +44,11 @@
     "smoke:gcp-beta": "node scripts/smoke-gcp-beta.mjs",
     "refresh:syntheses": "tsx --conditions=react-server apps/web/src/cli/refresh-syntheses.ts",
     "backfill:canonical-graph": "pnpm --filter @oratlas/db exec tsx --conditions=react-server ../../scripts/backfill-canonical-graph.ts",
-    "release:notes": "tsx scripts/release-notes.ts"
+    "release:notes": "tsx scripts/release-notes.ts",
+    "demo:ora-certification": "tsx scripts/ora-demo-certification.ts"
   },
   "devDependencies": {
+    "@oratlas/certifier-client": "workspace:*",
     "@eslint/js": "^9.39.4",
     "@types/node": "^22.15.0",
     "ajv": "^8.17.1",
