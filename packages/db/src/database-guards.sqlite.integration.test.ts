@@ -105,4 +105,46 @@ describe("SQLite database guards", () => {
       }),
     ).rejects.toThrow();
   });
+
+  it("rejects certification supersession across a different subject, certifier, or protocol", async () => {
+    const packetHash = "a".repeat(64);
+    const resultHash = "b".repeat(64);
+    for (const [runId, versionId, certifierId, protocolId] of [
+      ["guard-run-a", "version-a", "certifier-a", "protocol-a"],
+      ["guard-run-b", "version-b", "certifier-b", "protocol-b"],
+    ])
+      await prisma.$executeRawUnsafe(`
+        INSERT INTO "CertificationRun"
+          ("id", "publicationVersionId", "certifierId", "protocolId", "assessmentMode", "status",
+           "idempotencyKey", "inputPacketJson", "inputPacketSha256", "packetSchemaVersion",
+           "completenessJson", "capturedAt", "createdAt")
+        VALUES
+          ('${runId}', '${versionId}', '${certifierId}', '${protocolId}', 'human', 'running',
+           '${runId}', '{}', '${packetHash}', '1.1.0', '{}', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+      `);
+    await prisma.$executeRawUnsafe(`
+      INSERT INTO "CertificationResult"
+        ("id", "certificationRunId", "publicationVersionId", "certifierId", "protocolId",
+         "inputPacketSha256", "assessmentMode", "criteriaJson", "outcome", "limitationsJson",
+         "conflictOfInterestJson", "independenceJson", "provenanceJson", "resultJson",
+         "resultSha256", "issuedAt", "createdAt")
+      VALUES
+        ('guard-result-a', 'guard-run-a', 'version-a', 'certifier-a', 'protocol-a',
+         '${packetHash}', 'human', '[]', 'certified', '[]', '{}', '{}', '{}', '{}',
+         '${resultHash}', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+    `);
+    await expect(
+      prisma.$executeRawUnsafe(`
+        INSERT INTO "CertificationResult"
+          ("id", "certificationRunId", "publicationVersionId", "certifierId", "protocolId",
+           "inputPacketSha256", "assessmentMode", "criteriaJson", "outcome", "limitationsJson",
+           "conflictOfInterestJson", "independenceJson", "provenanceJson", "resultJson",
+           "resultSha256", "supersedesResultId", "issuedAt", "createdAt")
+        VALUES
+          ('guard-result-b', 'guard-run-b', 'version-b', 'certifier-b', 'protocol-b',
+           '${packetHash}', 'human', '[]', 'certified', '[]', '{}', '{}', '{}', '{}',
+           '${resultHash}', 'guard-result-a', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+      `),
+    ).rejects.toThrow();
+  });
 });

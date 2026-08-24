@@ -266,6 +266,7 @@ export const publicCertificationSummarySchema = z
           .strict(),
       )
       .min(1),
+    lifecycleState: certificationLifecycleKindSchema,
     href: z.string().startsWith("/"),
   })
   .strict();

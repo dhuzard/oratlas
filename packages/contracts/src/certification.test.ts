@@ -81,6 +81,7 @@ describe("generic certification contracts", () => {
       assessmentMode: "human",
       issuedAt: "2026-08-24T12:00:00.000Z",
       lifecycle: [{ kind: "issued", reason: null, createdAt: "2026-08-24T12:00:00.000Z" }],
+      lifecycleState: "issued",
       href: "/api/certification-results/result-1",
     };
     expect(publicCertificationSummarySchema.parse(summary).protocol.version).toBe("2.0.0");

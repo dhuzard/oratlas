@@ -151,7 +151,8 @@ export default async function CanonicalOccurrencePage({ params }: OccurrencePage
                       <br />
                       <span className="muted">
                         {certification.assessmentMode} assessment ·{" "}
-                        {certification.issuedAt.slice(0, 10)}
+                        {certification.issuedAt.slice(0, 10)} · lifecycle:{" "}
+                        {String(certification.lifecycleState).replaceAll("-", " ")}
                       </span>
                     </li>
                   ))}

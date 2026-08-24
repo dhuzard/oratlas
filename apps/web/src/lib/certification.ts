@@ -3,6 +3,7 @@ import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import {
   canonicalJson,
   certificationProtocolDefinitionSchema,
+  publicCertificationSummarySchema,
   submitCertificationResultSchema,
   type CertificationEvidenceReference,
   type CertificationProtocolDefinition,
@@ -104,29 +105,53 @@ export async function setCertifierStatus(
   status: "active" | "suspended" | "retired",
   actorId: string,
 ) {
-  const now = new Date();
-  const existing = await prisma.certifier.findUnique({ where: { id } });
-  if (!existing) throw new CertificationError("not-found", "Certifier not found.");
-  if (existing.status === "retired" && status !== "retired")
-    throw new CertificationError("conflict", "A retired certifier cannot be reactivated.");
-  const row = await prisma.certifier.update({
-    where: { id },
-    data: {
-      status,
-      activatedAt: status === "active" ? (existing.activatedAt ?? now) : existing.activatedAt,
-      retiredAt: status === "retired" ? now : existing.retiredAt,
-    },
-  });
-  await prisma.auditEvent.create({
-    data: {
-      actorId,
-      action: "certification.certifier-status",
-      subjectType: "certifier",
-      subjectId: id,
-      detailsJson: canonicalJson({ previous: existing.status, status }),
-    },
-  });
-  return certifierPublic(row);
+  try {
+    return await prisma.$transaction(
+      async (tx) => {
+        const now = new Date();
+        const existing = await tx.certifier.findUnique({ where: { id } });
+        if (!existing) throw new CertificationError("not-found", "Certifier not found.");
+        if (existing.status === status) return certifierPublic(existing);
+        if (existing.status === "retired")
+          throw new CertificationError("conflict", "A retired certifier cannot be reactivated.");
+        const changed = await tx.certifier.updateMany({
+          where: { id, status: existing.status },
+          data: {
+            status,
+            activatedAt: status === "active" ? (existing.activatedAt ?? now) : existing.activatedAt,
+            retiredAt: status === "retired" ? (existing.retiredAt ?? now) : existing.retiredAt,
+          },
+        });
+        if (changed.count !== 1)
+          throw new CertificationError(
+            "conflict",
+            "Certifier status changed concurrently; retry against the current state.",
+          );
+        const row = await tx.certifier.findUniqueOrThrow({ where: { id } });
+        await tx.auditEvent.create({
+          data: {
+            actorId,
+            action: "certification.certifier-status",
+            subjectType: "certifier",
+            subjectId: id,
+            detailsJson: canonicalJson({ previous: existing.status, status }),
+          },
+        });
+        return certifierPublic(row);
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+    );
+  } catch (error) {
+    if (prismaCode(error) !== "P2034") throw error;
+    const current = await prisma.certifier.findUnique({ where: { id } });
+    if (current?.status === status) return certifierPublic(current);
+    if (current?.status === "retired")
+      throw new CertificationError("conflict", "A retired certifier cannot be reactivated.");
+    throw new CertificationError(
+      "conflict",
+      "Certifier status changed concurrently; retry against the current state.",
+    );
+  }
 }
 
 function protocolPublic(row: {
@@ -272,30 +297,33 @@ export async function issueCertifierCredential(
   if (!certifier) throw new CertificationError("not-found", "Certifier not found.");
   const prefix = randomBytes(9).toString("base64url");
   const token = `oratlas_cert_${prefix}.${randomBytes(32).toString("base64url")}`;
-  const row = await prisma.certifierCredential.create({
-    data: {
-      certifierId,
-      label: input.label,
-      tokenPrefix: prefix,
-      tokenHash: digest(token),
-      scopesJson: canonicalJson([...new Set(input.scopes)].sort()),
-      expiresAt: input.expiresAt ? new Date(input.expiresAt) : null,
-      issuedById: actorId,
-    },
-  });
-  await prisma.auditEvent.create({
-    data: {
-      actorId,
-      action: "certification.credential-issued",
-      subjectType: "certifier-credential",
-      subjectId: row.id,
-      detailsJson: canonicalJson({
+  const row = await prisma.$transaction(async (tx) => {
+    const created = await tx.certifierCredential.create({
+      data: {
         certifierId,
-        label: row.label,
-        scopes: JSON.parse(row.scopesJson),
-        expiresAt: row.expiresAt?.toISOString() ?? null,
-      }),
-    },
+        label: input.label,
+        tokenPrefix: prefix,
+        tokenHash: digest(token),
+        scopesJson: canonicalJson([...new Set(input.scopes)].sort()),
+        expiresAt: input.expiresAt ? new Date(input.expiresAt) : null,
+        issuedById: actorId,
+      },
+    });
+    await tx.auditEvent.create({
+      data: {
+        actorId,
+        action: "certification.credential-issued",
+        subjectType: "certifier-credential",
+        subjectId: created.id,
+        detailsJson: canonicalJson({
+          certifierId,
+          label: created.label,
+          scopes: JSON.parse(created.scopesJson),
+          expiresAt: created.expiresAt?.toISOString() ?? null,
+        }),
+      },
+    });
+    return created;
   });
   return {
     id: row.id,
@@ -705,24 +733,23 @@ async function validateExecutionProvenance(
   snapshotHash: string,
   packetHash: string,
 ) {
-  if (mode === "human") return;
   const { agentRunId, executionPassportId } = input.provenance;
-  if (!agentRunId && !executionPassportId)
+  if (mode !== "human" && !agentRunId && !executionPassportId)
     throw new CertificationError(
       "bad-request",
       "AI and hybrid certification require exact execution provenance.",
     );
   if (agentRunId) {
     const run = await prisma.agentRun.findUnique({ where: { id: agentRunId } });
-    if (!run || run.status !== "succeeded")
+    if (!run || run.status !== "succeeded" || run.agentType !== "external-certification")
       throw new CertificationError(
         "bad-request",
-        "AgentRun provenance must reference a succeeded run.",
+        "AgentRun provenance must reference a succeeded external-certification run.",
       );
-    if (run.packetHash && run.packetHash !== snapshotHash && run.packetHash !== packetHash)
+    if (!run.packetHash || (run.packetHash !== snapshotHash && run.packetHash !== packetHash))
       throw new CertificationError(
         "conflict",
-        "AgentRun packet hash does not match the certification input.",
+        "AgentRun packet hash is absent or does not match the certification input.",
       );
   }
   if (executionPassportId) {
@@ -788,17 +815,30 @@ export async function listPublicationVersionCertifications(publicationVersionId:
   return {
     schemaVersion: "1.0.0",
     publicationVersionId,
-    certifications: rows.map((row) => ({
-      ...mapResult(row, row.lifecycleEvents),
-      certifier: { id: row.certifier.id, slug: row.certifier.slug, name: row.certifier.name },
-      protocol: {
-        id: row.protocol.id,
-        seriesKey: row.protocol.seriesKey,
-        version: row.protocol.protocolVersion,
-        sha256: row.protocol.protocolSha256,
-        title: row.protocol.title,
-      },
-    })),
+    certifications: rows.map((row) =>
+      publicCertificationSummarySchema.parse({
+        id: row.id,
+        publicationVersionId: row.publicationVersionId,
+        certifier: { id: row.certifier.id, slug: row.certifier.slug, name: row.certifier.name },
+        protocol: {
+          id: row.protocol.id,
+          seriesKey: row.protocol.seriesKey,
+          version: row.protocol.protocolVersion,
+          sha256: row.protocol.protocolSha256,
+          title: row.protocol.title,
+        },
+        outcome: row.outcome,
+        assessmentMode: row.assessmentMode,
+        issuedAt: row.issuedAt.toISOString(),
+        lifecycle: row.lifecycleEvents.map((event) => ({
+          kind: event.kind,
+          reason: event.reason,
+          createdAt: event.createdAt.toISOString(),
+        })),
+        lifecycleState: row.lifecycleEvents.at(-1)?.kind ?? "issued",
+        href: `/api/certification-results/${row.id}`,
+      }),
+    ),
   };
 }
 export async function getPublicCertificationResult(id: string) {

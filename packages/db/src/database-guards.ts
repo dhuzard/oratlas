@@ -694,7 +694,10 @@ const sqliteGuardConditions = {
     AND EXISTS (SELECT 1 FROM "CertificationRun" r WHERE r."id" = NEW."certificationRunId"
       AND r."publicationVersionId" = NEW."publicationVersionId" AND r."certifierId" = NEW."certifierId"
       AND r."protocolId" = NEW."protocolId" AND r."assessmentMode" = NEW."assessmentMode"
-      AND r."inputPacketSha256" = NEW."inputPacketSha256") THEN 1 ELSE 0 END`,
+      AND r."inputPacketSha256" = NEW."inputPacketSha256")
+    AND (NEW."supersedesResultId" IS NULL OR EXISTS (SELECT 1 FROM "CertificationResult" p
+      WHERE p."id" = NEW."supersedesResultId" AND p."publicationVersionId" = NEW."publicationVersionId"
+      AND p."certifierId" = NEW."certifierId" AND p."protocolId" = NEW."protocolId")) THEN 1 ELSE 0 END`,
   CertificationLifecycleEvent: `CASE WHEN NEW."kind" IN ('issued', 'superseded', 'withdrawn', 'revoked')
     AND ((NEW."actorUserId" IS NOT NULL) + (NEW."actorCertifierId" IS NOT NULL)) = 1 THEN 1 ELSE 0 END`,
   TrustAdjudicationReference: `CASE WHEN

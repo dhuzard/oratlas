@@ -51,12 +51,14 @@ A result is immutable and exactly bound to its run, subject version, certifier, 
 assessment mode, and captured packet hash. Packet-local evidence references are typed and must
 resolve inside the snapshot. An external resource requires both an HTTPS URL and SHA-256. Conflict
 of interest and independence are attributable declarations, not inferred facts. AI/hybrid results
-link to a succeeded `AgentRun` or verified `ExecutionPassport`; no prompt, token, reasoning, secret,
+link to a verified `ExecutionPassport` or a succeeded `external-certification` `AgentRun` whose
+non-null packet hash matches the captured input. Human results do not require either reference, but
+any reference they supply is validated to the same standard. No prompt, token, reasoning, secret,
 or rejected raw output is made public.
 
-Issued, superseded, withdrawn, and revoked are append-only lifecycle events. History is never
-deleted. A later `PublicationVersion` has no inherited result: it needs a new run, snapshot, and
-result.
+Issued, superseded, withdrawn, and revoked are append-only lifecycle events. Public summaries expose
+both the history and its current lifecycle state; history is never deleted. A later
+`PublicationVersion` has no inherited result: it needs a new run, snapshot, and result.
 
 ## Scoped external API journey
 

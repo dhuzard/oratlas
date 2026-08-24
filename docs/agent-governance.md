@@ -156,9 +156,11 @@ Agents must not conflate source assertions, capture/structural provenance, produ
 canonical graph confirmation, TRUST assessments, and certification. A certification agent consumes
 the immutable input returned from `/api/certification-runs/{id}/input`; it must echo the full
 snapshot SHA-256 and may cite only typed identifiers present in that snapshot (or immutable HTTPS
-resources with a digest). AI/hybrid results retain a succeeded `AgentRun` or verified
-`ExecutionPassport` link and safe provider/model/version/output-hash metadata, never secrets or
-reasoning. A certification result cannot create graph facts, alter TRUST, or speak for ORAtlas.
+resources with a digest). AI/hybrid results retain a verified `ExecutionPassport` or a succeeded
+`external-certification` `AgentRun` with a non-null matching packet hash, plus safe
+provider/model/version/output-hash metadata, never secrets or reasoning. Optional provenance on a
+human result is subject to the same validation. A certification result cannot create graph facts,
+alter TRUST, or speak for ORAtlas.
 See [Generic certification infrastructure](certification.md) and the public OpenAPI contract.
 
 Every agent action records its provenance (`AgentRun`, `KnowledgeLinkProposal.agentProvenance`,

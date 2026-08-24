@@ -3,7 +3,11 @@ import { execFileSync } from "node:child_process";
 import { existsSync, rmSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { canonicalJson, type CertificationProtocolDefinition } from "@oratlas/contracts";
+import {
+  canonicalJson,
+  publicCertificationSummarySchema,
+  type CertificationProtocolDefinition,
+} from "@oratlas/contracts";
 import { applyDatabaseGuards, type PrismaClient } from "@oratlas/db";
 import type {
   addCertificationLifecycle,
@@ -17,6 +21,7 @@ import type {
   listPublicationVersionCertifications,
   retireCertificationProtocol,
   revokeCertifierCredential,
+  setCertifierStatus,
   submitCertificationResult,
 } from "./certification";
 
@@ -38,6 +43,7 @@ type CertificationService = {
   listPublicationVersionCertifications: typeof listPublicationVersionCertifications;
   retireCertificationProtocol: typeof retireCertificationProtocol;
   revokeCertifierCredential: typeof revokeCertifierCredential;
+  setCertifierStatus: typeof setCertifierStatus;
   submitCertificationResult: typeof submitCertificationResult;
 };
 let service: CertificationService;
@@ -239,6 +245,15 @@ describe("generic certification platform", () => {
     expect(
       await prisma.certifierCredential.findUnique({ where: { id: credentialA.id } }),
     ).not.toHaveProperty("token", credentialA.token);
+    expect(
+      await prisma.auditEvent.count({
+        where: {
+          action: "certification.credential-issued",
+          subjectType: "certifier-credential",
+          subjectId: credentialA.id,
+        },
+      }),
+    ).toBe(1);
     const authA = await service.authenticateCertifier(
       request(credentialA.token),
       "certification:submit",
@@ -389,6 +404,36 @@ describe("generic certification platform", () => {
         authA,
       ),
     ).rejects.toThrow();
+    const invalidHumanProvenanceRun = await service.createCertificationRun(
+      {
+        publicationVersionId: versionId,
+        certificationProtocolId: protocolA.id,
+        assessmentMode: "human",
+        idempotencyKey: "institute-a-invalid-human-provenance",
+      },
+      authA,
+    );
+    const invalidHumanInput = await service.getCertificationInput(
+      invalidHumanProvenanceRun.id,
+      certifierA.id,
+    );
+    const failedCertificationAgentRun = await prisma.agentRun.create({
+      data: {
+        agentType: "external-certification",
+        packetHash: invalidHumanInput.packetSha256,
+        status: "failed",
+      },
+    });
+    await expect(
+      service.submitCertificationResult(
+        invalidHumanProvenanceRun.id,
+        {
+          ...result(invalidHumanInput.packetSha256, occurrenceId),
+          provenance: { agentRunId: failedCertificationAgentRun.id },
+        },
+        authA,
+      ),
+    ).rejects.toMatchObject({ code: "bad-request" });
     const resultA = await service.submitCertificationResult(
       runA.id,
       result(inputA.packetSha256, occurrenceId),
@@ -435,6 +480,9 @@ describe("generic certification platform", () => {
       authB,
     );
     const publicResults = await service.listPublicationVersionCertifications(versionId);
+    for (const summary of publicResults.certifications)
+      expect(publicCertificationSummarySchema.parse(summary)).toEqual(summary);
+    expect(publicResults.certifications[0]).not.toHaveProperty("certificationRunId");
     expect(publicResults.certifications.map((item) => [item.certifier.name, item.outcome])).toEqual(
       [
         ["Institute A", "certified"],
@@ -462,6 +510,48 @@ describe("generic certification platform", () => {
       authA,
     );
     const aiInput = await service.getCertificationInput(aiRun.id, certifierA.id);
+    const aiSubmission = (agentRunId: string) => ({
+      ...result(aiInput.packetSha256, occurrenceId),
+      outcome: "inconclusive" as const,
+      criteria: [
+        {
+          criterionId: "evidence",
+          status: "concern" as const,
+          rationale: "AI fixture retained exact execution provenance.",
+          evidenceRefs: [{ type: "publication-occurrence" as const, id: occurrenceId }],
+        },
+      ],
+      provenance: {
+        agentRunId,
+        provider: "fixture-provider",
+        model: "fixture-model",
+        modelVersion: "1",
+        promptVersion: "generic-protocol-1",
+        structuredOutputSha256: sha("structured-output"),
+      },
+    });
+    const unrelatedAgentRun = await prisma.agentRun.create({
+      data: {
+        agentType: "discussion-answer",
+        packetHash: aiInput.packetSha256,
+        status: "succeeded",
+        completedAt: new Date(),
+      },
+    });
+    await expect(
+      service.submitCertificationResult(aiRun.id, aiSubmission(unrelatedAgentRun.id), authA),
+    ).rejects.toMatchObject({ code: "bad-request" });
+    const unboundAgentRun = await prisma.agentRun.create({
+      data: {
+        agentType: "external-certification",
+        packetHash: null,
+        status: "succeeded",
+        completedAt: new Date(),
+      },
+    });
+    await expect(
+      service.submitCertificationResult(aiRun.id, aiSubmission(unboundAgentRun.id), authA),
+    ).rejects.toMatchObject({ code: "conflict" });
     const agentRun = await prisma.agentRun.create({
       data: {
         agentType: "external-certification",
@@ -475,30 +565,7 @@ describe("generic certification platform", () => {
         completedAt: new Date(),
       },
     });
-    await service.submitCertificationResult(
-      aiRun.id,
-      {
-        ...result(aiInput.packetSha256, occurrenceId),
-        outcome: "inconclusive",
-        criteria: [
-          {
-            criterionId: "evidence",
-            status: "concern",
-            rationale: "AI fixture retained exact execution provenance.",
-            evidenceRefs: [{ type: "publication-occurrence", id: occurrenceId }],
-          },
-        ],
-        provenance: {
-          agentRunId: agentRun.id,
-          provider: "fixture-provider",
-          model: "fixture-model",
-          modelVersion: "1",
-          promptVersion: "generic-protocol-1",
-          structuredOutputSha256: sha("structured-output"),
-        },
-      },
-      authA,
-    );
+    await service.submitCertificationResult(aiRun.id, aiSubmission(agentRun.id), authA);
     const retainedAi = await prisma.certificationResult.findUniqueOrThrow({
       where: { certificationRunId: aiRun.id },
     });
@@ -513,11 +580,10 @@ describe("generic certification platform", () => {
       "Certifier withdrew the assertion.",
       { certifierId: certifierA.id },
     );
-    expect(
-      (
-        await service.listPublicationVersionCertifications(versionId)
-      ).certifications[0].lifecycle.map((event: { kind: string }) => event.kind),
-    ).toEqual(["issued", "withdrawn"]);
+    const withdrawnSummary = (await service.listPublicationVersionCertifications(versionId))
+      .certifications[0]!;
+    expect(withdrawnSummary.lifecycle.map((event) => event.kind)).toEqual(["issued", "withdrawn"]);
+    expect(withdrawnSummary.lifecycleState).toBe("withdrawn");
     expect(await prisma.trustAssessment.count()).toBe(0);
     expect(await prisma.knowledgeNode.count()).toBe(0);
     expect(await prisma.publicationRelation.count()).toBe(0);
@@ -578,6 +644,32 @@ describe("generic certification platform", () => {
     await expect(
       service.authenticateCertifier(request(credentialA.token), "certification:read"),
     ).rejects.toMatchObject({ code: "unauthorized" });
+  });
+
+  it("keeps retirement terminal and preserves its first timestamp", async () => {
+    const certifier = await service.createCertifier(
+      {
+        slug: "retirement-fixture",
+        name: "Retirement Fixture",
+        description: "Exercises terminal certifier lifecycle handling.",
+      },
+      adminId,
+    );
+    const first = await service.setCertifierStatus(certifier.id, "retired", adminId);
+    const replay = await service.setCertifierStatus(certifier.id, "retired", adminId);
+    expect(replay.retiredAt).toBe(first.retiredAt);
+    await expect(service.setCertifierStatus(certifier.id, "active", adminId)).rejects.toMatchObject(
+      { code: "conflict" },
+    );
+    expect(
+      await prisma.auditEvent.count({
+        where: {
+          action: "certification.certifier-status",
+          subjectType: "certifier",
+          subjectId: certifier.id,
+        },
+      }),
+    ).toBe(1);
   });
 
   it("completes the third-party journey through documented HTTP route boundaries only", async () => {
@@ -657,12 +749,11 @@ describe("generic certification platform", () => {
     );
     expect(publicResponse.status).toBe(200);
     const projection = (await publicResponse.json()) as {
-      certifications: Array<{ certificationRunId: string; certifier: { name: string } }>;
+      certifications: Array<{ id: string; certifier: { name: string } }>;
     };
     expect(projection.certifications).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          certificationRunId: created.id,
           certifier: expect.objectContaining({ name: "API-only Certifier" }),
         }),
       ]),
