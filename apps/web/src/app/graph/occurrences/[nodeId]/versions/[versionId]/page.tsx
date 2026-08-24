@@ -42,6 +42,13 @@ export default async function CanonicalOccurrencePage({ params }: OccurrencePage
       </div>
       <h1>{node.title ?? node.text ?? node.localNodeId}</h1>
       {node.abstract ? <p className="lead muted">{node.abstract}</p> : null}
+      {node.source.type === "publication-claim-occurrence" ? (
+        <p>
+          <a className="btn" href={node.source.publishedTargetUrl} rel="external">
+            Open original publication
+          </a>
+        </p>
+      ) : null}
 
       <div className="grid layout-2">
         <div>
@@ -154,5 +161,7 @@ function sourceLabel(source: CanonicalGraphNodeVersion["source"]): string {
       return `claim occurrence ${source.claimId}`;
     case "citation-occurrence":
       return `citation occurrence ${source.citationId}`;
+    case "publication-claim-occurrence":
+      return `publication ${source.publicationId}, version ${source.publicationVersionId}, claim ${source.sourceLocalClaimId}`;
   }
 }

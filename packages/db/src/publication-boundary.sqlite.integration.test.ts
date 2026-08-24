@@ -5,6 +5,10 @@ import { join, resolve } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { PrismaClient } from "../generated/client/index.js";
 import { applyDatabaseGuards } from "./database-guards.js";
+import {
+  materializePublicationClaimOccurrence,
+  PublicationClaimMaterializationError,
+} from "./publication-claim-materialization.js";
 
 /**
  * Database-native behaviour of the generic publication boundary, plus a
@@ -56,6 +60,8 @@ async function createVersion(publicationId: string, overrides: Record<string, un
         generatorVersion: "0.2.0",
       }),
       structuralProvenance: "published-structure",
+      canonicalUrl: "https://publication.example/article/",
+      observedPublicationBaseUrl: "https://observed.example/article/",
       observedAt: new Date("2026-08-23T00:00:00.000Z"),
       ...overrides,
     },
@@ -76,6 +82,7 @@ async function createOccurrence(
         identifier: "hpa-axis-mediation",
         htmlId: "hpa-axis-mediation",
       }),
+      publishedUrl: "https://publication.example/article/results/#hpa-axis-mediation",
       sourceBindingJson: JSON.stringify({
         documentPath: "results.md",
         documentSha256: digest("a"),
@@ -83,7 +90,15 @@ async function createOccurrence(
         endLine: 23,
         blockSha256: digest("b"),
       }),
-      selectorJson: JSON.stringify({ representation: "oratlas-myst-source-utf8-v1" }),
+      selectorJson: JSON.stringify({
+        representation: "oratlas-myst-source-utf8-v1",
+        unit: "block",
+        textQuote: {
+          type: "TextQuoteSelector",
+          exact: "Adolescent stress alters HPA reactivity.",
+        },
+        textPosition: { type: "TextPositionSelector", start: 0, end: 40 },
+      }),
       declarationSha256: digest("c"),
       declarationAuthority: "publication-source",
       text: "Adolescent stress alters HPA reactivity.",
@@ -515,6 +530,125 @@ describe("publication boundary on SQLite", () => {
         text: "Authoritative text from the delegated review manifest.",
       });
       expect(bound.text).toContain("Authoritative text");
+    });
+  });
+
+  describe("generic canonical occurrence materialization", () => {
+    it("atomically creates and idempotently reuses one exact canonical claim", async () => {
+      const publication = await createPublication();
+      const version = await createVersion(publication.id);
+      const occurrence = await createOccurrence(version.id);
+
+      const first = await prisma.$transaction((tx) =>
+        materializePublicationClaimOccurrence(tx, occurrence.id),
+      );
+      const replay = await prisma.$transaction((tx) =>
+        materializePublicationClaimOccurrence(tx, occurrence.id),
+      );
+
+      expect(first.idempotent).toBe(false);
+      expect(replay).toEqual({ ...first, idempotent: true });
+      const stored = await prisma.publicationClaimOccurrence.findUniqueOrThrow({
+        where: { id: occurrence.id },
+        include: { graphVersion: true },
+      });
+      expect(stored.knowledgeNodeId).toBe(first.knowledgeNodeId);
+      expect(stored.graphVersion?.id).toBe(first.knowledgeNodeVersionId);
+      expect(stored.graphVersion?.sourcePublicationClaimOccurrenceId).toBe(occurrence.id);
+      expect(stored.graphVersion?.snapshotId).toBeNull();
+    });
+
+    it("materializes from observed addressing when the publisher declares no canonical URL", async () => {
+      const publication = await createPublication();
+      const version = await createVersion(publication.id, { canonicalUrl: null });
+      const occurrence = await createOccurrence(version.id, {
+        publishedUrl: "https://observed.example/article/results/#hpa-axis-mediation",
+      });
+
+      const result = await prisma.$transaction((tx) =>
+        materializePublicationClaimOccurrence(tx, occurrence.id),
+      );
+      const graphVersion = await prisma.knowledgeNodeVersion.findUniqueOrThrow({
+        where: { id: result.knowledgeNodeVersionId },
+      });
+      expect(JSON.parse(graphVersion.provenanceJson)).toMatchObject({
+        repositoryUrl: "https://observed.example/article/",
+      });
+    });
+
+    it("never merges equal text, local ids, or digests across exact versions", async () => {
+      const publication = await createPublication();
+      const firstVersion = await createVersion(publication.id);
+      const secondVersion = await createVersion(publication.id, { sourcesSha256: SOURCES_V2 });
+      const left = await createOccurrence(firstVersion.id);
+      const right = await createOccurrence(secondVersion.id);
+
+      const leftGraph = await prisma.$transaction((tx) =>
+        materializePublicationClaimOccurrence(tx, left.id),
+      );
+      const rightGraph = await prisma.$transaction((tx) =>
+        materializePublicationClaimOccurrence(tx, right.id),
+      );
+
+      expect(left.sourceLocalClaimId).toBe(right.sourceLocalClaimId);
+      expect(left.declarationSha256).toBe(right.declarationSha256);
+      expect(leftGraph.knowledgeNodeId).not.toBe(rightGraph.knowledgeNodeId);
+      expect(leftGraph.knowledgeNodeVersionId).not.toBe(rightGraph.knowledgeNodeVersionId);
+    });
+
+    it("fails closed on a conflicting half-binding", async () => {
+      const publication = await createPublication();
+      const version = await createVersion(publication.id);
+      const leftNode = await prisma.knowledgeNode.create({
+        data: {
+          stableKey: unique("publication-claim-left"),
+          originType: "claim-occurrence",
+          localNodeId: unique("left"),
+          kind: "claim",
+        },
+      });
+      const rightNode = await prisma.knowledgeNode.create({
+        data: {
+          stableKey: unique("publication-claim-right"),
+          originType: "claim-occurrence",
+          localNodeId: unique("right"),
+          kind: "claim",
+        },
+      });
+      const occurrence = await createOccurrence(version.id, { knowledgeNodeId: leftNode.id });
+      await prisma.knowledgeNodeVersion.create({
+        data: {
+          knowledgeNodeId: rightNode.id,
+          sourcePublicationClaimOccurrenceId: occurrence.id,
+          text: occurrence.text,
+          contributorsJson: "[]",
+          provenanceJson: JSON.stringify({ sourcePath: "results.md" }),
+          payloadJson: JSON.stringify({ statement: occurrence.text, qualifiers: [] }),
+        },
+      });
+
+      await expect(
+        prisma.$transaction((tx) => materializePublicationClaimOccurrence(tx, occurrence.id)),
+      ).rejects.toBeInstanceOf(PublicationClaimMaterializationError);
+      expect(
+        (
+          await prisma.publicationClaimOccurrence.findUniqueOrThrow({
+            where: { id: occurrence.id },
+          })
+        ).knowledgeNodeId,
+      ).toBe(leftNode.id);
+    });
+
+    it("does not inspect adapter bindings after occurrence normalization", async () => {
+      const publication = await createPublication();
+      const version = await createVersion(publication.id, {
+        adapterBindingJson: JSON.stringify({ type: "synthetic-normalized-fixture" }),
+      });
+      const occurrence = await createOccurrence(version.id);
+      const result = await prisma.$transaction((tx) =>
+        materializePublicationClaimOccurrence(tx, occurrence.id),
+      );
+      expect(result.knowledgeNodeId).toBeTruthy();
     });
   });
 });

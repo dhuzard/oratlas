@@ -20,6 +20,10 @@ const migration = readFileSync(
   ),
   "utf8",
 );
+const observedAddressMigration = readFileSync(
+  resolve(packageRoot, "prisma/migrations/20260824040000_observed_publication_base/migration.sql"),
+  "utf8",
+);
 
 const PUBLICATION_MODELS = [
   "Publication",
@@ -51,6 +55,8 @@ describe("publication boundary schema parity", () => {
       // A canonical URL is addressing metadata, never identity.
       expect(version).toMatch(/canonicalUrl\s+String\?/);
       expect(version).not.toMatch(/canonicalUrl\s+String\??\s+@unique/);
+      expect(version).toMatch(/observedPublicationBaseUrl\s+String\?/);
+      expect(version).not.toMatch(/observedPublicationBaseUrl\s+String\??\s+@unique/);
     }
   });
 
@@ -124,6 +130,14 @@ describe("the publication boundary migration", () => {
     for (const model of PUBLICATION_MODELS) {
       expect(migration).toContain(`CREATE TABLE "${model}"`);
     }
+  });
+
+  it("adds observed addressing without rewriting optional publisher canonical metadata", () => {
+    expect(observedAddressMigration).toContain(
+      'ALTER TABLE "PublicationVersion" ADD COLUMN "observedPublicationBaseUrl" TEXT',
+    );
+    expect(observedAddressMigration).not.toMatch(/\b(?:UPDATE|DELETE|DROP)\b/i);
+    expect(observedAddressMigration).not.toContain('SET "canonicalUrl"');
   });
 
   it("keeps the node-version source union exclusive rather than weakening it", () => {

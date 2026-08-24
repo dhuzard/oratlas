@@ -7,6 +7,9 @@ import {
 } from "./comments.js";
 import { commitShaSchema, doiSchema } from "./identifiers.js";
 import { safeRepoRelativePathSchema } from "./paths.js";
+import { publicationAdapterTypeSchema } from "./publication-adapters.js";
+import { canonicalGraphEdgeSchema } from "./canonical-graph.js";
+import { publicChallengeSchema } from "./challenges.js";
 
 /**
  * The generic publication boundary.
@@ -95,11 +98,6 @@ export const publicationStructuralProvenanceSchema = z.enum(
   PUBLICATION_STRUCTURAL_PROVENANCE_LEVELS,
 );
 export type PublicationStructuralProvenance = z.infer<typeof publicationStructuralProvenanceSchema>;
-
-/** Authoring toolchains ORAtlas implements an adapter for. Closed on purpose. */
-export const PUBLICATION_ADAPTER_TYPES = ["myst"] as const;
-export const publicationAdapterTypeSchema = z.enum(PUBLICATION_ADAPTER_TYPES);
-export type PublicationAdapterType = z.infer<typeof publicationAdapterTypeSchema>;
 
 /** Pinned external protocol version of the `myst` adapter (dhuzard/oratlas-myst). */
 export const MYST_PUBLICATION_PROTOCOL_VERSION = "0.2.0" as const;
@@ -536,6 +534,136 @@ export const publicationClaimOccurrenceGraphSourceSchema = z
 export type PublicationClaimOccurrenceGraphSource = z.infer<
   typeof publicationClaimOccurrenceGraphSourceSchema
 >;
+
+export const publicationClaimMaterializationResultSchema = z
+  .object({
+    schemaVersion: z.literal("1.0.0"),
+    publicationClaimOccurrenceId: z.string().min(1),
+    knowledgeNodeId: z.string().min(1),
+    knowledgeNodeVersionId: z.string().min(1),
+    idempotent: z.boolean(),
+    links: z
+      .object({
+        occurrence: z.string().startsWith("/"),
+        canonicalGraph: z.string().startsWith("/"),
+        canonicalOccurrence: z.string().startsWith("/"),
+      })
+      .strict(),
+  })
+  .strict();
+export type PublicationClaimMaterializationResult = z.infer<
+  typeof publicationClaimMaterializationResultSchema
+>;
+
+export const PUBLICATION_VERSION_PACKET_SCHEMA_VERSION = "1.0.0" as const;
+export const PUBLICATION_VERSION_PACKET_OCCURRENCE_LIMIT = 500;
+export const PUBLICATION_VERSION_PACKET_CAPTURE_LIMIT = 1_000;
+export const PUBLICATION_VERSION_PACKET_RELATION_LIMIT = 2_000;
+export const PUBLICATION_VERSION_PACKET_CHALLENGE_LIMIT = 500;
+
+const packetCompletenessSectionSchema = z
+  .object({
+    returned: z.number().int().nonnegative(),
+    total: z.number().int().nonnegative(),
+    truncated: z.boolean(),
+  })
+  .strict();
+
+export const publicationVersionPacketSchema = z
+  .object({
+    schemaVersion: z.literal(PUBLICATION_VERSION_PACKET_SCHEMA_VERSION),
+    publication: z
+      .object({
+        id: z.string().min(1),
+        publicationType: publicationTypeSchema,
+        recordSource: publicationRecordSourceSchema,
+        sourceLocalPublicationId: sourceLocalPublicationIdSchema.nullable(),
+      })
+      .strict(),
+    version: z
+      .object({
+        id: z.string().min(1),
+        sourcesSha256: publicationSha256Schema,
+        sourceLocalPublicationId: sourceLocalPublicationIdSchema.nullable(),
+        versionLabel: z.string().nullable(),
+        title: z.string().nullable(),
+        publisherCanonicalUrl: publicationHttpsUrlSchema.nullable(),
+        observedPublicationBaseUrl: publicationHttpsUrlSchema,
+        adapterType: publicationAdapterTypeSchema,
+        structuralProvenance: publicationStructuralProvenanceSchema,
+        observedAt: z.string().datetime(),
+      })
+      .strict(),
+    captures: z
+      .array(
+        z
+          .object({
+            id: z.string().min(1),
+            artifactKind: publicationCaptureArtifactKindSchema,
+            declaredPath: safeRepoRelativePathSchema.nullable(),
+            requestedUrl: z.string().url().max(2_000).nullable(),
+            observedUrl: z.string().url().max(2_000).nullable(),
+            contentSha256: publicationSha256Schema,
+            byteLength: z.number().int().nonnegative(),
+            structuralProvenance: publicationStructuralProvenanceSchema,
+          })
+          .strict(),
+      )
+      .max(PUBLICATION_VERSION_PACKET_CAPTURE_LIMIT),
+    occurrences: z
+      .array(
+        z
+          .object({
+            id: z.string().min(1),
+            sourceLocalClaimId: sourceLocalClaimIdSchema,
+            publishedTargetUrl: publicationHttpsUrlSchema,
+            target: publicationClaimTargetSchema,
+            sourceBinding: publicationClaimSourceBindingSchema,
+            selector: publicationClaimSelectorSchema,
+            declarationSha256: publicationSha256Schema,
+            declarationAuthority: publicationClaimDeclarationAuthoritySchema,
+            text: z.string().nullable(),
+            claimType: claimTypeSchema.nullable(),
+            qualification: z.string().nullable(),
+            canonicalBinding: z
+              .object({
+                knowledgeNodeId: z.string().min(1),
+                knowledgeNodeVersionId: z.string().min(1),
+              })
+              .strict()
+              .nullable(),
+            links: z
+              .object({
+                occurrence: z.string().startsWith("/"),
+                canonicalGraph: z.string().startsWith("/").nullable(),
+                originalPublication: publicationHttpsUrlSchema,
+              })
+              .strict(),
+          })
+          .strict(),
+      )
+      .max(PUBLICATION_VERSION_PACKET_OCCURRENCE_LIMIT),
+    relations: z.array(canonicalGraphEdgeSchema).max(PUBLICATION_VERSION_PACKET_RELATION_LIMIT),
+    challenges: z.array(publicChallengeSchema).max(PUBLICATION_VERSION_PACKET_CHALLENGE_LIMIT),
+    completeness: z
+      .object({
+        captures: packetCompletenessSectionSchema,
+        occurrences: packetCompletenessSectionSchema,
+        relations: packetCompletenessSectionSchema,
+        challenges: packetCompletenessSectionSchema,
+      })
+      .strict(),
+    links: z
+      .object({
+        self: z.string().startsWith("/"),
+        publication: z.string().startsWith("/"),
+        publicationVersion: z.string().startsWith("/"),
+      })
+      .strict(),
+    sha256: publicationSha256Schema,
+  })
+  .strict();
+export type PublicationVersionPacket = z.infer<typeof publicationVersionPacketSchema>;
 
 /**
  * Human-readable wording for a structural provenance level. Deliberately never

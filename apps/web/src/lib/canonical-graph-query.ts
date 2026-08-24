@@ -15,7 +15,7 @@ import {
   type CanonicalGraphResponse,
 } from "@oratlas/contracts";
 import { getServerEnv } from "@oratlas/config";
-import { type Prisma } from "@oratlas/db";
+import { resolveObservedPublicationBaseUrl, type Prisma } from "@oratlas/db";
 import { prisma } from "./db";
 import { databaseGraphTrustProvider } from "./graph-trust-provider";
 import { graphTrustLookupKey } from "./graph-trust";
@@ -55,6 +55,24 @@ const repositorySelect = {
 
 const nodeVersionInclude = {
   snapshot: { select: { id: true, commitSha: true } },
+  sourcePublicationClaimOccurrence: {
+    include: {
+      publicationVersion: {
+        include: {
+          publication: true,
+          captures: {
+            select: {
+              id: true,
+              artifactKind: true,
+              observedUrl: true,
+              requestedUrl: true,
+            },
+            orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+          },
+        },
+      },
+    },
+  },
   knowledgeNode: {
     include: {
       repository: { select: repositorySelect },
@@ -77,7 +95,10 @@ async function loadSeedVersion(query: CanonicalGraphQuery) {
           ...readableCanonicalNodeVersionWhere,
           ...(query.version ? { id: query.version } : {}),
         },
-        include: { snapshot: { select: { id: true, commitSha: true } } },
+        include: {
+          snapshot: { select: { id: true, commitSha: true } },
+          sourcePublicationClaimOccurrence: nodeVersionInclude.sourcePublicationClaimOccurrence,
+        },
         orderBy: [{ createdAt: "desc" }, { id: "desc" }],
         take: 1,
       },
@@ -176,6 +197,10 @@ function parseStoredJson(value: string, label: string): unknown {
 
 function mapNodeVersion(version: LoadedCanonicalVersion): CanonicalGraphNodeVersion {
   const node = version.knowledgeNode;
+  const externalOccurrence = version.sourcePublicationClaimOccurrence;
+  const observedPublicationBaseUrl = externalOccurrence
+    ? resolveObservedPublicationBaseUrl(externalOccurrence.publicationVersion)
+    : null;
   const source = version.snapshotId
     ? { type: "repository-snapshot" as const, snapshotId: version.snapshotId }
     : version.sourceReviewVersionId
@@ -184,7 +209,27 @@ function mapNodeVersion(version: LoadedCanonicalVersion): CanonicalGraphNodeVers
         ? { type: "claim-occurrence" as const, claimId: version.sourceClaimId }
         : version.sourceCitationId
           ? { type: "citation-occurrence" as const, citationId: version.sourceCitationId }
-          : undefined;
+          : version.sourcePublicationClaimOccurrenceId &&
+              externalOccurrence?.publishedUrl &&
+              observedPublicationBaseUrl
+            ? {
+                type: "publication-claim-occurrence" as const,
+                publicationClaimOccurrenceId: version.sourcePublicationClaimOccurrenceId,
+                publicationId: externalOccurrence.publicationVersion.publicationId,
+                publicationVersionId: externalOccurrence.publicationVersionId,
+                publicationType: externalOccurrence.publicationVersion.publication.publicationType,
+                sourceLocalClaimId: externalOccurrence.sourceLocalClaimId,
+                adapterType: externalOccurrence.publicationVersion.adapterType,
+                structuralProvenance: externalOccurrence.publicationVersion.structuralProvenance,
+                publisherCanonicalUrl: externalOccurrence.publicationVersion.canonicalUrl,
+                observedPublicationBaseUrl,
+                publishedTargetUrl: externalOccurrence.publishedUrl,
+                captureIds: externalOccurrence.publicationVersion.captures.map(
+                  (capture) => capture.id,
+                ),
+                sourcesSha256: externalOccurrence.publicationVersion.sourcesSha256,
+              }
+            : undefined;
   if (!source) {
     throw new CanonicalGraphQueryError("Canonical node version has no exact source binding.");
   }

@@ -12,6 +12,7 @@ import {
   verifyExternalPublication,
   type VerifiedExternalPublication,
 } from "@oratlas/publications";
+import { deriveObservedPublicationBaseUrl } from "@oratlas/db";
 import { prisma } from "./db";
 import { createPublicationSourceResolver } from "./publication-source-resolver";
 import { getServerEnv } from "@oratlas/config";
@@ -57,6 +58,27 @@ function sameOptional(left: string | null, right: string | undefined): boolean {
   return left === (right ?? null);
 }
 
+function observedPublicationBaseUrl(verified: VerifiedExternalPublication): string {
+  const manifests = verified.artifacts.filter(
+    (artifact) => artifact.artifactKind === "publication-manifest",
+  );
+  if (manifests.length !== 1) {
+    throw new PublicationRegistrationConflictError(
+      "The verified publication must contain exactly one manifest capture.",
+    );
+  }
+  const baseUrl = deriveObservedPublicationBaseUrl({
+    observedUrl: manifests[0]!.observedUrl,
+    requestedUrl: manifests[0]!.requestedUrl,
+  });
+  if (!baseUrl) {
+    throw new PublicationRegistrationConflictError(
+      "The manifest capture has no valid observed publication base URL.",
+    );
+  }
+  return baseUrl;
+}
+
 function artifactIdentitySha256(
   artifact: VerifiedExternalPublication["artifacts"][number],
 ): string {
@@ -77,6 +99,7 @@ async function persistVerifiedExternalPublicationOnce(
   actorId: string,
 ): Promise<ExternalPublicationRegistrationResult> {
   const { publication, version, occurrences } = verified.normalized;
+  const observedBaseUrl = observedPublicationBaseUrl(verified);
   return prisma.$transaction(async (tx) => {
     let publicationRow = await tx.publication.findUnique({
       where: { stableKey: publication.stableKey },
@@ -116,6 +139,7 @@ async function persistVerifiedExternalPublicationOnce(
           versionLabel: version.versionLabel,
           title: version.title,
           canonicalUrl: version.canonicalUrl,
+          observedPublicationBaseUrl: observedBaseUrl,
           adapterType: version.adapter.type,
           adapterBindingJson: canonicalJson(version.adapter),
           sourceDescriptorJson: version.source === undefined ? null : canonicalJson(version.source),
@@ -127,6 +151,9 @@ async function persistVerifiedExternalPublicationOnce(
     } else if (
       versionRow.publicationId !== publicationRow.id ||
       versionRow.sourcesSha256 !== version.sourcesSha256 ||
+      !sameOptional(versionRow.canonicalUrl, version.canonicalUrl) ||
+      (versionRow.observedPublicationBaseUrl !== null &&
+        versionRow.observedPublicationBaseUrl !== observedBaseUrl) ||
       versionRow.adapterBindingJson !== canonicalJson(version.adapter) ||
       !sameOptional(
         versionRow.sourceDescriptorJson,
@@ -208,9 +235,11 @@ async function persistVerifiedExternalPublicationOnce(
         );
       }
       if (existing) {
+        const publishedUrl = verified.resolvedClaimUrls.get(occurrence.sourceLocalClaimId);
         if (
           existing.publicationVersionId !== versionRow.id ||
           existing.targetJson !== canonicalJson(occurrence.target) ||
+          existing.publishedUrl !== publishedUrl ||
           existing.sourceBindingJson !== canonicalJson(occurrence.sourceBinding) ||
           existing.selectorJson !== canonicalJson(occurrence.selector) ||
           existing.declarationSha256 !== occurrence.declarationSha256 ||
@@ -232,6 +261,7 @@ async function persistVerifiedExternalPublicationOnce(
           sourceLocalClaimId: occurrence.sourceLocalClaimId,
           stableKey: occurrence.stableKey,
           targetJson: canonicalJson(occurrence.target),
+          publishedUrl: verified.resolvedClaimUrls.get(occurrence.sourceLocalClaimId),
           sourceBindingJson: canonicalJson(occurrence.sourceBinding),
           selectorJson: canonicalJson(occurrence.selector),
           declarationSha256: occurrence.declarationSha256,

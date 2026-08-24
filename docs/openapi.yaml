@@ -59,6 +59,7 @@ components:
                   conflict,
                   rate-limited,
                   payload-too-large,
+                  unsupported-media-type,
                   upstream-error,
                   internal-error,
                 ]
@@ -110,6 +111,57 @@ components:
             capture: { type: string, pattern: "^/api/publication-captures/" }
             publication: { type: string, pattern: "^/api/publications/" }
             publicationVersion: { type: string, pattern: "^/api/publication-versions/" }
+    PublicationVersionPacket:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          schemaVersion,
+          publication,
+          version,
+          captures,
+          occurrences,
+          relations,
+          challenges,
+          completeness,
+          links,
+          sha256,
+        ]
+      properties:
+        schemaVersion: { const: "1.0.0" }
+        publication: { type: object }
+        version:
+          type: object
+          description: >
+            Exact version identity plus optional publisherCanonicalUrl and the distinct required
+            observedPublicationBaseUrl derived from the immutable manifest capture.
+        captures:
+          type: array
+          maxItems: 1000
+          description: Capture identities and provenance metadata; never retained artifact bytes.
+          items: { type: object }
+        occurrences:
+          type: array
+          maxItems: 500
+          items: { type: object }
+        relations:
+          type: array
+          maxItems: 2000
+          items: { $ref: "#/components/schemas/CanonicalGraphEdge" }
+        challenges:
+          type: array
+          maxItems: 500
+          items: { $ref: "#/components/schemas/PublicChallenge" }
+        completeness:
+          type: object
+          description: Returned/total/truncated metadata for every bounded packet collection.
+        links:
+          type: object
+          description: Root-relative packet, publication and exact-version links.
+        sha256:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+          description: SHA-256 of canonical packet JSON before this sha256 member is added.
     KnowledgeLandscapeNode:
       type: object
       additionalProperties: false
@@ -910,6 +962,50 @@ components:
           properties:
             type: { const: citation-occurrence }
             citationId: { type: string }
+        - type: object
+          additionalProperties: false
+          required:
+            [
+              type,
+              publicationClaimOccurrenceId,
+              publicationId,
+              publicationVersionId,
+              publicationType,
+              sourceLocalClaimId,
+              adapterType,
+              structuralProvenance,
+              publisherCanonicalUrl,
+              observedPublicationBaseUrl,
+              publishedTargetUrl,
+              captureIds,
+              sourcesSha256,
+            ]
+          properties:
+            type: { const: publication-claim-occurrence }
+            publicationClaimOccurrenceId: { type: string }
+            publicationId: { type: string }
+            publicationVersionId: { type: string }
+            publicationType:
+              {
+                type: string,
+                enum:
+                  [
+                    review-article,
+                    research-article,
+                    methods-article,
+                    preprint,
+                    living-review,
+                    other,
+                  ],
+              }
+            sourceLocalClaimId: { type: string, maxLength: 120 }
+            adapterType: { type: string, enum: [myst] }
+            structuralProvenance: { type: string, enum: [published-structure, source-byte] }
+            publisherCanonicalUrl: { type: [string, "null"], format: uri }
+            observedPublicationBaseUrl: { type: string, format: uri }
+            publishedTargetUrl: { type: string, format: uri }
+            captureIds: { type: array, maxItems: 1000, items: { type: string } }
+            sourcesSha256: { type: string, pattern: "^[0-9a-f]{64}$" }
     CanonicalGraphNodeVersion:
       type: object
       additionalProperties: false
@@ -3279,6 +3375,25 @@ paths:
         "415": { $ref: "#/components/responses/Error" }
         "429": { $ref: "#/components/responses/Error" }
         "502": { $ref: "#/components/responses/Error" }
+  /api/editorial/publication-claim-occurrences/{id}/materialize:
+    post:
+      summary: Materialize one normalized external claim occurrence into the canonical graph
+      description: >
+        Editor-only, exact same-origin operation. Atomically binds the occurrence to a newly minted
+        canonical claim when it is unseen and creates its exact KnowledgeNodeVersion source union
+        binding. An exact replay is idempotent; conflicting bindings fail closed. The materializer
+        consumes PublicationClaimOccurrence and has no authoring-tool-specific branch.
+      security: [{ session: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Existing exact materialization returned idempotently }
+        "201": { description: New canonical claim occurrence materialized }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "415": { $ref: "#/components/responses/Error" }
   /api/publications/{id}:
     get:
       summary: Read one generic publication and its observed versions
@@ -3294,6 +3409,35 @@ paths:
         - { name: id, in: path, required: true, schema: { type: string } }
       responses:
         "200": { description: Immutable publication-version metadata }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/publication-versions/{id}/packet:
+    get:
+      summary: Read a deterministic public packet for one exact publication version
+      description: >
+        Returns bounded publication and capture provenance, claim occurrences, canonical bindings,
+        public confirmed relations, completeness metadata, hypermedia, a packet schema version and
+        a deterministic SHA-256. Raw captured bytes, private proposals, and hidden assessments are
+        excluded.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Deterministic generic publication-version packet
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PublicationVersionPacket" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+  /api/publication-claim-occurrences/{id}:
+    get:
+      summary: Read one exact external publication claim occurrence
+      description: >
+        Returns normalized declaration, selector, exact original target and canonical binding when
+        materialized. Captured artifact bytes are never returned.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Exact publication claim occurrence }
         "404": { $ref: "#/components/responses/Error" }
   /api/publication-captures/{id}:
     get:

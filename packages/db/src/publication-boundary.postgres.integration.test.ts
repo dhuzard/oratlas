@@ -41,6 +41,7 @@ async function createVersion(publicationId: string, overrides: Record<string, un
       adapterType: "myst",
       adapterBindingJson: JSON.stringify({ type: "myst", protocolVersion: "0.2.0" }),
       structuralProvenance: "published-structure",
+      observedPublicationBaseUrl: "https://observed.example/article/",
       observedAt: new Date("2026-08-23T00:00:00.000Z"),
       ...overrides,
     },
@@ -138,6 +139,9 @@ describe.skipIf(!enabled)("publication boundary on PostgreSQL", () => {
     await expect(
       prisma.$executeRaw`UPDATE "PublicationVersion" SET "title" = 'Rewritten' WHERE "id" = ${version.id}`,
     ).rejects.toThrow(/An observed publication version is immutable/);
+    await expect(
+      prisma.$executeRaw`UPDATE "PublicationVersion" SET "observedPublicationBaseUrl" = 'https://evil.example/' WHERE "id" = ${version.id}`,
+    ).rejects.toThrow(/An observed publication version is immutable/);
   });
 
   it("keeps a source occurrence immutable and its canonical binding write-once", async () => {
@@ -149,6 +153,7 @@ describe.skipIf(!enabled)("publication boundary on PostgreSQL", () => {
         sourceLocalClaimId: "hpa-axis-mediation",
         stableKey: unique("publication-claim-occurrence:v1"),
         targetJson: JSON.stringify({ type: "myst-xref", identifier: "hpa-axis-mediation" }),
+        publishedUrl: "https://publication.example/results/#hpa-axis-mediation",
         sourceBindingJson: "{}",
         selectorJson: "{}",
         declarationSha256: digest("c"),
@@ -158,6 +163,9 @@ describe.skipIf(!enabled)("publication boundary on PostgreSQL", () => {
     });
     await expect(
       prisma.$executeRaw`UPDATE "PublicationClaimOccurrence" SET "text" = 'Rewritten' WHERE "id" = ${occurrence.id}`,
+    ).rejects.toThrow(/A publication claim occurrence is immutable/);
+    await expect(
+      prisma.$executeRaw`UPDATE "PublicationClaimOccurrence" SET "publishedUrl" = 'https://evil.example/' WHERE "id" = ${occurrence.id}`,
     ).rejects.toThrow(/A publication claim occurrence is immutable/);
     await expect(
       prisma.$executeRaw`DELETE FROM "PublicationClaimOccurrence" WHERE "id" = ${occurrence.id}`,

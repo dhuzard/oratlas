@@ -6,6 +6,8 @@ export * from "./postgres-deployment.js";
 export * from "./node-aliases.js";
 export * from "./database-guards.js";
 export * from "./canonical-graph-materialization.js";
+export * from "./publication-claim-materialization.js";
+export * from "./publication-addressing.js";
 
 export * from "../generated/client/index.js";
 export type { PrismaClient };

@@ -2036,35 +2036,40 @@ model Publication {
 /// One exact, immutable, externally observed publication version. Identity is
 /// (publication, sourcesSha256); the canonical URL is addressing metadata.
 model PublicationVersion {
-  id                       String   @id @default(cuid())
-  publicationId            String
+  id                         String   @id @default(cuid())
+  publicationId              String
   /// Exact version key derived from the publication identity plus sourcesSha256.
-  stableKey                String   @unique
+  stableKey                  String   @unique
   /// Source-local publication id as observed on this exact version.
-  sourceLocalPublicationId String?
+  sourceLocalPublicationId   String?
   /// The publication's own digest over its complete document set.
-  sourcesSha256            String
-  versionLabel             String?
-  title                    String?
-  /// Absolute https URL this version was served from, when one was declared.
-  canonicalUrl             String?
+  sourcesSha256              String
+  versionLabel               String?
+  title                      String?
+  /// Publisher-declared absolute https canonical URL, when one was declared.
+  /// Optional protocol metadata; ORAtlas never fabricates it.
+  canonicalUrl               String?
+  /// Deterministic directory URL derived from the observed publication-manifest
+  /// final URL (or requested URL when no final URL was retained). Never copied
+  /// into canonicalUrl and nullable only for pre-Phase-3 captured rows.
+  observedPublicationBaseUrl String?
   /// contracts PUBLICATION_ADAPTER_TYPES. Generic; toolchain fields never leak
   /// into their own columns.
-  adapterType              String
+  adapterType                String
   /// contracts publicationAdapterBindingSchema encoded as JSON: closed,
   /// discriminated and carrying its own pinned external protocol version.
-  adapterBindingJson       String
+  adapterBindingJson         String
   /// contracts publicationSourceDescriptorSchema encoded as JSON. Null when the
   /// publication declares no obtainable source, which caps structural
   /// provenance at published-structure.
-  sourceDescriptorJson     String?
+  sourceDescriptorJson       String?
   /// contracts PUBLICATION_STRUCTURAL_PROVENANCE_LEVELS. Structural only:
   /// published-structure | source-byte. Never a scientific validation state.
-  structuralProvenance     String
+  structuralProvenance       String
   /// Recorded reasons a declared source did not reach source-byte provenance.
-  verificationWarningsJson String   @default("[]")
-  observedAt               DateTime
-  createdAt                DateTime @default(now())
+  verificationWarningsJson   String   @default("[]")
+  observedAt                 DateTime
+  createdAt                  DateTime @default(now())
 
   publication      Publication                  @relation(fields: [publicationId], references: [id], onDelete: Restrict)
   captures         PublicationCapture[]
@@ -2081,37 +2086,37 @@ model PublicationVersion {
 /// publication version. Append-only at the database layer: observed bytes and
 /// digests can never be silently rewritten.
 model PublicationCapture {
-  id                   String   @id @default(cuid())
-  publicationVersionId String
+  id                     String   @id @default(cuid())
+  publicationVersionId   String
   /// contracts PUBLICATION_CAPTURE_ARTIFACT_KINDS.
-  artifactKind         String
+  artifactKind           String
   /// SHA-256 over the artifact kind and its declared path (or request URL for
   /// the root manifest). This identifies the artifact slot independently of
   /// its bytes, so equal content at distinct paths remains distinct.
   artifactIdentitySha256 String
   /// Publication-relative path the artifact was declared at, re-validated
   /// against the safe-path rule before it was ever resolved.
-  declaredPath         String?
+  declaredPath           String?
   /// Absolute location the bytes were observed at, when one exists.
-  observedUrl          String?
+  observedUrl            String?
   /// Absolute URL requested before redirects, retained independently.
-  requestedUrl         String?
-  mediaType            String
+  requestedUrl           String?
+  mediaType              String
   /// SHA-256 over the exact observed bytes. Always recomputed, never copied.
-  contentSha256        String
-  byteLength           Int
+  contentSha256          String
+  byteLength             Int
   /// Exact observed bytes. Nullable so a later phase can retain the digest
   /// alone for an artifact too large to store inline.
-  contentBytes         String?
+  contentBytes           String?
   /// Digest the publication declared for this artifact, retained separately
   /// from the digest ORAtlas computed.
-  declaredSha256       String?
+  declaredSha256         String?
   /// Canonical JSON of selected response headers, status, and redirect chain.
-  httpProvenanceJson   String   @default("{}")
+  httpProvenanceJson     String   @default("{}")
   /// contracts PUBLICATION_STRUCTURAL_PROVENANCE_LEVELS reached by this capture.
-  structuralProvenance String
-  capturedAt           DateTime
-  createdAt            DateTime @default(now())
+  structuralProvenance   String
+  capturedAt             DateTime
+  createdAt              DateTime @default(now())
 
   publicationVersion PublicationVersion @relation(fields: [publicationVersionId], references: [id], onDelete: Restrict)
 
@@ -2136,6 +2141,9 @@ model PublicationClaimOccurrence {
   /// contracts publicationClaimTargetSchema encoded as JSON. Adapter-specific
   /// target metadata stays inside this typed union.
   targetJson           String
+  /// Exact externally published target URL resolved and verified by the
+  /// format adapter before normalization. Addressing metadata, never identity.
+  publishedUrl         String?
   /// contracts publicationClaimSourceBindingSchema encoded as JSON.
   sourceBindingJson    String
   /// contracts publicationClaimSelectorSchema encoded as JSON, carrying its

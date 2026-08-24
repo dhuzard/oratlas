@@ -198,7 +198,10 @@ canonical graph identity.
   DOI or archive still has an exact, recomputable version identity. Uniqueness is scoped to the
   publication rather than global, because two distinct publications may legitimately publish
   identical bytes. Adapter metadata lives in one closed, versioned, discriminated union stored as
-  `adapterBindingJson`; the generic layer has no toolchain-specific columns.
+  `adapterBindingJson`; the generic layer has no toolchain-specific columns. Publisher-declared
+  `canonicalUrl` remains nullable and unmodified. The separate nullable
+  `observedPublicationBaseUrl` is populated for new captures from the manifest's observed/requested
+  URL; older rows derive it from their immutable manifest capture.
 - `structuralProvenance` is `published-structure` or `source-byte`. These are structural states
   only: they record what ORAtlas checked about the published protocol structure and, where the
   source bytes were obtainable, about those bytes. Neither is scientific validation, and neither
@@ -212,12 +215,12 @@ canonical graph identity.
   equal source-local id in different versions, an equal `declarationSha256`, an equal
   `sourcesSha256`, position and similarity are all explicitly non-identities.
   `declarationSha256` is indexed but not unique. Its nullable `knowledgeNodeId` records an
-  explicit, reviewed identity decision: it is never inferred, is write-once, and nothing writes it
-  yet.
+  explicit, reviewed identity decision: it is never inferred and is write-once. The generic
+  materializer writes it atomically with the exact graph-version source binding.
 - `KnowledgeNodeVersion` gains a nullable, unique `sourcePublicationClaimOccurrenceId`. The exact
   version source union stays exclusive — exactly one real source, now counted across five columns
-  instead of four — and the `KnowledgeNode` origin union is unchanged. This is an expand-only step;
-  no writer materializes such a version.
+  instead of four — and the `KnowledgeNode` origin union is unchanged. External occurrences
+  materialize as ordinary `claim-occurrence` / `claim` nodes, never a second graph.
 
 Existing `Review`, `ReviewVersion`, `Claim`, `Citation`, and `ClaimEvidenceRelation` storage is
 unchanged in shape, meaning and public API. `Publication.reviewId` is the nullable projection

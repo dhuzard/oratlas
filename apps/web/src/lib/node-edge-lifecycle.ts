@@ -212,26 +212,8 @@ export async function createAgentNodeEdgeProposal(input: {
     throw new NodeEdgeLifecycleError("The AgentRun is not a node-edge proposal run.", "conflict");
   }
   if (!source || !target) throw new NodeEdgeLifecycleError("Node version not found.", "not-found");
-  if (
-    !source.knowledgeNode.repository ||
-    !source.knowledgeNode.repository.githubRepositoryId ||
-    !source.snapshot ||
-    !target.knowledgeNode.repository ||
-    !target.knowledgeNode.repository.githubRepositoryId ||
-    !target.snapshot
-  ) {
-    throw new NodeEdgeLifecycleError("Immutable repository identities are required.", "conflict");
-  }
-  const sourceStableKey = stableNodeVersionKey(
-    source.knowledgeNode.repository.githubRepositoryId,
-    source.knowledgeNode.localNodeId,
-    source.snapshot.commitSha,
-  );
-  const targetStableKey = stableNodeVersionKey(
-    target.knowledgeNode.repository.githubRepositoryId,
-    target.knowledgeNode.localNodeId,
-    target.snapshot.commitSha,
-  );
+  const sourceStableKey = canonicalNodeVersionKey(source);
+  const targetStableKey = canonicalNodeVersionKey(target);
   assertAgentRunCandidate(run.outputJson, {
     sourceStableKey,
     targetStableKey,
@@ -532,22 +514,35 @@ export async function listPendingNodeEdgeProposals() {
   const rows = await prisma.nodeEdgeProposal.findMany({
     where: { status: "proposed" },
     include: {
-      sourceNodeVersion: { include: { knowledgeNode: { include: { repository: true } } } },
-      targetNodeVersion: { include: { knowledgeNode: { include: { repository: true } } } },
+      sourceNodeVersion: {
+        include: {
+          knowledgeNode: { include: { repository: true } },
+          sourcePublicationClaimOccurrence: {
+            include: { publicationVersion: true },
+          },
+        },
+      },
+      targetNodeVersion: {
+        include: {
+          knowledgeNode: { include: { repository: true } },
+          sourcePublicationClaimOccurrence: {
+            include: { publicationVersion: true },
+          },
+        },
+      },
       agentRun: true,
     },
     orderBy: [{ createdAt: "asc" }, { id: "asc" }],
     take: 200,
   });
   return rows.flatMap((row) => {
-    if (
-      !row.sourceNodeVersion.knowledgeNode.repository ||
-      !row.targetNodeVersion.knowledgeNode.repository ||
-      !row.sourceNodeVersion.title ||
-      !row.targetNodeVersion.title
-    ) {
-      return [];
-    }
+    const sourceRepository =
+      row.sourceNodeVersion.knowledgeNode.repository?.canonicalUrl ??
+      row.sourceNodeVersion.sourcePublicationClaimOccurrence?.publishedUrl;
+    const targetRepository =
+      row.targetNodeVersion.knowledgeNode.repository?.canonicalUrl ??
+      row.targetNodeVersion.sourcePublicationClaimOccurrence?.publishedUrl;
+    if (!sourceRepository || !targetRepository) return [];
     return [
       {
         id: row.id,
@@ -558,14 +553,20 @@ export async function listPendingNodeEdgeProposals() {
         source: {
           id: row.sourceNodeVersion.knowledgeNode.id,
           localNodeId: row.sourceNodeVersion.knowledgeNode.localNodeId,
-          title: row.sourceNodeVersion.title,
-          repository: row.sourceNodeVersion.knowledgeNode.repository.canonicalUrl,
+          title:
+            row.sourceNodeVersion.title ??
+            row.sourceNodeVersion.text ??
+            row.sourceNodeVersion.knowledgeNode.localNodeId,
+          repository: sourceRepository,
         },
         target: {
           id: row.targetNodeVersion.knowledgeNode.id,
           localNodeId: row.targetNodeVersion.knowledgeNode.localNodeId,
-          title: row.targetNodeVersion.title,
-          repository: row.targetNodeVersion.knowledgeNode.repository.canonicalUrl,
+          title:
+            row.targetNodeVersion.title ??
+            row.targetNodeVersion.text ??
+            row.targetNodeVersion.knowledgeNode.localNodeId,
+          repository: targetRepository,
         },
         agentRunId: row.agentRun?.id,
       },
@@ -649,6 +650,34 @@ function stableNodeVersionKey(
   commitSha: string,
 ): string {
   return canonicalJson({ githubRepositoryId, localNodeId, commitSha: commitSha.toLowerCase() });
+}
+
+function canonicalNodeVersionKey(version: {
+  sourcePublicationClaimOccurrenceId: string | null;
+  knowledgeNode: {
+    stableKey: string | null;
+    localNodeId: string;
+    repository: { githubRepositoryId: string | null } | null;
+  };
+  snapshot: { commitSha: string } | null;
+}): string {
+  if (version.knowledgeNode.repository?.githubRepositoryId && version.snapshot) {
+    return stableNodeVersionKey(
+      version.knowledgeNode.repository.githubRepositoryId,
+      version.knowledgeNode.localNodeId,
+      version.snapshot.commitSha,
+    );
+  }
+  if (version.sourcePublicationClaimOccurrenceId && version.knowledgeNode.stableKey) {
+    return canonicalJson({
+      knowledgeNodeStableKey: version.knowledgeNode.stableKey,
+      sourcePublicationClaimOccurrenceId: version.sourcePublicationClaimOccurrenceId,
+    });
+  }
+  throw new NodeEdgeLifecycleError(
+    "An exact immutable canonical source identity is required.",
+    "conflict",
+  );
 }
 
 function assertAgentRunCandidate(

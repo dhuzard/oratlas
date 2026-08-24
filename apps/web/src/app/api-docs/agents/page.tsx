@@ -41,6 +41,14 @@ export default function AgentGuidePage() {
         . Inspect the exact version&apos;s scholarly JSON, JSON-LD provenance, RO-Crate, DocMap,
         JATS, citation exports, and preservation manifest when the task requires them.
       </p>
+      <p>
+        External publication claims use the same canonical graph API. A graph node whose source is
+        <code>publication-claim-occurrence</code> includes the exact publication, version, capture
+        identities, authoritative external target URL, optional publisher canonical URL, and
+        separately observed publication base. Follow its publication-version packet for a bounded,
+        digest-stable view of all captured occurrences and public graph bindings; never infer claim
+        identity from matching text, source-local IDs, or digests.
+      </p>
 
       <h2>Interpret relations carefully</h2>
       <ul>

@@ -44,14 +44,17 @@ four — and the stable-identity union above is unchanged, because such an occur
 materialize as an ordinary `claim-occurrence` node with a global stable key and no repository. No
 new node kind is introduced and canonical identity does not change shape.
 
-This is the expand step only. No writer materializes an external-publication node version, and the
-public canonical graph response contract still names four source variants; `mapNodeVersion` fails
-closed on a source it cannot name, which is correct until a materializer and a response variant
-ship together. The dormant contract's immutability trigger was extended to cover the new column, so
-activation protects it exactly as it protects the other four.
+This source is active. The adapter-neutral materializer atomically creates the ordinary canonical
+claim/version and writes both sides of the occurrence binding. The public graph contract names all
+five source variants and projects bounded external provenance. Its `adapterType` uses the shared
+publication-adapter vocabulary rather than a graph-local MyST literal. Optional
+`publisherCanonicalUrl`, required capture-derived `observedPublicationBaseUrl`, and authoritative
+`publishedTargetUrl` remain separate address roles. Existing review, claim, citation and repository
+materializers are unchanged. Database guards protect the fifth source exactly as they protect the
+other four.
 
 A source occurrence is emphatically not canonical identity. `PublicationClaimOccurrence` carries a
-nullable, write-once `knowledgeNodeId` for an explicit, reviewed identity decision; ORAtlas must not
+nullable, write-once `knowledgeNodeId` for an explicit, reviewed identity decision; ORAtlas does not
 derive it from equal text, an equal source-local id in different versions, an equal
 `declarationSha256`, an equal `sourcesSha256`, position, ordering or similarity. See
 `docs/external-publications.md`.
