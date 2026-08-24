@@ -360,6 +360,10 @@ export function createHardenedRemoteFetcher(
         req.destroy();
         fail(new RemoteFetchError("timeout", "The external connection timed out."));
       }, connectTimeoutMs);
+      req.setTimeout(readTimeoutMs, () => {
+        req.destroy();
+        fail(new RemoteFetchError("timeout", "The external response read timed out."));
+      });
       const onAbort = () => {
         req.destroy();
         fail(new RemoteFetchError("timeout", "The external fetch operation was cancelled."));
