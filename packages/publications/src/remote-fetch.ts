@@ -419,7 +419,13 @@ export function createHardenedRemoteFetcher(
               "The external redirect limit was exceeded.",
             );
           }
-          const destination = parseExternalUrl(new URL(location, current).href, urlOptions);
+          let destinationValue: string;
+          try {
+            destinationValue = new URL(location, current).href;
+          } catch {
+            throw new RemoteFetchError("unsafe-url", "The redirect location is malformed.");
+          }
+          const destination = parseExternalUrl(destinationValue, urlOptions);
           redirects.push({ status: response.status, from: current.href, to: destination.href });
           current = destination;
           continue;
