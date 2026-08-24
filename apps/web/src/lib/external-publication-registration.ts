@@ -145,7 +145,9 @@ async function persistVerifiedExternalPublicationOnce(
             mediaType: artifact.mediaType,
             contentSha256: artifact.contentSha256,
             byteLength: artifact.bytes.byteLength,
-            contentBytes: new TextDecoder("utf-8", { fatal: true }).decode(artifact.bytes),
+            contentBytes: new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(
+              artifact.bytes,
+            ),
             declaredSha256: artifact.declaredSha256,
             structuralProvenance: version.structuralProvenance,
             httpProvenanceJson: canonicalJson(artifact.provenance ?? {}),
