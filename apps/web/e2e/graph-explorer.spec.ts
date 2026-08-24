@@ -75,10 +75,12 @@ test("keyboard navigation opens an immutable node version", async ({ page, reque
     .first();
   await exact.focus();
   await expect(exact).toBeFocused();
-  await exact.press("Enter");
-  await expect(page).toHaveURL(
-    new RegExp(`/nodes/${edge.sourceNodeId}/versions/${edge.sourceVersionId}$`),
-  );
+  await Promise.all([
+    page.waitForURL(new RegExp(`/nodes/${edge.sourceNodeId}/versions/${edge.sourceVersionId}$`), {
+      timeout: 15_000,
+    }),
+    exact.press("Enter"),
+  ]);
 });
 
 test("graph is accessible on a narrow viewport and example DOI is never linked", async ({

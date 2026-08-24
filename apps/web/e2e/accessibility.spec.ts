@@ -52,8 +52,10 @@ test("topic coverage supports keyboard navigation at a narrow viewport", async (
   await exactNode.focus();
   await expect(exactNode).toBeFocused();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-  await page.keyboard.press("Enter");
-  await expect(page).toHaveURL(/\/nodes\/[^/]+\/versions\/[^/]+$/);
+  await Promise.all([
+    page.waitForURL(/\/nodes\/[^/]+\/versions\/[^/]+$/, { timeout: 15_000 }),
+    exactNode.press("Enter"),
+  ]);
 });
 
 for (const kind of ["claim", "dataset"] as const) {

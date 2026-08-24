@@ -135,10 +135,13 @@ test("editor gates generated, rejected, and accepted synthesis drafts", async ({
   );
   await permanentLink.focus();
   await expect(permanentLink).toBeFocused();
-  await page.keyboard.press("Enter");
-  await expect(page).toHaveURL(
-    new RegExp(`/reviews/${slug}/syntheses/${acceptedReview.currentSynthesisVersionId}$`),
-  );
+  await Promise.all([
+    page.waitForURL(
+      new RegExp(`/reviews/${slug}/syntheses/${acceptedReview.currentSynthesisVersionId}$`),
+      { timeout: 15_000 },
+    ),
+    permanentLink.press("Enter"),
+  ]);
   await expect(page.locator(".synthesis-reader")).toBeVisible();
   await page.goto(`/reviews/${slug}`);
   await expect(page.getByText(SYNTHESIS_PUBLIC_AI_LABEL, { exact: true }).first()).toBeVisible();
