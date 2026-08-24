@@ -1379,6 +1379,7 @@ CREATE TABLE "PublicationClaimOccurrence" (
     "sourceLocalClaimId" TEXT NOT NULL,
     "stableKey" TEXT NOT NULL,
     "targetJson" TEXT NOT NULL,
+    "publishedUrl" TEXT,
     "sourceBindingJson" TEXT NOT NULL,
     "selectorJson" TEXT NOT NULL,
     "declarationSha256" TEXT NOT NULL,
@@ -2832,6 +2833,7 @@ CREATE OR REPLACE FUNCTION "oratlas_protect_publication_claim_occurrence"() RETU
         OR NEW."sourceLocalClaimId" IS DISTINCT FROM OLD."sourceLocalClaimId"
         OR NEW."stableKey" IS DISTINCT FROM OLD."stableKey"
         OR NEW."targetJson" IS DISTINCT FROM OLD."targetJson"
+        OR NEW."publishedUrl" IS DISTINCT FROM OLD."publishedUrl"
         OR NEW."sourceBindingJson" IS DISTINCT FROM OLD."sourceBindingJson"
         OR NEW."selectorJson" IS DISTINCT FROM OLD."selectorJson"
         OR NEW."declarationSha256" IS DISTINCT FROM OLD."declarationSha256"

@@ -119,6 +119,26 @@ describe("preserved article reader", () => {
     expect(JSON.stringify(article?.pages[0]?.ast)).toContain("<script>alert(1)</script>");
     expect(JSON.stringify(article?.pages[0]?.ast)).not.toContain('"type":"html"');
   });
+
+  it("recognizes ORAtlas claim directives without executing a MyST plugin", () => {
+    const article = buildMystArticle({
+      files: {
+        "README.md": preserved(
+          "# Safe\n\n:::{oratlas:claim} claim-a1\n\nBody **remains MyST**.\n:::\n\n:::{unknown-plugin}\nunsafe-looking fallback\n:::",
+        ),
+      },
+      repositoryOwner: "lab",
+      repositoryName: "review",
+      commitSha: "d".repeat(40),
+    });
+
+    const ast = JSON.stringify(article?.pages[0]?.ast);
+    expect(ast).toContain('"type":"oratlasClaimMarker"');
+    expect(ast).toContain('"sourceLocalClaimId":"claim-a1"');
+    expect(ast).toContain('"html_id":"oratlas-claim-page-1-readme-md-claim-a1-');
+    expect(ast).toContain("Body");
+    expect(ast).toContain("MyST extension: unknown-plugin");
+  });
 });
 
 function preserved(content: string) {

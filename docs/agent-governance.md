@@ -21,6 +21,12 @@ state; it does not infer a profile, accept GUI focus state, use behavioral telem
 preserved records. It returns canonical graph references, relative scores, and explanations only;
 agents resolve record content through the reader-agnostic graph API.
 
+External publications use that same graph. A `publication-claim-occurrence` source names the exact
+publication/version, external target and capture identities. Agents may follow the generic,
+SHA-256-bound publication-version packet for bounded occurrences and public confirmed relations;
+the packet carries completeness flags and excludes raw captures, private proposals and hidden
+assessments. Matching text, local IDs or digests never authorize identity merging.
+
 An optional repeated `known` parameter is explicit reader-held state. Each recommendation returns
 the exact editor-confirmed edges connecting it to those known identities in `anchors`; no lexical,
 behavioral, or inferred familiarity is accepted.

@@ -212,12 +212,12 @@ canonical graph identity.
   equal source-local id in different versions, an equal `declarationSha256`, an equal
   `sourcesSha256`, position and similarity are all explicitly non-identities.
   `declarationSha256` is indexed but not unique. Its nullable `knowledgeNodeId` records an
-  explicit, reviewed identity decision: it is never inferred, is write-once, and nothing writes it
-  yet.
+  explicit, reviewed identity decision: it is never inferred and is write-once. The generic
+  materializer writes it atomically with the exact graph-version source binding.
 - `KnowledgeNodeVersion` gains a nullable, unique `sourcePublicationClaimOccurrenceId`. The exact
   version source union stays exclusive — exactly one real source, now counted across five columns
-  instead of four — and the `KnowledgeNode` origin union is unchanged. This is an expand-only step;
-  no writer materializes such a version.
+  instead of four — and the `KnowledgeNode` origin union is unchanged. External occurrences
+  materialize as ordinary `claim-occurrence` / `claim` nodes, never a second graph.
 
 Existing `Review`, `ReviewVersion`, `Claim`, `Citation`, and `ClaimEvidenceRelation` storage is
 unchanged in shape, meaning and public API. `Publication.reviewId` is the nullable projection

@@ -55,6 +55,16 @@ const repositorySelect = {
 
 const nodeVersionInclude = {
   snapshot: { select: { id: true, commitSha: true } },
+  sourcePublicationClaimOccurrence: {
+    include: {
+      publicationVersion: {
+        include: {
+          publication: true,
+          captures: { select: { id: true }, orderBy: { id: "asc" } },
+        },
+      },
+    },
+  },
   knowledgeNode: {
     include: {
       repository: { select: repositorySelect },
@@ -77,7 +87,10 @@ async function loadSeedVersion(query: CanonicalGraphQuery) {
           ...readableCanonicalNodeVersionWhere,
           ...(query.version ? { id: query.version } : {}),
         },
-        include: { snapshot: { select: { id: true, commitSha: true } } },
+        include: {
+          snapshot: { select: { id: true, commitSha: true } },
+          sourcePublicationClaimOccurrence: nodeVersionInclude.sourcePublicationClaimOccurrence,
+        },
         orderBy: [{ createdAt: "desc" }, { id: "desc" }],
         take: 1,
       },
@@ -184,7 +197,34 @@ function mapNodeVersion(version: LoadedCanonicalVersion): CanonicalGraphNodeVers
         ? { type: "claim-occurrence" as const, claimId: version.sourceClaimId }
         : version.sourceCitationId
           ? { type: "citation-occurrence" as const, citationId: version.sourceCitationId }
-          : undefined;
+          : version.sourcePublicationClaimOccurrenceId &&
+              version.sourcePublicationClaimOccurrence?.publishedUrl &&
+              version.sourcePublicationClaimOccurrence.publicationVersion.canonicalUrl
+            ? {
+                type: "publication-claim-occurrence" as const,
+                publicationClaimOccurrenceId: version.sourcePublicationClaimOccurrenceId,
+                publicationId:
+                  version.sourcePublicationClaimOccurrence.publicationVersion.publicationId,
+                publicationVersionId: version.sourcePublicationClaimOccurrence.publicationVersionId,
+                publicationType:
+                  version.sourcePublicationClaimOccurrence.publicationVersion.publication
+                    .publicationType,
+                sourceLocalClaimId: version.sourcePublicationClaimOccurrence.sourceLocalClaimId,
+                adapterType:
+                  version.sourcePublicationClaimOccurrence.publicationVersion.adapterType,
+                structuralProvenance:
+                  version.sourcePublicationClaimOccurrence.publicationVersion.structuralProvenance,
+                originalPublicationUrl:
+                  version.sourcePublicationClaimOccurrence.publicationVersion.canonicalUrl,
+                publishedTargetUrl: version.sourcePublicationClaimOccurrence.publishedUrl,
+                captureIds:
+                  version.sourcePublicationClaimOccurrence.publicationVersion.captures.map(
+                    (capture) => capture.id,
+                  ),
+                sourcesSha256:
+                  version.sourcePublicationClaimOccurrence.publicationVersion.sourcesSha256,
+              }
+            : undefined;
   if (!source) {
     throw new CanonicalGraphQueryError("Canonical node version has no exact source binding.");
   }

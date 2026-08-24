@@ -1,9 +1,10 @@
 # Externally hosted publications
 
-Status: **phase 2 — secure registration and immutable capture.** The generic boundary,
-editor-authenticated registration, hardened external fetch, schema-0.2.0 MyST verification,
-immutable capture and source-occurrence materialization described here exist. Canonical graph
-materialization, cross-publication relations, snapshots and change feeds remain deferred.
+Status: **phase 3 — canonical graph participation.** Secure registration and immutable capture
+remain the publication boundary. A separate editor action now materializes normalized external
+claim occurrences into the existing canonical graph; cross-publication relations use the ordinary
+proposal/confirmation lifecycle. Certification, ownership proof, snapshots and change feeds remain
+deferred.
 
 ## Registering an external publication
 
@@ -156,7 +157,8 @@ ORAtlas saw, so correcting it means observing again, not editing the record.
 One `oratlas:claim`-style declaration at one exact location in one exact version. It stores
 the source-local claim id, a typed target descriptor, the byte-level source binding
 (document path, document digest, line span, block digest), the source-frame selector, the
-declaration digest, and the declaration loaded from exactly one declared authority.
+declaration digest, exact adapter-resolved published URL, and the declaration loaded from exactly
+one declared authority.
 
 Uniqueness is `(publicationVersionId, sourceLocalClaimId)`: a source-local id is unique only
 inside one publication version. `declarationSha256` is indexed but **not** unique.
@@ -205,7 +207,11 @@ decision is recorded. It is null until such a decision is made, is never written
 inference, and is write-once: a database trigger rejects rewriting it, and rejects every
 other mutation of the occurrence.
 
-Nothing in phase 2 writes it.
+`POST /api/editorial/publication-claim-occurrences/{id}/materialize` writes it together with the
+matching `KnowledgeNodeVersion.sourcePublicationClaimOccurrenceId` in one transaction. An unseen
+occurrence receives a new canonical claim identity. Exact replay is idempotent; a pre-existing
+incompatible binding or version fails closed. Continuity across publication versions remains an
+explicit reviewed choice.
 
 ## Transitional architecture
 
@@ -248,15 +254,39 @@ pre-existing `KnowledgeNode` origin union is untouched — an external claim occ
 materialize as an ordinary `claim-occurrence` node, so no new node kind is introduced and
 canonical graph identity does not change shape.
 
-This is the expand step only:
+The fifth source is active. `canonicalGraphSourceSchema` exposes bounded publication, version,
+adapter, structural-level, capture-identity, original-URL and exact-target provenance without raw
+capture bytes. The exactly-one-source database constraint remains `= 1` across all five source
+columns on SQLite and PostgreSQL.
 
-- no writer materializes an external-publication node version;
-- the public canonical graph response contract is unchanged, so
-  `canonicalGraphSourceSchema` still has four variants. `apps/web/src/lib/canonical-graph-query.ts`
-  fails closed on a node version whose source it cannot name, which is the correct behaviour
-  until a materializer and a contract variant ship together;
-- the dormant canonical-graph contract's immutability trigger was extended to cover the new
-  column, so an activated contract protects it exactly as it protects the other four.
+The generic materializer lives in `packages/db` and consumes only
+`PublicationClaimOccurrence`. MyST resolves its target URL before persistence and disappears at the
+materialization boundary. A future normalized adapter occurrence can use the same function.
+
+The canonical occurrence page links to the exact external target as “Open original publication”.
+Agents traverse the same identity and provenance via `/api/graph`. The deterministic
+`GET /api/publication-versions/{id}/packet` returns bounded captures, occurrences, bindings, public
+confirmed relations, completeness flags, hypermedia and a SHA-256 over canonical packet content.
+It excludes raw capture blobs and private proposals.
+
+ORAtlas's safe reader natively recognizes `:::{oratlas:claim} source-local-id` without loading
+`@oratlas/myst` or any external plugin. It renders the body through the existing sanitized MyST
+pipeline, assigns an ORAtlas-owned DOM anchor, and treats a publication-provided `htmlId` only as
+source metadata. Unknown directives retain the existing safe fallback admonition.
+
+The architecture proof uses two independent site origins:
+
+```
+Site A ─┐
+        ├─→ Publication boundary
+Site B ─┘
+              ↓
+       PublicationClaimOccurrence
+              ↓
+        canonical ORAtlas KG
+              ↓
+      B1 contradicts A1
+```
 
 See [Canonical graph identity and compatibility migration](canonical-graph-identity.md).
 
@@ -292,6 +322,8 @@ place is forbidden.
 | `packages/publications/src/remote-fetch.ts`                     | the reusable DNS-pinned SSRF and response-limit boundary       |
 | `packages/publications/src/registration.ts`                     | capture and structural verification over externally seen bytes |
 | `apps/web/src/lib/external-publication-registration.ts`         | atomic, idempotent persistence and typed result                |
+| `packages/db/src/publication-claim-materialization.ts`          | adapter-neutral canonical materialization                      |
+| `apps/web/src/lib/publication-version-packet.ts`                | deterministic bounded public packet                            |
 | `apps/web/src/app/api/editorial/publications/register/route.ts` | editor-authenticated registration operation                    |
 | `packages/db/prisma/schema.prisma`                              | the four models (PostgreSQL variant is generated from it)      |
 | `packages/db/src/database-guards.ts`                            | the SQLite and PostgreSQL guards for both providers            |
@@ -306,14 +338,10 @@ These are **not** implemented, and none of them should be inferred from what is:
 
 - **Automatic re-check and ownership proof.** Registration is an editor-triggered operation;
   there is no polling loop, `.well-known`/DNS/repository challenge or ownership assertion.
-- **Canonical materialization.** Nothing writes `PublicationClaimOccurrence.knowledgeNodeId`
-  or `KnowledgeNodeVersion.sourcePublicationClaimOccurrenceId`.
 - **Review version projection.** Needs an `atlas-review` adapter variant with a defined
   version digest.
-- **The `oratlas:claim` directive in ORAtlas's own MyST reader.**
-  `apps/web/src/lib/article-reader.ts` still renders an unknown directive as a fallback
-  admonition. The prose is preserved and nothing breaks, but such a claim is not yet
-  anchored in ORAtlas's reader.
 - **Public product language.** No UI copy, route, or public API describes ORAtlas in terms
   of publications rather than reviews.
+- **Certification and production/AI authoring provenance.** The generic packet is future input,
+  not a certification result or an authorship assertion.
 - **Graph snapshots and change feeds.**

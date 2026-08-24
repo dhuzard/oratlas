@@ -396,6 +396,24 @@ function directiveOptions(node: MystNode): Record<string, string> {
   return result;
 }
 
+function oratlasClaimDirective(node: MystNode): {
+  sourceLocalClaimId: string;
+  body: string;
+  sourceHtmlId?: string;
+} | null {
+  const raw = safeUnicode(typeof node.args === "string" ? node.args : "");
+  const lines = raw.replace(/\r\n?/g, "\n").split("\n");
+  const sourceLocalClaimId = (lines.shift() ?? "").trim();
+  if (!/^[a-z0-9][a-z0-9._-]{0,119}$/.test(sourceLocalClaimId)) return null;
+  if (typeof node.value === "string") lines.push(safeUnicode(node.value));
+  while (lines.at(-1)?.trim() === ":::") lines.pop();
+  const sourceHtmlId =
+    typeof node.html_id === "string" && node.html_id.length <= 300
+      ? safeUnicode(node.html_id)
+      : undefined;
+  return { sourceLocalClaimId, body: lines.join("\n").trim(), sourceHtmlId };
+}
+
 export function safeUrl(url: string): string | undefined {
   const value = safeUnicode(url).trim();
   if (!value) return undefined;
@@ -436,6 +454,25 @@ function transformMystNode(input: MystNode, context: TransformContext): MystNode
   }
   if (input.type === "mystDirective") {
     const name = typeof input.name === "string" ? input.name.toLowerCase() : "unknown";
+    if (name === "oratlas:claim") {
+      const declaration = oratlasClaimDirective(input);
+      if (!declaration) return null;
+      const body = declaration.body
+        ? ((mystParse(declaration.body) as MystNode).children ?? [])
+            .map((child) => transformMystNode(child, context))
+            .filter((child): child is MystNode => Boolean(child))
+        : (input.children ?? [])
+            .map((child) => transformMystNode(child, context))
+            .filter((child): child is MystNode => Boolean(child));
+      return {
+        type: "oratlasClaimMarker",
+        key,
+        html_id: `oratlas-claim-${context.pageId}-${slugPart(declaration.sourceLocalClaimId) || "claim"}-${context.key}`,
+        sourceLocalClaimId: declaration.sourceLocalClaimId,
+        sourceHtmlId: declaration.sourceHtmlId,
+        children: body,
+      };
+    }
     if (name === "trust-claim") {
       const options = directiveOptions(input);
       const claimId = options["claim-id"] ?? options.claim;

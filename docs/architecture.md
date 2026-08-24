@@ -104,9 +104,24 @@ neither may be described as verified, trustworthy, confirmed, or peer reviewed. 
 separate and relation-specific.
 
 Adapter and target metadata are closed, versioned discriminated unions, so a JATS or Quarto
-producer is a new variant rather than a change to the boundary. Registration, fetching and
-canonical materialization are deliberately not implemented; see
+producer is a new variant rather than a change to the boundary. Registration and hardened fetching
+normalize to `PublicationClaimOccurrence`; the generic database materializer then atomically joins
+that occurrence to the existing canonical graph without inspecting the adapter. Two independently
+hosted MyST fixtures prove four distinct claims plus one editor-confirmed cross-site contradiction.
+The versioned publication packet exposes the same bounded public state to agents. See
 [Externally hosted publications](external-publications.md).
+
+```
+Site A ─┐
+        ├─→ Publication boundary
+Site B ─┘
+              ↓
+       PublicationClaimOccurrence
+              ↓
+        canonical ORAtlas KG
+              ↓
+      B1 contradicts A1
+```
 
 ## Key flows
 

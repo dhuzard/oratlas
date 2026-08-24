@@ -149,6 +149,7 @@ describe.skipIf(!enabled)("publication boundary on PostgreSQL", () => {
         sourceLocalClaimId: "hpa-axis-mediation",
         stableKey: unique("publication-claim-occurrence:v1"),
         targetJson: JSON.stringify({ type: "myst-xref", identifier: "hpa-axis-mediation" }),
+        publishedUrl: "https://publication.example/results/#hpa-axis-mediation",
         sourceBindingJson: "{}",
         selectorJson: "{}",
         declarationSha256: digest("c"),
@@ -158,6 +159,9 @@ describe.skipIf(!enabled)("publication boundary on PostgreSQL", () => {
     });
     await expect(
       prisma.$executeRaw`UPDATE "PublicationClaimOccurrence" SET "text" = 'Rewritten' WHERE "id" = ${occurrence.id}`,
+    ).rejects.toThrow(/A publication claim occurrence is immutable/);
+    await expect(
+      prisma.$executeRaw`UPDATE "PublicationClaimOccurrence" SET "publishedUrl" = 'https://evil.example/' WHERE "id" = ${occurrence.id}`,
     ).rejects.toThrow(/A publication claim occurrence is immutable/);
     await expect(
       prisma.$executeRaw`DELETE FROM "PublicationClaimOccurrence" WHERE "id" = ${occurrence.id}`,

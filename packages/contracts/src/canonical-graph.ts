@@ -25,6 +25,29 @@ export const canonicalGraphSourceSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("review-version"), reviewVersionId: z.string().min(1) }).strict(),
   z.object({ type: z.literal("claim-occurrence"), claimId: z.string().min(1) }).strict(),
   z.object({ type: z.literal("citation-occurrence"), citationId: z.string().min(1) }).strict(),
+  z
+    .object({
+      type: z.literal("publication-claim-occurrence"),
+      publicationClaimOccurrenceId: z.string().min(1),
+      publicationId: z.string().min(1),
+      publicationVersionId: z.string().min(1),
+      publicationType: z.enum([
+        "review-article",
+        "research-article",
+        "methods-article",
+        "preprint",
+        "living-review",
+        "other",
+      ]),
+      sourceLocalClaimId: z.string().min(1).max(120),
+      adapterType: z.literal("myst"),
+      structuralProvenance: z.enum(["published-structure", "source-byte"]),
+      originalPublicationUrl: z.string().url().startsWith("https://").max(2_000),
+      publishedTargetUrl: z.string().url().startsWith("https://").max(2_000),
+      captureIds: z.array(z.string().min(1)).max(1_000),
+      sourcesSha256: z.string().regex(/^[0-9a-f]{64}$/),
+    })
+    .strict(),
 ]);
 export type CanonicalGraphSource = z.infer<typeof canonicalGraphSourceSchema>;
 

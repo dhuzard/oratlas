@@ -30,6 +30,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     verificationLevel: version.structuralProvenance,
     warnings: parseJsonColumn(version.verificationWarningsJson, []),
     observedAt: version.observedAt.toISOString(),
+    packetHref: `/api/publication-versions/${version.id}/packet`,
     claimOccurrenceCount: version._count.claimOccurrences,
     captures: version.captures.map((capture) => ({
       id: capture.id,

@@ -208,9 +208,11 @@ async function persistVerifiedExternalPublicationOnce(
         );
       }
       if (existing) {
+        const publishedUrl = verified.resolvedClaimUrls.get(occurrence.sourceLocalClaimId);
         if (
           existing.publicationVersionId !== versionRow.id ||
           existing.targetJson !== canonicalJson(occurrence.target) ||
+          existing.publishedUrl !== publishedUrl ||
           existing.sourceBindingJson !== canonicalJson(occurrence.sourceBinding) ||
           existing.selectorJson !== canonicalJson(occurrence.selector) ||
           existing.declarationSha256 !== occurrence.declarationSha256 ||
@@ -232,6 +234,7 @@ async function persistVerifiedExternalPublicationOnce(
           sourceLocalClaimId: occurrence.sourceLocalClaimId,
           stableKey: occurrence.stableKey,
           targetJson: canonicalJson(occurrence.target),
+          publishedUrl: verified.resolvedClaimUrls.get(occurrence.sourceLocalClaimId),
           sourceBindingJson: canonicalJson(occurrence.sourceBinding),
           selectorJson: canonicalJson(occurrence.selector),
           declarationSha256: occurrence.declarationSha256,

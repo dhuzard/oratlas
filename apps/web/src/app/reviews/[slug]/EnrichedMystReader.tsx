@@ -82,6 +82,24 @@ function TrustMarker({ node }: { node: MystNode }) {
   );
 }
 
+function OratlasClaimMarker({ node }: { node: MystNode }) {
+  const id = typeof node.html_id === "string" ? node.html_id : undefined;
+  const sourceLocalClaimId =
+    typeof node.sourceLocalClaimId === "string" ? node.sourceLocalClaimId : "claim";
+  const sourceHtmlId = typeof node.sourceHtmlId === "string" ? node.sourceHtmlId : undefined;
+  return (
+    <section
+      className="oratlas-claim-marker deep-link-target"
+      id={id}
+      data-source-local-claim-id={sourceLocalClaimId}
+      data-source-html-id={sourceHtmlId}
+    >
+      <span className="badge">Claim · {sourceLocalClaimId}</span>
+      <MyST ast={nodeChildren(node)} />
+    </section>
+  );
+}
+
 function SafeImage({ node, className }: { node: MystNode; className?: string }) {
   const url = typeof node.url === "string" ? node.url : undefined;
   if (!url || !/^https:\/\//i.test(url)) return null;
@@ -101,6 +119,7 @@ const renderers: NodeRenderers = {
   link: { base: ArticleLink },
   image: { base: SafeImage },
   trustClaimMarker: { base: TrustMarker },
+  oratlasClaimMarker: { base: OratlasClaimMarker },
 };
 
 function formatComponentName(name: string): string {

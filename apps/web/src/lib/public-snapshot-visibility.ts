@@ -48,5 +48,14 @@ export const readableCanonicalNodeVersionWhere = {
     { sourceReviewVersion: { is: readablePublishedReviewVersionWhere } },
     { sourceClaim: { is: { reviewVersion: { is: readablePublishedReviewVersionWhere } } } },
     { sourceCitation: { is: { reviewVersion: { is: readablePublishedReviewVersionWhere } } } },
+    {
+      sourcePublicationClaimOccurrence: {
+        is: {
+          publicationVersion: {
+            is: { publication: { is: { recordSource: "external-publication" } } },
+          },
+        },
+      },
+    },
   ],
 } satisfies Prisma.KnowledgeNodeVersionWhereInput;
