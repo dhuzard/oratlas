@@ -8,6 +8,10 @@ const here = dirname(fileURLToPath(import.meta.url));
 const githubFixturePreload = pathToFileURL(join(here, "e2e", "github-inspection-fixture.ts")).href;
 const nodeOptions = [
   process.env.NODE_OPTIONS?.trim(),
+  // The full single-worker suite exercises many dynamically compiled routes.
+  // Keep Next's 80%-of-heap dev-server watcher from restarting the server and
+  // invalidating an in-flight browser session near the end of the suite.
+  "--max-old-space-size=5120",
   "--import=tsx",
   `--import=${githubFixturePreload}`,
 ]
