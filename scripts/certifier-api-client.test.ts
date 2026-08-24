@@ -12,9 +12,10 @@ describe("external certifier acceptance client", () => {
           headers: { "content-type": "application/json" },
         }),
     );
+    const credential = "acceptance-test-credential";
     const client = new CertifierApiClient(
       "https://atlas.example",
-      "secret",
+      credential,
       fetcher as typeof fetch,
     );
     const run = await client.createRun({
@@ -30,7 +31,7 @@ describe("external certifier acceptance client", () => {
     expect(run).toMatchObject({ method: "POST" });
     expect(fetcher).toHaveBeenCalledTimes(5);
     const headers = new Headers(fetcher.mock.calls[0]?.[1]?.headers);
-    expect(headers.get("authorization")).toBe("Bearer secret");
+    expect(headers.get("authorization")).toBe(`Bearer ${credential}`);
     expect(headers.get("content-type")).toBe("application/json");
   });
   it("contains no database or internal package dependency", () => {
