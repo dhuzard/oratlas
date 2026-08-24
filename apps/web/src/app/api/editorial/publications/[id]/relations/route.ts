@@ -32,9 +32,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       return errorResponse("bad-request", "Invalid publication relationship decision.");
     }
     const { id } = await params;
-    return NextResponse.json(await createPublicationRelation(id, parsed.data, editor.id), {
-      status: 201,
-    });
+    const result = await createPublicationRelation(id, parsed.data, editor.id);
+    return NextResponse.json(result.relation, { status: result.replayed ? 200 : 201 });
   } catch (error) {
     if (error instanceof BodyTooLargeError) {
       return errorResponse("payload-too-large", "Request body too large.");

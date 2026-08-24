@@ -258,30 +258,58 @@ describe("publication production provenance and transfer", () => {
       where: { stableKey: "publication:external:v1:ars-paper" },
     });
     expect((await provenance.listPublicationRelations(human.id)).relations).toEqual([]);
-    const relation = await provenance.createPublicationRelation(
-      human.id,
-      {
+    const decision = {
+      targetPublicationId: ars.id,
+      relationType: "derived-from" as const,
+      rationale:
+        "An editor reviewed public transfer evidence; matching titles were explicitly ignored.",
+      publicEvidenceUrl: "https://evidence.example/publication-transfer",
+    };
+    const created = await provenance.createPublicationRelation(human.id, decision, editorId);
+    expect(created).toMatchObject({
+      replayed: false,
+      relation: {
+        sourcePublicationId: human.id,
         targetPublicationId: ars.id,
+        direction: "outgoing",
         relationType: "derived-from",
-        rationale:
-          "An editor reviewed public transfer evidence; matching titles were explicitly ignored.",
-        publicEvidenceUrl: "https://evidence.example/publication-transfer",
       },
-      editorId,
-    );
-    expect(relation).toMatchObject({
+    });
+    const replayed = await provenance.createPublicationRelation(human.id, decision, editorId);
+    expect(replayed).toMatchObject({
+      replayed: true,
+      relation: { id: created.relation.id },
+    });
+    await expect(
+      provenance.createPublicationRelation(
+        human.id,
+        { ...decision, rationale: "A contradictory rationale for the same immutable relation." },
+        editorId,
+      ),
+    ).rejects.toMatchObject({ code: "conflict" });
+    const otherEditor = await prisma.user.create({
+      data: {
+        githubUserId: "production-editor-2",
+        githubLogin: "production-editor-2",
+        role: "EDITOR",
+      },
+    });
+    await expect(
+      provenance.createPublicationRelation(human.id, decision, otherEditor.id),
+    ).rejects.toMatchObject({ code: "conflict" });
+    expect(created.relation).toMatchObject({
       sourcePublicationId: human.id,
       targetPublicationId: ars.id,
       direction: "outgoing",
       relationType: "derived-from",
     });
     expect((await provenance.listPublicationRelations(ars.id)).relations[0]).toMatchObject({
-      id: relation.id,
+      id: created.relation.id,
       direction: "incoming",
     });
     await expect(
       prisma.publicationRelation.update({
-        where: { id: relation.id },
+        where: { id: created.relation.id },
         data: { relationType: "mirror-of" },
       }),
     ).rejects.toThrow();

@@ -24,6 +24,13 @@ export class PublicationProvenanceError extends Error {
   }
 }
 
+function prismaCode(error: unknown): string | undefined {
+  if (typeof error !== "object" || error === null || !("code" in error)) return undefined;
+  return typeof (error as { code?: unknown }).code === "string"
+    ? (error as { code: string }).code
+    : undefined;
+}
+
 const assertionInclude = {
   assertedBy: { select: { id: true, githubLogin: true } },
   supersededBy: { select: { id: true } },
@@ -97,12 +104,11 @@ export async function listPublicationProductionProvenance(publicationVersionId: 
   });
 }
 
-export async function createPublicationProductionAssertion(
+async function createPublicationProductionAssertionOnce(
   publicationVersionId: string,
-  input: PublicationProductionAssertionMutation,
+  mutation: PublicationProductionAssertionMutation,
   actorId: string,
 ) {
-  const mutation = publicationProductionAssertionMutationSchema.parse(input);
   return prisma.$transaction(async (tx) => {
     const version = await tx.publicationVersion.findUnique({
       where: { id: publicationVersionId },
@@ -189,6 +195,25 @@ export async function createPublicationProductionAssertion(
   });
 }
 
+export async function createPublicationProductionAssertion(
+  publicationVersionId: string,
+  input: PublicationProductionAssertionMutation,
+  actorId: string,
+) {
+  const mutation = publicationProductionAssertionMutationSchema.parse(input);
+  try {
+    return await createPublicationProductionAssertionOnce(publicationVersionId, mutation, actorId);
+  } catch (error) {
+    if (mutation.supersedesAssertionId && prismaCode(error) === "P2002") {
+      throw new PublicationProvenanceError(
+        "conflict",
+        "The production assertion has already been superseded.",
+      );
+    }
+    throw error;
+  }
+}
+
 const relationInclude = {
   reviewedBy: { select: { id: true, githubLogin: true } },
 } as const;
@@ -242,18 +267,46 @@ export async function listPublicationRelations(publicationId: string) {
   });
 }
 
-export async function createPublicationRelation(
+function relationDecisionMatches(
+  relation: LoadedRelation,
+  mutation: PublicationRelationMutation,
+  actorId: string,
+): boolean {
+  return (
+    relation.rationale === mutation.rationale &&
+    relation.publicEvidenceUrl === (mutation.publicEvidenceUrl ?? null) &&
+    relation.reviewedById === actorId
+  );
+}
+
+function replayPublicationRelation(
+  relation: LoadedRelation,
   sourcePublicationId: string,
-  input: PublicationRelationMutation,
+  mutation: PublicationRelationMutation,
   actorId: string,
 ) {
-  const mutation = publicationRelationMutationSchema.parse(input);
-  if (sourcePublicationId === mutation.targetPublicationId) {
+  if (!relationDecisionMatches(relation, mutation, actorId)) {
     throw new PublicationProvenanceError(
       "conflict",
-      "A transfer relationship requires two distinct publication records.",
+      "The publication relationship conflicts with an existing immutable decision.",
     );
   }
+  return { relation: mapRelation(relation, sourcePublicationId), replayed: true } as const;
+}
+
+const relationKey = (sourcePublicationId: string, mutation: PublicationRelationMutation) => ({
+  sourcePublicationId_targetPublicationId_relationType: {
+    sourcePublicationId,
+    targetPublicationId: mutation.targetPublicationId,
+    relationType: mutation.relationType,
+  },
+});
+
+async function createPublicationRelationOnce(
+  sourcePublicationId: string,
+  mutation: PublicationRelationMutation,
+  actorId: string,
+) {
   return prisma.$transaction(async (tx) => {
     const count = await tx.publication.count({
       where: { id: { in: [sourcePublicationId, mutation.targetPublicationId] } },
@@ -262,16 +315,17 @@ export async function createPublicationRelation(
       throw new PublicationProvenanceError("not-found", "Publication not found.");
     }
     const existing = await tx.publicationRelation.findUnique({
-      where: {
-        sourcePublicationId_targetPublicationId_relationType: {
-          sourcePublicationId,
-          targetPublicationId: mutation.targetPublicationId,
-          relationType: mutation.relationType,
-        },
-      },
+      where: relationKey(sourcePublicationId, mutation),
       include: relationInclude,
     });
-    if (existing) return mapRelation(existing as LoadedRelation, sourcePublicationId);
+    if (existing) {
+      return replayPublicationRelation(
+        existing as LoadedRelation,
+        sourcePublicationId,
+        mutation,
+        actorId,
+      );
+    }
     const now = new Date();
     const created = await tx.publicationRelation.create({
       data: {
@@ -298,6 +352,41 @@ export async function createPublicationRelation(
         }),
       },
     });
-    return mapRelation(created as LoadedRelation, sourcePublicationId);
+    return {
+      relation: mapRelation(created as LoadedRelation, sourcePublicationId),
+      replayed: false,
+    } as const;
   });
+}
+
+export async function createPublicationRelation(
+  sourcePublicationId: string,
+  input: PublicationRelationMutation,
+  actorId: string,
+) {
+  const mutation = publicationRelationMutationSchema.parse(input);
+  if (sourcePublicationId === mutation.targetPublicationId) {
+    throw new PublicationProvenanceError(
+      "conflict",
+      "A transfer relationship requires two distinct publication records.",
+    );
+  }
+  try {
+    return await createPublicationRelationOnce(sourcePublicationId, mutation, actorId);
+  } catch (error) {
+    if (prismaCode(error) !== "P2002") throw error;
+    // A failed transaction cannot safely be queried. Reconcile only after it
+    // has rolled back and the unique-key winner is visible.
+    const winner = await prisma.publicationRelation.findUnique({
+      where: relationKey(sourcePublicationId, mutation),
+      include: relationInclude,
+    });
+    if (!winner) throw error;
+    return replayPublicationRelation(
+      winner as LoadedRelation,
+      sourcePublicationId,
+      mutation,
+      actorId,
+    );
+  }
 }
