@@ -77,6 +77,7 @@ async function persistVerifiedExternalPublicationOnce(
         },
       });
     } else if (
+      publicationRow.publicationType !== publication.publicationType ||
       publicationRow.recordSource !== publication.recordSource ||
       publicationRow.identityEvidenceJson !== canonicalJson(publication.identityEvidence)
     ) {
