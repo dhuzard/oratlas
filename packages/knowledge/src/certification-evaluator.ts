@@ -1,9 +1,8 @@
 import type {
+  CertificationCriterionResult,
   CertificationProtocolDefinition,
   PublicationVersionPacket,
-  certificationCriterionResultSchema,
 } from "@oratlas/contracts";
-import type { z } from "zod";
 
 export interface CertificationEvaluationExecutionMetadata {
   provider: string;
@@ -17,7 +16,7 @@ export interface CertificationEvaluationExecutionMetadata {
 }
 
 export interface CertificationEvaluation {
-  criteria: Array<z.infer<typeof certificationCriterionResultSchema>>;
+  criteria: CertificationCriterionResult[];
   limitations: string[];
   executionMetadata: CertificationEvaluationExecutionMetadata;
 }

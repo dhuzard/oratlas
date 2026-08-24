@@ -173,6 +173,7 @@ export const certificationCriterionResultSchema = z
     evidenceRefs: z.array(certificationEvidenceReferenceSchema).max(100).default([]),
   })
   .strict();
+export type CertificationCriterionResult = z.infer<typeof certificationCriterionResultSchema>;
 export const submitCertificationResultSchema = z
   .object({
     schemaVersion: z.literal(CERTIFICATION_RESULT_SCHEMA_VERSION),

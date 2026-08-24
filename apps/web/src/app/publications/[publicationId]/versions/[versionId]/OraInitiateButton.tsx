@@ -15,21 +15,35 @@ export function OraInitiateButton({
   );
   async function initiate() {
     setState("running");
-    const response = await fetch("/api/editorial/ora-certifications", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ publicationVersionId }),
-    });
-    const body = await response.json();
-    if (!response.ok) {
+    try {
+      const response = await fetch("/api/editorial/ora-certifications", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ publicationVersionId }),
+      });
+      const body = (await response.json().catch(() => ({}))) as {
+        replayed?: boolean;
+        outcome?: string;
+        error?: { message?: string };
+      };
+      if (!response.ok) {
+        setState("error");
+        setMessage(body.error?.message ?? "ORA certification could not be started.");
+        return;
+      }
+      if (typeof body.outcome !== "string") {
+        throw new Error("ORA certification returned an invalid response.");
+      }
+      setState("done");
+      setMessage(
+        `${body.replayed ? "Existing" : "New"} ORA result: ${body.outcome}. Reload to inspect it.`,
+      );
+    } catch (error) {
       setState("error");
-      setMessage(body?.error?.message ?? "ORA certification could not be started.");
-      return;
+      setMessage(
+        error instanceof Error ? error.message : "ORA certification could not be started.",
+      );
     }
-    setState("done");
-    setMessage(
-      `${body.replayed ? "Existing" : "New"} ORA result: ${body.outcome}. Reload to inspect it.`,
-    );
   }
   return (
     <div>
