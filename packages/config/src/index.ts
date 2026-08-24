@@ -1,6 +1,12 @@
 import { z } from "zod";
 import rootPackage from "../../../package.json" with { type: "json" };
 
+const optionalNonBlankString = (schema: z.ZodType<string>) =>
+  z.preprocess(
+    (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+    schema.optional(),
+  );
+
 /** Version of the ORAtlas platform code that is currently running. */
 export const PLATFORM_VERSION = rootPackage.version;
 
@@ -25,8 +31,8 @@ const serverEnvSchema = z.object({
   OPENAI_API_KEY: z.string().optional(),
   LLM_MODEL: z.string().default("claude-sonnet-5"),
   ORA_CERTIFIER_API_TOKEN: z.string().optional(),
-  ORA_EVALUATOR_PROVIDER: z.enum(["anthropic", "openai"]).optional(),
-  ORA_EVALUATOR_MODEL: z.string().min(1).max(120).optional(),
+  ORA_EVALUATOR_PROVIDER: optionalNonBlankString(z.enum(["anthropic", "openai"])),
+  ORA_EVALUATOR_MODEL: optionalNonBlankString(z.string().min(1).max(120)),
   NEXT_PUBLIC_BASE_URL: z.string().url().default("http://localhost:3000"),
   // Rate limiting (per identity+route). In-process for the POC; a shared store
   // (Redis) is the production swap. Coerced from strings so env vars parse.

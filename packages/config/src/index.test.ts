@@ -74,6 +74,19 @@ describe("NEXT_PUBLIC_BASE_URL", () => {
 });
 
 describe("ORA real evaluator configuration", () => {
+  it("treats blank optional evaluator settings from .env.example as unset", () => {
+    const env = getServerEnv({
+      NODE_ENV: "test",
+      ORA_CERTIFIER_API_TOKEN: "",
+      ORA_EVALUATOR_PROVIDER: "",
+      ORA_EVALUATOR_MODEL: "   ",
+    });
+
+    expect(env.ORA_EVALUATOR_PROVIDER).toBeUndefined();
+    expect(env.ORA_EVALUATOR_MODEL).toBeUndefined();
+    expect(env.oraCertificationEnabled).toBe(false);
+  });
+
   it("requires an explicit scoped token, provider, model, and matching server credential", () => {
     expect(getServerEnv({ NODE_ENV: "test" }).oraCertificationEnabled).toBe(false);
     expect(
