@@ -82,7 +82,8 @@ function verifiedFixture(
     registrationKey: "registration-key",
     verificationWarnings: [],
   });
-  const manifestBytes = Buffer.from(JSON.stringify(manifest));
+  const manifestBytes = Buffer.from(`\ufeff${JSON.stringify(manifest)}`);
+  const pageBytes = Buffer.from('{"mdast":{"type":"root","children":[]}}');
   return {
     manifest: manifest as VerifiedExternalPublication["manifest"],
     normalized,
@@ -96,6 +97,16 @@ function verifiedFixture(
         contentSha256: sha(manifestBytes.toString("utf8")),
         provenance: { status: 200, redirects: [], headers: { etag: '"fixture"' } },
       },
+      ...["pages/one.json", "pages/two.json"].map((declaredPath) => ({
+        artifactKind: "published-page-data" as const,
+        declaredPath,
+        requestedUrl: `https://example.org/review/${declaredPath}`,
+        observedUrl: `https://example.org/review/${declaredPath}`,
+        mediaType: "application/json",
+        bytes: pageBytes,
+        contentSha256: sha(pageBytes.toString("utf8")),
+        provenance: { status: 200, redirects: [], headers: { etag: '"shared-bytes"' } },
+      })),
     ],
     warnings: [],
     resolvedClaimUrls: new Map([["claim-1", "https://example.org/review/#claim-1"]]),
@@ -152,6 +163,15 @@ describe("external publication registration persistence", () => {
     expect(replay.captureId).toBe(first.captureId);
     expect(replay.publicationVersionId).toBe(first.publicationVersionId);
 
+    const conflicting = verifiedFixture();
+    const conflictingBytes = Buffer.from('{"mdast":{"type":"root","changed":true}}');
+    conflicting.artifacts[1] = {
+      ...conflicting.artifacts[1]!,
+      bytes: conflictingBytes,
+      contentSha256: sha(conflictingBytes.toString("utf8")),
+    };
+    await expect(persist(conflicting, editorId)).rejects.toThrow(/immutable capture/);
+
     const changed = await persist(verifiedFixture(sha("document-set-v2")), editorId);
     expect(changed.replayed).toBe(false);
     expect(changed.publicationId).toBe(first.publicationId);
@@ -159,13 +179,40 @@ describe("external publication registration persistence", () => {
 
     expect(await prisma.publication.count()).toBe(1);
     expect(await prisma.publicationVersion.count()).toBe(2);
-    expect(await prisma.publicationCapture.count()).toBe(2);
+    expect(await prisma.publicationCapture.count()).toBe(6);
     expect(await prisma.publicationClaimOccurrence.count()).toBe(2);
+    const equalByteCaptures = await prisma.publicationCapture.findMany({
+      where: {
+        publicationVersionId: first.publicationVersionId,
+        artifactKind: "published-page-data",
+      },
+      orderBy: { declaredPath: "asc" },
+    });
+    expect(equalByteCaptures).toHaveLength(2);
+    expect(equalByteCaptures.map(({ declaredPath }) => declaredPath)).toEqual([
+      "pages/one.json",
+      "pages/two.json",
+    ]);
+    expect(equalByteCaptures.map(({ requestedUrl }) => requestedUrl)).toEqual([
+      "https://example.org/review/pages/one.json",
+      "https://example.org/review/pages/two.json",
+    ]);
+    expect(
+      equalByteCaptures.map(({ httpProvenanceJson }) => JSON.parse(httpProvenanceJson)),
+    ).toEqual([
+      { headers: { etag: '"shared-bytes"' }, redirects: [], status: 200 },
+      { headers: { etag: '"shared-bytes"' }, redirects: [], status: 200 },
+    ]);
+    expect(new Set(equalByteCaptures.map(({ contentSha256 }) => contentSha256)).size).toBe(1);
+    expect(
+      new Set(equalByteCaptures.map(({ artifactIdentitySha256 }) => artifactIdentitySha256)).size,
+    ).toBe(2);
     const capture = await prisma.publicationCapture.findUniqueOrThrow({
       where: { id: first.captureId },
     });
     expect(capture.requestedUrl).toBe("https://example.org/review/oratlas.manifest.json");
     expect(capture.observedUrl).toBe(capture.requestedUrl);
+    expect(capture.contentBytes?.startsWith("\ufeff")).toBe(true);
     expect(capture.contentSha256).toBe(sha(capture.contentBytes!));
     expect(JSON.parse(capture.httpProvenanceJson)).toMatchObject({ status: 200 });
     expect(JSON.parse(canonicalJson(JSON.parse(capture.httpProvenanceJson)))).toMatchObject({

@@ -1355,6 +1355,7 @@ CREATE TABLE "PublicationCapture" (
     "id" TEXT NOT NULL,
     "publicationVersionId" TEXT NOT NULL,
     "artifactKind" TEXT NOT NULL,
+    "artifactIdentitySha256" TEXT NOT NULL,
     "declaredPath" TEXT,
     "observedUrl" TEXT,
     "requestedUrl" TEXT,
@@ -1902,7 +1903,7 @@ CREATE INDEX "PublicationCapture_publicationVersionId_idx" ON "PublicationCaptur
 CREATE INDEX "PublicationCapture_contentSha256_idx" ON "PublicationCapture"("contentSha256");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "PublicationCapture_publicationVersionId_artifactKind_conten_key" ON "PublicationCapture"("publicationVersionId", "artifactKind", "contentSha256");
+CREATE UNIQUE INDEX "PublicationCapture_publicationVersionId_artifactIdentitySha_key" ON "PublicationCapture"("publicationVersionId", "artifactIdentitySha256");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "PublicationClaimOccurrence_stableKey_key" ON "PublicationClaimOccurrence"("stableKey");
@@ -2769,6 +2770,7 @@ ALTER TABLE "PublicationCapture" DROP CONSTRAINT IF EXISTS "PublicationCapture_s
 ALTER TABLE "PublicationCapture" ADD CONSTRAINT "PublicationCapture_shape_check" CHECK (
     "structuralProvenance" IN ('published-structure', 'source-byte')
     AND "artifactKind" IN ('publication-manifest', 'cross-reference-inventory', 'claim-stream', 'review-manifest', 'review-claim-stream', 'published-page-data', 'source-document')
+    AND "artifactIdentitySha256" ~ '^[a-f0-9]{64}$'
     AND "contentSha256" ~ '^[a-f0-9]{64}$'
     AND ("declaredSha256" IS NULL OR "declaredSha256" ~ '^[a-f0-9]{64}$')
     AND "byteLength" >= 0

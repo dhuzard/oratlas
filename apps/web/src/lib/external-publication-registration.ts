@@ -1,5 +1,5 @@
 import "server-only";
-import { createHmac } from "node:crypto";
+import { createHash, createHmac } from "node:crypto";
 import {
   canonicalJson,
   externalPublicationRegistrationResultSchema,
@@ -55,6 +55,21 @@ async function registrationKeyFor(manifestUrl: string): Promise<string> {
 
 function sameOptional(left: string | null, right: string | undefined): boolean {
   return left === (right ?? null);
+}
+
+function artifactIdentitySha256(
+  artifact: VerifiedExternalPublication["artifacts"][number],
+): string {
+  const locatorType = artifact.declaredPath === undefined ? "url" : "path";
+  const locator = artifact.declaredPath ?? artifact.requestedUrl ?? artifact.observedUrl;
+  if (locator === undefined) {
+    throw new PublicationRegistrationConflictError(
+      `The ${artifact.artifactKind} artifact has no stable declared path or URL.`,
+    );
+  }
+  return createHash("sha256")
+    .update(`${artifact.artifactKind}\n${locatorType}\n${locator}`, "utf8")
+    .digest("hex");
 }
 
 async function persistVerifiedExternalPublicationOnce(
@@ -126,11 +141,14 @@ async function persistVerifiedExternalPublicationOnce(
 
     let manifestCaptureId: string | undefined;
     for (const artifact of verified.artifacts) {
+      const identitySha256 = artifactIdentitySha256(artifact);
+      const contentBytes = new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(
+        artifact.bytes,
+      );
       let captureRow = await tx.publicationCapture.findFirst({
         where: {
           publicationVersionId: versionRow.id,
-          artifactKind: artifact.artifactKind,
-          contentSha256: artifact.contentSha256,
+          artifactIdentitySha256: identitySha256,
         },
       });
       if (!captureRow) {
@@ -139,21 +157,35 @@ async function persistVerifiedExternalPublicationOnce(
           data: {
             publicationVersionId: versionRow.id,
             artifactKind: artifact.artifactKind,
+            artifactIdentitySha256: identitySha256,
             declaredPath: artifact.declaredPath,
             observedUrl: artifact.observedUrl,
             requestedUrl: artifact.requestedUrl,
             mediaType: artifact.mediaType,
             contentSha256: artifact.contentSha256,
             byteLength: artifact.bytes.byteLength,
-            contentBytes: new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(
-              artifact.bytes,
-            ),
+            contentBytes,
             declaredSha256: artifact.declaredSha256,
             structuralProvenance: version.structuralProvenance,
             httpProvenanceJson: canonicalJson(artifact.provenance ?? {}),
             capturedAt: new Date(version.observedAt),
           },
         });
+      } else if (
+        captureRow.artifactKind !== artifact.artifactKind ||
+        !sameOptional(captureRow.declaredPath, artifact.declaredPath) ||
+        !sameOptional(captureRow.observedUrl, artifact.observedUrl) ||
+        !sameOptional(captureRow.requestedUrl, artifact.requestedUrl) ||
+        captureRow.mediaType !== artifact.mediaType ||
+        captureRow.contentSha256 !== artifact.contentSha256 ||
+        captureRow.byteLength !== artifact.bytes.byteLength ||
+        captureRow.contentBytes !== contentBytes ||
+        !sameOptional(captureRow.declaredSha256, artifact.declaredSha256) ||
+        captureRow.structuralProvenance !== version.structuralProvenance
+      ) {
+        throw new PublicationRegistrationConflictError(
+          `The ${artifact.artifactKind} artifact conflicts with its immutable capture.`,
+        );
       }
       if (artifact.artifactKind === "publication-manifest") manifestCaptureId = captureRow.id;
     }

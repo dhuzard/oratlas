@@ -256,6 +256,72 @@ describe("external publication registration verification", () => {
     await expect(verify()).rejects.toMatchObject({ code: "missing-target" });
   });
 
+  it("validates all claims sharing a page from one bounded structural index", async () => {
+    const claims = Array.from({ length: 250 }, (_, index) => {
+      const id = `claim-${index.toString().padStart(3, "0")}`;
+      const text = `${source} ${index}`;
+      return {
+        ...claimBase,
+        id,
+        text,
+        target: { type: "myst-xref", identifier: id, htmlId: id },
+        selector: {
+          ...claimBase.selector,
+          textQuote: { type: "TextQuoteSelector", exact: text },
+          textPosition: { type: "TextPositionSelector", start: 0, end: Array.from(text).length },
+        },
+        declarationSha256: digest(
+          canonicalJson({
+            schemaVersion: "0.2.0",
+            id,
+            body: text,
+            claimType: "empirical",
+            qualification: undefined,
+          }),
+        ),
+      };
+    });
+    const claimsJsonl = `${claims.map((claim) => JSON.stringify(claim)).join("\n")}\n`;
+    const manifest = JSON.parse(files.get("/review/oratlas.manifest.json")!.body);
+    manifest.artifacts.claims.records = claims.length;
+    manifest.artifacts.claims.sha256 = digest(claimsJsonl);
+    files.set("/review/oratlas.manifest.json", {
+      body: JSON.stringify(manifest),
+      type: "application/json",
+    });
+    files.set("/review/oratlas/claims.jsonl", {
+      body: claimsJsonl,
+      type: "application/x-ndjson",
+    });
+    files.set("/review/myst.xref.json", {
+      body: JSON.stringify({
+        references: claims.map(({ id }) => ({
+          identifier: id,
+          url: "/results",
+          data: "content/results.json",
+        })),
+      }),
+      type: "application/json",
+    });
+    files.set("/review/content/results.json", {
+      body: JSON.stringify({
+        mdast: {
+          type: "root",
+          children: claims.map(({ id }) => ({
+            type: "container",
+            identifier: id,
+            html_id: id,
+            data: { oratlas: { kind: "claim", id } },
+          })),
+        },
+      }),
+      type: "application/json",
+    });
+
+    const result = await verify();
+    expect(result.normalized.occurrences).toHaveLength(claims.length);
+  });
+
   it("distinguishes changed versions and makes replay identity deterministic", async () => {
     const first = await verify();
     const replay = await verify();

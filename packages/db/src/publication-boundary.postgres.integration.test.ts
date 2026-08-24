@@ -120,6 +120,7 @@ describe.skipIf(!enabled)("publication boundary on PostgreSQL", () => {
       data: {
         publicationVersionId: version.id,
         artifactKind: "publication-manifest",
+        artifactIdentitySha256: digest("e"),
         mediaType: "application/json",
         contentSha256: digest("d"),
         byteLength: 512,

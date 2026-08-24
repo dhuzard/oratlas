@@ -67,6 +67,17 @@ describe("publication boundary schema parity", () => {
     }
   });
 
+  it("keys captures by artifact location rather than equal content", () => {
+    for (const schema of [sqliteSchema, postgresSchema]) {
+      const capture = modelBlock(schema, "PublicationCapture");
+      expect(capture).toMatch(/artifactIdentitySha256\s+String\b/);
+      expect(capture).toContain("@@unique([publicationVersionId, artifactIdentitySha256])");
+      expect(capture).not.toContain(
+        "@@unique([publicationVersionId, artifactKind, contentSha256])",
+      );
+    }
+  });
+
   it("keeps toolchain-specific fields inside typed JSON, not generic columns", () => {
     for (const schema of [sqliteSchema, postgresSchema]) {
       for (const model of PUBLICATION_MODELS) {

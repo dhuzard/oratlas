@@ -309,6 +309,7 @@ export const POSTGRES_DATABASE_GUARD_SQL = [
   `ALTER TABLE "PublicationCapture" ADD CONSTRAINT "PublicationCapture_shape_check" CHECK (
     "structuralProvenance" IN ('published-structure', 'source-byte')
     AND "artifactKind" IN ('publication-manifest', 'cross-reference-inventory', 'claim-stream', 'review-manifest', 'review-claim-stream', 'published-page-data', 'source-document')
+    AND "artifactIdentitySha256" ~ '^[a-f0-9]{64}$'
     AND "contentSha256" ~ '^[a-f0-9]{64}$'
     AND ("declaredSha256" IS NULL OR "declaredSha256" ~ '^[a-f0-9]{64}$')
     AND "byteLength" >= 0
@@ -528,6 +529,8 @@ const sqliteGuardConditions = {
   PublicationCapture: `CASE WHEN
     NEW."structuralProvenance" IN ('published-structure', 'source-byte')
     AND NEW."artifactKind" IN ('publication-manifest', 'cross-reference-inventory', 'claim-stream', 'review-manifest', 'review-claim-stream', 'published-page-data', 'source-document')
+    AND length(NEW."artifactIdentitySha256") = 64
+    AND NEW."artifactIdentitySha256" NOT GLOB '*[^a-f0-9]*'
     AND length(NEW."contentSha256") = 64
     AND NEW."contentSha256" NOT GLOB '*[^a-f0-9]*'
     AND (NEW."declaredSha256" IS NULL OR (length(NEW."declaredSha256") = 64 AND NEW."declaredSha256" NOT GLOB '*[^a-f0-9]*'))

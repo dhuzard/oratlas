@@ -300,7 +300,12 @@ const xrefInventorySchema = z
   .object({ references: z.array(xrefReferenceSchema).max(100_000) })
   .passthrough();
 
-function findPublishedClaimNode(root: unknown, record: MystClaimRecord, maxNodes: number): boolean {
+function publishedClaimNodeKey(identifier: string, htmlId: string, claimId: string): string {
+  return canonicalJson([identifier, htmlId, claimId]);
+}
+
+function indexPublishedClaimNodes(root: unknown, maxNodes: number): Set<string> {
+  const claimNodeKeys = new Set<string>();
   const stack: unknown[] = [root];
   let visited = 0;
   while (stack.length > 0) {
@@ -314,7 +319,7 @@ function findPublishedClaimNode(root: unknown, record: MystClaimRecord, maxNodes
     }
     if (typeof candidate !== "object" || candidate === null) continue;
     if (Array.isArray(candidate)) {
-      stack.push(...candidate);
+      for (const child of candidate) stack.push(child);
       continue;
     }
     const node = candidate as Record<string, unknown>;
@@ -323,18 +328,20 @@ function findPublishedClaimNode(root: unknown, record: MystClaimRecord, maxNodes
         ? (node.data as { oratlas?: unknown }).oratlas
         : undefined;
     if (
-      node.identifier === record.target.identifier &&
-      node.html_id === record.target.htmlId &&
+      typeof node.identifier === "string" &&
+      typeof node.html_id === "string" &&
       typeof oratlas === "object" &&
       oratlas !== null &&
       (oratlas as { kind?: unknown }).kind === "claim" &&
-      (oratlas as { id?: unknown }).id === record.id
+      typeof (oratlas as { id?: unknown }).id === "string"
     ) {
-      return true;
+      claimNodeKeys.add(
+        publishedClaimNodeKey(node.identifier, node.html_id, (oratlas as { id: string }).id),
+      );
     }
-    stack.push(...Object.values(node));
+    for (const child of Object.values(node)) stack.push(child);
   }
-  return false;
+  return claimNodeKeys;
 }
 
 function sliceCodePoints(value: string, start: number, end: number): string {
@@ -623,8 +630,13 @@ export async function verifyExternalPublication(
       const page = parseJson(pageResponse.bytes, `Published page data ${pagePath}`);
       const mdast =
         typeof page === "object" && page !== null ? (page as { mdast?: unknown }).mdast : undefined;
+      const publishedClaimNodeKeys = indexPublishedClaimNodes(mdast, limits.maxPageNodes);
       for (const record of pageRecords) {
-        if (!findPublishedClaimNode(mdast, record, limits.maxPageNodes)) {
+        if (
+          !publishedClaimNodeKeys.has(
+            publishedClaimNodeKey(record.target.identifier, record.target.htmlId, record.id),
+          )
+        ) {
           throw new PublicationRegistrationError(
             "missing-target",
             `Published page data does not contain claim node ${record.id}.`,

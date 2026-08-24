@@ -352,6 +352,7 @@ describe("publication boundary on SQLite", () => {
         data: {
           publicationVersionId: version.id,
           artifactKind: "publication-manifest",
+          artifactIdentitySha256: digest("e"),
           declaredPath: "oratlas.manifest.json",
           mediaType: "application/json",
           contentSha256: digest("d"),
@@ -384,6 +385,7 @@ describe("publication boundary on SQLite", () => {
           data: {
             publicationVersionId: version.id,
             artifactKind: "publication-manifest",
+            artifactIdentitySha256: digest("e"),
             mediaType: "application/json",
             contentSha256: "NOT-A-DIGEST",
             byteLength: 10,
@@ -397,6 +399,7 @@ describe("publication boundary on SQLite", () => {
           data: {
             publicationVersionId: version.id,
             artifactKind: "screenshot",
+            artifactIdentitySha256: digest("e"),
             mediaType: "application/json",
             contentSha256: digest("d"),
             byteLength: 10,
