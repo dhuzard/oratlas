@@ -24,9 +24,12 @@ agents resolve record content through the reader-agnostic graph API.
 External publications use that same graph. A `publication-claim-occurrence` source names the exact
 publication/version, authoritative external target, capture identities, optional
 `publisherCanonicalUrl`, and distinct capture-derived `observedPublicationBaseUrl`. Agents may follow the generic,
-SHA-256-bound publication-version packet for bounded occurrences and public confirmed relations;
-the packet carries completeness flags and excludes raw captures, private proposals and hidden
-assessments. Matching text, local IDs or digests never authorize identity merging.
+SHA-256-bound publication-version packet for bounded occurrences, public production assertions,
+and public confirmed relations; the packet carries completeness flags and excludes raw captures,
+private AgentRun prompts/output, private proposals and hidden assessments. Production mode is
+descriptive provenance, not authorship, merit, correctness, TRUST, review, or certification.
+Matching text, local IDs or digests never authorize identity merging. Reviewed publication-transfer
+relations are explicit provenance records and do not imply claim continuity.
 
 An optional repeated `known` parameter is explicit reader-held state. Each recommendation returns
 the exact editor-confirmed edges connecting it to those known identities in `anchors`; no lexical,

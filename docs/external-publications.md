@@ -1,10 +1,10 @@
 # Externally hosted publications
 
-Status: **phase 3 — canonical graph participation.** Secure registration and immutable capture
-remain the publication boundary. A separate editor action now materializes normalized external
-claim occurrences into the existing canonical graph; cross-publication relations use the ordinary
-proposal/confirmation lifecycle. Certification, ownership proof, snapshots and change feeds remain
-deferred.
+Status: **phase 4 — format-neutral adapters, production provenance, and reviewed transfer.** Secure
+registration and immutable capture remain the publication boundary. A separate editor action
+materializes normalized external claim occurrences into the existing canonical graph;
+cross-publication claim relations still use the ordinary proposal/confirmation lifecycle.
+Certification, ownership proof, snapshots and change feeds remain deferred.
 
 ## Registering an external publication
 
@@ -85,6 +85,81 @@ whose pinned schema version `0.2.0` publishes `oratlas.manifest.json`, `myst.xre
 
 `Review` is therefore no longer the federation object. It is a supported **publication
 type**, alongside research articles, methods articles, preprints and living reviews.
+
+## Production is orthogonal to format
+
+Who or what helped produce a publication does not select its structural adapter. Human authors,
+ARS, AIreview, another research agent, or a hybrid workflow can all publish MyST. Conversely, a
+human-led workflow can publish a future JATS or Quarto transport. ORAtlas therefore has no “ARS
+adapter” or “AIreview adapter”. MyST 0.2.0 remains the only production adapter in this release;
+the second format used by tests is synthetic and is not a support claim.
+
+```
+PRODUCTION
+Human / ARS / AIreview / research agents / hybrid
+                       │
+                       ▼
+FORMAT
+MyST / JATS / Quarto / ...
+                       │
+                       ▼
+FORMAT ADAPTER
+                       │
+                       ▼
+Publication / PublicationVersion
+                       │
+                       ▼
+PublicationClaimOccurrence
+                       │
+                       ▼
+Canonical ORAtlas KG
+```
+
+The framework-free `PublicationAdapter` receives only parsed input and bytes already captured by
+the hardened registration layer. It recognizes and validates a manifest, declares required
+artifacts, validates captures, verifies published structure, normalizes generic publication and
+occurrence records, and resolves exact targets. It never fetches the network, executes publication
+code or plugins, or infers production history. MyST 0.2.0 is one implementation of that contract.
+
+Production history is optional, exact-version, and append-only:
+
+```
+PublicationVersion
+       │
+       └── Production provenance assertions
+             human / AI-assisted / agentic / hybrid / unspecified
+```
+
+An assertion records declared production actors and bounded activities. Production actors may be
+people, organizations, software, workflows, or AI systems; they are not scholarly contributors,
+and software or an AI system never becomes an author by implication. `source-declared` means only
+that a publication or workflow made the declaration. `oratlas-attested` requires an exact
+succeeded `AgentRun` or verified `ExecutionPassport`. Neither strength, nor any production mode,
+says anything about scientific merit, correctness, TRUST, peer review, or certification.
+
+Multiple assertions may coexist. A correction creates a new assertion with
+`supersedesAssertionId`; database guards reject update and deletion of either row. A later
+`PublicationVersion` starts with no assertions unless its source or an attributable editor records
+them separately. MyST 0.2.0 declares none, and remains fully valid.
+
+Public reads are `GET /api/publication-versions/{id}/production-provenance`. Editor/admin writes use
+the corresponding `/api/editorial/...` route. Adapter-originated source declarations enter through
+the generic normalized registration result, never through a MyST-specific hook.
+
+## Publication transfer and continuity
+
+`PublicationRelation` records an explicit, attributable review between two distinct
+`Publication` identities: continuation, mirror, move, derivation, republication, or version
+relationship. It records transfer provenance; it does not merge records or substitute for durable
+identity evidence already used by `Publication`. ORAtlas never creates one from matching titles,
+contributors, text, digests, URLs, or local identifiers. Public reads are
+`GET /api/publications/{id}/relations`; only editors/admins may add reviewed relations.
+
+A durable identity can retain one `Publication` while successive immutable versions change host or
+adapter. Old captures, addresses, occurrences, and graph versions remain untouched. Publication
+continuity still does not establish claim continuity: a V1 and V2 occurrence with the same local id,
+text, or declaration digest remain separate and receive separate canonical claims unless the
+existing reviewed canonical identity mechanism explicitly binds them.
 
 ## The four boundary concepts
 
@@ -329,14 +404,17 @@ place is forbidden.
 | `packages/publications/src/identity.ts`                         | stable keys and fail-closed identity evidence                  |
 | `packages/publications/src/structural-provenance.ts`            | which structural level a set of checks reached                 |
 | `packages/publications/src/review-projection.ts`                | legacy review → generic publication projection                 |
-| `packages/publications/src/adapters/myst.ts`                    | the pinned 0.2.0 adapter: validate and normalize, never fetch  |
+| `packages/publications/src/adapter.ts`                          | format-neutral, framework-free adapter contract                |
+| `packages/publications/src/adapters/myst.ts`                    | the pinned 0.2.0 adapter implementation                        |
+| `packages/contracts/src/publication-provenance.ts`              | production and transfer public contracts                       |
 | `packages/publications/src/remote-fetch.ts`                     | the reusable DNS-pinned SSRF and response-limit boundary       |
 | `packages/publications/src/registration.ts`                     | capture and structural verification over externally seen bytes |
 | `apps/web/src/lib/external-publication-registration.ts`         | atomic, idempotent persistence and typed result                |
 | `packages/db/src/publication-claim-materialization.ts`          | adapter-neutral canonical materialization                      |
 | `apps/web/src/lib/publication-version-packet.ts`                | deterministic bounded public packet                            |
 | `apps/web/src/app/api/editorial/publications/register/route.ts` | editor-authenticated registration operation                    |
-| `packages/db/prisma/schema.prisma`                              | the four models (PostgreSQL variant is generated from it)      |
+| `apps/web/src/lib/publication-provenance.ts`                    | bounded public reads and governed append-only writes           |
+| `packages/db/prisma/schema.prisma`                              | publication, provenance, and transfer persistence              |
 | `packages/db/src/database-guards.ts`                            | the SQLite and PostgreSQL guards for both providers            |
 
 `@oratlas/publications` is framework-free like every other domain package: no Prisma, no
@@ -353,6 +431,6 @@ These are **not** implemented, and none of them should be inferred from what is:
   version digest.
 - **Public product language.** No UI copy, route, or public API describes ORAtlas in terms
   of publications rather than reviews.
-- **Certification and production/AI authoring provenance.** The generic packet is future input,
-  not a certification result or an authorship assertion.
+- **Certification.** Production provenance is descriptive historical evidence, not a
+  certification result, authorship inference, quality judgment, or “ORA Certified” state.
 - **Graph snapshots and change feeds.**

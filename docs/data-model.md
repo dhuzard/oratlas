@@ -45,6 +45,8 @@ suffix, and arrays are JSON-encoded strings. Switching to PostgreSQL is a dataso
 | `KnowledgeLinkProposal`                  | Cross-review link proposal         | `(source, target, relation)` unique; `status`                                     |
 | `Publication`                            | Stable source-publication identity | `stableKey` unique; record-source union; nullable 1:1 legacy review projection    |
 | `PublicationVersion`                     | One exact observed version         | **`(publicationId, sourcesSha256)` unique**; immutable; URL is never identity     |
+| `PublicationProductionAssertion`         | Production history for one version | append-only; source declaration or exact ORAtlas execution attestation            |
+| `PublicationRelation`                    | Reviewed publication transfer      | append-only; explicit reviewer; never an inferred merge                           |
 | `PublicationCapture`                     | Exactly what ORAtlas observed      | append-only bytes and digests; no update, no delete                               |
 | `PublicationClaimOccurrence`             | One claim occurrence in a version  | `(publicationVersionId, sourceLocalClaimId)` unique; write-once canonical binding |
 | `AuditEvent`                             | Append-only audit trail            | operation key + `(subjectType, subjectId)` indexed                                |
@@ -217,6 +219,16 @@ canonical graph identity.
   `declarationSha256` is indexed but not unique. Its nullable `knowledgeNodeId` records an
   explicit, reviewed identity decision: it is never inferred and is write-once. The generic
   materializer writes it atomically with the exact graph-version source binding.
+- A `PublicationProductionAssertion` is optional and belongs to one exact version. Its mode,
+  production actors, and activities are descriptive provenance only. Production actors are not
+  scholarly contributors. `source-declared` carries no verification claim;
+  `oratlas-attested` references a succeeded `AgentRun` and/or verified `ExecutionPassport`.
+  Corrections append a successor and leave the prior row intact; assertions never inherit to a
+  later version automatically.
+- A `PublicationRelation` is an attributable editorial record between two distinct publication
+  identities for continuation, mirroring, movement, derivation, republication, or versioning. It
+  neither duplicates durable identity evidence nor infers continuity from title, author, text,
+  digest, URL, or local id. It does not imply that any pair of claim occurrences is identical.
 - `KnowledgeNodeVersion` gains a nullable, unique `sourcePublicationClaimOccurrenceId`. The exact
   version source union stays exclusive — exactly one real source, now counted across five columns
   instead of four — and the `KnowledgeNode` origin union is unchanged. External occurrences

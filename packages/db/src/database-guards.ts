@@ -25,6 +25,8 @@ export const DATABASE_GUARD_NAMES = [
   "PublicationVersion_provenance_check",
   "PublicationCapture_shape_check",
   "PublicationClaimOccurrence_declaration_check",
+  "PublicationProductionAssertion_shape_check",
+  "PublicationRelation_shape_check",
 ] as const;
 
 export const POSTGRES_DATABASE_GUARD_TRIGGER_NAMES = [
@@ -45,6 +47,8 @@ export const POSTGRES_DATABASE_GUARD_TRIGGER_NAMES = [
   "PublicationVersion_immutable_guard",
   "PublicationCapture_immutable_guard",
   "PublicationClaimOccurrence_immutable_guard",
+  "PublicationProductionAssertion_immutable_guard",
+  "PublicationRelation_immutable_guard",
 ] as const;
 
 export const POSTGRES_DATABASE_GUARD_SQL = [
@@ -321,6 +325,18 @@ export const POSTGRES_DATABASE_GUARD_SQL = [
     ("declarationAuthority" = 'publication-source' AND "text" IS NOT NULL)
     OR ("declarationAuthority" = 'review-manifest' AND "text" IS NOT NULL)
   )`,
+  'ALTER TABLE "PublicationProductionAssertion" DROP CONSTRAINT IF EXISTS "PublicationProductionAssertion_shape_check"',
+  `ALTER TABLE "PublicationProductionAssertion" ADD CONSTRAINT "PublicationProductionAssertion_shape_check" CHECK (
+    "mode" IN ('human', 'ai-assisted', 'agentic', 'hybrid', 'unspecified')
+    AND (("strength" = 'source-declared' AND "agentRunId" IS NULL AND "executionPassportId" IS NULL)
+      OR ("strength" = 'oratlas-attested' AND ("agentRunId" IS NOT NULL OR "executionPassportId" IS NOT NULL)))
+    AND ("supersedesAssertionId" IS NULL OR "supersedesAssertionId" <> "id")
+  )`,
+  'ALTER TABLE "PublicationRelation" DROP CONSTRAINT IF EXISTS "PublicationRelation_shape_check"',
+  `ALTER TABLE "PublicationRelation" ADD CONSTRAINT "PublicationRelation_shape_check" CHECK (
+    "sourcePublicationId" <> "targetPublicationId"
+    AND "relationType" IN ('same-publication-continuation', 'mirror-of', 'moved-to', 'derived-from', 'republication-of', 'version-of')
+  )`,
 
   // A publication's identity key and the evidence it was keyed from are fixed.
   // Presentation fields may still be corrected editorially.
@@ -392,6 +408,18 @@ export const POSTGRES_DATABASE_GUARD_SQL = [
   'DROP TRIGGER IF EXISTS "PublicationClaimOccurrence_immutable_guard" ON "PublicationClaimOccurrence"',
   `CREATE TRIGGER "PublicationClaimOccurrence_immutable_guard" BEFORE UPDATE OR DELETE ON "PublicationClaimOccurrence"
     FOR EACH ROW EXECUTE FUNCTION "oratlas_protect_publication_claim_occurrence"()`,
+
+  `CREATE OR REPLACE FUNCTION "oratlas_reject_publication_provenance_mutation"() RETURNS trigger AS $$
+    BEGIN
+      RAISE EXCEPTION 'Publication provenance and transfer decisions are append-only';
+    END;
+  $$ LANGUAGE plpgsql`,
+  'DROP TRIGGER IF EXISTS "PublicationProductionAssertion_immutable_guard" ON "PublicationProductionAssertion"',
+  `CREATE TRIGGER "PublicationProductionAssertion_immutable_guard" BEFORE UPDATE OR DELETE ON "PublicationProductionAssertion"
+    FOR EACH ROW EXECUTE FUNCTION "oratlas_reject_publication_provenance_mutation"()`,
+  'DROP TRIGGER IF EXISTS "PublicationRelation_immutable_guard" ON "PublicationRelation"',
+  `CREATE TRIGGER "PublicationRelation_immutable_guard" BEFORE UPDATE OR DELETE ON "PublicationRelation"
+    FOR EACH ROW EXECUTE FUNCTION "oratlas_reject_publication_provenance_mutation"()`,
 ] as const;
 
 const sqliteGuardConditions = {
@@ -541,6 +569,16 @@ const sqliteGuardConditions = {
     (NEW."declarationAuthority" = 'publication-source' AND NEW."text" IS NOT NULL)
     OR (NEW."declarationAuthority" = 'review-manifest' AND NEW."text" IS NOT NULL)
     THEN 1 ELSE 0 END`,
+  PublicationProductionAssertion: `CASE WHEN
+    NEW."mode" IN ('human', 'ai-assisted', 'agentic', 'hybrid', 'unspecified')
+    AND ((NEW."strength" = 'source-declared' AND NEW."agentRunId" IS NULL AND NEW."executionPassportId" IS NULL)
+      OR (NEW."strength" = 'oratlas-attested' AND (NEW."agentRunId" IS NOT NULL OR NEW."executionPassportId" IS NOT NULL)))
+    AND (NEW."supersedesAssertionId" IS NULL OR NEW."supersedesAssertionId" <> NEW."id")
+    THEN 1 ELSE 0 END`,
+  PublicationRelation: `CASE WHEN
+    NEW."sourcePublicationId" <> NEW."targetPublicationId"
+    AND NEW."relationType" IN ('same-publication-continuation', 'mirror-of', 'moved-to', 'derived-from', 'republication-of', 'version-of')
+    THEN 1 ELSE 0 END`,
   TrustAdjudicationReference: `CASE WHEN
     ((NEW."trustAssessmentId" IS NOT NULL AND NEW."nodeRelationTrustAssessmentId" IS NULL AND NEW."assessmentId" = NEW."trustAssessmentId")
       OR (NEW."trustAssessmentId" IS NULL AND NEW."nodeRelationTrustAssessmentId" IS NOT NULL AND NEW."assessmentId" = NEW."nodeRelationTrustAssessmentId"))
@@ -568,6 +606,10 @@ export const SQLITE_PUBLICATION_IMMUTABLE_GUARD_NAMES = [
   "PublicationCapture_immutable_guard_delete",
   "PublicationClaimOccurrence_immutable_guard_update",
   "PublicationClaimOccurrence_immutable_guard_delete",
+  "PublicationProductionAssertion_immutable_guard_update",
+  "PublicationProductionAssertion_immutable_guard_delete",
+  "PublicationRelation_immutable_guard_update",
+  "PublicationRelation_immutable_guard_delete",
 ] as const;
 
 export const SQLITE_ASSESSMENT_COI_IMMUTABLE_GUARD_NAMES = [
@@ -721,6 +763,20 @@ export async function applyDatabaseGuards(
         SELECT RAISE(ABORT, 'A publication claim occurrence is immutable');
       END
     `);
+    for (const table of ["PublicationProductionAssertion", "PublicationRelation"] as const) {
+      for (const operation of ["UPDATE", "DELETE"] as const) {
+        const name = `${table}_immutable_guard_${operation.toLowerCase()}`;
+        await tx.$executeRawUnsafe(`DROP TRIGGER IF EXISTS "${name}"`);
+        await tx.$executeRawUnsafe(`
+          CREATE TRIGGER "${name}"
+          BEFORE ${operation} ON "${table}"
+          FOR EACH ROW
+          BEGIN
+            SELECT RAISE(ABORT, 'Publication provenance and transfer decisions are append-only');
+          END
+        `);
+      }
+    }
     for (const table of ["TrustAdjudication", "TrustAdjudicationReference"] as const) {
       const name = `${table}_immutable_guard`;
       for (const operation of ["UPDATE", "DELETE"] as const) {

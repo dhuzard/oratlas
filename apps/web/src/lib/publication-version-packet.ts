@@ -9,12 +9,14 @@ import {
   PUBLICATION_VERSION_PACKET_CAPTURE_LIMIT,
   PUBLICATION_VERSION_PACKET_OCCURRENCE_LIMIT,
   PUBLICATION_VERSION_PACKET_RELATION_LIMIT,
+  PUBLICATION_VERSION_PACKET_SCHEMA_VERSION,
   type CanonicalGraphEdge,
 } from "@oratlas/contracts";
 import { prisma } from "./db";
 import { resolveObservedPublicationBaseUrl } from "@oratlas/db";
 import { queryCanonicalGraph } from "./canonical-graph-query";
 import { publicConfirmedNodeEdgeWhere } from "./node-edge-publication";
+import { listPublicationProductionProvenance } from "./publication-provenance";
 
 export class PublicationVersionPacketError extends Error {
   constructor(message: string) {
@@ -63,6 +65,7 @@ export async function getPublicationVersionPacket(id: string) {
         ]
       : [],
   );
+  const productionProvenance = await listPublicationProductionProvenance(version.id);
   const totalRelations = bindings.length
     ? await prisma.nodeEdge.count({
         where: {
@@ -96,7 +99,7 @@ export async function getPublicationVersionPacket(id: string) {
   );
 
   const packetWithoutDigest = {
-    schemaVersion: "1.0.0" as const,
+    schemaVersion: PUBLICATION_VERSION_PACKET_SCHEMA_VERSION,
     publication: {
       id: version.publication.id,
       publicationType: version.publication.publicationType,
@@ -162,11 +165,13 @@ export async function getPublicationVersionPacket(id: string) {
         },
       };
     }),
+    productionProvenance: productionProvenance.assertions,
     relations,
     challenges: [],
     completeness: {
       captures: section(captures.length, version._count.captures),
       occurrences: section(occurrences.length, version._count.claimOccurrences),
+      productionProvenance: productionProvenance.completeness,
       relations: section(relations.length, totalRelations),
       challenges: section(0, 0),
     },
@@ -174,6 +179,7 @@ export async function getPublicationVersionPacket(id: string) {
       self: `/api/publication-versions/${version.id}/packet`,
       publication: `/api/publications/${version.publication.id}`,
       publicationVersion: `/api/publication-versions/${version.id}`,
+      productionProvenance: `/api/publication-versions/${version.id}/production-provenance`,
     },
   };
   const sha256 = createHash("sha256").update(canonicalJson(packetWithoutDigest)).digest("hex");

@@ -10,6 +10,10 @@ import { safeRepoRelativePathSchema } from "./paths.js";
 import { publicationAdapterTypeSchema } from "./publication-adapters.js";
 import { canonicalGraphEdgeSchema } from "./canonical-graph.js";
 import { publicChallengeSchema } from "./challenges.js";
+import {
+  publicPublicationProductionAssertionSchema,
+  PUBLICATION_PRODUCTION_ASSERTION_LIMIT,
+} from "./publication-provenance.js";
 
 /**
  * The generic publication boundary.
@@ -128,7 +132,10 @@ export const publicationCaptureArtifactKindSchema = z.enum(PUBLICATION_CAPTURE_A
 export type PublicationCaptureArtifactKind = z.infer<typeof publicationCaptureArtifactKindSchema>;
 
 /** Selector frames ORAtlas accepts for a publication claim occurrence. */
-export const PUBLICATION_CLAIM_SELECTOR_REPRESENTATIONS = ["oratlas-myst-source-utf8-v1"] as const;
+export const PUBLICATION_CLAIM_SELECTOR_REPRESENTATIONS = [
+  "oratlas-myst-source-utf8-v1",
+  "oratlas-source-utf8-v1",
+] as const;
 export const publicationClaimSelectorRepresentationSchema = z.enum(
   PUBLICATION_CLAIM_SELECTOR_REPRESENTATIONS,
 );
@@ -237,6 +244,14 @@ export const publicationClaimTargetSchema = z.discriminatedUnion("type", [
       identifier: sourceLocalClaimIdSchema,
       /** DOM id the publication's build generates. Source metadata only. */
       htmlId: z.string().min(1).max(300),
+    })
+    .strict(),
+  z
+    .object({
+      /** Adapter-neutral anchor for formats that expose a stable fragment. */
+      type: z.literal("published-anchor"),
+      identifier: sourceLocalClaimIdSchema,
+      fragment: z.string().min(1).max(300),
     })
     .strict(),
 ]);
@@ -555,7 +570,7 @@ export type PublicationClaimMaterializationResult = z.infer<
   typeof publicationClaimMaterializationResultSchema
 >;
 
-export const PUBLICATION_VERSION_PACKET_SCHEMA_VERSION = "1.0.0" as const;
+export const PUBLICATION_VERSION_PACKET_SCHEMA_VERSION = "1.1.0" as const;
 export const PUBLICATION_VERSION_PACKET_OCCURRENCE_LIMIT = 500;
 export const PUBLICATION_VERSION_PACKET_CAPTURE_LIMIT = 1_000;
 export const PUBLICATION_VERSION_PACKET_RELATION_LIMIT = 2_000;
@@ -643,12 +658,16 @@ export const publicationVersionPacketSchema = z
           .strict(),
       )
       .max(PUBLICATION_VERSION_PACKET_OCCURRENCE_LIMIT),
+    productionProvenance: z
+      .array(publicPublicationProductionAssertionSchema)
+      .max(PUBLICATION_PRODUCTION_ASSERTION_LIMIT),
     relations: z.array(canonicalGraphEdgeSchema).max(PUBLICATION_VERSION_PACKET_RELATION_LIMIT),
     challenges: z.array(publicChallengeSchema).max(PUBLICATION_VERSION_PACKET_CHALLENGE_LIMIT),
     completeness: z
       .object({
         captures: packetCompletenessSectionSchema,
         occurrences: packetCompletenessSectionSchema,
+        productionProvenance: packetCompletenessSectionSchema,
         relations: packetCompletenessSectionSchema,
         challenges: packetCompletenessSectionSchema,
       })
@@ -658,6 +677,7 @@ export const publicationVersionPacketSchema = z
         self: z.string().startsWith("/"),
         publication: z.string().startsWith("/"),
         publicationVersion: z.string().startsWith("/"),
+        productionProvenance: z.string().startsWith("/"),
       })
       .strict(),
     sha256: publicationSha256Schema,

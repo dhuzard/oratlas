@@ -11,12 +11,11 @@ import {
 } from "@oratlas/contracts";
 import {
   mystClaimRecordSchema,
-  mystPublicationManifestSchema,
-  normalizeMystPublication,
+  mystPublicationAdapter,
   type MystClaimRecord,
   type MystPublicationManifest,
-  type NormalizedPublication,
 } from "./adapters/myst.js";
+import { PublicationAdapterError, type NormalizedPublication } from "./adapter.js";
 import type { RemoteFetcher, RemoteFetchResult, RemoteHttpProvenance } from "./remote-fetch.js";
 
 export const DEFAULT_PUBLICATION_REGISTRATION_LIMITS = {
@@ -158,14 +157,18 @@ function parseManifest(bytes: Uint8Array): MystPublicationManifest {
       "The publication manifest uses an unsupported schema version.",
     );
   }
-  const parsed = mystPublicationManifestSchema.safeParse(value);
-  if (!parsed.success) {
+  if (!mystPublicationAdapter.recognizeManifest(value)) {
     throw new PublicationRegistrationError(
       "invalid-manifest",
-      "The publication manifest does not satisfy the closed schema 0.2.0 contract.",
+      "The publication manifest does not identify a supported publication adapter.",
     );
   }
-  return parsed.data;
+  try {
+    return mystPublicationAdapter.validateManifest(value);
+  } catch (error) {
+    if (!(error instanceof PublicationAdapterError)) throw error;
+    throw new PublicationRegistrationError("invalid-manifest", error.message);
+  }
 }
 
 function parseJsonl<S extends z.ZodTypeAny>(
@@ -242,32 +245,16 @@ export function resolveMystPublishedUrl(
   xrefUrl: string,
   htmlId?: string,
 ): string {
-  const hasControlCharacter = Array.from(xrefUrl).some((character) => {
-    const codePoint = character.codePointAt(0)!;
-    return codePoint <= 0x1f || codePoint === 0x7f;
-  });
-  if (
-    xrefUrl.length > 2_000 ||
-    !xrefUrl.startsWith("/") ||
-    xrefUrl.startsWith("//") ||
-    xrefUrl.includes("\\") ||
-    hasControlCharacter
-  ) {
-    throw new PublicationRegistrationError(
-      "invalid-artifact",
-      "A MyST inventory entry has an unsafe published URL.",
-    );
+  try {
+    return mystPublicationAdapter.resolvePublishedTarget({
+      publicationBaseUrl: canonicalUrl,
+      inventoryUrl: xrefUrl,
+      ...(htmlId === undefined ? {} : { htmlId }),
+    });
+  } catch (error) {
+    if (!(error instanceof PublicationAdapterError)) throw error;
+    throw new PublicationRegistrationError("invalid-artifact", error.message);
   }
-  const base = new URL(canonicalUrl.endsWith("/") ? canonicalUrl : `${canonicalUrl}/`);
-  const resolved = new URL(xrefUrl.replace(/^\/+/, ""), base);
-  if (resolved.origin !== base.origin || !resolved.pathname.startsWith(base.pathname)) {
-    throw new PublicationRegistrationError(
-      "invalid-artifact",
-      "A MyST inventory URL resolves outside the publication root.",
-    );
-  }
-  if (htmlId) resolved.hash = htmlId;
-  return resolved.href;
 }
 
 function capture(
@@ -594,6 +581,7 @@ export async function verifyExternalPublication(
       references.set(reference.identifier, reference);
     }
     const resolvedClaimUrls = new Map<string, string>();
+    const verifiedClaimIds = new Set<string>();
     const recordsByPage = new Map<string, MystClaimRecord[]>();
     for (const record of records) {
       const reference = references.get(record.target.identifier);
@@ -642,8 +630,10 @@ export async function verifyExternalPublication(
             `Published page data does not contain claim node ${record.id}.`,
           );
         }
+        verifiedClaimIds.add(record.id);
       }
     }
+    mystPublicationAdapter.verifyPublishedStructure({ claims: records, verifiedClaimIds });
 
     let provenance: "published-structure" | "source-byte" = "published-structure";
     const source = manifest.publication.source;
@@ -691,16 +681,21 @@ export async function verifyExternalPublication(
     }
 
     const observedAt = (input.now ?? (() => new Date()))().toISOString();
-    const normalized = normalizeMystPublication({
-      manifest,
-      claims: records,
-      publicationType: input.publicationType,
-      structuralProvenance: provenance,
-      observedAt,
-      ...(input.registrationKey === undefined ? {} : { registrationKey: input.registrationKey }),
-      ...(delegatedDeclarations === undefined ? {} : { delegatedDeclarations }),
-      verificationWarnings: warnings,
-    });
+    mystPublicationAdapter.validateCapturedArtifacts({ manifest, artifacts });
+    const normalized = mystPublicationAdapter.normalize(
+      {
+        manifest,
+        claims: records,
+        ...(delegatedDeclarations === undefined ? {} : { delegatedDeclarations }),
+      },
+      {
+        publicationType: input.publicationType,
+        structuralProvenance: provenance,
+        observedAt,
+        ...(input.registrationKey === undefined ? {} : { registrationKey: input.registrationKey }),
+        verificationWarnings: warnings,
+      },
+    );
     return {
       manifest,
       normalized,

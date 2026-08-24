@@ -24,12 +24,23 @@ const observedAddressMigration = readFileSync(
   resolve(packageRoot, "prisma/migrations/20260824040000_observed_publication_base/migration.sql"),
   "utf8",
 );
+const productionTransferMigration = readFileSync(
+  resolve(
+    packageRoot,
+    "prisma/migrations/20260824050000_publication_production_transfer/migration.sql",
+  ),
+  "utf8",
+);
 
 const PUBLICATION_MODELS = [
   "Publication",
   "PublicationVersion",
   "PublicationCapture",
   "PublicationClaimOccurrence",
+] as const;
+const PUBLICATION_PROVENANCE_MODELS = [
+  "PublicationProductionAssertion",
+  "PublicationRelation",
 ] as const;
 
 function modelBlock(schema: string, model: string): string {
@@ -41,6 +52,24 @@ function modelBlock(schema: string, model: string): string {
 describe("publication boundary schema parity", () => {
   it.each(PUBLICATION_MODELS)("declares %s identically on SQLite and PostgreSQL", (model) => {
     expect(modelBlock(postgresSchema, model)).toBe(modelBlock(sqliteSchema, model));
+  });
+
+  it.each(PUBLICATION_PROVENANCE_MODELS)(
+    "declares append-only %s identically on SQLite and PostgreSQL",
+    (model) => {
+      expect(modelBlock(postgresSchema, model)).toBe(modelBlock(sqliteSchema, model));
+    },
+  );
+
+  it("binds production assertions to exact versions without contributor or publication fields", () => {
+    for (const schema of [sqliteSchema, postgresSchema]) {
+      const assertion = modelBlock(schema, "PublicationProductionAssertion");
+      expect(assertion).toMatch(/publicationVersionId\s+String\b/);
+      expect(assertion).toMatch(/supersedesAssertionId\s+String\?\s+@unique/);
+      expect(assertion).not.toMatch(/publicationId\s+String\b/);
+      expect(assertion).not.toMatch(/personId\s+String\b/);
+      expect(assertion).not.toMatch(/contributor/i);
+    }
   });
 
   it("keeps publication identity separate from exact version identity in both schemas", () => {
@@ -140,6 +169,30 @@ describe("the publication boundary migration", () => {
     expect(observedAddressMigration).not.toContain('SET "canonicalUrl"');
   });
 
+  it("adds append-only production and transfer records without rewriting publications", () => {
+    expect(productionTransferMigration).toContain('CREATE TABLE "PublicationProductionAssertion"');
+    expect(productionTransferMigration).toContain('CREATE TABLE "PublicationRelation"');
+    expect(productionTransferMigration).not.toMatch(/^\s*(?:UPDATE|DELETE|TRUNCATE)\b/im);
+    expect(productionTransferMigration).not.toMatch(/\bDROP\s+(?:COLUMN|TABLE)\b/i);
+    for (const constraint of [
+      "PublicationProductionAssertion_shape_check",
+      "PublicationRelation_shape_check",
+    ]) {
+      expect(productionTransferMigration).toContain(`CONSTRAINT "${constraint}"`);
+      expect(DATABASE_GUARD_NAMES).toContain(constraint);
+      expect(guards).toContain(`ADD CONSTRAINT "${constraint}"`);
+      expect(postgresDdl).toContain(`ADD CONSTRAINT "${constraint}"`);
+    }
+    for (const trigger of [
+      "PublicationProductionAssertion_immutable_guard",
+      "PublicationRelation_immutable_guard",
+    ]) {
+      expect(productionTransferMigration).toContain(`CREATE TRIGGER "${trigger}"`);
+      expect(POSTGRES_DATABASE_GUARD_TRIGGER_NAMES).toContain(trigger);
+      expect(postgresDdl).toContain(`CREATE TRIGGER "${trigger}"`);
+    }
+  });
+
   it("keeps the node-version source union exclusive rather than weakening it", () => {
     const union = migration.match(
       /ADD CONSTRAINT "KnowledgeNodeVersion_source_union_check" CHECK \(([\s\S]*?)\);/,
@@ -199,6 +252,10 @@ describe("publication boundary guard coverage", () => {
       expect(SQLITE_DATABASE_GUARD_NAMES).toContain(`${model}_guard_insert`);
       expect(SQLITE_DATABASE_GUARD_NAMES).toContain(`${model}_guard_update`);
     }
+    for (const model of PUBLICATION_PROVENANCE_MODELS) {
+      expect(SQLITE_DATABASE_GUARD_NAMES).toContain(`${model}_guard_insert`);
+      expect(SQLITE_DATABASE_GUARD_NAMES).toContain(`${model}_guard_update`);
+    }
     expect([...SQLITE_PUBLICATION_IMMUTABLE_GUARD_NAMES]).toEqual([
       "Publication_identity_immutable_guard",
       "PublicationVersion_immutable_guard_update",
@@ -207,6 +264,10 @@ describe("publication boundary guard coverage", () => {
       "PublicationCapture_immutable_guard_delete",
       "PublicationClaimOccurrence_immutable_guard_update",
       "PublicationClaimOccurrence_immutable_guard_delete",
+      "PublicationProductionAssertion_immutable_guard_update",
+      "PublicationProductionAssertion_immutable_guard_delete",
+      "PublicationRelation_immutable_guard_update",
+      "PublicationRelation_immutable_guard_delete",
     ]);
   });
 

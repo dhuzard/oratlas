@@ -262,7 +262,7 @@ async function verifyFederationSite(site: "a" | "b"): Promise<VerifiedExternalPu
       children: claims.map((claim) => ({
         type: "container",
         identifier: claim.id,
-        html_id: claim.target.htmlId,
+        html_id: claim.target.type === "myst-xref" ? claim.target.htmlId : claim.id,
         data: { oratlas: { kind: "claim", id: claim.id } },
       })),
     },
@@ -436,6 +436,51 @@ describe("external publication registration persistence", () => {
     expect(JSON.parse(canonicalJson(JSON.parse(capture.httpProvenanceJson)))).toMatchObject({
       status: 200,
     });
+  });
+
+  it("persists optional adapter-normalized production assertions without a MyST branch", async () => {
+    const verified = verifiedFixture(sha("document-set-with-production"));
+    verified.normalized.productionAssertions = [
+      {
+        sourceAssertionKey: "declared-production-v1",
+        mode: "agentic",
+        actors: [
+          {
+            kind: "workflow",
+            name: "Declared research workflow",
+            version: "1.0.0",
+          },
+        ],
+        activities: ["evidence-search", "drafting"],
+        statement: "The publication source declares an agentic authoring workflow.",
+        strength: "source-declared",
+        publicEvidenceUrl: "https://example.org/review/production.json",
+      },
+    ];
+    const created = await persist(verified, editorId);
+    expect(created.replayed).toBe(false);
+    expect(await persist(verified, editorId)).toMatchObject({
+      publicationVersionId: created.publicationVersionId,
+      replayed: true,
+    });
+    expect(
+      await prisma.publicationProductionAssertion.findMany({
+        where: { publicationVersionId: created.publicationVersionId },
+        select: {
+          sourceAssertionKey: true,
+          mode: true,
+          strength: true,
+          assertedById: true,
+        },
+      }),
+    ).toEqual([
+      {
+        sourceAssertionKey: "declared-production-v1",
+        mode: "agentic",
+        strength: "source-declared",
+        assertedById: null,
+      },
+    ]);
   });
 
   it("federates two independent sites through the one canonical graph", async () => {
