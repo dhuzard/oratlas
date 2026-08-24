@@ -29,7 +29,9 @@ describe("external certifier acceptance client", () => {
     await client.listPublicResults("v1");
     expect(run).toMatchObject({ method: "POST" });
     expect(fetcher).toHaveBeenCalledTimes(5);
-    expect(fetcher.mock.calls[0]?.[1]?.headers).toMatchObject({ authorization: "Bearer secret" });
+    const headers = new Headers(fetcher.mock.calls[0]?.[1]?.headers);
+    expect(headers.get("authorization")).toBe("Bearer secret");
+    expect(headers.get("content-type")).toBe("application/json");
   });
   it("contains no database or internal package dependency", () => {
     const source = readFileSync(

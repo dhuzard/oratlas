@@ -47,13 +47,12 @@ export class CertifierApiClient {
     return response.json();
   }
   private async request(path: string, init: RequestInit = {}) {
+    const headers = new Headers(init.headers);
+    headers.set("authorization", `Bearer ${this.token}`);
+    headers.set("content-type", "application/json");
     const response = await this.fetcher(new URL(path, this.baseUrl), {
       ...init,
-      headers: {
-        authorization: `Bearer ${this.token}`,
-        "content-type": "application/json",
-        ...init.headers,
-      },
+      headers,
     });
     if (!response.ok) {
       const body = await response.text();
