@@ -310,7 +310,15 @@ jobs:
         run: pnpm --filter @oratlas/web exec playwright install --with-deps chromium
 
       - name: Essential Playwright tests (incl. axe accessibility)
-        run: pnpm --filter @oratlas/web test:e2e
+        run: |
+          set +e
+          E2E_JSON_REPORT=test-results/e2e-results-1.json pnpm --filter @oratlas/web test:e2e --shard=1/2
+          first_status=$?
+          E2E_JSON_REPORT=test-results/e2e-results-2.json pnpm --filter @oratlas/web test:e2e --shard=2/2
+          second_status=$?
+          if [[ "${first_status}" -ne 0 || "${second_status}" -ne 0 ]]; then
+            exit 1
+          fi
         env:
           PLAYWRIGHT_CHROMIUM: ""
           LLM_PROVIDER: ""
@@ -319,4 +327,7 @@ jobs:
 
       - name: Enforce E2E wall-time and flake budget
         if: always()
-        run: pnpm e2e:budget
+        run: >-
+          pnpm exec tsx scripts/check-e2e-budget.ts
+          apps/web/test-results/e2e-results-1.json
+          apps/web/test-results/e2e-results-2.json

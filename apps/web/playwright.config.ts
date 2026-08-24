@@ -6,11 +6,12 @@ import { resolveE2EDatabaseUrl } from "./src/lib/e2e-database-url";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const githubFixturePreload = pathToFileURL(join(here, "e2e", "github-inspection-fixture.ts")).href;
+const jsonReportPath = process.env.E2E_JSON_REPORT?.trim() || "test-results/e2e-results.json";
 const nodeOptions = [
   process.env.NODE_OPTIONS?.trim(),
-  // The full single-worker suite exercises many dynamically compiled routes.
-  // Keep Next's 80%-of-heap dev-server watcher from restarting the server and
-  // invalidating an in-flight browser session near the end of the suite.
+  // Each single-worker shard exercises many dynamically compiled routes. Keep
+  // Next's 80%-of-heap dev-server watcher from restarting the server and
+  // invalidating an in-flight browser session within a shard.
   "--max-old-space-size=5120",
   "--import=tsx",
   `--import=${githubFixturePreload}`,
@@ -50,9 +51,7 @@ export default defineConfig({
   // slow runs, retries, and unexpected outcomes.
   timeout: 90_000,
   retries: process.env.CI ? 1 : 0,
-  reporter: process.env.CI
-    ? [["line"], ["json", { outputFile: "test-results/e2e-results.json" }]]
-    : "list",
+  reporter: process.env.CI ? [["line"], ["json", { outputFile: jsonReportPath }]] : "list",
   use: {
     baseURL: `http://localhost:${PORT}`,
     trace: "on-first-retry",
