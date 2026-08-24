@@ -1,6 +1,20 @@
 ALTER TABLE "CertificationRun" ADD COLUMN "terminalReason" TEXT;
 
 ALTER TABLE "CertificationRun" DROP CONSTRAINT IF EXISTS "CertificationRun_shape_check";
+
+-- Runs created before owner-scoped transitions existed could be terminal
+-- without a completion timestamp or reason, while open runs could carry a
+-- timestamp. Normalize those legacy states before enforcing the new shape.
+UPDATE "CertificationRun"
+SET "completedAt" = COALESCE("completedAt", "createdAt"),
+    "terminalReason" = 'Legacy ' || "status" || ' run migrated without a recorded reason.'
+WHERE "status" IN ('failed', 'cancelled');
+
+UPDATE "CertificationRun"
+SET "completedAt" = NULL,
+    "terminalReason" = NULL
+WHERE "status" IN ('requested', 'running');
+
 ALTER TABLE "CertificationRun" ADD CONSTRAINT "CertificationRun_shape_check" CHECK (
   "assessmentMode" IN ('human', 'ai', 'hybrid')
   AND "status" IN ('requested', 'running', 'completed', 'failed', 'cancelled')

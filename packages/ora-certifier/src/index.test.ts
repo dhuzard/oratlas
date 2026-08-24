@@ -111,6 +111,21 @@ function apiHarness() {
 }
 
 describe("ORA API-only certification service", () => {
+  it("rejects a drifted protocol even when all criterion ids are unchanged", async () => {
+    const protocol = (await import("@oratlas/contracts")).ORA_SCIENTIFIC_MERIT_PROTOCOL_DEFINITION;
+    await expect(
+      createDeterministicOraTestEvaluator("strong").evaluate({
+        packet,
+        protocol: {
+          ...protocol,
+          criteria: protocol.criteria.map((criterion, index) =>
+            index === 0 ? { ...criterion, title: "Drifted criterion title" } : criterion,
+          ),
+        },
+      }),
+    ).rejects.toThrow("Unexpected test protocol");
+  });
+
   it.each([
     ["strong", "certified"],
     ["concern", "certified-with-conditions"],

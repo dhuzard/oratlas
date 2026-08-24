@@ -1,6 +1,7 @@
 import {
   ORA_SCIENTIFIC_MERIT_PROMPT_VERSION,
   ORA_SCIENTIFIC_MERIT_PROTOCOL_DEFINITION,
+  canonicalJson,
   type CertificationEvidenceReference,
   type PublicationVersionPacket,
 } from "@oratlas/contracts";
@@ -14,10 +15,7 @@ export function createDeterministicOraTestEvaluator(
 ): CertificationEvaluator {
   return {
     async evaluate({ packet, protocol }) {
-      if (
-        protocol.criteria.map((item) => item.id).join(",") !==
-        ORA_SCIENTIFIC_MERIT_PROTOCOL_DEFINITION.criteria.map((item) => item.id).join(",")
-      )
+      if (canonicalJson(protocol) !== canonicalJson(ORA_SCIENTIFIC_MERIT_PROTOCOL_DEFINITION))
         throw new Error("Unexpected test protocol.");
       const evidence = firstEvidence(packet);
       const criteria = protocol.criteria.map((criterion) => {
