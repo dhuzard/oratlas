@@ -3,7 +3,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { canonicalJson, type PublicationType } from "@oratlas/contracts";
 import {
@@ -587,23 +587,23 @@ describe("external publication registration persistence", () => {
           'version: "1"\nkind: site\nmyst: v1\ntitle: Offline release-gate template\n',
         );
 
-        const npm = process.platform === "win32" ? "npm.cmd" : "npm";
-        run(npm, [
+        const npmCommand = process.platform === "win32" ? process.execPath : "npm";
+        const npmArguments =
+          process.platform === "win32"
+            ? [join(dirname(process.execPath), "node_modules", "npm", "bin", "npm-cli.js")]
+            : [];
+        run(npmCommand, [
+          ...npmArguments,
           "install",
           "--no-audit",
           "--no-fund",
           resolve(upstreamTarball!),
           "mystmd@1.10.1",
         ]);
-        run(
-          join(
-            project,
-            "node_modules",
-            ".bin",
-            process.platform === "win32" ? "oratlas-myst.cmd" : "oratlas-myst",
-          ),
-          ["export"],
-        );
+        run(process.execPath, [
+          join(project, "node_modules", "@neuronautix", "myst", "dist", "lib", "cli", "main.js"),
+          "export",
+        ]);
         run(process.execPath, [
           join(project, "node_modules", "mystmd", "dist", "myst.cjs"),
           "build",
