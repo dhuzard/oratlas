@@ -281,6 +281,55 @@ function withContent(
   return fixture;
 }
 
+function withContributors(
+  fixture: VerifiedExternalPublication,
+  names: readonly string[] = ["Alice Example", "Bob Example"],
+): VerifiedExternalPublication {
+  const manifestArtifact = fixture.artifacts.find(
+    (artifact) => artifact.artifactKind === "publication-manifest",
+  )!;
+  fixture.normalized.contributors = names.map((displayName, index) => ({
+    sourceContributorKey: displayName.toLowerCase().replaceAll(" ", "-"),
+    kind: "person",
+    displayName,
+    ...(index === 0 ? { givenName: "Alice", familyName: "Example" } : {}),
+    identifiers: index === 0 ? [{ scheme: "orcid" as const, value: "0000-0002-1825-0097" }] : [],
+    affiliations: [index === 0 ? "Example University" : "Independent Research Group"],
+    roles: index === 0 ? (["author", "corresponding-author"] as const) : (["author"] as const),
+    position: index + 1,
+    sourceDeclarationProvenance: {
+      type: "source-declared",
+      sourceArtifactKind: manifestArtifact.artifactKind,
+      sourceArtifactIdentitySha256: publicationArtifactIdentitySha256(manifestArtifact),
+      sourceArtifactSha256: manifestArtifact.contentSha256,
+    },
+  }));
+  return fixture;
+}
+
+function withOrganizationContributor(fixture: VerifiedExternalPublication) {
+  withContributors(fixture);
+  const manifestArtifact = fixture.artifacts.find(
+    (artifact) => artifact.artifactKind === "publication-manifest",
+  )!;
+  fixture.normalized.contributors!.push({
+    sourceContributorKey: "example-research-consortium",
+    kind: "organization",
+    displayName: "Example Research Consortium",
+    identifiers: [{ scheme: "ror", value: "https://ror.org/012345678" }],
+    affiliations: [],
+    roles: ["group-author"],
+    position: 3,
+    sourceDeclarationProvenance: {
+      type: "source-declared",
+      sourceArtifactKind: manifestArtifact.artifactKind,
+      sourceArtifactIdentitySha256: publicationArtifactIdentitySha256(manifestArtifact),
+      sourceArtifactSha256: manifestArtifact.contentSha256,
+    },
+  });
+  return fixture;
+}
+
 async function verifyFederationSite(site: "a" | "b"): Promise<VerifiedExternalPublication> {
   const fixture = federationFixture(site);
   const claims = fixture.normalized.occurrences.map((occurrence) => ({
@@ -459,6 +508,17 @@ describe("external publication registration persistence", () => {
       totalDocumentsKnown: null,
       truncated: false,
     });
+    expect(
+      await prisma.publicationVersion.findUniqueOrThrow({
+        where: { id: first.publicationVersionId },
+        select: { contributorsDeclared: true },
+      }),
+    ).toEqual({ contributorsDeclared: false });
+    expect(
+      await prisma.publicationVersionContributor.count({
+        where: { publicationVersionId: first.publicationVersionId },
+      }),
+    ).toBe(0);
 
     const conflicting = verifiedFixture();
     const conflictingBytes = Buffer.from('{"mdast":{"type":"root","changed":true}}');
@@ -560,6 +620,142 @@ describe("external publication registration persistence", () => {
         assertedById: null,
       },
     ]);
+  });
+
+  it("persists immutable ordered contributors generically and never conflates production actors", async () => {
+    const v1Fixture = withOrganizationContributor(verifiedFixture(sha("contributors-v1")));
+    v1Fixture.normalized.productionAssertions = [
+      {
+        sourceAssertionKey: "production-v1",
+        mode: "hybrid",
+        actors: [
+          { kind: "workflow", name: "ARS workflow", version: "1.0.0" },
+          { kind: "person", name: "Alice Example" },
+        ],
+        activities: ["drafting", "editing"],
+        strength: "source-declared",
+      },
+    ];
+    const v1 = await persist(v1Fixture, editorId);
+    expect((await persist(v1Fixture, editorId)).replayed).toBe(true);
+
+    const contributorService = await import("./publication-contributors");
+    const snapshot = await contributorService.listPublicationVersionContributors(
+      v1.publicationVersionId,
+    );
+    expect(snapshot).toMatchObject({
+      declarationStatus: "source-declared",
+      contributors: [
+        {
+          displayName: "Alice Example",
+          position: 1,
+          roles: ["author", "corresponding-author"],
+          identifiers: [{ scheme: "orcid", value: "0000-0002-1825-0097" }],
+        },
+        { displayName: "Bob Example", position: 2, roles: ["author"] },
+        {
+          displayName: "Example Research Consortium",
+          kind: "organization",
+          position: 3,
+          roles: ["group-author"],
+          identifiers: [{ scheme: "ror", value: "https://ror.org/012345678" }],
+        },
+      ],
+      completeness: { returned: 3, total: 3, truncated: false, coverage: "complete" },
+    });
+    expect(
+      snapshot.contributors.every(
+        (contributor) => contributor.declarationStatus === "source-declared",
+      ),
+    ).toBe(true);
+    expect(await prisma.person.count()).toBe(0);
+    expect(
+      await prisma.publicationProductionAssertion.count({
+        where: { publicationVersionId: v1.publicationVersionId },
+      }),
+    ).toBe(1);
+    expect(snapshot.contributors).toHaveLength(3);
+    const packetService = await import("./publication-version-packet");
+    const packet = await packetService.getPublicationVersionPacket(v1.publicationVersionId);
+    expect(packet).toMatchObject({
+      schemaVersion: "1.3.0",
+      contributors: [
+        { displayName: "Alice Example", declarationStatus: "source-declared" },
+        { displayName: "Bob Example", declarationStatus: "source-declared" },
+        {
+          displayName: "Example Research Consortium",
+          kind: "organization",
+          declarationStatus: "source-declared",
+        },
+      ],
+      completeness: { contributors: { returned: 3, total: 3, truncated: false } },
+      links: { contributors: `/api/publication-versions/${v1.publicationVersionId}/contributors` },
+    });
+    const { sha256: packetSha256, ...packetWithoutDigest } = packet;
+    expect(packetSha256).toBe(sha(canonicalJson(packetWithoutDigest)));
+
+    const contributorRoute =
+      await import("../app/api/publication-versions/[id]/contributors/route");
+    const response = await contributorRoute.GET(new Request("https://atlas.test"), {
+      params: Promise.resolve({ id: v1.publicationVersionId }),
+    });
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      publicationVersionId: v1.publicationVersionId,
+      declarationStatus: "source-declared",
+      contributors: [
+        { displayName: "Alice Example" },
+        { displayName: "Bob Example" },
+        { displayName: "Example Research Consortium", kind: "organization" },
+      ],
+    });
+
+    const v2 = await persist(
+      withContributors(verifiedFixture(sha("contributors-v2")), ["Alice Revised", "Bob Example"]),
+      editorId,
+    );
+    expect(v2.publicationVersionId).not.toBe(v1.publicationVersionId);
+    expect(
+      (
+        await contributorService.listPublicationVersionContributors(v1.publicationVersionId)
+      ).contributors.map((contributor) => contributor.displayName),
+    ).toEqual(["Alice Example", "Bob Example", "Example Research Consortium"]);
+    expect(
+      (
+        await contributorService.listPublicationVersionContributors(v2.publicationVersionId)
+      ).contributors.map((contributor) => contributor.displayName),
+    ).toEqual(["Alice Revised", "Bob Example"]);
+    expect(
+      await prisma.publicationProductionAssertion.count({
+        where: { publicationVersionId: v2.publicationVersionId },
+      }),
+    ).toBe(0);
+  });
+
+  it("fails closed on duplicate, malformed, or capture-unbound adapter contributor declarations", async () => {
+    const duplicate = withContributors(verifiedFixture(sha("contributors-duplicate")));
+    duplicate.normalized.contributors![1] = {
+      ...duplicate.normalized.contributors![1]!,
+      sourceContributorKey: duplicate.normalized.contributors![0]!.sourceContributorKey,
+    };
+    await expect(persist(duplicate, editorId)).rejects.toThrow(/invalid contributor snapshot/);
+
+    const malformed = withContributors(verifiedFixture(sha("contributors-malformed")));
+    malformed.normalized.contributors![0] = {
+      ...malformed.normalized.contributors![0]!,
+      sourceContributorKey: "invalid source key",
+    };
+    await expect(persist(malformed, editorId)).rejects.toThrow(/invalid contributor snapshot/);
+
+    const unbound = withContributors(verifiedFixture(sha("contributors-unbound")));
+    unbound.normalized.contributors![0] = {
+      ...unbound.normalized.contributors![0]!,
+      sourceDeclarationProvenance: {
+        ...unbound.normalized.contributors![0]!.sourceDeclarationProvenance,
+        sourceArtifactSha256: sha("different-bytes"),
+      },
+    };
+    await expect(persist(unbound, editorId)).rejects.toThrow(/exact captured declaration/);
   });
 
   it("binds a new immutable content corpus to each changed publication version", async () => {
@@ -754,7 +950,8 @@ describe("external publication registration persistence", () => {
       observedPublicationBaseUrl: observedBBase,
     });
     expect(packet.occurrences).toHaveLength(2);
-    expect(packet.schemaVersion).toBe("1.2.0");
+    expect(packet.schemaVersion).toBe("1.3.0");
+    expect(packet.contributors).toEqual([]);
     expect(packet.content).toHaveLength(1);
     expect(packet.content[0]).toMatchObject({
       role: "results",

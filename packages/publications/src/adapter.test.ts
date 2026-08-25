@@ -149,6 +149,26 @@ const syntheticAdapter: PublicationAdapter<
         observedAt: context.observedAt,
       },
       occurrences: [occurrence],
+      contributors: [
+        {
+          sourceContributorKey: "alice",
+          kind: "person",
+          displayName: "Alice Example",
+          givenName: "Alice",
+          familyName: "Example",
+          identifiers: [{ scheme: "orcid", value: "0000-0002-1825-0097" }],
+          affiliations: ["Example University"],
+          roles: ["author", "corresponding-author"],
+          position: 1,
+          publicUrl: "https://example.org/people/alice",
+          sourceDeclarationProvenance: {
+            type: "source-declared",
+            sourceArtifactKind: "claim-stream",
+            sourceArtifactIdentitySha256: digest("synthetic-contributor-slot"),
+            sourceArtifactSha256: digest("synthetic-contributor-bytes"),
+          },
+        },
+      ],
     };
   },
   normalizeContent(artifacts, context) {
@@ -227,6 +247,8 @@ describe("generic publication adapter boundary", () => {
     expect(ars.version.adapter).toMatchObject({ type: "myst", protocolVersion: "0.2.0" });
     expect(human.productionAssertions).toBeUndefined();
     expect(ars.productionAssertions).toBeUndefined();
+    expect(human.contributors).toBeUndefined();
+    expect(ars.contributors).toBeUndefined();
   });
 
   it("lets a test-only second format normalize through the same generic records", () => {
@@ -249,6 +271,13 @@ describe("generic publication adapter boundary", () => {
     );
     expect(normalized.version.adapter.type).toBe("synthetic-format");
     expect(normalized.occurrences[0]?.target.type).toBe("published-anchor");
+    expect(normalized.contributors).toEqual([
+      expect.objectContaining({
+        sourceContributorKey: "alice",
+        displayName: "Alice Example",
+        roles: ["author", "corresponding-author"],
+      }),
+    ]);
     expect(
       syntheticAdapter.resolvePublishedTarget({
         baseUrl: "https://format.example/article/",

@@ -4,6 +4,7 @@ import {
   canonicalJson,
   externalPublicationRegistrationResultSchema,
   normalizedPublicationContentSchema,
+  normalizedPublicationContributorsSchema,
   normalizedPublicationProductionAssertionSchema,
   publicationIdentityEvidenceSchema,
   type ExternalPublicationRegistrationResult,
@@ -13,6 +14,7 @@ import {
   createHardenedRemoteFetcher,
   verifyExternalPublication,
   publicationArtifactIdentitySha256,
+  PublicationAdapterError,
   type VerifiedExternalPublication,
 } from "@oratlas/publications";
 import { deriveObservedPublicationBaseUrl } from "@oratlas/db";
@@ -99,6 +101,16 @@ async function persistVerifiedExternalPublicationOnce(
       },
     },
   );
+  const contributorsDeclared = verified.normalized.contributors !== undefined;
+  const parsedContributors = normalizedPublicationContributorsSchema.safeParse(
+    verified.normalized.contributors ?? [],
+  );
+  if (!parsedContributors.success) {
+    throw new PublicationAdapterError(
+      `The adapter returned an invalid contributor snapshot: ${parsedContributors.error.issues[0]?.message ?? "invalid declaration"}`,
+    );
+  }
+  const contributors = parsedContributors.data;
   const artifactByIdentity = new Map(
     verified.artifacts.map((artifact) => [publicationArtifactIdentitySha256(artifact), artifact]),
   );
@@ -107,6 +119,19 @@ async function persistVerifiedExternalPublicationOnce(
     if (!artifact || artifact.contentSha256 !== document.sourceArtifactSha256) {
       throw new PublicationRegistrationConflictError(
         `Content document '${document.id}' is not bound to its exact captured artifact.`,
+      );
+    }
+  }
+  for (const contributor of contributors) {
+    const provenance = contributor.sourceDeclarationProvenance;
+    const artifact = artifactByIdentity.get(provenance.sourceArtifactIdentitySha256);
+    if (
+      !artifact ||
+      artifact.artifactKind !== provenance.sourceArtifactKind ||
+      artifact.contentSha256 !== provenance.sourceArtifactSha256
+    ) {
+      throw new PublicationAdapterError(
+        `Contributor '${contributor.sourceContributorKey}' is not bound to its exact captured declaration artifact.`,
       );
     }
   }
@@ -138,11 +163,13 @@ async function persistVerifiedExternalPublicationOnce(
     }
 
     let replayed = true;
+    let versionCreated = false;
     let versionRow = await tx.publicationVersion.findUnique({
       where: { stableKey: version.stableKey },
     });
     if (!versionRow) {
       replayed = false;
+      versionCreated = true;
       versionRow = await tx.publicationVersion.create({
         data: {
           publicationId: publicationRow.id,
@@ -161,6 +188,7 @@ async function persistVerifiedExternalPublicationOnce(
           contentCorpusJson,
           contentCorpusSha256,
           contentCompletenessJson,
+          contributorsDeclared,
           observedAt: new Date(version.observedAt),
         },
       });
@@ -178,10 +206,65 @@ async function persistVerifiedExternalPublicationOnce(
       versionRow.structuralProvenance !== version.structuralProvenance ||
       versionRow.contentCorpusJson !== contentCorpusJson ||
       versionRow.contentCorpusSha256 !== contentCorpusSha256 ||
-      versionRow.contentCompletenessJson !== contentCompletenessJson
+      versionRow.contentCompletenessJson !== contentCompletenessJson ||
+      versionRow.contributorsDeclared !== contributorsDeclared
     ) {
       throw new PublicationRegistrationConflictError(
         "The exact publication version conflicts with its previous immutable observation.",
+      );
+    }
+
+    const existingContributors = await tx.publicationVersionContributor.findMany({
+      where: { publicationVersionId: versionRow.id },
+      orderBy: [{ position: "asc" }, { id: "asc" }],
+    });
+    if (versionCreated) {
+      if (existingContributors.length !== 0) {
+        throw new PublicationRegistrationConflictError(
+          "A newly created publication version unexpectedly has contributor rows.",
+        );
+      }
+      if (contributors.length > 0) {
+        await tx.publicationVersionContributor.createMany({
+          data: contributors.map((contributor) => ({
+            publicationVersionId: versionRow.id,
+            sourceContributorKey: contributor.sourceContributorKey,
+            kind: contributor.kind,
+            displayName: contributor.displayName,
+            givenName: contributor.givenName,
+            familyName: contributor.familyName,
+            identifiersJson: canonicalJson(contributor.identifiers),
+            affiliationsJson: canonicalJson(contributor.affiliations),
+            rolesJson: canonicalJson(contributor.roles),
+            position: contributor.position,
+            publicUrl: contributor.publicUrl,
+            sourceDeclarationProvenanceJson: canonicalJson(contributor.sourceDeclarationProvenance),
+          })),
+        });
+      }
+    } else if (
+      existingContributors.length !== contributors.length ||
+      existingContributors.some((existing, index) => {
+        const contributor = contributors[index];
+        return (
+          !contributor ||
+          existing.sourceContributorKey !== contributor.sourceContributorKey ||
+          existing.kind !== contributor.kind ||
+          existing.displayName !== contributor.displayName ||
+          !sameOptional(existing.givenName, contributor.givenName) ||
+          !sameOptional(existing.familyName, contributor.familyName) ||
+          existing.identifiersJson !== canonicalJson(contributor.identifiers) ||
+          existing.affiliationsJson !== canonicalJson(contributor.affiliations) ||
+          existing.rolesJson !== canonicalJson(contributor.roles) ||
+          existing.position !== contributor.position ||
+          !sameOptional(existing.publicUrl, contributor.publicUrl) ||
+          existing.sourceDeclarationProvenanceJson !==
+            canonicalJson(contributor.sourceDeclarationProvenance)
+        );
+      })
+    ) {
+      throw new PublicationRegistrationConflictError(
+        "The exact publication version conflicts with its immutable contributor snapshot.",
       );
     }
 
@@ -345,6 +428,8 @@ async function persistVerifiedExternalPublicationOnce(
           manifestSchemaVersion: verified.manifest.schemaVersion,
           adapterType: verified.manifest.adapter.type,
           claimOccurrenceCount: occurrences.length,
+          contributorCount: contributors.length,
+          contributorsDeclared,
           verificationLevel: versionRow.structuralProvenance,
           warnings: verified.warnings,
           replayed,

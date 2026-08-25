@@ -1,6 +1,10 @@
 import { createHash } from "node:crypto";
 import { describe, expect, it, vi } from "vitest";
-import { canonicalJson, type PublicationVersionPacket } from "@oratlas/contracts";
+import {
+  canonicalJson,
+  publicationVersionPacketSchema,
+  type PublicationVersionPacket,
+} from "@oratlas/contracts";
 import { CertifierApiClient, OraCertificationService, type OraExecutionRecorder } from "./index.js";
 import { createDeterministicOraTestEvaluator, type OraTestScenario } from "./testing.js";
 
@@ -111,6 +115,14 @@ function apiHarness() {
 }
 
 describe("ORA API-only certification service", () => {
+  it("reads an immutable historical packet 1.2.0 without rewriting its JSON", () => {
+    const frozenJson = canonicalJson(packet);
+    const parsed = publicationVersionPacketSchema.parse(JSON.parse(frozenJson));
+    expect(parsed.schemaVersion).toBe("1.2.0");
+    expect(canonicalJson(parsed)).toBe(frozenJson);
+    expect(parsed).not.toHaveProperty("contributors");
+  });
+
   it("hashes the exact deterministic structured evaluator output", async () => {
     const evaluation = await createDeterministicOraTestEvaluator("strong").evaluate({
       packet,

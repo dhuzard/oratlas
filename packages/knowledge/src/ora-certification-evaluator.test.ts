@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   ORA_SCIENTIFIC_MERIT_PROTOCOL_DEFINITION,
   canonicalJson,
+  deriveOraScientificMeritOutcome,
   type PublicationVersionPacket,
 } from "@oratlas/contracts";
 import {
@@ -99,6 +100,49 @@ function output(evidenceId = "content-1", extra: Record<string, unknown> = {}) {
   });
 }
 
+function packetWithContributor(displayName: string): PublicationVersionPacket {
+  return {
+    ...packet,
+    schemaVersion: "1.3.0",
+    contributors: [
+      {
+        id: "contributor-1",
+        publicationVersionId: "version-1",
+        sourceContributorKey: "author-1",
+        kind: "person",
+        displayName,
+        givenName: null,
+        familyName: null,
+        identifiers: [{ scheme: "orcid", value: `declared-${displayName}` }],
+        affiliations: [`${displayName} Institute`],
+        roles: ["author"],
+        position: 1,
+        publicUrl: null,
+        sourceDeclarationProvenance: {
+          type: "source-declared",
+          sourceArtifactKind: "publication-manifest",
+          sourceArtifactIdentitySha256: sha("contributor-slot"),
+          sourceArtifactSha256: sha("contributor-source"),
+        },
+        declarationStatus: "source-declared",
+        links: {
+          publicationVersion: "/api/publication-versions/version-1",
+          publicProfile: null,
+        },
+      },
+    ],
+    completeness: {
+      ...packet.completeness,
+      contributors: { returned: 1, total: 1, truncated: false },
+    },
+    links: {
+      ...packet.links,
+      contributors: "/api/publication-versions/version-1/contributors",
+    },
+    sha256: sha(`packet-${displayName}`),
+  };
+}
+
 describe("ORA AI evaluator", () => {
   it("uses a bounded provider-neutral JSON request and adds packet-specific limitations", async () => {
     const complete = vi.fn().mockResolvedValue(output());
@@ -175,6 +219,28 @@ describe("ORA AI evaluator", () => {
         complete,
       }).evaluate({ packet, protocol: ORA_SCIENTIFIC_MERIT_PROTOCOL_DEFINITION }),
     ).rejects.toThrow(/after 2 attempts/);
+  });
+
+  it("accepts packet 1.3 while contributor identity and prestige cannot affect ORA input or outcome", async () => {
+    const prompts: string[] = [];
+    const evaluate = async (displayName: string) => {
+      const result = await new OraScientificMeritEvaluator({
+        name: "fixture-provider",
+        model: "fixture-model",
+        complete: vi.fn(async (request) => {
+          prompts.push(request.user);
+          return output();
+        }),
+      }).evaluate({
+        packet: packetWithContributor(displayName),
+        protocol: ORA_SCIENTIFIC_MERIT_PROTOCOL_DEFINITION,
+      });
+      return deriveOraScientificMeritOutcome(result.criteria, packet.completeness.content);
+    };
+    expect(await evaluate("Unknown Researcher")).toBe("certified");
+    expect(await evaluate("Famous Prize Winner")).toBe("certified");
+    expect(prompts[0]).toBe(prompts[1]);
+    expect(prompts[0]).not.toMatch(/Unknown Researcher|Famous Prize Winner|orcid|Institute/);
   });
 
   it("makes frozen-packet, missing-information, production-neutrality, and challenge caveats explicit", () => {

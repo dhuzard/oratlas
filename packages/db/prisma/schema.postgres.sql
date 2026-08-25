@@ -1348,10 +1348,31 @@ CREATE TABLE "PublicationVersion" (
     "contentCorpusJson" TEXT NOT NULL DEFAULT '[]',
     "contentCorpusSha256" TEXT NOT NULL DEFAULT '4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945',
     "contentCompletenessJson" TEXT NOT NULL DEFAULT '{"coverage":"unsupported","returnedDocuments":0,"totalDocumentsKnown":null,"truncated":false}',
+    "contributorsDeclared" BOOLEAN NOT NULL DEFAULT false,
     "observedAt" TIMESTAMP(3) NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "PublicationVersion_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "PublicationVersionContributor" (
+    "id" TEXT NOT NULL,
+    "publicationVersionId" TEXT NOT NULL,
+    "sourceContributorKey" TEXT NOT NULL,
+    "kind" TEXT NOT NULL,
+    "displayName" TEXT NOT NULL,
+    "givenName" TEXT,
+    "familyName" TEXT,
+    "identifiersJson" TEXT NOT NULL DEFAULT '[]',
+    "affiliationsJson" TEXT NOT NULL DEFAULT '[]',
+    "rolesJson" TEXT NOT NULL,
+    "position" INTEGER NOT NULL,
+    "publicUrl" TEXT,
+    "sourceDeclarationProvenanceJson" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "PublicationVersionContributor_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -2054,6 +2075,15 @@ CREATE INDEX "PublicationVersion_structuralProvenance_idx" ON "PublicationVersio
 CREATE UNIQUE INDEX "PublicationVersion_publicationId_sourcesSha256_key" ON "PublicationVersion"("publicationId", "sourcesSha256");
 
 -- CreateIndex
+CREATE INDEX "PublicationVersionContributor_publicationVersionId_position_idx" ON "PublicationVersionContributor"("publicationVersionId", "position");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "PublicationVersionContributor_publicationVersionId_sourceCo_key" ON "PublicationVersionContributor"("publicationVersionId", "sourceContributorKey");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "PublicationVersionContributor_publicationVersionId_position_key" ON "PublicationVersionContributor"("publicationVersionId", "position");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "Certifier_slug_key" ON "Certifier"("slug");
 
 -- CreateIndex
@@ -2657,6 +2687,9 @@ ALTER TABLE "Publication" ADD CONSTRAINT "Publication_reviewId_fkey" FOREIGN KEY
 ALTER TABLE "PublicationVersion" ADD CONSTRAINT "PublicationVersion_publicationId_fkey" FOREIGN KEY ("publicationId") REFERENCES "Publication"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "PublicationVersionContributor" ADD CONSTRAINT "PublicationVersionContributor_publicationVersionId_fkey" FOREIGN KEY ("publicationVersionId") REFERENCES "PublicationVersion"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "Certifier" ADD CONSTRAINT "Certifier_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -3100,6 +3133,17 @@ ALTER TABLE "PublicationClaimOccurrence" ADD CONSTRAINT "PublicationClaimOccurre
     OR ("declarationAuthority" = 'review-manifest' AND "text" IS NOT NULL)
   );
 
+ALTER TABLE "PublicationVersionContributor" DROP CONSTRAINT IF EXISTS "PublicationVersionContributor_shape_check";
+
+ALTER TABLE "PublicationVersionContributor" ADD CONSTRAINT "PublicationVersionContributor_shape_check" CHECK (
+    "kind" IN ('person', 'organization')
+    AND length("sourceContributorKey") BETWEEN 1 AND 200
+    AND "sourceContributorKey" ~ '^[A-Za-z0-9][A-Za-z0-9._:-]*$'
+    AND length("displayName") BETWEEN 1 AND 300
+    AND "position" BETWEEN 1 AND 500
+    AND ("kind" = 'person' OR ("givenName" IS NULL AND "familyName" IS NULL))
+  );
+
 ALTER TABLE "PublicationProductionAssertion" DROP CONSTRAINT IF EXISTS "PublicationProductionAssertion_shape_check";
 
 ALTER TABLE "PublicationProductionAssertion" ADD CONSTRAINT "PublicationProductionAssertion_shape_check" CHECK (
@@ -3240,6 +3284,34 @@ DROP TRIGGER IF EXISTS "PublicationClaimOccurrence_immutable_guard" ON "Publicat
 
 CREATE TRIGGER "PublicationClaimOccurrence_immutable_guard" BEFORE UPDATE OR DELETE ON "PublicationClaimOccurrence"
     FOR EACH ROW EXECUTE FUNCTION "oratlas_protect_publication_claim_occurrence"();
+
+CREATE OR REPLACE FUNCTION "oratlas_reject_publication_contributor_mutation"() RETURNS trigger AS $$
+    BEGIN
+      RAISE EXCEPTION 'Publication contributor snapshots are append-only';
+    END;
+  $$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS "PublicationVersionContributor_immutable_guard" ON "PublicationVersionContributor";
+
+CREATE TRIGGER "PublicationVersionContributor_immutable_guard" BEFORE UPDATE OR DELETE ON "PublicationVersionContributor"
+    FOR EACH ROW EXECUTE FUNCTION "oratlas_reject_publication_contributor_mutation"();
+
+CREATE OR REPLACE FUNCTION "oratlas_validate_publication_contributor_binding"() RETURNS trigger AS $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM "PublicationVersion" v
+        WHERE v."id" = NEW."publicationVersionId" AND v."contributorsDeclared" = true
+      ) THEN
+        RAISE EXCEPTION 'Publication contributor requires an exact declared version snapshot';
+      END IF;
+      RETURN NEW;
+    END;
+  $$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS "PublicationVersionContributor_binding_guard" ON "PublicationVersionContributor";
+
+CREATE TRIGGER "PublicationVersionContributor_binding_guard" BEFORE INSERT ON "PublicationVersionContributor"
+    FOR EACH ROW EXECUTE FUNCTION "oratlas_validate_publication_contributor_binding"();
 
 CREATE OR REPLACE FUNCTION "oratlas_reject_publication_provenance_mutation"() RETURNS trigger AS $$
     BEGIN

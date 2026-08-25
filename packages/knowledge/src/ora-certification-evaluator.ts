@@ -52,7 +52,10 @@ export class OraScientificMeritEvaluator implements CertificationEvaluator {
           await this.provider.complete({
             promptVersion: ORA_SCIENTIFIC_MERIT_PROMPT_VERSION,
             system: ORA_SCIENTIFIC_MERIT_SYSTEM_PROMPT,
-            user: canonicalJson({ protocol: input.protocol, packet }),
+            user: canonicalJson({
+              protocol: input.protocol,
+              packet: oraScientificEvidenceProjection(packet),
+            }),
             maxTokens: MAX_TOKENS,
             maxResponseBytes: MAX_RESPONSE_BYTES,
           }),
@@ -84,6 +87,30 @@ export class OraScientificMeritEvaluator implements CertificationEvaluator {
       `ORA scientific-merit evaluation failed after ${MAX_ATTEMPTS} attempts: ${lastError}`,
     );
   }
+}
+
+/**
+ * Contributor credit is carried by packet 1.3 for provenance and hashing, but
+ * names, identifiers, affiliations, and prestige are outside ORA Pilot 0.1.0's
+ * scientific-merit evidence. Excluding the contributor-only fields also makes
+ * two otherwise identical 1.3 packets produce the exact same evaluator input.
+ */
+function oraScientificEvidenceProjection(packet: PublicationVersionPacket): unknown {
+  if (packet.schemaVersion !== "1.3.0") return packet;
+  const {
+    contributors: _contributors,
+    sha256: _packetSha256,
+    completeness,
+    links,
+    ...scientificPacket
+  } = packet;
+  const { contributors: _contributorCompleteness, ...scientificCompleteness } = completeness;
+  const { contributors: _contributorsLink, ...scientificLinks } = links;
+  return {
+    ...scientificPacket,
+    completeness: scientificCompleteness,
+    links: scientificLinks,
+  };
 }
 
 function assertExactPilotProtocol(protocol: CertificationProtocolDefinition) {

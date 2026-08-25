@@ -40,6 +40,13 @@ const contentCorpusMigration = readFileSync(
   resolve(packageRoot, "prisma/migrations/20260824070000_publication_content_corpus/migration.sql"),
   "utf8",
 );
+const contributorMigration = readFileSync(
+  resolve(
+    packageRoot,
+    "prisma/migrations/20260825000000_publication_version_contributors/migration.sql",
+  ),
+  "utf8",
+);
 
 const PUBLICATION_MODELS = [
   "Publication",
@@ -48,6 +55,7 @@ const PUBLICATION_MODELS = [
   "PublicationClaimOccurrence",
 ] as const;
 const PUBLICATION_PROVENANCE_MODELS = [
+  "PublicationVersionContributor",
   "PublicationProductionAssertion",
   "PublicationRelation",
 ] as const;
@@ -107,6 +115,21 @@ describe("publication boundary schema parity", () => {
       expect(assertion).not.toMatch(/publicationId\s+String\b/);
       expect(assertion).not.toMatch(/personId\s+String\b/);
       expect(assertion).not.toMatch(/contributor/i);
+    }
+  });
+
+  it("keeps contributor snapshots exact-version-scoped and outside canonical person identity", () => {
+    for (const schema of [sqliteSchema, postgresSchema]) {
+      const contributor = modelBlock(schema, "PublicationVersionContributor");
+      expect(contributor).toMatch(/publicationVersionId\s+String\b/);
+      expect(contributor).toContain("@@unique([publicationVersionId, sourceContributorKey])");
+      expect(contributor).toContain("@@unique([publicationVersionId, position])");
+      expect(contributor).not.toMatch(/personId\s+String/);
+      expect(contributor).not.toMatch(/agentRunId|executionPassportId|productionMode/);
+      expect(modelBlock(schema, "Person")).not.toMatch(/publicationVersionContributor/i);
+      expect(modelBlock(schema, "PublicationVersion")).toMatch(
+        /contributorsDeclared\s+Boolean\s+@default\(false\)/,
+      );
     }
   });
 
@@ -245,6 +268,33 @@ describe("the publication boundary migration", () => {
     expect(guards).toContain("\"contentCorpusSha256\" ~ '^[a-f0-9]{64}$'");
   });
 
+  it("adds generic contributor snapshots without rewriting legacy versions or people", () => {
+    expect(contributorMigration).toContain('CREATE TABLE "PublicationVersionContributor"');
+    expect(contributorMigration).toContain(
+      'ADD COLUMN "contributorsDeclared" BOOLEAN NOT NULL DEFAULT false',
+    );
+    expect(contributorMigration).not.toMatch(/^\s*(?:UPDATE|DELETE|TRUNCATE)\b/im);
+    expect(contributorMigration).not.toMatch(/\bDROP\s+(?:COLUMN|TABLE)\b/i);
+    expect(contributorMigration).not.toMatch(/@neuronautix\/myst|\bPerson\b|ReviewContributor/);
+    expect(contributorMigration).toContain(
+      'CONSTRAINT "PublicationVersionContributor_shape_check"',
+    );
+    expect(contributorMigration).toContain(
+      'CREATE TRIGGER "PublicationVersionContributor_immutable_guard"',
+    );
+    expect(contributorMigration).toContain(
+      'CREATE TRIGGER "PublicationVersionContributor_binding_guard"',
+    );
+    expect(DATABASE_GUARD_NAMES).toContain("PublicationVersionContributor_shape_check");
+    expect(POSTGRES_DATABASE_GUARD_TRIGGER_NAMES).toContain(
+      "PublicationVersionContributor_immutable_guard",
+    );
+    expect(POSTGRES_DATABASE_GUARD_TRIGGER_NAMES).toContain(
+      "PublicationVersionContributor_binding_guard",
+    );
+    expect(postgresDdl).toContain('CREATE TABLE "PublicationVersionContributor"');
+  });
+
   it("keeps the node-version source union exclusive rather than weakening it", () => {
     const union = migration.match(
       /ADD CONSTRAINT "KnowledgeNodeVersion_source_union_check" CHECK \(([\s\S]*?)\);/,
@@ -316,6 +366,8 @@ describe("publication boundary guard coverage", () => {
       "PublicationCapture_immutable_guard_delete",
       "PublicationClaimOccurrence_immutable_guard_update",
       "PublicationClaimOccurrence_immutable_guard_delete",
+      "PublicationVersionContributor_immutable_guard_update",
+      "PublicationVersionContributor_immutable_guard_delete",
       "PublicationProductionAssertion_immutable_guard_update",
       "PublicationProductionAssertion_immutable_guard_delete",
       "PublicationRelation_immutable_guard_update",

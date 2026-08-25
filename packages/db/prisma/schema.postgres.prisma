@@ -2089,12 +2089,16 @@ model PublicationVersion {
   contentCorpusSha256        String   @default("4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945")
   /// Canonical publicationContentCompletenessSchema JSON.
   contentCompletenessJson    String   @default("{\"coverage\":\"unsupported\",\"returnedDocuments\":0,\"totalDocumentsKnown\":null,\"truncated\":false}")
+  /// True only when the adapter supplied an exact-version contributor snapshot,
+  /// including an explicitly declared empty snapshot. Never inferred.
+  contributorsDeclared       Boolean  @default(false)
   observedAt                 DateTime
   createdAt                  DateTime @default(now())
 
   publication          Publication                      @relation(fields: [publicationId], references: [id], onDelete: Restrict)
   captures             PublicationCapture[]
   claimOccurrences     PublicationClaimOccurrence[]
+  contributors         PublicationVersionContributor[]
   productionAssertions PublicationProductionAssertion[]
   certificationRuns    CertificationRun[]
   certificationResults CertificationResult[]
@@ -2104,6 +2108,36 @@ model PublicationVersion {
   @@unique([publicationId, sourcesSha256])
   @@index([publicationId])
   @@index([structuralProvenance])
+}
+
+/// Immutable, source-declared scholarly-credit metadata for one exact
+/// publication version. This has no Person relation: declared names and
+/// identifiers are retained metadata, never ORAtlas identity assertions.
+model PublicationVersionContributor {
+  id                              String   @id @default(cuid())
+  publicationVersionId            String
+  sourceContributorKey            String
+  /// person | organization.
+  kind                            String
+  displayName                     String
+  givenName                       String?
+  familyName                      String?
+  /// Canonical JSON arrays using the bounded contributor contracts.
+  identifiersJson                 String   @default("[]")
+  affiliationsJson                String   @default("[]")
+  rolesJson                       String
+  /// One-based source-declared order within this exact version.
+  position                        Int
+  publicUrl                       String?
+  /// Canonical publicationContributorSourceDeclarationProvenanceSchema JSON.
+  sourceDeclarationProvenanceJson String
+  createdAt                       DateTime @default(now())
+
+  publicationVersion PublicationVersion @relation(fields: [publicationVersionId], references: [id], onDelete: Restrict)
+
+  @@unique([publicationVersionId, sourceContributorKey])
+  @@unique([publicationVersionId, position])
+  @@index([publicationVersionId, position])
 }
 
 /// Accountable organization which owns immutable certification protocols.

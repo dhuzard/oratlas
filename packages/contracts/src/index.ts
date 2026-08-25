@@ -8,6 +8,8 @@ export * from "./knowledge-nodes.js";
 export * from "./node-publication.js";
 export * from "./publication-adapters.js";
 export * from "./publications.js";
+export * from "./publication-contributors.js";
+export * from "./publication-version-packets.js";
 export * from "./publication-provenance.js";
 export * from "./graph.js";
 export * from "./canonical-graph.js";

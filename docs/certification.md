@@ -29,9 +29,10 @@ immutable input snapshot
 
 ## Exact input and completeness
 
-Starting a run builds and validates the current common PublicationVersion packet v1.2.0. It
+Starting a run builds and validates the current common PublicationVersion packet v1.3.0. It
 contains the persisted normalized scientific content corpus alongside identity, captures, claims,
-production provenance and the public ORAtlas knowledge state. ORAtlas stores its exact canonical
+exact-version contributor snapshots, production provenance and the public ORAtlas knowledge state.
+ORAtlas stores its exact canonical
 JSON, the SHA-256 of those exact JSON bytes, its packet schema version, capture time, and
 completeness object. That snapshot never changes. Later canonical bindings, relations, production
 assertions, public assessments, or changes to the external website may affect future observations
@@ -49,11 +50,12 @@ PublicationVersion
        │
        ├── exact source/captures
        ├── claim occurrences
-       ├── normalized scientific content corpus
+        ├── normalized scientific content corpus
+       ├── source-declared contributor snapshots
        └── public ORAtlas knowledge state
                 │
                 ▼
-        PublicationVersion packet 1.2
+        PublicationVersion packet 1.3
                 │
                 ▼
         CertificationRun snapshot
@@ -61,6 +63,14 @@ PublicationVersion
 
 The normalized content corpus is deterministic inert evaluation text, not a statement that
 ORAtlas has scientifically validated the article.
+
+Packet 1.3 adds `contributors` and `completeness.contributors`; those fields participate in the
+packet digest. CertificationRun rows that captured packet 1.2 retain their byte-exact JSON and
+schema version and remain readable—snapshots are never upgraded in place. The ORA Scientific Merit
+Pilot 0.1.0 accepts 1.3 inputs but contributor identity and prestige are not scientific evidence:
+its evaluator projection excludes contributor names, affiliations, identifiers and the
+contributor-derived packet fields. Changing only those declarations therefore cannot change its
+evaluator input or deterministic outcome rule.
 
 ## Protocol and result contracts
 
@@ -111,6 +121,7 @@ public example entrypoint.
 - A source publication assertion is what the publication declares.
 - Structural provenance says which published structure/source bytes ORAtlas captured and checked.
 - Production provenance attributes authoring actors, workflows, and activities.
+- Scholarly contributor snapshots retain source-declared credit without resolving person identity.
 - Canonical graph confirmation is an explicit identity or relationship governance decision.
 - TRUST assesses exact claim–evidence or graph relations.
 - Certification applies a versioned certifier-owned protocol to one exact PublicationVersion input.

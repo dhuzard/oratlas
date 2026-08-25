@@ -440,6 +440,76 @@ describe("publication boundary on SQLite", () => {
     });
   });
 
+  describe("exact-version contributor snapshots", () => {
+    it("enforces shape, version-local order, and append-only history", async () => {
+      const publication = await createPublication();
+      const undeclaredVersion = await createVersion(publication.id);
+      await expect(
+        prisma.publicationVersionContributor.create({
+          data: {
+            publicationVersionId: undeclaredVersion.id,
+            sourceContributorKey: "fabricated",
+            kind: "person",
+            displayName: "Fabricated Contributor",
+            rolesJson: JSON.stringify(["author"]),
+            position: 1,
+            sourceDeclarationProvenanceJson: JSON.stringify({ type: "source-declared" }),
+          },
+        }),
+      ).rejects.toThrow();
+      const version = await createVersion(publication.id, {
+        contributorsDeclared: true,
+        sourcesSha256: SOURCES_V2,
+      });
+      const contributor = await prisma.publicationVersionContributor.create({
+        data: {
+          publicationVersionId: version.id,
+          sourceContributorKey: "alice",
+          kind: "person",
+          displayName: "Alice Example",
+          identifiersJson: JSON.stringify([{ scheme: "orcid", value: "0000-0002-1825-0097" }]),
+          affiliationsJson: JSON.stringify(["Example University"]),
+          rolesJson: JSON.stringify(["author"]),
+          position: 1,
+          sourceDeclarationProvenanceJson: JSON.stringify({ type: "source-declared" }),
+        },
+      });
+      await expect(
+        prisma.publicationVersionContributor.create({
+          data: {
+            publicationVersionId: version.id,
+            sourceContributorKey: "alice",
+            kind: "person",
+            displayName: "Duplicate Alice",
+            rolesJson: JSON.stringify(["author"]),
+            position: 2,
+            sourceDeclarationProvenanceJson: JSON.stringify({ type: "source-declared" }),
+          },
+        }),
+      ).rejects.toThrow();
+      await expect(
+        prisma.publicationVersionContributor.create({
+          data: {
+            publicationVersionId: version.id,
+            sourceContributorKey: "group",
+            kind: "organization",
+            displayName: "Research Group",
+            givenName: "Invalid",
+            rolesJson: JSON.stringify(["group-author"]),
+            position: 2,
+            sourceDeclarationProvenanceJson: JSON.stringify({ type: "source-declared" }),
+          },
+        }),
+      ).rejects.toThrow();
+      await expect(
+        prisma.$executeRaw`UPDATE "PublicationVersionContributor" SET "displayName" = 'Rewritten' WHERE "id" = ${contributor.id}`,
+      ).rejects.toThrow("append-only");
+      await expect(
+        prisma.$executeRaw`DELETE FROM "PublicationVersionContributor" WHERE "id" = ${contributor.id}`,
+      ).rejects.toThrow("append-only");
+    });
+  });
+
   describe("source claim occurrences", () => {
     it("rejects a duplicated source-local claim id inside one version", async () => {
       const publication = await createPublication();
