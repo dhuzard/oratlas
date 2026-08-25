@@ -117,7 +117,9 @@ state to agents. See
 The framework-free `PublicationAdapter` makes that split executable: adapters describe and verify
 format structure over already captured bytes and return generic records, including optional
 source-declared exact-version contributor snapshots; they do not fetch, execute plugins, or infer
-authorship. The frozen MyST 0.2.0 path is the first implementation. A
+authorship. The `myst` implementation accepts only manifest 0.2.0 and 0.3.0; both continue to use
+frozen 0.2.0 claim records, and 0.3.0 additionally normalizes optional contributors and production
+into the existing generic records. A
 test-only synthetic implementation proves that another normalized target reaches the unchanged
 canonical materializer; it is not advertised format support.
 
@@ -129,6 +131,11 @@ version packet hashes the bounded public assertion state. Reviewed `PublicationR
 describe otherwise ambiguous host/format transfer without merging publications or claims. No
 production mode or transfer relation confers scientific merit, TRUST, peer review, or
 certification.
+
+The compatibility gate builds and packs the exact upstream `dhuzard/oratlas-myst` commit
+`91b20fb5e405878b3f100ddbda297bd5448d598a`, creates a real external MyST site, and exercises the
+same hardened registration, content, canonical materialization, and packet paths. No unpublished
+npm version or moving branch is part of that gate.
 
 Scholarly credit is a third orthogonal channel: immutable
 `PublicationVersionContributor` snapshots. Declared names and identifiers never create canonical

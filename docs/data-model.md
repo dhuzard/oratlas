@@ -222,6 +222,8 @@ canonical graph identity.
   version. Names, ORCID/ROR values, affiliations and roles are retained metadata, not a canonical
   `Person` identity. Snapshots neither inherit to later versions nor arise from production actors.
   `contributorsDeclared` distinguishes a missing adapter declaration from a declared empty list.
+  MyST 0.3 rows bind `sourceDeclarationProvenanceJson` to the exact captured publication-manifest
+  slot identity and its byte SHA-256; no MyST-specific column or identity-resolution relation exists.
 - A `PublicationClaimOccurrence` is an exact occurrence, never a canonical identity. Equal text, an
   equal source-local id in different versions, an equal `declarationSha256`, an equal
   `sourcesSha256`, position and similarity are all explicitly non-identities.
@@ -233,7 +235,9 @@ canonical graph identity.
   scholarly contributors. `source-declared` carries no verification claim;
   `oratlas-attested` references a succeeded `AgentRun` and/or verified `ExecutionPassport`.
   Corrections append a successor and leave the prior row intact; assertions never inherit to a
-  later version automatically.
+  later version automatically. MyST 0.3 source actor ids are uniqueness keys only and are stripped;
+  the stored `identifier` field is reserved for separately declared stable/public actor metadata.
+  Assertion activities are the source actor activities' first-seen ordered union.
 - A `PublicationRelation` is an attributable editorial record between two distinct publication
   identities for continuation, mirroring, movement, derivation, republication, or versioning. It
   neither duplicates durable identity evidence nor infers continuity from title, author, text,

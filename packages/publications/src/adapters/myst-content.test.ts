@@ -37,7 +37,7 @@ function fixture() {
   return [
     artifact("cross-reference-inventory", "myst.xref.json", {
       references: [
-        { identifier: "methods", url: "/methods/", data: "content/methods.json" },
+        { kind: "page", url: "/methods/", data: "/content/methods.json" },
         { identifier: "results", url: "/results/", data: "content/results.json" },
       ],
     }),
@@ -46,19 +46,39 @@ function fixture() {
       mdast: {
         type: "root",
         children: [
-          { type: "heading", depth: 1, children: [{ type: "text", value: "Results" }] },
           {
-            type: "paragraph",
-            children: [{ type: "text", value: "The intervention improved the primary outcome." }],
-          },
-          {
-            type: "table",
+            type: "block",
             children: [
               {
-                type: "tableRow",
+                type: "heading",
+                depth: 1,
+                children: [{ type: "text", value: "Results" }],
+              },
+              {
+                type: "div",
+                data: { oratlas: { kind: "claim", id: "result-1" } },
                 children: [
-                  { type: "tableCell", children: [{ type: "text", value: "Group" }] },
-                  { type: "tableCell", children: [{ type: "text", value: "Mean" }] },
+                  {
+                    type: "paragraph",
+                    children: [
+                      {
+                        type: "text",
+                        value: "The intervention improved the primary outcome.",
+                      },
+                    ],
+                  },
+                ],
+              },
+              {
+                type: "table",
+                children: [
+                  {
+                    type: "tableRow",
+                    children: [
+                      { type: "tableCell", children: [{ type: "text", value: "Group" }] },
+                      { type: "tableCell", children: [{ type: "text", value: "Mean" }] },
+                    ],
+                  },
                 ],
               },
             ],

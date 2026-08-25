@@ -1,0 +1,37 @@
+{
+  "schemaVersion": "0.3.0",
+  "generator": { "name": "@neuronautix/myst", "version": "0.3.0" },
+  "publication": {
+    "version": {
+      "sourcesSha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    }
+  },
+  "adapter": { "type": "myst", "xref": "myst.xref.json" },
+  "artifacts": {
+    "claims": {
+      "path": "oratlas/claims.jsonl",
+      "format": "jsonl",
+      "records": 0,
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "declarations": "publication-source"
+    }
+  },
+  "contributors": [
+    {
+      "sourceContributorKey": "alice",
+      "kind": "person",
+      "displayName": "Alice Smith",
+      "givenName": "Alice",
+      "familyName": "Smith",
+      "roles": ["author", "corresponding-author"],
+      "position": 1
+    },
+    {
+      "sourceContributorKey": "bob",
+      "kind": "person",
+      "displayName": "Bob Jones",
+      "roles": ["author"],
+      "position": 2
+    }
+  ]
+}

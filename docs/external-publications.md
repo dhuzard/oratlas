@@ -21,8 +21,8 @@ Content-Type: application/json
 }
 ```
 
-`publicationType` is optional and defaults to `other`, because portable protocol 0.2.0 does not
-declare it. The operation requires the normal ORAtlas editor session, exact same-origin mutation
+`publicationType` is optional and defaults to `other`, because MyST manifest protocols 0.2.0 and
+0.3.0 do not declare it. The operation requires the normal ORAtlas editor session, exact same-origin mutation
 headers and rate limits. Operators should use the returned `links.capture`, `links.publication`
 and `links.publicationVersion` resources as the canonical API locations. A `201` means at least
 one immutable record was created; a byte-identical replay returns `200` with `replayed: true`.
@@ -30,7 +30,7 @@ one immutable record was created; a byte-identical replay returns `200` with `re
 The registration pipeline is deliberately non-executable:
 
 ```
-manifest URL → safe bounded fetch → exact byte capture → closed 0.2.0 validation
+manifest URL → safe bounded fetch → exact byte capture → closed 0.2.0/0.3.0 validation
              → declared artifact capture → published-structure checks
              → optional exact source-byte checks → atomic source-occurrence materialization
 ```
@@ -47,6 +47,25 @@ capture time, status, bounded selected headers and the complete validated redire
 is retained for claims, xref, page-data, delegated review-manifest artifacts and safely obtainable
 source documents. Artifact rows and observed publication versions are database-guarded against
 update and deletion.
+
+### MyST compatibility matrix
+
+The one `myst` format adapter accepts exactly two manifest contracts and rejects every other
+`schemaVersion`:
+
+| MyST manifest | Claim records | Additional declarations                               |
+| ------------- | ------------- | ----------------------------------------------------- |
+| `0.2.0`       | `0.2.0`       | none                                                  |
+| `0.3.0`       | `0.2.0`       | optional `contributors`; optional single `production` |
+
+Manifest schema version, claim-record schema version, and npm package version are independent
+values. In particular, `@neuronautix/myst` package 0.3.0 emits manifest 0.3.0 while its
+`oratlas/claims.jsonl` records remain on frozen schema 0.2.0. Unknown future manifest versions are
+not partially read.
+
+The 0.2.0 path is unchanged: contributors remain `not-declared` and source production assertions
+remain absent. The 0.3.0 additions do not change identity, target resolution, structural/source-byte
+verification, claim normalization, or scientific-content extraction.
 
 ### Verification outcomes
 
@@ -81,7 +100,7 @@ An independently hosted publication is different in one decisive way: **ORAtlas 
 host it and does not build it.** The publication is somewhere on the web, publishes its own
 machine-readable declarations, and never contacts ORAtlas during its build or validation.
 The first such producer is [`dhuzard/oratlas-myst`](https://github.com/dhuzard/oratlas-myst),
-whose pinned schema version `0.2.0` publishes `oratlas.manifest.json`, `myst.xref.json` and
+whose pinned manifest schemas `0.2.0` and `0.3.0` publish `oratlas.manifest.json`, `myst.xref.json` and
 `oratlas/claims.jsonl`.
 
 `Review` is therefore no longer the federation object. It is a supported **publication
@@ -105,7 +124,7 @@ creates a production assertion by implication.
 Who or what helped produce a publication does not select its structural adapter. Human authors,
 ARS, AIreview, another research agent, or a hybrid workflow can all publish MyST. Conversely, a
 human-led workflow can publish a future JATS or Quarto transport. ORAtlas therefore has no “ARS
-adapter” or “AIreview adapter”. MyST 0.2.0 remains the only production adapter in this release;
+adapter” or “AIreview adapter”. MyST 0.2.0 and 0.3.0 use the same production `myst` adapter;
 the second format used by tests is synthetic and is not a support claim.
 
 ```
@@ -135,7 +154,7 @@ artifacts, validates captures, verifies published structure, normalizes generic 
 occurrence, optional contributor and optional production records, may normalize a bounded
 plain-text content corpus, and resolves exact targets.
 It never fetches the network, executes publication code or plugins, or infers production history.
-MyST 0.2.0 is one implementation of that contract.
+MyST manifest protocols 0.2.0 and 0.3.0 are two closed versions implemented by that one adapter.
 
 Production history is optional, exact-version, and append-only:
 
@@ -160,6 +179,11 @@ Multiple assertions may coexist. A correction creates a new assertion with
 `PublicationVersion` starts with no assertions unless its source or an attributable editor records
 them separately. MyST 0.2.0 declares none, and remains fully valid.
 
+MyST 0.3.0 carries at most one source production declaration. Actor `id` values are checked only
+for uniqueness inside that source declaration, then stripped; they are not stored as public actor
+`identifier` metadata. ORAtlas derives the generic assertion-level activities as a de-duplicated
+first-seen union in actor order and activity order, then strips each actor's local activity list.
+
 Public reads are `GET /api/publication-versions/{id}/production-provenance`. Editor/admin writes use
 the corresponding `/api/editorial/...` route. Adapter-originated source declarations enter through
 the generic normalized registration result, never through a MyST-specific hook.
@@ -172,13 +196,25 @@ declared identifiers (including ORCID or ROR), affiliations, ordered roles, one-
 optional public URL, and provenance bound to the exact captured artifact that declared it. Missing
 `contributors` means `not-declared`; it is valid and is distinct from an explicitly declared empty
 list. MyST protocol 0.2.0 supplies no contributor field, so its existing registrations remain valid
-without reinterpretation.
+without reinterpretation. MyST 0.3.0 preserves the exact declared order and binds every contributor
+to the captured `publication-manifest` slot identity and exact manifest-byte SHA-256.
 
 Contributor rows are immutable and version-scoped. Version 2 never updates or inherits version 1's
 snapshot. Declared ORCID/ROR values remain metadata: ORAtlas does not resolve them, create a
 canonical `Person`, or merge people from names, affiliation, email, GitHub, ORCID, or ROR. Public
 reads are `GET /api/publication-versions/{id}/contributors`; the DTO reports declaration status and
 completeness and never exposes private email by default.
+
+## MyST 0.3.0 release gate
+
+`.github/workflows/myst-030-compatibility.yml` is the release gate for
+`@neuronautix/myst` 0.3.0. It checks out `dhuzard/oratlas-myst` at exact commit
+`91b20fb5e405878b3f100ddbda297bd5448d598a`, builds and packs that source without using npm 0.3.0,
+creates a fresh external MyST publication, and sends its real emitted artifacts through hardened
+verification, registration, replay, content normalization, canonical claim materialization, and
+PublicationVersion packet 1.3.0 assembly. A green gate is the compatibility assertion that ORAtlas
+accepts both frozen MyST 0.2.0 and release-candidate MyST 0.3.0; it does not publish or tag either
+repository.
 
 ## Publication transfer and continuity
 

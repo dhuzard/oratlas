@@ -188,7 +188,7 @@ describe("closed, versioned adapter and target metadata", () => {
     };
     expect(publicationAdapterBindingSchema.safeParse(binding).success).toBe(true);
     expect(
-      publicationAdapterBindingSchema.safeParse({ ...binding, protocolVersion: "0.3.0" }).success,
+      publicationAdapterBindingSchema.safeParse({ ...binding, protocolVersion: "0.4.0" }).success,
     ).toBe(false);
     expect(publicationAdapterBindingSchema.safeParse({ ...binding, type: "quarto" }).success).toBe(
       false,

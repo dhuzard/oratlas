@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
-  MYST_PUBLICATION_PROTOCOL_VERSION,
+  MYST_CLAIM_RECORD_PROTOCOL_VERSION,
+  MYST_LEGACY_PUBLICATION_PROTOCOL_VERSION,
   PUBLICATION_TYPES,
   type PublicationSourceDescriptor,
 } from "@oratlas/contracts";
@@ -30,7 +31,7 @@ const SOURCES_V2 = digest("2");
 
 function claimRecord(overrides: Record<string, unknown> = {}) {
   return {
-    schemaVersion: MYST_PUBLICATION_PROTOCOL_VERSION,
+    schemaVersion: MYST_CLAIM_RECORD_PROTOCOL_VERSION,
     id: "hpa-axis-mediation",
     text: "Adolescent stress alters HPA reactivity [@mccormick2010].",
     claimType: "mechanistic",
@@ -71,7 +72,7 @@ function manifest(overrides: Record<string, unknown> = {}) {
     ...((overrides.publication as Record<string, unknown>) ?? {}),
   };
   return {
-    schemaVersion: MYST_PUBLICATION_PROTOCOL_VERSION,
+    schemaVersion: MYST_LEGACY_PUBLICATION_PROTOCOL_VERSION,
     generator: { name: "@oratlas/myst", version: "0.2.0" },
     publication,
     adapter: { type: "myst", xref: "myst.xref.json" },
@@ -345,7 +346,7 @@ describe("structural provenance levels", () => {
 describe("the pinned 0.2.0 adapter contract", () => {
   it("rejects an unimplemented schema version, adapter or target", () => {
     expect(
-      mystPublicationManifestSchema.safeParse({ ...manifest(), schemaVersion: "0.3.0" }).success,
+      mystPublicationManifestSchema.safeParse({ ...manifest(), schemaVersion: "0.4.0" }).success,
     ).toBe(false);
     expect(
       mystPublicationManifestSchema.safeParse({

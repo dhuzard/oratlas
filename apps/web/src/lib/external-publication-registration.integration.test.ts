@@ -1,9 +1,9 @@
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
-import { existsSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { canonicalJson, type PublicationType } from "@oratlas/contracts";
 import {
@@ -26,7 +26,9 @@ const databasePath = join(
   tmpdir(),
   `oratlas-external-registration-${process.pid}-${Date.now()}.db`,
 );
-const databaseUrl = `file:${databasePath.replaceAll("\\", "/")}?connection_limit=1`;
+const postgresDatabaseUrl = process.env.EXTERNAL_PUBLICATION_REGISTRATION_TEST_DATABASE_URL;
+const databaseUrl =
+  postgresDatabaseUrl ?? `file:${databasePath.replaceAll("\\", "/")}?connection_limit=1`;
 const observedAt = "2026-08-24T08:00:00.000Z";
 const sha = (value: string) => createHash("sha256").update(value).digest("hex");
 
@@ -457,14 +459,19 @@ beforeAll(async () => {
       "db",
       "push",
       "--schema",
-      resolve(process.cwd(), "packages/db/prisma/schema.prisma"),
+      resolve(
+        process.cwd(),
+        postgresDatabaseUrl
+          ? "packages/db/prisma/schema.postgres.prisma"
+          : "packages/db/prisma/schema.prisma",
+      ),
       "--skip-generate",
     ],
     { env: { ...process.env, DATABASE_URL: databaseUrl, RUST_LOG: "info" }, stdio: "pipe" },
   );
   const database = await import("./db");
   prisma = database.prisma;
-  await applyDatabaseGuards(prisma, "sqlite");
+  await applyDatabaseGuards(prisma, postgresDatabaseUrl ? "postgresql" : "sqlite");
   const registration = await import("./external-publication-registration");
   persist = registration.persistVerifiedExternalPublication;
   const editor = await prisma.user.create({
@@ -479,17 +486,285 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await prisma?.$disconnect();
-  for (const path of [
-    databasePath,
-    `${databasePath}-journal`,
-    `${databasePath}-wal`,
-    `${databasePath}-shm`,
-  ]) {
-    if (existsSync(path)) rmSync(path);
+  if (!postgresDatabaseUrl) {
+    for (const path of [
+      databasePath,
+      `${databasePath}-journal`,
+      `${databasePath}-wal`,
+      `${databasePath}-shm`,
+    ]) {
+      if (existsSync(path)) rmSync(path);
+    }
   }
 });
 
 describe("external publication registration persistence", () => {
+  const upstreamTarball = process.env.ORATLAS_MYST_030_TARBALL;
+  const crossRepositoryIt = upstreamTarball ? it : it.skip;
+
+  crossRepositoryIt(
+    "passes the pinned real @neuronautix/myst 0.3.0 release gate end to end",
+    async () => {
+      const workspace = mkdtempSync(join(tmpdir(), "oratlas-myst-030-gate-"));
+      const project = join(workspace, "external-publication");
+      mkdirSync(project, { recursive: true });
+      const write = (name: string, content: string) => {
+        const path = join(project, name);
+        mkdirSync(resolve(path, ".."), { recursive: true });
+        writeFileSync(path, content, "utf8");
+      };
+      const run = (command: string, args: string[]) => {
+        execFileSync(command, args, { cwd: project, stdio: "pipe" });
+      };
+      let server: ReturnType<typeof createServer> | undefined;
+      try {
+        write(
+          "package.json",
+          `${JSON.stringify({ name: "oratlas-myst-release-gate", private: true, type: "module" }, null, 2)}\n`,
+        );
+        write(
+          "myst.yml",
+          [
+            "version: 1",
+            "project:",
+            "  id: oratlas-myst-release-gate",
+            "  title: Pinned MyST 0.3 release gate",
+            "  authors:",
+            "    - id: alice",
+            "      name: Alice Example",
+            "      orcid: 0000-0002-1825-0097",
+            "    - id: bob",
+            "      name: Bob Example",
+            "  plugins:",
+            "    - node_modules/@neuronautix/myst/dist/oratlas-myst.mjs",
+            "  static_files:",
+            "    - .oratlas/oratlas.manifest.json",
+            "    - .oratlas/oratlas",
+            "  toc:",
+            "    - file: index.md",
+            "site:",
+            "  template: ./_tpl",
+            "",
+          ].join("\n"),
+        );
+        write(
+          "oratlas.yml",
+          [
+            "canonical_url: https://release-gate.example/publication/",
+            "production:",
+            "  source_assertion_key: release-gate-production",
+            "  mode: hybrid",
+            "  actors:",
+            "    - id: ars",
+            "      kind: workflow",
+            "      name: Academic Research Skills",
+            "      version: 1.2.0",
+            "      activities: [evidence-search, drafting]",
+            "    - id: alice-editor",
+            "      kind: person",
+            "      name: Alice Example",
+            "      activities: [drafting, editing, reviewing]",
+            "",
+          ].join("\n"),
+        );
+        write(
+          "index.md",
+          [
+            "# Pinned MyST 0.3 release gate",
+            "",
+            "This real publication exercises the immutable scientific content path.",
+            "",
+            ":::{oratlas:claim} release-gate-finding",
+            ":type: empirical",
+            "",
+            "The pinned upstream release candidate emits a frozen claim record.",
+            ":::",
+            "",
+          ].join("\n"),
+        );
+        write(
+          "_tpl/template.yml",
+          'version: "1"\nkind: site\nmyst: v1\ntitle: Offline release-gate template\n',
+        );
+
+        const npmCommand = process.platform === "win32" ? process.execPath : "npm";
+        const npmArguments =
+          process.platform === "win32"
+            ? [join(dirname(process.execPath), "node_modules", "npm", "bin", "npm-cli.js")]
+            : [];
+        run(npmCommand, [
+          ...npmArguments,
+          "install",
+          "--no-audit",
+          "--no-fund",
+          resolve(upstreamTarball!),
+          "mystmd@1.10.1",
+        ]);
+        run(process.execPath, [
+          join(project, "node_modules", "@neuronautix", "myst", "dist", "lib", "cli", "main.js"),
+          "export",
+        ]);
+        run(process.execPath, [
+          join(project, "node_modules", "mystmd", "dist", "myst.cjs"),
+          "build",
+          "--site",
+        ]);
+
+        const siteRoot = join(project, "_build", "site");
+        const publicRoot = join(siteRoot, "public");
+        for (const path of [
+          join(publicRoot, "oratlas.manifest.json"),
+          join(publicRoot, "oratlas", "claims.jsonl"),
+          join(siteRoot, "myst.xref.json"),
+        ]) {
+          expect(existsSync(path), path).toBe(true);
+        }
+
+        server = createServer((request, response) => {
+          const pathname = new URL(request.url ?? "/", "http://fixture.test").pathname;
+          const segments = pathname.split("/").filter(Boolean);
+          const root =
+            pathname === "/oratlas.manifest.json" || pathname.startsWith("/oratlas/")
+              ? publicRoot
+              : siteRoot;
+          const path = join(root, ...segments);
+          if (!existsSync(path)) {
+            response.writeHead(404, { "content-type": "text/plain" });
+            response.end("missing");
+            return;
+          }
+          response.writeHead(200, {
+            "content-type": pathname.endsWith(".jsonl")
+              ? "application/x-ndjson"
+              : "application/json",
+          });
+          response.end(readFileSync(path));
+        });
+        await new Promise<void>((resolveListen) => server!.listen(0, "127.0.0.1", resolveListen));
+        const port = (server.address() as { port: number }).port;
+        const transport = createHardenedRemoteFetcher({
+          allowHttpForTests: true,
+          allowPrivateAddressesForTests: true,
+          allowNonDefaultPortsForTests: true,
+          resolver: async () => [{ address: "127.0.0.1", family: 4 }],
+        });
+        const fetcher: RemoteFetcher = {
+          async fetch(url, request) {
+            const transportUrl = new URL(url);
+            transportUrl.protocol = "http:";
+            transportUrl.hostname = "127.0.0.1";
+            transportUrl.port = String(port);
+            const result = await transport.fetch(transportUrl.href, request);
+            const observed = (value: string) => {
+              const normalized = new URL(value);
+              normalized.protocol = "https:";
+              normalized.hostname = "release-gate.test";
+              normalized.port = String(port);
+              return normalized.href;
+            };
+            return {
+              ...result,
+              requestedUrl: observed(result.requestedUrl),
+              finalUrl: observed(result.finalUrl),
+              provenance: {
+                ...result.provenance,
+                redirects: result.provenance.redirects.map((redirect) => ({
+                  ...redirect,
+                  from: observed(redirect.from),
+                  to: observed(redirect.to),
+                })),
+              },
+            };
+          },
+        };
+        const verified = await verifyExternalPublication({
+          manifestUrl: `https://release-gate.test:${port}/oratlas.manifest.json`,
+          publicationType: "research-article",
+          registrationKey: "pinned-oratlas-myst-030-release-gate",
+          now: () => new Date("2026-08-25T00:00:00.000Z"),
+          fetcher,
+        });
+        expect(verified.manifest.schemaVersion).toBe("0.3.0");
+        expect(verified.normalized.version.adapter.protocolVersion).toBe("0.3.0");
+        expect(verified.normalized.occurrences).toHaveLength(1);
+        expect(
+          JSON.parse(readFileSync(join(publicRoot, "oratlas", "claims.jsonl"), "utf8").trim())
+            .schemaVersion,
+        ).toBe("0.2.0");
+        expect(verified.normalized.contributors?.map((value) => value.displayName)).toEqual([
+          "Alice Example",
+          "Bob Example",
+        ]);
+        expect(verified.normalized.productionAssertions?.[0]).toMatchObject({
+          sourceAssertionKey: "release-gate-production",
+          mode: "hybrid",
+          strength: "source-declared",
+          activities: ["evidence-search", "drafting", "editing", "reviewing"],
+          actors: [
+            { kind: "workflow", name: "Academic Research Skills", version: "1.2.0" },
+            { kind: "person", name: "Alice Example" },
+          ],
+        });
+        expect(verified.normalized.content?.documents.length).toBeGreaterThan(0);
+
+        const created = await persist(verified, editorId);
+        expect(created.replayed).toBe(false);
+        expect(await persist(verified, editorId)).toMatchObject({
+          publicationVersionId: created.publicationVersionId,
+          replayed: true,
+        });
+        expect(
+          await prisma.publicationVersionContributor.count({
+            where: { publicationVersionId: created.publicationVersionId },
+          }),
+        ).toBe(2);
+        expect(
+          await prisma.publicationProductionAssertion.count({
+            where: { publicationVersionId: created.publicationVersionId },
+          }),
+        ).toBe(1);
+
+        const occurrence = await prisma.publicationClaimOccurrence.findFirstOrThrow({
+          where: { publicationVersionId: created.publicationVersionId },
+        });
+        await (
+          await import("./external-publication-materialization")
+        ).materializeExternalPublicationClaim(occurrence.id, editorId);
+        const packet = await (
+          await import("./publication-version-packet")
+        ).getPublicationVersionPacket(created.publicationVersionId);
+        expect(packet).toMatchObject({
+          schemaVersion: "1.3.0",
+          contributors: [{ displayName: "Alice Example" }, { displayName: "Bob Example" }],
+          productionProvenance: [{ mode: "hybrid", strength: "source-declared" }],
+        });
+        expect(packet.content.length).toBeGreaterThan(0);
+        expect(packet.occurrences).toHaveLength(1);
+        expect(packet.occurrences[0]?.canonicalBinding).not.toBeNull();
+        expect(packet.captures.map((capture) => capture.artifactKind)).toEqual(
+          expect.arrayContaining([
+            "publication-manifest",
+            "cross-reference-inventory",
+            "claim-stream",
+            "published-page-data",
+          ]),
+        );
+      } finally {
+        if (server) {
+          await new Promise<void>((resolveClose, reject) =>
+            server!.close((error) => (error ? reject(error) : resolveClose())),
+          );
+        }
+        if (process.env.ORATLAS_MYST_KEEP_GATE_WORKSPACE === "1") {
+          process.stderr.write(`Retained MyST release-gate workspace: ${workspace}\n`);
+        } else {
+          rmSync(workspace, { recursive: true, force: true });
+        }
+      }
+    },
+    240_000,
+  );
+
   it("is replay-idempotent and creates a new immutable version when sources change", async () => {
     const first = await persist(verifiedFixture(), editorId);
     expect(first.replayed).toBe(false);
@@ -577,6 +852,38 @@ describe("external publication registration persistence", () => {
     });
   });
 
+  it("converges concurrent exact registration with contributor and production state", async () => {
+    const buildFixture = () => {
+      const fixture = withContributors(verifiedFixture(sha("concurrent-myst-030")));
+      fixture.normalized.productionAssertions = [
+        {
+          sourceAssertionKey: "concurrent-production",
+          mode: "hybrid",
+          actors: [
+            { kind: "workflow", name: "Concurrent workflow" },
+            { kind: "person", name: "Alice Example" },
+          ],
+          activities: ["drafting", "editing"],
+          strength: "source-declared",
+        },
+      ];
+      return fixture;
+    };
+    const results = await Promise.all([
+      persist(buildFixture(), editorId),
+      persist(buildFixture(), editorId),
+    ]);
+    expect(new Set(results.map((result) => result.publicationVersionId)).size).toBe(1);
+    expect(results.map((result) => result.replayed).sort()).toEqual([false, true]);
+    const publicationVersionId = results[0]!.publicationVersionId;
+    expect(
+      await prisma.publicationVersionContributor.count({ where: { publicationVersionId } }),
+    ).toBe(2);
+    expect(
+      await prisma.publicationProductionAssertion.count({ where: { publicationVersionId } }),
+    ).toBe(1);
+  });
+
   it("persists optional adapter-normalized production assertions without a MyST branch", async () => {
     const verified = verifiedFixture(sha("document-set-with-production"));
     verified.normalized.productionAssertions = [
@@ -602,6 +909,16 @@ describe("external publication registration persistence", () => {
       publicationVersionId: created.publicationVersionId,
       replayed: true,
     });
+    await expect(
+      persist(verifiedFixture(sha("document-set-with-production")), editorId),
+    ).rejects.toThrow(/immutable source production assertions/);
+    const conflictingMode = verifiedFixture(sha("document-set-with-production"));
+    conflictingMode.normalized.productionAssertions = [
+      { ...verified.normalized.productionAssertions[0]!, mode: "human" },
+    ];
+    await expect(persist(conflictingMode, editorId)).rejects.toThrow(
+      /immutable source production assertions/,
+    );
     expect(
       await prisma.publicationProductionAssertion.findMany({
         where: { publicationVersionId: created.publicationVersionId },

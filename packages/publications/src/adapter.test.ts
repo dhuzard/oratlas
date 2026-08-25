@@ -203,9 +203,9 @@ const syntheticAdapter: PublicationAdapter<
 };
 
 describe("generic publication adapter boundary", () => {
-  it("uses the exact same frozen MyST adapter for human and ARS production histories", () => {
+  it("uses the same MyST format adapter without inferring human or ARS production", () => {
     const humanInput = mystInput("human-paper");
-    expect(mystPublicationAdapter.supportedProtocolVersions).toEqual(["0.2.0"]);
+    expect(mystPublicationAdapter.supportedProtocolVersions).toEqual(["0.2.0", "0.3.0"]);
     expect(mystPublicationAdapter.recognizeManifest(humanInput.manifest)).toBe(true);
     expect(mystPublicationAdapter.describeRequiredArtifacts(humanInput.manifest)).toHaveLength(2);
     mystPublicationAdapter.validateCapturedArtifacts({

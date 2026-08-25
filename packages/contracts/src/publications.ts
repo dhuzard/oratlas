@@ -97,8 +97,17 @@ export const publicationStructuralProvenanceSchema = z.enum(
 );
 export type PublicationStructuralProvenance = z.infer<typeof publicationStructuralProvenanceSchema>;
 
-/** Pinned external protocol version of the `myst` adapter (dhuzard/oratlas-myst). */
-export const MYST_PUBLICATION_PROTOCOL_VERSION = "0.2.0" as const;
+/** Current manifest protocol emitted by the `myst` adapter (dhuzard/oratlas-myst). */
+export const MYST_PUBLICATION_PROTOCOL_VERSION = "0.3.0" as const;
+/** Frozen legacy manifest protocol, retained as a permanent acceptance contract. */
+export const MYST_LEGACY_PUBLICATION_PROTOCOL_VERSION = "0.2.0" as const;
+/** Closed set of manifest protocols accepted by ORAtlas. */
+export const MYST_SUPPORTED_PUBLICATION_PROTOCOL_VERSIONS = [
+  MYST_LEGACY_PUBLICATION_PROTOCOL_VERSION,
+  MYST_PUBLICATION_PROTOCOL_VERSION,
+] as const;
+/** Claim records remain on the frozen 0.2.0 contract for both manifest versions. */
+export const MYST_CLAIM_RECORD_PROTOCOL_VERSION = "0.2.0" as const;
 
 /** Which artifact is authoritative for a publication's claim declarations. */
 export const PUBLICATION_CLAIM_DECLARATION_AUTHORITIES = [
@@ -350,7 +359,7 @@ export const publicationAdapterBindingSchema = z.discriminatedUnion("type", [
   z
     .object({
       type: z.literal("myst"),
-      protocolVersion: z.literal(MYST_PUBLICATION_PROTOCOL_VERSION),
+      protocolVersion: z.enum(MYST_SUPPORTED_PUBLICATION_PROTOCOL_VERSIONS),
       /** Path of MyST's own cross-reference inventory, as the publication declared it. */
       crossReferenceInventoryPath: safeRepoRelativePathSchema,
       generatorName: z.string().min(1).max(120),
@@ -606,7 +615,7 @@ export const externalPublicationRegistrationResultSchema = z
     captureId: z.string().min(1),
     publicationId: z.string().min(1),
     publicationVersionId: z.string().min(1),
-    manifestSchemaVersion: z.literal(MYST_PUBLICATION_PROTOCOL_VERSION),
+    manifestSchemaVersion: z.enum(MYST_SUPPORTED_PUBLICATION_PROTOCOL_VERSIONS),
     adapterType: publicationAdapterTypeSchema,
     claimOccurrenceCount: z.number().int().nonnegative(),
     verificationLevel: publicationStructuralProvenanceSchema,

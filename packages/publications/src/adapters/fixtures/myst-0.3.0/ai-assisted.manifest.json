@@ -1,0 +1,50 @@
+{
+  "schemaVersion": "0.3.0",
+  "generator": { "name": "@neuronautix/myst", "version": "0.3.0" },
+  "publication": {
+    "version": {
+      "sourcesSha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    }
+  },
+  "adapter": { "type": "myst", "xref": "myst.xref.json" },
+  "artifacts": {
+    "claims": {
+      "path": "oratlas/claims.jsonl",
+      "format": "jsonl",
+      "records": 0,
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "declarations": "publication-source"
+    }
+  },
+  "contributors": [
+    {
+      "sourceContributorKey": "alice",
+      "kind": "person",
+      "displayName": "Alice Smith",
+      "roles": ["author"],
+      "position": 1
+    }
+  ],
+  "production": {
+    "sourceAssertionKey": "publication-production",
+    "strength": "source-declared",
+    "mode": "ai-assisted",
+    "actors": [
+      {
+        "id": "assistant",
+        "kind": "ai-system",
+        "name": "Example Assistant",
+        "provider": "Example Provider",
+        "model": "example-model",
+        "modelVersion": "2026-08",
+        "activities": ["drafting"]
+      },
+      {
+        "id": "alice-editor",
+        "kind": "person",
+        "name": "Alice Smith",
+        "activities": ["editing", "reviewing"]
+      }
+    ]
+  }
+}
