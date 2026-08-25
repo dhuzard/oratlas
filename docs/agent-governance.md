@@ -175,3 +175,7 @@ Every agent action records its provenance (`AgentRun`, `KnowledgeLinkProposal.ag
 `FieldProvenance`). Editorially meaningful changes are written to the append-only `AuditEvent`
 log. Prompt versions and protocol versions are recorded so results are reproducible and
 attributable.
+
+## Scientific verification agents
+
+AI/hybrid verification is an explicit protocol execution mode and remains external to ORAtlas. A linked `AgentRun` or `ExecutionPassport` establishes attributable execution provenance, not scientific meaning: execution-attested is not reproduced, and an AI audit is not deterministic verification. The immutable VerificationFinding records what an output means relative to its exact frozen subject and protocol. Verifier credentials cannot mutate agents, publications, canonical graph, TRUST, certification, or editorial state.

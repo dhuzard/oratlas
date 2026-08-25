@@ -87,6 +87,11 @@ model User {
   certificationCredentialsRevoked CertifierCredential[]             @relation("credentialRevoker")
   certificationRunsRequested      CertificationRun[]                @relation("certificationRunRequester")
   certificationLifecycleEvents    CertificationLifecycleEvent[]     @relation("certificationLifecycleActor")
+  verifiersCreated                Verifier[]                        @relation("verifierCreator")
+  verifierCredentialsIssued       VerifierCredential[]              @relation("verifierCredentialIssuer")
+  verifierCredentialsRevoked      VerifierCredential[]              @relation("verifierCredentialRevoker")
+  verificationRunsRequested       VerificationRun[]                 @relation("verificationRunRequester")
+  verificationLifecycleEvents     VerificationRunLifecycleEvent[]   @relation("verificationLifecycleUserActor")
 
   @@index([githubLoginNormalized])
 }
@@ -607,6 +612,7 @@ model KnowledgeNodeVersion {
   confirmedAsTarget                NodeEdge[]                  @relation("confirmedTargetVersion")
   synthesisMemberships             SynthesisDraftMembership[]
   synthesisCitations               SynthesisDraftCitation[]
+  verificationRuns                 VerificationRun[]
 
   @@unique([knowledgeNodeId, snapshotId])
   @@index([snapshotId])
@@ -786,12 +792,13 @@ model ReplicationBrief {
   createdAt               DateTime  @default(now())
   updatedAt               DateTime  @updatedAt
 
-  createdBy   User                    @relation("replicationCreator", fields: [createdById], references: [id], onDelete: Restrict)
-  publishedBy User?                   @relation("replicationPublisher", fields: [publishedById], references: [id], onDelete: Restrict)
-  claimedBy   User?                   @relation("replicationClaimant", fields: [claimedById], references: [id], onDelete: Restrict)
-  completedBy User?                   @relation("replicationCompleter", fields: [completedById], references: [id], onDelete: Restrict)
-  withdrawnBy User?                   @relation("replicationWithdrawer", fields: [withdrawnById], references: [id], onDelete: Restrict)
-  claims      ReplicationBriefClaim[]
+  createdBy        User                    @relation("replicationCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  publishedBy      User?                   @relation("replicationPublisher", fields: [publishedById], references: [id], onDelete: Restrict)
+  claimedBy        User?                   @relation("replicationClaimant", fields: [claimedById], references: [id], onDelete: Restrict)
+  completedBy      User?                   @relation("replicationCompleter", fields: [completedById], references: [id], onDelete: Restrict)
+  withdrawnBy      User?                   @relation("replicationWithdrawer", fields: [withdrawnById], references: [id], onDelete: Restrict)
+  claims           ReplicationBriefClaim[]
+  verificationRuns VerificationRun[]
 
   @@index([status, publishedAt])
   @@index([effortBand, status])
@@ -851,6 +858,7 @@ model ExecutionPassport {
   artifacts            ExecutionPassportArtifact[]
   productionAssertions PublicationProductionAssertion[]
   certificationResults CertificationResult[]
+  verificationRuns     VerificationRun[]
 
   @@index([verificationStatus, registeredAt])
   @@index([commitSha])
@@ -1362,6 +1370,7 @@ model AgentRun {
   synthesisGenerationClaim SynthesisGenerationRequestClaim?
   productionAssertions     PublicationProductionAssertion[]
   certificationResults     CertificationResult[]
+  verificationRuns         VerificationRun[]
 }
 
 /// Private immutable model output awaiting an explicit editorial decision.
@@ -2098,6 +2107,7 @@ model PublicationVersion {
   productionAssertions PublicationProductionAssertion[]
   certificationRuns    CertificationRun[]
   certificationResults CertificationResult[]
+  verificationRuns     VerificationRun[]
 
   /// Distinct publications may legitimately share a sourcesSha256, so exact
   /// version identity is scoped to its publication rather than global.
@@ -2300,6 +2310,236 @@ model CertificationLifecycleEvent {
   @@index([resultId, createdAt])
 }
 
+/// Accountable external service, person, or organization which may execute
+/// scientific verification. Identity is attribution, never scientific authority.
+model Verifier {
+  id          String    @id @default(cuid())
+  slug        String    @unique
+  name        String
+  description String
+  publicUrl   String?
+  /// active | suspended | retired
+  status      String    @default("active")
+  createdById String
+  createdAt   DateTime  @default(now())
+  activatedAt DateTime?
+  retiredAt   DateTime?
+
+  createdBy       User                            @relation("verifierCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  protocols       VerificationProtocol[]          @relation("verificationProtocolAuthority")
+  credentials     VerifierCredential[]
+  claimedRuns     VerificationRun[]               @relation("verificationRunClaimant")
+  artifacts       VerificationArtifact[]
+  findings        VerificationFinding[]
+  lifecycleEvents VerificationRunLifecycleEvent[] @relation("verificationLifecycleVerifierActor")
+
+  @@index([status, name])
+}
+
+/// One exact immutable version of a scientific verification procedure.
+model VerificationProtocol {
+  id                        String   @id @default(cuid())
+  authorityVerifierId       String
+  seriesKey                 String
+  protocolVersion           String
+  title                     String
+  description               String
+  verificationType          String
+  executionMode             String
+  supportedSubjectTypesJson String
+  definitionJson            String
+  definitionSha256          String
+  /// active | retired
+  status                    String   @default("active")
+  supersedesProtocolId      String?  @unique
+  createdAt                 DateTime @default(now())
+
+  authority    Verifier              @relation("verificationProtocolAuthority", fields: [authorityVerifierId], references: [id], onDelete: Restrict)
+  supersedes   VerificationProtocol? @relation("VerificationProtocolSupersession", fields: [supersedesProtocolId], references: [id], onDelete: Restrict)
+  supersededBy VerificationProtocol? @relation("VerificationProtocolSupersession")
+  runs         VerificationRun[]
+
+  @@unique([authorityVerifierId, seriesKey, protocolVersion])
+  @@index([status, verificationType])
+}
+
+/// Scoped verifier machine credential. The raw token is returned once only.
+model VerifierCredential {
+  id          String    @id @default(cuid())
+  verifierId  String
+  label       String
+  tokenPrefix String    @unique
+  tokenHash   String    @unique
+  scopesJson  String
+  expiresAt   DateTime?
+  revokedAt   DateTime?
+  issuedById  String
+  revokedById String?
+  createdAt   DateTime  @default(now())
+  lastUsedAt  DateTime?
+
+  verifier  Verifier @relation(fields: [verifierId], references: [id], onDelete: Restrict)
+  issuedBy  User     @relation("verifierCredentialIssuer", fields: [issuedById], references: [id], onDelete: Restrict)
+  revokedBy User?    @relation("verifierCredentialRevoker", fields: [revokedById], references: [id], onDelete: Restrict)
+
+  @@index([verifierId, revokedAt])
+}
+
+/// Requested, externally executed scientific verification over one exact
+/// immutable subject and one frozen input snapshot.
+model VerificationRun {
+  id                           String    @id @default(cuid())
+  protocolId                   String
+  publicationVersionId         String?
+  publicationClaimOccurrenceId String?
+  knowledgeNodeVersionId       String?
+  claimedVerifierId            String?
+  /// requested | claimed | running | completed | failed | cancelled
+  status                       String    @default("requested")
+  inputProfile                 String
+  inputProfileVersion          String
+  inputSchemaVersion           String
+  inputJson                    String
+  inputSha256                  String
+  inputCapturedAt              DateTime
+  idempotencyKey               String    @unique
+  requestedById                String
+  requestedAt                  DateTime
+  claimedAt                    DateTime?
+  startedAt                    DateTime?
+  completedAt                  DateTime?
+  terminalReason               String?
+  leaseTokenHash               String?
+  leaseIssuedAt                DateTime?
+  leaseExpiresAt               DateTime?
+  leaseGeneration              Int       @default(0)
+  agentRunId                   String?
+  executionPassportId          String?
+  replicationBriefId           String?
+  createdAt                    DateTime  @default(now())
+
+  protocol                   VerificationProtocol            @relation(fields: [protocolId], references: [id], onDelete: Restrict)
+  publicationVersion         PublicationVersion?             @relation(fields: [publicationVersionId], references: [id], onDelete: Restrict)
+  publicationClaimOccurrence PublicationClaimOccurrence?     @relation(fields: [publicationClaimOccurrenceId], references: [id], onDelete: Restrict)
+  knowledgeNodeVersion       KnowledgeNodeVersion?           @relation(fields: [knowledgeNodeVersionId], references: [id], onDelete: Restrict)
+  claimedVerifier            Verifier?                       @relation("verificationRunClaimant", fields: [claimedVerifierId], references: [id], onDelete: Restrict)
+  requestedBy                User                            @relation("verificationRunRequester", fields: [requestedById], references: [id], onDelete: Restrict)
+  agentRun                   AgentRun?                       @relation(fields: [agentRunId], references: [id], onDelete: Restrict)
+  executionPassport          ExecutionPassport?              @relation(fields: [executionPassportId], references: [id], onDelete: Restrict)
+  replicationBrief           ReplicationBrief?               @relation(fields: [replicationBriefId], references: [id], onDelete: Restrict)
+  artifacts                  VerificationArtifact[]
+  findings                   VerificationFinding[]
+  lifecycleEvents            VerificationRunLifecycleEvent[]
+
+  @@index([publicationVersionId, createdAt])
+  @@index([publicationClaimOccurrenceId, createdAt])
+  @@index([knowledgeNodeVersionId, createdAt])
+  @@index([protocolId, status])
+  @@index([status, leaseExpiresAt])
+}
+
+/// Prepared immutable artifact metadata. Bytes live in a dedicated bounded
+/// binary row rather than JSON; only completed artifacts may support findings.
+model VerificationArtifact {
+  id                    String    @id @default(cuid())
+  verificationRunId     String
+  submittedByVerifierId String
+  artifactKey           String
+  kind                  String
+  mediaType             String
+  sha256                String
+  byteLength            Int
+  visibility            String
+  /// prepared | uploaded | completed
+  status                String    @default("prepared")
+  storageRef            String?
+  provenanceJson        String
+  preparedAt            DateTime
+  uploadExpiresAt       DateTime
+  uploadedAt            DateTime?
+  completedAt           DateTime?
+  createdAt             DateTime  @default(now())
+
+  run               VerificationRun               @relation(fields: [verificationRunId], references: [id], onDelete: Restrict)
+  submittedBy       Verifier                      @relation(fields: [submittedByVerifierId], references: [id], onDelete: Restrict)
+  blob              VerificationArtifactBlob?
+  findingReferences VerificationFindingArtifact[]
+
+  @@unique([verificationRunId, artifactKey])
+  @@index([verificationRunId, status])
+  @@index([sha256])
+}
+
+/// Dedicated bounded binary storage for one prepared verification artifact.
+model VerificationArtifactBlob {
+  artifactId String   @id
+  bytes      Bytes
+  createdAt  DateTime @default(now())
+
+  artifact VerificationArtifact @relation(fields: [artifactId], references: [id], onDelete: Restrict)
+}
+
+/// Immutable attributed scientific/procedural finding. Contradictory findings
+/// coexist; corrections create a new row with explicit supersession.
+model VerificationFinding {
+  id                    String   @id @default(cuid())
+  verificationRunId     String
+  submittedByVerifierId String
+  findingKey            String
+  findingType           String
+  status                String
+  impact                String
+  statement             String
+  rationale             String
+  reportedJson          String?
+  observedJson          String?
+  toleranceJson         String?
+  evidenceRefsJson      String
+  payloadJson           String
+  payloadSha256         String
+  supersedesFindingId   String?  @unique
+  createdAt             DateTime @default(now())
+
+  run          VerificationRun               @relation(fields: [verificationRunId], references: [id], onDelete: Restrict)
+  submittedBy  Verifier                      @relation(fields: [submittedByVerifierId], references: [id], onDelete: Restrict)
+  supersedes   VerificationFinding?          @relation("VerificationFindingSupersession", fields: [supersedesFindingId], references: [id], onDelete: Restrict)
+  supersededBy VerificationFinding?          @relation("VerificationFindingSupersession")
+  artifacts    VerificationFindingArtifact[]
+
+  @@unique([verificationRunId, findingKey])
+  @@index([verificationRunId, status])
+  @@index([findingType, status])
+}
+
+model VerificationFindingArtifact {
+  verificationFindingId  String
+  verificationArtifactId String
+
+  finding  VerificationFinding  @relation(fields: [verificationFindingId], references: [id], onDelete: Restrict)
+  artifact VerificationArtifact @relation(fields: [verificationArtifactId], references: [id], onDelete: Restrict)
+
+  @@id([verificationFindingId, verificationArtifactId])
+  @@index([verificationArtifactId])
+}
+
+/// Append-only audit history for requested, claimed, reclaimed, started, and
+/// terminal verification lifecycle events.
+model VerificationRunLifecycleEvent {
+  id                String   @id @default(cuid())
+  verificationRunId String
+  kind              String
+  actorUserId       String?
+  actorVerifierId   String?
+  detailsJson       String
+  createdAt         DateTime @default(now())
+
+  run           VerificationRun @relation(fields: [verificationRunId], references: [id], onDelete: Restrict)
+  actorUser     User?           @relation("verificationLifecycleUserActor", fields: [actorUserId], references: [id], onDelete: Restrict)
+  actorVerifier Verifier?       @relation("verificationLifecycleVerifierActor", fields: [actorVerifierId], references: [id], onDelete: Restrict)
+
+  @@index([verificationRunId, createdAt])
+}
+
 /// Optional append-only declaration of how one exact publication version was
 /// produced. Production actors are not scholarly contributors, and neither
 /// the mode nor its evidence says anything about scientific merit.
@@ -2448,6 +2688,7 @@ model PublicationClaimOccurrence {
   publicationVersion PublicationVersion    @relation(fields: [publicationVersionId], references: [id], onDelete: Restrict)
   knowledgeNode      KnowledgeNode?        @relation("publicationClaimNode", fields: [knowledgeNodeId], references: [id], onDelete: Restrict)
   graphVersion       KnowledgeNodeVersion? @relation("publicationClaimGraphVersion")
+  verificationRuns   VerificationRun[]
 
   @@unique([publicationVersionId, sourceLocalClaimId])
   @@index([publicationVersionId])

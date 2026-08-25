@@ -134,3 +134,7 @@ public example entrypoint.
 
 Certification cannot mutate any of the other layers. It does not imply scientific truth,
 publication continuity, claim identity, authorship, or ORAtlas endorsement.
+
+## Relationship to scientific verification
+
+Generic scientific verification is a distinct later evidence layer. Verification findings do not change ORA Scientific Merit Pilot 0.1.0 and do not automatically create or alter certification. The generic evidence-reference vocabulary admits `verification-run`, `verification-finding`, and `verification-artifact` so a future protocol version can explicitly freeze selected evidence; historical CertificationRun snapshots and results remain byte-for-byte unchanged.

@@ -34,6 +34,14 @@ export const DATABASE_GUARD_NAMES = [
   "CertificationRun_shape_check",
   "CertificationResult_shape_check",
   "CertificationLifecycleEvent_shape_check",
+  "Verifier_shape_check",
+  "VerificationProtocol_shape_check",
+  "VerifierCredential_shape_check",
+  "VerificationRun_shape_check",
+  "VerificationArtifact_shape_check",
+  "VerificationFinding_shape_check",
+  "VerificationFindingArtifact_shape_check",
+  "VerificationRunLifecycleEvent_shape_check",
 ] as const;
 
 export const POSTGRES_DATABASE_GUARD_TRIGGER_NAMES = [
@@ -63,6 +71,17 @@ export const POSTGRES_DATABASE_GUARD_TRIGGER_NAMES = [
   "CertificationResult_immutable_guard",
   "CertificationLifecycleEvent_immutable_guard",
   "CertificationResult_binding_guard",
+  "VerificationProtocol_immutable_guard",
+  "VerifierCredential_immutable_guard",
+  "VerificationRun_immutable_guard",
+  "VerificationArtifact_immutable_guard",
+  "VerificationArtifactBlob_immutable_guard",
+  "VerificationFinding_immutable_guard",
+  "VerificationFindingArtifact_immutable_guard",
+  "VerificationRunLifecycleEvent_immutable_guard",
+  "VerificationArtifact_binding_guard",
+  "VerificationFinding_binding_guard",
+  "VerificationFindingArtifact_binding_guard",
 ] as const;
 
 export const POSTGRES_DATABASE_GUARD_SQL = [
@@ -399,6 +418,60 @@ export const POSTGRES_DATABASE_GUARD_SQL = [
     "kind" IN ('issued', 'superseded', 'withdrawn', 'revoked')
     AND (("actorUserId" IS NOT NULL)::int + ("actorCertifierId" IS NOT NULL)::int) = 1
   )`,
+  'ALTER TABLE "Verifier" DROP CONSTRAINT IF EXISTS "Verifier_shape_check"',
+  `ALTER TABLE "Verifier" ADD CONSTRAINT "Verifier_shape_check" CHECK (
+    "status" IN ('active', 'suspended', 'retired')
+    AND (("status" = 'retired' AND "retiredAt" IS NOT NULL) OR "status" <> 'retired')
+  )`,
+  'ALTER TABLE "VerificationProtocol" DROP CONSTRAINT IF EXISTS "VerificationProtocol_shape_check"',
+  `ALTER TABLE "VerificationProtocol" ADD CONSTRAINT "VerificationProtocol_shape_check" CHECK (
+    "status" IN ('active', 'retired')
+    AND "executionMode" IN ('deterministic', 'human', 'ai', 'hybrid', 'external-execution')
+    AND length("definitionSha256") = 64
+    AND ("supersedesProtocolId" IS NULL OR "supersedesProtocolId" <> "id")
+  )`,
+  'ALTER TABLE "VerifierCredential" DROP CONSTRAINT IF EXISTS "VerifierCredential_shape_check"',
+  `ALTER TABLE "VerifierCredential" ADD CONSTRAINT "VerifierCredential_shape_check" CHECK (
+    length("tokenPrefix") = 12 AND length("tokenHash") = 64
+    AND "scopesJson" IN ('["verification:read"]', '["verification:submit"]', '["verification:read","verification:submit"]')
+    AND (("revokedAt" IS NULL AND "revokedById" IS NULL) OR ("revokedAt" IS NOT NULL AND "revokedById" IS NOT NULL))
+  )`,
+  'ALTER TABLE "VerificationRun" DROP CONSTRAINT IF EXISTS "VerificationRun_shape_check"',
+  `ALTER TABLE "VerificationRun" ADD CONSTRAINT "VerificationRun_shape_check" CHECK (
+    (("publicationVersionId" IS NOT NULL)::int + ("publicationClaimOccurrenceId" IS NOT NULL)::int + ("knowledgeNodeVersionId" IS NOT NULL)::int) = 1
+    AND "status" IN ('requested', 'claimed', 'running', 'completed', 'failed', 'cancelled')
+    AND "inputProfile" IN ('full', 'blinded-scientific') AND length("inputSha256") = 64
+    AND (("status" = 'requested' AND "claimedVerifierId" IS NULL AND "leaseTokenHash" IS NULL AND "leaseIssuedAt" IS NULL AND "leaseExpiresAt" IS NULL AND "leaseGeneration" = 0)
+      OR ("status" IN ('claimed', 'running') AND "claimedVerifierId" IS NOT NULL AND length("leaseTokenHash") = 64 AND "leaseIssuedAt" IS NOT NULL AND "leaseExpiresAt" > "leaseIssuedAt" AND "leaseGeneration" > 0)
+      OR ("status" IN ('completed', 'failed', 'cancelled') AND "completedAt" IS NOT NULL))
+    AND (("status" IN ('failed', 'cancelled') AND length("terminalReason") BETWEEN 1 AND 4000)
+      OR ("status" IN ('requested', 'claimed', 'running', 'completed') AND "terminalReason" IS NULL))
+  )`,
+  'ALTER TABLE "VerificationArtifact" DROP CONSTRAINT IF EXISTS "VerificationArtifact_shape_check"',
+  `ALTER TABLE "VerificationArtifact" ADD CONSTRAINT "VerificationArtifact_shape_check" CHECK (
+    "status" IN ('prepared', 'uploaded', 'completed') AND "visibility" IN ('private', 'public')
+    AND length("sha256") = 64 AND "byteLength" BETWEEN 0 AND 8388608 AND "uploadExpiresAt" > "preparedAt"
+    AND (("status" = 'prepared' AND "storageRef" IS NULL AND "uploadedAt" IS NULL AND "completedAt" IS NULL)
+      OR ("status" = 'uploaded' AND "storageRef" IS NOT NULL AND "uploadedAt" IS NOT NULL AND "completedAt" IS NULL)
+      OR ("status" = 'completed' AND "storageRef" IS NOT NULL AND "uploadedAt" IS NOT NULL AND "completedAt" IS NOT NULL))
+  )`,
+  'ALTER TABLE "VerificationFinding" DROP CONSTRAINT IF EXISTS "VerificationFinding_shape_check"',
+  `ALTER TABLE "VerificationFinding" ADD CONSTRAINT "VerificationFinding_shape_check" CHECK (
+    "status" IN ('verified', 'partially-verified', 'discrepancy', 'failed', 'unverifiable', 'not-applicable')
+    AND "impact" IN ('informational', 'minor', 'major', 'critical')
+    AND length("payloadSha256") = 64 AND length("statement") BETWEEN 1 AND 10000
+    AND length("rationale") BETWEEN 1 AND 20000
+    AND ("supersedesFindingId" IS NULL OR "supersedesFindingId" <> "id")
+  )`,
+  'ALTER TABLE "VerificationFindingArtifact" DROP CONSTRAINT IF EXISTS "VerificationFindingArtifact_shape_check"',
+  `ALTER TABLE "VerificationFindingArtifact" ADD CONSTRAINT "VerificationFindingArtifact_shape_check" CHECK (
+    "verificationFindingId" <> '' AND "verificationArtifactId" <> ''
+  )`,
+  'ALTER TABLE "VerificationRunLifecycleEvent" DROP CONSTRAINT IF EXISTS "VerificationRunLifecycleEvent_shape_check"',
+  `ALTER TABLE "VerificationRunLifecycleEvent" ADD CONSTRAINT "VerificationRunLifecycleEvent_shape_check" CHECK (
+    "kind" IN ('requested', 'claimed', 'reclaimed', 'running', 'completed', 'failed', 'cancelled')
+    AND (("actorUserId" IS NOT NULL)::int + ("actorVerifierId" IS NOT NULL)::int) = 1
+  )`,
 
   // A publication's identity key and the evidence it was keyed from are fixed.
   // Presentation fields may still be corrected editorially.
@@ -561,6 +634,99 @@ export const POSTGRES_DATABASE_GUARD_SQL = [
   $$ LANGUAGE plpgsql`,
   'DROP TRIGGER IF EXISTS "CertificationResult_binding_guard" ON "CertificationResult"',
   `CREATE TRIGGER "CertificationResult_binding_guard" BEFORE INSERT ON "CertificationResult" FOR EACH ROW EXECUTE FUNCTION "oratlas_validate_certification_result_binding"()`,
+  `CREATE OR REPLACE FUNCTION "oratlas_protect_verification"() RETURNS trigger AS $$
+    BEGIN
+      IF TG_TABLE_NAME = 'VerificationProtocol' AND TG_OP = 'UPDATE' THEN
+        IF NEW."authorityVerifierId" IS DISTINCT FROM OLD."authorityVerifierId" OR NEW."seriesKey" IS DISTINCT FROM OLD."seriesKey"
+          OR NEW."protocolVersion" IS DISTINCT FROM OLD."protocolVersion" OR NEW."title" IS DISTINCT FROM OLD."title"
+          OR NEW."description" IS DISTINCT FROM OLD."description" OR NEW."verificationType" IS DISTINCT FROM OLD."verificationType"
+          OR NEW."executionMode" IS DISTINCT FROM OLD."executionMode" OR NEW."supportedSubjectTypesJson" IS DISTINCT FROM OLD."supportedSubjectTypesJson"
+          OR NEW."definitionJson" IS DISTINCT FROM OLD."definitionJson" OR NEW."definitionSha256" IS DISTINCT FROM OLD."definitionSha256"
+          OR NEW."supersedesProtocolId" IS DISTINCT FROM OLD."supersedesProtocolId" OR NEW."createdAt" IS DISTINCT FROM OLD."createdAt"
+        THEN RAISE EXCEPTION 'Verification protocol definition is immutable'; END IF;
+        IF OLD."status" = 'retired' AND NEW."status" IS DISTINCT FROM OLD."status"
+        THEN RAISE EXCEPTION 'A retired verification protocol cannot be reactivated'; END IF;
+        RETURN NEW;
+      END IF;
+      IF TG_TABLE_NAME = 'VerifierCredential' AND TG_OP = 'UPDATE' THEN
+        IF NEW."verifierId" IS DISTINCT FROM OLD."verifierId" OR NEW."label" IS DISTINCT FROM OLD."label"
+          OR NEW."tokenPrefix" IS DISTINCT FROM OLD."tokenPrefix" OR NEW."tokenHash" IS DISTINCT FROM OLD."tokenHash"
+          OR NEW."scopesJson" IS DISTINCT FROM OLD."scopesJson" OR NEW."expiresAt" IS DISTINCT FROM OLD."expiresAt"
+          OR NEW."issuedById" IS DISTINCT FROM OLD."issuedById" OR NEW."createdAt" IS DISTINCT FROM OLD."createdAt"
+          OR (OLD."revokedAt" IS NOT NULL AND (NEW."revokedAt" IS DISTINCT FROM OLD."revokedAt" OR NEW."revokedById" IS DISTINCT FROM OLD."revokedById"))
+        THEN RAISE EXCEPTION 'Verifier credential ownership and scopes are immutable'; END IF;
+        RETURN NEW;
+      END IF;
+      IF TG_TABLE_NAME = 'VerificationRun' AND TG_OP = 'UPDATE' THEN
+        IF NEW."protocolId" IS DISTINCT FROM OLD."protocolId" OR NEW."publicationVersionId" IS DISTINCT FROM OLD."publicationVersionId"
+          OR NEW."publicationClaimOccurrenceId" IS DISTINCT FROM OLD."publicationClaimOccurrenceId" OR NEW."knowledgeNodeVersionId" IS DISTINCT FROM OLD."knowledgeNodeVersionId"
+          OR NEW."inputProfile" IS DISTINCT FROM OLD."inputProfile" OR NEW."inputProfileVersion" IS DISTINCT FROM OLD."inputProfileVersion"
+          OR NEW."inputSchemaVersion" IS DISTINCT FROM OLD."inputSchemaVersion" OR NEW."inputJson" IS DISTINCT FROM OLD."inputJson"
+          OR NEW."inputSha256" IS DISTINCT FROM OLD."inputSha256" OR NEW."inputCapturedAt" IS DISTINCT FROM OLD."inputCapturedAt"
+          OR NEW."idempotencyKey" IS DISTINCT FROM OLD."idempotencyKey" OR NEW."requestedById" IS DISTINCT FROM OLD."requestedById"
+          OR NEW."requestedAt" IS DISTINCT FROM OLD."requestedAt" OR NEW."agentRunId" IS DISTINCT FROM OLD."agentRunId"
+          OR NEW."executionPassportId" IS DISTINCT FROM OLD."executionPassportId" OR NEW."replicationBriefId" IS DISTINCT FROM OLD."replicationBriefId"
+        THEN RAISE EXCEPTION 'Verification run subject and input snapshot are immutable'; END IF;
+        IF OLD."status" IN ('completed', 'failed', 'cancelled') THEN RAISE EXCEPTION 'Verification run terminal state is immutable'; END IF;
+        IF NOT ((OLD."status" = 'requested' AND NEW."status" IN ('claimed', 'cancelled'))
+          OR (OLD."status" = 'claimed' AND NEW."status" IN ('claimed', 'running', 'failed', 'cancelled'))
+          OR (OLD."status" = 'running' AND NEW."status" IN ('claimed', 'completed', 'failed', 'cancelled')))
+        THEN RAISE EXCEPTION 'Invalid verification run transition'; END IF;
+        IF OLD."status" IN ('claimed', 'running') AND NEW."status" = 'claimed'
+          AND (OLD."leaseExpiresAt" > CURRENT_TIMESTAMP OR NEW."leaseGeneration" <> OLD."leaseGeneration" + 1)
+        THEN RAISE EXCEPTION 'Verification lease cannot be replaced before expiry'; END IF;
+        RETURN NEW;
+      END IF;
+      IF TG_TABLE_NAME = 'VerificationArtifact' AND TG_OP = 'UPDATE' THEN
+        IF NEW."verificationRunId" IS DISTINCT FROM OLD."verificationRunId" OR NEW."submittedByVerifierId" IS DISTINCT FROM OLD."submittedByVerifierId"
+          OR NEW."artifactKey" IS DISTINCT FROM OLD."artifactKey" OR NEW."kind" IS DISTINCT FROM OLD."kind" OR NEW."mediaType" IS DISTINCT FROM OLD."mediaType"
+          OR NEW."sha256" IS DISTINCT FROM OLD."sha256" OR NEW."byteLength" IS DISTINCT FROM OLD."byteLength" OR NEW."visibility" IS DISTINCT FROM OLD."visibility"
+          OR NEW."provenanceJson" IS DISTINCT FROM OLD."provenanceJson" OR NEW."preparedAt" IS DISTINCT FROM OLD."preparedAt"
+          OR NEW."uploadExpiresAt" IS DISTINCT FROM OLD."uploadExpiresAt" OR NEW."createdAt" IS DISTINCT FROM OLD."createdAt"
+        THEN RAISE EXCEPTION 'Verification artifact metadata is immutable'; END IF;
+        IF NOT ((OLD."status" = 'prepared' AND NEW."status" = 'uploaded') OR (OLD."status" = 'uploaded' AND NEW."status" = 'completed'))
+        THEN RAISE EXCEPTION 'Invalid verification artifact transition'; END IF;
+        RETURN NEW;
+      END IF;
+      RAISE EXCEPTION 'Verification evidence records are append-only';
+    END; $$ LANGUAGE plpgsql`,
+  ...[
+    ["VerificationProtocol", "VerificationProtocol_immutable_guard"],
+    ["VerifierCredential", "VerifierCredential_immutable_guard"],
+    ["VerificationRun", "VerificationRun_immutable_guard"],
+    ["VerificationArtifact", "VerificationArtifact_immutable_guard"],
+    ["VerificationArtifactBlob", "VerificationArtifactBlob_immutable_guard"],
+    ["VerificationFinding", "VerificationFinding_immutable_guard"],
+    ["VerificationFindingArtifact", "VerificationFindingArtifact_immutable_guard"],
+    ["VerificationRunLifecycleEvent", "VerificationRunLifecycleEvent_immutable_guard"],
+  ].flatMap(([table, name]) => [
+    `DROP TRIGGER IF EXISTS "${name}" ON "${table}"`,
+    `CREATE TRIGGER "${name}" BEFORE UPDATE OR DELETE ON "${table}" FOR EACH ROW EXECUTE FUNCTION "oratlas_protect_verification"()`,
+  ]),
+  `CREATE OR REPLACE FUNCTION "oratlas_validate_verification_binding"() RETURNS trigger AS $$
+    BEGIN
+      IF TG_TABLE_NAME = 'VerificationArtifact' THEN
+        IF NOT EXISTS (SELECT 1 FROM "VerificationRun" r WHERE r."id" = NEW."verificationRunId" AND r."claimedVerifierId" = NEW."submittedByVerifierId" AND r."status" IN ('claimed', 'running'))
+        THEN RAISE EXCEPTION 'Verification artifact does not match the active run claimant'; END IF;
+      ELSIF TG_TABLE_NAME = 'VerificationFinding' THEN
+        IF NOT EXISTS (SELECT 1 FROM "VerificationRun" r WHERE r."id" = NEW."verificationRunId" AND r."claimedVerifierId" = NEW."submittedByVerifierId" AND r."status" IN ('claimed', 'running'))
+        THEN RAISE EXCEPTION 'Verification finding does not match the active run claimant'; END IF;
+        IF NEW."supersedesFindingId" IS NOT NULL AND NOT EXISTS (SELECT 1 FROM "VerificationFinding" f WHERE f."id" = NEW."supersedesFindingId" AND f."verificationRunId" = NEW."verificationRunId")
+        THEN RAISE EXCEPTION 'Verification finding supersession binding is invalid'; END IF;
+      ELSIF TG_TABLE_NAME = 'VerificationFindingArtifact' THEN
+        IF NOT EXISTS (SELECT 1 FROM "VerificationFinding" f JOIN "VerificationArtifact" a ON a."verificationRunId" = f."verificationRunId" WHERE f."id" = NEW."verificationFindingId" AND a."id" = NEW."verificationArtifactId" AND a."status" = 'completed')
+        THEN RAISE EXCEPTION 'Verification finding artifact binding is invalid'; END IF;
+      END IF;
+      RETURN NEW;
+    END; $$ LANGUAGE plpgsql`,
+  ...[
+    ["VerificationArtifact", "VerificationArtifact_binding_guard"],
+    ["VerificationFinding", "VerificationFinding_binding_guard"],
+    ["VerificationFindingArtifact", "VerificationFindingArtifact_binding_guard"],
+  ].flatMap(([table, name]) => [
+    `DROP TRIGGER IF EXISTS "${name}" ON "${table}"`,
+    `CREATE TRIGGER "${name}" BEFORE INSERT ON "${table}" FOR EACH ROW EXECUTE FUNCTION "oratlas_validate_verification_binding"()`,
+  ]),
 ] as const;
 
 const sqliteGuardConditions = {
@@ -759,6 +925,46 @@ const sqliteGuardConditions = {
       AND p."certifierId" = NEW."certifierId" AND p."protocolId" = NEW."protocolId")) THEN 1 ELSE 0 END`,
   CertificationLifecycleEvent: `CASE WHEN NEW."kind" IN ('issued', 'superseded', 'withdrawn', 'revoked')
     AND ((NEW."actorUserId" IS NOT NULL) + (NEW."actorCertifierId" IS NOT NULL)) = 1 THEN 1 ELSE 0 END`,
+  Verifier: `CASE WHEN NEW."status" IN ('active', 'suspended', 'retired')
+    AND ((NEW."status" = 'retired' AND NEW."retiredAt" IS NOT NULL) OR NEW."status" <> 'retired') THEN 1 ELSE 0 END`,
+  VerificationProtocol: `CASE WHEN NEW."status" IN ('active', 'retired')
+    AND NEW."executionMode" IN ('deterministic', 'human', 'ai', 'hybrid', 'external-execution')
+    AND length(NEW."definitionSha256") = 64
+    AND (NEW."supersedesProtocolId" IS NULL OR NEW."supersedesProtocolId" <> NEW."id") THEN 1 ELSE 0 END`,
+  VerifierCredential: `CASE WHEN length(NEW."tokenPrefix") = 12 AND length(NEW."tokenHash") = 64
+    AND NEW."scopesJson" IN ('["verification:read"]', '["verification:submit"]', '["verification:read","verification:submit"]')
+    AND ((NEW."revokedAt" IS NULL AND NEW."revokedById" IS NULL) OR (NEW."revokedAt" IS NOT NULL AND NEW."revokedById" IS NOT NULL)) THEN 1 ELSE 0 END`,
+  VerificationRun: `CASE WHEN
+    ((NEW."publicationVersionId" IS NOT NULL) + (NEW."publicationClaimOccurrenceId" IS NOT NULL) + (NEW."knowledgeNodeVersionId" IS NOT NULL)) = 1
+    AND NEW."status" IN ('requested', 'claimed', 'running', 'completed', 'failed', 'cancelled')
+    AND NEW."inputProfile" IN ('full', 'blinded-scientific') AND length(NEW."inputSha256") = 64
+    AND ((NEW."status" = 'requested' AND NEW."claimedVerifierId" IS NULL AND NEW."leaseTokenHash" IS NULL AND NEW."leaseIssuedAt" IS NULL AND NEW."leaseExpiresAt" IS NULL AND NEW."leaseGeneration" = 0)
+      OR (NEW."status" IN ('claimed', 'running') AND NEW."claimedVerifierId" IS NOT NULL AND length(NEW."leaseTokenHash") = 64 AND NEW."leaseIssuedAt" IS NOT NULL AND NEW."leaseExpiresAt" > NEW."leaseIssuedAt" AND NEW."leaseGeneration" > 0)
+      OR (NEW."status" IN ('completed', 'failed', 'cancelled') AND NEW."completedAt" IS NOT NULL))
+    AND ((NEW."status" IN ('failed', 'cancelled') AND length(NEW."terminalReason") BETWEEN 1 AND 4000)
+      OR (NEW."status" IN ('requested', 'claimed', 'running', 'completed') AND NEW."terminalReason" IS NULL))
+    THEN 1 ELSE 0 END`,
+  VerificationArtifact: `CASE WHEN NEW."status" IN ('prepared', 'uploaded', 'completed')
+    AND NEW."visibility" IN ('private', 'public') AND length(NEW."sha256") = 64
+    AND NEW."byteLength" BETWEEN 0 AND 8388608 AND NEW."uploadExpiresAt" > NEW."preparedAt"
+    AND ((NEW."status" = 'prepared' AND NEW."storageRef" IS NULL AND NEW."uploadedAt" IS NULL AND NEW."completedAt" IS NULL)
+      OR (NEW."status" = 'uploaded' AND NEW."storageRef" IS NOT NULL AND NEW."uploadedAt" IS NOT NULL AND NEW."completedAt" IS NULL)
+      OR (NEW."status" = 'completed' AND NEW."storageRef" IS NOT NULL AND NEW."uploadedAt" IS NOT NULL AND NEW."completedAt" IS NOT NULL))
+    AND EXISTS (SELECT 1 FROM "VerificationRun" r WHERE r."id" = NEW."verificationRunId" AND r."claimedVerifierId" = NEW."submittedByVerifierId" AND r."status" IN ('claimed', 'running'))
+    THEN 1 ELSE 0 END`,
+  VerificationFinding: `CASE WHEN NEW."status" IN ('verified', 'partially-verified', 'discrepancy', 'failed', 'unverifiable', 'not-applicable')
+    AND NEW."impact" IN ('informational', 'minor', 'major', 'critical')
+    AND length(NEW."payloadSha256") = 64 AND length(NEW."statement") BETWEEN 1 AND 10000
+    AND length(NEW."rationale") BETWEEN 1 AND 20000 AND (NEW."supersedesFindingId" IS NULL OR NEW."supersedesFindingId" <> NEW."id")
+    AND EXISTS (SELECT 1 FROM "VerificationRun" r WHERE r."id" = NEW."verificationRunId" AND r."claimedVerifierId" = NEW."submittedByVerifierId" AND r."status" IN ('claimed', 'running'))
+    AND (NEW."supersedesFindingId" IS NULL OR EXISTS (SELECT 1 FROM "VerificationFinding" f WHERE f."id" = NEW."supersedesFindingId" AND f."verificationRunId" = NEW."verificationRunId"))
+    THEN 1 ELSE 0 END`,
+  VerificationFindingArtifact: `CASE WHEN EXISTS (
+    SELECT 1 FROM "VerificationFinding" f JOIN "VerificationArtifact" a ON a."verificationRunId" = f."verificationRunId"
+    WHERE f."id" = NEW."verificationFindingId" AND a."id" = NEW."verificationArtifactId" AND a."status" = 'completed'
+    ) THEN 1 ELSE 0 END`,
+  VerificationRunLifecycleEvent: `CASE WHEN NEW."kind" IN ('requested', 'claimed', 'reclaimed', 'running', 'completed', 'failed', 'cancelled')
+    AND ((NEW."actorUserId" IS NOT NULL) + (NEW."actorVerifierId" IS NOT NULL)) = 1 THEN 1 ELSE 0 END`,
   TrustAdjudicationReference: `CASE WHEN
     ((NEW."trustAssessmentId" IS NOT NULL AND NEW."nodeRelationTrustAssessmentId" IS NULL AND NEW."assessmentId" = NEW."trustAssessmentId")
       OR (NEW."trustAssessmentId" IS NULL AND NEW."nodeRelationTrustAssessmentId" IS NOT NULL AND NEW."assessmentId" = NEW."nodeRelationTrustAssessmentId"))
@@ -803,6 +1009,25 @@ export const SQLITE_CERTIFICATION_IMMUTABLE_GUARD_NAMES = [
   "CertificationResult_immutable_guard_delete",
   "CertificationLifecycleEvent_immutable_guard_update",
   "CertificationLifecycleEvent_immutable_guard_delete",
+] as const;
+
+export const SQLITE_VERIFICATION_IMMUTABLE_GUARD_NAMES = [
+  "VerificationProtocol_immutable_guard_update",
+  "VerificationProtocol_immutable_guard_delete",
+  "VerifierCredential_immutable_guard_update",
+  "VerifierCredential_immutable_guard_delete",
+  "VerificationRun_immutable_guard_update",
+  "VerificationRun_immutable_guard_delete",
+  "VerificationArtifact_immutable_guard_update",
+  "VerificationArtifact_immutable_guard_delete",
+  "VerificationArtifactBlob_immutable_guard_update",
+  "VerificationArtifactBlob_immutable_guard_delete",
+  "VerificationFinding_immutable_guard_update",
+  "VerificationFinding_immutable_guard_delete",
+  "VerificationFindingArtifact_immutable_guard_update",
+  "VerificationFindingArtifact_immutable_guard_delete",
+  "VerificationRunLifecycleEvent_immutable_guard_update",
+  "VerificationRunLifecycleEvent_immutable_guard_delete",
 ] as const;
 
 export const SQLITE_ASSESSMENT_COI_IMMUTABLE_GUARD_NAMES = [
@@ -1005,6 +1230,47 @@ export async function applyDatabaseGuards(
       await tx.$executeRawUnsafe(
         `CREATE TRIGGER "${name}" BEFORE ${operation} ON "CertificationRun" FOR EACH ROW ${when} BEGIN SELECT RAISE(ABORT, 'Certification run immutable fields cannot be changed'); END`,
       );
+    }
+    for (const [table, immutableWhen] of [
+      [
+        "VerificationProtocol",
+        `NEW."authorityVerifierId" IS NOT OLD."authorityVerifierId" OR NEW."seriesKey" IS NOT OLD."seriesKey" OR NEW."protocolVersion" IS NOT OLD."protocolVersion" OR NEW."title" IS NOT OLD."title" OR NEW."description" IS NOT OLD."description" OR NEW."verificationType" IS NOT OLD."verificationType" OR NEW."executionMode" IS NOT OLD."executionMode" OR NEW."supportedSubjectTypesJson" IS NOT OLD."supportedSubjectTypesJson" OR NEW."definitionJson" IS NOT OLD."definitionJson" OR NEW."definitionSha256" IS NOT OLD."definitionSha256" OR NEW."supersedesProtocolId" IS NOT OLD."supersedesProtocolId" OR NEW."createdAt" IS NOT OLD."createdAt" OR (OLD."status" = 'retired' AND NEW."status" IS NOT OLD."status")`,
+      ],
+      [
+        "VerifierCredential",
+        `NEW."verifierId" IS NOT OLD."verifierId" OR NEW."label" IS NOT OLD."label" OR NEW."tokenPrefix" IS NOT OLD."tokenPrefix" OR NEW."tokenHash" IS NOT OLD."tokenHash" OR NEW."scopesJson" IS NOT OLD."scopesJson" OR NEW."expiresAt" IS NOT OLD."expiresAt" OR NEW."issuedById" IS NOT OLD."issuedById" OR NEW."createdAt" IS NOT OLD."createdAt" OR (OLD."revokedAt" IS NOT NULL AND (NEW."revokedAt" IS NOT OLD."revokedAt" OR NEW."revokedById" IS NOT OLD."revokedById"))`,
+      ],
+      [
+        "VerificationRun",
+        `NEW."protocolId" IS NOT OLD."protocolId" OR NEW."publicationVersionId" IS NOT OLD."publicationVersionId" OR NEW."publicationClaimOccurrenceId" IS NOT OLD."publicationClaimOccurrenceId" OR NEW."knowledgeNodeVersionId" IS NOT OLD."knowledgeNodeVersionId" OR NEW."inputProfile" IS NOT OLD."inputProfile" OR NEW."inputProfileVersion" IS NOT OLD."inputProfileVersion" OR NEW."inputSchemaVersion" IS NOT OLD."inputSchemaVersion" OR NEW."inputJson" IS NOT OLD."inputJson" OR NEW."inputSha256" IS NOT OLD."inputSha256" OR NEW."inputCapturedAt" IS NOT OLD."inputCapturedAt" OR NEW."idempotencyKey" IS NOT OLD."idempotencyKey" OR NEW."requestedById" IS NOT OLD."requestedById" OR NEW."requestedAt" IS NOT OLD."requestedAt" OR NEW."agentRunId" IS NOT OLD."agentRunId" OR NEW."executionPassportId" IS NOT OLD."executionPassportId" OR NEW."replicationBriefId" IS NOT OLD."replicationBriefId" OR OLD."status" IN ('completed', 'failed', 'cancelled') OR NOT ((OLD."status" = 'requested' AND NEW."status" IN ('claimed', 'cancelled')) OR (OLD."status" = 'claimed' AND NEW."status" IN ('claimed', 'running', 'failed', 'cancelled')) OR (OLD."status" = 'running' AND NEW."status" IN ('claimed', 'completed', 'failed', 'cancelled'))) OR (OLD."status" IN ('claimed', 'running') AND NEW."status" = 'claimed' AND (OLD."leaseExpiresAt" > CURRENT_TIMESTAMP OR NEW."leaseGeneration" <> OLD."leaseGeneration" + 1))`,
+      ],
+      [
+        "VerificationArtifact",
+        `NEW."verificationRunId" IS NOT OLD."verificationRunId" OR NEW."submittedByVerifierId" IS NOT OLD."submittedByVerifierId" OR NEW."artifactKey" IS NOT OLD."artifactKey" OR NEW."kind" IS NOT OLD."kind" OR NEW."mediaType" IS NOT OLD."mediaType" OR NEW."sha256" IS NOT OLD."sha256" OR NEW."byteLength" IS NOT OLD."byteLength" OR NEW."visibility" IS NOT OLD."visibility" OR NEW."provenanceJson" IS NOT OLD."provenanceJson" OR NEW."preparedAt" IS NOT OLD."preparedAt" OR NEW."uploadExpiresAt" IS NOT OLD."uploadExpiresAt" OR NEW."createdAt" IS NOT OLD."createdAt" OR NOT ((OLD."status" = 'prepared' AND NEW."status" = 'uploaded') OR (OLD."status" = 'uploaded' AND NEW."status" = 'completed'))`,
+      ],
+    ] as const) {
+      for (const operation of ["UPDATE", "DELETE"] as const) {
+        const name = `${table}_immutable_guard_${operation.toLowerCase()}`;
+        await tx.$executeRawUnsafe(`DROP TRIGGER IF EXISTS "${name}"`);
+        const when = operation === "UPDATE" ? `WHEN ${immutableWhen}` : "";
+        await tx.$executeRawUnsafe(
+          `CREATE TRIGGER "${name}" BEFORE ${operation} ON "${table}" FOR EACH ROW ${when} BEGIN SELECT RAISE(ABORT, 'Verification ledger immutability guard rejected mutation'); END`,
+        );
+      }
+    }
+    for (const table of [
+      "VerificationArtifactBlob",
+      "VerificationFinding",
+      "VerificationFindingArtifact",
+      "VerificationRunLifecycleEvent",
+    ] as const) {
+      for (const operation of ["UPDATE", "DELETE"] as const) {
+        const name = `${table}_immutable_guard_${operation.toLowerCase()}`;
+        await tx.$executeRawUnsafe(`DROP TRIGGER IF EXISTS "${name}"`);
+        await tx.$executeRawUnsafe(
+          `CREATE TRIGGER "${name}" BEFORE ${operation} ON "${table}" FOR EACH ROW BEGIN SELECT RAISE(ABORT, 'Verification evidence is append-only'); END`,
+        );
+      }
     }
     for (const table of ["TrustAdjudication", "TrustAdjudicationReference"] as const) {
       const name = `${table}_immutable_guard`;

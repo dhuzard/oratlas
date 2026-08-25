@@ -10,6 +10,8 @@ export * from "./publication-adapters.js";
 export * from "./publications.js";
 export * from "./publication-contributors.js";
 export * from "./publication-version-packets.js";
+export * from "./verification.js";
+export * from "./verification-demo-fixtures.js";
 export * from "./publication-provenance.js";
 export * from "./graph.js";
 export * from "./canonical-graph.js";

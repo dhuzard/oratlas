@@ -23,6 +23,10 @@ components:
       type: http
       scheme: bearer
       description: Scoped certifier credential; secrets are displayed once and stored only as SHA-256 digests.
+    verifierBearer:
+      type: http
+      scheme: bearer
+      description: Scoped oratlas_verify_ verifier credential. It grants only verification read/submit operations and never editorial privileges.
   headers:
     ServiceDiscovery:
       description: RFC 8288 links to the machine-readable service description and human documentation.
@@ -3813,6 +3817,228 @@ components:
           items: { $ref: "#/components/schemas/PublicSynthesisCitation" }
         version: { $ref: "#/components/schemas/PublicSynthesisVersion" }
         freshness: { $ref: "#/components/schemas/SynthesisFreshness" }
+    VerificationSubject:
+      oneOf:
+        - type: object
+          additionalProperties: false
+          required: [type, publicationVersionId]
+          properties:
+            type: { const: publication-version }
+            publicationVersionId: { type: string }
+        - type: object
+          additionalProperties: false
+          required: [type, publicationClaimOccurrenceId]
+          properties:
+            type: { const: publication-claim-occurrence }
+            publicationClaimOccurrenceId: { type: string }
+        - type: object
+          additionalProperties: false
+          required: [type, knowledgeNodeVersionId]
+          properties:
+            type: { const: knowledge-node-version }
+            knowledgeNodeVersionId: { type: string }
+    VerificationRun:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          id,
+          verificationProtocolId,
+          subject,
+          claimedVerifierId,
+          status,
+          input,
+          requestedAt,
+          claimedAt,
+          startedAt,
+          completedAt,
+          terminalReason,
+          provenance,
+          replayed,
+          links,
+        ]
+      properties:
+        id: { type: string }
+        verificationProtocolId: { type: string }
+        subject: { $ref: "#/components/schemas/VerificationSubject" }
+        claimedVerifierId: { type: [string, "null"] }
+        status: { type: string, enum: [requested, claimed, running, completed, failed, cancelled] }
+        input:
+          type: object
+          additionalProperties: false
+          required: [profile, profileVersion, schemaVersion, sha256, capturedAt]
+          properties:
+            profile: { type: string, enum: [full, blinded-scientific] }
+            profileVersion: { const: 1.0.0 }
+            schemaVersion: { type: string }
+            sha256: { type: string, pattern: "^[a-f0-9]{64}$" }
+            capturedAt: { type: string, format: date-time }
+        requestedAt: { type: string, format: date-time }
+        claimedAt: { type: [string, "null"], format: date-time }
+        startedAt: { type: [string, "null"], format: date-time }
+        completedAt: { type: [string, "null"], format: date-time }
+        terminalReason: { type: [string, "null"] }
+        provenance:
+          type: object
+          additionalProperties: false
+          required: [agentRunId, executionPassportId, replicationBriefId]
+          properties:
+            agentRunId: { type: [string, "null"] }
+            executionPassportId: { type: [string, "null"] }
+            replicationBriefId: { type: [string, "null"] }
+        replayed: { type: boolean }
+        links:
+          type: object
+          additionalProperties: false
+          required: [self, claim, input, findings, transition]
+          properties:
+            self: { type: string }
+            claim: { type: string }
+            input: { type: string }
+            findings: { type: string }
+            transition: { type: string }
+    VerificationClaimResponse:
+      type: object
+      required: [id, subject, claimedVerifierId, status, input, leaseToken, leaseExpiresAt]
+      properties:
+        id: { type: string }
+        subject: { $ref: "#/components/schemas/VerificationSubject" }
+        claimedVerifierId: { type: string }
+        status: { const: claimed }
+        input: { type: object }
+        leaseToken: { type: string, pattern: "^oratlas_lease_" }
+        leaseExpiresAt: { type: string, format: date-time }
+    VerificationInput:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          verificationRunId,
+          schemaVersion,
+          sha256,
+          profile,
+          profileVersion,
+          capturedAt,
+          input,
+          sourceArtifacts,
+        ]
+      properties:
+        verificationRunId: { type: string }
+        schemaVersion: { type: string }
+        sha256: { type: string, pattern: "^[a-f0-9]{64}$" }
+        profile: { type: string, enum: [full, blinded-scientific] }
+        profileVersion: { const: 1.0.0 }
+        capturedAt: { type: string, format: date-time }
+        input: { description: Exact frozen canonical JSON; shape is selected by schemaVersion }
+        sourceArtifacts:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [id, mediaType, sha256, byteLength, available, href]
+            properties:
+              id: { type: string }
+              mediaType: { type: string }
+              sha256: { type: string, pattern: "^[a-f0-9]{64}$" }
+              byteLength: { type: integer, minimum: 0 }
+              available: { type: boolean }
+              href: { type: string }
+    VerificationArtifactNegotiation:
+      type: object
+      additionalProperties: false
+      required: [artifactId, status, upload, expiresAt, replayed]
+      properties:
+        artifactId: { type: string }
+        status: { type: string, enum: [prepared, uploaded, completed] }
+        upload:
+          type: object
+          additionalProperties: false
+          required: [type, method, href, headers]
+          properties:
+            type: { const: oratlas-direct-binary-v1 }
+            method: { const: PUT }
+            href: { type: string }
+            headers: { type: object, additionalProperties: { type: string } }
+        expiresAt: { type: string, format: date-time }
+        replayed: { type: boolean }
+    VerificationArtifact:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          id,
+          verificationRunId,
+          artifactKey,
+          kind,
+          mediaType,
+          sha256,
+          byteLength,
+          visibility,
+          status,
+          provenance,
+          createdAt,
+          contentHref,
+        ]
+      properties:
+        id: { type: string }
+        verificationRunId: { type: string }
+        artifactKey: { type: string }
+        kind: { type: string }
+        mediaType: { type: string }
+        sha256: { type: string, pattern: "^[a-f0-9]{64}$" }
+        byteLength: { type: integer, minimum: 0, maximum: 8388608 }
+        visibility: { type: string, enum: [private, public] }
+        status: { type: string, enum: [prepared, uploaded, completed] }
+        provenance: { type: object }
+        createdAt: { type: string, format: date-time }
+        contentHref: { type: [string, "null"] }
+        replayed: { type: boolean }
+    VerificationFinding:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          id,
+          verificationRunId,
+          submittedByVerifierId,
+          findingKey,
+          findingType,
+          status,
+          impact,
+          statement,
+          rationale,
+          reported,
+          observed,
+          tolerance,
+          evidenceRefs,
+          artifactRefs,
+          payloadSha256,
+          supersedesFindingId,
+          createdAt,
+        ]
+      properties:
+        id: { type: string }
+        verificationRunId: { type: string }
+        submittedByVerifierId: { type: string }
+        findingKey: { type: string }
+        findingType: { type: string }
+        status:
+          {
+            type: string,
+            enum: [verified, partially-verified, discrepancy, failed, unverifiable, not-applicable],
+          }
+        impact: { type: string, enum: [informational, minor, major, critical] }
+        statement: { type: string }
+        rationale: { type: string }
+        reported: { type: [object, array, string, number, boolean, "null"] }
+        observed: { type: [object, array, string, number, boolean, "null"] }
+        tolerance: { type: [object, array, string, number, boolean, "null"] }
+        evidenceRefs: { type: array, items: { type: object } }
+        artifactRefs: { type: array, items: { type: string } }
+        payloadSha256: { type: string, pattern: "^[a-f0-9]{64}$" }
+        supersedesFindingId: { type: [string, "null"] }
+        createdAt: { type: string, format: date-time }
+        replayed: { type: boolean }
 paths:
   /api/health:
     get:
@@ -5705,3 +5931,524 @@ paths:
         "403": { $ref: "#/components/responses/Error" }
         "404": { $ref: "#/components/responses/Error" }
         "409": { $ref: "#/components/responses/Error" }
+  /api/verifiers:
+    get:
+      summary: List accountable scientific verifier identities
+      responses:
+        "200":
+          {
+            description: Public verifier projections; identity is attribution,
+            not scientific authority,
+          }
+  /api/verifiers/{id}:
+    get:
+      summary: Read a verifier by id or slug
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Public verifier projection }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/verification-protocols:
+    get:
+      summary: List immutable scientific verification protocol versions
+      responses:
+        "200":
+          {
+            description: Protocol definitions with authority,
+            exact version,
+            supported subjects,
+            canonical definition and SHA-256,
+          }
+  /api/verification-protocols/{id}:
+    get:
+      summary: Read one immutable scientific verification protocol version
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Exact protocol version }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/verification-runs:
+    post:
+      summary: Request a verification run and freeze its exact input
+      description: Editor-only. Verifier bearer credentials cannot create requests. Exact replay returns 200; conflicting reuse returns 409.
+      security: [{ session: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [verificationProtocolId, subject, idempotencyKey]
+              properties:
+                verificationProtocolId: { type: string, minLength: 1 }
+                subject:
+                  oneOf:
+                    - type: object
+                      additionalProperties: false
+                      required: [type, publicationVersionId]
+                      properties:
+                        type: { const: publication-version }
+                        publicationVersionId: { type: string, minLength: 1 }
+                    - type: object
+                      additionalProperties: false
+                      required: [type, publicationClaimOccurrenceId]
+                      properties:
+                        type: { const: publication-claim-occurrence }
+                        publicationClaimOccurrenceId: { type: string, minLength: 1 }
+                    - type: object
+                      additionalProperties: false
+                      required: [type, knowledgeNodeVersionId]
+                      properties:
+                        type: { const: knowledge-node-version }
+                        knowledgeNodeVersionId: { type: string, minLength: 1 }
+                inputProfile: { type: string, enum: [full, blinded-scientific], default: full }
+                inputProfileVersion: { const: 1.0.0, default: 1.0.0 }
+                idempotencyKey: { type: string, minLength: 8, maxLength: 200 }
+                replicationBriefId: { type: string }
+                agentRunId: { type: string }
+                executionPassportId: { type: string }
+      responses:
+        "201":
+          description: Newly requested run with input SHA/schema/profile metadata
+          content:
+            { application/json: { schema: { $ref: "#/components/schemas/VerificationRun" } } }
+        "200":
+          description: Exact idempotent replay
+          content:
+            { application/json: { schema: { $ref: "#/components/schemas/VerificationRun" } } }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+  /api/verification-runs/{id}:
+    get:
+      summary: Read public verification run evidence
+      description: Exposes exact subject, verifier, protocol, frozen-input hash/profile, findings, completed artifacts, provenance, lifecycle, timestamps, and limitations. Never returns lease hashes or secrets.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Public run detail }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/verification-runs/{id}/claim:
+    post:
+      summary: Atomically claim or reclaim an expired verification run
+      description: Returns an opaque lease token once. Only one unexpired claimant exists; terminal runs and live leases conflict.
+      security: [{ verifierBearer: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                leaseSeconds: { type: integer, minimum: 60, maximum: 900, default: 300 }
+      responses:
+        "200":
+          description: Claimed run plus one-time oratlas_lease_ token and expiry
+          content:
+            {
+              application/json:
+                { schema: { $ref: "#/components/schemas/VerificationClaimResponse" } },
+            }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+  /api/verification-runs/{id}/input:
+    get:
+      summary: Retrieve exact canonical frozen verification input
+      security: [{ verifierBearer: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+        - {
+            name: X-ORAtlas-Verification-Lease,
+            in: header,
+            required: true,
+            schema: { type: string, pattern: "^oratlas_lease_" },
+          }
+      responses:
+        "200":
+          description: Input JSON with exact schema/profile versions, SHA-256, and capture time
+          content:
+            { application/json: { schema: { $ref: "#/components/schemas/VerificationInput" } } }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+  /api/verification-runs/{id}/source-artifacts/{artifactId}:
+    get:
+      summary: Download an exact source capture named by the frozen run input
+      description: Does not widen generic verifier access; requires the active claimant lease and exact frozen-input membership.
+      security: [{ verifierBearer: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+        - { name: artifactId, in: path, required: true, schema: { type: string } }
+        - {
+            name: X-ORAtlas-Verification-Lease,
+            in: header,
+            required: true,
+            schema: { type: string, pattern: "^oratlas_lease_" },
+          }
+      responses:
+        "200":
+          {
+            description: Exact bytes with Content-Type,
+            Content-Length,
+            and X-ORAtlas-SHA256 headers,
+          }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/verification-runs/{id}/artifacts/prepare:
+    post:
+      summary: Prepare immutable output artifact metadata and negotiate direct binary upload
+      security: [{ verifierBearer: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+        - {
+            name: X-ORAtlas-Verification-Lease,
+            in: header,
+            required: true,
+            schema: { type: string, pattern: "^oratlas_lease_" },
+          }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [artifactKey, kind, mediaType, sha256, byteLength]
+              properties:
+                artifactKey: { type: string, pattern: "^[a-z0-9][a-z0-9._-]*$", maxLength: 120 }
+                kind: { type: string, pattern: "^[a-z0-9][a-z0-9._-]*$", maxLength: 120 }
+                mediaType: { type: string, minLength: 3, maxLength: 200 }
+                sha256: { type: string, pattern: "^[a-f0-9]{64}$" }
+                byteLength: { type: integer, minimum: 0, maximum: 8388608 }
+                visibility: { type: string, enum: [private, public], default: public }
+      responses:
+        "201":
+          description: oratlas-direct-binary-v1 PUT negotiation
+          content:
+            {
+              application/json:
+                { schema: { $ref: "#/components/schemas/VerificationArtifactNegotiation" } },
+            }
+        "200":
+          description: Exact idempotent replay
+          content:
+            {
+              application/json:
+                { schema: { $ref: "#/components/schemas/VerificationArtifactNegotiation" } },
+            }
+        "409": { $ref: "#/components/responses/Error" }
+  /api/verification-artifacts/{id}/content:
+    put:
+      summary: Upload negotiated exact artifact bytes
+      description: Raw body, maximum 8 MiB. Content-Type, byte length, SHA-256, run owner, active lease, and state are verified.
+      security: [{ verifierBearer: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+        - {
+            name: X-ORAtlas-Verification-Lease,
+            in: header,
+            required: true,
+            schema: { type: string, pattern: "^oratlas_lease_" },
+          }
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema: { type: string, format: binary, maxLength: 8388608 }
+      responses:
+        "200":
+          description: Uploaded artifact state or exact replay
+          content:
+            { application/json: { schema: { $ref: "#/components/schemas/VerificationArtifact" } } }
+        "409": { $ref: "#/components/responses/Error" }
+        "413": { $ref: "#/components/responses/Error" }
+    get:
+      summary: Download a completed verification artifact
+      description: Public artifacts are anonymous; private artifacts require verifier read scope and the active claimant lease.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+        - {
+            name: X-ORAtlas-Verification-Lease,
+            in: header,
+            required: false,
+            schema: { type: string },
+          }
+      responses:
+        "200": { description: Exact bytes with immutable X-ORAtlas-SHA256/length/type headers }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/verification-runs/{id}/artifacts/complete:
+    post:
+      summary: Complete an uploaded artifact after stored-byte integrity verification
+      security: [{ verifierBearer: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+        - {
+            name: X-ORAtlas-Verification-Lease,
+            in: header,
+            required: true,
+            schema: { type: string, pattern: "^oratlas_lease_" },
+          }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [artifactId]
+              properties: { artifactId: { type: string, minLength: 1 } }
+      responses:
+        "200":
+          description: Completed artifact or exact completion replay
+          content:
+            { application/json: { schema: { $ref: "#/components/schemas/VerificationArtifact" } } }
+        "409": { $ref: "#/components/responses/Error" }
+  /api/verification-runs/{id}/findings:
+    get:
+      summary: List immutable public findings for a run
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Attributed protocol-scoped findings }
+    post:
+      summary: Submit an immutable scientific verification finding
+      description: findingKey is unique within the run. Canonically identical replay returns 200; different payload reuse returns 409. Only frozen-input evidence and completed same-run artifacts are accepted.
+      security: [{ verifierBearer: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+        - {
+            name: X-ORAtlas-Verification-Lease,
+            in: header,
+            required: true,
+            schema: { type: string, pattern: "^oratlas_lease_" },
+          }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [findingKey, findingType, status, impact, statement, rationale]
+              properties:
+                findingKey: { type: string, pattern: "^[a-z0-9][a-z0-9._-]*$", maxLength: 120 }
+                findingType: { type: string, pattern: "^[a-z0-9][a-z0-9._-]*$", maxLength: 120 }
+                status:
+                  {
+                    type: string,
+                    enum:
+                      [
+                        verified,
+                        partially-verified,
+                        discrepancy,
+                        failed,
+                        unverifiable,
+                        not-applicable,
+                      ],
+                  }
+                impact: { type: string, enum: [informational, minor, major, critical] }
+                statement: { type: string, minLength: 1, maxLength: 10000 }
+                rationale: { type: string, minLength: 1, maxLength: 20000 }
+                reported: { description: Plain finite JSON, max 64 KiB and depth 12 }
+                observed: { description: Plain finite JSON, max 64 KiB and depth 12 }
+                tolerance: { description: Plain finite JSON, max 64 KiB and depth 12 }
+                evidenceRefs:
+                  type: array
+                  maxItems: 100
+                  items:
+                    type: object
+                    additionalProperties: false
+                    required: [type, id]
+                    properties:
+                      type:
+                        {
+                          type: string,
+                          enum:
+                            [
+                              publication-content-document,
+                              publication-occurrence,
+                              canonical-node-version,
+                              canonical-relation,
+                              capture,
+                              production-provenance,
+                              execution-passport,
+                              verification-artifact,
+                            ],
+                        }
+                      id: { type: string, minLength: 1 }
+                artifactRefs:
+                  {
+                    type: array,
+                    maxItems: 100,
+                    uniqueItems: true,
+                    items: { type: string, minLength: 1 },
+                  }
+                supersedesFindingId: { type: string, minLength: 1 }
+      responses:
+        "201":
+          description: Newly persisted immutable finding
+          content:
+            { application/json: { schema: { $ref: "#/components/schemas/VerificationFinding" } } }
+        "200":
+          description: Exact idempotent replay
+          content:
+            { application/json: { schema: { $ref: "#/components/schemas/VerificationFinding" } } }
+        "400": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+  /api/verification-runs/{id}/transition:
+    post:
+      summary: Transition a verification run
+      description: Workers with active leases may start, complete, or fail. Completion requires a finding. Only editors may cancel.
+      security: [{ verifierBearer: [] }, { session: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+        - {
+            name: X-ORAtlas-Verification-Lease,
+            in: header,
+            required: false,
+            schema: { type: string },
+          }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - {
+                    type: object,
+                    additionalProperties: false,
+                    required: [status],
+                    properties: { status: { const: running } },
+                  }
+                - {
+                    type: object,
+                    additionalProperties: false,
+                    required: [status],
+                    properties: { status: { const: completed } },
+                  }
+                - {
+                    type: object,
+                    additionalProperties: false,
+                    required: [status, reason],
+                    properties:
+                      {
+                        status: { const: failed },
+                        reason: { type: string, minLength: 1, maxLength: 4000 },
+                      },
+                  }
+                - {
+                    type: object,
+                    additionalProperties: false,
+                    required: [status, reason],
+                    properties:
+                      {
+                        status: { const: cancelled },
+                        reason: { type: string, minLength: 1, maxLength: 4000 },
+                      },
+                  }
+      responses:
+        "200":
+          description: Current transitioned state or exact replay
+          content:
+            { application/json: { schema: { $ref: "#/components/schemas/VerificationRun" } } }
+        "403": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+  /api/publication-versions/{id}/verifications:
+    get:
+      summary: List public scientific verification evidence for one exact PublicationVersion
+      description: Returns separate runs/findings plus category/status counts, never a score or universal verified badge.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Public verification projection }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/editorial/verifiers:
+    post:
+      summary: Create an accountable verifier identity
+      security: [{ session: [] }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object } } } }
+      responses:
+        "201": { description: Verifier created }
+        "403": { $ref: "#/components/responses/Error" }
+  /api/editorial/verifiers/{id}/status:
+    post:
+      summary: Suspend, activate, or retire a verifier
+      security: [{ session: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        {
+          required: true,
+          content:
+            {
+              application/json:
+                {
+                  schema:
+                    {
+                      type: object,
+                      additionalProperties: false,
+                      required: [status],
+                      properties: { status: { type: string, enum: [active, suspended, retired] } },
+                    },
+                },
+            },
+        }
+      responses:
+        "200": { description: Updated verifier projection }
+  /api/editorial/verifiers/{id}/credentials:
+    post:
+      summary: Issue a scoped verifier secret, displayed once
+      security: [{ session: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [label, scopes]
+              properties:
+                label: { type: string, minLength: 1, maxLength: 100 }
+                scopes:
+                  {
+                    type: array,
+                    minItems: 1,
+                    maxItems: 2,
+                    uniqueItems: true,
+                    items: { type: string, enum: ["verification:read", "verification:submit"] },
+                  }
+                expiresAt: { type: string, format: date-time }
+      responses:
+        "201": { description: Credential metadata plus one-time raw token }
+  /api/editorial/verifier-credentials/{id}/revoke:
+    post:
+      summary: Revoke a verifier credential
+      security: [{ session: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Revocation confirmed }
+  /api/editorial/verification-protocols:
+    post:
+      summary: Publish an immutable verification protocol version
+      security: [{ session: [] }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object } } } }
+      responses:
+        "201": { description: Protocol version created }
+        "409": { $ref: "#/components/responses/Error" }
+  /api/editorial/verification-protocols/{id}/retire:
+    post:
+      summary: Retire a verification protocol version without mutating its definition
+      security: [{ session: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Retired protocol projection }

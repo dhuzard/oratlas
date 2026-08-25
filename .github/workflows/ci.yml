@@ -217,6 +217,11 @@ jobs:
         env:
           CERTIFICATION_TEST_DATABASE_URL: "postgresql://oratlas:oratlas@localhost:5432/oratlas"
 
+      - name: Exercise scientific verification races on PostgreSQL
+        run: pnpm exec vitest run apps/web/src/lib/scientific-verification.postgres.integration.test.ts
+        env:
+          SCIENTIFIC_VERIFICATION_TEST_DATABASE_URL: "postgresql://oratlas:oratlas@localhost:5432/oratlas"
+
       - name: Seed PostgreSQL
         run: pnpm --filter @oratlas/db db:seed
 

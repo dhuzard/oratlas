@@ -6,6 +6,11 @@ import { prisma, parseJsonColumn } from "@/lib/db";
 import { getOraCertificationReadiness } from "@/lib/ora-certification";
 import { oraPilotPresentation } from "@/lib/ora-certification-presentation";
 import { OraInitiateButton } from "./OraInitiateButton";
+import {
+  listPublicationVersionVerifications,
+  listVerificationProtocols,
+} from "@/lib/scientific-verification";
+import { VerificationInitiateForm } from "./VerificationInitiateForm";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +27,15 @@ export default async function PublicationVersionPage({
   if (!version) notFound();
   const user = await getCurrentUser();
   const certifications = (await listPublicationVersionCertifications(version.id)).certifications;
+  const verifications = await listPublicationVersionVerifications(version.id);
   const readiness = isEditor(user) ? await getOraCertificationReadiness(version.id) : null;
+  const verificationProtocols = isEditor(user)
+    ? (await listVerificationProtocols()).protocols.filter(
+        (protocol) =>
+          protocol.status === "active" &&
+          (protocol.supportedSubjectTypes as string[]).includes("publication-version"),
+      )
+    : [];
   const warnings = parseJsonColumn<string[]>(version.verificationWarningsJson, []);
   const completeness = parseJsonColumn<{
     coverage: string;
@@ -54,6 +67,53 @@ export default async function PublicationVersionPage({
       ) : null}
       <div className="grid layout-2">
         <div>
+          <Card title="Scientific verification">
+            {verifications.runs.length === 0 ? (
+              <p className="muted">
+                No independent verification evidence exists for this exact version.
+              </p>
+            ) : (
+              <>
+                {(["statistics", "figures", "analyses"] as const).map((category) => {
+                  const counts = verifications.summary[category];
+                  return counts ? (
+                    <p key={category}>
+                      <strong>
+                        {category[0]?.toUpperCase()}
+                        {category.slice(1)}
+                      </strong>{" "}
+                      {Object.entries(counts)
+                        .map(([status, count]) => `${count} ${status.replaceAll("-", " ")}`)
+                        .join(" · ")}
+                    </p>
+                  ) : null;
+                })}
+                <ul>
+                  {verifications.runs.map((run) => (
+                    <li key={run.id}>
+                      <a href={`/verifications/${run.id}`}>
+                        View {run.protocol.seriesKey} evidence
+                      </a>{" "}
+                      <span className="muted">· {run.status}</span>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+            <p className="muted">
+              Findings are independent, protocol-scoped evidence; they are not a truth score or
+              universal badge.
+            </p>
+            {isEditor(user) ? (
+              <VerificationInitiateForm
+                publicationVersionId={version.id}
+                protocols={verificationProtocols.map((protocol) => ({
+                  id: protocol.id,
+                  label: `${protocol.title} · ${protocol.protocolVersion}`,
+                }))}
+              />
+            ) : null}
+          </Card>
           <Card title="Attributed certifications">
             {certifications.length === 0 ? (
               <p className="muted">No certification results exist for this exact version.</p>
@@ -143,6 +203,11 @@ export default async function PublicationVersionPage({
               <li>
                 <a href={`/api/publication-versions/${version.id}/certifications`}>
                   All certification results
+                </a>
+              </li>
+              <li>
+                <a href={`/api/publication-versions/${version.id}/verifications`}>
+                  All scientific verification evidence
                 </a>
               </li>
             </ul>
