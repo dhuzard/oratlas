@@ -705,16 +705,18 @@ export const POSTGRES_DATABASE_GUARD_SQL = [
   ]),
   `CREATE OR REPLACE FUNCTION "oratlas_validate_verification_binding"() RETURNS trigger AS $$
     BEGIN
-      IF TG_TABLE_NAME = 'VerificationArtifact' AND NOT EXISTS (SELECT 1 FROM "VerificationRun" r WHERE r."id" = NEW."verificationRunId" AND r."claimedVerifierId" = NEW."submittedByVerifierId" AND r."status" IN ('claimed', 'running'))
-      THEN RAISE EXCEPTION 'Verification artifact does not match the active run claimant'; END IF;
-      IF TG_TABLE_NAME = 'VerificationFinding' THEN
+      IF TG_TABLE_NAME = 'VerificationArtifact' THEN
+        IF NOT EXISTS (SELECT 1 FROM "VerificationRun" r WHERE r."id" = NEW."verificationRunId" AND r."claimedVerifierId" = NEW."submittedByVerifierId" AND r."status" IN ('claimed', 'running'))
+        THEN RAISE EXCEPTION 'Verification artifact does not match the active run claimant'; END IF;
+      ELSIF TG_TABLE_NAME = 'VerificationFinding' THEN
         IF NOT EXISTS (SELECT 1 FROM "VerificationRun" r WHERE r."id" = NEW."verificationRunId" AND r."claimedVerifierId" = NEW."submittedByVerifierId" AND r."status" IN ('claimed', 'running'))
         THEN RAISE EXCEPTION 'Verification finding does not match the active run claimant'; END IF;
         IF NEW."supersedesFindingId" IS NOT NULL AND NOT EXISTS (SELECT 1 FROM "VerificationFinding" f WHERE f."id" = NEW."supersedesFindingId" AND f."verificationRunId" = NEW."verificationRunId")
         THEN RAISE EXCEPTION 'Verification finding supersession binding is invalid'; END IF;
+      ELSIF TG_TABLE_NAME = 'VerificationFindingArtifact' THEN
+        IF NOT EXISTS (SELECT 1 FROM "VerificationFinding" f JOIN "VerificationArtifact" a ON a."verificationRunId" = f."verificationRunId" WHERE f."id" = NEW."verificationFindingId" AND a."id" = NEW."verificationArtifactId" AND a."status" = 'completed')
+        THEN RAISE EXCEPTION 'Verification finding artifact binding is invalid'; END IF;
       END IF;
-      IF TG_TABLE_NAME = 'VerificationFindingArtifact' AND NOT EXISTS (SELECT 1 FROM "VerificationFinding" f JOIN "VerificationArtifact" a ON a."verificationRunId" = f."verificationRunId" WHERE f."id" = NEW."verificationFindingId" AND a."id" = NEW."verificationArtifactId" AND a."status" = 'completed')
-      THEN RAISE EXCEPTION 'Verification finding artifact binding is invalid'; END IF;
       RETURN NEW;
     END; $$ LANGUAGE plpgsql`,
   ...[
