@@ -1,0 +1,66 @@
+name: MyST 0.3 pinned compatibility
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  release-gate:
+    name: oratlas-myst 91b20fb release gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      DATABASE_URL: "file:${{ github.workspace }}/packages/db/prisma/myst-030-gate.db"
+    steps:
+      - name: Check out ORAtlas
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+
+      - name: Check out the exact oratlas-myst release candidate
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          repository: dhuzard/oratlas-myst
+          ref: 91b20fb5e405878b3f100ddbda297bd5448d598a
+          path: .compat/oratlas-myst
+          persist-credentials: false
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          version: 10.33.0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install ORAtlas dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate the ORAtlas Prisma client
+        run: pnpm --filter @oratlas/db db:generate
+
+      - name: Build and pack the pinned upstream source
+        run: |
+          pnpm --dir .compat/oratlas-myst install --frozen-lockfile
+          pnpm --dir .compat/oratlas-myst build
+          cd .compat/oratlas-myst
+          tarball=$(npm pack --silent --pack-destination "${RUNNER_TEMP}")
+          echo "ORATLAS_MYST_030_TARBALL=${RUNNER_TEMP}/${tarball}" >> "${GITHUB_ENV}"
+
+      - name: Build a real publication and pass the ORAtlas release gate
+        run: >-
+          pnpm exec vitest run
+          apps/web/src/lib/external-publication-registration.integration.test.ts
+          --testNamePattern="pinned real @neuronautix/myst 0.3.0 release gate"

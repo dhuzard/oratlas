@@ -1,8 +1,13 @@
 import { z } from "zod";
 import {
+  MYST_CLAIM_RECORD_PROTOCOL_VERSION,
+  MYST_LEGACY_PUBLICATION_PROTOCOL_VERSION,
   MYST_PUBLICATION_PROTOCOL_VERSION,
+  MYST_SUPPORTED_PUBLICATION_PROTOCOL_VERSIONS,
   PUBLICATION_BOUNDARY_SCHEMA_VERSION,
   claimTypeSchema,
+  normalizedPublicationContributorsSchema,
+  normalizedPublicationProductionAssertionSchema,
   publicationClaimOccurrenceRecordSchema,
   publicationClaimSelectorSchema,
   publicationClaimSourceBindingSchema,
@@ -24,6 +29,7 @@ import {
 } from "../identity.js";
 import {
   PublicationAdapterError,
+  publicationArtifactIdentitySha256,
   type CapturedPublicationArtifact,
   type NormalizedPublication,
   type PublicationAdapter,
@@ -32,7 +38,7 @@ import {
 import { normalizeMystPublicationContent } from "./myst-content.js";
 
 /**
- * The `myst` adapter: dhuzard/oratlas-myst schema version 0.2.0.
+ * The `myst` adapter: closed dhuzard/oratlas-myst manifest schemas 0.2.0 and 0.3.0.
  *
  * This module is pure. It never fetches, never resolves a URL, never touches
  * the filesystem, and never executes publication content: it validates
@@ -92,52 +98,271 @@ const mystSourceDescriptorSchema = z.discriminatedUnion("type", [
     .strict(),
 ]);
 
-/** `oratlas.manifest.json`, schema version 0.2.0. Closed object. */
-export const mystPublicationManifestSchema = z
+const mystGeneratorSchema = z
+  .object({ name: z.string().min(1).max(120), version: z.string().min(1).max(60) })
+  .strict();
+
+const mystPublicationSchema = z
   .object({
-    schemaVersion: z.literal(MYST_PUBLICATION_PROTOCOL_VERSION),
-    generator: z
-      .object({ name: z.string().min(1).max(120), version: z.string().min(1).max(60) })
-      .strict(),
-    publication: z
+    id: sourceLocalPublicationIdSchema.optional(),
+    canonicalUrl: publicationHttpsUrlSchema.optional(),
+    title: z.string().min(1).max(500).optional(),
+    version: z
       .object({
-        id: sourceLocalPublicationIdSchema.optional(),
-        canonicalUrl: publicationHttpsUrlSchema.optional(),
-        title: z.string().min(1).max(500).optional(),
-        version: z
-          .object({
-            sourcesSha256: publicationSha256Schema,
-            label: z.string().min(1).max(120).optional(),
-          })
-          .strict(),
-        source: mystSourceDescriptorSchema.optional(),
+        sourcesSha256: publicationSha256Schema,
+        label: z.string().min(1).max(120).optional(),
       })
       .strict(),
-    adapter: z.discriminatedUnion("type", [
-      z.object({ type: z.literal("myst"), xref: safeRepoRelativePathSchema }).strict(),
-    ]),
-    artifacts: z
-      .object({
-        claims: z
-          .object({
-            path: safeRepoRelativePathSchema,
-            format: z.literal("jsonl"),
-            records: z.number().int().min(0).max(1_000_000),
-            sha256: publicationSha256Schema,
-            declarations: z.enum(["publication-source", "review-manifest"]),
-          })
-          .strict(),
-      })
-      .strict(),
-    oratlas: z.object({ reviewManifest: safeRepoRelativePathSchema }).strict().optional(),
+    source: mystSourceDescriptorSchema.optional(),
   })
   .strict();
+
+const mystAdapterSchema = z
+  .object({ type: z.literal("myst"), xref: safeRepoRelativePathSchema })
+  .strict();
+
+const mystArtifactsSchema = z
+  .object({
+    claims: z
+      .object({
+        path: safeRepoRelativePathSchema,
+        format: z.literal("jsonl"),
+        records: z.number().int().min(0).max(1_000_000),
+        sha256: publicationSha256Schema,
+        declarations: z.enum(["publication-source", "review-manifest"]),
+      })
+      .strict(),
+  })
+  .strict();
+
+const mystOratlasSchema = z.object({ reviewManifest: safeRepoRelativePathSchema }).strict();
+
+const mystContributorIdentifierSchema = z
+  .object({
+    scheme: z.enum(["orcid", "ror", "isni", "other"]),
+    value: z.string().trim().min(1).max(300),
+  })
+  .strict()
+  .superRefine((identifier, context) => {
+    if (identifier.scheme !== "orcid") return;
+    if (!/^\d{4}-\d{4}-\d{4}-\d{3}[\dX]$/.test(identifier.value)) {
+      context.addIssue({ code: z.ZodIssueCode.custom, path: ["value"], message: "Invalid ORCID." });
+      return;
+    }
+    const compact = identifier.value.replaceAll("-", "");
+    let total = 0;
+    for (const digit of compact.slice(0, 15)) total = (total + Number(digit)) * 2;
+    const result = (12 - (total % 11)) % 11;
+    if (compact.at(-1) !== (result === 10 ? "X" : String(result))) {
+      context.addIssue({ code: z.ZodIssueCode.custom, path: ["value"], message: "Invalid ORCID." });
+    }
+  });
+
+const mystContributorCommonShape = {
+  sourceContributorKey: z
+    .string()
+    .min(1)
+    .max(200)
+    .regex(/^[A-Za-z0-9][A-Za-z0-9._:-]*$/),
+  displayName: z.string().trim().min(1).max(300),
+  identifiers: z.array(mystContributorIdentifierSchema).max(20).optional(),
+  affiliations: z.array(z.string().trim().min(1).max(300)).max(50).optional(),
+  roles: z
+    .array(
+      z.enum(["author", "corresponding-author", "editor", "group-author", "contributor", "other"]),
+    )
+    .min(1)
+    .max(6),
+  position: z.number().int().positive().max(500),
+  publicUrl: publicationHttpsUrlSchema.optional(),
+} as const;
+
+const mystContributorSchema = z
+  .discriminatedUnion("kind", [
+    z
+      .object({
+        kind: z.literal("person"),
+        ...mystContributorCommonShape,
+        givenName: z.string().trim().min(1).max(200).optional(),
+        familyName: z.string().trim().min(1).max(200).optional(),
+      })
+      .strict(),
+    z.object({ kind: z.literal("organization"), ...mystContributorCommonShape }).strict(),
+  ])
+  .superRefine((contributor, context) => {
+    const invalidIdentifier = contributor.identifiers?.find(
+      (identifier) =>
+        (contributor.kind === "person" && identifier.scheme === "ror") ||
+        (contributor.kind === "organization" && identifier.scheme === "orcid"),
+    );
+    if (invalidIdentifier) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["identifiers"],
+        message: "Contributor identifier scheme does not match contributor kind.",
+      });
+    }
+    for (const [path, values] of [
+      [
+        "identifiers",
+        (contributor.identifiers ?? []).map(
+          (identifier) => `${identifier.scheme}:${identifier.value}`,
+        ),
+      ],
+      ["affiliations", contributor.affiliations ?? []],
+      ["roles", contributor.roles],
+    ] as const) {
+      if (new Set(values).size !== values.length) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: [path],
+          message: `${path} must not contain duplicates.`,
+        });
+      }
+    }
+  });
+
+const mystContributorsSchema = z
+  .array(mystContributorSchema)
+  .max(500)
+  .superRefine((contributors, context) => {
+    const keys = new Set<string>();
+    contributors.forEach((contributor, index) => {
+      if (keys.has(contributor.sourceContributorKey)) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: [index, "sourceContributorKey"],
+          message: "Source contributor keys must be unique within a publication version.",
+        });
+      }
+      if (contributor.position !== index + 1) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: [index, "position"],
+          message: "Contributor positions must be contiguous and match declared array order.",
+        });
+      }
+      keys.add(contributor.sourceContributorKey);
+    });
+  });
+
+const mystProductionActorSchema = z
+  .object({
+    id: z
+      .string()
+      .min(1)
+      .max(200)
+      .regex(/^[A-Za-z0-9][A-Za-z0-9._:-]*$/),
+    kind: z.enum(["person", "organization", "software", "workflow", "ai-system"]),
+    name: z.string().trim().min(1).max(300).optional(),
+    identifier: z.string().trim().min(1).max(500).optional(),
+    version: z.string().trim().min(1).max(120).optional(),
+    provider: z.string().trim().min(1).max(200).optional(),
+    model: z.string().trim().min(1).max(200).optional(),
+    modelVersion: z.string().trim().min(1).max(120).optional(),
+    publicUrl: publicationHttpsUrlSchema.optional(),
+    activities: z
+      .array(
+        z.enum([
+          "study-design",
+          "evidence-search",
+          "evidence-synthesis",
+          "data-analysis",
+          "drafting",
+          "authoring",
+          "editing",
+          "reviewing",
+          "figure-generation",
+          "code-generation",
+          "other",
+        ]),
+      )
+      .min(1)
+      .max(11),
+  })
+  .strict()
+  .superRefine((actor, context) => {
+    if (actor.name === undefined && actor.identifier === undefined) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["name"],
+        message: "A production actor requires a declared name or identifier.",
+      });
+    }
+    if (new Set(actor.activities).size !== actor.activities.length) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["activities"],
+        message: "activities must not contain duplicates.",
+      });
+    }
+  });
+
+const mystProductionSchema = z
+  .object({
+    sourceAssertionKey: z
+      .string()
+      .min(1)
+      .max(200)
+      .regex(/^[A-Za-z0-9][A-Za-z0-9._:-]*$/),
+    strength: z.literal("source-declared"),
+    mode: z.enum(["human", "ai-assisted", "agentic", "hybrid", "unspecified"]),
+    actors: z.array(mystProductionActorSchema).max(64),
+    statement: z.string().trim().min(1).max(5_000).optional(),
+    publicEvidenceUrl: publicationHttpsUrlSchema.optional(),
+  })
+  .strict()
+  .superRefine((production, context) => {
+    const ids = new Set<string>();
+    production.actors.forEach((actor, index) => {
+      if (ids.has(actor.id)) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["actors", index, "id"],
+          message: "Production actor ids must be unique within an assertion.",
+        });
+      }
+      ids.add(actor.id);
+    });
+  });
+
+const mystManifestCommonShape = {
+  generator: mystGeneratorSchema,
+  publication: mystPublicationSchema,
+  adapter: mystAdapterSchema,
+  artifacts: mystArtifactsSchema,
+  oratlas: mystOratlasSchema.optional(),
+} as const;
+
+/** Frozen `oratlas.manifest.json`, schema version 0.2.0. */
+export const mystPublicationManifestV020Schema = z
+  .object({
+    schemaVersion: z.literal(MYST_LEGACY_PUBLICATION_PROTOCOL_VERSION),
+    ...mystManifestCommonShape,
+  })
+  .strict();
+
+/** Current `oratlas.manifest.json`, schema version 0.3.0. */
+export const mystPublicationManifestV030Schema = z
+  .object({
+    schemaVersion: z.literal(MYST_PUBLICATION_PROTOCOL_VERSION),
+    ...mystManifestCommonShape,
+    contributors: mystContributorsSchema.optional(),
+    production: mystProductionSchema.optional(),
+  })
+  .strict();
+
+/** Closed, version-discriminated acceptance contract for 0.2.0 and 0.3.0. */
+export const mystPublicationManifestSchema = z.discriminatedUnion("schemaVersion", [
+  mystPublicationManifestV020Schema,
+  mystPublicationManifestV030Schema,
+]);
 export type MystPublicationManifest = z.infer<typeof mystPublicationManifestSchema>;
 
 /** One record of `oratlas/claims.jsonl`, schema version 0.2.0. Closed object. */
 export const mystClaimRecordSchema = z
   .object({
-    schemaVersion: z.literal(MYST_PUBLICATION_PROTOCOL_VERSION),
+    schemaVersion: z.literal(MYST_CLAIM_RECORD_PROTOCOL_VERSION),
     id: sourceLocalClaimIdSchema,
     text: z.string().min(1).max(5_000).optional(),
     claimType: mystClaimTypeSchema.optional(),
@@ -161,6 +386,12 @@ export type MystClaimRecord = z.infer<typeof mystClaimRecordSchema>;
 export interface NormalizeMystPublicationInput {
   /** Parsed `oratlas.manifest.json`, exactly as observed. */
   manifest: unknown;
+  /** Exact captured manifest artifact used as contributor declaration provenance. */
+  manifestArtifact?: CapturedPublicationArtifact & {
+    artifactKind: "publication-manifest";
+    requestedUrl?: string;
+    observedUrl?: string;
+  };
   /** Parsed `oratlas/claims.jsonl` records, in artifact order. */
   claims: readonly unknown[];
   /**
@@ -219,6 +450,82 @@ export function normalizeMystPublication(
 ): NormalizedPublication {
   const manifest = mystPublicationManifestSchema.parse(input.manifest);
   const records = input.claims.map((claim) => mystClaimRecordSchema.parse(claim));
+
+  const contributors = (() => {
+    if (manifest.schemaVersion !== MYST_PUBLICATION_PROTOCOL_VERSION) return undefined;
+    if (manifest.contributors === undefined) return undefined;
+    if (input.manifestArtifact === undefined) {
+      throw new PublicationAdapterError(
+        "MyST 0.3 contributor declarations require the exact captured publication manifest.",
+      );
+    }
+    const sourceDeclarationProvenance = {
+      type: "source-declared" as const,
+      sourceArtifactKind: "publication-manifest" as const,
+      sourceArtifactIdentitySha256: publicationArtifactIdentitySha256(input.manifestArtifact),
+      sourceArtifactSha256: input.manifestArtifact.contentSha256,
+    };
+    return normalizedPublicationContributorsSchema.parse(
+      manifest.contributors.map((contributor) => ({
+        sourceContributorKey: contributor.sourceContributorKey,
+        kind: contributor.kind,
+        displayName: contributor.displayName,
+        ...(contributor.kind === "person" && contributor.givenName !== undefined
+          ? { givenName: contributor.givenName }
+          : {}),
+        ...(contributor.kind === "person" && contributor.familyName !== undefined
+          ? { familyName: contributor.familyName }
+          : {}),
+        identifiers: [...(contributor.identifiers ?? [])],
+        affiliations: [...(contributor.affiliations ?? [])],
+        roles: [...contributor.roles],
+        position: contributor.position,
+        ...(contributor.publicUrl === undefined ? {} : { publicUrl: contributor.publicUrl }),
+        sourceDeclarationProvenance,
+      })),
+    );
+  })();
+
+  const productionAssertions = (() => {
+    if (
+      manifest.schemaVersion !== MYST_PUBLICATION_PROTOCOL_VERSION ||
+      manifest.production === undefined
+    ) {
+      return undefined;
+    }
+    const seenActivities = new Set<string>();
+    const activities = manifest.production.actors.flatMap((actor) =>
+      actor.activities.filter((activity) => {
+        if (seenActivities.has(activity)) return false;
+        seenActivities.add(activity);
+        return true;
+      }),
+    );
+    return [
+      normalizedPublicationProductionAssertionSchema.parse({
+        sourceAssertionKey: manifest.production.sourceAssertionKey,
+        strength: manifest.production.strength,
+        mode: manifest.production.mode,
+        actors: manifest.production.actors.map((actor) => ({
+          kind: actor.kind,
+          ...(actor.name === undefined ? {} : { name: actor.name }),
+          ...(actor.identifier === undefined ? {} : { identifier: actor.identifier }),
+          ...(actor.version === undefined ? {} : { version: actor.version }),
+          ...(actor.provider === undefined ? {} : { provider: actor.provider }),
+          ...(actor.model === undefined ? {} : { model: actor.model }),
+          ...(actor.modelVersion === undefined ? {} : { modelVersion: actor.modelVersion }),
+          ...(actor.publicUrl === undefined ? {} : { publicUrl: actor.publicUrl }),
+        })),
+        activities,
+        ...(manifest.production.statement === undefined
+          ? {}
+          : { statement: manifest.production.statement }),
+        ...(manifest.production.publicEvidenceUrl === undefined
+          ? {}
+          : { publicEvidenceUrl: manifest.production.publicEvidenceUrl }),
+      }),
+    ];
+  })();
 
   if (manifest.artifacts.claims.records !== records.length) {
     throw new PublicationAdapterError(
@@ -327,7 +634,7 @@ export function normalizeMystPublication(
       : { canonicalUrl: manifest.publication.canonicalUrl }),
     adapter: {
       type: "myst",
-      protocolVersion: MYST_PUBLICATION_PROTOCOL_VERSION,
+      protocolVersion: manifest.schemaVersion,
       crossReferenceInventoryPath: manifest.adapter.xref,
       generatorName: manifest.generator.name,
       generatorVersion: manifest.generator.version,
@@ -362,7 +669,13 @@ export function normalizeMystPublication(
     }),
   );
 
-  return { publication, version, occurrences };
+  return {
+    publication,
+    version,
+    occurrences,
+    ...(contributors === undefined ? {} : { contributors }),
+    ...(productionAssertions === undefined ? {} : { productionAssertions }),
+  };
 }
 
 export interface MystAdapterArtifactsInput {
@@ -379,6 +692,11 @@ export interface MystPublishedStructureInput {
 export interface MystAdapterNormalizeInput {
   manifest: MystPublicationManifest;
   claims: readonly MystClaimRecord[];
+  manifestArtifact?: CapturedPublicationArtifact & {
+    artifactKind: "publication-manifest";
+    requestedUrl?: string;
+    observedUrl?: string;
+  };
   delegatedDeclarations?: ReadonlyMap<
     string,
     { text: string; claimType?: string; qualification?: string }
@@ -420,7 +738,7 @@ function resolveMystAdapterPublishedTarget(input: MystPublishedTargetInput): str
   return resolved.href;
 }
 
-/** Frozen MyST 0.2.0 as one implementation of the generic adapter boundary. */
+/** MyST manifest protocols 0.2.0 and 0.3.0 as one generic format adapter. */
 export const mystPublicationAdapter: PublicationAdapter<
   MystPublicationManifest,
   MystAdapterArtifactsInput,
@@ -429,12 +747,14 @@ export const mystPublicationAdapter: PublicationAdapter<
   MystPublishedTargetInput
 > = {
   type: "myst",
-  supportedProtocolVersions: [MYST_PUBLICATION_PROTOCOL_VERSION],
+  supportedProtocolVersions: MYST_SUPPORTED_PUBLICATION_PROTOCOL_VERSIONS,
   recognizeManifest(value) {
     return (
       typeof value === "object" &&
       value !== null &&
-      (value as { schemaVersion?: unknown }).schemaVersion === MYST_PUBLICATION_PROTOCOL_VERSION &&
+      MYST_SUPPORTED_PUBLICATION_PROTOCOL_VERSIONS.some(
+        (version) => version === (value as { schemaVersion?: unknown }).schemaVersion,
+      ) &&
       typeof (value as { adapter?: unknown }).adapter === "object" &&
       (value as { adapter?: { type?: unknown } }).adapter?.type === "myst"
     );
@@ -443,7 +763,7 @@ export const mystPublicationAdapter: PublicationAdapter<
     const parsed = mystPublicationManifestSchema.safeParse(value);
     if (!parsed.success) {
       throw new PublicationAdapterError(
-        "The publication manifest does not satisfy the closed MyST 0.2.0 contract.",
+        "The publication manifest does not satisfy the closed MyST 0.2.0/0.3.0 contract.",
       );
     }
     return parsed.data;
@@ -507,6 +827,7 @@ export const mystPublicationAdapter: PublicationAdapter<
   normalize(input, context: PublicationAdapterNormalizationContext) {
     return normalizeMystPublication({
       manifest: input.manifest,
+      ...(input.manifestArtifact === undefined ? {} : { manifestArtifact: input.manifestArtifact }),
       claims: input.claims,
       publicationType: context.publicationType,
       structuralProvenance: context.structuralProvenance,

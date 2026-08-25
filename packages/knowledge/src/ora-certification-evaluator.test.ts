@@ -143,6 +143,46 @@ function packetWithContributor(displayName: string): PublicationVersionPacket {
   };
 }
 
+function packetWithProductionMode(
+  mode: "human" | "ai-assisted" | "agentic" | "hybrid",
+): PublicationVersionPacket {
+  const current = packetWithContributor("Mode-neutral Researcher");
+  if (current.schemaVersion !== "1.3.0") throw new Error("Expected packet 1.3.0.");
+  return {
+    ...current,
+    productionProvenance: [
+      {
+        id: "production-1",
+        publicationVersionId: "version-1",
+        sourceAssertionKey: "publication-production",
+        mode,
+        actors: [{ kind: "workflow", name: "Declared workflow" }],
+        activities: ["drafting"],
+        statement: null,
+        strength: "source-declared",
+        lifecycleState: "active",
+        publicEvidenceUrl: null,
+        agentRunId: null,
+        executionPassportId: null,
+        supersedesAssertionId: null,
+        supersededByAssertionId: null,
+        assertedBy: null,
+        assertedAt: "2026-08-24T00:00:00.000Z",
+        links: {
+          publicationVersion: "/api/publication-versions/version-1",
+          executionPassport: null,
+          publicEvidence: null,
+        },
+      },
+    ],
+    completeness: {
+      ...current.completeness,
+      productionProvenance: { returned: 1, total: 1, truncated: false },
+    },
+    sha256: sha(`packet-production-${mode}`),
+  };
+}
+
 describe("ORA AI evaluator", () => {
   it("uses a bounded provider-neutral JSON request and adds packet-specific limitations", async () => {
     const complete = vi.fn().mockResolvedValue(output());
@@ -241,6 +281,28 @@ describe("ORA AI evaluator", () => {
     expect(await evaluate("Famous Prize Winner")).toBe("certified");
     expect(prompts[0]).toBe(prompts[1]);
     expect(prompts[0]).not.toMatch(/Unknown Researcher|Famous Prize Winner|orcid|Institute/);
+  });
+
+  it("does not mechanically change ORA outcome when only declared production mode differs", async () => {
+    const evaluate = async (mode: "human" | "ai-assisted" | "agentic" | "hybrid") => {
+      const current = packetWithProductionMode(mode);
+      const result = await new OraScientificMeritEvaluator({
+        name: "fixture-provider",
+        model: "fixture-model",
+        complete: vi.fn().mockResolvedValue(output()),
+      }).evaluate({
+        packet: current,
+        protocol: ORA_SCIENTIFIC_MERIT_PROTOCOL_DEFINITION,
+      });
+      return deriveOraScientificMeritOutcome(result.criteria, current.completeness.content);
+    };
+    await expect(
+      Promise.all(
+        ["human", "ai-assisted", "agentic", "hybrid"].map((mode) =>
+          evaluate(mode as "human" | "ai-assisted" | "agentic" | "hybrid"),
+        ),
+      ),
+    ).resolves.toEqual(["certified", "certified", "certified", "certified"]);
   });
 
   it("makes frozen-packet, missing-information, production-neutrality, and challenge caveats explicit", () => {

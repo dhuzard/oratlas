@@ -111,6 +111,17 @@ async function persistVerifiedExternalPublicationOnce(
     );
   }
   const contributors = parsedContributors.data;
+  const productionAssertions = (verified.normalized.productionAssertions ?? []).map((assertion) =>
+    normalizedPublicationProductionAssertionSchema.parse(assertion),
+  );
+  if (
+    new Set(productionAssertions.map((assertion) => assertion.sourceAssertionKey)).size !==
+    productionAssertions.length
+  ) {
+    throw new PublicationAdapterError(
+      "The adapter returned duplicate source production assertion keys.",
+    );
+  }
   const artifactByIdentity = new Map(
     verified.artifacts.map((artifact) => [publicationArtifactIdentitySha256(artifact), artifact]),
   );
@@ -268,18 +279,21 @@ async function persistVerifiedExternalPublicationOnce(
       );
     }
 
-    for (const rawAssertion of verified.normalized.productionAssertions ?? []) {
-      const assertion = normalizedPublicationProductionAssertionSchema.parse(rawAssertion);
-      const existingAssertion = await tx.publicationProductionAssertion.findUnique({
-        where: {
-          publicationVersionId_sourceAssertionKey: {
-            publicationVersionId: versionRow.id,
-            sourceAssertionKey: assertion.sourceAssertionKey,
-          },
-        },
-      });
-      if (!existingAssertion) {
-        replayed = false;
+    const existingSourceAssertions = (
+      await tx.publicationProductionAssertion.findMany({
+        where: { publicationVersionId: versionRow.id },
+      })
+    ).filter(
+      (assertion) =>
+        assertion.strength === "source-declared" && assertion.sourceAssertionKey !== null,
+    );
+    if (versionCreated) {
+      if (existingSourceAssertions.length !== 0) {
+        throw new PublicationRegistrationConflictError(
+          "A newly created publication version unexpectedly has source production assertions.",
+        );
+      }
+      for (const assertion of productionAssertions) {
         await tx.publicationProductionAssertion.create({
           data: {
             publicationVersionId: versionRow.id,
@@ -293,19 +307,31 @@ async function persistVerifiedExternalPublicationOnce(
             assertedAt: new Date(version.observedAt),
           },
         });
-      } else if (
-        existingAssertion.mode !== assertion.mode ||
-        existingAssertion.actorsJson !== canonicalJson(assertion.actors) ||
-        existingAssertion.activitiesJson !== canonicalJson(assertion.activities) ||
-        !sameOptional(existingAssertion.statement, assertion.statement) ||
-        existingAssertion.strength !== assertion.strength ||
-        !sameOptional(existingAssertion.publicEvidenceUrl, assertion.publicEvidenceUrl) ||
-        existingAssertion.agentRunId !== null ||
-        existingAssertion.executionPassportId !== null ||
-        existingAssertion.supersedesAssertionId !== null
+      }
+    } else {
+      const existingByKey = new Map(
+        existingSourceAssertions.map((assertion) => [assertion.sourceAssertionKey, assertion]),
+      );
+      if (
+        existingSourceAssertions.length !== productionAssertions.length ||
+        productionAssertions.some((assertion) => {
+          const existing = existingByKey.get(assertion.sourceAssertionKey);
+          return (
+            existing === undefined ||
+            existing.mode !== assertion.mode ||
+            existing.actorsJson !== canonicalJson(assertion.actors) ||
+            existing.activitiesJson !== canonicalJson(assertion.activities) ||
+            !sameOptional(existing.statement, assertion.statement) ||
+            existing.strength !== assertion.strength ||
+            !sameOptional(existing.publicEvidenceUrl, assertion.publicEvidenceUrl) ||
+            existing.agentRunId !== null ||
+            existing.executionPassportId !== null ||
+            existing.supersedesAssertionId !== null
+          );
+        })
       ) {
         throw new PublicationRegistrationConflictError(
-          `Production assertion '${assertion.sourceAssertionKey}' conflicts with its immutable observation.`,
+          "The exact publication version conflicts with its immutable source production assertions.",
         );
       }
     }

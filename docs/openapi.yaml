@@ -191,7 +191,7 @@ components:
         captureId: { type: string, minLength: 1 }
         publicationId: { type: string, minLength: 1 }
         publicationVersionId: { type: string, minLength: 1 }
-        manifestSchemaVersion: { const: "0.2.0" }
+        manifestSchemaVersion: { type: string, enum: ["0.2.0", "0.3.0"] }
         adapterType: { const: myst }
         claimOccurrenceCount: { type: integer, minimum: 0 }
         verificationLevel: { type: string, enum: [published-structure, source-byte] }

@@ -3,6 +3,7 @@ import { z } from "zod";
 import {
   canonicalJson,
   claimRecordSchema as reviewClaimRecordSchema,
+  MYST_SUPPORTED_PUBLICATION_PROTOCOL_VERSIONS,
   reviewManifestSchema,
   safeRepoRelativePathSchema,
   type PublicationCaptureArtifactKind,
@@ -161,7 +162,9 @@ function parseManifest(bytes: Uint8Array): MystPublicationManifest {
     typeof value === "object" &&
     value !== null &&
     "schemaVersion" in value &&
-    (value as { schemaVersion?: unknown }).schemaVersion !== "0.2.0"
+    !MYST_SUPPORTED_PUBLICATION_PROTOCOL_VERSIONS.some(
+      (version) => version === (value as { schemaVersion?: unknown }).schemaVersion,
+    )
   ) {
     throw new PublicationRegistrationError(
       "unsupported-protocol",
@@ -287,11 +290,35 @@ function capture(
   };
 }
 
+const mystPublishedDataPathSchema = z
+  .string()
+  .min(1)
+  .max(1_000)
+  .transform((value, context) => {
+    if (
+      value.startsWith("//") ||
+      value.includes("\\") ||
+      Array.from(value).some((character) => {
+        const codePoint = character.codePointAt(0)!;
+        return codePoint <= 0x1f || codePoint === 0x7f;
+      })
+    ) {
+      context.addIssue({ code: z.ZodIssueCode.custom, message: "Unsafe MyST page-data path." });
+      return z.NEVER;
+    }
+    const parsed = safeRepoRelativePathSchema.safeParse(value.replace(/^\//, ""));
+    if (!parsed.success) {
+      context.addIssue({ code: z.ZodIssueCode.custom, message: "Unsafe MyST page-data path." });
+      return z.NEVER;
+    }
+    return parsed.data;
+  });
+
 const xrefReferenceSchema = z
   .object({
-    identifier: z.string().min(1).max(300),
+    identifier: z.string().min(1).max(300).optional(),
     url: z.string().min(1).max(2_000),
-    data: safeRepoRelativePathSchema,
+    data: mystPublishedDataPathSchema,
   })
   .passthrough();
 const xrefInventorySchema = z
@@ -582,7 +609,7 @@ export async function verifyExternalPublication(
     }
     const references = new Map<string, z.infer<typeof xrefReferenceSchema>>();
     for (const reference of parsedXref.data.references) {
-      if (!ids.has(reference.identifier)) continue;
+      if (reference.identifier === undefined || !ids.has(reference.identifier)) continue;
       if (references.has(reference.identifier)) {
         throw new PublicationRegistrationError(
           "invalid-artifact",
@@ -744,10 +771,20 @@ export async function verifyExternalPublication(
 
     const observedAt = (input.now ?? (() => new Date()))().toISOString();
     mystPublicationAdapter.validateCapturedArtifacts({ manifest, artifacts });
+    const manifestArtifact = artifacts.find(
+      (artifact) => artifact.artifactKind === "publication-manifest",
+    );
+    if (!manifestArtifact) {
+      throw new PublicationRegistrationError(
+        "invalid-artifact",
+        "The captured publication has no publication manifest artifact.",
+      );
+    }
     const normalized = mystPublicationAdapter.normalize(
       {
         manifest,
         claims: records,
+        manifestArtifact: { ...manifestArtifact, artifactKind: "publication-manifest" },
         ...(delegatedDeclarations === undefined ? {} : { delegatedDeclarations }),
       },
       {

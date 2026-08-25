@@ -24,13 +24,16 @@ agents resolve record content through the reader-agnostic graph API.
 External publications use that same graph. A `publication-claim-occurrence` source names the exact
 publication/version, authoritative external target, capture identities, optional
 `publisherCanonicalUrl`, and distinct capture-derived `observedPublicationBaseUrl`. Agents may follow the generic,
-SHA-256-bound publication-version packet for bounded occurrences, public production assertions,
-normalized inert scientific content, and public confirmed relations. Packet schema 1.2 freezes
+SHA-256-bound publication-version packet for bounded occurrences, exact-version contributor
+snapshots, public production assertions, normalized inert scientific content, and public confirmed relations. Packet schema 1.3 freezes
 that content before certification and carries explicit complete/partial/unknown/unsupported
 coverage; agents must not fetch the mutable publication later or describe the corpus as scientific
 validation. The packet excludes raw captures, private AgentRun prompts/output, private proposals
 and hidden assessments. Production mode is
 descriptive provenance, not authorship, merit, correctness, TRUST, review, or certification.
+For MyST manifest 0.3.0, agents must likewise keep scholarly contributors, production actors, and
+the `myst` adapter independent. An ARS workflow or AI system is never inferred to be an author, and
+a contributor is never inferred to be a production actor.
 Matching text, local IDs or digests never authorize identity merging. Reviewed publication-transfer
 relations are explicit provenance records and do not imply claim continuity.
 

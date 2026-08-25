@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { createServer, type Server } from "node:http";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { canonicalJson } from "@oratlas/contracts";
+import { publicationArtifactIdentitySha256 } from "./adapter.js";
 import { createHardenedRemoteFetcher } from "./remote-fetch.js";
 import {
   PublicationSourceUnavailableError,
@@ -197,6 +198,88 @@ describe("external publication registration verification", () => {
     });
   });
 
+  it("verifies a 0.3 manifest with frozen 0.2 claims, contributors, production, and content", async () => {
+    const manifest = JSON.parse(files.get("/review/oratlas.manifest.json")!.body);
+    manifest.schemaVersion = "0.3.0";
+    manifest.generator = { name: "@neuronautix/myst", version: "0.3.0" };
+    manifest.contributors = [
+      {
+        sourceContributorKey: "alice",
+        kind: "person",
+        displayName: "Alice Example",
+        identifiers: [{ scheme: "orcid", value: "0000-0002-1825-0097" }],
+        roles: ["author"],
+        position: 1,
+      },
+    ];
+    manifest.production = {
+      sourceAssertionKey: "publication-production",
+      strength: "source-declared",
+      mode: "hybrid",
+      actors: [
+        {
+          id: "workflow",
+          kind: "workflow",
+          name: "ARS workflow",
+          activities: ["evidence-search", "drafting"],
+        },
+        {
+          id: "alice-editor",
+          kind: "person",
+          name: "Alice Example",
+          activities: ["drafting", "editing"],
+        },
+      ],
+    };
+    files.set("/review/oratlas.manifest.json", {
+      body: JSON.stringify(manifest),
+      type: "application/json",
+    });
+    files.set("/review/myst.xref.json", {
+      body: JSON.stringify({
+        version: "1",
+        myst: "1.10.1",
+        references: [
+          { kind: "page", data: "/content/results.json", url: "/results" },
+          {
+            identifier: "claim-1",
+            kind: "div",
+            data: "/content/results.json",
+            url: "/results",
+          },
+        ],
+      }),
+      type: "application/json",
+    });
+
+    const result = await verify();
+    const manifestArtifact = result.artifacts.find(
+      (artifact) => artifact.artifactKind === "publication-manifest",
+    )!;
+    expect(result.manifest.schemaVersion).toBe("0.3.0");
+    expect(result.normalized.version.adapter.protocolVersion).toBe("0.3.0");
+    expect(result.normalized.occurrences).toHaveLength(1);
+    expect(result.normalized.content?.documents).toHaveLength(1);
+    expect(result.normalized.contributors?.[0]).toMatchObject({
+      sourceContributorKey: "alice",
+      displayName: "Alice Example",
+      sourceDeclarationProvenance: {
+        type: "source-declared",
+        sourceArtifactKind: "publication-manifest",
+        sourceArtifactIdentitySha256: publicationArtifactIdentitySha256(manifestArtifact),
+        sourceArtifactSha256: manifestArtifact.contentSha256,
+      },
+    });
+    expect(result.normalized.productionAssertions?.[0]).toMatchObject({
+      mode: "hybrid",
+      activities: ["evidence-search", "drafting", "editing"],
+      actors: [
+        { kind: "workflow", name: "ARS workflow" },
+        { kind: "person", name: "Alice Example" },
+      ],
+    });
+  });
+
   it("captures a bounded inventory-derived corpus and reports truncation honestly", async () => {
     resetFixture({
       xref: {
@@ -283,7 +366,7 @@ describe("external publication registration verification", () => {
 
   it.each([
     ["invalid JSON", "not-json", "invalid-artifact"],
-    ["unsupported schema", JSON.stringify({ schemaVersion: "0.3.0" }), "unsupported-protocol"],
+    ["unsupported schema", JSON.stringify({ schemaVersion: "0.4.0" }), "unsupported-protocol"],
   ])("rejects %s fail-closed", async (_label, body, code) => {
     files.set("/review/oratlas.manifest.json", { body, type: "application/json" });
     await expect(verify()).rejects.toMatchObject({ code });

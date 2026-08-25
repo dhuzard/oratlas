@@ -13,6 +13,30 @@ import {
   type PublicationAdapterContentNormalizationContext,
 } from "../adapter.js";
 
+const xrefDataPathSchema = z
+  .string()
+  .min(1)
+  .max(1_000)
+  .transform((value, context) => {
+    if (
+      value.startsWith("//") ||
+      value.includes("\\") ||
+      Array.from(value).some((character) => {
+        const codePoint = character.codePointAt(0)!;
+        return codePoint <= 0x1f || codePoint === 0x7f;
+      })
+    ) {
+      context.addIssue({ code: z.ZodIssueCode.custom, message: "Unsafe MyST page-data path." });
+      return z.NEVER;
+    }
+    const parsed = safeRepoRelativePathSchema.safeParse(value.replace(/^\//, ""));
+    if (!parsed.success) {
+      context.addIssue({ code: z.ZodIssueCode.custom, message: "Unsafe MyST page-data path." });
+      return z.NEVER;
+    }
+    return parsed.data;
+  });
+
 const xrefSchema = z
   .object({
     references: z
@@ -20,7 +44,7 @@ const xrefSchema = z
         z
           .object({
             url: z.string().min(1).max(2_000),
-            data: safeRepoRelativePathSchema,
+            data: xrefDataPathSchema,
           })
           .passthrough(),
       )
@@ -30,6 +54,8 @@ const xrefSchema = z
 
 const SAFE_CONTAINER_TYPES = new Set([
   "root",
+  "block",
+  "div",
   "paragraph",
   "heading",
   "blockquote",
@@ -154,7 +180,7 @@ function renderNode(value: unknown, state: RenderState, depth = 0): string {
       ? (node.data as { oratlas?: unknown }).oratlas
       : undefined;
   const isClaimContainer =
-    type === "container" &&
+    (type === "container" || type === "div") &&
     typeof oratlas === "object" &&
     oratlas !== null &&
     (oratlas as { kind?: unknown }).kind === "claim";

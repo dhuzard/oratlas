@@ -1,0 +1,48 @@
+{
+  "schemaVersion": "0.3.0",
+  "generator": { "name": "@neuronautix/myst", "version": "0.3.0" },
+  "publication": {
+    "version": {
+      "sourcesSha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    }
+  },
+  "adapter": { "type": "myst", "xref": "myst.xref.json" },
+  "artifacts": {
+    "claims": {
+      "path": "oratlas/claims.jsonl",
+      "format": "jsonl",
+      "records": 0,
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "declarations": "publication-source"
+    }
+  },
+  "contributors": [
+    {
+      "sourceContributorKey": "lead",
+      "kind": "person",
+      "displayName": "Lead Researcher",
+      "roles": ["author"],
+      "position": 1
+    }
+  ],
+  "production": {
+    "sourceAssertionKey": "ars-workflow",
+    "strength": "source-declared",
+    "mode": "hybrid",
+    "actors": [
+      {
+        "id": "ars",
+        "kind": "workflow",
+        "name": "Academic Research Skills",
+        "version": "1.2.0",
+        "activities": ["evidence-search", "evidence-synthesis", "drafting"]
+      },
+      {
+        "id": "lead-editor",
+        "kind": "person",
+        "name": "Lead Researcher",
+        "activities": ["authoring", "editing", "reviewing"]
+      }
+    ]
+  }
+}

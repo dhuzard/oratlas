@@ -207,6 +207,11 @@ jobs:
         env:
           PUBLICATION_PROVENANCE_TEST_DATABASE_URL: "postgresql://oratlas:oratlas@localhost:5432/oratlas"
 
+      - name: Exercise exact external registration convergence on PostgreSQL
+        run: pnpm exec vitest run apps/web/src/lib/external-publication-registration.integration.test.ts
+        env:
+          EXTERNAL_PUBLICATION_REGISTRATION_TEST_DATABASE_URL: "postgresql://oratlas:oratlas@localhost:5432/oratlas?schema=myst_registration"
+
       - name: Exercise certification result races on PostgreSQL
         run: pnpm exec vitest run apps/web/src/lib/certification.postgres.integration.test.ts
         env:

@@ -72,6 +72,12 @@ its evaluator projection excludes contributor names, affiliations, identifiers a
 contributor-derived packet fields. Changing only those declarations therefore cannot change its
 evaluator input or deterministic outcome rule.
 
+MyST manifest 0.3.0 contributor and production declarations reach these existing packet 1.3.0
+fields; they do not create a new packet or ORA protocol version. The ORA outcome rule consumes
+criterion states plus scientific-content completeness, not publication production mode. Human,
+AI-assisted, agentic, and hybrid declarations therefore cannot mechanically select an outcome,
+change canonical identity, or alter TRUST/certification state.
+
 ## Protocol and result contracts
 
 A protocol belongs to one certifier and is identified by `(certifier, seriesKey, version)`. Its
