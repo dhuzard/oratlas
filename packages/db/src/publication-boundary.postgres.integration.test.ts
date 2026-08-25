@@ -235,6 +235,61 @@ describe.skipIf(!enabled)("publication boundary on PostgreSQL", () => {
     expect(delegated.text).toContain("Authoritative text");
   });
 
+  it("enforces immutable exact-version contributors without creating person identity", async () => {
+    const publication = await createPublication();
+    const undeclaredVersion = await createVersion(publication.id);
+    await expect(
+      prisma.publicationVersionContributor.create({
+        data: {
+          publicationVersionId: undeclaredVersion.id,
+          sourceContributorKey: "fabricated",
+          kind: "person",
+          displayName: "Fabricated Contributor",
+          rolesJson: JSON.stringify(["author"]),
+          position: 1,
+          sourceDeclarationProvenanceJson: JSON.stringify({ type: "source-declared" }),
+        },
+      }),
+    ).rejects.toThrow(/requires an exact declared version snapshot/);
+    const version = await createVersion(publication.id, {
+      contributorsDeclared: true,
+      sourcesSha256: digest("2"),
+    });
+    const contributor = await prisma.publicationVersionContributor.create({
+      data: {
+        publicationVersionId: version.id,
+        sourceContributorKey: "alice",
+        kind: "person",
+        displayName: "Alice Example",
+        identifiersJson: JSON.stringify([{ scheme: "orcid", value: "0000-0002-1825-0097" }]),
+        affiliationsJson: JSON.stringify(["Example University"]),
+        rolesJson: JSON.stringify(["author"]),
+        position: 1,
+        sourceDeclarationProvenanceJson: JSON.stringify({ type: "source-declared" }),
+      },
+    });
+    await expect(
+      prisma.publicationVersionContributor.create({
+        data: {
+          publicationVersionId: version.id,
+          sourceContributorKey: "group",
+          kind: "organization",
+          displayName: "Research Group",
+          familyName: "Invalid",
+          rolesJson: JSON.stringify(["group-author"]),
+          position: 2,
+          sourceDeclarationProvenanceJson: JSON.stringify({ type: "source-declared" }),
+        },
+      }),
+    ).rejects.toThrow();
+    await expect(
+      prisma.$executeRaw`UPDATE "PublicationVersionContributor" SET "displayName" = 'Rewritten' WHERE "id" = ${contributor.id}`,
+    ).rejects.toThrow(/append-only/);
+    await expect(
+      prisma.$executeRaw`DELETE FROM "PublicationVersionContributor" WHERE "id" = ${contributor.id}`,
+    ).rejects.toThrow(/append-only/);
+  });
+
   it("enforces append-only production assertions and reviewed transfer decisions", async () => {
     const editor = await prisma.user.create({
       data: { githubLogin: unique("production-editor"), role: "EDITOR" },

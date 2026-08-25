@@ -25,6 +25,7 @@ export const DATABASE_GUARD_NAMES = [
   "PublicationVersion_provenance_check",
   "PublicationCapture_shape_check",
   "PublicationClaimOccurrence_declaration_check",
+  "PublicationVersionContributor_shape_check",
   "PublicationProductionAssertion_shape_check",
   "PublicationRelation_shape_check",
   "Certifier_shape_check",
@@ -53,6 +54,8 @@ export const POSTGRES_DATABASE_GUARD_TRIGGER_NAMES = [
   "PublicationVersion_immutable_guard",
   "PublicationCapture_immutable_guard",
   "PublicationClaimOccurrence_immutable_guard",
+  "PublicationVersionContributor_immutable_guard",
+  "PublicationVersionContributor_binding_guard",
   "PublicationProductionAssertion_immutable_guard",
   "PublicationRelation_immutable_guard",
   "CertificationProtocol_immutable_guard",
@@ -337,6 +340,15 @@ export const POSTGRES_DATABASE_GUARD_SQL = [
     ("declarationAuthority" = 'publication-source' AND "text" IS NOT NULL)
     OR ("declarationAuthority" = 'review-manifest' AND "text" IS NOT NULL)
   )`,
+  'ALTER TABLE "PublicationVersionContributor" DROP CONSTRAINT IF EXISTS "PublicationVersionContributor_shape_check"',
+  `ALTER TABLE "PublicationVersionContributor" ADD CONSTRAINT "PublicationVersionContributor_shape_check" CHECK (
+    "kind" IN ('person', 'organization')
+    AND length("sourceContributorKey") BETWEEN 1 AND 200
+    AND "sourceContributorKey" ~ '^[A-Za-z0-9][A-Za-z0-9._:-]*$'
+    AND length("displayName") BETWEEN 1 AND 300
+    AND "position" BETWEEN 1 AND 500
+    AND ("kind" = 'person' OR ("givenName" IS NULL AND "familyName" IS NULL))
+  )`,
   'ALTER TABLE "PublicationProductionAssertion" DROP CONSTRAINT IF EXISTS "PublicationProductionAssertion_shape_check"',
   `ALTER TABLE "PublicationProductionAssertion" ADD CONSTRAINT "PublicationProductionAssertion_shape_check" CHECK (
     "mode" IN ('human', 'ai-assisted', 'agentic', 'hybrid', 'unspecified')
@@ -458,6 +470,29 @@ export const POSTGRES_DATABASE_GUARD_SQL = [
   'DROP TRIGGER IF EXISTS "PublicationClaimOccurrence_immutable_guard" ON "PublicationClaimOccurrence"',
   `CREATE TRIGGER "PublicationClaimOccurrence_immutable_guard" BEFORE UPDATE OR DELETE ON "PublicationClaimOccurrence"
     FOR EACH ROW EXECUTE FUNCTION "oratlas_protect_publication_claim_occurrence"()`,
+
+  `CREATE OR REPLACE FUNCTION "oratlas_reject_publication_contributor_mutation"() RETURNS trigger AS $$
+    BEGIN
+      RAISE EXCEPTION 'Publication contributor snapshots are append-only';
+    END;
+  $$ LANGUAGE plpgsql`,
+  'DROP TRIGGER IF EXISTS "PublicationVersionContributor_immutable_guard" ON "PublicationVersionContributor"',
+  `CREATE TRIGGER "PublicationVersionContributor_immutable_guard" BEFORE UPDATE OR DELETE ON "PublicationVersionContributor"
+    FOR EACH ROW EXECUTE FUNCTION "oratlas_reject_publication_contributor_mutation"()`,
+  `CREATE OR REPLACE FUNCTION "oratlas_validate_publication_contributor_binding"() RETURNS trigger AS $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM "PublicationVersion" v
+        WHERE v."id" = NEW."publicationVersionId" AND v."contributorsDeclared" = true
+      ) THEN
+        RAISE EXCEPTION 'Publication contributor requires an exact declared version snapshot';
+      END IF;
+      RETURN NEW;
+    END;
+  $$ LANGUAGE plpgsql`,
+  'DROP TRIGGER IF EXISTS "PublicationVersionContributor_binding_guard" ON "PublicationVersionContributor"',
+  `CREATE TRIGGER "PublicationVersionContributor_binding_guard" BEFORE INSERT ON "PublicationVersionContributor"
+    FOR EACH ROW EXECUTE FUNCTION "oratlas_validate_publication_contributor_binding"()`,
 
   `CREATE OR REPLACE FUNCTION "oratlas_reject_publication_provenance_mutation"() RETURNS trigger AS $$
     BEGIN
@@ -677,6 +712,17 @@ const sqliteGuardConditions = {
     (NEW."declarationAuthority" = 'publication-source' AND NEW."text" IS NOT NULL)
     OR (NEW."declarationAuthority" = 'review-manifest' AND NEW."text" IS NOT NULL)
     THEN 1 ELSE 0 END`,
+  PublicationVersionContributor: `CASE WHEN
+    NEW."kind" IN ('person', 'organization')
+    AND length(NEW."sourceContributorKey") BETWEEN 1 AND 200
+    AND substr(NEW."sourceContributorKey", 1, 1) GLOB '[A-Za-z0-9]'
+    AND NEW."sourceContributorKey" NOT GLOB '*[^A-Za-z0-9._:-]*'
+    AND length(NEW."displayName") BETWEEN 1 AND 300
+    AND NEW."position" BETWEEN 1 AND 500
+    AND (NEW."kind" = 'person' OR (NEW."givenName" IS NULL AND NEW."familyName" IS NULL))
+    AND EXISTS (SELECT 1 FROM "PublicationVersion" v
+      WHERE v."id" = NEW."publicationVersionId" AND v."contributorsDeclared" = 1)
+    THEN 1 ELSE 0 END`,
   PublicationProductionAssertion: `CASE WHEN
     NEW."mode" IN ('human', 'ai-assisted', 'agentic', 'hybrid', 'unspecified')
     AND ((NEW."strength" = 'source-declared' AND NEW."agentRunId" IS NULL AND NEW."executionPassportId" IS NULL)
@@ -740,6 +786,8 @@ export const SQLITE_PUBLICATION_IMMUTABLE_GUARD_NAMES = [
   "PublicationCapture_immutable_guard_delete",
   "PublicationClaimOccurrence_immutable_guard_update",
   "PublicationClaimOccurrence_immutable_guard_delete",
+  "PublicationVersionContributor_immutable_guard_update",
+  "PublicationVersionContributor_immutable_guard_delete",
   "PublicationProductionAssertion_immutable_guard_update",
   "PublicationProductionAssertion_immutable_guard_delete",
   "PublicationRelation_immutable_guard_update",
@@ -908,7 +956,11 @@ export async function applyDatabaseGuards(
         SELECT RAISE(ABORT, 'A publication claim occurrence is immutable');
       END
     `);
-    for (const table of ["PublicationProductionAssertion", "PublicationRelation"] as const) {
+    for (const table of [
+      "PublicationVersionContributor",
+      "PublicationProductionAssertion",
+      "PublicationRelation",
+    ] as const) {
       for (const operation of ["UPDATE", "DELETE"] as const) {
         const name = `${table}_immutable_guard_${operation.toLowerCase()}`;
         await tx.$executeRawUnsafe(`DROP TRIGGER IF EXISTS "${name}"`);
@@ -917,7 +969,7 @@ export async function applyDatabaseGuards(
           BEFORE ${operation} ON "${table}"
           FOR EACH ROW
           BEGIN
-            SELECT RAISE(ABORT, 'Publication provenance and transfer decisions are append-only');
+            SELECT RAISE(ABORT, 'Publication contributor and provenance snapshots are append-only');
           END
         `);
       }

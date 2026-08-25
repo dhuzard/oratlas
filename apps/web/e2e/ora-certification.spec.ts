@@ -106,7 +106,7 @@ test.describe("ORA scientific merit pilot", () => {
     await expect(
       page.getByText("C1 — Publication identity and provenance integrity"),
     ).toBeVisible();
-    await expect(page.getByText("1.2.0", { exact: true })).toBeVisible();
+    await expect(page.getByText("1.3.0", { exact: true })).toBeVisible();
     await expect(page.getByText("complete", { exact: true })).toBeVisible();
     await expect(page.getByText("not-provided", { exact: true })).toBeVisible();
     await expect(

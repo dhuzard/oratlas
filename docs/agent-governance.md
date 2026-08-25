@@ -156,7 +156,9 @@ preserve those constraints when added.
 ### Certification is a separate agent role
 
 Agents must not conflate source assertions, capture/structural provenance, production provenance,
-canonical graph confirmation, TRUST assessments, and certification. A certification agent consumes
+source-declared scholarly contributor metadata, canonical graph confirmation, TRUST assessments,
+and certification. Contributor names, identifiers, affiliations, or perceived prestige must not
+alter ORA Scientific Merit Pilot outcomes. A certification agent consumes
 the immutable input returned from `/api/certification-runs/{id}/input`; it must echo the full
 snapshot SHA-256 and may cite only typed identifiers present in that snapshot (or immutable HTTPS
 resources with a digest). AI/hybrid results retain a verified `ExecutionPassport` or a succeeded

@@ -138,7 +138,7 @@ export default async function PublicationVersionPage({
                 <a href={`/api/publication-versions/${version.id}`}>PublicationVersion JSON</a>
               </li>
               <li>
-                <a href={`/api/publication-versions/${version.id}/packet`}>Frozen packet 1.2.0</a>
+                <a href={`/api/publication-versions/${version.id}/packet`}>Frozen packet 1.3.0</a>
               </li>
               <li>
                 <a href={`/api/publication-versions/${version.id}/certifications`}>

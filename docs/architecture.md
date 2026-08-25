@@ -115,8 +115,9 @@ state to agents. See
 [Externally hosted publications](external-publications.md).
 
 The framework-free `PublicationAdapter` makes that split executable: adapters describe and verify
-format structure over already captured bytes and return generic records; they do not fetch,
-execute plugins, or infer authorship. The frozen MyST 0.2.0 path is the first implementation. A
+format structure over already captured bytes and return generic records, including optional
+source-declared exact-version contributor snapshots; they do not fetch, execute plugins, or infer
+authorship. The frozen MyST 0.2.0 path is the first implementation. A
 test-only synthetic implementation proves that another normalized target reaches the unchanged
 canonical materializer; it is not advertised format support.
 
@@ -128,6 +129,11 @@ version packet hashes the bounded public assertion state. Reviewed `PublicationR
 describe otherwise ambiguous host/format transfer without merging publications or claims. No
 production mode or transfer relation confers scientific merit, TRUST, peer review, or
 certification.
+
+Scholarly credit is a third orthogonal channel: immutable
+`PublicationVersionContributor` snapshots. Declared names and identifiers never create canonical
+people or select an adapter. Thus scholarly credit maps to contributor snapshots, production maps
+to production assertions, and format maps to `PublicationAdapter` without conflation.
 
 ```
 Site A ─┐
@@ -297,13 +303,17 @@ idempotency and verification possible without storing prompts, rejected raw resp
 
 Certification is a separate attributed assertion layer over the common PublicationVersion packet;
 see [Generic certification infrastructure](certification.md). Each run freezes exact canonical
-packet 1.2 JSON—including the persisted normalized scientific content corpus—its full snapshot
+packet 1.3 JSON—including the persisted normalized scientific content corpus and contributor
+snapshot—its full snapshot
 SHA-256, packet schema version, and completeness before an external certifier evaluates it. No
 certification-time network request is permitted. Immutable, versioned protocols and results are
 certifier-owned. Results may
 disagree and never become a boolean or aggregate field on `Publication`/`PublicationVersion`.
 Scoped hashed credentials reach only certification read/submit routes. Certification cannot mutate
 the canonical graph, TRUST, production provenance, publication transfer, or source records.
+Historical packet 1.2 CertificationRun JSON remains immutable and readable. ORA Pilot 0.1.0 accepts
+packet 1.3 but excludes contributor names, identifiers, affiliations, and contributor-derived
+packet fields from its scientific-merit evidence projection, so prestige cannot affect its input.
 
 - All repository content is untrusted: rendered as plain text (React escaping), never as
   HTML; artifact paths validated against traversal; no code execution; no builds of

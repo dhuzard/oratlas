@@ -45,6 +45,7 @@ suffix, and arrays are JSON-encoded strings. Switching to PostgreSQL is a dataso
 | `KnowledgeLinkProposal`                  | Cross-review link proposal         | `(source, target, relation)` unique; `status`                                     |
 | `Publication`                            | Stable source-publication identity | `stableKey` unique; record-source union; nullable 1:1 legacy review projection    |
 | `PublicationVersion`                     | One exact observed version         | **`(publicationId, sourcesSha256)` unique**; immutable; URL is never identity     |
+| `PublicationVersionContributor`          | Exact-version scholarly credit     | **`(publicationVersionId, sourceContributorKey)` and position unique**; immutable |
 | `PublicationProductionAssertion`         | Production history for one version | append-only; source declaration or exact ORAtlas execution attestation            |
 | `PublicationRelation`                    | Reviewed publication transfer      | append-only; explicit reviewer; never an inferred merge                           |
 | `PublicationCapture`                     | Exactly what ORAtlas observed      | append-only bytes and digests; no update, no delete                               |
@@ -217,6 +218,10 @@ canonical graph identity.
   content completeness. Documents are inert plain text bound to exact capture identities and byte
   digests. The corpus is an evaluation representation, not scientific validation. It is written
   once with the exact version; old versions are never backfilled from a mutable website.
+- A `PublicationVersionContributor` is an ordered immutable source declaration for one exact
+  version. Names, ORCID/ROR values, affiliations and roles are retained metadata, not a canonical
+  `Person` identity. Snapshots neither inherit to later versions nor arise from production actors.
+  `contributorsDeclared` distinguishes a missing adapter declaration from a declared empty list.
 - A `PublicationClaimOccurrence` is an exact occurrence, never a canonical identity. Equal text, an
   equal source-local id in different versions, an equal `declarationSha256`, an equal
   `sourcesSha256`, position and similarity are all explicitly non-identities.
@@ -244,7 +249,8 @@ canonical graph identity.
   canonical `protocolJson` and SHA-256. Criteria, permitted modes/outcomes, and completeness policy
   belong to that exact version; no ORA-specific evaluator is encoded here.
 - A `CertificationRun` binds one exact `PublicationVersion` to one exact protocol and stores the
-  common packet 1.2's exact canonical JSON—including scientific content—full snapshot digest,
+  common packet's exact canonical JSON—including scientific content and, from 1.3.0, contributor
+  snapshots—full snapshot digest,
   schema version, capture time, and completeness. Database guards allow lifecycle status to
   advance but reject snapshot rewrites.
 - A `CertificationResult` is the one immutable result accepted for a run. Database-native binding
@@ -256,6 +262,8 @@ canonical graph identity.
 Existing `Review`, `ReviewVersion`, `Claim`, `Citation`, and `ClaimEvidenceRelation` storage is
 unchanged in shape, meaning and public API. `Publication.reviewId` is the nullable projection
 binding: a review projection owns exactly one review and an external publication owns none.
+`ReviewContributor` remains the legacy review-ingestion authorship path; it is not migrated,
+resolved, or joined to the generic `PublicationVersionContributor` federation snapshot path.
 See `docs/external-publications.md`.
 
 ## The five information kinds

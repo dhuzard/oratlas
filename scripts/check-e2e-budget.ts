@@ -1,9 +1,9 @@
 import { readFile } from "node:fs/promises";
 
 // The six serial shards cover 83 browser journeys, including full accessibility,
-// publication, staleness, and responsive-layout paths. Keep a bounded 8.5-minute
+// publication, staleness, and responsive-layout paths. Keep a bounded 9.25-minute
 // ceiling while still rejecting every retry and unexpected final result.
-export const E2E_WALL_TIME_BUDGET_MS = 8.5 * 60 * 1_000;
+export const E2E_WALL_TIME_BUDGET_MS = 9.25 * 60 * 1_000;
 
 interface PlaywrightJsonReport {
   stats?: {

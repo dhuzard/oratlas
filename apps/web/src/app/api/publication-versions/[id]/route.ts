@@ -14,6 +14,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
         select: {
           captures: true,
           claimOccurrences: true,
+          contributors: true,
           productionAssertions: true,
           certificationResults: true,
         },
@@ -59,6 +60,9 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       truncated: false,
       coverage: "unsupported",
     }),
+    contributorsHref: `/api/publication-versions/${version.id}/contributors`,
+    contributorDeclarationStatus: version.contributorsDeclared ? "source-declared" : "not-declared",
+    contributorCount: version._count.contributors,
     productionProvenanceHref: `/api/publication-versions/${version.id}/production-provenance`,
     productionAssertionCount: version._count.productionAssertions,
     certificationsHref: `/api/publication-versions/${version.id}/certifications`,

@@ -1,7 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { aggregateE2eReports, evaluateE2eReport } from "./check-e2e-budget";
+import {
+  aggregateE2eReports,
+  E2E_WALL_TIME_BUDGET_MS,
+  evaluateE2eReport,
+} from "./check-e2e-budget";
 
 describe("E2E timing and flake budget", () => {
+  it("keeps the 83-journey suite under a bounded 9.25-minute ceiling", () => {
+    expect(E2E_WALL_TIME_BUDGET_MS).toBe(555_000);
+  });
+
   it("accepts a clean run within the wall-time budget", () => {
     expect(
       evaluateE2eReport(

@@ -332,7 +332,7 @@ describe("generic certification platform", () => {
     ).rejects.toMatchObject({ code: "conflict" });
     const inputA = await service.getCertificationInput(runA.id, certifierA.id);
     expect(sha(canonicalJson(inputA.packet))).toBe(inputA.packetSha256);
-    expect(inputA.packet.schemaVersion).toBe("1.2.0");
+    expect(inputA.packet.schemaVersion).toBe("1.3.0");
     expect(inputA.packet.version.publisherCanonicalUrl).toBeNull();
     expect(inputA.packet.content).toEqual([
       expect.objectContaining({
@@ -359,6 +359,50 @@ describe("generic certification platform", () => {
         }),
       ),
     ).not.toBe(inputA.packet.sha256);
+    const {
+      contributors: _contributors,
+      completeness: currentCompleteness,
+      links: currentLinks,
+      sha256: _currentSha256,
+      ...currentPacketCore
+    } = inputA.packet;
+    const { contributors: _contributorCompleteness, ...legacyCompleteness } = currentCompleteness;
+    const { contributors: _contributorsLink, ...legacyLinks } = currentLinks;
+    const legacyPacketWithoutDigest = {
+      ...currentPacketCore,
+      schemaVersion: "1.2.0",
+      completeness: legacyCompleteness,
+      links: legacyLinks,
+    };
+    const legacyPacket = {
+      ...legacyPacketWithoutDigest,
+      sha256: sha(canonicalJson(legacyPacketWithoutDigest)),
+    };
+    const legacyPacketJson = canonicalJson(legacyPacket);
+    const historicalRun = await prisma.certificationRun.create({
+      data: {
+        publicationVersionId: versionId,
+        certifierId: certifierA.id,
+        protocolId: protocolA.id,
+        assessmentMode: "human",
+        status: "running",
+        idempotencyKey: "historical-packet-1.2.0",
+        inputPacketJson: legacyPacketJson,
+        inputPacketSha256: sha(legacyPacketJson),
+        packetSchemaVersion: "1.2.0",
+        completenessJson: canonicalJson(legacyCompleteness),
+        capturedAt: new Date(),
+        startedAt: new Date(),
+      },
+    });
+    const historicalInput = await service.getCertificationInput(historicalRun.id, certifierA.id);
+    expect(historicalInput.packetSchemaVersion).toBe("1.2.0");
+    expect(canonicalJson(historicalInput.packet)).toBe(legacyPacketJson);
+    expect(historicalInput.packet).not.toHaveProperty("contributors");
+    expect(
+      (await prisma.certificationRun.findUniqueOrThrow({ where: { id: historicalRun.id } }))
+        .inputPacketJson,
+    ).toBe(legacyPacketJson);
     const occurrenceId = inputA.packet.occurrences[0].id as string;
     expect(inputA.packet.occurrences[0].canonicalBinding).toBeNull();
     await (
@@ -1111,7 +1155,7 @@ describe("generic certification platform", () => {
     });
     expect(completed.outcome).toBe("certified");
     expect(completed.input.packet).toMatchObject({
-      schemaVersion: "1.2.0",
+      schemaVersion: "1.3.0",
       content: [expect.objectContaining({ id: "publication-content:certification-methods" })],
     });
     expect(httpCalls).toEqual([

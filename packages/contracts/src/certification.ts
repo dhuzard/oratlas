@@ -69,6 +69,7 @@ export const certificationCriterionSchema = z
 export const CERTIFICATION_PACKET_SECTIONS = [
   "captures",
   "content",
+  "contributors",
   "occurrences",
   "productionProvenance",
   "relations",
@@ -80,7 +81,7 @@ export const certificationProtocolDefinitionSchema = z
     criteria: z.array(certificationCriterionSchema).min(1).max(100),
     assessmentModes: z.array(certificationAssessmentModeSchema).min(1).max(3),
     outcomes: z.array(certificationOutcomeSchema).min(1).max(4),
-    requireCompleteSections: z.array(certificationPacketSectionSchema).max(6).default([]),
+    requireCompleteSections: z.array(certificationPacketSectionSchema).max(7).default([]),
   })
   .strict()
   .superRefine((value, context) => {

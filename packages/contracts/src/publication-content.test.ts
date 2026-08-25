@@ -3,8 +3,8 @@ import {
   normalizedPublicationContentSchema,
   publicationContentCompletenessSchema,
   publicationContentDocumentSchema,
-  PUBLICATION_VERSION_PACKET_SCHEMA_VERSION,
 } from "./publications.js";
+import { PUBLICATION_VERSION_PACKET_SCHEMA_VERSION } from "./publication-version-packets.js";
 
 describe("generic publication content contracts", () => {
   const document = {
@@ -20,8 +20,8 @@ describe("generic publication content contracts", () => {
     sourceArtifactSha256: "c".repeat(64),
   };
 
-  it("pins the material packet addition to schema 1.2.0", () => {
-    expect(PUBLICATION_VERSION_PACKET_SCHEMA_VERSION).toBe("1.2.0");
+  it("pins the contributor packet addition to schema 1.3.0", () => {
+    expect(PUBLICATION_VERSION_PACKET_SCHEMA_VERSION).toBe("1.3.0");
   });
 
   it("accepts toolchain-neutral content provenance and optional semantic roles", () => {

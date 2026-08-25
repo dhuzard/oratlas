@@ -1,10 +1,11 @@
 # Externally hosted publications
 
-Status: **phase 4 — format-neutral adapters, production provenance, and reviewed transfer.** Secure
+Status: **generic federation with exact-version contributors, production provenance, and reviewed transfer.** Secure
 registration and immutable capture remain the publication boundary. A separate editor action
 materializes normalized external claim occurrences into the existing canonical graph;
 cross-publication claim relations still use the ordinary proposal/confirmation lifecycle.
-Certification, ownership proof, snapshots and change feeds remain deferred.
+Ownership proof, graph snapshots and change feeds remain deferred; certification consumes the
+immutable public packet without changing this boundary.
 
 ## Registering an external publication
 
@@ -86,7 +87,20 @@ whose pinned schema version `0.2.0` publishes `oratlas.manifest.json`, `myst.xre
 `Review` is therefore no longer the federation object. It is a supported **publication
 type**, alongside research articles, methods articles, preprints and living reviews.
 
-## Production is orthogonal to format
+## Scholarly credit, production, and format are orthogonal
+
+The generic boundary keeps three independent declarations:
+
+```text
+scholarly credit → PublicationVersionContributor snapshots
+production       → PublicationProductionAssertion provenance
+format           → PublicationAdapter
+```
+
+Alice and Bob can be source-declared authors, while an ARS workflow and Alice-as-editor appear in
+production provenance, and `myst` remains only the format adapter. A person appears in both channels
+only when the source explicitly declares both. No production actor becomes an author, and no author
+creates a production assertion by implication.
 
 Who or what helped produce a publication does not select its structural adapter. Human authors,
 ARS, AIreview, another research agent, or a hybrid workflow can all publish MyST. Conversely, a
@@ -117,8 +131,9 @@ Canonical ORAtlas KG
 
 The framework-free `PublicationAdapter` receives only parsed input and bytes already captured by
 the hardened registration layer. It recognizes and validates a manifest, declares required
-artifacts, validates captures, verifies published structure, normalizes generic publication and
-occurrence records, may normalize a bounded plain-text content corpus, and resolves exact targets.
+artifacts, validates captures, verifies published structure, normalizes generic publication,
+occurrence, optional contributor and optional production records, may normalize a bounded
+plain-text content corpus, and resolves exact targets.
 It never fetches the network, executes publication code or plugins, or infers production history.
 MyST 0.2.0 is one implementation of that contract.
 
@@ -128,6 +143,7 @@ Production history is optional, exact-version, and append-only:
 PublicationVersion
        │
        ├── normalized scientific content corpus
+       ├── scholarly contributor snapshots
        └── Production provenance assertions
              human / AI-assisted / agentic / hybrid / unspecified
 ```
@@ -148,6 +164,22 @@ Public reads are `GET /api/publication-versions/{id}/production-provenance`. Edi
 the corresponding `/api/editorial/...` route. Adapter-originated source declarations enter through
 the generic normalized registration result, never through a MyST-specific hook.
 
+## Exact-version scholarly contributors
+
+`PublicationAdapter.normalize` may return an ordered `contributors` snapshot for the exact version.
+Each record has a source-local key, person or organization kind, display/person-name fields, bounded
+declared identifiers (including ORCID or ROR), affiliations, ordered roles, one-based position,
+optional public URL, and provenance bound to the exact captured artifact that declared it. Missing
+`contributors` means `not-declared`; it is valid and is distinct from an explicitly declared empty
+list. MyST protocol 0.2.0 supplies no contributor field, so its existing registrations remain valid
+without reinterpretation.
+
+Contributor rows are immutable and version-scoped. Version 2 never updates or inherits version 1's
+snapshot. Declared ORCID/ROR values remain metadata: ORAtlas does not resolve them, create a
+canonical `Person`, or merge people from names, affiliation, email, GitHub, ORCID, or ROR. Public
+reads are `GET /api/publication-versions/{id}/contributors`; the DTO reports declaration status and
+completeness and never exposes private email by default.
+
 ## Publication transfer and continuity
 
 `PublicationRelation` records an explicit, attributable review between two distinct
@@ -163,22 +195,24 @@ continuity still does not establish claim continuity: a V1 and V2 occurrence wit
 text, or declaration digest remain separate and receive separate canonical claims unless the
 existing reviewed canonical identity mechanism explicitly binds them.
 
-## The four boundary concepts
+## The five boundary concepts
 
 ```
 Publication                  which publication this is, across its versions
   └── PublicationVersion     one exact immutable version ORAtlas observed
         ├── PublicationCapture             exactly what ORAtlas observed, byte for byte
         ├── normalized content corpus       deterministic inert evaluation text
+        ├── PublicationVersionContributor  exact source-declared scholarly credit
         └── PublicationClaimOccurrence     one claim declaration at one exact place
 ```
 
-| Concept                      | Says                                                   | Never says                                        |
-| ---------------------------- | ------------------------------------------------------ | ------------------------------------------------- |
-| `Publication`                | which source publication this is                       | which canonical graph node it is                  |
-| `PublicationVersion`         | which exact version of it was observed                 | that a URL is identity                            |
-| `PublicationCapture`         | what bytes ORAtlas actually saw, and their digests     | that those bytes are scientifically sound         |
-| `PublicationClaimOccurrence` | that a declaration appears here, in this exact version | that two occurrences are the same canonical claim |
+| Concept                         | Says                                                   | Never says                                        |
+| ------------------------------- | ------------------------------------------------------ | ------------------------------------------------- |
+| `Publication`                   | which source publication this is                       | which canonical graph node it is                  |
+| `PublicationVersion`            | which exact version of it was observed                 | that a URL is identity                            |
+| `PublicationCapture`            | what bytes ORAtlas actually saw, and their digests     | that those bytes are scientifically sound         |
+| `PublicationVersionContributor` | source-declared credit on this exact version           | canonical person identity or production history   |
+| `PublicationClaimOccurrence`    | that a declaration appears here, in this exact version | that two occurrences are the same canonical claim |
 
 ### `Publication`
 
@@ -225,6 +259,10 @@ The version also stores canonical JSON for its normalized content corpus, the co
 honest coverage metadata. These fields are written with the version and protected by the same
 SQLite/PostgreSQL immutability guards. Extraction code is never rerun to rewrite an old version.
 Changed source bytes produce a new version and a separately bound corpus.
+
+The version also records whether its adapter supplied a contributor snapshot. Contributor rows are
+ordered, capture-bound, and protected against update/deletion on SQLite and PostgreSQL. They do not
+relate to the canonical `Person` table and never inherit across versions.
 
 Adapter metadata lives in one closed, versioned, discriminated union
 (`publicationAdapterBindingSchema`) stored as `adapterBindingJson`, with a generic
@@ -381,9 +419,11 @@ materialization boundary. A future normalized adapter occurrence can use the sam
 
 The canonical occurrence page links to the exact external target as “Open original publication”.
 Agents traverse the same identity and provenance via `/api/graph`. The deterministic
-`GET /api/publication-versions/{id}/packet` schema 1.2.0 returns bounded captures, the persisted
-content corpus, occurrences, bindings, public confirmed relations, completeness flags, hypermedia
-and a SHA-256 over canonical packet content. The content-only projection is
+`GET /api/publication-versions/{id}/packet` schema 1.3.0 returns bounded captures, the persisted
+content corpus, exact-version contributors, occurrences, bindings, public confirmed relations,
+completeness flags, hypermedia and a SHA-256 over canonical packet content. Contributor state is
+therefore part of the digest. Historical CertificationRun packet 1.2.0 JSON stays readable and is
+never upgraded in place. The content-only projection is
 `GET /api/publication-versions/{id}/content`; neither route performs an external fetch. Both exclude
 raw capture blobs and private proposals.
 

@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import type {
   NormalizedPublicationContent,
+  NormalizedPublicationContributor,
   NormalizedPublicationProductionAssertion,
   PublicationCaptureArtifactKind,
   PublicationClaimOccurrenceRecord,
@@ -26,6 +27,8 @@ export interface NormalizedPublication<
   publication: PublicationRecord;
   version: Omit<PublicationVersionRecord, "adapter"> & { adapter: TAdapterBinding };
   occurrences: Array<Omit<PublicationClaimOccurrenceRecord, "target"> & { target: TTarget }>;
+  /** Optional exact-version scholarly-credit declarations. Never inferred from production actors. */
+  contributors?: NormalizedPublicationContributor[];
   /** Optional source declarations. Legacy formats normally return none. */
   productionAssertions?: NormalizedPublicationProductionAssertion[];
   /** Optional scientific text normalized only from already captured bytes. */

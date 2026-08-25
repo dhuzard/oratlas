@@ -5,7 +5,7 @@ import {
   publicationClaimSelectorSchema,
   publicationClaimSourceBindingSchema,
   publicationClaimTargetSchema,
-  publicationVersionPacketSchema,
+  publicationVersionPacketV1_3Schema,
   PUBLICATION_VERSION_PACKET_CAPTURE_LIMIT,
   PUBLICATION_VERSION_PACKET_OCCURRENCE_LIMIT,
   PUBLICATION_VERSION_PACKET_RELATION_LIMIT,
@@ -18,6 +18,7 @@ import { queryCanonicalGraph } from "./canonical-graph-query";
 import { publicConfirmedNodeEdgeWhere } from "./node-edge-publication";
 import { listPublicationProductionProvenance } from "./publication-provenance";
 import { parsePersistedPublicationContent, PublicationContentError } from "./publication-content";
+import { listPublicationVersionContributors } from "./publication-contributors";
 
 export class PublicationVersionPacketError extends Error {
   constructor(message: string) {
@@ -73,7 +74,10 @@ export async function getPublicationVersionPacket(id: string) {
         ]
       : [],
   );
-  const productionProvenance = await listPublicationProductionProvenance(version.id);
+  const [contributors, productionProvenance] = await Promise.all([
+    listPublicationVersionContributors(version.id),
+    listPublicationProductionProvenance(version.id),
+  ]);
   const totalRelations = bindings.length
     ? await prisma.nodeEdge.count({
         where: {
@@ -137,6 +141,7 @@ export async function getPublicationVersionPacket(id: string) {
       structuralProvenance: capture.structuralProvenance,
     })),
     content: content.documents,
+    contributors: contributors.contributors,
     occurrences: occurrences.map((occurrence) => {
       if (!occurrence.publishedUrl) {
         throw new PublicationVersionPacketError(
@@ -180,6 +185,7 @@ export async function getPublicationVersionPacket(id: string) {
     completeness: {
       captures: section(captures.length, version._count.captures),
       content: content.completeness,
+      contributors: section(contributors.completeness.returned, contributors.completeness.total),
       occurrences: section(occurrences.length, version._count.claimOccurrences),
       productionProvenance: productionProvenance.completeness,
       relations: section(relations.length, totalRelations),
@@ -190,11 +196,12 @@ export async function getPublicationVersionPacket(id: string) {
       publication: `/api/publications/${version.publication.id}`,
       publicationVersion: `/api/publication-versions/${version.id}`,
       content: `/api/publication-versions/${version.id}/content`,
+      contributors: `/api/publication-versions/${version.id}/contributors`,
       productionProvenance: `/api/publication-versions/${version.id}/production-provenance`,
     },
   };
   const sha256 = createHash("sha256").update(canonicalJson(packetWithoutDigest)).digest("hex");
-  return publicationVersionPacketSchema.parse({ ...packetWithoutDigest, sha256 });
+  return publicationVersionPacketV1_3Schema.parse({ ...packetWithoutDigest, sha256 });
 }
 
 function section(returned: number, total: number) {

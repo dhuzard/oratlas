@@ -19,7 +19,7 @@ generic Certification API
 CertificationRun
  │
  ▼
-immutable PublicationVersion packet 1.2.0
+immutable PublicationVersion packet 1.2.0 or 1.3.0
  │
  ▼
 provider-neutral ORA evaluator
@@ -71,6 +71,11 @@ coverage is conservative. When unavailable material prevents assessment the stat
 `insufficient-evidence`; empty or unsupported content will normally make applicable methods,
 analysis, and evidence criteria inconclusive. Human, AI-assisted, and agentic publication
 production modes do not themselves change scientific criterion outcomes.
+Packet 1.3 contributor credit is retained in the frozen run and its digest, but names,
+identifiers, affiliations, perceived prestige, contributor completeness, and contributor links are
+excluded from the ORA scientific-evidence projection. Two packets with the same scientific
+publication/evidence and different contributor names therefore produce the same evaluator input
+and outcome rule. Historical 1.2 run snapshots remain byte-exact and readable.
 
 The final outcome is never selected by the model:
 
