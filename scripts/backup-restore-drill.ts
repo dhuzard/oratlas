@@ -7,7 +7,15 @@
  */
 import { spawn, spawnSync, type ChildProcess } from "node:child_process";
 import { createRequire } from "node:module";
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, unlinkSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  rmSync,
+  unlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -177,6 +185,7 @@ async function main(): Promise<void> {
   let server: ChildProcess | undefined;
 
   try {
+    writeFileSync(databasePath, "", { flag: "wx" });
     runPnpm(["--filter", "@oratlas/db", "db:push"], env);
     runPnpm(["--filter", "@oratlas/db", "db:seed"], env);
     server = await startServer(env, port);

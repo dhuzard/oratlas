@@ -322,6 +322,10 @@ Historical packet 1.2 CertificationRun JSON remains immutable and readable. ORA 
 packet 1.3 but excludes contributor names, identifiers, affiliations, and contributor-derived
 packet fields from its scientific-merit evidence projection, so prestige cannot affect its input.
 
+### Generic scientific verification boundary
+
+Scientific verification is a separate later evidence layer; see [Generic scientific verification](scientific-verification.md). ORAtlas owns exact subject identity, immutable frozen inputs, scoped verifier credentials, leases, checked artifacts, findings, and audit history. External verifier processes own every scientific calculation and execute only through HTTP/OpenAPI. Verification never mutates the PublicationVersion packet, canonical graph, TRUST, certification, or ReplicationBrief lifecycle. ORAtlas is the knowledge/evidence ledger, ORAtlas Verify is one replaceable external executor, and ORA is a reference certifier.
+
 - All repository content is untrusted: rendered as plain text (React escaping), never as
   HTML; artifact paths validated against traversal; no code execution; no builds of
   submitted repositories.

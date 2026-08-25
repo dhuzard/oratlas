@@ -26,6 +26,9 @@ importers:
       '@oratlas/certifier-client':
         specifier: workspace:*
         version: link:packages/certifier-client
+      '@oratlas/verifier-client':
+        specifier: workspace:*
+        version: link:packages/verifier-client
       '@types/node':
         specifier: ^22.15.0
         version: 22.20.1
@@ -141,6 +144,9 @@ importers:
       '@axe-core/playwright':
         specifier: ^4.10.0
         version: 4.12.1(playwright-core@1.61.1)
+      '@oratlas/verifier-client':
+        specifier: workspace:*
+        version: link:../../packages/verifier-client
       '@playwright/test':
         specifier: ^1.52.0
         version: 1.61.1
@@ -416,6 +422,12 @@ importers:
       react:
         specifier: ^19.0.0
         version: 19.2.7
+      typescript:
+        specifier: ^5.8.3
+        version: 5.9.3
+
+  packages/verifier-client:
+    devDependencies:
       typescript:
         specifier: ^5.8.3
         version: 5.9.3

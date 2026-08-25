@@ -88,3 +88,7 @@ If a linked review or claim is no longer publicly readable, public marketplace q
 by omitting the brief. Claim and completion transitions use the same public-readability predicate
 and return the same not-found response as any other inaccessible brief. Historical audit and
 database records remain intact for editors.
+
+## Scientific verification integration
+
+A requested VerificationRun may optionally point to one existing `ReplicationBrief` for provenance. Run completion never completes or otherwise changes the brief. Regeneration, independent reproduction, structured comparison, and visual consistency remain distinct method labels; visual similarity alone is not replication. The existing replication marketplace remains the sole marketplace.

@@ -682,6 +682,70 @@ async function main() {
   });
   console.info("  · seeded ORA reference certifier and Scientific Merit Pilot 0.1.0");
 
+  const demoVerifier = await prisma.verifier.create({
+    data: {
+      id: "oratlas-verify-demo",
+      slug: "oratlas-verify-demo",
+      name: "ORAtlas Verify (demo external service)",
+      description:
+        "Clearly labeled synthetic identity for demonstrating the neutral HTTP verification boundary. It has no privileged scientific authority.",
+      publicUrl: "https://github.com/dhuzard/oratlas-verify",
+      status: "active",
+      createdById: users.get("atlas-editor")!,
+      activatedAt: new Date("2026-08-25T12:00:00.000Z"),
+    },
+  });
+  for (const protocol of [
+    {
+      id: "reported-statistic-consistency-0-1-0",
+      seriesKey: "reported-statistic-consistency",
+      title: "Reported statistic consistency",
+      verificationType: "reported-statistic-consistency",
+      subjectTypes: ["publication-version", "publication-claim-occurrence"],
+      methods: ["structured-comparison"],
+    },
+    {
+      id: "figure-structured-comparison-0-1-0",
+      seriesKey: "figure-structured-comparison",
+      title: "Figure structured comparison",
+      verificationType: "figure-structured-comparison",
+      subjectTypes: ["publication-version", "knowledge-node-version"],
+      methods: ["regeneration", "structured-comparison", "visual-consistency"],
+    },
+    {
+      id: "analysis-result-comparison-0-1-0",
+      seriesKey: "analysis-result-comparison",
+      title: "Analysis result comparison",
+      verificationType: "analysis-result-comparison",
+      subjectTypes: ["publication-version", "knowledge-node-version"],
+      methods: ["regeneration", "independent-reproduction", "structured-comparison"],
+    },
+  ]) {
+    const definitionJson = canonicalJson({
+      schemaVersion: "1.0.0",
+      externalExecutionRequired: true,
+      methods: protocol.methods,
+      note: "This record describes an external protocol; ORAtlas does not implement its scientific algorithm.",
+    });
+    await prisma.verificationProtocol.create({
+      data: {
+        id: protocol.id,
+        authorityVerifierId: demoVerifier.id,
+        seriesKey: protocol.seriesKey,
+        protocolVersion: "0.1.0",
+        title: protocol.title,
+        description:
+          "External scientific verification protocol descriptor. Findings remain attributed, protocol-scoped evidence.",
+        verificationType: protocol.verificationType,
+        executionMode: "external-execution",
+        supportedSubjectTypesJson: canonicalJson(protocol.subjectTypes.sort()),
+        definitionJson,
+        definitionSha256: sha256(definitionJson),
+      },
+    });
+  }
+  console.info("  · seeded generic external verifier identity and three protocol descriptors");
+
   const demoText = [
     "Demo / synthetic publication",
     "Objective: test whether a prespecified intervention changes a synthetic outcome.",

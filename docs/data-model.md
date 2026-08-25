@@ -315,3 +315,9 @@ Execution Passport source JSON is retained for offline re-verification. Public r
 verified state and compare the re-verified package with all materialized repository, workflow,
 identity, claim and artifact fields. Their status is the narrow `execution-attested`, never
 “reproduced” or “true”.
+
+## Scientific verification ledger
+
+`Verifier` and hashed/revocable `VerifierCredential` rows identify accountable external workers. Immutable, versioned `VerificationProtocol` definitions own their semantics. `VerificationRun` has a database-enforced exact-one union over `PublicationVersion`, `PublicationClaimOccurrence`, and `KnowledgeNodeVersion`; it freezes canonical input JSON, schema/profile versions, SHA-256, and capture time. Its smallest lifecycle is requested, claimed, running, and terminal completed/failed/cancelled with an opaque expiring lease and append-only `VerificationRunLifecycleEvent` history.
+
+`VerificationArtifact` retains immutable expected metadata while bounded bytes live in the dedicated `VerificationArtifactBlob` table. Only uploaded bytes whose media type, length, and SHA-256 match can become completed. Immutable `VerificationFinding` records retain generic structured reported/observed/tolerance JSON and closed evidence references; `VerificationFindingArtifact` enforces completed same-run binding. Unique run/key constraints provide idempotency. These models are evidence projections, never columns or scores on publication, TRUST, certification, or replication-marketplace records.

@@ -178,6 +178,9 @@ const packetEvidenceSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("trust-assessment"), id: z.string().min(1) }).strict(),
   z.object({ type: z.literal("production-provenance"), id: z.string().min(1) }).strict(),
   z.object({ type: z.literal("capture"), id: z.string().min(1) }).strict(),
+  z.object({ type: z.literal("verification-run"), id: z.string().min(1) }).strict(),
+  z.object({ type: z.literal("verification-finding"), id: z.string().min(1) }).strict(),
+  z.object({ type: z.literal("verification-artifact"), id: z.string().min(1) }).strict(),
 ]);
 export const certificationEvidenceReferenceSchema = z.union([
   packetEvidenceSchema,
