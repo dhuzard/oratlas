@@ -514,12 +514,7 @@ describe("external publication registration persistence", () => {
         writeFileSync(path, content, "utf8");
       };
       const run = (command: string, args: string[]) => {
-        const isWindowsShim = process.platform === "win32" && command.endsWith(".cmd");
-        execFileSync(
-          isWindowsShim ? (process.env.ComSpec ?? "cmd.exe") : command,
-          isWindowsShim ? ["/d", "/s", "/c", command, ...args] : args,
-          { cwd: project, stdio: "pipe" },
-        );
+        execFileSync(command, args, { cwd: project, stdio: "pipe" });
       };
       let server: ReturnType<typeof createServer> | undefined;
       try {
