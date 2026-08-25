@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   createVerificationProtocolSchema,
   createVerificationRunSchema,
+  prepareVerificationArtifactSchema,
   submitVerificationFindingSchema,
   verificationStructuredJsonSchema,
 } from "./verification.js";
@@ -90,6 +91,23 @@ describe("generic scientific verification contracts", () => {
       tolerance: { absolute: 0.0001 },
     });
     expect(parsed.observed).toMatchObject({ library: "scipy" });
+  });
+
+  it("validates bounded media types without backtracking", () => {
+    const artifact = {
+      artifactKey: "report",
+      kind: "comparison-report",
+      sha256: "a".repeat(64),
+      byteLength: 12,
+    };
+    expect(
+      prepareVerificationArtifactSchema.parse({
+        ...artifact,
+        mediaType: "application/json; charset=utf-8",
+      }).mediaType,
+    ).toBe("application/json; charset=utf-8");
+    for (const mediaType of ["application", "application/json; charset=", "text/plain\r\nattack"])
+      expect(() => prepareVerificationArtifactSchema.parse({ ...artifact, mediaType })).toThrow();
   });
 
   it("provides all six deterministic synthetic external-output fixtures", () => {

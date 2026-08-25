@@ -79,11 +79,32 @@ export const verificationStableKeySchema = z
   .min(1)
   .max(120)
   .regex(/^[a-z0-9][a-z0-9._-]*$/);
-const mediaTypeSchema = z
-  .string()
-  .min(3)
-  .max(200)
-  .regex(/^[a-z0-9!#$&^_.+-]+\/[a-z0-9!#$&^_.+-]+(?:\s*;\s*[a-z0-9!#$&^_.+-]+=[^\r\n;]+)*$/i);
+const MEDIA_TYPE_TOKEN_CHARACTERS = "abcdefghijklmnopqrstuvwxyz0123456789!#$&^_.+-";
+function validMediaType(value: string): boolean {
+  const parts = value.split(";");
+  const essence = parts.shift()?.trim() ?? "";
+  const slash = essence.indexOf("/");
+  const token = (candidate: string) =>
+    candidate.length > 0 &&
+    [...candidate.toLowerCase()].every((character) =>
+      MEDIA_TYPE_TOKEN_CHARACTERS.includes(character),
+    );
+  if (slash <= 0 || slash !== essence.lastIndexOf("/") || !token(essence.slice(0, slash)))
+    return false;
+  if (!token(essence.slice(slash + 1))) return false;
+  return parts.every((part) => {
+    const parameter = part.trim();
+    const equals = parameter.indexOf("=");
+    return (
+      equals > 0 &&
+      token(parameter.slice(0, equals).trim()) &&
+      parameter.slice(equals + 1).trim().length > 0 &&
+      !parameter.includes("\r") &&
+      !parameter.includes("\n")
+    );
+  });
+}
+const mediaTypeSchema = z.string().min(3).max(200).refine(validMediaType, "Invalid media type.");
 
 function jsonDepth(value: unknown, depth = 0): number {
   if (depth > 12) return depth;
