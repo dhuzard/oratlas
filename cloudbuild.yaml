@@ -179,8 +179,8 @@ steps:
           --cpu=1 \
           --memory=1Gi \
           --min-instances=0 \
-          --max-instances=3 \
-          --concurrency=30 \
+          --max-instances=2 \
+          --concurrency=2 \
           --timeout=300 \
           --no-traffic \
           --tag="$${CANDIDATE_TAG}" \

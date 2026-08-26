@@ -20,6 +20,7 @@ import { prisma } from "./db";
 import { readableCanonicalNodeVersionWhere } from "./public-snapshot-visibility";
 
 const MAX_GRAPH_SEEDS = 3;
+const MAX_GRAPH_ENTRY_CANDIDATES = MAX_GRAPH_SEEDS * 2;
 const MAX_GRAPH_NODES = 12;
 const MAX_GRAPH_EDGES = 100;
 const MAX_HUMAN_CLAIMS = 6;
@@ -77,13 +78,15 @@ export async function selectGraphNativeLandscape(
   const graphProvider = options.graphProvider ?? databaseCanonicalGraphProvider;
   const requestedSeeds = (
     query.focusNodeId ? [{ nodeId: query.focusNodeId, nodeVersionId: undefined }] : candidates
-  ).filter(
-    (value, index, values) =>
-      values.findIndex(
-        (candidate) =>
-          candidate.nodeId === value.nodeId && candidate.nodeVersionId === value.nodeVersionId,
-      ) === index,
-  );
+  )
+    .filter(
+      (value, index, values) =>
+        values.findIndex(
+          (candidate) =>
+            candidate.nodeId === value.nodeId && candidate.nodeVersionId === value.nodeVersionId,
+        ) === index,
+    )
+    .slice(0, MAX_GRAPH_ENTRY_CANDIDATES);
   const loaded = await mapWithConcurrency(
     requestedSeeds,
     MAX_PARALLEL_GRAPH_LOADS,
