@@ -34,6 +34,10 @@ const DISCOVERY_PATHS = new Set([
   "/api/feeds/lifecycle",
   "/archive",
   "/explore",
+  "/publications",
+  "/verification",
+  "/certifications",
+  "/connect",
   "/create-review",
 ]);
 

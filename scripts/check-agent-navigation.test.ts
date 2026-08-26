@@ -58,6 +58,10 @@ const advertisedPaths = [
   "/api/feeds/lifecycle",
   "/archive",
   "/explore",
+  "/publications",
+  "/verification",
+  "/certifications",
+  "/connect",
   "/create-review",
 ];
 
