@@ -75,6 +75,8 @@ test.describe("Scientific verification", () => {
     await expect(
       page.locator(".verification-metric").filter({ hasText: /analyses/i }),
     ).toContainText(/\d+ independently reproduced/);
-    await expect(page.getByText(/not a truth score or universal badge/)).toBeVisible();
+    await expect(
+      page.getByText(/Findings are independent, protocol-scoped evidence/),
+    ).toBeVisible();
   });
 });
