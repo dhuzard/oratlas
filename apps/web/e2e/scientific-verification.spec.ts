@@ -73,8 +73,8 @@ test.describe("Scientific verification", () => {
 
     await page.goto(`/publications/${publicationId}/versions/${publicationVersionId}`);
     await expect(
-      page.locator("p").filter({ hasText: /Analyses\s+\d+ independently reproduced/ }),
-    ).toBeVisible();
+      page.locator(".verification-metric").filter({ hasText: /analyses/i }),
+    ).toContainText(/\d+ independently reproduced/);
     await expect(page.getByText(/not a truth score or universal badge/)).toBeVisible();
   });
 });
