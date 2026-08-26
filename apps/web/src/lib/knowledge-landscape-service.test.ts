@@ -64,7 +64,7 @@ describe("graph-native knowledge selection", () => {
     expect(wrongCriterion.nodes).toEqual([]);
   });
 
-  it("passes canonical entry filters to discovery and counts all matches before display caps", async () => {
+  it("passes canonical entry filters and bounds graph evaluation before display caps", async () => {
     let activeLoads = 0;
     let peakLoads = 0;
     const entryProvider = vi.fn(async (query) => {
@@ -97,7 +97,7 @@ describe("graph-native knowledge selection", () => {
       },
     );
     expect(entryProvider).toHaveBeenCalledOnce();
-    expect(result.matchedClaimCount).toBe(8);
+    expect(result.matchedClaimCount).toBe(6);
     expect(result.seedNodeIds).toHaveLength(3);
     expect(peakLoads).toBeLessThanOrEqual(2);
   });
