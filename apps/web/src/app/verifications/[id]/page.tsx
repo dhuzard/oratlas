@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Badge, Card, DefinitionList } from "@oratlas/ui";
 import { getVerificationRun, VerificationError } from "@/lib/scientific-verification";
@@ -17,12 +18,23 @@ export default async function VerificationDetailPage({
   }
   return (
     <article>
+      <p>
+        <Link href="/verification">← Scientific verification</Link>
+      </p>
       <div className="btn-row">
         <Badge>{run.status}</Badge>
         <Badge>{run.input.profile}</Badge>
       </div>
       <h1>Scientific verification evidence</h1>
       <p className="lead">Attributed, protocol-scoped evidence for one exact immutable subject.</p>
+      {run.input.profile === "blinded-scientific" ? (
+        <p className="notice notice-info">
+          <strong>Bias-reduced assessment.</strong> This verifier received a blinded scientific
+          representation. Contributor, affiliation and production-workflow presentation metadata
+          were withheld from the first-pass input while the exact scientific content and necessary
+          provenance were retained.
+        </p>
+      ) : null}
       <Card title="Run identity">
         <DefinitionList
           items={[
@@ -59,18 +71,55 @@ export default async function VerificationDetailPage({
                 <p>{finding.statement}</p>
                 <p className="muted">{finding.rationale}</p>
                 {finding.reported !== null ? (
-                  <pre>
-                    {JSON.stringify(
-                      {
-                        reported: finding.reported,
-                        observed: finding.observed,
-                        tolerance: finding.tolerance,
-                      },
-                      null,
-                      2,
-                    )}
-                  </pre>
+                  <dl className="finding-comparison">
+                    <div>
+                      <dt>Reported result</dt>
+                      <dd>
+                        <pre>{JSON.stringify(finding.reported, null, 2)}</pre>
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Recomputed / observed result</dt>
+                      <dd>
+                        <pre>{JSON.stringify(finding.observed, null, 2)}</pre>
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Tolerance</dt>
+                      <dd>
+                        <pre>{JSON.stringify(finding.tolerance, null, 2)}</pre>
+                      </dd>
+                    </div>
+                  </dl>
                 ) : null}
+                <details>
+                  <summary>Exact evidence references and finding identity</summary>
+                  <DefinitionList
+                    items={[
+                      {
+                        term: "Evidence locations",
+                        value: finding.evidenceRefs.length
+                          ? finding.evidenceRefs
+                              .map(
+                                (reference: { type: string; id: string }) =>
+                                  `${reference.type}:${reference.id}`,
+                              )
+                              .join(" · ")
+                          : "none recorded",
+                      },
+                      {
+                        term: "Artifact references",
+                        value: finding.artifactRefs.length
+                          ? finding.artifactRefs.join(" · ")
+                          : "none recorded",
+                      },
+                      {
+                        term: "Finding SHA-256",
+                        value: <span className="mono">{finding.payloadSha256}</span>,
+                      },
+                    ]}
+                  />
+                </details>
               </li>
             ))}
           </ul>

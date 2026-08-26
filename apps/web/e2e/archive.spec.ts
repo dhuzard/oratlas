@@ -1,30 +1,32 @@
 import { test, expect } from "@playwright/test";
 
 test.describe("Public archive browsing", () => {
-  test("home page lists recently accepted reviews", async ({ page }) => {
+  test("home page presents the scientific verification ledger", async ({ page }) => {
     await page.goto("/");
     await expect(page.getByRole("heading", { level: 1 })).toContainText(
-      "The arXiv for AI-generated scientific reviews",
+      "Scientific publications that can be independently checked",
     );
     const primaryNavigation = page.getByRole("navigation", { name: "Primary" });
-    await expect(primaryNavigation.getByRole("link", { name: "Reviews" })).toHaveAttribute(
+    await expect(primaryNavigation.getByRole("link", { name: "Publications" })).toHaveAttribute(
       "href",
-      "/archive",
+      "/publications",
     );
-    await expect(primaryNavigation.getByRole("link", { name: "Explore evidence" })).toHaveAttribute(
+    await expect(primaryNavigation.getByRole("link", { name: "Verification" })).toHaveAttribute(
       "href",
-      "/explore",
+      "/verification",
     );
-    await expect(primaryNavigation.getByRole("link", { name: "Compare" })).toHaveAttribute(
+    await expect(primaryNavigation.getByRole("link", { name: "Certifications" })).toHaveAttribute(
       "href",
-      "/compare",
+      "/certifications",
     );
-    await expect(primaryNavigation.getByRole("link", { name: "Create & deposit" })).toHaveAttribute(
+    await expect(primaryNavigation.getByRole("link", { name: "Developers" })).toHaveAttribute(
       "href",
-      "/create-review",
+      "/connect",
     );
-    await expect(primaryNavigation.getByRole("link", { name: "Graph" })).toHaveCount(0);
-    await expect(page.getByRole("link", { name: /Hippocampal Replay/ }).first()).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Demo / synthetic scientific merit fixture" }),
+    ).toBeVisible();
+    await expect(page.getByRole("link", { name: "Inspect the scientific record" })).toBeVisible();
   });
 
   test("Explore is a traversal surface with separate exhaustive indexes", async ({ page }) => {
@@ -62,20 +64,26 @@ test.describe("Public archive browsing", () => {
     ).toHaveCount(0);
   });
 
-  test("first-time readers search deposited reviews before entering specialist tools", async ({
+  test("first-time readers browse exact publications before entering specialist tools", async ({
     page,
   }) => {
     await page.goto("/");
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-      "The arXiv for AI-generated scientific reviews.",
+      "Scientific publications that can be independently checked.",
     );
 
-    await page.getByLabel("Search reviews, topics, or authors").fill("replay");
-    await page.getByRole("button", { name: "Search the review archive" }).click();
-    await expect(page).toHaveURL(/\/archive\?.*contentType=review/);
-    await expect(page).toHaveURL(/q=replay/);
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText("AI review archive");
-    await expect(page.getByRole("link", { name: /Hippocampal Replay/ }).first()).toBeVisible();
+    const publicationsLink = page
+      .getByRole("navigation", { name: "Primary" })
+      .getByRole("link", { name: "Publications" });
+    await expect(publicationsLink).toHaveAttribute("href", "/publications");
+    await page.goto("/publications");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Publications");
+    await expect(
+      page.getByRole("link", { name: "Demo / synthetic scientific merit fixture" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: "legacy review archive", exact: true }),
+    ).toHaveAttribute("href", "/archive");
   });
 
   test("authors understand the Allen generation to ORAtlas deposit handoff", async ({ page }) => {
