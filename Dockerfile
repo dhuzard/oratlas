@@ -19,6 +19,7 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY patches patches
 COPY apps/web/package.json apps/web/package.json
 COPY packages/atlas-check/package.json packages/atlas-check/package.json
+COPY packages/certifier-client/package.json packages/certifier-client/package.json
 COPY packages/config/package.json packages/config/package.json
 COPY packages/contracts/package.json packages/contracts/package.json
 COPY packages/db/package.json packages/db/package.json
@@ -28,9 +29,12 @@ COPY packages/extractor/package.json packages/extractor/package.json
 COPY packages/federation/package.json packages/federation/package.json
 COPY packages/github/package.json packages/github/package.json
 COPY packages/knowledge/package.json packages/knowledge/package.json
+COPY packages/ora-certifier/package.json packages/ora-certifier/package.json
 COPY packages/protocols/package.json packages/protocols/package.json
+COPY packages/publications/package.json packages/publications/package.json
 COPY packages/trust/package.json packages/trust/package.json
 COPY packages/ui/package.json packages/ui/package.json
+COPY packages/verifier-client/package.json packages/verifier-client/package.json
 COPY packages/zenodo/package.json packages/zenodo/package.json
 
 RUN pnpm install --frozen-lockfile
