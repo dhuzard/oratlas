@@ -65,6 +65,8 @@ describe("graph-native knowledge selection", () => {
   });
 
   it("passes canonical entry filters to discovery and counts all matches before display caps", async () => {
+    let activeLoads = 0;
+    let peakLoads = 0;
     const entryProvider = vi.fn(async (query) => {
       expect(query).toMatchObject({
         q: "model",
@@ -85,12 +87,19 @@ describe("graph-native knowledge selection", () => {
       },
       {
         entryProvider,
-        graphProvider: async (nodeId, nodeVersionId) => graphResponse(nodeId, nodeVersionId),
+        graphProvider: async (nodeId, nodeVersionId) => {
+          activeLoads += 1;
+          peakLoads = Math.max(peakLoads, activeLoads);
+          await new Promise((resolve) => setTimeout(resolve, 1));
+          activeLoads -= 1;
+          return graphResponse(nodeId, nodeVersionId);
+        },
       },
     );
     expect(entryProvider).toHaveBeenCalledOnce();
     expect(result.matchedClaimCount).toBe(8);
     expect(result.seedNodeIds).toHaveLength(3);
+    expect(peakLoads).toBeLessThanOrEqual(2);
   });
 
   it("treats focus as the exclusive stable-node seed", async () => {

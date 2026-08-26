@@ -15,7 +15,7 @@ describe("GCP beta smoke", () => {
       }
       if (url.pathname === "/") {
         return new Response(
-          "The arXiv for AI-generated scientific reviews — never rewrite the preserved record",
+          "Scientific publications that can be independently checked. Evidence is attached without altering the original publication.",
         );
       }
       if (url.pathname === "/explore") {
