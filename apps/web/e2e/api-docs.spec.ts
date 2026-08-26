@@ -8,6 +8,9 @@ test("public navigation exposes semantic API and agent documentation", async ({ 
   await expect(developersLink).toHaveAttribute("href", "/connect");
 
   await page.goto("/connect");
+  await expect(
+    page.getByRole("heading", { level: 1, name: "Connect a publication" }),
+  ).toBeVisible();
   await expect(page.getByRole("link", { name: "Read the API documentation" })).toHaveAttribute(
     "href",
     "/api-docs",
