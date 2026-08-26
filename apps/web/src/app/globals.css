@@ -2729,3 +2729,405 @@ table.data td {
   outline: 3px solid var(--accent);
   outline-offset: 3px;
 }
+
+/* Scientific evidence-ledger product framing. */
+.home-primary-actions {
+  margin-top: 2rem;
+}
+.demo-publication {
+  margin-bottom: clamp(2.5rem, 6vw, 5rem);
+  padding: clamp(1.4rem, 4vw, 2.4rem);
+  border: 1px solid var(--border);
+  border-top: 4px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.demo-publication-header,
+.publication-card-heading,
+.record-section-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.demo-publication-header h2 {
+  margin: 0;
+  font-size: clamp(1.55rem, 3vw, 2.1rem);
+}
+.demo-publication-header .muted,
+.demo-publication-grid p,
+.publication-card p,
+.ledger-list p {
+  margin: 0.35rem 0 0;
+}
+.demo-publication-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 1.5rem 0;
+  border-block: 1px solid var(--border);
+}
+.demo-publication-grid > div {
+  min-width: 0;
+  padding: 1.15rem;
+}
+.demo-publication-grid > div + div {
+  border-left: 1px solid var(--border);
+}
+.demo-label {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.compact-list {
+  margin: 0.35rem 0 0;
+  padding-left: 1.1rem;
+}
+.evidence-flow {
+  display: grid;
+  grid-template-columns: repeat(7, auto);
+  align-items: stretch;
+  gap: 0.6rem;
+  margin-top: 2.5rem;
+}
+.evidence-flow article {
+  min-width: 0;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.evidence-flow h3 {
+  margin: 0.45rem 0;
+  font-size: 1.05rem;
+}
+.evidence-flow p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.86rem;
+}
+.flow-arrow {
+  align-self: center;
+  color: var(--accent);
+  font-size: 1.35rem;
+}
+.home-distinctions {
+  padding: clamp(2.5rem, 6vw, 4.5rem) 0 1rem;
+}
+.record-mark {
+  display: inline-grid;
+  width: 2rem;
+  height: 2rem;
+  place-items: center;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  font-family: var(--font-mono);
+  font-weight: 700;
+}
+.record-mark-verification {
+  color: var(--human);
+}
+.record-mark-certification {
+  color: var(--accent);
+}
+.record-mark-trust {
+  color: var(--extracted);
+}
+
+/* Publication, verification, and certification indexes. */
+.publication-list,
+.ledger-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.publication-card h2,
+.ledger-list h2 {
+  margin: 0.65rem 0 0;
+  font-size: 1.3rem;
+}
+.publication-version-label {
+  flex: 0 0 auto;
+  text-align: right;
+}
+.publication-card-counts {
+  display: flex;
+  gap: 0.5rem 1.25rem;
+  margin-top: 1rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 0.88rem;
+  flex-wrap: wrap;
+}
+.content-section,
+.verification-boundary,
+.bias-reduced,
+.adapter-flow {
+  padding: clamp(2rem, 5vw, 4rem) 0;
+}
+.verification-boundary {
+  border-block: 1px solid var(--border);
+}
+.verification-boundary h2,
+.bias-reduced h2,
+.adapter-flow h2 {
+  max-width: 28ch;
+  margin: 0 0 1rem;
+  font-size: clamp(1.6rem, 3.5vw, 2.3rem);
+}
+.boundary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+.planned-protocols {
+  margin-top: 1rem;
+}
+.protocol-status-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem 1.5rem;
+  padding: 0;
+  list-style: none;
+}
+.protocol-status-list span {
+  color: var(--text-muted);
+}
+.bias-reduced {
+  margin: 1rem 0;
+  padding-inline: clamp(1.25rem, 4vw, 2.5rem);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--accent) 5%, var(--surface));
+}
+.bias-reduced > p:not(.home-eyebrow) {
+  max-width: 72ch;
+}
+.inline-definitions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  margin: 1.5rem 0 0;
+}
+.inline-definitions div {
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+}
+.inline-definitions dt {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.inline-definitions dd {
+  margin: 0.3rem 0 0;
+  overflow-wrap: anywhere;
+}
+.ledger-list {
+  border-top: 1px solid var(--border);
+}
+.ledger-list > li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.1rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+/* Exact PublicationVersion: evidence first, machinery last. */
+.publication-record {
+  max-width: 68rem;
+  margin-inline: auto;
+}
+.publication-masthead {
+  padding: clamp(2rem, 6vw, 4.5rem) 0 2.5rem;
+  border-bottom: 1px solid var(--border);
+}
+.publication-masthead h1 {
+  max-width: 28ch;
+  margin: 0.8rem 0;
+  font-size: clamp(2.2rem, 5vw, 3.7rem);
+  line-height: 1.08;
+  text-wrap: balance;
+}
+.publication-authors {
+  font-family: var(--font-serif);
+  font-size: 1.15rem;
+}
+.publication-source-line {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem 1.2rem;
+  margin-top: 1.4rem;
+  color: var(--text-muted);
+  flex-wrap: wrap;
+}
+.record-section {
+  padding: clamp(2.2rem, 5vw, 4rem) 0;
+  border-bottom: 1px solid var(--border);
+  scroll-margin-top: 1rem;
+}
+.record-section-heading {
+  align-items: end;
+  margin-bottom: 1.3rem;
+}
+.record-section-heading h2 {
+  margin: 0;
+  font-size: clamp(1.65rem, 3.5vw, 2.35rem);
+}
+.verification-summary-section {
+  border-top: 4px solid var(--accent);
+}
+.verification-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+.verification-metric {
+  margin-bottom: 1rem;
+}
+.verification-total {
+  display: block;
+  margin-top: 0.3rem;
+  font-family: var(--font-serif);
+  font-size: 2.4rem;
+  line-height: 1;
+}
+.evidence-run-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.evidence-run-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.8rem 0;
+  border-bottom: 1px solid var(--border);
+}
+.evidence-run-list li:last-child {
+  border-bottom: 0;
+}
+.publication-text {
+  max-width: 72ch;
+  font-family: var(--font-serif);
+  font-size: 1.06rem;
+  line-height: 1.75;
+}
+.machine-links {
+  display: flex;
+  gap: 0.6rem 1.2rem;
+  flex-wrap: wrap;
+}
+.provenance-section .mono {
+  overflow-wrap: anywhere;
+}
+.finding-comparison {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin: 1rem 0;
+}
+.finding-comparison > div {
+  min-width: 0;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+.finding-comparison dt {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.finding-comparison dd {
+  margin: 0.4rem 0 0;
+}
+.finding-comparison pre {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* Adapter/developer page. */
+.adapter-grid .card {
+  min-height: 100%;
+}
+.install-command {
+  padding: 0.8rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  overflow-x: auto;
+}
+.adapter-flow {
+  margin: 2rem 0;
+  border-block: 1px solid var(--border);
+}
+.adapter-flow-grid {
+  display: grid;
+  grid-template-columns: minmax(12rem, 1fr) minmax(12rem, 1fr) auto minmax(15rem, 1.2fr);
+  align-items: center;
+  gap: 1rem;
+}
+.adapter-flow-grid > div {
+  display: grid;
+  gap: 0.4rem;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.adapter-artifacts code {
+  color: var(--text-muted);
+}
+
+@media (max-width: 850px) {
+  .evidence-flow {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .evidence-flow .flow-arrow {
+    justify-self: center;
+    transform: rotate(90deg);
+  }
+  .adapter-flow-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .adapter-flow-grid .flow-arrow {
+    justify-self: center;
+    transform: rotate(90deg);
+  }
+}
+
+@media (max-width: 700px) {
+  .demo-publication-grid,
+  .boundary-grid,
+  .inline-definitions,
+  .verification-metrics,
+  .protocol-status-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .finding-comparison {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .demo-publication-grid > div + div {
+    border-top: 1px solid var(--border);
+    border-left: 0;
+  }
+  .demo-publication-header,
+  .publication-card-heading,
+  .record-section-heading,
+  .ledger-list > li {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .publication-version-label {
+    text-align: left;
+  }
+}

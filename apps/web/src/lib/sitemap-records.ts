@@ -16,9 +16,13 @@ const STATIC_PATHS = [
   "/",
   "/api-docs",
   "/archive",
+  "/certifications",
+  "/connect",
   "/compare",
   "/create-review",
   "/explore",
+  "/publications",
+  "/verification",
 ] as const;
 
 const reviewSitemapQuery = {

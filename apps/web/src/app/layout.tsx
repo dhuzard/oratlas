@@ -8,15 +8,15 @@ import { PUBLIC_PATHS } from "@/lib/public-discovery";
 
 export const metadata: Metadata = {
   title: {
-    default: "Open Review Atlas",
-    template: "%s · Open Review Atlas",
+    default: "ORAtlas",
+    template: "%s · ORAtlas",
   },
   description:
-    "The arXiv for AI-generated scientific reviews: discover preserved reviews, then inspect their claims, evidence, assessments, and disagreements.",
+    "A scientific evidence ledger connecting exact publication versions to independent verification, claims, discussion and attributed certification.",
   openGraph: {
-    title: "Open Review Atlas",
+    title: "ORAtlas",
     description:
-      "Discover preserved AI-generated scientific reviews and inspect their claims, evidence, assessments, and disagreements.",
+      "Scientific publications that can be independently checked through exact, versioned evidence records.",
     type: "website",
   },
   robots: { index: true, follow: true },
@@ -37,15 +37,16 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         </a>
         <header className="site-header">
           <div className="container">
-            <Link href="/" className="brand" aria-label="Open Review Atlas home">
-              Open Review <span>Atlas</span>
+            <Link href="/" className="brand" aria-label="ORAtlas home">
+              OR<span>Atlas</span>
             </Link>
             <nav className="main-nav" aria-label="Primary">
-              <Link href="/archive">Reviews</Link>
-              <Link href="/explore">Explore evidence</Link>
-              <Link href="/compare">Compare</Link>
-              <Link href="/create-review">Create &amp; deposit</Link>
-              <Link href={PUBLIC_PATHS.apiDocs}>API &amp; agents</Link>
+              <Link href="/explore">Explore</Link>
+              <Link href="/publications">Publications</Link>
+              <Link href="/verification">Verification</Link>
+              <Link href="/certifications">Certifications</Link>
+              <Link href="/discuss">Discuss</Link>
+              <Link href="/connect">Developers</Link>
               {isEditor(user) ? <Link href="/editorial">Editorial</Link> : null}
               {user ? (
                 <span className="signed-in-user">
@@ -64,20 +65,18 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         <footer className="site-footer">
           <div className="container prose">
             <p>
-              <strong>Open Review Atlas</strong> is a proof-of-concept public archive for
-              AI-generated scientific reviews. Acceptance into the archive is{" "}
-              <strong>not peer review</strong>. Assessments apply to specific evidence relations,
-              and a DOI does not establish scientific quality.
+              <strong>ORAtlas</strong> is a scientific evidence ledger. It connects immutable
+              publication versions to verification, claims, discussion and attributed certification
+              without changing the source publication. Verification and certification are{" "}
+              <strong>not peer review</strong> or universal truth scores.
             </p>
             <p className="muted">
+              <Link href="/archive">Legacy review archive</Link>
+              {" · "}
               <Link href={PUBLIC_PATHS.apiDocs}>API &amp; agents</Link>
               {" · "}
               {env.mockAuthEnabled ? "Development mode: mock sign-in enabled. " : ""}
-              Reference template:{" "}
-              <a href="https://github.com/AllenNeuralDynamics/ComputationalReviewTemplate">
-                ComputationalReviewTemplate
-              </a>
-              .
+              <Link href="/connect">Connect a publication</Link>.
             </p>
           </div>
         </footer>
