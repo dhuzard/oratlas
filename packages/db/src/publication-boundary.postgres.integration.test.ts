@@ -61,7 +61,9 @@ async function createCapture(registrationId: string, overrides: Record<string, u
   return prisma.publicationRegistrationCapture.create({
     data: {
       registrationId,
-      captureKey: digest(String((counter += 1) % 10)),
+      // A distinct 64-character lowercase hex key per capture, so the tests
+      // exercise the guards rather than the uniqueness constraint.
+      captureKey: (counter += 1).toString(16).padStart(64, "0"),
       requestedManifestUrl: "https://lab.example.org/review/oratlas.manifest.json",
       resolvedManifestUrl: "https://lab.example.org/review/oratlas.manifest.json",
       observedSiteRootUrl: "https://lab.example.org/review/",
