@@ -64,9 +64,7 @@ async function register(
   });
 }
 
-async function expectRefusal(
-  promise: Promise<unknown>,
-): Promise<PublicationRegistrationError> {
+async function expectRefusal(promise: Promise<unknown>): Promise<PublicationRegistrationError> {
   try {
     await promise;
   } catch (error) {
@@ -141,7 +139,9 @@ describe("registering a valid external MyST publication", () => {
     expect(claimStream.text).toBe(fixture.claimsJsonl);
     expect(claimStream.declaredSha256).toBe(claimStream.sha256);
     expect(claimStream.provenance.status).toBe(200);
-    expect(claimStream.provenance.finalUrl).toBe(site.url("/adolescent-stress/oratlas/claims.jsonl"));
+    expect(claimStream.provenance.finalUrl).toBe(
+      site.url("/adolescent-stress/oratlas/claims.jsonl"),
+    );
   });
 
   it("reaches published-structure without ever reading the publication source", async () => {
@@ -589,9 +589,7 @@ describe("source-byte verification", () => {
     const tampered = {
       [FIXTURE_DOCUMENT_PATH]: `${fixture.sourceDocuments[FIXTURE_DOCUMENT_PATH]!}\nedited\n`,
     };
-    const refusal = await expectRefusal(
-      register({ sourceResolver: sourceResolver(tampered) }),
-    );
+    const refusal = await expectRefusal(register({ sourceResolver: sourceResolver(tampered) }));
     expect(refusal.code).toBe("source-verification-mismatch");
   });
 

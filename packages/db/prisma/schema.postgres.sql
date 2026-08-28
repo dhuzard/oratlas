@@ -1362,10 +1362,49 @@ CREATE TABLE "PublicationCapture" (
     "contentBytes" TEXT,
     "declaredSha256" TEXT,
     "structuralProvenance" TEXT NOT NULL,
+    "httpProvenanceJson" TEXT,
+    "registrationCaptureId" TEXT,
     "capturedAt" TIMESTAMP(3) NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "PublicationCapture_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "PublicationRegistration" (
+    "id" TEXT NOT NULL,
+    "manifestUrl" TEXT NOT NULL,
+    "publicationType" TEXT NOT NULL,
+    "registeredById" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "PublicationRegistration_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "PublicationRegistrationCapture" (
+    "id" TEXT NOT NULL,
+    "registrationId" TEXT NOT NULL,
+    "captureKey" TEXT NOT NULL,
+    "requestedManifestUrl" TEXT NOT NULL,
+    "resolvedManifestUrl" TEXT NOT NULL,
+    "observedSiteRootUrl" TEXT NOT NULL,
+    "manifestSha256" TEXT NOT NULL,
+    "manifestProvenanceJson" TEXT NOT NULL,
+    "declaredSchemaVersion" TEXT NOT NULL,
+    "adapterType" TEXT NOT NULL,
+    "sourceLocalPublicationId" TEXT,
+    "sourcesSha256" TEXT NOT NULL,
+    "sourceDescriptorJson" TEXT,
+    "structuralProvenance" TEXT NOT NULL,
+    "sourceVerificationJson" TEXT NOT NULL,
+    "warningsJson" TEXT NOT NULL,
+    "publicationVersionId" TEXT,
+    "capturedAt" TIMESTAMP(3) NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "PublicationRegistrationCapture_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -1899,7 +1938,28 @@ CREATE INDEX "PublicationCapture_publicationVersionId_idx" ON "PublicationCaptur
 CREATE INDEX "PublicationCapture_contentSha256_idx" ON "PublicationCapture"("contentSha256");
 
 -- CreateIndex
+CREATE INDEX "PublicationCapture_registrationCaptureId_idx" ON "PublicationCapture"("registrationCaptureId");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "PublicationCapture_publicationVersionId_artifactKind_conten_key" ON "PublicationCapture"("publicationVersionId", "artifactKind", "contentSha256");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "PublicationRegistration_manifestUrl_key" ON "PublicationRegistration"("manifestUrl");
+
+-- CreateIndex
+CREATE INDEX "PublicationRegistration_registeredById_idx" ON "PublicationRegistration"("registeredById");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "PublicationRegistrationCapture_captureKey_key" ON "PublicationRegistrationCapture"("captureKey");
+
+-- CreateIndex
+CREATE INDEX "PublicationRegistrationCapture_registrationId_idx" ON "PublicationRegistrationCapture"("registrationId");
+
+-- CreateIndex
+CREATE INDEX "PublicationRegistrationCapture_publicationVersionId_idx" ON "PublicationRegistrationCapture"("publicationVersionId");
+
+-- CreateIndex
+CREATE INDEX "PublicationRegistrationCapture_sourcesSha256_idx" ON "PublicationRegistrationCapture"("sourcesSha256");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "PublicationClaimOccurrence_stableKey_key" ON "PublicationClaimOccurrence"("stableKey");
@@ -2424,6 +2484,18 @@ ALTER TABLE "PublicationVersion" ADD CONSTRAINT "PublicationVersion_publicationI
 ALTER TABLE "PublicationCapture" ADD CONSTRAINT "PublicationCapture_publicationVersionId_fkey" FOREIGN KEY ("publicationVersionId") REFERENCES "PublicationVersion"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "PublicationCapture" ADD CONSTRAINT "PublicationCapture_registrationCaptureId_fkey" FOREIGN KEY ("registrationCaptureId") REFERENCES "PublicationRegistrationCapture"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "PublicationRegistration" ADD CONSTRAINT "PublicationRegistration_registeredById_fkey" FOREIGN KEY ("registeredById") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "PublicationRegistrationCapture" ADD CONSTRAINT "PublicationRegistrationCapture_registrationId_fkey" FOREIGN KEY ("registrationId") REFERENCES "PublicationRegistration"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "PublicationRegistrationCapture" ADD CONSTRAINT "PublicationRegistrationCapture_publicationVersionId_fkey" FOREIGN KEY ("publicationVersionId") REFERENCES "PublicationVersion"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "PublicationClaimOccurrence" ADD CONSTRAINT "PublicationClaimOccurrence_publicationVersionId_fkey" FOREIGN KEY ("publicationVersionId") REFERENCES "PublicationVersion"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -2771,6 +2843,17 @@ ALTER TABLE "PublicationCapture" ADD CONSTRAINT "PublicationCapture_shape_check"
     AND "byteLength" >= 0
   );
 
+ALTER TABLE "PublicationRegistrationCapture" DROP CONSTRAINT IF EXISTS "PublicationRegistrationCapture_shape_check";
+
+ALTER TABLE "PublicationRegistrationCapture" ADD CONSTRAINT "PublicationRegistrationCapture_shape_check" CHECK (
+    "structuralProvenance" IN ('published-structure', 'source-byte')
+    AND "captureKey" ~ '^[a-f0-9]{64}$'
+    AND "manifestSha256" ~ '^[a-f0-9]{64}$'
+    AND "sourcesSha256" ~ '^[a-f0-9]{64}$'
+    AND "adapterType" IN ('myst')
+    AND ("structuralProvenance" = 'published-structure' OR "sourceDescriptorJson" IS NOT NULL)
+  );
+
 ALTER TABLE "PublicationClaimOccurrence" DROP CONSTRAINT IF EXISTS "PublicationClaimOccurrence_declaration_check";
 
 ALTER TABLE "PublicationClaimOccurrence" ADD CONSTRAINT "PublicationClaimOccurrence_declaration_check" CHECK (
@@ -2817,6 +2900,60 @@ DROP TRIGGER IF EXISTS "PublicationCapture_immutable_guard" ON "PublicationCaptu
 
 CREATE TRIGGER "PublicationCapture_immutable_guard" BEFORE UPDATE OR DELETE ON "PublicationCapture"
     FOR EACH ROW EXECUTE FUNCTION "oratlas_protect_publication_capture"();
+
+CREATE OR REPLACE FUNCTION "oratlas_protect_publication_registration"() RETURNS trigger AS $$
+    BEGIN
+      IF NEW."manifestUrl" IS DISTINCT FROM OLD."manifestUrl" THEN
+        RAISE EXCEPTION 'A publication registration URL is immutable';
+      END IF;
+      RETURN NEW;
+    END;
+  $$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS "PublicationRegistration_url_immutable_guard" ON "PublicationRegistration";
+
+CREATE TRIGGER "PublicationRegistration_url_immutable_guard" BEFORE UPDATE ON "PublicationRegistration"
+    FOR EACH ROW EXECUTE FUNCTION "oratlas_protect_publication_registration"();
+
+CREATE OR REPLACE FUNCTION "oratlas_protect_publication_registration_capture"() RETURNS trigger AS $$
+    BEGIN
+      IF TG_OP = 'DELETE' THEN
+        RAISE EXCEPTION 'A publication capture is immutable';
+      END IF;
+      IF OLD."publicationVersionId" IS NOT NULL
+        OR NEW."publicationVersionId" IS NULL
+      THEN
+        RAISE EXCEPTION 'A publication capture is immutable';
+      END IF;
+      IF NEW."id" IS DISTINCT FROM OLD."id"
+        OR NEW."registrationId" IS DISTINCT FROM OLD."registrationId"
+        OR NEW."captureKey" IS DISTINCT FROM OLD."captureKey"
+        OR NEW."requestedManifestUrl" IS DISTINCT FROM OLD."requestedManifestUrl"
+        OR NEW."resolvedManifestUrl" IS DISTINCT FROM OLD."resolvedManifestUrl"
+        OR NEW."observedSiteRootUrl" IS DISTINCT FROM OLD."observedSiteRootUrl"
+        OR NEW."manifestSha256" IS DISTINCT FROM OLD."manifestSha256"
+        OR NEW."manifestProvenanceJson" IS DISTINCT FROM OLD."manifestProvenanceJson"
+        OR NEW."declaredSchemaVersion" IS DISTINCT FROM OLD."declaredSchemaVersion"
+        OR NEW."adapterType" IS DISTINCT FROM OLD."adapterType"
+        OR NEW."sourceLocalPublicationId" IS DISTINCT FROM OLD."sourceLocalPublicationId"
+        OR NEW."sourcesSha256" IS DISTINCT FROM OLD."sourcesSha256"
+        OR NEW."sourceDescriptorJson" IS DISTINCT FROM OLD."sourceDescriptorJson"
+        OR NEW."structuralProvenance" IS DISTINCT FROM OLD."structuralProvenance"
+        OR NEW."sourceVerificationJson" IS DISTINCT FROM OLD."sourceVerificationJson"
+        OR NEW."warningsJson" IS DISTINCT FROM OLD."warningsJson"
+        OR NEW."capturedAt" IS DISTINCT FROM OLD."capturedAt"
+        OR NEW."createdAt" IS DISTINCT FROM OLD."createdAt"
+      THEN
+        RAISE EXCEPTION 'A publication capture is immutable';
+      END IF;
+      RETURN NEW;
+    END;
+  $$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS "PublicationRegistrationCapture_immutable_guard" ON "PublicationRegistrationCapture";
+
+CREATE TRIGGER "PublicationRegistrationCapture_immutable_guard" BEFORE UPDATE OR DELETE ON "PublicationRegistrationCapture"
+    FOR EACH ROW EXECUTE FUNCTION "oratlas_protect_publication_registration_capture"();
 
 CREATE OR REPLACE FUNCTION "oratlas_protect_publication_claim_occurrence"() RETURNS trigger AS $$
     BEGIN

@@ -30,8 +30,7 @@ import { type SourceByteChecks } from "../structural-provenance.js";
 export type SourceDocumentFailure = { reason: PublicationSourceUnavailableReason };
 
 export type SourceDocumentRead =
-  | { ok: true; text: string }
-  | ({ ok: false } & SourceDocumentFailure);
+  { ok: true; text: string } | ({ ok: false } & SourceDocumentFailure);
 
 /**
  * A resolver that can obtain the exact bytes of one source document.

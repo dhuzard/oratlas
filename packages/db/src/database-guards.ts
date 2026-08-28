@@ -24,6 +24,7 @@ export const DATABASE_GUARD_NAMES = [
   "Publication_record_source_check",
   "PublicationVersion_provenance_check",
   "PublicationCapture_shape_check",
+  "PublicationRegistrationCapture_shape_check",
   "PublicationClaimOccurrence_declaration_check",
 ] as const;
 
@@ -44,6 +45,8 @@ export const POSTGRES_DATABASE_GUARD_TRIGGER_NAMES = [
   "Publication_identity_immutable_guard",
   "PublicationVersion_immutable_guard",
   "PublicationCapture_immutable_guard",
+  "PublicationRegistration_url_immutable_guard",
+  "PublicationRegistrationCapture_immutable_guard",
   "PublicationClaimOccurrence_immutable_guard",
 ] as const;
 
@@ -313,6 +316,17 @@ export const POSTGRES_DATABASE_GUARD_SQL = [
     AND ("declaredSha256" IS NULL OR "declaredSha256" ~ '^[a-f0-9]{64}$')
     AND "byteLength" >= 0
   )`,
+  // A capture is exactly what ORAtlas observed. Its digests are digests, its
+  // provenance level is structural, and its adapter is one ORAtlas implements.
+  'ALTER TABLE "PublicationRegistrationCapture" DROP CONSTRAINT IF EXISTS "PublicationRegistrationCapture_shape_check"',
+  `ALTER TABLE "PublicationRegistrationCapture" ADD CONSTRAINT "PublicationRegistrationCapture_shape_check" CHECK (
+    "structuralProvenance" IN ('published-structure', 'source-byte')
+    AND "captureKey" ~ '^[a-f0-9]{64}$'
+    AND "manifestSha256" ~ '^[a-f0-9]{64}$'
+    AND "sourcesSha256" ~ '^[a-f0-9]{64}$'
+    AND "adapterType" IN ('myst')
+    AND ("structuralProvenance" = 'published-structure' OR "sourceDescriptorJson" IS NOT NULL)
+  )`,
   // Exactly one artifact owns a claim declaration: the publication source, or
   // the review manifest the publication ships.
   'ALTER TABLE "PublicationClaimOccurrence" DROP CONSTRAINT IF EXISTS "PublicationClaimOccurrence_declaration_check"',
@@ -356,6 +370,61 @@ export const POSTGRES_DATABASE_GUARD_SQL = [
   'DROP TRIGGER IF EXISTS "PublicationCapture_immutable_guard" ON "PublicationCapture"',
   `CREATE TRIGGER "PublicationCapture_immutable_guard" BEFORE UPDATE OR DELETE ON "PublicationCapture"
     FOR EACH ROW EXECUTE FUNCTION "oratlas_protect_publication_capture"()`,
+
+  // The URL a registration names is what its captures are observations of, so
+  // it cannot be repointed. Presentation fields stay editorially correctable.
+  `CREATE OR REPLACE FUNCTION "oratlas_protect_publication_registration"() RETURNS trigger AS $$
+    BEGIN
+      IF NEW."manifestUrl" IS DISTINCT FROM OLD."manifestUrl" THEN
+        RAISE EXCEPTION 'A publication registration URL is immutable';
+      END IF;
+      RETURN NEW;
+    END;
+  $$ LANGUAGE plpgsql`,
+  'DROP TRIGGER IF EXISTS "PublicationRegistration_url_immutable_guard" ON "PublicationRegistration"',
+  `CREATE TRIGGER "PublicationRegistration_url_immutable_guard" BEFORE UPDATE ON "PublicationRegistration"
+    FOR EACH ROW EXECUTE FUNCTION "oratlas_protect_publication_registration"()`,
+
+  // A capture is append-only. The single exception is binding it to the version
+  // it materialized into, which is write-once: captures are retained before any
+  // semantic materialization runs, so that binding is made afterwards.
+  `CREATE OR REPLACE FUNCTION "oratlas_protect_publication_registration_capture"() RETURNS trigger AS $$
+    BEGIN
+      IF TG_OP = 'DELETE' THEN
+        RAISE EXCEPTION 'A publication capture is immutable';
+      END IF;
+      IF OLD."publicationVersionId" IS NOT NULL
+        OR NEW."publicationVersionId" IS NULL
+      THEN
+        RAISE EXCEPTION 'A publication capture is immutable';
+      END IF;
+      IF NEW."id" IS DISTINCT FROM OLD."id"
+        OR NEW."registrationId" IS DISTINCT FROM OLD."registrationId"
+        OR NEW."captureKey" IS DISTINCT FROM OLD."captureKey"
+        OR NEW."requestedManifestUrl" IS DISTINCT FROM OLD."requestedManifestUrl"
+        OR NEW."resolvedManifestUrl" IS DISTINCT FROM OLD."resolvedManifestUrl"
+        OR NEW."observedSiteRootUrl" IS DISTINCT FROM OLD."observedSiteRootUrl"
+        OR NEW."manifestSha256" IS DISTINCT FROM OLD."manifestSha256"
+        OR NEW."manifestProvenanceJson" IS DISTINCT FROM OLD."manifestProvenanceJson"
+        OR NEW."declaredSchemaVersion" IS DISTINCT FROM OLD."declaredSchemaVersion"
+        OR NEW."adapterType" IS DISTINCT FROM OLD."adapterType"
+        OR NEW."sourceLocalPublicationId" IS DISTINCT FROM OLD."sourceLocalPublicationId"
+        OR NEW."sourcesSha256" IS DISTINCT FROM OLD."sourcesSha256"
+        OR NEW."sourceDescriptorJson" IS DISTINCT FROM OLD."sourceDescriptorJson"
+        OR NEW."structuralProvenance" IS DISTINCT FROM OLD."structuralProvenance"
+        OR NEW."sourceVerificationJson" IS DISTINCT FROM OLD."sourceVerificationJson"
+        OR NEW."warningsJson" IS DISTINCT FROM OLD."warningsJson"
+        OR NEW."capturedAt" IS DISTINCT FROM OLD."capturedAt"
+        OR NEW."createdAt" IS DISTINCT FROM OLD."createdAt"
+      THEN
+        RAISE EXCEPTION 'A publication capture is immutable';
+      END IF;
+      RETURN NEW;
+    END;
+  $$ LANGUAGE plpgsql`,
+  'DROP TRIGGER IF EXISTS "PublicationRegistrationCapture_immutable_guard" ON "PublicationRegistrationCapture"',
+  `CREATE TRIGGER "PublicationRegistrationCapture_immutable_guard" BEFORE UPDATE OR DELETE ON "PublicationRegistrationCapture"
+    FOR EACH ROW EXECUTE FUNCTION "oratlas_protect_publication_registration_capture"()`,
 
   // A source occurrence is immutable. Its canonical binding is write-once and
   // set only by an explicit reviewed decision; it is never rewritten.
@@ -533,6 +602,17 @@ const sqliteGuardConditions = {
     AND (NEW."declaredSha256" IS NULL OR (length(NEW."declaredSha256") = 64 AND NEW."declaredSha256" NOT GLOB '*[^a-f0-9]*'))
     AND NEW."byteLength" >= 0
     THEN 1 ELSE 0 END`,
+  PublicationRegistrationCapture: `CASE WHEN
+    NEW."structuralProvenance" IN ('published-structure', 'source-byte')
+    AND length(NEW."captureKey") = 64
+    AND NEW."captureKey" NOT GLOB '*[^a-f0-9]*'
+    AND length(NEW."manifestSha256") = 64
+    AND NEW."manifestSha256" NOT GLOB '*[^a-f0-9]*'
+    AND length(NEW."sourcesSha256") = 64
+    AND NEW."sourcesSha256" NOT GLOB '*[^a-f0-9]*'
+    AND NEW."adapterType" IN ('myst')
+    AND (NEW."structuralProvenance" = 'published-structure' OR NEW."sourceDescriptorJson" IS NOT NULL)
+    THEN 1 ELSE 0 END`,
   PublicationClaimOccurrence: `CASE WHEN
     (NEW."declarationAuthority" = 'publication-source' AND NEW."text" IS NOT NULL)
     OR (NEW."declarationAuthority" = 'review-manifest' AND NEW."text" IS NULL AND NEW."claimType" IS NULL AND NEW."qualification" IS NULL)
@@ -562,6 +642,9 @@ export const SQLITE_PUBLICATION_IMMUTABLE_GUARD_NAMES = [
   "PublicationVersion_immutable_guard_delete",
   "PublicationCapture_immutable_guard_update",
   "PublicationCapture_immutable_guard_delete",
+  "PublicationRegistration_url_immutable_guard",
+  "PublicationRegistrationCapture_immutable_guard_update",
+  "PublicationRegistrationCapture_immutable_guard_delete",
   "PublicationClaimOccurrence_immutable_guard_update",
   "PublicationClaimOccurrence_immutable_guard_delete",
 ] as const;
@@ -679,6 +762,63 @@ export async function applyDatabaseGuards(
         `);
       }
     }
+    // The URL a registration names is what its captures are observations of.
+    await tx.$executeRawUnsafe(
+      'DROP TRIGGER IF EXISTS "PublicationRegistration_url_immutable_guard"',
+    );
+    await tx.$executeRawUnsafe(`
+      CREATE TRIGGER "PublicationRegistration_url_immutable_guard"
+      BEFORE UPDATE ON "PublicationRegistration"
+      FOR EACH ROW WHEN NEW."manifestUrl" IS NOT OLD."manifestUrl"
+      BEGIN
+        SELECT RAISE(ABORT, 'A publication registration URL is immutable');
+      END
+    `);
+    // A capture is append-only, except for the write-once binding to the
+    // version it materialized into: bytes are retained before materialization
+    // runs, so that binding is necessarily made afterwards.
+    await tx.$executeRawUnsafe(
+      'DROP TRIGGER IF EXISTS "PublicationRegistrationCapture_immutable_guard_update"',
+    );
+    await tx.$executeRawUnsafe(`
+      CREATE TRIGGER "PublicationRegistrationCapture_immutable_guard_update"
+      BEFORE UPDATE ON "PublicationRegistrationCapture"
+      FOR EACH ROW WHEN
+        OLD."publicationVersionId" IS NOT NULL
+        OR NEW."publicationVersionId" IS NULL
+        OR NEW."id" IS NOT OLD."id"
+        OR NEW."registrationId" IS NOT OLD."registrationId"
+        OR NEW."captureKey" IS NOT OLD."captureKey"
+        OR NEW."requestedManifestUrl" IS NOT OLD."requestedManifestUrl"
+        OR NEW."resolvedManifestUrl" IS NOT OLD."resolvedManifestUrl"
+        OR NEW."observedSiteRootUrl" IS NOT OLD."observedSiteRootUrl"
+        OR NEW."manifestSha256" IS NOT OLD."manifestSha256"
+        OR NEW."manifestProvenanceJson" IS NOT OLD."manifestProvenanceJson"
+        OR NEW."declaredSchemaVersion" IS NOT OLD."declaredSchemaVersion"
+        OR NEW."adapterType" IS NOT OLD."adapterType"
+        OR NEW."sourceLocalPublicationId" IS NOT OLD."sourceLocalPublicationId"
+        OR NEW."sourcesSha256" IS NOT OLD."sourcesSha256"
+        OR NEW."sourceDescriptorJson" IS NOT OLD."sourceDescriptorJson"
+        OR NEW."structuralProvenance" IS NOT OLD."structuralProvenance"
+        OR NEW."sourceVerificationJson" IS NOT OLD."sourceVerificationJson"
+        OR NEW."warningsJson" IS NOT OLD."warningsJson"
+        OR NEW."capturedAt" IS NOT OLD."capturedAt"
+        OR NEW."createdAt" IS NOT OLD."createdAt"
+      BEGIN
+        SELECT RAISE(ABORT, 'A publication capture is immutable');
+      END
+    `);
+    await tx.$executeRawUnsafe(
+      'DROP TRIGGER IF EXISTS "PublicationRegistrationCapture_immutable_guard_delete"',
+    );
+    await tx.$executeRawUnsafe(`
+      CREATE TRIGGER "PublicationRegistrationCapture_immutable_guard_delete"
+      BEFORE DELETE ON "PublicationRegistrationCapture"
+      FOR EACH ROW
+      BEGIN
+        SELECT RAISE(ABORT, 'A publication capture is immutable');
+      END
+    `);
     // A source occurrence is immutable. Its canonical binding is write-once and
     // set only by an explicit reviewed decision; it is never rewritten.
     await tx.$executeRawUnsafe(

@@ -2,11 +2,7 @@ import { createHash } from "node:crypto";
 import { lookup as dnsLookup } from "node:dns";
 import { request as httpRequest, type IncomingMessage } from "node:http";
 import { request as httpsRequest } from "node:https";
-import {
-  classifyIpAddress,
-  describeAddressClass,
-  type AddressClass,
-} from "./address.js";
+import { classifyIpAddress, describeAddressClass, type AddressClass } from "./address.js";
 import {
   assessExternalUrl,
   isAddressClassAllowed,
@@ -182,7 +178,9 @@ function guardedLookup(policy: ResolvedUrlSafetyPolicy, base: LookupFunction): L
             dnsFailure(
               "ORATLAS_DESTINATION_NOT_PUBLIC",
               `The host resolves to ${
-                addressClass === null ? "an unrecognised address" : describeAddressClass(addressClass)
+                addressClass === null
+                  ? "an unrecognised address"
+                  : describeAddressClass(addressClass)
               }.`,
             ),
             "",
@@ -226,7 +224,8 @@ export async function safeFetch(
   const connectTimeoutMs = options.connectTimeoutMs ?? SAFE_FETCH_DEFAULTS.connectTimeoutMs;
   const readTimeoutMs = options.readTimeoutMs ?? SAFE_FETCH_DEFAULTS.readTimeoutMs;
   const budget =
-    options.budget ?? new OperationBudget(options.totalTimeoutMs ?? SAFE_FETCH_DEFAULTS.totalTimeoutMs);
+    options.budget ??
+    new OperationBudget(options.totalTimeoutMs ?? SAFE_FETCH_DEFAULTS.totalTimeoutMs);
   const lookup = guardedLookup(policy, options.lookup ?? (dnsLookup as unknown as LookupFunction));
 
   const admitted = assessExternalUrl(requestedUrl, policy);
@@ -360,7 +359,8 @@ function performHop(url: URL, options: HopOptions): Promise<HopResult> {
       (response) => {
         clearTimeout(connectTimer);
         const status = response.statusCode ?? 0;
-        const isRedirect = status === 301 || status === 302 || status === 303 || status === 307 || status === 308;
+        const isRedirect =
+          status === 301 || status === 302 || status === 303 || status === 307 || status === 308;
         const rawLocation = response.headers.location;
         const location = isRedirect && typeof rawLocation === "string" ? rawLocation : undefined;
         if (isRedirect && location === undefined) {
@@ -399,12 +399,19 @@ function performHop(url: URL, options: HopOptions): Promise<HopResult> {
       },
     );
 
-    const connectTimer = setTimeout(() => {
-      request.destroy(new SafeFetchError("timeout", "Connecting to the destination timed out.", url.href));
-    }, Math.max(1, Math.min(options.connectTimeoutMs, options.budget.remainingMs())));
+    const connectTimer = setTimeout(
+      () => {
+        request.destroy(
+          new SafeFetchError("timeout", "Connecting to the destination timed out.", url.href),
+        );
+      },
+      Math.max(1, Math.min(options.connectTimeoutMs, options.budget.remainingMs())),
+    );
 
     request.setTimeout(Math.max(1, options.readTimeoutMs), () => {
-      request.destroy(new SafeFetchError("timeout", "The destination stopped responding.", url.href));
+      request.destroy(
+        new SafeFetchError("timeout", "The destination stopped responding.", url.href),
+      );
     });
 
     request.on("error", (error) => {
@@ -418,11 +425,7 @@ function toSafeFetchError(error: unknown, url: string): SafeFetchError {
   if (error instanceof SafeFetchError) return error;
   const code = (error as NodeJS.ErrnoException | undefined)?.code;
   if (code === "ORATLAS_DESTINATION_NOT_PUBLIC") {
-    return new SafeFetchError(
-      "destination-not-public",
-      (error as Error).message,
-      url,
-    );
+    return new SafeFetchError("destination-not-public", (error as Error).message, url);
   }
   if (code === "ETIMEDOUT" || code === "ESOCKETTIMEDOUT") {
     return new SafeFetchError("timeout", "The destination stopped responding.", url);

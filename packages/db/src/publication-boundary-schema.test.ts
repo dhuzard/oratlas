@@ -28,6 +28,17 @@ const PUBLICATION_MODELS = [
   "PublicationClaimOccurrence",
 ] as const;
 
+/** Registration and capture models, added when registration became operational. */
+const REGISTRATION_MODELS = ["PublicationRegistration", "PublicationRegistrationCapture"] as const;
+
+const registrationMigration = readFileSync(
+  resolve(
+    packageRoot,
+    "prisma/migrations/20260828000000_publication_registration_capture/migration.sql",
+  ),
+  "utf8",
+);
+
 function modelBlock(schema: string, model: string): string {
   const match = schema.match(new RegExp(`^model ${model} \\{$[\\s\\S]*?^\\}$`, "m"));
   if (!match) throw new Error(`Model ${model} is missing from the schema.`);
@@ -180,6 +191,9 @@ describe("publication boundary guard coverage", () => {
       "PublicationVersion_immutable_guard_delete",
       "PublicationCapture_immutable_guard_update",
       "PublicationCapture_immutable_guard_delete",
+      "PublicationRegistration_url_immutable_guard",
+      "PublicationRegistrationCapture_immutable_guard_update",
+      "PublicationRegistrationCapture_immutable_guard_delete",
       "PublicationClaimOccurrence_immutable_guard_update",
       "PublicationClaimOccurrence_immutable_guard_delete",
     ]);
@@ -191,5 +205,51 @@ describe("publication boundary guard coverage", () => {
     for (const line of provenanceGuards) {
       expect(line).not.toMatch(/verified|trustworthy|confirmed|peer-reviewed/i);
     }
+  });
+});
+
+describe("registration and capture schema", () => {
+  it.each(REGISTRATION_MODELS)("declares %s identically on SQLite and PostgreSQL", (model) => {
+    expect(modelBlock(postgresSchema, model)).toBe(modelBlock(sqliteSchema, model));
+  });
+
+  it("registers one URL once and keeps every observation of it", () => {
+    for (const schema of [sqliteSchema, postgresSchema]) {
+      expect(modelBlock(schema, "PublicationRegistration")).toMatch(
+        /manifestUrl\s+String\s+@unique/,
+      );
+      const capture = modelBlock(schema, "PublicationRegistrationCapture");
+      // Captures are keyed by what was observed, not by the URL, so a
+      // republished site adds a capture rather than replacing one.
+      expect(capture).toMatch(/captureKey\s+String\s+@unique/);
+      expect(capture).not.toMatch(/requestedManifestUrl\s+String\s+@unique/);
+      expect(capture).toMatch(/publicationVersionId\s+String\?/);
+    }
+  });
+
+  it("retains HTTP provenance and the observation that first saw each artifact", () => {
+    for (const schema of [sqliteSchema, postgresSchema]) {
+      const artifact = modelBlock(schema, "PublicationCapture");
+      expect(artifact).toMatch(/httpProvenanceJson\s+String\?/);
+      expect(artifact).toMatch(/registrationCaptureId\s+String\?/);
+    }
+  });
+
+  it("guards the capture on both providers, and only widens the schema", () => {
+    expect(DATABASE_GUARD_NAMES).toContain("PublicationRegistrationCapture_shape_check");
+    expect(SQLITE_DATABASE_GUARD_NAMES).toContain("PublicationRegistrationCapture_guard_insert");
+    expect(SQLITE_DATABASE_GUARD_NAMES).toContain("PublicationRegistrationCapture_guard_update");
+    for (const trigger of [
+      "PublicationRegistration_url_immutable_guard",
+      "PublicationRegistrationCapture_immutable_guard",
+    ]) {
+      expect(POSTGRES_DATABASE_GUARD_TRIGGER_NAMES).toContain(trigger);
+      expect(postgresDdl).toContain(`CREATE TRIGGER "${trigger}"`);
+    }
+    // Expand only: the migration adds tables and nullable columns, and drops
+    // nothing.
+    expect(registrationMigration).not.toMatch(/DROP TABLE|DROP COLUMN|DROP CONSTRAINT/);
+    expect(registrationMigration).toContain('CREATE TABLE "PublicationRegistration"');
+    expect(registrationMigration).toContain('CREATE TABLE "PublicationRegistrationCapture"');
   });
 });

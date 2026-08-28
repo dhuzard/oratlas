@@ -181,7 +181,11 @@ function decodeArtifact(fetched: FetchedArtifactBytes, what: string): string {
   }
 }
 
-function parseJsonArtifact(text: string, what: string, code: "manifest-invalid-json" | "artifact-malformed"): unknown {
+function parseJsonArtifact(
+  text: string,
+  what: string,
+  code: "manifest-invalid-json" | "artifact-malformed",
+): unknown {
   try {
     return JSON.parse(text) as unknown;
   } catch {

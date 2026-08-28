@@ -48,7 +48,7 @@ export interface UrlSafetyPolicy {
   maxUrlLength?: number;
 }
 
-export interface ResolvedUrlSafetyPolicy extends Required<UrlSafetyPolicy> {}
+export type ResolvedUrlSafetyPolicy = Required<UrlSafetyPolicy>;
 
 export const DEFAULT_URL_SAFETY_POLICY: ResolvedUrlSafetyPolicy = {
   allowInsecureHttp: false,
@@ -63,8 +63,7 @@ export function resolveUrlSafetyPolicy(policy: UrlSafetyPolicy = {}): ResolvedUr
 }
 
 export type UrlSafetyResult =
-  | { ok: true; url: URL }
-  | { ok: false; code: SafeFetchErrorCode; reason: string };
+  { ok: true; url: URL } | { ok: false; code: SafeFetchErrorCode; reason: string };
 
 /**
  * Host suffixes that name something inside a private deployment rather than a

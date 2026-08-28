@@ -122,9 +122,9 @@ describe("URL admission under the production policy", () => {
       allowLoopback: true,
       allowNonStandardPorts: true,
     };
-    expect(assessExternalUrl("http://127.0.0.1:45123/oratlas.manifest.json", fixturePolicy).ok).toBe(
-      true,
-    );
+    expect(
+      assessExternalUrl("http://127.0.0.1:45123/oratlas.manifest.json", fixturePolicy).ok,
+    ).toBe(true);
     // Even a fully relaxed fixture policy never admits a metadata address.
     const metadata = assessExternalUrl("http://169.254.169.254/latest/meta-data", {
       ...fixturePolicy,

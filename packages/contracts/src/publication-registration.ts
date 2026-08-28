@@ -8,6 +8,8 @@ import {
   sourceLocalPublicationIdSchema,
   MYST_PUBLICATION_PROTOCOL_VERSION,
   publicationAdapterTypeSchema,
+  publicationClaimDeclarationAuthoritySchema,
+  sourceLocalClaimIdSchema,
 } from "./publications.js";
 import { safeRepoRelativePathSchema } from "./paths.js";
 
@@ -42,9 +44,7 @@ export const PUBLICATION_REGISTRATION_SCHEMA_VERSION = "1.0.0" as const;
  * else is rejected outright: partially interpreting a future manifest is worse
  * than refusing it.
  */
-export const SUPPORTED_PUBLICATION_PROTOCOL_VERSIONS = [
-  MYST_PUBLICATION_PROTOCOL_VERSION,
-] as const;
+export const SUPPORTED_PUBLICATION_PROTOCOL_VERSIONS = [MYST_PUBLICATION_PROTOCOL_VERSION] as const;
 
 /**
  * Why a registration failed. Every code is safe to return to a caller: none of
@@ -92,9 +92,7 @@ export const PUBLICATION_REGISTRATION_ERROR_CODES = [
   /** The publication declares no evidence ORAtlas can key an identity from. */
   "publication-identity-insufficient",
 ] as const;
-export const publicationRegistrationErrorCodeSchema = z.enum(
-  PUBLICATION_REGISTRATION_ERROR_CODES,
-);
+export const publicationRegistrationErrorCodeSchema = z.enum(PUBLICATION_REGISTRATION_ERROR_CODES);
 export type PublicationRegistrationErrorCode = z.infer<
   typeof publicationRegistrationErrorCodeSchema
 >;
@@ -346,3 +344,157 @@ export const publicationRegistrationResultSchema = z
     }
   });
 export type PublicationRegistrationResult = z.infer<typeof publicationRegistrationResultSchema>;
+
+/**
+ * Public read models for what a registration produced.
+ *
+ * These are addressing and provenance documents. They deliberately carry no
+ * assessment, no TRUST value, no editorial status and no canonical graph
+ * identity: a source occurrence is not a canonical claim, and nothing here may
+ * be read as one.
+ *
+ * Retained capture *bytes* are deliberately not part of any response. The
+ * digests, the byte lengths and the HTTP provenance are what an audit needs;
+ * re-serving untrusted external content through ORAtlas's own API is an
+ * avoidable surface, and the bytes stay in the capture record.
+ */
+export const publicationVersionSummarySchema = z
+  .object({
+    id: z.string().min(1).max(200),
+    stableKey: z.string().min(1).max(500),
+    sourcesSha256: publicationSha256Schema,
+    versionLabel: z.string().min(1).max(120).optional(),
+    title: z.string().min(1).max(500).optional(),
+    canonicalUrl: publicationHttpsUrlSchema.optional(),
+    adapterType: publicationAdapterTypeSchema,
+    structuralProvenance: publicationStructuralProvenanceSchema,
+    /** Wording that never says verified, trustworthy, confirmed or peer reviewed. */
+    structuralProvenanceDescription: z.string().min(1).max(300),
+    observedAt: z.string().datetime(),
+    claimOccurrenceCount: z.number().int().nonnegative().max(1_000_000),
+    links: z.object({ self: z.string().min(1).max(2_000) }).strict(),
+  })
+  .strict();
+export type PublicationVersionSummary = z.infer<typeof publicationVersionSummarySchema>;
+
+export const publicationResourceSchema = z
+  .object({
+    schemaVersion: z.literal(PUBLICATION_REGISTRATION_SCHEMA_VERSION),
+    id: z.string().min(1).max(200),
+    stableKey: z.string().min(1).max(500),
+    publicationType: publicationTypeSchema,
+    recordSource: z.enum(["external-publication", "atlas-review-projection"]),
+    sourceLocalPublicationId: sourceLocalPublicationIdSchema.optional(),
+    /** Which durable evidence ORAtlas keyed this publication from. */
+    identityEvidenceBasis: z.enum([
+      "git-source",
+      "concept-doi",
+      "declared-identifier",
+      "registration",
+      "atlas-review",
+    ]),
+    versions: z.array(publicationVersionSummarySchema).max(500),
+    links: z.object({ self: z.string().min(1).max(2_000) }).strict(),
+  })
+  .strict();
+export type PublicationResource = z.infer<typeof publicationResourceSchema>;
+
+export const publicationClaimOccurrenceViewSchema = z
+  .object({
+    id: z.string().min(1).max(200),
+    stableKey: z.string().min(1).max(500),
+    sourceLocalClaimId: sourceLocalClaimIdSchema,
+    targetIdentifier: sourceLocalClaimIdSchema,
+    declarationAuthority: publicationClaimDeclarationAuthoritySchema,
+    declarationSha256: publicationSha256Schema,
+    text: z.string().min(1).max(5_000).optional(),
+    claimType: z.string().min(1).max(60).optional(),
+    qualification: z.string().min(1).max(2_000).optional(),
+    sourceDocumentPath: safeRepoRelativePathSchema,
+    sourceDocumentSha256: publicationSha256Schema,
+    /**
+     * Always null in this phase. A canonical binding is an explicit, reviewed
+     * decision and is never inferred from an occurrence.
+     */
+    canonicalKnowledgeNodeId: z.null(),
+  })
+  .strict();
+
+export const publicationCaptureViewSchema = z
+  .object({
+    id: z.string().min(1).max(200),
+    artifactKind: publicationCaptureArtifactKindSchema,
+    declaredPath: safeRepoRelativePathSchema.optional(),
+    observedUrl: z.string().min(1).max(2_000).optional(),
+    mediaType: z.string().max(120),
+    contentSha256: publicationSha256Schema,
+    byteLength: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER),
+    declaredSha256: publicationSha256Schema.optional(),
+    capturedAt: z.string().datetime(),
+  })
+  .strict();
+
+export const publicationVersionResourceSchema = z
+  .object({
+    schemaVersion: z.literal(PUBLICATION_REGISTRATION_SCHEMA_VERSION),
+    id: z.string().min(1).max(200),
+    stableKey: z.string().min(1).max(500),
+    publicationId: z.string().min(1).max(200),
+    publicationStableKey: z.string().min(1).max(500),
+    sourcesSha256: publicationSha256Schema,
+    versionLabel: z.string().min(1).max(120).optional(),
+    title: z.string().min(1).max(500).optional(),
+    canonicalUrl: publicationHttpsUrlSchema.optional(),
+    adapterType: publicationAdapterTypeSchema,
+    protocolVersion: z.enum(SUPPORTED_PUBLICATION_PROTOCOL_VERSIONS),
+    structuralProvenance: publicationStructuralProvenanceSchema,
+    structuralProvenanceDescription: z.string().min(1).max(300),
+    observedAt: z.string().datetime(),
+    claimOccurrences: z.array(publicationClaimOccurrenceViewSchema).max(5_000),
+    captures: z.array(publicationCaptureViewSchema).max(64),
+    links: z
+      .object({
+        self: z.string().min(1).max(2_000),
+        publication: z.string().min(1).max(2_000),
+      })
+      .strict(),
+  })
+  .strict();
+export type PublicationVersionResource = z.infer<typeof publicationVersionResourceSchema>;
+
+export const publicationRegistrationCaptureResourceSchema = z
+  .object({
+    schemaVersion: z.literal(PUBLICATION_REGISTRATION_SCHEMA_VERSION),
+    id: z.string().min(1).max(200),
+    captureKey: publicationSha256Schema,
+    registration: z
+      .object({
+        id: z.string().min(1).max(200),
+        manifestUrl: z.string().min(1).max(2_000),
+      })
+      .strict(),
+    requestedManifestUrl: z.string().min(1).max(2_000),
+    resolvedManifestUrl: z.string().min(1).max(2_000),
+    observedSiteRootUrl: z.string().min(1).max(2_000),
+    manifestSha256: publicationSha256Schema,
+    manifestProvenance: publicationHttpProvenanceSchema,
+    declaredSchemaVersion: z.enum(SUPPORTED_PUBLICATION_PROTOCOL_VERSIONS),
+    adapterType: publicationAdapterTypeSchema,
+    sourceLocalPublicationId: sourceLocalPublicationIdSchema.optional(),
+    sourcesSha256: publicationSha256Schema,
+    structuralProvenance: publicationStructuralProvenanceSchema,
+    sourceVerification: publicationSourceVerificationSchema,
+    warnings: z.array(publicationRegistrationWarningSchema).max(200),
+    capturedAt: z.string().datetime(),
+    artifacts: z.array(publicationCaptureViewSchema).max(64),
+    links: z
+      .object({
+        publication: z.string().min(1).max(2_000).optional(),
+        publicationVersion: z.string().min(1).max(2_000).optional(),
+      })
+      .strict(),
+  })
+  .strict();
+export type PublicationRegistrationCaptureResource = z.infer<
+  typeof publicationRegistrationCaptureResourceSchema
+>;

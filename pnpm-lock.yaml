@@ -95,6 +95,12 @@ importers:
       '@oratlas/protocols':
         specifier: workspace:*
         version: link:../../packages/protocols
+      '@oratlas/publications':
+        specifier: workspace:*
+        version: link:../../packages/publications
+      '@oratlas/safe-fetch':
+        specifier: workspace:*
+        version: link:../../packages/safe-fetch
       '@oratlas/trust':
         specifier: workspace:*
         version: link:../../packages/trust

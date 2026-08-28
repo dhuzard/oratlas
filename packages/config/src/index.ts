@@ -32,6 +32,10 @@ const serverEnvSchema = z.object({
   // array of {keyId, algorithm, publicKeyPem, issuer, subject}; parsed and
   // fingerprint-checked by @oratlas/execution-passports.
   EXECUTION_PASSPORT_TRUSTED_KEYS_JSON: z.string().optional(),
+  // Development-only escape hatch for registering a publication served over
+  // plaintext HTTP from a local fixture. Never honoured in production: external
+  // registration is https-only there, and this flag cannot change that.
+  PUBLICATION_REGISTRATION_ALLOW_INSECURE_FETCH: z.string().optional(),
 });
 
 export type ServerEnv = z.infer<typeof serverEnvSchema> & {
@@ -42,6 +46,12 @@ export type ServerEnv = z.infer<typeof serverEnvSchema> & {
   adminGithubUserIds: readonly string[];
   llmEnabled: boolean;
   sessionSecret: string;
+  /**
+   * Whether publication registration may retrieve a manifest over plaintext
+   * HTTP from a loopback fixture. Requires an explicit opt-in *and* a
+   * non-production environment, exactly like mock authentication.
+   */
+  publicationRegistrationInsecureFetchEnabled: boolean;
 };
 
 let cached: ServerEnv | undefined;
@@ -113,6 +123,10 @@ export function getServerEnv(env: NodeJS.ProcessEnv = process.env): ServerEnv {
   // Never silently enable mock authentication in production (spec §5).
   const mockAuthEnabled = !isProduction && parsed.AUTH_MOCK === "1";
   const llmEnabled = parsed.LLM_PROVIDER === "anthropic" && Boolean(parsed.ANTHROPIC_API_KEY);
+  // External registration is https-only in production, and no environment
+  // variable can relax that.
+  const publicationRegistrationInsecureFetchEnabled =
+    !isProduction && parsed.PUBLICATION_REGISTRATION_ALLOW_INSECURE_FETCH === "1";
 
   const result: ServerEnv = {
     ...parsed,
@@ -122,6 +136,7 @@ export function getServerEnv(env: NodeJS.ProcessEnv = process.env): ServerEnv {
     adminGithubUserIds,
     llmEnabled,
     sessionSecret,
+    publicationRegistrationInsecureFetchEnabled,
   };
   if (env === process.env) cached = result;
   return result;

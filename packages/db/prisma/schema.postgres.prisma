@@ -84,6 +84,7 @@ model User {
   trustAdjudications             TrustAdjudication[]               @relation("trustAdjudicator")
   adjudicatorDesignation         TrustAdjudicatorDesignation?      @relation("designatedAdjudicator")
   adjudicatorDesignationsMade    TrustAdjudicatorDesignation[]     @relation("adjudicatorDesignator")
+  publicationRegistrations       PublicationRegistration[]         @relation("publicationRegistrar")
 
   @@index([githubLoginNormalized])
 }
@@ -2064,9 +2065,10 @@ model PublicationVersion {
   observedAt               DateTime
   createdAt                DateTime @default(now())
 
-  publication      Publication                  @relation(fields: [publicationId], references: [id], onDelete: Restrict)
-  captures         PublicationCapture[]
-  claimOccurrences PublicationClaimOccurrence[]
+  publication         Publication                      @relation(fields: [publicationId], references: [id], onDelete: Restrict)
+  captures            PublicationCapture[]
+  claimOccurrences    PublicationClaimOccurrence[]
+  registrationCaptures PublicationRegistrationCapture[]
 
   /// Distinct publications may legitimately share a sourcesSha256, so exact
   /// version identity is scoped to its publication rather than global.
@@ -2100,14 +2102,104 @@ model PublicationCapture {
   declaredSha256       String?
   /// contracts PUBLICATION_STRUCTURAL_PROVENANCE_LEVELS reached by this capture.
   structuralProvenance String
+  /// contracts publicationHttpProvenanceSchema encoded as JSON: the request,
+  /// the location the bytes were finally served from, the status, the declared
+  /// media type and every redirect hop. Enough to audit the retrieval.
+  httpProvenanceJson   String?
+  /// The registration observation that first retrieved these exact bytes.
+  /// Later observations of byte-identical artifacts reuse this row rather than
+  /// duplicating it, so the link names the first sighting, not the only one.
+  registrationCaptureId String?
   capturedAt           DateTime
   createdAt            DateTime @default(now())
 
-  publicationVersion PublicationVersion @relation(fields: [publicationVersionId], references: [id], onDelete: Restrict)
+  publicationVersion  PublicationVersion              @relation(fields: [publicationVersionId], references: [id], onDelete: Restrict)
+  registrationCapture PublicationRegistrationCapture? @relation(fields: [registrationCaptureId], references: [id], onDelete: Restrict)
 
   @@unique([publicationVersionId, artifactKind, contentSha256])
   @@index([publicationVersionId])
   @@index([contentSha256])
+  @@index([registrationCaptureId])
+}
+
+/// A registered externally hosted publication manifest URL.
+///
+/// Registration records that an operator asked ORAtlas to observe this URL. It
+/// is deliberately **not** a claim of ownership: proving that whoever registers
+/// a URL is entitled to is a separate governance problem, and there is no
+/// boolean here pretending to have solved it. See docs/external-publications.md.
+model PublicationRegistration {
+  id              String   @id @default(cuid())
+  /// Absolute https URL of the publication's `oratlas.manifest.json`, as
+  /// submitted. One registration per URL; observations of it are captures.
+  manifestUrl     String   @unique
+  /// contracts PUBLICATION_TYPES, supplied at registration because the
+  /// producer contract declares none. Editorially correctable.
+  publicationType String
+  /// Operator who registered the URL. Null once that account is removed; the
+  /// registration and its captures survive, because they are an audit record.
+  registeredById  String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  registeredBy User?                            @relation("publicationRegistrar", fields: [registeredById], references: [id], onDelete: SetNull)
+  captures     PublicationRegistrationCapture[]
+
+  @@index([registeredById])
+}
+
+/// One immutable observation of a registered manifest URL.
+///
+/// The capture is what ORAtlas saw, retained before any semantic
+/// materialization: the URL asked for, the URL it resolved to, the manifest
+/// digest, the HTTP provenance, and the protocol facts the manifest declared.
+/// A capture is never overwritten; a republished site produces another one.
+model PublicationRegistrationCapture {
+  id                       String   @id @default(cuid())
+  registrationId           String
+  /// Deterministic digest over the observation: the requested URL, the resolved
+  /// URL and every artifact's kind, declared path and digest. Two identical
+  /// observations replay one capture; any byte change produces a new one.
+  captureKey               String   @unique
+  requestedManifestUrl     String
+  /// Location the manifest bytes were finally served from, after redirects.
+  resolvedManifestUrl      String
+  /// Site root the artifacts were fetched from. Never the declared canonical
+  /// URL, which the producer contract forbids dereferencing during validation.
+  observedSiteRootUrl      String
+  manifestSha256           String
+  /// contracts publicationHttpProvenanceSchema for the manifest retrieval.
+  manifestProvenanceJson   String
+  /// Schema version the manifest declared, as observed.
+  declaredSchemaVersion    String
+  /// contracts PUBLICATION_ADAPTER_TYPES, as observed.
+  adapterType              String
+  /// Author-declared publication id, as observed. Evidence, never identity.
+  sourceLocalPublicationId String?
+  /// The publication's own digest over its document set, as observed.
+  sourcesSha256            String
+  /// contracts publicationSourceDescriptorJson, as observed. Null when none.
+  sourceDescriptorJson     String?
+  /// contracts PUBLICATION_STRUCTURAL_PROVENANCE_LEVELS reached by this
+  /// observation. Structural only; never a scientific validation state.
+  structuralProvenance     String
+  /// contracts publicationSourceVerificationSchema: whether source bytes were
+  /// reached and, when not, exactly why. A failure is recorded, never silent.
+  sourceVerificationJson   String
+  /// contracts publicationRegistrationWarningSchema[] observed for this capture.
+  warningsJson             String
+  /// The version this observation materialized into.
+  publicationVersionId     String?
+  capturedAt               DateTime
+  createdAt                DateTime @default(now())
+
+  registration       PublicationRegistration @relation(fields: [registrationId], references: [id], onDelete: Restrict)
+  publicationVersion PublicationVersion?     @relation(fields: [publicationVersionId], references: [id], onDelete: Restrict)
+  artifacts          PublicationCapture[]
+
+  @@index([registrationId])
+  @@index([publicationVersionId])
+  @@index([sourcesSha256])
 }
 
 /// One exact occurrence of a claim declaration in one publication version.
