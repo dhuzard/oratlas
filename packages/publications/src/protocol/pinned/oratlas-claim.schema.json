@@ -1,0 +1,193 @@
+{
+  "$id": "https://github.com/dhuzard/oratlas-myst/schemas/oratlas-claim.schema.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "additionalProperties": false,
+  "description": "One record of oratlas/claims.jsonl — an explicit claim declaration in one exact version of one MyST publication.",
+  "properties": {
+    "claimType": {
+      "enum": [
+        "empirical",
+        "mechanistic",
+        "methodological",
+        "theoretical",
+        "normative",
+        "summary",
+        "other",
+        "synthesis",
+        "model-derived",
+        "translational"
+      ],
+      "type": "string"
+    },
+    "declarationSha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "id": {
+      "maxLength": 120,
+      "minLength": 1,
+      "pattern": "^[a-z0-9][a-z0-9._-]*$",
+      "type": "string"
+    },
+    "qualification": {
+      "maxLength": 2000,
+      "minLength": 1,
+      "type": "string"
+    },
+    "schemaVersion": {
+      "const": "0.2.0",
+      "type": "string"
+    },
+    "selector": {
+      "additionalProperties": false,
+      "properties": {
+        "representation": {
+          "const": "oratlas-myst-source-utf8-v1",
+          "type": "string"
+        },
+        "textPosition": {
+          "additionalProperties": false,
+          "properties": {
+            "end": {
+              "exclusiveMinimum": 0,
+              "maximum": 10000000,
+              "type": "integer"
+            },
+            "start": {
+              "maximum": 10000000,
+              "minimum": 0,
+              "type": "integer"
+            },
+            "type": {
+              "const": "TextPositionSelector",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "start",
+            "end"
+          ],
+          "type": "object"
+        },
+        "textQuote": {
+          "additionalProperties": false,
+          "properties": {
+            "exact": {
+              "type": "string"
+            },
+            "prefix": {
+              "type": "string"
+            },
+            "suffix": {
+              "type": "string"
+            },
+            "type": {
+              "const": "TextQuoteSelector",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "exact"
+          ],
+          "type": "object"
+        },
+        "unit": {
+          "enum": [
+            "body",
+            "block"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "representation",
+        "unit",
+        "textQuote",
+        "textPosition"
+      ],
+      "type": "object"
+    },
+    "source": {
+      "additionalProperties": false,
+      "properties": {
+        "blockSha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "documentPath": {
+          "maxLength": 512,
+          "type": "string"
+        },
+        "documentSha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "endLine": {
+          "exclusiveMinimum": 0,
+          "maximum": 10000000,
+          "type": "integer"
+        },
+        "startLine": {
+          "exclusiveMinimum": 0,
+          "maximum": 10000000,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "documentPath",
+        "documentSha256",
+        "startLine",
+        "endLine",
+        "blockSha256"
+      ],
+      "type": "object"
+    },
+    "target": {
+      "anyOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "htmlId": {
+              "maxLength": 300,
+              "minLength": 1,
+              "type": "string"
+            },
+            "identifier": {
+              "maxLength": 120,
+              "minLength": 1,
+              "pattern": "^[a-z0-9][a-z0-9._-]*$",
+              "type": "string"
+            },
+            "type": {
+              "const": "myst-xref",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "identifier",
+            "htmlId"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "text": {
+      "maxLength": 5000,
+      "minLength": 1,
+      "type": "string"
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "id",
+    "target",
+    "source",
+    "selector",
+    "declarationSha256"
+  ],
+  "title": "ORAtlas MyST claim record",
+  "type": "object"
+}

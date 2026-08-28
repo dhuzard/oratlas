@@ -37,6 +37,34 @@ export const mystXrefInventorySchema = z
   .passthrough();
 export type MystXrefInventory = z.infer<typeof mystXrefInventorySchema>;
 
+/**
+ * Whether an inventory value is a location *inside* the publication.
+ *
+ * Inventory URLs are site-root-relative paths (`/`, `/results`,
+ * `/content/results.json`). The inventory belongs to the authoring toolchain
+ * and is untrusted like everything else the publication serves, so a value
+ * that is not such a path is refused rather than resolved:
+ *
+ * - an absolute URL (`https://elsewhere.example/x`) wins over the base during
+ *   resolution, which would make ORAtlas fetch, and publish a link to, a host
+ *   the publication does not serve;
+ * - a protocol-relative URL (`//elsewhere.example/x`) does the same after the
+ *   leading slashes are stripped;
+ * - a `..` segment resolves back out of the publication's deployment path.
+ *
+ * None of these can escape ORAtlas — every retrieval is still re-admitted by
+ * the outbound URL policy — but all three would make ORAtlas attribute someone
+ * else's bytes to this publication, which is the thing that matters here.
+ */
+export function isSafeInventoryPath(value: unknown): value is string {
+  if (typeof value !== "string" || value.length === 0 || value.length > 2_000) return false;
+  // eslint-disable-next-line no-control-regex
+  if (/[\u0000-\u001f\u007f]/.test(value)) return false;
+  if (value.includes("\\") || value.includes(":")) return false;
+  if (value.startsWith("//")) return false;
+  return value.split("/").every((segment) => segment !== "." && segment !== "..");
+}
+
 /** The inventory entry a claim target joins to, or `undefined`. */
 export function findXrefReference(
   inventory: MystXrefInventory,

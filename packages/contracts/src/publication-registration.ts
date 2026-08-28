@@ -91,6 +91,8 @@ export const PUBLICATION_REGISTRATION_ERROR_CODES = [
   "limit-exceeded",
   /** The publication declares no evidence ORAtlas can key an identity from. */
   "publication-identity-insufficient",
+  /** The same observation is being captured concurrently; retry. */
+  "observation-already-in-flight",
 ] as const;
 export const publicationRegistrationErrorCodeSchema = z.enum(PUBLICATION_REGISTRATION_ERROR_CODES);
 export type PublicationRegistrationErrorCode = z.infer<

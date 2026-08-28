@@ -92,6 +92,41 @@ async function createOccurrence(
   });
 }
 
+async function createRegistration(overrides: Record<string, unknown> = {}) {
+  return prisma.publicationRegistration.create({
+    data: {
+      manifestUrl: `https://lab.example.org/${unique("review")}/oratlas.manifest.json`,
+      publicationType: "research-article",
+      ...overrides,
+    },
+  });
+}
+
+async function createCapture(registrationId: string, overrides: Record<string, unknown> = {}) {
+  return prisma.publicationRegistrationCapture.create({
+    data: {
+      registrationId,
+      captureKey: digest(String((counter += 1) % 10)),
+      requestedManifestUrl: "https://lab.example.org/review/oratlas.manifest.json",
+      resolvedManifestUrl: "https://lab.example.org/review/oratlas.manifest.json",
+      observedSiteRootUrl: "https://lab.example.org/review/",
+      manifestSha256: digest("a"),
+      manifestProvenanceJson: "{}",
+      declaredSchemaVersion: "0.2.0",
+      adapterType: "myst",
+      sourcesSha256: digest("1"),
+      structuralProvenance: "published-structure",
+      sourceVerificationJson: JSON.stringify({
+        outcome: "unavailable",
+        reason: "no-source-declared",
+      }),
+      warningsJson: "[]",
+      capturedAt: new Date("2026-08-28T00:00:00.000Z"),
+      ...overrides,
+    },
+  });
+}
+
 describe("publication boundary on SQLite", () => {
   beforeAll(async () => {
     execFileSync(
@@ -513,5 +548,67 @@ describe("publication boundary on SQLite", () => {
       });
       expect(bound.text).toBeNull();
     });
+  });
+
+  it("refuses a capture whose digests are not digests or whose adapter is unknown", async () => {
+    const registration = await createRegistration();
+    await expect(createCapture(registration.id, { captureKey: "not-a-digest" })).rejects.toThrow();
+    await expect(createCapture(registration.id, { manifestSha256: "nope" })).rejects.toThrow();
+    await expect(createCapture(registration.id, { adapterType: "quarto" })).rejects.toThrow();
+    // Structural provenance is structural: a scientific-sounding level is not a level.
+    await expect(
+      createCapture(registration.id, { structuralProvenance: "peer-reviewed" }),
+    ).rejects.toThrow();
+    // source-byte is unreachable without an obtainable source, here as everywhere.
+    await expect(
+      createCapture(registration.id, { structuralProvenance: "source-byte" }),
+    ).rejects.toThrow();
+  });
+
+  it("binds a capture to its version write-once and refuses every other mutation", async () => {
+    const registration = await createRegistration();
+    const capture = await createCapture(registration.id);
+    const publication = await createPublication();
+    const version = await createVersion(publication.id);
+
+    // The single permitted mutation: the capture is retained before the
+    // version it materializes into exists, so the binding is made afterwards.
+    await prisma.publicationRegistrationCapture.update({
+      where: { id: capture.id },
+      data: { publicationVersionId: version.id },
+    });
+
+    const second = await createVersion(publication.id, { sourcesSha256: digest("2") });
+    await expect(
+      prisma.publicationRegistrationCapture.update({
+        where: { id: capture.id },
+        data: { publicationVersionId: second.id },
+      }),
+    ).rejects.toThrow();
+    await expect(
+      prisma.publicationRegistrationCapture.update({
+        where: { id: capture.id },
+        data: { manifestSha256: digest("9") },
+      }),
+    ).rejects.toThrow();
+    await expect(
+      prisma.publicationRegistrationCapture.delete({ where: { id: capture.id } }),
+    ).rejects.toThrow();
+  });
+
+  it("keeps the URL a registration observes fixed while its type stays correctable", async () => {
+    const registration = await createRegistration();
+    await expect(
+      prisma.publicationRegistration.update({
+        where: { id: registration.id },
+        data: { manifestUrl: "https://elsewhere.example/oratlas.manifest.json" },
+      }),
+    ).rejects.toThrow();
+    await expect(
+      prisma.publicationRegistration.update({
+        where: { id: registration.id },
+        data: { publicationType: "review-article" },
+      }),
+    ).resolves.toMatchObject({ publicationType: "review-article" });
   });
 });

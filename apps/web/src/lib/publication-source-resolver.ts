@@ -1,5 +1,4 @@
 import "server-only";
-import { createHash } from "node:crypto";
 import { type PublicationSourceDescriptor } from "@oratlas/contracts";
 import { createFetchTransport, parseGithubRepoUrl, type GithubTransport } from "@oratlas/github";
 import { type PublicationSourceDocumentResolver } from "@oratlas/publications";
@@ -98,9 +97,4 @@ export function createGithubSourceDocumentResolver(
       return { ok: true, text } as const;
     },
   };
-}
-
-/** Exposed for tests: the digest a source document is checked against. */
-export function sourceDocumentSha256(text: string): string {
-  return createHash("sha256").update(text, "utf8").digest("hex");
 }

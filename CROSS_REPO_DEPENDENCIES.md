@@ -91,6 +91,50 @@ only in local capture scripts (ORA-K02).
   honest report — it is not "fixed up".
 - **Backlog links:** ORA-A03, ORA-K02, ORA-A02.
 
+## 5. dhuzard/oratlas-myst — portable publication interoperability protocol
+
+- **Repository:** `https://github.com/dhuzard/oratlas-myst`.
+- **Role:** Owns the publication-side protocol an independently hosted publication exposes:
+  `oratlas.manifest.json`, `oratlas/claims.jsonl`, and the rule for joining a claim to the
+  authoring toolchain's own cross-reference inventory. ORAtlas is a **consumer** of that
+  protocol and owns none of it.
+- **What ORAtlas consumes:** the frozen `0.2.0` schema version — the manifest and claim-record
+  shapes, the safe-path rule, the two verification levels, the declaration-authority rule, and
+  the normative site-root-relative URL resolution rule. Conventions only.
+- **Runtime dependency:** none, deliberately. Depending on the MyST adapter would couple every
+  independently hosted publication to ORAtlas's release cadence, pull a MyST toolchain into
+  the server, and put a producer's code on the path that reads untrusted bytes. The protocol
+  is re-expressed as Zod schemas ORAtlas owns in
+  `packages/publications/src/adapters/myst.ts`.
+- **Current pin:**
+
+  | Field                   | Value                                                              |
+  | ----------------------- | ------------------------------------------------------------------ |
+  | Schema version          | `0.2.0` (frozen candidate integration contract)                    |
+  | Commit SHA              | `51336a5446b449d4d661a4f46d8f8913a0bac2cb`                         |
+  | Tree hash               | `795e1b0f94ffb85650b111bba8e5fc4975e1e242`                         |
+  | `SPEC.md` blob          | `64220a7e5a5c196f228773951debc8f94fe7addf`                         |
+  | Manifest schema blob    | `fc39a14af1610b2a137e9f8900776df7ccb42bc1`                         |
+  | Claim schema blob       | `89264db794b4e5acae983eea0205bdaefa34ab4e`                         |
+  | Manifest schema SHA-256 | `b2cd91147b6631bc8883089600de3829c7faef24b00e30cba77ce0a39e405f2a` |
+  | Claim schema SHA-256    | `ff7ddd2d0001c51c3b93b2f2c55868621bd7580470b3cc67f2ee7ab864a13a51` |
+
+- **Drift detection:** the two JSON Schemas are captured byte-for-byte under
+  `packages/publications/src/protocol/pinned/` and cross-checked offline by
+  `packages/publications/src/protocol/protocol-drift.test.ts`: digests are asserted, and a
+  corpus of valid and hostile documents must be accepted or rejected identically by the pinned
+  upstream schema and by ORAtlas's own reader. Where ORAtlas is deliberately stricter than the
+  generated schema — the safe-path rule, the https-only canonical URL, `endLine >= startLine`,
+  all normative prose a generated JSON Schema cannot express — that asymmetry is asserted
+  explicitly so it cannot quietly disappear. An unimplemented `schemaVersion` or
+  `adapter.type` is refused outright at registration, before any structural parsing.
+- **Drift risk:** a new `schemaVersion` upstream is refused rather than partially read, so
+  drift is loud rather than silent; the cost is that publications on a newer contract cannot
+  register until ORAtlas implements it. Re-pinning is a deliberate, reviewed re-capture:
+  replace both schema files, update the digests in the drift test and the table above, and
+  expect the cross-check to fail loudly if the contract moved.
+- **Backlog links:** external publication registration (`docs/external-publications.md`).
+
 ## Consumption principles (all upstreams)
 
 1. Conventions in, never code in: ORAtlas reads file layouts and record formats; it does not

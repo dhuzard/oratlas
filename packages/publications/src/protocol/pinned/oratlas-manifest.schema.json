@@ -1,0 +1,244 @@
+{
+  "$id": "https://github.com/dhuzard/oratlas-myst/schemas/oratlas-manifest.schema.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "additionalProperties": false,
+  "description": "oratlas.manifest.json — the portable ORAtlas interoperability and discovery document for one built MyST publication.",
+  "properties": {
+    "adapter": {
+      "anyOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "myst",
+              "type": "string"
+            },
+            "xref": {
+              "maxLength": 512,
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "xref"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "artifacts": {
+      "additionalProperties": false,
+      "properties": {
+        "claims": {
+          "additionalProperties": false,
+          "properties": {
+            "declarations": {
+              "enum": [
+                "publication-source",
+                "review-manifest"
+              ],
+              "type": "string"
+            },
+            "format": {
+              "const": "jsonl",
+              "type": "string"
+            },
+            "path": {
+              "maxLength": 512,
+              "type": "string"
+            },
+            "records": {
+              "maximum": 1000000,
+              "minimum": 0,
+              "type": "integer"
+            },
+            "sha256": {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            }
+          },
+          "required": [
+            "path",
+            "format",
+            "records",
+            "sha256",
+            "declarations"
+          ],
+          "type": "object"
+        }
+      },
+      "required": [
+        "claims"
+      ],
+      "type": "object"
+    },
+    "generator": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "maxLength": 120,
+          "minLength": 1,
+          "type": "string"
+        },
+        "version": {
+          "maxLength": 60,
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "version"
+      ],
+      "type": "object"
+    },
+    "oratlas": {
+      "additionalProperties": false,
+      "properties": {
+        "reviewManifest": {
+          "maxLength": 512,
+          "type": "string"
+        }
+      },
+      "required": [
+        "reviewManifest"
+      ],
+      "type": "object"
+    },
+    "publication": {
+      "additionalProperties": false,
+      "properties": {
+        "canonicalUrl": {
+          "maxLength": 2000,
+          "type": "string"
+        },
+        "id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "type": "string"
+        },
+        "source": {
+          "anyOf": [
+            {
+              "additionalProperties": false,
+              "properties": {
+                "commit": {
+                  "pattern": "^[0-9a-f]{40}$|^[0-9a-f]{64}$",
+                  "type": "string"
+                },
+                "ref": {
+                  "maxLength": 200,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "repository": {
+                  "maxLength": 2000,
+                  "type": "string"
+                },
+                "type": {
+                  "const": "git",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "type",
+                "repository"
+              ],
+              "type": "object"
+            },
+            {
+              "additionalProperties": false,
+              "properties": {
+                "conceptDoi": {
+                  "pattern": "^10\\.\\d{4,9}\\/\\S+$",
+                  "type": "string"
+                },
+                "type": {
+                  "const": "doi",
+                  "type": "string"
+                },
+                "versionDoi": {
+                  "pattern": "^10\\.\\d{4,9}\\/\\S+$",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "type",
+                "versionDoi"
+              ],
+              "type": "object"
+            },
+            {
+              "additionalProperties": false,
+              "properties": {
+                "format": {
+                  "maxLength": 40,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "sha256": {
+                  "pattern": "^[0-9a-f]{64}$",
+                  "type": "string"
+                },
+                "type": {
+                  "const": "archive",
+                  "type": "string"
+                },
+                "url": {
+                  "maxLength": 2000,
+                  "type": "string"
+                }
+              },
+              "required": [
+                "type",
+                "url",
+                "sha256"
+              ],
+              "type": "object"
+            }
+          ]
+        },
+        "title": {
+          "maxLength": 500,
+          "minLength": 1,
+          "type": "string"
+        },
+        "version": {
+          "additionalProperties": false,
+          "properties": {
+            "label": {
+              "maxLength": 120,
+              "minLength": 1,
+              "type": "string"
+            },
+            "sourcesSha256": {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            }
+          },
+          "required": [
+            "sourcesSha256"
+          ],
+          "type": "object"
+        }
+      },
+      "required": [
+        "version"
+      ],
+      "type": "object"
+    },
+    "schemaVersion": {
+      "const": "0.2.0",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "generator",
+    "publication",
+    "adapter",
+    "artifacts"
+  ],
+  "title": "ORAtlas MyST interoperability manifest",
+  "type": "object"
+}

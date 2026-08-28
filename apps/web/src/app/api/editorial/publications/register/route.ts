@@ -1,6 +1,6 @@
 import { publicationRegistrationRequestSchema } from "@oratlas/contracts";
 import { handleLifecyclePost } from "@/lib/editorial-api";
-import { requireEditor } from "@/lib/auth";
+import { AuthError, isEditor } from "@/lib/auth";
 import { registerExternalPublication } from "@/lib/publication-registration";
 
 export const dynamic = "force-dynamic";
@@ -23,7 +23,7 @@ export async function POST(request: Request) {
     request,
     publicationRegistrationRequestSchema,
     async (actor, input) => {
-      await requireEditor();
+      if (!isEditor(actor)) throw new AuthError("Editor role required.", 403);
       return registerExternalPublication({
         manifestUrl: input.manifestUrl,
         ...(input.publicationType === undefined ? {} : { publicationType: input.publicationType }),

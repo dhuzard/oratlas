@@ -362,6 +362,39 @@ describe("published-structure verification", () => {
     expect((await expectRefusal(register())).code).toBe("page-data-claim-node-missing");
   });
 
+  it.each([
+    ["https://elsewhere.example/results", "an absolute URL"],
+    ["//elsewhere.example/results", "a protocol-relative URL"],
+    ["/../../elsewhere", "a traversing path"],
+  ])("refuses an inventory location outside the publication (%s)", async (url) => {
+    publish({
+      "/adolescent-stress/myst.xref.json": JSON.stringify({
+        references: fixture.claimRecords.map((record) => ({
+          identifier: (record.target as { identifier: string }).identifier,
+          url,
+          data: "/content/results.json",
+        })),
+      }),
+    });
+    const refusal = await expectRefusal(register());
+    expect(refusal.code).toBe("cross-reference-inventory-invalid");
+    // Nothing off-publication was ever requested.
+    expect(site.requests.every((path) => !path.includes("elsewhere"))).toBe(true);
+  });
+
+  it("refuses an inventory page location outside the publication", async () => {
+    publish({
+      "/adolescent-stress/myst.xref.json": JSON.stringify({
+        references: fixture.claimRecords.map((record) => ({
+          identifier: (record.target as { identifier: string }).identifier,
+          url: "/results",
+          data: "https://elsewhere.example/content/results.json",
+        })),
+      }),
+    });
+    expect((await expectRefusal(register())).code).toBe("cross-reference-inventory-invalid");
+  });
+
   it("refuses an unreadable inventory", async () => {
     publish({ "/adolescent-stress/myst.xref.json": JSON.stringify({ references: "many" }) });
     expect((await expectRefusal(register())).code).toBe("cross-reference-inventory-invalid");

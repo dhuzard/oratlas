@@ -3162,6 +3162,217 @@ components:
           items: { $ref: "#/components/schemas/PublicSynthesisCitation" }
         version: { $ref: "#/components/schemas/PublicSynthesisVersion" }
         freshness: { $ref: "#/components/schemas/SynthesisFreshness" }
+    PublicationRegistrationRequest:
+      type: object
+      additionalProperties: false
+      description: >
+        Register an externally hosted ORAtlas-compatible publication by the URL of its
+        oratlas.manifest.json. Registering a URL is not a claim to own the publication it
+        names: ownership proof is an unsolved governance problem and nothing here encodes
+        one. See docs/external-publications.md.
+      required: [manifestUrl]
+      properties:
+        manifestUrl:
+          type: string
+          format: uri
+          maxLength: 2000
+          description: >
+            Absolute https URL of the publication's oratlas.manifest.json. Untrusted: it is
+            admitted by the outbound URL policy (https only, no loopback, private,
+            link-local, metadata or internal-DNS destination) before any request is made.
+        publicationType:
+          type: string
+          enum: [review-article, research-article, methods-article, preprint, living-review, other]
+          description: >
+            What kind of scholarly object this is. The producer contract declares none, so
+            ORAtlas records "other" unless an operator states it; an editor may correct it.
+    PublicationHttpProvenance:
+      type: object
+      additionalProperties: false
+      required: [requestedUrl, finalUrl, status, mediaType, byteLength, redirects, retrievedAt]
+      properties:
+        requestedUrl: { type: string, maxLength: 2000 }
+        finalUrl: { type: string, maxLength: 2000 }
+        status: { type: integer, minimum: 100, maximum: 599 }
+        mediaType: { type: string, maxLength: 120 }
+        byteLength: { type: integer, minimum: 0 }
+        redirects:
+          type: array
+          maxItems: 20
+          items:
+            type: object
+            additionalProperties: false
+            required: [from, to, status]
+            properties:
+              from: { type: string, maxLength: 2000 }
+              to: { type: string, maxLength: 2000 }
+              status: { type: integer, minimum: 300, maximum: 399 }
+        retrievedAt: { type: string, format: date-time }
+    PublicationCaptureArtifact:
+      type: object
+      additionalProperties: false
+      required: [kind, observedUrl, mediaType, contentSha256, byteLength]
+      properties:
+        kind:
+          type: string
+          enum: [publication-manifest, cross-reference-inventory, claim-stream, review-manifest]
+        declaredPath: { type: string, maxLength: 512 }
+        observedUrl: { type: string, maxLength: 2000 }
+        mediaType: { type: string, maxLength: 120 }
+        contentSha256: { type: string, pattern: "^[0-9a-f]{64}$" }
+        byteLength: { type: integer, minimum: 0 }
+        declaredSha256: { type: string, pattern: "^[0-9a-f]{64}$" }
+    PublicationSourceVerification:
+      description: >
+        Whether source-byte verification was reached and, when it was not, exactly why. A
+        source fetch failure is always recorded: it never silently looks like a publication
+        that simply declared no source.
+      oneOf:
+        - type: object
+          additionalProperties: false
+          required: [outcome, sourceType, resolver, documentsChecked]
+          properties:
+            outcome: { const: reached }
+            sourceType: { type: string, enum: [git, doi, archive] }
+            resolver: { type: string, maxLength: 120 }
+            documentsChecked: { type: integer, minimum: 0 }
+        - type: object
+          additionalProperties: false
+          required: [outcome, reason]
+          properties:
+            outcome: { const: unavailable }
+            reason:
+              type: string
+              enum:
+                [
+                  no-source-declared,
+                  source-type-not-supported,
+                  source-commit-not-declared,
+                  source-repository-not-supported,
+                  source-document-unavailable,
+                  source-declaration-not-recomputable,
+                  no-source-resolver-configured,
+                ]
+            sourceType: { type: string, enum: [git, doi, archive] }
+    PublicationRegistrationResult:
+      type: object
+      additionalProperties: false
+      description: >
+        What one registration observed. structuralProvenance is structural only: it says what
+        ORAtlas checked about the published bytes and, where obtainable, the source bytes. It
+        is never a verification, confirmation or peer review, and the result carries no
+        canonical graph identity.
+      required:
+        [
+          schemaVersion,
+          disposition,
+          registration,
+          capture,
+          publication,
+          publicationVersion,
+          manifestSchemaVersion,
+          adapterType,
+          claimOccurrenceCount,
+          structuralProvenance,
+          sourceVerification,
+          warnings,
+          links,
+        ]
+      properties:
+        schemaVersion: { const: "1.0.0" }
+        disposition:
+          type: string
+          enum: [captured, replayed, new-version-captured]
+          description: >
+            Deterministic idempotency. An identical observation replays its existing capture;
+            changed bytes always create another capture, and a capture is never overwritten.
+        registration:
+          type: object
+          additionalProperties: false
+          required: [id, manifestUrl]
+          properties:
+            id: { type: string }
+            manifestUrl: { type: string, maxLength: 2000 }
+        capture:
+          type: object
+          additionalProperties: false
+          required:
+            [
+              id,
+              captureKey,
+              requestedManifestUrl,
+              resolvedManifestUrl,
+              manifestSha256,
+              capturedAt,
+              manifestProvenance,
+              artifacts,
+            ]
+          properties:
+            id: { type: string }
+            captureKey: { type: string, pattern: "^[0-9a-f]{64}$" }
+            requestedManifestUrl: { type: string, maxLength: 2000 }
+            resolvedManifestUrl: { type: string, maxLength: 2000 }
+            manifestSha256: { type: string, pattern: "^[0-9a-f]{64}$" }
+            capturedAt: { type: string, format: date-time }
+            manifestProvenance: { $ref: "#/components/schemas/PublicationHttpProvenance" }
+            artifacts:
+              type: array
+              minItems: 1
+              maxItems: 16
+              items: { $ref: "#/components/schemas/PublicationCaptureArtifact" }
+        publication:
+          type: object
+          additionalProperties: false
+          required: [id, stableKey, publicationType]
+          properties:
+            id: { type: string }
+            stableKey: { type: string }
+            publicationType: { type: string }
+            sourceLocalPublicationId: { type: string, maxLength: 200 }
+        publicationVersion:
+          type: object
+          additionalProperties: false
+          required: [id, stableKey, sourcesSha256]
+          properties:
+            id: { type: string }
+            stableKey: { type: string }
+            sourcesSha256: { type: string, pattern: "^[0-9a-f]{64}$" }
+            versionLabel: { type: string, maxLength: 120 }
+            title: { type: string, maxLength: 500 }
+            canonicalUrl: { type: string, format: uri, maxLength: 2000 }
+        manifestSchemaVersion: { type: string, enum: ["0.2.0"] }
+        adapterType: { type: string, enum: [myst] }
+        claimOccurrenceCount: { type: integer, minimum: 0 }
+        structuralProvenance: { type: string, enum: [published-structure, source-byte] }
+        sourceVerification: { $ref: "#/components/schemas/PublicationSourceVerification" }
+        warnings:
+          type: array
+          maxItems: 200
+          items:
+            type: object
+            additionalProperties: false
+            required: [code, message]
+            properties:
+              code:
+                type: string
+                enum:
+                  [
+                    canonical-url-differs-from-observed-location,
+                    canonical-url-not-declared,
+                    cross-reference-entry-declares-no-page-data,
+                    review-manifest-captured-not-interpreted,
+                    source-byte-verification-not-reached,
+                    publication-declares-no-claims,
+                  ]
+              message: { type: string, maxLength: 500 }
+        links:
+          type: object
+          additionalProperties: false
+          required: [publication, publicationVersion, capture]
+          properties:
+            publication: { type: string, maxLength: 2000 }
+            publicationVersion: { type: string, maxLength: 2000 }
+            capture: { type: string, maxLength: 2000 }
 paths:
   /api/health:
     get:
@@ -4580,3 +4791,85 @@ paths:
         "403": { $ref: "#/components/responses/Error" }
         "404": { $ref: "#/components/responses/Error" }
         "409": { $ref: "#/components/responses/Error" }
+  /api/editorial/publications/register:
+    post:
+      summary: Register an externally hosted publication by its manifest URL (editor only)
+      description: >
+        Retrieves the manifest through ORAtlas's hardened outbound boundary — https only in
+        production, no loopback, private, link-local, metadata or internal-DNS destination,
+        bounded redirects with every hop re-admitted, byte caps, connect/read/total timeouts
+        — retains exactly the bytes it saw with recomputed digests, validates them fail-closed
+        against publication protocol 0.2.0, and materializes generic publication, version and
+        source-occurrence records. No external code, MyST plugin, HTML or JavaScript is
+        executed, no repository is cloned, and no canonical claim is bound. Registering a URL
+        is not a claim to own it.
+
+
+        Every refusal carries a stable machine reason as the first entry of error.details:
+        400 for manifest-url-rejected, and 502 for a publication that was retrieved but
+        refused (manifest-schema-unsupported, manifest-invalid, artifact-path-unsafe,
+        artifact-digest-mismatch, artifact-record-count-mismatch, claim-record-invalid,
+        duplicate-source-local-claim-id, cross-reference-target-missing,
+        page-data-claim-node-missing, declaration-authority-conflict,
+        source-verification-mismatch, limit-exceeded), 409 for
+        observation-already-in-flight when two registrations of one URL race, and 502 for a
+        publication that could not be retrieved (manifest-unreachable, artifact-unreachable).
+        No network or internal detail is returned.
+      security: [{ session: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PublicationRegistrationRequest" }
+      responses:
+        "200":
+          description: The observation, the level of structural provenance reached, and links
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PublicationRegistrationResult" }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "413": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/Error" }
+        "502": { $ref: "#/components/responses/Error" }
+  /api/publications/{id}:
+    get:
+      summary: One registered publication and the exact versions ORAtlas observed
+      description: >
+        Structural provenance only. Nothing here is an assessment, a TRUST value, an editorial
+        status, or a canonical graph identity.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: The publication, its identity basis and its observed versions }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/publications/{id}/versions/{versionId}:
+    get:
+      summary: One exact observed publication version, its captures and its source occurrences
+      description: >
+        Every occurrence reports canonicalKnowledgeNodeId as null. A canonical binding is an
+        explicit, reviewed decision and is never inferred from an occurrence's text, local id,
+        digest or position.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+        - { name: versionId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: The observed version, its captures and its source occurrences }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/editorial/publications/captures/{id}:
+    get:
+      summary: Audit view of one registration observation (editor only)
+      description: >
+        What was asked for, where it resolved to, the digests ORAtlas recomputed, the redirect
+        chain it travelled, and why source-byte verification was or was not reached. The
+        retained bytes are deliberately not re-served through ORAtlas's API.
+      security: [{ session: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: The capture envelope, its artifacts and its warnings }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }

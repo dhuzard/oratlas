@@ -12,6 +12,9 @@ built from GitHub repositories. See `PLAN.md` and `docs/architecture.md` for the
 - `packages/github`, `packages/zenodo`, `packages/extractor`, `packages/trust`,
   `packages/knowledge`, `packages/exports`, `packages/publications` — framework-free domain logic
   (no Prisma, no React).
+- `packages/safe-fetch` — the single hardened outbound HTTP boundary (URL/address policy,
+  redirect, size and timeout limits). Every external retrieval goes through it; never add a
+  second URL-safety implementation.
 - `packages/ui`, `packages/config` — UI primitives / env config.
 
 ## Conventions
@@ -39,6 +42,9 @@ built from GitHub repositories. See `PLAN.md` and `docs/architecture.md` for the
   `docs/external-publications.md`.
 - `published-structure` and `source-byte` are structural provenance only — never described as
   verified, trustworthy, confirmed, or peer reviewed.
+- A publication capture is append-only: it records what ORAtlas saw, and re-observing means a
+  new capture, never an edit to an existing one.
+- Registering a publication URL is not proof of owning it; no field may imply otherwise.
 
 ## Commands
 

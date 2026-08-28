@@ -9,3 +9,4 @@ pnpm-lock.yaml
 packages/db/generated
 CHANGELOG.md
 apps/web/src/generated/openapi-artifacts.ts
+packages/publications/src/protocol/pinned

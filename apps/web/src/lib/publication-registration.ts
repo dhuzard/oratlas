@@ -22,7 +22,7 @@ import {
 } from "@oratlas/safe-fetch";
 import { getServerEnv } from "@oratlas/config";
 import { prisma } from "./db";
-import { withSqliteRetry } from "./db-retry";
+import { prismaCode, withSqliteRetry } from "./db-retry";
 import { appBaseUrl } from "./base-url";
 import { createGithubSourceDocumentResolver } from "./publication-source-resolver";
 
@@ -93,6 +93,7 @@ const API_ERROR_CODE_BY_REASON: Record<PublicationRegistrationErrorCode, ApiErro
   "source-verification-mismatch": "upstream-error",
   "limit-exceeded": "upstream-error",
   "publication-identity-insufficient": "upstream-error",
+  "observation-already-in-flight": "conflict",
 };
 
 /** Total wall-clock budget for one registration, across every retrieval. */
@@ -180,12 +181,25 @@ export async function registerExternalPublication(
     throw error;
   }
 
-  return persistObservation({
-    manifestUrl: admitted.url.href,
-    publicationType: input.publicationType ?? "other",
-    actorId: input.actorId,
-    observation,
-  });
+  try {
+    return await persistObservation({
+      manifestUrl: admitted.url.href,
+      publicationType: input.publicationType ?? "other",
+      actorId: input.actorId,
+      observation,
+    });
+  } catch (error) {
+    // Two registrations of one URL can race on the capture key. That is a
+    // conflict to retry, not an ORAtlas fault, and it must not surface as one.
+    if (prismaCode(error) === "P2002") {
+      throw new PublicationRegistrationServiceError(
+        "conflict",
+        "observation-already-in-flight",
+        "That observation is already being captured.",
+      );
+    }
+    throw error;
+  }
 }
 
 interface PersistInput {

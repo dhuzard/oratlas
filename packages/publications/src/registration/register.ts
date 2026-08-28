@@ -1,5 +1,4 @@
 import {
-  MYST_PUBLICATION_PROTOCOL_VERSION,
   SUPPORTED_PUBLICATION_PROTOCOL_VERSIONS,
   isSafeRepoRelativePath,
   type PublicationRegistrationWarning,
@@ -27,6 +26,7 @@ import {
 } from "../protocol/resolve-url.js";
 import {
   findXrefReference,
+  isSafeInventoryPath,
   mystXrefInventorySchema,
   pageDataContainsIdentifier,
   type MystXrefInventory,
@@ -723,6 +723,16 @@ async function verifyPublishedStructure(
         `Target identifier: ${claim.target.identifier}.`,
       );
     }
+    // The inventory is untrusted. A location that is not inside the publication
+    // is refused rather than resolved: it would make ORAtlas fetch, and publish
+    // a link to, bytes the publication does not serve.
+    if (!isSafeInventoryPath(reference.url)) {
+      throw new PublicationRegistrationError(
+        "cross-reference-inventory-invalid",
+        "The publication's inventory names a location outside the publication.",
+        `Target identifier: ${claim.target.identifier}.`,
+      );
+    }
 
     // Site-root-relative, so the publication's root is the base. Resolving
     // against a canonical URL with a path would silently drop that path.
@@ -732,6 +742,13 @@ async function verifyPublishedStructure(
       claim.target.htmlId,
     );
 
+    if (reference.data !== undefined && !isSafeInventoryPath(reference.data)) {
+      throw new PublicationRegistrationError(
+        "cross-reference-inventory-invalid",
+        "The publication's inventory names a page location outside the publication.",
+        `Target identifier: ${claim.target.identifier}.`,
+      );
+    }
     const dataPath = typeof reference.data === "string" ? reference.data : undefined;
     if (dataPath === undefined) {
       warn(
@@ -779,5 +796,3 @@ async function verifyPublishedStructure(
 
   return locations;
 }
-
-export { MYST_PUBLICATION_PROTOCOL_VERSION };
