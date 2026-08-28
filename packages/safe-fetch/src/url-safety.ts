@@ -66,12 +66,27 @@ export type UrlSafetyResult =
   { ok: true; url: URL } | { ok: false; code: SafeFetchErrorCode; reason: string };
 
 /**
+ * Names that resolve to a cloud instance-metadata service. Refused under every
+ * policy, including a fully relaxed development one: no legitimate ORAtlas
+ * retrieval ever names one, and the credentials they serve are the prize.
+ */
+const METADATA_HOST_NAMES = new Set(["metadata", "metadata.google.internal", "instance-data"]);
+
+/** Names that resolve to this machine. Gated on `allowLoopback` alone. */
+const LOOPBACK_HOST_NAMES = new Set(["localhost", "ip6-localhost", "ip6-loopback"]);
+const LOOPBACK_HOST_SUFFIXES = [".localhost"];
+
+/**
  * Host suffixes that name something inside a private deployment rather than a
  * public destination. Split-horizon DNS makes these resolve to real internal
  * services, so they are refused by name before any resolution happens.
+ *
+ * These are gated on `allowPrivateNetworks`, deliberately **not** on
+ * `allowLoopback`: a local test fixture needs loopback, and letting that same
+ * opt-in also admit `vault.internal` would make the fixture policy quietly
+ * wider than it looks.
  */
 const INTERNAL_HOST_SUFFIXES = [
-  ".localhost",
   ".local",
   ".internal",
   ".intranet",
@@ -84,15 +99,6 @@ const INTERNAL_HOST_SUFFIXES = [
   ".invalid",
   ".onion",
 ];
-
-const INTERNAL_HOST_NAMES = new Set([
-  "localhost",
-  "metadata",
-  "metadata.google.internal",
-  "instance-data",
-  "ip6-localhost",
-  "ip6-loopback",
-]);
 
 /**
  * Admit a URL as an outbound destination, or reject it with a stable code.
@@ -163,24 +169,30 @@ export function assessExternalUrl(input: unknown, policy: UrlSafetyPolicy = {}):
     return { ok: true, url };
   }
 
-  const internalByName =
-    INTERNAL_HOST_NAMES.has(hostname) ||
-    INTERNAL_HOST_SUFFIXES.some((suffix) => hostname.endsWith(suffix));
-  if (internalByName && !(resolved.allowLoopback || resolved.allowPrivateNetworks)) {
-    return {
-      ok: false,
-      code: "url-host-not-allowed",
-      reason: "The URL names an internal or non-public host.",
-    };
+  const refuseHost = (reason: string): UrlSafetyResult => ({
+    ok: false,
+    code: "url-host-not-allowed",
+    reason,
+  });
+
+  if (METADATA_HOST_NAMES.has(hostname)) {
+    return refuseHost("The URL names a cloud instance-metadata service.");
   }
+
+  const loopbackByName =
+    LOOPBACK_HOST_NAMES.has(hostname) ||
+    LOOPBACK_HOST_SUFFIXES.some((suffix) => hostname.endsWith(suffix));
+  if (loopbackByName && !resolved.allowLoopback) {
+    return refuseHost("The URL names an internal or non-public host.");
+  }
+
   // A single-label host ("intranet") can only be resolved through a private
   // search domain, so it is never a public internet destination.
-  if (!hostname.includes(".") && !(resolved.allowLoopback || resolved.allowPrivateNetworks)) {
-    return {
-      ok: false,
-      code: "url-host-not-allowed",
-      reason: "The URL names an internal or non-public host.",
-    };
+  const internalByName =
+    !loopbackByName &&
+    (INTERNAL_HOST_SUFFIXES.some((suffix) => hostname.endsWith(suffix)) || !hostname.includes("."));
+  if (internalByName && !resolved.allowPrivateNetworks) {
+    return refuseHost("The URL names an internal or non-public host.");
   }
 
   return { ok: true, url };

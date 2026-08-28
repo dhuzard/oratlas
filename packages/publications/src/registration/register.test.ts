@@ -481,6 +481,33 @@ describe("network hostility", () => {
     expect(refusal.code).toBe("manifest-unreachable");
   });
 
+  it("refuses a manifest that redirects to an internal DNS destination", async () => {
+    // The fixture policy permits loopback so the first hop is reachable; it
+    // deliberately does not permit private networks, so an internal name is
+    // still refused at the redirect.
+    site.routes.set("/to-internal.json", {
+      redirectTo: "http://vault.internal/oratlas.manifest.json",
+    });
+    const refusal = await expectRefusal(
+      registerPublicationFromManifest({
+        manifestUrl: site.url("/to-internal.json"),
+        publicationType: "research-article",
+        fetcher: fetcher(),
+      }),
+    );
+    expect(refusal.code).toBe("manifest-unreachable");
+    expect(site.requests).toContain("/to-internal.json");
+  });
+
+  it("caps the number of artifacts one registration will retrieve", async () => {
+    // Manifest, claim stream, inventory and page data are four retrievals; a
+    // publication cannot make ORAtlas perform more than the cap, whatever it
+    // declares.
+    const refusal = await expectRefusal(register({ limits: { maxArtifactFetches: 2 } }));
+    expect(refusal.code).toBe("limit-exceeded");
+    expect(site.requests).toHaveLength(2);
+  });
+
   it("refuses an artifact served with a hostile content type", async () => {
     site.routes.set("/adolescent-stress/oratlas/claims.jsonl", {
       body: "<html><script>fetch('/admin')</script></html>",
