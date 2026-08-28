@@ -1,3 +1,5 @@
+import { assessExternalUrl } from "@oratlas/safe-fetch";
+
 /**
  * Provider-neutral, mockable DOI/Zenodo resolver. Real implementation performs
  * server-side HEAD/GET against doi.org and the public Zenodo API with explicit
@@ -45,66 +47,18 @@ const ZENODO_API_BASE = "https://zenodo.org/api";
 const DEFAULT_MAX_RESPONSE_BYTES = 2 * 1024 * 1024;
 const MAX_RESOLUTION_URL_LENGTH = 2048;
 
-function isUnsafeIpv4(hostname: string): boolean {
-  const parts = hostname.split(".").map(Number);
-  if (
-    parts.length !== 4 ||
-    parts.some((part) => !Number.isInteger(part) || part < 0 || part > 255)
-  ) {
-    return false;
-  }
-  const [a, b] = parts as [number, number, number, number];
-  return (
-    a === 0 ||
-    a === 10 ||
-    a === 127 ||
-    (a === 100 && b >= 64 && b <= 127) ||
-    (a === 169 && b === 254) ||
-    (a === 172 && b >= 16 && b <= 31) ||
-    (a === 192 && b === 168) ||
-    (a === 198 && (b === 18 || b === 19)) ||
-    a >= 224
-  );
-}
-
-function isUnsafeIpv6(hostname: string): boolean {
-  const host = hostname.replace(/^\[|\]$/g, "").toLowerCase();
-  return (
-    host === "::" ||
-    host === "::1" ||
-    host.startsWith("fc") ||
-    host.startsWith("fd") ||
-    /^fe[89ab]/.test(host) ||
-    /^fe[c-f]/.test(host) ||
-    host.startsWith("ff") ||
-    host.startsWith("::ffff:")
-  );
-}
-
-/** Retain only bounded, public HTTPS redirect targets for reports and callers. */
+/**
+ * Retain only bounded, public HTTPS redirect targets for reports and callers.
+ *
+ * Destination safety is delegated to `@oratlas/safe-fetch`, which is the one
+ * place ORAtlas decides what a public internet destination is. There is
+ * deliberately no second address classifier here: two rules drift, and the
+ * weaker one becomes the way in.
+ */
 export function safeDoiResolutionUrl(value: string | null | undefined): string | undefined {
-  if (!value || value.length > MAX_RESOLUTION_URL_LENGTH) return undefined;
-  let url: URL;
-  try {
-    url = new URL(value);
-  } catch {
-    return undefined;
-  }
-  const hostname = url.hostname.toLowerCase().replace(/\.$/, "");
-  if (
-    url.protocol !== "https:" ||
-    url.username !== "" ||
-    url.password !== "" ||
-    (url.port !== "" && url.port !== "443") ||
-    hostname === "localhost" ||
-    hostname.endsWith(".localhost") ||
-    hostname.endsWith(".local") ||
-    isUnsafeIpv4(hostname) ||
-    (hostname.includes(":") && isUnsafeIpv6(hostname))
-  ) {
-    return undefined;
-  }
-  return url.href;
+  if (!value) return undefined;
+  const assessed = assessExternalUrl(value, { maxUrlLength: MAX_RESOLUTION_URL_LENGTH });
+  return assessed.ok ? assessed.url.href : undefined;
 }
 
 function validateZenodoApiBase(value: string): string {

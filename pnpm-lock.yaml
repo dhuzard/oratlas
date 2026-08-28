@@ -354,6 +354,18 @@ importers:
         specifier: ^3.25.0
         version: 3.25.76
     devDependencies:
+      '@oratlas/safe-fetch':
+        specifier: workspace:*
+        version: link:../safe-fetch
+      '@types/node':
+        specifier: ^22.15.0
+        version: 22.20.1
+      typescript:
+        specifier: ^5.8.3
+        version: 5.9.3
+
+  packages/safe-fetch:
+    devDependencies:
       '@types/node':
         specifier: ^22.15.0
         version: 22.20.1
@@ -394,6 +406,9 @@ importers:
       '@oratlas/contracts':
         specifier: workspace:*
         version: link:../contracts
+      '@oratlas/safe-fetch':
+        specifier: workspace:*
+        version: link:../safe-fetch
       zod:
         specifier: ^3.25.0
         version: 3.25.76
