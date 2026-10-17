@@ -1,8 +1,12 @@
 {
   "files": {
     "build-report.json": {
-      "bytes": 1483,
-      "sha256": "a8bf7e04959ec7e670799c47db934fe78036140073d90e3252d6c80ddc1593b2"
+      "bytes": 2358,
+      "sha256": "1a0a19c483c69275cfefd55cd3be35ae82019fed21e8428e8235464ea404cc30"
+    },
+    "crt-import/cluster_evidence.json": {
+      "bytes": 7790,
+      "sha256": "894043c45b48df872b399727c80934e178e3f80f6751ae7f69306fb92ee0e022"
     },
     "crt-import/import-report.json": {
       "bytes": 14789,
@@ -33,20 +37,24 @@
       "sha256": "ad16b0a6037f39a2616eca5f23dbcaf4a8bec915213c222790b5bf99c34c6239"
     },
     "pins.json": {
-      "bytes": 1435,
-      "sha256": "0dfa97501417be08a04d3fd32ef42161052823841dd29d0fec013dc55a758157"
+      "bytes": 1481,
+      "sha256": "a0b61422d5a6deb0c09c8a3a4feb75573ef38774fd957db5e6055ce72bb423d6"
     },
     "review-repo/content/references.bib": {
       "bytes": 1899,
       "sha256": "111e83cf0350da0d63ac6a1f4d174b871f51b715febbb62903895f8c966dc258"
+    },
+    "review-repo/knowledge/claim-finding-map.json": {
+      "bytes": 1000,
+      "sha256": "c36b10310b13d54daa6425f77bfb15d5e8a34d07d12ad9adee75ee25b350ef1d"
     },
     "review-repo/knowledge/claim_graph.json": {
       "bytes": 31978,
       "sha256": "9a1fae3b0815164005d862bab81f08d44a377c47d24d92c2cbe7e140973beba0"
     },
     "review-repo/knowledge/evidence-links.json": {
-      "bytes": 2738,
-      "sha256": "1dbc24893b31ea883b80bb301f23de0ab1567233e42497790b083d765a06151c"
+      "bytes": 3649,
+      "sha256": "f3e1a8168b064882a515cfca0e6ae47f30cf07326897f9aa78439e51a8cc8910"
     },
     "review-repo/knowledge/oratlas/citations.jsonl": {
       "bytes": 1775,
@@ -58,15 +66,15 @@
     },
     "review-repo/knowledge/oratlas/compatibility-report.json": {
       "bytes": 3928,
-      "sha256": "dd42dd915bd44e3d50d5d68124b1321cf974692e2a4565bd35fc17e4bd947885"
+      "sha256": "587ac2f025fbc9fe658c6dfcb52b056a2b56a185e361c3f1606739928d3f5f49"
     },
     "review-repo/knowledge/oratlas/relations.jsonl": {
       "bytes": 1090,
       "sha256": "01905e6f9fa2abc756183ae59ed1ab194d13e2d770cb7dbe47d91680232a621b"
     },
     "review-repo/knowledge/oratlas/source-native-trust.json": {
-      "bytes": 59763,
-      "sha256": "0d7c450ca1462956b31a1239c9456d2eacfc0411881e4529053cdb71b835e127"
+      "bytes": 61669,
+      "sha256": "d3d0ab1f426803ceeee017ca6236c52b6e5cfa3d0a75615c0771cbb93eb0400f"
     },
     "review-repo/knowledge/trust_score_report.json": {
       "bytes": 8515,

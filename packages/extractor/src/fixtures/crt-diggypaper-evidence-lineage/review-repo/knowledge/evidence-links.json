@@ -8,6 +8,7 @@
           "status": "supports"
         }
       ],
+      "binding": "reviewed-mapping",
       "cite_key": "Cardin2009",
       "claim_ids": [
         "clm_7659634fb095cdce"
@@ -15,6 +16,14 @@
       "doi": "10.1038/nature08002",
       "finding_id": "finding:cardin2009-f1",
       "finding_revision": 1,
+      "mappings": [
+        {
+          "asserted_at": "2026-01-03T00:00:00Z",
+          "basis": "Synthetic fixture decision; no real reviewer judgment is represented.",
+          "claim_id": "clm_7659634fb095cdce",
+          "decision_ref": "fixture:oratlas-198/map-001"
+        }
+      ],
       "passages": [
         {
           "match_status": "exact",
@@ -23,6 +32,7 @@
           "quote_state": "included"
         }
       ],
+      "phase2_finding_sha256": "sha256:ce56d9f5675353a1bd1861d8332e5a81cacd5b2469dbddde1e026a3e17dcd394",
       "source_sha256": "843fd947439a9e841d2f8055325a469f25eee1098b64d8fefc9d6ee047c800d1",
       "verification_level": "source-verified"
     },
@@ -34,6 +44,7 @@
           "status": "supports"
         }
       ],
+      "binding": "same-paper-candidate",
       "cite_key": "Cardin2009",
       "claim_ids": [
         "clm_7659634fb095cdce"
@@ -60,6 +71,7 @@
           "status": "supports"
         }
       ],
+      "binding": "reviewed-mapping",
       "cite_key": "Sohal2009",
       "claim_ids": [
         "clm_7659634fb095cdce"
@@ -67,6 +79,14 @@
       "doi": "10.1038/nature07991",
       "finding_id": "finding:sohal2009-f1",
       "finding_revision": 1,
+      "mappings": [
+        {
+          "asserted_at": "2026-01-03T00:00:00Z",
+          "basis": "Synthetic fixture decision; no real reviewer judgment is represented.",
+          "claim_id": "clm_7659634fb095cdce",
+          "decision_ref": "fixture:oratlas-198/map-001"
+        }
+      ],
       "passages": [
         {
           "match_status": "exact",
@@ -75,6 +95,7 @@
           "quote_state": "included"
         }
       ],
+      "phase2_finding_sha256": "sha256:c3efeca5dcf32801583501d61e407efaf1ac1d01a635a6960af86e14d8e31e7e",
       "source_sha256": "d8a2f79e864b1c8b21dda391522573b8fac49cfb783180652a8d0bcb3180ffbb",
       "verification_level": "source-verified"
     }

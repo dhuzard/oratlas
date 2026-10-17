@@ -298,10 +298,21 @@ describe.sequential(
         ["Cardin2009", "supports"],
         ["Sohal2009", "partially-supports"],
       ]);
+      // Only the reviewed mapping is evidence; the second Cardin finding is a same-paper candidate.
       expect(links.citations[0]!.findings.map((finding) => finding.findingId)).toEqual([
         "finding:cardin2009-f1",
+      ]);
+      expect(links.citations[0]!.candidateFindings.map((finding) => finding.findingId)).toEqual([
         "finding:cardin2009-f2",
       ]);
+      expect(links.citations[0]!.findings[0]!.mapping?.decisionRef).toBe(
+        "fixture:oratlas-198/map-001",
+      );
+      // The native TRUST sources were preserved, so the value is rechecked, not merely declared.
+      expect(links.nativeAssessment).toMatchObject({
+        verifiedAgainstPreservedSources: true,
+        provenance: { claimGraph: "digest-matched", trustScoreReport: "digest-matched" },
+      });
       // ORAtlas TRUST stays absent on every evidence relation; native TRUST is labelled source-native.
       expect(body.evidence.every((relation) => relation.hasTrustAssessment === false)).toBe(true);
       expect(body.evidence.every((relation) => relation.trustAssessments.length === 0)).toBe(true);
@@ -346,8 +357,9 @@ describe.sequential(
         locator: { kind: "doi", doiIsExample: true, href: null },
       });
       // Everything the audit needs comes from the public API response, nothing from the fixture sidecar.
+      // Reviewed findings and candidates carry the same producer declaration; audit all of them.
       const declared: PacketLinkClaim[] = links.citations.flatMap((citation) =>
-        citation.findings.map((finding) => ({
+        [...citation.findings, ...citation.candidateFindings].map((finding) => ({
           findingId: finding.findingId,
           packetId: finding.packetId,
           packetSha256: packet.packetSha256,

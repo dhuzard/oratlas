@@ -82,7 +82,7 @@ describe("fixture pins and digests", () => {
     }
     expect(fixture.pins.pins.diggypaper!.commit).toBe("d7e97e375de75c4e67cd94e0f4efb078f8f4282f");
     expect(fixture.pins.pins.computationalReviewTemplate!.commit).toBe(
-      "26db287c551df591a3cd9a9c880719d3b9918b30",
+      "471ef85bb76e5940a702dee06fcebfd4f6a08669",
     );
     expect(fixture.pins.pins.oratlas!.commit).toBe("9cd3a0c284400b30dd0044cf3acb24df1047275d");
   });
@@ -188,7 +188,7 @@ describe("repository inspection → manifest → extractKnowledgeWithOutcomes", 
 });
 
 describe("claim → citations → producer findings (sidecar projection)", () => {
-  it("follows one review claim to two papers and three separately addressable findings", () => {
+  it("follows one review claim to two papers: reviewed findings apart from a same-paper candidate", () => {
     const links = project(fixture.reviewFiles);
     expect(sourceEvidenceLinksSchema.parse(links)).toEqual(links);
     expect(links.status).toBe("linked");
@@ -199,15 +199,24 @@ describe("claim → citations → producer findings (sidecar projection)", () =>
     ]);
     const cardin = links.citations[0]!;
     const sohal = links.citations[1]!;
-    // At least two findings from a single source article, with distinct ids and no collision.
-    expect(cardin.findings.map((finding) => finding.findingId)).toEqual([
-      "finding:cardin2009-f1",
+    // Two findings from one article (Cardin), with distinct ids and no collision. Only the one a
+    // reviewed decision maps to this claim is its evidence; the other is a same-paper candidate.
+    expect(cardin.findings.map((finding) => finding.findingId)).toEqual(["finding:cardin2009-f1"]);
+    expect(cardin.candidateFindings.map((finding) => finding.findingId)).toEqual([
       "finding:cardin2009-f2",
     ]);
     expect(sohal.findings.map((finding) => finding.findingId)).toEqual(["finding:sohal2009-f1"]);
-    expect(new Set(links.citations.flatMap((c) => c.findings.map((f) => f.findingId))).size).toBe(
-      3,
-    );
+    expect(sohal.candidateFindings).toEqual([]);
+    expect(cardin.findings[0]).toMatchObject({
+      binding: "reviewed-mapping",
+      phase2FindingSha256: expect.stringMatching(/^sha256:[0-9a-f]{64}$/),
+      mapping: { decisionRef: "fixture:oratlas-198/map-001", assertedAt: "2026-01-03T00:00:00Z" },
+    });
+    expect(cardin.candidateFindings[0]).toMatchObject({
+      binding: "same-paper-candidate",
+      phase2FindingSha256: null,
+      mapping: null,
+    });
     // The review's own relations are carried unchanged next to the producer findings.
     expect(cardin.relation).toMatchObject({
       relationType: "supports",
@@ -215,7 +224,9 @@ describe("claim → citations → producer findings (sidecar projection)", () =>
     });
     expect(sohal.relation.relationType).toBe("partially-supports");
     // Independence is not invented: both findings of one article share one source snapshot digest.
-    expect(cardin.findings[0]!.sourceSnapshotSha256).toBe(cardin.findings[1]!.sourceSnapshotSha256);
+    expect(cardin.findings[0]!.sourceSnapshotSha256).toBe(
+      cardin.candidateFindings[0]!.sourceSnapshotSha256,
+    );
     expect(sohal.findings[0]!.sourceSnapshotSha256).not.toBe(
       cardin.findings[0]!.sourceSnapshotSha256,
     );
@@ -304,7 +315,7 @@ describe("claim → citations → producer findings (sidecar projection)", () =>
       const records = sidecar.evidence_links as unknown[];
       sidecar.evidence_links = [...records, ...records];
     });
-    expect(links.citations.flatMap((citation) => citation.findings)).toHaveLength(3);
+    expect(links).toEqual({ ...project(fixture.reviewFiles), sidecar: links.sidecar });
     expect(links.rejected).toEqual([]);
   });
 });
@@ -362,6 +373,9 @@ describe("packet locator and schema compatibility", () => {
       for (const record of records) {
         for (const key of [
           "packet_locator",
+          "binding",
+          "mappings",
+          "phase2_finding_sha256",
           "finding_revision",
           "verification_level",
           "passages",
@@ -371,12 +385,16 @@ describe("packet locator and schema compatibility", () => {
         }
       }
     });
-    expect(links.status).toBe("linked");
+    // A links/1 sidecar cannot say a finding was reviewed for this claim: candidates only.
+    expect(links.status).toBe("candidates-only");
+    expect(links.citations.every((citation) => citation.findings.length === 0)).toBe(true);
     expect(links.packets[0]).toMatchObject({
       availability: "location-not-declared",
       locator: null,
     });
-    expect(links.citations[0]!.findings[0]).toMatchObject({
+    expect(links.citations[0]!.candidateFindings[0]).toMatchObject({
+      binding: "binding-not-declared",
+      mapping: null,
       revision: null,
       verificationLevel: null,
       passageEvidence: "not-carried-by-sidecar",
@@ -425,8 +443,8 @@ describe("failure cases never surface as lineage", () => {
     expect(
       links.citations.flatMap((citation) => citation.findings).map((finding) => finding.findingId),
     ).not.toContain("finding:cardin2009-f1");
-    // The remaining finding for the same citation is unaffected.
-    expect(links.citations[0]!.findings.map((finding) => finding.findingId)).toEqual([
+    // The other finding of the same citation is unaffected (and stays a candidate).
+    expect(links.citations[0]!.candidateFindings.map((finding) => finding.findingId)).toEqual([
       "finding:cardin2009-f2",
     ]);
   });
@@ -561,6 +579,215 @@ describe("failure cases never surface as lineage", () => {
     expect(links.citations.find((c) => c.citationLocalId === "Cardin2009")!.doiIsExample).toBe(
       true,
     );
+  });
+});
+
+/** The fields the conflicting-duplicate cases rewrite; everything else is carried untouched. */
+type MutableLink = Record<string, unknown> & {
+  assessments: Array<{ status: string }>;
+  verification_level: string;
+  binding: string;
+  mappings?: Array<{ basis: string }>;
+  phase2_finding_sha256?: string;
+};
+
+describe("adversarial sidecars fail closed, never throw", () => {
+  const withLinks = (entries: unknown[]) =>
+    project(fixture.reviewFiles, LINEAGE_CLAIM_ID, (sidecar) => {
+      sidecar.evidence_links = [...(sidecar.evidence_links as unknown[]), ...entries];
+    });
+  const records = () =>
+    structuredClone(
+      JSON.parse(fixture.reviewFiles[SIDECAR_PATH]!).evidence_links as Array<
+        Record<string, unknown>
+      >,
+    );
+  const cardin1 = () => records().find((r) => r.finding_id === "finding:cardin2009-f1")!;
+
+  it.each([
+    ["null", null],
+    ["an array", [1, 2]],
+    ["a number", 7],
+    ["a string", "finding:cardin2009-f1"],
+    ["a boolean", true],
+  ])("treats a sidecar whose evidence_links contain %s as invalid", (_label, entry) => {
+    expect(() => withLinks([entry])).not.toThrow();
+    expect(withLinks([entry])).toMatchObject({ status: "sidecar-invalid", citations: [] });
+  });
+
+  it("treats non-object claim records as invalid", () => {
+    for (const entry of [null, [], "x"]) {
+      const links = project(fixture.reviewFiles, LINEAGE_CLAIM_ID, (sidecar) => {
+        (sidecar.claims as unknown[]).push(entry);
+      });
+      expect(links.status).toBe("sidecar-invalid");
+    }
+  });
+
+  it("reports malformed nested records without throwing", () => {
+    for (const mutate of [
+      (r: Record<string, unknown>) => (r.passages = [null]),
+      (r: Record<string, unknown>) => (r.passages = "x"),
+      (r: Record<string, unknown>) => (r.mappings = [{ claim_id: LINEAGE_CLAIM_ID }]),
+      (r: Record<string, unknown>) => (r.assessments = [{ protocol: "trust-poc-1.0" }]),
+      (r: Record<string, unknown>) => (r.packet_locator = { kind: "doi", doi: null }),
+    ]) {
+      const bad = cardin1();
+      mutate(bad);
+      const links = project(fixture.reviewFiles, LINEAGE_CLAIM_ID, (sidecar) => {
+        sidecar.evidence_links = (sidecar.evidence_links as Array<Record<string, unknown>>).map(
+          (r) => (r.finding_id === "finding:cardin2009-f1" ? bad : r),
+        );
+      });
+      expect(links.rejected).toContainEqual({
+        findingId: "finding:cardin2009-f1",
+        citeKey: "Cardin2009",
+        reason: "invalid-link-record",
+      });
+    }
+  });
+
+  it.each([
+    ["human assessment", (r: MutableLink) => (r.assessments[0]!.status = "contradicts")],
+    ["verification level", (r: MutableLink) => (r.verification_level = "human-reviewed")],
+    ["mapping decision", (r: MutableLink) => (r.mappings![0]!.basis = "Another basis.")],
+    [
+      "binding",
+      (r: MutableLink) => {
+        r.binding = "same-paper-candidate";
+        delete r.mappings;
+        delete r.phase2_finding_sha256;
+      },
+    ],
+  ])("rejects conflicting duplicates that differ only in %s, in either order", (_label, mutate) => {
+    const conflicting = cardin1() as MutableLink;
+    mutate(conflicting);
+    for (const order of ["append", "prepend"]) {
+      const links = project(fixture.reviewFiles, LINEAGE_CLAIM_ID, (sidecar) => {
+        const list = sidecar.evidence_links as unknown[];
+        sidecar.evidence_links =
+          order === "append" ? [...list, conflicting] : [conflicting, ...list];
+      });
+      expect(
+        links.rejected.filter((link) => link.findingId === "finding:cardin2009-f1"),
+        order,
+      ).toEqual([
+        {
+          findingId: "finding:cardin2009-f1",
+          citeKey: "Cardin2009",
+          reason: "ambiguous-source-relationship",
+        },
+        {
+          findingId: "finding:cardin2009-f1",
+          citeKey: "Cardin2009",
+          reason: "ambiguous-source-relationship",
+        },
+      ]);
+      expect(JSON.stringify(links.citations)).not.toContain("finding:cardin2009-f1");
+    }
+  });
+
+  it("rejects one packet id declared with two locators, in either order", () => {
+    for (const order of ["append", "prepend"]) {
+      const links = project(fixture.reviewFiles, LINEAGE_CLAIM_ID, (sidecar) => {
+        const list = sidecar.evidence_links as Array<Record<string, unknown>>;
+        const other = {
+          ...list.find((r) => r.finding_id === "finding:sohal2009-f1")!,
+          packet_locator: { kind: "doi", doi: "10.5281/zenodo.999" },
+        };
+        sidecar.evidence_links =
+          order === "append"
+            ? [
+                ...list.filter(
+                  (r) => r !== list.find((x) => x.finding_id === "finding:sohal2009-f1"),
+                ),
+                other,
+              ]
+            : [other, ...list.filter((r) => r.finding_id !== "finding:sohal2009-f1")];
+      });
+      expect(links.status, order).not.toBe("linked");
+      expect(links.packets).toEqual([]);
+      expect(links.rejected.every((link) => link.reason === "ambiguous-source-relationship")).toBe(
+        true,
+      );
+    }
+  });
+
+  it("rejects conflicting claim records instead of using the first", () => {
+    for (const order of ["append", "prepend"]) {
+      const links = project(fixture.reviewFiles, LINEAGE_CLAIM_ID, (sidecar) => {
+        const claims = sidecar.claims as Array<{
+          claim_id: string;
+          trust_v2: { overall_score: number };
+        }>;
+        const twin = structuredClone(claims.find((c) => c.claim_id === LINEAGE_CLAIM_ID)!);
+        twin.trust_v2.overall_score = 10;
+        sidecar.claims = order === "append" ? [...claims, twin] : [twin, ...claims];
+      });
+      expect(links.status, order).toBe("sidecar-invalid");
+      expect(links.nativeAssessment).toBeNull();
+      expect(links.rejected.every((link) => link.reason === "claim-record-conflict")).toBe(true);
+    }
+  });
+
+  it("collapses identical duplicate claim records", () => {
+    const links = project(fixture.reviewFiles, LINEAGE_CLAIM_ID, (sidecar) => {
+      const claims = sidecar.claims as unknown[];
+      sidecar.claims = [...claims, ...structuredClone(claims)];
+    });
+    expect(links.status).toBe("linked");
+  });
+
+  it("refuses a link with no DOI for this DOI-based protocol", () => {
+    const links = project(fixture.reviewFiles, LINEAGE_CLAIM_ID, (sidecar) => {
+      const list = sidecar.evidence_links as Array<Record<string, unknown>>;
+      list.find((r) => r.finding_id === "finding:cardin2009-f1")!.doi = null;
+    });
+    expect(links.rejected).toContainEqual({
+      findingId: "finding:cardin2009-f1",
+      citeKey: "Cardin2009",
+      reason: "doi-unconfirmed",
+    });
+    expect(JSON.stringify(links.citations)).not.toContain("finding:cardin2009-f1");
+  });
+});
+
+describe("native assessment provenance", () => {
+  const base = (overrides: Partial<Parameters<typeof projectSourceEvidenceLinks>[0]> = {}) => {
+    const claims = lines(fixture.reviewFiles["knowledge/oratlas/claims.jsonl"]!);
+    return projectSourceEvidenceLinks({
+      claimLocalId: LINEAGE_CLAIM_ID,
+      claimText: claims.find((claim) => claim.id === LINEAGE_CLAIM_ID).text,
+      sidecar: { path: SIDECAR_PATH, content: fixture.reviewFiles[SIDECAR_PATH]! },
+      citations: [],
+      relations: [],
+      ...overrides,
+    });
+  };
+
+  it("marks the value verified only when both frozen native sources were preserved and match", () => {
+    const verified = base({
+      claimGraphContent: fixture.reviewFiles["knowledge/claim_graph.json"],
+      trustReportContent: fixture.reviewFiles["knowledge/trust_score_report.json"],
+    });
+    expect(verified.nativeAssessment).toMatchObject({
+      verifiedAgainstPreservedSources: true,
+      provenance: { claimGraph: "digest-matched", trustScoreReport: "digest-matched" },
+    });
+    const unverified = base();
+    expect(unverified.nativeAssessment).toMatchObject({
+      verifiedAgainstPreservedSources: false,
+      provenance: { claimGraph: "not-preserved", trustScoreReport: "not-preserved" },
+    });
+  });
+
+  it("withholds the value when the preserved TRUST report does not match", () => {
+    const links = base({
+      claimGraphContent: fixture.reviewFiles["knowledge/claim_graph.json"],
+      trustReportContent: `${fixture.reviewFiles["knowledge/trust_score_report.json"]} `,
+    });
+    expect(links.nativeAssessment).toBeNull();
+    expect(links.nativeAssessmentWithheld).toBe("trust-report-digest-mismatch");
   });
 });
 

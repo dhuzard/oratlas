@@ -72,6 +72,14 @@ export const sidecarAssessmentSchema = z.object({
   status: z.string().min(1).max(60),
 });
 
+/** One recorded decision that a review claim uses a specific finding revision. */
+export const sidecarClaimMappingSchema = z.object({
+  claim_id: z.string().min(1).max(300),
+  decision_ref: z.string().trim().min(1).max(300),
+  asserted_at: z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/),
+  basis: z.string().trim().min(1).max(2_000),
+});
+
 /**
  * One consumed `evidence_links[]` record. Unknown keys are tolerated and dropped. The passage-level
  * fields exist only in `comprev.evidence-packet-links/2` exports; a `/1` record is still valid and
@@ -93,16 +101,29 @@ export const sidecarEvidenceLinkSchema = z
     verification_level: z.enum(PACKET_VERIFICATION_LEVELS).optional(),
     passages: z.array(sidecarPassageSchema).min(1).max(200).optional(),
     assessments: z.array(sidecarAssessmentSchema).max(200).optional(),
+    binding: z.enum(["reviewed-mapping", "same-paper-candidate"]).optional(),
+    phase2_finding_sha256: taggedSha256Schema.optional(),
+    mappings: z.array(sidecarClaimMappingSchema).min(1).max(500).optional(),
   })
   .superRefine((link, context) => {
-    const declared = [link.finding_revision, link.verification_level, link.passages].filter(
-      (value) => value !== undefined,
-    ).length;
-    if (declared !== 0 && declared !== 3) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Passage-level fields must be declared together or not at all.",
-      });
+    const issue = (message: string) => context.addIssue({ code: z.ZodIssueCode.custom, message });
+    const declared = [
+      link.finding_revision,
+      link.verification_level,
+      link.passages,
+      link.binding,
+    ].filter((value) => value !== undefined).length;
+    if (declared !== 0 && declared !== 4) {
+      issue("Passage-level fields and binding must be declared together or not at all.");
+    }
+    if (link.binding === "reviewed-mapping") {
+      const mapped = (link.mappings ?? []).map((mapping) => mapping.claim_id).sort();
+      const claims = [...link.linked_review_claim_ids].sort();
+      if (!link.phase2_finding_sha256 || JSON.stringify(mapped) !== JSON.stringify(claims)) {
+        issue("A reviewed mapping needs a Phase 2 digest and one mapping per linked claim.");
+      }
+    } else if (link.mappings !== undefined || link.phase2_finding_sha256 !== undefined) {
+      issue("Only a reviewed mapping may carry mappings or a Phase 2 digest.");
     }
   });
 export type SidecarEvidenceLink = z.infer<typeof sidecarEvidenceLinkSchema>;
@@ -135,6 +156,9 @@ export const sourceNativeSidecarSchema = z.object({
       claim_graph: z
         .object({ path: z.string().max(500), sha256: sha256HexSchema, bytes: z.number() })
         .optional(),
+      trust_score_report: z
+        .object({ path: z.string().max(500), sha256: sha256HexSchema, bytes: z.number() })
+        .optional(),
     })
     .passthrough(),
   claims: z.array(z.unknown()).max(50_000),
@@ -152,6 +176,7 @@ export const SOURCE_EVIDENCE_LINK_REJECTION_REASONS = [
   "claim-text-digest-mismatch",
   "claim-graph-digest-mismatch",
   "claim-not-in-sidecar",
+  "claim-record-conflict",
 ] as const;
 export const sourceEvidenceLinkRejectionReasonSchema = z.enum(
   SOURCE_EVIDENCE_LINK_REJECTION_REASONS,
@@ -161,13 +186,15 @@ export type SourceEvidenceLinkRejectionReason = z.infer<
 >;
 
 export const sourceEvidenceLinksStatusSchema = z.enum([
-  /** At least one link survived every check. */
+  /** At least one finding is bound to this claim by a reviewed mapping and survived every check. */
   "linked",
+  /** Only same-paper candidates survived: findings about a cited paper, not evidence for this claim. */
+  "candidates-only",
   /** The sidecar was read and checked; no producer finding is linked to this claim. */
   "no-producer-finding",
   /** No `provenance` sidecar is declared or preserved for this version. */
   "sidecar-unavailable",
-  /** The sidecar exists but is not parseable as a source-native sidecar. */
+  /** The sidecar is unparseable, malformed, or holds conflicting records for this claim. */
   "sidecar-invalid",
   /** The sidecar is bound to different claim text or a different claim graph than this version. */
   "sidecar-stale",
@@ -181,12 +208,27 @@ export const SOURCE_EVIDENCE_LABELS = {
     "ORAtlas has not imported or verified the contents of this packet; the identifier, digest and location are the producer's declaration as carried by the review's sidecar.",
   passage:
     "Passage digests, match states and native support judgments, where shown, are the producer's declaration in the sidecar. Quote text is never shown. To check a digest, fetch the packet from its declared location and hash it; ORAtlas has not.",
+  candidate:
+    "Same-paper candidate: a finding about a paper this claim cites. No reviewed decision says this claim uses it, so it is not shown as evidence for the claim.",
   nativeAssessment:
     "Source-native Computational Review TRUST v2 as exported by the review repository. It is not an ORAtlas TRUST assessment, is not converted to one, and does not affect ORAtlas verification.",
+  nativeAssessmentUnverified:
+    "ORAtlas could not recheck this value against the review's frozen claim graph and TRUST report, because they were not preserved with this version. Treat it as an unverified source declaration.",
 } as const;
 
 export const sourceEvidenceLinkedFindingSchema = z.object({
   findingId: z.string(),
+  /**
+   * `reviewed-mapping`: a recorded decision says this claim uses this finding revision.
+   * `same-paper-candidate`: only the cited paper is shared. `binding-not-declared`: a links/1
+   * sidecar, which cannot say; treated as a candidate.
+   */
+  binding: z.enum(["reviewed-mapping", "same-paper-candidate", "binding-not-declared"]),
+  phase2FindingSha256: taggedSha256Schema.nullable(),
+  /** The decision for this claim; null unless `binding` is `reviewed-mapping`. */
+  mapping: z
+    .object({ decisionRef: z.string(), assertedAt: z.string(), basis: z.string() })
+    .nullable(),
   producer: z.literal("diggypaper"),
   packetId: z.string(),
   /** Producer-declared digest of the cited article's source snapshot, as carried by the sidecar. */
@@ -232,7 +274,10 @@ export const sourceEvidenceCitationSchema = z.object({
     relationType: z.string(),
     sourceLocation: z.string().nullable(),
   }),
+  /** Findings bound to this claim by a reviewed mapping. */
   findings: z.array(sourceEvidenceLinkedFindingSchema),
+  /** Same-paper candidates, kept separate and never presented as this claim's evidence. */
+  candidateFindings: z.array(sourceEvidenceLinkedFindingSchema),
 });
 
 export const sourceEvidencePacketSchema = z.object({
@@ -273,6 +318,15 @@ export const sourceEvidenceNativeAssessmentSchema = z.object({
   capped: z.boolean(),
   reAdjudicatedByOratlas: z.literal(false),
   isOratlasAssessment: z.literal(false),
+  /**
+   * Whether ORAtlas rechecked the sidecar's recorded digests of the native source files against the
+   * bytes preserved with this version. A mismatch withholds the value entirely.
+   */
+  provenance: z.object({
+    claimGraph: z.enum(["digest-matched", "not-preserved", "not-declared"]),
+    trustScoreReport: z.enum(["digest-matched", "not-preserved", "not-declared"]),
+  }),
+  verifiedAgainstPreservedSources: z.boolean(),
 });
 
 export const sourceEvidenceLinksSchema = z.object({
@@ -289,11 +343,15 @@ export const sourceEvidenceLinksSchema = z.object({
   citations: z.array(sourceEvidenceCitationSchema),
   rejected: z.array(sourceEvidenceRejectedLinkSchema),
   nativeAssessment: sourceEvidenceNativeAssessmentSchema.nullable(),
+  /** Why `nativeAssessment` is null, when the sidecar carries one. */
+  nativeAssessmentWithheld: z.enum(["sidecar-stale", "trust-report-digest-mismatch"]).nullable(),
   labels: z.object({
     producer: z.string(),
     packet: z.string(),
     passage: z.string(),
+    candidate: z.string(),
     nativeAssessment: z.string(),
+    nativeAssessmentUnverified: z.string(),
   }),
 });
 export type SourceEvidenceLinks = z.infer<typeof sourceEvidenceLinksSchema>;

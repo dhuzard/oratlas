@@ -1,4 +1,34 @@
 {
+  "gates": {
+    "exempt_checks": [
+      "PAPER_COUNT_FLOOR",
+      "CROSS_CLUSTER_UNIQUE_DOIS",
+      "BIBLIOGRAPHY_FLOOR_HARD",
+      "PAPER_COUNT",
+      "SHAPE_NOT_UNIFORM",
+      "FIGURE_DATA_PRESENT",
+      "FIGURE_DATA",
+      "EFFECT_SIZE_RATE",
+      "SAMPLE_SIZE_RATE",
+      "REPLICATION_UNKNOWN_CEILING",
+      "WEAKEST_EVIDENCE_SUBSTANTIVE",
+      "SEARCH_FAILURES_PRESENT",
+      "CONTRADICTION_QUERIES_EXECUTED",
+      "FALSE_CONSENSUS_RISKS_IDENTIFIED",
+      "SATURATION_LOGGED",
+      "DOI_RESOLVES",
+      "DOI_TITLE_CROSSCHECK",
+      "SOURCE_PROVENANCE",
+      "FULLTEXT_HONEST",
+      "FULLTEXT_HONEST_v2",
+      "FULLTEXT_RATE_PER_CLUSTER",
+      "FULLTEXT_RATE_OVERALL",
+      "SOURCE_LENGTH",
+      "CLAIM_DIFFERS_FROM_SOURCE"
+    ],
+    "phase2_import": "pass",
+    "phase5": "pass"
+  },
   "import": {
     "counts": {
       "by_reason": {
@@ -30,6 +60,8 @@
   },
   "links": {
     "emitted": 3,
+    "reviewed_mappings": 2,
+    "same_paper_candidates": 1,
     "skipped": []
   },
   "reference_validator": {

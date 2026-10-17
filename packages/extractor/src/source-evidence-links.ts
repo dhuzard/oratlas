@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import {
   SOURCE_EVIDENCE_LABELS,
   SOURCE_EVIDENCE_LINKS_SCHEMA_VERSION,
+  canonicalJson,
   sidecarClaimSchema,
   sidecarEvidenceLinkSchema,
   sourceEvidenceLinksSchema,
@@ -9,6 +10,7 @@ import {
   type SidecarEvidenceLink,
   type SidecarPacketLocator,
   type SourceEvidenceLinkRejectionReason,
+  type SourceEvidenceLinkedFinding,
   type SourceEvidenceLinks,
 } from "@oratlas/contracts";
 
@@ -34,7 +36,11 @@ export interface ProjectSourceEvidenceLinksInput {
   relations: SourceEvidenceRelationInput[];
   /** Preserved text of `knowledge/claim_graph.json`, when it was captured. */
   claimGraphContent?: string;
+  /** Preserved text of `knowledge/trust_score_report.json`, when it was captured. */
+  trustReportContent?: string;
 }
+
+type Rejected = SourceEvidenceLinks["rejected"][number];
 
 const sha256Hex = (value: string): string =>
   createHash("sha256").update(value, "utf8").digest("hex");
@@ -44,11 +50,14 @@ const normalizeDoi = (doi: string): string =>
     .trim()
     .replace(/^(?:doi:\s*|https?:\/\/(?:dx\.)?doi\.org\/)/iu, "")
     .toLowerCase();
+const isPlainObject = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
 
 function emptyProjection(
   status: SourceEvidenceLinks["status"],
   sidecar: SourceEvidenceLinks["sidecar"],
-  rejected: SourceEvidenceLinks["rejected"] = [],
+  rejected: Rejected[] = [],
+  nativeAssessmentWithheld: SourceEvidenceLinks["nativeAssessmentWithheld"] = null,
 ): SourceEvidenceLinks {
   return sourceEvidenceLinksSchema.parse({
     schemaVersion: SOURCE_EVIDENCE_LINKS_SCHEMA_VERSION,
@@ -56,9 +65,22 @@ function emptyProjection(
     sidecar,
     packets: [],
     citations: [],
-    rejected,
+    rejected: sortRejected(rejected),
     nativeAssessment: null,
+    nativeAssessmentWithheld,
     labels: SOURCE_EVIDENCE_LABELS,
+  });
+}
+
+/**
+ * The part of a link record that must agree for one finding as seen from one claim. The claim list
+ * and other claims' mapping decisions are excluded; this claim's own decision is included.
+ */
+function claimScopedIdentity(link: SidecarEvidenceLink, claimId: string): string {
+  const { linked_review_claim_ids: _claims, mappings, ...rest } = link;
+  return canonicalJson({
+    ...rest,
+    mapping: mappings?.find((mapping) => mapping.claim_id === claimId) ?? null,
   });
 }
 
@@ -66,10 +88,10 @@ function emptyProjection(
  * Project the preserved source-native sidecar onto one review claim.
  *
  * Deterministic and order-independent: the result depends only on the set of sidecar records, never
- * on their order. It never fetches the external packet and never asserts anything the sidecar does
- * not carry. A link that cannot be bound unambiguously to one of this review's own citations and
- * claim→citation relations is reported under `rejected`, never silently dropped and never shown as
- * lineage.
+ * on their order, and conflicting records are rejected rather than resolved by position. It never
+ * fetches the external packet and never asserts anything the sidecar does not carry. Only a reviewed
+ * mapping makes a finding evidence for the claim; a shared DOI makes it a same-paper candidate.
+ * Malformed input fails closed with a status, never an exception.
  */
 export function projectSourceEvidenceLinks(
   input: ProjectSourceEvidenceLinksInput,
@@ -89,8 +111,16 @@ export function projectSourceEvidenceLinks(
   }
   const sidecar = sourceNativeSidecarSchema.safeParse(parsedJson);
   if (!sidecar.success) return emptyProjection("sidecar-invalid", sidecarDescriptor);
+  // The exporter only ever writes objects into these arrays; anything else means the file is not a
+  // faithful export, and no record in it can be trusted.
+  if (
+    !sidecar.data.evidence_links.every(isPlainObject) ||
+    !sidecar.data.claims.every(isPlainObject)
+  ) {
+    return emptyProjection("sidecar-invalid", sidecarDescriptor);
+  }
 
-  const rejected: SourceEvidenceLinks["rejected"] = [];
+  const rejected: Rejected[] = [];
   const reject = (
     findingId: string | null,
     citeKey: string | null,
@@ -98,42 +128,45 @@ export function projectSourceEvidenceLinks(
   ): void => {
     rejected.push({ findingId, citeKey, reason });
   };
+  const text = (value: unknown): string | null => (typeof value === "string" ? value : null);
 
-  // Candidate records attributed to this claim. A record that fails the schema is attributable only
-  // if it plainly names this claim; otherwise it is not this claim's to report.
+  // Every well-formed record, and the records attributed to this claim. A malformed record is
+  // attributable only if it plainly names this claim.
+  const allLinks: SidecarEvidenceLink[] = [];
   const candidates: SidecarEvidenceLink[] = [];
-  for (const raw of sidecar.data.evidence_links) {
+  for (const raw of sidecar.data.evidence_links as Array<Record<string, unknown>>) {
     const parsed = sidecarEvidenceLinkSchema.safeParse(raw);
     if (parsed.success) {
+      allLinks.push(parsed.data);
       if (parsed.data.linked_review_claim_ids.includes(input.claimLocalId)) {
         candidates.push(parsed.data);
       }
       continue;
     }
-    const loose = raw as {
-      linked_review_claim_ids?: unknown;
-      finding_id?: unknown;
-      cite_key?: unknown;
-    };
-    if (
-      Array.isArray(loose.linked_review_claim_ids) &&
-      loose.linked_review_claim_ids.includes(input.claimLocalId)
-    ) {
-      reject(
-        typeof loose.finding_id === "string" ? loose.finding_id : null,
-        typeof loose.cite_key === "string" ? loose.cite_key : null,
-        "invalid-link-record",
-      );
+    const named = raw.linked_review_claim_ids;
+    if (Array.isArray(named) && named.includes(input.claimLocalId)) {
+      reject(text(raw.finding_id), text(raw.cite_key), "invalid-link-record");
     }
   }
 
+  // This claim's record. Identical duplicates collapse; differing ones cannot be chosen between.
+  const claimRecords = (sidecar.data.claims as Array<Record<string, unknown>>).filter(
+    (claim) => claim.claim_id === input.claimLocalId,
+  );
+  if (new Set(claimRecords.map((claim) => canonicalJson(claim))).size > 1) {
+    for (const link of candidates) reject(link.finding_id, link.cite_key, "claim-record-conflict");
+    return emptyProjection("sidecar-invalid", sidecarDescriptor, rejected);
+  }
+  const claimParse = claimRecords[0] ? sidecarClaimSchema.safeParse(claimRecords[0]) : undefined;
+  if (claimParse && !claimParse.success) {
+    return emptyProjection("sidecar-invalid", sidecarDescriptor, rejected);
+  }
+  const claimRecord = claimParse?.data;
+
   // Digest binding: a sidecar exported for different claim text or a different claim graph is stale
-  // for this version and must not present lineage.
-  const claimRecord = sidecar.data.claims
-    .map((claim) => sidecarClaimSchema.safeParse(claim))
-    .flatMap((result) => (result.success ? [result.data] : []))
-    .find((claim) => claim.claim_id === input.claimLocalId);
-  const graphDigest = sidecar.data.sources.claim_graph?.sha256;
+  // for this version and must not present lineage or the native assessment.
+  const sources = sidecar.data.sources;
+  const graphDigest = sources.claim_graph?.sha256;
   const staleReason: SourceEvidenceLinkRejectionReason | undefined =
     claimRecord && claimRecord.claim_text_sha256 !== sha256Hex(input.claimText)
       ? "claim-text-digest-mismatch"
@@ -144,41 +177,43 @@ export function projectSourceEvidenceLinks(
         : undefined;
   if (staleReason) {
     for (const link of candidates) reject(link.finding_id, link.cite_key, staleReason);
-    return emptyProjection("sidecar-stale", sidecarDescriptor, sortRejected(rejected));
+    return emptyProjection(
+      "sidecar-stale",
+      sidecarDescriptor,
+      rejected,
+      claimRecord?.trust_v2 ? "sidecar-stale" : null,
+    );
   }
   if (!claimRecord) {
     for (const link of candidates) reject(link.finding_id, link.cite_key, "claim-not-in-sidecar");
-    return emptyProjection("no-producer-finding", sidecarDescriptor, sortRejected(rejected));
+    return emptyProjection("no-producer-finding", sidecarDescriptor, rejected);
   }
 
-  // Ambiguity: one finding bound to several citations, snapshots or packets; or one packet id with
-  // several digests. None of these is resolved by choosing; all participants are rejected.
+  // Ambiguity. For this claim, every record of one finding must declare the same thing (citation,
+  // digests, revision, verification, passages, judgments, binding and this claim's decision). Across
+  // the whole sidecar, one packet id must have one digest and one locator.
   const ambiguous = new Set<SidecarEvidenceLink>();
   const byFinding = new Map<string, SidecarEvidenceLink[]>();
-  const byPacket = new Map<string, SidecarEvidenceLink[]>();
   for (const link of candidates) {
     byFinding.set(link.finding_id, [...(byFinding.get(link.finding_id) ?? []), link]);
-    byPacket.set(link.packet_id, [...(byPacket.get(link.packet_id) ?? []), link]);
   }
   for (const group of byFinding.values()) {
-    const identities = new Set(
-      group.map((link) =>
-        [
-          link.cite_key,
-          link.finding_source_sha256,
-          link.packet_id,
-          link.packet_sha256,
-          link.finding_revision ?? "",
-          JSON.stringify(link.passages ?? null),
-        ].join("\0"),
-      ),
-    );
+    const identities = new Set(group.map((link) => claimScopedIdentity(link, input.claimLocalId)));
     if (identities.size > 1) for (const link of group) ambiguous.add(link);
   }
-  for (const group of byPacket.values()) {
-    if (new Set(group.map((link) => link.packet_sha256)).size > 1) {
-      for (const link of group) ambiguous.add(link);
-    }
+  const packetIdentity = new Map<string, Set<string>>();
+  for (const link of allLinks) {
+    const identity = canonicalJson({
+      sha256: link.packet_sha256,
+      locator: link.packet_locator ?? null,
+    });
+    packetIdentity.set(
+      link.packet_id,
+      new Set([...(packetIdentity.get(link.packet_id) ?? []), identity]),
+    );
+  }
+  for (const link of candidates) {
+    if ((packetIdentity.get(link.packet_id)?.size ?? 0) > 1) ambiguous.add(link);
   }
 
   const citationsById = new Map<string, SourceEvidenceCitationInput[]>();
@@ -212,19 +247,63 @@ export function projectSourceEvidenceLinks(
       reject(link.finding_id, link.cite_key, "no-citation-relation");
       continue;
     }
-    if (link.doi !== null) {
-      if (citation.doi === null) {
-        reject(link.finding_id, link.cite_key, "doi-unconfirmed");
-        continue;
-      }
-      if (normalizeDoi(link.doi) !== normalizeDoi(citation.doi)) {
-        reject(link.finding_id, link.cite_key, "doi-mismatch");
-        continue;
-      }
+    // Diggypaper links are DOI-based: a link must name a DOI and the review's citation must agree.
+    if (link.doi === null || citation.doi === null) {
+      reject(link.finding_id, link.cite_key, "doi-unconfirmed");
+      continue;
     }
-    // Identical duplicate records collapse; conflicting ones were rejected above.
-    accepted.set(`${link.finding_id}\0${link.cite_key}`, { link, citation });
+    if (normalizeDoi(link.doi) !== normalizeDoi(citation.doi)) {
+      reject(link.finding_id, link.cite_key, "doi-mismatch");
+      continue;
+    }
+    // Only identical declarations reach this point, so which copy is kept cannot matter.
+    accepted.set(link.finding_id, { link, citation });
   }
+
+  const present = (link: SidecarEvidenceLink): SourceEvidenceLinkedFinding => {
+    const mapping =
+      link.binding === "reviewed-mapping"
+        ? (link.mappings?.find((entry) => entry.claim_id === input.claimLocalId) ?? null)
+        : null;
+    return {
+      findingId: link.finding_id,
+      binding: link.binding ?? "binding-not-declared",
+      phase2FindingSha256: link.phase2_finding_sha256 ?? null,
+      mapping: mapping
+        ? {
+            decisionRef: mapping.decision_ref,
+            assertedAt: mapping.asserted_at,
+            basis: mapping.basis,
+          }
+        : null,
+      producer: link.producer,
+      packetId: link.packet_id,
+      sourceSnapshotSha256: link.finding_source_sha256,
+      revision: link.finding_revision ?? null,
+      verificationLevel: link.verification_level ?? null,
+      passageEvidence: link.passages ? "declared-by-sidecar" : "not-carried-by-sidecar",
+      passages: link.passages
+        ? link.passages
+            .map((passage) => ({
+              passageId: passage.passage_id,
+              quoteSha256: passage.quote_sha256,
+              quoteState: passage.quote_state,
+              matchStatus: passage.match_status,
+            }))
+            .sort((a, b) => compareText(a.passageId, b.passageId))
+        : null,
+      producerAssessment: link.assessments ? "declared-by-sidecar" : "not-carried-by-sidecar",
+      assessments: link.assessments
+        ? link.assessments
+            .map((assessment) => ({
+              assessmentId: assessment.assessment_id,
+              protocol: assessment.protocol,
+              status: assessment.status,
+            }))
+            .sort((a, b) => compareText(a.assessmentId, b.assessmentId))
+        : null,
+    };
+  };
 
   const byCitation = new Map<string, Accepted[]>();
   for (const entry of accepted.values()) {
@@ -237,50 +316,19 @@ export function projectSourceEvidenceLinks(
     .sort(([a], [b]) => compareText(a, b))
     .map(([citationLocalId, entries]) => {
       const citation = entries[0]!.citation;
-      const relations = input.relations
-        .filter((relation) => relation.citationLocalId === citationLocalId)
-        .sort((a, b) => compareText(a.relationType, b.relationType));
-      const relation = relations[0]!;
+      const relation = input.relations
+        .filter((candidate) => candidate.citationLocalId === citationLocalId)
+        .sort((a, b) => compareText(a.relationType, b.relationType))[0]!;
+      const findings = entries
+        .map(({ link }) => present(link))
+        .sort((a, b) => compareText(a.findingId, b.findingId));
       return {
         citationLocalId,
         doi: citation.doi,
         doiIsExample: citation.doiIsExample,
         relation: { relationType: relation.relationType, sourceLocation: relation.sourceLocation },
-        findings: entries
-          .map(({ link }) => ({
-            findingId: link.finding_id,
-            producer: link.producer,
-            packetId: link.packet_id,
-            sourceSnapshotSha256: link.finding_source_sha256,
-            revision: link.finding_revision ?? null,
-            verificationLevel: link.verification_level ?? null,
-            passageEvidence: link.passages
-              ? ("declared-by-sidecar" as const)
-              : ("not-carried-by-sidecar" as const),
-            passages: link.passages
-              ? link.passages
-                  .map((passage) => ({
-                    passageId: passage.passage_id,
-                    quoteSha256: passage.quote_sha256,
-                    quoteState: passage.quote_state,
-                    matchStatus: passage.match_status,
-                  }))
-                  .sort((a, b) => compareText(a.passageId, b.passageId))
-              : null,
-            producerAssessment: link.assessments
-              ? ("declared-by-sidecar" as const)
-              : ("not-carried-by-sidecar" as const),
-            assessments: link.assessments
-              ? link.assessments
-                  .map((assessment) => ({
-                    assessmentId: assessment.assessment_id,
-                    protocol: assessment.protocol,
-                    status: assessment.status,
-                  }))
-                  .sort((a, b) => compareText(a.assessmentId, b.assessmentId))
-              : null,
-          }))
-          .sort((a, b) => compareText(a.findingId, b.findingId)),
+        findings: findings.filter((finding) => finding.binding === "reviewed-mapping"),
+        candidateFindings: findings.filter((finding) => finding.binding !== "reviewed-mapping"),
       };
     });
 
@@ -292,10 +340,29 @@ export function projectSourceEvidenceLinks(
     });
   }
 
+  // Native assessment provenance: recheck the recorded digests of the frozen native sources where
+  // their bytes were preserved. A mismatch withholds the value; an absence is labelled, not hidden.
+  const sourceCheck = (
+    declared: string | undefined,
+    content: string | undefined,
+  ): "digest-matched" | "not-preserved" | "not-declared" | "mismatch" =>
+    declared === undefined
+      ? "not-declared"
+      : content === undefined
+        ? "not-preserved"
+        : declared === sha256Hex(content)
+          ? "digest-matched"
+          : "mismatch";
+  const graphCheck = sourceCheck(graphDigest, input.claimGraphContent);
+  const reportCheck = sourceCheck(sources.trust_score_report?.sha256, input.trustReportContent);
   const trust = claimRecord.trust_v2;
+  // A graph mismatch already returned as stale above, so only the report can mismatch here.
+  const nativeWithheld = Boolean(trust) && reportCheck === "mismatch";
+
+  const reviewed = citations.some((citation) => citation.findings.length > 0);
   return sourceEvidenceLinksSchema.parse({
     schemaVersion: SOURCE_EVIDENCE_LINKS_SCHEMA_VERSION,
-    status: citations.length > 0 ? "linked" : "no-producer-finding",
+    status: reviewed ? "linked" : citations.length > 0 ? "candidates-only" : "no-producer-finding",
     sidecar: sidecarDescriptor,
     packets: [...packets.entries()]
       .sort(([a], [b]) => compareText(a, b))
@@ -310,18 +377,23 @@ export function projectSourceEvidenceLinks(
       })),
     citations,
     rejected: sortRejected(rejected),
-    nativeAssessment: trust
-      ? {
-          protocol: "computational-review-trust",
-          rubricVersion: trust.rubric_version,
-          origin: "source-native",
-          label: trust.trust_label,
-          nativeOverallScore: trust.overall_score,
-          capped: trust.capped,
-          reAdjudicatedByOratlas: false,
-          isOratlasAssessment: false,
-        }
-      : null,
+    nativeAssessment:
+      trust && !nativeWithheld
+        ? {
+            protocol: "computational-review-trust",
+            rubricVersion: trust.rubric_version,
+            origin: "source-native",
+            label: trust.trust_label,
+            nativeOverallScore: trust.overall_score,
+            capped: trust.capped,
+            reAdjudicatedByOratlas: false,
+            isOratlasAssessment: false,
+            provenance: { claimGraph: graphCheck, trustScoreReport: reportCheck },
+            verifiedAgainstPreservedSources:
+              graphCheck === "digest-matched" && reportCheck === "digest-matched",
+          }
+        : null,
+    nativeAssessmentWithheld: nativeWithheld ? "trust-report-digest-mismatch" : null,
     labels: SOURCE_EVIDENCE_LABELS,
   });
 }
@@ -348,7 +420,7 @@ function presentLocator(locator: SidecarPacketLocator | null) {
   };
 }
 
-function sortRejected(rejected: SourceEvidenceLinks["rejected"]): SourceEvidenceLinks["rejected"] {
+function sortRejected(rejected: Rejected[]): Rejected[] {
   return [...rejected].sort(
     (a, b) =>
       compareText(a.findingId ?? "", b.findingId ?? "") ||

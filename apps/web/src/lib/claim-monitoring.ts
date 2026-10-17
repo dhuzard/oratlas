@@ -644,6 +644,7 @@ async function loadSourceEvidenceLinks(
     sidecar:
       sidecarPath && sidecarContent ? { path: sidecarPath, content: sidecarContent } : undefined,
     claimGraphContent: intact("knowledge/claim_graph.json"),
+    trustReportContent: intact("knowledge/trust_score_report.json"),
     citations: citations.map((citation) => ({
       localCitationId: citation.localCitationId,
       doi: citation.doi,

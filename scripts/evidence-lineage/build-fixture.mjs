@@ -15,8 +15,9 @@
  * Pipeline stages, all executed by the real upstream tools at the pinned revisions:
  *   1. synthesize a source-evidence-packet/0.1.0 using the Template's packet writer;
  *   2. validate it with Diggypaper's reference validator (sep_validate.py, when python is present);
- *   3. import it with the Template's S2 importer          → source-evidence-lineage.json
- *   4. bridge accepted lineage entries to `comprev.evidence-packet-links/2` (CRT's lineage-to-links);
+ *   3. import it with the Template's S2 importer and run its Phase 2/5 gates → lineage + Phase 2 package
+ *   4. write a reviewed claim→finding map and bridge to `comprev.evidence-packet-links/2` (CRT's
+ *      lineage-to-links): mapped findings become evidence, the rest same-paper candidates;
  *   5. export with the Template's S3 exporter             → review-manifest.json + knowledge/oratlas/*
  */
 import { Buffer } from "node:buffer";
@@ -52,8 +53,8 @@ export const PINS = {
   },
   computationalReviewTemplate: {
     repository: "https://github.com/Neuronautix/ComputationalReviewTemplate_trust-knowledge",
-    commit: "26db287c551df591a3cd9a9c880719d3b9918b30",
-    role: "S2 importer, links/2 bridge (scripts/source-evidence) and S3 ORAtlas exporter (scripts/oratlas)",
+    commit: "471ef85bb76e5940a702dee06fcebfd4f6a08669",
+    role: "S2 importer + Phase 2/5 gates, reviewed claim-finding map and links/2 bridge (scripts/source-evidence), S3 ORAtlas exporter (scripts/oratlas)",
   },
   oratlas: {
     repository: "https://github.com/dhuzard/oratlas",
@@ -85,6 +86,11 @@ function baselineDigests() {
  * a 10.5555/ identifier outward, so the locator path is exercised without implying a real deposit.
  */
 export const PACKET_LOCATOR = { kind: "doi", doi: "10.5555/oratlas.fixture.packet" };
+
+/** The review claim that cites two papers and carries the demonstration lineage. */
+const LINEAGE_CLAIM_ID = "clm_7659634fb095cdce";
+/** Findings the fixture's reviewed map binds to that claim. `finding:cardin2009-f2` is not one. */
+const MAPPED_FINDINGS = ["finding:cardin2009-f1", "finding:sohal2009-f1"];
 
 const REVIEW_REPOSITORY_URL = PINS.computationalReviewTemplate.repository;
 const TS = "2026-01-01T00:00:00Z";
@@ -334,9 +340,10 @@ async function build({ crtDir, diggypaperDir, out }) {
     referenceValidator = { ran: true, valid: true, counts: verdict.counts };
   }
 
-  // 3. S2 importer.
+  // 3. S2 importer, with the executable Phase 2 import gate and Phase 5 gate. The importer exits
+  // non-zero when a requested gate fails, so a gate failure aborts the build.
   const importDir = join(out, "crt-import");
-  execFileSync(
+  const importStdout = execFileSync(
     process.execPath,
     [
       join(crtDir, "scripts/import-source-evidence-packet.mjs"),
@@ -344,21 +351,49 @@ async function build({ crtDir, diggypaperDir, out }) {
       packetDir,
       "--out",
       importDir,
+      "--check-gates",
     ],
     { encoding: "utf8", cwd: crtDir },
   );
-  const lineage = JSON.parse(readFileSync(join(importDir, "source-evidence-lineage.json"), "utf8"));
+  const gates = JSON.parse(importStdout).gates;
+  if (gates.phase2_import.gate !== "pass" || gates.phase5.gate !== "pass") {
+    throw new Error(`Phase 2/5 gates failed: ${JSON.stringify(gates)}`);
+  }
+  const lineageBytes = readFileSync(join(importDir, "source-evidence-lineage.json"));
+  const lineage = JSON.parse(lineageBytes.toString("utf8"));
   const importReport = JSON.parse(readFileSync(join(importDir, "import-report.json"), "utf8"));
-  // The Phase 2 cluster package is an S2 output the pipeline does not consume here; keep the two
-  // audit artifacts only.
-  rmSync(join(importDir, "cluster_evidence.json"));
+  // The Phase 2 package (cluster_evidence.json) is kept: the reviewed map below is bound to its
+  // finding digests, and the test suite re-runs the Phase 5 gate on it.
 
-  // 4. bridge.
+  // 4. Reviewed claim→finding map, then the bridge. The claim is mapped to one Cardin finding and the
+  // Sohal finding; the second Cardin finding is deliberately left unmapped, so it must surface only as
+  // a same-paper candidate (one paper, two outcomes, only one of which the claim uses).
+  const reviewDir = join(out, "review-repo");
+  const claimFindingMap = {
+    schema: "comprev.claim-finding-map/1",
+    lineage_sha256: sha256Tag(lineageBytes),
+    mappings: MAPPED_FINDINGS.map((findingId) => {
+      const entry = lineage.entries.find((candidate) => candidate.finding.finding_id === findingId);
+      if (!entry) throw new Error(`${findingId} was not accepted by the importer`);
+      return {
+        claim_id: LINEAGE_CLAIM_ID,
+        finding_id: findingId,
+        finding_revision: entry.finding.revision,
+        phase2_finding_sha256: entry.phase2_finding_sha256,
+        decision_ref: "fixture:oratlas-198/map-001",
+        asserted_at: "2026-01-03T00:00:00Z",
+        basis: "Synthetic fixture decision; no real reviewer judgment is represented.",
+      };
+    }),
+  };
+  writeText(join(reviewDir, "knowledge/claim-finding-map.json"), pretty(claimFindingMap));
   const { lineageToLinks } = await import(
     pathToFileURL(join(crtDir, "scripts/source-evidence/lineage-to-links.mjs")).href
   );
-  const { links, skipped } = lineageToLinks(lineage, claimGraph, { locator: PACKET_LOCATOR });
-  const reviewDir = join(out, "review-repo");
+  const { links, skipped } = lineageToLinks(lineageBytes, claimGraph, {
+    locator: PACKET_LOCATOR,
+    claimFindingMap,
+  });
   for (const path of [
     "knowledge/claim_graph.json",
     "knowledge/trust_score_report.json",
@@ -396,7 +431,18 @@ async function build({ crtDir, diggypaperDir, out }) {
       schema: "oratlas.evidence-lineage-build-report/1",
       reference_validator: referenceValidator,
       import: { counts: importReport.counts },
-      links: { emitted: links.findings.length, skipped },
+      gates: {
+        phase2_import: gates.phase2_import.gate,
+        phase5: gates.phase5.gate,
+        exempt_checks: gates.phase2_import.exempt_checks,
+      },
+      links: {
+        emitted: links.findings.length,
+        reviewed_mappings: links.findings.filter((f) => f.binding === "reviewed-mapping").length,
+        same_paper_candidates: links.findings.filter((f) => f.binding === "same-paper-candidate")
+          .length,
+        skipped,
+      },
     }),
   );
   writeText(

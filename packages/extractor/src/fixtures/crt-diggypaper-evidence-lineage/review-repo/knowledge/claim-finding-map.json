@@ -1,0 +1,24 @@
+{
+  "lineage_sha256": "sha256:af97b90b64d6b52d18a322cb489cd8122ca43535c2908995755961cd736daf3a",
+  "mappings": [
+    {
+      "asserted_at": "2026-01-03T00:00:00Z",
+      "basis": "Synthetic fixture decision; no real reviewer judgment is represented.",
+      "claim_id": "clm_7659634fb095cdce",
+      "decision_ref": "fixture:oratlas-198/map-001",
+      "finding_id": "finding:cardin2009-f1",
+      "finding_revision": 1,
+      "phase2_finding_sha256": "sha256:ce56d9f5675353a1bd1861d8332e5a81cacd5b2469dbddde1e026a3e17dcd394"
+    },
+    {
+      "asserted_at": "2026-01-03T00:00:00Z",
+      "basis": "Synthetic fixture decision; no real reviewer judgment is represented.",
+      "claim_id": "clm_7659634fb095cdce",
+      "decision_ref": "fixture:oratlas-198/map-001",
+      "finding_id": "finding:sohal2009-f1",
+      "finding_revision": 1,
+      "phase2_finding_sha256": "sha256:c3efeca5dcf32801583501d61e407efaf1ac1d01a635a6960af86e14d8e31e7e"
+    }
+  ],
+  "schema": "comprev.claim-finding-map/1"
+}

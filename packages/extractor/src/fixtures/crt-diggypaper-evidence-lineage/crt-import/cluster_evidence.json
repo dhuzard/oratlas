@@ -1,0 +1,198 @@
+{
+  "cluster_source": "source-evidence-packet:packet:oratlas-198-lineage-fixture",
+  "conflict_assessment": {
+    "basis": "fixed-corpus import performs no cross-paper conflict detection; an empty conflicts[] means not assessed, not that no conflict exists",
+    "status": "not_assessed"
+  },
+  "conflicts": [],
+  "evidence_artifact_id": "source-evidence-packet:packet:oratlas-198-lineage-fixture:57db54da7f2daa44",
+  "evidence_gaps": [],
+  "evidence_parameters_applied": {
+    "min_papers_per_cluster": null,
+    "mode": "fixed_corpus_import",
+    "total_bibliography_target": null
+  },
+  "figure_data": [],
+  "findings": [
+    {
+      "claim": "[SYNTHETIC FIXTURE] Placeholder finding 1 of Cardin 2009; this is not text from the cited article.",
+      "claim_source_sentence": "[SYNTHETIC FIXTURE] Placeholder passage 1 of Cardin 2009; this is not text from the cited article.",
+      "doi": "10.1038/nature08002",
+      "effect_size": null,
+      "effect_size_source_sentence": null,
+      "evidence": "Source-paper finding imported from packet:oratlas-198-lineage-fixture (finding:cardin2009-f1 rev 1; wording origin: reviewer-interpretation). Context: population=unknown; exposure=unknown; comparator=unknown; outcome=unknown; time=unknown; experimental unit=unknown. Numeric results: none exported.",
+      "n": null,
+      "replication_evidence_dois": [],
+      "replication_status": "replication_unknown",
+      "study_system": "unknown",
+      "text_access": "unknown"
+    },
+    {
+      "claim": "[SYNTHETIC FIXTURE] Placeholder finding 2 of Cardin 2009; this is not text from the cited article.",
+      "claim_source_sentence": "[SYNTHETIC FIXTURE] Placeholder passage 2 of Cardin 2009; this is not text from the cited article.",
+      "doi": "10.1038/nature08002",
+      "effect_size": null,
+      "effect_size_source_sentence": null,
+      "evidence": "Source-paper finding imported from packet:oratlas-198-lineage-fixture (finding:cardin2009-f2 rev 1; wording origin: reviewer-interpretation). Context: population=unknown; exposure=unknown; comparator=unknown; outcome=unknown; time=unknown; experimental unit=unknown. Numeric results: none exported.",
+      "n": null,
+      "replication_evidence_dois": [],
+      "replication_status": "replication_unknown",
+      "study_system": "unknown",
+      "text_access": "unknown"
+    },
+    {
+      "claim": "[SYNTHETIC FIXTURE] Placeholder finding 1 of Sohal 2009; this is not text from the cited article.",
+      "claim_source_sentence": "[SYNTHETIC FIXTURE] Placeholder passage 1 of Sohal 2009; this is not text from the cited article.",
+      "doi": "10.1038/nature07991",
+      "effect_size": null,
+      "effect_size_source_sentence": null,
+      "evidence": "Source-paper finding imported from packet:oratlas-198-lineage-fixture (finding:sohal2009-f1 rev 1; wording origin: reviewer-interpretation). Context: population=unknown; exposure=unknown; comparator=unknown; outcome=unknown; time=unknown; experimental unit=unknown. Numeric results: none exported.",
+      "n": null,
+      "replication_evidence_dois": [],
+      "replication_status": "replication_unknown",
+      "study_system": "unknown",
+      "text_access": "unknown"
+    }
+  ],
+  "import_provenance": {
+    "importer": {
+      "min_verification": "human-reviewed",
+      "mode": "fixed_corpus_import",
+      "name": "import-source-evidence-packet",
+      "version": "0.1.0"
+    },
+    "lineage_file": "source-evidence-lineage.json",
+    "lineage_sha256": "sha256:af97b90b64d6b52d18a322cb489cd8122ca43535c2908995755961cd736daf3a",
+    "packet_id": "packet:oratlas-198-lineage-fixture",
+    "packet_manifest_sha256": "sha256:57db54da7f2daa448ef3dda28b1921ef14d0475fa6270f3f4905c23027ded2a9"
+  },
+  "papers_reviewed_count": 2,
+  "pilot_exceptions": [
+    {
+      "category": "fixed-corpus",
+      "check": "PAPER_COUNT_FLOOR",
+      "reason": "corpus size is fixed by the packet, not by min_papers_per_cluster"
+    },
+    {
+      "category": "fixed-corpus",
+      "check": "CROSS_CLUSTER_UNIQUE_DOIS",
+      "reason": "corpus size is fixed by the packet"
+    },
+    {
+      "category": "fixed-corpus",
+      "check": "BIBLIOGRAPHY_FLOOR_HARD",
+      "reason": "total_bibliography_target is not applied to an imported fixed corpus; record the user decision in gate_evidence_compliance.json user_signoff"
+    },
+    {
+      "category": "fixed-corpus",
+      "check": "PAPER_COUNT",
+      "reason": "corpus size is fixed by the packet"
+    },
+    {
+      "category": "fixed-corpus",
+      "check": "SHAPE_NOT_UNIFORM",
+      "reason": "a single imported cluster has no per-cluster spread to test"
+    },
+    {
+      "category": "fixed-corpus",
+      "check": "FIGURE_DATA_PRESENT",
+      "reason": "packets carry no cross-paper figure comparisons"
+    },
+    {
+      "category": "fixed-corpus",
+      "check": "FIGURE_DATA",
+      "reason": "packets carry no cross-paper figure comparisons"
+    },
+    {
+      "category": "not-invented",
+      "check": "EFFECT_SIZE_RATE",
+      "reason": "the contract has no effect-size field; none is computed or imputed"
+    },
+    {
+      "category": "not-invented",
+      "check": "SAMPLE_SIZE_RATE",
+      "reason": "n is imported only where the packet defines it as an experimental-unit count"
+    },
+    {
+      "category": "not-invented",
+      "check": "REPLICATION_UNKNOWN_CEILING",
+      "reason": "replication is never inferred from packet data"
+    },
+    {
+      "category": "no-synthesis",
+      "check": "WEAKEST_EVIDENCE_SUBSTANTIVE",
+      "reason": "the importer does not judge evidence strength"
+    },
+    {
+      "category": "no-search",
+      "check": "SEARCH_FAILURES_PRESENT",
+      "reason": "the importer performs no literature search"
+    },
+    {
+      "category": "no-search",
+      "check": "CONTRADICTION_QUERIES_EXECUTED",
+      "reason": "the importer performs no literature search"
+    },
+    {
+      "category": "no-synthesis",
+      "check": "FALSE_CONSENSUS_RISKS_IDENTIFIED",
+      "reason": "the importer does not identify evidence gaps"
+    },
+    {
+      "category": "no-search",
+      "check": "SATURATION_LOGGED",
+      "reason": "the importer performs no literature search"
+    },
+    {
+      "category": "offline",
+      "check": "DOI_RESOLVES",
+      "reason": "import is offline; DOI resolution is not attempted"
+    },
+    {
+      "category": "offline",
+      "check": "DOI_TITLE_CROSSCHECK",
+      "reason": "import is offline; CrossRef is not queried"
+    },
+    {
+      "category": "offline",
+      "check": "SOURCE_PROVENANCE",
+      "reason": "no abstract is retrieved; text_access stays \"unknown\" rather than being deduced"
+    },
+    {
+      "category": "offline",
+      "check": "FULLTEXT_HONEST",
+      "reason": "no document is retrieved, so no size test can establish fulltext"
+    },
+    {
+      "category": "offline",
+      "check": "FULLTEXT_HONEST_v2",
+      "reason": "no document is retrieved, so no size test can establish fulltext"
+    },
+    {
+      "category": "offline",
+      "check": "FULLTEXT_RATE_PER_CLUSTER",
+      "reason": "text_access is not determined by the packet"
+    },
+    {
+      "category": "offline",
+      "check": "FULLTEXT_RATE_OVERALL",
+      "reason": "text_access is not determined by the packet"
+    },
+    {
+      "category": "import-semantics",
+      "check": "SOURCE_LENGTH",
+      "reason": "a length heuristic aimed at agent extraction; the quote is a verbatim packet passage"
+    },
+    {
+      "category": "import-semantics",
+      "check": "CLAIM_DIFFERS_FROM_SOURCE",
+      "reason": "a source-explicit finding may legitimately equal its source sentence"
+    }
+  ],
+  "search_failures": [],
+  "strongest_evidence": {},
+  "total_findings": 3,
+  "unique_papers": 2,
+  "unreplicated_claims": [],
+  "weakest_evidence_cited": {}
+}

@@ -44,8 +44,8 @@
     },
     "evidence_links": {
       "path": "knowledge/evidence-links.json",
-      "sha256": "1dbc24893b31ea883b80bb301f23de0ab1567233e42497790b083d765a06151c",
-      "bytes": 2738
+      "sha256": "f3e1a8168b064882a515cfca0e6ae47f30cf07326897f9aa78439e51a8cc8910",
+      "bytes": 3649
     }
   },
   "evidence_levels": {
@@ -1372,6 +1372,16 @@
           "linked_review_claim_ids": [
             "clm_7659634fb095cdce"
           ],
+          "binding": "reviewed-mapping",
+          "phase2_finding_sha256": "sha256:ce56d9f5675353a1bd1861d8332e5a81cacd5b2469dbddde1e026a3e17dcd394",
+          "mappings": [
+            {
+              "claim_id": "clm_7659634fb095cdce",
+              "decision_ref": "fixture:oratlas-198/map-001",
+              "asserted_at": "2026-01-03T00:00:00Z",
+              "basis": "Synthetic fixture decision; no real reviewer judgment is represented."
+            }
+          ],
           "verification_level": "source-verified",
           "passages": [
             {
@@ -1408,6 +1418,7 @@
           "linked_review_claim_ids": [
             "clm_7659634fb095cdce"
           ],
+          "binding": "same-paper-candidate",
           "verification_level": "human-reviewed",
           "passages": [
             {
@@ -1443,6 +1454,16 @@
           "doi": "10.1038/nature07991",
           "linked_review_claim_ids": [
             "clm_7659634fb095cdce"
+          ],
+          "binding": "reviewed-mapping",
+          "phase2_finding_sha256": "sha256:c3efeca5dcf32801583501d61e407efaf1ac1d01a635a6960af86e14d8e31e7e",
+          "mappings": [
+            {
+              "claim_id": "clm_7659634fb095cdce",
+              "decision_ref": "fixture:oratlas-198/map-001",
+              "asserted_at": "2026-01-03T00:00:00Z",
+              "basis": "Synthetic fixture decision; no real reviewer judgment is represented."
+            }
           ],
           "verification_level": "source-verified",
           "passages": [
@@ -1485,6 +1506,16 @@
       "linked_review_claim_ids": [
         "clm_7659634fb095cdce"
       ],
+      "binding": "reviewed-mapping",
+      "phase2_finding_sha256": "sha256:ce56d9f5675353a1bd1861d8332e5a81cacd5b2469dbddde1e026a3e17dcd394",
+      "mappings": [
+        {
+          "claim_id": "clm_7659634fb095cdce",
+          "decision_ref": "fixture:oratlas-198/map-001",
+          "asserted_at": "2026-01-03T00:00:00Z",
+          "basis": "Synthetic fixture decision; no real reviewer judgment is represented."
+        }
+      ],
       "verification_level": "source-verified",
       "passages": [
         {
@@ -1521,6 +1552,7 @@
       "linked_review_claim_ids": [
         "clm_7659634fb095cdce"
       ],
+      "binding": "same-paper-candidate",
       "verification_level": "human-reviewed",
       "passages": [
         {
@@ -1556,6 +1588,16 @@
       "doi": "10.1038/nature07991",
       "linked_review_claim_ids": [
         "clm_7659634fb095cdce"
+      ],
+      "binding": "reviewed-mapping",
+      "phase2_finding_sha256": "sha256:c3efeca5dcf32801583501d61e407efaf1ac1d01a635a6960af86e14d8e31e7e",
+      "mappings": [
+        {
+          "claim_id": "clm_7659634fb095cdce",
+          "decision_ref": "fixture:oratlas-198/map-001",
+          "asserted_at": "2026-01-03T00:00:00Z",
+          "basis": "Synthetic fixture decision; no real reviewer judgment is represented."
+        }
       ],
       "verification_level": "source-verified",
       "passages": [

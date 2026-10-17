@@ -52,6 +52,18 @@ describe("SourceEvidenceLinksCard", () => {
     expect(html).toContain("Producer findings (external evidence packet)");
     expect(html).toContain("finding:cardin2009-f1");
     expect(html).toContain("finding:cardin2009-f2");
+    // The unmapped same-paper finding sits in a separate, collapsed candidate list.
+    const candidates = html.slice(
+      html.indexOf("Same-paper candidates, not evidence for this claim"),
+    );
+    expect(candidates).toContain("finding:cardin2009-f2");
+    expect(html.indexOf("finding:cardin2009-f2")).toBeGreaterThan(
+      html.indexOf("Same-paper candidates, not evidence for this claim"),
+    );
+    expect(html).toContain("Mapped to this claim by decision");
+    expect(html).toContain("fixture:oratlas-198/map-001");
+    // Native TRUST is collapsed and, without preserved native sources, labelled unverified.
+    expect(html).toMatch(/<details class="claim-card"><summary>.*unverified source declaration/s);
     expect(html).toContain("producer: diggypaper");
     expect(html).toContain("57db54da7f2daa448ef3dda28b1921ef14d0475fa6270f3f4905c23027ded2a9");
     expect(html).toContain("10.5555/oratlas.fixture.packet (example, not linked)");
@@ -78,6 +90,9 @@ describe("SourceEvidenceLinksCard", () => {
     for (const link of sidecar.evidence_links) {
       for (const key of [
         "packet_locator",
+        "binding",
+        "mappings",
+        "phase2_finding_sha256",
         "finding_revision",
         "verification_level",
         "passages",

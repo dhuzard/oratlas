@@ -119,6 +119,61 @@ export function verifyFixture(): Check[] {
     "manifest declares no trustAssessments; sidecar is source_native_trust, not re-adjudicated",
   );
 
+  // Phase 2 → reviewed map binding. The map must be bound to the exact committed lineage bytes, every
+  // mapped digest must be a finding of the kept Phase 2 package, and the recorded gates must pass.
+  const lineageText = fixture.all["crt-import/source-evidence-lineage.json"]!;
+  const phase2 = JSON.parse(fixture.all["crt-import/cluster_evidence.json"]!) as {
+    findings: Array<Record<string, unknown>>;
+  };
+  const map = JSON.parse(fixture.reviewFiles["knowledge/claim-finding-map.json"]!) as {
+    lineage_sha256: string;
+    mappings: Array<{ phase2_finding_sha256: string; finding_id: string; claim_id: string }>;
+  };
+  const sortKeys = (value: unknown): unknown =>
+    Array.isArray(value)
+      ? value.map(sortKeys)
+      : value && typeof value === "object"
+        ? Object.fromEntries(
+            Object.keys(value as object)
+              .sort()
+              .map((key) => [key, sortKeys((value as Record<string, unknown>)[key])]),
+          )
+        : value;
+  // Same digest as CRT's phase2FindingDigest: canonical line of the finding without cite_key.
+  const phase2Digest = (finding: Record<string, unknown>) => {
+    const { cite_key: _citeKey, ...rest } = finding;
+    return `sha256:${sha256Hex(JSON.stringify(sortKeys(rest)))}`;
+  };
+  const phase2Digests = new Set(phase2.findings.map(phase2Digest));
+  add(
+    "reviewed-map-bound-to-phase2-import",
+    map.lineage_sha256 === `sha256:${sha256Hex(lineageText)}` &&
+      map.mappings.length > 0 &&
+      map.mappings.every((mapping) => phase2Digests.has(mapping.phase2_finding_sha256)),
+    `${map.mappings.length} reviewed mapping(s); lineage digest and Phase 2 finding digests match`,
+  );
+  const report = JSON.parse(fixture.all["build-report.json"]!) as {
+    gates: { phase2_import: string; phase5: string; exempt_checks: string[] };
+    links: { reviewed_mappings: number; same_paper_candidates: number };
+  };
+  add(
+    "phase2-and-phase5-gates-passed",
+    report.gates.phase2_import === "pass" && report.gates.phase5 === "pass",
+    `phase2_import=${report.gates.phase2_import} phase5=${report.gates.phase5}; ${report.gates.exempt_checks.length} Phase 2 checks exempt as pilot corpus-size exceptions`,
+  );
+  const sidecarLinks = sidecar.evidence_links as Array<{ binding?: string; finding_id: string }>;
+  const mapped = new Set(map.mappings.map((mapping) => mapping.finding_id));
+  const reviewedIds = sidecarLinks
+    .filter((link) => link.binding === "reviewed-mapping")
+    .map((link) => link.finding_id);
+  add(
+    "only-mapped-findings-are-reviewed-evidence",
+    reviewedIds.length === mapped.size &&
+      reviewedIds.every((id) => mapped.has(id)) &&
+      sidecarLinks.some((link) => link.binding === "same-paper-candidate"),
+    `${report.links.reviewed_mappings} reviewed, ${report.links.same_paper_candidates} same-paper candidate(s)`,
+  );
+
   const baselines = (
     fixture.pins as unknown as { oratlasBaselineFileSha256: Record<string, string> }
   ).oratlasBaselineFileSha256;
