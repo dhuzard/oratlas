@@ -8,6 +8,7 @@ import { TrustVerificationBadge } from "@/components/TrustVerificationBadge";
 import { ArtifactOutcomes } from "@/components/ArtifactOutcomes";
 import { InspectionPath } from "@/components/InspectionPath";
 import { ExploreBreadcrumb } from "@/components/ExploreBreadcrumb";
+import { SourceEvidenceLinksCard } from "@/components/SourceEvidenceLinksCard";
 
 export const dynamic = "force-dynamic";
 
@@ -233,6 +234,8 @@ export default async function ClaimPassportPage({
           )}
         </Card>
       </div>
+
+      <SourceEvidenceLinksCard links={passport.sourceEvidenceLinks} />
 
       <Card title={`Execution passports (${passport.executionPassports.length})`}>
         <p className="muted">

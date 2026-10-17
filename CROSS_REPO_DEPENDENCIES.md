@@ -56,6 +56,11 @@ only in local capture scripts (ORA-K02).
   explicitly leaves its own non-equivalent criteria `not-assessed`.
 - **Pinned baseline:** commit `165f336608eed7d22f6c6505da57a4e3577070cc`, as documented in
   `docs/assessment-protocol-interoperability.md`.
+- **Evidence-lineage pin (issue #198):** commit `47b7acd20b7bde65d61ea23d584ef0d300400d28`
+  (S2 importer + S3 exporter) together with `dhuzard/diggypaper`
+  `d7e97e375de75c4e67cd94e0f4efb078f8f4282f` (`source-evidence-packet/0.1.0`). Consumed only as a
+  committed, digest-pinned fixture; see `docs/cross-repo-evidence-lineage.md`. The sidecar's
+  native TRUST v2 remains source-native.
 - **Crosswalk boundary:** there is no crosswalk among Computational Review TRUST v2,
   standalone TRUST.md, and ORAtlas TRUST. Any future crosswalk requires its own immutable,
   versioned artifact and participation by every affected methodology owner

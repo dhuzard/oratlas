@@ -1,0 +1,81 @@
+{
+  "files": {
+    "build-report.json": {
+      "bytes": 1483,
+      "sha256": "a8bf7e04959ec7e670799c47db934fe78036140073d90e3252d6c80ddc1593b2"
+    },
+    "crt-import/import-report.json": {
+      "bytes": 14789,
+      "sha256": "2b41adf542358014d568191f71c0aae69928e4dc2510fa00b83d4089fe0a12f9"
+    },
+    "crt-import/source-evidence-lineage.json": {
+      "bytes": 20686,
+      "sha256": "af97b90b64d6b52d18a322cb489cd8122ca43535c2908995755961cd736daf3a"
+    },
+    "diggypaper-packet/assessments.jsonl": {
+      "bytes": 1541,
+      "sha256": "d7d6b4c29ad4d674b5b35158e0a2623b9b996cfa862bc4829538ce95eb390aff"
+    },
+    "diggypaper-packet/findings.jsonl": {
+      "bytes": 2859,
+      "sha256": "b5bdb0dbab55add0797dc8494175c3d1718f75bfca45811f3ad157da551576c5"
+    },
+    "diggypaper-packet/manifest.json": {
+      "bytes": 1790,
+      "sha256": "57db54da7f2daa448ef3dda28b1921ef14d0475fa6270f3f4905c23027ded2a9"
+    },
+    "diggypaper-packet/papers.jsonl": {
+      "bytes": 1927,
+      "sha256": "78eff97bc9224ffb026722c7a38c55ce07377de7aa8599a20d3c3f9078d6b8f5"
+    },
+    "diggypaper-packet/passages.jsonl": {
+      "bytes": 2059,
+      "sha256": "ad16b0a6037f39a2616eca5f23dbcaf4a8bec915213c222790b5bf99c34c6239"
+    },
+    "pins.json": {
+      "bytes": 1419,
+      "sha256": "41cd7572b1be6654dc15083a4bba7a6a4f54d2dd17408e6b58681a5b5e7a64e9"
+    },
+    "review-repo/content/references.bib": {
+      "bytes": 1899,
+      "sha256": "111e83cf0350da0d63ac6a1f4d174b871f51b715febbb62903895f8c966dc258"
+    },
+    "review-repo/knowledge/claim_graph.json": {
+      "bytes": 31978,
+      "sha256": "9a1fae3b0815164005d862bab81f08d44a377c47d24d92c2cbe7e140973beba0"
+    },
+    "review-repo/knowledge/evidence-links.json": {
+      "bytes": 1075,
+      "sha256": "60239a6a4ff02ecca3b3ac484de78d4dcb51aea213927059c438e04508f1b46b"
+    },
+    "review-repo/knowledge/oratlas/citations.jsonl": {
+      "bytes": 1775,
+      "sha256": "7229e3387d640db0dbf9e6f0ee082e99c0e5c7eb2b045e66d4cc11604beb48c0"
+    },
+    "review-repo/knowledge/oratlas/claims.jsonl": {
+      "bytes": 1673,
+      "sha256": "d663407448466927a87bbafab41daffe44408027d2f012014d88f8641f2f7688"
+    },
+    "review-repo/knowledge/oratlas/compatibility-report.json": {
+      "bytes": 3928,
+      "sha256": "bd73ec6f3f91d2a3504b17e64ee21ba2b37dd6a60d29fd08feb53b42d21757e0"
+    },
+    "review-repo/knowledge/oratlas/relations.jsonl": {
+      "bytes": 1090,
+      "sha256": "01905e6f9fa2abc756183ae59ed1ab194d13e2d770cb7dbe47d91680232a621b"
+    },
+    "review-repo/knowledge/oratlas/source-native-trust.json": {
+      "bytes": 55335,
+      "sha256": "b3ff60659fc85144408d77fded1ccf3976c84febfebb02173d8777a4148b4f3b"
+    },
+    "review-repo/knowledge/trust_score_report.json": {
+      "bytes": 8515,
+      "sha256": "84f9bf9c333b55fe0e444687cf66e0e7a9e47c6bc9d578c06b639a89c551f15d"
+    },
+    "review-repo/review-manifest.json": {
+      "bytes": 544,
+      "sha256": "e7963ffa247fb5d2dcadf03c6ee32082d1ad0c321ca4b957c9867a58ee84b4b8"
+    }
+  },
+  "schema": "oratlas.fixture-digests/1"
+}

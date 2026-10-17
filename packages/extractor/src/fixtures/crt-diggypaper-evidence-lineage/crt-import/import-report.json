@@ -1,0 +1,451 @@
+{
+  "counts": {
+    "by_reason": {
+      "rejected:no-matched-passage": 1,
+      "rejected:not-approved-for-export": 1,
+      "rejected:source-unavailable": 1,
+      "rejected:unreviewed": 1,
+      "rejected:verification-below-threshold": 1,
+      "withheld:paper-rights-not-redistributable": 1
+    },
+    "consumer_classes": {
+      "incompatible": 0,
+      "restricted": 1
+    },
+    "findings": {
+      "accepted": 3,
+      "incomplete": 0,
+      "rejected": 0,
+      "withheld": 1
+    },
+    "omitted_by_producer": {
+      "assessments": 0,
+      "findings": 0,
+      "papers": 0,
+      "passages": 0
+    },
+    "producer_export_state": "complete"
+  },
+  "findings": [
+    {
+      "field_report": [
+        {
+          "disposition": "mapped",
+          "field": "claim",
+          "reason": "wording origin reviewer-interpretation; not attributed to the article authors",
+          "source": "finding.statement"
+        },
+        {
+          "disposition": "mapped-verbatim",
+          "field": "claim_source_sentence",
+          "reason": "exact match; native assessment assessment:cardin2009-a1 records \"supports\"; the match is not itself support",
+          "source": "passage:cardin2009-p1"
+        },
+        {
+          "disposition": "mapped",
+          "field": "doi",
+          "reason": "normalized to lower case without resolver prefix",
+          "source": "paper.identifiers.doi"
+        },
+        {
+          "disposition": "unknown-kept",
+          "field": "study_system",
+          "reason": "the packet states the population is unknown; kept as the literal \"unknown\"",
+          "source": "context.population"
+        },
+        {
+          "disposition": "null-absent-in-packet",
+          "field": "effect_size",
+          "reason": "the contract has no effect-size field; none is computed or imputed"
+        },
+        {
+          "disposition": "null-absent-in-packet",
+          "field": "effect_size_source_sentence",
+          "reason": "no effect size is imported, so no sentence is attached to one"
+        },
+        {
+          "disposition": "null-absent-in-packet",
+          "field": "n",
+          "reason": "no numeric result with an n was exported"
+        },
+        {
+          "disposition": "constant",
+          "field": "replication_status",
+          "reason": "packet carries no replication data; independently-verified counts reviewers, not replications"
+        },
+        {
+          "disposition": "constant",
+          "field": "replication_evidence_dois",
+          "reason": "empty: no replication evidence in packet"
+        },
+        {
+          "disposition": "unknown-kept",
+          "field": "text_access",
+          "reason": "the packet does not record whether the passage comes from the abstract or the body, and this cannot be deduced from size or from a sentence appearing in both"
+        },
+        {
+          "disposition": "composed",
+          "field": "evidence",
+          "reason": "context and the packet's numeric results with their n-definitions, as written",
+          "source": "context, numeric_results"
+        }
+      ],
+      "finding_id": "finding:cardin2009-f1",
+      "flags": [],
+      "package_index": 0,
+      "paper_id": "paper:cardin2009",
+      "reasons": [],
+      "revision": 1,
+      "status": "accepted"
+    },
+    {
+      "field_report": [
+        {
+          "disposition": "mapped",
+          "field": "claim",
+          "reason": "wording origin reviewer-interpretation; not attributed to the article authors",
+          "source": "finding.statement"
+        },
+        {
+          "disposition": "mapped-verbatim",
+          "field": "claim_source_sentence",
+          "reason": "exact match; native assessment assessment:cardin2009-a2 records \"supports\"; the match is not itself support",
+          "source": "passage:cardin2009-p2"
+        },
+        {
+          "disposition": "mapped",
+          "field": "doi",
+          "reason": "normalized to lower case without resolver prefix",
+          "source": "paper.identifiers.doi"
+        },
+        {
+          "disposition": "unknown-kept",
+          "field": "study_system",
+          "reason": "the packet states the population is unknown; kept as the literal \"unknown\"",
+          "source": "context.population"
+        },
+        {
+          "disposition": "null-absent-in-packet",
+          "field": "effect_size",
+          "reason": "the contract has no effect-size field; none is computed or imputed"
+        },
+        {
+          "disposition": "null-absent-in-packet",
+          "field": "effect_size_source_sentence",
+          "reason": "no effect size is imported, so no sentence is attached to one"
+        },
+        {
+          "disposition": "null-absent-in-packet",
+          "field": "n",
+          "reason": "no numeric result with an n was exported"
+        },
+        {
+          "disposition": "constant",
+          "field": "replication_status",
+          "reason": "packet carries no replication data; independently-verified counts reviewers, not replications"
+        },
+        {
+          "disposition": "constant",
+          "field": "replication_evidence_dois",
+          "reason": "empty: no replication evidence in packet"
+        },
+        {
+          "disposition": "unknown-kept",
+          "field": "text_access",
+          "reason": "the packet does not record whether the passage comes from the abstract or the body, and this cannot be deduced from size or from a sentence appearing in both"
+        },
+        {
+          "disposition": "composed",
+          "field": "evidence",
+          "reason": "context and the packet's numeric results with their n-definitions, as written",
+          "source": "context, numeric_results"
+        }
+      ],
+      "finding_id": "finding:cardin2009-f2",
+      "flags": [],
+      "package_index": 1,
+      "paper_id": "paper:cardin2009",
+      "reasons": [],
+      "revision": 1,
+      "status": "accepted"
+    },
+    {
+      "finding_id": "finding:gebru2021-f1",
+      "flags": [],
+      "paper_id": "paper:gebru2021",
+      "reasons": [
+        {
+          "class": "rejected",
+          "code": "no-matched-passage",
+          "message": "no passage has an exact or normalized match"
+        },
+        {
+          "class": "rejected",
+          "code": "not-approved-for-export",
+          "message": "export_state is proposed"
+        },
+        {
+          "class": "withheld",
+          "code": "paper-rights-not-redistributable",
+          "message": "paper redistribution is metadata-only"
+        },
+        {
+          "class": "rejected",
+          "code": "source-unavailable",
+          "message": "source snapshot state is unavailable"
+        },
+        {
+          "class": "rejected",
+          "code": "unreviewed",
+          "message": "review_state is unreviewed"
+        },
+        {
+          "class": "rejected",
+          "code": "verification-below-threshold",
+          "message": "verification_level unverified is below human-reviewed"
+        }
+      ],
+      "revision": 1,
+      "status": "withheld"
+    },
+    {
+      "field_report": [
+        {
+          "disposition": "mapped",
+          "field": "claim",
+          "reason": "wording origin reviewer-interpretation; not attributed to the article authors",
+          "source": "finding.statement"
+        },
+        {
+          "disposition": "mapped-verbatim",
+          "field": "claim_source_sentence",
+          "reason": "exact match; native assessment assessment:sohal2009-a1 records \"supports\"; the match is not itself support",
+          "source": "passage:sohal2009-p1"
+        },
+        {
+          "disposition": "mapped",
+          "field": "doi",
+          "reason": "normalized to lower case without resolver prefix",
+          "source": "paper.identifiers.doi"
+        },
+        {
+          "disposition": "unknown-kept",
+          "field": "study_system",
+          "reason": "the packet states the population is unknown; kept as the literal \"unknown\"",
+          "source": "context.population"
+        },
+        {
+          "disposition": "null-absent-in-packet",
+          "field": "effect_size",
+          "reason": "the contract has no effect-size field; none is computed or imputed"
+        },
+        {
+          "disposition": "null-absent-in-packet",
+          "field": "effect_size_source_sentence",
+          "reason": "no effect size is imported, so no sentence is attached to one"
+        },
+        {
+          "disposition": "null-absent-in-packet",
+          "field": "n",
+          "reason": "no numeric result with an n was exported"
+        },
+        {
+          "disposition": "constant",
+          "field": "replication_status",
+          "reason": "packet carries no replication data; independently-verified counts reviewers, not replications"
+        },
+        {
+          "disposition": "constant",
+          "field": "replication_evidence_dois",
+          "reason": "empty: no replication evidence in packet"
+        },
+        {
+          "disposition": "unknown-kept",
+          "field": "text_access",
+          "reason": "the packet does not record whether the passage comes from the abstract or the body, and this cannot be deduced from size or from a sentence appearing in both"
+        },
+        {
+          "disposition": "composed",
+          "field": "evidence",
+          "reason": "context and the packet's numeric results with their n-definitions, as written",
+          "source": "context, numeric_results"
+        }
+      ],
+      "finding_id": "finding:sohal2009-f1",
+      "flags": [],
+      "package_index": 2,
+      "paper_id": "paper:sohal2009",
+      "reasons": [],
+      "revision": 1,
+      "status": "accepted"
+    }
+  ],
+  "importer": {
+    "min_verification": "human-reviewed",
+    "mode": "fixed_corpus_import",
+    "name": "import-source-evidence-packet",
+    "version": "0.1.0"
+  },
+  "outputs": {
+    "lineage": "source-evidence-lineage.json",
+    "lineage_sha256": "sha256:af97b90b64d6b52d18a322cb489cd8122ca43535c2908995755961cd736daf3a",
+    "phase2": "cluster_evidence.json"
+  },
+  "packet": {
+    "manifest_sha256": "sha256:57db54da7f2daa448ef3dda28b1921ef14d0475fa6270f3f4905c23027ded2a9",
+    "packet_id": "packet:oratlas-198-lineage-fixture"
+  },
+  "pilot_exceptions": [
+    {
+      "category": "fixed-corpus",
+      "check": "PAPER_COUNT_FLOOR",
+      "reason": "corpus size is fixed by the packet, not by min_papers_per_cluster"
+    },
+    {
+      "category": "fixed-corpus",
+      "check": "CROSS_CLUSTER_UNIQUE_DOIS",
+      "reason": "corpus size is fixed by the packet"
+    },
+    {
+      "category": "fixed-corpus",
+      "check": "BIBLIOGRAPHY_FLOOR_HARD",
+      "reason": "total_bibliography_target is not applied to an imported fixed corpus; record the user decision in gate_evidence_compliance.json user_signoff"
+    },
+    {
+      "category": "fixed-corpus",
+      "check": "PAPER_COUNT",
+      "reason": "corpus size is fixed by the packet"
+    },
+    {
+      "category": "fixed-corpus",
+      "check": "SHAPE_NOT_UNIFORM",
+      "reason": "a single imported cluster has no per-cluster spread to test"
+    },
+    {
+      "category": "fixed-corpus",
+      "check": "FIGURE_DATA_PRESENT",
+      "reason": "packets carry no cross-paper figure comparisons"
+    },
+    {
+      "category": "fixed-corpus",
+      "check": "FIGURE_DATA",
+      "reason": "packets carry no cross-paper figure comparisons"
+    },
+    {
+      "category": "not-invented",
+      "check": "EFFECT_SIZE_RATE",
+      "reason": "the contract has no effect-size field; none is computed or imputed"
+    },
+    {
+      "category": "not-invented",
+      "check": "SAMPLE_SIZE_RATE",
+      "reason": "n is imported only where the packet defines it as an experimental-unit count"
+    },
+    {
+      "category": "not-invented",
+      "check": "REPLICATION_UNKNOWN_CEILING",
+      "reason": "replication is never inferred from packet data"
+    },
+    {
+      "category": "no-synthesis",
+      "check": "WEAKEST_EVIDENCE_SUBSTANTIVE",
+      "reason": "the importer does not judge evidence strength"
+    },
+    {
+      "category": "no-search",
+      "check": "SEARCH_FAILURES_PRESENT",
+      "reason": "the importer performs no literature search"
+    },
+    {
+      "category": "no-search",
+      "check": "CONTRADICTION_QUERIES_EXECUTED",
+      "reason": "the importer performs no literature search"
+    },
+    {
+      "category": "no-synthesis",
+      "check": "FALSE_CONSENSUS_RISKS_IDENTIFIED",
+      "reason": "the importer does not identify evidence gaps"
+    },
+    {
+      "category": "no-search",
+      "check": "SATURATION_LOGGED",
+      "reason": "the importer performs no literature search"
+    },
+    {
+      "category": "offline",
+      "check": "DOI_RESOLVES",
+      "reason": "import is offline; DOI resolution is not attempted"
+    },
+    {
+      "category": "offline",
+      "check": "DOI_TITLE_CROSSCHECK",
+      "reason": "import is offline; CrossRef is not queried"
+    },
+    {
+      "category": "offline",
+      "check": "SOURCE_PROVENANCE",
+      "reason": "no abstract is retrieved; text_access stays \"unknown\" rather than being deduced"
+    },
+    {
+      "category": "offline",
+      "check": "FULLTEXT_HONEST",
+      "reason": "no document is retrieved, so no size test can establish fulltext"
+    },
+    {
+      "category": "offline",
+      "check": "FULLTEXT_HONEST_v2",
+      "reason": "no document is retrieved, so no size test can establish fulltext"
+    },
+    {
+      "category": "offline",
+      "check": "FULLTEXT_RATE_PER_CLUSTER",
+      "reason": "text_access is not determined by the packet"
+    },
+    {
+      "category": "offline",
+      "check": "FULLTEXT_RATE_OVERALL",
+      "reason": "text_access is not determined by the packet"
+    },
+    {
+      "category": "import-semantics",
+      "check": "SOURCE_LENGTH",
+      "reason": "a length heuristic aimed at agent extraction; the quote is a verbatim packet passage"
+    },
+    {
+      "category": "import-semantics",
+      "check": "CLAIM_DIFFERS_FROM_SOURCE",
+      "reason": "a source-explicit finding may legitimately equal its source sentence"
+    }
+  ],
+  "validation": {
+    "packet_counts": {
+      "assessments": 3,
+      "findings": 4,
+      "findings_by_export_state": {
+        "approved-for-export": 3,
+        "proposed": 1
+      },
+      "findings_by_verification": {
+        "human-reviewed": 1,
+        "source-verified": 2,
+        "unverified": 1
+      },
+      "omitted": {
+        "assessments": 0,
+        "findings": 0,
+        "papers": 0,
+        "passages": 0
+      },
+      "papers": 3,
+      "passages": 4,
+      "rejected": {
+        "assessments": 0,
+        "findings": 0,
+        "papers": 0,
+        "passages": 0
+      }
+    },
+    "valid": true,
+    "warnings": []
+  }
+}

@@ -1,0 +1,67 @@
+{
+  "import": {
+    "counts": {
+      "by_reason": {
+        "rejected:no-matched-passage": 1,
+        "rejected:not-approved-for-export": 1,
+        "rejected:source-unavailable": 1,
+        "rejected:unreviewed": 1,
+        "rejected:verification-below-threshold": 1,
+        "withheld:paper-rights-not-redistributable": 1
+      },
+      "consumer_classes": {
+        "incompatible": 0,
+        "restricted": 1
+      },
+      "findings": {
+        "accepted": 3,
+        "incomplete": 0,
+        "rejected": 0,
+        "withheld": 1
+      },
+      "omitted_by_producer": {
+        "assessments": 0,
+        "findings": 0,
+        "papers": 0,
+        "passages": 0
+      },
+      "producer_export_state": "complete"
+    }
+  },
+  "links": {
+    "emitted": 3,
+    "skipped": []
+  },
+  "reference_validator": {
+    "counts": {
+      "assessments": 3,
+      "findings": 4,
+      "findings_by_export_state": {
+        "approved-for-export": 3,
+        "proposed": 1
+      },
+      "findings_by_verification": {
+        "human-reviewed": 1,
+        "source-verified": 2,
+        "unverified": 1
+      },
+      "omitted": {
+        "assessments": 0,
+        "findings": 0,
+        "papers": 0,
+        "passages": 0
+      },
+      "papers": 3,
+      "passages": 4,
+      "rejected": {
+        "assessments": 0,
+        "findings": 0,
+        "papers": 0,
+        "passages": 0
+      }
+    },
+    "ran": true,
+    "valid": true
+  },
+  "schema": "oratlas.evidence-lineage-build-report/1"
+}

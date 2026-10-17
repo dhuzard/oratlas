@@ -43,6 +43,23 @@ export {
   type ExtractionProposalValidation,
 } from "./ai-proposals.js";
 export { extractSourceAssessmentDocuments } from "./source-assessment-documents.js";
+export {
+  projectSourceEvidenceLinks,
+  type ProjectSourceEvidenceLinksInput,
+  type SourceEvidenceCitationInput,
+  type SourceEvidenceRelationInput,
+} from "./source-evidence-links.js";
+export {
+  auditSourceEvidencePacket,
+  PACKET_AUDIT_CODES,
+  SUPPORTED_PACKET_SCHEMA,
+  type PacketAuditCode,
+  type PacketAuditIssue,
+  type PacketAuditResult,
+  type PacketFiles,
+  type PacketLineage,
+  type PacketLinkClaim,
+} from "./source-evidence-packet-audit.js";
 export { enrichCompatibilityFromZenodo, enrichMetadataFromZenodo } from "./zenodo-metadata.js";
 
 export interface FullExtraction extends ExtractionResult {

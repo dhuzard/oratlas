@@ -1,0 +1,114 @@
+{
+  "schema_version": "2.0.0",
+  "rubric_version": "2.0.0",
+  "generated_at": "2026-07-10T09:20:00Z",
+  "source": "knowledge/claim_graph.json",
+  "formula": "raw_score=5*sum(component_scores); overall_score=min(raw_score,60) when capped",
+  "claims": [
+    {
+      "claim_id": "clm_7659634fb095cdce",
+      "score_basis": {
+        "claim_text": "Optogenetic studies in mice indicate that activating fast-spiking or parvalbumin interneurons can amplify or generate cortical gamma rhythms, while gamma-cycle timing can shape sensory-response precision.",
+        "eligible_citations": [
+          { "cite_key": "Cardin2009", "doi": "10.1038/nature08002", "role": "direct_support", "source_type": "primary", "supports_claim_atoms": ["a1", "a2"], "verified_passage_locators": ["Abstract, page 1", "Abstract, page 1"], "independence_group": "deisseroth_optogenetics_2009", "scope_match": "exact" },
+          { "cite_key": "Sohal2009", "doi": "10.1038/nature07991", "role": "partial_support", "source_type": "primary", "supports_claim_atoms": ["a1"], "verified_passage_locators": ["Abstract"], "independence_group": "deisseroth_optogenetics_2009", "scope_match": "exact" }
+        ],
+        "atom_support": { "a1": ["Cardin2009", "Sohal2009"], "a2": ["Cardin2009"] },
+        "independence_groups_by_atom": { "a1": ["deisseroth_optogenetics_2009"], "a2": ["deisseroth_optogenetics_2009"] },
+        "derived_evidence_relation": "directly_supported",
+        "wording_strength": "qualified",
+        "wording_basis": { "wording_strength": "qualified", "rule_id": "SURFACE_HEDGE", "markers": ["indicate", "can", "can"] },
+        "modality": "likely",
+        "scope_status": "matched"
+      },
+      "component_scores": { "traceability": 4, "robustness": 2, "uncertainty_calibration": 4, "source_integrity": 4, "transferability_scope_control": 4 },
+      "component_rules": { "traceability": "T4_ATOM_LEVEL", "robustness": "R2_SINGLE_GROUP", "uncertainty_calibration": "U4_EXACT_CALIBRATION", "source_integrity": "S4_VERIFIED_PRIMARY", "transferability_scope_control": "X4_SCOPE_MATCHED" },
+      "raw_score": 90,
+      "overall_score": 90,
+      "trust_label": "high_trust",
+      "capped": false,
+      "cap_reasons": []
+    },
+    {
+      "claim_id": "clm_3ea62e8a65cbdb75",
+      "score_basis": {
+        "claim_text": "Gebru and colleagues proposed datasheets for datasets: a standard document recording a dataset's motivation, composition, collection process, recommended uses, and maintenance - modelled on the datasheets that accompany electronic components.",
+        "eligible_citations": [
+          { "cite_key": "gebru2021datasheets", "doi": "10.1145/3458723", "role": "direct_support", "source_type": "primary", "supports_claim_atoms": ["a1", "a2", "a3", "a4"], "verified_passage_locators": ["Abstract", "Abstract", "Section 1.1, Objectives", "Section 2, Electronics"], "independence_group": "gebru_etal_datasheets", "scope_match": "exact" }
+        ],
+        "atom_support": { "a1": ["gebru2021datasheets"], "a2": ["gebru2021datasheets"], "a3": ["gebru2021datasheets"], "a4": ["gebru2021datasheets"] },
+        "independence_groups_by_atom": { "a1": ["gebru_etal_datasheets"], "a2": ["gebru_etal_datasheets"], "a3": ["gebru_etal_datasheets"], "a4": ["gebru_etal_datasheets"] },
+        "derived_evidence_relation": "directly_supported",
+        "wording_strength": "unqualified",
+        "wording_basis": { "wording_strength": "unqualified", "rule_id": "SURFACE_ATTRIBUTION", "markers": ["proposed"] },
+        "modality": "established",
+        "scope_status": "matched"
+      },
+      "component_scores": { "traceability": 4, "robustness": 4, "uncertainty_calibration": 4, "source_integrity": 4, "transferability_scope_control": 4 },
+      "component_rules": { "traceability": "T4_ATOM_LEVEL", "robustness": "R4_ORIGINATING_SOURCE", "uncertainty_calibration": "U4_EXACT_CALIBRATION", "source_integrity": "S4_VERIFIED_PRIMARY", "transferability_scope_control": "X4_SCOPE_MATCHED" },
+      "raw_score": 100,
+      "overall_score": 100,
+      "trust_label": "high_trust",
+      "capped": false,
+      "cap_reasons": []
+    },
+    {
+      "claim_id": "clm_451ccab1daf492e4",
+      "score_basis": {
+        "claim_text": "Mitchell and colleagues added model cards: short reports of a model's intended use, its limitations, and - crucially - its performance broken out by subgroup and context rather than as a single headline number.",
+        "eligible_citations": [
+          { "cite_key": "mitchell2019modelcards", "doi": "10.1145/3287560.3287596", "role": "direct_support", "source_type": "primary", "supports_claim_atoms": ["a1", "a2", "a3", "a4"], "verified_passage_locators": ["Abstract", "Abstract", "Section 1, Introduction", "Section 1, Introduction"], "independence_group": "mitchell_etal_modelcards", "scope_match": "exact" }
+        ],
+        "atom_support": { "a1": ["mitchell2019modelcards"], "a2": ["mitchell2019modelcards"], "a3": ["mitchell2019modelcards"], "a4": ["mitchell2019modelcards"] },
+        "independence_groups_by_atom": { "a1": ["mitchell_etal_modelcards"], "a2": ["mitchell_etal_modelcards"], "a3": ["mitchell_etal_modelcards"], "a4": ["mitchell_etal_modelcards"] },
+        "derived_evidence_relation": "directly_supported",
+        "wording_strength": "unqualified",
+        "wording_basis": { "wording_strength": "unqualified", "rule_id": "SURFACE_ATTRIBUTION", "markers": ["added"] },
+        "modality": "established",
+        "scope_status": "matched"
+      },
+      "component_scores": { "traceability": 4, "robustness": 4, "uncertainty_calibration": 4, "source_integrity": 4, "transferability_scope_control": 4 },
+      "component_rules": { "traceability": "T4_ATOM_LEVEL", "robustness": "R4_ORIGINATING_SOURCE", "uncertainty_calibration": "U4_EXACT_CALIBRATION", "source_integrity": "S4_VERIFIED_PRIMARY", "transferability_scope_control": "X4_SCOPE_MATCHED" },
+      "raw_score": 100,
+      "overall_score": 100,
+      "trust_label": "high_trust",
+      "capped": false,
+      "cap_reasons": []
+    },
+    {
+      "claim_id": "clm_111c57f0f206705d",
+      "score_basis": {
+        "claim_text": "Bender and Friedman proposed data statements for language technology to document represented populations and dataset provenance; they argued that this practice could reduce bias and improve the precision of claims about generalization.",
+        "eligible_citations": [
+          { "cite_key": "benderfriedman2018datastatements", "doi": "10.1162/tacl_a_00041", "role": "direct_support", "source_type": "primary", "supports_claim_atoms": ["a1", "a2", "a3", "a4", "a5"], "verified_passage_locators": ["Abstract", "Section 3, Why Does NLP Need Data Statements?", "Section 5.1, Provenance Appendix", "Abstract", "Abstract"], "independence_group": "bender_friedman_datastatements", "scope_match": "exact" }
+        ],
+        "atom_support": { "a1": ["benderfriedman2018datastatements"], "a2": ["benderfriedman2018datastatements"], "a3": ["benderfriedman2018datastatements"], "a4": ["benderfriedman2018datastatements"], "a5": ["benderfriedman2018datastatements"] },
+        "independence_groups_by_atom": { "a1": ["bender_friedman_datastatements"], "a2": ["bender_friedman_datastatements"], "a3": ["bender_friedman_datastatements"], "a4": ["bender_friedman_datastatements"], "a5": ["bender_friedman_datastatements"] },
+        "derived_evidence_relation": "directly_supported",
+        "wording_strength": "unqualified",
+        "wording_basis": { "wording_strength": "unqualified", "rule_id": "SURFACE_ATTRIBUTION", "markers": ["proposed", "argued"] },
+        "modality": "established",
+        "scope_status": "matched"
+      },
+      "component_scores": { "traceability": 4, "robustness": 4, "uncertainty_calibration": 4, "source_integrity": 4, "transferability_scope_control": 4 },
+      "component_rules": { "traceability": "T4_ATOM_LEVEL", "robustness": "R4_ORIGINATING_SOURCE", "uncertainty_calibration": "U4_EXACT_CALIBRATION", "source_integrity": "S4_VERIFIED_PRIMARY", "transferability_scope_control": "X4_SCOPE_MATCHED" },
+      "raw_score": 100,
+      "overall_score": 100,
+      "trust_label": "high_trust",
+      "capped": false,
+      "cap_reasons": []
+    }
+  ],
+  "summary": {
+    "total_claims": 4,
+    "mean_overall_score": 97.5,
+    "minimum_overall_score": 90,
+    "maximum_overall_score": 100,
+    "high_trust": 4,
+    "moderate_trust": 0,
+    "low_trust": 0,
+    "critical_or_unreliable": 0,
+    "capped_claims": 0,
+    "needs_human_review": 0
+  }
+}

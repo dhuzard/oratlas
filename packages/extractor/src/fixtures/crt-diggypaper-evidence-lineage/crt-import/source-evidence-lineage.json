@@ -1,0 +1,564 @@
+{
+  "entries": [
+    {
+      "article": {
+        "authors": [
+          "Cardin, Jessica A.",
+          "Carlén, Marie",
+          "Meletis, Konstantinos",
+          "Knoblich, Ulf",
+          "Zhang, Feng",
+          "Deisseroth, Karl",
+          "Tsai, Li-Huei",
+          "Moore, Christopher I."
+        ],
+        "identifiers": {
+          "doi": "10.1038/nature08002",
+          "pmcid": "not-available",
+          "pmid": "not-available"
+        },
+        "paper_id": "paper:cardin2009",
+        "producer_ids": {
+          "article_ref": "article-cardin2009"
+        },
+        "rights": {
+          "full_text_included": false,
+          "license": "synthetic-fixture-text-only",
+          "redistribution": "allowed"
+        },
+        "source_snapshot": {
+          "sha256": "sha256:843fd947439a9e841d2f8055325a469f25eee1098b64d8fefc9d6ee047c800d1",
+          "snapshot_ref": "snapshot:cardin2009-1",
+          "state": "captured"
+        },
+        "source_type": "journal-article",
+        "title": "Driving Fast-Spiking Cells Induces Gamma Rhythm and Controls Sensory Responses"
+      },
+      "claim_source_passage_id": "passage:cardin2009-p1",
+      "doi": "10.1038/nature08002",
+      "field_report": [
+        {
+          "disposition": "mapped",
+          "field": "claim",
+          "reason": "wording origin reviewer-interpretation; not attributed to the article authors",
+          "source": "finding.statement"
+        },
+        {
+          "disposition": "mapped-verbatim",
+          "field": "claim_source_sentence",
+          "reason": "exact match; native assessment assessment:cardin2009-a1 records \"supports\"; the match is not itself support",
+          "source": "passage:cardin2009-p1"
+        },
+        {
+          "disposition": "mapped",
+          "field": "doi",
+          "reason": "normalized to lower case without resolver prefix",
+          "source": "paper.identifiers.doi"
+        },
+        {
+          "disposition": "unknown-kept",
+          "field": "study_system",
+          "reason": "the packet states the population is unknown; kept as the literal \"unknown\"",
+          "source": "context.population"
+        },
+        {
+          "disposition": "null-absent-in-packet",
+          "field": "effect_size",
+          "reason": "the contract has no effect-size field; none is computed or imputed"
+        },
+        {
+          "disposition": "null-absent-in-packet",
+          "field": "effect_size_source_sentence",
+          "reason": "no effect size is imported, so no sentence is attached to one"
+        },
+        {
+          "disposition": "null-absent-in-packet",
+          "field": "n",
+          "reason": "no numeric result with an n was exported"
+        },
+        {
+          "disposition": "constant",
+          "field": "replication_status",
+          "reason": "packet carries no replication data; independently-verified counts reviewers, not replications"
+        },
+        {
+          "disposition": "constant",
+          "field": "replication_evidence_dois",
+          "reason": "empty: no replication evidence in packet"
+        },
+        {
+          "disposition": "unknown-kept",
+          "field": "text_access",
+          "reason": "the packet does not record whether the passage comes from the abstract or the body, and this cannot be deduced from size or from a sentence appearing in both"
+        },
+        {
+          "disposition": "composed",
+          "field": "evidence",
+          "reason": "context and the packet's numeric results with their n-definitions, as written",
+          "source": "context, numeric_results"
+        }
+      ],
+      "finding": {
+        "context": {
+          "comparator": "unknown",
+          "experimental_unit": "unknown",
+          "exposure": "unknown",
+          "outcome": "unknown",
+          "population": "unknown",
+          "time": "unknown"
+        },
+        "created_at": "2026-01-01T00:00:00Z",
+        "export_state": "approved-for-export",
+        "finding_id": "finding:cardin2009-f1",
+        "numeric_results": [],
+        "origin": "reviewer-interpretation",
+        "producer_ids": {
+          "answer_ref": "answer-cardin2009-f1",
+          "evidence_refs": [
+            "evidence-cardin2009-p1"
+          ],
+          "prediction_ref": "prediction-lineage-fixture"
+        },
+        "review_state": "human-reviewed",
+        "revision": 1,
+        "statement": "[SYNTHETIC FIXTURE] Placeholder finding 1 of Cardin 2009; this is not text from the cited article.",
+        "verification_level": "source-verified"
+      },
+      "flags": [],
+      "native_assessments": [
+        {
+          "assessed_at": "2026-01-02T00:00:00Z",
+          "assessed_snapshot_sha256": "sha256:843fd947439a9e841d2f8055325a469f25eee1098b64d8fefc9d6ee047c800d1",
+          "assessment_id": "assessment:cardin2009-a1",
+          "passage_id": "passage:cardin2009-p1",
+          "producer_ids": {
+            "support_assessment_ref": "support-cardin2009-a1"
+          },
+          "protocol": "seip-support-v1",
+          "rationale": "Synthetic fixture rationale; no real reviewer judgment is represented.",
+          "reviewer_ref": "rv-0123456789abcdef",
+          "status": "supports"
+        }
+      ],
+      "package_index": 0,
+      "passages": [
+        {
+          "match": {
+            "matcher": "quote-matcher-v1",
+            "receipt_ref": "receipt:cardin2009-p1",
+            "status": "exact"
+          },
+          "passage_id": "passage:cardin2009-p1",
+          "producer_ids": {
+            "evidence_ref": "evidence-cardin2009-p1"
+          },
+          "quote": "[SYNTHETIC FIXTURE] Placeholder passage 1 of Cardin 2009; this is not text from the cited article.",
+          "quote_sha256": "sha256:33f8b15fe88f27d02fa7c23b6c86e447dc66229d39c15a916f6bd57d269b4ab2",
+          "quote_state": "included",
+          "source": {
+            "end": 198,
+            "snapshot_ref": "snapshot:cardin2009-1",
+            "start": 100,
+            "view_id": "view:text-v1"
+          }
+        }
+      ],
+      "phase2_finding_sha256": "sha256:ce56d9f5675353a1bd1861d8332e5a81cacd5b2469dbddde1e026a3e17dcd394"
+    },
+    {
+      "article": {
+        "authors": [
+          "Cardin, Jessica A.",
+          "Carlén, Marie",
+          "Meletis, Konstantinos",
+          "Knoblich, Ulf",
+          "Zhang, Feng",
+          "Deisseroth, Karl",
+          "Tsai, Li-Huei",
+          "Moore, Christopher I."
+        ],
+        "identifiers": {
+          "doi": "10.1038/nature08002",
+          "pmcid": "not-available",
+          "pmid": "not-available"
+        },
+        "paper_id": "paper:cardin2009",
+        "producer_ids": {
+          "article_ref": "article-cardin2009"
+        },
+        "rights": {
+          "full_text_included": false,
+          "license": "synthetic-fixture-text-only",
+          "redistribution": "allowed"
+        },
+        "source_snapshot": {
+          "sha256": "sha256:843fd947439a9e841d2f8055325a469f25eee1098b64d8fefc9d6ee047c800d1",
+          "snapshot_ref": "snapshot:cardin2009-1",
+          "state": "captured"
+        },
+        "source_type": "journal-article",
+        "title": "Driving Fast-Spiking Cells Induces Gamma Rhythm and Controls Sensory Responses"
+      },
+      "claim_source_passage_id": "passage:cardin2009-p2",
+      "doi": "10.1038/nature08002",
+      "field_report": [
+        {
+          "disposition": "mapped",
+          "field": "claim",
+          "reason": "wording origin reviewer-interpretation; not attributed to the article authors",
+          "source": "finding.statement"
+        },
+        {
+          "disposition": "mapped-verbatim",
+          "field": "claim_source_sentence",
+          "reason": "exact match; native assessment assessment:cardin2009-a2 records \"supports\"; the match is not itself support",
+          "source": "passage:cardin2009-p2"
+        },
+        {
+          "disposition": "mapped",
+          "field": "doi",
+          "reason": "normalized to lower case without resolver prefix",
+          "source": "paper.identifiers.doi"
+        },
+        {
+          "disposition": "unknown-kept",
+          "field": "study_system",
+          "reason": "the packet states the population is unknown; kept as the literal \"unknown\"",
+          "source": "context.population"
+        },
+        {
+          "disposition": "null-absent-in-packet",
+          "field": "effect_size",
+          "reason": "the contract has no effect-size field; none is computed or imputed"
+        },
+        {
+          "disposition": "null-absent-in-packet",
+          "field": "effect_size_source_sentence",
+          "reason": "no effect size is imported, so no sentence is attached to one"
+        },
+        {
+          "disposition": "null-absent-in-packet",
+          "field": "n",
+          "reason": "no numeric result with an n was exported"
+        },
+        {
+          "disposition": "constant",
+          "field": "replication_status",
+          "reason": "packet carries no replication data; independently-verified counts reviewers, not replications"
+        },
+        {
+          "disposition": "constant",
+          "field": "replication_evidence_dois",
+          "reason": "empty: no replication evidence in packet"
+        },
+        {
+          "disposition": "unknown-kept",
+          "field": "text_access",
+          "reason": "the packet does not record whether the passage comes from the abstract or the body, and this cannot be deduced from size or from a sentence appearing in both"
+        },
+        {
+          "disposition": "composed",
+          "field": "evidence",
+          "reason": "context and the packet's numeric results with their n-definitions, as written",
+          "source": "context, numeric_results"
+        }
+      ],
+      "finding": {
+        "context": {
+          "comparator": "unknown",
+          "experimental_unit": "unknown",
+          "exposure": "unknown",
+          "outcome": "unknown",
+          "population": "unknown",
+          "time": "unknown"
+        },
+        "created_at": "2026-01-01T00:00:00Z",
+        "export_state": "approved-for-export",
+        "finding_id": "finding:cardin2009-f2",
+        "numeric_results": [],
+        "origin": "reviewer-interpretation",
+        "producer_ids": {
+          "answer_ref": "answer-cardin2009-f2",
+          "evidence_refs": [
+            "evidence-cardin2009-p2"
+          ],
+          "prediction_ref": "prediction-lineage-fixture"
+        },
+        "review_state": "human-reviewed",
+        "revision": 1,
+        "statement": "[SYNTHETIC FIXTURE] Placeholder finding 2 of Cardin 2009; this is not text from the cited article.",
+        "verification_level": "human-reviewed"
+      },
+      "flags": [],
+      "native_assessments": [
+        {
+          "assessed_at": "2026-01-02T00:00:00Z",
+          "assessed_snapshot_sha256": "sha256:843fd947439a9e841d2f8055325a469f25eee1098b64d8fefc9d6ee047c800d1",
+          "assessment_id": "assessment:cardin2009-a2",
+          "passage_id": "passage:cardin2009-p2",
+          "producer_ids": {
+            "support_assessment_ref": "support-cardin2009-a2"
+          },
+          "protocol": "seip-support-v1",
+          "rationale": "Synthetic fixture rationale; no real reviewer judgment is represented.",
+          "reviewer_ref": "rv-0123456789abcdef",
+          "status": "supports"
+        }
+      ],
+      "package_index": 1,
+      "passages": [
+        {
+          "match": {
+            "matcher": "quote-matcher-v1",
+            "receipt_ref": "receipt:cardin2009-p2",
+            "status": "exact"
+          },
+          "passage_id": "passage:cardin2009-p2",
+          "producer_ids": {
+            "evidence_ref": "evidence-cardin2009-p2"
+          },
+          "quote": "[SYNTHETIC FIXTURE] Placeholder passage 2 of Cardin 2009; this is not text from the cited article.",
+          "quote_sha256": "sha256:40b49d5cc4db4dd7c5a36f508454a1db94baa28db485710bff8f73af60633177",
+          "quote_state": "included",
+          "source": {
+            "end": 498,
+            "snapshot_ref": "snapshot:cardin2009-1",
+            "start": 400,
+            "view_id": "view:text-v1"
+          }
+        }
+      ],
+      "phase2_finding_sha256": "sha256:caa9aa2c0c7435a7eec5373169747732799f9e371c25291526a7a65418cd4eea"
+    },
+    {
+      "article": {
+        "authors": [
+          "Sohal, Vikaas S.",
+          "Zhang, Feng",
+          "Yizhar, Ofer",
+          "Deisseroth, Karl"
+        ],
+        "identifiers": {
+          "doi": "10.1038/nature07991",
+          "pmcid": "not-available",
+          "pmid": "not-available"
+        },
+        "paper_id": "paper:sohal2009",
+        "producer_ids": {
+          "article_ref": "article-sohal2009"
+        },
+        "rights": {
+          "full_text_included": false,
+          "license": "synthetic-fixture-text-only",
+          "redistribution": "allowed"
+        },
+        "source_snapshot": {
+          "sha256": "sha256:d8a2f79e864b1c8b21dda391522573b8fac49cfb783180652a8d0bcb3180ffbb",
+          "snapshot_ref": "snapshot:sohal2009-1",
+          "state": "captured"
+        },
+        "source_type": "journal-article",
+        "title": "Parvalbumin Neurons and Gamma Rhythms Enhance Cortical Circuit Performance"
+      },
+      "claim_source_passage_id": "passage:sohal2009-p1",
+      "doi": "10.1038/nature07991",
+      "field_report": [
+        {
+          "disposition": "mapped",
+          "field": "claim",
+          "reason": "wording origin reviewer-interpretation; not attributed to the article authors",
+          "source": "finding.statement"
+        },
+        {
+          "disposition": "mapped-verbatim",
+          "field": "claim_source_sentence",
+          "reason": "exact match; native assessment assessment:sohal2009-a1 records \"supports\"; the match is not itself support",
+          "source": "passage:sohal2009-p1"
+        },
+        {
+          "disposition": "mapped",
+          "field": "doi",
+          "reason": "normalized to lower case without resolver prefix",
+          "source": "paper.identifiers.doi"
+        },
+        {
+          "disposition": "unknown-kept",
+          "field": "study_system",
+          "reason": "the packet states the population is unknown; kept as the literal \"unknown\"",
+          "source": "context.population"
+        },
+        {
+          "disposition": "null-absent-in-packet",
+          "field": "effect_size",
+          "reason": "the contract has no effect-size field; none is computed or imputed"
+        },
+        {
+          "disposition": "null-absent-in-packet",
+          "field": "effect_size_source_sentence",
+          "reason": "no effect size is imported, so no sentence is attached to one"
+        },
+        {
+          "disposition": "null-absent-in-packet",
+          "field": "n",
+          "reason": "no numeric result with an n was exported"
+        },
+        {
+          "disposition": "constant",
+          "field": "replication_status",
+          "reason": "packet carries no replication data; independently-verified counts reviewers, not replications"
+        },
+        {
+          "disposition": "constant",
+          "field": "replication_evidence_dois",
+          "reason": "empty: no replication evidence in packet"
+        },
+        {
+          "disposition": "unknown-kept",
+          "field": "text_access",
+          "reason": "the packet does not record whether the passage comes from the abstract or the body, and this cannot be deduced from size or from a sentence appearing in both"
+        },
+        {
+          "disposition": "composed",
+          "field": "evidence",
+          "reason": "context and the packet's numeric results with their n-definitions, as written",
+          "source": "context, numeric_results"
+        }
+      ],
+      "finding": {
+        "context": {
+          "comparator": "unknown",
+          "experimental_unit": "unknown",
+          "exposure": "unknown",
+          "outcome": "unknown",
+          "population": "unknown",
+          "time": "unknown"
+        },
+        "created_at": "2026-01-01T00:00:00Z",
+        "export_state": "approved-for-export",
+        "finding_id": "finding:sohal2009-f1",
+        "numeric_results": [],
+        "origin": "reviewer-interpretation",
+        "producer_ids": {
+          "answer_ref": "answer-sohal2009-f1",
+          "evidence_refs": [
+            "evidence-sohal2009-p1"
+          ],
+          "prediction_ref": "prediction-lineage-fixture"
+        },
+        "review_state": "human-reviewed",
+        "revision": 1,
+        "statement": "[SYNTHETIC FIXTURE] Placeholder finding 1 of Sohal 2009; this is not text from the cited article.",
+        "verification_level": "source-verified"
+      },
+      "flags": [],
+      "native_assessments": [
+        {
+          "assessed_at": "2026-01-02T00:00:00Z",
+          "assessed_snapshot_sha256": "sha256:d8a2f79e864b1c8b21dda391522573b8fac49cfb783180652a8d0bcb3180ffbb",
+          "assessment_id": "assessment:sohal2009-a1",
+          "passage_id": "passage:sohal2009-p1",
+          "producer_ids": {
+            "support_assessment_ref": "support-sohal2009-a1"
+          },
+          "protocol": "seip-support-v1",
+          "rationale": "Synthetic fixture rationale; no real reviewer judgment is represented.",
+          "reviewer_ref": "rv-0123456789abcdef",
+          "status": "supports"
+        }
+      ],
+      "package_index": 2,
+      "passages": [
+        {
+          "match": {
+            "matcher": "quote-matcher-v1",
+            "receipt_ref": "receipt:sohal2009-p1",
+            "status": "exact"
+          },
+          "passage_id": "passage:sohal2009-p1",
+          "producer_ids": {
+            "evidence_ref": "evidence-sohal2009-p1"
+          },
+          "quote": "[SYNTHETIC FIXTURE] Placeholder passage 1 of Sohal 2009; this is not text from the cited article.",
+          "quote_sha256": "sha256:01715d93d6283d31a26d05420711de58a6bd339d6c6356673e652308b42da813",
+          "quote_state": "included",
+          "source": {
+            "end": 197,
+            "snapshot_ref": "snapshot:sohal2009-1",
+            "start": 100,
+            "view_id": "view:text-v1"
+          }
+        }
+      ],
+      "phase2_finding_sha256": "sha256:c3efeca5dcf32801583501d61e407efaf1ac1d01a635a6960af86e14d8e31e7e"
+    }
+  ],
+  "immutable": true,
+  "importer": {
+    "min_verification": "human-reviewed",
+    "mode": "fixed_corpus_import",
+    "name": "import-source-evidence-packet",
+    "version": "0.1.0"
+  },
+  "packet": {
+    "access_scope": {
+      "level": "public",
+      "redistributable_full_text": false
+    },
+    "artifact_sha256": {
+      "assessments.jsonl": "sha256:d7d6b4c29ad4d674b5b35158e0a2623b9b996cfa862bc4829538ce95eb390aff",
+      "findings.jsonl": "sha256:b5bdb0dbab55add0797dc8494175c3d1718f75bfca45811f3ad157da551576c5",
+      "papers.jsonl": "sha256:78eff97bc9224ffb026722c7a38c55ce07377de7aa8599a20d3c3f9078d6b8f5",
+      "passages.jsonl": "sha256:ad16b0a6037f39a2616eca5f23dbcaf4a8bec915213c222790b5bf99c34c6239"
+    },
+    "created_at": "2026-01-01T00:00:00Z",
+    "creation_method": "synthetic-fixture",
+    "export_status": {
+      "reasons": [],
+      "state": "complete",
+      "withheld_counts": {
+        "assessments": 0,
+        "findings": 0,
+        "papers": 0,
+        "passages": 0
+      }
+    },
+    "licenses": [
+      {
+        "applies_to": "packet-metadata",
+        "license_id": "CC0-1.0"
+      },
+      {
+        "applies_to": "quotes",
+        "license_id": "unknown"
+      }
+    ],
+    "manifest_sha256": "sha256:57db54da7f2daa448ef3dda28b1921ef14d0475fa6270f3f4905c23027ded2a9",
+    "packet_id": "packet:oratlas-198-lineage-fixture",
+    "producer": {
+      "commit": "synthetic-fixture",
+      "name": "comprev-test-fixture-builder",
+      "schema_refs": [
+        {
+          "name": "evidence-envelope-v1",
+          "version": "1"
+        },
+        {
+          "name": "seip-support-v1",
+          "version": "1"
+        },
+        {
+          "name": "evidence-links-v1",
+          "version": "1"
+        }
+      ]
+    },
+    "schema_version": "source-evidence-packet/0.1.0"
+  },
+  "schema_version": "source-evidence-lineage/0.1.0",
+  "statements_not_made": [
+    "A matched quotation is not semantic support; only the native human assessments recorded in this file are judgments.",
+    "No claim is made that any finding was independently replicated or that the source article is validated.",
+    "Native Diggypaper assessment statuses are not ComputationalReviewTemplate TRUST levels and are not converted to them.",
+    "Source-paper findings are not review-authored claims; article authors are citation metadata, never the origin of a finding."
+  ]
+}

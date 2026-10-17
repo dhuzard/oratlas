@@ -1,0 +1,74 @@
+{
+  "access_scope": {
+    "level": "public",
+    "redistributable_full_text": false
+  },
+  "artifacts": {
+    "assessments": {
+      "bytes": 1541,
+      "path": "assessments.jsonl",
+      "record_count": 3,
+      "sha256": "sha256:d7d6b4c29ad4d674b5b35158e0a2623b9b996cfa862bc4829538ce95eb390aff"
+    },
+    "findings": {
+      "bytes": 2859,
+      "path": "findings.jsonl",
+      "record_count": 4,
+      "sha256": "sha256:b5bdb0dbab55add0797dc8494175c3d1718f75bfca45811f3ad157da551576c5"
+    },
+    "papers": {
+      "bytes": 1927,
+      "path": "papers.jsonl",
+      "record_count": 3,
+      "sha256": "sha256:78eff97bc9224ffb026722c7a38c55ce07377de7aa8599a20d3c3f9078d6b8f5"
+    },
+    "passages": {
+      "bytes": 2059,
+      "path": "passages.jsonl",
+      "record_count": 4,
+      "sha256": "sha256:ad16b0a6037f39a2616eca5f23dbcaf4a8bec915213c222790b5bf99c34c6239"
+    }
+  },
+  "created_at": "2026-01-01T00:00:00Z",
+  "creation_method": "synthetic-fixture",
+  "export_status": {
+    "reasons": [],
+    "state": "complete",
+    "withheld_counts": {
+      "assessments": 0,
+      "findings": 0,
+      "papers": 0,
+      "passages": 0
+    }
+  },
+  "licenses": [
+    {
+      "applies_to": "packet-metadata",
+      "license_id": "CC0-1.0"
+    },
+    {
+      "applies_to": "quotes",
+      "license_id": "unknown"
+    }
+  ],
+  "packet_id": "packet:oratlas-198-lineage-fixture",
+  "producer": {
+    "commit": "synthetic-fixture",
+    "name": "comprev-test-fixture-builder",
+    "schema_refs": [
+      {
+        "name": "evidence-envelope-v1",
+        "version": "1"
+      },
+      {
+        "name": "seip-support-v1",
+        "version": "1"
+      },
+      {
+        "name": "evidence-links-v1",
+        "version": "1"
+      }
+    ]
+  },
+  "schema_version": "source-evidence-packet/0.1.0"
+}
