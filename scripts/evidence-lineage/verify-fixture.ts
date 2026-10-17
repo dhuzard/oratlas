@@ -69,6 +69,21 @@ export function verifyFixture(): Check[] {
     packetSha256: link.packet_sha256!,
     sourceSha256: link.finding_source_sha256!,
     doi: link.doi ?? null,
+    declared: {
+      revision: link.finding_revision as unknown as number,
+      verificationLevel: link.verification_level as string,
+      passages: (link.passages as unknown as Array<Record<string, string>>).map((p) => ({
+        passageId: p.passage_id!,
+        quoteSha256: p.quote_sha256!,
+        quoteState: p.quote_state!,
+        matchStatus: p.match_status!,
+      })),
+      assessments: (link.assessments as unknown as Array<Record<string, string>>).map((a) => ({
+        assessmentId: a.assessment_id!,
+        protocol: a.protocol!,
+        status: a.status!,
+      })),
+    },
   }));
   add(
     "sidecar-binds-packet-digest",

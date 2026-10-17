@@ -7,6 +7,7 @@ import {
   sourceEvidenceLinksSchema,
   sourceNativeSidecarSchema,
   type SidecarEvidenceLink,
+  type SidecarPacketLocator,
   type SourceEvidenceLinkRejectionReason,
   type SourceEvidenceLinks,
 } from "@oratlas/contracts";
@@ -162,7 +163,14 @@ export function projectSourceEvidenceLinks(
   for (const group of byFinding.values()) {
     const identities = new Set(
       group.map((link) =>
-        [link.cite_key, link.finding_source_sha256, link.packet_id, link.packet_sha256].join("\0"),
+        [
+          link.cite_key,
+          link.finding_source_sha256,
+          link.packet_id,
+          link.packet_sha256,
+          link.finding_revision ?? "",
+          JSON.stringify(link.passages ?? null),
+        ].join("\0"),
       ),
     );
     if (identities.size > 1) for (const link of group) ambiguous.add(link);
@@ -244,15 +252,45 @@ export function projectSourceEvidenceLinks(
             producer: link.producer,
             packetId: link.packet_id,
             sourceSnapshotSha256: link.finding_source_sha256,
-            passageEvidence: "not-carried-by-sidecar" as const,
-            producerAssessment: "not-carried-by-sidecar" as const,
+            revision: link.finding_revision ?? null,
+            verificationLevel: link.verification_level ?? null,
+            passageEvidence: link.passages
+              ? ("declared-by-sidecar" as const)
+              : ("not-carried-by-sidecar" as const),
+            passages: link.passages
+              ? link.passages
+                  .map((passage) => ({
+                    passageId: passage.passage_id,
+                    quoteSha256: passage.quote_sha256,
+                    quoteState: passage.quote_state,
+                    matchStatus: passage.match_status,
+                  }))
+                  .sort((a, b) => compareText(a.passageId, b.passageId))
+              : null,
+            producerAssessment: link.assessments
+              ? ("declared-by-sidecar" as const)
+              : ("not-carried-by-sidecar" as const),
+            assessments: link.assessments
+              ? link.assessments
+                  .map((assessment) => ({
+                    assessmentId: assessment.assessment_id,
+                    protocol: assessment.protocol,
+                    status: assessment.status,
+                  }))
+                  .sort((a, b) => compareText(a.assessmentId, b.assessmentId))
+              : null,
           }))
           .sort((a, b) => compareText(a.findingId, b.findingId)),
       };
     });
 
-  const packets = new Map<string, string>();
-  for (const { link } of accepted.values()) packets.set(link.packet_id, link.packet_sha256);
+  const packets = new Map<string, { sha256: string; locator: SidecarPacketLocator | null }>();
+  for (const { link } of accepted.values()) {
+    packets.set(link.packet_id, {
+      sha256: link.packet_sha256,
+      locator: link.packet_locator ?? null,
+    });
+  }
 
   const trust = claimRecord.trust_v2;
   return sourceEvidenceLinksSchema.parse({
@@ -261,11 +299,12 @@ export function projectSourceEvidenceLinks(
     sidecar: sidecarDescriptor,
     packets: [...packets.entries()]
       .sort(([a], [b]) => compareText(a, b))
-      .map(([packetId, packetSha256]) => ({
+      .map(([packetId, { sha256: packetSha256, locator }]) => ({
         packetId,
         producer: "diggypaper",
         packetSha256,
-        availability: "location-not-declared",
+        locator: presentLocator(locator),
+        availability: locator ? "locator-declared" : "location-not-declared",
         contentsImportedByOratlas: false,
         contentsVerifiedByOratlas: false,
       })),
@@ -285,6 +324,28 @@ export function projectSourceEvidenceLinks(
       : null,
     labels: SOURCE_EVIDENCE_LABELS,
   });
+}
+
+/** Example DOIs (10.5555/…) are never offered as outbound links. */
+function presentLocator(locator: SidecarPacketLocator | null) {
+  if (!locator) return null;
+  if (locator.kind === "doi") {
+    const doiIsExample = /^10\.5555\//i.test(locator.doi);
+    return {
+      kind: "doi" as const,
+      doi: locator.doi,
+      url: null,
+      href: doiIsExample ? null : `https://doi.org/${locator.doi}`,
+      doiIsExample,
+    };
+  }
+  return {
+    kind: "github-release-asset" as const,
+    doi: null,
+    url: locator.url,
+    href: locator.url,
+    doiIsExample: false,
+  };
 }
 
 function sortRejected(rejected: SourceEvidenceLinks["rejected"]): SourceEvidenceLinks["rejected"] {

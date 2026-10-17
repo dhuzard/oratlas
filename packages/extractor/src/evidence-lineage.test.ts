@@ -82,7 +82,7 @@ describe("fixture pins and digests", () => {
     }
     expect(fixture.pins.pins.diggypaper!.commit).toBe("d7e97e375de75c4e67cd94e0f4efb078f8f4282f");
     expect(fixture.pins.pins.computationalReviewTemplate!.commit).toBe(
-      "47b7acd20b7bde65d61ea23d584ef0d300400d28",
+      "26db287c551df591a3cd9a9c880719d3b9918b30",
     );
     expect(fixture.pins.pins.oratlas!.commit).toBe("9cd3a0c284400b30dd0044cf3acb24df1047275d");
   });
@@ -219,18 +219,37 @@ describe("claim → citations → producer findings (sidecar projection)", () =>
     expect(sohal.findings[0]!.sourceSnapshotSha256).not.toBe(
       cardin.findings[0]!.sourceSnapshotSha256,
     );
-    // Hard limits stated, not flattened away.
-    for (const finding of links.citations.flatMap((citation) => citation.findings)) {
-      expect(finding).toMatchObject({
-        producer: "diggypaper",
-        passageEvidence: "not-carried-by-sidecar",
-        producerAssessment: "not-carried-by-sidecar",
-      });
-    }
+    // Passage-level data is the producer's declaration: digests and match state, never quote text.
+    const first = cardin.findings[0]!;
+    expect(first).toMatchObject({
+      producer: "diggypaper",
+      revision: 1,
+      verificationLevel: "source-verified",
+      passageEvidence: "declared-by-sidecar",
+      producerAssessment: "declared-by-sidecar",
+      passages: [
+        {
+          passageId: "passage:cardin2009-p1",
+          quoteSha256: expect.stringMatching(/^sha256:[0-9a-f]{64}$/),
+          quoteState: "included",
+          matchStatus: "exact",
+        },
+      ],
+      assessments: [{ protocol: "seip-support-v1", status: "supports" }],
+    });
+    expect(JSON.stringify(links)).not.toContain("SYNTHETIC FIXTURE]");
+    // An example DOI locator is declared but never offered as an outbound link.
     expect(links.packets).toEqual([
       expect.objectContaining({
         packetId: "packet:oratlas-198-lineage-fixture",
-        availability: "location-not-declared",
+        availability: "locator-declared",
+        locator: {
+          kind: "doi",
+          doi: "10.5555/oratlas.fixture.packet",
+          url: null,
+          href: null,
+          doiIsExample: true,
+        },
         contentsImportedByOratlas: false,
         contentsVerifiedByOratlas: false,
       }),
@@ -287,6 +306,106 @@ describe("claim → citations → producer findings (sidecar projection)", () =>
     });
     expect(links.citations.flatMap((citation) => citation.findings)).toHaveLength(3);
     expect(links.rejected).toEqual([]);
+  });
+});
+
+describe("packet locator and schema compatibility", () => {
+  const edit = (change: (links: Array<Record<string, unknown>>) => void) =>
+    project(fixture.reviewFiles, LINEAGE_CLAIM_ID, (sidecar) =>
+      change(sidecar.evidence_links as Array<Record<string, unknown>>),
+    );
+
+  it("links a real DOI locator through doi.org and a GitHub release asset as declared", () => {
+    const doi = edit((records) => {
+      for (const record of records)
+        record.packet_locator = { kind: "doi", doi: "10.5281/zenodo.1234567" };
+    });
+    expect(doi.packets[0]).toMatchObject({
+      availability: "locator-declared",
+      locator: {
+        doi: "10.5281/zenodo.1234567",
+        href: "https://doi.org/10.5281/zenodo.1234567",
+        doiIsExample: false,
+      },
+    });
+    const url = "https://github.com/org/packets/releases/download/v1.0.0/packet.tar";
+    const asset = edit((records) => {
+      for (const record of records) record.packet_locator = { kind: "github-release-asset", url };
+    });
+    expect(asset.packets[0]!.locator).toMatchObject({
+      kind: "github-release-asset",
+      url,
+      href: url,
+    });
+  });
+
+  it("rejects look-alike or non-https locators as invalid link records", () => {
+    for (const url of [
+      "http://github.com/org/r/releases/download/v1/p",
+      "https://github.com/org/r/blob/main/p",
+      "https://evil.example/https://github.com/org/r/releases/download/v1/p",
+      "https://github.com/org/r/releases/download/v1/p?x=1",
+    ]) {
+      const links = edit((records) => {
+        records[0]!.packet_locator = { kind: "github-release-asset", url };
+      });
+      expect(links.rejected, url).toContainEqual({
+        findingId: "finding:cardin2009-f1",
+        citeKey: "Cardin2009",
+        reason: "invalid-link-record",
+      });
+    }
+  });
+
+  it("still projects a links/1 sidecar and says passage data is not carried", () => {
+    const links = edit((records) => {
+      for (const record of records) {
+        for (const key of [
+          "packet_locator",
+          "finding_revision",
+          "verification_level",
+          "passages",
+          "assessments",
+        ]) {
+          delete record[key];
+        }
+      }
+    });
+    expect(links.status).toBe("linked");
+    expect(links.packets[0]).toMatchObject({
+      availability: "location-not-declared",
+      locator: null,
+    });
+    expect(links.citations[0]!.findings[0]).toMatchObject({
+      revision: null,
+      verificationLevel: null,
+      passageEvidence: "not-carried-by-sidecar",
+      passages: null,
+      producerAssessment: "not-carried-by-sidecar",
+      assessments: null,
+    });
+  });
+
+  it("rejects a record that declares passage fields only partly", () => {
+    const links = edit((records) => {
+      delete records[0]!.passages;
+    });
+    expect(links.rejected).toContainEqual({
+      findingId: "finding:cardin2009-f1",
+      citeKey: "Cardin2009",
+      reason: "invalid-link-record",
+    });
+  });
+
+  it("treats two declared revisions of one finding as ambiguous", () => {
+    const links = edit((records) => {
+      records.push({ ...records[0]!, finding_revision: 2 });
+    });
+    expect(
+      links.rejected
+        .filter((link) => link.findingId === "finding:cardin2009-f1")
+        .map((l) => l.reason),
+    ).toEqual(["ambiguous-source-relationship", "ambiguous-source-relationship"]);
   });
 });
 
@@ -454,6 +573,21 @@ describe("externally preserved packet resolves to the exact passage and snapshot
       packetSha256: link.packet_sha256 as string,
       sourceSha256: link.finding_source_sha256 as string,
       doi: link.doi,
+      declared: {
+        revision: link.finding_revision as unknown as number,
+        verificationLevel: link.verification_level as string,
+        passages: (link.passages as unknown as Array<Record<string, string>>).map((p) => ({
+          passageId: p.passage_id!,
+          quoteSha256: p.quote_sha256!,
+          quoteState: p.quote_state!,
+          matchStatus: p.match_status!,
+        })),
+        assessments: (link.assessments as unknown as Array<Record<string, string>>).map((a) => ({
+          assessmentId: a.assessment_id!,
+          protocol: a.protocol!,
+          status: a.status!,
+        })),
+      },
     }));
   };
   const withPacket = (edit: (files: Record<string, string>) => void) => {
@@ -493,6 +627,44 @@ describe("externally preserved packet resolves to the exact passage and snapshot
     });
     // Native Diggypaper judgments stay Diggypaper judgments: no TRUST vocabulary appears.
     expect(JSON.stringify(result.lineage)).not.toMatch(/trust/i);
+  });
+
+  it("checks the sidecar's passage-level declaration against the packet", () => {
+    const declaredClaims = claims();
+    const bent = (change: (claim: PacketLinkClaim) => void) => {
+      const copy = structuredClone(declaredClaims);
+      change(copy[0]!);
+      return codes(auditSourceEvidencePacket(fixture.packetFiles, copy));
+    };
+    expect(
+      bent((c) => (c.declared!.passages[0]!.quoteSha256 = `sha256:${"0".repeat(64)}`)),
+    ).toContain("passage-declaration-mismatch");
+    expect(bent((c) => (c.declared!.passages[0]!.matchStatus = "ambiguous"))).toContain(
+      "passage-declaration-mismatch",
+    );
+    expect(
+      bent((c) =>
+        c.declared!.passages.push({ ...c.declared!.passages[0]!, passageId: "passage:x" }),
+      ),
+    ).toContain("passage-set-mismatch");
+    expect(bent((c) => (c.declared!.verificationLevel = "independently-verified"))).toContain(
+      "verification-level-mismatch",
+    );
+    expect(bent((c) => (c.declared!.assessments[0]!.status = "contradicts"))).toContain(
+      "assessment-set-mismatch",
+    );
+    expect(bent((c) => (c.declared!.revision = 2))).toContain("finding-not-in-packet");
+  });
+
+  it("flags a declaration that a later packet revision has superseded", () => {
+    const files = { ...fixture.packetFiles };
+    const records = lines(files["findings.jsonl"]!);
+    records.push({ ...records[0], revision: 2 });
+    files["findings.jsonl"] = `${records
+      .map((r) => JSON.stringify(Object.fromEntries(Object.entries(r).sort())))
+      .join("\n")}\n`;
+    const result = auditSourceEvidencePacket(files, claims());
+    expect(codes(result)).toContain("finding-superseded");
   });
 
   it("matches the packet digest the sidecar declares", () => {

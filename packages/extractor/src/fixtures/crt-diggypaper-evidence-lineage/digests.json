@@ -33,8 +33,8 @@
       "sha256": "ad16b0a6037f39a2616eca5f23dbcaf4a8bec915213c222790b5bf99c34c6239"
     },
     "pins.json": {
-      "bytes": 1419,
-      "sha256": "41cd7572b1be6654dc15083a4bba7a6a4f54d2dd17408e6b58681a5b5e7a64e9"
+      "bytes": 1435,
+      "sha256": "0dfa97501417be08a04d3fd32ef42161052823841dd29d0fec013dc55a758157"
     },
     "review-repo/content/references.bib": {
       "bytes": 1899,
@@ -45,8 +45,8 @@
       "sha256": "9a1fae3b0815164005d862bab81f08d44a377c47d24d92c2cbe7e140973beba0"
     },
     "review-repo/knowledge/evidence-links.json": {
-      "bytes": 1075,
-      "sha256": "60239a6a4ff02ecca3b3ac484de78d4dcb51aea213927059c438e04508f1b46b"
+      "bytes": 2738,
+      "sha256": "1dbc24893b31ea883b80bb301f23de0ab1567233e42497790b083d765a06151c"
     },
     "review-repo/knowledge/oratlas/citations.jsonl": {
       "bytes": 1775,
@@ -58,15 +58,15 @@
     },
     "review-repo/knowledge/oratlas/compatibility-report.json": {
       "bytes": 3928,
-      "sha256": "bd73ec6f3f91d2a3504b17e64ee21ba2b37dd6a60d29fd08feb53b42d21757e0"
+      "sha256": "dd42dd915bd44e3d50d5d68124b1321cf974692e2a4565bd35fc17e4bd947885"
     },
     "review-repo/knowledge/oratlas/relations.jsonl": {
       "bytes": 1090,
       "sha256": "01905e6f9fa2abc756183ae59ed1ab194d13e2d770cb7dbe47d91680232a621b"
     },
     "review-repo/knowledge/oratlas/source-native-trust.json": {
-      "bytes": 55335,
-      "sha256": "b3ff60659fc85144408d77fded1ccf3976c84febfebb02173d8777a4148b4f3b"
+      "bytes": 59763,
+      "sha256": "0d7c450ca1462956b31a1239c9456d2eacfc0411881e4529053cdb71b835e127"
     },
     "review-repo/knowledge/trust_score_report.json": {
       "bytes": 8515,

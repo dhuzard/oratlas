@@ -23,6 +23,18 @@ export interface PacketLinkClaim {
   /** Hex SHA-256 of the cited article's source snapshot, as declared by the sidecar. */
   sourceSha256: string;
   doi: string | null;
+  /** Passage-level declaration from a `comprev.evidence-packet-links/2` sidecar, when present. */
+  declared?: {
+    revision: number;
+    verificationLevel: string;
+    passages: Array<{
+      passageId: string;
+      quoteSha256: string;
+      quoteState: string;
+      matchStatus: string;
+    }>;
+    assessments: Array<{ assessmentId: string; protocol: string; status: string }>;
+  };
 }
 
 export const PACKET_AUDIT_CODES = [
@@ -47,6 +59,11 @@ export const PACKET_AUDIT_CODES = [
   "quote-hash-mismatch",
   "restricted-quote-leak",
   "assessment-snapshot-mismatch",
+  "finding-superseded",
+  "verification-level-mismatch",
+  "passage-set-mismatch",
+  "passage-declaration-mismatch",
+  "assessment-set-mismatch",
 ] as const;
 export type PacketAuditCode = (typeof PACKET_AUDIT_CODES)[number];
 
@@ -207,8 +224,20 @@ export function auditSourceEvidencePacket(
   const lineage: PacketLineage[] = [];
   for (const link of links) {
     const before = issues.length;
-    const revisions = records.findings.filter((finding) => finding.finding_id === link.findingId);
-    const finding = revisions.sort((a, b) => Number(b.revision) - Number(a.revision))[0];
+    const revisions = records.findings
+      .filter((finding) => finding.finding_id === link.findingId)
+      .sort((a, b) => Number(b.revision) - Number(a.revision));
+    // A declared revision is audited exactly; a later revision makes the declaration stale.
+    const finding = link.declared
+      ? revisions.find((candidate) => candidate.revision === link.declared!.revision)
+      : revisions[0];
+    if (finding && revisions[0] !== finding) {
+      add(
+        "finding-superseded",
+        `A later revision of '${link.findingId}' exists in the packet.`,
+        link.findingId,
+      );
+    }
     if (!finding) {
       add(
         "finding-not-in-packet",
@@ -328,6 +357,62 @@ export function auditSourceEvidencePacket(
         passageId: str(assessment.passage_id),
         assessedSnapshotSha256: str(assessment.assessed_snapshot_sha256),
       });
+    }
+
+    if (link.declared) {
+      const declared = link.declared;
+      if (str(finding.verification_level) !== declared.verificationLevel) {
+        add(
+          "verification-level-mismatch",
+          "The packet's verification level differs from the declaration.",
+          link.findingId,
+        );
+      }
+      const actualIds = passages
+        .map((passage) => passage.passageId)
+        .sort()
+        .join("\0");
+      const declaredIds = declared.passages
+        .map((passage) => passage.passageId)
+        .sort()
+        .join("\0");
+      if (actualIds !== declaredIds) {
+        add(
+          "passage-set-mismatch",
+          "The packet's passages for this finding differ from the declared set.",
+          link.findingId,
+        );
+      }
+      for (const claimed of declared.passages) {
+        const actual = passages.find((passage) => passage.passageId === claimed.passageId);
+        if (
+          actual &&
+          (actual.quoteSha256 !== claimed.quoteSha256 ||
+            actual.quoteState !== claimed.quoteState ||
+            actual.matchStatus !== claimed.matchStatus)
+        ) {
+          add(
+            "passage-declaration-mismatch",
+            `Passage '${claimed.passageId}' differs from its declared digest or match state.`,
+            link.findingId,
+          );
+        }
+      }
+      const key = (items: Array<{ id: string; status: string }>) =>
+        items
+          .map((item) => `${item.id}=${item.status}`)
+          .sort()
+          .join("\0");
+      if (
+        key(assessments.map((a) => ({ id: a.assessmentId, status: a.status }))) !==
+        key(declared.assessments.map((a) => ({ id: a.assessmentId, status: a.status })))
+      ) {
+        add(
+          "assessment-set-mismatch",
+          "The packet's native assessments differ from the declared set.",
+          link.findingId,
+        );
+      }
     }
 
     if (issues.length === before) {

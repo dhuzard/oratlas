@@ -16,7 +16,7 @@
  *   1. synthesize a source-evidence-packet/0.1.0 using the Template's packet writer;
  *   2. validate it with Diggypaper's reference validator (sep_validate.py, when python is present);
  *   3. import it with the Template's S2 importer          → source-evidence-lineage.json
- *   4. bridge accepted lineage entries to the S3 exporter's `comprev.evidence-packet-links/1`;
+ *   4. bridge accepted lineage entries to `comprev.evidence-packet-links/2` (CRT's lineage-to-links);
  *   5. export with the Template's S3 exporter             → review-manifest.json + knowledge/oratlas/*
  */
 import { Buffer } from "node:buffer";
@@ -52,8 +52,8 @@ export const PINS = {
   },
   computationalReviewTemplate: {
     repository: "https://github.com/Neuronautix/ComputationalReviewTemplate_trust-knowledge",
-    commit: "47b7acd20b7bde65d61ea23d584ef0d300400d28",
-    role: "S2 importer (scripts/source-evidence) and S3 ORAtlas exporter (scripts/oratlas)",
+    commit: "26db287c551df591a3cd9a9c880719d3b9918b30",
+    role: "S2 importer, links/2 bridge (scripts/source-evidence) and S3 ORAtlas exporter (scripts/oratlas)",
   },
   oratlas: {
     repository: "https://github.com/dhuzard/oratlas",
@@ -79,6 +79,12 @@ function baselineDigests() {
     ]),
   );
 }
+
+/**
+ * The fixture packet is not deposited anywhere. An example DOI keeps that honest: ORAtlas never links
+ * a 10.5555/ identifier outward, so the locator path is exercised without implying a real deposit.
+ */
+export const PACKET_LOCATOR = { kind: "doi", doi: "10.5555/oratlas.fixture.packet" };
 
 const REVIEW_REPOSITORY_URL = PINS.computationalReviewTemplate.repository;
 const TS = "2026-01-01T00:00:00Z";
@@ -261,59 +267,6 @@ export function packetRecords(citations) {
   return { papers, findings, passages, assessments };
 }
 
-/**
- * Bridge an S2 `source-evidence-lineage.json` to the S3 exporter's links file. Only accepted
- * entries are linked; a finding is bound to a review citation by exact DOI equality alone. A DOI
- * that maps to no citation or to several citations yields no link and a recorded skip reason.
- */
-export function bridgeLineageToLinks(lineage, claimGraph) {
-  const keysByDoi = new Map();
-  const claimsByKey = new Map();
-  for (const claim of claimGraph.claims) {
-    for (const context of claim.citation_contexts ?? []) {
-      const doi = String(context.doi ?? "").toLowerCase();
-      if (doi) keysByDoi.set(doi, new Set([...(keysByDoi.get(doi) ?? []), context.cite_key]));
-      claimsByKey.set(
-        context.cite_key,
-        new Set([...(claimsByKey.get(context.cite_key) ?? []), claim.claim_id]),
-      );
-    }
-  }
-  const findings = [];
-  const skipped = [];
-  for (const entry of lineage.entries) {
-    const findingId = entry.finding.finding_id;
-    const keys = [...(keysByDoi.get(String(entry.doi).toLowerCase()) ?? [])];
-    if (keys.length !== 1) {
-      skipped.push({
-        finding_id: findingId,
-        reason: keys.length === 0 ? "doi-not-cited-by-review" : "doi-maps-to-multiple-citations",
-      });
-      continue;
-    }
-    findings.push({
-      finding_id: findingId,
-      source_sha256: entry.article.source_snapshot.sha256.replace(/^sha256:/u, ""),
-      cite_key: keys[0],
-      doi: entry.doi,
-      claim_ids: [...claimsByKey.get(keys[0])].sort(),
-    });
-  }
-  findings.sort((a, b) => (a.finding_id < b.finding_id ? -1 : 1));
-  return {
-    links: {
-      schema: "comprev.evidence-packet-links/1",
-      producer: "diggypaper",
-      packet: {
-        id: lineage.packet.packet_id,
-        sha256: lineage.packet.manifest_sha256.replace(/^sha256:/u, ""),
-      },
-      findings,
-    },
-    skipped,
-  };
-}
-
 function listFiles(dir) {
   const out = [];
   const walk = (current) => {
@@ -401,7 +354,10 @@ async function build({ crtDir, diggypaperDir, out }) {
   rmSync(join(importDir, "cluster_evidence.json"));
 
   // 4. bridge.
-  const { links, skipped } = bridgeLineageToLinks(lineage, claimGraph);
+  const { lineageToLinks } = await import(
+    pathToFileURL(join(crtDir, "scripts/source-evidence/lineage-to-links.mjs")).href
+  );
+  const { links, skipped } = lineageToLinks(lineage, claimGraph, { locator: PACKET_LOCATOR });
   const reviewDir = join(out, "review-repo");
   for (const path of [
     "knowledge/claim_graph.json",

@@ -8,9 +8,9 @@
   },
   "pins": {
     "computationalReviewTemplate": {
-      "commit": "47b7acd20b7bde65d61ea23d584ef0d300400d28",
+      "commit": "26db287c551df591a3cd9a9c880719d3b9918b30",
       "repository": "https://github.com/Neuronautix/ComputationalReviewTemplate_trust-knowledge",
-      "role": "S2 importer (scripts/source-evidence) and S3 ORAtlas exporter (scripts/oratlas)"
+      "role": "S2 importer, links/2 bridge (scripts/source-evidence) and S3 ORAtlas exporter (scripts/oratlas)"
     },
     "diggypaper": {
       "commit": "d7e97e375de75c4e67cd94e0f4efb078f8f4282f",

@@ -20,18 +20,91 @@ export const SOURCE_EVIDENCE_LINKS_SCHEMA_VERSION = "1.0.0";
 
 const sha256HexSchema = z.string().regex(/^[0-9a-f]{64}$/);
 
-/** One consumed `evidence_links[]` record. Unknown keys are tolerated and dropped. */
-export const sidecarEvidenceLinkSchema = z.object({
-  level: z.literal("producer_finding"),
-  producer: z.literal("diggypaper"),
-  packet_id: z.string().min(1).max(200),
-  packet_sha256: sha256HexSchema,
-  finding_id: z.string().min(1).max(200),
-  finding_source_sha256: sha256HexSchema,
-  cite_key: z.string().min(1).max(300),
-  doi: z.string().min(1).max(300).nullable(),
-  linked_review_claim_ids: z.array(z.string().min(1).max(300)).min(1).max(500),
+/**
+ * Where the exact external packet can be fetched, as declared by the producer. Only a DOI (for
+ * example a Zenodo deposit) or a GitHub release asset is accepted. The packet digest, not the
+ * locator, decides authenticity.
+ */
+export const GITHUB_RELEASE_ASSET_URL =
+  /^https:\/\/github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+\/releases\/download\/[^/\s?#]+\/[^/\s?#]+$/;
+export const sidecarPacketLocatorSchema = z.discriminatedUnion("kind", [
+  z.object({
+    kind: z.literal("doi"),
+    doi: z
+      .string()
+      .regex(/^10\.\d{4,9}\/\S+$/)
+      .max(300),
+  }),
+  z.object({
+    kind: z.literal("github-release-asset"),
+    url: z.string().max(500).regex(GITHUB_RELEASE_ASSET_URL),
+  }),
+]);
+export type SidecarPacketLocator = z.infer<typeof sidecarPacketLocatorSchema>;
+
+const taggedSha256Schema = z.string().regex(/^sha256:[0-9a-f]{64}$/);
+export const PACKET_VERIFICATION_LEVELS = [
+  "unverified",
+  "human-reviewed",
+  "source-verified",
+  "independently-verified",
+] as const;
+export const PACKET_MATCH_STATUSES = [
+  "exact",
+  "normalized",
+  "not_found",
+  "ambiguous",
+  "invalid",
+  "source_unavailable",
+  "not_checked",
+  "incomplete",
+] as const;
+
+export const sidecarPassageSchema = z.object({
+  passage_id: z.string().min(1).max(200),
+  quote_sha256: taggedSha256Schema,
+  quote_state: z.enum(["included", "withheld-rights"]),
+  match_status: z.enum(PACKET_MATCH_STATUSES),
 });
+export const sidecarAssessmentSchema = z.object({
+  assessment_id: z.string().min(1).max(200),
+  protocol: z.literal("seip-support-v1"),
+  status: z.string().min(1).max(60),
+});
+
+/**
+ * One consumed `evidence_links[]` record. Unknown keys are tolerated and dropped. The passage-level
+ * fields exist only in `comprev.evidence-packet-links/2` exports; a `/1` record is still valid and
+ * is projected with those fields explicitly marked as not carried.
+ */
+export const sidecarEvidenceLinkSchema = z
+  .object({
+    level: z.literal("producer_finding"),
+    producer: z.literal("diggypaper"),
+    packet_id: z.string().min(1).max(200),
+    packet_sha256: sha256HexSchema,
+    packet_locator: sidecarPacketLocatorSchema.nullable().optional(),
+    finding_id: z.string().min(1).max(200),
+    finding_revision: z.number().int().min(1).optional(),
+    finding_source_sha256: sha256HexSchema,
+    cite_key: z.string().min(1).max(300),
+    doi: z.string().min(1).max(300).nullable(),
+    linked_review_claim_ids: z.array(z.string().min(1).max(300)).min(1).max(500),
+    verification_level: z.enum(PACKET_VERIFICATION_LEVELS).optional(),
+    passages: z.array(sidecarPassageSchema).min(1).max(200).optional(),
+    assessments: z.array(sidecarAssessmentSchema).max(200).optional(),
+  })
+  .superRefine((link, context) => {
+    const declared = [link.finding_revision, link.verification_level, link.passages].filter(
+      (value) => value !== undefined,
+    ).length;
+    if (declared !== 0 && declared !== 3) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Passage-level fields must be declared together or not at all.",
+      });
+    }
+  });
 export type SidecarEvidenceLink = z.infer<typeof sidecarEvidenceLinkSchema>;
 
 export const sidecarNativeTrustSchema = z.object({
@@ -105,9 +178,9 @@ export const SOURCE_EVIDENCE_LABELS = {
   producer:
     "Producer finding: a statement about the cited article, recorded in an external Diggypaper evidence packet. It is not a claim of this review.",
   packet:
-    "ORAtlas has not imported or verified the contents of this packet; the identifier and digest are the producer's declaration as carried by the review's sidecar.",
+    "ORAtlas has not imported or verified the contents of this packet; the identifier, digest and location are the producer's declaration as carried by the review's sidecar.",
   passage:
-    "Passage-level evidence (quote, match state, native support judgment) is not carried by the sidecar and is not shown here; resolve it in the external packet.",
+    "Passage digests, match states and native support judgments, where shown, are the producer's declaration in the sidecar. Quote text is never shown. To check a digest, fetch the packet from its declared location and hash it; ORAtlas has not.",
   nativeAssessment:
     "Source-native Computational Review TRUST v2 as exported by the review repository. It is not an ORAtlas TRUST assessment, is not converted to one, and does not affect ORAtlas verification.",
 } as const;
@@ -118,8 +191,35 @@ export const sourceEvidenceLinkedFindingSchema = z.object({
   packetId: z.string(),
   /** Producer-declared digest of the cited article's source snapshot, as carried by the sidecar. */
   sourceSnapshotSha256: sha256HexSchema,
-  passageEvidence: z.literal("not-carried-by-sidecar"),
-  producerAssessment: z.literal("not-carried-by-sidecar"),
+  /** Null when the sidecar predates `comprev.evidence-packet-links/2`. */
+  revision: z.number().int().min(1).nullable(),
+  verificationLevel: z.enum(PACKET_VERIFICATION_LEVELS).nullable(),
+  /**
+   * `declared-by-sidecar`: passage digests and match state are the producer's declaration; quote
+   * text is never carried. `not-carried-by-sidecar`: the sidecar has no passage data.
+   */
+  passageEvidence: z.enum(["declared-by-sidecar", "not-carried-by-sidecar"]),
+  passages: z
+    .array(
+      z.object({
+        passageId: z.string(),
+        quoteSha256: taggedSha256Schema,
+        quoteState: z.enum(["included", "withheld-rights"]),
+        matchStatus: z.enum(PACKET_MATCH_STATUSES),
+      }),
+    )
+    .nullable(),
+  /** Native Diggypaper `seip-support-v1` judgments; never an ORAtlas assessment. */
+  producerAssessment: z.enum(["declared-by-sidecar", "not-carried-by-sidecar"]),
+  assessments: z
+    .array(
+      z.object({
+        assessmentId: z.string(),
+        protocol: z.literal("seip-support-v1"),
+        status: z.string(),
+      }),
+    )
+    .nullable(),
 });
 export type SourceEvidenceLinkedFinding = z.infer<typeof sourceEvidenceLinkedFindingSchema>;
 
@@ -139,8 +239,20 @@ export const sourceEvidencePacketSchema = z.object({
   packetId: z.string(),
   producer: z.literal("diggypaper"),
   packetSha256: sha256HexSchema,
-  /** The sidecar declares no packet location, so none is shown; the packet is not retrievable here. */
-  availability: z.literal("location-not-declared"),
+  /**
+   * The producer's declared location, if any. `href` is set only where it is safe to link: never for
+   * an example DOI.
+   */
+  locator: z
+    .object({
+      kind: z.enum(["doi", "github-release-asset"]),
+      doi: z.string().nullable(),
+      url: z.string().nullable(),
+      href: z.string().nullable(),
+      doiIsExample: z.boolean(),
+    })
+    .nullable(),
+  availability: z.enum(["locator-declared", "location-not-declared"]),
   contentsImportedByOratlas: z.literal(false),
   contentsVerifiedByOratlas: z.literal(false),
 });

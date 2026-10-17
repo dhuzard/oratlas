@@ -2603,7 +2603,17 @@ components:
               packetId: { type: string }
               producer: { type: string, enum: [diggypaper] }
               packetSha256: { type: string, pattern: "^[0-9a-f]{64}$" }
-              availability: { type: string, enum: [location-not-declared] }
+              locator:
+                type: [object, "null"]
+                additionalProperties: false
+                required: [kind, doi, url, href, doiIsExample]
+                properties:
+                  kind: { type: string, enum: [doi, github-release-asset] }
+                  doi: { type: [string, "null"] }
+                  url: { type: [string, "null"] }
+                  href: { type: [string, "null"] }
+                  doiIsExample: { type: boolean }
+              availability: { type: string, enum: [locator-declared, location-not-declared] }
               contentsImportedByOratlas: { type: boolean, enum: [false] }
               contentsVerifiedByOratlas: { type: boolean, enum: [false] }
         citations:
@@ -2634,16 +2644,48 @@ components:
                       producer,
                       packetId,
                       sourceSnapshotSha256,
+                      revision,
+                      verificationLevel,
                       passageEvidence,
+                      passages,
                       producerAssessment,
+                      assessments,
                     ]
                   properties:
                     findingId: { type: string }
                     producer: { type: string, enum: [diggypaper] }
                     packetId: { type: string }
                     sourceSnapshotSha256: { type: string, pattern: "^[0-9a-f]{64}$" }
-                    passageEvidence: { type: string, enum: [not-carried-by-sidecar] }
-                    producerAssessment: { type: string, enum: [not-carried-by-sidecar] }
+                    revision: { type: [integer, "null"], minimum: 1 }
+                    verificationLevel:
+                      type: [string, "null"]
+                      enum:
+                        [unverified, human-reviewed, source-verified, independently-verified, null]
+                    passageEvidence:
+                      { type: string, enum: [declared-by-sidecar, not-carried-by-sidecar] }
+                    passages:
+                      type: [array, "null"]
+                      items:
+                        type: object
+                        additionalProperties: false
+                        required: [passageId, quoteSha256, quoteState, matchStatus]
+                        properties:
+                          passageId: { type: string }
+                          quoteSha256: { type: string, pattern: "^sha256:[0-9a-f]{64}$" }
+                          quoteState: { type: string, enum: [included, withheld-rights] }
+                          matchStatus: { type: string }
+                    producerAssessment:
+                      { type: string, enum: [declared-by-sidecar, not-carried-by-sidecar] }
+                    assessments:
+                      type: [array, "null"]
+                      items:
+                        type: object
+                        additionalProperties: false
+                        required: [assessmentId, protocol, status]
+                        properties:
+                          assessmentId: { type: string }
+                          protocol: { type: string, enum: [seip-support-v1] }
+                          status: { type: string }
         rejected:
           type: array
           items:

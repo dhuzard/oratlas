@@ -37,8 +37,11 @@ byte-identical to the pinned revision.
 | Repository                                                | Pinned commit                              | Role                                                          |
 | --------------------------------------------------------- | ------------------------------------------ | ------------------------------------------------------------- |
 | `dhuzard/diggypaper`                                      | `d7e97e375de75c4e67cd94e0f4efb078f8f4282f` | `source-evidence-packet/0.1.0` contract + reference validator |
-| `Neuronautix/ComputationalReviewTemplate_trust-knowledge` | `47b7acd20b7bde65d61ea23d584ef0d300400d28` | S2 importer (#10/#13) and S3 exporter (#11/#12)               |
+| `Neuronautix/ComputationalReviewTemplate_trust-knowledge` | `26db287c551df591a3cd9a9c880719d3b9918b30` | S2 importer, `links/2` bridge and S3 exporter (CRT PR #14)    |
 | `dhuzard/oratlas`                                         | `9cd3a0c284400b30dd0044cf3acb24df1047275d` | extractor/contract baseline the S3 exporter targets           |
+
+The CRT pin is the commit of CRT PR #14 until that PR is merged; re-pin to the merge commit afterwards
+(`pnpm evidence-lineage:build` then rewrites the fixture).
 
 The committed manifest of fixture digests is
 `packages/extractor/src/fixtures/crt-diggypaper-evidence-lineage/digests.json`; pins and the five
@@ -63,7 +66,7 @@ commits, Node 22 and `python3` with `jsonschema` for Diggypaper's validator):
 
 ```bash
 git clone https://github.com/Neuronautix/ComputationalReviewTemplate_trust-knowledge ../crt
-git -C ../crt checkout 47b7acd20b7bde65d61ea23d584ef0d300400d28
+git -C ../crt checkout 26db287c551df591a3cd9a9c880719d3b9918b30
 git clone https://github.com/dhuzard/diggypaper ../diggypaper
 git -C ../diggypaper checkout d7e97e375de75c4e67cd94e0f4efb078f8f4282f
 pnpm evidence-lineage:build -- --crt-dir ../crt --diggypaper-dir ../diggypaper --check   # verify
@@ -72,8 +75,8 @@ pnpm evidence-lineage:build -- --crt-dir ../crt --diggypaper-dir ../diggypaper  
 
 The builder refuses an unpinned or dirty checkout. Stages, each run by the real upstream tool:
 (1) write a canonical packet with CRT's packet writer; (2) validate it with Diggypaper's
-`sep_validate.py`; (3) import it with CRT's S2 importer; (4) bridge accepted lineage entries to
-`comprev.evidence-packet-links/1` (see blocker B2); (5) export with CRT's S3 exporter.
+`sep_validate.py`; (3) import it with CRT's S2 importer; (4) bridge accepted lineage entries to `comprev.evidence-packet-links/2` with CRT's own
+`lineage-to-links.mjs`; (5) export with CRT's S3 exporter.
 
 The fixture contains no PDF, full text, credential or private file. Packet sentences are placeholder
 text marked `[SYNTHETIC FIXTURE]`; only the bibliographic metadata of the review's own citations is
@@ -84,15 +87,17 @@ real, and the packet is declared `creation_method: synthetic-fixture`.
 Claim `clm_7659634fb095cdce` cites two papers and has three producer findings, two of them about one
 article:
 
-| Hop                | Public representation                                                                           | What it shows                                                                                                                      |
-| ------------------ | ----------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| claim → works      | `GET /api/graph?seed=<claim node>&status=authoritative`                                         | `supports` → `10.1038/nature08002`, `partially-supports` → `10.1038/nature07991`; `trustAssessments: []`                           |
-| claim → findings   | `GET /api/claims/{versionId}/{localClaimId}` → `sourceEvidenceLinks`                            | per citation: `finding:cardin2009-f1`, `finding:cardin2009-f2`, `finding:sohal2009-f1`, packet id + digest, source-snapshot digest |
-| sidecar bytes      | `GET /api/reviews/{slug}/versions/{versionId}/files/knowledge/oratlas/source-native-trust.json` | byte-identical to the repository file; its SHA-256 equals `sourceEvidenceLinks.sidecar.sha256`                                     |
-| findings → passage | `auditSourceEvidencePacket(packetFiles, declaredLinks)` (needs the packet)                      | quote digest, `exact` match state, snapshot ref and digest, native `seip-support-v1` judgments bound to that digest                |
+| Hop                | Public representation                                                                           | What it shows                                                                                                                                                          |
+| ------------------ | ----------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| claim → works      | `GET /api/graph?seed=<claim node>&status=authoritative`                                         | `supports` → `10.1038/nature08002`, `partially-supports` → `10.1038/nature07991`; `trustAssessments: []`                                                               |
+| claim → findings   | `GET /api/claims/{versionId}/{localClaimId}` → `sourceEvidenceLinks`                            | per citation: `finding:cardin2009-f1`, `finding:cardin2009-f2`, `finding:sohal2009-f1`, packet id + digest, source-snapshot digest                                     |
+| sidecar bytes      | `GET /api/reviews/{slug}/versions/{versionId}/files/knowledge/oratlas/source-native-trust.json` | byte-identical to the repository file; its SHA-256 equals `sourceEvidenceLinks.sidecar.sha256`                                                                         |
+| findings → passage | `sourceEvidenceLinks.citations[].findings[].passages` (same response)                           | passage id, **quote SHA-256**, quote state, match state, finding revision, packet verification level, native `seip-support-v1` status                                  |
+| packet bytes       | `sourceEvidenceLinks.packets[].locator` → DOI or GitHub release asset                           | where to fetch the exact packet; hash its `manifest.json` and compare with `packetSha256` (`auditSourceEvidencePacket` does this and re-checks every declared passage) |
 
-The final hop is deliberately **not** a public ORAtlas feature: the sidecar does not carry passage
-data (blocker B1) and ORAtlas has not imported the packet.
+Quote text is never in the sidecar or any ORAtlas response. Nothing here is verified by ORAtlas: the
+passage digests are the producer's declaration, and `auditSourceEvidencePacket` is how a reader who holds
+the packet checks them.
 
 ### Labels and boundaries
 
@@ -103,68 +108,73 @@ data (blocker B1) and ORAtlas has not imported the packet.
   `isOratlasAssessment: false`, `reAdjudicatedByOratlas: false`, with its own rubric version and native
   0–100 scale. It is never written to an ORAtlas TRUST table, edge or aggregate. Passage-level
   Diggypaper judgments are reported as `not-carried-by-sidecar`, not omitted.
-- **Packet** — `availability: location-not-declared`, `contentsImportedByOratlas: false`,
-  `contentsVerifiedByOratlas: false`. The packet id and digest are the producer's declaration.
+- **Packet** — `availability` is `locator-declared` (a DOI or GitHub release asset, linked unless it is
+  an example DOI) or `location-not-declared`; `contentsImportedByOratlas: false`,
+  `contentsVerifiedByOratlas: false`. Id, digest and location are the producer's declaration.
 - **Repository content is untrusted** — rendered as escaped text only; an example DOI is never linked.
 
 ## Failure cases
 
-| Case                                    | Detected by                                  | Result                                                                                                                                        |
-| --------------------------------------- | -------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| Missing declared JSONL                  | `extractKnowledgeWithOutcomes`               | artifact outcome not `loaded`; no relations; every link `no-citation-relation`                                                                |
-| Invalid JSONL line                      | `extractKnowledgeWithOutcomes`               | record skipped, warning names the file, `skippedCount: 1`                                                                                     |
-| Edge to unknown citation                | `extractKnowledgeWithOutcomes`               | relation dropped with warning                                                                                                                 |
-| Stale digest — claim text / claim graph | projection (`claim_text_sha256`, graph sha)  | `sidecar-stale`; lineage **and** native score withheld                                                                                        |
-| Stale digest — packet / artifact        | `auditSourceEvidencePacket`                  | `packet-digest-mismatch`, `artifact-hash-mismatch`, `artifact-length-mismatch`                                                                |
-| Wrong DOI                               | projection / audit                           | `doi-mismatch`; sibling findings unaffected                                                                                                   |
-| Absent citation edge                    | projection                                   | `no-citation-relation`; graph shows no such edge                                                                                              |
-| Unknown citation key                    | projection                                   | `citation-not-in-review`                                                                                                                      |
-| Ambiguous source relationship           | projection                                   | every participant `ambiguous-source-relationship`; nothing chosen                                                                             |
-| Unauthorized / restricted evidence      | packet validator, importer, audit, lifecycle | restricted unreviewed finding never reaches the sidecar; private packet refused; tombstoned version serves neither passport nor sidecar (404) |
-| Duplicate version / import              | existing acceptance                          | re-accept is idempotent; fresh inspection of the same commit is refused; rows unchanged                                                       |
-| Reordered records                       | projection + graph                           | identical projection and graph shape (order-independent)                                                                                      |
-| Malformed link / sidecar                | projection                                   | `invalid-link-record` / `sidecar-invalid`                                                                                                     |
+| Case                                                                                      | Detected by                                  | Result                                                                                                                                        |
+| ----------------------------------------------------------------------------------------- | -------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| Missing declared JSONL                                                                    | `extractKnowledgeWithOutcomes`               | artifact outcome not `loaded`; no relations; every link `no-citation-relation`                                                                |
+| Invalid JSONL line                                                                        | `extractKnowledgeWithOutcomes`               | record skipped, warning names the file, `skippedCount: 1`                                                                                     |
+| Edge to unknown citation                                                                  | `extractKnowledgeWithOutcomes`               | relation dropped with warning                                                                                                                 |
+| Stale digest — claim text / claim graph                                                   | projection (`claim_text_sha256`, graph sha)  | `sidecar-stale`; lineage **and** native score withheld                                                                                        |
+| Passage declaration drift (digest, match state, set, revision, verification, assessments) | `auditSourceEvidencePacket`                  | `passage-declaration-mismatch`, `passage-set-mismatch`, `finding-superseded`, `verification-level-mismatch`, `assessment-set-mismatch`        |
+| Stale digest — packet / artifact                                                          | `auditSourceEvidencePacket`                  | `packet-digest-mismatch`, `artifact-hash-mismatch`, `artifact-length-mismatch`                                                                |
+| Wrong DOI                                                                                 | projection / audit                           | `doi-mismatch`; sibling findings unaffected                                                                                                   |
+| Absent citation edge                                                                      | projection                                   | `no-citation-relation`; graph shows no such edge                                                                                              |
+| Unknown citation key                                                                      | projection                                   | `citation-not-in-review`                                                                                                                      |
+| Ambiguous source relationship                                                             | projection                                   | every participant `ambiguous-source-relationship`; nothing chosen                                                                             |
+| Unauthorized / restricted evidence                                                        | packet validator, importer, audit, lifecycle | restricted unreviewed finding never reaches the sidecar; private packet refused; tombstoned version serves neither passport nor sidecar (404) |
+| Duplicate version / import                                                                | existing acceptance                          | re-accept is idempotent; fresh inspection of the same commit is refused; rows unchanged                                                       |
+| Reordered records                                                                         | projection + graph                           | identical projection and graph shape (order-independent)                                                                                      |
+| Look-alike or non-https packet locator, half-declared passage fields                      | projection                                   | `invalid-link-record`; locator never linked                                                                                                   |
+| Malformed link / sidecar                                                                  | projection                                   | `invalid-link-record` / `sidecar-invalid`                                                                                                     |
 
 ## Gate G4 result
 
 Verified on the commit that introduced this document: `pnpm lint`, `pnpm typecheck`,
 `pnpm schema:check`, `pnpm openapi:check`, `pnpm format:check`, the production `next build` and the whole
-vitest suite pass (232 files / 1460 tests passed; the 16 skipped are the pre-existing Postgres-only
-tests). Pre-existing ingestion, canonical-graph and passport suites were not edited.
+vitest suite pass. Pre-existing ingestion, canonical-graph and passport suites were not edited.
 
-| Gate item                                                                                                    | Result                                                                                               |
-| ------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------- |
-| Clean offline seeded test, exact commits, committed digest manifest, no network                              | **Pass** — `crt-diggypaper-lineage.integration.test.ts`, 16 scenarios; `verify-fixture` PASS         |
-| Direct source links + full lineage inspectable via public read-only view/API with producer/assessment labels | **Partial** — claim → findings → packet/snapshot **digests** are public; the passage hop is not (B1) |
-| Faithful link to an externally preserved packet **or** explicitly marked unavailable                         | **Pass** — `location-not-declared`, never flattened                                                  |
-| Existing MyST/review ingestion and `/api/graph` suites pass unchanged; no historical record mutated          | **Pass** — full suite below; earlier version rows asserted byte-identical                            |
-| Reproducibility script/README and pass/fail report                                                           | **Pass** — this document, `pnpm evidence-lineage:verify`                                             |
+| Gate item                                                                                                      | Result                                                                                                            |
+| -------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| Clean offline seeded test, exact commits, committed digest manifest, no network                                | **Pass** — `crt-diggypaper-lineage.integration.test.ts`; `verify-fixture` PASS                                    |
+| Direct source links + full lineage inspectable via a public read-only view/API with producer/assessment labels | **Pass** — claim → citations → findings → passage digests → snapshot digest → packet digest and declared location |
+| Faithful link to an externally preserved packet **or** explicitly marked unavailable                           | **Pass** — `locator-declared` (DOI / GitHub release asset) or `location-not-declared`; never flattened            |
+| Existing MyST/review ingestion and `/api/graph` suites pass unchanged; no historical record mutated            | **Pass** — earlier version rows asserted byte-identical                                                           |
+| Reproducibility script/README and pass/fail report                                                             | **Pass** — this document, `pnpm evidence-lineage:verify`                                                          |
+
+The fixture's locator is an **example DOI** (`10.5555/…`): the synthetic packet is not deposited anywhere,
+so the locator path is exercised without implying a real deposit, and ORAtlas does not link it.
 
 ## Blockers and gaps
 
-Blockers are outside this repository; none prevents merging this PR, but B1 prevents declaring Gate G4
-fully met.
+Resolved in this change set (CRT PR #14 plus this PR):
 
-- **B1 — The S3 sidecar cannot carry passage-level lineage.** `comprev.evidence-packet-links/1`
-  records only `finding_id`, `source_sha256`, `packet {id, sha256}`, `cite_key`, `doi`, `claim_ids`.
-  There is no finding revision, passage id, quote digest, match state, verification level, assessment
-  reference or **packet locator**, and `source_sha256` is undefined in the link schema (this fixture
-  uses the article's source-snapshot digest). Owner: CRT exporter (issue #11 follow-up).
-- **B2 — No S2 → S3 bridge.** S2 emits `source-evidence-lineage.json`; S3 reads
-  `comprev.evidence-packet-links/1`. Nothing connects them. `bridgeLineageToLinks` in
-  `scripts/evidence-lineage/build-fixture.mjs` is a stand-in that binds a finding to a review citation
-  by exact DOI equality only. Owner: CRT. The packet digest convention used here (SHA-256 of
-  `manifest.json` bytes) also needs to be specified upstream.
+- **B1 — passage-level lineage and packet locator.** `comprev.evidence-packet-links/2` carries finding
+  revision, verification level, passage digests with match state, native assessment refs, an explicit
+  source-digest basis and an optional locator (a DOI or a GitHub release asset). ORAtlas projects them
+  and `auditSourceEvidencePacket` re-checks every declared field against a held copy of the packet.
+- **B2 — S2 → S3 bridge.** CRT's `scripts/source-evidence/lineage-to-links.mjs`; the fixture builder
+  uses it instead of a local stand-in. The packet digest is the SHA-256 of `manifest.json`.
+
+Open:
+
 - **B3 — No real Diggypaper-exported packet.** The packet is synthetic, written with CRT's packet
-  writer and accepted by Diggypaper's reference validator at the pin. The Finding Curation export
-  (#46) was not exercised end to end, as the issue permits.
+  writer and accepted by Diggypaper's reference validator at the pin. A genuinely curated packet needs
+  human-reviewed findings in a running Diggypaper (#46); and a real deposit needs the locator filled in
+  with a real DOI or release asset.
 - **B4 — Graph → passport hop is not id-based.** A graph claim node exposes its database claim id and
   `reviewVersionId` but not the repository-local claim id, and the passport's `graphIdentity` is only
-  populated for repository-backed nodes. A client maps node → passport by version + anchor/text. A
-  stable `claim` ↔ passport link belongs to the federation work (#195).
+  populated for repository-backed nodes. A client maps node → passport by version + anchor/text.
+  Fixing it changes the public `/api/graph` response, so it is a separate change (federation #195).
 - **B5 — Browser E2E not added.** "E2E" here is the offline pipeline test driving the real route
   handlers against a real database, plus server-render tests of the passport card. A Playwright spec
   would need the fixture seeded into the dev database, which would add rows to seed data.
+- **Re-pin after merge.** The CRT pin is the PR #14 commit until that PR is merged.
 
 Decision for the maintainer: the passport shows the native TRUST v2 label and 0–100 value, clearly
 marked source-native. If even that adjacency is unwanted, drop `nativeAssessment` from the projection;

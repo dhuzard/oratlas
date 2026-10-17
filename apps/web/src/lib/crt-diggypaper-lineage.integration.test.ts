@@ -314,7 +314,7 @@ describe.sequential(
       expect(links.packets[0]).toMatchObject({
         contentsImportedByOratlas: false,
         contentsVerifiedByOratlas: false,
-        availability: "location-not-declared",
+        availability: "locator-declared",
       });
       expect(JSON.stringify(body)).not.toMatch(/peer.reviewed|independently replicated/i);
     });
@@ -337,25 +337,31 @@ describe.sequential(
       expect(body.sourceEvidenceLinks.sidecar?.path).toBe(SIDECAR_PATH);
     });
 
-    it("resolves each declared finding to its exact passage digest and source snapshot digest", async () => {
+    it("resolves each finding from the public passport alone to its exact passage and snapshot digests", async () => {
       const { body } = await passportApi(base.versionId);
-      const served = JSON.parse(fixture.reviewFiles[SIDECAR_PATH]!);
-      const declared: PacketLinkClaim[] = served.evidence_links.map(
-        (link: Record<string, string | null>) => ({
-          findingId: link.finding_id,
-          packetId: link.packet_id,
-          packetSha256: link.packet_sha256,
-          sourceSha256: link.finding_source_sha256,
-          doi: link.doi,
-        }),
+      const links = body.sourceEvidenceLinks;
+      const packet = links.packets[0]!;
+      expect(packet).toMatchObject({
+        availability: "locator-declared",
+        locator: { kind: "doi", doiIsExample: true, href: null },
+      });
+      // Everything the audit needs comes from the public API response, nothing from the fixture sidecar.
+      const declared: PacketLinkClaim[] = links.citations.flatMap((citation) =>
+        citation.findings.map((finding) => ({
+          findingId: finding.findingId,
+          packetId: finding.packetId,
+          packetSha256: packet.packetSha256,
+          sourceSha256: finding.sourceSnapshotSha256,
+          doi: citation.doi,
+          declared: {
+            revision: finding.revision!,
+            verificationLevel: finding.verificationLevel!,
+            passages: finding.passages!,
+            assessments: finding.assessments!,
+          },
+        })),
       );
-      // The passport exposes exactly the identifiers the audit needs; nothing else is trusted.
-      expect(
-        body.sourceEvidenceLinks.citations
-          .flatMap((citation) => citation.findings)
-          .map((finding) => [finding.findingId, finding.sourceSnapshotSha256]),
-      ).toEqual(declared.map((link) => [link.findingId, link.sourceSha256]));
-      expect(body.sourceEvidenceLinks.packets[0]?.packetSha256).toBe(declared[0]!.packetSha256);
+      expect(declared).toHaveLength(3);
 
       const audit = auditSourceEvidencePacket(fixture.packetFiles, declared);
       expect(audit).toMatchObject({ ok: true, issues: [] });
@@ -371,6 +377,16 @@ describe.sequential(
         });
         expect(entry.assessments[0]!.assessedSnapshotSha256).toBe(entry.snapshotSha256);
       }
+
+      // A corrupted copy of the packet fails against the same public declaration.
+      const corrupted = {
+        ...fixture.packetFiles,
+        "passages.jsonl": fixture.packetFiles["passages.jsonl"]!.replace(
+          "passage 1 of Cardin",
+          "passage 1 of Cardinal",
+        ),
+      };
+      expect(auditSourceEvidencePacket(corrupted, declared).ok).toBe(false);
     });
 
     it("never exposes the restricted, unreviewed finding or any quote text anywhere public", async () => {

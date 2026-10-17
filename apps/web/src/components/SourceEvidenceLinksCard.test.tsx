@@ -54,11 +54,43 @@ describe("SourceEvidenceLinksCard", () => {
     expect(html).toContain("finding:cardin2009-f2");
     expect(html).toContain("producer: diggypaper");
     expect(html).toContain("57db54da7f2daa448ef3dda28b1921ef14d0475fa6270f3f4905c23027ded2a9");
-    expect(html).toContain("location not declared");
+    expect(html).toContain("10.5555/oratlas.fixture.packet (example, not linked)");
+    expect(html).not.toContain("https://doi.org/10.5555");
+    expect(html).toContain("passage passage:cardin2009-p1");
+    expect(html).toContain("match exact");
+    expect(html).toContain("seip-support-v1");
     expect(html).toContain("source-native");
     expect(html).toContain("not an ORAtlas TRUST assessment");
     expect(html).toContain("has not imported or verified");
     expect(html).not.toMatch(/atlas.verified|peer.reviewed|replicat/i);
+  });
+
+  it("links a real DOI locator and says plainly when a links/1 sidecar has no passage data", () => {
+    const sidecar = JSON.parse(fixture.reviewFiles[SIDECAR_PATH]!);
+    for (const link of sidecar.evidence_links) {
+      link.packet_locator = { kind: "doi", doi: "10.5281/zenodo.1234567" };
+    }
+    expect(
+      renderToStaticMarkup(
+        <SourceEvidenceLinksCard links={links({ sidecar: JSON.stringify(sidecar) })} />,
+      ),
+    ).toContain('href="https://doi.org/10.5281/zenodo.1234567"');
+    for (const link of sidecar.evidence_links) {
+      for (const key of [
+        "packet_locator",
+        "finding_revision",
+        "verification_level",
+        "passages",
+        "assessments",
+      ]) {
+        delete link[key];
+      }
+    }
+    const html = renderToStaticMarkup(
+      <SourceEvidenceLinksCard links={links({ sidecar: JSON.stringify(sidecar) })} />,
+    );
+    expect(html).toContain("No passage data in the sidecar.");
+    expect(html).toContain("location not declared");
   });
 
   it("never links an example DOI outward", () => {

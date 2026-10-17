@@ -49,10 +49,46 @@ export function SourceEvidenceLinksCard({ links }: { links: SourceEvidenceLinks 
                 <li key={finding.findingId}>
                   <span className="mono">{finding.findingId}</span>{" "}
                   <Badge tone="neutral">producer: {finding.producer}</Badge>
+                  {finding.revision !== null ? (
+                    <span className="muted">
+                      {" "}
+                      revision {finding.revision}
+                      {finding.verificationLevel
+                        ? ` · packet level ${finding.verificationLevel}`
+                        : ""}
+                    </span>
+                  ) : null}
                   <div className="mono muted" style={{ fontSize: "0.8rem" }}>
                     packet {finding.packetId} · source snapshot SHA-256{" "}
                     {finding.sourceSnapshotSha256}
                   </div>
+                  {finding.passages ? (
+                    <ul>
+                      {finding.passages.map((passage) => (
+                        <li
+                          key={passage.passageId}
+                          className="mono muted"
+                          style={{ fontSize: "0.8rem" }}
+                        >
+                          passage {passage.passageId} · quote {passage.quoteSha256} ·{" "}
+                          {passage.quoteState === "withheld-rights"
+                            ? "quote withheld"
+                            : "quote in packet"}{" "}
+                          · match {passage.matchStatus}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <div className="muted" style={{ fontSize: "0.8rem" }}>
+                      No passage data in the sidecar.
+                    </div>
+                  )}
+                  {finding.assessments && finding.assessments.length > 0 ? (
+                    <div className="muted" style={{ fontSize: "0.8rem" }}>
+                      Native Diggypaper judgments ({finding.assessments[0]!.protocol}):{" "}
+                      {finding.assessments.map((a) => `${a.assessmentId} ${a.status}`).join("; ")}
+                    </div>
+                  ) : null}
                 </li>
               ))}
             </ul>
@@ -60,7 +96,21 @@ export function SourceEvidenceLinksCard({ links }: { links: SourceEvidenceLinks 
         ))}
         {links.packets.map((packet) => (
           <p className="mono muted" key={packet.packetId} style={{ fontSize: "0.8rem" }}>
-            packet {packet.packetId} · SHA-256 {packet.packetSha256} · location not declared
+            packet {packet.packetId} · SHA-256 {packet.packetSha256} ·{" "}
+            {packet.locator ? (
+              <>
+                declared location:{" "}
+                {packet.locator.href ? (
+                  <a href={packet.locator.href} rel="noopener noreferrer">
+                    {packet.locator.doi ?? packet.locator.url}
+                  </a>
+                ) : (
+                  <span>{packet.locator.doi} (example, not linked)</span>
+                )}
+              </>
+            ) : (
+              "location not declared"
+            )}
           </p>
         ))}
         {links.citations.length > 0 ? (
