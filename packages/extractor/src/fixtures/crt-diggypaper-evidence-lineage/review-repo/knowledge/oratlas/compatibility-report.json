@@ -111,13 +111,13 @@
   "producer_finding_links": 3,
   "sidecar_reference": {
     "path": "knowledge/oratlas/source-native-trust.json",
-    "sha256": "d3d0ab1f426803ceeee017ca6236c52b6e5cfa3d0a75615c0771cbb93eb0400f"
+    "sha256": "ee927dd86369545132aa39b8e6af0c8f4f5de554ad78506a7e9193042b0b591b"
   },
   "artifact_digests": {
     "knowledge/oratlas/claims.jsonl": "d663407448466927a87bbafab41daffe44408027d2f012014d88f8641f2f7688",
     "knowledge/oratlas/citations.jsonl": "7229e3387d640db0dbf9e6f0ee082e99c0e5c7eb2b045e66d4cc11604beb48c0",
     "knowledge/oratlas/relations.jsonl": "01905e6f9fa2abc756183ae59ed1ab194d13e2d770cb7dbe47d91680232a621b",
-    "knowledge/oratlas/source-native-trust.json": "d3d0ab1f426803ceeee017ca6236c52b6e5cfa3d0a75615c0771cbb93eb0400f",
+    "knowledge/oratlas/source-native-trust.json": "ee927dd86369545132aa39b8e6af0c8f4f5de554ad78506a7e9193042b0b591b",
     "review-manifest.json": "e7963ffa247fb5d2dcadf03c6ee32082d1ad0c321ca4b957c9867a58ee84b4b8"
   }
 }

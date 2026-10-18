@@ -1435,7 +1435,7 @@
               "status": "supports"
             }
           ],
-          "note": "A producer finding describes a cited article. It is not a review claim; the link only records which evidence-packet finding a review citation was drawn from."
+          "note": "A producer finding describes a cited article. It is not a review claim. Same-paper candidate: the review cites the article this finding is about; no recorded decision says the review claim uses this finding."
         },
         {
           "level": "producer_finding",
@@ -1569,7 +1569,7 @@
           "status": "supports"
         }
       ],
-      "note": "A producer finding describes a cited article. It is not a review claim; the link only records which evidence-packet finding a review citation was drawn from."
+      "note": "A producer finding describes a cited article. It is not a review claim. Same-paper candidate: the review cites the article this finding is about; no recorded decision says the review claim uses this finding."
     },
     {
       "level": "producer_finding",

@@ -80,9 +80,9 @@ describe("fixture pins and digests", () => {
     for (const [name, pin] of Object.entries(fixture.pins.pins)) {
       expect(pin.commit, name).toMatch(/^[0-9a-f]{40}$/);
     }
-    expect(fixture.pins.pins.diggypaper!.commit).toBe("d7e97e375de75c4e67cd94e0f4efb078f8f4282f");
+    expect(fixture.pins.pins.diggypaper!.commit).toBe("9cfd46c2b17903656eb06afe51ee8c69a7f75ae0");
     expect(fixture.pins.pins.computationalReviewTemplate!.commit).toBe(
-      "471ef85bb76e5940a702dee06fcebfd4f6a08669",
+      "ce8f29cf251aadfc4c44d109db65d15dd0f629c0",
     );
     expect(fixture.pins.pins.oratlas!.commit).toBe("9cd3a0c284400b30dd0044cf3acb24df1047275d");
   });

@@ -56,10 +56,10 @@ only in local capture scripts (ORA-K02).
   explicitly leaves its own non-equivalent criteria `not-assessed`.
 - **Pinned baseline:** commit `165f336608eed7d22f6c6505da57a4e3577070cc`, as documented in
   `docs/assessment-protocol-interoperability.md`.
-- **Evidence-lineage pin (issue #198):** commit `471ef85bb76e5940a702dee06fcebfd4f6a08669`
-  (CRT PR #14 head, unmerged: S2 importer and gates, reviewed claim-finding map, `links/2` bridge,
-  S3 exporter) together with `dhuzard/diggypaper`
-  `d7e97e375de75c4e67cd94e0f4efb078f8f4282f` (`source-evidence-packet/0.1.0`). Consumed only as a
+- **Evidence-lineage pin (issue #198):** commit `ce8f29cf251aadfc4c44d109db65d15dd0f629c0`
+  (CRT PR #15 merge: S2 importer and gates, reviewed claim-finding map, `links/2` bridge, S3
+  exporter) together with `dhuzard/diggypaper`
+  `9cfd46c2b17903656eb06afe51ee8c69a7f75ae0` (`source-evidence-packet/0.1.0`). Consumed only as a
   committed, digest-pinned fixture; see `docs/cross-repo-evidence-lineage.md`. The sidecar's
   native TRUST v2 remains source-native.
 - **Crosswalk boundary:** there is no crosswalk among Computational Review TRUST v2,

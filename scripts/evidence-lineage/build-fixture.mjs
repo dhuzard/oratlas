@@ -48,12 +48,12 @@ export const FIXTURE_DIR = join(
 export const PINS = {
   diggypaper: {
     repository: "https://github.com/dhuzard/diggypaper",
-    commit: "d7e97e375de75c4e67cd94e0f4efb078f8f4282f",
-    role: "source-evidence-packet/0.1.0 contract and reference validator (issue #47)",
+    commit: "9cfd46c2b17903656eb06afe51ee8c69a7f75ae0",
+    role: "source-evidence-packet/0.1.0 contract, normative packet digest and reference validator (issues #47, PR #50)",
   },
   computationalReviewTemplate: {
     repository: "https://github.com/Neuronautix/ComputationalReviewTemplate_trust-knowledge",
-    commit: "471ef85bb76e5940a702dee06fcebfd4f6a08669",
+    commit: "ce8f29cf251aadfc4c44d109db65d15dd0f629c0",
     role: "S2 importer + Phase 2/5 gates, reviewed claim-finding map and links/2 bridge (scripts/source-evidence), S3 ORAtlas exporter (scripts/oratlas)",
   },
   oratlas: {
@@ -337,7 +337,19 @@ async function build({ crtDir, diggypaperDir, out }) {
       );
     }
     if (!verdict.valid) throw new Error(`packet invalid: ${JSON.stringify(verdict.errors)}`);
-    referenceValidator = { ran: true, valid: true, counts: verdict.counts };
+    // Producer contract section 2.1: the packet digest is sha256 of the exact manifest.json bytes.
+    const manifestDigest = sha256Tag(readFileSync(join(packetDir, "manifest.json")));
+    if (verdict.packet_digest !== manifestDigest) {
+      throw new Error(
+        `reference validator packet_digest ${verdict.packet_digest} != ${manifestDigest}`,
+      );
+    }
+    referenceValidator = {
+      ran: true,
+      valid: true,
+      counts: verdict.counts,
+      packet_digest: verdict.packet_digest,
+    };
   }
 
   // 3. S2 importer, with the executable Phase 2 import gate and Phase 5 gate. The importer exits

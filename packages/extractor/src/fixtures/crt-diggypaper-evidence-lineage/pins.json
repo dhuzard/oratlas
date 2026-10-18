@@ -8,14 +8,14 @@
   },
   "pins": {
     "computationalReviewTemplate": {
-      "commit": "471ef85bb76e5940a702dee06fcebfd4f6a08669",
+      "commit": "ce8f29cf251aadfc4c44d109db65d15dd0f629c0",
       "repository": "https://github.com/Neuronautix/ComputationalReviewTemplate_trust-knowledge",
       "role": "S2 importer + Phase 2/5 gates, reviewed claim-finding map and links/2 bridge (scripts/source-evidence), S3 ORAtlas exporter (scripts/oratlas)"
     },
     "diggypaper": {
-      "commit": "d7e97e375de75c4e67cd94e0f4efb078f8f4282f",
+      "commit": "9cfd46c2b17903656eb06afe51ee8c69a7f75ae0",
       "repository": "https://github.com/dhuzard/diggypaper",
-      "role": "source-evidence-packet/0.1.0 contract and reference validator (issue #47)"
+      "role": "source-evidence-packet/0.1.0 contract, normative packet digest and reference validator (issues #47, PR #50)"
     },
     "oratlas": {
       "commit": "9cd3a0c284400b30dd0044cf3acb24df1047275d",

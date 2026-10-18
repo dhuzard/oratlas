@@ -67,14 +67,15 @@ The projection fails closed and never throws on repository content:
 
 ## Pins
 
-| Repository                                                | Pinned commit                              | Role                                                                                    |
-| --------------------------------------------------------- | ------------------------------------------ | --------------------------------------------------------------------------------------- |
-| `dhuzard/diggypaper`                                      | `d7e97e375de75c4e67cd94e0f4efb078f8f4282f` | `source-evidence-packet/0.1.0` contract + reference validator                           |
-| `Neuronautix/ComputationalReviewTemplate_trust-knowledge` | `471ef85bb76e5940a702dee06fcebfd4f6a08669` | S2 importer + gates, claim-finding map, `links/2` bridge, S3 exporter (CRT PR #14 head) |
-| `dhuzard/oratlas`                                         | `9cd3a0c284400b30dd0044cf3acb24df1047275d` | extractor/contract baseline the S3 exporter targets                                     |
+| Repository                                                | Pinned commit                              | Role                                                                                     |
+| --------------------------------------------------------- | ------------------------------------------ | ---------------------------------------------------------------------------------------- |
+| `dhuzard/diggypaper`                                      | `9cfd46c2b17903656eb06afe51ee8c69a7f75ae0` | contract (normative packet digest, §2.1) + reference validator (PR #50 merge)            |
+| `Neuronautix/ComputationalReviewTemplate_trust-knowledge` | `ce8f29cf251aadfc4c44d109db65d15dd0f629c0` | S2 importer + gates, claim-finding map, `links/2` bridge, S3 exporter (CRT PR #15 merge) |
+| `dhuzard/oratlas`                                         | `9cd3a0c284400b30dd0044cf3acb24df1047275d` | extractor/contract baseline the S3 exporter targets                                      |
 
-The CRT pin is the head of CRT PR #14, which is not merged. Merge #14 first, then re-pin to its merged
-commit and rebuild (`pnpm evidence-lineage:build`) before merging this PR.
+Both upstream pins are merge commits on the upstreams' `main` branches. The builder also asserts that
+Diggypaper's reference validator reports the same `packet_digest` (contract §2.1: SHA-256 of the exact
+`manifest.json` bytes) that the sidecar carries.
 
 The committed manifest of fixture digests is
 `packages/extractor/src/fixtures/crt-diggypaper-evidence-lineage/digests.json`; pins and the five
@@ -101,9 +102,9 @@ validator):
 
 ```bash
 git clone https://github.com/Neuronautix/ComputationalReviewTemplate_trust-knowledge ../crt
-git -C ../crt checkout 471ef85bb76e5940a702dee06fcebfd4f6a08669
+git -C ../crt checkout ce8f29cf251aadfc4c44d109db65d15dd0f629c0
 git clone https://github.com/dhuzard/diggypaper ../diggypaper
-git -C ../diggypaper checkout d7e97e375de75c4e67cd94e0f4efb078f8f4282f
+git -C ../diggypaper checkout 9cfd46c2b17903656eb06afe51ee8c69a7f75ae0
 pnpm evidence-lineage:build -- --crt-dir ../crt --diggypaper-dir ../diggypaper --check   # verify
 pnpm evidence-lineage:build -- --crt-dir ../crt --diggypaper-dir ../diggypaper           # rewrite
 ```
@@ -212,10 +213,6 @@ authority, and nothing here shows that a real fixed-corpus import would satisfy 
 
 - **Real-data workflow.** A packet exported by Diggypaper's Finding Curation (#46) from human-reviewed
   findings, deposited under a real DOI or GitHub release asset, with a real reviewed claim→finding map.
-- **Diggypaper contract.** `source-evidence-packet/0.1.0`'s README still calls itself a draft and its
-  CRT crosswalk provisional. It should be reconciled with the merged S2 importer, and the packet digest
-  (SHA-256 of `manifest.json`) made normative there. A digest establishes integrity against a recorded
-  value, not authorship or scientific validity.
 - **Rights** of the review's `citation_contexts` excerpts in the sidecar (above).
 - **Pilot exemptions** in the Phase 2 import gate (above).
 - **B4 — Graph → passport hop is not id-based.** A graph claim node exposes its database claim id and
@@ -223,7 +220,8 @@ authority, and nothing here shows that a real fixed-corpus import would satisfy 
   repository-backed nodes. Fixing it changes the public `/api/graph` response (federation #195).
 - **B5 — Browser E2E not added.** "E2E" is the offline pipeline test over real route handlers plus
   server-render tests of the passport card.
-- **Re-pin** to CRT #14's merged commit.
+- **Re-vendor** Diggypaper's reconciled contract README into CRT (`UPSTREAM-README.md` is still the
+  `303e377` copy; the schemas are unchanged).
 
 ## Out of scope
 
