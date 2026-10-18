@@ -9,18 +9,54 @@ import { adaptDiggypaperCredit } from "./source-credit-diggypaper.js";
 import { adaptCRTContributorship } from "./source-credit-crt.js";
 import { adaptOrcidRoster } from "./source-credit-orcid.js";
 
-const rawDiggy = readFileSync(new URL("./fixtures/source-credit-interop/diggypaper/credit.json", import.meta.url), "utf8");
-const rawCRT = readFileSync(new URL("./fixtures/source-credit-interop/crt/credit.json", import.meta.url), "utf8");
-const rawRoster = readFileSync(new URL("./fixtures/source-credit-interop/orcid/roster.json", import.meta.url), "utf8");
-const nativeDiggy = readFileSync(new URL("./fixtures/source-credit-interop/schemas/diggypaper.schema.json", import.meta.url), "utf8");
-const nativeCRT = readFileSync(new URL("./fixtures/source-credit-interop/schemas/crt.private.schema.json", import.meta.url), "utf8");
-const nativeRoster = readFileSync(new URL("./fixtures/source-credit-interop/schemas/orcid.roster.schema.json", import.meta.url), "utf8");
-const packetManifest = readFileSync(new URL("./fixtures/source-credit-interop/diggypaper/packet/manifest.json", import.meta.url), "utf8");
-const packetPapers = readFileSync(new URL("./fixtures/source-credit-interop/diggypaper/packet/papers.jsonl", import.meta.url), "utf8");
-const packetFindings = readFileSync(new URL("./fixtures/source-credit-interop/diggypaper/packet/findings.jsonl", import.meta.url), "utf8");
-const packetPassages = readFileSync(new URL("./fixtures/source-credit-interop/diggypaper/packet/passages.jsonl", import.meta.url), "utf8");
-const packetAssessments = readFileSync(new URL("./fixtures/source-credit-interop/diggypaper/packet/assessments.jsonl", import.meta.url), "utf8");
-const rawCRTGraph = readFileSync(new URL("./fixtures/source-credit-interop/crt/claim-graph.json", import.meta.url), "utf8");
+const rawDiggy = readFileSync(
+  new URL("./fixtures/source-credit-interop/diggypaper/credit.json", import.meta.url),
+  "utf8",
+);
+const rawCRT = readFileSync(
+  new URL("./fixtures/source-credit-interop/crt/credit.json", import.meta.url),
+  "utf8",
+);
+const rawRoster = readFileSync(
+  new URL("./fixtures/source-credit-interop/orcid/roster.json", import.meta.url),
+  "utf8",
+);
+const nativeDiggy = readFileSync(
+  new URL("./fixtures/source-credit-interop/schemas/diggypaper.schema.json", import.meta.url),
+  "utf8",
+);
+const nativeCRT = readFileSync(
+  new URL("./fixtures/source-credit-interop/schemas/crt.private.schema.json", import.meta.url),
+  "utf8",
+);
+const nativeRoster = readFileSync(
+  new URL("./fixtures/source-credit-interop/schemas/orcid.roster.schema.json", import.meta.url),
+  "utf8",
+);
+const packetManifest = readFileSync(
+  new URL("./fixtures/source-credit-interop/diggypaper/packet/manifest.json", import.meta.url),
+  "utf8",
+);
+const packetPapers = readFileSync(
+  new URL("./fixtures/source-credit-interop/diggypaper/packet/papers.jsonl", import.meta.url),
+  "utf8",
+);
+const packetFindings = readFileSync(
+  new URL("./fixtures/source-credit-interop/diggypaper/packet/findings.jsonl", import.meta.url),
+  "utf8",
+);
+const packetPassages = readFileSync(
+  new URL("./fixtures/source-credit-interop/diggypaper/packet/passages.jsonl", import.meta.url),
+  "utf8",
+);
+const packetAssessments = readFileSync(
+  new URL("./fixtures/source-credit-interop/diggypaper/packet/assessments.jsonl", import.meta.url),
+  "utf8",
+);
+const rawCRTGraph = readFileSync(
+  new URL("./fixtures/source-credit-interop/crt/claim-graph.json", import.meta.url),
+  "utf8",
+);
 const rehashRoster = (data: Record<string, any>): void => {
   const { digest: _oldDigest, ...payload } = data;
   data.digest.value = createHash("sha256").update(canonicalJson(payload), "utf8").digest("hex");
