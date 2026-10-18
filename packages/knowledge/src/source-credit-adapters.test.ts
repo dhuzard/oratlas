@@ -16,9 +16,7 @@ const rawCRT = fixture("crt/credit.json");
 const rawRoster = fixture("orcid/roster.json");
 const rehashRoster = (data: Record<string, any>): void => {
   const { digest: _oldDigest, ...payload } = data;
-  data.digest.value = createHash("sha256")
-    .update(canonicalJson(payload), "utf8")
-    .digest("hex");
+  data.digest.value = createHash("sha256").update(canonicalJson(payload), "utf8").digest("hex");
 };
 const diggyPacket = () => ({
   manifest: fixture("diggypaper/packet/manifest.json"),
