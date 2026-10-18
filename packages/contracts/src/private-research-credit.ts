@@ -26,9 +26,9 @@ export const CREDIT_ROLE_IDS = [
 
 /** The 14 ANSI/NISO CRediT contribution roles, not publication authorship. */
 export const creditRoleSchema = z.enum(CREDIT_ROLE_IDS);
-export type CreditRole = z.infer<typeof creditRoleSchema>;
+export type PrivateCreditRole = z.infer<typeof creditRoleSchema>;
 
-export const CREDIT_ROLE_LABELS: Readonly<Record<CreditRole, string>> = {
+export const CREDIT_ROLE_LABELS: Readonly<Record<PrivateCreditRole, string>> = {
   conceptualization: "Conceptualization",
   "data-curation": "Data curation",
   "formal-analysis": "Formal analysis",
