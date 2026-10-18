@@ -25,8 +25,8 @@ export const CREDIT_ROLE_IDS = [
 ] as const;
 
 /** The 14 ANSI/NISO CRediT contribution roles, not publication authorship. */
-export const creditRoleSchema = z.enum(CREDIT_ROLE_IDS);
-export type PrivateCreditRole = z.infer<typeof creditRoleSchema>;
+export const privateCreditRoleSchema = z.enum(CREDIT_ROLE_IDS);
+export type PrivateCreditRole = z.infer<typeof privateCreditRoleSchema>;
 
 export const CREDIT_ROLE_LABELS: Readonly<Record<PrivateCreditRole, string>> = {
   conceptualization: "Conceptualization",
@@ -102,7 +102,7 @@ export const privateCreditAssertionSchema = z
       "cross-finding-contributor",
     ]),
     /** Absence means no CRediT role was asserted; never infer one from capacity. */
-    creditRole: creditRoleSchema.optional(),
+    creditRole: privateCreditRoleSchema.optional(),
     assertionStatus: z.enum(["proposed", "confirmed", "disputed", "withdrawn"]),
     assertionOrigin: z.enum(["source-declared", "self-declared", "human-confirmed"]),
     evidenceRefSha256: sha256,
