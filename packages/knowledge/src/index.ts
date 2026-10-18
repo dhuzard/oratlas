@@ -1,5 +1,6 @@
 export * from "./text.js";
 export * from "./types.js";
+export { projectPersonalResearchCredit, type AuthorizePrivateResearchProject, type PrivateResearchPermission, type PrivateResearchPermissionRequest } from "./private-research-credit.js";
 export { InProcessSearchProvider, type SearchProvider, type SearchResult } from "./search.js";
 export {
   buildEvidencePacket,
