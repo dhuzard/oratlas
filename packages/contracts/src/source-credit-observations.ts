@@ -83,6 +83,7 @@ export const sourceCreditEvidenceSchema = z
     observationId: bounded,
     target: sourceCreditTargetSchema,
     sourcePaperId: bounded.nullable(),
+    citedWorkDoi: bounded.nullable(),
     sourceSnapshotSha256: digest.nullable(),
     phase2FindingSha256: digest.nullable(),
     passageIds: z.array(bounded).max(500),
