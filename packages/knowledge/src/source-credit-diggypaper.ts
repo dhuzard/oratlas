@@ -129,7 +129,7 @@ const findRef = (values: Record<string, unknown>[], field: string, value: string
 
 function personFromSource(person: z.infer<typeof baseObj>["entries"][number]["contributions"][number]["contributor"], consent: {
   person_consent: string; controller_authorization: string; membership: string;
-}, blinding: string): SourceCreditPerson {
+}, blinding: string, contributionId: string): SourceCreditPerson {
   if (person.kind === "withheld") return { kind: "withheld" };
   if (person.kind === "pseudonym") return { kind: "pseudonym", sourceRef: person.ref };
   if (blinding === "blinded" || consent.person_consent !== "granted" || consent.controller_authorization !== "granted" || consent.membership !== "active") {
@@ -141,7 +141,7 @@ function personFromSource(person: z.infer<typeof baseObj>["entries"][number]["co
   }
   return {
     kind: "named",
-    sourcePersonId: person.orcid === "not-available" ? person.display_name : person.orcid.id,
+    sourcePersonId: contributionId,
     displayName: person.display_name,
     orcid: person.orcid === "not-available" ? null : person.orcid.id,
     sourceOrcidStatus: person.orcid === "not-available" ? "absent" : sourceVerified ? "source-verified" : "claimed",
@@ -213,7 +213,7 @@ export function adaptDiggypaperCredit(
     });
     for (const contribution of entry.contributions) {
       assertionIds.push(contribution.contribution_id);
-      const person = personFromSource(contribution.contributor, contribution.disclosure, contribution.review_blinding);
+      const person = personFromSource(contribution.contributor, contribution.disclosure, contribution.review_blinding, contribution.contribution_id);
       if (contribution.capacity === "support-assessor" && !contribution.assessment_ids.every((id) => assessmentIds.includes(id))) {
         throw new SourceCreditAdapterError("assessor-binding-mismatch");
       }
@@ -227,7 +227,7 @@ export function adaptDiggypaperCredit(
         }
         if (person.kind === "withheld" || contribution.status === "withheld") draft.report.withheld++;
         draft.assertions.push({
-          observationId: "diggypaper:credit:" + contribution.contribution_id + ":" + index,
+          observationId: "diggypaper:credit:" + contribution.contribution_id + ":" + (declared ? digest(declared.role).slice(7, 23) : "capacity"),
           target,
           person,
           capacity: contribution.capacity,
