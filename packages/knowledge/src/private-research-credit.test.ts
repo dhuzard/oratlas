@@ -97,10 +97,7 @@ describe("permission-aware personal cross-project attribution", () => {
       state: "candidate",
       visibility: "owner-only",
     });
-    expect(result?.sources.map((source) => source.projectId)).toEqual([
-      "project:A",
-      "project:B",
-    ]);
+    expect(result?.sources.map((source) => source.projectId)).toEqual(["project:A", "project:B"]);
     expect(result?.credit.map((assertion) => assertion.person.displayName)).toEqual([
       "Private A curator",
       "Private B author",
@@ -120,7 +117,9 @@ describe("permission-aware personal cross-project attribution", () => {
 
   it("fails closed if an A+B member loses B access on a subsequent request", async () => {
     const grants = both();
-    expect(await projectPersonalResearchCredit(candidate(), "user:R", checker(grants))).not.toBeNull();
+    expect(
+      await projectPersonalResearchCredit(candidate(), "user:R", checker(grants)),
+    ).not.toBeNull();
     grants.delete("project:B:read");
     const revoked = await projectPersonalResearchCredit(candidate(), "user:R", checker(grants));
     expect(revoked).toBeNull();
@@ -142,11 +141,13 @@ describe("permission-aware personal cross-project attribution", () => {
         throw Error("Membership provider unavailable");
       }),
     ).toBeNull();
+    expect(await projectPersonalResearchCredit(candidate(), null, () => true)).toBeNull();
     expect(
-      await projectPersonalResearchCredit(candidate(), null, () => true),
-    ).toBeNull();
-    expect(
-      await projectPersonalResearchCredit(candidate(), "user:R", () => ({ permitted: true }) as unknown as boolean),
+      await projectPersonalResearchCredit(
+        candidate(),
+        "user:R",
+        () => ({ permitted: true }) as unknown as boolean,
+      ),
     ).toBeNull();
   });
 
