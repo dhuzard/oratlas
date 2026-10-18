@@ -1,8 +1,9 @@
+import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import Ajv2020 from "ajv/dist/2020.js";
 import addFormats from "ajv-formats";
 import { describe, expect, it } from "vitest";
-import { sourceCreditObservationsSchema } from "@oratlas/contracts";
+import { canonicalJson, sourceCreditObservationsSchema } from "@oratlas/contracts";
 import { adaptDiggypaperCredit } from "./source-credit-diggypaper.js";
 import { adaptCRTContributorship } from "./source-credit-crt.js";
 import { adaptOrcidRoster } from "./source-credit-orcid.js";
@@ -12,6 +13,12 @@ const fixture = (file: string): string =>
 const rawDiggy = fixture("diggypaper/credit.json");
 const rawCRT = fixture("crt/credit.json");
 const rawRoster = fixture("orcid/roster.json");
+const rehashRoster = (data: Record<string, any>): void => {
+  const { digest: _oldDigest, ...payload } = data;
+  data.digest.value = createHash("sha256")
+    .update(canonicalJson(payload), "utf8")
+    .digest("hex");
+};
 const diggyPacket = () => ({
   manifest: fixture("diggypaper/packet/manifest.json"),
   papers: fixture("diggypaper/packet/papers.jsonl"),
@@ -54,6 +61,8 @@ describe("Diggypaper source finding credit: separate credit, paper and evidence"
     );
     expect(result.evidence[0]?.target.packetManifestSha256).toMatch(/^sha256:[0-9a-f]{64}$/);
     expect(result.evidence.some((e) => e.originalPaperAuthors.length > 0)).toBe(true);
+    expect(result.evidence.every((e) => e.nativeOriginId === "packet:credit-synthetic")).toBe(true);
+    expect(result.evidence.every((e) => e.nativeVisibility === "project-members")).toBe(true);
     expect(result.assertions.some((c) => c.person.kind === "pseudonym")).toBe(true);
     expect(result.assertions.some((c) => c.person.kind === "withheld")).toBe(true);
     expect(result.assertions.some((c) => c.role?.slug === "data-curation")).toBe(true);
@@ -121,6 +130,7 @@ describe("CRT source-native credit and review evidence", () => {
     expect(x.production.length).toBeGreaterThanOrEqual(1);
     expect(x.evidence.length).toBeGreaterThanOrEqual(2);
     expect(x.evidence.some((e) => e.originalPaperAuthors.length > 0)).toBe(true);
+    expect(x.evidence.every((e) => e.nativeOriginId.startsWith("origin-"))).toBe(true);
     expect(x.evidence.every((e) => e.target.lineageSha256?.startsWith("sha256:"))).toBe(true);
     expect(x.production.every((p) => p.actorKind === "software")).toBe(true);
     expect(x.assertions.every((a) => a.person.kind !== "pseudonym")).toBe(true);
@@ -195,14 +205,15 @@ describe("ORCID roster candidate-only import", () => {
 
     const forgedOAuth = mutate(rawRoster, (doc) => {
       doc.members[0].orcid.status = "oauth-verified";
-      // Recalculate is intentionally not performed: mutation invalidates signed digest.
+      rehashRoster(doc);
     });
-    expect(() => adaptOrcidRoster(forgedOAuth)).toThrow("roster-digest-mismatch");
+    expect(() => adaptOrcidRoster(forgedOAuth)).toThrow("roster-elevated-identity-claim");
 
     const revoked = mutate(rawRoster, (doc) => {
       doc.consent.status = "revoked";
+      rehashRoster(doc);
     });
-    expect(() => adaptOrcidRoster(revoked)).toThrow("roster-digest-mismatch");
+    expect(() => adaptOrcidRoster(revoked)).toThrow("roster-revoked-data-present");
   });
 
   it("does not conflate local group roles and credited output roles", () => {
