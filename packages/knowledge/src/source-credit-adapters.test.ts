@@ -49,7 +49,9 @@ describe("Diggypaper source finding credit: separate credit, paper and evidence"
     expect(result.accessEffect).toBe("none");
     expect(result.visibility).toBe("private-adapter-output");
     expect(result.evidence.length).toBeGreaterThanOrEqual(2);
-    expect(new Set(result.evidence.map((f) => f.target.sourceId)).size).toBe(result.evidence.length);
+    expect(new Set(result.evidence.map((f) => f.target.sourceId)).size).toBe(
+      result.evidence.length,
+    );
     expect(result.evidence[0]?.target.packetManifestSha256).toMatch(/^sha256:[0-9a-f]{64}$/);
     expect(result.evidence.some((e) => e.originalPaperAuthors.length > 0)).toBe(true);
     expect(result.assertions.some((c) => c.person.kind === "pseudonym")).toBe(true);
@@ -111,9 +113,11 @@ describe("CRT source-native credit and review evidence", () => {
     expect(x.producer).toBe("computational-review-template");
     expect(x.assertions.some((a) => a.sourceStatus === "confirmed")).toBe(true);
     expect(x.assertions.every((a) => a.destinationStatus === "not-adjudicated")).toBe(true);
-    expect(x.assertions.some((a) =>
-      a.person.kind === "named" && a.person.sourceOrcidStatus === "source-verified",
-    )).toBe(true);
+    expect(
+      x.assertions.some(
+        (a) => a.person.kind === "named" && a.person.sourceOrcidStatus === "source-verified",
+      ),
+    ).toBe(true);
     expect(x.production.length).toBeGreaterThanOrEqual(1);
     expect(x.evidence.length).toBeGreaterThanOrEqual(2);
     expect(x.evidence.some((e) => e.originalPaperAuthors.length > 0)).toBe(true);
@@ -168,16 +172,20 @@ describe("ORCID roster candidate-only import", () => {
     expect(x.assertions).toEqual([]);
     expect(x.evidence).toEqual([]);
     expect(x.candidateContacts.length).toBeGreaterThan(0);
-    expect(x.candidateContacts.every((c) =>
-      c.destinationStatus === "candidate-only" && c.accessEffect === "none",
-    )).toBe(true);
+    expect(
+      x.candidateContacts.every(
+        (c) => c.destinationStatus === "candidate-only" && c.accessEffect === "none",
+      ),
+    ).toBe(true);
     expect(x.candidateContacts.some((c) => c.role?.slug === "conceptualization")).toBe(true);
     expect(x.accountVerification).toBe("not-performed");
     expect(JSON.stringify(x)).not.toContain("verified-invitation-accepted");
   });
 
   it("fails closed on a changed roster byte, invented access effect, elevated local ORCID and revived consent", () => {
-    const wrong = mutate(rawRoster, (doc) => { doc.group.name = "tampered"; });
+    const wrong = mutate(rawRoster, (doc) => {
+      doc.group.name = "tampered";
+    });
     expect(() => adaptOrcidRoster(wrong)).toThrow("roster-digest-mismatch");
 
     const grant = mutate(rawRoster, (doc) => {
@@ -191,14 +199,20 @@ describe("ORCID roster candidate-only import", () => {
     });
     expect(() => adaptOrcidRoster(forgedOAuth)).toThrow("roster-digest-mismatch");
 
-    const revoked = mutate(rawRoster, (doc) => { doc.consent.status = "revoked"; });
+    const revoked = mutate(rawRoster, (doc) => {
+      doc.consent.status = "revoked";
+    });
     expect(() => adaptOrcidRoster(revoked)).toThrow("roster-digest-mismatch");
   });
 
   it("does not conflate local group roles and credited output roles", () => {
     const x = adaptOrcidRoster(rawRoster);
-    expect(x.candidateContacts.some((c) => c.sourceOutputRef === null && c.role === null)).toBe(true);
-    expect(x.candidateContacts.filter((c) => c.sourceOutputRef !== null).every((c) => c.role !== null)).toBe(true);
+    expect(x.candidateContacts.some((c) => c.sourceOutputRef === null && c.role === null)).toBe(
+      true,
+    );
+    expect(
+      x.candidateContacts.filter((c) => c.sourceOutputRef !== null).every((c) => c.role !== null),
+    ).toBe(true);
     expect(JSON.stringify(x)).not.toContain("ownerSubjectId");
     expect(JSON.stringify(x)).not.toContain("projectId");
   });
