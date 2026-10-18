@@ -128,33 +128,32 @@ export const privateCreditAssertionSchema = z
 export type PrivateCreditAssertion = z.infer<typeof privateCreditAssertionSchema>;
 
 /** Software is an activity participant, never an ORCID person or CRediT author. */
-export const privateResearchActivitySchema = z
-  .discriminatedUnion("actorKind", [
-    z
-      .object({
-        actorKind: z.literal("human"),
-        activityId: boundedId,
-        kind: z.enum(["proposed-connection", "curated-connection", "validated-connection"]),
-        localSubjectId: boundedId,
-        at: timestamp,
-        inputSha256: z.array(sha256).min(1).max(50),
-      })
-      .strict(),
-    z
-      .object({
-        actorKind: z.literal("software"),
-        activityId: boundedId,
-        kind: z.enum(["proposed-connection", "compared-sources"]),
-        softwareId: boundedId,
-        softwareVersion: boundedId,
-        runId: boundedId,
-        provider: z.string().trim().max(120).optional(),
-        model: z.string().trim().max(120).optional(),
-        at: timestamp,
-        inputSha256: z.array(sha256).min(1).max(50),
-      })
-      .strict(),
-  ]);
+export const privateResearchActivitySchema = z.discriminatedUnion("actorKind", [
+  z
+    .object({
+      actorKind: z.literal("human"),
+      activityId: boundedId,
+      kind: z.enum(["proposed-connection", "curated-connection", "validated-connection"]),
+      localSubjectId: boundedId,
+      at: timestamp,
+      inputSha256: z.array(sha256).min(1).max(50),
+    })
+    .strict(),
+  z
+    .object({
+      actorKind: z.literal("software"),
+      activityId: boundedId,
+      kind: z.enum(["proposed-connection", "compared-sources"]),
+      softwareId: boundedId,
+      softwareVersion: boundedId,
+      runId: boundedId,
+      provider: z.string().trim().max(120).optional(),
+      model: z.string().trim().max(120).optional(),
+      at: timestamp,
+      inputSha256: z.array(sha256).min(1).max(50),
+    })
+    .strict(),
+]);
 export type PrivateResearchActivity = z.infer<typeof privateResearchActivitySchema>;
 
 /**
