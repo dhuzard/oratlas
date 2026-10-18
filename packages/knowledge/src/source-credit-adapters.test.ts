@@ -9,21 +9,28 @@ import { adaptDiggypaperCredit } from "./source-credit-diggypaper.js";
 import { adaptCRTContributorship } from "./source-credit-crt.js";
 import { adaptOrcidRoster } from "./source-credit-orcid.js";
 
-const fixture = (file: string): string =>
-  readFileSync(new URL("./fixtures/source-credit-interop/" + file, import.meta.url), "utf8");
-const rawDiggy = fixture("diggypaper/credit.json");
-const rawCRT = fixture("crt/credit.json");
-const rawRoster = fixture("orcid/roster.json");
+const rawDiggy = readFileSync(new URL("./fixtures/source-credit-interop/diggypaper/credit.json", import.meta.url), "utf8");
+const rawCRT = readFileSync(new URL("./fixtures/source-credit-interop/crt/credit.json", import.meta.url), "utf8");
+const rawRoster = readFileSync(new URL("./fixtures/source-credit-interop/orcid/roster.json", import.meta.url), "utf8");
+const nativeDiggy = readFileSync(new URL("./fixtures/source-credit-interop/schemas/diggypaper.schema.json", import.meta.url), "utf8");
+const nativeCRT = readFileSync(new URL("./fixtures/source-credit-interop/schemas/crt.private.schema.json", import.meta.url), "utf8");
+const nativeRoster = readFileSync(new URL("./fixtures/source-credit-interop/schemas/orcid.roster.schema.json", import.meta.url), "utf8");
+const packetManifest = readFileSync(new URL("./fixtures/source-credit-interop/diggypaper/packet/manifest.json", import.meta.url), "utf8");
+const packetPapers = readFileSync(new URL("./fixtures/source-credit-interop/diggypaper/packet/papers.jsonl", import.meta.url), "utf8");
+const packetFindings = readFileSync(new URL("./fixtures/source-credit-interop/diggypaper/packet/findings.jsonl", import.meta.url), "utf8");
+const packetPassages = readFileSync(new URL("./fixtures/source-credit-interop/diggypaper/packet/passages.jsonl", import.meta.url), "utf8");
+const packetAssessments = readFileSync(new URL("./fixtures/source-credit-interop/diggypaper/packet/assessments.jsonl", import.meta.url), "utf8");
+const rawCRTGraph = readFileSync(new URL("./fixtures/source-credit-interop/crt/claim-graph.json", import.meta.url), "utf8");
 const rehashRoster = (data: Record<string, any>): void => {
   const { digest: _oldDigest, ...payload } = data;
   data.digest.value = createHash("sha256").update(canonicalJson(payload), "utf8").digest("hex");
 };
 const diggyPacket = () => ({
-  manifest: fixture("diggypaper/packet/manifest.json"),
-  papers: fixture("diggypaper/packet/papers.jsonl"),
-  findings: fixture("diggypaper/packet/findings.jsonl"),
-  passages: fixture("diggypaper/packet/passages.jsonl"),
-  assessments: fixture("diggypaper/packet/assessments.jsonl"),
+  manifest: packetManifest,
+  papers: packetPapers,
+  findings: packetFindings,
+  passages: packetPassages,
+  assessments: packetAssessments,
 });
 
 const mutate = (raw: string, apply: (data: Record<string, any>) => void): string => {
@@ -34,13 +41,13 @@ const mutate = (raw: string, apply: (data: Record<string, any>) => void): string
 
 describe("pinned source-native contract fixtures: merge commit byte snapshots", () => {
   it.each([
-    ["diggypaper", "diggypaper.schema.json", rawDiggy],
-    ["CRT", "crt.private.schema.json", rawCRT],
-    ["ORCID roster", "orcid.roster.schema.json", rawRoster],
-  ])("validates %s fixture against the exact frozen producer JSON Schema", (_, path, raw) => {
+    ["diggypaper", nativeDiggy, rawDiggy],
+    ["CRT", nativeCRT, rawCRT],
+    ["ORCID roster", nativeRoster, rawRoster],
+  ])("validates %s fixture against the exact frozen producer JSON Schema", (_, schemaText, raw) => {
     const ajv = new Ajv2020({ strict: false, allErrors: true });
     addFormats(ajv);
-    const schema = JSON.parse(fixture("schemas/" + path));
+    const schema = JSON.parse(schemaText);
     const validate = ajv.compile(schema);
     const valid = validate(JSON.parse(raw));
     expect(valid, JSON.stringify(validate.errors)).toBe(true);
@@ -116,7 +123,7 @@ describe("Diggypaper source finding credit: separate credit, paper and evidence"
 
 describe("CRT source-native credit and review evidence", () => {
   it("keeps claimed and verified identities, bibliographic citation credit and AI agents separate", () => {
-    const x = adaptCRTContributorship(rawCRT, fixture("crt/claim-graph.json"));
+    const x = adaptCRTContributorship(rawCRT, rawCRTGraph);
     expect(sourceCreditObservationsSchema.parse(x)).toEqual(x);
     expect(x.producer).toBe("computational-review-template");
     expect(x.assertions.some((a) => a.sourceStatus === "confirmed")).toBe(true);
