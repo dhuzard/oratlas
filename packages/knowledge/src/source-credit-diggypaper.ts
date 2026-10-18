@@ -182,12 +182,12 @@ function personFromSource(
   ) {
     throw new SourceCreditAdapterError("disclosure-not-authorized");
   }
-  const sourceVerified =
-    person.orcid !== "not-available" && person.orcid.verification === "oauth-verified";
+  const sourceOrcid = person.orcid === "not-available" ? null : person.orcid;
+  const sourceVerified = sourceOrcid?.verification === "oauth-verified";
   if (
-    sourceVerified &&
-    (person.orcid.verified_at === "not-available" ||
-      person.orcid.verification_ref === "not-available")
+    sourceOrcid?.verification === "oauth-verified" &&
+    (sourceOrcid.verified_at === "not-available" ||
+      sourceOrcid.verification_ref === "not-available")
   ) {
     throw new SourceCreditAdapterError("source-orcid-evidence-missing");
   }
@@ -195,11 +195,9 @@ function personFromSource(
     kind: "named",
     sourcePersonId: contributionId,
     displayName: person.display_name,
-    orcid: person.orcid === "not-available" ? null : person.orcid.id,
-    sourceOrcidStatus:
-      person.orcid === "not-available" ? "absent" : sourceVerified ? "source-verified" : "claimed",
-    verificationRef:
-      person.orcid === "not-available" || !sourceVerified ? null : person.orcid.verification_ref,
+    orcid: sourceOrcid?.id ?? null,
+    sourceOrcidStatus: sourceOrcid === null ? "absent" : sourceVerified ? "source-verified" : "claimed",
+    verificationRef: sourceVerified ? sourceOrcid?.verification_ref ?? null : null,
   };
 }
 
