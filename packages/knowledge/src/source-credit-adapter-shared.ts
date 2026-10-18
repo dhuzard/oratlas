@@ -80,7 +80,7 @@ export function startDraft(
     schemaVersion: "oratlas.source-credit-observations/0.1.0",
     producer,
     producerContract: contract,
-    producerCommit: commit,
+    sourceContractPinnedCommit: commit,
     sourceId: id,
     sourceDocumentSha256: digest(raw),
     visibility: "private-adapter-output",
