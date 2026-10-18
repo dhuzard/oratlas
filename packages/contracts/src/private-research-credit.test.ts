@@ -3,7 +3,7 @@ import {
   CREDIT_ROLE_IDS,
   CREDIT_ROLE_LABELS,
   PRIVATE_CROSS_FINDING_VERSION,
-  creditRoleSchema,
+  privateCreditRoleSchema,
   privateCrossFindingSchema,
 } from "./private-research-credit.js";
 
@@ -108,8 +108,8 @@ describe("versioned private cross-finding / CRediT contracts", () => {
     expect(CREDIT_ROLE_IDS).toHaveLength(14);
     expect(new Set(CREDIT_ROLE_IDS).size).toBe(14);
     expect(Object.keys(CREDIT_ROLE_LABELS)).toHaveLength(14);
-    expect(creditRoleSchema.safeParse("validation").success).toBe(true);
-    expect(creditRoleSchema.safeParse("automated-scientific-authorship").success).toBe(false);
+    expect(privateCreditRoleSchema.safeParse("validation").success).toBe(true);
+    expect(privateCreditRoleSchema.safeParse("automated-scientific-authorship").success).toBe(false);
     expect(CREDIT_ROLE_LABELS["writing-review-editing"]).toBe("Writing – review & editing");
   });
 
