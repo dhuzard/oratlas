@@ -1025,3 +1025,50 @@ describe("native fields must follow the packet contract", () => {
     expect(links.rejected).toContainEqual({ ...invalid, findingId: "cardin2009-f1" });
   });
 });
+
+describe("sidecar records may not repeat judgments or carry impossible dates", () => {
+  const editCardin1 = (change: (record: Record<string, unknown>) => void) =>
+    project(fixture.reviewFiles, LINEAGE_CLAIM_ID, (sidecar) => {
+      change(
+        (sidecar.evidence_links as Array<Record<string, unknown>>).find(
+          (r) => r.finding_id === "finding:cardin2009-f1",
+        )!,
+      );
+    });
+  const invalid = {
+    findingId: "finding:cardin2009-f1",
+    citeKey: "Cardin2009",
+    reason: "invalid-link-record",
+  };
+
+  it.each([
+    [
+      "a repeated assessment id",
+      (r: Record<string, unknown>) => {
+        const list = r.assessments as unknown[];
+        list.push(structuredClone(list[0]));
+      },
+    ],
+    [
+      "a repeated passage id",
+      (r: Record<string, unknown>) => {
+        const list = r.passages as unknown[];
+        list.push(structuredClone(list[0]));
+      },
+    ],
+    [
+      "an impossible decision date",
+      (r: Record<string, unknown>) => {
+        (r.mappings as Array<Record<string, unknown>>)[0]!.asserted_at = "2026-13-40T25:61:61Z";
+      },
+    ],
+    [
+      "a non-leap-year Feb 29",
+      (r: Record<string, unknown>) => {
+        (r.mappings as Array<Record<string, unknown>>)[0]!.asserted_at = "2025-02-29T00:00:00Z";
+      },
+    ],
+  ])("rejects %s", (_label, change) => {
+    expect(editCardin1(change).rejected).toContainEqual(invalid);
+  });
+});

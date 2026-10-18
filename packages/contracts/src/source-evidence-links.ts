@@ -86,11 +86,43 @@ export const sidecarAssessmentSchema = z.object({
   status: z.enum(PACKET_ASSESSMENT_STATUSES),
 });
 
+const RFC3339_UTC = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?Z$/;
+/** An RFC 3339 UTC timestamp naming a real date and time (no leap seconds). */
+export function isRfc3339Utc(value: string): boolean {
+  const match = RFC3339_UTC.exec(value);
+  if (!match) return false;
+  const [year, month, day, hour, minute, second] = match.slice(1, 7).map(Number) as [
+    number,
+    number,
+    number,
+    number,
+    number,
+    number,
+  ];
+  const date = new Date(Date.UTC(year, month - 1, day, hour, minute, second));
+  return (
+    date.getUTCFullYear() === year &&
+    date.getUTCMonth() === month - 1 &&
+    date.getUTCDate() === day &&
+    date.getUTCHours() === hour &&
+    date.getUTCMinutes() === minute &&
+    date.getUTCSeconds() === second
+  );
+}
+
+const uniqueBy =
+  <T>(key: (item: T) => string, message: string) =>
+  (items: T[], context: z.RefinementCtx) => {
+    if (new Set(items.map(key)).size !== items.length) {
+      context.addIssue({ code: z.ZodIssueCode.custom, message });
+    }
+  };
+
 /** One recorded decision that a review claim uses a specific finding revision. */
 export const sidecarClaimMappingSchema = z.object({
   claim_id: z.string().min(1).max(300),
   decision_ref: z.string().trim().min(1).max(300),
-  asserted_at: z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/),
+  asserted_at: z.string().refine(isRfc3339Utc, "Must be a real RFC 3339 UTC timestamp."),
   basis: z.string().trim().min(1).max(2_000),
 });
 
@@ -113,8 +145,19 @@ export const sidecarEvidenceLinkSchema = z
     doi: z.string().min(1).max(300).nullable(),
     linked_review_claim_ids: z.array(z.string().min(1).max(300)).min(1).max(500),
     verification_level: z.enum(PACKET_VERIFICATION_LEVELS).optional(),
-    passages: z.array(sidecarPassageSchema).min(1).max(200).optional(),
-    assessments: z.array(sidecarAssessmentSchema).max(200).optional(),
+    passages: z
+      .array(sidecarPassageSchema)
+      .min(1)
+      .max(200)
+      .superRefine(uniqueBy((passage) => passage.passage_id, "A passage is repeated."))
+      .optional(),
+    assessments: z
+      .array(sidecarAssessmentSchema)
+      .max(200)
+      .superRefine(
+        uniqueBy((assessment) => assessment.assessment_id, "One native judgment is repeated."),
+      )
+      .optional(),
     binding: z.enum(["reviewed-mapping", "same-paper-candidate"]).optional(),
     phase2_finding_sha256: taggedSha256Schema.optional(),
     mappings: z.array(sidecarClaimMappingSchema).min(1).max(500).optional(),
