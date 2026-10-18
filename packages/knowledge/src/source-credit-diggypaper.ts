@@ -196,8 +196,9 @@ function personFromSource(
     sourcePersonId: contributionId,
     displayName: person.display_name,
     orcid: sourceOrcid?.id ?? null,
-    sourceOrcidStatus: sourceOrcid === null ? "absent" : sourceVerified ? "source-verified" : "claimed",
-    verificationRef: sourceVerified ? sourceOrcid?.verification_ref ?? null : null,
+    sourceOrcidStatus:
+      sourceOrcid === null ? "absent" : sourceVerified ? "source-verified" : "claimed",
+    verificationRef: sourceVerified ? (sourceOrcid?.verification_ref ?? null) : null,
   };
 }
 
