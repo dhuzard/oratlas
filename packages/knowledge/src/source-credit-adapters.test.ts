@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- synthetic upstream payloads are mutated to test fail-closed behavior */
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import Ajv2020 from "ajv/dist/2020.js";
