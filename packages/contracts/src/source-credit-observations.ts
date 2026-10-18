@@ -142,7 +142,7 @@ export const sourceCreditObservationsSchema = z
     schemaVersion: z.literal(SOURCE_CREDIT_OBSERVATIONS_VERSION),
     producer: sourceCreditProducerSchema,
     producerContract: bounded,
-    producerCommit: z.string().regex(/^[0-9a-f]{40}$/u),
+    sourceContractPinnedCommit: z.string().regex(/^[0-9a-f]{40}$/u),
     sourceId: bounded,
     /** Exact bytes of the source companion/roster, not the packet or claim graph. */
     sourceDocumentSha256: digest,
