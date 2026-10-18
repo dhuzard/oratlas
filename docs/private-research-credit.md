@@ -7,18 +7,18 @@ Tracks [ORAtlas #202](https://github.com/dhuzard/oratlas/issues/202),
 
 This narrow, framework-independent slice introduces:
 
-- The closed, versioned \`oratlas.private-cross-finding/0.1.0\` schema in
-  \`packages/contracts/src/private-research-credit.ts\`.
+- The closed, versioned `oratlas.private-cross-finding/0.1.0` schema in
+  `packages/contracts/src/private-research-credit.ts`.
 - The fourteen canonical CRediT role IDs and display labels.
 - Exact per-project source artifact identities, immutable revisions/hashes, roles
   and provenance with explicit distinctions between original publication authors,
   source curators/reviewers, the person producing a new cross-finding, and an
   AI/software activity. A citation or shared DOI is not evidence derivation.
 - A pure, read-only, *owner-only* projection in
-  \`packages/knowledge/src/private-research-credit.ts\`. It obtains
-  \`read\` **and** \`cross-project-process\` decisions independently for both
+  `packages/knowledge/src/private-research-credit.ts`. It obtains
+  `read` **and** `cross-project-process` decisions independently for both
   projects. Every denial, absent principal, malformed record and authorization
-  service error returns the same \`null\` response. Each request must recheck
+  service error returns the same `null` response. Each request must recheck
   grants; there is no hidden cross-request cache.
 - Adversarial tests for A-only, B-only, intersection user, lost membership,
   missing processing consent, invalid provenance, accidental source-as-bridge
@@ -42,7 +42,7 @@ The projector is defense in depth. A future authenticated endpoint MUST:
 2. Authorize project membership and artifact read **at the data/connector query
    boundary before loading** protected bytes. The protected draft must be
    resolvable only in an owner-scoped storage namespace.
-3. Supply an authoritative, up-to-date \`authorize\` function, evaluating
+3. Supply an authoritative, up-to-date `authorize` function, evaluating
    project membership **and** project-controller cross-project processing policy
    separately for both sources. A source-provided boolean or ORCID roster is not
    authorization.
@@ -75,7 +75,7 @@ describe **human contributions to an exact output**, not publication authorship,
 data ownership, reading permission, number of citations, AI work or scientific
 validity. The human contribution records are **assertions**. Source-declared
 roles, names and ORCID strings are not automatically verified or consented.
-Only a human-confirmed declaration may be labelled \`confirmed\` in the draft
+Only a human-confirmed declaration may be labelled `confirmed` in the draft
 record. A future authenticated workflow must verify and log the person whose
 approval it represents; the current model does not certify such an assertion.
 
@@ -83,14 +83,14 @@ Examples of different targets:
 
 | Output origin | Representation |
 | --- | --- |
-| Original paper author | Source-scoped \`publication-author\` attribution, no automatically assigned CRediT role on the new output |
+| Original paper author | Source-scoped `publication-author` attribution, no automatically assigned CRediT role on the new output |
 | Curator of a Diggypaper finding | Source-scoped curator assertion; optional explicitly recorded Data curation |
-| Scientific reviewer of a supporting quote | Source-scoped \`source-evidence-reviewer\`, not independent verification of an unrelated new discovery |
+| Scientific reviewer of a supporting quote | Source-scoped `source-evidence-reviewer`, not independent verification of an unrelated new discovery |
 | Scientist linking A and B | Cross-finding-scoped Conceptualization when that contribution was actually documented |
-| Agent proposing a similarity | \`activities[].actorKind=software\`, model/run provenance; never assigned an ORCID or a CRediT human role |
+| Agent proposing a similarity | `activities[].actorKind=software`, model/run provenance; never assigned an ORCID or a CRediT human role |
 
-The current cross-finding status is private \`candidate\`, \`human-reviewed\`
-or \`rejected\`; it cannot transition directly to a publicly verified
+The current cross-finding status is private `candidate`, `human-reviewed`
+or `rejected`; it cannot transition directly to a publicly verified
 scientific relation, ORAtlas TRUST assessment, confirmed replication or
 accepted scholarly publication. A new relation requires its own source-evidence
 linkage, human scientific decision and publication authorization.
@@ -121,6 +121,6 @@ bibliographic DOI is allowed and never invented.
   to public release path with mandatory original evidence citations.
 
 Do not integrate this prototype into the global canonical graph, public
-\`GET /api/graph\`, the public archive index, ORAtlas public contributor API or
+`GET /api/graph`, the public archive index, ORAtlas public contributor API or
 public CRT/Diggypaper exports until these dependencies are independently
 implemented and security-tested.
