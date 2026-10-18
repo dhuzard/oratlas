@@ -205,7 +205,11 @@ export function adaptDiggypaperCredit(
     }
     draft.evidence.push({
       observationId: "diggypaper:evidence:" + key,
-      target, sourcePaperId: b.paper_id, sourceSnapshotSha256,
+      target, sourcePaperId: b.paper_id,
+      citedWorkDoi: typeof (paper.identifiers as Record<string, unknown> | undefined)?.doi === "string" &&
+        (paper.identifiers as Record<string, unknown>).doi !== "not-available"
+        ? String((paper.identifiers as Record<string, unknown>).doi) : null,
+      sourceSnapshotSha256,
       phase2FindingSha256: null, passageIds: b.passage_ids, quoteSha256,
       assessmentIds: b.assessment_ids,
       originalPaperAuthors: Array.isArray(paper.authors) ? paper.authors.filter((a): a is string => typeof a === "string") : [],
