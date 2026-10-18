@@ -15,11 +15,11 @@ ORAtlas TRUST or assign CRediT roles on a new finding.
 
 ## Pinned producer fixtures
 
-| Producer | Exact merged commit | Native schema | Tested fixture |
-| --- | --- | --- | --- |
-| Diggypaper | [a34d18f](https://github.com/dhuzard/diggypaper/commit/a34d18f752377b2a6df01555d1963b2a43c0dca9) | `finding-credit-companion/0.1.0` | `diggypaper/credit.json` plus its **five actual packet files** |
-| CRT | [a19a8dc](https://github.com/Neuronautix/ComputationalReviewTemplate_trust-knowledge/commit/a19a8dc90ddbf93c06d6ab050aaad3a00d28a262) | `comprev.contributorship/1` private | `crt/credit.json` plus native claim graph |
-| ORCID Playground | [ff5aff9](https://github.com/dhuzard/orcid-playground/commit/ff5aff93cb34620f3f2500f709259aa0134c24f2) | `orcid-playground/roster-assertion` 0.1.0 | `orcid/roster.json` |
+| Producer         | Exact merged commit                                                                                                                   | Native schema                             | Tested fixture                                                 |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- | -------------------------------------------------------------- |
+| Diggypaper       | [a34d18f](https://github.com/dhuzard/diggypaper/commit/a34d18f752377b2a6df01555d1963b2a43c0dca9)                                      | `finding-credit-companion/0.1.0`          | `diggypaper/credit.json` plus its **five actual packet files** |
+| CRT              | [a19a8dc](https://github.com/Neuronautix/ComputationalReviewTemplate_trust-knowledge/commit/a19a8dc90ddbf93c06d6ab050aaad3a00d28a262) | `comprev.contributorship/1` private       | `crt/credit.json` plus native claim graph                      |
+| ORCID Playground | [ff5aff9](https://github.com/dhuzard/orcid-playground/commit/ff5aff93cb34620f3f2500f709259aa0134c24f2)                                | `orcid-playground/roster-assertion` 0.1.0 | `orcid/roster.json`                                            |
 
 Exact original synthetic fixtures and source-native JSON Schemas are copied to
 `packages/knowledge/src/fixtures/source-credit-interop/` with unchanged bytes.
@@ -40,15 +40,15 @@ source authorization or scientific verification.
 - **Evidence provenance:** exact finding ID/revision; original packet ID and
   manifest-bytes SHA-256 where available; Phase 2 finding/claim graph digest
   and lineage digest where recorded; passage IDs, quote hashes and assessment
-  refs. The source DOI or bibliographic author list is *citation metadata*,
+  refs. The source DOI or bibliographic author list is _citation metadata_,
   not proof of support, independence or authorship.
 - **Software provenance:** separate software actor/channel with name, version,
   workflow activity and source run ID. No human CRediT identity or ORCID.
 - **Roster candidates:** ORCID Playground entries are possible contacts and
-  curator-/source-declared output roles only, *never* authenticated ORCID
+  curator-/source-declared output roles only, _never_ authenticated ORCID
   accounts, invitations, project memberships or confirmed ORAtlas contribution.
 - **Disclosure:** all normalized records have `visibility:
-  private-adapter-output`, `accessEffect: none`,
+private-adapter-output`, `accessEffect: none`,
   `oratlasDisclosure: not-authorized` where applicable. Source-reported
   `public`, `confirmed` or `verified` is retained as a **source assertion**.
   It does not establish a destination permission, personal approval or
@@ -83,7 +83,7 @@ This PR does not implement user/project ACL, project source authorization,
 revocation/cached-result invalidation, connector tokens, identity confirmation,
 scientific validation, contributor consent, disclosure approval or public
 release. A future project-scoped adapter MUST authorize both source access and
-cross-project processing *before* loading private inputs, use a verified
+cross-project processing _before_ loading private inputs, use a verified
 authentication principal, and enforce individual/controller consent before
 publishing any attribution. See [#202](https://github.com/dhuzard/oratlas/issues/202),
 [#203](https://github.com/dhuzard/oratlas/issues/203),
