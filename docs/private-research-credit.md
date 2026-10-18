@@ -14,7 +14,7 @@ This narrow, framework-independent slice introduces:
   and provenance with explicit distinctions between original publication authors,
   source curators/reviewers, the person producing a new cross-finding, and an
   AI/software activity. A citation or shared DOI is not evidence derivation.
-- A pure, read-only, *owner-only* projection in
+- A pure, read-only, _owner-only_ projection in
   `packages/knowledge/src/private-research-credit.ts`. It obtains
   `read` **and** `cross-project-process` decisions independently for both
   projects. Every denial, absent principal, malformed record and authorization
@@ -59,7 +59,7 @@ The projector is defense in depth. A future authenticated endpoint MUST:
    private records. Protect observability, search hit counts, error details,
    indices, collaborator/ORCID pages and inference from response timing.
    The projector does not solve side-channel issues by itself.
-7. Keep any *publication* or cross-group acknowledgement separate from the
+7. Keep any _publication_ or cross-group acknowledgement separate from the
    personal proposal. Each private source controller must approve the precise
    released content, target audience, scientific provenance and contributor
    attribution, with individual consent where appropriate.
@@ -81,13 +81,13 @@ approval it represents; the current model does not certify such an assertion.
 
 Examples of different targets:
 
-| Output origin | Representation |
-| --- | --- |
-| Original paper author | Source-scoped `publication-author` attribution, no automatically assigned CRediT role on the new output |
-| Curator of a Diggypaper finding | Source-scoped curator assertion; optional explicitly recorded Data curation |
-| Scientific reviewer of a supporting quote | Source-scoped `source-evidence-reviewer`, not independent verification of an unrelated new discovery |
-| Scientist linking A and B | Cross-finding-scoped Conceptualization when that contribution was actually documented |
-| Agent proposing a similarity | `activities[].actorKind=software`, model/run provenance; never assigned an ORCID or a CRediT human role |
+| Output origin                             | Representation                                                                                          |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| Original paper author                     | Source-scoped `publication-author` attribution, no automatically assigned CRediT role on the new output |
+| Curator of a Diggypaper finding           | Source-scoped curator assertion; optional explicitly recorded Data curation                             |
+| Scientific reviewer of a supporting quote | Source-scoped `source-evidence-reviewer`, not independent verification of an unrelated new discovery    |
+| Scientist linking A and B                 | Cross-finding-scoped Conceptualization when that contribution was actually documented                   |
+| Agent proposing a similarity              | `activities[].actorKind=software`, model/run provenance; never assigned an ORCID or a CRediT human role |
 
 The current cross-finding status is private `candidate`, `human-reviewed`
 or `rejected`; it cannot transition directly to a publicly verified
