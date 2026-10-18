@@ -1,0 +1,100 @@
+{
+  "gates": {
+    "exempt_checks": [
+      "PAPER_COUNT_FLOOR",
+      "CROSS_CLUSTER_UNIQUE_DOIS",
+      "BIBLIOGRAPHY_FLOOR_HARD",
+      "PAPER_COUNT",
+      "SHAPE_NOT_UNIFORM",
+      "FIGURE_DATA_PRESENT",
+      "FIGURE_DATA",
+      "EFFECT_SIZE_RATE",
+      "SAMPLE_SIZE_RATE",
+      "REPLICATION_UNKNOWN_CEILING",
+      "WEAKEST_EVIDENCE_SUBSTANTIVE",
+      "SEARCH_FAILURES_PRESENT",
+      "CONTRADICTION_QUERIES_EXECUTED",
+      "FALSE_CONSENSUS_RISKS_IDENTIFIED",
+      "SATURATION_LOGGED",
+      "DOI_RESOLVES",
+      "DOI_TITLE_CROSSCHECK",
+      "SOURCE_PROVENANCE",
+      "FULLTEXT_HONEST",
+      "FULLTEXT_HONEST_v2",
+      "FULLTEXT_RATE_PER_CLUSTER",
+      "FULLTEXT_RATE_OVERALL",
+      "SOURCE_LENGTH",
+      "CLAIM_DIFFERS_FROM_SOURCE"
+    ],
+    "phase2_import": "pass",
+    "phase5": "pass"
+  },
+  "import": {
+    "counts": {
+      "by_reason": {
+        "rejected:no-matched-passage": 1,
+        "rejected:not-approved-for-export": 1,
+        "rejected:source-unavailable": 1,
+        "rejected:unreviewed": 1,
+        "rejected:verification-below-threshold": 1,
+        "withheld:paper-rights-not-redistributable": 1
+      },
+      "consumer_classes": {
+        "incompatible": 0,
+        "restricted": 1
+      },
+      "findings": {
+        "accepted": 3,
+        "incomplete": 0,
+        "rejected": 0,
+        "withheld": 1
+      },
+      "omitted_by_producer": {
+        "assessments": 0,
+        "findings": 0,
+        "papers": 0,
+        "passages": 0
+      },
+      "producer_export_state": "complete"
+    }
+  },
+  "links": {
+    "emitted": 3,
+    "reviewed_mappings": 2,
+    "same_paper_candidates": 1,
+    "skipped": []
+  },
+  "reference_validator": {
+    "counts": {
+      "assessments": 3,
+      "findings": 4,
+      "findings_by_export_state": {
+        "approved-for-export": 3,
+        "proposed": 1
+      },
+      "findings_by_verification": {
+        "human-reviewed": 1,
+        "source-verified": 2,
+        "unverified": 1
+      },
+      "omitted": {
+        "assessments": 0,
+        "findings": 0,
+        "papers": 0,
+        "passages": 0
+      },
+      "papers": 3,
+      "passages": 4,
+      "rejected": {
+        "assessments": 0,
+        "findings": 0,
+        "papers": 0,
+        "passages": 0
+      }
+    },
+    "packet_digest": "sha256:57db54da7f2daa448ef3dda28b1921ef14d0475fa6270f3f4905c23027ded2a9",
+    "ran": true,
+    "valid": true
+  },
+  "schema": "oratlas.evidence-lineage-build-report/1"
+}

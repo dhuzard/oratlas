@@ -10,6 +10,12 @@ exports; this is intentionally not a broader compatibility promise.
 
 ### Added
 
+- Cross-repository evidence-lineage regression (MVP v0.1 Gate G4, issue #198): a digest-pinned,
+  offline fixture built from exact Diggypaper and ComputationalReviewTemplate revisions; a
+  read-time `sourceEvidenceLinks` projection of the review's preserved source-native sidecar on the
+  claim passport API and page; `auditSourceEvidencePacket` for CI; and
+  `pnpm evidence-lineage:verify`. No schema change and no change to ingestion. See
+  `docs/cross-repo-evidence-lineage.md`.
 - Generic publication boundary for independently hosted scientific publications:
   `Publication`, `PublicationVersion`, `PublicationCapture` and `PublicationClaimOccurrence`,
   with contracts in `@oratlas/contracts` and framework-free domain logic in

@@ -5,14 +5,18 @@ import {
   citationStatusInputSchema,
   claimDomAnchor,
   globalClaimId,
+  preservedFilesSchema,
   proposalResolutionSchema,
+  validateReviewManifest,
   type AssessmentReviewStatus,
   type CitationStatusInput,
   type ProposalResolution,
+  type SourceEvidenceLinks,
 } from "@oratlas/contracts";
+import { projectSourceEvidenceLinks } from "@oratlas/extractor";
 import { type Prisma } from "@oratlas/db";
 import { type TrustVerificationState } from "@oratlas/trust";
-import { prisma } from "./db";
+import { parseJsonColumn, prisma } from "./db";
 import { withSqliteRetry as sharedWithSqliteRetry } from "./db-retry";
 import { isReadablePublicState } from "./review-lifecycle";
 import { getPublicNode } from "./node-publication";
@@ -398,6 +402,12 @@ export interface ClaimPassport {
   alerts: ProposalRow[];
   executionPassports: PublicExecutionPassport[];
   protocolDrift: ProtocolDriftSummary;
+  /**
+   * Producer-finding lineage declared by the review repository's source-native sidecar, derived at
+   * read time from the preserved bytes. External and unverified by ORAtlas; never an ORAtlas
+   * assessment.
+   */
+  sourceEvidenceLinks: SourceEvidenceLinks;
   graphIdentity?: {
     nodeId: string;
     nodeVersionId: string;
@@ -456,7 +466,7 @@ export async function getClaimPassport(
     include: {
       reviewVersion: {
         include: {
-          snapshot: { select: { inspectionReportJson: true } },
+          snapshot: { select: { inspectionReportJson: true, preservedFilesJson: true } },
           review: { include: { versions: true } },
         },
       },
@@ -490,6 +500,11 @@ export async function getClaimPassport(
 
   const protocolDrift = await getPublicProtocolSummary(version.id, claim.localClaimId);
   if (!protocolDrift) return null;
+  const sourceEvidenceLinks = await loadSourceEvidenceLinks(
+    version.id,
+    version.snapshot?.preservedFilesJson ?? null,
+    claim,
+  );
   const publicNode = claim.knowledgeNodeId ? await getPublicNode(claim.knowledgeNodeId) : null;
   const graphIdentity = publicNode
     ? {
@@ -565,6 +580,7 @@ export async function getClaimPassport(
     alerts: claim.updateProposals.map(proposalDto),
     executionPassports,
     protocolDrift,
+    sourceEvidenceLinks,
     graphIdentity,
     alsoAssertedIn: (publicNode?.sameClaims ?? []).flatMap((sameClaim) =>
       sameClaim.reviewAssertions.map((assertion) => ({
@@ -576,6 +592,70 @@ export async function getClaimPassport(
     ),
     links: claimPassportLinks(review.slug, version.id, claim.localClaimId, graphIdentity),
   };
+}
+
+/**
+ * Derive the claim-scoped source-evidence view from the preserved `provenance` sidecar. Nothing is
+ * stored: the preserved bytes remain the only source, so no historical record is mutated and the
+ * view cannot drift from what the repository actually declared.
+ */
+async function loadSourceEvidenceLinks(
+  reviewVersionId: string,
+  preservedFilesJson: string | null,
+  claim: {
+    localClaimId: string;
+    text: string;
+    evidenceRelations: Array<{
+      relationType: string;
+      sourceLocation: string | null;
+      citation: { localCitationId: string };
+    }>;
+  },
+): Promise<SourceEvidenceLinks> {
+  const preserved = preservedFilesSchema.safeParse(
+    parseJsonColumn<unknown>(preservedFilesJson, null),
+  );
+  const files = preserved.success ? preserved.data : {};
+  const intact = (path: string | undefined) => {
+    const file = path ? files[path] : undefined;
+    return file && !file.truncated ? file.content : undefined;
+  };
+
+  let sidecarPath: string | undefined;
+  const manifestContent = intact("review-manifest.json");
+  if (manifestContent) {
+    try {
+      const manifest = validateReviewManifest(JSON.parse(manifestContent));
+      sidecarPath = manifest.ok ? manifest.manifest?.artifacts?.provenance : undefined;
+    } catch {
+      sidecarPath = undefined;
+    }
+  }
+  const sidecarContent = intact(sidecarPath);
+  const citations = sidecarContent
+    ? await prisma.citation.findMany({
+        where: { reviewVersionId },
+        select: { localCitationId: true, doi: true, rawCitationJson: true },
+      })
+    : [];
+  return projectSourceEvidenceLinks({
+    claimLocalId: claim.localClaimId,
+    claimText: claim.text,
+    sidecar:
+      sidecarPath && sidecarContent ? { path: sidecarPath, content: sidecarContent } : undefined,
+    claimGraphContent: intact("knowledge/claim_graph.json"),
+    trustReportContent: intact("knowledge/trust_score_report.json"),
+    citations: citations.map((citation) => ({
+      localCitationId: citation.localCitationId,
+      doi: citation.doi,
+      doiIsExample: isExampleCitation(citation.rawCitationJson),
+    })),
+    relations: claim.evidenceRelations.map((relation) => ({
+      citationLocalId: relation.citation.localCitationId,
+      relationType: relation.relationType,
+      sourceLocation: relation.sourceLocation,
+    })),
+  });
 }
 
 function isExampleCitation(rawJson: string | null): boolean {

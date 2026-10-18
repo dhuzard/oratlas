@@ -2561,6 +2561,246 @@ components:
         review: { type: string, pattern: "^/api/reviews/" }
         reviewVersion: { type: string, pattern: "^/api/reviews/.+/versions/" }
         graph: { type: string, pattern: "^/api/graph\\?" }
+    SourceEvidenceLinkedFinding:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          findingId,
+          binding,
+          phase2FindingSha256,
+          mapping,
+          producer,
+          packetId,
+          sourceSnapshotSha256,
+          revision,
+          verificationLevel,
+          passageEvidence,
+          passages,
+          producerAssessment,
+          assessments,
+        ]
+      properties:
+        findingId: { type: string }
+        binding:
+          { type: string, enum: [reviewed-mapping, same-paper-candidate, binding-not-declared] }
+        phase2FindingSha256: { type: [string, "null"], pattern: "^sha256:[0-9a-f]{64}$" }
+        mapping:
+          type: [object, "null"]
+          additionalProperties: false
+          required: [decisionRef, assertedAt, basis]
+          properties:
+            decisionRef: { type: string }
+            assertedAt: { type: string }
+            basis: { type: string }
+        producer: { type: string, enum: [diggypaper] }
+        packetId: { type: string }
+        sourceSnapshotSha256: { type: string, pattern: "^[0-9a-f]{64}$" }
+        revision: { type: [integer, "null"], minimum: 1 }
+        verificationLevel:
+          type: [string, "null"]
+          enum: [unverified, human-reviewed, source-verified, independently-verified, null]
+        passageEvidence: { type: string, enum: [declared-by-sidecar, not-carried-by-sidecar] }
+        passages:
+          type: [array, "null"]
+          items:
+            type: object
+            additionalProperties: false
+            required: [passageId, quoteSha256, quoteState, matchStatus]
+            properties:
+              passageId: { type: string }
+              quoteSha256: { type: string, pattern: "^sha256:[0-9a-f]{64}$" }
+              quoteState: { type: string, enum: [included, withheld-rights] }
+              matchStatus: { type: string }
+        producerAssessment: { type: string, enum: [declared-by-sidecar, not-carried-by-sidecar] }
+        assessments:
+          type: [array, "null"]
+          items:
+            type: object
+            additionalProperties: false
+            required: [assessmentId, protocol, status]
+            properties:
+              assessmentId: { type: string }
+              protocol: { type: string, enum: [seip-support-v1] }
+              status:
+                type: string
+                enum:
+                  - supports
+                  - contradicts
+                  - insufficient
+                  - unclear
+                  - not_assessed
+                  - unknown
+                  - restricted
+    SourceEvidenceLinks:
+      type: object
+      description: |
+        Producer-finding lineage declared by the review repository's source-native `provenance`
+        sidecar, derived at read time from its preserved bytes. A producer finding is a statement
+        about a cited article held in an external Diggypaper evidence packet; it is not a claim of
+        this review. ORAtlas neither imports nor verifies the packet. The nativeAssessment is
+        source-native Computational Review TRUST v2, never an ORAtlas TRUST assessment.
+      additionalProperties: false
+      required:
+        [
+          schemaVersion,
+          status,
+          sidecar,
+          packets,
+          citations,
+          rejected,
+          nativeAssessment,
+          nativeAssessmentWithheld,
+          labels,
+        ]
+      properties:
+        schemaVersion: { type: string, enum: ["1.0.0"] }
+        status:
+          type: string
+          enum:
+            [
+              linked,
+              candidates-only,
+              no-producer-finding,
+              sidecar-unavailable,
+              sidecar-invalid,
+              sidecar-stale,
+            ]
+        sidecar:
+          type: [object, "null"]
+          additionalProperties: false
+          required: [path, sha256, bytes]
+          properties:
+            path: { type: string }
+            sha256: { type: string, pattern: "^[0-9a-f]{64}$" }
+            bytes: { type: integer, minimum: 0 }
+        packets:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              [
+                packetId,
+                producer,
+                packetSha256,
+                availability,
+                contentsImportedByOratlas,
+                contentsVerifiedByOratlas,
+              ]
+            properties:
+              packetId: { type: string }
+              producer: { type: string, enum: [diggypaper] }
+              packetSha256: { type: string, pattern: "^[0-9a-f]{64}$" }
+              locator:
+                type: [object, "null"]
+                additionalProperties: false
+                required: [kind, doi, url, href, doiIsExample]
+                properties:
+                  kind: { type: string, enum: [doi, github-release-asset] }
+                  doi: { type: [string, "null"] }
+                  url: { type: [string, "null"] }
+                  href: { type: [string, "null"] }
+                  doiIsExample: { type: boolean }
+              availability: { type: string, enum: [locator-declared, location-not-declared] }
+              contentsImportedByOratlas: { type: boolean, enum: [false] }
+              contentsVerifiedByOratlas: { type: boolean, enum: [false] }
+        citations:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [citationLocalId, doi, doiIsExample, relation, findings, candidateFindings]
+            properties:
+              citationLocalId: { type: string }
+              doi: { type: [string, "null"] }
+              doiIsExample: { type: boolean }
+              relation:
+                type: object
+                additionalProperties: false
+                required: [relationType, sourceLocation]
+                properties:
+                  relationType: { type: string }
+                  sourceLocation: { type: [string, "null"] }
+              findings:
+                description: Findings bound to this claim by a reviewed mapping.
+                type: array
+                items: { $ref: "#/components/schemas/SourceEvidenceLinkedFinding" }
+              candidateFindings:
+                description: Same-paper candidates; never this claim's evidence.
+                type: array
+                items: { $ref: "#/components/schemas/SourceEvidenceLinkedFinding" }
+        rejected:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [findingId, citeKey, reason]
+            properties:
+              findingId: { type: [string, "null"] }
+              citeKey: { type: [string, "null"] }
+              reason:
+                type: string
+                enum:
+                  - invalid-link-record
+                  - citation-not-in-review
+                  - no-citation-relation
+                  - doi-mismatch
+                  - doi-unconfirmed
+                  - ambiguous-source-relationship
+                  - claim-text-digest-mismatch
+                  - claim-graph-digest-mismatch
+                  - claim-not-in-sidecar
+                  - claim-record-conflict
+        nativeAssessment:
+          type: [object, "null"]
+          additionalProperties: false
+          required:
+            [
+              protocol,
+              rubricVersion,
+              origin,
+              label,
+              nativeOverallScore,
+              capped,
+              reAdjudicatedByOratlas,
+              isOratlasAssessment,
+              provenance,
+              verifiedAgainstPreservedSources,
+            ]
+          properties:
+            protocol: { type: string, enum: [computational-review-trust] }
+            rubricVersion: { type: string }
+            origin: { type: string, enum: [source-native] }
+            label: { type: string }
+            nativeOverallScore: { type: [number, "null"] }
+            capped: { type: boolean }
+            reAdjudicatedByOratlas: { type: boolean, enum: [false] }
+            isOratlasAssessment: { type: boolean, enum: [false] }
+            provenance:
+              type: object
+              additionalProperties: false
+              required: [claimGraph, trustScoreReport]
+              properties:
+                claimGraph: { type: string, enum: [digest-matched, not-preserved, not-declared] }
+                trustScoreReport:
+                  { type: string, enum: [digest-matched, not-preserved, not-declared] }
+            verifiedAgainstPreservedSources: { type: boolean }
+        nativeAssessmentWithheld:
+          type: [string, "null"]
+          enum: [sidecar-stale, trust-report-digest-mismatch, null]
+        labels:
+          type: object
+          additionalProperties: false
+          required:
+            [producer, packet, passage, candidate, nativeAssessment, nativeAssessmentUnverified]
+          properties:
+            producer: { type: string }
+            packet: { type: string }
+            passage: { type: string }
+            candidate: { type: string }
+            nativeAssessment: { type: string }
+            nativeAssessmentUnverified: { type: string }
     ClaimPassport:
       type: object
       additionalProperties: false
@@ -2579,6 +2819,7 @@ components:
           alerts,
           executionPassports,
           protocolDrift,
+          sourceEvidenceLinks,
           alsoAssertedIn,
           links,
         ]
@@ -2610,6 +2851,7 @@ components:
           type: array
           items: { type: object }
         protocolDrift: { $ref: "#/components/schemas/ProtocolDriftSummary" }
+        sourceEvidenceLinks: { $ref: "#/components/schemas/SourceEvidenceLinks" }
         graphIdentity: { $ref: "#/components/schemas/ClaimPassportGraphIdentity" }
         alsoAssertedIn:
           type: array

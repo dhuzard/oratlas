@@ -1,0 +1,27 @@
+{
+  "oratlasBaselineFileSha256": {
+    "packages/contracts/src/artifacts.ts": "8d28126bee6464c0ada0430d5595aac3421e2c1f385700f0f04631f1434ce9d6",
+    "packages/contracts/src/manifest.ts": "cb317abe69f81fc8ec902edc02026d9a436a9e955634d2a969b4e4f424cc7424",
+    "packages/contracts/src/paths.ts": "2c205a1d4289cc4b3fce09b23346d20f7913adaebb18692ae9aa2860e6339552",
+    "packages/extractor/src/knowledge.ts": "86f2b09bbfcb65753cff1bde915ecb6905f7ffb51444c775a84e600888c69112",
+    "packages/extractor/src/sources.ts": "579ff4ebe2d8043f3120e9c9389e463583dfe16cfb52b880c300c08f113171e8"
+  },
+  "pins": {
+    "computationalReviewTemplate": {
+      "commit": "ce8f29cf251aadfc4c44d109db65d15dd0f629c0",
+      "repository": "https://github.com/Neuronautix/ComputationalReviewTemplate_trust-knowledge",
+      "role": "S2 importer + Phase 2/5 gates, reviewed claim-finding map and links/2 bridge (scripts/source-evidence), S3 ORAtlas exporter (scripts/oratlas)"
+    },
+    "diggypaper": {
+      "commit": "9cfd46c2b17903656eb06afe51ee8c69a7f75ae0",
+      "repository": "https://github.com/dhuzard/diggypaper",
+      "role": "source-evidence-packet/0.1.0 contract, normative packet digest and reference validator (issues #47, PR #50)"
+    },
+    "oratlas": {
+      "commit": "9cd3a0c284400b30dd0044cf3acb24df1047275d",
+      "repository": "https://github.com/dhuzard/oratlas",
+      "role": "extractor/contract baseline the S3 exporter targets (extractKnowledgeWithOutcomes)"
+    }
+  },
+  "schema": "oratlas.fixture-pins/1"
+}

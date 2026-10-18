@@ -45,7 +45,9 @@
     "refresh:syntheses": "tsx --conditions=react-server apps/web/src/cli/refresh-syntheses.ts",
     "backfill:canonical-graph": "pnpm --filter @oratlas/db exec tsx --conditions=react-server ../../scripts/backfill-canonical-graph.ts",
     "release:notes": "tsx scripts/release-notes.ts",
-    "demo:ora-certification": "tsx scripts/ora-demo-certification.ts"
+    "demo:ora-certification": "tsx scripts/ora-demo-certification.ts",
+    "evidence-lineage:verify": "tsx scripts/evidence-lineage/verify-fixture.ts",
+    "evidence-lineage:build": "node scripts/evidence-lineage/build-fixture.mjs"
   },
   "devDependencies": {
     "@oratlas/certifier-client": "workspace:*",

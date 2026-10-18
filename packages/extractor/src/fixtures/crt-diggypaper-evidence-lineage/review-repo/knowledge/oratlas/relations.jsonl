@@ -1,0 +1,5 @@
+{"claimId":"clm_111c57f0f206705d","citationId":"benderfriedman2018datastatements","relationType":"supports","sourceLocation":"Abstract; Section 3, Why Does NLP Need Data Statements?; Section 5.1, Provenance Appendix","extractionMethod":"computational-review-claim-graph@2.0.0"}
+{"claimId":"clm_3ea62e8a65cbdb75","citationId":"gebru2021datasheets","relationType":"supports","sourceLocation":"Abstract; Section 1.1, Objectives; Section 2, Electronics","extractionMethod":"computational-review-claim-graph@2.0.0"}
+{"claimId":"clm_451ccab1daf492e4","citationId":"mitchell2019modelcards","relationType":"supports","sourceLocation":"Abstract; Section 1, Introduction","extractionMethod":"computational-review-claim-graph@2.0.0"}
+{"claimId":"clm_7659634fb095cdce","citationId":"Cardin2009","relationType":"supports","sourceLocation":"Abstract, page 1","extractionMethod":"computational-review-claim-graph@2.0.0"}
+{"claimId":"clm_7659634fb095cdce","citationId":"Sohal2009","relationType":"partially-supports","sourceLocation":"Abstract","extractionMethod":"computational-review-claim-graph@2.0.0"}
