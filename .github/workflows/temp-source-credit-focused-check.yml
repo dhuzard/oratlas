@@ -1,0 +1,40 @@
+name: Temporary source-credit focused check
+on:
+  push:
+    branches:
+      - feat/source-credit-adapters-209
+permissions:
+  contents: read
+jobs:
+  source-credit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Emit Prettier-canonical source and validate focused checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          files=(
+            packages/contracts/src/source-credit-observations.ts
+            packages/knowledge/src/source-credit-adapter-shared.ts
+            packages/knowledge/src/source-credit-diggypaper.ts
+            packages/knowledge/src/source-credit-crt.ts
+            packages/knowledge/src/source-credit-orcid.ts
+            packages/knowledge/src/source-credit-adapters.test.ts
+          )
+          pnpm exec prettier --write "${files[@]}"
+          for path in "${files[@]}"; do
+            printf '### BEGIN FORMATTED %s\n' "$path"
+            base64 -w0 "$path"
+            printf '\n### END FORMATTED %s\n' "$path"
+          done
+          pnpm --filter @oratlas/contracts typecheck
+          pnpm --filter @oratlas/knowledge typecheck
+          pnpm exec vitest run packages/knowledge/src/source-credit-adapters.test.ts
