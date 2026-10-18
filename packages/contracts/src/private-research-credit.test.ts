@@ -116,10 +116,7 @@ describe("versioned private cross-finding / CRediT contracts", () => {
   it("preserves distinct versioned source provenance, source authors, bridge credit and AI runs", () => {
     const record = privateCrossFindingSchema.parse(examplePrivateCrossFinding());
     expect(record.visibility).toBe("owner-only");
-    expect(record.sources.map((source) => source.projectId)).toEqual([
-      "project:a",
-      "project:b",
-    ]);
+    expect(record.sources.map((source) => source.projectId)).toEqual(["project:a", "project:b"]);
     expect(record.sources[0]?.sourceSnapshotSha256).toBe(sha("b"));
     expect(record.credit[0]?.creditRole).toBeUndefined();
     expect(record.credit[0]?.capacity).toBe("publication-author");
