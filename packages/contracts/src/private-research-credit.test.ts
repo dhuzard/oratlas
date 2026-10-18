@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { CREDIT_ROLES } from "./editorial.js";
 import {
   CREDIT_ROLE_IDS,
   CREDIT_ROLE_LABELS,
@@ -106,6 +107,7 @@ export function examplePrivateCrossFinding() {
 describe("versioned private cross-finding / CRediT contracts", () => {
   it("supports exactly the 14 CRediT roles and canonical human labels", () => {
     expect(CREDIT_ROLE_IDS).toHaveLength(14);
+    expect(CREDIT_ROLE_IDS).toEqual(CREDIT_ROLES);
     expect(new Set(CREDIT_ROLE_IDS).size).toBe(14);
     expect(Object.keys(CREDIT_ROLE_LABELS)).toHaveLength(14);
     expect(privateCreditRoleSchema.safeParse("validation").success).toBe(true);
