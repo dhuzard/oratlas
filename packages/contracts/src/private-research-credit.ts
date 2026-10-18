@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { CREDIT_ROLES, creditRoleSchema } from "./editorial.js";
 
 /**
  * R0 foundation for private, user-owned cross-project discoveries.
@@ -7,25 +8,9 @@ import { z } from "zod";
  */
 export const PRIVATE_CROSS_FINDING_VERSION = "oratlas.private-cross-finding/0.1.0" as const;
 
-export const CREDIT_ROLE_IDS = [
-  "conceptualization",
-  "data-curation",
-  "formal-analysis",
-  "funding-acquisition",
-  "investigation",
-  "methodology",
-  "project-administration",
-  "resources",
-  "software",
-  "supervision",
-  "validation",
-  "visualization",
-  "writing-original-draft",
-  "writing-review-editing",
-] as const;
-
-/** The 14 ANSI/NISO CRediT contribution roles, not publication authorship. */
-export const privateCreditRoleSchema = z.enum(CREDIT_ROLE_IDS);
+/** Reuse the established ORAtlas editorial CRediT taxonomy, never fork the roles. */
+export const CREDIT_ROLE_IDS = CREDIT_ROLES;
+export const privateCreditRoleSchema = creditRoleSchema;
 export type PrivateCreditRole = z.infer<typeof privateCreditRoleSchema>;
 
 export const CREDIT_ROLE_LABELS: Readonly<Record<PrivateCreditRole, string>> = {
