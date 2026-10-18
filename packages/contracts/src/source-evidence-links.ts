@@ -60,16 +60,30 @@ export const PACKET_MATCH_STATUSES = [
   "incomplete",
 ] as const;
 
+/** `source-evidence-packet/0.1.0` identifier patterns and assessment status vocabulary. */
+const packetIdSchema = (prefix: string) =>
+  z.string().regex(new RegExp(`^${prefix}:[A-Za-z0-9._-]{1,100}$`));
+export const PACKET_ASSESSMENT_STATUSES = [
+  "supports",
+  "contradicts",
+  "insufficient",
+  "unclear",
+  "not_assessed",
+  "unknown",
+  "restricted",
+] as const;
+const PACKET_FINDING_ID = /^finding:[A-Za-z0-9._-]{1,100}$/;
+
 export const sidecarPassageSchema = z.object({
-  passage_id: z.string().min(1).max(200),
+  passage_id: packetIdSchema("passage"),
   quote_sha256: taggedSha256Schema,
   quote_state: z.enum(["included", "withheld-rights"]),
   match_status: z.enum(PACKET_MATCH_STATUSES),
 });
 export const sidecarAssessmentSchema = z.object({
-  assessment_id: z.string().min(1).max(200),
+  assessment_id: packetIdSchema("assessment"),
   protocol: z.literal("seip-support-v1"),
-  status: z.string().min(1).max(60),
+  status: z.enum(PACKET_ASSESSMENT_STATUSES),
 });
 
 /** One recorded decision that a review claim uses a specific finding revision. */
@@ -115,6 +129,10 @@ export const sidecarEvidenceLinkSchema = z
     ].filter((value) => value !== undefined).length;
     if (declared !== 0 && declared !== 4) {
       issue("Passage-level fields and binding must be declared together or not at all.");
+    }
+    // links/1 sidecars predate packet ids; a links/2 record must name a packet finding id.
+    if (declared === 4 && !PACKET_FINDING_ID.test(link.finding_id)) {
+      issue("A links/2 record must name a source-evidence-packet finding id (finding:…).");
     }
     if (link.binding === "reviewed-mapping") {
       const mapped = (link.mappings ?? []).map((mapping) => mapping.claim_id).sort();
@@ -258,7 +276,7 @@ export const sourceEvidenceLinkedFindingSchema = z.object({
       z.object({
         assessmentId: z.string(),
         protocol: z.literal("seip-support-v1"),
-        status: z.string(),
+        status: z.enum(PACKET_ASSESSMENT_STATUSES),
       }),
     )
     .nullable(),

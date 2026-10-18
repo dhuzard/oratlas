@@ -2622,7 +2622,16 @@ components:
             properties:
               assessmentId: { type: string }
               protocol: { type: string, enum: [seip-support-v1] }
-              status: { type: string }
+              status:
+                type: string
+                enum:
+                  - supports
+                  - contradicts
+                  - insufficient
+                  - unclear
+                  - not_assessed
+                  - unknown
+                  - restricted
     SourceEvidenceLinks:
       type: object
       description: |

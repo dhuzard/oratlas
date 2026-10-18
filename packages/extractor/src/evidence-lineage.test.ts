@@ -980,3 +980,48 @@ describe("externally preserved packet resolves to the exact passage and snapshot
     expect(codes(tampered)).toContain("quote-hash-mismatch");
   });
 });
+
+describe("native fields must follow the packet contract", () => {
+  const editCardin1 = (change: (record: Record<string, unknown>) => void) =>
+    project(fixture.reviewFiles, LINEAGE_CLAIM_ID, (sidecar) => {
+      const record = (sidecar.evidence_links as Array<Record<string, unknown>>).find(
+        (r) => r.finding_id === "finding:cardin2009-f1",
+      )!;
+      change(record);
+    });
+  const invalid = {
+    findingId: "finding:cardin2009-f1",
+    citeKey: "Cardin2009",
+    reason: "invalid-link-record",
+  };
+
+  it.each([
+    [
+      "an invented status",
+      (r: Record<string, unknown>) =>
+        ((r.assessments as Array<Record<string, unknown>>)[0]!.status = "trust-verified"),
+    ],
+    [
+      "an unpatterned assessment id",
+      (r: Record<string, unknown>) =>
+        ((r.assessments as Array<Record<string, unknown>>)[0]!.assessment_id = "a1"),
+    ],
+    [
+      "an unpatterned passage id",
+      (r: Record<string, unknown>) =>
+        ((r.passages as Array<Record<string, unknown>>)[0]!.passage_id = "p1"),
+    ],
+  ])("rejects %s", (_label, change) => {
+    expect(editCardin1(change).rejected).toContainEqual(invalid);
+  });
+
+  it("rejects a links/2 record whose finding id is not a packet id", () => {
+    const links = project(fixture.reviewFiles, LINEAGE_CLAIM_ID, (sidecar) => {
+      const record = (sidecar.evidence_links as Array<Record<string, unknown>>).find(
+        (r) => r.finding_id === "finding:cardin2009-f1",
+      )!;
+      record.finding_id = "cardin2009-f1";
+    });
+    expect(links.rejected).toContainEqual({ ...invalid, findingId: "cardin2009-f1" });
+  });
+});
