@@ -21,7 +21,8 @@ export const shaSchema = z.string().regex(/^sha256:[a-f0-9]{64}$/u);
 export const looseObject = z.record(z.unknown());
 
 export function parseSource(raw: string, maximumBytes = 3_000_000): Record<string, unknown> {
-  if (Buffer.byteLength(raw, "utf8") > maximumBytes) throw new SourceCreditAdapterError("source-oversize");
+  if (Buffer.byteLength(raw, "utf8") > maximumBytes)
+    throw new SourceCreditAdapterError("source-oversize");
   try {
     const parsed: unknown = JSON.parse(raw);
     return looseObject.parse(parsed);
@@ -38,7 +39,12 @@ export function parseNative<T>(schema: z.ZodType<T>, data: unknown): T {
 
 export function verifyRosterdigest(data: Record<string, unknown>): void {
   const observed = parseNative(
-    z.object({ digest: z.object({ algorithm: z.literal("sha256"), value: z.string().regex(/^[a-f0-9]{64}$/u) }) }),
+    z.object({
+      digest: z.object({
+        algorithm: z.literal("sha256"),
+        value: z.string().regex(/^[a-f0-9]{64}$/u),
+      }),
+    }),
     data,
   );
   const { digest: _digest, ...body } = data;
@@ -106,12 +112,12 @@ export function uniqueOrThrow(items: string[], code = "conflicting-source-identi
 }
 
 export function isoOrNull(value: unknown): string | null {
-  return typeof value === "string" && value !== "not-available" && value.length > 0
-    ? value
-    : null;
+  return typeof value === "string" && value !== "not-available" && value.length > 0 ? value : null;
 }
 
 export function arrayEq(left: string[], right: string[]): boolean {
-  return left.length === right.length &&
-    [...left].sort().every((value, index) => value === [...right].sort()[index]);
+  return (
+    left.length === right.length &&
+    [...left].sort().every((value, index) => value === [...right].sort()[index])
+  );
 }
