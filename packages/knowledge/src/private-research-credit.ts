@@ -1,7 +1,4 @@
-import {
-  privateCrossFindingSchema,
-  type PrivateCrossFinding,
-} from "@oratlas/contracts";
+import { privateCrossFindingSchema, type PrivateCrossFinding } from "@oratlas/contracts";
 
 /**
  * Pure, private-only projection; never use in /api/graph, public archive,
