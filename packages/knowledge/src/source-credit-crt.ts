@@ -194,7 +194,7 @@ export function adaptCRTContributorship(
       }
       const key = entry.finding_id + ":" + entry.finding_revision;
       const earlierPacket = seenFindings.get(key);
-      if (earlierPacket !== undefined) {
+      if (earlierPacket !== undefined && earlierPacket !== entry.packet.packet_id) {
         throw new SourceCreditAdapterError("crt-duplicate-finding");
       }
       seenFindings.set(key, entry.packet.packet_id);
