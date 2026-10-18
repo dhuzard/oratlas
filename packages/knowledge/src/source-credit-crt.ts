@@ -208,7 +208,8 @@ export function adaptCRTContributorship(
       };
       output.evidence.push({
         observationId: "crt:evidence:" + record.claim_id + ":" + key,
-        target, sourcePaperId: null, sourceSnapshotSha256: null,
+        target, sourcePaperId: null, citedWorkDoi: entry.cited_work.doi,
+        sourceSnapshotSha256: null,
         phase2FindingSha256: entry.phase2_finding_sha256,
         passageIds: entry.passages.map((p) => p.passage_id),
         quoteSha256: entry.passages.map((p) => p.quote_sha256),
