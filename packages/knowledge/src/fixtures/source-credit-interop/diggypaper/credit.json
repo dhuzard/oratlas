@@ -1,0 +1,439 @@
+{
+  "audience": {
+    "expires_at": "2027-03-01T00:00:00Z",
+    "level": "project-members",
+    "purpose": "Synthetic fixture: private source and credit trail for project members.",
+    "recipient_ref": "not-available"
+  },
+  "companion_id": "credit:synthetic-project-members",
+  "created_at": "2026-09-04T00:00:00Z",
+  "creation_method": "synthetic-fixture",
+  "credit_semantics": {
+    "implies_authorship": false,
+    "role_vocabulary": "CRediT ANSI/NISO Z39.104-2022"
+  },
+  "entries": [
+    {
+      "binding": {
+        "assessment_ids": [
+          "assessment:credit-a2"
+        ],
+        "assessment_protocol": "seip-support-v1",
+        "finding_id": "finding:credit-a-f1",
+        "finding_origin": "source-explicit",
+        "finding_revision": 2,
+        "packet_digest": "sha256:64c01a630dabab2b72dee4f8b2afa20f2fb0aeaca6ac5d4c47b653b56a57ae48",
+        "paper_id": "paper:credit-a",
+        "passage_ids": [
+          "passage:credit-a-p1"
+        ],
+        "source_snapshot_ref": "snapshot:credit-a-1",
+        "source_snapshot_sha256": "sha256:350f1bb67d786d2549c1af0067638b1f1f79d1bf9b1a70803656e947ecbca5f3"
+      },
+      "contributions": [
+        {
+          "assessment_ids": [],
+          "capacity": "finding-proposer",
+          "contribution_id": "contribution:a-f1-proposer",
+          "contributor": {
+            "kind": "pseudonym",
+            "ref": "rv-11111111111111111111111111111111"
+          },
+          "credit_roles": [],
+          "disclosure": {
+            "consent_ref": "not-available",
+            "controller_authorization": "not-granted",
+            "membership": "active",
+            "person_consent": "not-granted"
+          },
+          "review_blinding": "not-applicable",
+          "status": "source-declared"
+        },
+        {
+          "assessment_ids": [],
+          "capacity": "finding-curator",
+          "contribution_id": "contribution:a-f1-curator",
+          "contributor": {
+            "display_name": "Synthetic Curator One",
+            "kind": "disclosed",
+            "orcid": {
+              "id": "0000-0002-1825-0097",
+              "verification": "oauth-verified",
+              "verification_ref": "orcid-verification:synth-1",
+              "verified_at": "2026-09-02T00:00:00Z"
+            }
+          },
+          "credit_roles": [
+            {
+              "declaration_ref": "declaration:synth-1",
+              "degree": "lead",
+              "role": "Data curation"
+            }
+          ],
+          "disclosure": {
+            "consent_ref": "consent:synth-1",
+            "controller_authorization": "granted",
+            "membership": "active",
+            "person_consent": "granted"
+          },
+          "review_blinding": "not-applicable",
+          "status": "confirmed"
+        },
+        {
+          "assessment_ids": [
+            "assessment:credit-a2"
+          ],
+          "capacity": "support-assessor",
+          "contribution_id": "contribution:a-f1-assessor-b",
+          "contributor": {
+            "kind": "pseudonym",
+            "ref": "rv-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          },
+          "credit_roles": [],
+          "disclosure": {
+            "consent_ref": "not-available",
+            "controller_authorization": "not-granted",
+            "membership": "active",
+            "person_consent": "not-granted"
+          },
+          "review_blinding": "unblinded",
+          "status": "source-declared"
+        }
+      ],
+      "entry_id": "credit-entry:credit-a-f1-r2",
+      "production": [
+        {
+          "activity": "quote-matching",
+          "agent_type": "software",
+          "name": "quote-matcher-v1",
+          "run_ref": "not-available",
+          "version": "1"
+        }
+      ]
+    },
+    {
+      "binding": {
+        "assessment_ids": [
+          "assessment:credit-a3",
+          "assessment:credit-a4"
+        ],
+        "assessment_protocol": "seip-support-v1",
+        "finding_id": "finding:credit-a-f2",
+        "finding_origin": "reviewer-interpretation",
+        "finding_revision": 1,
+        "packet_digest": "sha256:64c01a630dabab2b72dee4f8b2afa20f2fb0aeaca6ac5d4c47b653b56a57ae48",
+        "paper_id": "paper:credit-a",
+        "passage_ids": [
+          "passage:credit-a-p2"
+        ],
+        "source_snapshot_ref": "snapshot:credit-a-1",
+        "source_snapshot_sha256": "sha256:350f1bb67d786d2549c1af0067638b1f1f79d1bf9b1a70803656e947ecbca5f3"
+      },
+      "contributions": [
+        {
+          "assessment_ids": [],
+          "capacity": "finding-proposer",
+          "contribution_id": "contribution:a-f2-proposer",
+          "contributor": {
+            "kind": "pseudonym",
+            "ref": "rv-22222222222222222222222222222222"
+          },
+          "credit_roles": [],
+          "disclosure": {
+            "consent_ref": "not-available",
+            "controller_authorization": "not-granted",
+            "membership": "active",
+            "person_consent": "not-granted"
+          },
+          "review_blinding": "not-applicable",
+          "status": "source-declared"
+        },
+        {
+          "assessment_ids": [],
+          "capacity": "finding-curator",
+          "contribution_id": "contribution:a-f2-curator",
+          "contributor": {
+            "display_name": "Synthetic Curator Two",
+            "kind": "disclosed",
+            "orcid": {
+              "id": "0000-0002-1825-0097",
+              "verification": "claimed-unverified",
+              "verification_ref": "not-available",
+              "verified_at": "not-available"
+            }
+          },
+          "credit_roles": [
+            {
+              "declaration_ref": "declaration:synth-2",
+              "degree": "supporting",
+              "role": "Investigation"
+            }
+          ],
+          "disclosure": {
+            "consent_ref": "consent:synth-2",
+            "controller_authorization": "granted",
+            "membership": "active",
+            "person_consent": "granted"
+          },
+          "review_blinding": "not-applicable",
+          "status": "self-declared"
+        },
+        {
+          "assessment_ids": [
+            "assessment:credit-a3"
+          ],
+          "capacity": "support-assessor",
+          "contribution_id": "contribution:a-f2-assessor-c",
+          "contributor": {
+            "kind": "pseudonym",
+            "ref": "rv-cccccccccccccccccccccccccccccccc"
+          },
+          "credit_roles": [
+            {
+              "declaration_ref": "declaration:synth-3",
+              "degree": "equal",
+              "role": "Validation"
+            }
+          ],
+          "disclosure": {
+            "consent_ref": "not-available",
+            "controller_authorization": "not-granted",
+            "membership": "active",
+            "person_consent": "not-granted"
+          },
+          "review_blinding": "blinded",
+          "status": "source-declared"
+        },
+        {
+          "assessment_ids": [
+            "assessment:credit-a4"
+          ],
+          "capacity": "support-assessor",
+          "contribution_id": "contribution:a-f2-assessor-d",
+          "contributor": {
+            "kind": "withheld",
+            "ref": "attribution-withheld"
+          },
+          "credit_roles": [],
+          "disclosure": {
+            "consent_ref": "not-available",
+            "controller_authorization": "not-granted",
+            "membership": "active",
+            "person_consent": "not-granted"
+          },
+          "review_blinding": "blinded",
+          "status": "withheld"
+        }
+      ],
+      "entry_id": "credit-entry:credit-a-f2-r1",
+      "production": [
+        {
+          "activity": "quote-matching",
+          "agent_type": "software",
+          "name": "quote-matcher-v1",
+          "run_ref": "not-available",
+          "version": "1"
+        },
+        {
+          "activity": "extraction",
+          "agent_type": "ml-model",
+          "name": "synthetic-extraction-model",
+          "run_ref": "prediction-credit-a-f2",
+          "version": "0.0-synthetic"
+        }
+      ]
+    },
+    {
+      "binding": {
+        "assessment_ids": [
+          "assessment:credit-b1"
+        ],
+        "assessment_protocol": "seip-support-v1",
+        "finding_id": "finding:credit-b-f1",
+        "finding_origin": "ai-paraphrase",
+        "finding_revision": 1,
+        "packet_digest": "sha256:64c01a630dabab2b72dee4f8b2afa20f2fb0aeaca6ac5d4c47b653b56a57ae48",
+        "paper_id": "paper:credit-b",
+        "passage_ids": [
+          "passage:credit-b-p1"
+        ],
+        "source_snapshot_ref": "snapshot:credit-b-1",
+        "source_snapshot_sha256": "sha256:ded8e799ca8e4b12c567ae70d68bc0cf4a874e72b30a3482dd7fef74bec01e2a"
+      },
+      "contributions": [
+        {
+          "assessment_ids": [],
+          "capacity": "finding-proposer",
+          "contribution_id": "contribution:b-f1-proposer",
+          "contributor": {
+            "kind": "withheld",
+            "ref": "attribution-withheld"
+          },
+          "credit_roles": [],
+          "disclosure": {
+            "consent_ref": "not-available",
+            "controller_authorization": "not-granted",
+            "membership": "active",
+            "person_consent": "not-granted"
+          },
+          "review_blinding": "not-applicable",
+          "status": "withheld"
+        },
+        {
+          "assessment_ids": [
+            "assessment:credit-b1"
+          ],
+          "capacity": "support-assessor",
+          "contribution_id": "contribution:b-f1-assessor-a",
+          "contributor": {
+            "kind": "pseudonym",
+            "ref": "rv-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          "credit_roles": [],
+          "disclosure": {
+            "consent_ref": "not-available",
+            "controller_authorization": "not-granted",
+            "membership": "active",
+            "person_consent": "not-granted"
+          },
+          "review_blinding": "unknown",
+          "status": "source-declared"
+        },
+        {
+          "assessment_ids": [],
+          "capacity": "project-team",
+          "contribution_id": "contribution:b-f1-team",
+          "contributor": {
+            "kind": "withheld",
+            "ref": "attribution-withheld"
+          },
+          "credit_roles": [
+            {
+              "declaration_ref": "declaration:synth-4",
+              "degree": "lead",
+              "role": "Project administration"
+            }
+          ],
+          "disclosure": {
+            "consent_ref": "not-available",
+            "controller_authorization": "not-granted",
+            "membership": "active",
+            "person_consent": "not-granted"
+          },
+          "review_blinding": "not-applicable",
+          "status": "confirmed"
+        }
+      ],
+      "entry_id": "credit-entry:credit-b-f1-r1",
+      "production": [
+        {
+          "activity": "quote-matching",
+          "agent_type": "software",
+          "name": "quote-matcher-v1",
+          "run_ref": "not-available",
+          "version": "1"
+        },
+        {
+          "activity": "paraphrase",
+          "agent_type": "ml-model",
+          "name": "synthetic-extraction-model",
+          "run_ref": "prediction-credit-b-f1",
+          "version": "0.0-synthetic"
+        }
+      ]
+    },
+    {
+      "binding": {
+        "assessment_ids": [],
+        "assessment_protocol": "seip-support-v1",
+        "finding_id": "finding:credit-c-f1",
+        "finding_origin": "ai-paraphrase",
+        "finding_revision": 1,
+        "packet_digest": "sha256:64c01a630dabab2b72dee4f8b2afa20f2fb0aeaca6ac5d4c47b653b56a57ae48",
+        "paper_id": "paper:credit-c",
+        "passage_ids": [
+          "passage:credit-c-p1"
+        ],
+        "source_snapshot_ref": "snapshot:credit-c-1",
+        "source_snapshot_sha256": "sha256:4f7e3001b08c5300c0a7c2ffe6f305313574f0c395a10daa6c4d9b4a4bf1cc98"
+      },
+      "contributions": [
+        {
+          "assessment_ids": [],
+          "capacity": "finding-proposer",
+          "contribution_id": "contribution:c-f1-proposer",
+          "contributor": {
+            "kind": "pseudonym",
+            "ref": "rv-11111111111111111111111111111111"
+          },
+          "credit_roles": [],
+          "disclosure": {
+            "consent_ref": "not-available",
+            "controller_authorization": "not-granted",
+            "membership": "active",
+            "person_consent": "not-granted"
+          },
+          "review_blinding": "not-applicable",
+          "status": "source-declared"
+        },
+        {
+          "assessment_ids": [],
+          "capacity": "finding-curator",
+          "contribution_id": "contribution:c-f1-curator",
+          "contributor": {
+            "kind": "pseudonym",
+            "ref": "rv-33333333333333333333333333333333"
+          },
+          "credit_roles": [
+            {
+              "declaration_ref": "declaration:synth-5",
+              "degree": "equal",
+              "role": "Data curation"
+            }
+          ],
+          "disclosure": {
+            "consent_ref": "not-available",
+            "controller_authorization": "not-granted",
+            "membership": "active",
+            "person_consent": "not-granted"
+          },
+          "review_blinding": "not-applicable",
+          "status": "self-declared"
+        }
+      ],
+      "entry_id": "credit-entry:credit-c-f1-r1",
+      "production": [
+        {
+          "activity": "paraphrase",
+          "agent_type": "ml-model",
+          "name": "synthetic-extraction-model",
+          "run_ref": "prediction-credit-c-f1",
+          "version": "0.0-synthetic"
+        }
+      ]
+    }
+  ],
+  "export_status": {
+    "reasons": [],
+    "state": "complete",
+    "withheld_counts": {
+      "contributions": 0,
+      "entries": 0
+    }
+  },
+  "packet": {
+    "packet_digest": "sha256:64c01a630dabab2b72dee4f8b2afa20f2fb0aeaca6ac5d4c47b653b56a57ae48",
+    "packet_id": "packet:credit-synthetic",
+    "schema_version": "source-evidence-packet/0.1.0"
+  },
+  "producer": {
+    "commit": "synthetic-fixture",
+    "name": "diggypaper-fixture-builder"
+  },
+  "release": {
+    "approval_ref": "not-available",
+    "approved_at": "not-available",
+    "state": "not-released"
+  },
+  "schema_version": "finding-credit-companion/0.1.0"
+}
