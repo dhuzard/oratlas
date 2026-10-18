@@ -291,6 +291,11 @@ export function adaptDiggypaperCredit(
       observationId: "diggypaper:evidence:" + key,
       target,
       sourcePaperId: b.paper_id,
+      nativeOriginId: parsed.packet.packet_id,
+      nativeVisibility: parsed.audience.level,
+      sourceRights: String(
+        (paper.rights as Record<string, unknown> | undefined)?.redistribution ?? "unknown",
+      ),
       citedWorkDoi:
         typeof (paper.identifiers as Record<string, unknown> | undefined)?.doi === "string" &&
         (paper.identifiers as Record<string, unknown>).doi !== "not-available"
