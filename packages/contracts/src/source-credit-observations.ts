@@ -84,6 +84,10 @@ export const sourceCreditEvidenceSchema = z
     target: sourceCreditTargetSchema,
     sourcePaperId: bounded.nullable(),
     citedWorkDoi: bounded.nullable(),
+    /** Originating context is source-declared, never a destination project grant. */
+    nativeOriginId: bounded,
+    nativeVisibility: bounded,
+    sourceRights: bounded,
     sourceSnapshotSha256: digest.nullable(),
     phase2FindingSha256: digest.nullable(),
     passageIds: z.array(bounded).max(500),
