@@ -106,7 +106,7 @@ export function adaptOrcidRoster(raw: string): SourceCreditObservations {
     });
   }
   uniqueOrThrow(doc.contributions.map((c) => c.member_key + ":" + c.output_key + ":" + c.credit_role), "duplicate-roster-contribution");
-  for (const [index, credit] of doc.contributions.entries()) {
+  for (const credit of doc.contributions) {
     const member = members.get(credit.member_key);
     if (!member || !outputs.has(credit.output_key)) {
       throw new SourceCreditAdapterError("roster-contribution-reference-invalid");
@@ -117,7 +117,7 @@ export function adaptOrcidRoster(raw: string): SourceCreditObservations {
       output.report.reasonCodes.push("unmapped-credit-role");
     }
     output.candidateContacts.push({
-      observationId: "orcid:assertion:" + credit.member_key + ":" + credit.output_key + ":" + index,
+      observationId: "orcid:assertion:" + credit.member_key + ":" + credit.output_key + ":" + credit.credit_role,
       sourceMemberRef: credit.member_key,
       sourceOutputRef: credit.output_key,
       orcid: member.orcid?.id ?? null,
