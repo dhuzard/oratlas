@@ -103,19 +103,26 @@ compared byte for byte with the pinned commits in the table above. The ORCID
 Playground files were not re-compared from this review (repository not
 available to it); re-check them against `ff5aff9` before relying on them.
 
-## Upstream handoff (to file after this PR lands)
+## Upstream handoff
 
-Contracts stay frozen; request nothing to mirror ORAtlas field names. Candidate
-follow-ups, each only if the destination genuinely needs the information:
+Compatibility checks were requested from each producer in
+[Diggypaper #55](https://github.com/dhuzard/diggypaper/issues/55#issuecomment-6261004222),
+[CRT #17](https://github.com/Neuronautix/ComputationalReviewTemplate_trust-knowledge/issues/17#issuecomment-6261005185)
+and ORCID Playground #9. Producer contracts stay frozen; a producer opens a PR
+only for a demonstrated fixture/contract gap. The intentional losses those
+checks compare against are listed in the table above.
 
-- **Diggypaper #55:** companion fixtures for `withheld`/`withdrawn` credits on
-  a disclosed contributor, and for `confirmed` with `consent_ref: not-available`,
-  so producers declare whether those are valid.
-- **CRT #17:** an optional export of the lineage and packet-manifest bytes (or
-  a verifier hook) so `lineage_sha256` and `manifest_sha256` can be recomputed
-  rather than only carried.
-- **ORCID Playground #9:** none required; the roster is consumed as candidate
-  contacts only.
+Gaps found while reviewing the adapters, for the producers to confirm rather
+than assume:
+
+- **Diggypaper:** whether `withheld`/`withdrawn` credits on a disclosed
+  contributor, and `confirmed` with `consent_ref: not-available`, are valid
+  under `fcc_validate.py`. ORAtlas withholds the name in the first case and
+  flags the second.
+- **CRT:** the adapter carries `lineage_sha256` and per-finding
+  `manifest_sha256` but cannot recompute them without the lineage and packet
+  bytes; a producer-side golden check covers that today.
+- **ORCID Playground:** none identified.
 
 ## Production integration is explicitly blocked
 
