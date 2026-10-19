@@ -10,8 +10,8 @@ Offline source-credit implementation and repair across two commits (b6381a1 + 91
 - 13 PINS byte-pinned fixture/schema files, full goldens, nested-permutation and negative tests
 
 **91e557a — Repairs:** Two findings from prior review:
-1. **Diggypaper entry IDs:** Added `sourceEntryId: bounded.nullable()` to 0.2.0 evidence. Diggypaper emits native `entries[].entry_id`; CRT emits `null`. Maintains granular author credit provenance without breaking compatibility.
-2. **ORCID empty strings:** Removed extra `minLength: 1` constraints rejecting frozen-schema-valid documents. Empty fields become `null` before validation, never substantiating verification. Neutral contract output remains non-empty.
+1. **Diggypaper entry IDs:** Added `sourceEntryId: bounded.nullable()` to 0.2.0 evidence. Diggypaper emits native `entries[].entry_id`; CRT emits `null`. Preserves native credit-entry provenance without assigning authorship.
+2. **ORCID empty strings:** Removed extra `minLength: 1` constraints rejecting frozen-schema-valid documents. Digest and raw-redaction checks precede empty-to-null normalization; empty references never substantiate verification. Neutral contract output remains non-empty.
 
 **Migration:** 0.2.0 has explicit version gate; 0.1.0 unchanged and valid.
 
@@ -19,7 +19,7 @@ Refs #209, #198, #199, #204, #206. Note: #198/#199 existing integration is not b
 
 ## Testing
 
-**Full suite (236 test files, 1851 tests):** lint, typecheck, schema-check, openapi-check all pass. No regressions.
+**Full suite (236 test files, 1851 tests):** lint, typecheck, schema-check, openapi-check all pass. No failures in the executed checks; 6 files and 16 tests skipped.
 
 **Focused integration (87 tests):**
 
@@ -33,7 +33,7 @@ pnpm evidence-lineage:verify  # 21 files verified
 
 Result: all pass. Fixture byte-pins (Diggypaper, CRT, ORCID) match upstream exactly.
 
-**Build:** PASSED with CI environment (NEXT_PUBLIC_BASE_URL set). Initial failure due missing Prisma client resolved on parent re-run. CSS ::highlight warning non-fatal. See `/tmp/oratlas209-validation/ci-build.log`.
+**Build:** PASSED with CI environment (NEXT_PUBLIC_BASE_URL set). Initial runs failed for missing Prisma generation, then missing production environment; client generation and the CI build environment resolved both. CSS ::highlight warning non-fatal. See `/tmp/oratlas209-validation/ci-build.log`.
 
 ## Validation evidence
 
@@ -48,10 +48,11 @@ Straightforward via normal reviewed revert of whole implementation+repair change
 To create and push this PR:
 
 ```bash
-git push <GitHub remote URL> pico/batch-209-offline:pico/batch-209-offline
+# Owner-run only: local policy prohibits automatic push and PR creation.
+git push https://github.com/dhuzard/oratlas.git pico/batch-209-offline:pico/batch-209-offline
 gh pr create --repo dhuzard/oratlas --draft --base main --head pico/batch-209-offline \
   --title 'Offline source-credit crosswalk: pinned provenance and golden regressions' \
   --body-file docs/source-credit-209-draft-pr.md
 ```
 
-🤖 Generated with [Claude Code](https://claude.com/claude-code)
+No private storage, endpoint, cross-project processing or external-model transmission is enabled. PR #216 merge is not evidence of owner ratification. Browser E2E was not run: no application/runtime changes.

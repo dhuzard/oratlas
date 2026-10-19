@@ -2,7 +2,7 @@
 
 **Branch commits:** `b6381a1` (feat: 0.2.0 implementation) + `91e557a` (fix: Diggypaper entry IDs and ORCID empty strings)
 
-**Test suite:** all integration + unit passed; 236 test files, 1851 tests (6 skipped files, 16 skipped tests). No regressions.
+**Test suite:** all integration + unit passed; 236 test files, 1851 tests (6 skipped files, 16 skipped tests). No failures in the executed checks; skipped coverage is not claimed.
 
 ## b6381a1: 0.2.0 implementation (versioned source-credit observations)
 
@@ -45,7 +45,7 @@ Adapters now emit `oratlas.source-credit-observations/0.2.0` with structured nat
 
 ### 1. Diggypaper native entry IDs were lost in 0.2.0 projection
 
-**Finding:** The 0.2.0 evidence schema did not include the native `Diggypaper.entries[].entry_id` field. Downstream consumers lost the granular provenance link to the exact author credit assignment.
+**Finding:** The 0.2.0 evidence schema did not include the native `Diggypaper.entries[].entry_id` field. Downstream consumers lost the native credit-entry provenance link (not an authorship assignment).
 
 **Repair:** Added `sourceEntryId: bounded.nullable()` as a required field in both Diggypaper and CRT projections (0.2.0). Diggypaper now emits the native `entry_id`; CRT emits `null`. Observation counts and report identifiers are unchanged. Goldens regenerated (field addition only).
 
@@ -65,8 +65,8 @@ Adapters now emit `oratlas.source-credit-observations/0.2.0` with structured nat
 **Evidence:**
 
 - `packages/knowledge/src/source-credit-orcid.ts` — minLength constraints removed, empty→null logic explicit
-- `packages/knowledge/src/source-credit-observations.test.ts` — added 94 lines of test cases for empty field handling
-- `packages/knowledge/src/source-credit-adapters.test.ts` — 164 lines of integration tests covering all three adapters
+- `packages/contracts/src/source-credit-observations.test.ts` — contract regression cases for nullable/native fields
+- `packages/knowledge/src/source-credit-adapters.test.ts` — entry-ID preservation and native-schema-valid ORCID empty-string regressions
 
 ## Verification scope and commands
 
@@ -104,12 +104,20 @@ pnpm evidence-lineage:verify
 
 **Stability:**
 - No schema version bumps on native contracts (Diggypaper/CRT/ORCID producers unchanged)
-- Evidence 0.2.0 is additive: 0.1.0 remains unchanged and valid
-- Goldens are exact byte matches to pinned upstream commits (Diggypaper `a34d18f`, CRT `a19a8dc`, ORCID `ff5aff9`)
+- Adapters explicitly return 0.2.0; existing strict 0.1.0 schema remains unchanged. Consumers must select the correct version.
+- PINS binds native fixture/schema bytes to upstream commits (Diggypaper `a34d18f`, CRT `a19a8dc`, ORCID `ff5aff9`). Goldens are generated ORAtlas normalized expected outputs, not upstream files.
 - No migration, no breaking changes to public APIs
 
 **Rollback:** Revert whole implementation+repair changes via normal reviewed revert. No need regenerate goldens.
 
 ---
+
+Initial full checks failed because the Prisma client was absent; after `pnpm --filter @oratlas/db db:generate`, typecheck and tests passed. Build then required production configuration and passed with the CI environment:
+
+```bash
+CI=true NEXT_TELEMETRY_DISABLED=1 SESSION_SECRET=backup-restore-build-secret NEXT_PUBLIC_BASE_URL=https://ci.oratlas.example pnpm --filter @oratlas/web build
+```
+
+Browser E2E was not run; no web/runtime code changed. The lineage proof remains synthetic, including 24 pilot Phase 2 exemptions and unresolved real-corpus rights/workflow gaps. No MVP release is claimed. Merge #216 is not owner ratification; no private storage/endpoints, cross-project processing or external-model transmission were enabled.
 
 **Status:** Offline mapping and golden fixtures validated. Local-only branch with test results and golden evidence. Not ready for merge. Further work (#204/#206) requires owner §14 ratification for private workspaces and real data. #203 local identity, workspace grants/source entitlements/revocation/processing/release security evidence and D11 counsel/DPIA before real private data. No runtime activated.
