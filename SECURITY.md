@@ -40,6 +40,11 @@ acknowledge and respond as soon as we reasonably can.
 - **Grounding.** LLM discussion output is validated against a schema and rejected if it references
   identifiers not present in the evidence packet.
 
+Private research workspaces are **not implemented**. The proposed authorization and
+non-interference design that must be ratified first is
+[`docs/private-workspace-security-architecture.md`](docs/private-workspace-security-architecture.md)
+(ADR-0001, [#202](https://github.com/dhuzard/oratlas/issues/202)).
+
 The current evidence checklist and bounded residual risks are recorded in
 [`docs/security-audit-2026-07.md`](docs/security-audit-2026-07.md).
 
