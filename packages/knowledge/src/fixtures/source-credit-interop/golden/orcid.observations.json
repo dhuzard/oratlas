@@ -1,0 +1,293 @@
+{
+  "schemaVersion": "oratlas.source-credit-observations/0.2.0",
+  "producer": "orcid-playground",
+  "producerContract": "orcid-playground/roster-assertion/0.1.0",
+  "sourceContractPinnedCommit": "ff5aff93cb34620f3f2500f709259aa0134c24f2",
+  "sourceId": "roster:grp-synthetic-demo:20261001090000",
+  "sourceDocumentSha256": "sha256:6b2cd197557213247c099f9fb84c47817aa48ec008ecc038d8200145db70a96e",
+  "visibility": "private-adapter-output",
+  "accessEffect": "none",
+  "accountVerification": "not-performed",
+  "sourceDocument": {
+    "kind": "orcid-roster",
+    "exportId": "roster:grp-synthetic-demo:20261001090000",
+    "generatedAt": "2026-10-01T09:00:00Z",
+    "origin": "local-offline-roster",
+    "distribution": "private-recipient-only",
+    "sourceAccessEffect": {
+      "grants": "none",
+      "invitations": "none",
+      "accounts": "none",
+      "authorship": "not-implied",
+      "credit": "not-inferred"
+    },
+    "consent": {
+      "status": "granted",
+      "scope": "roster-export",
+      "method": "local-explicit-opt-in",
+      "grantedAt": "2026-10-01T08:55:00Z",
+      "grantedBy": "m-a",
+      "revokedAt": null
+    },
+    "redaction": {
+      "policy": "default-private",
+      "memberFields": [
+        "orcid"
+      ],
+      "privateMembers": "omitted",
+      "excludedOutputs": [
+        "not-selected",
+        "unsupported-source-rights"
+      ],
+      "projectReferences": "omitted"
+    },
+    "group": {
+      "localId": "grp-synthetic-demo",
+      "createdBy": "m-a"
+    },
+    "digest": {
+      "algorithm": "sha256",
+      "value": "06440837ab6e3902f746a9af67f8dfd2209290fa2476c6d443c7353dee4dba75"
+    }
+  },
+  "assertions": [],
+  "evidence": [],
+  "production": [],
+  "sourceLegacyRoleLabels": [],
+  "candidateContacts": [
+    {
+      "observationId": "orcid:contact:b2535525d9746d76579075ef2a5a870d896b4d98352a4926834e79f512d59dcf",
+      "sourceMemberRef": "m-b",
+      "displayName": null,
+      "localRole": null,
+      "orcid": {
+        "id": "0000-0001-5109-3700",
+        "uri": "https://orcid.org/0000-0001-5109-3700",
+        "nativeStatus": "claimed",
+        "assertion": {
+          "basis": "owner-curated",
+          "method": "curator-entry",
+          "assertedAt": "2026-09-01T09:00:00Z",
+          "assertedBy": "m-a",
+          "evidence": {
+            "sourceRecordVersion": null,
+            "reference": null
+          }
+        }
+      },
+      "membership": {
+        "nativeStatus": "listed-member",
+        "assertion": {
+          "basis": "owner-curated",
+          "method": "local-roster-entry",
+          "assertedAt": "2026-09-02T09:00:00Z",
+          "assertedBy": "m-a",
+          "evidence": {
+            "sourceRecordVersion": null,
+            "reference": null
+          }
+        }
+      },
+      "personAssertion": {
+        "basis": "owner-curated",
+        "method": "curator-entry",
+        "assertedAt": "2026-09-01T09:00:00Z",
+        "assertedBy": "m-a",
+        "evidence": {
+          "sourceRecordVersion": null,
+          "reference": null
+        }
+      },
+      "destinationStatus": "candidate-only",
+      "accessEffect": "none"
+    },
+    {
+      "observationId": "orcid:contact:b896a05436075be7bf8229151c403162958811d9037f36fb7fbe1b13ec1b553a",
+      "sourceMemberRef": "m-d",
+      "displayName": null,
+      "localRole": null,
+      "orcid": null,
+      "membership": {
+        "nativeStatus": "listed-member",
+        "assertion": {
+          "basis": "owner-curated",
+          "method": "local-roster-entry",
+          "assertedAt": "2026-09-04T09:00:00Z",
+          "assertedBy": "m-a",
+          "evidence": {
+            "sourceRecordVersion": null,
+            "reference": null
+          }
+        }
+      },
+      "personAssertion": {
+        "basis": "owner-curated",
+        "method": "curator-entry",
+        "assertedAt": "2026-09-01T09:00:00Z",
+        "assertedBy": "m-a",
+        "evidence": {
+          "sourceRecordVersion": null,
+          "reference": null
+        }
+      },
+      "destinationStatus": "candidate-only",
+      "accessEffect": "none"
+    },
+    {
+      "observationId": "orcid:contact:c06b65816183aed370ed67c8f2ef9903a94985295db5a714523cc6cf0e92bd15",
+      "sourceMemberRef": "m-a",
+      "displayName": null,
+      "localRole": null,
+      "orcid": {
+        "id": "0000-0002-1825-0097",
+        "uri": "https://orcid.org/0000-0002-1825-0097",
+        "nativeStatus": "claimed",
+        "assertion": {
+          "basis": "owner-curated",
+          "method": "curator-entry",
+          "assertedAt": "2026-09-01T09:01:00Z",
+          "assertedBy": "m-a",
+          "evidence": {
+            "sourceRecordVersion": null,
+            "reference": null
+          }
+        }
+      },
+      "membership": {
+        "nativeStatus": "listed-member",
+        "assertion": {
+          "basis": "owner-curated",
+          "method": "local-roster-entry",
+          "assertedAt": "2026-09-01T09:00:00Z",
+          "assertedBy": "m-a",
+          "evidence": {
+            "sourceRecordVersion": null,
+            "reference": null
+          }
+        }
+      },
+      "personAssertion": {
+        "basis": "public-orcid-record",
+        "method": "orcid-public-api-import",
+        "assertedAt": "2026-09-01T09:01:00Z",
+        "assertedBy": null,
+        "evidence": {
+          "sourceRecordVersion": "2026-08-30T10:00:00Z",
+          "reference": null
+        }
+      },
+      "destinationStatus": "candidate-only",
+      "accessEffect": "none"
+    }
+  ],
+  "candidateCreditClaims": [
+    {
+      "observationId": "orcid:credit-claim:9435695a5cf6a87e81f8100a6b2e2793d2b3cc752f66ea671c12b571ebf143ae",
+      "sourceMemberRef": "m-a",
+      "output": {
+        "sourceOutputRef": "o-1",
+        "doi": "10.5555/roster-demo-1",
+        "doiIsExample": true,
+        "sourceRights": "public-orcid-record",
+        "assertion": {
+          "basis": "public-orcid-record",
+          "method": "curator-selected-output",
+          "assertedAt": "2026-09-05T09:00:00Z",
+          "assertedBy": "m-a",
+          "evidence": {
+            "sourceRecordVersion": "2026-08-30T10:00:00Z",
+            "reference": null
+          }
+        }
+      },
+      "role": {
+        "slug": "conceptualization",
+        "originalLabel": "conceptualization",
+        "degree": null,
+        "declarationRef": null,
+        "roleUri": null
+      },
+      "sourceStatus": "curator-confirmed",
+      "assertion": {
+        "basis": "owner-curated",
+        "method": "curator-confirmation",
+        "assertedAt": "2026-09-07T09:00:00Z",
+        "assertedBy": "m-a",
+        "evidence": {
+          "sourceRecordVersion": null,
+          "reference": null
+        }
+      },
+      "destinationStatus": "candidate-only",
+      "accessEffect": "none",
+      "confirmedByImport": false
+    },
+    {
+      "observationId": "orcid:credit-claim:e62a179dd44b5670edb28601820f4ac64a390d9fdf67ed2f4ac8804d5efae3f1",
+      "sourceMemberRef": "m-b",
+      "output": {
+        "sourceOutputRef": "o-1",
+        "doi": "10.5555/roster-demo-1",
+        "doiIsExample": true,
+        "sourceRights": "public-orcid-record",
+        "assertion": {
+          "basis": "public-orcid-record",
+          "method": "curator-selected-output",
+          "assertedAt": "2026-09-05T09:00:00Z",
+          "assertedBy": "m-a",
+          "evidence": {
+            "sourceRecordVersion": "2026-08-30T10:00:00Z",
+            "reference": null
+          }
+        }
+      },
+      "role": {
+        "slug": "software",
+        "originalLabel": "software",
+        "degree": null,
+        "declarationRef": "https://doi.org/10.5555/roster-demo-1#author-contributions",
+        "roleUri": null
+      },
+      "sourceStatus": "source-declared",
+      "assertion": {
+        "basis": "owner-curated",
+        "method": "source-declaration-transcribed",
+        "assertedAt": "2026-09-07T09:05:00Z",
+        "assertedBy": "m-a",
+        "evidence": {
+          "sourceRecordVersion": null,
+          "reference": "https://doi.org/10.5555/roster-demo-1#author-contributions"
+        }
+      },
+      "destinationStatus": "candidate-only",
+      "accessEffect": "none",
+      "confirmedByImport": false
+    }
+  ],
+  "report": {
+    "accepted": 5,
+    "withheld": 0,
+    "unmappable": 0,
+    "reasonCodes": [],
+    "legacyRoleLabels": {
+      "preserved": 0,
+      "sourceUnmappable": 0,
+      "sourceCreditIneligible": 0
+    },
+    "producerDeclaredOmissions": {
+      "state": null,
+      "counts": {},
+      "reasons": [
+        "excluded-output-reason:not-selected",
+        "excluded-output-reason:unsupported-source-rights",
+        "policy:private-members-omitted",
+        "policy:project-references-omitted"
+      ]
+    },
+    "omittedSourceFields": [
+      "orcid.group.name-and-assertion",
+      "orcid.outputs.title",
+      "orcid.outputs.without-credit-claims"
+    ]
+  }
+}

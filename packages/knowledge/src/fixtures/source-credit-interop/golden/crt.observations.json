@@ -1,0 +1,1046 @@
+{
+  "schemaVersion": "oratlas.source-credit-observations/0.2.0",
+  "producer": "computational-review-template",
+  "producerContract": "comprev.contributorship/1",
+  "sourceContractPinnedCommit": "a19a8dc90ddbf93c06d6ab050aaad3a00d28a262",
+  "sourceId": "review-synthetic-crt17:1.0.0",
+  "sourceDocumentSha256": "sha256:91aa4dfd4bde8e797ee6d8673debd2b498368301f2cc51204d34aa8026af7703",
+  "visibility": "private-adapter-output",
+  "accessEffect": "none",
+  "accountVerification": "not-performed",
+  "sourceDocument": {
+    "kind": "crt-contributorship",
+    "reviewId": "review-synthetic-crt17",
+    "version": "1.0.0",
+    "claimGraphSha256": "sha256:5d23f7aaac420c4f25cbc4d1843366be3c80d57ef7beec5b3f3e0d1a7fb6ffec",
+    "claimGraphBytesVerified": true,
+    "visibility": "private",
+    "creditStandard": "ANSI/NISO Z39.104-2022"
+  },
+  "assertions": [
+    {
+      "observationId": "crt:credit:0f5a72ffd8c076e91e60de42366929662ac07f87eaac5b53f1b9f44318530353",
+      "target": {
+        "kind": "review",
+        "sourceId": "review-synthetic-crt17",
+        "sourceVersion": "1.0.0",
+        "bindingSha256": "sha256:5d23f7aaac420c4f25cbc4d1843366be3c80d57ef7beec5b3f3e0d1a7fb6ffec",
+        "packetId": null,
+        "packetManifestSha256": null,
+        "lineageSha256": null
+      },
+      "sourceAssertionId": "a-008",
+      "person": {
+        "kind": "named",
+        "sourcePersonId": "person-d",
+        "legacySourcePersonId": "person-d",
+        "displayName": "Synthetic Person D",
+        "orcid": {
+          "id": "0000-0000-0000-0036",
+          "sourceStatus": "claimed",
+          "nativeStatus": "claimed",
+          "verificationMethod": null,
+          "verificationRef": null,
+          "verifiedAt": null
+        }
+      },
+      "capacity": "review-contributor",
+      "role": {
+        "slug": "conceptualization",
+        "originalLabel": "Conceptualization",
+        "degree": "equal",
+        "declarationRef": "decision:credit-008",
+        "roleUri": "https://credit.niso.org/contributor-roles/conceptualization/"
+      },
+      "sourceStatus": "confirmed",
+      "sourceDecisionRef": "decision:credit-008",
+      "sourceDeclarationKind": "controller",
+      "sourceAssertedAt": "2026-09-06T00:00:00Z",
+      "sourceDisclosure": {
+        "public": true,
+        "reason": null,
+        "approvedFields": [
+          "credit_assertions",
+          "display_name"
+        ],
+        "approvalIds": [
+          "ap-d"
+        ],
+        "kind": "crt-contributor"
+      },
+      "sourceAudience": "private",
+      "destinationStatus": "not-adjudicated",
+      "oratlasDisclosure": "not-authorized",
+      "assessmentIds": []
+    },
+    {
+      "observationId": "crt:credit:433e40ce750728dbb6404ab87d6d1cd7a500db01efb57a1e88b5a5875b1930f4",
+      "target": {
+        "kind": "review",
+        "sourceId": "review-synthetic-crt17",
+        "sourceVersion": "1.0.0",
+        "bindingSha256": "sha256:5d23f7aaac420c4f25cbc4d1843366be3c80d57ef7beec5b3f3e0d1a7fb6ffec",
+        "packetId": null,
+        "packetManifestSha256": null,
+        "lineageSha256": null
+      },
+      "sourceAssertionId": "a-009",
+      "person": {
+        "kind": "named",
+        "sourcePersonId": "person-e",
+        "legacySourcePersonId": null,
+        "displayName": "Synthetic Person E",
+        "orcid": null
+      },
+      "capacity": "review-contributor",
+      "role": {
+        "slug": "validation",
+        "originalLabel": "Validation",
+        "degree": null,
+        "declarationRef": "form:synthetic-e",
+        "roleUri": "https://credit.niso.org/contributor-roles/validation/"
+      },
+      "sourceStatus": "declared",
+      "sourceDecisionRef": null,
+      "sourceDeclarationKind": "self-declared",
+      "sourceAssertedAt": "2026-09-06T00:00:00Z",
+      "sourceDisclosure": {
+        "public": false,
+        "reason": "approval-for-other-version",
+        "approvedFields": [],
+        "approvalIds": [],
+        "kind": "crt-contributor"
+      },
+      "sourceAudience": "private",
+      "destinationStatus": "not-adjudicated",
+      "oratlasDisclosure": "not-authorized",
+      "assessmentIds": []
+    },
+    {
+      "observationId": "crt:credit:5c0267f1b30135dc203d33f3683ac69d94da98c2c8100767ab1d150e3b1ba7f4",
+      "target": {
+        "kind": "review",
+        "sourceId": "review-synthetic-crt17",
+        "sourceVersion": "1.0.0",
+        "bindingSha256": "sha256:5d23f7aaac420c4f25cbc4d1843366be3c80d57ef7beec5b3f3e0d1a7fb6ffec",
+        "packetId": null,
+        "packetManifestSha256": null,
+        "lineageSha256": null
+      },
+      "sourceAssertionId": "a-002",
+      "person": {
+        "kind": "named",
+        "sourcePersonId": "person-a",
+        "legacySourcePersonId": null,
+        "displayName": "Synthetic Person A",
+        "orcid": {
+          "id": "0000-0002-1825-0097",
+          "sourceStatus": "source-verified",
+          "nativeStatus": "verified",
+          "verificationMethod": "orcid-oauth",
+          "verificationRef": "orcid-auth:synthetic-a",
+          "verifiedAt": "2026-09-05T00:00:00Z"
+        }
+      },
+      "capacity": "review-contributor",
+      "role": {
+        "slug": "writing-original-draft",
+        "originalLabel": "Writing – original draft",
+        "degree": "lead",
+        "declarationRef": "form:synthetic-a",
+        "roleUri": "https://credit.niso.org/contributor-roles/writing-original-draft/"
+      },
+      "sourceStatus": "declared",
+      "sourceDecisionRef": null,
+      "sourceDeclarationKind": "self-declared",
+      "sourceAssertedAt": "2026-09-06T00:00:00Z",
+      "sourceDisclosure": {
+        "public": true,
+        "reason": null,
+        "approvedFields": [
+          "credit_assertions",
+          "display_name",
+          "orcid"
+        ],
+        "approvalIds": [
+          "ap-a"
+        ],
+        "kind": "crt-contributor"
+      },
+      "sourceAudience": "private",
+      "destinationStatus": "not-adjudicated",
+      "oratlasDisclosure": "not-authorized",
+      "assessmentIds": []
+    },
+    {
+      "observationId": "crt:credit:5c9e62a0c552783d689f5b4284e54458d39b53c137f7dab90b1bfdbd4697f070",
+      "target": {
+        "kind": "review",
+        "sourceId": "review-synthetic-crt17",
+        "sourceVersion": "1.0.0",
+        "bindingSha256": "sha256:5d23f7aaac420c4f25cbc4d1843366be3c80d57ef7beec5b3f3e0d1a7fb6ffec",
+        "packetId": null,
+        "packetManifestSha256": null,
+        "lineageSha256": null
+      },
+      "sourceAssertionId": "a-005",
+      "person": {
+        "kind": "named",
+        "sourcePersonId": "person-b",
+        "legacySourcePersonId": null,
+        "displayName": "Synthetic Person B",
+        "orcid": {
+          "id": "0000-0000-0000-001X",
+          "sourceStatus": "claimed",
+          "nativeStatus": "claimed",
+          "verificationMethod": null,
+          "verificationRef": null,
+          "verifiedAt": null
+        }
+      },
+      "capacity": "review-contributor",
+      "role": {
+        "slug": "software",
+        "originalLabel": "Software",
+        "degree": null,
+        "declarationRef": "form:synthetic-b",
+        "roleUri": "https://credit.niso.org/contributor-roles/software/"
+      },
+      "sourceStatus": "disputed",
+      "sourceDecisionRef": "dispute:synthetic-005",
+      "sourceDeclarationKind": "self-declared",
+      "sourceAssertedAt": "2026-09-06T00:00:00Z",
+      "sourceDisclosure": {
+        "public": true,
+        "reason": null,
+        "approvedFields": [
+          "credit_assertions",
+          "display_name"
+        ],
+        "approvalIds": [
+          "ap-b"
+        ],
+        "kind": "crt-contributor"
+      },
+      "sourceAudience": "private",
+      "destinationStatus": "not-adjudicated",
+      "oratlasDisclosure": "not-authorized",
+      "assessmentIds": []
+    },
+    {
+      "observationId": "crt:credit:5ec1288f835546209f3340ed52911531690285ac0953c80fbfd4b22a54f8523f",
+      "target": {
+        "kind": "review",
+        "sourceId": "review-synthetic-crt17",
+        "sourceVersion": "1.0.0",
+        "bindingSha256": "sha256:5d23f7aaac420c4f25cbc4d1843366be3c80d57ef7beec5b3f3e0d1a7fb6ffec",
+        "packetId": null,
+        "packetManifestSha256": null,
+        "lineageSha256": null
+      },
+      "sourceAssertionId": "a-001",
+      "person": {
+        "kind": "named",
+        "sourcePersonId": "person-a",
+        "legacySourcePersonId": null,
+        "displayName": "Synthetic Person A",
+        "orcid": {
+          "id": "0000-0002-1825-0097",
+          "sourceStatus": "source-verified",
+          "nativeStatus": "verified",
+          "verificationMethod": "orcid-oauth",
+          "verificationRef": "orcid-auth:synthetic-a",
+          "verifiedAt": "2026-09-05T00:00:00Z"
+        }
+      },
+      "capacity": "review-contributor",
+      "role": {
+        "slug": "conceptualization",
+        "originalLabel": "Conceptualization",
+        "degree": "lead",
+        "declarationRef": "decision:credit-001",
+        "roleUri": "https://credit.niso.org/contributor-roles/conceptualization/"
+      },
+      "sourceStatus": "confirmed",
+      "sourceDecisionRef": "decision:credit-001",
+      "sourceDeclarationKind": "controller",
+      "sourceAssertedAt": "2026-09-06T00:00:00Z",
+      "sourceDisclosure": {
+        "public": true,
+        "reason": null,
+        "approvedFields": [
+          "credit_assertions",
+          "display_name",
+          "orcid"
+        ],
+        "approvalIds": [
+          "ap-a"
+        ],
+        "kind": "crt-contributor"
+      },
+      "sourceAudience": "private",
+      "destinationStatus": "not-adjudicated",
+      "oratlasDisclosure": "not-authorized",
+      "assessmentIds": []
+    },
+    {
+      "observationId": "crt:credit:882def234e8d12e10ba0f54f5c40243c663f206f8efb61aa3030f5600195c9ca",
+      "target": {
+        "kind": "review",
+        "sourceId": "review-synthetic-crt17",
+        "sourceVersion": "1.0.0",
+        "bindingSha256": "sha256:5d23f7aaac420c4f25cbc4d1843366be3c80d57ef7beec5b3f3e0d1a7fb6ffec",
+        "packetId": null,
+        "packetManifestSha256": null,
+        "lineageSha256": null
+      },
+      "sourceAssertionId": "a-007",
+      "person": {
+        "kind": "named",
+        "sourcePersonId": "person-c",
+        "legacySourcePersonId": null,
+        "displayName": "Synthetic Unpublished Collaborator C",
+        "orcid": {
+          "id": "0000-0000-0000-0028",
+          "sourceStatus": "claimed",
+          "nativeStatus": "claimed",
+          "verificationMethod": null,
+          "verificationRef": null,
+          "verifiedAt": null
+        }
+      },
+      "capacity": "review-contributor",
+      "role": {
+        "slug": "investigation",
+        "originalLabel": "Investigation",
+        "degree": null,
+        "declarationRef": "form:synthetic-c",
+        "roleUri": "https://credit.niso.org/contributor-roles/investigation/"
+      },
+      "sourceStatus": "declared",
+      "sourceDecisionRef": null,
+      "sourceDeclarationKind": "self-declared",
+      "sourceAssertedAt": "2026-09-06T00:00:00Z",
+      "sourceDisclosure": {
+        "public": false,
+        "reason": "missing-required-grant",
+        "approvedFields": [],
+        "approvalIds": [],
+        "kind": "crt-contributor"
+      },
+      "sourceAudience": "private",
+      "destinationStatus": "not-adjudicated",
+      "oratlasDisclosure": "not-authorized",
+      "assessmentIds": []
+    },
+    {
+      "observationId": "crt:credit:945820239e25dc3ae89a5b03c16714aa4d118f4ee4b68c15234459066119d201",
+      "target": {
+        "kind": "review",
+        "sourceId": "review-synthetic-crt17",
+        "sourceVersion": "1.0.0",
+        "bindingSha256": "sha256:5d23f7aaac420c4f25cbc4d1843366be3c80d57ef7beec5b3f3e0d1a7fb6ffec",
+        "packetId": null,
+        "packetManifestSha256": null,
+        "lineageSha256": null
+      },
+      "sourceAssertionId": "legacy:person-d:writing-review-editing",
+      "person": {
+        "kind": "named",
+        "sourcePersonId": "person-d",
+        "legacySourcePersonId": "person-d",
+        "displayName": "Synthetic Person D",
+        "orcid": {
+          "id": "0000-0000-0000-0036",
+          "sourceStatus": "claimed",
+          "nativeStatus": "claimed",
+          "verificationMethod": null,
+          "verificationRef": null,
+          "verifiedAt": null
+        }
+      },
+      "capacity": "review-contributor",
+      "role": {
+        "slug": "writing-review-editing",
+        "originalLabel": "Writing – review & editing",
+        "degree": null,
+        "declarationRef": "content/authors.yml#person-d",
+        "roleUri": "https://credit.niso.org/contributor-roles/writing-review-editing/"
+      },
+      "sourceStatus": "declared",
+      "sourceDecisionRef": null,
+      "sourceDeclarationKind": "legacy-author-file",
+      "sourceAssertedAt": null,
+      "sourceDisclosure": {
+        "public": true,
+        "reason": null,
+        "approvedFields": [
+          "credit_assertions",
+          "display_name"
+        ],
+        "approvalIds": [
+          "ap-d"
+        ],
+        "kind": "crt-contributor"
+      },
+      "sourceAudience": "private",
+      "destinationStatus": "not-adjudicated",
+      "oratlasDisclosure": "not-authorized",
+      "assessmentIds": []
+    },
+    {
+      "observationId": "crt:credit:a65ff05088cd5c7779b76749624a0977a09a18d81ccc125dadffceed178f623c",
+      "target": {
+        "kind": "review-claim",
+        "sourceId": "clm_c7ed170000000001",
+        "sourceVersion": "1.0.0",
+        "bindingSha256": "sha256:5d23f7aaac420c4f25cbc4d1843366be3c80d57ef7beec5b3f3e0d1a7fb6ffec",
+        "packetId": null,
+        "packetManifestSha256": null,
+        "lineageSha256": null
+      },
+      "sourceAssertionId": "a-003",
+      "person": {
+        "kind": "named",
+        "sourcePersonId": "person-a",
+        "legacySourcePersonId": null,
+        "displayName": "Synthetic Person A",
+        "orcid": {
+          "id": "0000-0002-1825-0097",
+          "sourceStatus": "source-verified",
+          "nativeStatus": "verified",
+          "verificationMethod": "orcid-oauth",
+          "verificationRef": "orcid-auth:synthetic-a",
+          "verifiedAt": "2026-09-05T00:00:00Z"
+        }
+      },
+      "capacity": "claim-contributor",
+      "role": {
+        "slug": "methodology",
+        "originalLabel": "Methodology",
+        "degree": "supporting",
+        "declarationRef": "form:synthetic-a",
+        "roleUri": "https://credit.niso.org/contributor-roles/methodology/"
+      },
+      "sourceStatus": "declared",
+      "sourceDecisionRef": null,
+      "sourceDeclarationKind": "self-declared",
+      "sourceAssertedAt": "2026-09-06T00:00:00Z",
+      "sourceDisclosure": {
+        "public": true,
+        "reason": null,
+        "approvedFields": [
+          "credit_assertions",
+          "display_name",
+          "orcid"
+        ],
+        "approvalIds": [
+          "ap-a"
+        ],
+        "kind": "crt-contributor"
+      },
+      "sourceAudience": "private",
+      "destinationStatus": "not-adjudicated",
+      "oratlasDisclosure": "not-authorized",
+      "assessmentIds": []
+    },
+    {
+      "observationId": "crt:credit:b35d177bd7225e857f6195f5a43b633a48fd2568665b40dcfec9f9082c5dad95",
+      "target": {
+        "kind": "review",
+        "sourceId": "review-synthetic-crt17",
+        "sourceVersion": "1.0.0",
+        "bindingSha256": "sha256:5d23f7aaac420c4f25cbc4d1843366be3c80d57ef7beec5b3f3e0d1a7fb6ffec",
+        "packetId": null,
+        "packetManifestSha256": null,
+        "lineageSha256": null
+      },
+      "sourceAssertionId": "a-004",
+      "person": {
+        "kind": "named",
+        "sourcePersonId": "person-b",
+        "legacySourcePersonId": null,
+        "displayName": "Synthetic Person B",
+        "orcid": {
+          "id": "0000-0000-0000-001X",
+          "sourceStatus": "claimed",
+          "nativeStatus": "claimed",
+          "verificationMethod": null,
+          "verificationRef": null,
+          "verifiedAt": null
+        }
+      },
+      "capacity": "review-contributor",
+      "role": {
+        "slug": "writing-review-editing",
+        "originalLabel": "Writing – review & editing",
+        "degree": "equal",
+        "declarationRef": "form:synthetic-corresponding",
+        "roleUri": "https://credit.niso.org/contributor-roles/writing-review-editing/"
+      },
+      "sourceStatus": "declared",
+      "sourceDecisionRef": null,
+      "sourceDeclarationKind": "corresponding-author",
+      "sourceAssertedAt": "2026-09-06T00:00:00Z",
+      "sourceDisclosure": {
+        "public": true,
+        "reason": null,
+        "approvedFields": [
+          "credit_assertions",
+          "display_name"
+        ],
+        "approvalIds": [
+          "ap-b"
+        ],
+        "kind": "crt-contributor"
+      },
+      "sourceAudience": "private",
+      "destinationStatus": "not-adjudicated",
+      "oratlasDisclosure": "not-authorized",
+      "assessmentIds": []
+    },
+    {
+      "observationId": "crt:credit:bfacd0eac91892c2afaf3f90a1bde7657c5e393e48ae1a1044d81e75eb114bab",
+      "target": {
+        "kind": "review",
+        "sourceId": "review-synthetic-crt17",
+        "sourceVersion": "1.0.0",
+        "bindingSha256": "sha256:5d23f7aaac420c4f25cbc4d1843366be3c80d57ef7beec5b3f3e0d1a7fb6ffec",
+        "packetId": null,
+        "packetManifestSha256": null,
+        "lineageSha256": null
+      },
+      "sourceAssertionId": "a-006",
+      "person": {
+        "kind": "named",
+        "sourcePersonId": "person-b",
+        "legacySourcePersonId": null,
+        "displayName": "Synthetic Person B",
+        "orcid": {
+          "id": "0000-0000-0000-001X",
+          "sourceStatus": "claimed",
+          "nativeStatus": "claimed",
+          "verificationMethod": null,
+          "verificationRef": null,
+          "verifiedAt": null
+        }
+      },
+      "capacity": "review-contributor",
+      "role": {
+        "slug": "supervision",
+        "originalLabel": "Supervision",
+        "degree": null,
+        "declarationRef": "form:synthetic-b",
+        "roleUri": "https://credit.niso.org/contributor-roles/supervision/"
+      },
+      "sourceStatus": "withdrawn",
+      "sourceDecisionRef": "withdrawal:synthetic-006",
+      "sourceDeclarationKind": "self-declared",
+      "sourceAssertedAt": "2026-09-06T00:00:00Z",
+      "sourceDisclosure": {
+        "public": true,
+        "reason": null,
+        "approvedFields": [
+          "credit_assertions",
+          "display_name"
+        ],
+        "approvalIds": [
+          "ap-b"
+        ],
+        "kind": "crt-contributor"
+      },
+      "sourceAudience": "private",
+      "destinationStatus": "not-adjudicated",
+      "oratlasDisclosure": "not-authorized",
+      "assessmentIds": []
+    }
+  ],
+  "evidence": [
+    {
+      "observationId": "crt:evidence:0fece9a42132640e278c1cc419f9d79bfa90632a49dc07642039afd12c94f002",
+      "target": {
+        "kind": "source-finding",
+        "sourceId": "finding:beta-f1",
+        "sourceVersion": "1",
+        "bindingSha256": "sha256:2422bef883812378f180a0fa9fdcdb28332d82516771da558915cc4000e050c4",
+        "packetId": "packet:crt17-beta",
+        "packetManifestSha256": "sha256:29a78fbd4f76bfacb7498daaafec27e0770cc62824262443fe21dc6b129ae39d",
+        "lineageSha256": "sha256:ad18047717927eff8c7f505caa45af8f2e5a4d54ea508335aca3641b7b1a8f4d"
+      },
+      "nativeBinding": "crt-reviewed-mapping",
+      "sourcePaperId": null,
+      "findingOrigin": null,
+      "sourceSnapshotRef": null,
+      "sourceSnapshotSha256": null,
+      "phase2FindingSha256": "sha256:2422bef883812378f180a0fa9fdcdb28332d82516771da558915cc4000e050c4",
+      "citedWork": {
+        "doi": "10.5555/crt17.beta",
+        "doiIsExample": true,
+        "citeKey": "synthBeta2026",
+        "authors": [
+          "Synthetic-beta, Ada",
+          "Synthetic-beta, Bo"
+        ],
+        "authorsAre": "bibliographic-citation-metadata"
+      },
+      "nativeOrigin": {
+        "originId": "origin-beta",
+        "visibility": "public",
+        "disclosure": {
+          "public": true,
+          "reason": null,
+          "approvedFields": null,
+          "approvalIds": []
+        }
+      },
+      "mapping": {
+        "binding": "reviewed-mapping",
+        "claimId": "clm_c7ed170000000001",
+        "decisionRef": "decision:map-beta",
+        "mappedAt": "2026-09-04T00:00:00Z",
+        "claimDisclosure": {
+          "public": true,
+          "reason": null,
+          "approvedFields": null,
+          "approvalIds": []
+        }
+      },
+      "sourceRights": {
+        "kind": "crt-passage-disclosure",
+        "passageDisclosure": "rights-allow"
+      },
+      "passages": [
+        {
+          "passageId": "passage:beta-p1",
+          "quoteSha256": "sha256:d7b7671908a6b8421c4065d28822a5e8ad2839eb34726855b7eadbcc494d1fd5",
+          "quoteState": null
+        }
+      ],
+      "assessmentProtocol": null,
+      "sourceAssessments": [
+        {
+          "assessmentId": "assessment:beta-a1",
+          "protocol": "seip-support-v1",
+          "status": "supports",
+          "curatorRef": {
+            "kind": "source-native-pseudonym",
+            "ref": "rv-b2b2b2b2b2b2b2b2"
+          },
+          "assessedSnapshotSha256": null
+        }
+      ],
+      "oratlasAdjudication": "none"
+    },
+    {
+      "observationId": "crt:evidence:a3474149ff0aa8be55c68d0898d1426356f00177d7594f09b1f0d25ed18b9b5b",
+      "target": {
+        "kind": "source-finding",
+        "sourceId": "finding:gamma-f1",
+        "sourceVersion": "1",
+        "bindingSha256": "sha256:87e0a6118dabaf1b021ffcad32e0edf6727b9aa1a33af2355741c6fefaaca849",
+        "packetId": "packet:crt17-gamma",
+        "packetManifestSha256": "sha256:6ff0e5603afde8f76354aa4204eb11bc6e05f467b934830be79758e74c5e7d4a",
+        "lineageSha256": "sha256:c51925e5dad3580851921b64c08731ca42441b7fa008a6b598027622832c6a21"
+      },
+      "nativeBinding": "crt-reviewed-mapping",
+      "sourcePaperId": null,
+      "findingOrigin": null,
+      "sourceSnapshotRef": null,
+      "sourceSnapshotSha256": null,
+      "phase2FindingSha256": "sha256:87e0a6118dabaf1b021ffcad32e0edf6727b9aa1a33af2355741c6fefaaca849",
+      "citedWork": {
+        "doi": "10.5555/crt17.gamma",
+        "doiIsExample": true,
+        "citeKey": "synthGamma2026",
+        "authors": [
+          "Synthetic-gamma, Ada",
+          "Synthetic-gamma, Bo"
+        ],
+        "authorsAre": "bibliographic-citation-metadata"
+      },
+      "nativeOrigin": {
+        "originId": "origin-gamma",
+        "visibility": "private",
+        "disclosure": {
+          "public": false,
+          "reason": "no-approval",
+          "approvedFields": null,
+          "approvalIds": []
+        }
+      },
+      "mapping": {
+        "binding": "reviewed-mapping",
+        "claimId": "clm_c7ed170000000002",
+        "decisionRef": "decision:map-gamma",
+        "mappedAt": "2026-09-04T00:00:00Z",
+        "claimDisclosure": {
+          "public": false,
+          "reason": "uncleared-private-origin",
+          "approvedFields": null,
+          "approvalIds": []
+        }
+      },
+      "sourceRights": {
+        "kind": "crt-passage-disclosure",
+        "passageDisclosure": "rights-allow"
+      },
+      "passages": [
+        {
+          "passageId": "passage:gamma-p1",
+          "quoteSha256": "sha256:d012fd9b0165b694aa682ca25100d6e84f2e3762e8d2791ee04eb30f1f576fa5",
+          "quoteState": null
+        }
+      ],
+      "assessmentProtocol": null,
+      "sourceAssessments": [
+        {
+          "assessmentId": "assessment:gamma-a1",
+          "protocol": "seip-support-v1",
+          "status": "supports",
+          "curatorRef": {
+            "kind": "source-native-pseudonym",
+            "ref": "rv-c3c3c3c3c3c3c3c3"
+          },
+          "assessedSnapshotSha256": null
+        }
+      ],
+      "oratlasAdjudication": "none"
+    },
+    {
+      "observationId": "crt:evidence:fbd4af242388d5ee6d89dc75f6d5fd4b04144dd9a51b54c2d9f3af247657093e",
+      "target": {
+        "kind": "source-finding",
+        "sourceId": "finding:alpha-f1",
+        "sourceVersion": "1",
+        "bindingSha256": "sha256:13b2c44aed144374546f33b7b35890cc91e369776f8c42610cd58e440184f855",
+        "packetId": "packet:crt17-alpha",
+        "packetManifestSha256": "sha256:7b663daf0ef47d6fc35bc578d811c388bbd591d55ac1658392b09f79fb186f4c",
+        "lineageSha256": "sha256:8544e2788c74e1d1b0c06786e56b0d71f4fc9fa23fcdb19c51decc7b11ba4249"
+      },
+      "nativeBinding": "crt-reviewed-mapping",
+      "sourcePaperId": null,
+      "findingOrigin": null,
+      "sourceSnapshotRef": null,
+      "sourceSnapshotSha256": null,
+      "phase2FindingSha256": "sha256:13b2c44aed144374546f33b7b35890cc91e369776f8c42610cd58e440184f855",
+      "citedWork": {
+        "doi": "10.5555/crt17.alpha",
+        "doiIsExample": true,
+        "citeKey": "synthAlpha2026",
+        "authors": [
+          "Synthetic-alpha, Ada",
+          "Synthetic-alpha, Bo"
+        ],
+        "authorsAre": "bibliographic-citation-metadata"
+      },
+      "nativeOrigin": {
+        "originId": "origin-alpha",
+        "visibility": "public",
+        "disclosure": {
+          "public": true,
+          "reason": null,
+          "approvedFields": null,
+          "approvalIds": []
+        }
+      },
+      "mapping": {
+        "binding": "reviewed-mapping",
+        "claimId": "clm_c7ed170000000001",
+        "decisionRef": "decision:map-alpha",
+        "mappedAt": "2026-09-04T00:00:00Z",
+        "claimDisclosure": {
+          "public": true,
+          "reason": null,
+          "approvedFields": null,
+          "approvalIds": []
+        }
+      },
+      "sourceRights": {
+        "kind": "crt-passage-disclosure",
+        "passageDisclosure": "rights-allow"
+      },
+      "passages": [
+        {
+          "passageId": "passage:alpha-p1",
+          "quoteSha256": "sha256:d83ab2997201a3d2dce12f5a1407e14e7cd2d1f9fefdd087fa24bb4a1b9c09b3",
+          "quoteState": null
+        }
+      ],
+      "assessmentProtocol": null,
+      "sourceAssessments": [
+        {
+          "assessmentId": "assessment:alpha-a1",
+          "protocol": "seip-support-v1",
+          "status": "supports",
+          "curatorRef": {
+            "kind": "source-native-pseudonym",
+            "ref": "rv-a1a1a1a1a1a1a1a1"
+          },
+          "assessedSnapshotSha256": null
+        }
+      ],
+      "oratlasAdjudication": "none"
+    }
+  ],
+  "production": [
+    {
+      "observationId": "crt:production:6e2b630cf5b56f88a7aa4190c0edbe3b1b02b1a793f2c40c92064f6a674d0dfb",
+      "target": {
+        "kind": "review",
+        "sourceId": "review-synthetic-crt17",
+        "sourceVersion": "1.0.0",
+        "bindingSha256": "sha256:5d23f7aaac420c4f25cbc4d1843366be3c80d57ef7beec5b3f3e0d1a7fb6ffec",
+        "packetId": null,
+        "packetManifestSha256": null,
+        "lineageSha256": null
+      },
+      "softwareName": "Claude",
+      "softwareVersion": "synthetic-model-version",
+      "softwareProducer": "Anthropic",
+      "agentType": "software-agent",
+      "sourceAgentId": "ai-pipeline",
+      "runRef": null,
+      "activity": "evidence-gathering-and-drafting",
+      "legacyAuthorId": "ai-pipeline",
+      "creditChannel": "production",
+      "actorKind": "software"
+    },
+    {
+      "observationId": "crt:production:bea5aa1df10d5a473eeef42acc4e2a03fcb19bd45febe1175a3327cfe99b1f55",
+      "target": {
+        "kind": "review",
+        "sourceId": "review-synthetic-crt17",
+        "sourceVersion": "1.0.0",
+        "bindingSha256": "sha256:5d23f7aaac420c4f25cbc4d1843366be3c80d57ef7beec5b3f3e0d1a7fb6ffec",
+        "packetId": null,
+        "packetManifestSha256": null,
+        "lineageSha256": null
+      },
+      "softwareName": "comprev-citation-validator",
+      "softwareVersion": "v29",
+      "softwareProducer": "ComputationalReviewTemplate",
+      "agentType": "software-agent",
+      "sourceAgentId": "citation-verifier",
+      "runRef": null,
+      "activity": "citation-verification",
+      "legacyAuthorId": null,
+      "creditChannel": "production",
+      "actorKind": "software"
+    }
+  ],
+  "sourceLegacyRoleLabels": [
+    {
+      "observationId": "crt:legacy-role-label:4b7fd0293e60bfbad61b20648f0c00d1ed7f4d07b1b0f3ae4b5061a779c3bea3",
+      "target": {
+        "kind": "review",
+        "sourceId": "review-synthetic-crt17",
+        "sourceVersion": "1.0.0",
+        "bindingSha256": "sha256:5d23f7aaac420c4f25cbc4d1843366be3c80d57ef7beec5b3f3e0d1a7fb6ffec",
+        "packetId": null,
+        "packetManifestSha256": null,
+        "lineageSha256": null
+      },
+      "subject": {
+        "kind": "person",
+        "sourcePersonId": "person-d"
+      },
+      "field": "roles",
+      "position": 2,
+      "label": "Statistics",
+      "level": null,
+      "sourceMappedRole": null,
+      "sourceMapping": "unmappable",
+      "sourceCreditEligible": false,
+      "sourceRef": "content/authors.yml#person-d"
+    },
+    {
+      "observationId": "crt:legacy-role-label:70cc4c82ab5a803be93025b7280259973483458b6f8abddca12731f4bfb8fb3a",
+      "target": {
+        "kind": "review",
+        "sourceId": "review-synthetic-crt17",
+        "sourceVersion": "1.0.0",
+        "bindingSha256": "sha256:5d23f7aaac420c4f25cbc4d1843366be3c80d57ef7beec5b3f3e0d1a7fb6ffec",
+        "packetId": null,
+        "packetManifestSha256": null,
+        "lineageSha256": null
+      },
+      "subject": {
+        "kind": "software-agent",
+        "sourceAgentId": "ai-pipeline"
+      },
+      "field": "roles",
+      "position": 2,
+      "label": "Writing – original draft",
+      "level": null,
+      "sourceMappedRole": "writing-original-draft",
+      "sourceMapping": "exact",
+      "sourceCreditEligible": false,
+      "sourceRef": null
+    },
+    {
+      "observationId": "crt:legacy-role-label:766aebe3d8673e9271db05d12b4617d358ae56f2907173580f00a2b2632c8345",
+      "target": {
+        "kind": "review",
+        "sourceId": "review-synthetic-crt17",
+        "sourceVersion": "1.0.0",
+        "bindingSha256": "sha256:5d23f7aaac420c4f25cbc4d1843366be3c80d57ef7beec5b3f3e0d1a7fb6ffec",
+        "packetId": null,
+        "packetManifestSha256": null,
+        "lineageSha256": null
+      },
+      "subject": {
+        "kind": "person",
+        "sourcePersonId": "person-d"
+      },
+      "field": "roles",
+      "position": 1,
+      "label": "Writing - Review & Editing",
+      "level": null,
+      "sourceMappedRole": "writing-review-editing",
+      "sourceMapping": "normalized",
+      "sourceCreditEligible": true,
+      "sourceRef": "content/authors.yml#person-d"
+    },
+    {
+      "observationId": "crt:legacy-role-label:a20b998eb178b9da0f0ec2391722ad1bf97d8675a1fc3b86de35f4b7efb8e2cc",
+      "target": {
+        "kind": "review",
+        "sourceId": "review-synthetic-crt17",
+        "sourceVersion": "1.0.0",
+        "bindingSha256": "sha256:5d23f7aaac420c4f25cbc4d1843366be3c80d57ef7beec5b3f3e0d1a7fb6ffec",
+        "packetId": null,
+        "packetManifestSha256": null,
+        "lineageSha256": null
+      },
+      "subject": {
+        "kind": "software-agent",
+        "sourceAgentId": "ai-pipeline"
+      },
+      "field": "credit_levels",
+      "position": 3,
+      "label": "Investigation",
+      "level": "lead",
+      "sourceMappedRole": "investigation",
+      "sourceMapping": "exact",
+      "sourceCreditEligible": false,
+      "sourceRef": null
+    },
+    {
+      "observationId": "crt:legacy-role-label:b0357efe21af5612dba62f506d524bc2ed0c87780319a7e76a81a34d102841d6",
+      "target": {
+        "kind": "review",
+        "sourceId": "review-synthetic-crt17",
+        "sourceVersion": "1.0.0",
+        "bindingSha256": "sha256:5d23f7aaac420c4f25cbc4d1843366be3c80d57ef7beec5b3f3e0d1a7fb6ffec",
+        "packetId": null,
+        "packetManifestSha256": null,
+        "lineageSha256": null
+      },
+      "subject": {
+        "kind": "person",
+        "sourcePersonId": "person-d"
+      },
+      "field": "credit_levels",
+      "position": 3,
+      "label": "Conceptualization",
+      "level": "lead",
+      "sourceMappedRole": "conceptualization",
+      "sourceMapping": "exact",
+      "sourceCreditEligible": true,
+      "sourceRef": "content/authors.yml#person-d"
+    },
+    {
+      "observationId": "crt:legacy-role-label:dcfb9e2bdec061bf2e661399d4b3bf08b11dd500f4aec059a7f7517d45dea20a",
+      "target": {
+        "kind": "review",
+        "sourceId": "review-synthetic-crt17",
+        "sourceVersion": "1.0.0",
+        "bindingSha256": "sha256:5d23f7aaac420c4f25cbc4d1843366be3c80d57ef7beec5b3f3e0d1a7fb6ffec",
+        "packetId": null,
+        "packetManifestSha256": null,
+        "lineageSha256": null
+      },
+      "subject": {
+        "kind": "software-agent",
+        "sourceAgentId": "ai-pipeline"
+      },
+      "field": "roles",
+      "position": 0,
+      "label": "Investigation",
+      "level": null,
+      "sourceMappedRole": "investigation",
+      "sourceMapping": "exact",
+      "sourceCreditEligible": false,
+      "sourceRef": null
+    },
+    {
+      "observationId": "crt:legacy-role-label:e885ad5c8b9176e8e4c2c2e126b0621a6958da83efdd9b6b43103ee4dcb34888",
+      "target": {
+        "kind": "review",
+        "sourceId": "review-synthetic-crt17",
+        "sourceVersion": "1.0.0",
+        "bindingSha256": "sha256:5d23f7aaac420c4f25cbc4d1843366be3c80d57ef7beec5b3f3e0d1a7fb6ffec",
+        "packetId": null,
+        "packetManifestSha256": null,
+        "lineageSha256": null
+      },
+      "subject": {
+        "kind": "software-agent",
+        "sourceAgentId": "ai-pipeline"
+      },
+      "field": "roles",
+      "position": 1,
+      "label": "Data Curation",
+      "level": null,
+      "sourceMappedRole": "data-curation",
+      "sourceMapping": "normalized",
+      "sourceCreditEligible": false,
+      "sourceRef": null
+    },
+    {
+      "observationId": "crt:legacy-role-label:f60c58573478cd80aa8d931f8ed11a75808146ce42ebdf7048aee49d4b3580f8",
+      "target": {
+        "kind": "review",
+        "sourceId": "review-synthetic-crt17",
+        "sourceVersion": "1.0.0",
+        "bindingSha256": "sha256:5d23f7aaac420c4f25cbc4d1843366be3c80d57ef7beec5b3f3e0d1a7fb6ffec",
+        "packetId": null,
+        "packetManifestSha256": null,
+        "lineageSha256": null
+      },
+      "subject": {
+        "kind": "person",
+        "sourcePersonId": "person-d"
+      },
+      "field": "roles",
+      "position": 0,
+      "label": "Conceptualization",
+      "level": null,
+      "sourceMappedRole": "conceptualization",
+      "sourceMapping": "exact",
+      "sourceCreditEligible": true,
+      "sourceRef": "content/authors.yml#person-d"
+    }
+  ],
+  "candidateContacts": [],
+  "candidateCreditClaims": [],
+  "report": {
+    "accepted": 15,
+    "withheld": 3,
+    "unmappable": 3,
+    "reasonCodes": [
+      "crt-relation-proposals-not-authoritative"
+    ],
+    "legacyRoleLabels": {
+      "preserved": 8,
+      "sourceUnmappable": 1,
+      "sourceCreditIneligible": 5
+    },
+    "producerDeclaredOmissions": null,
+    "omittedSourceFields": [
+      "crt.contributors.credit-statement",
+      "crt.relation-proposals",
+      "crt.source-origins.project-ref-and-title"
+    ]
+  }
+}

@@ -1,0 +1,140 @@
+{
+  "schemaVersion": "oratlas.source-credit-fixture-pins/1",
+  "note": "Exact upstream bytes. Verified read-only on 2026-10-19: diggypaper and CRT with `git show <commit>:<upstreamPath>` in local clones; orcid-playground by HTTPS GET of https://raw.githubusercontent.com/dhuzard/orcid-playground/<commit>/<upstreamPath>. Offline tests re-check sha256/bytes only.",
+  "verification": [
+    {
+      "producer": "diggypaper",
+      "method": "git-show-local-clone",
+      "verifiedOn": "2026-10-19"
+    },
+    {
+      "producer": "computational-review-template",
+      "method": "git-show-local-clone",
+      "verifiedOn": "2026-10-19"
+    },
+    {
+      "producer": "orcid-playground",
+      "method": "raw-github-exact-commit",
+      "verifiedOn": "2026-10-19"
+    }
+  ],
+  "files": [
+    {
+      "path": "diggypaper/credit.json",
+      "producer": "diggypaper",
+      "repository": "https://github.com/dhuzard/diggypaper",
+      "commit": "a34d18f752377b2a6df01555d1963b2a43c0dca9",
+      "upstreamPath": "docs/contracts/finding-credit-companion/v0.1.0/fixtures/valid/project-members/credit.json",
+      "sha256": "sha256:acae7c329969d1e8617b3b820bf32f06d72c0f0d5e8e76e81f2794e0b2ff11a2",
+      "bytes": 14213
+    },
+    {
+      "path": "diggypaper/packet/manifest.json",
+      "producer": "diggypaper",
+      "repository": "https://github.com/dhuzard/diggypaper",
+      "commit": "a34d18f752377b2a6df01555d1963b2a43c0dca9",
+      "upstreamPath": "docs/contracts/finding-credit-companion/v0.1.0/fixtures/packets/private/manifest.json",
+      "sha256": "sha256:64c01a630dabab2b72dee4f8b2afa20f2fb0aeaca6ac5d4c47b653b56a57ae48",
+      "bytes": 1623
+    },
+    {
+      "path": "diggypaper/packet/papers.jsonl",
+      "producer": "diggypaper",
+      "repository": "https://github.com/dhuzard/diggypaper",
+      "commit": "a34d18f752377b2a6df01555d1963b2a43c0dca9",
+      "upstreamPath": "docs/contracts/finding-credit-companion/v0.1.0/fixtures/packets/private/papers.jsonl",
+      "sha256": "sha256:1cd8b6a2ee0803d91e00e18cc0b8e4a47b8b9bf8bdded13e36db5817db81dd3e",
+      "bytes": 1553
+    },
+    {
+      "path": "diggypaper/packet/findings.jsonl",
+      "producer": "diggypaper",
+      "repository": "https://github.com/dhuzard/diggypaper",
+      "commit": "a34d18f752377b2a6df01555d1963b2a43c0dca9",
+      "upstreamPath": "docs/contracts/finding-credit-companion/v0.1.0/fixtures/packets/private/findings.jsonl",
+      "sha256": "sha256:37c40bd6465022bbc214149f48edb5d64d7f578166ed3565b514f58697584254",
+      "bytes": 3304
+    },
+    {
+      "path": "diggypaper/packet/passages.jsonl",
+      "producer": "diggypaper",
+      "repository": "https://github.com/dhuzard/diggypaper",
+      "commit": "a34d18f752377b2a6df01555d1963b2a43c0dca9",
+      "upstreamPath": "docs/contracts/finding-credit-companion/v0.1.0/fixtures/packets/private/passages.jsonl",
+      "sha256": "sha256:7ca8fcf94e88e207807790cbb1fea2ff183e58ce42ef5d7e3fe5da8af3856a56",
+      "bytes": 1852
+    },
+    {
+      "path": "diggypaper/packet/assessments.jsonl",
+      "producer": "diggypaper",
+      "repository": "https://github.com/dhuzard/diggypaper",
+      "commit": "a34d18f752377b2a6df01555d1963b2a43c0dca9",
+      "upstreamPath": "docs/contracts/finding-credit-companion/v0.1.0/fixtures/packets/private/assessments.jsonl",
+      "sha256": "sha256:7900a662bc28f2ea21f48ac2742f1eb5672dfe6c23e047a9f6a2289698260d75",
+      "bytes": 2505
+    },
+    {
+      "path": "schemas/diggypaper.schema.json",
+      "producer": "diggypaper",
+      "repository": "https://github.com/dhuzard/diggypaper",
+      "commit": "a34d18f752377b2a6df01555d1963b2a43c0dca9",
+      "upstreamPath": "docs/contracts/finding-credit-companion/v0.1.0/schemas/finding-credit-companion.schema.json",
+      "sha256": "sha256:f0db64db8623c0da9473145f339709cf7061c0a8a408775aba39b6f0132e4fe1",
+      "bytes": 11001
+    },
+    {
+      "path": "crt/credit.json",
+      "producer": "computational-review-template",
+      "repository": "https://github.com/Neuronautix/ComputationalReviewTemplate_trust-knowledge",
+      "commit": "a19a8dc90ddbf93c06d6ab050aaad3a00d28a262",
+      "upstreamPath": "tests/fixtures/contributorship/expected/contributorship.private.json",
+      "sha256": "sha256:91aa4dfd4bde8e797ee6d8673debd2b498368301f2cc51204d34aa8026af7703",
+      "bytes": 19354
+    },
+    {
+      "path": "crt/claim-graph.json",
+      "producer": "computational-review-template",
+      "repository": "https://github.com/Neuronautix/ComputationalReviewTemplate_trust-knowledge",
+      "commit": "a19a8dc90ddbf93c06d6ab050aaad3a00d28a262",
+      "upstreamPath": "tests/fixtures/contributorship/claim-graph.json",
+      "sha256": "sha256:5d23f7aaac420c4f25cbc4d1843366be3c80d57ef7beec5b3f3e0d1a7fb6ffec",
+      "bytes": 680
+    },
+    {
+      "path": "schemas/crt.private.schema.json",
+      "producer": "computational-review-template",
+      "repository": "https://github.com/Neuronautix/ComputationalReviewTemplate_trust-knowledge",
+      "commit": "a19a8dc90ddbf93c06d6ab050aaad3a00d28a262",
+      "upstreamPath": "docs/contracts/contributorship/v1/contributorship.private.schema.json",
+      "sha256": "sha256:fb8cb2e26b21e5f5d8b92bc3b83a9b537db811719352286e442050dc922536b7",
+      "bytes": 13780
+    },
+    {
+      "path": "orcid/roster.json",
+      "producer": "orcid-playground",
+      "repository": "https://github.com/dhuzard/orcid-playground",
+      "commit": "ff5aff93cb34620f3f2500f709259aa0134c24f2",
+      "upstreamPath": "tests/fixtures/roster/demo-export.json",
+      "sha256": "sha256:6b2cd197557213247c099f9fb84c47817aa48ec008ecc038d8200145db70a96e",
+      "bytes": 6561
+    },
+    {
+      "path": "orcid/candidate-contacts.json",
+      "producer": "orcid-playground",
+      "repository": "https://github.com/dhuzard/orcid-playground",
+      "commit": "ff5aff93cb34620f3f2500f709259aa0134c24f2",
+      "upstreamPath": "tests/fixtures/roster/candidate-contacts.json",
+      "sha256": "sha256:b31e55fdaff4fa8a2b1dc2e168738e60aa9e3b823c6c7aa5090b2aa16d9995bd",
+      "bytes": 1631
+    },
+    {
+      "path": "schemas/orcid.roster.schema.json",
+      "producer": "orcid-playground",
+      "repository": "https://github.com/dhuzard/orcid-playground",
+      "commit": "ff5aff93cb34620f3f2500f709259aa0134c24f2",
+      "upstreamPath": "schema/roster-assertion.schema.json",
+      "sha256": "sha256:3ccfc0072ac214cdec86df966c96a7a4212f8cc1058b4cdd62ecfe29813b2e94",
+      "bytes": 10120
+    }
+  ]
+}

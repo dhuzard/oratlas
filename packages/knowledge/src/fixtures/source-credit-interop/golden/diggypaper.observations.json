@@ -1,0 +1,973 @@
+{
+  "schemaVersion": "oratlas.source-credit-observations/0.2.0",
+  "producer": "diggypaper",
+  "producerContract": "finding-credit-companion/0.1.0",
+  "sourceContractPinnedCommit": "a34d18f752377b2a6df01555d1963b2a43c0dca9",
+  "sourceId": "credit:synthetic-project-members",
+  "sourceDocumentSha256": "sha256:acae7c329969d1e8617b3b820bf32f06d72c0f0d5e8e76e81f2794e0b2ff11a2",
+  "visibility": "private-adapter-output",
+  "accessEffect": "none",
+  "accountVerification": "not-performed",
+  "sourceDocument": {
+    "kind": "diggypaper-companion",
+    "companionId": "credit:synthetic-project-members",
+    "createdAt": "2026-09-04T00:00:00Z",
+    "creationMethod": "synthetic-fixture",
+    "producer": {
+      "name": "diggypaper-fixture-builder",
+      "commit": "synthetic-fixture"
+    },
+    "audience": {
+      "level": "project-members",
+      "recipientRef": null,
+      "expiresAt": "2027-03-01T00:00:00Z"
+    },
+    "release": {
+      "state": "not-released",
+      "approvalRef": null,
+      "approvedAt": null
+    },
+    "creditSemantics": {
+      "roleVocabulary": "CRediT ANSI/NISO Z39.104-2022",
+      "impliesAuthorship": false
+    },
+    "exportStatus": {
+      "state": "complete",
+      "withheldCounts": {
+        "entries": 0,
+        "contributions": 0
+      },
+      "reasons": []
+    },
+    "packet": {
+      "packetId": "packet:credit-synthetic",
+      "schemaVersion": "source-evidence-packet/0.1.0",
+      "manifestSha256": "sha256:64c01a630dabab2b72dee4f8b2afa20f2fb0aeaca6ac5d4c47b653b56a57ae48",
+      "accessScopeLevel": "private",
+      "producer": {
+        "name": "diggypaper-fixture-builder",
+        "commit": "synthetic-fixture"
+      }
+    }
+  },
+  "assertions": [
+    {
+      "observationId": "diggypaper:credit:0235471a534a11f4acde3fc4603f511ffd1dc7582e1b746d297e82d0679ad3da",
+      "target": {
+        "kind": "source-finding",
+        "sourceId": "finding:credit-a-f1",
+        "sourceVersion": "2",
+        "bindingSha256": "sha256:350f1bb67d786d2549c1af0067638b1f1f79d1bf9b1a70803656e947ecbca5f3",
+        "packetId": "packet:credit-synthetic",
+        "packetManifestSha256": "sha256:64c01a630dabab2b72dee4f8b2afa20f2fb0aeaca6ac5d4c47b653b56a57ae48",
+        "lineageSha256": null
+      },
+      "sourceAssertionId": "contribution:a-f1-curator",
+      "person": {
+        "kind": "named",
+        "sourcePersonId": null,
+        "legacySourcePersonId": null,
+        "displayName": "Synthetic Curator One",
+        "orcid": {
+          "id": "0000-0002-1825-0097",
+          "sourceStatus": "source-verified",
+          "nativeStatus": "oauth-verified",
+          "verificationMethod": null,
+          "verificationRef": "orcid-verification:synth-1",
+          "verifiedAt": "2026-09-02T00:00:00Z"
+        }
+      },
+      "capacity": "finding-curator",
+      "role": {
+        "slug": "data-curation",
+        "originalLabel": "Data curation",
+        "degree": "lead",
+        "declarationRef": "declaration:synth-1",
+        "roleUri": null
+      },
+      "sourceStatus": "confirmed",
+      "sourceDecisionRef": "consent:synth-1",
+      "sourceDeclarationKind": null,
+      "sourceAssertedAt": null,
+      "sourceDisclosure": {
+        "kind": "diggypaper-contribution",
+        "personConsent": "granted",
+        "controllerAuthorization": "granted",
+        "membership": "active",
+        "consentRef": "consent:synth-1",
+        "reviewBlinding": "not-applicable"
+      },
+      "sourceAudience": "project-members",
+      "destinationStatus": "not-adjudicated",
+      "oratlasDisclosure": "not-authorized",
+      "assessmentIds": []
+    },
+    {
+      "observationId": "diggypaper:credit:3a3406e7d0c557e180fe30e62ae87ce5d9669dde7e9bdbbc5dff2f4a4f3b4998",
+      "target": {
+        "kind": "source-finding",
+        "sourceId": "finding:credit-a-f2",
+        "sourceVersion": "1",
+        "bindingSha256": "sha256:350f1bb67d786d2549c1af0067638b1f1f79d1bf9b1a70803656e947ecbca5f3",
+        "packetId": "packet:credit-synthetic",
+        "packetManifestSha256": "sha256:64c01a630dabab2b72dee4f8b2afa20f2fb0aeaca6ac5d4c47b653b56a57ae48",
+        "lineageSha256": null
+      },
+      "sourceAssertionId": "contribution:a-f2-assessor-c",
+      "person": {
+        "kind": "pseudonym",
+        "sourceRef": "rv-cccccccccccccccccccccccccccccccc",
+        "refKind": "source-native-pseudonym"
+      },
+      "capacity": "support-assessor",
+      "role": {
+        "slug": "validation",
+        "originalLabel": "Validation",
+        "degree": "equal",
+        "declarationRef": "declaration:synth-3",
+        "roleUri": null
+      },
+      "sourceStatus": "source-declared",
+      "sourceDecisionRef": null,
+      "sourceDeclarationKind": null,
+      "sourceAssertedAt": null,
+      "sourceDisclosure": {
+        "kind": "diggypaper-contribution",
+        "personConsent": "not-granted",
+        "controllerAuthorization": "not-granted",
+        "membership": "active",
+        "consentRef": null,
+        "reviewBlinding": "blinded"
+      },
+      "sourceAudience": "project-members",
+      "destinationStatus": "not-adjudicated",
+      "oratlasDisclosure": "not-authorized",
+      "assessmentIds": [
+        "assessment:credit-a3"
+      ]
+    },
+    {
+      "observationId": "diggypaper:credit:3f048238f893f9c9b21073d1edef978c55241b9fe36608b808b8cf2753b61d80",
+      "target": {
+        "kind": "source-finding",
+        "sourceId": "finding:credit-a-f2",
+        "sourceVersion": "1",
+        "bindingSha256": "sha256:350f1bb67d786d2549c1af0067638b1f1f79d1bf9b1a70803656e947ecbca5f3",
+        "packetId": "packet:credit-synthetic",
+        "packetManifestSha256": "sha256:64c01a630dabab2b72dee4f8b2afa20f2fb0aeaca6ac5d4c47b653b56a57ae48",
+        "lineageSha256": null
+      },
+      "sourceAssertionId": "contribution:a-f2-assessor-d",
+      "person": {
+        "kind": "withheld"
+      },
+      "capacity": "support-assessor",
+      "role": null,
+      "sourceStatus": "withheld",
+      "sourceDecisionRef": null,
+      "sourceDeclarationKind": null,
+      "sourceAssertedAt": null,
+      "sourceDisclosure": {
+        "kind": "diggypaper-contribution",
+        "personConsent": "not-granted",
+        "controllerAuthorization": "not-granted",
+        "membership": "active",
+        "consentRef": null,
+        "reviewBlinding": "blinded"
+      },
+      "sourceAudience": "project-members",
+      "destinationStatus": "not-adjudicated",
+      "oratlasDisclosure": "not-authorized",
+      "assessmentIds": [
+        "assessment:credit-a4"
+      ]
+    },
+    {
+      "observationId": "diggypaper:credit:9a710a5080a5360d47afc04b276b1a68c7f10c89eea49e39043ee8ce30aeb98c",
+      "target": {
+        "kind": "source-finding",
+        "sourceId": "finding:credit-b-f1",
+        "sourceVersion": "1",
+        "bindingSha256": "sha256:ded8e799ca8e4b12c567ae70d68bc0cf4a874e72b30a3482dd7fef74bec01e2a",
+        "packetId": "packet:credit-synthetic",
+        "packetManifestSha256": "sha256:64c01a630dabab2b72dee4f8b2afa20f2fb0aeaca6ac5d4c47b653b56a57ae48",
+        "lineageSha256": null
+      },
+      "sourceAssertionId": "contribution:b-f1-proposer",
+      "person": {
+        "kind": "withheld"
+      },
+      "capacity": "finding-proposer",
+      "role": null,
+      "sourceStatus": "withheld",
+      "sourceDecisionRef": null,
+      "sourceDeclarationKind": null,
+      "sourceAssertedAt": null,
+      "sourceDisclosure": {
+        "kind": "diggypaper-contribution",
+        "personConsent": "not-granted",
+        "controllerAuthorization": "not-granted",
+        "membership": "active",
+        "consentRef": null,
+        "reviewBlinding": "not-applicable"
+      },
+      "sourceAudience": "project-members",
+      "destinationStatus": "not-adjudicated",
+      "oratlasDisclosure": "not-authorized",
+      "assessmentIds": []
+    },
+    {
+      "observationId": "diggypaper:credit:b20dbd2d8936562069b6e70a64365359072a1b4863d20a25e52b260f3029281c",
+      "target": {
+        "kind": "source-finding",
+        "sourceId": "finding:credit-b-f1",
+        "sourceVersion": "1",
+        "bindingSha256": "sha256:ded8e799ca8e4b12c567ae70d68bc0cf4a874e72b30a3482dd7fef74bec01e2a",
+        "packetId": "packet:credit-synthetic",
+        "packetManifestSha256": "sha256:64c01a630dabab2b72dee4f8b2afa20f2fb0aeaca6ac5d4c47b653b56a57ae48",
+        "lineageSha256": null
+      },
+      "sourceAssertionId": "contribution:b-f1-assessor-a",
+      "person": {
+        "kind": "pseudonym",
+        "sourceRef": "rv-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "refKind": "source-native-pseudonym"
+      },
+      "capacity": "support-assessor",
+      "role": null,
+      "sourceStatus": "source-declared",
+      "sourceDecisionRef": null,
+      "sourceDeclarationKind": null,
+      "sourceAssertedAt": null,
+      "sourceDisclosure": {
+        "kind": "diggypaper-contribution",
+        "personConsent": "not-granted",
+        "controllerAuthorization": "not-granted",
+        "membership": "active",
+        "consentRef": null,
+        "reviewBlinding": "unknown"
+      },
+      "sourceAudience": "project-members",
+      "destinationStatus": "not-adjudicated",
+      "oratlasDisclosure": "not-authorized",
+      "assessmentIds": [
+        "assessment:credit-b1"
+      ]
+    },
+    {
+      "observationId": "diggypaper:credit:baec4dee0b07029960a9d939ef03668abc91122a68d71334abbb136e8fb1d4ef",
+      "target": {
+        "kind": "source-finding",
+        "sourceId": "finding:credit-a-f2",
+        "sourceVersion": "1",
+        "bindingSha256": "sha256:350f1bb67d786d2549c1af0067638b1f1f79d1bf9b1a70803656e947ecbca5f3",
+        "packetId": "packet:credit-synthetic",
+        "packetManifestSha256": "sha256:64c01a630dabab2b72dee4f8b2afa20f2fb0aeaca6ac5d4c47b653b56a57ae48",
+        "lineageSha256": null
+      },
+      "sourceAssertionId": "contribution:a-f2-curator",
+      "person": {
+        "kind": "named",
+        "sourcePersonId": null,
+        "legacySourcePersonId": null,
+        "displayName": "Synthetic Curator Two",
+        "orcid": {
+          "id": "0000-0002-1825-0097",
+          "sourceStatus": "claimed",
+          "nativeStatus": "claimed-unverified",
+          "verificationMethod": null,
+          "verificationRef": null,
+          "verifiedAt": null
+        }
+      },
+      "capacity": "finding-curator",
+      "role": {
+        "slug": "investigation",
+        "originalLabel": "Investigation",
+        "degree": "supporting",
+        "declarationRef": "declaration:synth-2",
+        "roleUri": null
+      },
+      "sourceStatus": "self-declared",
+      "sourceDecisionRef": "consent:synth-2",
+      "sourceDeclarationKind": null,
+      "sourceAssertedAt": null,
+      "sourceDisclosure": {
+        "kind": "diggypaper-contribution",
+        "personConsent": "granted",
+        "controllerAuthorization": "granted",
+        "membership": "active",
+        "consentRef": "consent:synth-2",
+        "reviewBlinding": "not-applicable"
+      },
+      "sourceAudience": "project-members",
+      "destinationStatus": "not-adjudicated",
+      "oratlasDisclosure": "not-authorized",
+      "assessmentIds": []
+    },
+    {
+      "observationId": "diggypaper:credit:c00ab07d9e8ca03425c99e2ccdfb479e8b712c17bf187bd919a699fa1596851d",
+      "target": {
+        "kind": "source-finding",
+        "sourceId": "finding:credit-b-f1",
+        "sourceVersion": "1",
+        "bindingSha256": "sha256:ded8e799ca8e4b12c567ae70d68bc0cf4a874e72b30a3482dd7fef74bec01e2a",
+        "packetId": "packet:credit-synthetic",
+        "packetManifestSha256": "sha256:64c01a630dabab2b72dee4f8b2afa20f2fb0aeaca6ac5d4c47b653b56a57ae48",
+        "lineageSha256": null
+      },
+      "sourceAssertionId": "contribution:b-f1-team",
+      "person": {
+        "kind": "withheld"
+      },
+      "capacity": "project-team",
+      "role": {
+        "slug": "project-administration",
+        "originalLabel": "Project administration",
+        "degree": "lead",
+        "declarationRef": "declaration:synth-4",
+        "roleUri": null
+      },
+      "sourceStatus": "confirmed",
+      "sourceDecisionRef": null,
+      "sourceDeclarationKind": null,
+      "sourceAssertedAt": null,
+      "sourceDisclosure": {
+        "kind": "diggypaper-contribution",
+        "personConsent": "not-granted",
+        "controllerAuthorization": "not-granted",
+        "membership": "active",
+        "consentRef": null,
+        "reviewBlinding": "not-applicable"
+      },
+      "sourceAudience": "project-members",
+      "destinationStatus": "not-adjudicated",
+      "oratlasDisclosure": "not-authorized",
+      "assessmentIds": []
+    },
+    {
+      "observationId": "diggypaper:credit:c542cb0574f83e6ea8304ad54f368128af1d249c43e5f37f42f152b968c2bce1",
+      "target": {
+        "kind": "source-finding",
+        "sourceId": "finding:credit-a-f2",
+        "sourceVersion": "1",
+        "bindingSha256": "sha256:350f1bb67d786d2549c1af0067638b1f1f79d1bf9b1a70803656e947ecbca5f3",
+        "packetId": "packet:credit-synthetic",
+        "packetManifestSha256": "sha256:64c01a630dabab2b72dee4f8b2afa20f2fb0aeaca6ac5d4c47b653b56a57ae48",
+        "lineageSha256": null
+      },
+      "sourceAssertionId": "contribution:a-f2-proposer",
+      "person": {
+        "kind": "pseudonym",
+        "sourceRef": "rv-22222222222222222222222222222222",
+        "refKind": "source-native-pseudonym"
+      },
+      "capacity": "finding-proposer",
+      "role": null,
+      "sourceStatus": "source-declared",
+      "sourceDecisionRef": null,
+      "sourceDeclarationKind": null,
+      "sourceAssertedAt": null,
+      "sourceDisclosure": {
+        "kind": "diggypaper-contribution",
+        "personConsent": "not-granted",
+        "controllerAuthorization": "not-granted",
+        "membership": "active",
+        "consentRef": null,
+        "reviewBlinding": "not-applicable"
+      },
+      "sourceAudience": "project-members",
+      "destinationStatus": "not-adjudicated",
+      "oratlasDisclosure": "not-authorized",
+      "assessmentIds": []
+    },
+    {
+      "observationId": "diggypaper:credit:c64c569f6bfab822dbc35c4f0696c01d46b1449638659c5bddf2013d4f489e98",
+      "target": {
+        "kind": "source-finding",
+        "sourceId": "finding:credit-c-f1",
+        "sourceVersion": "1",
+        "bindingSha256": "sha256:4f7e3001b08c5300c0a7c2ffe6f305313574f0c395a10daa6c4d9b4a4bf1cc98",
+        "packetId": "packet:credit-synthetic",
+        "packetManifestSha256": "sha256:64c01a630dabab2b72dee4f8b2afa20f2fb0aeaca6ac5d4c47b653b56a57ae48",
+        "lineageSha256": null
+      },
+      "sourceAssertionId": "contribution:c-f1-proposer",
+      "person": {
+        "kind": "pseudonym",
+        "sourceRef": "rv-11111111111111111111111111111111",
+        "refKind": "source-native-pseudonym"
+      },
+      "capacity": "finding-proposer",
+      "role": null,
+      "sourceStatus": "source-declared",
+      "sourceDecisionRef": null,
+      "sourceDeclarationKind": null,
+      "sourceAssertedAt": null,
+      "sourceDisclosure": {
+        "kind": "diggypaper-contribution",
+        "personConsent": "not-granted",
+        "controllerAuthorization": "not-granted",
+        "membership": "active",
+        "consentRef": null,
+        "reviewBlinding": "not-applicable"
+      },
+      "sourceAudience": "project-members",
+      "destinationStatus": "not-adjudicated",
+      "oratlasDisclosure": "not-authorized",
+      "assessmentIds": []
+    },
+    {
+      "observationId": "diggypaper:credit:c68fc71187de387b632195d59bc8e504e41c929c3c1516e69bd21e1009ad3642",
+      "target": {
+        "kind": "source-finding",
+        "sourceId": "finding:credit-a-f1",
+        "sourceVersion": "2",
+        "bindingSha256": "sha256:350f1bb67d786d2549c1af0067638b1f1f79d1bf9b1a70803656e947ecbca5f3",
+        "packetId": "packet:credit-synthetic",
+        "packetManifestSha256": "sha256:64c01a630dabab2b72dee4f8b2afa20f2fb0aeaca6ac5d4c47b653b56a57ae48",
+        "lineageSha256": null
+      },
+      "sourceAssertionId": "contribution:a-f1-assessor-b",
+      "person": {
+        "kind": "pseudonym",
+        "sourceRef": "rv-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "refKind": "source-native-pseudonym"
+      },
+      "capacity": "support-assessor",
+      "role": null,
+      "sourceStatus": "source-declared",
+      "sourceDecisionRef": null,
+      "sourceDeclarationKind": null,
+      "sourceAssertedAt": null,
+      "sourceDisclosure": {
+        "kind": "diggypaper-contribution",
+        "personConsent": "not-granted",
+        "controllerAuthorization": "not-granted",
+        "membership": "active",
+        "consentRef": null,
+        "reviewBlinding": "unblinded"
+      },
+      "sourceAudience": "project-members",
+      "destinationStatus": "not-adjudicated",
+      "oratlasDisclosure": "not-authorized",
+      "assessmentIds": [
+        "assessment:credit-a2"
+      ]
+    },
+    {
+      "observationId": "diggypaper:credit:d2c712636bb84dc1e8bcfa6105f8577df066e3b19b355cdea12635738b39fe8d",
+      "target": {
+        "kind": "source-finding",
+        "sourceId": "finding:credit-a-f1",
+        "sourceVersion": "2",
+        "bindingSha256": "sha256:350f1bb67d786d2549c1af0067638b1f1f79d1bf9b1a70803656e947ecbca5f3",
+        "packetId": "packet:credit-synthetic",
+        "packetManifestSha256": "sha256:64c01a630dabab2b72dee4f8b2afa20f2fb0aeaca6ac5d4c47b653b56a57ae48",
+        "lineageSha256": null
+      },
+      "sourceAssertionId": "contribution:a-f1-proposer",
+      "person": {
+        "kind": "pseudonym",
+        "sourceRef": "rv-11111111111111111111111111111111",
+        "refKind": "source-native-pseudonym"
+      },
+      "capacity": "finding-proposer",
+      "role": null,
+      "sourceStatus": "source-declared",
+      "sourceDecisionRef": null,
+      "sourceDeclarationKind": null,
+      "sourceAssertedAt": null,
+      "sourceDisclosure": {
+        "kind": "diggypaper-contribution",
+        "personConsent": "not-granted",
+        "controllerAuthorization": "not-granted",
+        "membership": "active",
+        "consentRef": null,
+        "reviewBlinding": "not-applicable"
+      },
+      "sourceAudience": "project-members",
+      "destinationStatus": "not-adjudicated",
+      "oratlasDisclosure": "not-authorized",
+      "assessmentIds": []
+    },
+    {
+      "observationId": "diggypaper:credit:e9f8f377e153ef006fc94905c479495e3f750c777cba3b9dc0f7dc47fee8c607",
+      "target": {
+        "kind": "source-finding",
+        "sourceId": "finding:credit-c-f1",
+        "sourceVersion": "1",
+        "bindingSha256": "sha256:4f7e3001b08c5300c0a7c2ffe6f305313574f0c395a10daa6c4d9b4a4bf1cc98",
+        "packetId": "packet:credit-synthetic",
+        "packetManifestSha256": "sha256:64c01a630dabab2b72dee4f8b2afa20f2fb0aeaca6ac5d4c47b653b56a57ae48",
+        "lineageSha256": null
+      },
+      "sourceAssertionId": "contribution:c-f1-curator",
+      "person": {
+        "kind": "pseudonym",
+        "sourceRef": "rv-33333333333333333333333333333333",
+        "refKind": "source-native-pseudonym"
+      },
+      "capacity": "finding-curator",
+      "role": {
+        "slug": "data-curation",
+        "originalLabel": "Data curation",
+        "degree": "equal",
+        "declarationRef": "declaration:synth-5",
+        "roleUri": null
+      },
+      "sourceStatus": "self-declared",
+      "sourceDecisionRef": null,
+      "sourceDeclarationKind": null,
+      "sourceAssertedAt": null,
+      "sourceDisclosure": {
+        "kind": "diggypaper-contribution",
+        "personConsent": "not-granted",
+        "controllerAuthorization": "not-granted",
+        "membership": "active",
+        "consentRef": null,
+        "reviewBlinding": "not-applicable"
+      },
+      "sourceAudience": "project-members",
+      "destinationStatus": "not-adjudicated",
+      "oratlasDisclosure": "not-authorized",
+      "assessmentIds": []
+    }
+  ],
+  "evidence": [
+    {
+      "observationId": "diggypaper:evidence:3be56cf68fc40472edfa813863d3d14ada6fc8a30db410068a41868d38809914",
+      "target": {
+        "kind": "source-finding",
+        "sourceId": "finding:credit-c-f1",
+        "sourceVersion": "1",
+        "bindingSha256": "sha256:4f7e3001b08c5300c0a7c2ffe6f305313574f0c395a10daa6c4d9b4a4bf1cc98",
+        "packetId": "packet:credit-synthetic",
+        "packetManifestSha256": "sha256:64c01a630dabab2b72dee4f8b2afa20f2fb0aeaca6ac5d4c47b653b56a57ae48",
+        "lineageSha256": null
+      },
+      "nativeBinding": "diggypaper-credit-entry",
+      "sourcePaperId": "paper:credit-c",
+      "findingOrigin": "ai-paraphrase",
+      "sourceSnapshotRef": "snapshot:credit-c-1",
+      "sourceSnapshotSha256": "sha256:4f7e3001b08c5300c0a7c2ffe6f305313574f0c395a10daa6c4d9b4a4bf1cc98",
+      "phase2FindingSha256": null,
+      "citedWork": {
+        "doi": "10.5555/credit.c",
+        "doiIsExample": true,
+        "citeKey": null,
+        "authors": [
+          "Synthetic, Gus"
+        ],
+        "authorsAre": "bibliographic-citation-metadata"
+      },
+      "nativeOrigin": {
+        "originId": "packet:credit-synthetic",
+        "visibility": "private",
+        "disclosure": null
+      },
+      "mapping": null,
+      "sourceRights": {
+        "kind": "diggypaper-paper-rights",
+        "license": "proprietary",
+        "redistribution": "restricted",
+        "fullTextIncluded": false,
+        "packetLicenses": [
+          {
+            "appliesTo": "packet-metadata",
+            "licenseId": "CC0-1.0"
+          },
+          {
+            "appliesTo": "quotes",
+            "licenseId": "CC-BY-4.0"
+          }
+        ]
+      },
+      "passages": [
+        {
+          "passageId": "passage:credit-c-p1",
+          "quoteSha256": "sha256:315c823951762a54a31c892501d1f344b9eef0d0ebfed5c65df5dcc7bcb3ae5f",
+          "quoteState": "withheld-rights"
+        }
+      ],
+      "assessmentProtocol": "seip-support-v1",
+      "sourceAssessments": [],
+      "oratlasAdjudication": "none"
+    },
+    {
+      "observationId": "diggypaper:evidence:3c3097391666f6f54908c5f209d42a625fac720d69377f558a997e5b422c1d0d",
+      "target": {
+        "kind": "source-finding",
+        "sourceId": "finding:credit-a-f1",
+        "sourceVersion": "2",
+        "bindingSha256": "sha256:350f1bb67d786d2549c1af0067638b1f1f79d1bf9b1a70803656e947ecbca5f3",
+        "packetId": "packet:credit-synthetic",
+        "packetManifestSha256": "sha256:64c01a630dabab2b72dee4f8b2afa20f2fb0aeaca6ac5d4c47b653b56a57ae48",
+        "lineageSha256": null
+      },
+      "nativeBinding": "diggypaper-credit-entry",
+      "sourcePaperId": "paper:credit-a",
+      "findingOrigin": "source-explicit",
+      "sourceSnapshotRef": "snapshot:credit-a-1",
+      "sourceSnapshotSha256": "sha256:350f1bb67d786d2549c1af0067638b1f1f79d1bf9b1a70803656e947ecbca5f3",
+      "phase2FindingSha256": null,
+      "citedWork": {
+        "doi": "10.5555/credit.a",
+        "doiIsExample": true,
+        "citeKey": null,
+        "authors": [
+          "Synthetic, Dana",
+          "Synthetic, Eli"
+        ],
+        "authorsAre": "bibliographic-citation-metadata"
+      },
+      "nativeOrigin": {
+        "originId": "packet:credit-synthetic",
+        "visibility": "private",
+        "disclosure": null
+      },
+      "mapping": null,
+      "sourceRights": {
+        "kind": "diggypaper-paper-rights",
+        "license": "CC-BY-4.0",
+        "redistribution": "allowed",
+        "fullTextIncluded": false,
+        "packetLicenses": [
+          {
+            "appliesTo": "packet-metadata",
+            "licenseId": "CC0-1.0"
+          },
+          {
+            "appliesTo": "quotes",
+            "licenseId": "CC-BY-4.0"
+          }
+        ]
+      },
+      "passages": [
+        {
+          "passageId": "passage:credit-a-p1",
+          "quoteSha256": "sha256:207c3ee0d790ec23f4a852824a61472b29db22e7c732f0a14caa42d6700f598e",
+          "quoteState": "included"
+        }
+      ],
+      "assessmentProtocol": "seip-support-v1",
+      "sourceAssessments": [
+        {
+          "assessmentId": "assessment:credit-a2",
+          "protocol": "seip-support-v1",
+          "status": "supports",
+          "curatorRef": null,
+          "assessedSnapshotSha256": "sha256:350f1bb67d786d2549c1af0067638b1f1f79d1bf9b1a70803656e947ecbca5f3"
+        }
+      ],
+      "oratlasAdjudication": "none"
+    },
+    {
+      "observationId": "diggypaper:evidence:41d8911f12932932c2341ff7f81f4e266d89953584a3adf852eeb7be3fba4c4f",
+      "target": {
+        "kind": "source-finding",
+        "sourceId": "finding:credit-b-f1",
+        "sourceVersion": "1",
+        "bindingSha256": "sha256:ded8e799ca8e4b12c567ae70d68bc0cf4a874e72b30a3482dd7fef74bec01e2a",
+        "packetId": "packet:credit-synthetic",
+        "packetManifestSha256": "sha256:64c01a630dabab2b72dee4f8b2afa20f2fb0aeaca6ac5d4c47b653b56a57ae48",
+        "lineageSha256": null
+      },
+      "nativeBinding": "diggypaper-credit-entry",
+      "sourcePaperId": "paper:credit-b",
+      "findingOrigin": "ai-paraphrase",
+      "sourceSnapshotRef": "snapshot:credit-b-1",
+      "sourceSnapshotSha256": "sha256:ded8e799ca8e4b12c567ae70d68bc0cf4a874e72b30a3482dd7fef74bec01e2a",
+      "phase2FindingSha256": null,
+      "citedWork": {
+        "doi": "10.5555/credit.b",
+        "doiIsExample": true,
+        "citeKey": null,
+        "authors": [
+          "Synthetic, Fay"
+        ],
+        "authorsAre": "bibliographic-citation-metadata"
+      },
+      "nativeOrigin": {
+        "originId": "packet:credit-synthetic",
+        "visibility": "private",
+        "disclosure": null
+      },
+      "mapping": null,
+      "sourceRights": {
+        "kind": "diggypaper-paper-rights",
+        "license": "CC-BY-4.0",
+        "redistribution": "allowed",
+        "fullTextIncluded": false,
+        "packetLicenses": [
+          {
+            "appliesTo": "packet-metadata",
+            "licenseId": "CC0-1.0"
+          },
+          {
+            "appliesTo": "quotes",
+            "licenseId": "CC-BY-4.0"
+          }
+        ]
+      },
+      "passages": [
+        {
+          "passageId": "passage:credit-b-p1",
+          "quoteSha256": "sha256:f3f4554d1c9a1efd9d5c66ae62183f6c32b2b0a849817b5cfee38995a9860556",
+          "quoteState": "included"
+        }
+      ],
+      "assessmentProtocol": "seip-support-v1",
+      "sourceAssessments": [
+        {
+          "assessmentId": "assessment:credit-b1",
+          "protocol": "seip-support-v1",
+          "status": "supports",
+          "curatorRef": null,
+          "assessedSnapshotSha256": "sha256:ded8e799ca8e4b12c567ae70d68bc0cf4a874e72b30a3482dd7fef74bec01e2a"
+        }
+      ],
+      "oratlasAdjudication": "none"
+    },
+    {
+      "observationId": "diggypaper:evidence:5a32bdf7b25a5e2c138ccb95462e6a6db0c1906494c6ec04fcca6c389f564dca",
+      "target": {
+        "kind": "source-finding",
+        "sourceId": "finding:credit-a-f2",
+        "sourceVersion": "1",
+        "bindingSha256": "sha256:350f1bb67d786d2549c1af0067638b1f1f79d1bf9b1a70803656e947ecbca5f3",
+        "packetId": "packet:credit-synthetic",
+        "packetManifestSha256": "sha256:64c01a630dabab2b72dee4f8b2afa20f2fb0aeaca6ac5d4c47b653b56a57ae48",
+        "lineageSha256": null
+      },
+      "nativeBinding": "diggypaper-credit-entry",
+      "sourcePaperId": "paper:credit-a",
+      "findingOrigin": "reviewer-interpretation",
+      "sourceSnapshotRef": "snapshot:credit-a-1",
+      "sourceSnapshotSha256": "sha256:350f1bb67d786d2549c1af0067638b1f1f79d1bf9b1a70803656e947ecbca5f3",
+      "phase2FindingSha256": null,
+      "citedWork": {
+        "doi": "10.5555/credit.a",
+        "doiIsExample": true,
+        "citeKey": null,
+        "authors": [
+          "Synthetic, Dana",
+          "Synthetic, Eli"
+        ],
+        "authorsAre": "bibliographic-citation-metadata"
+      },
+      "nativeOrigin": {
+        "originId": "packet:credit-synthetic",
+        "visibility": "private",
+        "disclosure": null
+      },
+      "mapping": null,
+      "sourceRights": {
+        "kind": "diggypaper-paper-rights",
+        "license": "CC-BY-4.0",
+        "redistribution": "allowed",
+        "fullTextIncluded": false,
+        "packetLicenses": [
+          {
+            "appliesTo": "packet-metadata",
+            "licenseId": "CC0-1.0"
+          },
+          {
+            "appliesTo": "quotes",
+            "licenseId": "CC-BY-4.0"
+          }
+        ]
+      },
+      "passages": [
+        {
+          "passageId": "passage:credit-a-p2",
+          "quoteSha256": "sha256:9663a4561a5e3a7d9ca44d84078a17c51c6a325ba3f80df237e205bfcb90371b",
+          "quoteState": "included"
+        }
+      ],
+      "assessmentProtocol": "seip-support-v1",
+      "sourceAssessments": [
+        {
+          "assessmentId": "assessment:credit-a3",
+          "protocol": "seip-support-v1",
+          "status": "supports",
+          "curatorRef": null,
+          "assessedSnapshotSha256": "sha256:350f1bb67d786d2549c1af0067638b1f1f79d1bf9b1a70803656e947ecbca5f3"
+        },
+        {
+          "assessmentId": "assessment:credit-a4",
+          "protocol": "seip-support-v1",
+          "status": "supports",
+          "curatorRef": null,
+          "assessedSnapshotSha256": "sha256:350f1bb67d786d2549c1af0067638b1f1f79d1bf9b1a70803656e947ecbca5f3"
+        }
+      ],
+      "oratlasAdjudication": "none"
+    }
+  ],
+  "production": [
+    {
+      "observationId": "diggypaper:production:31a3b5da021a85ff9d3df454419f5516f7796c184d09284b335405d4fe7771bc",
+      "target": {
+        "kind": "source-finding",
+        "sourceId": "finding:credit-a-f1",
+        "sourceVersion": "2",
+        "bindingSha256": "sha256:350f1bb67d786d2549c1af0067638b1f1f79d1bf9b1a70803656e947ecbca5f3",
+        "packetId": "packet:credit-synthetic",
+        "packetManifestSha256": "sha256:64c01a630dabab2b72dee4f8b2afa20f2fb0aeaca6ac5d4c47b653b56a57ae48",
+        "lineageSha256": null
+      },
+      "softwareName": "quote-matcher-v1",
+      "softwareVersion": "1",
+      "softwareProducer": null,
+      "agentType": "software",
+      "sourceAgentId": null,
+      "runRef": null,
+      "activity": "quote-matching",
+      "legacyAuthorId": null,
+      "creditChannel": "production",
+      "actorKind": "software"
+    },
+    {
+      "observationId": "diggypaper:production:6427a5f012ef5f468949134170a471f2f9d370121d45ddb5c11b38701bcfe16b",
+      "target": {
+        "kind": "source-finding",
+        "sourceId": "finding:credit-b-f1",
+        "sourceVersion": "1",
+        "bindingSha256": "sha256:ded8e799ca8e4b12c567ae70d68bc0cf4a874e72b30a3482dd7fef74bec01e2a",
+        "packetId": "packet:credit-synthetic",
+        "packetManifestSha256": "sha256:64c01a630dabab2b72dee4f8b2afa20f2fb0aeaca6ac5d4c47b653b56a57ae48",
+        "lineageSha256": null
+      },
+      "softwareName": "quote-matcher-v1",
+      "softwareVersion": "1",
+      "softwareProducer": null,
+      "agentType": "software",
+      "sourceAgentId": null,
+      "runRef": null,
+      "activity": "quote-matching",
+      "legacyAuthorId": null,
+      "creditChannel": "production",
+      "actorKind": "software"
+    },
+    {
+      "observationId": "diggypaper:production:8f47eb70422e555f1b16a1c29af7edf5d97b8982c718345326ca1bb901a81211",
+      "target": {
+        "kind": "source-finding",
+        "sourceId": "finding:credit-b-f1",
+        "sourceVersion": "1",
+        "bindingSha256": "sha256:ded8e799ca8e4b12c567ae70d68bc0cf4a874e72b30a3482dd7fef74bec01e2a",
+        "packetId": "packet:credit-synthetic",
+        "packetManifestSha256": "sha256:64c01a630dabab2b72dee4f8b2afa20f2fb0aeaca6ac5d4c47b653b56a57ae48",
+        "lineageSha256": null
+      },
+      "softwareName": "synthetic-extraction-model",
+      "softwareVersion": "0.0-synthetic",
+      "softwareProducer": null,
+      "agentType": "ml-model",
+      "sourceAgentId": null,
+      "runRef": "prediction-credit-b-f1",
+      "activity": "paraphrase",
+      "legacyAuthorId": null,
+      "creditChannel": "production",
+      "actorKind": "software"
+    },
+    {
+      "observationId": "diggypaper:production:9a747f2f6577c2dd8554258aea1dc9d41f92537bae2cc16899043ce834a888ee",
+      "target": {
+        "kind": "source-finding",
+        "sourceId": "finding:credit-a-f2",
+        "sourceVersion": "1",
+        "bindingSha256": "sha256:350f1bb67d786d2549c1af0067638b1f1f79d1bf9b1a70803656e947ecbca5f3",
+        "packetId": "packet:credit-synthetic",
+        "packetManifestSha256": "sha256:64c01a630dabab2b72dee4f8b2afa20f2fb0aeaca6ac5d4c47b653b56a57ae48",
+        "lineageSha256": null
+      },
+      "softwareName": "quote-matcher-v1",
+      "softwareVersion": "1",
+      "softwareProducer": null,
+      "agentType": "software",
+      "sourceAgentId": null,
+      "runRef": null,
+      "activity": "quote-matching",
+      "legacyAuthorId": null,
+      "creditChannel": "production",
+      "actorKind": "software"
+    },
+    {
+      "observationId": "diggypaper:production:b473c22baa4324ed8bade2064dc8f87101965f71b8a74db43f8a9147b3a5cd78",
+      "target": {
+        "kind": "source-finding",
+        "sourceId": "finding:credit-a-f2",
+        "sourceVersion": "1",
+        "bindingSha256": "sha256:350f1bb67d786d2549c1af0067638b1f1f79d1bf9b1a70803656e947ecbca5f3",
+        "packetId": "packet:credit-synthetic",
+        "packetManifestSha256": "sha256:64c01a630dabab2b72dee4f8b2afa20f2fb0aeaca6ac5d4c47b653b56a57ae48",
+        "lineageSha256": null
+      },
+      "softwareName": "synthetic-extraction-model",
+      "softwareVersion": "0.0-synthetic",
+      "softwareProducer": null,
+      "agentType": "ml-model",
+      "sourceAgentId": null,
+      "runRef": "prediction-credit-a-f2",
+      "activity": "extraction",
+      "legacyAuthorId": null,
+      "creditChannel": "production",
+      "actorKind": "software"
+    },
+    {
+      "observationId": "diggypaper:production:b76fd9a38e502f0c6bab1bef62b76cf34038fbf61d10f74a664f25b756ae22b6",
+      "target": {
+        "kind": "source-finding",
+        "sourceId": "finding:credit-c-f1",
+        "sourceVersion": "1",
+        "bindingSha256": "sha256:4f7e3001b08c5300c0a7c2ffe6f305313574f0c395a10daa6c4d9b4a4bf1cc98",
+        "packetId": "packet:credit-synthetic",
+        "packetManifestSha256": "sha256:64c01a630dabab2b72dee4f8b2afa20f2fb0aeaca6ac5d4c47b653b56a57ae48",
+        "lineageSha256": null
+      },
+      "softwareName": "synthetic-extraction-model",
+      "softwareVersion": "0.0-synthetic",
+      "softwareProducer": null,
+      "agentType": "ml-model",
+      "sourceAgentId": null,
+      "runRef": "prediction-credit-c-f1",
+      "activity": "paraphrase",
+      "legacyAuthorId": null,
+      "creditChannel": "production",
+      "actorKind": "software"
+    }
+  ],
+  "sourceLegacyRoleLabels": [],
+  "candidateContacts": [],
+  "candidateCreditClaims": [],
+  "report": {
+    "accepted": 22,
+    "withheld": 3,
+    "unmappable": 0,
+    "reasonCodes": [
+      "source-confirmed-without-decision-ref"
+    ],
+    "legacyRoleLabels": {
+      "preserved": 0,
+      "sourceUnmappable": 0,
+      "sourceCreditIneligible": 0
+    },
+    "producerDeclaredOmissions": {
+      "state": "complete",
+      "counts": {
+        "entries": 0,
+        "contributions": 0
+      },
+      "reasons": []
+    },
+    "omittedSourceFields": [
+      "diggypaper.audience.purpose",
+      "diggypaper.packet.assessment-reviewer-refs-and-rationales",
+      "diggypaper.packet.finding-statement-context-and-review-states",
+      "diggypaper.packet.paper-title-and-non-doi-identifiers",
+      "diggypaper.packet.passage-quote-text"
+    ]
+  }
+}
