@@ -1,5 +1,9 @@
 export * from "./text.js";
 export * from "./types.js";
+export { adaptDiggypaperCredit, type DiggypaperCreditPacket } from "./source-credit-diggypaper.js";
+export { adaptCRTContributorship } from "./source-credit-crt.js";
+export { adaptOrcidRoster } from "./source-credit-orcid.js";
+export { SourceCreditAdapterError } from "./source-credit-adapter-shared.js";
 export {
   projectPersonalResearchCredit,
   type AuthorizePrivateResearchProject,

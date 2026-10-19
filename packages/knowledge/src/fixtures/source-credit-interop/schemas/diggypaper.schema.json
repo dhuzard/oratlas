@@ -1,0 +1,309 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:diggypaper:finding-credit-companion:0.1.0",
+  "title": "finding-credit-companion/0.1.0",
+  "description": "Optional, separately versioned credit companion bound to one exact source-evidence-packet/0.1.0 by packet digest. Structure only; semantic rules are enforced by fcc_validate.py.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "companion_id",
+    "created_at",
+    "creation_method",
+    "producer",
+    "packet",
+    "audience",
+    "release",
+    "credit_semantics",
+    "entries",
+    "export_status"
+  ],
+  "properties": {
+    "schema_version": {"const": "finding-credit-companion/0.1.0"},
+    "companion_id": {"type": "string", "pattern": "^credit:[A-Za-z0-9._-]{1,100}$"},
+    "created_at": {"$ref": "#/$defs/timestamp"},
+    "creation_method": {"enum": ["producer-export", "synthetic-fixture", "manual"]},
+    "producer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "commit"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "commit": {
+          "type": "string",
+          "pattern": "^([0-9a-f]{40}|synthetic-fixture)$"
+        }
+      }
+    },
+    "packet": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema_version", "packet_id", "packet_digest"],
+      "properties": {
+        "schema_version": {"const": "source-evidence-packet/0.1.0"},
+        "packet_id": {"type": "string", "pattern": "^packet:[A-Za-z0-9._-]{1,100}$"},
+        "packet_digest": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "audience": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["level", "recipient_ref", "purpose", "expires_at"],
+      "properties": {
+        "level": {"enum": ["public", "named-recipient", "project-members"]},
+        "recipient_ref": {
+          "type": "string",
+          "pattern": "^(recipient:[A-Za-z0-9._-]{1,100}|not-available)$"
+        },
+        "purpose": {"type": "string", "minLength": 1, "maxLength": 500},
+        "expires_at": {"$ref": "#/$defs/timestampOrNA"}
+      }
+    },
+    "release": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state", "approval_ref", "approved_at"],
+      "properties": {
+        "state": {"enum": ["controller-approved", "not-released"]},
+        "approval_ref": {
+          "type": "string",
+          "pattern": "^(approval:[A-Za-z0-9._-]{1,100}|not-available)$"
+        },
+        "approved_at": {"$ref": "#/$defs/timestampOrNA"}
+      }
+    },
+    "credit_semantics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["role_vocabulary", "implies_authorship"],
+      "properties": {
+        "role_vocabulary": {"const": "CRediT ANSI/NISO Z39.104-2022"},
+        "implies_authorship": {"const": false}
+      }
+    },
+    "entries": {"type": "array", "items": {"$ref": "#/$defs/entry"}},
+    "export_status": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state", "withheld_counts", "reasons"],
+      "properties": {
+        "state": {"enum": ["complete", "partial", "withheld"]},
+        "withheld_counts": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["entries", "contributions"],
+          "properties": {
+            "entries": {"type": "integer", "minimum": 0},
+            "contributions": {"type": "integer", "minimum": 0}
+          }
+        },
+        "reasons": {"type": "array", "items": {"type": "string", "minLength": 1}}
+      }
+    }
+  },
+  "$defs": {
+    "timestamp": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?Z$"
+    },
+    "timestampOrNA": {
+      "anyOf": [{"$ref": "#/$defs/timestamp"}, {"const": "not-available"}]
+    },
+    "sha256": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "pseudonym": {"type": "string", "pattern": "^rv-[0-9a-f]{16,64}$"},
+    "findingId": {"type": "string", "pattern": "^finding:[A-Za-z0-9._-]{1,100}$"},
+    "paperId": {"type": "string", "pattern": "^paper:[A-Za-z0-9._-]{1,100}$"},
+    "passageId": {"type": "string", "pattern": "^passage:[A-Za-z0-9._-]{1,100}$"},
+    "assessmentId": {"type": "string", "pattern": "^assessment:[A-Za-z0-9._-]{1,100}$"},
+    "entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["entry_id", "binding", "contributions", "production"],
+      "properties": {
+        "entry_id": {"type": "string", "pattern": "^credit-entry:[A-Za-z0-9._-]{1,100}$"},
+        "binding": {"$ref": "#/$defs/binding"},
+        "contributions": {"type": "array", "items": {"$ref": "#/$defs/contribution"}},
+        "production": {"type": "array", "items": {"$ref": "#/$defs/production"}}
+      }
+    },
+    "binding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "packet_digest",
+        "finding_id",
+        "finding_revision",
+        "finding_origin",
+        "paper_id",
+        "source_snapshot_ref",
+        "source_snapshot_sha256",
+        "passage_ids",
+        "assessment_protocol",
+        "assessment_ids"
+      ],
+      "properties": {
+        "packet_digest": {"$ref": "#/$defs/sha256"},
+        "finding_id": {"$ref": "#/$defs/findingId"},
+        "finding_revision": {"type": "integer", "minimum": 1},
+        "finding_origin": {"enum": ["source-explicit", "ai-paraphrase", "reviewer-interpretation"]},
+        "paper_id": {"$ref": "#/$defs/paperId"},
+        "source_snapshot_ref": {"type": "string", "minLength": 1},
+        "source_snapshot_sha256": {
+          "anyOf": [{"$ref": "#/$defs/sha256"}, {"const": "not-available"}]
+        },
+        "passage_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/passageId"}
+        },
+        "assessment_protocol": {"const": "seip-support-v1"},
+        "assessment_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/assessmentId"}
+        }
+      }
+    },
+    "contribution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contribution_id",
+        "capacity",
+        "status",
+        "contributor",
+        "credit_roles",
+        "assessment_ids",
+        "review_blinding",
+        "disclosure"
+      ],
+      "properties": {
+        "contribution_id": {"type": "string", "pattern": "^contribution:[A-Za-z0-9._-]{1,100}$"},
+        "capacity": {
+          "enum": ["finding-proposer", "finding-curator", "support-assessor", "project-team"]
+        },
+        "status": {
+          "enum": [
+            "source-declared",
+            "self-declared",
+            "confirmed",
+            "withheld",
+            "disputed",
+            "withdrawn"
+          ]
+        },
+        "contributor": {
+          "oneOf": [
+            {"$ref": "#/$defs/pseudonymContributor"},
+            {"$ref": "#/$defs/withheldContributor"},
+            {"$ref": "#/$defs/disclosedContributor"}
+          ]
+        },
+        "credit_roles": {"type": "array", "items": {"$ref": "#/$defs/creditRole"}},
+        "assessment_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/assessmentId"}
+        },
+        "review_blinding": {"enum": ["blinded", "unblinded", "unknown", "not-applicable"]},
+        "disclosure": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["person_consent", "controller_authorization", "membership", "consent_ref"],
+          "properties": {
+            "person_consent": {"enum": ["granted", "not-granted", "revoked", "not-applicable"]},
+            "controller_authorization": {"enum": ["granted", "not-granted", "revoked"]},
+            "membership": {"enum": ["active", "revoked", "unknown"]},
+            "consent_ref": {
+              "type": "string",
+              "pattern": "^(consent:[A-Za-z0-9._-]{1,100}|not-available)$"
+            }
+          }
+        }
+      }
+    },
+    "pseudonymContributor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "ref"],
+      "properties": {
+        "kind": {"const": "pseudonym"},
+        "ref": {"$ref": "#/$defs/pseudonym"}
+      }
+    },
+    "withheldContributor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "ref"],
+      "properties": {
+        "kind": {"const": "withheld"},
+        "ref": {"const": "attribution-withheld"}
+      }
+    },
+    "disclosedContributor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "display_name", "orcid"],
+      "properties": {
+        "kind": {"const": "disclosed"},
+        "display_name": {"type": "string", "minLength": 1, "maxLength": 200},
+        "orcid": {
+          "anyOf": [{"$ref": "#/$defs/orcid"}, {"const": "not-available"}]
+        }
+      }
+    },
+    "orcid": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "verification", "verified_at", "verification_ref"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^[0-9]{4}-[0-9]{4}-[0-9]{4}-[0-9]{3}[0-9X]$"},
+        "verification": {"enum": ["oauth-verified", "claimed-unverified"]},
+        "verified_at": {"$ref": "#/$defs/timestampOrNA"},
+        "verification_ref": {
+          "type": "string",
+          "pattern": "^(orcid-verification:[A-Za-z0-9._-]{1,100}|not-available)$"
+        }
+      }
+    },
+    "creditRole": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["role", "degree", "declaration_ref"],
+      "properties": {
+        "role": {
+          "enum": [
+            "Conceptualization",
+            "Data curation",
+            "Formal analysis",
+            "Funding acquisition",
+            "Investigation",
+            "Methodology",
+            "Project administration",
+            "Resources",
+            "Software",
+            "Supervision",
+            "Validation",
+            "Visualization",
+            "Writing – original draft",
+            "Writing – review & editing"
+          ]
+        },
+        "degree": {"enum": ["lead", "equal", "supporting", "not-available"]},
+        "declaration_ref": {"type": "string", "pattern": "^declaration:[A-Za-z0-9._-]{1,100}$"}
+      }
+    },
+    "production": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["agent_type", "name", "version", "activity", "run_ref"],
+      "properties": {
+        "agent_type": {"enum": ["software", "ml-model"]},
+        "name": {"type": "string", "minLength": 1, "maxLength": 200},
+        "version": {"type": "string", "minLength": 1, "maxLength": 100},
+        "activity": {"enum": ["extraction", "paraphrase", "quote-matching", "proposal"]},
+        "run_ref": {"type": "string", "minLength": 1, "maxLength": 200}
+      }
+    }
+  }
+}

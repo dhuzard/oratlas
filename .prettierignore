@@ -10,3 +10,4 @@ packages/db/generated
 CHANGELOG.md
 apps/web/src/generated/openapi-artifacts.ts
 packages/extractor/src/fixtures/crt-diggypaper-evidence-lineage
+packages/knowledge/src/fixtures/source-credit-interop

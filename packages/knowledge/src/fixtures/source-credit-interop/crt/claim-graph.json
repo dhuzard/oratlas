@@ -1,0 +1,29 @@
+{
+  "claims": [
+    {
+      "citation_contexts": [
+        {
+          "cite_key": "synthAlpha2026",
+          "doi": "10.5555/crt17.alpha"
+        },
+        {
+          "cite_key": "synthBeta2026",
+          "doi": "10.5555/crt17.beta"
+        }
+      ],
+      "claim_id": "clm_c7ed170000000001",
+      "claim_text": "[SYNTHETIC] review claim clm_c7ed170000000001"
+    },
+    {
+      "citation_contexts": [
+        {
+          "cite_key": "synthGamma2026",
+          "doi": "10.5555/crt17.gamma"
+        }
+      ],
+      "claim_id": "clm_c7ed170000000002",
+      "claim_text": "[SYNTHETIC] review claim clm_c7ed170000000002"
+    }
+  ],
+  "schema_version": "synthetic-fixture"
+}

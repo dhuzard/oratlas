@@ -10,6 +10,7 @@ export * from "./publication-adapters.js";
 export * from "./publications.js";
 export * from "./publication-contributors.js";
 export * from "./private-research-credit.js";
+export * from "./source-credit-observations.js";
 export * from "./publication-version-packets.js";
 export * from "./verification.js";
 export * from "./verification-demo-fixtures.js";
