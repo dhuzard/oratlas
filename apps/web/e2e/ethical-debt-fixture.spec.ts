@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { signInAs } from "./helpers/auth";
 
 const REPOSITORY_URL = "https://github.com/dhuzard/ethical-debt-AI-review";
 const RELEASE_TAG = "v0.1.0-trust-preview.3";
@@ -9,8 +10,7 @@ test("inspects the frozen Ethical Debt release through the submission journey", 
   page,
 }) => {
   test.setTimeout(120_000);
-  await page.goto("/signin");
-  await page.getByRole("button", { name: /Sign in as submitter/ }).click();
+  await signInAs(page, "submitter");
 
   await page.getByLabel("Public GitHub repository URL").fill(REPOSITORY_URL);
   await page.getByLabel("Source to capture").selectOption("release");
