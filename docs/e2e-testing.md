@@ -1,13 +1,18 @@
 # End-to-end test budget
 
-The Chromium end-to-end suite is a single seeded, serial Playwright run. CI reuses that seed for
-every spec; individual specs must not reset or reseed the shared database.
+The Chromium end-to-end suite runs as **six parallel shard jobs** (`e2e-shard (n/6)` in
+`.github/workflows/ci.yml`). Each shard seeds its own SQLite database, so a spec must not depend on
+state written by a spec in another shard, and individual specs must not reset or reseed the
+database. A separate `e2e-agent-contract` job runs the live agent navigation contract.
 
-CI records Playwright's JSON timing report and enforces an **eight-minute wall-time budget** for the
-complete suite. The budget leaves headroom over the observed four-minute class of runs while still
-detecting sustained growth before it consumes the twenty-minute job limit. A change that needs more
-time must explain the measured increase and update the budget in
-`scripts/check-e2e-budget.ts` explicitly.
+The `e2e` job is the single gate. It needs every shard and the agent-contract job, downloads each
+shard's Playwright JSON report, and runs `scripts/check-e2e-budget.ts`. Keep requiring `e2e`; the
+shard job names are not a stable required-check interface.
+
+The gate enforces a **9.75-minute budget on the sum of every shard's Playwright duration** (total
+test work, not elapsed time, because shards run in parallel). The budget leaves headroom over the
+observed run time while still detecting sustained growth. A change that needs more time must explain
+the measured increase and update the budget in `scripts/check-e2e-budget.ts` explicitly.
 
 CI permits one retry only to classify intermittent behavior. A test that passes on retry is reported
 as flaky and still fails the budget gate. Fix or quarantine the cause with an owner and follow-up;
@@ -23,8 +28,19 @@ Run the browser suite locally with:
 pnpm --filter @oratlas/web test:e2e
 ```
 
-The JSON report and budget gate are enabled in CI. To inspect a downloaded CI report locally, place
-it at `apps/web/test-results/e2e-results.json` and run `pnpm e2e:budget`.
+The JSON report and budget gate are enabled in CI.
+
+## Diagnosing a failed gate
+
+When the gate fails, its log and the job's step summary list every `flaky` or `unexpected` test with
+file, line, describe path and the first line of each failed attempt's error (no stacks). Each shard
+also uploads artifacts:
+
+- `e2e-report-<n>` (14 days): Playwright's JSON report for the shard.
+- `e2e-traces-<n>` (7 days): the shard's `apps/web/test-results` directory, including retry traces.
+
+Download them from the workflow run to inspect a flake. To reproduce one locally, place a report at
+`apps/web/test-results/e2e-results.json` and run `pnpm e2e:budget`.
 
 ## Guided Explore coverage
 
