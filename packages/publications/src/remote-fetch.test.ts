@@ -175,3 +175,60 @@ describe("public-network address classification", () => {
     }
   });
 });
+
+describe("hostile destinations are refused before any connection", () => {
+  const request = { maxBytes: 100, acceptedMediaTypes: ["application/json"] };
+  // Any hostname that reaches DNS resolves to a private address, so no case
+  // here can open a socket; each outcome is decided before connecting.
+  const privateResolver = async () => [{ address: "10.0.0.5", family: 4 as const }];
+
+  it.each([
+    ["https://127.0.0.1/m.json", "unsafe-destination"],
+    ["https://2130706433/m.json", "unsafe-destination"],
+    ["https://0x7f.1/m.json", "unsafe-destination"],
+    ["https://0177.0.0.1/m.json", "unsafe-destination"],
+    ["https://[::1]/m.json", "unsafe-destination"],
+    ["https://[::ffff:7f00:1]/m.json", "unsafe-destination"],
+    ["https://[::ffff:127.0.0.1]/m.json", "unsafe-destination"],
+    ["https://169.254.169.254/latest/meta-data", "unsafe-destination"],
+    ["https://[fd00:ec2::254]/", "unsafe-destination"],
+    ["https://localhost/m.json", "unsafe-destination"],
+    ["https://localhost./m.json", "unsafe-destination"],
+    ["https://LOCALHOST/m.json", "unsafe-destination"],
+    ["https://foo.localhost/m.json", "unsafe-destination"],
+    ["https://metadata.google.internal/", "unsafe-destination"],
+    ["https://intranet/m.json", "unsafe-destination"],
+    ["https://printer.local/m.json", "unsafe-destination"],
+    ["https://service.corp/m.json", "unsafe-destination"],
+    ["https://user:pw@example.org/m.json", "unsafe-url"],
+    ["https://example.org/m.json#fragment", "unsafe-url"],
+    ["https://example.org:8443/m.json", "unsafe-url"],
+    ["http://example.org/m.json", "unsafe-url"],
+    ["ftp://example.org/m.json", "unsafe-url"],
+    ["file:///etc/passwd", "unsafe-url"],
+    ["not a url", "unsafe-url"],
+  ])("refuses %s with %s", async (url, code) => {
+    const fetcher = createHardenedRemoteFetcher({
+      resolver: privateResolver,
+      connectTimeoutMs: 400,
+      readTimeoutMs: 400,
+    });
+    await expect(fetcher.fetch(url, request)).rejects.toMatchObject({ code });
+  });
+
+  it.each([
+    [["93.184.216.34", "10.0.0.5"]],
+    [["10.0.0.5", "93.184.216.34"]],
+    [["2606:4700:4700::1111", "fc00::1"]],
+  ])("refuses a DNS answer set mixing public and private addresses %j", async (answers) => {
+    const fetcher = createHardenedRemoteFetcher({
+      resolver: async () =>
+        answers.map((address) => ({ address, family: address.includes(":") ? 6 : 4 })),
+      connectTimeoutMs: 400,
+      readTimeoutMs: 400,
+    });
+    await expect(
+      fetcher.fetch("https://publication.example/m.json", request),
+    ).rejects.toMatchObject({ code: "unsafe-destination" });
+  });
+});
