@@ -119,6 +119,22 @@ function normalizedModulePath(importer: string, specifier: string): string | und
   return path?.replace(/\.[cm]?[jt]sx?$/u, "").replace(/\/index$/u, "");
 }
 
+/**
+ * Canonical name of a known private-exposing barrel for a specifier, or undefined. Bounded to the
+ * explicit known barrels: the bare package name, its package root and `src` directory, and its
+ * `src/index` file reached by package subpath, root path or relative path (extension optional).
+ */
+function barrelName(importer: string, specifier: string): string | undefined {
+  if (specifier in PRIVATE_EXPOSING_BARRELS) return specifier;
+  const path = normalizedModulePath(importer, specifier);
+  if (path === undefined) return undefined;
+  for (const [name, barrelFile] of Object.entries(PRIVATE_EXPOSING_BARRELS)) {
+    const barrelDirectory = barrelFile.replace(/\/index\.[cm]?[jt]sx?$/u, "");
+    if (path === barrelDirectory || path === barrelDirectory.replace(/\/src$/u, "")) return name;
+  }
+  return undefined;
+}
+
 function isDirectPrivateImport(importer: string, specifier: string): boolean {
   if (PRIVATE_PACKAGE.test(specifier)) return true;
   const path = normalizedModulePath(importer, specifier);
@@ -246,7 +262,8 @@ function privateImportViolations(
       violations.push(`${specifier} (private module)`);
       return;
     }
-    const privateNames = barrels.get(specifier);
+    const barrel = barrelName(importer, specifier);
+    const privateNames = barrel === undefined ? undefined : barrels.get(barrel);
     if (!privateNames) return;
     if (selected === undefined) {
       violations.push(`${specifier} (opaque namespace/star/default/dynamic access)`);
@@ -284,11 +301,13 @@ function privateImportViolations(
       check(node.moduleReference.expression.text, undefined);
     } else if (
       ts.isCallExpression(node) &&
-      node.arguments.length === 1 &&
+      node.arguments.length >= 1 &&
       ts.isStringLiteral(node.arguments[0]!) &&
       (node.expression.kind === ts.SyntaxKind.ImportKeyword ||
         (ts.isIdentifier(node.expression) && node.expression.text === "require"))
     ) {
+      // The specifier is the first argument; `import(x, options)` and extra `require` arguments
+      // must not hide it.
       check(node.arguments[0]!.text, provenDynamicNames(node));
     } else if (
       ts.isImportTypeNode(node) &&
@@ -483,6 +502,46 @@ describe("private-workspace import guard (bounded static check, not complete T-I
     ["@/ private lib", `import { store } from "@/lib/private/store";`],
     ["relative private lib", `import { store } from "./private/index.js";`],
     ["private route", `export { GET } from "@/app/api/private/workspaces/route";`],
+    ["direct private dynamic import with options", `void import("@/lib/private/store", {});`],
+    [
+      "opaque barrel dynamic import with options",
+      `void import("@oratlas/knowledge", {}).then((m) => m.projectPersonalResearchCredit);`,
+    ],
+    [
+      "selected private dynamic import with options",
+      `const { adaptOrcidRoster } = await import("@oratlas/knowledge", {});`,
+    ],
+    [
+      "selected private member with options",
+      `const f = (await import("@oratlas/contracts", {})).privateCrossFindingSchema;`,
+    ],
+    ["require with extra arguments", `const k = require("@oratlas/knowledge", {});`],
+    [
+      "relative barrel named import",
+      `import { projectPersonalResearchCredit } from "../../../../packages/knowledge/src/index.js";`,
+    ],
+    [
+      "relative barrel alias import",
+      `import { adaptOrcidRoster as roster } from "../../../../packages/knowledge/src/index";`,
+    ],
+    [
+      "relative barrel type import",
+      `import type { PrivateCrossFinding } from "../../../../packages/contracts/src/index.js";`,
+    ],
+    [
+      "relative barrel re-export",
+      `export { sourceCreditObservationsSchema as s } from "../../../../packages/contracts/src";`,
+    ],
+    ["root barrel star re-export", `export * from "packages/knowledge/src/index.ts";`],
+    ["package src index namespace", `import * as k from "@oratlas/knowledge/src/index.js";`],
+    [
+      "package index subpath",
+      `import { adaptCRTContributorship } from "@oratlas/knowledge/index";`,
+    ],
+    [
+      "package root path dynamic",
+      `const { projectPersonalResearchCredit } = await import("packages/knowledge");`,
+    ],
   ])("flags %s", (_label, text) => {
     expect(violationsFor(text)).not.toEqual([]);
   });
@@ -521,6 +580,23 @@ describe("private-workspace import guard (bounded static check, not complete T-I
       `import { x } from "packages/knowledge/src/private-research-credits";`,
     ],
     ["public subpath", `import { canonicalJson } from "@oratlas/contracts/canonical-json";`],
+    [
+      "public selected dynamic import with options",
+      `const { canonicalJson } = await import("@oratlas/knowledge", {});`,
+    ],
+    [
+      "public relative barrel import",
+      `import { buildEvidencePacket } from "../../../../packages/knowledge/src/index.js";`,
+    ],
+    ["public root barrel import", `import { CREDIT_ROLES } from "packages/contracts/src/index";`],
+    [
+      "public package src index import",
+      `import { canonicalJson } from "@oratlas/knowledge/src/index.js";`,
+    ],
+    [
+      "public relative barrel dynamic member",
+      `const r = (await import("../../../../packages/contracts/src/index.js")).CREDIT_ROLES;`,
+    ],
   ])("allows %s", (_label, text) => {
     expect(violationsFor(text)).toEqual([]);
   });

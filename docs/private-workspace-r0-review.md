@@ -4,7 +4,8 @@
   [ORAtlas #202](https://github.com/dhuzard/oratlas/issues/202) remains **open, awaiting the
   owner's boundary decision**. This document does not close #202 and does not claim the private
   workspace is secure, verified or fully assured.
-- **Base:** `main` at `c249d61` (ADR-0001 merged by #211).
+- **Base:** `main` at `c249d61` (ADR-0001 merged by #211); focused repairs (§10) applied on
+  `4140d58`.
 - **Changes:** documentation, the #208 projector tests and the architecture import guard. No
   production code, schema, API, UI or dependency change.
 - **Related:** [ADR-0001](./private-workspace-security-architecture.md) (§14 holds the proposals),
@@ -102,12 +103,19 @@ it:
 - selects a private name from `@oratlas/contracts` or `@oratlas/knowledge`, including aliased,
   type-only and re-exported names. The private names are derived from the barrels' own source;
 - accesses a barrel opaquely: namespace, star, default or import-equals forms, or a dynamic
-  `import()` or `require()` whose selected names cannot be proven from the syntax.
+  `import()` or `require()` whose selected names cannot be proven from the syntax. The specifier is
+  read from the first argument, so `import(x, options)` and extra `require` arguments do not hide
+  it;
+- reaches a known barrel by another path: relative, root `packages/…`, `@oratlas/<pkg>/src/index`,
+  `@oratlas/<pkg>/index`, the `src` directory or the package root all canonicalize to the same
+  barrel, and the same name rules apply.
 
 In-memory fixtures cover positive and negative cases, including comments, strings and look-alike
 paths.
 
-Limits: it does not see computed specifiers, private values re-exported under another name through
+Limits: path canonicalization is bounded to the two known barrels (`@oratlas/contracts` and
+`@oratlas/knowledge`); it is not general module resolution (no tsconfig `paths`, symlinks or
+package `exports` maps). It does not see computed specifiers, private values re-exported under another name through
 a new barrel or app module, runtime data flow or database credentials. It is a precursor to T-IMP,
 not T-IMP and not proof that a public endpoint cannot reach private data.
 
@@ -168,3 +176,35 @@ None of these is decided. Each item needs an explicit owner decision.
 - [ ] D11: counsel confirmation and DPIA before any real private data.
 - [ ] Future evidence plan: G1 harness (T-IMP, T-ROLE, T-PUB) before any `private_ws` table.
 - [ ] Whether #202 can close, and on which evidence.
+
+## 10. Focused repairs after independent review
+
+An independent reviewer reported three findings against the first follow-up. Each is repaired
+without production code changes.
+
+| #   | Kind        | Finding                                                                                                                                                                                                                                                                                                                                                                                                                      | Repair                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| --- | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Correctness | ADR §14.2 offered `SELECT … FOR SHARE`, an epoch predicate or `SERIALIZABLE` retries as fenced-finalization examples. `SERIALIZABLE` alone does not order a finalizer that read the old epoch against a revoker that commits afterwards: the history stays serializable as finalizer-then-revoker while the derived write or response leaves after the revocation. A predicate that only reads another row has the same gap. | The examples are removed. The proposal now requires a shared, conflicting fence or lock covering the actual finalization boundary (persistence, response release, job effects), distinguishes serialization order from real commit or release order, and leaves deterministic interleaving tests (T-MID) to later work. Still **proposed, pending owner approval**; bytes already transmitted stay unrecallable; no protocol is implemented. |
+| 2   | Test gap    | The guard accepted only calls with exactly one argument, so `import("@/lib/private/store", {})` and `import("@oratlas/knowledge", {}).then(…)` escaped.                                                                                                                                                                                                                                                                      | The first literal argument is inspected whatever follows. Fixtures cover direct private, opaque barrel, selected private and member access with options, `require` with extra arguments, and a public selected import with options.                                                                                                                                                                                                          |
+| 3   | Test gap    | The barrel lookup keyed on the exact specifier, so relative, root or `src/index` paths to an existing barrel returned no violation.                                                                                                                                                                                                                                                                                          | Specifiers canonicalize to the known barrels (bounded, see §6 limits). Fixtures cover named, aliased, type-only, re-export, star, namespace and dynamic forms through those paths, plus public named imports through the same paths.                                                                                                                                                                                                         |
+
+Related wording fixes in ADR-0001: §14.3 said wrapped copies stay "unwrappable"; it now says
+"decryptable" for as long as a KEK version that wrapped them is usable (the meaning is unchanged).
+The §7 cross-reference now says "either every key-encryption key version or every wrapped-key copy",
+matching §14.3 rule 1. Both remain proposals pending ratification.
+
+### Checks for these repairs
+
+Run on `4140d58` plus the three changed files, with `PATH=/tmp/r0-202-pnpm-shim:$PATH` for the
+`pnpm` wrapper. Logs are `/tmp/r0-202-focused-*.log`. The §7 table above is historical first-pass
+evidence for the earlier five-file state and is not restated as current.
+
+| Command                                                                                                                                                                                                                                                   | Result                                                                                           |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| `corepack pnpm install --frozen-lockfile`; `corepack pnpm --filter @oratlas/db db:generate`                                                                                                                                                               | Pass; lockfile unchanged; no database reset.                                                     |
+| `corepack pnpm exec vitest run` on `packages/knowledge/src/private-research-credit.test.ts`, `packages/contracts/src/private-research-credit.test.ts`, `packages/knowledge/src/source-credit-adapters.test.ts`, `scripts/architecture-boundaries.test.ts` | Pass: 4 files, 134 tests (projector 22, contract 7, adapters 39, architecture 66).               |
+| `corepack pnpm lint`; `corepack pnpm format:check`; `corepack pnpm typecheck`                                                                                                                                                                             | Each exits 0.                                                                                    |
+| `corepack pnpm test`                                                                                                                                                                                                                                      | Pass: 235 files (6 skipped), 1628 tests (16 skipped); +18 over the first pass, all in the guard. |
+
+Not re-run for this repair: `schema:check`, `openapi:check`, `web build` and `test:e2e` (no code,
+schema or API change).

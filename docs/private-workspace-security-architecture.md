@@ -350,9 +350,9 @@ Platform `ADMIN`/`EDITOR` and infrastructure access are **operator duties**, not
   with an **envelope key per workspace** (data key wrapped by a cloud KMS key). The private
   service identity alone may unwrap; ordinary database administrators and backup operators see
   ciphertext and opaque IDs. Deleting a workspace key crypto-shreds its data, including in
-  backups. _Proposed correction (§14.3, §14.5, pending ratification): this holds only when every
-  key-encryption key version and every wrapped-key copy (live, backup, replica, recovery) is
-  destroyed and no plaintext cache survives; ciphertext and opaque IDs still leak metadata._
+  backups. _Proposed correction (§14.3, §14.5, pending ratification): this holds only when either every
+  key-encryption key version or every wrapped-key copy (live, backup, replica, recovery) is
+  destroyed and no plaintext cache survives (§14.3); ciphertext and opaque IDs still leak metadata._
 - **Honest limit.** An operator who can deploy arbitrary code or alter the private service
   identity can ultimately obtain plaintext. This ADR does not claim to prevent that. It reduces
   routine exposure, makes access deliberate and observable, and bounds duration. _Proposed
@@ -667,11 +667,21 @@ Proposed requirement (service layer; not implemented):
    entitlement, capability or `user.authz_epoch`).
 2. **Fenced finalization.** Every externally visible effect is a _finalization_: persisting a
    derived result, releasing a response body or page, starting or continuing a job stage, and
-   issuing a derived credential (URL, ticket, token). A finalization succeeds only after a check
-   that is **serialized against revocation**. For example, the finalizing transaction locks or
-   compare-and-sets the same epoch rows the revocation updates (`SELECT … FOR SHARE` against an
-   `UPDATE`, or an epoch predicate on the write), or runs at `SERIALIZABLE` and retries on
-   conflict. The mechanism is an implementation choice; the ordering property is the requirement.
+   issuing a derived credential (URL, ticket, token). A finalization succeeds only if it holds a
+   **shared, conflicting fence or lock with revocation that covers the actual finalization
+   boundary**: the persistence commit, the release of the response, and each job-stage effect. The
+   revoker and every finalizer must contend on the same fence, so that one of them waits for or
+   fails against the other, and the finalizer must not release or persist after its check has gone
+   stale.
+   - A serialization order is not a real commit or release order. A finalizer that read the old
+     epoch and a revoker that committed afterwards are still serializable as finalizer-then-revoker,
+     even though the finalizer's derived write or response commits or leaves **after** the
+     revocation. So `SERIALIZABLE` isolation with retries is **not sufficient** on its own, and
+     neither is a predicate that merely reads the epoch row: a read of a row the revoker later
+     updates conflicts with nothing the finalizer wrote.
+   - The mechanism is an implementation choice and is not specified here. The requirement is the
+     ordering property, enforced at the boundary where bytes, rows or job effects actually leave
+     the service, and demonstrated by the deterministic interleaving tests of item 6.
 3. **Guarantee offered.** Each finalization is ordered either before the revocation commit (it was
    authorized when it happened) or after it (it fails with the generic not-found result, or the
    job aborts with nothing persisted).
@@ -690,7 +700,7 @@ Proposed requirement (service layer; not implemented):
 
 Problem: with envelope encryption, a data key (DEK) is stored wrapped by a KMS key-encryption key
 (KEK). Deleting the **live** wrapped DEK does not destroy wrapped copies held in backups, replicas,
-point-in-time-recovery logs, exports or restore-drill environments. Those copies stay unwrappable
+point-in-time-recovery logs, exports or restore-drill environments. Those copies stay decryptable
 for as long as a KEK version that wrapped them is usable. Sealing (an epoch bump) is an application
 decision; it does not revoke the service identity's KMS decrypt permission.
 
