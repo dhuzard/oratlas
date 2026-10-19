@@ -77,6 +77,46 @@ private-adapter-output`, `accessEffect: none`,
   JSON export **without** its `digest` object, encoded as UTF-8.
   The roster remains opt-in, private-recipient-only and without access effect.
 
+## Semantics that are not mapped losslessly
+
+| Source semantics                                                                   | Behaviour in the neutral output                                                                                      |
+| ---------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| Diggypaper credit with status `withheld` or `withdrawn`                            | Person is emitted as `withheld` and counted; a name present on the source record is dropped, never carried.          |
+| Named Diggypaper contributor without granted person/controller consent or blinded  | Whole document rejected (`disclosure-not-authorized`); no partial identity is emitted.                               |
+| Diggypaper `confirmed` credit with no `consent_ref`                                | Kept as source status; reason code `source-confirmed-without-decision-ref`. No decision reference is synthesized.    |
+| CRediT label not equal to a canonical ID or label (case, spacing, dash style only) | `role: null`, `unmappable` incremented, `unmapped-credit-role`. Original label is not carried as a role.             |
+| Diggypaper `degree: not-available`                                                 | `degree: null`.                                                                                                      |
+| CRT `relation_proposals`                                                           | Counted as `unmappable`; never become evidence edges.                                                                |
+| CRT `lineage_sha256` and per-finding `manifest_sha256`                             | Carried as exact bindings but **not recomputed** (lineage and packet bytes are not inputs). Claim graph is optional. |
+| ORCID `project_references`                                                         | Counted as `unmappable`; never a project connection or access grant.                                                 |
+| ORCID local `local_role`                                                           | Kept as `sourceRole`; never a CRediT role.                                                                           |
+| Source `confirmed`/`verified`/`public`                                             | Source assertion only; `destinationStatus` stays `not-adjudicated`/`candidate-only`.                                 |
+
+Error values are stable codes (`SourceCreditAdapterError`); adapter and
+normalized-output failures never include names, ORCIDs or source excerpts.
+
+## Fixture provenance check
+
+Diggypaper `credit.json`, schema and the five `private` packet files, plus CRT
+`contributorship.private.json`, `claim-graph.json` and the private schema, were
+compared byte for byte with the pinned commits in the table above. The ORCID
+Playground files were not re-compared from this review (repository not
+available to it); re-check them against `ff5aff9` before relying on them.
+
+## Upstream handoff (to file after this PR lands)
+
+Contracts stay frozen; request nothing to mirror ORAtlas field names. Candidate
+follow-ups, each only if the destination genuinely needs the information:
+
+- **Diggypaper #55:** companion fixtures for `withheld`/`withdrawn` credits on
+  a disclosed contributor, and for `confirmed` with `consent_ref: not-available`,
+  so producers declare whether those are valid.
+- **CRT #17:** an optional export of the lineage and packet-manifest bytes (or
+  a verifier hook) so `lineage_sha256` and `manifest_sha256` can be recomputed
+  rather than only carried.
+- **ORCID Playground #9:** none required; the roster is consumed as candidate
+  contacts only.
+
 ## Production integration is explicitly blocked
 
 This PR does not implement user/project ACL, project source authorization,

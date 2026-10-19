@@ -8,6 +8,7 @@ import { canonicalJson, sourceCreditObservationsSchema } from "@oratlas/contract
 import { adaptDiggypaperCredit } from "./source-credit-diggypaper.js";
 import { adaptCRTContributorship } from "./source-credit-crt.js";
 import { adaptOrcidRoster } from "./source-credit-orcid.js";
+import { SourceCreditAdapterError, mapCreditRole } from "./source-credit-adapter-shared.js";
 
 const rawDiggy = readFileSync(
   new URL("./fixtures/source-credit-interop/diggypaper/credit.json", import.meta.url),
@@ -268,5 +269,196 @@ describe("ORCID roster candidate-only import", () => {
     ).toBe(true);
     expect(JSON.stringify(x)).not.toContain("ownerSubjectId");
     expect(JSON.stringify(x)).not.toContain("projectId");
+  });
+});
+
+const firstNamed = (doc: Record<string, any>) =>
+  doc.entries
+    .flatMap((entry: any) => entry.contributions)
+    .find((c: any) => c.contributor.kind === "disclosed");
+
+describe("deterministic CRediT role normalization", () => {
+  it.each([
+    ["Data curation", "data-curation"],
+    ["data  curation ", "data-curation"],
+    ["data-curation", "data-curation"],
+    ["Writing \u2013 original draft", "writing-original-draft"],
+    ["Writing - review & editing", "writing-review-editing"],
+    ["Conceptualization", "conceptualization"],
+  ])("maps %j to %s", (label, slug) => {
+    expect(mapCreditRole(label)).toBe(slug);
+  });
+
+  it.each(["Lead author", "Writing", "data_curation", "Curation of data", ""])(
+    "never infers a role from %j",
+    (label) => {
+      expect(mapCreditRole(label)).toBeNull();
+    },
+  );
+
+  it("reports an unrecognized Diggypaper label as unmappable without assigning a role", () => {
+    const raw = mutate(rawDiggy, (doc) => {
+      firstNamed(doc).credit_roles = [{ ...firstNamed(doc).credit_roles[0], role: "Lead author" }];
+    });
+    const result = adaptDiggypaperCredit(raw, diggyPacket());
+    expect(result.report.unmappable).toBe(1);
+    expect(result.report.reasonCodes).toContain("unmapped-credit-role");
+    expect(
+      result.assertions.filter((a) => a.role === null && a.capacity !== undefined),
+    ).not.toHaveLength(0);
+    expect(JSON.stringify(result)).not.toContain('"originalLabel":"Lead author"');
+  });
+
+  it("preserves the original Diggypaper label, degree and declaration ref beside the slug", () => {
+    const result = adaptDiggypaperCredit(rawDiggy, diggyPacket());
+    const curated = result.assertions.find((a) => a.role?.slug === "data-curation");
+    expect(curated?.role?.originalLabel).toBe("Data curation");
+    expect(curated?.role?.declarationRef).toBeTruthy();
+  });
+});
+
+describe("Diggypaper identity safety", () => {
+  it.each(["withheld", "withdrawn"])(
+    "never emits a name for a %s credit even when the contributor object is disclosed",
+    (status) => {
+      const target = firstNamed(JSON.parse(rawDiggy));
+      const name: string = target.contributor.display_name;
+      const raw = mutate(rawDiggy, (doc) => {
+        firstNamed(doc).status = status;
+      });
+      const result = adaptDiggypaperCredit(raw, diggyPacket());
+      expect(JSON.stringify(result)).not.toContain(name);
+      expect(result.report.withheld).toBeGreaterThan(0);
+    },
+  );
+
+  it("fails closed, without a name in the error, when a blinded reviewer is disclosed", () => {
+    const name: string = firstNamed(JSON.parse(rawDiggy)).contributor.display_name;
+    const raw = mutate(rawDiggy, (doc) => {
+      firstNamed(doc).review_blinding = "blinded";
+    });
+    try {
+      adaptDiggypaperCredit(raw, diggyPacket());
+      expect.unreachable();
+    } catch (error) {
+      expect(error).toBeInstanceOf(SourceCreditAdapterError);
+      expect((error as Error).message).toBe("disclosure-not-authorized");
+      expect(JSON.stringify(error)).not.toContain(name);
+    }
+  });
+
+  it("fails closed when person consent is not granted", () => {
+    const raw = mutate(rawDiggy, (doc) => {
+      firstNamed(doc).disclosure.person_consent = "revoked";
+    });
+    expect(() => adaptDiggypaperCredit(raw, diggyPacket())).toThrow("disclosure-not-authorized");
+  });
+
+  it("flags a source-confirmed credit lacking a decision ref instead of synthesizing one", () => {
+    const raw = mutate(rawDiggy, (doc) => {
+      const confirmed = doc.entries
+        .flatMap((e: any) => e.contributions)
+        .find((c: any) => c.status === "confirmed");
+      confirmed.disclosure.consent_ref = "not-available";
+    });
+    const result = adaptDiggypaperCredit(raw, diggyPacket());
+    expect(result.report.reasonCodes).toContain("source-confirmed-without-decision-ref");
+    expect(result.assertions.every((a) => a.destinationStatus === "not-adjudicated")).toBe(true);
+  });
+
+  it("rejects a changed manifest byte as a packet binding failure", () => {
+    const bad = { ...diggyPacket(), manifest: packetManifest.replace(/\n$/u, " \n") };
+    expect(() => adaptDiggypaperCredit(rawDiggy, bad)).toThrow("packet-manifest-binding-mismatch");
+  });
+});
+
+describe("normative-byte bindings and order invariance for CRT and the roster", () => {
+  it("rejects a single changed claim-graph byte, not only an unrelated document", () => {
+    const flipped = rawCRTGraph.replace(/\n?$/u, " \n");
+    expect(() => adaptCRTContributorship(rawCRT, flipped)).toThrow("claim-graph-sha256-mismatch");
+    expect(() => adaptCRTContributorship(rawCRT, rawCRTGraph)).not.toThrow();
+  });
+
+  it("normalizes CRT identically regardless of record order", () => {
+    const a = adaptCRTContributorship(rawCRT, rawCRTGraph);
+    const b = adaptCRTContributorship(
+      mutate(rawCRT, (doc) => {
+        doc.contributors.reverse();
+        doc.credit_assertions.reverse();
+        doc.source_origins.reverse();
+        doc.source_credit.reverse();
+        for (const record of doc.source_credit) record.findings.reverse();
+        doc.production.agent_runs.reverse();
+      }),
+      rawCRTGraph,
+    );
+    expect({ ...b, sourceDocumentSha256: a.sourceDocumentSha256 }).toEqual(a);
+  });
+
+  it("rejects the same finding listed twice for one claim", () => {
+    const raw = mutate(rawCRT, (doc) => {
+      const findings = doc.source_credit[0].findings;
+      findings.push(structuredClone(findings[0]));
+    });
+    expect(() => adaptCRTContributorship(raw)).toThrow("crt-duplicate-finding");
+  });
+
+  it("normalizes the roster identically regardless of record order", () => {
+    const a = adaptOrcidRoster(rawRoster);
+    const b = adaptOrcidRoster(
+      mutate(rawRoster, (doc) => {
+        doc.members.reverse();
+        doc.outputs.reverse();
+        doc.contributions.reverse();
+        rehashRoster(doc);
+      }),
+    );
+    expect({ ...b, sourceDocumentSha256: a.sourceDocumentSha256 }).toEqual(a);
+  });
+
+  it("rejects duplicate roster contributions", () => {
+    const raw = mutate(rawRoster, (doc) => {
+      doc.contributions.push(structuredClone(doc.contributions[0]));
+      rehashRoster(doc);
+    });
+    expect(() => adaptOrcidRoster(raw)).toThrow("duplicate-roster-contribution");
+  });
+});
+
+describe("no credit leaks through adapter exceptions", () => {
+  const names = [
+    ...new Set<string>([
+      ...JSON.parse(rawCRT).contributors.map((c: any) => c.display_name),
+      ...JSON.parse(rawDiggy)
+        .entries.flatMap((e: any) => e.contributions)
+        .map((c: any) => c.contributor.display_name)
+        .filter(Boolean),
+    ]),
+  ];
+
+  it("emits only stable codes for every failure path", () => {
+    expect(names.length).toBeGreaterThan(0);
+    const attempts: (() => unknown)[] = [
+      () => adaptDiggypaperCredit("{not json", diggyPacket()),
+      () =>
+        adaptDiggypaperCredit(
+          mutate(rawDiggy, (d) => (d.entries[0].binding.paper_id = 7)),
+          diggyPacket(),
+        ),
+      () => adaptCRTContributorship(mutate(rawCRT, (d) => (d.contributors[0].orcid = 7))),
+      () => adaptCRTContributorship(rawCRT, "{}"),
+      () => adaptOrcidRoster(mutate(rawRoster, (d) => (d.group.name = "x"))),
+    ];
+    for (const attempt of attempts) {
+      try {
+        attempt();
+        expect.unreachable();
+      } catch (error) {
+        expect(error).toBeInstanceOf(SourceCreditAdapterError);
+        const text = String((error as Error).message) + JSON.stringify(error);
+        expect(text).toMatch(/^[a-z0-9-]+/u);
+        for (const name of names) expect(text).not.toContain(name);
+      }
+    }
   });
 });

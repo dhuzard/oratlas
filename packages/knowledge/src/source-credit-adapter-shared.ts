@@ -1,8 +1,10 @@
 import { createHash } from "node:crypto";
 import { z } from "zod";
 import {
+  CREDIT_ROLE_LABELS,
   canonicalJson,
   sourceCreditObservationsSchema,
+  type CreditRole,
   type SourceCreditObservations,
 } from "@oratlas/contracts";
 
@@ -94,6 +96,30 @@ export function startDraft(
   };
 }
 
+const foldRole = (value: string): string =>
+  value
+    .normalize("NFC")
+    .replace(/[\u2010-\u2015\u2212]/gu, "-")
+    .replace(/\s+/gu, " ")
+    .trim()
+    .toLowerCase();
+
+const ROLE_LOOKUP: ReadonlyMap<string, CreditRole> = new Map(
+  (Object.entries(CREDIT_ROLE_LABELS) as [CreditRole, string][]).flatMap(([slug, label]) => [
+    [slug, slug],
+    [foldRole(label), slug],
+  ]),
+);
+
+/**
+ * Deterministic CRediT normalization: only an exact canonical ID or display
+ * label (modulo case, whitespace and dash style) maps. Anything else is `null`
+ * and must be reported as unmappable; roles are never inferred.
+ */
+export function mapCreditRole(value: string): CreditRole | null {
+  return ROLE_LOOKUP.get(foldRole(value)) ?? null;
+}
+
 export function finishDraft(draft: Draft): SourceCreditObservations {
   draft.report.accepted =
     draft.assertions.length +
@@ -104,7 +130,10 @@ export function finishDraft(draft: Draft): SourceCreditObservations {
   for (const field of ["assertions", "evidence", "production", "candidateContacts"] as const) {
     draft[field].sort((a, b) => a.observationId.localeCompare(b.observationId, "en"));
   }
-  return sourceCreditObservationsSchema.parse(draft);
+  // Zod issues can echo rejected input values; surface only a stable code.
+  const parsed = sourceCreditObservationsSchema.safeParse(draft);
+  if (!parsed.success) throw new SourceCreditAdapterError("normalized-output-invalid");
+  return parsed.data;
 }
 
 export function uniqueOrThrow(items: string[], code = "conflicting-source-identity"): void {

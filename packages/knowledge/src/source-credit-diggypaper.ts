@@ -1,6 +1,5 @@
 import { z } from "zod";
 import {
-  CREDIT_ROLE_LABELS,
   type SourceCreditPerson,
   type SourceCreditTarget,
   type SourceCreditObservations,
@@ -11,6 +10,7 @@ import {
   digest,
   finishDraft,
   isoOrNull,
+  mapCreditRole,
   parseJsonl,
   parseNative,
   parseSource,
@@ -171,8 +171,13 @@ function personFromSource(
   },
   blinding: string,
   contributionId: string,
+  status: string,
 ): SourceCreditPerson {
-  if (person.kind === "withheld") return { kind: "withheld" };
+  // A withheld/withdrawn credit never exposes a name, even if the contributor
+  // object itself carries one.
+  if (person.kind === "withheld" || status === "withheld" || status === "withdrawn") {
+    return { kind: "withheld" };
+  }
   if (person.kind === "pseudonym") return { kind: "pseudonym", sourceRef: person.ref };
   if (
     blinding === "blinded" ||
@@ -318,7 +323,11 @@ export function adaptDiggypaperCredit(
         contribution.disclosure,
         contribution.review_blinding,
         contribution.contribution_id,
+        contribution.status,
       );
+      if (contribution.status === "confirmed" && !isoOrNull(contribution.disclosure.consent_ref)) {
+        draft.report.reasonCodes.push("source-confirmed-without-decision-ref");
+      }
       if (
         contribution.capacity === "support-assessor" &&
         !contribution.assessment_ids.every((id) => assessmentIds.includes(id))
@@ -328,15 +337,12 @@ export function adaptDiggypaperCredit(
       const roles = contribution.credit_roles.length ? contribution.credit_roles : [null];
       for (let index = 0; index < roles.length; index++) {
         const declared = roles[index];
-        const mapped = declared
-          ? Object.entries(CREDIT_ROLE_LABELS).find(([, label]) => label === declared.role)
-          : null;
+        const mapped = declared ? mapCreditRole(declared.role) : null;
         if (declared && !mapped) {
           draft.report.unmappable++;
           draft.report.reasonCodes.push("unmapped-credit-role");
         }
-        if (person.kind === "withheld" || contribution.status === "withheld")
-          draft.report.withheld++;
+        if (person.kind === "withheld") draft.report.withheld++;
         draft.assertions.push({
           observationId:
             "diggypaper:credit:" +
@@ -349,7 +355,7 @@ export function adaptDiggypaperCredit(
           role:
             mapped && declared
               ? {
-                  slug: mapped[0] as keyof typeof CREDIT_ROLE_LABELS,
+                  slug: mapped,
                   originalLabel: declared.role,
                   degree: declared.degree === "not-available" ? null : declared.degree,
                   declarationRef: declared.declaration_ref,

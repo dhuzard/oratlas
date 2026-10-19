@@ -1,8 +1,9 @@
 import { z } from "zod";
-import { CREDIT_ROLE_LABELS, type SourceCreditObservations } from "@oratlas/contracts";
+import { type SourceCreditObservations } from "@oratlas/contracts";
 import {
   SourceCreditAdapterError,
   finishDraft,
+  mapCreditRole,
   parseNative,
   parseSource,
   startDraft,
@@ -140,7 +141,7 @@ export function adaptOrcidRoster(raw: string): SourceCreditObservations {
     if (!member || !outputs.has(credit.output_key)) {
       throw new SourceCreditAdapterError("roster-contribution-reference-invalid");
     }
-    const mapped = Object.keys(CREDIT_ROLE_LABELS).includes(credit.credit_role);
+    const mapped = mapCreditRole(credit.credit_role);
     if (!mapped) {
       output.report.unmappable++;
       output.report.reasonCodes.push("unmapped-credit-role");
@@ -154,7 +155,7 @@ export function adaptOrcidRoster(raw: string): SourceCreditObservations {
       sourceRole: null, // a local team role is never a CRediT assertion
       role: mapped
         ? {
-            slug: credit.credit_role as keyof typeof CREDIT_ROLE_LABELS,
+            slug: mapped,
             originalLabel: credit.credit_role,
             degree: null,
             declarationRef: credit.assertion.method,

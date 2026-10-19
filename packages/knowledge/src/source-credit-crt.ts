@@ -1,6 +1,5 @@
 import { z } from "zod";
 import {
-  CREDIT_ROLE_LABELS,
   type SourceCreditObservations,
   type SourceCreditTarget,
   type SourceCreditPerson,
@@ -8,6 +7,7 @@ import {
 import {
   SourceCreditAdapterError,
   digest,
+  mapCreditRole,
   finishDraft,
   parseNative,
   parseSource,
@@ -169,6 +169,7 @@ export function adaptCRTContributorship(
   const contributors = new Map(doc.contributors.map((c) => [c.id, c]));
   const origins = new Map(doc.source_origins.map((o) => [o.origin_id, o]));
   const seenFindings = new Map<string, string>();
+  const seenClaimFindings = new Set<string>();
 
   for (const declaration of doc.credit_assertions) {
     const contributor = contributors.get(declaration.contributor);
@@ -194,7 +195,7 @@ export function adaptCRTContributorship(
       sourceOrcidStatus: verified ? "source-verified" : contributor.orcid ? "claimed" : "absent",
       verificationRef: verified ? (contributor.orcid?.verification?.ref ?? null) : null,
     };
-    const mapped = Object.keys(CREDIT_ROLE_LABELS).includes(declaration.role);
+    const mapped = mapCreditRole(declaration.role);
     if (!mapped) {
       output.report.unmappable++;
       output.report.reasonCodes.push("unmapped-credit-role");
@@ -215,7 +216,7 @@ export function adaptCRTContributorship(
       capacity: declaration.target.kind === "review" ? "review-contributor" : "claim-contributor",
       role: mapped
         ? {
-            slug: declaration.role as keyof typeof CREDIT_ROLE_LABELS,
+            slug: mapped,
             originalLabel: declaration.role_label,
             degree: declaration.degree,
             declarationRef: declaration.source_ref,
@@ -245,6 +246,11 @@ export function adaptCRTContributorship(
       if (earlierPacket !== undefined && earlierPacket !== entry.packet.packet_id) {
         throw new SourceCreditAdapterError("crt-duplicate-finding");
       }
+      const claimKey = record.claim_id + ":" + key;
+      if (seenClaimFindings.has(claimKey)) {
+        throw new SourceCreditAdapterError("crt-duplicate-finding");
+      }
+      seenClaimFindings.add(claimKey);
       seenFindings.set(key, entry.packet.packet_id);
       const target: SourceCreditTarget = {
         kind: "source-finding",
