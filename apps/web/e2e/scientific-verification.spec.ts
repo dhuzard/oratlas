@@ -3,6 +3,7 @@ import { expect, test } from "@playwright/test";
 import { SCIENTIFIC_VERIFICATION_DEMO_FINDINGS, canonicalJson } from "@oratlas/contracts";
 import { getPrisma } from "@oratlas/db";
 import { VerifierApiClient } from "@oratlas/verifier-client";
+import { signInAs } from "./helpers/auth";
 
 const publicationId = "ora-demo-publication";
 const publicationVersionId = "ora-demo-publication-version";
@@ -32,9 +33,7 @@ test.describe("Scientific verification", () => {
   test("runs an external verification through HTTP and renders the public evidence", async ({
     page,
   }) => {
-    await page.goto("/signin");
-    await page.getByRole("button", { name: /Sign in as editor/ }).click();
-    await expect(page).toHaveURL(/\/editorial/);
+    await signInAs(page, "editor");
     await page.goto(`/publications/${publicationId}/versions/${publicationVersionId}`);
 
     await expect(page.getByText("Scientific verification", { exact: true })).toBeVisible();

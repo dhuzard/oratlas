@@ -2,6 +2,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 import { canonicalJson } from "@oratlas/contracts";
 import { getPrisma } from "@oratlas/db";
+import { signInAs } from "./helpers/auth";
 
 const prisma = getPrisma();
 const runId = `${process.pid}-${Date.now()}`;
@@ -92,9 +93,7 @@ test.beforeAll(async () => {
 test("publishes and challenges an exact node adjudication with attributable evidence", async ({
   page,
 }) => {
-  await page.goto("/signin");
-  await page.getByRole("button", { name: /Sign in as editor/ }).click();
-  await expect(page).toHaveURL(/\/editorial/);
+  await signInAs(page, "editor");
   await page.goto("/editorial/trust-adjudications");
   const disagreement = page
     .locator("article")
@@ -116,9 +115,7 @@ test("publishes and challenges an exact node adjudication with attributable evid
   const { id: adjudicationId } = (await adjudicationResponse.json()) as { id: string };
 
   await page.context().clearCookies();
-  await page.goto("/signin");
-  await page.getByRole("button", { name: /Sign in as submitter/ }).click();
-  await expect(page).toHaveURL(/\/submit/);
+  await signInAs(page, "submitter");
   await page.goto(`/nodes/${nodeId}`);
 
   const adjudicationAnchor = page.locator(`#adjudication-${adjudicationId}`);

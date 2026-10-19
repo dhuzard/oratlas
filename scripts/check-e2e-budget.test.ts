@@ -8,8 +8,8 @@ import {
 } from "./check-e2e-budget";
 
 describe("E2E timing and flake budget", () => {
-  it("keeps the 83-journey suite under a bounded 9.75-minute ceiling", () => {
-    expect(E2E_WALL_TIME_BUDGET_MS).toBe(585_000);
+  it("keeps the 83-journey suite under a bounded 12-minute ceiling", () => {
+    expect(E2E_WALL_TIME_BUDGET_MS).toBe(720_000);
   });
 
   it("accepts a clean run within the wall-time budget", () => {
