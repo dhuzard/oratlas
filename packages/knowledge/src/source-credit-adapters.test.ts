@@ -245,11 +245,11 @@ describe("ORCID roster candidate-only import", () => {
     });
     expect(() => adaptOrcidRoster(grant)).toThrow("source-schema-incompatible");
 
-    const forgedOAuth = mutate(rawRoster, (doc) => {
+    const forgedVerifiedStatus = mutate(rawRoster, (doc) => {
       doc.members[0].orcid.status = "oauth-verified";
       rehashRoster(doc);
     });
-    expect(() => adaptOrcidRoster(forgedOAuth)).toThrow("roster-elevated-identity-claim");
+    expect(() => adaptOrcidRoster(forgedVerifiedStatus)).toThrow("roster-elevated-identity-claim");
 
     const revoked = mutate(rawRoster, (doc) => {
       doc.consent.status = "revoked";
