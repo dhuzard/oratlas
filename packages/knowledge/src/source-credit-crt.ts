@@ -510,6 +510,7 @@ export function adaptCRTContributorship(
           lineageSha256: entry.lineage_sha256,
         },
         nativeBinding: "crt-reviewed-mapping",
+        sourceEntryId: null, // CRT has no credit-entry ids; a claim id is not one.
         sourcePaperId: null,
         findingOrigin: null,
         sourceSnapshotRef: null,

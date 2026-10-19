@@ -575,6 +575,7 @@ export function adaptDiggypaperCredit(
       observationId: tupleId("diggypaper", "evidence", [b.finding_id, b.finding_revision]),
       target,
       nativeBinding: "diggypaper-credit-entry",
+      sourceEntryId: entry.entry_id,
       sourcePaperId: b.paper_id,
       findingOrigin: b.finding_origin,
       sourceSnapshotRef: b.source_snapshot_ref,

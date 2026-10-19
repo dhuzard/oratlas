@@ -38,8 +38,8 @@ const assertion = z
     asserted_by: key.nullable(),
     evidence: z
       .object({
-        source_record_version: z.string().min(1).max(200).nullable(),
-        reference: z.string().min(1).max(500).nullable(),
+        source_record_version: z.string().max(200).nullable(),
+        reference: z.string().max(500).nullable(),
       })
       .strict(),
   })
@@ -98,7 +98,7 @@ const rosterSchema = z
         z
           .object({
             member_key: key,
-            display_name: z.string().min(1).max(300).nullable(),
+            display_name: z.string().max(300).nullable(),
             orcid: z
               .object({
                 id: z.string().regex(/^[0-9]{4}-[0-9]{4}-[0-9]{4}-[0-9]{3}[0-9X]$/u),
@@ -112,7 +112,7 @@ const rosterSchema = z
               })
               .strict()
               .nullable(),
-            local_role: z.string().min(1).max(200).nullable(),
+            local_role: z.string().max(200).nullable(),
             membership: z
               .object({
                 status: z.enum([
@@ -213,11 +213,66 @@ const assertionV2 = (value: Assertion) => ({
 const externallyEvidenced = (value: Assertion) =>
   value.basis === "external-verified" && value.evidence.reference !== null;
 
+const fail = (code: string): never => {
+  throw new SourceCreditAdapterError(code);
+};
+
+/** Runs on the raw document: a present-but-empty unselected field is still a contradiction. */
+function checkRedaction(doc: Roster): void {
+  const shared = new Set<string>(doc.redaction.member_fields);
+  for (const member of doc.members) {
+    for (const field of MEMBER_FIELDS) {
+      if (!shared.has(field) && member[field] !== null) fail("roster-redaction-contradiction");
+    }
+  }
+}
+
+/**
+ * The frozen schema permits `""` in these nullable fields only. An empty value
+ * carries nothing, so it becomes null; no other string is trimmed or rewritten.
+ * Applied after the digest and redaction checks, so an empty reference can
+ * never substantiate verification or provenance.
+ */
+const emptyToNull = (value: string | null): string | null => (value === "" ? null : value);
+const withoutEmptyEvidence = (value: Assertion): Assertion => ({
+  ...value,
+  evidence: {
+    source_record_version: emptyToNull(value.evidence.source_record_version),
+    reference: emptyToNull(value.evidence.reference),
+  },
+});
+function withoutEmptyValues(doc: Roster): Roster {
+  return {
+    ...doc,
+    group: { ...doc.group, assertion: withoutEmptyEvidence(doc.group.assertion) },
+    members: doc.members.map((member) => ({
+      ...member,
+      display_name: emptyToNull(member.display_name),
+      local_role: emptyToNull(member.local_role),
+      orcid: member.orcid && {
+        ...member.orcid,
+        assertion: withoutEmptyEvidence(member.orcid.assertion),
+      },
+      membership: {
+        ...member.membership,
+        assertion: withoutEmptyEvidence(member.membership.assertion),
+      },
+      person_assertion: withoutEmptyEvidence(member.person_assertion),
+    })),
+    outputs: doc.outputs.map((o) => ({ ...o, assertion: withoutEmptyEvidence(o.assertion) })),
+    contributions: doc.contributions.map((c) => ({
+      ...c,
+      assertion: withoutEmptyEvidence(c.assertion),
+    })),
+    project_references: doc.project_references.map((p) => ({
+      ...p,
+      assertion: withoutEmptyEvidence(p.assertion),
+    })),
+  };
+}
+
 /** Frozen `validate_export` rules that bear on identity, consent and privacy. */
 function checkRoster(doc: Roster): void {
-  const fail = (code: string): never => {
-    throw new SourceCreditAdapterError(code);
-  };
   if (doc.consent.granted_by !== doc.group.created_by) fail("roster-consent-invalid");
   if (doc.consent.status === "revoked") {
     if (doc.consent.revoked_at === null) fail("roster-consent-invalid");
@@ -233,7 +288,6 @@ function checkRoster(doc: Roster): void {
   } else if (doc.consent.revoked_at !== null) {
     fail("roster-consent-invalid");
   }
-  const shared = new Set<string>(doc.redaction.member_fields);
   uniqueOrThrow(
     doc.members.map((m) => m.member_key),
     "duplicate-roster-member",
@@ -244,9 +298,6 @@ function checkRoster(doc: Roster): void {
   );
   const local = doc.origin === "local-offline-roster";
   for (const member of doc.members) {
-    for (const field of MEMBER_FIELDS) {
-      if (!shared.has(field) && member[field] !== null) fail("roster-redaction-contradiction");
-    }
     if (member.orcid) {
       const { id, uri, status } = member.orcid;
       if (
@@ -315,8 +366,10 @@ function checkRoster(doc: Roster): void {
 
 export function adaptOrcidRoster(raw: string): SourceCreditObservationsV2 {
   const data = parseSource(raw);
-  const doc = parseNative(rosterSchema, data);
+  const native = parseNative(rosterSchema, data);
   verifyRosterdigest(data);
+  checkRedaction(native);
+  const doc = withoutEmptyValues(native);
   checkRoster(doc);
   const output = startDraft("orcid-playground", doc.export_id, raw, {
     kind: "orcid-roster",

@@ -568,6 +568,7 @@
         "lineageSha256": "sha256:ad18047717927eff8c7f505caa45af8f2e5a4d54ea508335aca3641b7b1a8f4d"
       },
       "nativeBinding": "crt-reviewed-mapping",
+      "sourceEntryId": null,
       "sourcePaperId": null,
       "findingOrigin": null,
       "sourceSnapshotRef": null,
@@ -643,6 +644,7 @@
         "lineageSha256": "sha256:c51925e5dad3580851921b64c08731ca42441b7fa008a6b598027622832c6a21"
       },
       "nativeBinding": "crt-reviewed-mapping",
+      "sourceEntryId": null,
       "sourcePaperId": null,
       "findingOrigin": null,
       "sourceSnapshotRef": null,
@@ -718,6 +720,7 @@
         "lineageSha256": "sha256:8544e2788c74e1d1b0c06786e56b0d71f4fc9fa23fcdb19c51decc7b11ba4249"
       },
       "nativeBinding": "crt-reviewed-mapping",
+      "sourceEntryId": null,
       "sourcePaperId": null,
       "findingOrigin": null,
       "sourceSnapshotRef": null,

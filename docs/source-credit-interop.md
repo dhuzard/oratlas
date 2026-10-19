@@ -119,7 +119,9 @@ bibliographic-citation-metadata`), CRT source curators (`sourceAssessments[].cur
   Source-claimed and source-verified ORCIDs keep the producer's own status. No
   ORCID ownership check is performed (`accountVerification: not-performed`).
 - **Evidence provenance:** exact finding id/revision, finding origin, snapshot
-  ref and SHA-256, packet id and manifest-bytes SHA-256, Phase 2 finding and
+  ref and SHA-256, the native Diggypaper credit entry id (`sourceEntryId`;
+  `null` for CRT, which has none, and never part of an observation id), packet
+  id and manifest-bytes SHA-256, Phase 2 finding and
   lineage digests where recorded, passages and quote hashes, assessment
   protocol/status. The DOI is citation metadata. A `10.5555/` example DOI carries
   `doiIsExample: true` and is never an outbound link. Nothing here is a support,
@@ -224,7 +226,14 @@ change when the source bytes or array order change.
   `external-verified` evidence with a reference; contribution references and
   provenance (`source-declared` needs a reference, `curator-confirmed` a named
   curator); project references only when redaction says `included`, and a URL only
-  with sharing approval.
+  with sharing approval. The frozen schema allows `""` in assertion
+  `evidence.source_record_version`/`reference` and member `display_name`/`local_role`.
+  The digest and redaction checks run on the original values (an empty but
+  unselected member field is still a contradiction). Then exactly these empty
+  strings become `null`, before the other rules and before output. So an empty
+  reference never counts as verification or provenance evidence, and a credit
+  claim's `declarationRef` always equals its assertion's reference. No other
+  string is trimmed, and the neutral 0.2.0 contract still rejects empty strings.
 
 ## Answers to the earlier producer questions
 

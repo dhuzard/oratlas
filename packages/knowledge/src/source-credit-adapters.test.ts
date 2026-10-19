@@ -260,6 +260,42 @@ describe("Diggypaper: separate credit, citation, evidence and production", () =>
     );
     sameExceptSourceBytes(permuted, result);
   });
+
+  it("keeps every native credit entry id on its exact finding revision", () => {
+    const entryOf = (evidence: SourceCreditObservationsV2["evidence"]) =>
+      Object.fromEntries(
+        evidence.map((e) => [`${e.target.sourceId}@${e.target.sourceVersion}`, e.sourceEntryId]),
+      );
+    const expected = Object.fromEntries(
+      source.entries.map((entry: any) => [
+        `${entry.binding.finding_id}@${entry.binding.finding_revision}`,
+        entry.entry_id,
+      ]),
+    );
+    expect(source.entries.length).toBeGreaterThan(1);
+    expect(result.evidence).toHaveLength(source.entries.length);
+    expect(entryOf(result.evidence)).toEqual(expected);
+  });
+
+  it("preserves a changed entry id without changing observation ids or counts", () => {
+    const renamed = adaptDiggypaperCredit(
+      mutate(rawDiggy, (doc) => (doc.entries[0].entry_id = "credit-entry:renamed-synthetic")),
+      diggyPacket(),
+    );
+    const binding = source.entries[0].binding;
+    const changed = renamed.evidence.find(
+      (e) =>
+        e.target.sourceId === binding.finding_id &&
+        e.target.sourceVersion === String(binding.finding_revision),
+    )!;
+    expect(changed.sourceEntryId).toBe("credit-entry:renamed-synthetic");
+    const ids = (doc: SourceCreditObservationsV2) =>
+      [...doc.assertions, ...doc.evidence, ...doc.production].map((r) => r.observationId);
+    expect(ids(renamed)).toEqual(ids(result));
+    expect(renamed.report).toEqual(result.report);
+    const original = result.evidence.find((e) => e.observationId === changed.observationId)!;
+    expect({ ...changed, sourceEntryId: original.sourceEntryId }).toEqual(original);
+  });
 });
 
 describe("Diggypaper fail-closed checks", () => {
@@ -481,6 +517,11 @@ describe("CRT: structured source facts without new authorship", () => {
       claimDisclosure: { public: true, reason: null, approvedFields: null, approvalIds: [] },
     });
     expect(alpha.citedWork).toMatchObject({ citeKey: "synthAlpha2026", doiIsExample: true });
+  });
+
+  it("never synthesizes a credit entry id for a reviewed mapping", () => {
+    expect(result.evidence.length).toBeGreaterThan(0);
+    expect(result.evidence.every((e) => e.sourceEntryId === null)).toBe(true);
   });
 
   it("never turns a source curator pseudonym into a review contributor", () => {
@@ -941,6 +982,129 @@ describe("ORCID roster frozen privacy and consent rules", () => {
     });
     expect(a.orcid?.nativeStatus).toBe("oauth-verified");
     expect(accepted.accountVerification).toBe("not-performed");
+  });
+
+  describe("empty strings the frozen schema permits", () => {
+    const ajv = new Ajv2020({ strict: false, allErrors: true });
+    addFormats(ajv);
+    const validateNative = ajv.compile(JSON.parse(nativeRoster));
+    /** Every mutation is first native-valid; mutateRoster recomputes the digest over it. */
+    const nativeValid = (apply: (d: any) => void): string => {
+      const raw = mutateRoster(apply);
+      expect(validateNative(JSON.parse(raw)), JSON.stringify(validateNative.errors)).toBe(true);
+      return raw;
+    };
+    const contact = (result: SourceCreditObservationsV2, member: string) =>
+      result.candidateContacts.find((c) => c.sourceMemberRef === member)!;
+    const external = (d: any) => {
+      d.origin = "external-platform";
+      d.members[0].orcid.status = "oauth-verified";
+      d.members[0].orcid.assertion.basis = "external-verified";
+    };
+
+    it.each([
+      [
+        "person source_record_version",
+        (d: any) => (d.members[0].person_assertion.evidence.source_record_version = ""),
+        (r: SourceCreditObservationsV2) =>
+          contact(r, "m-a").personAssertion.evidence.sourceRecordVersion,
+      ],
+      [
+        "ORCID evidence reference",
+        (d: any) => (d.members[0].orcid.assertion.evidence.reference = ""),
+        (r: SourceCreditObservationsV2) => contact(r, "m-a").orcid!.assertion.evidence.reference,
+      ],
+      [
+        "membership evidence reference",
+        (d: any) => (d.members[1].membership.assertion.evidence.reference = ""),
+        (r: SourceCreditObservationsV2) =>
+          contact(r, "m-b").membership.assertion.evidence.reference,
+      ],
+      [
+        "output source_record_version",
+        (d: any) => (d.outputs[0].assertion.evidence.source_record_version = ""),
+        (r: SourceCreditObservationsV2) =>
+          r.candidateCreditClaims.find((c) => c.output.sourceOutputRef === "o-1")!.output.assertion
+            .evidence.sourceRecordVersion,
+      ],
+      [
+        "selected display name",
+        (d: any) => {
+          d.redaction.member_fields = ["display_name", "orcid"];
+          d.members[0].display_name = "";
+        },
+        (r: SourceCreditObservationsV2) => contact(r, "m-a").displayName,
+      ],
+      [
+        "selected local role",
+        (d: any) => {
+          d.redaction.member_fields = ["local_role", "orcid"];
+          d.members[0].local_role = "";
+        },
+        (r: SourceCreditObservationsV2) => contact(r, "m-a").localRole,
+      ],
+    ])("accepts an empty %s and emits null", (_, apply, pick) => {
+      expect(pick(adaptOrcidRoster(nativeValid(apply)))).toBeNull();
+    });
+
+    it("keeps an empty curator-confirmed reference null on both its assertion and declaration", () => {
+      const result = adaptOrcidRoster(
+        nativeValid((d) => (d.contributions[0].assertion.evidence.reference = "")),
+      );
+      const claim = result.candidateCreditClaims.find((c) => c.role?.slug === "conceptualization")!;
+      expect(claim.sourceStatus).toBe("curator-confirmed");
+      expect(claim.role!.declarationRef).toBeNull();
+      expect(claim.assertion.evidence.reference).toBeNull();
+      for (const c of result.candidateCreditClaims) {
+        expect(c.role!.declarationRef).toBe(c.assertion.evidence.reference);
+      }
+      expect(claim.confirmedByImport).toBe(false);
+    });
+
+    it.each([
+      [
+        "a source-declared role's provenance",
+        (d: any) => (d.contributions[1].assertion.evidence.reference = ""),
+        "roster-contribution-provenance-missing",
+      ],
+      [
+        "OAuth verification evidence",
+        (d: any) => {
+          external(d);
+          d.members[0].orcid.assertion.evidence.reference = "";
+        },
+        "roster-verification-evidence-missing",
+      ],
+      [
+        "accepted-invitation evidence",
+        (d: any) => {
+          d.origin = "external-platform";
+          d.members[0].membership.status = "verified-invitation-accepted";
+          d.members[0].membership.assertion.basis = "external-verified";
+          d.members[0].membership.assertion.evidence.reference = "";
+        },
+        "roster-verification-evidence-missing",
+      ],
+    ])("never lets an empty reference substantiate %s", (_, apply, code) => {
+      expect(() => adaptOrcidRoster(nativeValid(apply))).toThrow(code);
+    });
+
+    it.each([
+      ["display name", (d: any) => (d.members[0].display_name = "")],
+      ["local role", (d: any) => (d.members[0].local_role = "")],
+    ])("still treats an empty unselected %s as a redaction contradiction", (_, apply) => {
+      expect(() => adaptOrcidRoster(nativeValid(apply))).toThrow("roster-redaction-contradiction");
+    });
+
+    it("verifies the digest over the original empty strings, not the normalized nulls", () => {
+      const raw = mutate(rawRoster, (d) => {
+        d.members[0].person_assertion.evidence.source_record_version = null;
+        rehashRoster(d);
+        d.members[0].person_assertion.evidence.source_record_version = "";
+      });
+      expect(validateNative(JSON.parse(raw))).toBe(true);
+      expect(() => adaptOrcidRoster(raw)).toThrow("roster-digest-mismatch");
+    });
   });
 
   it.each([

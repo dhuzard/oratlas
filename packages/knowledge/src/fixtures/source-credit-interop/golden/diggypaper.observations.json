@@ -547,6 +547,7 @@
         "lineageSha256": null
       },
       "nativeBinding": "diggypaper-credit-entry",
+      "sourceEntryId": "credit-entry:credit-c-f1-r1",
       "sourcePaperId": "paper:credit-c",
       "findingOrigin": "ai-paraphrase",
       "sourceSnapshotRef": "snapshot:credit-c-1",
@@ -606,6 +607,7 @@
         "lineageSha256": null
       },
       "nativeBinding": "diggypaper-credit-entry",
+      "sourceEntryId": "credit-entry:credit-a-f1-r2",
       "sourcePaperId": "paper:credit-a",
       "findingOrigin": "source-explicit",
       "sourceSnapshotRef": "snapshot:credit-a-1",
@@ -674,6 +676,7 @@
         "lineageSha256": null
       },
       "nativeBinding": "diggypaper-credit-entry",
+      "sourceEntryId": "credit-entry:credit-b-f1-r1",
       "sourcePaperId": "paper:credit-b",
       "findingOrigin": "ai-paraphrase",
       "sourceSnapshotRef": "snapshot:credit-b-1",
@@ -741,6 +744,7 @@
         "lineageSha256": null
       },
       "nativeBinding": "diggypaper-credit-entry",
+      "sourceEntryId": "credit-entry:credit-a-f2-r1",
       "sourcePaperId": "paper:credit-a",
       "findingOrigin": "reviewer-interpretation",
       "sourceSnapshotRef": "snapshot:credit-a-1",

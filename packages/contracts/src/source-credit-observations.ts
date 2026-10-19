@@ -352,6 +352,8 @@ export const sourceCreditEvidenceV2Schema = z
     observationId: bounded,
     target: sourceCreditTargetSchema,
     nativeBinding: z.enum(["diggypaper-credit-entry", "crt-reviewed-mapping"]),
+    /** Native Diggypaper `entries[].entry_id`; null when the source has none (CRT). */
+    sourceEntryId: bounded.nullable(),
     sourcePaperId: bounded.nullable(),
     findingOrigin: bounded.nullable(),
     sourceSnapshotRef: bounded.nullable(),

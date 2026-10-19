@@ -5,6 +5,7 @@ import {
   SOURCE_CREDIT_OBSERVATIONS_VERSION,
   SOURCE_CREDIT_PRODUCER_PINS,
   isChecksumValidOrcid,
+  sourceCreditEvidenceSchema,
   sourceCreditObservationsAnyVersionSchema,
   sourceCreditObservationsSchema,
   sourceCreditObservationsV2Schema,
@@ -219,6 +220,45 @@ function roster(): any {
 const rejects = (document: unknown) =>
   expect(sourceCreditObservationsV2Schema.safeParse(document).success).toBe(false);
 
+function diggypaperWithEvidence(sourceEntryId: unknown): any {
+  const document = diggypaper();
+  document.evidence = [
+    {
+      observationId: id(SOURCE_CREDIT_PRODUCER_PINS.diggypaper.idPrefix, "evidence", "3"),
+      target,
+      nativeBinding: "diggypaper-credit-entry",
+      sourceEntryId,
+      sourcePaperId: "paper:x",
+      findingOrigin: "source-explicit",
+      sourceSnapshotRef: "snapshot:x",
+      sourceSnapshotSha256: null,
+      phase2FindingSha256: null,
+      citedWork: {
+        doi: null,
+        doiIsExample: false,
+        citeKey: null,
+        authors: [],
+        authorsAre: "bibliographic-citation-metadata",
+      },
+      nativeOrigin: { originId: "packet:x", visibility: "private", disclosure: null },
+      mapping: null,
+      sourceRights: {
+        kind: "diggypaper-paper-rights",
+        license: "CC-BY-4.0",
+        redistribution: "allowed",
+        fullTextIncluded: false,
+        packetLicenses: [],
+      },
+      passages: [],
+      assessmentProtocol: "seip-support-v1",
+      sourceAssessments: [],
+      oratlasAdjudication: "none",
+    },
+  ];
+  document.report = report(3, 1);
+  return document;
+}
+
 describe("source-credit-observations 0.2.0 neutral contract", () => {
   it("accepts minimal well-formed Diggypaper and roster documents", () => {
     expect(sourceCreditObservationsV2Schema.safeParse(diggypaper()).success).toBe(true);
@@ -318,6 +358,60 @@ describe("source-credit-observations 0.2.0 neutral contract", () => {
     ["observations after revocation", (d: any) => (d.sourceDocument.consent.status = "revoked")],
     ["a human assertion channel", (d: any) => d.assertions.push(diggypaper().assertions[0])],
   ])("rejects a roster with %s", (_, apply) => {
+    const document = roster();
+    apply(document);
+    rejects(document);
+  });
+
+  it.each([
+    ["a native entry id", "credit-entry:x"],
+    ["null (no native entry)", null],
+  ])("accepts an evidence sourceEntryId that is %s", (_, sourceEntryId) => {
+    expect(
+      sourceCreditObservationsV2Schema.safeParse(diggypaperWithEvidence(sourceEntryId)).success,
+    ).toBe(true);
+  });
+
+  it.each([
+    ["empty", ""],
+    ["not a string", 7],
+    ["oversize", "x".repeat(501)],
+  ])("rejects an evidence sourceEntryId that is %s", (_, sourceEntryId) => {
+    rejects(diggypaperWithEvidence(sourceEntryId));
+  });
+
+  it("requires evidence sourceEntryId in 0.2.0 and leaves 0.1.0 evidence unchanged", () => {
+    const document = diggypaperWithEvidence("credit-entry:x");
+    delete document.evidence[0].sourceEntryId;
+    rejects(document);
+    expect(Object.keys(sourceCreditEvidenceSchema.shape)).not.toContain("sourceEntryId");
+  });
+
+  it.each([
+    [
+      "display name",
+      (d: any) => {
+        d.sourceDocument.redaction.memberFields = ["display_name", "orcid"];
+        d.candidateContacts[0].displayName = "";
+      },
+    ],
+    [
+      "local role",
+      (d: any) => {
+        d.sourceDocument.redaction.memberFields = ["local_role", "orcid"];
+        d.candidateContacts[0].localRole = "";
+      },
+    ],
+    [
+      "evidence reference",
+      (d: any) => (d.candidateContacts[0].personAssertion.evidence.reference = ""),
+    ],
+    [
+      "evidence record version",
+      (d: any) => (d.candidateContacts[0].personAssertion.evidence.sourceRecordVersion = ""),
+    ],
+    ["declaration ref", (d: any) => (d.candidateCreditClaims[0].role.declarationRef = "")],
+  ])("keeps the neutral contract non-empty: rejects an empty roster %s", (_, apply) => {
     const document = roster();
     apply(document);
     rejects(document);
