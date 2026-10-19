@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { getPrisma } from "@oratlas/db";
+import { signInAs } from "./helpers/auth";
 
 const REVIEW_SLUG = "hippocampal-replay-computational-review";
 const REVIEW = `/reviews/${REVIEW_SLUG}`;
@@ -66,9 +67,7 @@ test.describe("Formal challenge register", () => {
   test("files, records an author response, and resolves with attributable audit evidence", async ({
     page,
   }) => {
-    await page.goto("/signin");
-    await page.getByRole("button", { name: /Sign in as submitter/ }).click();
-    await expect(page).toHaveURL(/\/submit/);
+    await signInAs(page, "submitter");
     await page.goto(REVIEW);
 
     const section = page.locator('[data-register="formal-challenge"]');
@@ -158,9 +157,7 @@ test.describe("Formal challenge register", () => {
     const { id: responseId } = JSON.parse(authorResponse.body) as { id: string };
 
     await page.context().clearCookies();
-    await page.goto("/signin");
-    await page.getByRole("button", { name: /Sign in as editor/ }).click();
-    await expect(page).toHaveURL(/\/editorial/);
+    await signInAs(page, "editor");
     const moderation = await page.evaluate(
       async ({ challengeId, responseId }) => {
         const removeChallenge = await fetch(

@@ -6,6 +6,7 @@ import {
   subgraphEvidencePacketSchema,
   synthesisStalenessAffectedReferenceSchema,
 } from "@oratlas/contracts";
+import { signInAs } from "./helpers/auth";
 
 const firstCommitSha = "d".repeat(40);
 const firstTreeSha = "e".repeat(40);
@@ -46,8 +47,7 @@ test("submitter finalizes a node-only capture and an editor publishes its nodes"
     Number.parseInt(createHash("sha256").update(repositoryName).digest("hex").slice(0, 12), 16),
   );
 
-  await page.goto("/signin");
-  await page.getByRole("button", { name: /Sign in as submitter/ }).click();
+  await signInAs(page, "submitter");
   await expect(page.getByText("atlas-submitter")).toBeVisible();
 
   const { getPrisma } = await import("@oratlas/db");
@@ -173,8 +173,7 @@ test("submitter finalizes a node-only capture and an editor publishes its nodes"
 
   const editorContext = await browser.newContext({ baseURL: test.info().project.use.baseURL });
   const editorPage = await editorContext.newPage();
-  await editorPage.goto("/signin");
-  await editorPage.getByRole("button", { name: /Sign in as editor/ }).click();
+  await signInAs(editorPage, "editor");
   await expect(editorPage.locator("nav").getByText("atlas-editor (editor)")).toBeVisible();
   const oversizedStatus = await editorPage.evaluate(async () => {
     const response = await fetch("/api/editorial/decision", {

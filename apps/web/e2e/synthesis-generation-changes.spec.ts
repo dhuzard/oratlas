@@ -1,5 +1,6 @@
 import { createHash, randomUUID } from "node:crypto";
 import { expect, test, type Page } from "@playwright/test";
+import { signInAs } from "./helpers/auth";
 
 interface BrowserResponse {
   status: number;
@@ -83,9 +84,7 @@ test("reader links to a structured-first diff between two actually accepted gene
   page,
 }) => {
   test.setTimeout(90_000);
-  await page.goto("/signin");
-  await page.getByRole("button", { name: /Sign in as editor/ }).click();
-  await expect(page).toHaveURL(/\/editorial/);
+  await signInAs(page, "editor");
 
   const { getPrisma } = await import("@oratlas/db");
   const prisma = getPrisma();
