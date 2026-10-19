@@ -26,9 +26,9 @@ This narrow, framework-independent slice introduces:
 
 ## Critical trust boundary
 
-The full proposed authorization model is in
+The full authorization model is in
 [`private-workspace-security-architecture.md`](./private-workspace-security-architecture.md)
-(ADR-0001, status: Proposed). This section is the narrow summary for the projector.
+(ADR-0001, accepted by the owner; retention terms provisional). This section is the narrow summary for the projector.
 
 **Do not expose these contracts in an anonymous route or public graph.**
 

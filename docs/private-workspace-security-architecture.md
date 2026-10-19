@@ -1,7 +1,9 @@
 # ADR-0001 — Authorization and non-interference for private research workspaces
 
-- **Status:** **Proposed** (R0 security gate, [ORAtlas #202](https://github.com/dhuzard/oratlas/issues/202)). Not ratified: the
-  owner must accept or amend the decisions in §12 before any R1–R3 storage or API work starts.
+- **Status:** **Accepted by the owner on 2026-10-19** (decisions D1–D11 in §12, recorded from the
+  owner's answers). **D11 (retention and controller/processor roles) is provisional** and must be
+  confirmed by counsel and a data-protection impact assessment (DPIA) before any real workspace data
+  is stored (gate G2). R0 security gate, [ORAtlas #202](https://github.com/dhuzard/oratlas/issues/202).
 - **Version:** `oratlas.private-workspace-adr/0.1.0`
 - **Baseline:** `main` at `f6c834b` (route and schema inventory below was taken from that commit).
 - **Scope:** architecture, policy, protocols and tests only. **No** database model, route,
@@ -512,7 +514,7 @@ the role split. IDs are stable so later PRs can reference them.
 
 ## 12. Decisions requiring owner ratification
 
-Each is a recommendation, not a settled fact.
+The table shows the options considered and the recommendation. The outcome column records the owner's decision.
 
 | #   | Decision                                                                                                            | Recommendation                                             | Alternatives and cost                                                                                                          |
 | --- | ------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
@@ -528,20 +530,36 @@ Each is a recommendation, not a settled fact.
 | D10 | Private audit separate from global `AuditEvent` (§9.6)                                                              | Adopt                                                      | Redacted rows in global table (rejected: F6 and editor readability).                                                           |
 | D11 | Retention defaults in §10 and the controller/processor split                                                        | Adopt as starting point, subject to counsel and a DPIA     | —                                                                                                                              |
 
+### Recorded outcomes (owner, 2026-10-19)
+
+| #   | Outcome                                                                                                                                                                                                 |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| D1  | **Adopted:** separate schema `private_ws` + separate DB role/pool + separate client package, Postgres-only.                                                                                             |
+| D2  | **Adopted:** single `authorize()` enforced at route, service and RLS layers.                                                                                                                            |
+| D3  | **Adopted:** roles `controller`/`member`/`reader` and five independent capabilities.                                                                                                                    |
+| D4  | **Adopted:** membership only by controller grant or accepted invitation; never ORCID, GitHub org, roster or authorship.                                                                                 |
+| D5  | **Adopted:** authorization epochs, no cross-request authorization cache. A server-side session table was not chosen (it may be added later).                                                            |
+| D6  | **Adopted:** per-workspace envelope key via cloud KMS; erasure by crypto-shredding.                                                                                                                     |
+| D7  | **Adopted:** no break-glass access exists until an institution defines and approves a procedure.                                                                                                        |
+| D8  | **Adopted:** external model processing denied by default; per-workspace opt-in; a user BYOK key is not consent.                                                                                         |
+| D9  | **Adopted:** no embeddings and no shared or persistent index over private data until an ADR amendment.                                                                                                  |
+| D10 | **Adopted:** private audit kept in the private store; global `AuditEvent` holds no subject, project or detail.                                                                                          |
+| D11 | **Provisionally adopted:** §10 retention numbers and the institution = controller, ORAtlas = processor assumption stand, **to be confirmed by counsel and a DPIA before any real data is stored (G2).** |
+
 ## 13. Rollout gates and migration consequences
 
 Nothing below is built by this ADR. Each gate must be met, with its tests green in CI, before the
 next starts.
 
-| Gate | Condition                                                                                                                                                              | Unlocks                                                 |
-| ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
-| G0   | This ADR is **ratified** by the owner (§12), including DPIA scope and the controller/processor assumption.                                                             | Any R1 work                                             |
-| G1   | T-IMP, T-ROLE, T-PUB harness and the `private, no-store` helper exist and run in CI against an empty private schema; public contract tests snapshot current responses. | Creating `private_ws` tables                            |
-| G2   | Principal resolution, epochs, `authorize()`, RLS and invitation flow implemented; T-GRID, T-NOINF, T-REV, T-MID, T-CACHE, T-INV pass.                                  | Storing any private content (#204)                      |
-| G3   | Encryption/KMS, private audit, T-ADM, T-LOG, backup-restore leak check pass.                                                                                           | Real connectors (#206, PR B of #209)                    |
-| G4   | Independent security review of §5–§9; penetration test of `/api/private/**`; T-TIME tolerance agreed.                                                                  | Personal discovery (#205)                               |
-| G5   | Capabilities, model policy and release flow implemented with T-CAP, T-LLM, T-INJ, T-ATTR, T-REL passing.                                                               | Cross-project suggestions, release (#207, PR C of #209) |
-| G6   | Per-workspace allowlist, feature flag **default off**, kill switch that seals all private routes, incident runbook.                                                    | Production enablement                                   |
+| Gate | Condition                                                                                                                                                                                                                        | Unlocks                                                 |
+| ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| G0   | Owner decisions D1–D11 recorded (done, 2026-10-19).                                                                                                                                                                              | Any R1 work                                             |
+| G1   | T-IMP, T-ROLE, T-PUB harness and the `private, no-store` helper exist and run in CI against an empty private schema; public contract tests snapshot current responses.                                                           | Creating `private_ws` tables                            |
+| G2   | Principal resolution, epochs, `authorize()`, RLS and invitation flow implemented; T-GRID, T-NOINF, T-REV, T-MID, T-CACHE, T-INV pass. **Plus** counsel and a DPIA have confirmed D11 (retention and controller/processor roles). | Storing any private content (#204)                      |
+| G3   | Encryption/KMS, private audit, T-ADM, T-LOG, backup-restore leak check pass.                                                                                                                                                     | Real connectors (#206, PR B of #209)                    |
+| G4   | Independent security review of §5–§9; penetration test of `/api/private/**`; T-TIME tolerance agreed.                                                                                                                            | Personal discovery (#205)                               |
+| G5   | Capabilities, model policy and release flow implemented with T-CAP, T-LLM, T-INJ, T-ATTR, T-REL passing.                                                                                                                         | Cross-project suggestions, release (#207, PR C of #209) |
+| G6   | Per-workspace allowlist, feature flag **default off**, kill switch that seals all private routes, incident runbook.                                                                                                              | Production enablement                                   |
 
 **Migration consequences.** Additive only: a new schema, role, package and `/api/private/**`
 prefix. No existing table, column, route or response changes. Existing data stays public and
