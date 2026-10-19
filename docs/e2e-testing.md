@@ -39,7 +39,12 @@ also uploads artifacts:
 - `e2e-report-<n>` (14 days): Playwright's JSON report for the shard.
 - `e2e-traces-<n>` (7 days): the shard's `apps/web/test-results` directory, including retry traces.
 
-Download them from the workflow run to inspect a flake. To reproduce one locally, place a report at
+Retrying: the budget and flake rules are enforced by the aggregate `e2e` job from the shard reports.
+Use **Re-run all jobs**. "Re-run failed jobs" would re-run only `e2e` against the same stale
+reports and cannot change the result. (Artifact uploads use `overwrite: true` so a re-run replaces
+the previous report.)
+
+Download the artifacts from the workflow run to inspect a flake. To reproduce one locally, place a report at
 `apps/web/test-results/e2e-results.json` and run `pnpm e2e:budget`.
 
 ## Guided Explore coverage

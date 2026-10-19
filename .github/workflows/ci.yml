@@ -375,6 +375,7 @@ jobs:
           path: ${{ runner.temp }}/e2e-results-${{ matrix.shard }}.json
           if-no-files-found: warn
           retention-days: 14
+          overwrite: true
 
       - name: Upload Playwright traces
         if: always()
@@ -384,6 +385,7 @@ jobs:
           path: apps/web/test-results
           if-no-files-found: ignore
           retention-days: 7
+          overwrite: true
 
   e2e:
     needs: [e2e-agent-contract, e2e-shard]
