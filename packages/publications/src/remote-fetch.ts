@@ -82,7 +82,11 @@ export interface HardenedRemoteFetcherOptions {
   allowNonDefaultPortsForTests?: boolean;
 }
 
-const blockedAddresses = new BlockList();
+// Two lists, one per address family. Node's BlockList matches an IPv4 address
+// against IPv4-mapped IPv6 rules, so a single list holding "::ffff:0:0/96"
+// blocks EVERY IPv4 address. Each family is therefore checked only against its
+// own list; IPv4-mapped IPv6 answers stay blocked outright by the IPv6 list.
+const blockedIpv4 = new BlockList();
 for (const [network, prefix] of [
   ["0.0.0.0", 8],
   ["10.0.0.0", 8],
@@ -92,6 +96,7 @@ for (const [network, prefix] of [
   ["172.16.0.0", 12],
   ["192.0.0.0", 24],
   ["192.0.2.0", 24],
+  ["192.88.99.0", 24],
   ["192.168.0.0", 16],
   ["198.18.0.0", 15],
   ["198.51.100.0", 24],
@@ -99,20 +104,22 @@ for (const [network, prefix] of [
   ["224.0.0.0", 4],
   ["240.0.0.0", 4],
 ] as const) {
-  blockedAddresses.addSubnet(network, prefix, "ipv4");
+  blockedIpv4.addSubnet(network, prefix, "ipv4");
 }
+const blockedIpv6 = new BlockList();
 for (const [network, prefix] of [
   ["::", 128],
   ["::1", 128],
   ["::ffff:0:0", 96],
   ["64:ff9b::", 96],
   ["100::", 64],
+  ["2001::", 23],
   ["2001:db8::", 32],
   ["fc00::", 7],
   ["fe80::", 10],
   ["ff00::", 8],
 ] as const) {
-  blockedAddresses.addSubnet(network, prefix, "ipv6");
+  blockedIpv6.addSubnet(network, prefix, "ipv6");
 }
 
 function normalizedHostname(url: URL): string {
@@ -123,7 +130,7 @@ function normalizedHostname(url: URL): string {
 export function isPublicNetworkAddress(address: string): boolean {
   const family = isIP(address);
   if (family === 0) return false;
-  return !blockedAddresses.check(address, family === 6 ? "ipv6" : "ipv4");
+  return family === 6 ? !blockedIpv6.check(address, "ipv6") : !blockedIpv4.check(address, "ipv4");
 }
 
 function parseExternalUrl(
@@ -300,14 +307,20 @@ export function createHardenedRemoteFetcher(
             Accept: input.acceptedMediaTypes.join(", "),
             "User-Agent": "ORAtlas-publication-registration/1.0",
           },
+          // Answer asynchronously: Node expects a lookup hook to call back on a
+          // later tick, and a synchronous answer followed by an immediate
+          // connect failure (for example EAFNOSUPPORT) surfaces as a TypeError
+          // inside the TLS layer instead of a request error.
           lookup: (_hostname, lookupOptions, callback) => {
-            if (typeof lookupOptions === "object" && lookupOptions.all) {
-              (callback as unknown as (error: null, addresses: LookupAddress[]) => void)(null, [
-                pinned,
-              ]);
-            } else {
-              callback(null, pinned.address, pinned.family);
-            }
+            process.nextTick(() => {
+              if (typeof lookupOptions === "object" && lookupOptions.all) {
+                (callback as unknown as (error: null, addresses: LookupAddress[]) => void)(null, [
+                  pinned,
+                ]);
+              } else {
+                callback(null, pinned.address, pinned.family);
+              }
+            });
           },
         },
         (response) => {
