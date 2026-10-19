@@ -249,7 +249,10 @@ jobs:
         env:
           CHALLENGE_TEST_DATABASE_URL: "postgresql://oratlas:oratlas@localhost:5432/oratlas"
 
-  e2e:
+  # The browser suite runs as six parallel shard jobs, each against its own
+  # freshly seeded database. `e2e` below aggregates them and remains the single
+  # required check that enforces the timing/flake budget.
+  e2e-agent-contract:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -316,30 +319,126 @@ jobs:
             exit 1
           fi
 
+  e2e-shard:
+    name: e2e-shard (${{ matrix.shard }}/6)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4, 5, 6]
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          version: 10.33.0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm --filter @oratlas/db db:generate
+
+      - name: Set up database (push + seed)
+        run: pnpm --filter @oratlas/db db:push && pnpm --filter @oratlas/db db:seed
+
       - name: Install Playwright browser
         run: pnpm --filter @oratlas/web exec playwright install --with-deps chromium
 
       - name: Essential Playwright tests (incl. axe accessibility)
         run: |
-          e2e_status=0
-          for shard in 1 2 3 4 5 6; do
-            E2E_JSON_REPORT="${RUNNER_TEMP}/e2e-results-${shard}.json" \
-              pnpm --filter @oratlas/web test:e2e --shard="${shard}/6" || e2e_status=$?
-          done
-          exit "${e2e_status}"
+          E2E_JSON_REPORT="${RUNNER_TEMP}/e2e-results-${SHARD}.json" \
+            pnpm --filter @oratlas/web test:e2e --shard="${SHARD}/6"
         env:
+          SHARD: ${{ matrix.shard }}
           PLAYWRIGHT_CHROMIUM: ""
           LLM_PROVIDER: ""
           LLM_MODEL: ""
           ANTHROPIC_API_KEY: ""
 
+      - name: Upload shard report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: e2e-report-${{ matrix.shard }}
+          path: ${{ runner.temp }}/e2e-results-${{ matrix.shard }}.json
+          if-no-files-found: warn
+          retention-days: 14
+          overwrite: true
+
+      - name: Upload Playwright traces
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: e2e-traces-${{ matrix.shard }}
+          path: apps/web/test-results
+          if-no-files-found: ignore
+          retention-days: 7
+          overwrite: true
+
+  e2e:
+    needs: [e2e-agent-contract, e2e-shard]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          version: 10.33.0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Download shard reports
+        if: always()
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: e2e-report-*
+          path: ${{ runner.temp }}/e2e-reports
+          merge-multiple: true
+
       - name: Enforce E2E wall-time and flake budget
         if: always()
         run: |
+          reports="${RUNNER_TEMP}/e2e-reports"
           pnpm exec tsx scripts/check-e2e-budget.ts \
-            "${RUNNER_TEMP}/e2e-results-1.json" \
-            "${RUNNER_TEMP}/e2e-results-2.json" \
-            "${RUNNER_TEMP}/e2e-results-3.json" \
-            "${RUNNER_TEMP}/e2e-results-4.json" \
-            "${RUNNER_TEMP}/e2e-results-5.json" \
-            "${RUNNER_TEMP}/e2e-results-6.json"
+            "${reports}/e2e-results-1.json" \
+            "${reports}/e2e-results-2.json" \
+            "${reports}/e2e-results-3.json" \
+            "${reports}/e2e-results-4.json" \
+            "${reports}/e2e-results-5.json" \
+            "${reports}/e2e-results-6.json"
+
+      - name: Require every E2E job to have succeeded
+        if: always()
+        env:
+          AGENT_CONTRACT_RESULT: ${{ needs.e2e-agent-contract.result }}
+          SHARDS_RESULT: ${{ needs.e2e-shard.result }}
+        run: |
+          if [[ "${AGENT_CONTRACT_RESULT}" != "success" || "${SHARDS_RESULT}" != "success" ]]; then
+            echo "agent contract: ${AGENT_CONTRACT_RESULT}; shards: ${SHARDS_RESULT}"
+            exit 1
+          fi
