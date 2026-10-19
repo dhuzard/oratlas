@@ -1,18 +1,21 @@
 ## Summary
 
-Repair two findings from offline source-credit adapter review (#209):
+Offline source-credit implementation and repair across two commits (b6381a1 + 91e557a):
 
-1. **Diggypaper native entry IDs preserved:** Added `sourceEntryId: bounded.nullable()` field to 0.2.0 evidence projection. Diggypaper emits the native `entries[].entry_id`; CRT emits `null`. Maintains granular author credit provenance without breaking compatibility.
+**b6381a1 — 0.2.0 implementation:** Versioned source-credit observations with structured native provenance. Adapters emit oratlas.source-credit-observations/0.2.0 (legacy 0.1.0 kept unchanged, version-gated). Adds:
+- Contract: producer pins (contract + commit + id prefix), ORCID checksum/status/evidence agreement, example-DOI flag, roster member-field redaction and offline elevation rules, sorted unique collision-free IDs, report count consistency, separate legacy-label counts, producer-declared omissions
+- Diggypaper: frozen shape constants, producer/audience/release/export-status provenance, finding origin, snapshot ref, rights, agent type, contribution ID distinct from person ID
+- CRT: passage disclosure, assessment protocol/status/curator pseudonym, structured mapping decision, disclosure facts, agent ID distinct from run, legacy role labels preserved and counted
+- ORCID: frozen validate_export consent/redaction/elevation rules, ORCID status and assertion provenance, output DOI/rights on credit claims
+- 13 PINS byte-pinned fixture/schema files, full goldens, nested-permutation and negative tests
 
-2. **ORCID roster: accept frozen-schema-valid empty strings:** Removed extra `minLength: 1` constraints that rejected documents valid under the pinned frozen schema. Empty fields become `null` before validation, never substantiating verification. Neutral contract output remains non-empty.
+**91e557a — Repairs:** Two findings from prior review:
+1. **Diggypaper entry IDs:** Added `sourceEntryId: bounded.nullable()` to 0.2.0 evidence. Diggypaper emits native `entries[].entry_id`; CRT emits `null`. Maintains granular author credit provenance without breaking compatibility.
+2. **ORCID empty strings:** Removed extra `minLength: 1` constraints rejecting frozen-schema-valid documents. Empty fields become `null` before validation, never substantiating verification. Neutral contract output remains non-empty.
 
-Both repairs are **additive and non-breaking:**
+**Migration:** 0.2.0 has explicit version gate; 0.1.0 unchanged and valid.
 
-- Evidence 0.2.0 schema unchanged except for new field (0.1.0 legacy untouched)
-- No producer contract changes (Diggypaper/CRT/ORCID pins stable)
-- Goldens regenerated from exact upstream commits; byte-pins verified
-
-Fixes #209. Unblocks #198 #199 (existing integrations). Prerequisites #204 #206 remain for private workspaces and real data.
+Refs #209, #198, #199, #204, #206. Note: #198/#199 existing integration is not blocked/unblocked by #209. #204/#206 require owner §14 ratification (independent prerequisite for private workspaces and real data). #203 local identity, workspace grants/source entitlements/revocation/processing/release security evidence and D11 counsel/DPIA before real private data. G4 synthetic only; real curation/rights and browser gaps remain. No runtime activated.
 
 ## Testing
 
@@ -30,7 +33,7 @@ pnpm evidence-lineage:verify  # 21 files verified
 
 Result: all pass. Fixture byte-pins (Diggypaper, CRT, ORCID) match upstream exactly.
 
-**Build:** Pending. Requires `NEXT_PUBLIC_BASE_URL` env var (not a code issue).
+**Build:** PASSED with CI environment (NEXT_PUBLIC_BASE_URL set). Initial failure due missing Prisma client resolved on parent re-run. CSS ::highlight warning non-fatal. See `/tmp/oratlas209-validation/ci-build.log`.
 
 ## Validation evidence
 
@@ -38,7 +41,7 @@ See `docs/source-credit-209-validation.md` for full review findings, repair deta
 
 ## Rollback
 
-Straightforward: revert commit, regenerate 0.2.0 goldens. No migrations, no breaking API changes.
+Straightforward via normal reviewed revert of whole implementation+repair changes. No need regenerate goldens. No migrations, no breaking API changes.
 
 ---
 
