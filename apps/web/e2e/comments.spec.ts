@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { signInAs } from "./helpers/auth";
 
 const REVIEW = "/reviews/hippocampal-replay-computational-review";
 
@@ -27,9 +28,7 @@ test.describe("Open discussion", () => {
   });
 
   test("a signed-in user can post a comment that persists", async ({ page }) => {
-    await page.goto("/signin");
-    await page.getByRole("button", { name: /Sign in as submitter/ }).click();
-    await expect(page).toHaveURL(/\/submit/);
+    await signInAs(page, "submitter");
 
     await page.goto(REVIEW);
     await page.waitForLoadState("networkidle");
@@ -93,9 +92,7 @@ test.describe("Open discussion", () => {
   });
 
   test("a contextual claim action preselects the discussion subject", async ({ page }) => {
-    await page.goto("/signin");
-    await page.getByRole("button", { name: /Sign in as submitter/ }).click();
-    await expect(page).toHaveURL(/\/submit/);
+    await signInAs(page, "submitter");
     await page.goto(`${REVIEW}?commentOn=claim-001#community-review`);
 
     await expect(page.getByLabel("About")).toHaveValue("claim-001");

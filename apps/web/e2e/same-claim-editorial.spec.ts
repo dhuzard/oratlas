@@ -2,6 +2,7 @@ import { test, expect } from "@playwright/test";
 import { canonicalJson } from "@oratlas/contracts";
 import { getPrisma } from "@oratlas/db";
 import { proposeNodeIdentities } from "@oratlas/knowledge";
+import { signInAs } from "./helpers/auth";
 
 const prisma = getPrisma();
 
@@ -58,9 +59,7 @@ test("seeded claims in two reviews can be confirmed or rejected without merging"
   await proposalFor(confirmedTarget.nodeId);
   await proposalFor(rejectedTarget.nodeId);
 
-  await page.goto("/signin");
-  await page.getByRole("button", { name: /Sign in as editor/ }).click();
-  await expect(page).toHaveURL(/\/editorial/);
+  await signInAs(page, "editor");
 
   const confirmCard = page
     .locator("article.claim-card")

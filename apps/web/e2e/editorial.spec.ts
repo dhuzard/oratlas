@@ -1,27 +1,22 @@
 import { test, expect } from "@playwright/test";
+import { signInAs } from "./helpers/auth";
 
 test.describe("Editorial workflow (mock auth)", () => {
   test("submitter mock sign-in reaches the submission wizard", async ({ page }) => {
-    await page.goto("/signin");
-    await page.getByRole("button", { name: /Sign in as submitter/ }).click();
-    await expect(page).toHaveURL(/\/submit/);
+    await signInAs(page, "submitter");
     await expect(page.getByRole("heading", { level: 1 })).toContainText(
       "Deposit a review or knowledge nodes",
     );
   });
 
   test("editor can sign in and see the editorial dashboard with audit log", async ({ page }) => {
-    await page.goto("/signin");
-    await page.getByRole("button", { name: /Sign in as editor/ }).click();
-    await expect(page).toHaveURL(/\/editorial/);
+    await signInAs(page, "editor");
     await expect(page.getByRole("heading", { name: "Editorial dashboard" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Audit log" })).toBeVisible();
   });
 
   test("editor accepts a pending submission and it appears in the archive", async ({ page }) => {
-    await page.goto("/signin");
-    await page.getByRole("button", { name: /Sign in as editor/ }).click();
-    await expect(page).toHaveURL(/\/editorial/);
+    await signInAs(page, "editor");
     await expect(
       page
         .getByText(/Atlas structurally verified|Repository\/source-native — not verified by Atlas/)

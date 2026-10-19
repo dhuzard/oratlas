@@ -1,11 +1,10 @@
 import { expect, test } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { SYNTHESIS_PUBLIC_AI_LABEL, SYNTHESIS_PUBLIC_SCOPE_NOTICE } from "@oratlas/contracts";
+import { signInAs } from "./helpers/auth";
 
 test("editor gates generated, rejected, and accepted synthesis drafts", async ({ page }) => {
-  await page.goto("/signin");
-  await page.getByRole("button", { name: /Sign in as editor/ }).click();
-  await expect(page).toHaveURL(/\/editorial/);
+  await signInAs(page, "editor");
 
   const { getPrisma } = await import("@oratlas/db");
   const prisma = getPrisma();
