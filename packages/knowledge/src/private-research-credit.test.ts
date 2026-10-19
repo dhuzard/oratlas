@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { PRIVATE_CROSS_FINDING_VERSION } from "@oratlas/contracts";
+import { PRIVATE_CROSS_FINDING_VERSION, privateCrossFindingSchema } from "@oratlas/contracts";
 import {
   projectPersonalResearchCredit,
+  type AuthorizePrivateResearchProject,
   type PrivateResearchPermissionRequest,
 } from "./private-research-credit.js";
 
@@ -81,74 +82,146 @@ function checker(grants: Set<string>) {
     grants.has(projectId + ":" + permission);
 }
 
-const both = () =>
-  new Set([
-    "project:A:read",
-    "project:A:cross-project-process",
-    "project:B:read",
-    "project:B:cross-project-process",
-  ]);
+/** Records every request; answers from `grants`. */
+function recordingChecker(grants: Set<string>) {
+  const calls: PrivateResearchPermissionRequest[] = [];
+  const authorize: AuthorizePrivateResearchProject = (request) => {
+    calls.push(request);
+    return grants.has(request.projectId + ":" + request.permission);
+  };
+  return { authorize, calls };
+}
+
+const GRANTS = [
+  "project:A:read",
+  "project:A:cross-project-process",
+  "project:B:read",
+  "project:B:cross-project-process",
+] as const;
+
+const both = () => new Set<string>(GRANTS);
+
+const PRIVATE_TEXT = ["Private A curator", "Private B author", "finding:A", "claim:B"];
+
+function expectNothingDisclosed(result: unknown) {
+  expect(result).toBeNull();
+  for (const text of PRIVATE_TEXT) expect(JSON.stringify(result)).not.toContain(text);
+}
 
 describe("permission-aware personal cross-project attribution", () => {
-  it("returns the exact source and credit trail only for its owner with both grants", async () => {
+  it("returns the exact, unchanged strict DTO to the owner holding all four grants", async () => {
     const result = await projectPersonalResearchCredit(candidate(), "user:R", checker(both()));
-    expect(result).toMatchObject({
-      ownerSubjectId: "user:R",
-      state: "candidate",
-      visibility: "owner-only",
-    });
-    expect(result?.sources.map((source) => source.projectId)).toEqual(["project:A", "project:B"]);
-    expect(result?.credit.map((assertion) => assertion.person.displayName)).toEqual([
-      "Private A curator",
-      "Private B author",
+    expect(result).toEqual(privateCrossFindingSchema.parse(candidate()));
+    expect(result).toEqual(candidate());
+    expect(
+      result?.sources.map(({ projectId, artifactId, artifactVersion, artifactSha256 }) => ({
+        projectId,
+        artifactId,
+        artifactVersion,
+        artifactSha256,
+      })),
+    ).toEqual([
+      {
+        projectId: "project:A",
+        artifactId: "finding:A",
+        artifactVersion: "revision:2",
+        artifactSha256: sha("a"),
+      },
+      {
+        projectId: "project:B",
+        artifactId: "claim:B",
+        artifactVersion: "review-version:1",
+        artifactSha256: sha("b"),
+      },
     ]);
-    expect(result?.activities[0]?.actorKind).toBe("software");
+    // Credit stays an asserted, source-declared claim; nothing is upgraded to confirmed.
+    expect(
+      result?.credit.map((c) => [c.person.displayName, c.assertionStatus, c.assertionOrigin]),
+    ).toEqual([
+      ["Private A curator", "proposed", "source-declared"],
+      ["Private B author", "proposed", "source-declared"],
+    ]);
+    // Software provenance stays software: no ORCID, no CRediT human role.
+    expect(result?.activities).toEqual([
+      expect.objectContaining({ actorKind: "software", softwareId: "agent:compare" }),
+    ]);
+    expect(JSON.stringify(result?.activities)).not.toMatch(/orcid|creditRole/iu);
   });
 
-  it("never reveals a personal insight to another member, even with both project grants", async () => {
-    let invoked = false;
-    const result = await projectPersonalResearchCredit(candidate(), "user:A-only", () => {
-      invoked = true;
-      return true;
-    });
-    expect(result).toBeNull();
-    expect(invoked).toBe(false);
+  it("asks for read and cross-project-process per source project, with project ids only", async () => {
+    // Observed current contract: the callback never receives artifact ids, versions or hashes,
+    // so it cannot enforce exact-object, class or withheld-content policy by itself.
+    const { authorize, calls } = recordingChecker(both());
+    await projectPersonalResearchCredit(candidate(), "user:R", authorize);
+    expect(calls).toEqual([
+      { principalId: "user:R", projectId: "project:A", permission: "read" },
+      { principalId: "user:R", projectId: "project:A", permission: "cross-project-process" },
+      { principalId: "user:R", projectId: "project:B", permission: "read" },
+      { principalId: "user:R", projectId: "project:B", permission: "cross-project-process" },
+    ]);
   });
 
-  it("fails closed if an A+B member loses B access on a subsequent request", async () => {
+  it.each([
+    ["owner holding only project A grants", ["project:A:read", "project:A:cross-project-process"]],
+    ["owner holding only project B grants", ["project:B:read", "project:B:cross-project-process"]],
+    ["owner holding no grants", []],
+  ])("returns null for the %s", async (_label, grants) => {
+    expectNothingDisclosed(
+      await projectPersonalResearchCredit(candidate(), "user:R", checker(new Set(grants))),
+    );
+  });
+
+  it.each(GRANTS)("returns null when only %s is missing", async (missing) => {
+    const grants = both();
+    grants.delete(missing);
+    expectNothingDisclosed(
+      await projectPersonalResearchCredit(candidate(), "user:R", checker(grants)),
+    );
+  });
+
+  it.each(GRANTS)("fails closed on the next request after %s is revoked", async (revoked) => {
     const grants = both();
     expect(
       await projectPersonalResearchCredit(candidate(), "user:R", checker(grants)),
     ).not.toBeNull();
-    grants.delete("project:B:read");
-    const revoked = await projectPersonalResearchCredit(candidate(), "user:R", checker(grants));
-    expect(revoked).toBeNull();
-    expect(JSON.stringify(revoked)).not.toContain("Private B author");
+    grants.delete(revoked);
+    expectNothingDisclosed(
+      await projectPersonalResearchCredit(candidate(), "user:R", checker(grants)),
+    );
   });
 
-  it("requires independent cross-project processing consent from both projects", async () => {
-    const grants = both();
-    grants.delete("project:B:cross-project-process");
-    expect(await projectPersonalResearchCredit(candidate(), "user:R", checker(grants))).toBeNull();
-    grants.add("project:B:cross-project-process");
-    grants.delete("project:A:cross-project-process");
-    expect(await projectPersonalResearchCredit(candidate(), "user:R", checker(grants))).toBeNull();
+  it.each([
+    ["anonymous (null)", null],
+    ["anonymous (undefined)", undefined],
+    ["anonymous (empty principal)", ""],
+    ["non-owner A+B member holding every grant", "user:Q"],
+    // Labels only: these principal ids carry no authority in the projector, and these cases say
+    // nothing about database, KMS or infrastructure isolation.
+    ["platform-admin label with no membership", "user:platform-admin"],
+    ["infra-admin label with no membership", "user:infra-admin"],
+  ])("returns null for %s without invoking authorize", async (_label, principal) => {
+    const { authorize, calls } = recordingChecker(both());
+    expectNothingDisclosed(await projectPersonalResearchCredit(candidate(), principal, authorize));
+    expect(calls).toEqual([]);
   });
 
-  it("treats authorization failure and unknown/principal-less requests as not found", async () => {
-    expect(
-      await projectPersonalResearchCredit(candidate(), "user:R", () => {
+  it("treats a synchronous throw, async rejection or non-boolean answer as not found", async () => {
+    for (const authorize of [
+      () => {
         throw Error("Membership provider unavailable");
-      }),
-    ).toBeNull();
-    expect(await projectPersonalResearchCredit(candidate(), null, () => true)).toBeNull();
+      },
+      () => Promise.reject(new Error("Membership provider unavailable")),
+      async () => {
+        throw new Error("Consent service timeout");
+      },
+      () => ({ permitted: true }) as unknown as boolean,
+      () => Promise.resolve("true" as unknown as boolean),
+    ] satisfies AuthorizePrivateResearchProject[]) {
+      expectNothingDisclosed(await projectPersonalResearchCredit(candidate(), "user:R", authorize));
+    }
     expect(
-      await projectPersonalResearchCredit(
-        candidate(),
-        "user:R",
-        () => ({ permitted: true }) as unknown as boolean,
-      ),
-    ).toBeNull();
+      await projectPersonalResearchCredit(candidate(), "user:R", async () => true),
+    ).not.toBeNull();
   });
 
   it("rejects malformed, public-looking or same-project records without disclosing content", async () => {

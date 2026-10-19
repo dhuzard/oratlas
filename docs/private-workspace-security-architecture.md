@@ -4,7 +4,12 @@
   owner's answers). **D11 (retention and controller/processor roles) is provisional** and must be
   confirmed by counsel and a data-protection impact assessment (DPIA) before any real workspace data
   is stored (gate G2). R0 security gate, [ORAtlas #202](https://github.com/dhuzard/oratlas/issues/202).
-- **Version:** `oratlas.private-workspace-adr/0.1.0`
+- **Version:** `oratlas.private-workspace-adr/0.1.0` (accepted text, §1–§13).
+  **Proposed follow-up:** `oratlas.private-workspace-adr/0.2.0-proposed` adds §14 only. §14 is
+  **PROPOSED, pending owner ratification**; the G0 acceptance of D1–D11 on 2026-10-19 does **not**
+  ratify it. Sections whose original wording §14 corrects carry a "Proposed correction" note; the
+  original wording is kept as the historical record. Evidence ledger:
+  [`private-workspace-r0-review.md`](./private-workspace-r0-review.md).
 - **Baseline:** `main` at `f6c834b` (route and schema inventory below was taken from that commit).
 - **Scope:** architecture, policy, protocols and tests only. **No** database model, route,
   authentication provider, UI, job or index is added by this document.
@@ -113,6 +118,11 @@ private objects are excluded by construction.
 | Logs, metrics, traces (`log.ts`, request id), `AuditEvent`, error bodies                                                        | Structured JSON logs; global audit table (F6)  | Opaque IDs only; no private names, titles, quotes, counts or workspace labels. Private audit lives in the private store (§9.6).                                               |
 | Notifications and email/push                                                                                                    | In-app notifications                           | None sent about private objects to anyone other than the authorized recipient; never cross-group (§9.7).                                                                      |
 
+> **Proposed correction (§14.3, pending ratification).** The Backups row overstates erasure:
+> deleting a live wrapped data key does not make backed-up ciphertext unreadable while any copy of
+> that wrapped key (in backups, replicas or recovery material) and a key-encryption key version
+> able to unwrap it still exist.
+
 ## 4. Identity, principals and authorization subjects
 
 ### 4.1 Vocabulary
@@ -195,6 +205,8 @@ authorize(subject, action, object, purpose, context) -> Allow | Deny
   current membership, grant and epoch rows. Unknown action, unknown object class, missing grant
   and any error all return `Deny`.
 - **The reason is internal.** The HTTP response, logs and metrics see only `Deny` or `Allow`.
+- _Proposed (§14.4, pending ratification): a precedence order for membership, workspace
+  capabilities, narrowing restrictions, `owner-only` and `withheld`._
 
 Enforced three times, each independently sufficient to stop a leak:
 
@@ -257,6 +269,12 @@ A cell reading "—" means the response is the generic `404` and carries no coun
 cursors, ranks, timing signal or "something exists" hint, including in pagination metadata and
 `Link` headers.
 
+> **Proposed correction (§14.5, pending ratification).** The "Infra admin" row applies only to a
+> database or backup administrator without KMS decrypt rights and without deploy rights; such a
+> person still learns ciphertext sizes, volumes, write timing, access patterns and links between
+> opaque IDs. Anyone who can deploy code or change KMS/IAM bindings is outside this row (§7 honest
+> limit).
+
 ### 6.3 Cross-project processing (personal suggestions)
 
 A personal suggestion is a hypothesis connecting an object in workspace A and an object in
@@ -280,6 +298,10 @@ workspace B, generated for one subject `P`.
    withdraws `cross-project-process`, the suggestion becomes **sealed**: reads return the generic
    `404`, queued jobs and short-lived URLs for it fail on epoch mismatch (§8), and its content key
    is destroyed after a short, documented grace period (§10). It is never auto-regenerated.
+   _Proposed correction (§14.2, §14.3, pending ratification): "immediate" means every finalization
+   ordered after the revocation commit fails; bytes already released cannot be recalled. Sealing
+   is an application decision, not KMS denial, and key destruction erases the suggestion only if
+   it has its own independently erasable key and every copy of it is covered._
 5. **No transitivity.** `P` reading A and B does not let `P` forward, export or release the
    result; those are separate capabilities (§6.5).
 6. **Schema reuse.** The record format is #208's `oratlas.private-cross-finding/0.1.0`; the
@@ -328,10 +350,14 @@ Platform `ADMIN`/`EDITOR` and infrastructure access are **operator duties**, not
   with an **envelope key per workspace** (data key wrapped by a cloud KMS key). The private
   service identity alone may unwrap; ordinary database administrators and backup operators see
   ciphertext and opaque IDs. Deleting a workspace key crypto-shreds its data, including in
-  backups.
+  backups. _Proposed correction (§14.3, §14.5, pending ratification): this holds only when either every
+  key-encryption key version or every wrapped-key copy (live, backup, replica, recovery) is
+  destroyed and no plaintext cache survives (§14.3); ciphertext and opaque IDs still leak metadata._
 - **Honest limit.** An operator who can deploy arbitrary code or alter the private service
   identity can ultimately obtain plaintext. This ADR does not claim to prevent that. It reduces
-  routine exposure, makes access deliberate and observable, and bounds duration.
+  routine exposure, makes access deliberate and observable, and bounds duration. _Proposed
+  clarification (§14.5): the same limit applies to anyone who can change KMS key policy or IAM
+  bindings for the decrypt permission._
 - **Break-glass (only if institutionally required).** Requires: a recorded legal/institutional
   basis; two-person approval, neither being the requesting engineer; a time-boxed grant (hours,
   not days) scoped to named workspaces; a read-only role; an **independent append-only log**
@@ -357,6 +383,13 @@ public cookie format for public use:
   persisting a result; a transaction reads membership and epoch under a consistent snapshot so a
   mid-request revocation is seen no later than the final commit. The pure projector cannot
   guarantee atomicity across providers (as #208 notes), so the service layer owns this check.
+
+  > **Proposed correction (§14.2, pending ratification).** The sentence "a transaction reads
+  > membership and epoch under a consistent snapshot so a mid-request revocation is seen no later
+  > than the final commit" is not true as written: a snapshot taken before a concurrent epoch bump
+  > does not see that bump, so the request can still commit or respond after the revocation has
+  > committed. §14.2 replaces it with a fenced, service-owned finalization requirement.
+
 - **Private-scope session age.** Private routes additionally require the session `iat` to be within
   a configurable window (proposed 24 h) and ask for re-authentication beyond it, without shortening
   the public 7-day session.
@@ -462,6 +495,9 @@ Source-native `confirmed` / `verified` / `public` values from producers (#210) a
 - **Retention defaults (proposed).** Private audit: 2 years. Sealed suggestions: key destroyed 30
   days after sealing. Closed workspaces: controller-chosen, default 90 days then key destruction.
   Backups: ciphertext only; key destruction makes them unreadable within the backup horizon.
+  _Proposed correction (§14.3, pending ratification): only if the destroyed key material covers
+  every key version and wrapped-key copy the backups depend on; otherwise erasure completes only
+  when those backups and copies expire._
 - **Public vs private erasure.** Unlike the immutable public ledger (F7), private data is
   **erasable**. Private content must never be copied into the public ledger, snapshots, exports
   or audit tables, because those cannot be erased.
@@ -498,6 +534,12 @@ the role split. IDs are stable so later PRs can reference them.
 | T-ROSTER | Import an ORCID roster (#210)                                                                                                                                                          | Candidate contacts only; no membership, no verified account, no access.                                                                        |
 | T-LOG    | Run all of the above with debug logging                                                                                                                                                | No private title, quote, name or workspace label in logs, metrics or global `AuditEvent`.                                                      |
 | T-PUBBC  | Existing public contract and regression suites, #208 tests, #210 tests                                                                                                                 | Pass unchanged.                                                                                                                                |
+
+> **Proposed corrections to this matrix (§14.6, pending ratification).** T-MID's expected result
+> ("no data returned after the epoch bump") is not achievable for bytes already released; §14.2
+> restates it. T-ADM can only evaluate the database/backup administrator case (§14.5). T-IMP has a
+> bounded static precursor in `scripts/architecture-boundaries.test.ts`; that precursor is not
+> T-IMP and not proof that a public endpoint cannot reach private data.
 
 ### Acceptance criteria from #202
 
@@ -546,6 +588,10 @@ The table shows the options considered and the recommendation. The outcome colum
 | D10 | **Adopted:** private audit kept in the private store; global `AuditEvent` holds no subject, project or detail.                                                                                          |
 | D11 | **Provisionally adopted:** §10 retention numbers and the institution = controller, ORAtlas = processor assumption stand, **to be confirmed by counsel and a DPIA before any real data is stored (G2).** |
 
+The outcomes above are the historical record and are not changed by the follow-up review. The
+refinements in §14 are **separate proposals awaiting ratification**; they are not D1–D11 outcomes,
+and the 2026-10-19 acceptance does not cover them.
+
 ## 13. Rollout gates and migration consequences
 
 Nothing below is built by this ADR. Each gate must be met, with its tests green in CI, before the
@@ -561,6 +607,12 @@ next starts.
 | G5   | Capabilities, model policy and release flow implemented with T-CAP, T-LLM, T-INJ, T-ATTR, T-REL passing.                                                                                                                         | Cross-project suggestions, release (#207, PR C of #209) |
 | G6   | Per-workspace allowlist, feature flag **default off**, kill switch that seals all private routes, incident runbook.                                                                                                              | Production enablement                                   |
 
+> **Proposed correction (§14.1, pending ratification).** As written, G2 unlocks storing private
+> content before G3 delivers encryption, private audit, T-ADM, T-LOG and the backup-restore leak
+> check. §14.1 proposes that G2 alone unlocks synthetic, fixture-only data, and that **both G2 and
+> G3** are required before any real private content is stored. G4–G6 and the default-off flag and
+> kill switch are unchanged.
+
 **Migration consequences.** Additive only: a new schema, role, package and `/api/private/**`
 prefix. No existing table, column, route or response changes. Existing data stays public and
 unchanged. Rolling back is dropping the feature flag and sealing the routes; because private data
@@ -571,3 +623,163 @@ sits in its own encrypted namespace it can be destroyed without touching the pub
 invitations but is not an access input. #204 implements §5.1 and §5.2. #206 and PR B of #209 bind
 validated source observations to a workspace through the §4.3 entitlement; PR C of #209 and #207
 implement §6.3–§6.5. #208's projector and #210's adapters are consumed unchanged.
+
+## 14. Proposed refinements from the R0 follow-up review (PROPOSED — pending owner ratification)
+
+> **Status: PROPOSED.** This section comes from the R0 follow-up review
+> ([`private-workspace-r0-review.md`](./private-workspace-r0-review.md)). It is **not accepted**.
+> The owner's 2026-10-19 acceptance of D1–D11 (gate G0) does not ratify anything here, and D11
+> remains provisional. Each subsection names the earlier text it would correct; that text stays
+> in place as the historical record. Until the owner rules, the review recommends that R1 work
+> follow whichever of the earlier text and this section is stricter. That recommendation is itself
+> part of the proposal.
+
+Nothing in this section is implemented. It states requirements for future work and corrects
+claims that were stronger than the design can deliver. It gives no universal security, privacy
+or timing guarantee.
+
+### 14.1 Gate ordering: no real private content before encryption (corrects §13 G2/G3)
+
+Problem: G2 unlocks "storing any private content (#204)" while encryption/KMS, private audit,
+T-ADM, T-LOG and the backup-restore leak check arrive only with G3. Real private content could
+therefore be written in plaintext, logged or backed up before the controls that protect it exist.
+
+Proposed rule:
+
+1. G2 alone unlocks **synthetic, fixture-only** private rows: generated test data with no real
+   person, project, title, membership or source content, in CI or local development only.
+2. Storing **any real private content or metadata** (including names, titles, membership and
+   source-tool packets) requires **both G2 and G3** to be complete, plus the counsel/DPIA
+   confirmation of D11 that G2 already requires.
+3. G4, G5 and G6 are unchanged and still gate their features. Production enablement still requires
+   G6: per-workspace allowlist, feature flag **default off**, a kill switch that seals all private
+   routes, and an incident runbook. Nothing here relaxes them.
+
+### 14.2 Revocation, finalization and in-flight work (corrects §8 "In-flight work", §6.3 item 4, T-MID)
+
+Problem: §8 says a transaction under a consistent snapshot sees a mid-request revocation "no later
+than the final commit". A snapshot does not see an epoch bump committed after it began, so on its
+own it cannot order a revocation against a concurrent read, write, job or response.
+
+Proposed requirement (service layer; not implemented):
+
+1. **Revocation point.** A revocation takes effect at the commit of the epoch bump (membership,
+   entitlement, capability or `user.authz_epoch`).
+2. **Fenced finalization.** Every externally visible effect is a _finalization_: persisting a
+   derived result, releasing a response body or page, starting or continuing a job stage, and
+   issuing a derived credential (URL, ticket, token). A finalization succeeds only if it holds a
+   **shared, conflicting fence or lock with revocation that covers the actual finalization
+   boundary**: the persistence commit, the release of the response, and each job-stage effect. The
+   revoker and every finalizer must contend on the same fence, so that one of them waits for or
+   fails against the other, and the finalizer must not release or persist after its check has gone
+   stale.
+   - A serialization order is not a real commit or release order. A finalizer that read the old
+     epoch and a revoker that committed afterwards are still serializable as finalizer-then-revoker,
+     even though the finalizer's derived write or response commits or leaves **after** the
+     revocation. So `SERIALIZABLE` isolation with retries is **not sufficient** on its own, and
+     neither is a predicate that merely reads the epoch row: a read of a row the revoker later
+     updates conflicts with nothing the finalizer wrote.
+   - The mechanism is an implementation choice and is not specified here. The requirement is the
+     ordering property, enforced at the boundary where bytes, rows or job effects actually leave
+     the service, and demonstrated by the deterministic interleaving tests of item 6.
+3. **Guarantee offered.** Each finalization is ordered either before the revocation commit (it was
+   authorized when it happened) or after it (it fails with the generic not-found result, or the
+   job aborts with nothing persisted).
+4. **Limits stated plainly.** Bytes released before the revocation commit **cannot be recalled**.
+   A response that was finalized just before the revocation may still reach the client. The pure
+   projector (#208) does not provide this ordering, and nothing in R0 implements it.
+5. **Streaming.** Streaming, long-poll and incremental responses need a separate specification of
+   their authorization boundary (for example, each chunk or page as its own finalization) before
+   any such private route exists.
+6. **T-MID as proposed:** revoke during an in-flight job and a paginated read, using deterministic
+   interleavings (barriers or hooks, not wall-clock timing). Expected: every finalization ordered
+   after the revocation commit fails; no partial derived result is persisted after that point;
+   pages released before it are recorded as released, not claimed to be recalled.
+
+### 14.3 Key lifecycle and crypto-erasure (corrects §3.2 Backups, §6.3 item 4, §7, §10)
+
+Problem: with envelope encryption, a data key (DEK) is stored wrapped by a KMS key-encryption key
+(KEK). Deleting the **live** wrapped DEK does not destroy wrapped copies held in backups, replicas,
+point-in-time-recovery logs, exports or restore-drill environments. Those copies stay decryptable
+for as long as a KEK version that wrapped them is usable. Sealing (an epoch bump) is an application
+decision; it does not revoke the service identity's KMS decrypt permission.
+
+Proposed rule:
+
+1. "Crypto-erased" may be claimed for an erasure unit only when **both** hold:
+   - _either_ every KEK version able to unwrap its DEK is destroyed (after the provider's
+     scheduled-destruction window), _or_ every wrapped-DEK copy is destroyed (live, backup,
+     replica, PITR, export, drill, and recovery or escrow material); **and**
+   - no plaintext survives in caches, temporary files, logs, search state or a model provider's
+     retention.
+
+   Until then the record is **sealed**, not erased, and documents must say so.
+
+2. Erasure that relies on backups expiring completes only at the end of the backup horizon. The
+   retention table must state that date, not the key-deletion date.
+3. **Derived-record keys.** Each subject-owned personal suggestion (§6.3) should have an
+   **independently erasable key**, so it can be erased without destroying the A or B workspace
+   key, and so erasing A or B is defined to cover derived records that depend on it.
+4. **Wrapping and recovery dependencies must be ratified before suggestions are built (G5).**
+   Options include a per-suggestion KEK, a subject KEK, a DEK wrapped under both workspace keys, or
+   a service key. Each has different erasure and recovery behaviour. Neither workspace key alone
+   cryptographically enforces the A∩B intersection rule (§6.3 item 2); intersection is an
+   authorization property unless a specific dual-wrapping scheme is adopted and analysed.
+5. KMS decrypt permission, key-policy changes and key-version destruction are privileged operations
+   with their own audit, outside the application's control (§14.5).
+
+### 14.4 Authorization precedence (refines §4.3, §5.2, §6.1–§6.3)
+
+Proposed required behaviour of the future `authorize()` and private service. This is **not** a
+description of the current #208 projector, which authorizes per **project** through a callback that
+receives project IDs only (see [`private-research-credit.md`](./private-research-credit.md)).
+
+1. **Prerequisite.** Active membership in the workspace and the workspace-level capability for the
+   action (`read`, `cross-project-process`, …) are required. Without both, the result is `Deny`.
+2. **Narrowing only.** Any class-level or exact-object restriction a controller sets (§4.3 "where
+   narrower, per object class"; §6.3 "read on both exact source objects") can only narrow access.
+   It never broadens a workspace capability and never grants access without membership.
+3. **Fail closed.** An explicit deny wins over an allow. A missing rule, an unknown action, class or
+   object, and any error while loading or evaluating policy all yield `Deny`.
+4. **`owner-only` restricts; it does not grant.** Owning a personal suggestion never substitutes for
+   membership or capabilities on its sources.
+5. **Withheld stays withheld.** `withheld` identities and content (§6.1) cannot be reconstructed by
+   any role, including the owner, a controller and platform or infrastructure administrators. This
+   covers credit, provenance, activity, audit and admin views. Derived records must not copy them.
+6. **Both sources, independently.** For an A+B derived record, each exact source is authorized on
+   its own (read on that object and `cross-project-process` from its controller). An allowed source
+   never vouches for the other.
+
+Historical **D3** adopted roles and five capabilities and **deferred finer object-level ACLs until
+needed**. This proposal keeps that deferral. It does not adopt a general per-object ACL model; it
+only fixes precedence for whatever narrowing restrictions exist.
+
+### 14.5 Evidence wording and operator classes (refines §2 F12, §6.2, §7, §9, §11)
+
+1. **Static import evidence is bounded.** The private-import guard in
+   `scripts/architecture-boundaries.test.ts` checks literal module specifiers and barrel-selected
+   names in `apps/web/src`. It does not see computed imports, values laundered through a new barrel
+   or alias module, runtime data flow or database credentials. It is a precursor to T-IMP, not
+   proof that a public endpoint cannot reach private data.
+2. **Future gates remain future.** No endpoint, RLS, KMS, cache, timing or administrator test
+   (T-PUB, T-ROLE, T-RLS, T-CACHE, T-TIME, T-ADM) exists yet. No document should describe these
+   properties as verified.
+3. **Two operator classes.** (a) Database or backup administrators without KMS decrypt and without
+   deploy rights see ciphertext and opaque IDs. Ciphertext still leaks sizes, row volumes, write
+   timing, access patterns and links between opaque IDs. (b) Anyone who can deploy arbitrary code,
+   alter the private service identity, or change KMS key policy or IAM bindings can obtain
+   plaintext (§7 honest limit). T-ADM can evaluate only class (a).
+4. **No universal guarantees.** T-TIME bounds measured distinguishability at an agreed tolerance;
+   it is not a constant-time guarantee. Metadata minimization reduces, but does not remove,
+   inference from volume and timing.
+
+### 14.6 Proposed test-matrix changes (§11)
+
+| ID      | Proposed change                                                                                                                               |
+| ------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| T-MID   | Replace the expected result with §14.2 item 6.                                                                                                |
+| T-ADM   | Scope to operator class (a) in §14.5; class (b) is a documented residual risk, not a test.                                                    |
+| T-IMP   | Keep as specified. Record the static guard as a bounded precursor (§14.5 item 1).                                                             |
+| T-ERASE | New: after erasure, no surviving KEK version or wrapped-DEK copy decrypts a sampled backup, replica or drill copy of the erased unit (§14.3). |
+| T-POL   | New: precedence cases of §14.4, including unknown class, explicit deny over allow, `owner-only` without membership and `withheld` fields.     |
+| T-GATE  | New: no real private content is accepted while G3 is incomplete (§14.1).                                                                      |

@@ -20,15 +20,56 @@ This narrow, framework-independent slice introduces:
   projects. Every denial, absent principal, malformed record and authorization
   service error returns the same `null` response. Each request must recheck
   grants; there is no hidden cross-request cache.
-- Adversarial tests for A-only, B-only, intersection user, lost membership,
-  missing processing consent, invalid provenance, accidental source-as-bridge
-  authorship, and distinct human versus software attribution.
+- Adversarial tests over synthetic fixtures for: an owner holding only A grants,
+  only B grants or none; each of the four project grants missing or revoked on a
+  later request; a non-owner holding every grant; anonymous callers; labelled
+  platform-admin and infra-admin principals without membership; synchronous,
+  asynchronous and non-boolean authorization failures; invalid provenance;
+  accidental source-as-bridge authorship; and distinct human versus software
+  attribution. The admin labels carry no authority and prove nothing about
+  database, KMS or infrastructure isolation.
+
+## Implemented here versus required of a future service
+
+**What the projector implements** (`projectPersonalResearchCredit`):
+
+- Parses the record against the strict schema and returns the parsed DTO
+  unchanged, or `null`.
+- Requires the caller-supplied principal to equal `ownerSubjectId`. Anonymous
+  and non-owner callers get `null` without the `authorize` callback being called.
+- For each of the two sources, asks the callback for `read` and then
+  `cross-project-process` on that source's **project**. Only a literal `true`
+  continues; `false`, a non-boolean value, a thrown error or a rejected promise
+  yields `null`.
+- Keeps no state between calls, so it holds no cross-request cache. Whether
+  answers are current depends entirely on the callback.
+
+**What it does not implement**, and a future private service must provide:
+
+- Session resolution and principal binding. The projector trusts the principal ID
+  it is given.
+- Authorization **before** bytes are loaded. The record arrives preloaded, so the
+  protected bytes have already been read when the projector runs.
+- Exact-object, object-class and `withheld` policy. The callback receives project
+  IDs only, never artifact IDs, versions or hashes, so it cannot express them.
+- Authorization epochs and ordering of revocation against result persistence,
+  response release or job execution. A consistent snapshot alone does not order a
+  concurrent revocation; see the proposed fenced finalization in ADR-0001 §14.2.
+  Bytes already released cannot be recalled.
+- Encryption, key lifecycle and erasure; HTTP status, header and cache behaviour;
+  timing and other side channels; logs, audit and notifications.
+
+ADR-0001 §14 records proposed refinements (gate ordering, finalization,
+crypto-erasure, policy precedence and evidence wording). They are **pending owner
+ratification** and are not part of the accepted D1–D11. The evidence ledger for
+this boundary is [`private-workspace-r0-review.md`](./private-workspace-r0-review.md).
 
 ## Critical trust boundary
 
 The full authorization model is in
 [`private-workspace-security-architecture.md`](./private-workspace-security-architecture.md)
-(ADR-0001, accepted by the owner; retention terms provisional). This section is the narrow summary for the projector.
+(ADR-0001, accepted by the owner; retention terms provisional; §14 refinements
+proposed, not ratified). This section is the narrow summary for the projector.
 
 **Do not expose these contracts in an anonymous route or public graph.**
 
@@ -55,7 +96,10 @@ The projector is defense in depth. A future authenticated endpoint MUST:
    queued jobs, caches, short-lived URLs and encrypted derived artifacts when
    source permissions change. Handle mid-request revocations using transactional
    reads/versioned permission epochs or equivalent; the pure projector cannot
-   guarantee atomic authorization across two different source providers.
+   guarantee atomic authorization across two different source providers. A read
+   under a consistent snapshot is not enough on its own, because it does not see
+   a revocation committed after the snapshot began; the finalization step must be
+   serialized against revocation (proposed in ADR-0001 §14.2).
 5. Authorize **cross-project AI processing separately**: access permission alone
    does not approve sending data to an external model, nor a provider's data
    retention policy.
