@@ -3,9 +3,12 @@ import { appendFile, readFile } from "node:fs/promises";
 // The six shards cover 83 browser journeys, including full accessibility,
 // publication, staleness, and responsive-layout paths. The ceiling bounds the
 // SUM of every shard's Playwright duration (total test work, not elapsed time,
-// since shards run as parallel CI jobs). Keep a bounded 9.75-minute ceiling
-// while still rejecting every retry and unexpected final result.
-export const E2E_WALL_TIME_BUDGET_MS = 9.75 * 60 * 1_000;
+// since shards run as parallel CI jobs). Measured sums on CI runners ranged from
+// 402 s to 623 s across six runs with zero unexpected failures, so the previous
+// 585 s ceiling failed otherwise-passing runs. 12 minutes leaves ~15% headroom
+// over the slowest run seen while still rejecting sustained growth and every
+// retry and unexpected final result.
+export const E2E_WALL_TIME_BUDGET_MS = 12 * 60 * 1_000;
 
 interface PlaywrightJsonResult {
   status?: string;

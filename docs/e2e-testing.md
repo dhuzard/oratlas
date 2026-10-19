@@ -9,10 +9,13 @@ The `e2e` job is the single gate. It needs every shard and the agent-contract jo
 shard's Playwright JSON report, and runs `scripts/check-e2e-budget.ts`. Keep requiring `e2e`; the
 shard job names are not a stable required-check interface.
 
-The gate enforces a **9.75-minute budget on the sum of every shard's Playwright duration** (total
-test work, not elapsed time, because shards run in parallel). The budget leaves headroom over the
-observed run time while still detecting sustained growth. A change that needs more time must explain
-the measured increase and update the budget in `scripts/check-e2e-budget.ts` explicitly.
+The gate enforces a **12-minute budget on the sum of every shard's Playwright duration** (total
+test work, not elapsed time, because shards run in parallel). Measured sums on CI runners were 402,
+557, 570, 596, 598 and 623 seconds across six runs with zero unexpected failures, so the earlier
+9.75-minute (585 s) ceiling failed passing runs on runner variance alone. 12 minutes (720 s) leaves
+about 15% headroom over the slowest run seen and still detects sustained growth. A change that needs
+more time must explain the measured increase and update the budget in `scripts/check-e2e-budget.ts`
+explicitly.
 
 CI permits one retry only to classify intermittent behavior. A test that passes on retry is reported
 as flaky and still fails the budget gate. Fix or quarantine the cause with an owner and follow-up;
