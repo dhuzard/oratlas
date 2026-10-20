@@ -1,5 +1,5 @@
 import { readFileSync, readdirSync } from "node:fs";
-import { dirname, extname, join, relative, resolve } from "node:path";
+import { dirname, extname, join, posix, relative, resolve } from "node:path";
 import ts from "typescript";
 import { describe, expect, it } from "vitest";
 
@@ -606,5 +606,162 @@ describe("private-workspace import guard (bounded static check, not complete T-I
     expect(PRIVATE_APP_PATH.test("apps/web/src/app/api/private/route.ts")).toBe(true);
     expect(PRIVATE_APP_PATH.test("apps/web/src/lib/private-snapshot-visibility.ts")).toBe(false);
     expect(PRIVATE_APP_PATH.test("apps/web/src/app/api/privately/route.ts")).toBe(false);
+  });
+});
+
+/**
+ * G1 T-IMP fixture regressions (docs/private-workspace-g1-harness.md). Same bounded static check as
+ * above, now exercised against the first real private module (`lib/private/cache-control.ts`, the
+ * G1 cache helper) and the approved-importer rule. Supported patterns: static import/export
+ * declarations, import-equals, literal `import()`/`require()` (extra arguments ignored), literal
+ * `import("…")` type nodes, `@/` and relative/root/package specifiers. Not proven: computed
+ * specifiers, laundering through a new alias or barrel that re-exports under another name,
+ * bundler/runtime data flow, and possession of database credentials.
+ */
+describe("G1 T-IMP: private module fixtures and approved importers", () => {
+  const barrels = barrelPrivateNameMap();
+  const lib = resolve(ROOT, "apps/web/src/lib/probe.ts");
+  const route = resolve(ROOT, "apps/web/src/app/api/reviews/[slug]/route.ts");
+  const violationsFor = (text: string, importer = lib) =>
+    privateImportViolations(importer, text, barrels);
+  /** Approved importers of private modules and the future private package (ADR-0001 §5.1). */
+  const isApprovedPrivateImporter = (path: string) => {
+    const normalized = posix.normalize(path);
+    return (
+      normalized === path &&
+      (PRIVATE_APP_PATH.test(normalized) || /^packages\/private-workspace\//u.test(normalized))
+    );
+  };
+
+  it("keeps the G1 cache helper a real private module that no public module imports", () => {
+    const helper = resolve(ROOT, "apps/web/src/lib/private/cache-control.ts");
+    expect(PRIVATE_APP_PATH.test(workspacePath(helper))).toBe(true);
+    expect(moduleExportNames(helper)).toEqual(
+      new Set(["PRIVATE_CACHE_CONTROL", "PrivateResponseError", "mergeVary", "privateResponse"]),
+    );
+    const importers: string[] = [];
+    for (const file of sourceFiles(resolve(ROOT, PUBLIC_APP_ROOT))) {
+      if (isApprovedPrivateImporter(workspacePath(file))) continue;
+      for (const specifier of moduleSpecifiers(file)) {
+        if (normalizedModulePath(file, specifier)?.startsWith("apps/web/src/lib/private")) {
+          importers.push(`${workspacePath(file)} -> ${specifier}`);
+        }
+      }
+    }
+    expect(importers).toEqual([]);
+  });
+
+  it.each([
+    ["@/ named", `import { privateResponse } from "@/lib/private/cache-control";`, lib],
+    [
+      "@/ type-only",
+      `import type { PrivateResponseError } from "@/lib/private/cache-control";`,
+      lib,
+    ],
+    ["@/ directory", `import { privateResponse } from "@/lib/private";`, lib],
+    ["@/ side effect", `import "@/lib/private/cache-control.js";`, lib],
+    ["relative sibling", `import { mergeVary } from "./private/cache-control";`, lib],
+    [
+      "relative from route",
+      `import { mergeVary } from "../../../../lib/private/cache-control.js";`,
+      route,
+    ],
+    ["root path", `import { mergeVary } from "apps/web/src/lib/private/cache-control";`, lib],
+    ["named re-export", `export { privateResponse as p } from "@/lib/private/cache-control";`, lib],
+    ["star re-export", `export * from "@/lib/private/cache-control";`, lib],
+    [
+      "literal dynamic member",
+      `const f = (await import("@/lib/private/cache-control")).privateResponse;`,
+      lib,
+    ],
+    [
+      "literal dynamic with options",
+      `void import("./private/cache-control.js", { with: {} });`,
+      lib,
+    ],
+    [
+      "require with extra arguments",
+      `const m = require("@/lib/private/cache-control", undefined);`,
+      lib,
+    ],
+    ["import-equals", `import m = require("@/lib/private/cache-control");`, lib],
+    ["typeof import", `type M = typeof import("@/lib/private/cache-control");`, lib],
+    ["future package from route", `import { client } from "@oratlas/private-workspace";`, route],
+    ["future package subpath", `export * from "@oratlas/private-workspace/src/store";`, route],
+    ["private route module", `import { GET } from "@/app/api/private/workspaces/route";`, route],
+    [
+      "barrel-selected private symbol",
+      `import { projectPersonalResearchCredit as p } from "@oratlas/knowledge";`,
+      route,
+    ],
+  ])("flags %s", (_label, text, importer) => {
+    expect(violationsFor(text, importer)).not.toEqual([]);
+  });
+
+  it.each([
+    ["lookalike lib file", `import { x } from "@/lib/private-cache-control";`],
+    ["lookalike camel case", `import { x } from "@/lib/privateCache";`],
+    ["lookalike route", `import { GET } from "@/app/api/private-docs/route";`],
+    ["public cache-control name", `import { x } from "@/lib/cache-control";`],
+    ["public package lookalike", `import { x } from "@oratlas/private-workspace-fixtures";`],
+    ["string mention", `const path = "@/lib/private/cache-control";`],
+    ["comment mention", `// import { privateResponse } from "@/lib/private/cache-control";`],
+    ["public barrel symbol", `import { buildEvidencePacket } from "@oratlas/knowledge";`],
+  ])("allows %s", (_label, text) => {
+    expect(violationsFor(text)).toEqual([]);
+  });
+
+  it("documents the computed-specifier limitation instead of claiming it is caught", () => {
+    expect(violationsFor(`const p = "@/lib/private/cache-control"; void import(p);`)).toEqual([]);
+    expect(violationsFor("void import(`@/lib/private/${name}`);")).toEqual([]);
+  });
+
+  it("approves only whole-segment private namespaces as importers", () => {
+    for (const path of [
+      "apps/web/src/lib/private/cache-control.ts",
+      "apps/web/src/lib/private/nested/store.ts",
+      "apps/web/src/app/api/private/workspaces/route.ts",
+      "packages/private-workspace/src/index.ts",
+    ]) {
+      expect(isApprovedPrivateImporter(path), path).toBe(true);
+    }
+    for (const path of [
+      "apps/web/src/lib/private-snapshot-visibility.ts",
+      "apps/web/src/lib/privately/store.ts",
+      "apps/web/src/app/api/private-docs/route.ts",
+      "apps/web/src/lib/private/../probe.ts",
+      "apps/web/src/app/api/reviews/[slug]/route.ts",
+      "packages/private-workspaces/src/index.ts",
+      "packages/knowledge/src/index.ts",
+      "scripts/private-workspace-g1/run.ts",
+    ]) {
+      expect(isApprovedPrivateImporter(path), path).toBe(false);
+    }
+  });
+
+  it("keeps the future private package and private app modules out of packages and scripts", () => {
+    const violations: string[] = [];
+    for (const scope of ["packages", "scripts"] as const) {
+      for (const file of sourceFiles(resolve(ROOT, scope))) {
+        const path = workspacePath(file);
+        if (isApprovedPrivateImporter(path)) continue;
+        for (const specifier of moduleSpecifiers(file)) {
+          const target = normalizedModulePath(file, specifier);
+          if (PRIVATE_PACKAGE.test(specifier) || (target && PRIVATE_APP_PATH.test(target))) {
+            violations.push(`${path} -> ${specifier}`);
+          }
+        }
+      }
+    }
+    expect(violations).toEqual([]);
+  });
+
+  it("knows every application path alias the guard must resolve", () => {
+    const tsconfig = JSON.parse(readFileSync(resolve(ROOT, "apps/web/tsconfig.json"), "utf8")) as {
+      compilerOptions?: { paths?: Record<string, string[]> };
+    };
+    // A new alias would let a public module reach private code through a specifier this guard does
+    // not normalize; adding one must extend `normalizedModulePath` first.
+    expect(tsconfig.compilerOptions?.paths).toEqual({ "@/*": ["./src/*"] });
   });
 });
