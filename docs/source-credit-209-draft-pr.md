@@ -3,6 +3,7 @@
 Offline source-credit implementation and repair across two commits (b6381a1 + 91e557a):
 
 **b6381a1 — 0.2.0 implementation:** Versioned source-credit observations with structured native provenance. Adapters emit oratlas.source-credit-observations/0.2.0 (legacy 0.1.0 kept unchanged, version-gated). Adds:
+
 - Contract: producer pins (contract + commit + id prefix), ORCID checksum/status/evidence agreement, example-DOI flag, roster member-field redaction and offline elevation rules, sorted unique collision-free IDs, report count consistency, separate legacy-label counts, producer-declared omissions
 - Diggypaper: frozen shape constants, producer/audience/release/export-status provenance, finding origin, snapshot ref, rights, agent type, contribution ID distinct from person ID
 - CRT: passage disclosure, assessment protocol/status/curator pseudonym, structured mapping decision, disclosure facts, agent ID distinct from run, legacy role labels preserved and counted
@@ -10,6 +11,7 @@ Offline source-credit implementation and repair across two commits (b6381a1 + 91
 - 13 PINS byte-pinned fixture/schema files, full goldens, nested-permutation and negative tests
 
 **91e557a — Repairs:** Two findings from prior review:
+
 1. **Diggypaper entry IDs:** Added `sourceEntryId: bounded.nullable()` to 0.2.0 evidence. Diggypaper emits native `entries[].entry_id`; CRT emits `null`. Preserves native credit-entry provenance without assigning authorship.
 2. **ORCID empty strings:** Removed extra `minLength: 1` constraints rejecting frozen-schema-valid documents. Digest and raw-redaction checks precede empty-to-null normalization; empty references never substantiate verification. Neutral contract output remains non-empty.
 

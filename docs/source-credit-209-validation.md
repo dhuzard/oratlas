@@ -9,6 +9,7 @@
 Adapters now emit `oratlas.source-credit-observations/0.2.0` with structured native provenance. Legacy 0.1.0 schema unchanged and version-gated (each schema rejects the other's version).
 
 **Contract (packages/contracts/src/source-credit-observations.ts):**
+
 - Producer pins enforced (contract + commit + ID prefix)
 - ORCID checksum validation and status/evidence agreement
 - Example-DOI flagging
@@ -18,6 +19,7 @@ Adapters now emit `oratlas.source-credit-observations/0.2.0` with structured nat
 - Producer-declared omissions and explicit omitted-field codes
 
 **Diggypaper (packages/knowledge/src/source-credit-diggypaper.ts):**
+
 - Strict frozen shape and constants (implies_authorship false)
 - Producer/audience/release/export-status provenance
 - Finding origin, snapshot ref, rights, agent type
@@ -25,18 +27,21 @@ Adapters now emit `oratlas.source-credit-observations/0.2.0` with structured nat
 - FCC_validate identity/privacy subset
 
 **CRT (packages/knowledge/src/source-credit-crt.ts):**
+
 - Passage disclosure, assessment protocol/status/curator pseudonym
 - Structured mapping decision, disclosure facts
 - Agent ID distinct from run
 - Legacy role labels preserved and counted
 
 **ORCID (packages/knowledge/src/source-credit-orcid.ts):**
+
 - Frozen validate_export consent/redaction/elevation rules
 - ORCID status and assertion provenance
 - Output DOI/rights on credit claims
 - Agreement with producer's candidate_contacts reading
 
 **Fixtures:**
+
 - `packages/knowledge/src/fixtures/source-credit-interop/PINS.json`: 13 byte-manifest files (ORCID verified at ff5aff9)
 - Golden outputs: `packages/knowledge/src/fixtures/source-credit-interop/golden/{diggypaper,crt,orcid}.observations.json`
 - Nested-permutation and negative test cases
@@ -81,14 +86,14 @@ pnpm evidence-lineage:verify
 
 **Full suite results at 91e557a:**
 
-| Phase         | Result    | Details                                                                        |
-| ------------- | --------- | ------------------------------------------------------------------------------ |
-| Lint          | ✓ Pass    | No violations                                                                  |
-| Typecheck     | ✓ Pass    | All 19 workspace projects                                                      |
-| Test          | ✓ Pass    | 236 files / 1851 tests (6 skipped / 16 skipped)                                |
-| Schema check  | ✓ Pass    | All contracts validated                                                        |
-| OpenAPI check | ✓ Pass    | API specs valid                                                                |
-| Build         | ✓ Pass    | CI env: `NEXT_PUBLIC_BASE_URL=https://ci.oratlas.example`; CSS ::highlight warning non-fatal |
+| Phase         | Result | Details                                                                                      |
+| ------------- | ------ | -------------------------------------------------------------------------------------------- |
+| Lint          | ✓ Pass | No violations                                                                                |
+| Typecheck     | ✓ Pass | All 19 workspace projects                                                                    |
+| Test          | ✓ Pass | 236 files / 1851 tests (6 skipped / 16 skipped)                                              |
+| Schema check  | ✓ Pass | All contracts validated                                                                      |
+| OpenAPI check | ✓ Pass | API specs valid                                                                              |
+| Build         | ✓ Pass | CI env: `NEXT_PUBLIC_BASE_URL=https://ci.oratlas.example`; CSS ::highlight warning non-fatal |
 
 ## Architectural advisory (non-blocking)
 
@@ -97,12 +102,14 @@ pnpm evidence-lineage:verify
 ## Bounded risks; rollback: straightforward
 
 **Risk boundaries:**
+
 - Partial native semantic validators: 0.2.0 schema permits `sourceEntryId: null` on manually constructed documents without producer validation. Adapters generate consistent values (Diggypaper native ID or CRT null). No runtime inconsistency in adapter output; mitigation is documentation + manual code review for synthetic sources.
 - CRT lineage and packet bytes not recomputed in repair. Only evidence projection fields affected.
 - Nullable sourceEntryId advisory: field can be null; downstream consumers must handle gracefully.
 - No runtime assurances: schema validation occurs at adapter output; no runtime enforcement of producer promise.
 
 **Stability:**
+
 - No schema version bumps on native contracts (Diggypaper/CRT/ORCID producers unchanged)
 - Adapters explicitly return 0.2.0; existing strict 0.1.0 schema remains unchanged. Consumers must select the correct version.
 - PINS binds native fixture/schema bytes to upstream commits (Diggypaper `a34d18f`, CRT `a19a8dc`, ORCID `ff5aff9`). Goldens are generated ORAtlas normalized expected outputs, not upstream files.
