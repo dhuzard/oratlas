@@ -72,12 +72,12 @@ broader routes and non-anonymous principals are outstanding. G1 is not recorded 
 
 | Path                                                               | Role                                                                                                                                                                                                                 |
 | ------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `scripts/private-workspace-g1/run.ts`                              | Orchestrator (`pnpm g1:private-workspace`). Exit `0` passed, `1` a check failed, `2` refused before mutation.                                                                                                        |
+| `scripts/private-workspace-g1/run.ts`, `orchestrator.ts`           | CLI entry (`pnpm g1:private-workspace`) and the orchestrator (`runG1Harness`, psql/spec runners injectable for offline tests). Exit `0` passed, `1` a check or cleanup step failed, `2` refused before mutation.     |
 | `scripts/private-workspace-g1/target.ts`                           | Pure target validation (URLs, roles, acknowledgement).                                                                                                                                                               |
 | `scripts/private-workspace-g1/postgres.ts`, `sql.ts`               | `psql` adapter (no shell; `-X --no-password -v ON_ERROR_STOP=1`; SQL on stdin; password only in child `PGPASSWORD`; psqlrc/service/password files disabled; 60 s timeout; output redaction) and quoted SQL builders. |
 | `scripts/private-workspace-g1/fixtures/public-fixtures.sql`        | Deterministic synthetic public rows: one repository/review, three snapshots with valid SHAs, two published versions with fixed times, one unpublished version, two persons.                                          |
 | `scripts/private-workspace-g1/*.g1.spec.ts`, `vitest.config.ts`    | Real-PostgreSQL suites, discovered **only** by the dedicated config (root `pnpm test` includes `scripts/**/*.test.ts` and never finds them).                                                                         |
-| `scripts/private-workspace-g1/*.test.ts`                           | Offline tests (target refusal, adapter/SQL, comparator, manifest, orchestrator refusal). They never contact a database.                                                                                              |
+| `scripts/private-workspace-g1/*.test.ts`                           | Offline tests (target refusal, adapter/SQL, comparator, manifest, orchestrator refusal and cleanup fault injection). They never contact a database.                                                                  |
 | `scripts/private-workspace-g1/manifest.ts`                         | Route/principal/channel coverage manifest.                                                                                                                                                                           |
 | `scripts/private-workspace-g1/baselines/public-routes.golden.json` | Reviewed public golden baseline.                                                                                                                                                                                     |
 | `.github/workflows/private-workspace-g1.yml`                       | Separate workflow (existing `ci.yml` untouched): PostgreSQL 16 service, Node 22, pnpm 10.33.0, frozen install, PostgreSQL Prisma client, `psql` required, explicit URLs/ack, sanitized evidence artifact.            |
@@ -94,8 +94,13 @@ read-only preflight then refuses unless the server is PostgreSQL 16, the admin i
 the runtime roles and `private_ws` do not exist, the public schema has no relations, functions or
 types, there are no other user schemas and no default privileges. Cleanup drops only what the run
 recorded creating: both runtime roles (`DROP OWNED BY` then `DROP ROLE`), `private_ws` with
-`RESTRICT` (fails if not empty) and the recorded public tables/functions. Each subsequent run's
-preflight proves the previous cleanup left the database clean.
+`RESTRICT` (fails if not empty) and the recorded public tables/functions. Cleanup runs after every
+outcome and attempts every recorded resource even when an earlier drop fails. Any failed cleanup
+step makes the run exit `1` with `result: "failed (cleanup incomplete; run-created resources may
+remain)"`, even when every check passed; `summary.failure` keeps the first failing check (or `null`)
+alongside the failed cleanup steps, and cleanup errors are redacted. The final `result:` line is
+logged only after cleanup. Each subsequent run's preflight proves the previous cleanup left the
+database clean.
 
 ### Sequence
 
@@ -105,7 +110,7 @@ role (`NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOREPLICATION NOBYPASSRLS`,
 `ReviewVersion` — the tables the Atom query reads) → **baseline capture** → `private_ws` owned by the
 bootstrap role, `REVOKE ALL … FROM PUBLIC`, private role with `USAGE` only → public grants verified
 unchanged → **after capture** → T-ROLE suite → `private_ws` emptiness re-checked → paired and
-golden comparisons → `summary.json` → cleanup.
+golden comparisons → cleanup → `summary.json` (status decided by checks **and** cleanup).
 
 Capture children receive only the public runtime URL as `DATABASE_URL`, a fixed base URL
 `https://g1.oratlas.example` and a non-secret session constant; they assert that no admin/private
@@ -125,6 +130,14 @@ variable or `PGPASSWORD` is present. The T-ROLE child receives only the public/p
   (non-normalized paths refused); packages and scripts may not import the private package or app
   modules; the `@/*` alias set is pinned. A test asserts that computed specifiers are **not** caught
   (documented limitation, not a claim).
+  Every boundary check (application internals, Prisma/Next, public guard, cache-helper importers,
+  packages/scripts private check) and every fixture uses one AST extractor, `moduleReferences`.
+  It sees import/export declarations, `import x = require("…")`, `import("…")`/`require("…")` with a
+  string or no-substitution template first argument (extra arguments such as import attributes are
+  ignored) and `import("…")` type nodes. Packages/scripts fixtures run the same function as the real
+  scan, including `import("../apps/web/src/lib/private/cache-control", { with: {} })` and
+  `import x = require("@oratlas/private-workspace")` from script and package importers. Not seen:
+  computed specifiers, `module.require`, `createRequire(…)(…)`, `import.meta.resolve`.
 - **T-ROLE G1-empty** (`roles.g1.spec.ts`), from each runtime role's own session: identity
   (`session_user = current_user` = expected role), attributes all false (login only), no
   memberships in either direction, not a member of / cannot use the bootstrap or peer role, owns no
@@ -205,6 +218,31 @@ PUBLIC` → T-ROLE failed (posture, ACL and `create-private-table` `SUCCEEDED`, 
   reverted.
 - Offline focused suites: G1 offline 58, architecture guard 97, cache helper 16, existing public
   OpenAPI/`llms.txt` regressions — all passing.
+
+Review repair (2026-10-20, same toolchain), after an independent review found two correctness
+issues:
+
+- The packages/scripts check previously used a narrower extractor than the public guard. It missed
+  `import("…", options)` and import-equals, so the real scan returned `[]` for forms the fixtures
+  flagged. All checks now share `moduleReferences`. With the old limits temporarily restored, 15
+  regressions fail (public guard and packages/scripts fixtures); with the fix all 116 architecture
+  tests pass.
+- Cleanup failures used to leave the exit code and summary untouched. `orchestrator.test.ts` now
+  drives `runG1Harness` with in-memory psql/spec fakes (no database, no child process). Covered:
+  every check passes but all four cleanup statements are rejected → exit 1, failed summary, all
+  four drops attempted in order, details redacted, no `passed` line logged. Also covered: a failing
+  T-ROLE step plus a failed private-role drop → the original check failure is kept and the other
+  three drops still run; a check failure with clean cleanup → `failed`; a refusal → exit 2 with no
+  cleanup attempts; a clean run → exit 0. Removing the cleanup→exit rule makes the all-rejected
+  case fail.
+- A real rerun of `pnpm g1:private-workspace` against a fresh loopback `postgres:16` container exited
+  0 with every step and all four cleanup steps `ok`. The final `result:` line came after cleanup.
+  The database then had no `oratlas_g1_*` roles, no `private_ws` and no public objects. No password
+  appeared in the evidence or log. The container was then removed.
+- Focused offline suites: 10 files, 199 tests passing (G1 offline 63, architecture 116, cache helper
+  16, OpenAPI/`llms.txt` 4); ESLint and Prettier clean on the changed files. No `pnpm typecheck`
+  project includes `scripts/`; an ad-hoc `tsc --noEmit` over the changed files with the base config
+  (ESNext/Bundler module settings) passed.
 
 Golden updates: each run writes `golden-candidate.json`; a reviewer compares it with the current
 golden and copies it deliberately. The harness never overwrites or accepts a golden after a failure.

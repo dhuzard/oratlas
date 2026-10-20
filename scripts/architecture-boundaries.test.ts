@@ -26,34 +26,115 @@ function sourceFiles(directory: string): string[] {
   return files;
 }
 
-function moduleSpecifiers(path: string): string[] {
-  const source = ts.createSourceFile(
-    workspacePath(path),
-    readFileSync(path, "utf8"),
-    ts.ScriptTarget.Latest,
-    true,
-  );
-  const specifiers: string[] = [];
+function parseSource(path: string, text = readFileSync(path, "utf8")): ts.SourceFile {
+  return ts.createSourceFile(workspacePath(path), text, ts.ScriptTarget.Latest, true);
+}
+
+/**
+ * One literal module reference and the names it provably selects (`undefined` = opaque: namespace,
+ * star, default, import-equals or an unproven dynamic access; `[]` = side effect only).
+ */
+type ModuleReference = { specifier: string; selected: readonly string[] | undefined };
+
+/**
+ * Names selected from a dynamic `import()`/`require()` result when the pattern proves them:
+ * `(await import(x)).name`, `const { a, b } = await import(x)`, `require(x).name` or
+ * `const { a } = require(x)`. Anything else (`.then`, rest, computed keys, a stored module
+ * object) is opaque and returns undefined.
+ */
+function provenDynamicNames(call: ts.CallExpression): string[] | undefined {
+  let expression: ts.Node = call;
+  if (call.expression.kind === ts.SyntaxKind.ImportKeyword) {
+    if (!ts.isAwaitExpression(call.parent)) return undefined;
+    expression = call.parent;
+  }
+  while (ts.isParenthesizedExpression(expression.parent)) expression = expression.parent;
+  const parent = expression.parent;
+  if (ts.isPropertyAccessExpression(parent) && parent.expression === expression) {
+    return [parent.name.text];
+  }
+  if (
+    ts.isVariableDeclaration(parent) &&
+    parent.initializer === expression &&
+    ts.isObjectBindingPattern(parent.name)
+  ) {
+    const names: string[] = [];
+    for (const element of parent.name.elements) {
+      const key = element.propertyName ?? element.name;
+      if (element.dotDotDotToken || !(ts.isIdentifier(key) || ts.isStringLiteral(key))) {
+        return undefined;
+      }
+      names.push(key.text);
+    }
+    return names;
+  }
+  return undefined;
+}
+
+/**
+ * The single AST extractor every boundary check uses, so enforcement and fixtures cannot drift.
+ * Supported literal forms: import/export declarations, `import x = require("…")`, `import("…")`
+ * and `require("…")` with a string or no-substitution template first argument (extra arguments such
+ * as import attributes are ignored), and `import("…")` type nodes (including `typeof import`).
+ * Computed specifiers, `module.require`/`createRequire(…)(…)` and `import.meta.resolve` are not seen.
+ */
+function moduleReferences(path: string, text?: string): ModuleReference[] {
+  const references: ModuleReference[] = [];
+  const add = (specifier: string, selected: readonly string[] | undefined) =>
+    references.push({ specifier, selected });
+  const named = (elements: ts.NodeArray<ts.ImportSpecifier | ts.ExportSpecifier>) =>
+    elements.map((element) => (element.propertyName ?? element.name).text);
   const visit = (node: ts.Node): void => {
-    if (
-      (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) &&
+    if (ts.isImportDeclaration(node) && ts.isStringLiteral(node.moduleSpecifier)) {
+      const clause = node.importClause;
+      const bindings = clause?.namedBindings;
+      if (!clause) add(node.moduleSpecifier.text, []);
+      else if (clause.name || (bindings && ts.isNamespaceImport(bindings))) {
+        add(node.moduleSpecifier.text, undefined);
+      } else add(node.moduleSpecifier.text, bindings ? named(bindings.elements) : []);
+    } else if (
+      ts.isExportDeclaration(node) &&
       node.moduleSpecifier &&
       ts.isStringLiteral(node.moduleSpecifier)
     ) {
-      specifiers.push(node.moduleSpecifier.text);
+      const clause = node.exportClause;
+      add(
+        node.moduleSpecifier.text,
+        clause && ts.isNamedExports(clause) ? named(clause.elements) : undefined,
+      );
+    } else if (
+      ts.isImportEqualsDeclaration(node) &&
+      ts.isExternalModuleReference(node.moduleReference) &&
+      ts.isStringLiteral(node.moduleReference.expression)
+    ) {
+      add(node.moduleReference.expression.text, undefined);
     } else if (
       ts.isCallExpression(node) &&
-      node.arguments.length === 1 &&
-      ts.isStringLiteral(node.arguments[0]!) &&
+      node.arguments.length >= 1 &&
+      ts.isStringLiteralLike(node.arguments[0]!) &&
       (node.expression.kind === ts.SyntaxKind.ImportKeyword ||
         (ts.isIdentifier(node.expression) && node.expression.text === "require"))
     ) {
-      specifiers.push(node.arguments[0]!.text);
+      // The specifier is the first argument; `import(x, options)` and extra `require` arguments
+      // must not hide it.
+      add(node.arguments[0]!.text, provenDynamicNames(node));
+    } else if (
+      ts.isImportTypeNode(node) &&
+      ts.isLiteralTypeNode(node.argument) &&
+      ts.isStringLiteral(node.argument.literal)
+    ) {
+      let qualifier = node.qualifier;
+      while (qualifier && ts.isQualifiedName(qualifier)) qualifier = qualifier.left;
+      add(node.argument.literal.text, qualifier ? [qualifier.text] : undefined);
     }
     ts.forEachChild(node, visit);
   };
-  visit(source);
-  return specifiers;
+  visit(parseSource(path, text));
+  return references;
+}
+
+function moduleSpecifiers(path: string, text?: string): string[] {
+  return moduleReferences(path, text).map((reference) => reference.specifier);
 }
 
 function resolvedWorkspaceImport(importer: string, specifier: string): string | undefined {
@@ -99,10 +180,6 @@ const PRIVATE_EXPOSING_BARRELS: Readonly<Record<string, string>> = {
   "@oratlas/contracts": "packages/contracts/src/index.ts",
   "@oratlas/knowledge": "packages/knowledge/src/index.ts",
 };
-
-function parseSource(path: string, text = readFileSync(path, "utf8")): ts.SourceFile {
-  return ts.createSourceFile(workspacePath(path), text, ts.ScriptTarget.Latest, true);
-}
 
 /** Workspace-relative module path without extension or `/index`, or undefined for packages. */
 function normalizedModulePath(importer: string, specifier: string): string | undefined {
@@ -216,112 +293,42 @@ function barrelPrivateNameMap(): BarrelPrivateNames {
   );
 }
 
-/**
- * Names selected from a dynamic `import()`/`require()` result when the pattern proves them:
- * `(await import(x)).name`, `const { a, b } = await import(x)`, `require(x).name` or
- * `const { a } = require(x)`. Anything else (`.then`, rest, computed keys, a stored module
- * object) is opaque and returns undefined.
- */
-function provenDynamicNames(call: ts.CallExpression): string[] | undefined {
-  let expression: ts.Node = call;
-  if (call.expression.kind === ts.SyntaxKind.ImportKeyword) {
-    if (!ts.isAwaitExpression(call.parent)) return undefined;
-    expression = call.parent;
-  }
-  while (ts.isParenthesizedExpression(expression.parent)) expression = expression.parent;
-  const parent = expression.parent;
-  if (ts.isPropertyAccessExpression(parent) && parent.expression === expression) {
-    return [parent.name.text];
-  }
-  if (
-    ts.isVariableDeclaration(parent) &&
-    parent.initializer === expression &&
-    ts.isObjectBindingPattern(parent.name)
-  ) {
-    const names: string[] = [];
-    for (const element of parent.name.elements) {
-      const key = element.propertyName ?? element.name;
-      if (element.dotDotDotToken || !(ts.isIdentifier(key) || ts.isStringLiteral(key))) {
-        return undefined;
-      }
-      names.push(key.text);
-    }
-    return names;
-  }
-  return undefined;
-}
-
 function privateImportViolations(
   importer: string,
   text: string,
   barrels: BarrelPrivateNames,
 ): string[] {
   const violations: string[] = [];
-  const check = (specifier: string, selected: readonly string[] | undefined): void => {
+  for (const { specifier, selected } of moduleReferences(importer, text)) {
     if (isDirectPrivateImport(importer, specifier)) {
       violations.push(`${specifier} (private module)`);
-      return;
+      continue;
     }
     const barrel = barrelName(importer, specifier);
     const privateNames = barrel === undefined ? undefined : barrels.get(barrel);
-    if (!privateNames) return;
+    if (!privateNames) continue;
     if (selected === undefined) {
       violations.push(`${specifier} (opaque namespace/star/default/dynamic access)`);
-      return;
+      continue;
     }
     for (const name of selected) {
       if (name === "default" || privateNames.has(name)) violations.push(`${specifier} { ${name} }`);
     }
-  };
-  const named = (elements: ts.NodeArray<ts.ImportSpecifier | ts.ExportSpecifier>) =>
-    elements.map((element) => (element.propertyName ?? element.name).text);
-  const visit = (node: ts.Node): void => {
-    if (ts.isImportDeclaration(node) && ts.isStringLiteral(node.moduleSpecifier)) {
-      const clause = node.importClause;
-      const bindings = clause?.namedBindings;
-      if (!clause) check(node.moduleSpecifier.text, []);
-      else if (clause.name || (bindings && ts.isNamespaceImport(bindings))) {
-        check(node.moduleSpecifier.text, undefined);
-      } else check(node.moduleSpecifier.text, bindings ? named(bindings.elements) : []);
-    } else if (
-      ts.isExportDeclaration(node) &&
-      node.moduleSpecifier &&
-      ts.isStringLiteral(node.moduleSpecifier)
-    ) {
-      const clause = node.exportClause;
-      check(
-        node.moduleSpecifier.text,
-        clause && ts.isNamedExports(clause) ? named(clause.elements) : undefined,
-      );
-    } else if (
-      ts.isImportEqualsDeclaration(node) &&
-      ts.isExternalModuleReference(node.moduleReference) &&
-      ts.isStringLiteral(node.moduleReference.expression)
-    ) {
-      check(node.moduleReference.expression.text, undefined);
-    } else if (
-      ts.isCallExpression(node) &&
-      node.arguments.length >= 1 &&
-      ts.isStringLiteral(node.arguments[0]!) &&
-      (node.expression.kind === ts.SyntaxKind.ImportKeyword ||
-        (ts.isIdentifier(node.expression) && node.expression.text === "require"))
-    ) {
-      // The specifier is the first argument; `import(x, options)` and extra `require` arguments
-      // must not hide it.
-      check(node.arguments[0]!.text, provenDynamicNames(node));
-    } else if (
-      ts.isImportTypeNode(node) &&
-      ts.isLiteralTypeNode(node.argument) &&
-      ts.isStringLiteral(node.argument.literal)
-    ) {
-      let qualifier = node.qualifier;
-      while (qualifier && ts.isQualifiedName(qualifier)) qualifier = qualifier.left;
-      check(node.argument.literal.text, qualifier ? [qualifier.text] : undefined);
-    }
-    ts.forEachChild(node, visit);
-  };
-  visit(parseSource(importer, text));
+  }
   return violations;
+}
+
+/**
+ * Packages and root scripts may use the public barrels (and the private domain modules they
+ * re-export), but never the future private client package or a private application module.
+ */
+function packageOrScriptPrivateViolations(importer: string, text?: string): string[] {
+  return moduleSpecifiers(importer, text).filter((specifier) => {
+    const target = normalizedModulePath(importer, specifier);
+    return (
+      PRIVATE_PACKAGE.test(specifier) || (target !== undefined && PRIVATE_APP_PATH.test(target))
+    );
+  });
 }
 
 describe("architecture import boundaries", () => {
@@ -745,15 +752,122 @@ describe("G1 T-IMP: private module fixtures and approved importers", () => {
       for (const file of sourceFiles(resolve(ROOT, scope))) {
         const path = workspacePath(file);
         if (isApprovedPrivateImporter(path)) continue;
-        for (const specifier of moduleSpecifiers(file)) {
-          const target = normalizedModulePath(file, specifier);
-          if (PRIVATE_PACKAGE.test(specifier) || (target && PRIVATE_APP_PATH.test(target))) {
-            violations.push(`${path} -> ${specifier}`);
-          }
+        for (const specifier of packageOrScriptPrivateViolations(file)) {
+          violations.push(`${path} -> ${specifier}`);
         }
       }
     }
     expect(violations).toEqual([]);
+  });
+
+  // The fixtures below run the same function and the same extractor as the real scan above.
+  const scriptImporter = resolve(ROOT, "scripts/probe.ts");
+  const nestedScriptImporter = resolve(ROOT, "scripts/private-workspace-g1/probe.ts");
+  const packageImporter = resolve(ROOT, "packages/knowledge/src/probe.ts");
+
+  it.each([
+    [
+      "script literal dynamic import with attributes",
+      `void import("../apps/web/src/lib/private/cache-control", { with: {} });`,
+      scriptImporter,
+    ],
+    [
+      "script import-equals of the private package",
+      `import x = require("@oratlas/private-workspace");`,
+      scriptImporter,
+    ],
+    [
+      "package import-equals of the private package",
+      `import x = require("@oratlas/private-workspace");`,
+      packageImporter,
+    ],
+    [
+      "package literal dynamic import with attributes",
+      `void import("../../../apps/web/src/lib/private/cache-control.js", { with: { type: "js" } });`,
+      packageImporter,
+    ],
+    [
+      "nested script require with extra arguments",
+      `const m = require("../../apps/web/src/lib/private/cache-control", undefined);`,
+      nestedScriptImporter,
+    ],
+    [
+      "script no-substitution template import",
+      "void import(`@oratlas/private-workspace/client`);",
+      scriptImporter,
+    ],
+    [
+      "script typeof import type node",
+      `type M = typeof import("apps/web/src/lib/private/cache-control");`,
+      scriptImporter,
+    ],
+    [
+      "package import type node of the private package",
+      `type C = import("@oratlas/private-workspace").Client;`,
+      packageImporter,
+    ],
+    [
+      "package named import",
+      `import { client } from "@oratlas/private-workspace/src/store";`,
+      packageImporter,
+    ],
+    [
+      "script star re-export",
+      `export * from "../apps/web/src/app/api/private/route";`,
+      scriptImporter,
+    ],
+    ["script @/ alias", `import { mergeVary } from "@/lib/private/cache-control";`, scriptImporter],
+  ])("flags packages/scripts importer: %s", (_label, text, importer) => {
+    expect(packageOrScriptPrivateViolations(importer, text)).not.toEqual([]);
+  });
+
+  it.each([
+    [
+      "public barrel private symbol (packages may use it)",
+      `import { projectPersonalResearchCredit } from "@oratlas/knowledge";`,
+      packageImporter,
+    ],
+    ["private domain module", `import "./private-research-credit.js";`, packageImporter],
+    [
+      "lookalike package",
+      `import x = require("@oratlas/private-workspace-fixtures");`,
+      scriptImporter,
+    ],
+    [
+      "lookalike app path",
+      `void import("../apps/web/src/lib/private-cache-control", { with: {} });`,
+      scriptImporter,
+    ],
+    ["public app module", `void import("../apps/web/src/lib/cache-control");`, scriptImporter],
+    ["string mention", `const p = "@oratlas/private-workspace";`, scriptImporter],
+  ])("allows packages/scripts importer: %s", (_label, text, importer) => {
+    expect(packageOrScriptPrivateViolations(importer, text)).toEqual([]);
+  });
+
+  it("feeds the same literal forms to the application-internals scan", () => {
+    const text =
+      `void import("../apps/web/src/lib/private/cache-control", { with: {} });\n` +
+      `import x = require("@oratlas/private-workspace");\n` +
+      `type T = import("../apps/web/src/lib/env").Env;`;
+    const specifiers = moduleSpecifiers(scriptImporter, text);
+    expect(specifiers).toEqual([
+      "../apps/web/src/lib/private/cache-control",
+      "@oratlas/private-workspace",
+      "../apps/web/src/lib/env",
+    ]);
+    expect(specifiers.filter((s) => importsApplicationInternals(scriptImporter, s))).toEqual([
+      "../apps/web/src/lib/private/cache-control",
+      "../apps/web/src/lib/env",
+    ]);
+  });
+
+  it("documents that packages/scripts computed specifiers are not caught", () => {
+    expect(
+      packageOrScriptPrivateViolations(
+        scriptImporter,
+        `const p = "@oratlas/private-workspace"; void import(p, { with: {} });`,
+      ),
+    ).toEqual([]);
   });
 
   it("knows every application path alias the guard must resolve", () => {
