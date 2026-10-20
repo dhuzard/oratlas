@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   env: {} as Record<string, unknown>,
@@ -10,14 +10,11 @@ const mocks = vi.hoisted(() => ({
   bootstrap: vi.fn(),
 }));
 
+vi.mock("server-only", () => ({}));
 vi.mock("next/headers", () => ({ cookies: async () => mocks.jar }));
 vi.mock("@oratlas/config", () => ({ getServerEnv: () => mocks.env }));
 vi.mock("@/lib/auth", () => ({ createSession: mocks.createSession }));
 vi.mock("@/lib/db", () => ({ prisma: {} }));
-vi.mock("next/server", async () => {
-  const actual = await vi.importActual<typeof import("next/server")>("next/server");
-  return actual;
-});
 vi.mock("@/lib/audit", () => ({ audit: mocks.audit }));
 vi.mock("@/lib/github-identity", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/github-identity")>();
@@ -27,6 +24,10 @@ vi.mock("@/lib/admin-bootstrap", () => ({ bootstrapAdminForGithubIdentity: mocks
 
 import { GET as start } from "./start/route";
 import { GET as callback } from "./callback/route";
+
+beforeEach(() => {
+  vi.stubGlobal("fetch", mocks.fetch);
+});
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -58,6 +59,13 @@ describe("GitHub OAuth route characterization", () => {
     const response = await start();
     expect(response.status).toBe(400);
     expect(mocks.jar.set).not.toHaveBeenCalled();
+  });
+
+  it("uses a secure state cookie in production", async () => {
+    configured();
+    mocks.env.isProduction = true;
+    await start();
+    expect(mocks.jar.set.mock.calls[0]?.[2]).toMatchObject({ secure: true });
   });
 
   it("starts configured OAuth with read:user and matching state cookie", async () => {
@@ -98,6 +106,66 @@ describe("GitHub OAuth route characterization", () => {
     expect(mocks.fetch).not.toHaveBeenCalled();
   });
 
+  it("rejects callback while OAuth is disabled", async () => {
+    mocks.env = { githubOauthEnabled: false };
+    const response = await callback(
+      new Request("https://atlas.example/api/auth/github/callback?code=abc&state=state"),
+    );
+    expect(response.status).toBe(400);
+    expect(mocks.fetch).not.toHaveBeenCalled();
+  });
+
+  it("returns upstream errors for token and profile failures", async () => {
+    configured();
+    mocks.jar.get.mockReturnValue({ value: "state" });
+    mocks.fetch.mockResolvedValueOnce({ json: async () => ({}) });
+    const tokenFailure = await callback(
+      new Request("https://atlas.example/api/auth/github/callback?code=abc&state=state"),
+    );
+    expect(tokenFailure.status).toBe(502);
+    mocks.jar.get.mockReturnValue({ value: "state" });
+    mocks.fetch
+      .mockResolvedValueOnce({ json: async () => ({ access_token: "token" }) })
+      .mockResolvedValueOnce({ ok: false });
+    const profileFailure = await callback(
+      new Request("https://atlas.example/api/auth/github/callback?code=abc&state=state"),
+    );
+    expect(profileFailure.status).toBe(502);
+    expect(mocks.resolve).not.toHaveBeenCalled();
+  });
+
+  it("rejects malformed provider identity", async () => {
+    configured();
+    mocks.jar.get.mockReturnValue({ value: "state" });
+    mocks.fetch
+      .mockResolvedValueOnce({ json: async () => ({ access_token: "token" }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ id: 0, login: "bad login" }) });
+    const response = await callback(
+      new Request("https://atlas.example/api/auth/github/callback?code=abc&state=state"),
+    );
+    expect(response.status).toBe(502);
+    expect(mocks.resolve).not.toHaveBeenCalled();
+  });
+
+  it("audits identity conflicts and stops before bootstrap or session creation", async () => {
+    configured();
+    mocks.jar.get.mockReturnValue({ value: "state" });
+    mocks.fetch
+      .mockResolvedValueOnce({ json: async () => ({ access_token: "token" }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ id: 42, login: "octo" }) });
+    const { GitHubIdentityConflictError } = await import("@/lib/github-identity");
+    mocks.resolve.mockRejectedValue(new GitHubIdentityConflictError());
+    const response = await callback(
+      new Request("https://atlas.example/api/auth/github/callback?code=abc&state=state"),
+    );
+    expect(response.status).toBe(409);
+    expect(mocks.audit).toHaveBeenCalledWith(null, "auth.github-identity-conflict", "auth", "42", {
+      githubLogin: "octo",
+    });
+    expect(mocks.bootstrap).not.toHaveBeenCalled();
+    expect(mocks.createSession).not.toHaveBeenCalled();
+  });
+
   it("exchanges token, resolves minimal profile, bootstraps, sessions, audits, and redirects", async () => {
     configured();
     mocks.jar.get.mockReturnValue({ value: "state" });
@@ -119,6 +187,7 @@ describe("GitHub OAuth route characterization", () => {
     const response = await callback(
       new Request("https://atlas.example/api/auth/github/callback?code=abc&state=state"),
     );
+    expect(response.status).toBe(307);
     expect(response.headers.get("location")).toBe("https://atlas.example/submit");
     expect(mocks.fetch).toHaveBeenCalledTimes(2);
     expect(mocks.resolve).toHaveBeenCalledWith(
