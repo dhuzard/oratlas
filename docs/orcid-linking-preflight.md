@@ -30,7 +30,7 @@ Both advertise `/oauth/userinfo` and `/oauth/jwks` under their respective issuer
 
 ### Authorization code and authenticated response
 
-S1 shows `client_id`, `response_type=code`, `scope` and `redirect_uri` on authorization, followed by a server-side, form-encoded token POST with `client_id`, `client_secret`, `grant_type=authorization_code`, `code` and `redirect_uri`. Authorization codes are opaque; do not impose a length from a sample.
+S1 shows `client_id`, `response_type=code`, `scope` and `redirect_uri` on authorization, followed by a server-side, form-encoded token POST. S2's token-exchange example explicitly includes `client_id`, `client_secret`, `grant_type=authorization_code`, `code` and `redirect_uri`. Authorization codes are opaque; do not impose a length from a sample.
 
 S1's example token response contains `orcid` (a plain iD), `name`, `token_type`, `scope`, `expires_in`, `access_token` and `refresh_token`. Do not require every example field or assume its sample token lifetime applies universally. No token values are reproduced here.
 
