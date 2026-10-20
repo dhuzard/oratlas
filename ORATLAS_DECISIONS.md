@@ -8,7 +8,23 @@ decision answered; they do not indicate an unresolved blocker.
 
 Format per entry: current state in the codebase, the question presented, the ratified decision, and
 what depends on it.
-Decider for §§1–14: Damien Huzard (`dhuzard`). Decision date: 2026-07-22.
+
+## Current ratification record
+
+Decider for this file's §§1–14: Damien Huzard (`dhuzard`). Decision date: 2026-07-22.
+Those sections are distinct from ADR-0001's D1–D11 and section numbering.
+
+- **ADR-0001 §14–15 (private-workspace refinements and PoC operating model):** Decider Damien Huzard.
+  **Ratified 2026-10-20.** Owner accepts ADR§14.1–14.6 (refinements to §3.2, §6.3, §8, §13–14
+  gates) and ADR§15 (owner-operated PoC and synthetic-content initial policy). Identity decisions
+  I1 (manual/verified ORCID precedence), I2 (per-user cardinality), I3 (unlink/recovery), S1
+  (session design commission) recorded as approved baseline with ORCID as primary identifier.
+  Acceptance source: recorded owner message 2026-10-20 responding to ADR §14/§15 proposal and
+  identity-decision checklist. See [owner decision register](docs/private-workspace-owner-decisions.md).
+  Manual ORCID checksum/API recognition is not authenticated ownership; OAuth is required for
+  identifier-control verification. API failure establishes neither recognition nor nonexistence.
+  Local GitHub accounts remain usable without ORCID; identifiers never grant workspace access.
+  D11 remains provisional pending counsel/DPIA; no retention numbers or legal roles are confirmed.
 
 ## 1. Structural versus scientific verification
 
