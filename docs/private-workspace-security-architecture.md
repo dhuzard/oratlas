@@ -10,6 +10,9 @@
   ratify it. Sections whose original wording §14 corrects carry a "Proposed correction" note; the
   original wording is kept as the historical record. Evidence ledger:
   [`private-workspace-r0-review.md`](./private-workspace-r0-review.md).
+  **PoC operational model proposal:** §15 adds a **separate proposal** for owner-operated PoC
+  hosting and independent-researcher testing (synthetic-only policy, user notice, readiness
+  checklist). See [§15](#15-proposed-poc-owner-operated-model-and-hosted-researcher-testing-proposed--pending-owner-ratification).
 - **Baseline:** `main` at `f6c834b` (route and schema inventory below was taken from that commit).
 - **Scope:** architecture, policy, protocols and tests only. **No** database model, route,
   authentication provider, UI, job or index is added by this document.
@@ -783,3 +786,82 @@ only fixes precedence for whatever narrowing restrictions exist.
 | T-ERASE | New: after erasure, no surviving KEK version or wrapped-DEK copy decrypts a sampled backup, replica or drill copy of the erased unit (§14.3). |
 | T-POL   | New: precedence cases of §14.4, including unknown class, explicit deny over allow, `owner-only` without membership and `withheld` fields.     |
 | T-GATE  | New: no real private content is accepted while G3 is incomplete (§14.1).                                                                      |
+
+## 15. Proposed PoC owner-operated model and hosted researcher testing (PROPOSED — pending owner ratification)
+
+> **Status: PROPOSED.** This amendment awaits owner ratification. It does not resolve D11,
+> ratify §14, authorize hosted private-workspace access, or change any existing rollout gate.
+
+### 15.1 Operating model and unresolved responsibilities
+
+The owner reports personally operating ORAtlas as an experimental proof of concept, with no
+private data stored so far. This is an owner statement, not an independent data audit. The
+intended audience includes the operator's own experiments and independent researchers testing
+private workspaces. This section documents that intent, not an available or approved service.
+
+The §10 assumption that an institution is controller and ORAtlas is processor is **not established
+for this scenario**. Before hosted testing, document who operates the service and assess legal
+controller/processor responsibilities separately for each processing purpose, including account
+management, security logging and workspace content. A workspace role named `controller` is not a
+legal determination. Do not presume an institution, legal entity or processor relationship.
+
+Ownership of ORAtlas does not establish rights over uploaded materials. The operator's own
+research can still contain collaborators' personal data, confidential information or third-party
+copyrighted material. Neither an experimental label nor a user acknowledgement removes operator
+responsibilities or relaxes D7's no-break-glass rule.
+
+### 15.2 Proposed initial content policy and user notice
+
+The proposed initial policy is **synthetic test content only**, equally for the operator and
+external researchers. Test-generated workspace content must contain no real person, project,
+title, membership or source content, consistent with §14.1's proposed fixture restriction.
+Consent or ownership does not create an exception to this initial policy. “Non-sensitive” real
+research is not approved by this amendment. Real tester account/contact information and security
+metadata are not synthetic; their processing needs separate assessment before hosted testing.
+
+Proposed notice, to be finalized and prominently displayed with affirmative acknowledgement
+before workspace creation or invitation acceptance grants external access:
+
+> **Experimental private workspaces — synthetic test content only**
+>
+> ORAtlas is a proof of concept, not suitable for confidential or sensitive research. Use only
+> synthetic test content. Do not upload personal information (including collaborators' data),
+> confidential or unpublished research, credentials, or materials you lack permission to share.
+> Features and data may change, become unavailable or be deleted. Keep your own copies.
+
+This is draft wording, not a deployed notice or a promise of implemented encryption, export,
+retention or deletion capabilities. Notice display and acknowledgement require separate
+implementation and validation before external access under this proposal. A warning alone is
+not sufficient readiness evidence and does not transfer all responsibility to researchers.
+
+### 15.3 Evidence and decisions required before hosted testing
+
+The following are **proposed requirements to document and verify**, not claims about implemented
+controls, completed reviews or approved retention periods:
+
+| Area                       | Required decision or evidence                                                                                                                                                                                                                                                                                                                   |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Operator and communication | Confirm operator identity, privacy/security contact, incident escalation and notification process; publish a hosted-testing privacy notice and acceptable-use terms.                                                                                                                                                                            |
+| Data flows                 | Inventory workspace content, account/contact and security metadata, logs, backups, KMS, providers, access, regions and transfers; record purposes and minimization.                                                                                                                                                                             |
+| Legal roles and review     | Obtain purpose-specific counsel review and the required DPIA confirmation; determine applicable lawful bases, responsibilities and any necessary processing agreement without presuming ORAtlas is a processor.                                                                                                                                 |
+| Retention                  | For active/closed content, sealed suggestions, private audit, account/security metadata and backups, record purpose, trigger, responsible party, maximum period and exceptions. The §10 proposals (2 years, 30 days, 90 days) remain unvalidated; establish the actual backup and complete-erasure horizon rather than relying on a vendor SLA. |
+| Deletion and rights        | Define workspace/account deletion, export, access, rectification and erasure request handling. Account for replicas, backups, every relevant key version and wrapped-key copy; distinguish sealing from erasure as proposed in §14.3, and provide deletion-test evidence.                                                                       |
+| Hosted security            | Verify isolation, principal resolution, authorization/RLS, epochs, revocation and finalization, encryption/KMS, private audit, public non-interference and backup/restore checks against applicable §11–§14 requirements; identify gaps without calling controls verified prematurely.                                                          |
+| Enablement                 | Record appropriate G4–G6 review and feature-gate evidence, per-workspace allowlist, feature flag **default off**, kill switch and incident runbook. Validate notice/acknowledgement before inviting testers; no feature is unlocked by this document.                                                                                           |
+
+### 15.4 Ratification and relationship to existing gates
+
+1. The owner must separately ratify the hosted-testing scope, content policy, notice and readiness
+   requirements. Required review and implementation evidence must then be recorded before access.
+   Ratification of wording alone is not evidence that a gate has passed.
+2. §14.1's **proposed** local/CI synthetic-fixture allowance does not authorize hosted researcher
+   testing. This amendment provides no exemption from applicable §13 gates or a way to bypass G6
+   by calling a deployment a PoC. External access remains blocked pending explicit authorization
+   and readiness evidence.
+3. **D11 remains provisional.** Existing counsel/DPIA conditions before real private data remain
+   unchanged. The separate §14.1 proposal requires both G2 and G3 before any real private content
+   or metadata; it is still pending ratification, not an accepted change here. Processing real
+   tester account/security metadata must be assessed before hosted access, not hidden under the
+   synthetic-content label.
+4. Historical §1–§13 and the separate proposed §14 are unchanged. No runtime, UI, database or
+   hosted-testing capability is activated by this documentation amendment.
