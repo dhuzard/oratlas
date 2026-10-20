@@ -7,17 +7,171 @@ import { PRIVATE_SCHEMA } from "./target.js";
  */
 
 /**
- * Public tables the tested public routes actually read (Atom feed query: versions, review,
- * snapshot, contributors and persons; readiness needs none). The restricted public role receives
- * `SELECT` on exactly these, not a production-wide permission policy.
+ * Minimal reviewed public grant closure for the captured scenarios — not a production-wide
+ * permission policy. Every table is listed with the production code path that needs it; a missing
+ * entry makes a captured handler fail (500) and the capture expectations fail, so the list cannot
+ * silently shrink coverage. No DELETE, TRUNCATE, REFERENCES, TRIGGER or DDL is granted, and writes
+ * are column-scoped except the append-only audit insert.
  */
-export const FIXTURE_PUBLIC_TABLES = [
-  "Person",
-  "RepositorySnapshot",
-  "Review",
-  "ReviewContributor",
-  "ReviewVersion",
-] as const;
+export const PUBLIC_TABLE_GRANTS = [
+  {
+    table: "AuditEvent",
+    privileges: ["SELECT", "INSERT"],
+    reason:
+      "audit append for ORCID/certifier/notification mutations; Prisma create returns the row",
+  },
+  {
+    table: "CertificationProtocol",
+    privileges: ["SELECT"],
+    reason: "ORA readiness protocol lookup",
+  },
+  {
+    table: "Certifier",
+    privileges: ["SELECT"],
+    reason: "certifier status mutation and ORA readiness relation filter",
+  },
+  {
+    table: "Citation",
+    privileges: ["SELECT"],
+    reason: "knowledge index (search/claims) and canonical-graph readability predicate",
+  },
+  {
+    table: "Claim",
+    privileges: ["SELECT"],
+    reason: "knowledge index (search/claims) and canonical-graph readability predicate",
+  },
+  {
+    table: "ClaimEvidenceRelation",
+    privileges: ["SELECT"],
+    reason: "knowledge index evidence relations; graph edge include",
+  },
+  {
+    table: "KnowledgeNode",
+    privileges: ["SELECT"],
+    reason: "canonical graph seed/edges and sitemap node records",
+  },
+  {
+    table: "KnowledgeNodeVersion",
+    privileges: ["SELECT"],
+    reason: "canonical graph versions, sitemap nodes, claim/citation graph versions",
+  },
+  { table: "NodeAlias", privileges: ["SELECT"], reason: "canonical graph node aliases include" },
+  { table: "NodeEdge", privileges: ["SELECT"], reason: "canonical graph source assertions" },
+  {
+    table: "Notification",
+    privileges: ["SELECT"],
+    reason: "per-user notification list and mark-read",
+  },
+  { table: "Person", privileges: ["SELECT"], reason: "Atom feed and knowledge index contributors" },
+  {
+    table: "Publication",
+    privileges: ["SELECT"],
+    reason: "canonical-graph readability predicate (external publication branch)",
+  },
+  {
+    table: "PublicationCapture",
+    privileges: ["SELECT"],
+    reason: "canonical graph publication-occurrence include",
+  },
+  {
+    table: "PublicationClaimOccurrence",
+    privileges: ["SELECT"],
+    reason: "canonical-graph readability predicate and include",
+  },
+  {
+    table: "PublicationVersion",
+    privileges: ["SELECT"],
+    reason: "ORA readiness publication version read; graph predicate",
+  },
+  {
+    table: "Repository",
+    privileges: ["SELECT"],
+    reason: "canonical graph repository select and sitemap node query",
+  },
+  {
+    table: "RepositorySnapshot",
+    privileges: ["SELECT"],
+    reason: "feeds, index, sitemap, graph snapshot SHAs",
+  },
+  {
+    table: "Review",
+    privileges: ["SELECT"],
+    reason: "feeds, index, sitemap, lifecycle and readability predicates",
+  },
+  {
+    table: "ReviewContributor",
+    privileges: ["SELECT"],
+    reason: "Atom feed and knowledge index contributors",
+  },
+  { table: "ReviewLifecycleEvent", privileges: ["SELECT"], reason: "lifecycle ledger feed" },
+  {
+    table: "ReviewVersion",
+    privileges: ["SELECT"],
+    reason: "feeds, index, sitemap, lifecycle and readability predicates",
+  },
+  {
+    table: "Submission",
+    privileges: ["SELECT"],
+    reason: "readable node-version predicate (node-only acceptance branch)",
+  },
+  {
+    table: "SynthesisDraft",
+    privileges: ["SELECT"],
+    reason: "sitemap review projection selects the synthesis draft relation",
+  },
+  {
+    table: "TrustAssessment",
+    privileges: ["SELECT"],
+    reason: "knowledge index and graph edge TRUST include",
+  },
+  {
+    table: "TrustVerification",
+    privileges: ["SELECT"],
+    reason: "knowledge index and graph edge TRUST verification include",
+  },
+  {
+    table: "User",
+    privileges: ["SELECT"],
+    reason: "session resolution (getCurrentUser) and lifecycle actor login",
+  },
+] as const satisfies ReadonlyArray<{
+  table: string;
+  privileges: ReadonlyArray<"SELECT" | "INSERT">;
+  reason: string;
+}>;
+
+/** Column-only UPDATE grants; table-level UPDATE is never granted. */
+export const PUBLIC_COLUMN_UPDATE_GRANTS = [
+  {
+    table: "Certifier",
+    columns: ["activatedAt", "retiredAt", "status"],
+    reason: "setCertifierStatus",
+  },
+  { table: "Notification", columns: ["readAt"], reason: "markNotificationRead (own notification)" },
+  {
+    table: "User",
+    columns: ["orcid", "orcidVerifiedAt", "updatedAt"],
+    reason: "setUserOrcid (Prisma stamps updatedAt)",
+  },
+] as const satisfies ReadonlyArray<{ table: string; columns: readonly string[]; reason: string }>;
+
+/** Tables the restricted public role may read (row-count evidence covers exactly these). */
+export const PUBLIC_SELECT_TABLES: readonly string[] = PUBLIC_TABLE_GRANTS.map(
+  (grant) => grant.table,
+);
+
+const TABLE_NAME = /^[A-Z][A-Za-z0-9]{0,62}$/u;
+const COLUMN_NAME = /^[a-z][A-Za-z0-9]{0,62}$/u;
+
+function publicTable(table: string): string {
+  if (!TABLE_NAME.test(table)) throw new Error("Unexpected table name");
+  return `public."${table}"`;
+}
+
+function column(name: string): string {
+  if (!COLUMN_NAME.test(name)) throw new Error("Unexpected column name");
+  return `"${name}"`;
+}
 
 const SYSTEM_SCHEMA_FILTER = `n.nspname NOT LIKE 'pg\\_%' AND n.nspname <> 'information_schema'`;
 
@@ -87,13 +241,24 @@ export function isEmptySchema(counts: SchemaObjectCounts): boolean {
 
 const ROLE_ATTRIBUTES = `LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOREPLICATION NOBYPASSRLS CONNECTION LIMIT 16`;
 
-/** Restricted public runtime role with SELECT on the fixture tables only. */
+/** Restricted public runtime role with exactly the reviewed table and column grants. */
 export function createPublicRoleSql(role: string, password: string): string {
   const ident = quoteIdent(role);
-  const tables = FIXTURE_PUBLIC_TABLES.map((table) => `public."${table}"`).join(", ");
-  return `CREATE ROLE ${ident} ${ROLE_ATTRIBUTES} PASSWORD ${quoteLiteral(password)};
-GRANT USAGE ON SCHEMA public TO ${ident};
-GRANT SELECT ON TABLE ${tables} TO ${ident};`;
+  const statements = [
+    `CREATE ROLE ${ident} ${ROLE_ATTRIBUTES} PASSWORD ${quoteLiteral(password)};`,
+    `GRANT USAGE ON SCHEMA public TO ${ident};`,
+  ];
+  for (const grant of PUBLIC_TABLE_GRANTS) {
+    statements.push(
+      `GRANT ${grant.privileges.join(", ")} ON TABLE ${publicTable(grant.table)} TO ${ident};`,
+    );
+  }
+  for (const grant of PUBLIC_COLUMN_UPDATE_GRANTS) {
+    statements.push(
+      `GRANT UPDATE (${grant.columns.map(column).join(", ")}) ON TABLE ${publicTable(grant.table)} TO ${ident};`,
+    );
+  }
+  return statements.join("\n");
 }
 
 /**
@@ -113,14 +278,38 @@ CREATE ROLE ${ident} ${ROLE_ATTRIBUTES} PASSWORD ${quoteLiteral(password)};
 GRANT USAGE ON SCHEMA ${schema} TO ${ident};`;
 }
 
+/** Column privileges PostgreSQL can grant per column; DELETE/TRUNCATE/TRIGGER are table-only. */
+export const COLUMN_PRIVILEGES = ["SELECT", "INSERT", "UPDATE", "REFERENCES"] as const;
+
+/**
+ * Effective column privileges of `roleExpression` on public relations that its table-level
+ * privileges do not already imply. `has_table_privilege` misses column-only grants, and reading
+ * `attacl` for the role's own grantee would miss grants to `PUBLIC` or inherited from a role, so
+ * this asks `has_column_privilege` (which applies both) for every column and privilege.
+ */
+export function columnPrivilegesSql(roleExpression: string): string {
+  return `COALESCE((SELECT json_agg(json_build_array(c.relname, a.attname, p.privilege) ORDER BY c.relname, a.attname, p.privilege)
+    FROM pg_class c JOIN pg_attribute a ON a.attrelid = c.oid AND a.attnum > 0 AND NOT a.attisdropped
+    CROSS JOIN unnest(ARRAY[${COLUMN_PRIVILEGES.map((privilege) => `'${privilege}'`).join(",")}]) AS p(privilege)
+    WHERE c.relnamespace = 'public'::regnamespace AND c.relkind IN ('r', 'p', 'v', 'm', 'f')
+      AND has_column_privilege(${roleExpression}, c.oid, a.attnum, p.privilege)
+      AND NOT has_table_privilege(${roleExpression}, c.oid, p.privilege)), '[]'::json)`;
+}
+
+/** Effective table-level privileges of `roleExpression` (direct, `PUBLIC` or inherited). */
+export function tablePrivilegesSql(roleExpression: string): string {
+  return `COALESCE((SELECT json_agg(json_build_array(c.relname, p.privilege) ORDER BY c.relname, p.privilege)
+    FROM pg_class c CROSS JOIN unnest(ARRAY['SELECT','INSERT','UPDATE','DELETE','TRUNCATE','REFERENCES','TRIGGER']) AS p(privilege)
+    WHERE c.relnamespace = 'public'::regnamespace AND c.relkind IN ('r', 'p', 'v', 'm', 'f')
+      AND has_table_privilege(${roleExpression}, c.oid, p.privilege)), '[]'::json)`;
+}
+
 /** Admin view of grants that must be identical before and after private provisioning. */
 export function publicGrantSnapshotSql(publicRole: string): string {
   const role = quoteLiteral(publicRole);
   return `SELECT json_build_object(
-  'tablePrivileges', COALESCE((SELECT json_agg(json_build_array(c.relname, p.privilege) ORDER BY c.relname, p.privilege)
-    FROM pg_class c CROSS JOIN unnest(ARRAY['SELECT','INSERT','UPDATE','DELETE','TRUNCATE','REFERENCES','TRIGGER']) AS p(privilege)
-    WHERE c.relnamespace = 'public'::regnamespace AND c.relkind IN ('r', 'p', 'v', 'm', 'f')
-      AND has_table_privilege(${role}, c.oid, p.privilege)), '[]'::json),
+  'tablePrivileges', ${tablePrivilegesSql(role)},
+  'columnPrivileges', ${columnPrivilegesSql(role)},
   'publicSchemaUsage', has_schema_privilege(${role}, 'public', 'USAGE'),
   'publicSchemaCreate', has_schema_privilege(${role}, 'public', 'CREATE'),
   'publicSchemaAcl', (SELECT nspacl::text FROM pg_namespace WHERE nspname = 'public')
@@ -151,6 +340,119 @@ export function dropRecordedPublicObjectsSql(inventory: PublicObjectInventory): 
   }
   return statements.join("\n");
 }
+
+/**
+ * Identity and object facts the admin connection re-checks immediately before every reset: the
+ * reset may only touch the exact run-created inventory in the validated database.
+ */
+export const RESET_TARGET_SQL = `SELECT json_build_object(
+  'database', current_database(),
+  'sessionUser', session_user::text,
+  'currentUser', current_user::text,
+  'inventory', json_build_object(
+    'tables', COALESCE((SELECT json_agg(relname ORDER BY relname) FROM pg_class WHERE relnamespace = 'public'::regnamespace AND relkind IN ('r', 'p')), '[]'::json),
+    'functions', COALESCE((SELECT json_agg(p.oid::regprocedure::text ORDER BY p.oid::regprocedure::text) FROM pg_proc p WHERE p.pronamespace = 'public'::regnamespace), '[]'::json))
+);`;
+
+export type ResetTarget = {
+  database: string;
+  sessionUser: string;
+  currentUser: string;
+  inventory: PublicObjectInventory;
+};
+
+/** Problems that forbid a reset (empty when the target is exactly the recorded run target). */
+export function resetTargetProblems(
+  facts: ResetTarget,
+  expected: { database: string; adminRole: string; inventory: PublicObjectInventory },
+): string[] {
+  const problems: string[] = [];
+  if (facts.database !== expected.database) problems.push("reset connection database differs");
+  if (facts.sessionUser !== expected.adminRole || facts.currentUser !== expected.adminRole) {
+    problems.push("reset connection identity differs from the bootstrap role");
+  }
+  if (JSON.stringify(facts.inventory) !== JSON.stringify(expected.inventory)) {
+    problems.push("public objects differ from the run-created inventory");
+  }
+  return problems;
+}
+
+/**
+ * Truncate exactly the run-created public tables (no CASCADE: a reference from any other table
+ * fails the reset) so the fixture file can be reloaded in the same transaction.
+ */
+export function truncateRecordedPublicTablesSql(inventory: PublicObjectInventory): string {
+  if (inventory.tables.length === 0) throw new Error("Empty public inventory");
+  return `TRUNCATE TABLE ${inventory.tables.map(publicTable).join(", ")} RESTART IDENTITY;`;
+}
+
+/**
+ * Mutable fixture state after a reset: row counts of every granted table plus the columns the
+ * scenarios mutate. Must equal `EXPECTED_RESET_STATE` before each capture child starts.
+ */
+export function resetStateSql(): string {
+  const counts = PUBLIC_SELECT_TABLES.map(
+    (table) => `'${table}', (SELECT count(*) FROM ${publicTable(table)})`,
+  ).join(", ");
+  return `SELECT json_build_object(
+  'counts', json_build_object(${counts}),
+  'users', (SELECT json_agg(json_build_array("id", "orcid", "orcidVerifiedAt" IS NOT NULL) ORDER BY "id" COLLATE "C") FROM public."User"),
+  'unreadNotifications', (SELECT count(*) FROM public."Notification" WHERE "readAt" IS NULL),
+  'certifiers', (SELECT json_agg(json_build_array("id", "status") ORDER BY "id" COLLATE "C") FROM public."Certifier")
+);`;
+}
+
+export type ResetState = {
+  counts: Record<string, number>;
+  users: Array<[string, string | null, boolean]>;
+  unreadNotifications: number;
+  certifiers: Array<[string, string]>;
+};
+
+/** Seed state of fixtures/public-fixtures.sql (reviewed with the fixture file). */
+export const EXPECTED_RESET_STATE: ResetState = {
+  counts: {
+    AuditEvent: 0,
+    CertificationProtocol: 1,
+    Certifier: 2,
+    Citation: 1,
+    Claim: 3,
+    ClaimEvidenceRelation: 1,
+    KnowledgeNode: 4,
+    KnowledgeNodeVersion: 4,
+    NodeAlias: 0,
+    NodeEdge: 3,
+    Notification: 6,
+    Person: 2,
+    Publication: 1,
+    PublicationCapture: 0,
+    PublicationClaimOccurrence: 0,
+    PublicationVersion: 1,
+    Repository: 3,
+    RepositorySnapshot: 4,
+    Review: 3,
+    ReviewContributor: 5,
+    ReviewLifecycleEvent: 3,
+    ReviewVersion: 4,
+    Submission: 0,
+    SynthesisDraft: 0,
+    TrustAssessment: 0,
+    TrustVerification: 0,
+    User: 5,
+  },
+  users: [
+    ["g1-user-a-and-b", "0000-0000-0000-0003", false],
+    ["g1-user-a-only", "0000-0000-0000-0001", true],
+    ["g1-user-admin", "0000-0000-0000-0005", false],
+    ["g1-user-b-only", "0000-0000-0000-0002", false],
+    ["g1-user-editor", "0000-0000-0000-0004", false],
+  ],
+  unreadNotifications: 6,
+  certifiers: [
+    ["g1-certifier-1", "active"],
+    ["g1-certifier-ora", "active"],
+  ],
+};
 
 /** Drop a runtime role this run proved it created; DROP OWNED also revokes its grants here. */
 export function dropRoleSql(role: string): string {
@@ -208,10 +510,8 @@ export function rolePostureSql(otherRoles: readonly string[]): string {
     'create', has_database_privilege(session_user, current_database(), 'CREATE'),
     'temporary', has_database_privilege(session_user, current_database(), 'TEMPORARY'),
     'connect', has_database_privilege(session_user, current_database(), 'CONNECT')),
-  'publicTablePrivileges', COALESCE((SELECT json_agg(json_build_array(c.relname, p.privilege) ORDER BY c.relname, p.privilege)
-    FROM pg_class c CROSS JOIN unnest(ARRAY['SELECT','INSERT','UPDATE','DELETE','TRUNCATE','REFERENCES','TRIGGER']) AS p(privilege)
-    WHERE c.relnamespace = 'public'::regnamespace AND c.relkind IN ('r', 'p', 'v', 'm', 'f')
-      AND has_table_privilege(session_user, c.oid, p.privilege)), '[]'::json),
+  'publicTablePrivileges', ${tablePrivilegesSql("session_user")},
+  'publicColumnPrivileges', ${columnPrivilegesSql("session_user")},
   'defaultAcl', COALESCE((SELECT json_agg(json_build_object('role', pg_get_userbyid(d.defaclrole),
       'schema', CASE WHEN d.defaclnamespace = 0 THEN NULL ELSE d.defaclnamespace::regnamespace::text END,
       'objectType', d.defaclobjtype, 'acl', d.defaclacl::text)) FROM pg_default_acl d), '[]'::json)

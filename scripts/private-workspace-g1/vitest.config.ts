@@ -20,6 +20,9 @@ export default defineConfig({
   },
   test: {
     include: ["scripts/private-workspace-g1/**/*.g1.spec.ts"],
+    // Installs node:async_hooks AsyncLocalStorage on globalThis before any Next module loads, so
+    // Next's request/work storages are real (next-request-context.ts verifies this).
+    setupFiles: [resolve(here, "setup-async-local-storage.ts")],
     environment: "node",
     passWithNoTests: false,
     fileParallelism: false,

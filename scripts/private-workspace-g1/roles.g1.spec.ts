@@ -3,8 +3,11 @@ import { dirname, isAbsolute } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { queryJson, quoteIdent } from "./postgres.js";
 import {
-  FIXTURE_PUBLIC_TABLES,
+  EXPECTED_RESET_STATE,
   isEmptySchema,
+  PUBLIC_COLUMN_UPDATE_GRANTS,
+  PUBLIC_SELECT_TABLES,
+  PUBLIC_TABLE_GRANTS,
   probeSql,
   rolePostureSql,
   schemaObjectCountsSql,
@@ -43,6 +46,7 @@ type Posture = {
   publicSchema: { usage: boolean; create: boolean };
   databasePrivileges: { create: boolean; temporary: boolean; connect: boolean };
   publicTablePrivileges: Array<[string, string]>;
+  publicColumnPrivileges: Array<[string, string, string]>;
   defaultAcl: unknown[];
 };
 
@@ -113,6 +117,20 @@ function expectRestrictedRole(result: Posture, user: string, peer: string) {
   expect(result.defaultAcl).toEqual([]);
 }
 
+const byCodeUnits = (left: string, right: string) => (left < right ? -1 : left > right ? 1 : 0);
+
+function expectedTablePrivileges(): Array<[string, string]> {
+  return PUBLIC_TABLE_GRANTS.flatMap((grant) =>
+    grant.privileges.map((privilege): [string, string] => [grant.table, privilege]),
+  ).sort((a, b) => byCodeUnits(a.join("/"), b.join("/")));
+}
+
+function expectedColumnPrivileges(): Array<[string, string, string]> {
+  return PUBLIC_COLUMN_UPDATE_GRANTS.flatMap((grant) =>
+    grant.columns.map((column): [string, string, string] => [grant.table, column, "UPDATE"]),
+  ).sort((a, b) => byCodeUnits(a.join("/"), b.join("/")));
+}
+
 function expectedPrivateAcl() {
   return [
     { grantee: targets.adminRole, privilege: "CREATE", grantable: false },
@@ -138,9 +156,12 @@ describe("G1 T-ROLE: runtime identities and role posture (direct connections)", 
     expect(result.privateSchema.create).toBe(false);
     expect(sortAcl(result.privateSchema.acl)).toEqual(expectedPrivateAcl());
     expect(result.publicSchema.usage).toBe(true);
-    expect(result.publicTablePrivileges).toEqual(
-      [...FIXTURE_PUBLIC_TABLES].sort().map((table) => [table, "SELECT"]),
-    );
+    // Exactly the reviewed closure: table-level SELECT (plus the audit INSERT) and column-only
+    // UPDATEs. Both inventories are effective (own, PUBLIC and inherited grants), and the column
+    // one covers SELECT/INSERT/UPDATE/REFERENCES beyond what the table privileges imply, so an
+    // extra grant fails here whatever its grantee.
+    expect(result.publicTablePrivileges).toEqual(expectedTablePrivileges());
+    expect(result.publicColumnPrivileges).toEqual(expectedColumnPrivileges());
   });
 
   it("private runtime role has private_ws USAGE only and no public table privilege", async () => {
@@ -152,6 +173,7 @@ describe("G1 T-ROLE: runtime identities and role posture (direct connections)", 
     expect(result.privateSchema.create).toBe(false);
     expect(sortAcl(result.privateSchema.acl)).toEqual(expectedPrivateAcl());
     expect(result.publicTablePrivileges).toEqual([]);
+    expect(result.publicColumnPrivileges).toEqual([]);
   });
 });
 
@@ -214,6 +236,43 @@ function probeCases(): { public: ProbeCase[]; private: ProbeCase[] } {
       },
       { id: "set-role-admin", statement: `SET ROLE ${admin}`, expected: "42501", meaning: denied },
       { id: "set-role-private", statement: `SET ROLE ${priv}`, expected: "42501", meaning: denied },
+      {
+        id: "delete-audit-rows",
+        statement: `DELETE FROM public."AuditEvent" WHERE false`,
+        expected: "42501",
+        meaning: `${denied}: the audit table is append-only for the runtime role`,
+      },
+      {
+        id: "truncate-notifications",
+        statement: `TRUNCATE public."Notification"`,
+        expected: "42501",
+        meaning: denied,
+      },
+      {
+        id: "update-ungranted-user-role",
+        statement: `UPDATE public."User" SET "role" = 'ADMIN' WHERE false`,
+        expected: "42501",
+        meaning: `${denied}: only orcid/orcidVerifiedAt/updatedAt are updatable`,
+      },
+      {
+        id: "update-ungranted-certifier-slug",
+        statement: `UPDATE public."Certifier" SET "slug" = "slug" WHERE false`,
+        expected: "42501",
+        meaning: `${denied}: only status/activatedAt/retiredAt are updatable`,
+      },
+      {
+        id: "insert-notification",
+        statement: `INSERT INTO public."Notification" ("id", "userId", "kind", "subjectType", "subjectId") VALUES ('p', 'p', 'p', 'p', 'p')`,
+        expected: "42501",
+        meaning: `${denied}: no INSERT outside the audit append`,
+      },
+      {
+        id: "update-granted-user-columns-control",
+        statement: `UPDATE public."User" SET "orcid" = "orcid", "orcidVerifiedAt" = "orcidVerifiedAt", "updatedAt" = "updatedAt" WHERE false`,
+        expected: "SUCCEEDED",
+        meaning:
+          "positive control (rolled back): the column grant is functional, so the denials above are permission evidence",
+      },
     ],
     private: [
       {
@@ -261,7 +320,7 @@ function probeCases(): { public: ProbeCase[]; private: ProbeCase[] } {
 
 describe("G1 T-ROLE: rolled-back DDL/role probes record SQLSTATEs", () => {
   for (const which of ["public", "private"] as const) {
-    it(`${which} runtime role is denied with 42501 (and never creates a probe)`, async () => {
+    it(`${which} runtime role is denied with 42501 (and never keeps a probe)`, async () => {
       const results: Array<ProbeCase & ProbeResult> = [];
       for (const testCase of probeCases()[which]) {
         const outcome = await probe(which, testCase.statement);
@@ -270,8 +329,10 @@ describe("G1 T-ROLE: rolled-back DDL/role probes record SQLSTATEs", () => {
       evidence[`${which}Probes`] = results;
       for (const result of results) {
         expect(result.sessionUser, result.id).toBe(targets[which].user);
-        expect(result.sqlstate, `${result.id}: ${result.message ?? ""}`).not.toBe("SUCCEEDED");
-        expect(result.sqlstate, result.id).toBe(result.expected);
+        if (result.expected !== "SUCCEEDED") {
+          expect(result.sqlstate, `${result.id}: ${result.message ?? ""}`).not.toBe("SUCCEEDED");
+        }
+        expect(result.sqlstate, `${result.id}: ${result.message ?? ""}`).toBe(result.expected);
       }
     });
   }
@@ -279,18 +340,12 @@ describe("G1 T-ROLE: rolled-back DDL/role probes record SQLSTATEs", () => {
   it("public role can read exactly its fixture data (grants are functional, not degraded)", async () => {
     const counts = await queryJson<Record<string, number>>(
       targets.public,
-      `SELECT json_build_object(${FIXTURE_PUBLIC_TABLES.map(
+      `SELECT json_build_object(${PUBLIC_SELECT_TABLES.map(
         (table) => `'${table}', (SELECT count(*) FROM public."${table}")`,
       ).join(", ")});`,
     );
     evidence.publicFixtureCounts = counts;
-    expect(counts).toEqual({
-      Person: 2,
-      RepositorySnapshot: 3,
-      Review: 1,
-      ReviewContributor: 4,
-      ReviewVersion: 3,
-    });
+    expect(counts).toEqual(EXPECTED_RESET_STATE.counts);
   });
 
   it("leaves private_ws empty after every probe", async () => {
