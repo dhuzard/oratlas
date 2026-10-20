@@ -1,11 +1,13 @@
-# Identity persistence and session-instance design (S1) — review-candidate durable-identity component
+# Identity persistence and session-instance design (S1) — reviewed durable-identity component
 
-**Status: PROPOSED REVIEW-CANDIDATE DURABLE-IDENTITY COMPONENT design, pending independent review
-and owner policy choices. It is NOT a complete S1 production or HTTP design, and full S1 remains
-incomplete.** It specifies the durable transaction protocol only. It does not authorize any HTTP
+**Status: PROPOSED DURABLE-IDENTITY COMPONENT design, independently reviewed on 2026-10-20;
+owner policy choices remain open. It is NOT a complete S1 production or HTTP design, and full S1
+remains incomplete.** It specifies the durable transaction protocol only. It does not authorize any HTTP
 callback result, fresh-read endpoint or provider-adapter wiring, and it contains no response-release
 or provider-exchange-start ordering contract (§5, which records those as activation blockers). It is
-not owner-approved schema, not implemented, and not reviewed. The owner approved I1, I2, I3 and
+not owner-approved schema or implemented persistence. Independent re-review found no remaining
+intrinsic blocker/correctness/regression finding in the durable protocol; that is not validation
+of the missing §5 contracts or production safety. The owner approved I1, I2, I3 and
 ADR §14/§15 on 2026-10-20 and _commissioned_ this design (S1); commissioning is not approval of
 anything below. D11 stays provisional; I4 retention and identifier-reuse details are pending. The
 G1 PostgreSQL harness is partial and G1 is not passed. Nothing here changes code, schema or config.

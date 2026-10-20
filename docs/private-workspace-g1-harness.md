@@ -244,6 +244,15 @@ issues:
   project includes `scripts/`; an ad-hoc `tsc --noEmit` over the changed files with the base config
   (ESNext/Bundler module settings) passed.
 
+Parent verification after repair (2026-10-20): independent re-review closed both correctness
+findings with no new blocker/correctness/regression/test-gap findings. A fresh full `pnpm test`
+run against the code-identical implementation worktree passed **245 files / 2,094 tests**, with
+6 pre-existing PostgreSQL opt-in files / 16 tests skipped in the ordinary offline suite. A
+local PATH shim exposing `corepack pnpm` resolved the earlier PATH-only failures. The dedicated
+PostgreSQL evidence is separate and non-skipped; these ordinary-suite skips are not G1 coverage.
+Full log: `/tmp/oratlas-g1-parent-full-tests.log`; sanitized repaired PostgreSQL evidence:
+`/tmp/oratlas-g1-607a-evidence-repair/`. GitHub CI has not run for this branch.
+
 Golden updates: each run writes `golden-candidate.json`; a reviewer compares it with the current
 golden and copies it deliberately. The harness never overwrites or accepts a golden after a failure.
 The OpenAPI golden is tied to `docs/openapi.yaml` and the generated ETags by an offline test, so a
