@@ -47,4 +47,6 @@ Start with **A (explicit owner decision sheet)** and a **bounded C/G1 harness sp
 
 Legal/privacy work can proceed alongside engineering: identify the operator/contact, inventory data flows (including accounts/logs/providers), assign purpose-specific legal responsibilities and propose a justified retention/deletion schedule. Counsel/DPIA confirmation remains a separate requirement, not something an engineering PR can supply.
 
+Draft follow-ups: [owner decision register](./private-workspace-owner-decisions.md) (choices still pending) and [G1 harness specification](./private-workspace-g1-harness.md) (not implemented or gate-passed).
+
 References: [#203](https://github.com/dhuzard/oratlas/issues/203), [#204](https://github.com/dhuzard/oratlas/issues/204), [#206](https://github.com/dhuzard/oratlas/issues/206), [identity owner decisions](./identity-link-foundations.md#owner-decision-checklist-unresolved--not-defaults), [ORCID preflight](./orcid-linking-preflight.md), [ADR gates](./private-workspace-security-architecture.md#13-rollout-gates-and-migration-consequences).
