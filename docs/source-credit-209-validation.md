@@ -95,6 +95,20 @@ pnpm evidence-lineage:verify
 | OpenAPI check | ✓ Pass | API specs valid                                                                              |
 | Build         | ✓ Pass | CI env: `NEXT_PUBLIC_BASE_URL=https://ci.oratlas.example`; CSS ::highlight warning non-fatal |
 
+## Resume validation
+
+Parent run `run-0cf0d1577248` rechecked the formatted delivery docs with Prettier (pass) and reran the following checks using the existing dependencies in `/tmp/oratlas-209-work`:
+
+```bash
+./node_modules/.bin/vitest run packages/contracts/src/source-credit-observations.test.ts packages/knowledge/src/source-credit-adapters.test.ts
+./node_modules/.bin/vitest run packages/extractor/src/evidence-lineage.test.ts apps/web/src/lib/crt-diggypaper-lineage.integration.test.ts apps/web/src/components/SourceEvidenceLinksCard.test.tsx scripts/evidence-lineage/verify-fixture.test.ts
+./node_modules/.bin/tsx scripts/evidence-lineage/verify-fixture.ts
+```
+
+Results: 186 source-credit tests and 87 lineage tests passed; fixture verification passed (21 files). `git diff 91e557a..HEAD -- packages apps scripts` was empty, establishing code identity with the validation worktree. Logs are in `/tmp/oratlas209-resume-validation/fresh-{source-credit,lineage,fixture}.log`. The initial resume attempt lacked `pnpm`; the successful commands above used the installed executables directly. The lineage test emitted the development-only missing-session-secret warning; no server was deployed.
+
+The full suite, lint, typecheck, schema/OpenAPI checks and production build were **not rerun** on resume: their saved logs above were inspected. Browser E2E remains unexecuted. Publication is owner-run only; no push or PR creation was performed.
+
 ## Architectural advisory (non-blocking)
 
 **ARCHITECTURAL_DEBT:** The neutral 0.2.0 schema permits `sourceEntryId: null` on manually constructed documents without producer validation. Adapters generate consistent values (Diggypaper native ID or CRT null). No runtime inconsistency in adapter output; mitigation is documentation + manual code review for synthetic sources.
