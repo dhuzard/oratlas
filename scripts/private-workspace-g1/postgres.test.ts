@@ -11,12 +11,22 @@ import {
   runPsql,
 } from "./postgres.js";
 import {
+  COLUMN_PRIVILEGES,
+  columnPrivilegesSql,
   createPublicRoleSql,
   dropRecordedPublicObjectsSql,
-  FIXTURE_PUBLIC_TABLES,
+  EXPECTED_RESET_STATE,
   isEmptySchema,
   probeSql,
   provisionPrivateSql,
+  PUBLIC_COLUMN_UPDATE_GRANTS,
+  PUBLIC_SELECT_TABLES,
+  PUBLIC_TABLE_GRANTS,
+  publicGrantSnapshotSql,
+  resetTargetProblems,
+  rolePostureSql,
+  tablePrivilegesSql,
+  truncateRecordedPublicTablesSql,
   type SchemaObjectCounts,
 } from "./sql.js";
 import type { G1Connection } from "./target.js";
@@ -60,6 +70,7 @@ describe("safe psql adapter", () => {
         [
           "LANG",
           "LC_ALL",
+          "NODE_ENV",
           "PATH",
           "PGAPPNAME",
           "PGCONNECT_TIMEOUT",
@@ -76,6 +87,7 @@ describe("safe psql adapter", () => {
         ].sort(),
       );
       expect(env).toMatchObject({
+        NODE_ENV: "test",
         PGHOST: "localhost",
         PGPORT: "55432",
         PGPASSFILE: "/dev/null",
@@ -125,13 +137,94 @@ describe("safe psql adapter", () => {
 });
 
 describe("G1 provisioning SQL", () => {
-  it("grants the public role SELECT on the fixture tables only", () => {
+  it("grants the public role exactly the reviewed table and column privileges", () => {
     const sql = createPublicRoleSql("oratlas_g1_public", "pw");
     expect(sql).toMatch(/NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOREPLICATION NOBYPASSRLS/);
-    expect(sql).toContain(
-      `GRANT SELECT ON TABLE ${FIXTURE_PUBLIC_TABLES.map((t) => `public."${t}"`).join(", ")}`,
+    const grants = sql.split("\n").filter((line) => line.startsWith("GRANT"));
+    expect(grants).toEqual([
+      'GRANT USAGE ON SCHEMA public TO "oratlas_g1_public";',
+      ...PUBLIC_TABLE_GRANTS.map(
+        (grant) =>
+          `GRANT ${grant.privileges.join(", ")} ON TABLE public."${grant.table}" TO "oratlas_g1_public";`,
+      ),
+      'GRANT UPDATE ("activatedAt", "retiredAt", "status") ON TABLE public."Certifier" TO "oratlas_g1_public";',
+      'GRANT UPDATE ("readAt") ON TABLE public."Notification" TO "oratlas_g1_public";',
+      'GRANT UPDATE ("orcid", "orcidVerifiedAt", "updatedAt") ON TABLE public."User" TO "oratlas_g1_public";',
+    ]);
+    // Writes are the audit append and column-scoped updates only; never table-wide or destructive.
+    expect(sql).not.toMatch(/ALL TABLES|GRANT ALL|DELETE|TRUNCATE|REFERENCES|TRIGGER|private_ws/u);
+    expect(sql).not.toMatch(/GRANT UPDATE ON|GRANT [A-Z, ]*UPDATE[A-Z, ]* ON TABLE/u);
+    expect(PUBLIC_TABLE_GRANTS.filter((grant) => grant.privileges.length > 1)).toEqual([
+      expect.objectContaining({ table: "AuditEvent", privileges: ["SELECT", "INSERT"] }),
+    ]);
+    for (const grant of [...PUBLIC_TABLE_GRANTS, ...PUBLIC_COLUMN_UPDATE_GRANTS]) {
+      expect(grant.reason.length, grant.table).toBeGreaterThan(10);
+    }
+    expect(Object.keys(EXPECTED_RESET_STATE.counts).sort()).toEqual(
+      [...PUBLIC_SELECT_TABLES].sort(),
     );
-    expect(sql).not.toMatch(/ALL TABLES|INSERT|UPDATE|DELETE|private_ws/u);
+    for (const grant of PUBLIC_COLUMN_UPDATE_GRANTS) {
+      expect(PUBLIC_SELECT_TABLES, grant.table).toContain(grant.table);
+    }
+  });
+
+  it("inventories effective table and column privileges, not one grantee's ACL entries", () => {
+    const columns = columnPrivilegesSql("session_user");
+    // A grantee filter on attacl misses grants to PUBLIC (grantee 0) and inherited grants.
+    expect(columns).not.toMatch(/aclexplode|attacl|grantee/u);
+    expect(columns).toContain("has_column_privilege(session_user, c.oid, a.attnum, p.privilege)");
+    expect(columns).toContain("AND NOT has_table_privilege(session_user, c.oid, p.privilege)");
+    expect(columns).toContain("ARRAY['SELECT','INSERT','UPDATE','REFERENCES']");
+    expect(COLUMN_PRIVILEGES).toEqual(["SELECT", "INSERT", "UPDATE", "REFERENCES"]);
+    expect(columns).toContain("NOT a.attisdropped");
+    const tables = tablePrivilegesSql("'oratlas_g1_public'");
+    expect(tables).not.toMatch(/aclexplode|relacl|grantee/u);
+    expect(tables).toContain("has_table_privilege('oratlas_g1_public', c.oid, p.privilege)");
+    expect(tables).toContain(
+      "ARRAY['SELECT','INSERT','UPDATE','DELETE','TRUNCATE','REFERENCES','TRIGGER']",
+    );
+    for (const sql of [columns, tables]) {
+      expect(sql).toContain("c.relnamespace = 'public'::regnamespace");
+      expect(sql).toContain("c.relkind IN ('r', 'p', 'v', 'm', 'f')");
+    }
+    // The before/after snapshot and the runtime posture both use the effective inventories.
+    expect(publicGrantSnapshotSql("oratlas_g1_public")).toContain(
+      columnPrivilegesSql("'oratlas_g1_public'"),
+    );
+    expect(rolePostureSql(["g1_admin"])).toContain(columns);
+    expect(rolePostureSql(["g1_admin"])).toContain(tablePrivilegesSql("session_user"));
+  });
+
+  it("resets only the exact run-created inventory of the validated target", () => {
+    const inventory = { tables: ["Review", "User"], functions: ["oratlas_guard()"] };
+    expect(truncateRecordedPublicTablesSql(inventory)).toBe(
+      'TRUNCATE TABLE public."Review", public."User" RESTART IDENTITY;',
+    );
+    expect(truncateRecordedPublicTablesSql(inventory)).not.toMatch(/CASCADE/u);
+    expect(() =>
+      truncateRecordedPublicTablesSql({ tables: ['x"; DROP'], functions: [] }),
+    ).toThrow();
+    expect(() => truncateRecordedPublicTablesSql({ tables: [], functions: [] })).toThrow();
+    const expected = { database: "oratlas_g1", adminRole: "g1_admin", inventory };
+    const facts = {
+      database: "oratlas_g1",
+      sessionUser: "g1_admin",
+      currentUser: "g1_admin",
+      inventory,
+    };
+    expect(resetTargetProblems(facts, expected)).toEqual([]);
+    expect(resetTargetProblems({ ...facts, database: "oratlas" }, expected)).toEqual([
+      "reset connection database differs",
+    ]);
+    expect(resetTargetProblems({ ...facts, currentUser: "oratlas_g1_public" }, expected)).toEqual([
+      "reset connection identity differs from the bootstrap role",
+    ]);
+    expect(
+      resetTargetProblems(
+        { ...facts, inventory: { ...inventory, tables: [...inventory.tables, "Foreign"] } },
+        expected,
+      ),
+    ).toEqual(["public objects differ from the run-created inventory"]);
   });
 
   it("creates an empty private schema with USAGE only for the private role", () => {

@@ -21,6 +21,7 @@ function runHarness(extra: Record<string, string>) {
     env: {
       PATH: process.env.PATH ?? "",
       HOME: process.env.HOME ?? "",
+      NODE_ENV: "test",
       G1_EVIDENCE_DIR: evidence,
       ...extra,
     },

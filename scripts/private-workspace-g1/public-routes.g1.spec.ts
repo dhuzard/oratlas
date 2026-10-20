@@ -1,161 +1,253 @@
 import { mkdirSync, writeFileSync } from "node:fs";
-import { dirname, isAbsolute } from "node:path";
+import { dirname } from "node:path";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import {
-  captureResponse,
+  captureHttp,
+  deterministicJson,
   G1_BASE_URL,
   G1_CAPTURE_VERSION,
   G1_FIXED_CLOCK,
+  textRecord,
   type CaptureFile,
+  type CaptureRecord,
   type CapturedRequest,
-  type CapturedResponse,
 } from "./capture.js";
-import { comparePairedCaptures } from "./compare.js";
-import { G1_ENV, parseConnectionUrl, PUBLIC_ROLE_NAME } from "./target.js";
+import { expectedRequest, validateCapture } from "./compare.js";
+import { activeNextStores, invokeRouteHandler, nextInternals } from "./next-request-context.js";
+import { assertPublicChildEnv } from "./child-env.js";
+import { cookieHeader, sha256Text, type SessionSigner } from "./principals.js";
+import {
+  requestBodyText,
+  SCENARIOS,
+  STATE_EXCLUDED_FIELDS,
+  type HttpScenario,
+  type StateProjection,
+} from "./scenarios.js";
 
-// T-PUB G1-empty capture. Runs only in a child process that the orchestrator gives the PUBLIC
-// runtime URL as DATABASE_URL and nothing else. Real production handlers and the real Prisma client
-// are used; only `server-only` is stubbed, the clock is fixed for /api/health and outbound HTTP is
-// blocked. Missing or wrong configuration fails the suite; it never skips. (`server-only` is
-// aliased to an empty stub by the dedicated vitest.config.ts.)
-
-const FORBIDDEN_ENV = [G1_ENV.admin, G1_ENV.private, G1_ENV.public, G1_ENV.ack, "PGPASSWORD"];
+// T-PUB capture of the reviewed ordered scenario program (scenarios.ts). Runs only in a fresh
+// child process that the orchestrator starts after a fixture reset, holding the PUBLIC runtime URL
+// as DATABASE_URL and nothing else. Real production route handlers, `getCurrentUser`, the session
+// token functions and the real Prisma client run unmodified inside an actual Next 15.5 request
+// context (next-request-context.ts); only `server-only` is aliased, Date (only) is fixed and
+// outbound HTTP is blocked. This is handler + request-context evidence, not a running Next server.
 
 function captureConfig(): { out: string; label: string } {
-  const present = FORBIDDEN_ENV.filter((name) => process.env[name] !== undefined);
-  if (present.length > 0) {
-    throw new Error(`Capture process must not receive: ${present.join(", ")}`);
-  }
-  const database = parseConnectionUrl("DATABASE_URL", process.env.DATABASE_URL);
-  if (!PUBLIC_ROLE_NAME.test(database.user)) {
-    throw new Error("DATABASE_URL must authenticate as the restricted public runtime role");
-  }
-  if (process.env.NEXT_PUBLIC_BASE_URL !== G1_BASE_URL) {
-    throw new Error("NEXT_PUBLIC_BASE_URL must be the deterministic G1 origin");
-  }
-  const out = process.env.G1_CAPTURE_OUT;
+  const out = assertPublicChildEnv(process.env, "G1_CAPTURE_OUT");
   const label = process.env.G1_CAPTURE_LABEL;
-  if (!out || !isAbsolute(out) || !label || !/^[a-z0-9-]{1,40}$/u.test(label)) {
-    throw new Error("G1_CAPTURE_OUT (absolute path) and G1_CAPTURE_LABEL are required");
-  }
+  if (!label || !/^[a-z0-9-]{1,40}$/u.test(label)) throw new Error("G1_CAPTURE_LABEL is required");
   return { out, label };
 }
 
-type Handlers = {
-  ready: () => Promise<Response>;
-  health: () => Response;
-  atom: () => Promise<Response>;
-  llms: () => Response;
-  openapiYaml: (request: Request) => Response;
-  openapiJson: (request: Request) => Response;
-  disconnect: () => Promise<void>;
+type RouteModule = Record<string, unknown>;
+type Handler = (request: Request, context?: { params: Promise<Record<string, string>> }) => unknown;
+
+const ROUTE_MODULES: Readonly<Record<string, () => Promise<RouteModule>>> = {
+  "api/health/ready": () => import("@/app/api/health/ready/route"),
+  "api/health": () => import("@/app/api/health/route"),
+  "api/feeds/atom": () => import("@/app/api/feeds/atom/route"),
+  "llms.txt": () => import("@/app/llms.txt/route"),
+  "openapi.yaml": () => import("@/app/openapi.yaml/route"),
+  "openapi.json": () => import("@/app/openapi.json/route"),
+  "api/search": () => import("@/app/api/search/route"),
+  "api/claims": () => import("@/app/api/claims/route"),
+  "api/graph": () => import("@/app/api/graph/route"),
+  "api/feeds/lifecycle": () => import("@/app/api/feeds/lifecycle/route"),
+  "api/notifications": () => import("@/app/api/notifications/route"),
+  "api/profile/orcid": () => import("@/app/api/profile/orcid/route"),
+  "api/editorial/ora-certifications": () => import("@/app/api/editorial/ora-certifications/route"),
+  "api/editorial/certifiers/[id]/status": () =>
+    import("@/app/api/editorial/certifiers/[id]/status/route"),
+};
+
+type Prisma = {
+  $disconnect(): Promise<void>;
+  user: { findMany(args: unknown): Promise<Array<Record<string, unknown>>> };
+  notification: { findMany(args: unknown): Promise<Array<Record<string, unknown>>> };
+  certifier: { findMany(args: unknown): Promise<Array<Record<string, unknown>>> };
+  auditEvent: { findMany(args: unknown): Promise<Array<Record<string, unknown>>> };
 };
 
 let config: { out: string; label: string };
-let handlers: Handlers;
+let modules: Map<string, RouteModule>;
+let loaders: { sitemap: () => Promise<unknown>; robots: () => unknown };
+let prisma: Prisma;
+let sign: SessionSigner;
 
 beforeAll(async () => {
   config = captureConfig();
+  nextInternals(); // fail fast before any capture if the request context cannot be real
   vi.stubGlobal("fetch", () => {
     throw new Error("External HTTP is blocked in the G1 capture");
   });
-  const [ready, health, atom, llms, yaml, json, db] = await Promise.all([
-    import("@/app/api/health/ready/route"),
-    import("@/app/api/health/route"),
-    import("@/app/api/feeds/atom/route"),
-    import("@/app/llms.txt/route"),
-    import("@/app/openapi.yaml/route"),
-    import("@/app/openapi.json/route"),
+  modules = new Map();
+  for (const [route, load] of Object.entries(ROUTE_MODULES)) modules.set(route, await load());
+  const [sitemap, robots, db, token] = await Promise.all([
+    import("@/app/sitemap"),
+    import("@/app/robots"),
     import("@/lib/db"),
+    import("@/lib/session-token"),
   ]);
-  handlers = {
-    ready: ready.GET,
-    health: health.GET,
-    atom: atom.GET,
-    llms: llms.GET,
-    openapiYaml: yaml.GET,
-    openapiJson: json.GET,
-    disconnect: () => db.prisma.$disconnect(),
-  };
+  loaders = { sitemap: sitemap.default, robots: robots.default };
+  prisma = db.prisma as unknown as Prisma;
+  sign = token.createSessionToken;
 });
 
 afterAll(async () => {
+  vi.useRealTimers();
   vi.unstubAllGlobals();
-  await handlers?.disconnect();
+  await prisma?.$disconnect();
 });
 
-function request(id: string, path: string, headers: Record<string, string> = {}): CapturedRequest {
-  return { id, method: "GET", path, headers };
+function lowerCaseHeaders(headers: Readonly<Record<string, string>>): Record<string, string> {
+  return Object.fromEntries(
+    Object.entries(headers).map(([name, value]) => [name.toLowerCase(), value]),
+  );
 }
 
-function toFetchRequest(captured: CapturedRequest): Request {
-  return new Request(`${G1_BASE_URL}${captured.path}`, {
-    method: captured.method,
-    headers: captured.headers,
-  });
-}
-
-function etagOf(response: CapturedResponse): string {
-  const etag = response.headers.find(([name]) => name === "etag")?.[1];
-  if (!etag) throw new Error(`${response.id} did not return an ETag`);
-  return etag;
-}
-
-async function captureAll(): Promise<CapturedResponse[]> {
-  const responses: CapturedResponse[] = [];
-  const add = async (captured: CapturedRequest, response: Response | Promise<Response>) => {
-    responses.push(await captureResponse(captured, await response));
-    return responses.at(-1)!;
+async function runHttp(scenario: HttpScenario, earlier: Map<string, CaptureRecord>) {
+  const derived = expectedRequest(scenario, earlier);
+  if ("problem" in derived) throw new Error(`${scenario.id}: ${derived.problem}`);
+  const headers = lowerCaseHeaders(derived.headers);
+  if ("cookie" in headers) throw new Error(`${scenario.id}: cookies come from the session recipe`);
+  const cookie = cookieHeader(scenario.session, sign);
+  const body = requestBodyText(scenario);
+  const captured: CapturedRequest = {
+    id: scenario.id,
+    method: scenario.method,
+    path: derived.path,
+    headers,
+    body,
+    principal: scenario.principal,
+    sessionCase: scenario.session.case,
+    session: scenario.session,
+    cookieSha256: cookie === undefined ? null : sha256Text(cookie),
   };
-  await add(request("health-ready", "/api/health/ready"), handlers.ready());
+  const request = new Request(`${G1_BASE_URL}${derived.path}`, {
+    method: scenario.method,
+    headers: { ...headers, ...(cookie === undefined ? {} : { cookie }) },
+    ...(body === null ? {} : { body }),
+  });
+  // The dispatched Cookie header is exactly the recipe's (no ambient cookie, no dropped identity).
+  if (request.headers.get("cookie") !== (cookie ?? null)) {
+    throw new Error(`${scenario.id}: dispatched cookie differs from the recipe`);
+  }
+  const handler = modules.get(scenario.route)?.[scenario.method] as Handler | undefined;
+  if (!handler)
+    throw new Error(`${scenario.id}: no ${scenario.method} handler for ${scenario.route}`);
+  const context = scenario.params ? { params: Promise.resolve({ ...scenario.params }) } : undefined;
+  const response = await invokeRouteHandler(
+    request,
+    `/${scenario.route}/route`,
+    async () => (await handler(request, context)) as Response,
+  );
+  return captureHttp(captured, response);
+}
+
+const byCodeUnits = (left: string, right: string) => (left < right ? -1 : left > right ? 1 : 0);
+
+/** Deterministic state projection read through the same restricted public connection. */
+async function stateProjection(): Promise<StateProjection> {
+  const iso = (value: unknown) => (value instanceof Date ? value.toISOString() : null);
+  const [users, notifications, certifiers, audit] = await Promise.all([
+    prisma.user.findMany({ select: { id: true, role: true, orcid: true, orcidVerifiedAt: true } }),
+    prisma.notification.findMany({ select: { id: true, userId: true, readAt: true } }),
+    prisma.certifier.findMany({
+      select: { id: true, status: true, activatedAt: true, retiredAt: true },
+    }),
+    prisma.auditEvent.findMany({
+      select: {
+        actorId: true,
+        action: true,
+        subjectType: true,
+        subjectId: true,
+        detailsJson: true,
+      },
+    }),
+  ]);
+  const events = audit.map((event) => ({
+    actorId: (event.actorId as string | null) ?? null,
+    action: event.action as string,
+    subjectType: event.subjectType as string,
+    subjectId: event.subjectId as string,
+    details: JSON.parse(event.detailsJson as string) as unknown,
+  }));
+  return {
+    users: users
+      .map((user) => ({
+        id: user.id as string,
+        role: user.role as string,
+        orcid: (user.orcid as string | null) ?? null,
+        orcidVerifiedAt: iso(user.orcidVerifiedAt),
+      }))
+      .sort((left, right) => byCodeUnits(left.id, right.id)),
+    notifications: notifications
+      .map((row) => ({
+        id: row.id as string,
+        userId: row.userId as string,
+        readAt: iso(row.readAt),
+      }))
+      .sort((left, right) => byCodeUnits(left.id, right.id)),
+    certifiers: certifiers
+      .map((row) => ({
+        id: row.id as string,
+        status: row.status as string,
+        activatedAt: iso(row.activatedAt),
+        retiredAt: iso(row.retiredAt),
+      }))
+      .sort((left, right) => byCodeUnits(left.id, right.id)),
+    audit: {
+      count: events.length,
+      events: events.sort((left, right) =>
+        byCodeUnits(
+          `${left.action}|${left.actorId}|${left.subjectId}`,
+          `${right.action}|${right.actorId}|${right.subjectId}`,
+        ),
+      ),
+    },
+    excluded: STATE_EXCLUDED_FIELDS,
+  };
+}
+
+async function runProgram(): Promise<CaptureRecord[]> {
+  const records: CaptureRecord[] = [];
+  const earlier = new Map<string, CaptureRecord>();
   vi.useFakeTimers({ toFake: ["Date"], now: new Date(G1_FIXED_CLOCK) });
   try {
-    await add(request("health", "/api/health"), handlers.health());
+    for (const scenario of SCENARIOS) {
+      let record: CaptureRecord;
+      if (scenario.kind === "http") record = await runHttp(scenario, earlier);
+      else if (scenario.kind === "metadata-loader") {
+        const output =
+          scenario.loader === "app/sitemap.ts" ? await loaders.sitemap() : loaders.robots();
+        record = {
+          ...textRecord("metadata-loader", scenario.id, deterministicJson(output)),
+          loader: scenario.loader,
+        };
+      } else {
+        record = textRecord("db-state", scenario.id, deterministicJson(await stateProjection()));
+      }
+      records.push(record);
+      earlier.set(record.id, record);
+    }
   } finally {
     vi.useRealTimers();
   }
-  await add(request("feeds-atom", "/api/feeds/atom"), handlers.atom());
-  await add(request("llms-txt", "/llms.txt"), handlers.llms());
-  const yamlRequest = request("openapi-yaml", "/openapi.yaml");
-  const yaml = await add(yamlRequest, handlers.openapiYaml(toFetchRequest(yamlRequest)));
-  const yaml304 = request("openapi-yaml-304", "/openapi.yaml", { "if-none-match": etagOf(yaml) });
-  await add(yaml304, handlers.openapiYaml(toFetchRequest(yaml304)));
-  const jsonRequest = request("openapi-json", "/openapi.json");
-  const json = await add(jsonRequest, handlers.openapiJson(toFetchRequest(jsonRequest)));
-  const json304 = request("openapi-json-304", "/openapi.json", { "if-none-match": etagOf(json) });
-  await add(json304, handlers.openapiJson(toFetchRequest(json304)));
-  return responses;
+  return records;
 }
 
-function captureFile(responses: CapturedResponse[]): CaptureFile {
-  return {
-    version: G1_CAPTURE_VERSION,
-    label: config.label,
-    baseUrl: G1_BASE_URL,
-    clock: G1_FIXED_CLOCK,
-    principal: "anonymous",
-    responses,
-  };
-}
-
-describe("G1 T-PUB public-route capture (restricted public role, real handlers)", () => {
-  it("captures non-degraded, repeatable responses and writes them for comparison", async () => {
-    const first = captureFile(await captureAll());
-    const second = captureFile(await captureAll());
-    // Within-run repeatability: any nondeterminism would make before/after equality meaningless.
-    expect(comparePairedCaptures(first, second)).toEqual([]);
-    const statuses = Object.fromEntries(first.responses.map((r) => [r.id, r.status]));
-    expect(statuses).toEqual({
-      "health-ready": 200,
-      health: 200,
-      "feeds-atom": 200,
-      "llms-txt": 200,
-      "openapi-yaml": 200,
-      "openapi-yaml-304": 304,
-      "openapi-json": 200,
-      "openapi-json-304": 304,
-    });
+describe("G1 T-PUB scenario program (restricted public role, real handlers in a Next request context)", () => {
+  it("captures the reviewed program exactly and writes it for comparison", async () => {
+    const capture: CaptureFile = {
+      version: G1_CAPTURE_VERSION,
+      label: config.label,
+      baseUrl: G1_BASE_URL,
+      clock: G1_FIXED_CLOCK,
+      records: await runProgram(),
+    };
     mkdirSync(dirname(config.out), { recursive: true });
-    writeFileSync(config.out, `${JSON.stringify(first, null, 2)}\n`, { mode: 0o600 });
+    writeFileSync(config.out, `${JSON.stringify(capture, null, 2)}\n`, { mode: 0o600 });
+    // No request context survives the program.
+    expect(activeNextStores()).toEqual({ work: false, workUnit: false });
+    expect(validateCapture(capture, SCENARIOS, sign)).toEqual([]);
   });
 });

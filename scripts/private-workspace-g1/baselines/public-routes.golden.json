@@ -1,14 +1,22 @@
 {
-  "version": 1,
-  "review": "Initial G1-empty public baseline captured on 2026-10-20 from 386a7d1 against the disposable PostgreSQL 16 fixture; statuses, headers and bodies inspected by the implementing worker. Pending independent review. Update only by reviewing a new golden-candidate.json; never copy after a failure.",
+  "version": 2,
+  "review": "Author-reviewed 2026-10-20 (alpha-g1-coverage; independent review pending). Program v2 (scripts/private-workspace-g1/scenarios.ts): the eight legacy anonymous requests are byte-identical to the v1 golden except feeds-atom, which deliberately gains the second public review (entries v4, v2, v1; the non-public control stays excluded). Outcomes: 27x200, 2x304, 8x401, 8x403, 1x404 (every error status is a declared denial with exact code/message), 3 db-state projections, 2 metadata-loader outputs. Regenerated deliberately from golden-candidate.json; never copied automatically.",
   "baseUrl": "https://g1.oratlas.example",
   "clock": "2026-04-01T00:00:00.000Z",
-  "routes": [
+  "records": [
     {
+      "kind": "http",
       "id": "health-ready",
       "method": "GET",
       "path": "/api/health/ready",
       "requestHeaders": {},
+      "requestBody": null,
+      "principal": "anonymous",
+      "sessionCase": "none",
+      "session": {
+        "case": "none"
+      },
+      "cookieSha256": null,
       "status": 200,
       "headers": [["content-type", "application/json"]],
       "setCookie": [],
@@ -18,10 +26,18 @@
       }
     },
     {
+      "kind": "http",
       "id": "health",
       "method": "GET",
       "path": "/api/health",
       "requestHeaders": {},
+      "requestBody": null,
+      "principal": "anonymous",
+      "sessionCase": "none",
+      "session": {
+        "case": "none"
+      },
+      "cookieSha256": null,
       "status": 200,
       "headers": [["content-type", "application/json"]],
       "setCookie": [],
@@ -31,10 +47,18 @@
       }
     },
     {
+      "kind": "http",
       "id": "feeds-atom",
       "method": "GET",
       "path": "/api/feeds/atom",
       "requestHeaders": {},
+      "requestBody": null,
+      "principal": "anonymous",
+      "sessionCase": "none",
+      "session": {
+        "case": "none"
+      },
+      "cookieSha256": null,
       "status": 200,
       "headers": [
         ["cache-control", "no-store, must-revalidate"],
@@ -45,18 +69,27 @@
       "setCookie": [],
       "body": {
         "encoding": "utf8",
-        "text": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<feed xmlns=\"http://www.w3.org/2005/Atom\">\n  <id>https://g1.oratlas.example/api/feeds/atom</id>\n  <title>Open Review Atlas — recently accepted reviews</title>\n  <updated>2026-02-03T12:00:00.000Z</updated>\n  <link rel=\"alternate\" href=\"https://g1.oratlas.example/archive\"/>\n  <link rel=\"self\" href=\"https://g1.oratlas.example/api/feeds/atom\"/>\n  <entry>\n    <id>https://g1.oratlas.example/reviews/g1-fixture-review/versions/g1-version-2</id>\n    <title>G1 fixture review v2 &amp; &quot;quoted&quot;</title>\n    <updated>2026-02-03T12:00:00.000Z</updated>\n    <link rel=\"alternate\" href=\"https://g1.oratlas.example/reviews/g1-fixture-review/versions/g1-version-2\"/>\n    <author><name>Fixture Author Two</name></author>\n    <author><name>Fixture Author One</name></author>\n    <summary>Second synthetic public version.</summary>\n  </entry>\n  <entry>\n    <id>https://g1.oratlas.example/reviews/g1-fixture-review/versions/g1-version-1</id>\n    <title>G1 fixture review v1</title>\n    <updated>2026-01-03T12:00:00.000Z</updated>\n    <link rel=\"alternate\" href=\"https://g1.oratlas.example/reviews/g1-fixture-review/versions/g1-version-1\"/>\n    <author><name>Fixture Author One</name></author>\n    <summary>First synthetic public version.</summary>\n  </entry>\n</feed>\n"
+        "text": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<feed xmlns=\"http://www.w3.org/2005/Atom\">\n  <id>https://g1.oratlas.example/api/feeds/atom</id>\n  <title>Open Review Atlas — recently accepted reviews</title>\n  <updated>2026-03-05T12:00:00.000Z</updated>\n  <link rel=\"alternate\" href=\"https://g1.oratlas.example/archive\"/>\n  <link rel=\"self\" href=\"https://g1.oratlas.example/api/feeds/atom\"/>\n  <entry>\n    <id>https://g1.oratlas.example/reviews/g1-second-review/versions/g1-version-4</id>\n    <title>G1 second fixture review v1</title>\n    <updated>2026-03-05T12:00:00.000Z</updated>\n    <link rel=\"alternate\" href=\"https://g1.oratlas.example/reviews/g1-second-review/versions/g1-version-4\"/>\n    <author><name>Fixture Author Two</name></author>\n    <summary>Synthetic second public version.</summary>\n  </entry>\n  <entry>\n    <id>https://g1.oratlas.example/reviews/g1-fixture-review/versions/g1-version-2</id>\n    <title>G1 fixture review v2 &amp; &quot;quoted&quot;</title>\n    <updated>2026-02-03T12:00:00.000Z</updated>\n    <link rel=\"alternate\" href=\"https://g1.oratlas.example/reviews/g1-fixture-review/versions/g1-version-2\"/>\n    <author><name>Fixture Author Two</name></author>\n    <author><name>Fixture Author One</name></author>\n    <summary>Second synthetic public version.</summary>\n  </entry>\n  <entry>\n    <id>https://g1.oratlas.example/reviews/g1-fixture-review/versions/g1-version-1</id>\n    <title>G1 fixture review v1</title>\n    <updated>2026-01-03T12:00:00.000Z</updated>\n    <link rel=\"alternate\" href=\"https://g1.oratlas.example/reviews/g1-fixture-review/versions/g1-version-1\"/>\n    <author><name>Fixture Author One</name></author>\n    <summary>First synthetic public version.</summary>\n  </entry>\n</feed>\n"
       },
       "atomEntryIds": [
+        "https://g1.oratlas.example/reviews/g1-second-review/versions/g1-version-4",
         "https://g1.oratlas.example/reviews/g1-fixture-review/versions/g1-version-2",
         "https://g1.oratlas.example/reviews/g1-fixture-review/versions/g1-version-1"
       ]
     },
     {
+      "kind": "http",
       "id": "llms-txt",
       "method": "GET",
       "path": "/llms.txt",
       "requestHeaders": {},
+      "requestBody": null,
+      "principal": "anonymous",
+      "sessionCase": "none",
+      "session": {
+        "case": "none"
+      },
+      "cookieSha256": null,
       "status": 200,
       "headers": [
         ["cache-control", "public, max-age=300, s-maxage=3600"],
@@ -73,10 +106,18 @@
       }
     },
     {
+      "kind": "http",
       "id": "openapi-yaml",
       "method": "GET",
       "path": "/openapi.yaml",
       "requestHeaders": {},
+      "requestBody": null,
+      "principal": "anonymous",
+      "sessionCase": "none",
+      "session": {
+        "case": "none"
+      },
+      "cookieSha256": null,
       "status": 200,
       "headers": [
         ["cache-control", "public, max-age=300, s-maxage=3600"],
@@ -94,12 +135,20 @@
       }
     },
     {
+      "kind": "http",
       "id": "openapi-yaml-304",
       "method": "GET",
       "path": "/openapi.yaml",
       "requestHeaders": {
         "if-none-match": "\"sha256-5c4d0cc3fef8156565e1a5c965f694c38e6129febbcb5596c8dcbe59d14cc806\""
       },
+      "requestBody": null,
+      "principal": "anonymous",
+      "sessionCase": "none",
+      "session": {
+        "case": "none"
+      },
+      "cookieSha256": null,
       "status": 304,
       "headers": [
         ["cache-control", "public, max-age=300, s-maxage=3600"],
@@ -117,10 +166,18 @@
       }
     },
     {
+      "kind": "http",
       "id": "openapi-json",
       "method": "GET",
       "path": "/openapi.json",
       "requestHeaders": {},
+      "requestBody": null,
+      "principal": "anonymous",
+      "sessionCase": "none",
+      "session": {
+        "case": "none"
+      },
+      "cookieSha256": null,
       "status": 200,
       "headers": [
         ["cache-control", "public, max-age=300, s-maxage=3600"],
@@ -138,12 +195,20 @@
       }
     },
     {
+      "kind": "http",
       "id": "openapi-json-304",
       "method": "GET",
       "path": "/openapi.json",
       "requestHeaders": {
         "if-none-match": "\"sha256-e411fc7e274d67ea154462f5880effe03426d305d0a29f214a41583383c7c343\""
       },
+      "requestBody": null,
+      "principal": "anonymous",
+      "sessionCase": "none",
+      "session": {
+        "case": "none"
+      },
+      "cookieSha256": null,
       "status": 304,
       "headers": [
         ["cache-control", "public, max-age=300, s-maxage=3600"],
@@ -158,6 +223,1104 @@
       "body": {
         "encoding": "utf8",
         "text": ""
+      }
+    },
+    {
+      "kind": "http",
+      "id": "search-reviews-title-page-1",
+      "method": "GET",
+      "path": "/api/search?contentType=review&sort=title&pageSize=1&page=1",
+      "requestHeaders": {},
+      "requestBody": null,
+      "principal": "anonymous",
+      "sessionCase": "none",
+      "session": {
+        "case": "none"
+      },
+      "cookieSha256": null,
+      "status": 200,
+      "headers": [
+        ["content-type", "application/json"],
+        [
+          "link",
+          "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+        ]
+      ],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "{\"total\":2,\"page\":1,\"pageSize\":1,\"synthesisCandidateScan\":{\"limit\":500,\"limitReached\":false},\"items\":[{\"contentType\":\"review\",\"slug\":\"g1-fixture-review\",\"title\":\"G1 fixture review v2 & \\\"quoted\\\"\",\"abstract\":\"Second synthetic public version.\",\"authors\":[\"Fixture Author Two\",\"Fixture Author One\"],\"domains\":[],\"hasDoi\":false,\"hasTrustData\":false,\"status\":\"published\",\"score\":0,\"sortDate\":\"2026-01-03T00:00:00.000Z\",\"links\":{\"self\":\"/api/reviews/g1-fixture-review\",\"html\":\"/reviews/g1-fixture-review\",\"exactVersion\":\"/api/reviews/g1-fixture-review/versions/g1-version-2\"}}]}"
+      }
+    },
+    {
+      "kind": "http",
+      "id": "search-reviews-title-page-2",
+      "method": "GET",
+      "path": "/api/search?contentType=review&sort=title&pageSize=1&page=2",
+      "requestHeaders": {},
+      "requestBody": null,
+      "principal": "anonymous",
+      "sessionCase": "none",
+      "session": {
+        "case": "none"
+      },
+      "cookieSha256": null,
+      "status": 200,
+      "headers": [
+        ["content-type", "application/json"],
+        [
+          "link",
+          "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+        ]
+      ],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "{\"total\":2,\"page\":2,\"pageSize\":1,\"synthesisCandidateScan\":{\"limit\":500,\"limitReached\":false},\"items\":[{\"contentType\":\"review\",\"slug\":\"g1-second-review\",\"title\":\"G1 second fixture review v1\",\"abstract\":\"Synthetic second public version.\",\"authors\":[\"Fixture Author Two\"],\"domains\":[],\"hasDoi\":false,\"hasTrustData\":false,\"status\":\"published\",\"score\":0,\"sortDate\":\"2026-03-05T00:00:00.000Z\",\"links\":{\"self\":\"/api/reviews/g1-second-review\",\"html\":\"/reviews/g1-second-review\",\"exactVersion\":\"/api/reviews/g1-second-review/versions/g1-version-4\"}}]}"
+      }
+    },
+    {
+      "kind": "http",
+      "id": "claims",
+      "method": "GET",
+      "path": "/api/claims",
+      "requestHeaders": {},
+      "requestBody": null,
+      "principal": "anonymous",
+      "sessionCase": "none",
+      "session": {
+        "case": "none"
+      },
+      "cookieSha256": null,
+      "status": 200,
+      "headers": [["content-type", "application/json"]],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "{\"total\":2,\"items\":[{\"claimId\":\"oratlas:claim:v1:00670031002d00760065007200730069006f006e002d0032:0063006c00610069006d002d0031\",\"localClaimId\":\"claim-1\",\"reviewSlug\":\"g1-fixture-review\",\"reviewVersionId\":\"g1-version-2\",\"reviewTitle\":\"G1 fixture review v2 & \\\"quoted\\\"\",\"text\":\"Synthetic fixture claim: paired public captures are byte-identical.\",\"claimType\":\"empirical\",\"anchor\":\"oratlas-claim-v1-00670031002d00760065007200730069006f006e002d0032-0063006c00610069006d002d0031\",\"relations\":[{\"citationId\":\"oratlas:citation:v1:00670031002d00760065007200730069006f006e002d0032:007200650066002d0031\",\"relationType\":\"supports\",\"trustAssessments\":[]}]},{\"claimId\":\"oratlas:claim:v1:00670031002d00760065007200730069006f006e002d0034:0063006c00610069006d002d0031\",\"localClaimId\":\"claim-1\",\"reviewSlug\":\"g1-second-review\",\"reviewVersionId\":\"g1-version-4\",\"reviewTitle\":\"G1 second fixture review v1\",\"text\":\"Synthetic second claim without evidence relations.\",\"claimType\":\"summary\",\"anchor\":\"oratlas-claim-v1-00670031002d00760065007200730069006f006e002d0034-0063006c00610069006d002d0031\",\"relations\":[]}]}"
+      }
+    },
+    {
+      "kind": "http",
+      "id": "graph-source-assertions-page-1",
+      "method": "GET",
+      "path": "/api/graph?seed=g1-node-1&status=source-assertion&direction=outgoing&limit=1",
+      "requestHeaders": {},
+      "requestBody": null,
+      "principal": "anonymous",
+      "sessionCase": "none",
+      "session": {
+        "case": "none"
+      },
+      "cookieSha256": null,
+      "status": 200,
+      "headers": [
+        ["cache-control", "no-store, must-revalidate"],
+        ["content-type", "application/json"],
+        [
+          "link",
+          "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\", </api/graph?seed=g1-node-1&status=source-assertion&direction=outgoing&limit=1&cursor=eyJ2IjoxLCJxdWVyeSI6ImMyNDU0MzFlMDQxMTdhODk0YTM4OWJjMGQxMTUxODk3NDAxZjdmZmIyNGVlOWQ4YWQ1NGI2M2ZhYTMxYWQ3OWEiLCJzZWVkTm9kZVZlcnNpb25JZCI6ImcxLW5vZGUtMS12MSIsInVwcGVyRWRnZUlkIjoiZzEtZWRnZS0yIiwibGFzdEVkZ2VJZCI6ImcxLWVkZ2UtMSJ9.FR5OEuWMT_JyGqlAucNp8aR_YYf80ulPoJ_yWMkuLZI>; rel=\"next\""
+        ],
+        ["ratelimit-limit", "1000"],
+        ["ratelimit-remaining", "999"],
+        ["ratelimit-reset", "1775001660"]
+      ],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "{\"schemaVersion\":\"2.0.0\",\"seed\":{\"nodeId\":\"g1-node-1\",\"nodeVersionId\":\"g1-node-1-v1\"},\"nodes\":[{\"nodeId\":\"g1-node-1\",\"nodeVersionId\":\"g1-node-1-v1\",\"localNodeId\":\"node-1\",\"originType\":\"repository-object\",\"kind\":\"claim\",\"source\":{\"type\":\"repository-snapshot\",\"snapshotId\":\"g1-snap-2\"},\"repository\":{\"id\":\"g1-repo-1\",\"owner\":\"oratlas-g1-fixture\",\"name\":\"g1-review\",\"canonicalUrl\":\"https://github.com/oratlas-g1-fixture/g1-review\",\"commitSha\":\"2222222222222222222222222222222222222222\"},\"title\":\"Synthetic seed claim node\",\"contributors\":[{\"displayName\":\"Fixture Author One\"}],\"license\":\"CC-BY-4.0\",\"provenance\":{\"sourcePath\":\"nodes/node-1.json\",\"sourcePointer\":\"/nodes/0\"},\"payload\":{\"statement\":\"Synthetic seed claim statement.\",\"qualifiers\":[]},\"aliases\":[],\"isExample\":false,\"createdAt\":\"2026-02-02T01:00:00.000Z\"},{\"nodeId\":\"g1-node-2\",\"nodeVersionId\":\"g1-node-2-v1\",\"localNodeId\":\"node-2\",\"originType\":\"repository-object\",\"kind\":\"claim\",\"source\":{\"type\":\"repository-snapshot\",\"snapshotId\":\"g1-snap-2\"},\"repository\":{\"id\":\"g1-repo-1\",\"owner\":\"oratlas-g1-fixture\",\"name\":\"g1-review\",\"canonicalUrl\":\"https://github.com/oratlas-g1-fixture/g1-review\",\"commitSha\":\"2222222222222222222222222222222222222222\"},\"title\":\"Synthetic supporting claim node\",\"contributors\":[{\"displayName\":\"Fixture Author Two\"}],\"license\":\"CC-BY-4.0\",\"provenance\":{\"sourcePath\":\"nodes/node-2.json\",\"sourcePointer\":\"/nodes/1\"},\"payload\":{\"statement\":\"Synthetic supporting claim statement.\",\"qualifiers\":[\"synthetic\"]},\"aliases\":[],\"isExample\":false,\"createdAt\":\"2026-02-02T02:00:00.000Z\"}],\"edges\":[{\"id\":\"g1-edge-1\",\"sourceNodeId\":\"g1-node-1\",\"sourceNodeVersionId\":\"g1-node-1-v1\",\"targetNodeId\":\"g1-node-2\",\"targetNodeVersionId\":\"g1-node-2-v1\",\"relationType\":\"supports\",\"rationale\":\"Synthetic source assertion one.\",\"assertedAt\":\"2026-02-02T04:00:00.000Z\",\"trustAssessments\":[],\"status\":\"source-assertion\",\"provenance\":\"imported-from-review\"}],\"page\":{\"limit\":1,\"nextCursor\":\"eyJ2IjoxLCJxdWVyeSI6ImMyNDU0MzFlMDQxMTdhODk0YTM4OWJjMGQxMTUxODk3NDAxZjdmZmIyNGVlOWQ4YWQ1NGI2M2ZhYTMxYWQ3OWEiLCJzZWVkTm9kZVZlcnNpb25JZCI6ImcxLW5vZGUtMS12MSIsInVwcGVyRWRnZUlkIjoiZzEtZWRnZS0yIiwibGFzdEVkZ2VJZCI6ImcxLWVkZ2UtMSJ9.FR5OEuWMT_JyGqlAucNp8aR_YYf80ulPoJ_yWMkuLZI\"}}"
+      }
+    },
+    {
+      "kind": "http",
+      "id": "graph-source-assertions-page-2",
+      "method": "GET",
+      "path": "/api/graph?seed=g1-node-1&status=source-assertion&direction=outgoing&limit=1&cursor=eyJ2IjoxLCJxdWVyeSI6ImMyNDU0MzFlMDQxMTdhODk0YTM4OWJjMGQxMTUxODk3NDAxZjdmZmIyNGVlOWQ4YWQ1NGI2M2ZhYTMxYWQ3OWEiLCJzZWVkTm9kZVZlcnNpb25JZCI6ImcxLW5vZGUtMS12MSIsInVwcGVyRWRnZUlkIjoiZzEtZWRnZS0yIiwibGFzdEVkZ2VJZCI6ImcxLWVkZ2UtMSJ9.FR5OEuWMT_JyGqlAucNp8aR_YYf80ulPoJ_yWMkuLZI",
+      "requestHeaders": {},
+      "requestBody": null,
+      "principal": "anonymous",
+      "sessionCase": "none",
+      "session": {
+        "case": "none"
+      },
+      "cookieSha256": null,
+      "status": 200,
+      "headers": [
+        ["cache-control", "no-store, must-revalidate"],
+        ["content-type", "application/json"],
+        [
+          "link",
+          "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+        ],
+        ["ratelimit-limit", "1000"],
+        ["ratelimit-remaining", "998"],
+        ["ratelimit-reset", "1775001660"]
+      ],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "{\"schemaVersion\":\"2.0.0\",\"seed\":{\"nodeId\":\"g1-node-1\",\"nodeVersionId\":\"g1-node-1-v1\"},\"nodes\":[{\"nodeId\":\"g1-node-1\",\"nodeVersionId\":\"g1-node-1-v1\",\"localNodeId\":\"node-1\",\"originType\":\"repository-object\",\"kind\":\"claim\",\"source\":{\"type\":\"repository-snapshot\",\"snapshotId\":\"g1-snap-2\"},\"repository\":{\"id\":\"g1-repo-1\",\"owner\":\"oratlas-g1-fixture\",\"name\":\"g1-review\",\"canonicalUrl\":\"https://github.com/oratlas-g1-fixture/g1-review\",\"commitSha\":\"2222222222222222222222222222222222222222\"},\"title\":\"Synthetic seed claim node\",\"contributors\":[{\"displayName\":\"Fixture Author One\"}],\"license\":\"CC-BY-4.0\",\"provenance\":{\"sourcePath\":\"nodes/node-1.json\",\"sourcePointer\":\"/nodes/0\"},\"payload\":{\"statement\":\"Synthetic seed claim statement.\",\"qualifiers\":[]},\"aliases\":[],\"isExample\":false,\"createdAt\":\"2026-02-02T01:00:00.000Z\"},{\"nodeId\":\"g1-node-3\",\"nodeVersionId\":\"g1-node-3-v1\",\"localNodeId\":\"node-3\",\"originType\":\"repository-object\",\"kind\":\"claim\",\"source\":{\"type\":\"repository-snapshot\",\"snapshotId\":\"g1-snap-2\"},\"repository\":{\"id\":\"g1-repo-1\",\"owner\":\"oratlas-g1-fixture\",\"name\":\"g1-review\",\"canonicalUrl\":\"https://github.com/oratlas-g1-fixture/g1-review\",\"commitSha\":\"2222222222222222222222222222222222222222\"},\"title\":\"Synthetic contextual claim node\",\"contributors\":[{\"displayName\":\"Fixture Author One\"}],\"license\":\"CC-BY-4.0\",\"provenance\":{\"sourcePath\":\"nodes/node-3.json\",\"sourcePointer\":\"/nodes/2\"},\"payload\":{\"statement\":\"Synthetic contextual claim statement.\",\"qualifiers\":[]},\"aliases\":[],\"isExample\":false,\"createdAt\":\"2026-02-02T03:00:00.000Z\"}],\"edges\":[{\"id\":\"g1-edge-2\",\"sourceNodeId\":\"g1-node-1\",\"sourceNodeVersionId\":\"g1-node-1-v1\",\"targetNodeId\":\"g1-node-3\",\"targetNodeVersionId\":\"g1-node-3-v1\",\"relationType\":\"contextualizes\",\"rationale\":\"Synthetic source assertion two.\",\"assertedAt\":\"2026-02-02T05:00:00.000Z\",\"trustAssessments\":[],\"status\":\"source-assertion\",\"provenance\":\"imported-from-review\"}],\"page\":{\"limit\":1}}"
+      }
+    },
+    {
+      "kind": "http",
+      "id": "feeds-lifecycle",
+      "method": "GET",
+      "path": "/api/feeds/lifecycle",
+      "requestHeaders": {},
+      "requestBody": null,
+      "principal": "anonymous",
+      "sessionCase": "none",
+      "session": {
+        "case": "none"
+      },
+      "cookieSha256": null,
+      "status": 200,
+      "headers": [
+        ["cache-control", "no-store, must-revalidate"],
+        ["content-type", "application/json"],
+        [
+          "link",
+          "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+        ],
+        ["pragma", "no-cache"]
+      ],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "{\"schemaVersion\":\"1.0.0\",\"generatedAt\":\"2026-04-01T00:00:00.000Z\",\"events\":[{\"id\":\"g1-lifecycle-2\",\"kind\":\"correction\",\"reviewVersionId\":\"g1-version-4\",\"reason\":\"Synthetic metadata correction.\",\"actorLogin\":\"g1-fixture-admin\",\"revision\":1,\"createdAt\":\"2026-03-06T09:00:00.000Z\",\"reviewSlug\":\"g1-second-review\",\"commitSha\":\"4444444444444444444444444444444444444444\",\"url\":\"https://g1.oratlas.example/reviews/g1-second-review/versions/g1-version-4\"},{\"id\":\"g1-lifecycle-1\",\"kind\":\"correction\",\"reviewVersionId\":\"g1-version-2\",\"supersedesVersionId\":\"g1-version-1\",\"reason\":\"Synthetic correction: 1.1.0 supersedes 1.0.0.\",\"actorLogin\":\"g1-fixture-editor\",\"revision\":1,\"createdAt\":\"2026-02-03T13:00:00.000Z\",\"reviewSlug\":\"g1-fixture-review\",\"commitSha\":\"2222222222222222222222222222222222222222\",\"url\":\"https://g1.oratlas.example/reviews/g1-fixture-review/versions/g1-version-2\"}]}"
+      }
+    },
+    {
+      "kind": "http",
+      "id": "notifications-anonymous",
+      "method": "GET",
+      "path": "/api/notifications",
+      "requestHeaders": {},
+      "requestBody": null,
+      "principal": "anonymous",
+      "sessionCase": "none",
+      "session": {
+        "case": "none"
+      },
+      "cookieSha256": null,
+      "status": 401,
+      "headers": [
+        ["content-type", "application/json"],
+        [
+          "link",
+          "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+        ]
+      ],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+      }
+    },
+    {
+      "kind": "http",
+      "id": "notifications-a-only",
+      "method": "GET",
+      "path": "/api/notifications",
+      "requestHeaders": {},
+      "requestBody": null,
+      "principal": "A-only",
+      "sessionCase": "valid",
+      "session": {
+        "case": "valid",
+        "userId": "g1-user-a-only",
+        "issuedAt": "2026-03-31T00:00:00.000Z"
+      },
+      "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+      "status": 200,
+      "headers": [["content-type", "application/json"]],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "{\"notifications\":[{\"id\":\"g1-notification-a-only-2\",\"kind\":\"evidence-alert\",\"subjectType\":\"review\",\"subjectId\":\"g1-review-1\",\"createdAt\":\"2026-03-21T00:00:00.000Z\"},{\"id\":\"g1-notification-a-only-1\",\"kind\":\"decision-issued\",\"subjectType\":\"submission\",\"subjectId\":\"g1-fixture-submission-a\",\"createdAt\":\"2026-03-20T00:00:00.000Z\"}]}"
+      }
+    },
+    {
+      "kind": "http",
+      "id": "notifications-b-only",
+      "method": "GET",
+      "path": "/api/notifications",
+      "requestHeaders": {},
+      "requestBody": null,
+      "principal": "B-only",
+      "sessionCase": "valid",
+      "session": {
+        "case": "valid",
+        "userId": "g1-user-b-only",
+        "issuedAt": "2026-03-31T00:00:00.000Z"
+      },
+      "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+      "status": 200,
+      "headers": [["content-type", "application/json"]],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "{\"notifications\":[{\"id\":\"g1-notification-b-only-1\",\"kind\":\"round-opened\",\"subjectType\":\"submission\",\"subjectId\":\"g1-fixture-submission-b\",\"createdAt\":\"2026-03-22T00:00:00.000Z\"}]}"
+      }
+    },
+    {
+      "kind": "http",
+      "id": "notifications-a-and-b",
+      "method": "GET",
+      "path": "/api/notifications",
+      "requestHeaders": {},
+      "requestBody": null,
+      "principal": "A+B",
+      "sessionCase": "valid",
+      "session": {
+        "case": "valid",
+        "userId": "g1-user-a-and-b",
+        "issuedAt": "2026-03-31T00:00:00.000Z"
+      },
+      "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+      "status": 200,
+      "headers": [["content-type", "application/json"]],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "{\"notifications\":[{\"id\":\"g1-notification-a-and-b-1\",\"kind\":\"report-submitted\",\"subjectType\":\"submission\",\"subjectId\":\"g1-fixture-submission-ab\",\"createdAt\":\"2026-03-23T00:00:00.000Z\"}]}"
+      }
+    },
+    {
+      "kind": "http",
+      "id": "notifications-editor",
+      "method": "GET",
+      "path": "/api/notifications",
+      "requestHeaders": {},
+      "requestBody": null,
+      "principal": "EDITOR",
+      "sessionCase": "valid",
+      "session": {
+        "case": "valid",
+        "userId": "g1-user-editor",
+        "issuedAt": "2026-03-31T00:00:00.000Z"
+      },
+      "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+      "status": 200,
+      "headers": [["content-type", "application/json"]],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "{\"notifications\":[{\"id\":\"g1-notification-editor-1\",\"kind\":\"editor-assigned\",\"subjectType\":\"submission\",\"subjectId\":\"g1-fixture-submission-e\",\"createdAt\":\"2026-03-24T00:00:00.000Z\"}]}"
+      }
+    },
+    {
+      "kind": "http",
+      "id": "notifications-admin",
+      "method": "GET",
+      "path": "/api/notifications",
+      "requestHeaders": {},
+      "requestBody": null,
+      "principal": "ADMIN",
+      "sessionCase": "valid",
+      "session": {
+        "case": "valid",
+        "userId": "g1-user-admin",
+        "issuedAt": "2026-03-31T00:00:00.000Z"
+      },
+      "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+      "status": 200,
+      "headers": [["content-type", "application/json"]],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "{\"notifications\":[{\"id\":\"g1-notification-admin-1\",\"kind\":\"review-comment-created\",\"subjectType\":\"review\",\"subjectId\":\"g1-review-2\",\"createdAt\":\"2026-03-25T00:00:00.000Z\"}]}"
+      }
+    },
+    {
+      "kind": "http",
+      "id": "notifications-session-malformed",
+      "method": "GET",
+      "path": "/api/notifications",
+      "requestHeaders": {},
+      "requestBody": null,
+      "principal": "anonymous",
+      "sessionCase": "malformed",
+      "session": {
+        "case": "malformed",
+        "value": "g1-malformed-session-value"
+      },
+      "cookieSha256": "0b646763360dfbf0b958677056e8f33e616febd688290abe0b8de92864714906",
+      "status": 401,
+      "headers": [
+        ["content-type", "application/json"],
+        [
+          "link",
+          "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+        ]
+      ],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+      }
+    },
+    {
+      "kind": "http",
+      "id": "notifications-session-signed-expired",
+      "method": "GET",
+      "path": "/api/notifications",
+      "requestHeaders": {},
+      "requestBody": null,
+      "principal": "anonymous",
+      "sessionCase": "signed-expired",
+      "session": {
+        "case": "signed-expired",
+        "userId": "g1-user-a-only",
+        "issuedAt": "2026-03-01T00:00:00.000Z"
+      },
+      "cookieSha256": "fa480d7e6f4efdbc8ba7f86a08d94834130d3f13a07c89c44103ce2cc60700c0",
+      "status": 401,
+      "headers": [
+        ["content-type", "application/json"],
+        [
+          "link",
+          "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+        ]
+      ],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+      }
+    },
+    {
+      "kind": "http",
+      "id": "notifications-session-tampered",
+      "method": "GET",
+      "path": "/api/notifications",
+      "requestHeaders": {},
+      "requestBody": null,
+      "principal": "anonymous",
+      "sessionCase": "tampered",
+      "session": {
+        "case": "tampered",
+        "userId": "g1-user-a-only",
+        "issuedAt": "2026-03-31T00:00:00.000Z",
+        "substitutedUserId": "g1-user-admin"
+      },
+      "cookieSha256": "79f2621dfa5223e7ab82dbc4fa99562464ae7afc1b7afec9bc74f30ffb1e4a43",
+      "status": 401,
+      "headers": [
+        ["content-type", "application/json"],
+        [
+          "link",
+          "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+        ]
+      ],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+      }
+    },
+    {
+      "kind": "http",
+      "id": "notifications-session-signed-missing-user",
+      "method": "GET",
+      "path": "/api/notifications",
+      "requestHeaders": {},
+      "requestBody": null,
+      "principal": "anonymous",
+      "sessionCase": "signed-missing-user",
+      "session": {
+        "case": "signed-missing-user",
+        "userId": "g1-user-deleted",
+        "issuedAt": "2026-03-31T00:00:00.000Z"
+      },
+      "cookieSha256": "0596f369924b9c8e97061767be36bd17565fc628a3410cbc01a4f414c124818c",
+      "status": 401,
+      "headers": [
+        ["content-type", "application/json"],
+        [
+          "link",
+          "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+        ]
+      ],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+      }
+    },
+    {
+      "kind": "http",
+      "id": "notification-mark-own-a-only",
+      "method": "POST",
+      "path": "/api/notifications",
+      "requestHeaders": {
+        "content-type": "application/json",
+        "origin": "https://g1.oratlas.example",
+        "sec-fetch-site": "same-origin"
+      },
+      "requestBody": "{\"notificationId\":\"g1-notification-a-only-1\"}",
+      "principal": "A-only",
+      "sessionCase": "valid",
+      "session": {
+        "case": "valid",
+        "userId": "g1-user-a-only",
+        "issuedAt": "2026-03-31T00:00:00.000Z"
+      },
+      "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+      "status": 200,
+      "headers": [["content-type", "application/json"]],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "{\"status\":\"read\"}"
+      }
+    },
+    {
+      "kind": "http",
+      "id": "notification-mark-cross-user-b-only",
+      "method": "POST",
+      "path": "/api/notifications",
+      "requestHeaders": {
+        "content-type": "application/json",
+        "origin": "https://g1.oratlas.example",
+        "sec-fetch-site": "same-origin"
+      },
+      "requestBody": "{\"notificationId\":\"g1-notification-a-only-2\"}",
+      "principal": "B-only",
+      "sessionCase": "valid",
+      "session": {
+        "case": "valid",
+        "userId": "g1-user-b-only",
+        "issuedAt": "2026-03-31T00:00:00.000Z"
+      },
+      "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+      "status": 404,
+      "headers": [
+        ["content-type", "application/json"],
+        [
+          "link",
+          "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+        ]
+      ],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Notification not found or already read.\"}}"
+      }
+    },
+    {
+      "kind": "http",
+      "id": "notifications-a-only-after-mark",
+      "method": "GET",
+      "path": "/api/notifications",
+      "requestHeaders": {},
+      "requestBody": null,
+      "principal": "A-only",
+      "sessionCase": "valid",
+      "session": {
+        "case": "valid",
+        "userId": "g1-user-a-only",
+        "issuedAt": "2026-03-31T00:00:00.000Z"
+      },
+      "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+      "status": 200,
+      "headers": [["content-type", "application/json"]],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "{\"notifications\":[{\"id\":\"g1-notification-a-only-2\",\"kind\":\"evidence-alert\",\"subjectType\":\"review\",\"subjectId\":\"g1-review-1\",\"createdAt\":\"2026-03-21T00:00:00.000Z\"},{\"id\":\"g1-notification-a-only-1\",\"kind\":\"decision-issued\",\"subjectType\":\"submission\",\"subjectId\":\"g1-fixture-submission-a\",\"readAt\":\"2026-04-01T00:00:00.000Z\",\"createdAt\":\"2026-03-20T00:00:00.000Z\"}]}"
+      }
+    },
+    {
+      "kind": "db-state",
+      "id": "state-after-notification-mark",
+      "body": {
+        "encoding": "utf8",
+        "text": "{\n  \"users\": [\n    {\n      \"id\": \"g1-user-a-and-b\",\n      \"role\": \"USER\",\n      \"orcid\": \"0000-0000-0000-0003\",\n      \"orcidVerifiedAt\": null\n    },\n    {\n      \"id\": \"g1-user-a-only\",\n      \"role\": \"USER\",\n      \"orcid\": \"0000-0000-0000-0001\",\n      \"orcidVerifiedAt\": \"2026-01-10T00:00:00.000Z\"\n    },\n    {\n      \"id\": \"g1-user-admin\",\n      \"role\": \"ADMIN\",\n      \"orcid\": \"0000-0000-0000-0005\",\n      \"orcidVerifiedAt\": null\n    },\n    {\n      \"id\": \"g1-user-b-only\",\n      \"role\": \"USER\",\n      \"orcid\": \"0000-0000-0000-0002\",\n      \"orcidVerifiedAt\": null\n    },\n    {\n      \"id\": \"g1-user-editor\",\n      \"role\": \"EDITOR\",\n      \"orcid\": \"0000-0000-0000-0004\",\n      \"orcidVerifiedAt\": null\n    }\n  ],\n  \"notifications\": [\n    {\n      \"id\": \"g1-notification-a-and-b-1\",\n      \"userId\": \"g1-user-a-and-b\",\n      \"readAt\": null\n    },\n    {\n      \"id\": \"g1-notification-a-only-1\",\n      \"userId\": \"g1-user-a-only\",\n      \"readAt\": \"2026-04-01T00:00:00.000Z\"\n    },\n    {\n      \"id\": \"g1-notification-a-only-2\",\n      \"userId\": \"g1-user-a-only\",\n      \"readAt\": null\n    },\n    {\n      \"id\": \"g1-notification-admin-1\",\n      \"userId\": \"g1-user-admin\",\n      \"readAt\": null\n    },\n    {\n      \"id\": \"g1-notification-b-only-1\",\n      \"userId\": \"g1-user-b-only\",\n      \"readAt\": null\n    },\n    {\n      \"id\": \"g1-notification-editor-1\",\n      \"userId\": \"g1-user-editor\",\n      \"readAt\": null\n    }\n  ],\n  \"certifiers\": [\n    {\n      \"id\": \"g1-certifier-1\",\n      \"status\": \"active\",\n      \"activatedAt\": \"2026-01-05T00:00:00.000Z\",\n      \"retiredAt\": null\n    },\n    {\n      \"id\": \"g1-certifier-ora\",\n      \"status\": \"active\",\n      \"activatedAt\": \"2026-01-05T00:00:00.000Z\",\n      \"retiredAt\": null\n    }\n  ],\n  \"audit\": {\n    \"count\": 0,\n    \"events\": []\n  },\n  \"excluded\": [\n    \"AuditEvent.id\",\n    \"AuditEvent.createdAt\",\n    \"AuditEvent.platformVersion\",\n    \"User.updatedAt\"\n  ]\n}\n"
+      }
+    },
+    {
+      "kind": "http",
+      "id": "profile-orcid-clear-anonymous",
+      "method": "POST",
+      "path": "/api/profile/orcid",
+      "requestHeaders": {
+        "content-type": "application/json",
+        "origin": "https://g1.oratlas.example",
+        "sec-fetch-site": "same-origin"
+      },
+      "requestBody": "{\"orcid\":null}",
+      "principal": "anonymous",
+      "sessionCase": "none",
+      "session": {
+        "case": "none"
+      },
+      "cookieSha256": null,
+      "status": 401,
+      "headers": [
+        ["content-type", "application/json"],
+        [
+          "link",
+          "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+        ]
+      ],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+      }
+    },
+    {
+      "kind": "http",
+      "id": "profile-orcid-clear-a-only",
+      "method": "POST",
+      "path": "/api/profile/orcid",
+      "requestHeaders": {
+        "content-type": "application/json",
+        "origin": "https://g1.oratlas.example",
+        "sec-fetch-site": "same-origin"
+      },
+      "requestBody": "{\"orcid\":null}",
+      "principal": "A-only",
+      "sessionCase": "valid",
+      "session": {
+        "case": "valid",
+        "userId": "g1-user-a-only",
+        "issuedAt": "2026-03-31T00:00:00.000Z"
+      },
+      "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+      "status": 200,
+      "headers": [["content-type", "application/json"]],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "{\"orcid\":null,\"verified\":false}"
+      }
+    },
+    {
+      "kind": "db-state",
+      "id": "state-after-orcid-a-only",
+      "body": {
+        "encoding": "utf8",
+        "text": "{\n  \"users\": [\n    {\n      \"id\": \"g1-user-a-and-b\",\n      \"role\": \"USER\",\n      \"orcid\": \"0000-0000-0000-0003\",\n      \"orcidVerifiedAt\": null\n    },\n    {\n      \"id\": \"g1-user-a-only\",\n      \"role\": \"USER\",\n      \"orcid\": null,\n      \"orcidVerifiedAt\": null\n    },\n    {\n      \"id\": \"g1-user-admin\",\n      \"role\": \"ADMIN\",\n      \"orcid\": \"0000-0000-0000-0005\",\n      \"orcidVerifiedAt\": null\n    },\n    {\n      \"id\": \"g1-user-b-only\",\n      \"role\": \"USER\",\n      \"orcid\": \"0000-0000-0000-0002\",\n      \"orcidVerifiedAt\": null\n    },\n    {\n      \"id\": \"g1-user-editor\",\n      \"role\": \"EDITOR\",\n      \"orcid\": \"0000-0000-0000-0004\",\n      \"orcidVerifiedAt\": null\n    }\n  ],\n  \"notifications\": [\n    {\n      \"id\": \"g1-notification-a-and-b-1\",\n      \"userId\": \"g1-user-a-and-b\",\n      \"readAt\": null\n    },\n    {\n      \"id\": \"g1-notification-a-only-1\",\n      \"userId\": \"g1-user-a-only\",\n      \"readAt\": \"2026-04-01T00:00:00.000Z\"\n    },\n    {\n      \"id\": \"g1-notification-a-only-2\",\n      \"userId\": \"g1-user-a-only\",\n      \"readAt\": null\n    },\n    {\n      \"id\": \"g1-notification-admin-1\",\n      \"userId\": \"g1-user-admin\",\n      \"readAt\": null\n    },\n    {\n      \"id\": \"g1-notification-b-only-1\",\n      \"userId\": \"g1-user-b-only\",\n      \"readAt\": null\n    },\n    {\n      \"id\": \"g1-notification-editor-1\",\n      \"userId\": \"g1-user-editor\",\n      \"readAt\": null\n    }\n  ],\n  \"certifiers\": [\n    {\n      \"id\": \"g1-certifier-1\",\n      \"status\": \"active\",\n      \"activatedAt\": \"2026-01-05T00:00:00.000Z\",\n      \"retiredAt\": null\n    },\n    {\n      \"id\": \"g1-certifier-ora\",\n      \"status\": \"active\",\n      \"activatedAt\": \"2026-01-05T00:00:00.000Z\",\n      \"retiredAt\": null\n    }\n  ],\n  \"audit\": {\n    \"count\": 1,\n    \"events\": [\n      {\n        \"actorId\": \"g1-user-a-only\",\n        \"action\": \"profile.orcid-set\",\n        \"subjectType\": \"user\",\n        \"subjectId\": \"g1-user-a-only\",\n        \"details\": {\n          \"orcid\": null,\n          \"verified\": false\n        }\n      }\n    ]\n  },\n  \"excluded\": [\n    \"AuditEvent.id\",\n    \"AuditEvent.createdAt\",\n    \"AuditEvent.platformVersion\",\n    \"User.updatedAt\"\n  ]\n}\n"
+      }
+    },
+    {
+      "kind": "http",
+      "id": "profile-orcid-clear-b-only",
+      "method": "POST",
+      "path": "/api/profile/orcid",
+      "requestHeaders": {
+        "content-type": "application/json",
+        "origin": "https://g1.oratlas.example",
+        "sec-fetch-site": "same-origin"
+      },
+      "requestBody": "{\"orcid\":null}",
+      "principal": "B-only",
+      "sessionCase": "valid",
+      "session": {
+        "case": "valid",
+        "userId": "g1-user-b-only",
+        "issuedAt": "2026-03-31T00:00:00.000Z"
+      },
+      "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+      "status": 200,
+      "headers": [["content-type", "application/json"]],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "{\"orcid\":null,\"verified\":false}"
+      }
+    },
+    {
+      "kind": "http",
+      "id": "profile-orcid-clear-a-and-b",
+      "method": "POST",
+      "path": "/api/profile/orcid",
+      "requestHeaders": {
+        "content-type": "application/json",
+        "origin": "https://g1.oratlas.example",
+        "sec-fetch-site": "same-origin"
+      },
+      "requestBody": "{\"orcid\":null}",
+      "principal": "A+B",
+      "sessionCase": "valid",
+      "session": {
+        "case": "valid",
+        "userId": "g1-user-a-and-b",
+        "issuedAt": "2026-03-31T00:00:00.000Z"
+      },
+      "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+      "status": 200,
+      "headers": [["content-type", "application/json"]],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "{\"orcid\":null,\"verified\":false}"
+      }
+    },
+    {
+      "kind": "http",
+      "id": "profile-orcid-clear-editor",
+      "method": "POST",
+      "path": "/api/profile/orcid",
+      "requestHeaders": {
+        "content-type": "application/json",
+        "origin": "https://g1.oratlas.example",
+        "sec-fetch-site": "same-origin"
+      },
+      "requestBody": "{\"orcid\":null}",
+      "principal": "EDITOR",
+      "sessionCase": "valid",
+      "session": {
+        "case": "valid",
+        "userId": "g1-user-editor",
+        "issuedAt": "2026-03-31T00:00:00.000Z"
+      },
+      "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+      "status": 200,
+      "headers": [["content-type", "application/json"]],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "{\"orcid\":null,\"verified\":false}"
+      }
+    },
+    {
+      "kind": "http",
+      "id": "profile-orcid-clear-admin",
+      "method": "POST",
+      "path": "/api/profile/orcid",
+      "requestHeaders": {
+        "content-type": "application/json",
+        "origin": "https://g1.oratlas.example",
+        "sec-fetch-site": "same-origin"
+      },
+      "requestBody": "{\"orcid\":null}",
+      "principal": "ADMIN",
+      "sessionCase": "valid",
+      "session": {
+        "case": "valid",
+        "userId": "g1-user-admin",
+        "issuedAt": "2026-03-31T00:00:00.000Z"
+      },
+      "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+      "status": 200,
+      "headers": [["content-type", "application/json"]],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "{\"orcid\":null,\"verified\":false}"
+      }
+    },
+    {
+      "kind": "http",
+      "id": "ora-readiness-anonymous",
+      "method": "GET",
+      "path": "/api/editorial/ora-certifications?publicationVersionId=g1-publication-version-1",
+      "requestHeaders": {},
+      "requestBody": null,
+      "principal": "anonymous",
+      "sessionCase": "none",
+      "session": {
+        "case": "none"
+      },
+      "cookieSha256": null,
+      "status": 401,
+      "headers": [
+        ["content-type", "application/json"],
+        [
+          "link",
+          "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+        ]
+      ],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+      }
+    },
+    {
+      "kind": "http",
+      "id": "ora-readiness-a-only",
+      "method": "GET",
+      "path": "/api/editorial/ora-certifications?publicationVersionId=g1-publication-version-1",
+      "requestHeaders": {},
+      "requestBody": null,
+      "principal": "A-only",
+      "sessionCase": "valid",
+      "session": {
+        "case": "valid",
+        "userId": "g1-user-a-only",
+        "issuedAt": "2026-03-31T00:00:00.000Z"
+      },
+      "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+      "status": 403,
+      "headers": [
+        ["content-type", "application/json"],
+        [
+          "link",
+          "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+        ]
+      ],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Editor role required.\"}}"
+      }
+    },
+    {
+      "kind": "http",
+      "id": "ora-readiness-b-only",
+      "method": "GET",
+      "path": "/api/editorial/ora-certifications?publicationVersionId=g1-publication-version-1",
+      "requestHeaders": {},
+      "requestBody": null,
+      "principal": "B-only",
+      "sessionCase": "valid",
+      "session": {
+        "case": "valid",
+        "userId": "g1-user-b-only",
+        "issuedAt": "2026-03-31T00:00:00.000Z"
+      },
+      "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+      "status": 403,
+      "headers": [
+        ["content-type", "application/json"],
+        [
+          "link",
+          "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+        ]
+      ],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Editor role required.\"}}"
+      }
+    },
+    {
+      "kind": "http",
+      "id": "ora-readiness-a-and-b",
+      "method": "GET",
+      "path": "/api/editorial/ora-certifications?publicationVersionId=g1-publication-version-1",
+      "requestHeaders": {},
+      "requestBody": null,
+      "principal": "A+B",
+      "sessionCase": "valid",
+      "session": {
+        "case": "valid",
+        "userId": "g1-user-a-and-b",
+        "issuedAt": "2026-03-31T00:00:00.000Z"
+      },
+      "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+      "status": 403,
+      "headers": [
+        ["content-type", "application/json"],
+        [
+          "link",
+          "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+        ]
+      ],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Editor role required.\"}}"
+      }
+    },
+    {
+      "kind": "http",
+      "id": "ora-readiness-editor",
+      "method": "GET",
+      "path": "/api/editorial/ora-certifications?publicationVersionId=g1-publication-version-1",
+      "requestHeaders": {},
+      "requestBody": null,
+      "principal": "EDITOR",
+      "sessionCase": "valid",
+      "session": {
+        "case": "valid",
+        "userId": "g1-user-editor",
+        "issuedAt": "2026-03-31T00:00:00.000Z"
+      },
+      "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+      "status": 200,
+      "headers": [["content-type", "application/json"]],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "{\"available\":false,\"publicationVersion\":{\"id\":\"g1-publication-version-1\",\"title\":\"G1 fixture publication\",\"contentCompleteness\":{\"coverage\":\"unsupported\",\"returnedDocuments\":0,\"totalDocumentsKnown\":null,\"truncated\":false},\"contentCorpusSha256\":\"4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945\"},\"protocol\":{\"id\":\"g1-protocol-ora\",\"series\":\"scientific-merit-pilot\",\"version\":\"0.1.0\",\"title\":\"Synthetic G1 protocol fixture\"},\"assessmentMode\":\"ai\"}"
+      }
+    },
+    {
+      "kind": "http",
+      "id": "ora-readiness-admin",
+      "method": "GET",
+      "path": "/api/editorial/ora-certifications?publicationVersionId=g1-publication-version-1",
+      "requestHeaders": {},
+      "requestBody": null,
+      "principal": "ADMIN",
+      "sessionCase": "valid",
+      "session": {
+        "case": "valid",
+        "userId": "g1-user-admin",
+        "issuedAt": "2026-03-31T00:00:00.000Z"
+      },
+      "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+      "status": 200,
+      "headers": [["content-type", "application/json"]],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "{\"available\":false,\"publicationVersion\":{\"id\":\"g1-publication-version-1\",\"title\":\"G1 fixture publication\",\"contentCompleteness\":{\"coverage\":\"unsupported\",\"returnedDocuments\":0,\"totalDocumentsKnown\":null,\"truncated\":false},\"contentCorpusSha256\":\"4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945\"},\"protocol\":{\"id\":\"g1-protocol-ora\",\"series\":\"scientific-merit-pilot\",\"version\":\"0.1.0\",\"title\":\"Synthetic G1 protocol fixture\"},\"assessmentMode\":\"ai\"}"
+      }
+    },
+    {
+      "kind": "http",
+      "id": "certifier-suspend-anonymous",
+      "method": "POST",
+      "path": "/api/editorial/certifiers/g1-certifier-1/status",
+      "requestHeaders": {
+        "content-type": "application/json",
+        "origin": "https://g1.oratlas.example",
+        "sec-fetch-site": "same-origin"
+      },
+      "requestBody": "{\"status\":\"suspended\"}",
+      "principal": "anonymous",
+      "sessionCase": "none",
+      "session": {
+        "case": "none"
+      },
+      "cookieSha256": null,
+      "status": 401,
+      "headers": [
+        ["content-type", "application/json"],
+        [
+          "link",
+          "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+        ]
+      ],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+      }
+    },
+    {
+      "kind": "http",
+      "id": "certifier-suspend-a-only",
+      "method": "POST",
+      "path": "/api/editorial/certifiers/g1-certifier-1/status",
+      "requestHeaders": {
+        "content-type": "application/json",
+        "origin": "https://g1.oratlas.example",
+        "sec-fetch-site": "same-origin"
+      },
+      "requestBody": "{\"status\":\"suspended\"}",
+      "principal": "A-only",
+      "sessionCase": "valid",
+      "session": {
+        "case": "valid",
+        "userId": "g1-user-a-only",
+        "issuedAt": "2026-03-31T00:00:00.000Z"
+      },
+      "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+      "status": 403,
+      "headers": [
+        ["content-type", "application/json"],
+        [
+          "link",
+          "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+        ]
+      ],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Administrator role required.\"}}"
+      }
+    },
+    {
+      "kind": "http",
+      "id": "certifier-suspend-b-only",
+      "method": "POST",
+      "path": "/api/editorial/certifiers/g1-certifier-1/status",
+      "requestHeaders": {
+        "content-type": "application/json",
+        "origin": "https://g1.oratlas.example",
+        "sec-fetch-site": "same-origin"
+      },
+      "requestBody": "{\"status\":\"suspended\"}",
+      "principal": "B-only",
+      "sessionCase": "valid",
+      "session": {
+        "case": "valid",
+        "userId": "g1-user-b-only",
+        "issuedAt": "2026-03-31T00:00:00.000Z"
+      },
+      "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+      "status": 403,
+      "headers": [
+        ["content-type", "application/json"],
+        [
+          "link",
+          "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+        ]
+      ],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Administrator role required.\"}}"
+      }
+    },
+    {
+      "kind": "http",
+      "id": "certifier-suspend-a-and-b",
+      "method": "POST",
+      "path": "/api/editorial/certifiers/g1-certifier-1/status",
+      "requestHeaders": {
+        "content-type": "application/json",
+        "origin": "https://g1.oratlas.example",
+        "sec-fetch-site": "same-origin"
+      },
+      "requestBody": "{\"status\":\"suspended\"}",
+      "principal": "A+B",
+      "sessionCase": "valid",
+      "session": {
+        "case": "valid",
+        "userId": "g1-user-a-and-b",
+        "issuedAt": "2026-03-31T00:00:00.000Z"
+      },
+      "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+      "status": 403,
+      "headers": [
+        ["content-type", "application/json"],
+        [
+          "link",
+          "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+        ]
+      ],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Administrator role required.\"}}"
+      }
+    },
+    {
+      "kind": "http",
+      "id": "certifier-suspend-editor",
+      "method": "POST",
+      "path": "/api/editorial/certifiers/g1-certifier-1/status",
+      "requestHeaders": {
+        "content-type": "application/json",
+        "origin": "https://g1.oratlas.example",
+        "sec-fetch-site": "same-origin"
+      },
+      "requestBody": "{\"status\":\"suspended\"}",
+      "principal": "EDITOR",
+      "sessionCase": "valid",
+      "session": {
+        "case": "valid",
+        "userId": "g1-user-editor",
+        "issuedAt": "2026-03-31T00:00:00.000Z"
+      },
+      "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+      "status": 403,
+      "headers": [
+        ["content-type", "application/json"],
+        [
+          "link",
+          "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+        ]
+      ],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Administrator role required.\"}}"
+      }
+    },
+    {
+      "kind": "http",
+      "id": "certifier-suspend-admin-cross-site-control",
+      "method": "POST",
+      "path": "/api/editorial/certifiers/g1-certifier-1/status",
+      "requestHeaders": {
+        "content-type": "application/json",
+        "origin": "https://g1.oratlas.example",
+        "sec-fetch-site": "cross-site"
+      },
+      "requestBody": "{\"status\":\"suspended\"}",
+      "principal": "ADMIN",
+      "sessionCase": "valid",
+      "session": {
+        "case": "valid",
+        "userId": "g1-user-admin",
+        "issuedAt": "2026-03-31T00:00:00.000Z"
+      },
+      "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+      "status": 403,
+      "headers": [
+        ["content-type", "application/json"],
+        [
+          "link",
+          "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+        ]
+      ],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Cross-site mutation requests are refused.\"}}"
+      }
+    },
+    {
+      "kind": "http",
+      "id": "certifier-suspend-admin",
+      "method": "POST",
+      "path": "/api/editorial/certifiers/g1-certifier-1/status",
+      "requestHeaders": {
+        "content-type": "application/json",
+        "origin": "https://g1.oratlas.example",
+        "sec-fetch-site": "same-origin"
+      },
+      "requestBody": "{\"status\":\"suspended\"}",
+      "principal": "ADMIN",
+      "sessionCase": "valid",
+      "session": {
+        "case": "valid",
+        "userId": "g1-user-admin",
+        "issuedAt": "2026-03-31T00:00:00.000Z"
+      },
+      "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+      "status": 200,
+      "headers": [["content-type", "application/json"]],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "{\"id\":\"g1-certifier-1\",\"slug\":\"g1-fixture-certifier\",\"name\":\"G1 Fixture Certifier\",\"description\":\"Synthetic certifier for the G1 status mutation.\",\"publicUrl\":null,\"governanceUrl\":null,\"publicContact\":null,\"status\":\"suspended\",\"createdAt\":\"2026-01-04T00:00:00.000Z\",\"activatedAt\":\"2026-01-05T00:00:00.000Z\",\"retiredAt\":null,\"href\":\"/api/certifiers/g1-certifier-1\"}"
+      }
+    },
+    {
+      "kind": "db-state",
+      "id": "state-final",
+      "body": {
+        "encoding": "utf8",
+        "text": "{\n  \"users\": [\n    {\n      \"id\": \"g1-user-a-and-b\",\n      \"role\": \"USER\",\n      \"orcid\": null,\n      \"orcidVerifiedAt\": null\n    },\n    {\n      \"id\": \"g1-user-a-only\",\n      \"role\": \"USER\",\n      \"orcid\": null,\n      \"orcidVerifiedAt\": null\n    },\n    {\n      \"id\": \"g1-user-admin\",\n      \"role\": \"ADMIN\",\n      \"orcid\": null,\n      \"orcidVerifiedAt\": null\n    },\n    {\n      \"id\": \"g1-user-b-only\",\n      \"role\": \"USER\",\n      \"orcid\": null,\n      \"orcidVerifiedAt\": null\n    },\n    {\n      \"id\": \"g1-user-editor\",\n      \"role\": \"EDITOR\",\n      \"orcid\": null,\n      \"orcidVerifiedAt\": null\n    }\n  ],\n  \"notifications\": [\n    {\n      \"id\": \"g1-notification-a-and-b-1\",\n      \"userId\": \"g1-user-a-and-b\",\n      \"readAt\": null\n    },\n    {\n      \"id\": \"g1-notification-a-only-1\",\n      \"userId\": \"g1-user-a-only\",\n      \"readAt\": \"2026-04-01T00:00:00.000Z\"\n    },\n    {\n      \"id\": \"g1-notification-a-only-2\",\n      \"userId\": \"g1-user-a-only\",\n      \"readAt\": null\n    },\n    {\n      \"id\": \"g1-notification-admin-1\",\n      \"userId\": \"g1-user-admin\",\n      \"readAt\": null\n    },\n    {\n      \"id\": \"g1-notification-b-only-1\",\n      \"userId\": \"g1-user-b-only\",\n      \"readAt\": null\n    },\n    {\n      \"id\": \"g1-notification-editor-1\",\n      \"userId\": \"g1-user-editor\",\n      \"readAt\": null\n    }\n  ],\n  \"certifiers\": [\n    {\n      \"id\": \"g1-certifier-1\",\n      \"status\": \"suspended\",\n      \"activatedAt\": \"2026-01-05T00:00:00.000Z\",\n      \"retiredAt\": null\n    },\n    {\n      \"id\": \"g1-certifier-ora\",\n      \"status\": \"active\",\n      \"activatedAt\": \"2026-01-05T00:00:00.000Z\",\n      \"retiredAt\": null\n    }\n  ],\n  \"audit\": {\n    \"count\": 6,\n    \"events\": [\n      {\n        \"actorId\": \"g1-user-admin\",\n        \"action\": \"certification.certifier-status\",\n        \"subjectType\": \"certifier\",\n        \"subjectId\": \"g1-certifier-1\",\n        \"details\": {\n          \"previous\": \"active\",\n          \"status\": \"suspended\"\n        }\n      },\n      {\n        \"actorId\": \"g1-user-a-and-b\",\n        \"action\": \"profile.orcid-set\",\n        \"subjectType\": \"user\",\n        \"subjectId\": \"g1-user-a-and-b\",\n        \"details\": {\n          \"orcid\": null,\n          \"verified\": false\n        }\n      },\n      {\n        \"actorId\": \"g1-user-a-only\",\n        \"action\": \"profile.orcid-set\",\n        \"subjectType\": \"user\",\n        \"subjectId\": \"g1-user-a-only\",\n        \"details\": {\n          \"orcid\": null,\n          \"verified\": false\n        }\n      },\n      {\n        \"actorId\": \"g1-user-admin\",\n        \"action\": \"profile.orcid-set\",\n        \"subjectType\": \"user\",\n        \"subjectId\": \"g1-user-admin\",\n        \"details\": {\n          \"orcid\": null,\n          \"verified\": false\n        }\n      },\n      {\n        \"actorId\": \"g1-user-b-only\",\n        \"action\": \"profile.orcid-set\",\n        \"subjectType\": \"user\",\n        \"subjectId\": \"g1-user-b-only\",\n        \"details\": {\n          \"orcid\": null,\n          \"verified\": false\n        }\n      },\n      {\n        \"actorId\": \"g1-user-editor\",\n        \"action\": \"profile.orcid-set\",\n        \"subjectType\": \"user\",\n        \"subjectId\": \"g1-user-editor\",\n        \"details\": {\n          \"orcid\": null,\n          \"verified\": false\n        }\n      }\n    ]\n  },\n  \"excluded\": [\n    \"AuditEvent.id\",\n    \"AuditEvent.createdAt\",\n    \"AuditEvent.platformVersion\",\n    \"User.updatedAt\"\n  ]\n}\n"
+      }
+    },
+    {
+      "kind": "metadata-loader",
+      "id": "metadata-sitemap",
+      "loader": "app/sitemap.ts",
+      "body": {
+        "encoding": "utf8",
+        "text": "[\n  {\n    \"url\": \"https://g1.oratlas.example/\"\n  },\n  {\n    \"url\": \"https://g1.oratlas.example/api-docs\"\n  },\n  {\n    \"url\": \"https://g1.oratlas.example/archive\"\n  },\n  {\n    \"url\": \"https://g1.oratlas.example/certifications\"\n  },\n  {\n    \"url\": \"https://g1.oratlas.example/compare\"\n  },\n  {\n    \"url\": \"https://g1.oratlas.example/connect\"\n  },\n  {\n    \"url\": \"https://g1.oratlas.example/create-review\"\n  },\n  {\n    \"url\": \"https://g1.oratlas.example/explore\"\n  },\n  {\n    \"url\": \"https://g1.oratlas.example/nodes/g1-node-1\",\n    \"lastModified\": \"2026-02-02T00:00:00.000Z\"\n  },\n  {\n    \"url\": \"https://g1.oratlas.example/nodes/g1-node-1/versions/g1-node-1-v1\",\n    \"lastModified\": \"2026-02-02T01:00:00.000Z\"\n  },\n  {\n    \"url\": \"https://g1.oratlas.example/nodes/g1-node-2\",\n    \"lastModified\": \"2026-02-02T00:00:00.000Z\"\n  },\n  {\n    \"url\": \"https://g1.oratlas.example/nodes/g1-node-2/versions/g1-node-2-v1\",\n    \"lastModified\": \"2026-02-02T02:00:00.000Z\"\n  },\n  {\n    \"url\": \"https://g1.oratlas.example/nodes/g1-node-3\",\n    \"lastModified\": \"2026-02-02T00:00:00.000Z\"\n  },\n  {\n    \"url\": \"https://g1.oratlas.example/nodes/g1-node-3/versions/g1-node-3-v1\",\n    \"lastModified\": \"2026-02-02T03:00:00.000Z\"\n  },\n  {\n    \"url\": \"https://g1.oratlas.example/publications\"\n  },\n  {\n    \"url\": \"https://g1.oratlas.example/reviews/g1-fixture-review\",\n    \"lastModified\": \"2026-02-03T00:00:00.000Z\"\n  },\n  {\n    \"url\": \"https://g1.oratlas.example/reviews/g1-fixture-review/versions/g1-version-1\",\n    \"lastModified\": \"2026-01-03T12:00:00.000Z\"\n  },\n  {\n    \"url\": \"https://g1.oratlas.example/reviews/g1-fixture-review/versions/g1-version-2\",\n    \"lastModified\": \"2026-02-03T12:00:00.000Z\"\n  },\n  {\n    \"url\": \"https://g1.oratlas.example/reviews/g1-second-review\",\n    \"lastModified\": \"2026-03-05T00:00:00.000Z\"\n  },\n  {\n    \"url\": \"https://g1.oratlas.example/reviews/g1-second-review/versions/g1-version-4\",\n    \"lastModified\": \"2026-03-05T12:00:00.000Z\"\n  },\n  {\n    \"url\": \"https://g1.oratlas.example/verification\"\n  }\n]\n"
+      }
+    },
+    {
+      "kind": "metadata-loader",
+      "id": "metadata-robots",
+      "loader": "app/robots.ts",
+      "body": {
+        "encoding": "utf8",
+        "text": "{\n  \"rules\": {\n    \"userAgent\": \"*\",\n    \"allow\": \"/\",\n    \"disallow\": [\n      \"/signin\",\n      \"/editorial\",\n      \"/notifications\",\n      \"/submit\",\n      \"/submissions\",\n      \"/api/auth/\",\n      \"/api/editorial/\",\n      \"/api/admin/\",\n      \"/api/submissions\"\n    ]\n  },\n  \"sitemap\": \"https://g1.oratlas.example/sitemap.xml\",\n  \"host\": \"https://g1.oratlas.example\"\n}\n"
       }
     }
   ]

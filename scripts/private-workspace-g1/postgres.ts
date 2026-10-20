@@ -57,12 +57,13 @@ export function redact(text: string, secrets: readonly string[]): string {
 export type PsqlInvocation = {
   readonly command: string;
   readonly args: readonly string[];
-  readonly env: Readonly<Record<string, string>>;
+  readonly env: Readonly<Record<string, string>> & { readonly NODE_ENV: "test" };
 };
 
 /**
  * Build the exact child invocation. Only `PATH` is inherited (to locate `psql`); every PG* value is
- * set explicitly so ambient PGHOST/PGSERVICE/PGOPTIONS cannot redirect the connection.
+ * set explicitly so ambient PGHOST/PGSERVICE/PGOPTIONS cannot redirect the connection. `NODE_ENV`
+ * is a fixed non-secret value (ignored by psql) so the env satisfies the typed child contract.
  */
 export function psqlInvocation(
   connection: G1Connection,
@@ -77,6 +78,7 @@ export function psqlInvocation(
       PATH: options.path ?? process.env.PATH ?? "/usr/bin:/bin",
       LANG: "C.UTF-8",
       LC_ALL: "C.UTF-8",
+      NODE_ENV: "test",
       PGHOST: connection.host === "[::1]" ? "::1" : connection.host,
       PGPORT: String(connection.port),
       PGDATABASE: connection.database,

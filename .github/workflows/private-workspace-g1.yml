@@ -1,9 +1,12 @@
 name: Private workspace G1 harness
 
 # G1-empty isolation harness (docs/private-workspace-g1-harness.md): T-IMP fixtures, T-ROLE
-# empty-schema posture and T-PUB public-route captures against a disposable PostgreSQL 16 service,
-# plus the unused `private, no-store` helper. Passing this job is partial G1-empty evidence only; it
-# does not enable private tables, data, endpoints or providers.
+# empty-schema posture and grant closure, the T-PUB scenario program (real handlers in a Next
+# request context, six synthetic principal cases, fixture reset before each fresh capture child)
+# and the auth evidence suite against a disposable PostgreSQL 16 service, plus the unused
+# `private, no-store` helper. Passing this job is partial G1-empty evidence only (synthetic public
+# fixtures; A/B are labels without memberships); it does not enable private tables, data, endpoints
+# or providers.
 
 on:
   push:
@@ -81,7 +84,7 @@ jobs:
           apps/web/src/lib/openapi-response.test.ts
           apps/web/src/app/llms.txt/route.test.ts
 
-      - name: G1-empty harness on disposable PostgreSQL 16 (T-ROLE, T-PUB)
+      - name: G1-empty harness on disposable PostgreSQL 16 (T-ROLE, T-PUB, auth evidence)
         run: pnpm g1:private-workspace
         env:
           G1_EVIDENCE_DIR: ${{ runner.temp }}/g1-evidence

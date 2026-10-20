@@ -4,27 +4,37 @@ import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { G1_BASE_URL, type CaptureFile } from "./capture.js";
+import { publicChildEnv } from "./child-env.js";
 import {
   comparePairedCaptures,
   compareWithGolden,
   goldenCandidate,
-  type GoldenFile,
+  validateCapture,
 } from "./compare.js";
-import { G1_COVERAGE_STATUS, PRINCIPALS, SURFACES } from "./manifest.js";
+import { coverageSummary, G1_COVERAGE_STATUS, PRINCIPALS, SURFACES } from "./manifest.js";
 import { PsqlError, queryJson, redact, runPsql } from "./postgres.js";
+import { SCENARIOS } from "./scenarios.js";
 import {
   createPublicRoleSql,
   dropPrivateSchemaSql,
   dropRecordedPublicObjectsSql,
   dropRoleSql,
+  EXPECTED_RESET_STATE,
   isEmptySchema,
   preflightSql,
   provisionPrivateSql,
+  PUBLIC_COLUMN_UPDATE_GRANTS,
   PUBLIC_OBJECT_INVENTORY_SQL,
+  PUBLIC_TABLE_GRANTS,
   publicGrantSnapshotSql,
+  RESET_TARGET_SQL,
+  resetStateSql,
+  resetTargetProblems,
   schemaObjectCountsSql,
+  truncateRecordedPublicTablesSql,
   type PublicObjectInventory,
+  type ResetState,
+  type ResetTarget,
   type SchemaObjectCounts,
 } from "./sql.js";
 import {
@@ -41,10 +51,13 @@ import {
 /**
  * G1-empty harness orchestrator (docs/private-workspace-g1-harness.md). Order:
  * validate target → preflight (refuse unless clean) → bootstrap public DDL + fixtures → restricted
- * public role → BASELINE capture → empty private_ws + private role → AFTER capture → T-ROLE suite
- * → compare captures/golden → clean up only run-created resources → write sanitized evidence.
- * Exit codes: 0 passed (every check and every cleanup step succeeded), 1 a check or a cleanup step
- * failed, 2 target refused before any mutation. `run.ts` is the CLI entry point.
+ * public role → [reset → BASELINE capture] → [reset → BASELINE repeat] → empty private_ws + private
+ * role → [reset → AFTER capture] → [reset → AFTER repeat] → [reset → auth evidence] → T-ROLE suite
+ * → validate/compare captures and golden → clean up only run-created resources → write sanitized
+ * evidence. Every capture is a fresh child running the reviewed ordered scenario program; resets
+ * use the bootstrap connection only, after re-checking the target identity and the run-created
+ * inventory. Exit codes: 0 passed (every check and every cleanup step succeeded), 1 a check or a
+ * cleanup step failed, 2 target refused before any mutation. `run.ts` is the CLI entry point.
  */
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -53,8 +66,9 @@ const DDL_PATH = resolve(ROOT, "packages/db/prisma/schema.postgres.sql");
 const FIXTURE_PATH = resolve(HERE, "fixtures/public-fixtures.sql");
 const GOLDEN_PATH = resolve(HERE, "baselines/public-routes.golden.json");
 const VITEST_CONFIG = resolve(HERE, "vitest.config.ts");
-/** Non-secret constant: the capture process must not fall back to the development secret. */
-const CAPTURE_SESSION_SECRET = "g1-capture-only-not-a-secret";
+const APP_DIRECTORY = resolve(ROOT, "apps/web/src/app");
+/** Capture children in run order; the first is the reference for paired comparison. */
+export const CAPTURE_LABELS = ["baseline", "baseline-repeat", "after", "after-repeat"] as const;
 
 type Step = { step: string; ok: boolean; detail?: unknown };
 
@@ -71,11 +85,14 @@ export type G1HarnessDeps = {
   queryJson: <T>(connection: G1Connection, sql: string) => Promise<T>;
   runSpec: (
     spec: string,
-    env: Record<string, string>,
+    env: G1ChildEnv,
     logPath: string,
     secrets: readonly string[],
   ) => Promise<boolean>;
 };
+
+/** Exact environment of a spec child: string values only, with a fixed `NODE_ENV`. */
+export type G1ChildEnv = Record<string, string> & { NODE_ENV: "test" };
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
@@ -89,8 +106,8 @@ function secretsOf(target: G1Target): string[] {
   return [target.admin.password, target.public.password, target.private.password];
 }
 
-function baseChildEnv(): Record<string, string> {
-  const env: Record<string, string> = { LANG: "C.UTF-8", NODE_ENV: "test" };
+function baseChildEnv(): G1ChildEnv {
+  const env: G1ChildEnv = { LANG: "C.UTF-8", NODE_ENV: "test" };
   for (const name of ["PATH", "HOME", "TMPDIR", "CI"]) {
     const value = process.env[name];
     if (value) env[name] = value;
@@ -106,7 +123,7 @@ function vitestEntry(): string {
 /** Run one dedicated spec in a child with exactly `env`; output is redacted and logged. */
 function runSpec(
   spec: string,
-  env: Record<string, string>,
+  env: G1ChildEnv,
   logPath: string,
   secrets: readonly string[],
 ): Promise<boolean> {
@@ -130,8 +147,8 @@ function runSpec(
   });
 }
 
-function readJson<T>(path: string): T {
-  return JSON.parse(readFileSync(path, "utf8")) as T;
+function readJson(path: string): unknown {
+  return JSON.parse(readFileSync(path, "utf8")) as unknown;
 }
 
 function writeJson(path: string, value: unknown): void {
@@ -191,7 +208,7 @@ type CreatedResources = {
  * the exit code; any failed cleanup step forces `1` and a failed summary, even after passing checks.
  */
 export async function runG1Harness(
-  env: NodeJS.ProcessEnv,
+  env: Readonly<Record<string, string | undefined>>,
   deps: G1HarnessDeps = DEFAULT_DEPS,
 ): Promise<number> {
   let target: G1Target;
@@ -267,19 +284,23 @@ export async function runG1Harness(
       singleTransaction: true,
       secrets,
     });
-    created.publicObjects = await deps.queryJson<PublicObjectInventory>(
+    const inventory = await deps.queryJson<PublicObjectInventory>(
       target.admin,
       PUBLIC_OBJECT_INVENTORY_SQL,
     );
+    created.publicObjects = inventory;
     record("bootstrap public schema from schema.postgres.sql", true, {
-      tables: created.publicObjects.tables.length,
-      functions: created.publicObjects.functions.length,
+      tables: inventory.tables.length,
+      functions: inventory.functions.length,
     });
-    await deps.runPsql(target.admin, readFileSync(FIXTURE_PATH, "utf8"), {
-      singleTransaction: true,
-      secrets,
-    });
-    record("load deterministic public fixtures", true);
+    const fixtureSql = readFileSync(FIXTURE_PATH, "utf8");
+    await deps.runPsql(target.admin, fixtureSql, { singleTransaction: true, secrets });
+    const seeded = await deps.queryJson<ResetState>(target.admin, resetStateSql());
+    record(
+      "load deterministic public fixtures",
+      JSON.stringify(seeded) === JSON.stringify(EXPECTED_RESET_STATE),
+      seeded,
+    );
 
     // 3. Restricted public runtime role, before the baseline.
     await deps.runPsql(
@@ -292,27 +313,67 @@ export async function runG1Harness(
       target.admin,
       publicGrantSnapshotSql(target.public.user),
     );
-    record("create restricted public runtime role", true, grantsBefore);
-
-    // 4. Baseline capture under the public role only.
-    const captureEnv = (label: string, out: string) => ({
-      ...baseChildEnv(),
-      DATABASE_URL: prismaUrl(target.public),
-      NEXT_PUBLIC_BASE_URL: G1_BASE_URL,
-      SESSION_SECRET: CAPTURE_SESSION_SECRET,
-      G1_CAPTURE_LABEL: label,
-      G1_CAPTURE_OUT: out,
+    record("create restricted public runtime role", true, {
+      reviewedTableGrants: PUBLIC_TABLE_GRANTS,
+      reviewedColumnGrants: PUBLIC_COLUMN_UPDATE_GRANTS,
+      effective: grantsBefore,
     });
-    const baselinePath = join(evidenceDir, "capture-baseline.json");
-    record(
-      "baseline public capture (restricted public role)",
-      await deps.runSpec(
-        "public-routes.g1.spec.ts",
-        captureEnv("baseline", baselinePath),
-        join(evidenceDir, "capture-baseline.log"),
-        secrets,
-      ),
-    );
+
+    // Reset: bootstrap connection only, after proving the target and the run-created inventory
+    // are unchanged; truncate exactly those tables and reload the fixtures in one transaction.
+    const reset = async (label: string) => {
+      const step = `reset public fixtures before ${label}`;
+      const facts = await deps.queryJson<ResetTarget>(target.admin, RESET_TARGET_SQL);
+      const problems = resetTargetProblems(facts, {
+        database: target.database,
+        adminRole: target.admin.user,
+        inventory,
+      });
+      if (problems.length > 0) record(step, false, problems);
+      try {
+        await deps.runPsql(
+          target.admin,
+          `${truncateRecordedPublicTablesSql(inventory)}\n${fixtureSql}`,
+          { singleTransaction: true, secrets },
+        );
+      } catch (error) {
+        record(step, false, redact(errorMessage(error), secrets));
+      }
+      const state = await deps.queryJson<ResetState>(target.admin, resetStateSql());
+      const ok = JSON.stringify(state) === JSON.stringify(EXPECTED_RESET_STATE);
+      record(step, ok, ok ? undefined : state);
+    };
+
+    const handlerEnv = (outVariable: string, out: string, extra: Record<string, string> = {}) => ({
+      ...baseChildEnv(),
+      ...publicChildEnv(prismaUrl(target.public)),
+      ...extra,
+      [outVariable]: out,
+    });
+    const capturePaths = new Map<string, string>();
+    const capture = async (label: (typeof CAPTURE_LABELS)[number]) => {
+      await reset(`${label} capture`);
+      const out = join(evidenceDir, `capture-${label}.json`);
+      capturePaths.set(label, out);
+      record(
+        `${label} capture: fresh child runs the scenario program (restricted public role)`,
+        await deps.runSpec(
+          "public-routes.g1.spec.ts",
+          handlerEnv("G1_CAPTURE_OUT", out, { G1_CAPTURE_LABEL: label }),
+          join(evidenceDir, `capture-${label}.log`),
+          secrets,
+        ),
+      );
+      const problems = validateCapture(readJson(out), SCENARIOS);
+      record(`${label} capture matches the reviewed program outcomes`, problems.length === 0, {
+        records: SCENARIOS.length,
+        problems,
+      });
+    };
+
+    // 4. Baseline and its repeat, each after a reset, under the public role only.
+    await capture("baseline");
+    await capture("baseline-repeat");
 
     // 5. Empty private schema and private runtime role.
     await deps.runPsql(
@@ -336,24 +397,29 @@ export async function runG1Harness(
       publicGrantSnapshotSql(target.public.user),
     );
     record(
-      "public role grants unchanged by private provisioning",
+      "public role table and column grants unchanged by private provisioning",
       JSON.stringify(grantsAfter) === JSON.stringify(grantsBefore),
       grantsAfter,
     );
 
-    // 6. After capture, identical public role and fixtures.
-    const afterPath = join(evidenceDir, "capture-after.json");
+    // 6. After capture and its repeat, identical public role, each after a reset.
+    await capture("after");
+    await capture("after-repeat");
+
+    // 7. Auth evidence in its own fresh child (production session functions, real contexts).
+    await reset("auth evidence");
+    const authEvidencePath = join(evidenceDir, "auth-evidence.json");
     record(
-      "after public capture (restricted public role)",
+      "auth evidence: six principals and four invalid sessions (fresh child)",
       await deps.runSpec(
-        "public-routes.g1.spec.ts",
-        captureEnv("after", afterPath),
-        join(evidenceDir, "capture-after.log"),
+        "auth-context.g1.spec.ts",
+        handlerEnv("G1_AUTH_EVIDENCE_OUT", authEvidencePath),
+        join(evidenceDir, "auth-evidence.log"),
         secrets,
       ),
     );
 
-    // 7. T-ROLE suite with runtime credentials only (no admin credential in the child).
+    // 8. T-ROLE suite with runtime credentials only (no admin credential in the child).
     const roleEvidencePath = join(evidenceDir, "role-evidence.json");
     record(
       "T-ROLE suite (direct public/private runtime connections)",
@@ -378,28 +444,36 @@ export async function runG1Harness(
       emptyAfterRoles,
     });
 
-    // 8. Compare paired captures and the reviewed golden baseline.
-    const baseline = readJson<CaptureFile>(baselinePath);
-    const after = readJson<CaptureFile>(afterPath);
-    const paired = comparePairedCaptures(baseline, after);
-    record("baseline and after captures byte-identical", paired.length === 0, paired);
+    // 9. Paired comparisons (every capture against the baseline) and the reviewed golden.
+    const captures = new Map(
+      CAPTURE_LABELS.map((label) => [label, readJson(capturePaths.get(label)!)]),
+    );
+    const reference = captures.get("baseline");
+    for (const label of CAPTURE_LABELS.slice(1)) {
+      const paired = comparePairedCaptures(reference, captures.get(label));
+      record(`baseline and ${label} captures byte-identical`, paired.length === 0, paired);
+    }
     writeJson(
       join(evidenceDir, "golden-candidate.json"),
-      goldenCandidate(baseline, "CANDIDATE — not reviewed; never copied automatically"),
+      goldenCandidate(reference, "CANDIDATE — not reviewed; never copied automatically"),
     );
     if (!existsSync(GOLDEN_PATH)) {
       record("reviewed golden baseline present", false, "golden-candidate.json written");
     }
-    const golden = readJson<GoldenFile>(GOLDEN_PATH);
-    const goldenDifferences = [
-      ...compareWithGolden(baseline, golden),
-      ...compareWithGolden(after, golden),
-    ];
+    const golden = readJson(GOLDEN_PATH);
+    const goldenDifferences = CAPTURE_LABELS.flatMap((label) =>
+      compareWithGolden(captures.get(label), golden, SCENARIOS).map(
+        (difference) => `${label}: ${difference}`,
+      ),
+    );
     record("captures match the reviewed golden baseline", goldenDifferences.length === 0, {
       differences: goldenDifferences,
-      routes: golden.routes.map((route) => `${route.id}:${route.status}`),
     });
-    summary.manifest = { surfaces: SURFACES, principals: PRINCIPALS };
+    summary.manifest = {
+      coverage: coverageSummary(APP_DIRECTORY),
+      surfaces: SURFACES,
+      principals: PRINCIPALS,
+    };
     exitCode = 0;
   } catch (error) {
     if (error instanceof RefusedBeforeMutation) {

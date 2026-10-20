@@ -1,14 +1,20 @@
+import { readdirSync } from "node:fs";
+import { join, relative } from "node:path";
+import { PRINCIPAL_LABELS, type PrincipalLabel } from "./principals.js";
+import { SCENARIOS, type Scenario } from "./scenarios.js";
+
 /**
  * G1 route/principal/channel coverage manifest (ADR §3.1/§3.2, §11 T-PUB). It records what the
- * G1-empty harness actually captures and, visibly, everything it does not. `manifest.test.ts`
- * fails if a route handler exists that no entry accounts for, or if captured IDs drift from the
- * reviewed golden baseline. Nothing here is evidence of authorization or of the populated matrix.
+ * G1-empty harness actually executes — derived from the reviewed scenario program, not hand-kept —
+ * and, visibly, everything it does not. `manifest.test.ts` fails if a route handler exists that no
+ * entry accounts for, if a scenario maps to no surface, or if the golden drifts from the program.
+ * Nothing here is evidence of private authorization or of the populated matrix.
  */
 
 export const G1_COVERAGE_STATUS =
   "G1-empty partial: populated T-ROLE/T-PUB matrix deferred" as const;
 
-export type Coverage = "captured-g1-empty" | "gap";
+export type Coverage = "captured-g1-empty" | "metadata-loader-g1-empty" | "gap";
 
 export type SurfaceEntry = {
   readonly id: string;
@@ -19,8 +25,8 @@ export type SurfaceEntry = {
   /** Route directory prefixes under apps/web/src/app (the prefix itself and its descendants). */
   readonly prefixes?: readonly string[];
   readonly coverage: Coverage;
-  /** Golden/capture IDs exercised for this surface. */
-  readonly captureIds?: readonly string[];
+  /** Metadata loaders captured for this surface (not HTTP responses). */
+  readonly loaders?: readonly string[];
   readonly note: string;
 };
 
@@ -34,7 +40,6 @@ export const SURFACES: readonly SurfaceEntry[] = [
     channel: "http-route",
     exact: ["api/health/ready"],
     coverage: "captured-g1-empty",
-    captureIds: ["health-ready"],
     note: "Real handler, real restricted Prisma connection (SELECT 1).",
   },
   {
@@ -43,7 +48,6 @@ export const SURFACES: readonly SurfaceEntry[] = [
     channel: "http-route",
     exact: ["api/health"],
     coverage: "captured-g1-empty",
-    captureIds: ["health"],
     note: "Real handler; Date is fixed to the G1 clock. No database access.",
   },
   {
@@ -52,8 +56,15 @@ export const SURFACES: readonly SurfaceEntry[] = [
     channel: "http-route",
     exact: ["api/feeds/atom"],
     coverage: "captured-g1-empty",
-    captureIds: ["feeds-atom"],
-    note: "Real handler and Prisma query over two published fixture versions plus one excluded draft.",
+    note: "Three published fixture versions in publish order; the non-public control is excluded.",
+  },
+  {
+    id: "feeds-lifecycle",
+    adr: "§3.1",
+    channel: "http-route",
+    exact: ["api/feeds/lifecycle"],
+    coverage: "captured-g1-empty",
+    note: "Non-empty ledger: exact actor/version/SHA/order; the control-review event is excluded.",
   },
   {
     id: "llms-txt",
@@ -61,7 +72,6 @@ export const SURFACES: readonly SurfaceEntry[] = [
     channel: "http-route",
     exact: ["llms.txt"],
     coverage: "captured-g1-empty",
-    captureIds: ["llms-txt"],
     note: "Real handler; deterministic base URL. No database access.",
   },
   {
@@ -70,7 +80,6 @@ export const SURFACES: readonly SurfaceEntry[] = [
     channel: "http-route",
     exact: ["openapi.yaml"],
     coverage: "captured-g1-empty",
-    captureIds: ["openapi-yaml", "openapi-yaml-304"],
     note: "Real handler including the existing public ETag/304 behaviour (unchanged).",
   },
   {
@@ -79,32 +88,71 @@ export const SURFACES: readonly SurfaceEntry[] = [
     channel: "http-route",
     exact: ["openapi.json"],
     coverage: "captured-g1-empty",
-    captureIds: ["openapi-json", "openapi-json-304"],
     note: "Real handler including the existing public ETag/304 behaviour (unchanged).",
   },
   {
-    id: "feeds-lifecycle",
+    id: "search",
     adr: "§3.1",
     channel: "http-route",
-    exact: ["api/feeds/lifecycle"],
-    coverage: "gap",
-    note: `${DEFERRED} Needs lifecycle ledger fixtures.`,
+    exact: ["api/search"],
+    coverage: "captured-g1-empty",
+    note: "contentType=review, sort=title, pageSize=1, pages 1 and 2 over two public reviews.",
+  },
+  {
+    id: "claims",
+    adr: "§3.1",
+    channel: "http-route",
+    exact: ["api/claims"],
+    coverage: "captured-g1-empty",
+    note: "Non-empty claim list from both public heads; the control claim is excluded.",
+  },
+  {
+    id: "graph",
+    adr: "§3.1",
+    channel: "http-route",
+    exact: ["api/graph"],
+    coverage: "captured-g1-empty",
+    note: "Source-assertion seed with two edges, limit=1, signed cursor continuation; RateLimit headers kept.",
+  },
+  {
+    id: "notifications",
+    adr: "§3.1",
+    channel: "http-route",
+    exact: ["api/notifications"],
+    coverage: "captured-g1-empty",
+    note: "Anonymous 401, each principal's own non-empty list, four invalid sessions 401, own mark-read 200, cross-user 404.",
+  },
+  {
+    id: "profile-orcid",
+    adr: "§3.1",
+    channel: "http-route",
+    exact: ["api/profile/orcid"],
+    coverage: "captured-g1-empty",
+    note: "Anonymous 401; each user clears only its own ORCID with one attributable audit row.",
+  },
+  {
+    id: "editorial-ora-readiness",
+    adr: "§3.1",
+    channel: "http-route",
+    exact: ["api/editorial/ora-certifications"],
+    coverage: "captured-g1-empty",
+    note: "GET only (no POST): 401/403/200 by role over a real publication version; providers disabled, available=false.",
+  },
+  {
+    id: "editorial-certifier-status",
+    adr: "§3.1",
+    channel: "http-route",
+    exact: ["api/editorial/certifiers/[id]/status"],
+    coverage: "captured-g1-empty",
+    note: "active→suspended: 401/403 by role, a cross-site precheck control, ADMIN 200 with row and audit change.",
   },
   {
     id: "graph-search-discovery",
     adr: "§3.1",
     channel: "http-route",
-    prefixes: [
-      "api/graph",
-      "api/landscape",
-      "api/nodes",
-      "api/claims",
-      "api/search",
-      "api/synthesis",
-      "api/syntheses",
-    ],
+    prefixes: ["api/landscape", "api/nodes", "api/claims", "api/synthesis", "api/syntheses"],
     coverage: "gap",
-    note: `${DEFERRED} Includes node challenge exports and version snapshots.`,
+    note: `${DEFERRED} Includes node challenge exports, claim passports and version snapshots.`,
   },
   {
     id: "reviews-publications-exports",
@@ -128,14 +176,6 @@ export const SURFACES: readonly SurfaceEntry[] = [
     prefixes: ["api/protocols"],
     coverage: "gap",
     note: DEFERRED,
-  },
-  {
-    id: "profile",
-    adr: "§3.1",
-    channel: "http-route",
-    prefixes: ["api/profile"],
-    coverage: "gap",
-    note: `${DEFERRED} Requires an authenticated session fixture.`,
   },
   {
     id: "auth",
@@ -190,19 +230,12 @@ export const SURFACES: readonly SurfaceEntry[] = [
     note: DEFERRED,
   },
   {
-    id: "notifications",
-    adr: "§3.1",
-    channel: "http-route",
-    prefixes: ["api/notifications"],
-    coverage: "gap",
-    note: `${DEFERRED} Requires per-user session fixtures.`,
-  },
-  {
     id: "sitemap-robots",
     adr: "§3.1",
     channel: "http-metadata",
-    coverage: "gap",
-    note: "app/sitemap.ts and app/robots.ts metadata routes are not captured at G1.",
+    coverage: "metadata-loader-g1-empty",
+    loaders: ["app/sitemap.ts", "app/robots.ts"],
+    note: "Loader outputs only (deterministic Date/ISO serialization): static, review, version and node URLs plus excluded controls; robots exact. Next's /sitemap.xml and /robots.txt HTTP serialization is not captured.",
   },
   {
     id: "pages",
@@ -221,34 +254,117 @@ export const SURFACES: readonly SurfaceEntry[] = [
 ];
 
 export type PrincipalCase = {
-  readonly label: "anonymous" | "A-only" | "B-only" | "A+B" | "EDITOR" | "ADMIN";
+  readonly label: PrincipalLabel;
   readonly executed: boolean;
   readonly note: string;
 };
 
-const NO_FIXTURE =
-  "Blocking gap: no deterministic nonproduction session fixture is wired into the harness. At G1, A/B are labels only — no workspace memberships exist.";
+const PRINCIPAL_NOTES: Readonly<Record<PrincipalLabel, string>> = {
+  anonymous:
+    "No session cookie; also the effective principal of the four invalid-session cases (malformed, signed-expired, tampered, signed-missing-user).",
+  "A-only": "",
+  "B-only": "",
+  "A+B": "",
+  EDITOR: "",
+  ADMIN: "",
+};
 
-export const PRINCIPALS: readonly PrincipalCase[] = [
-  { label: "anonymous", executed: true, note: "All captured routes, no session cookie." },
-  { label: "A-only", executed: false, note: NO_FIXTURE },
-  { label: "B-only", executed: false, note: NO_FIXTURE },
-  { label: "A+B", executed: false, note: NO_FIXTURE },
-  { label: "EDITOR", executed: false, note: NO_FIXTURE },
-  { label: "ADMIN", executed: false, note: NO_FIXTURE },
-];
+const LABEL_ONLY =
+  "Production-signed fixture session for a synthetic public User row. At G1, A/B are labels only — no workspace or membership exists — so this is public-route evidence under a real session, not workspace authorization.";
 
-/** The single manifest entry that accounts for a route directory, or the list of all matches. */
+/** Principal cases, `executed` derived from the scenario program. */
+export const PRINCIPALS: readonly PrincipalCase[] = PRINCIPAL_LABELS.map((label) => ({
+  label,
+  executed: SCENARIOS.some((scenario) => scenario.kind === "http" && scenario.principal === label),
+  note: PRINCIPAL_NOTES[label] || LABEL_ONLY,
+}));
+
+/**
+ * The manifest entries that account for a route directory. An exact entry takes precedence over
+ * group prefixes; anything other than exactly one match is a manifest error.
+ */
 export function surfacesForRoute(routeDirectory: string): SurfaceEntry[] {
+  const exact = SURFACES.filter((entry) => entry.exact?.includes(routeDirectory) === true);
+  if (exact.length > 0) return exact;
   return SURFACES.filter(
     (entry) =>
-      entry.exact?.includes(routeDirectory) === true ||
       entry.prefixes?.some(
         (prefix) => routeDirectory === prefix || routeDirectory.startsWith(`${prefix}/`),
       ) === true,
   );
 }
 
-export function capturedIds(): string[] {
-  return SURFACES.flatMap((entry) => entry.captureIds ?? []);
+/** Scenario ids executed for a surface (HTTP routes by route directory, metadata by loader). */
+export function scenarioIdsFor(
+  surface: SurfaceEntry,
+  program: readonly Scenario[] = SCENARIOS,
+): string[] {
+  return program
+    .filter((scenario) =>
+      scenario.kind === "http"
+        ? surfacesForRoute(scenario.route).includes(surface)
+        : scenario.kind === "metadata-loader" && (surface.loaders ?? []).includes(scenario.loader),
+    )
+    .map((scenario) => scenario.id);
+}
+
+/** Route directories (containing route.ts) under the app directory, excluding api/private. */
+export function routeDirectories(appDirectory: string): string[] {
+  const found: string[] = [];
+  const walk = (directory: string) => {
+    for (const entry of readdirSync(directory, { withFileTypes: true })) {
+      const path = join(directory, entry.name);
+      if (entry.isDirectory()) walk(path);
+      else if (entry.name === "route.ts") {
+        found.push(relative(appDirectory, directory).replaceAll("\\", "/"));
+      }
+    }
+  };
+  walk(appDirectory);
+  return found.filter((route) => !route.startsWith("api/private")).sort();
+}
+
+/** Coverage actually executed by the program, against the current route tree. */
+export function coverageSummary(appDirectory: string, program: readonly Scenario[] = SCENARIOS) {
+  const routes = routeDirectories(appDirectory);
+  const http = program.filter((scenario) => scenario.kind === "http");
+  const exercised = [...new Set(http.map((scenario) => scenario.route))].sort();
+  const statuses: Record<string, number> = {};
+  for (const scenario of http) {
+    const key = String(scenario.expect.status);
+    statuses[key] = (statuses[key] ?? 0) + 1;
+  }
+  return {
+    status: G1_COVERAGE_STATUS,
+    routeFiles: routes.length,
+    routeFilesExercised: exercised.length,
+    routeFilesNotExercised: routes.filter((route) => !exercised.includes(route)).length,
+    exercisedRoutes: exercised,
+    httpScenarios: http.length,
+    expectedStatuses: statuses,
+    metadataLoaderRecords: program.filter((scenario) => scenario.kind === "metadata-loader").length,
+    stateRecords: program.filter((scenario) => scenario.kind === "db-state").length,
+    principalsExecuted: PRINCIPALS.filter((principal) => principal.executed).map((p) => p.label),
+    invalidSessionCases: [
+      ...new Set(
+        http
+          .filter(
+            (scenario) => scenario.session.case !== "none" && scenario.session.case !== "valid",
+          )
+          .map((scenario) => scenario.session.case),
+      ),
+    ],
+    gapSurfaces: SURFACES.filter((surface) => surface.coverage === "gap").map((s) => s.id),
+    notCovered: [
+      "remaining route files (see routeFilesNotExercised and gap surfaces)",
+      "Next HTTP serving: routing, middleware, RSC/HTML pages, metadata route serialization",
+      "non-HTTP channels and timing",
+      "populated private T-ROLE/T-PUB matrices",
+      "deployment/CDN caching",
+    ],
+  };
+}
+
+export function capturedIds(program: readonly Scenario[] = SCENARIOS): string[] {
+  return SURFACES.flatMap((entry) => scenarioIdsFor(entry, program));
 }
