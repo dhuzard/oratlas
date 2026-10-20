@@ -25,6 +25,7 @@
     "db:seed": "pnpm --filter @oratlas/db db:seed",
     "db:reset": "pnpm --filter @oratlas/db db:reset",
     "schema:check": "tsx scripts/validate-json-schemas.ts",
+    "g1:private-workspace": "tsx scripts/private-workspace-g1/run.ts",
     "openapi:check": "tsx scripts/generate-openapi-artifacts.ts --check && tsx scripts/check-openapi-routes.ts",
     "openapi:generate": "tsx scripts/generate-openapi-artifacts.ts",
     "openapi:artifacts:check": "tsx scripts/generate-openapi-artifacts.ts --check",
