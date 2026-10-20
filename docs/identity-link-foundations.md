@@ -183,7 +183,7 @@ These tests prove the **orchestrator logic and the contract it expects**. They d
       the public wording for a verified link. It must not imply trust, peer review, authorship or
       access.
 - [ ] Ratification of ADR-0001 §14 (still proposed), including the §14.2 finalization fence.
-- [ ] D11 counsel and DPIA confirmation before any real person's data is stored.
+- [ ] D11 counsel and DPIA confirmation before real private workspace content or metadata is stored; separately resolve the privacy/legal requirements for live identity linking.
 
 ## Next slices (none built now)
 
