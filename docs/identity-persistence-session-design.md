@@ -1,6 +1,10 @@
-# Identity persistence and session-instance design (S1)
+# Identity persistence and session-instance design (S1) — review-candidate durable-identity component
 
-**Status: PROPOSED technical design, pending independent review and owner policy choices.** It is
+**Status: PROPOSED REVIEW-CANDIDATE DURABLE-IDENTITY COMPONENT design, pending independent review
+and owner policy choices. It is NOT a complete S1 production or HTTP design, and full S1 remains
+incomplete.** It specifies the durable transaction protocol only. It does not authorize any HTTP
+callback result, fresh-read endpoint or provider-adapter wiring, and it contains no response-release
+or provider-exchange-start ordering contract (§5, which records those as activation blockers). It is
 not owner-approved schema, not implemented, and not reviewed. The owner approved I1, I2, I3 and
 ADR §14/§15 on 2026-10-20 and _commissioned_ this design (S1); commissioning is not approval of
 anything below. D11 stays provisional; I4 retention and identifier-reuse details are pending. The
@@ -111,7 +115,9 @@ clock_timestamp() RETURNING …`; zero rows ⇒ `rejected` and nothing changes. 
 the receipt. Commit. Single use is the row transition, not an in-process check, so two instances
 racing one `state` yield exactly one `consumed`. **The provider exchange runs after this commit,
 outside any transaction, holding no DB lock.** A crash after consume burns the state (user
-restarts); the design never "un-consumes".
+restarts); the design never "un-consumes". Consume committing does **not** fence the exchange
+start: revocation can commit between consume and the outbound call, and no DB lock is held then.
+That gap is unresolved and is an activation blocker (§5).
 
 **Step C: finalize.** One bounded tx, after the exchange:
 
@@ -124,9 +130,16 @@ restarts); the design never "un-consumes".
 3. `INSERT INTO identity_link … ON CONFLICT DO NOTHING RETURNING id` (no conflict target, so it
    covers both unique constraints). A concurrent inserter of the same keys makes this statement
    wait for its commit/abort; afterwards the winner is visible to the next statement.
-4. No row returned ⇒ classify with a follow-up `SELECT` on the tuple+subject: same principal ⇒
-   `already-linked`; other principal or another subject held by this principal ⇒ `conflict`.
-   Classification output never contains the other principal or subject.
+4. No row returned ⇒ the failed insert may have hit either unique constraint, so classify with
+   **two** consistent lookups in this tx, each after the conflicting inserter has committed (the
+   `ON CONFLICT DO NOTHING` wait guarantees visibility to the next statement): (a) by
+   `(provider, issuer, environment, subject)`: same principal ⇒ `already-linked`, other principal ⇒
+   `conflict`; (b) if (a) finds nothing, by `(principal_id, provider, issuer, environment)`: a row
+   with a **different subject** ⇒ `conflict` (per-principal cardinality, I2). Looking up only the
+   attempted tuple+subject cannot see (b). If neither lookup finds a row (the winner rolled back or
+   was deleted meanwhile), retry step 3 once, then `unavailable`; never infer success or a
+   specific cause. Output is the generic class only (`already-linked` or `conflict`) and never
+   contains the other principal, the other subject or constraint names.
 5. Write the receipt terminal outcome **in this same tx**.
 6. **Final deadline check as the last statement before `COMMIT`:** `clock_timestamp() <
 least(flow.expires_at, session.expires_at, $deadline)`, else write terminal `rejected` and
@@ -139,13 +152,25 @@ least(flow.expires_at, session.expires_at, $deadline)`, else write terminal `rej
 Link, terminal receipt and release of the locks become visible atomically at `COMMIT`.
 
 **Ambiguous commit.** If the connection drops after `COMMIT` was sent, the result is
-`unavailable`, never "not linked". Reconcile in a new tx by `receipt_digest` (the finalizing
-request still holds the raw receipt): terminal `linked`/`already-linked` ⇒ report that;
-terminal `rejected`/`conflict` ⇒ report that; unterminated and past `expires_at` ⇒ safe to report
-"not linked, restart" (the receipt can no longer finalize); unterminated and unexpired ⇒ stay
-`unavailable` and retry the idempotent finalize (single-use receipt makes retry safe). Without the
-receipt, a fresh authenticated session reads its own link for the tuple; a present matching
-link is reported as `already-linked`.
+`unavailable`, never "not linked". The original backend may still be running server-side, so
+**receipt expiry is not evidence that the original transaction is absent**, and an unlocked read of
+an unterminated expired receipt proves nothing. Reconcile in a new tx by `receipt_digest` (the
+finalizing request still holds the raw receipt) **through the same locks as finalize**: principal
+`FOR SHARE`, session `FOR SHARE`, then `receipt FOR UPDATE`, under `lock_timeout`. The receipt lock
+conflicts with the original finalizer, so the reconciler either waits for the original to commit or
+abort, or times out and stays `unavailable`. Only the state re-read **after acquiring the receipt
+lock** counts:
+
+- terminal `linked`/`already-linked`/`rejected`/`conflict` ⇒ report that.
+- still unterminated, so the original finished without effect (or never ran): if past `expires_at`,
+  the reconciler itself writes terminal `rejected` under the held lock and commits, then reports
+  "not linked, restart"; a late original then finds a terminal receipt and writes nothing. If
+  unexpired, retry the idempotent finalize in this same tx (single-use receipt).
+- principal or session no longer present, or lock timeout ⇒ `unavailable`; never "not linked".
+
+Without the receipt, an internal store read by the authenticated principal (not an endpoint) reads its own link for the tuple; a present
+matching link is reported as `already-linked`; absence of a link is **not** proof of non-linking
+while a finalizer may be in flight, so it is reported as "unknown" and may be retried.
 
 **Deletion, rollback, races.** A principal that no longer exists at step C ⇒ `denied`, nothing
 written. A delete attempted during C waits behind the `FOR SHARE` lock; since `ON DELETE RESTRICT`
@@ -154,25 +179,35 @@ lifecycle (§8). A failure in steps 3-6 rolls back the link and terminal receipt
 cannot disagree. Uniqueness races (two principals, two aliases, one subject) are decided by the
 unique indexes, not by lookup-then-insert.
 
-## 5. DB durability versus HTTP release
+## 5. Scope boundary: what this component does NOT fence
 
-The fence above orders the **durable identity effect** against revocation. It cannot hold a DB lock
-across response bytes: after `COMMIT` the lock is gone, and any later revocation cannot recall
-bytes already handed to the network. This design makes **no universal post-revocation recall
-guarantee** (ADR §14.2 item 4).
+The fence in §4 orders the **durable identity effect** against revocation. It cannot hold a DB lock
+across response bytes or an outbound provider call: after `COMMIT` the lock is gone, and a later
+revocation cannot recall bytes already handed to the network. ADR §14.2 requires an externally
+visible effect fence; this component does **not** provide one, and a minimal status plus a freshly
+authenticated read do **not** establish release ordering. This is not a complete S1 design and
+nothing below is compliance already met.
 
-Chosen scope: this document covers **identity durable finalization only**. It defines no release
-coordinator extending the fence until response hand-off. Until a separate response-release design
-exists, the `complete` route response is suppressed to a minimal status with no subject, link row,
-other-account information or receipt, and the caller re-reads link state through a freshly
-authenticated, `private, no-store` request. If a later design adds a coordinator, it must hold a
-conflicting fence until response hand-off and is out of scope here.
+**Unfenced, explicit activation blockers (each needs a separate concrete, reviewed
+coordinator/ordering contract before any production wiring):**
 
-**Provider call.** The code exchange is an outbound effect on the identity provider, carrying the
-code and no workspace content. Revoking the session fences its _start_ (consume, Step B) and the
-durable result (Step C), not an exchange already in flight. Ownership proof is not a workspace
-processing permission: if any future flow sent workspace-derived data to a provider, that start
-would need its own grant-revocation fence and is not authorised by a link.
+1. **Protected response release.** Ordering of response hand-off against revocation. No cross-resource
+   atomicity (DB lock plus network write) is claimed or inventable here; connection loss and
+   split-brain between the DB and the HTTP layer are not solved.
+2. **Live provider exchange start.** Not fenced merely because the prior consume committed (§4B).
+   Failure to fence the start is a blocker for **live** provider verification even if only an
+   identity is proven, because the call is an outbound effect carrying the authorization code.
+
+**Not authorized by this component:** any HTTP callback result (including a generic route whose
+status, body or redirect depends on the outcome), any fresh-read endpoint, and any provider-adapter
+wiring. A static, generic acknowledgement issued before asynchronous protected work is recorded only
+as an **optional future public, non-result protocol that needs its own review**; it is not a
+workaround for the blockers above.
+
+**Test scope.** The injected verifier remains synthetic in the first persistence tests; no real
+provider is called. Ownership proof is not a workspace processing permission: if any future flow
+sent workspace-derived data to a provider, that start would need its own grant-revocation fence.
+This design makes **no universal post-revocation recall guarantee** (ADR §14.2 item 4).
 
 ## 6. Cross-instance state, receipts, leaks
 
@@ -215,9 +250,12 @@ No automatic account merge ever occurs.
    existing pages but returns `null` to the linking path, so linking fails closed until the user has
    a bound session. Old GitHub login is unchanged until its wiring is separately reviewed.
    Rollback: stop issuing v2; v2 cookies stop resolving and users sign in again.
-4. **P3 PG store adapter** implementing `IdentityLinkStore` plus the contention tests of §11.
-5. **P4 Mock route wiring** and **P5 live activation** are separate reviews; P5 needs G6
-   (allowlist, default-off flag, kill switch, runbook). Hosted enablement does not bypass G6.
+4. **P3 PG store adapter** implementing `IdentityLinkStore` plus the contention tests of §11,
+   with a synthetic injected verifier. This is the durable component only, not full S1.
+5. **P4 Mock route wiring** and **P5 live activation** are separate reviews and are **blocked**
+   until the §5 release-ordering and provider-start-ordering contracts are designed and reviewed;
+   P5 also needs G6 (allowlist, default-off flag, kill switch, runbook). Hosted enablement does not
+   bypass G6. Full S1 remains incomplete through P3.
 
 Privacy: purge jobs for expired/consumed flows, terminal receipts and `session_instance` rows are
 built but **have no default periods and refuse to run unconfigured**; no number is chosen here (I4
@@ -232,8 +270,9 @@ triggers; unlink/deletion/identifier-reuse and constraint release; whether to di
 linked elsewhere"; relationship of verified links to `User.orcid`/`orcidVerifiedAt`; D11.
 **Technical (proposed here, for review):** `FOR SHARE` fence and lock order; `READ COMMITTED` with
 `clock_timestamp()` deadline; composite-FK receipt binding; terminal receipt atomic with link;
-PG-only immutability trigger; DB clock as store authority; identity-durable scope with suppressed
-response; v2 cookie with fail-closed v1 for linking.
+PG-only immutability trigger; DB clock as store authority; durable-only scope with release and
+provider-start ordering explicitly left to a separate design (§5); v2 cookie with fail-closed v1
+for linking.
 
 ## 11. Proposed tests (real PostgreSQL, deterministic barriers, not implemented)
 
@@ -248,6 +287,15 @@ linked`; duplicate principal-per-tuple second subject ⇒ `conflict`.
 - Deadline expires during a lock wait and during finalization: terminal `rejected`, no link.
 - Finalizer-first (revoker blocks until commit; link stands) and revoker-first (finalizer sees
   `revoked_at`, no link); revocation after a preliminary unlocked read; principal delete during C.
+- Per-principal cardinality, different subject: a principal holds subject A for a tuple, a second
+  finalize for subject B (no row with B exists) fails the insert and classifies `conflict` via
+  lookup (b), with no other-subject data in the result or logs. Also the case where the winner
+  rolled back between insert and lookup ⇒ one retry, then `unavailable`.
+- Ambiguity with the original finalizer in flight after nominal expiry: hold the original tx open
+  past `expires_at` (barrier), run reconcile; assert via `pg_locks` that reconcile blocks on the
+  receipt lock, and that after the original commits the re-read is terminal `linked` (no false
+  "not linked"). Variant: original aborts ⇒ reconcile writes terminal `rejected` under lock and a
+  late original finalize writes nothing. Variant: lock timeout ⇒ `unavailable`.
 - Forced rollback after step 3 leaves neither link nor terminal receipt; connection loss after
   `COMMIT` reconciles to `linked` or `unavailable`, never "not linked"; reconcile paths of §4.
 - No account merge, no `User.orcid` write, no cross-principal data in any result or log.
@@ -259,7 +307,8 @@ linked`; duplicate principal-per-tuple second subject ⇒ `conflict`.
 Do not begin P1 until: this design has independent review, §10 owner items are decided, and a
 provider preflight is current. Acceptance: all §11 tests pass on real PostgreSQL in CI; the foundation
 unit tests still pass unchanged; no route, OpenAPI, config or environment change; a reviewer
-confirms the lock order and the response-suppression scope. Storing any real private content still
+confirms the lock order and that §5's release and provider-start blockers remain recorded as open. Storing any real private content still
 needs D11 confirmation plus G2 and G3; G1 remains not passed until independently reviewed; hosted
-or live enablement needs G6. Nothing here claims verification, trustworthiness, or peer review of
+or live enablement needs G6. Full S1, any route result and live provider verification stay
+blocked until the §5 contracts exist and are reviewed. Retention and D11 positions are unchanged. Nothing here claims verification, trustworthiness, or peer review of
 any identity.
