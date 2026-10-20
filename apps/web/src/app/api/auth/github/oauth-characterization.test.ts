@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type * as GitHubIdentityModule from "@/lib/github-identity";
 
 const mocks = vi.hoisted(() => ({
   env: {} as Record<string, unknown>,
@@ -17,7 +18,7 @@ vi.mock("@/lib/auth", () => ({ createSession: mocks.createSession }));
 vi.mock("@/lib/db", () => ({ prisma: {} }));
 vi.mock("@/lib/audit", () => ({ audit: mocks.audit }));
 vi.mock("@/lib/github-identity", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@/lib/github-identity")>();
+  const actual = await importOriginal<typeof GitHubIdentityModule>();
   return { ...actual, resolveGitHubIdentityWithRaceRecovery: mocks.resolve };
 });
 vi.mock("@/lib/admin-bootstrap", () => ({ bootstrapAdminForGithubIdentity: mocks.bootstrap }));

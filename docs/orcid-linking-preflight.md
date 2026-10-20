@@ -1,217 +1,73 @@
-# ORCID Linking Preflight Research
+# ORCID account-linking preflight — #203
 
-**Date:** 2026-10-20 UTC
-**Scope:** Verified ORCID identity linking via OAuth 3-legged flow (R1 requirement, issue #203)
-**Status:** Technical feasibility confirmed; policy decisions and legal checkpoint required before live activation
+**Observed:** 2026-10-20 UTC. **Status:** research and synthetic foundations only; no live linking, credentials, persistence adapter or provider activation.
 
----
+Verified identifier control is not authorship, scholarly verification, CRediT, membership, authorization or permission to disclose a collaboration. Existing GitHub login and the manually entered, unverified ORCID field remain unchanged.
 
-## Official OAuth Endpoints
+## Sources actually checked
 
-**Sandbox and production are distinct identity systems** (separate issuers per OpenID discovery):
+| Reference | Official source                                                                                                                                                                                                                          | Evidence and limit                                                                                                                                                                                             |
+| --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| S1        | [ORCID API README](https://github.com/ORCID/ORCID-Source/blob/main/orcid-api-web/README.md) ([raw](https://raw.githubusercontent.com/ORCID/ORCID-Source/main/orcid-api-web/README.md))                                                   | Retrieved successfully. Documents sandbox authorization-code flow, form token exchange and an example token response. Examples are not guarantees of every field, format or lifetime.                          |
+| S2        | [ORCID OpenID Connect guide](https://github.com/ORCID/ORCID-Source/blob/main/orcid-web/ORCID_AUTH_WITH_OPENID_CONNECT.md) ([raw](https://raw.githubusercontent.com/ORCID/ORCID-Source/main/orcid-web/ORCID_AUTH_WITH_OPENID_CONNECT.md)) | Retrieved successfully. Documents authorization-only scopes, signed ID tokens, nonce, discovery, JWKS and userinfo. Some examples describe historical flows; they are not an endorsement for this integration. |
+| S3        | [Production discovery](https://orcid.org/.well-known/openid-configuration)                                                                                                                                                               | Retrieved successfully. Advertises issuer, authorization/token/userinfo/JWKS endpoints and `client_secret_post`.                                                                                               |
+| S4        | [Sandbox discovery](https://sandbox.orcid.org/.well-known/openid-configuration)                                                                                                                                                          | Retrieved successfully. Advertises the corresponding sandbox issuer/endpoints and `client_secret_post`.                                                                                                        |
 
-| Environment    | Authorization                               | Token Exchange                          | Public API                                |
-| -------------- | ------------------------------------------- | --------------------------------------- | ----------------------------------------- |
-| **Sandbox**    | `https://sandbox.orcid.org/oauth/authorize` | `https://sandbox.orcid.org/oauth/token` | `https://pub.sandbox.orcid.org/[version]` |
-| **Production** | `https://orcid.org/oauth/authorize`         | `https://orcid.org/oauth/token`         | `https://pub.orcid.org/[version]`         |
+Parent attempts to retrieve the [integration guide](https://info.orcid.org/documentation/integration-guide/getting-started-with-your-orcid-integration/), [authenticated-iD tutorial](https://info.orcid.org/documentation/api-tutorials/api-tutorial-get-and-authenticated-orcid-id/) and redirect FAQ returned HTTP 403. Their current text is not relied on here. Source-branch URLs and discovery metadata can change; recheck them before implementing a live adapter and pin the reviewed source revision in that change's evidence.
 
-Confirmed 2026-10-20 via OpenID discovery endpoints; credentials and identities must remain environment-separated.
+## Documented provider behavior
 
----
+### Endpoints and environment separation
 
-## OAuth 3-Legged Authorization Flow
+S3 and S4 advertise:
 
-**Authorization request:**
+| Environment | Issuer                      | Authorization endpoint                      | Token endpoint                          |
+| ----------- | --------------------------- | ------------------------------------------- | --------------------------------------- |
+| Production  | `https://orcid.org`         | `https://orcid.org/oauth/authorize`         | `https://orcid.org/oauth/token`         |
+| Sandbox     | `https://sandbox.orcid.org` | `https://sandbox.orcid.org/oauth/authorize` | `https://sandbox.orcid.org/oauth/token` |
 
-```
-GET https://[sandbox.]orcid.org/oauth/authorize?
-  client_id=[registered client ID]
-  &response_type=code
-  &scope=[/authenticate or /read-limited or other]
-  &redirect_uri=[registered callback URL]
-  &state=[random session-binding value - required]
-```
+Both advertise `/oauth/userinfo` and `/oauth/jwks` under their respective issuer. Distinct issuers are directly observed; an HTTP success alone does not prove account or credential isolation. ORAtlas must keep issuer/environment namespaces and credentials separate and reject cross-environment assertions.
 
-**Token exchange (server-to-server POST):**
+### Authorization code and authenticated response
 
-```
-POST https://[sandbox.]orcid.org/oauth/token
-  client_id=[client ID]
-  client_secret=[confidential, never client-side]
-  grant_type=authorization_code
-  code=[authorization code from redirect]
-  redirect_uri=[must match authorization request]
-```
+S1 shows `client_id`, `response_type=code`, `scope` and `redirect_uri` on authorization, followed by a server-side, form-encoded token POST with `client_id`, `client_secret`, `grant_type=authorization_code`, `code` and `redirect_uri`. Authorization codes are opaque; do not impose a length from a sample.
 
-**Key facts:**
+S1's example token response contains `orcid` (a plain iD), `name`, `token_type`, `scope`, `expires_in`, `access_token` and `refresh_token`. Do not require every example field or assume its sample token lifetime applies universally. No token values are reproduced here.
 
-- Authorization codes are opaque (format unspecified in ORCID docs; example in readme.txt is 6 characters, not a format constraint)
-- Redirect URI validation: registered allowlist enforced; ORAtlas must register exact callback URL with ORCID
-- State parameter: OAuth 2.0 standard, required for session binding and CSRF protection (not explicitly documented in ORCID examples but mandatory)
-- Client secret is confidential; token exchange must not expose it to the client
+A future adapter must derive the identifier from the authenticated provider exchange, not a callback query's claimed iD, a profile name, user-entered metadata or the roster adapter. Validate response shape, issuer/environment and ORCID format/checksum before returning a minimal identifier-control assertion. The plain OAuth response field is not itself a signed cryptographic proof.
 
----
+The current shared `orcidSchema` checks identifier shape; checksum validation also exists in the source-credit contract. A future adapter must deliberately select/reuse appropriate validation rather than assuming every existing schema performs both checks. No shared schema changes are made in this batch.
 
-## Token Response and Identity Fields
+### Identifier-only scopes and optional OIDC
 
-**Example response body** (from official readme.txt):
+S2 describes `/authenticate` and `openid` as equivalent authorization-only scopes and says to use one rather than both. `openid` adds an ID token and access to userinfo. Broader read/update scopes are not needed merely to establish identifier control. Do not equate `/authenticate` with permission to read protected records or write profiles.
 
-```json
-{
-  "access_token": "[bearer token]",
-  "token_type": "bearer",
-  "refresh_token": "[reusable token]",
-  "expires_in": 631138518,
-  "scope": "/activities/update /read-limited",
-  "name": "[user-supplied name from ORCID profile]",
-  "orcid": "[ORCID iD, e.g. 0000-0001-2345-6789]"
-}
-```
+S2 documents ID-token claims including subject, audience, issuer, issue/expiry/authentication times and a nonce when requested, plus profile/authentication-method examples. A future OIDC choice requires a complete signature, issuer, audience, algorithm, lifetime and nonce validation design against the correct issuer's JWKS; merely decoding a JWT is insufficient. OIDC is not implemented or selected by this preflight, and ORAtlas's existing HMAC session must not be replaced implicitly.
 
-**Semantic distinction:**
+### PKCE and redirects: unresolved provider checks
 
-- `orcid` field: proof of identifier control (user authenticated with ORCID, not a fallback manual claim)
-- `name`: user-supplied profile data (informational, not authoritative for authorship)
-- `access_token`: expires ~20 years or upon user revocation
-- `refresh_token`: permits new token requests without re-authorization
-- **Invariant:** Verified ORCID link proves identifier control only; does not imply authorship, membership, or consent per CLAUDE.md
+Neither fetched guide establishes PKCE behavior, and S3/S4 do not advertise `code_challenge_methods_supported`. **Missing metadata is not evidence of support, non-support or optionality.** Obtain current official confirmation and controlled sandbox evidence before choosing a live flow. If provider limitations conflict with the required security design, stop for review; do not silently waive controls.
 
----
+The precise current redirect registration and matching rules were not verified from accessible official registration documentation. ORAtlas's proposed security requirement is a fixed, explicitly allowlisted callback registered for the matching environment, with no caller-selected redirect destination. This is an ORAtlas requirement, not a verified statement of the provider's exact-match or host-prefix behavior.
 
-## OpenID Connect (openid scope)
+Session-bound state, expiry, single-use consumption, current-session checks and confidential handling of client secrets remain ORAtlas requirements even where provider examples omit them. Token revocation endpoints and semantics remain **unverified**; do not assume a standard endpoint or contract.
 
-**Availability:** ORCID supports `openid` scope (no leading `/`) per ORCID_AUTH_WITH_OPENID_CONNECT.md and discovery endpoints.
+## Owner decisions — all remain open
 
-**ID token (JWT):** When `openid` scope is included, token response includes `id_token` field (signed, base64-encoded JWT).
+1. **Manual versus verified identity:** coexistence, precedence, conflicting iDs and per-user cardinality. Neither a manual claim nor a verified link grants project access. No automatic overwrite, account merge or reassignment.
+2. **Unlink/recovery/invalidation:** authorization and reauthentication requirements, revocation signals, audit, relinking, session/authorization epoch changes and a finalization fence. Current sessions lack a session-instance binding and revocation registry. ADR-required invalidation cannot simply be deferred while enabling live unlink.
+3. **Retention and privacy:** whether/how link history and audit are retained, erased or exported; visibility and consent. No retention duration, public-by-default metadata, controller designation or immutable-deletion policy is adopted here.
+4. **Public wording and report snapshots:** describe identifier control, not a "verified researcher" or scholarly authorship. Decide how a verified link relates to `User.orcid`, `orcidVerifiedAt` and future `reviewerOrcidVerified` snapshots. Do not rewrite historical public reports.
+5. **Provider and activation choice:** `/authenticate` versus fully validated OIDC, confirmed PKCE/redirect behavior, application registration, environment, privacy notice and separately authorized activation. Identifier-only linking may not need retained access/refresh tokens; decide deliberately rather than creating token storage by default.
 
-**ID token claims** (documented in oidc.txt and discovery):
+See [ADR-0001 §§12–14](private-workspace-security-architecture.md) and the [R0 review](private-workspace-r0-review.md). D1–D11 were recorded, but D11 remains provisional and §14 remains proposed pending owner ratification. Closure of #202 or merges #216/#217 do not ratify those proposals. Counsel/DPIA confirmation of D11 is required before real private workspace data; legal/privacy requirements for live identity linking itself require an explicit owner-reviewed decision, not an invented legal conclusion in this document.
 
-- `sub`: ORCID iD
-- `aud`: client ID
-- `iss`: issuer (`https://orcid.org` or `https://sandbox.orcid.org`)
-- `iat`, `exp`: issued/expiry timestamps
-- `auth_time`: user authentication time
-- `nonce`: echoes nonce parameter from authorization request (if provided)
-- `family_name`, `given_name`: user profile data
-- `amr` (Member API only): authentication method (`"pwd"` or `"mfa"`)
+## Dependency-ready next slice
 
-**Userinfo endpoint:** Protected by `openid` scope; returns claims like `{"sub":"...", "name":"...", "family_name":"...", "given_name":"..."}`
+- **Now delivered:** synthetic characterization and unconnected injected-dependency foundations; see [identity-link foundations](identity-link-foundations.md). They neither exchange real codes nor establish real database/session guarantees.
+- **Before persistence design:** resolve identity/cardinality/retention/public-wording decisions and confirm provider choices. Keep private-workspace gates independent.
+- **Persistence/session adapter:** propose additive schema/migration separately; prove atomic flow consumption, unique identity ownership, receipt finalization and current-principal/revocation fences with real database contention and rollback tests. Resolve session-instance binding without reusing raw cookies.
+- **Mock route integration:** separately authorize route/config/OpenAPI changes; test CSRF, cross-user callbacks, expiry, replay, provider failures, token non-disclosure and unlink/recovery without real accounts or secrets.
+- **Live activation:** requires separate authorization, verified provider configuration, security review, privacy/legal decisions and a disabled-by-default rollout/rollback plan. No credentials, live routes or activation are part of this batch.
 
-**Validation:** Use ORCID's public key (JWKS endpoint) to verify signature, validate issuer and audience, check expiry and nonce per OpenID Core spec.
-
----
-
-## Identifier-Only Scopes
-
-**For minimal identity verification (no profile write access):**
-
-- `/authenticate` scope: grants ORCID iD and public record read; sufficient for identity linking without broader permissions
-- Other scopes (`/read-limited`, `/activities/update`) add access not required for identifier verification
-
----
-
-## PKCE (Proof Key for Code Exchange)
-
-**Status:** Not mentioned in fetched ORCID documentation. `code_challenge_methods_supported` is absent from OpenID discovery endpoints.
-
-**Unresolved:** PKCE support is not documented in official materials. Missing field is NOT evidence of unsupport (RFC 7636 defines it as optional). **Before live adapter:** obtain official ORCID confirmation and test PKCE support; do not silently waive state or code verifier requirements.
-
----
-
-## Owner Decisions (Explicitly UNDECIDED)
-
-### 1. Manual vs. Verified Linking Precedence
-
-**Scenario:** Researcher has unverified local ORCID claim and later OAuth-links the same ORCID iD.
-
-**Unresolved:**
-
-- Display both with source/method distinctions, or subsume one?
-- Does verified link grant privileged behavior (e.g., auto-resolve contributed publications)?
-- Impacts publication attribution UI, filtering, citation display
-
-**Status:** Manual claims are source assertions; verified links are authorization proofs. Both must be visible with method/date metadata.
-
-### 2. Unlink, Revocation, Recovery
-
-**Unresolved:**
-
-- Can researcher unlink on ORAtlas side? Permanent deletion vs. recovery?
-- If token revoked by ORCID, can researcher re-link without re-OAuth?
-- Post-unlink: revert to unverified claim, or orphan attributions?
-- Audit trail for unlink operations
-
-**Status:** Decision required before implementation.
-
-### 3. Retention, Privacy, Public Display
-
-**Unresolved:**
-
-- How long retain linking records (verified_at, issuer, revocation_date)?
-- Public metadata visibility on researcher profile?
-- GDPR data subject access (export) and takedown (deletion) handling
-
-**Status:** Decision required; note that metadata is authorial provenance, not session secret.
-
----
-
-## DPIA and Legal Checkpoint
-
-**Data protection concern:** Live ORCID linking involves storing ORCID iD, tokens, and local subject association (personal data, GDPR-scoped processing).
-
-**Blockers before live activation:**
-
-- Legal counsel: DPIA necessity and scope confirmation
-- Privacy audit: token storage, refresh, revocation workflows
-- Reconcile ORCID privacy policy with ORAtlas terms (separate identity systems; revocation/export/deletion contracts)
-
-**Status:** Sandbox testing and mock fixtures only until legal/privacy review completes.
-
----
-
-## Implementation Roadmap (Not Committed)
-
-**Slice 1 (Proposed):** Persistence layer (sandbox mode, mock tokens)
-
-- Unresolved: schema design deferred until decisions #1–3 and DPIA resolve
-
-**Slice 2:** OAuth flow (unconnected mock endpoints)
-
-- Verify redirect registration, state binding, code exchange
-
-**Slice 3:** Researcher profile display
-
-- Distinguish verified link from unverified claim; show verification metadata
-
-**Slice 4:** Public attribution (post-issue #207 consent decision)
-
-- Verified link visibility gated by explicit publication consent
-
----
-
-## Verified Facts and Sources
-
-**Fetched 2026-10-20:**
-
-- `https://raw.githubusercontent.com/ORCID/ORCID-Source/main/orcid-api-web/README.md` — endpoints, token format, OpenID mention
-- `https://raw.githubusercontent.com/ORCID/ORCID-Source/main/orcid-web/ORCID_AUTH_WITH_OPENID_CONNECT.md` — id_token examples, userinfo, discovery
-- `https://orcid.org/.well-known/openid-configuration` and sandbox equivalent — issuer, endpoints, scopes_supported, auth methods
-- HTTP probes to authorization endpoints — confirmed active
-
-**Limitations:**
-
-- PKCE support unverified; official test or docs required
-- Redirect URI registration rules (host-prefix matching, exact match requirement) not confirmed in fetched docs; ORAtlas must require exact registered callback per security baseline
-- Token revocation endpoint and implementation not documented; assume standard OAuth 2.0 revocation contract
-
----
-
-## Next Steps
-
-1. **Owner decisions #1–3:** Documented in issue #203 for maintainer ratification
-2. **DPIA and legal counsel:** Privacy checkpoint before live activation
-3. **Provider confirmation:** Official ORCID test of state binding, PKCE support, redirect validation
-4. **Persistence adapter:** Schema design once policy decisions resolve
-5. **Mock activation:** Separately authorized feature flag; sandbox-only until step 4 completes
-
-**Status:** Technical preflight complete; awaiting policy and legal clearance.
+Private storage, invitations, membership, connectors, cross-project discovery and public credit release remain outside #203 foundations. The #198/#199 public evidence MVP is a separate workstream.
