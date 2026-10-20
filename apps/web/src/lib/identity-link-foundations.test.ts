@@ -9,6 +9,7 @@ import {
   type IdentityLinkConfig,
   type IdentityLinkDependencies,
   type IdentityLinkStore,
+  type IdentityNamespaceTuple,
   type PendingIdentityLinkFlow,
   type ResolvedSession,
 } from "./identity-link-foundations";
@@ -24,13 +25,40 @@ const NAMESPACE = {
   issuer: "https://issuer.invalid/a",
   environment: "fixture",
 };
-const CONFIG: IdentityLinkConfig = { namespaces: [NAMESPACE], flowTtlMs: TTL };
-const VERIFIED = {
-  status: "verified" as const,
+const TUPLE: IdentityNamespaceTuple = {
   provider: NAMESPACE.provider,
   issuer: NAMESPACE.issuer,
   environment: NAMESPACE.environment,
 };
+const CONFIG: IdentityLinkConfig = { namespaces: [NAMESPACE], flowTtlMs: TTL };
+const VERIFIED = { status: "verified" as const, ...TUPLE };
+
+/** Collision-safe ownership key: the external tuple plus subject, never a local namespace key. */
+function ownerKey(namespace: IdentityNamespaceTuple, subject: string): string {
+  return JSON.stringify([namespace.provider, namespace.issuer, namespace.environment, subject]);
+}
+
+function tupleKey(namespace: IdentityNamespaceTuple): string {
+  return JSON.stringify([namespace.provider, namespace.issuer, namespace.environment]);
+}
+
+function frozenTuple(namespace: IdentityNamespaceTuple): IdentityNamespaceTuple {
+  return Object.freeze({
+    provider: namespace.provider,
+    issuer: namespace.issuer,
+    environment: namespace.environment,
+  });
+}
+
+/** Stored copies are frozen, nested tuple included, so callers cannot retarget them later. */
+function snapshotFlow(flow: PendingIdentityLinkFlow): PendingIdentityLinkFlow {
+  return Object.freeze({ ...flow, namespace: frozenTuple(flow.namespace) });
+}
+
+/** Returned copies are fresh and mutable, isolated from the store's own state. */
+function copyFlow(flow: PendingIdentityLinkFlow): PendingIdentityLinkFlow {
+  return { ...flow, namespace: { ...flow.namespace } };
+}
 
 function deferred(): { promise: Promise<void>; release: () => void } {
   let release!: () => void;
@@ -45,18 +73,22 @@ async function settle(): Promise<void> {
 
 interface LinkRecord {
   principalId: string;
+  namespaceKey: string;
   linkedAtMs: number;
   receipt: string;
 }
 
 /**
  * In-memory store honouring the atomic contract. Each decision runs synchronously after its
- * optional barrier, reading the shared clock inside that critical section.
+ * optional barrier, reading the shared clock inside that critical section. Flows and receipts
+ * are bound to key and tuple; ownership and cardinality are scoped by tuple only.
  */
 function createFakeStore(clock: { now: number }) {
   const flows = new Map<string, PendingIdentityLinkFlow>();
   const receipts = new Map<string, { flow: PendingIdentityLinkFlow; finalized: boolean }>();
   const links = new Map<string, LinkRecord>();
+  /** Explicit per-tuple cardinality: principals already holding a subject in each tuple. */
+  const tupleHolders = new Map<string, Set<string>>();
   const principals = new Set<string>(["principal-alice", "principal-bob"]);
   let receiptCounter = 0;
   const hooks: {
@@ -64,12 +96,10 @@ function createFakeStore(clock: { now: number }) {
     beforeFinalize?: () => Promise<void>;
     finalizeFault?: "before-commit" | "after-commit";
   } = {};
-  const linkKey = (namespaceKey: string, subject: string) => `${namespaceKey}\u0000${subject}`;
-
   const store: IdentityLinkStore = {
     async insertFresh(flow) {
       if (flows.has(flow.stateDigest)) return { status: "collision" };
-      flows.set(flow.stateDigest, { ...flow });
+      flows.set(flow.stateDigest, snapshotFlow(flow));
       return { status: "inserted" };
     },
     async consumeIfMatches(expected: ConsumeExpectation) {
@@ -78,10 +108,11 @@ function createFakeStore(clock: { now: number }) {
       if (
         !flow ||
         flow.namespaceKey !== expected.namespaceKey ||
+        tupleKey(flow.namespace) !== tupleKey(expected.namespace) ||
         flow.principalId !== expected.principalId ||
         flow.sessionBinding !== expected.sessionBinding
       ) {
-        return { status: "rejected" };
+        return { status: "rejected" }; // checked before deletion: the flow stays usable
       }
       flows.delete(expected.stateDigest); // consumed or expired: never restored
       if (clock.now >= flow.expiresAtMs || clock.now >= expected.sessionValidUntilMs) {
@@ -90,7 +121,7 @@ function createFakeStore(clock: { now: number }) {
       receiptCounter += 1;
       const receipt = `receipt-${String(receiptCounter).padStart(10, "0")}`;
       receipts.set(receipt, { flow, finalized: false });
-      return { status: "consumed", flow: { ...flow }, receipt };
+      return { status: "consumed", flow: copyFlow(flow), receipt };
     },
     async finalize(request: FinalizeLinkRequest) {
       await hooks.beforeFinalize?.();
@@ -102,29 +133,28 @@ function createFakeStore(clock: { now: number }) {
         if (
           flow.principalId !== request.principalId ||
           flow.sessionBinding !== request.sessionBinding ||
-          flow.namespaceKey !== request.assertion.namespaceKey
+          flow.namespaceKey !== request.assertion.namespaceKey ||
+          tupleKey(flow.namespace) !== tupleKey(request.assertion.namespace)
         ) {
           return "rejected";
         }
         entry.finalized = true;
         if (clock.now >= request.deadlineMs || clock.now >= flow.expiresAtMs) return "rejected";
         if (!principals.has(request.principalId)) return "rejected";
-        const key = linkKey(request.assertion.namespaceKey, request.assertion.subject);
+        // Ownership and cardinality use the receipt's original tuple, never the alias key.
+        const key = ownerKey(flow.namespace, request.assertion.subject);
         const owner = links.get(key);
         if (owner) return owner.principalId === request.principalId ? "already-linked" : "conflict";
-        for (const [otherKey, record] of links) {
-          if (
-            record.principalId === request.principalId &&
-            otherKey.startsWith(`${request.assertion.namespaceKey}\u0000`)
-          ) {
-            return "other-subject-linked";
-          }
-        }
+        const scope = tupleKey(flow.namespace);
+        const held = tupleHolders.get(scope);
+        if (held?.has(request.principalId)) return "other-subject-linked";
         links.set(key, {
           principalId: request.principalId,
+          namespaceKey: flow.namespaceKey,
           linkedAtMs: clock.now,
           receipt: request.receipt,
         });
+        tupleHolders.set(scope, new Set([...(held ?? []), request.principalId]));
         return "linked";
       };
       const status = decide();
@@ -178,9 +208,10 @@ function harness(
   ]);
   const verifierCalls: IdentityControlVerifierInput[] = [];
   const verifier: { impl: VerifierImpl } = {
+    // Echoes the requested tuple, so separate factories over one store can be exercised.
     impl: async (input) => {
       const subject = subjects.get(input.code);
-      return subject ? { ...VERIFIED, subject } : { status: "rejected" };
+      return subject ? { status: "verified", ...input.namespace, subject } : { status: "rejected" };
     },
   };
   const sessionCalls: unknown[] = [];
@@ -201,12 +232,12 @@ function harness(
     },
     store: fake.store,
   };
-  const flow = createIdentityLinkFlow(
-    "config" in options ? options.config : CONFIG,
-    options.deps ? options.deps(base, clock) : base,
-  );
+  const deps = options.deps ? options.deps(base, clock) : base;
+  const flow = createIdentityLinkFlow("config" in options ? options.config : CONFIG, deps);
   return {
     flow,
+    /** Another orchestrator instance over the same store, clock, sessions and verifier. */
+    factory: (config: unknown) => createIdentityLinkFlow(config, deps),
     clock,
     sessions,
     fake,
@@ -245,6 +276,7 @@ describe("identity link begin", () => {
     expect(stored).toEqual([
       {
         namespaceKey: NAMESPACE.key,
+        namespace: TUPLE,
         principalId: "principal-alice",
         sessionBinding: "binding-alice-0001",
         stateDigest: sha256((result as { state: string }).state),
@@ -446,8 +478,13 @@ describe("identity link complete", () => {
     ]);
     expect([...h.fake.links]).toEqual([
       [
-        `${NAMESPACE.key}\u0000synthetic-subject-1`,
-        { principalId: "principal-alice", linkedAtMs: T0, receipt: "receipt-0000000001" },
+        ownerKey(TUPLE, "synthetic-subject-1"),
+        {
+          principalId: "principal-alice",
+          namespaceKey: NAMESPACE.key,
+          linkedAtMs: T0,
+          receipt: "receipt-0000000001",
+        },
       ],
     ]);
     const persisted = JSON.stringify({
@@ -883,9 +920,241 @@ describe("identity link complete", () => {
   });
 });
 
+describe("namespace tuple binding over a shared store", () => {
+  const ALIAS_KEY = "synthetic-alias";
+  const configOf = (...namespaces: unknown[]) => ({ namespaces, flowTtlMs: TTL });
+  const aliasCallback = (state: string, code = "code-alice", authContext = "ctx-alice") => ({
+    ...callback(state, code, authContext),
+    namespace: ALIAS_KEY,
+  });
+  async function startedVia(
+    flow: ReturnType<typeof createIdentityLinkFlow>,
+    namespace: string,
+    authContext = "ctx-alice",
+  ): Promise<string> {
+    const result = await flow.begin({ namespace, authContext });
+    if (result.status !== "started") throw new Error(`begin failed: ${result.status}`);
+    return result.state;
+  }
+
+  it.each([
+    ["provider", { provider: "synthetic-provider-2" }],
+    ["issuer", { issuer: "https://issuer.invalid/b" }],
+    ["environment", { environment: "fixture-b" }],
+  ])(
+    "denies a flow completed through another factory whose same key has a different %s",
+    async (_label, change) => {
+      const h = harness();
+      const other = h.factory(configOf({ ...NAMESPACE, ...change }));
+      const state = await started(h);
+      const before = [...h.fake.flows.values()];
+      expect(await other.complete(callback(state))).toEqual({ status: "denied" });
+      expect(h.verifierCalls).toEqual([]);
+      expect(h.fake.receipts.size).toBe(0);
+      expect(h.fake.links.size).toBe(0);
+      expect([...h.fake.flows.values()]).toEqual(before);
+      // The original flow is untouched and still completes through its own factory.
+      expect(await h.flow.complete(callback(state))).toEqual({ status: "linked" });
+      expect([...h.fake.links.keys()]).toEqual([ownerKey(TUPLE, "synthetic-subject-1")]);
+    },
+  );
+
+  it("links one of two users racing through different keys for the same tuple and subject", async () => {
+    const h = harness();
+    const alias = h.factory(configOf({ ...NAMESPACE, key: ALIAS_KEY }));
+    const aliceState = await started(h, "ctx-alice");
+    const bobState = await startedVia(alias, ALIAS_KEY, "ctx-bob");
+    const gate = deferred();
+    let queued = 0;
+    h.fake.hooks.beforeFinalize = async () => {
+      queued += 1;
+      await gate.promise;
+    };
+    const alice = h.flow.complete(callback(aliceState, "code-alice", "ctx-alice"));
+    const bob = alias.complete(aliasCallback(bobState, "code-bob", "ctx-bob"));
+    await settle();
+    expect(queued).toBe(2);
+    gate.release();
+    const results = await Promise.all([alice, bob]);
+    expect(results.map((r) => r.status).sort()).toEqual(["conflict", "linked"]);
+    expect([...h.fake.links.keys()]).toEqual([ownerKey(TUPLE, "synthetic-subject-1")]);
+  });
+
+  it("needs a separate proof per alias key but shares ownership across aliases", async () => {
+    const h = harness();
+    const alias = h.factory(configOf({ ...NAMESPACE, key: ALIAS_KEY }));
+    const state = await started(h);
+    // A flow bound to one key cannot be completed through an alias key for the same tuple.
+    expect(await alias.complete(aliasCallback(state))).toEqual({ status: "denied" });
+    expect(h.verifierCalls).toEqual([]);
+    expect(await h.flow.complete(callback(state))).toEqual({ status: "linked" });
+    const record = { ...h.fake.links.values().next().value! };
+    h.clock.now = T0 + 5;
+    expect(await alias.complete(aliasCallback(await startedVia(alias, ALIAS_KEY)))).toEqual({
+      status: "already-linked",
+    });
+    expect([...h.fake.links.values()]).toEqual([record]);
+    // Provisional per-tuple cardinality applies across aliases too.
+    const otherState = await startedVia(alias, ALIAS_KEY);
+    expect(await alias.complete(aliasCallback(otherState, "code-other"))).toEqual({
+      status: "conflict",
+    });
+    expect(h.fake.links.size).toBe(1);
+    expect(h.verifierCalls).toHaveLength(3);
+  });
+
+  it("keeps the same subject in different tuples as independent, non-conflicting links", async () => {
+    const h = harness();
+    const otherNamespace = { ...NAMESPACE, issuer: "https://issuer.invalid/b" };
+    const other = h.factory(configOf(otherNamespace));
+    const otherTuple = {
+      provider: otherNamespace.provider,
+      issuer: otherNamespace.issuer,
+      environment: otherNamespace.environment,
+    };
+    expect(await h.flow.complete(callback(await started(h)))).toEqual({ status: "linked" });
+    const bobState = await startedVia(other, NAMESPACE.key, "ctx-bob");
+    expect(await other.complete(callback(bobState, "code-bob", "ctx-bob"))).toEqual({
+      status: "linked",
+    });
+    // Cardinality is per tuple: alice holds nothing in the other tuple yet.
+    const aliceState = await startedVia(other, NAMESPACE.key);
+    expect(await other.complete(callback(aliceState, "code-other"))).toEqual({
+      status: "linked",
+    });
+    expect(new Map([...h.fake.links].map(([key, record]) => [key, record.principalId]))).toEqual(
+      new Map([
+        [ownerKey(TUPLE, "synthetic-subject-1"), "principal-alice"],
+        [ownerKey(otherTuple, "synthetic-subject-1"), "principal-bob"],
+        [ownerKey(otherTuple, "synthetic-subject-2"), "principal-alice"],
+      ]),
+    );
+  });
+
+  it.each([
+    [
+      "missing",
+      (f: PendingIdentityLinkFlow) =>
+        Object.fromEntries(Object.entries(f).filter(([key]) => key !== "namespace")),
+    ],
+    [
+      "malformed",
+      (f: PendingIdentityLinkFlow) => ({ ...f, namespace: { ...f.namespace, issuer: "" } }),
+    ],
+    [
+      "carrying an extra field",
+      (f: PendingIdentityLinkFlow) => ({
+        ...f,
+        namespace: { ...f.namespace, key: NAMESPACE.key },
+      }),
+    ],
+    [
+      "a substituted provider",
+      (f: PendingIdentityLinkFlow) => ({
+        ...f,
+        namespace: { ...f.namespace, provider: "synthetic-provider-2" },
+      }),
+    ],
+    [
+      "a substituted issuer",
+      (f: PendingIdentityLinkFlow) => ({
+        ...f,
+        namespace: { ...f.namespace, issuer: "https://issuer.invalid/b" },
+      }),
+    ],
+    [
+      "a substituted environment",
+      (f: PendingIdentityLinkFlow) => ({
+        ...f,
+        namespace: { ...f.namespace, environment: "fixture-b" },
+      }),
+    ],
+  ])("fails closed before the verifier when the consumed tuple is %s", async (_label, alter) => {
+    const h = harness({
+      deps: (base) => ({
+        ...base,
+        store: {
+          ...base.store,
+          consumeIfMatches: async (e: ConsumeExpectation) => {
+            const r = await base.store.consumeIfMatches(e);
+            return r.status === "consumed" ? { ...r, flow: alter(r.flow) } : r;
+          },
+        },
+      }),
+    });
+    const state = await started(h);
+    expect(await h.flow.complete(callback(state))).toEqual({ status: "unavailable" });
+    expect(h.verifierCalls).toEqual([]);
+    expect(h.fake.links.size).toBe(0);
+  });
+
+  it.each(["provider", "issuer", "environment"] as const)(
+    "rejects a finalization whose %s differs from the receipt's original tuple",
+    async (field) => {
+      const h = harness({
+        deps: (base) => ({
+          ...base,
+          store: {
+            ...base.store,
+            finalize: async (r: FinalizeLinkRequest) =>
+              base.store.finalize({
+                ...r,
+                assertion: {
+                  ...r.assertion,
+                  namespace: { ...r.assertion.namespace, [field]: "synthetic-altered" },
+                },
+              }),
+          },
+        }),
+      });
+      const state = await started(h);
+      expect(await h.flow.complete(callback(state))).toEqual({ status: "denied" });
+      expect(h.fake.links.size).toBe(0);
+    },
+  );
+
+  it("hands the store and verifier one deeply frozen bound tuple", async () => {
+    const seen: IdentityNamespaceTuple[] = [];
+    const h = harness({
+      deps: (base) => ({
+        ...base,
+        verify: async (input: IdentityControlVerifierInput) => {
+          seen.push(input.namespace);
+          return base.verify(input);
+        },
+        store: {
+          insertFresh: async (f: PendingIdentityLinkFlow) => {
+            seen.push(f.namespace);
+            return base.store.insertFresh(f);
+          },
+          consumeIfMatches: async (e: ConsumeExpectation) => {
+            seen.push(e.namespace);
+            return base.store.consumeIfMatches(e);
+          },
+          finalize: async (r: FinalizeLinkRequest) => {
+            seen.push(r.assertion.namespace);
+            return base.store.finalize(r);
+          },
+        },
+      }),
+    });
+    expect(await h.flow.complete(callback(await started(h)))).toEqual({ status: "linked" });
+    expect(seen).toHaveLength(4);
+    for (const tuple of seen) {
+      expect(tuple).toBe(seen[0]);
+      expect(tuple).toEqual(TUPLE);
+      expect(Object.isFrozen(tuple)).toBe(true);
+    }
+    expect(() => {
+      (seen[0] as { issuer: string }).issuer = "https://issuer.invalid/b";
+    }).toThrow(TypeError);
+  });
+});
+
 describe("fake store contract", () => {
   const flow = (overrides: Partial<PendingIdentityLinkFlow> = {}): PendingIdentityLinkFlow => ({
     namespaceKey: NAMESPACE.key,
+    namespace: TUPLE,
     principalId: "principal-alice",
     sessionBinding: "binding-alice-0001",
     stateDigest: sha256("synthetic-state"),
@@ -895,6 +1164,7 @@ describe("fake store contract", () => {
   });
   const expectation = (overrides: Partial<ConsumeExpectation> = {}): ConsumeExpectation => ({
     namespaceKey: NAMESPACE.key,
+    namespace: TUPLE,
     principalId: "principal-alice",
     sessionBinding: "binding-alice-0001",
     stateDigest: sha256("synthetic-state"),
@@ -908,7 +1178,7 @@ describe("fake store contract", () => {
     receipt,
     principalId: "principal-alice",
     sessionBinding: "binding-alice-0001",
-    assertion: { namespaceKey: NAMESPACE.key, subject },
+    assertion: { namespaceKey: NAMESPACE.key, namespace: TUPLE, subject },
     deadlineMs: T0 + TTL,
   });
 
@@ -995,5 +1265,52 @@ describe("fake store contract", () => {
       }),
     ).toEqual({ status: "conflict" });
     expect([...fake.links.values()].map((l) => l.principalId)).toEqual(["principal-alice"]);
+  });
+
+  it("rejects consumption with a different tuple and keeps the flow", async () => {
+    const fake = createFakeStore({ now: T0 });
+    await fake.store.insertFresh(flow());
+    expect(
+      await fake.store.consumeIfMatches(
+        expectation({ namespace: { ...TUPLE, environment: "fixture-b" } }),
+      ),
+    ).toEqual({ status: "rejected" });
+    expect(fake.flows.size).toBe(1);
+    expect((await fake.store.consumeIfMatches(expectation())).status).toBe("consumed");
+  });
+
+  it("isolates stored and returned tuples so nested mutation cannot retarget a receipt", async () => {
+    const fake = createFakeStore({ now: T0 });
+    const input = { ...flow(), namespace: { ...TUPLE } };
+    await fake.store.insertFresh(input);
+    input.namespace.issuer = "https://issuer.invalid/b";
+    const consumed = await fake.store.consumeIfMatches(expectation());
+    if (consumed.status !== "consumed") throw new Error("not consumed");
+    (consumed.flow.namespace as { issuer: string }).issuer = "https://issuer.invalid/b";
+    const stored = fake.receipts.get(consumed.receipt)!.flow;
+    expect(stored.namespace).toEqual(TUPLE);
+    expect(Object.isFrozen(stored.namespace)).toBe(true);
+    const altered = finalizeRequest(consumed.receipt);
+    expect(
+      await fake.store.finalize({
+        ...altered,
+        assertion: {
+          ...altered.assertion,
+          namespace: { ...TUPLE, issuer: "https://issuer.invalid/b" },
+        },
+      }),
+    ).toEqual({ status: "rejected" });
+    expect(fake.links.size).toBe(0);
+    expect(await fake.store.finalize(finalizeRequest(consumed.receipt))).toEqual({
+      status: "linked",
+    });
+    expect([...fake.links.keys()]).toEqual([ownerKey(TUPLE, "synthetic-subject-1")]);
+  });
+
+  it("keys ownership by tuple and subject without delimiter collisions", () => {
+    const a = ownerKey({ provider: "p", issuer: "i\u0000x", environment: "e" }, "s");
+    const b = ownerKey({ provider: "p", issuer: "i", environment: "x\u0000e" }, "s");
+    expect(a).not.toBe(b);
+    expect(ownerKey(TUPLE, "s")).not.toContain(NAMESPACE.key);
   });
 });

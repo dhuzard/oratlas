@@ -58,6 +58,9 @@ const namespaceSchema = z
     environment: EXACT_TOKEN,
   })
   .strict();
+const namespaceTupleSchema = z
+  .object({ provider: EXACT_TOKEN, issuer: EXACT_TOKEN, environment: EXACT_TOKEN })
+  .strict();
 
 const configSchema = z
   .object({
@@ -86,6 +89,7 @@ const sessionSchema = z
 const flowSchema = z
   .object({
     namespaceKey: NAMESPACE_KEY,
+    namespace: namespaceTupleSchema,
     principalId: OPAQUE_ID,
     sessionBinding: SESSION_BINDING,
     stateDigest: STATE_DIGEST,
@@ -121,12 +125,23 @@ const finalizeResultSchema = z
 // Injected contracts.
 // ---------------------------------------------------------------------------------------------
 
-export interface IdentityNamespace {
-  /** Local configuration key the caller names. Never sent to or trusted from the provider. */
-  readonly key: string;
+/**
+ * The external namespace an identifier lives in. This exact tuple, not any local key, is the
+ * identity and ownership scope: a subject is owned per `(provider, issuer, environment, subject)`.
+ */
+export interface IdentityNamespaceTuple {
   readonly provider: string;
   readonly issuer: string;
   readonly environment: string;
+}
+
+export interface IdentityNamespace extends IdentityNamespaceTuple {
+  /**
+   * Local configuration key the caller names. It routes a request to a configured tuple and is an
+   * additional flow binding only. It is never external identity or an ownership scope: two
+   * factories may use different keys for one tuple, or one key for different tuples.
+   */
+  readonly key: string;
 }
 
 export interface IdentityLinkConfig {
@@ -148,6 +163,8 @@ export interface ResolvedSession {
 
 export interface PendingIdentityLinkFlow {
   readonly namespaceKey: string;
+  /** The configured tuple bound at `begin`; immutable for the life of the flow and its receipt. */
+  readonly namespace: IdentityNamespaceTuple;
   readonly principalId: string;
   readonly sessionBinding: string;
   /** Digest of the state. The raw state, code and any provider token are never stored. */
@@ -158,6 +175,7 @@ export interface PendingIdentityLinkFlow {
 
 export interface ConsumeExpectation {
   readonly namespaceKey: string;
+  readonly namespace: IdentityNamespaceTuple;
   readonly principalId: string;
   readonly sessionBinding: string;
   readonly stateDigest: string;
@@ -168,7 +186,12 @@ export interface FinalizeLinkRequest {
   readonly receipt: string;
   readonly principalId: string;
   readonly sessionBinding: string;
-  readonly assertion: { readonly namespaceKey: string; readonly subject: string };
+  readonly assertion: {
+    readonly namespaceKey: string;
+    /** Must equal the tuple the receipt's flow was bound to; ownership is scoped by it. */
+    readonly namespace: IdentityNamespaceTuple;
+    readonly subject: string;
+  };
   /** Earliest of the flow and both session deadlines. The store compares it to its own clock. */
   readonly deadlineMs: number;
 }
@@ -186,9 +209,11 @@ export interface IdentityLinkStore {
   /** Insert only if no flow with this state digest exists. Never overwrite on collision. */
   insertFresh(flow: PendingIdentityLinkFlow): Promise<{ status: "inserted" | "collision" }>;
   /**
-   * Consume the flow exactly once, only if namespace, principal, session binding and digest all
-   * match and neither the flow nor the session has expired at the store's current time. A
-   * consumed flow is never restored. The receipt is an internal handle, never a public credential.
+   * Consume the flow exactly once, only if namespace key, namespace tuple, principal, session
+   * binding and digest all match exactly and neither the flow nor the session has expired at the
+   * store's current time. A mismatch leaves the flow untouched. A consumed flow is never restored.
+   * The receipt keeps an immutable copy of the flow's original tuple. The receipt is an internal
+   * handle, never a public credential.
    */
   consumeIfMatches(
     expected: ConsumeExpectation,
@@ -197,19 +222,17 @@ export interface IdentityLinkStore {
   >;
   /**
    * Compare-and-link in one atomic step: the receipt is valid, unfinalized and bound to this
-   * principal, session and namespace; the principal still exists; the store's current time is
-   * before `deadlineMs` and the flow expiry; and `(namespace, subject)` is owned by nobody else.
-   * Never creates, merges, reassigns, replaces or unlinks accounts or links, and writes no profile.
+   * principal, session, namespace key and the exact tuple in the assertion; the principal still
+   * exists; the store's current time is before `deadlineMs` and the flow expiry; and
+   * `(provider, issuer, environment, subject)` is owned by nobody else, whichever key it was
+   * linked through. Never creates, merges, reassigns, replaces or unlinks accounts or links, and
+   * writes no profile.
    */
   finalize(request: FinalizeLinkRequest): Promise<{ status: FinalizeLinkStatus }>;
 }
 
 export interface IdentityControlVerifierInput {
-  readonly namespace: {
-    readonly provider: string;
-    readonly issuer: string;
-    readonly environment: string;
-  };
+  readonly namespace: IdentityNamespaceTuple;
   readonly code: string;
 }
 
@@ -278,29 +301,37 @@ function parseInput<T>(schema: z.ZodType<T, z.ZodTypeDef, unknown>, value: unkno
   }
 }
 
-function sameNamespace(
-  namespace: IdentityNamespace,
-  claimed: { provider: string; issuer: string; environment: string },
-): boolean {
+function sameTuple(bound: IdentityNamespaceTuple, claimed: IdentityNamespaceTuple): boolean {
   return (
-    claimed.provider === namespace.provider &&
-    claimed.issuer === namespace.issuer &&
-    claimed.environment === namespace.environment
+    claimed.provider === bound.provider &&
+    claimed.issuer === bound.issuer &&
+    claimed.environment === bound.environment
   );
+}
+
+interface ConfiguredNamespace {
+  readonly key: string;
+  /** Frozen separately so the same immutable object is bound, verified and finalized. */
+  readonly tuple: IdentityNamespaceTuple;
 }
 
 function snapshotConfig(
   config: unknown,
-): { namespaces: ReadonlyMap<string, IdentityNamespace>; flowTtlMs: number } | null {
+): { namespaces: ReadonlyMap<string, ConfiguredNamespace>; flowTtlMs: number } | null {
   const parsed = parseInput(configSchema, config);
   if (!parsed) return null;
-  const byKey = new Map<string, IdentityNamespace>();
+  const byKey = new Map<string, ConfiguredNamespace>();
   const tuples = new Set<string>();
   for (const entry of parsed.namespaces) {
-    const tuple = JSON.stringify([entry.provider, entry.issuer, entry.environment]);
-    if (byKey.has(entry.key) || tuples.has(tuple)) return null;
-    tuples.add(tuple);
-    byKey.set(entry.key, Object.freeze({ ...entry }));
+    const tupleKey = JSON.stringify([entry.provider, entry.issuer, entry.environment]);
+    if (byKey.has(entry.key) || tuples.has(tupleKey)) return null;
+    tuples.add(tupleKey);
+    const tuple = Object.freeze({
+      provider: entry.provider,
+      issuer: entry.issuer,
+      environment: entry.environment,
+    });
+    byKey.set(entry.key, Object.freeze({ key: entry.key, tuple }));
   }
   return { namespaces: byKey, flowTtlMs: parsed.flowTtlMs };
 }
@@ -382,6 +413,7 @@ export function createIdentityLinkFlow(config: unknown, deps: unknown): Identity
       const state = encodeBase64Url(Uint8Array.from(bytes));
       const flow: PendingIdentityLinkFlow = Object.freeze({
         namespaceKey: namespace.key,
+        namespace: namespace.tuple,
         principalId: session.principalId,
         sessionBinding: session.sessionBinding,
         stateDigest: await digest(state),
@@ -410,6 +442,7 @@ export function createIdentityLinkFlow(config: unknown, deps: unknown): Identity
 
       const expected: ConsumeExpectation = Object.freeze({
         namespaceKey: namespace.key,
+        namespace: namespace.tuple,
         principalId: session.principalId,
         sessionBinding: session.sessionBinding,
         stateDigest: await digest(state),
@@ -420,6 +453,7 @@ export function createIdentityLinkFlow(config: unknown, deps: unknown): Identity
       const flow = consumed.flow;
       if (
         flow.namespaceKey !== expected.namespaceKey ||
+        !sameTuple(expected.namespace, flow.namespace) ||
         flow.principalId !== expected.principalId ||
         flow.sessionBinding !== expected.sessionBinding ||
         flow.stateDigest !== expected.stateDigest ||
@@ -433,22 +467,15 @@ export function createIdentityLinkFlow(config: unknown, deps: unknown): Identity
       if (consumedAtMs < flow.issuedAtMs) throw new DependencyContractError();
       if (consumedAtMs >= flow.expiresAtMs || consumedAtMs >= session.validUntilMs) return DENIED;
 
-      // At most one verifier call per state: only the single successful consume reaches here.
+      // At most one verifier call per state: only the single successful consume reaches here. The
+      // verifier, the result check and finalization all use the one frozen tuple bound at begin.
+      const bound = namespace.tuple;
       const verification = parseOrThrow(
         verifyResultSchema,
-        await d!.verify(
-          Object.freeze({
-            namespace: Object.freeze({
-              provider: namespace.provider,
-              issuer: namespace.issuer,
-              environment: namespace.environment,
-            }),
-            code,
-          }),
-        ),
+        await d!.verify(Object.freeze({ namespace: bound, code })),
       );
       if (verification.status === "rejected") return DENIED;
-      if (!sameNamespace(namespace, verification)) throw new DependencyContractError();
+      if (!sameTuple(bound, verification)) throw new DependencyContractError();
       const subject = verification.subject;
 
       if (now() >= Math.min(flow.expiresAtMs, session.validUntilMs)) return DENIED;
@@ -470,7 +497,7 @@ export function createIdentityLinkFlow(config: unknown, deps: unknown): Identity
             receipt,
             principalId: session.principalId,
             sessionBinding: session.sessionBinding,
-            assertion: Object.freeze({ namespaceKey: namespace.key, subject }),
+            assertion: Object.freeze({ namespaceKey: namespace.key, namespace: bound, subject }),
             deadlineMs,
           }),
         ),
