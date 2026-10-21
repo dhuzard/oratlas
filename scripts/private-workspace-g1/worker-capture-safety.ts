@@ -1,5 +1,5 @@
 import {
-  WORKER_CREDENTIAL_CASES,
+  KNOWN_WORKER_CREDENTIAL_CASES,
   workerAuthorityHeaders,
   workerAuthorityDigests,
   workerAuthorityProblems,
@@ -16,7 +16,7 @@ const knownCapabilities = [
   ...new Set(
     ["verifier", "certifier"]
       .flatMap((kind) =>
-        WORKER_CREDENTIAL_CASES.flatMap((credential) =>
+        KNOWN_WORKER_CREDENTIAL_CASES.flatMap((credential) =>
           workerAuthoritySecrets({
             kind: kind as WorkerAuthority["kind"],
             credential,

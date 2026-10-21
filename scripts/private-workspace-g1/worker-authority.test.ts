@@ -84,3 +84,18 @@ it("provides full capabilities and their secret components for body/log exclusio
     ["VerifierCredential", ["lastUsedAt"]],
   ]);
 });
+
+it("extends submit authority without changing the reviewed eight-case read matrix or disclosure coverage", async () => {
+  const { WORKER_CREDENTIAL_CASES, KNOWN_WORKER_CREDENTIAL_CASES } =
+    await import("./worker-authority.js");
+  const { workerOutputProblems } = await import("./worker-capture-safety.js");
+  expect(WORKER_CREDENTIAL_CASES).toHaveLength(8);
+  expect(KNOWN_WORKER_CREDENTIAL_CASES).toHaveLength(9);
+  const recipe = { kind: "verifier", credential: "wrong-owner-submit", lease: "active" } as const;
+  expect(workerAuthorityProblems(recipe)).toEqual([]);
+  expect(workerCredential("verifier", "wrong-owner-submit").tokenHash).not.toBe(
+    workerCredential("verifier", "wrong-owner").tokenHash,
+  );
+  for (const value of workerAuthoritySecrets(recipe))
+    expect(workerOutputProblems(value)).toEqual(["Worker capability disclosure refused"]);
+});
