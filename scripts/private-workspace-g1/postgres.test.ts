@@ -147,6 +147,9 @@ describe("G1 provisioning SQL", () => {
         (grant) =>
           `GRANT ${grant.privileges.join(", ")} ON TABLE public."${grant.table}" TO "oratlas_g1_public";`,
       ),
+      'GRANT UPDATE ("status", "resolvedById", "resolutionNote", "resolvedAt") ON TABLE public."ProtocolDriftProposal" TO "oratlas_g1_public";',
+      'GRANT UPDATE ("status", "resolvedById", "resolutionNote", "resolvedAt") ON TABLE public."ClaimUpdateProposal" TO "oratlas_g1_public";',
+      'GRANT UPDATE ("status", "resolutionNote", "resolvedById", "resolvedAt") ON TABLE public."FederationNotification" TO "oratlas_g1_public";',
       'GRANT UPDATE ("status", "completedAt") ON TABLE public."VerificationArtifact" TO "oratlas_g1_public";',
       'GRANT UPDATE ("status") ON TABLE public."CertificationProtocol" TO "oratlas_g1_public";',
       'GRANT UPDATE ("activatedAt", "retiredAt", "status") ON TABLE public."Certifier" TO "oratlas_g1_public";',

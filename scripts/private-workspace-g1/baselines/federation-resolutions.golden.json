@@ -1,0 +1,2764 @@
+{
+  "protocol": "oratlas.g1.supplemental/0.1",
+  "program": "federation-resolutions",
+  "http": {
+    "version": 2,
+    "review": "Independently reviewed native source 102347e: four exact captures, complete native state, Cookie bindings and transitions; review report 70b2ae0bda38988b86b7b249eeb608353b1218b6d7a9a12fc86dfe79ce4559aa. Synthetic conditional proof; mixed producer/resolution clocks retained.",
+    "baseUrl": "https://g1.oratlas.example",
+    "clock": "2026-04-01T00:00:00.000Z",
+    "records": [
+      {
+        "kind": "http",
+        "id": "federation-resolve-pending-anonymous",
+        "method": "POST",
+        "path": "/api/editorial/federation/cmvieqdid00007k9tngs6ty4x/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"decision\":\"accepted\",\"note\":\"Synthetic request accepted for metadata testing; no scientific endorsement.\"}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 401,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "federation-resolve-replay-anonymous",
+        "method": "POST",
+        "path": "/api/editorial/federation/cmvieqdid00007k9tngs6ty4x/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-observation": "exact-replay"
+        },
+        "requestBody": "{\"decision\":\"accepted\",\"note\":\"Synthetic request accepted for metadata testing; no scientific endorsement.\"}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 401,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "federation-resolve-missing-anonymous",
+        "method": "POST",
+        "path": "/api/editorial/federation/g1-federation-resolution-missing/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"decision\":\"accepted\",\"note\":\"Synthetic request accepted for metadata testing; no scientific endorsement.\"}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 401,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "federation-resolve-outbound-anonymous",
+        "method": "POST",
+        "path": "/api/editorial/federation/g1-read-federation-outbound/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"decision\":\"accepted\",\"note\":\"Synthetic request accepted for metadata testing; no scientific endorsement.\"}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 401,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "federation-resolve-resolved-anonymous",
+        "method": "POST",
+        "path": "/api/editorial/federation/g1-read-federation-accepted-new/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"decision\":\"accepted\",\"note\":\"Synthetic request accepted for metadata testing; no scientific endorsement.\"}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 401,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "federation-resolve-invalid-decision-anonymous",
+        "method": "POST",
+        "path": "/api/editorial/federation/cmvieqdid00007k9tngs6ty4x/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"decision\":\"publish\",\"note\":\"Synthetic request accepted for metadata testing; no scientific endorsement.\"}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 401,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "federation-resolve-missing-origin-anonymous",
+        "method": "POST",
+        "path": "/api/editorial/federation/cmvieqdid00007k9tngs6ty4x/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"decision\":\"accepted\",\"note\":\"Synthetic request accepted for metadata testing; no scientific endorsement.\"}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"A matching same-origin request is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "federation-resolve-foreign-origin-anonymous",
+        "method": "POST",
+        "path": "/api/editorial/federation/cmvieqdid00007k9tngs6ty4x/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://foreign.g1.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"decision\":\"accepted\",\"note\":\"Synthetic request accepted for metadata testing; no scientific endorsement.\"}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"A matching same-origin request is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "federation-resolve-cross-site-anonymous",
+        "method": "POST",
+        "path": "/api/editorial/federation/cmvieqdid00007k9tngs6ty4x/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "cross-site"
+        },
+        "requestBody": "{\"decision\":\"accepted\",\"note\":\"Synthetic request accepted for metadata testing; no scientific endorsement.\"}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Cross-site mutation requests are refused.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "federation-resolve-wrong-media-anonymous",
+        "method": "POST",
+        "path": "/api/editorial/federation/cmvieqdid00007k9tngs6ty4x/resolve",
+        "requestHeaders": {
+          "content-type": "text/plain",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"decision\":\"accepted\",\"note\":\"Synthetic request accepted for metadata testing; no scientific endorsement.\"}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Content-Type application/json is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "federation-resolve-missing-media-anonymous",
+        "method": "POST",
+        "path": "/api/editorial/federation/cmvieqdid00007k9tngs6ty4x/resolve",
+        "requestHeaders": {
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"decision\":\"accepted\",\"note\":\"Synthetic request accepted for metadata testing; no scientific endorsement.\"}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Content-Type application/json is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "federation-resolve-pending-A-only",
+        "method": "POST",
+        "path": "/api/editorial/federation/cmvieqdid00007k9tngs6ty4x/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"decision\":\"accepted\",\"note\":\"Synthetic request accepted for metadata testing; no scientific endorsement.\"}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Editor role required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "federation-resolve-replay-A-only",
+        "method": "POST",
+        "path": "/api/editorial/federation/cmvieqdid00007k9tngs6ty4x/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-observation": "exact-replay"
+        },
+        "requestBody": "{\"decision\":\"accepted\",\"note\":\"Synthetic request accepted for metadata testing; no scientific endorsement.\"}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Editor role required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "federation-resolve-missing-A-only",
+        "method": "POST",
+        "path": "/api/editorial/federation/g1-federation-resolution-missing/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"decision\":\"accepted\",\"note\":\"Synthetic request accepted for metadata testing; no scientific endorsement.\"}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Editor role required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "federation-resolve-outbound-A-only",
+        "method": "POST",
+        "path": "/api/editorial/federation/g1-read-federation-outbound/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"decision\":\"accepted\",\"note\":\"Synthetic request accepted for metadata testing; no scientific endorsement.\"}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Editor role required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "federation-resolve-resolved-A-only",
+        "method": "POST",
+        "path": "/api/editorial/federation/g1-read-federation-accepted-new/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"decision\":\"accepted\",\"note\":\"Synthetic request accepted for metadata testing; no scientific endorsement.\"}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Editor role required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "federation-resolve-invalid-decision-A-only",
+        "method": "POST",
+        "path": "/api/editorial/federation/cmvieqdid00007k9tngs6ty4x/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"decision\":\"publish\",\"note\":\"Synthetic request accepted for metadata testing; no scientific endorsement.\"}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Invalid request payload.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "federation-resolve-missing-origin-A-only",
+        "method": "POST",
+        "path": "/api/editorial/federation/cmvieqdid00007k9tngs6ty4x/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"decision\":\"accepted\",\"note\":\"Synthetic request accepted for metadata testing; no scientific endorsement.\"}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"A matching same-origin request is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "federation-resolve-foreign-origin-A-only",
+        "method": "POST",
+        "path": "/api/editorial/federation/cmvieqdid00007k9tngs6ty4x/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://foreign.g1.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"decision\":\"accepted\",\"note\":\"Synthetic request accepted for metadata testing; no scientific endorsement.\"}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"A matching same-origin request is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "federation-resolve-cross-site-A-only",
+        "method": "POST",
+        "path": "/api/editorial/federation/cmvieqdid00007k9tngs6ty4x/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "cross-site"
+        },
+        "requestBody": "{\"decision\":\"accepted\",\"note\":\"Synthetic request accepted for metadata testing; no scientific endorsement.\"}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Cross-site mutation requests are refused.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "federation-resolve-wrong-media-A-only",
+        "method": "POST",
+        "path": "/api/editorial/federation/cmvieqdid00007k9tngs6ty4x/resolve",
+        "requestHeaders": {
+          "content-type": "text/plain",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"decision\":\"accepted\",\"note\":\"Synthetic request accepted for metadata testing; no scientific endorsement.\"}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Content-Type application/json is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "federation-resolve-missing-media-A-only",
+        "method": "POST",
+        "path": "/api/editorial/federation/cmvieqdid00007k9tngs6ty4x/resolve",
+        "requestHeaders": {
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"decision\":\"accepted\",\"note\":\"Synthetic request accepted for metadata testing; no scientific endorsement.\"}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Content-Type application/json is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "federation-resolve-pending-B-only",
+        "method": "POST",
+        "path": "/api/editorial/federation/cmvieqdid00007k9tngs6ty4x/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"decision\":\"accepted\",\"note\":\"Synthetic request accepted for metadata testing; no scientific endorsement.\"}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Editor role required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "federation-resolve-replay-B-only",
+        "method": "POST",
+        "path": "/api/editorial/federation/cmvieqdid00007k9tngs6ty4x/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-observation": "exact-replay"
+        },
+        "requestBody": "{\"decision\":\"accepted\",\"note\":\"Synthetic request accepted for metadata testing; no scientific endorsement.\"}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Editor role required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "federation-resolve-missing-B-only",
+        "method": "POST",
+        "path": "/api/editorial/federation/g1-federation-resolution-missing/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"decision\":\"accepted\",\"note\":\"Synthetic request accepted for metadata testing; no scientific endorsement.\"}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Editor role required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "federation-resolve-outbound-B-only",
+        "method": "POST",
+        "path": "/api/editorial/federation/g1-read-federation-outbound/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"decision\":\"accepted\",\"note\":\"Synthetic request accepted for metadata testing; no scientific endorsement.\"}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Editor role required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "federation-resolve-resolved-B-only",
+        "method": "POST",
+        "path": "/api/editorial/federation/g1-read-federation-accepted-new/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"decision\":\"accepted\",\"note\":\"Synthetic request accepted for metadata testing; no scientific endorsement.\"}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Editor role required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "federation-resolve-invalid-decision-B-only",
+        "method": "POST",
+        "path": "/api/editorial/federation/cmvieqdid00007k9tngs6ty4x/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"decision\":\"publish\",\"note\":\"Synthetic request accepted for metadata testing; no scientific endorsement.\"}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Invalid request payload.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "federation-resolve-missing-origin-B-only",
+        "method": "POST",
+        "path": "/api/editorial/federation/cmvieqdid00007k9tngs6ty4x/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"decision\":\"accepted\",\"note\":\"Synthetic request accepted for metadata testing; no scientific endorsement.\"}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"A matching same-origin request is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "federation-resolve-foreign-origin-B-only",
+        "method": "POST",
+        "path": "/api/editorial/federation/cmvieqdid00007k9tngs6ty4x/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://foreign.g1.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"decision\":\"accepted\",\"note\":\"Synthetic request accepted for metadata testing; no scientific endorsement.\"}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"A matching same-origin request is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "federation-resolve-cross-site-B-only",
+        "method": "POST",
+        "path": "/api/editorial/federation/cmvieqdid00007k9tngs6ty4x/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "cross-site"
+        },
+        "requestBody": "{\"decision\":\"accepted\",\"note\":\"Synthetic request accepted for metadata testing; no scientific endorsement.\"}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Cross-site mutation requests are refused.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "federation-resolve-wrong-media-B-only",
+        "method": "POST",
+        "path": "/api/editorial/federation/cmvieqdid00007k9tngs6ty4x/resolve",
+        "requestHeaders": {
+          "content-type": "text/plain",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"decision\":\"accepted\",\"note\":\"Synthetic request accepted for metadata testing; no scientific endorsement.\"}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Content-Type application/json is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "federation-resolve-missing-media-B-only",
+        "method": "POST",
+        "path": "/api/editorial/federation/cmvieqdid00007k9tngs6ty4x/resolve",
+        "requestHeaders": {
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"decision\":\"accepted\",\"note\":\"Synthetic request accepted for metadata testing; no scientific endorsement.\"}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Content-Type application/json is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "federation-resolve-pending-A+B",
+        "method": "POST",
+        "path": "/api/editorial/federation/cmvieqdid00007k9tngs6ty4x/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"decision\":\"accepted\",\"note\":\"Synthetic request accepted for metadata testing; no scientific endorsement.\"}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Editor role required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "federation-resolve-replay-A+B",
+        "method": "POST",
+        "path": "/api/editorial/federation/cmvieqdid00007k9tngs6ty4x/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-observation": "exact-replay"
+        },
+        "requestBody": "{\"decision\":\"accepted\",\"note\":\"Synthetic request accepted for metadata testing; no scientific endorsement.\"}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Editor role required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "federation-resolve-missing-A+B",
+        "method": "POST",
+        "path": "/api/editorial/federation/g1-federation-resolution-missing/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"decision\":\"accepted\",\"note\":\"Synthetic request accepted for metadata testing; no scientific endorsement.\"}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Editor role required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "federation-resolve-outbound-A+B",
+        "method": "POST",
+        "path": "/api/editorial/federation/g1-read-federation-outbound/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"decision\":\"accepted\",\"note\":\"Synthetic request accepted for metadata testing; no scientific endorsement.\"}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Editor role required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "federation-resolve-resolved-A+B",
+        "method": "POST",
+        "path": "/api/editorial/federation/g1-read-federation-accepted-new/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"decision\":\"accepted\",\"note\":\"Synthetic request accepted for metadata testing; no scientific endorsement.\"}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Editor role required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "federation-resolve-invalid-decision-A+B",
+        "method": "POST",
+        "path": "/api/editorial/federation/cmvieqdid00007k9tngs6ty4x/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"decision\":\"publish\",\"note\":\"Synthetic request accepted for metadata testing; no scientific endorsement.\"}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Invalid request payload.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "federation-resolve-missing-origin-A+B",
+        "method": "POST",
+        "path": "/api/editorial/federation/cmvieqdid00007k9tngs6ty4x/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"decision\":\"accepted\",\"note\":\"Synthetic request accepted for metadata testing; no scientific endorsement.\"}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"A matching same-origin request is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "federation-resolve-foreign-origin-A+B",
+        "method": "POST",
+        "path": "/api/editorial/federation/cmvieqdid00007k9tngs6ty4x/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://foreign.g1.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"decision\":\"accepted\",\"note\":\"Synthetic request accepted for metadata testing; no scientific endorsement.\"}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"A matching same-origin request is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "federation-resolve-cross-site-A+B",
+        "method": "POST",
+        "path": "/api/editorial/federation/cmvieqdid00007k9tngs6ty4x/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "cross-site"
+        },
+        "requestBody": "{\"decision\":\"accepted\",\"note\":\"Synthetic request accepted for metadata testing; no scientific endorsement.\"}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Cross-site mutation requests are refused.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "federation-resolve-wrong-media-A+B",
+        "method": "POST",
+        "path": "/api/editorial/federation/cmvieqdid00007k9tngs6ty4x/resolve",
+        "requestHeaders": {
+          "content-type": "text/plain",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"decision\":\"accepted\",\"note\":\"Synthetic request accepted for metadata testing; no scientific endorsement.\"}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Content-Type application/json is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "federation-resolve-missing-media-A+B",
+        "method": "POST",
+        "path": "/api/editorial/federation/cmvieqdid00007k9tngs6ty4x/resolve",
+        "requestHeaders": {
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"decision\":\"accepted\",\"note\":\"Synthetic request accepted for metadata testing; no scientific endorsement.\"}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Content-Type application/json is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "federation-resolve-pending-EDITOR",
+        "method": "POST",
+        "path": "/api/editorial/federation/cmvieqdid00007k9tngs6ty4x/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"decision\":\"accepted\",\"note\":\"Synthetic request accepted for metadata testing; no scientific endorsement.\"}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 200,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"id\":\"cmvieqdid00007k9tngs6ty4x\",\"status\":\"accepted\"}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "federation-resolve-replay-EDITOR",
+        "method": "POST",
+        "path": "/api/editorial/federation/cmvieqdid00007k9tngs6ty4x/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-observation": "exact-replay"
+        },
+        "requestBody": "{\"decision\":\"accepted\",\"note\":\"Synthetic request accepted for metadata testing; no scientific endorsement.\"}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 409,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"conflict\",\"message\":\"Notification is no longer pending.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "federation-resolve-missing-EDITOR",
+        "method": "POST",
+        "path": "/api/editorial/federation/g1-federation-resolution-missing/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"decision\":\"accepted\",\"note\":\"Synthetic request accepted for metadata testing; no scientific endorsement.\"}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 404,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Notification not found.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "federation-resolve-outbound-EDITOR",
+        "method": "POST",
+        "path": "/api/editorial/federation/g1-read-federation-outbound/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"decision\":\"accepted\",\"note\":\"Synthetic request accepted for metadata testing; no scientific endorsement.\"}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 409,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"conflict\",\"message\":\"Notification is no longer pending.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "federation-resolve-resolved-EDITOR",
+        "method": "POST",
+        "path": "/api/editorial/federation/g1-read-federation-accepted-new/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"decision\":\"accepted\",\"note\":\"Synthetic request accepted for metadata testing; no scientific endorsement.\"}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 409,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"conflict\",\"message\":\"Notification is no longer pending.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "federation-resolve-invalid-decision-EDITOR",
+        "method": "POST",
+        "path": "/api/editorial/federation/cmvieqdid00007k9tngs6ty4x/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"decision\":\"publish\",\"note\":\"Synthetic request accepted for metadata testing; no scientific endorsement.\"}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Invalid request payload.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "federation-resolve-missing-origin-EDITOR",
+        "method": "POST",
+        "path": "/api/editorial/federation/cmvieqdid00007k9tngs6ty4x/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"decision\":\"accepted\",\"note\":\"Synthetic request accepted for metadata testing; no scientific endorsement.\"}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"A matching same-origin request is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "federation-resolve-foreign-origin-EDITOR",
+        "method": "POST",
+        "path": "/api/editorial/federation/cmvieqdid00007k9tngs6ty4x/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://foreign.g1.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"decision\":\"accepted\",\"note\":\"Synthetic request accepted for metadata testing; no scientific endorsement.\"}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"A matching same-origin request is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "federation-resolve-cross-site-EDITOR",
+        "method": "POST",
+        "path": "/api/editorial/federation/cmvieqdid00007k9tngs6ty4x/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "cross-site"
+        },
+        "requestBody": "{\"decision\":\"accepted\",\"note\":\"Synthetic request accepted for metadata testing; no scientific endorsement.\"}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Cross-site mutation requests are refused.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "federation-resolve-wrong-media-EDITOR",
+        "method": "POST",
+        "path": "/api/editorial/federation/cmvieqdid00007k9tngs6ty4x/resolve",
+        "requestHeaders": {
+          "content-type": "text/plain",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"decision\":\"accepted\",\"note\":\"Synthetic request accepted for metadata testing; no scientific endorsement.\"}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Content-Type application/json is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "federation-resolve-missing-media-EDITOR",
+        "method": "POST",
+        "path": "/api/editorial/federation/cmvieqdid00007k9tngs6ty4x/resolve",
+        "requestHeaders": {
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"decision\":\"accepted\",\"note\":\"Synthetic request accepted for metadata testing; no scientific endorsement.\"}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Content-Type application/json is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "federation-resolve-pending-ADMIN",
+        "method": "POST",
+        "path": "/api/editorial/federation/cmvieqdik00027k9to6oh26g7/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"decision\":\"rejected\",\"note\":\"Synthetic request rejected for metadata testing; no scientific assessment.\"}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 200,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"id\":\"cmvieqdik00027k9to6oh26g7\",\"status\":\"rejected\"}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "federation-resolve-replay-ADMIN",
+        "method": "POST",
+        "path": "/api/editorial/federation/cmvieqdik00027k9to6oh26g7/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-observation": "exact-replay"
+        },
+        "requestBody": "{\"decision\":\"rejected\",\"note\":\"Synthetic request rejected for metadata testing; no scientific assessment.\"}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 409,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"conflict\",\"message\":\"Notification is no longer pending.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "federation-resolve-missing-ADMIN",
+        "method": "POST",
+        "path": "/api/editorial/federation/g1-federation-resolution-missing/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"decision\":\"rejected\",\"note\":\"Synthetic request rejected for metadata testing; no scientific assessment.\"}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 404,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Notification not found.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "federation-resolve-outbound-ADMIN",
+        "method": "POST",
+        "path": "/api/editorial/federation/g1-read-federation-outbound/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"decision\":\"rejected\",\"note\":\"Synthetic request rejected for metadata testing; no scientific assessment.\"}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 409,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"conflict\",\"message\":\"Notification is no longer pending.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "federation-resolve-resolved-ADMIN",
+        "method": "POST",
+        "path": "/api/editorial/federation/g1-read-federation-accepted-new/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"decision\":\"rejected\",\"note\":\"Synthetic request rejected for metadata testing; no scientific assessment.\"}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 409,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"conflict\",\"message\":\"Notification is no longer pending.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "federation-resolve-invalid-decision-ADMIN",
+        "method": "POST",
+        "path": "/api/editorial/federation/cmvieqdik00027k9to6oh26g7/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"decision\":\"publish\",\"note\":\"Synthetic request rejected for metadata testing; no scientific assessment.\"}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Invalid request payload.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "federation-resolve-missing-origin-ADMIN",
+        "method": "POST",
+        "path": "/api/editorial/federation/cmvieqdik00027k9to6oh26g7/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"decision\":\"rejected\",\"note\":\"Synthetic request rejected for metadata testing; no scientific assessment.\"}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"A matching same-origin request is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "federation-resolve-foreign-origin-ADMIN",
+        "method": "POST",
+        "path": "/api/editorial/federation/cmvieqdik00027k9to6oh26g7/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://foreign.g1.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"decision\":\"rejected\",\"note\":\"Synthetic request rejected for metadata testing; no scientific assessment.\"}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"A matching same-origin request is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "federation-resolve-cross-site-ADMIN",
+        "method": "POST",
+        "path": "/api/editorial/federation/cmvieqdik00027k9to6oh26g7/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "cross-site"
+        },
+        "requestBody": "{\"decision\":\"rejected\",\"note\":\"Synthetic request rejected for metadata testing; no scientific assessment.\"}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Cross-site mutation requests are refused.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "federation-resolve-wrong-media-ADMIN",
+        "method": "POST",
+        "path": "/api/editorial/federation/cmvieqdik00027k9to6oh26g7/resolve",
+        "requestHeaders": {
+          "content-type": "text/plain",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"decision\":\"rejected\",\"note\":\"Synthetic request rejected for metadata testing; no scientific assessment.\"}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Content-Type application/json is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "federation-resolve-missing-media-ADMIN",
+        "method": "POST",
+        "path": "/api/editorial/federation/cmvieqdik00027k9to6oh26g7/resolve",
+        "requestHeaders": {
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"decision\":\"rejected\",\"note\":\"Synthetic request rejected for metadata testing; no scientific assessment.\"}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Content-Type application/json is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "federation-resolve-session-malformed-anonymous",
+        "method": "POST",
+        "path": "/api/editorial/federation/cmvieqdid00007k9tngs6ty4x/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"decision\":\"accepted\",\"note\":\"Synthetic request accepted for metadata testing; no scientific endorsement.\"}",
+        "principal": "anonymous",
+        "sessionCase": "malformed",
+        "session": {
+          "case": "malformed",
+          "value": "g1-malformed-session-value"
+        },
+        "cookieSha256": "0b646763360dfbf0b958677056e8f33e616febd688290abe0b8de92864714906",
+        "status": 401,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "federation-resolve-session-signed-expired-anonymous",
+        "method": "POST",
+        "path": "/api/editorial/federation/cmvieqdid00007k9tngs6ty4x/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"decision\":\"accepted\",\"note\":\"Synthetic request accepted for metadata testing; no scientific endorsement.\"}",
+        "principal": "anonymous",
+        "sessionCase": "signed-expired",
+        "session": {
+          "case": "signed-expired",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-01T00:00:00.000Z"
+        },
+        "cookieSha256": "fa480d7e6f4efdbc8ba7f86a08d94834130d3f13a07c89c44103ce2cc60700c0",
+        "status": 401,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "federation-resolve-session-tampered-anonymous",
+        "method": "POST",
+        "path": "/api/editorial/federation/cmvieqdid00007k9tngs6ty4x/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"decision\":\"accepted\",\"note\":\"Synthetic request accepted for metadata testing; no scientific endorsement.\"}",
+        "principal": "anonymous",
+        "sessionCase": "tampered",
+        "session": {
+          "case": "tampered",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z",
+          "substitutedUserId": "g1-user-admin"
+        },
+        "cookieSha256": "79f2621dfa5223e7ab82dbc4fa99562464ae7afc1b7afec9bc74f30ffb1e4a43",
+        "status": 401,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "federation-resolve-session-signed-missing-user-anonymous",
+        "method": "POST",
+        "path": "/api/editorial/federation/cmvieqdid00007k9tngs6ty4x/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"decision\":\"accepted\",\"note\":\"Synthetic request accepted for metadata testing; no scientific endorsement.\"}",
+        "principal": "anonymous",
+        "sessionCase": "signed-missing-user",
+        "session": {
+          "case": "signed-missing-user",
+          "userId": "g1-user-deleted",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "0596f369924b9c8e97061767be36bd17565fc628a3410cbc01a4f414c124818c",
+        "status": 401,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "federation-resolve-observer-inbox-anonymous",
+        "method": "GET",
+        "path": "/api/federation/inbox?limit=100",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 200,
+        "headers": [
+          ["cache-control", "no-store, must-revalidate"],
+          ["content-type", "application/ld+json; charset=utf-8"]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"@context\":\"http://www.w3.org/ns/ldp\",\"@id\":\"https://g1.oratlas.example/api/federation/inbox\",\"contains\":[\"https://g1.oratlas.example/api/federation/notifications/cmvieqdid00007k9tngs6ty4x\",\"https://g1.oratlas.example/api/federation/notifications/g1-read-federation-accepted-new\",\"https://g1.oratlas.example/api/federation/notifications/g1-read-federation-accepted-old\"]}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "federation-resolve-observer-accepted-anonymous",
+        "method": "GET",
+        "path": "/api/federation/notifications/cmvieqdid00007k9tngs6ty4x",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 200,
+        "headers": [
+          ["cache-control", "no-store, must-revalidate"],
+          ["content-type", "application/ld+json; charset=utf-8"]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"@context\":[\"https://www.w3.org/ns/activitystreams\",\"https://coar-notify.net\"],\"actor\":{\"id\":\"https://example.org/synthetic-actor\",\"type\":\"Service\"},\"id\":\"https://example.org/g1-federation-resolution/editor\",\"object\":{\"id\":\"https://example.org/synthetic-object\",\"ietf:item\":{\"id\":\"https://example.org/synthetic-content.pdf\",\"mediaType\":\"application/pdf\",\"type\":\"Article\"},\"type\":\"Article\"},\"origin\":{\"id\":\"https://example.org/synthetic-origin\",\"inbox\":\"https://example.org/synthetic-inbox\",\"type\":\"Service\"},\"summary\":\"g1-read-queue-private-payload\",\"target\":{\"id\":\"https://g1.oratlas.example\",\"inbox\":\"https://g1.oratlas.example/api/federation/inbox\",\"type\":\"Service\"},\"type\":[\"Offer\",\"coar-notify:ReviewAction\"]}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "federation-resolve-observer-rejected-anonymous",
+        "method": "GET",
+        "path": "/api/federation/notifications/cmvieqdik00027k9to6oh26g7",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 404,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Federation notification not found.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "federation-resolve-observer-inbox-A-only",
+        "method": "GET",
+        "path": "/api/federation/inbox?limit=100",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 200,
+        "headers": [
+          ["cache-control", "no-store, must-revalidate"],
+          ["content-type", "application/ld+json; charset=utf-8"]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"@context\":\"http://www.w3.org/ns/ldp\",\"@id\":\"https://g1.oratlas.example/api/federation/inbox\",\"contains\":[\"https://g1.oratlas.example/api/federation/notifications/cmvieqdid00007k9tngs6ty4x\",\"https://g1.oratlas.example/api/federation/notifications/g1-read-federation-accepted-new\",\"https://g1.oratlas.example/api/federation/notifications/g1-read-federation-accepted-old\"]}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "federation-resolve-observer-accepted-A-only",
+        "method": "GET",
+        "path": "/api/federation/notifications/cmvieqdid00007k9tngs6ty4x",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 200,
+        "headers": [
+          ["cache-control", "no-store, must-revalidate"],
+          ["content-type", "application/ld+json; charset=utf-8"]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"@context\":[\"https://www.w3.org/ns/activitystreams\",\"https://coar-notify.net\"],\"actor\":{\"id\":\"https://example.org/synthetic-actor\",\"type\":\"Service\"},\"id\":\"https://example.org/g1-federation-resolution/editor\",\"object\":{\"id\":\"https://example.org/synthetic-object\",\"ietf:item\":{\"id\":\"https://example.org/synthetic-content.pdf\",\"mediaType\":\"application/pdf\",\"type\":\"Article\"},\"type\":\"Article\"},\"origin\":{\"id\":\"https://example.org/synthetic-origin\",\"inbox\":\"https://example.org/synthetic-inbox\",\"type\":\"Service\"},\"summary\":\"g1-read-queue-private-payload\",\"target\":{\"id\":\"https://g1.oratlas.example\",\"inbox\":\"https://g1.oratlas.example/api/federation/inbox\",\"type\":\"Service\"},\"type\":[\"Offer\",\"coar-notify:ReviewAction\"]}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "federation-resolve-observer-rejected-A-only",
+        "method": "GET",
+        "path": "/api/federation/notifications/cmvieqdik00027k9to6oh26g7",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 404,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Federation notification not found.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "federation-resolve-observer-inbox-B-only",
+        "method": "GET",
+        "path": "/api/federation/inbox?limit=100",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 200,
+        "headers": [
+          ["cache-control", "no-store, must-revalidate"],
+          ["content-type", "application/ld+json; charset=utf-8"]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"@context\":\"http://www.w3.org/ns/ldp\",\"@id\":\"https://g1.oratlas.example/api/federation/inbox\",\"contains\":[\"https://g1.oratlas.example/api/federation/notifications/cmvieqdid00007k9tngs6ty4x\",\"https://g1.oratlas.example/api/federation/notifications/g1-read-federation-accepted-new\",\"https://g1.oratlas.example/api/federation/notifications/g1-read-federation-accepted-old\"]}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "federation-resolve-observer-accepted-B-only",
+        "method": "GET",
+        "path": "/api/federation/notifications/cmvieqdid00007k9tngs6ty4x",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 200,
+        "headers": [
+          ["cache-control", "no-store, must-revalidate"],
+          ["content-type", "application/ld+json; charset=utf-8"]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"@context\":[\"https://www.w3.org/ns/activitystreams\",\"https://coar-notify.net\"],\"actor\":{\"id\":\"https://example.org/synthetic-actor\",\"type\":\"Service\"},\"id\":\"https://example.org/g1-federation-resolution/editor\",\"object\":{\"id\":\"https://example.org/synthetic-object\",\"ietf:item\":{\"id\":\"https://example.org/synthetic-content.pdf\",\"mediaType\":\"application/pdf\",\"type\":\"Article\"},\"type\":\"Article\"},\"origin\":{\"id\":\"https://example.org/synthetic-origin\",\"inbox\":\"https://example.org/synthetic-inbox\",\"type\":\"Service\"},\"summary\":\"g1-read-queue-private-payload\",\"target\":{\"id\":\"https://g1.oratlas.example\",\"inbox\":\"https://g1.oratlas.example/api/federation/inbox\",\"type\":\"Service\"},\"type\":[\"Offer\",\"coar-notify:ReviewAction\"]}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "federation-resolve-observer-rejected-B-only",
+        "method": "GET",
+        "path": "/api/federation/notifications/cmvieqdik00027k9to6oh26g7",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 404,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Federation notification not found.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "federation-resolve-observer-inbox-A+B",
+        "method": "GET",
+        "path": "/api/federation/inbox?limit=100",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 200,
+        "headers": [
+          ["cache-control", "no-store, must-revalidate"],
+          ["content-type", "application/ld+json; charset=utf-8"]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"@context\":\"http://www.w3.org/ns/ldp\",\"@id\":\"https://g1.oratlas.example/api/federation/inbox\",\"contains\":[\"https://g1.oratlas.example/api/federation/notifications/cmvieqdid00007k9tngs6ty4x\",\"https://g1.oratlas.example/api/federation/notifications/g1-read-federation-accepted-new\",\"https://g1.oratlas.example/api/federation/notifications/g1-read-federation-accepted-old\"]}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "federation-resolve-observer-accepted-A+B",
+        "method": "GET",
+        "path": "/api/federation/notifications/cmvieqdid00007k9tngs6ty4x",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 200,
+        "headers": [
+          ["cache-control", "no-store, must-revalidate"],
+          ["content-type", "application/ld+json; charset=utf-8"]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"@context\":[\"https://www.w3.org/ns/activitystreams\",\"https://coar-notify.net\"],\"actor\":{\"id\":\"https://example.org/synthetic-actor\",\"type\":\"Service\"},\"id\":\"https://example.org/g1-federation-resolution/editor\",\"object\":{\"id\":\"https://example.org/synthetic-object\",\"ietf:item\":{\"id\":\"https://example.org/synthetic-content.pdf\",\"mediaType\":\"application/pdf\",\"type\":\"Article\"},\"type\":\"Article\"},\"origin\":{\"id\":\"https://example.org/synthetic-origin\",\"inbox\":\"https://example.org/synthetic-inbox\",\"type\":\"Service\"},\"summary\":\"g1-read-queue-private-payload\",\"target\":{\"id\":\"https://g1.oratlas.example\",\"inbox\":\"https://g1.oratlas.example/api/federation/inbox\",\"type\":\"Service\"},\"type\":[\"Offer\",\"coar-notify:ReviewAction\"]}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "federation-resolve-observer-rejected-A+B",
+        "method": "GET",
+        "path": "/api/federation/notifications/cmvieqdik00027k9to6oh26g7",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 404,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Federation notification not found.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "federation-resolve-observer-inbox-EDITOR",
+        "method": "GET",
+        "path": "/api/federation/inbox?limit=100",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 200,
+        "headers": [
+          ["cache-control", "no-store, must-revalidate"],
+          ["content-type", "application/ld+json; charset=utf-8"]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"@context\":\"http://www.w3.org/ns/ldp\",\"@id\":\"https://g1.oratlas.example/api/federation/inbox\",\"contains\":[\"https://g1.oratlas.example/api/federation/notifications/cmvieqdid00007k9tngs6ty4x\",\"https://g1.oratlas.example/api/federation/notifications/g1-read-federation-accepted-new\",\"https://g1.oratlas.example/api/federation/notifications/g1-read-federation-accepted-old\"]}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "federation-resolve-observer-accepted-EDITOR",
+        "method": "GET",
+        "path": "/api/federation/notifications/cmvieqdid00007k9tngs6ty4x",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 200,
+        "headers": [
+          ["cache-control", "no-store, must-revalidate"],
+          ["content-type", "application/ld+json; charset=utf-8"]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"@context\":[\"https://www.w3.org/ns/activitystreams\",\"https://coar-notify.net\"],\"actor\":{\"id\":\"https://example.org/synthetic-actor\",\"type\":\"Service\"},\"id\":\"https://example.org/g1-federation-resolution/editor\",\"object\":{\"id\":\"https://example.org/synthetic-object\",\"ietf:item\":{\"id\":\"https://example.org/synthetic-content.pdf\",\"mediaType\":\"application/pdf\",\"type\":\"Article\"},\"type\":\"Article\"},\"origin\":{\"id\":\"https://example.org/synthetic-origin\",\"inbox\":\"https://example.org/synthetic-inbox\",\"type\":\"Service\"},\"summary\":\"g1-read-queue-private-payload\",\"target\":{\"id\":\"https://g1.oratlas.example\",\"inbox\":\"https://g1.oratlas.example/api/federation/inbox\",\"type\":\"Service\"},\"type\":[\"Offer\",\"coar-notify:ReviewAction\"]}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "federation-resolve-observer-rejected-EDITOR",
+        "method": "GET",
+        "path": "/api/federation/notifications/cmvieqdik00027k9to6oh26g7",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 404,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Federation notification not found.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "federation-resolve-observer-inbox-ADMIN",
+        "method": "GET",
+        "path": "/api/federation/inbox?limit=100",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 200,
+        "headers": [
+          ["cache-control", "no-store, must-revalidate"],
+          ["content-type", "application/ld+json; charset=utf-8"]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"@context\":\"http://www.w3.org/ns/ldp\",\"@id\":\"https://g1.oratlas.example/api/federation/inbox\",\"contains\":[\"https://g1.oratlas.example/api/federation/notifications/cmvieqdid00007k9tngs6ty4x\",\"https://g1.oratlas.example/api/federation/notifications/g1-read-federation-accepted-new\",\"https://g1.oratlas.example/api/federation/notifications/g1-read-federation-accepted-old\"]}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "federation-resolve-observer-accepted-ADMIN",
+        "method": "GET",
+        "path": "/api/federation/notifications/cmvieqdid00007k9tngs6ty4x",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 200,
+        "headers": [
+          ["cache-control", "no-store, must-revalidate"],
+          ["content-type", "application/ld+json; charset=utf-8"]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"@context\":[\"https://www.w3.org/ns/activitystreams\",\"https://coar-notify.net\"],\"actor\":{\"id\":\"https://example.org/synthetic-actor\",\"type\":\"Service\"},\"id\":\"https://example.org/g1-federation-resolution/editor\",\"object\":{\"id\":\"https://example.org/synthetic-object\",\"ietf:item\":{\"id\":\"https://example.org/synthetic-content.pdf\",\"mediaType\":\"application/pdf\",\"type\":\"Article\"},\"type\":\"Article\"},\"origin\":{\"id\":\"https://example.org/synthetic-origin\",\"inbox\":\"https://example.org/synthetic-inbox\",\"type\":\"Service\"},\"summary\":\"g1-read-queue-private-payload\",\"target\":{\"id\":\"https://g1.oratlas.example\",\"inbox\":\"https://g1.oratlas.example/api/federation/inbox\",\"type\":\"Service\"},\"type\":[\"Offer\",\"coar-notify:ReviewAction\"]}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "federation-resolve-observer-rejected-ADMIN",
+        "method": "GET",
+        "path": "/api/federation/notifications/cmvieqdik00027k9to6oh26g7",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 404,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Federation notification not found.\"}}"
+        }
+      }
+    ]
+  },
+  "stateSha256": "11f8e3eb6f6d9e5f1b11b3fe67b0b474ada098ab062da5d901022f4cbf419da4",
+  "review": "Independently reviewed native source 102347e: four exact captures, complete native state, Cookie bindings and transitions; review report 70b2ae0bda38988b86b7b249eeb608353b1218b6d7a9a12fc86dfe79ce4559aa. Synthetic conditional proof; mixed producer/resolution clocks retained."
+}

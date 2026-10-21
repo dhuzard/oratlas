@@ -10865,6 +10865,6 @@
       }
     ]
   },
-  "stateSha256": "41841090e9ddf323723cdfdcb701f03b32aa1a917b1025ad26e3eaddf18d2f01",
+  "stateSha256": "799fbf248b89b84f9d90547465fa587545226e06f6cbf43bc4250e80280e9997",
   "review": "Independently reviewed 2026-10-21: four 300-request native certifier captures, actual Cookie/Authorization bindings, 41 native worker/certifier/history fixture rows and recorded setup authentication timestamp; complete cumulative 72-table state permits only two authenticated submit credential timestamps. Existing-record replays preserve native lifecycle HTTP 201 with replayed:true. No extra runtime grants; all previously accepted captures unchanged. Partial synthetic G1, not fresh certification or scientific confirmation."
 }

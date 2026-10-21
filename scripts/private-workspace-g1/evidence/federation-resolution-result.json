@@ -66,5 +66,10 @@
     "other generated metadata models not enabled",
     "no private-workspace authorization/operational/timing claim",
     "Native October21 receipt timestamps retained while fixed April1 resolutions/audits precede them; no chronological historical lifecycle/scientific timeline claim, timestamp rewrite or bypassed chronology check."
-  ]
+  ],
+  "integrationFormattingProvenance": {
+    "originalFixtureSha256": "82336d4c66be467986b0dee5980ed2d4cd9a92def559d587ad7ef6f143e71928",
+    "currentFixtureSha256": "8f17be77cb1dfc43566aba3367991bc529eed05fba67c473af930d1e7b8996dc",
+    "note": "JSON data identical; only repository formatting changed after frozen source 53a2a56. Historical sourceSha256 and evidenceSha256 continue to identify the original executed bytes. Final integrated CI executes the formatted representation."
+  }
 }

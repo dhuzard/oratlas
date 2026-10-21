@@ -1,0 +1,4422 @@
+{
+  "protocol": "oratlas.g1.supplemental/0.1",
+  "program": "proposal-resolvers",
+  "http": {
+    "version": 2,
+    "review": "Independently reviewed native source 102347e: four exact captures, complete native state, Cookie bindings and transitions; review report 70b2ae0bda38988b86b7b249eeb608353b1218b6d7a9a12fc86dfe79ce4559aa. Synthetic conditional proof; mixed producer/resolution clocks retained.",
+    "baseUrl": "https://g1.oratlas.example",
+    "clock": "2026-04-01T00:00:00.000Z",
+    "records": [
+      {
+        "kind": "http",
+        "id": "resolver-protocol-EDITOR-open-forbidden-anonymous",
+        "method": "POST",
+        "path": "/api/protocols/proposals/pdp_b6b4c8888cd7308da213ec487d73b4d57cb7907d540838a4851f6a14e021c58f/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "protocol-EDITOR-open-forbidden"
+        },
+        "requestBody": "{\"resolution\":\"explained\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 401,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-protocol-EDITOR-open-forbidden-A-only",
+        "method": "POST",
+        "path": "/api/protocols/proposals/pdp_b6b4c8888cd7308da213ec487d73b4d57cb7907d540838a4851f6a14e021c58f/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "protocol-EDITOR-open-forbidden"
+        },
+        "requestBody": "{\"resolution\":\"explained\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Editor role required for protocol reconciliation.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-protocol-EDITOR-open-forbidden-B-only",
+        "method": "POST",
+        "path": "/api/protocols/proposals/pdp_b6b4c8888cd7308da213ec487d73b4d57cb7907d540838a4851f6a14e021c58f/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "protocol-EDITOR-open-forbidden"
+        },
+        "requestBody": "{\"resolution\":\"explained\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Editor role required for protocol reconciliation.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-protocol-EDITOR-open-forbidden-A+B",
+        "method": "POST",
+        "path": "/api/protocols/proposals/pdp_b6b4c8888cd7308da213ec487d73b4d57cb7907d540838a4851f6a14e021c58f/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "protocol-EDITOR-open-forbidden"
+        },
+        "requestBody": "{\"resolution\":\"explained\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Editor role required for protocol reconciliation.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-protocol-EDITOR-first-EDITOR",
+        "method": "POST",
+        "path": "/api/protocols/proposals/pdp_b6b4c8888cd7308da213ec487d73b4d57cb7907d540838a4851f6a14e021c58f/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "protocol-EDITOR-first"
+        },
+        "requestBody": "{\"resolution\":\"explained\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 200,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"status\":\"explained\"}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-protocol-EDITOR-repeat-anonymous",
+        "method": "POST",
+        "path": "/api/protocols/proposals/pdp_b6b4c8888cd7308da213ec487d73b4d57cb7907d540838a4851f6a14e021c58f/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "protocol-EDITOR-repeat"
+        },
+        "requestBody": "{\"resolution\":\"explained\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 401,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-protocol-EDITOR-missing-anonymous",
+        "method": "POST",
+        "path": "/api/protocols/proposals/g1-resolver-missing/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "protocol-EDITOR-missing"
+        },
+        "requestBody": "{\"resolution\":\"explained\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 401,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-protocol-EDITOR-invalid-anonymous",
+        "method": "POST",
+        "path": "/api/protocols/proposals/pdp_b6b4c8888cd7308da213ec487d73b4d57cb7907d540838a4851f6a14e021c58f/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "protocol-EDITOR-invalid"
+        },
+        "requestBody": "{}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 401,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-protocol-EDITOR-foreign-anonymous",
+        "method": "POST",
+        "path": "/api/protocols/proposals/pdp_b6b4c8888cd7308da213ec487d73b4d57cb7907d540838a4851f6a14e021c58f/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://foreign.g1.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "protocol-EDITOR-foreign"
+        },
+        "requestBody": "{\"resolution\":\"explained\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"A matching same-origin request is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-protocol-EDITOR-repeat-A-only",
+        "method": "POST",
+        "path": "/api/protocols/proposals/pdp_b6b4c8888cd7308da213ec487d73b4d57cb7907d540838a4851f6a14e021c58f/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "protocol-EDITOR-repeat"
+        },
+        "requestBody": "{\"resolution\":\"explained\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Editor role required for protocol reconciliation.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-protocol-EDITOR-missing-A-only",
+        "method": "POST",
+        "path": "/api/protocols/proposals/g1-resolver-missing/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "protocol-EDITOR-missing"
+        },
+        "requestBody": "{\"resolution\":\"explained\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Editor role required for protocol reconciliation.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-protocol-EDITOR-invalid-A-only",
+        "method": "POST",
+        "path": "/api/protocols/proposals/pdp_b6b4c8888cd7308da213ec487d73b4d57cb7907d540838a4851f6a14e021c58f/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "protocol-EDITOR-invalid"
+        },
+        "requestBody": "{}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Invalid request payload.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-protocol-EDITOR-foreign-A-only",
+        "method": "POST",
+        "path": "/api/protocols/proposals/pdp_b6b4c8888cd7308da213ec487d73b4d57cb7907d540838a4851f6a14e021c58f/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://foreign.g1.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "protocol-EDITOR-foreign"
+        },
+        "requestBody": "{\"resolution\":\"explained\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"A matching same-origin request is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-protocol-EDITOR-repeat-B-only",
+        "method": "POST",
+        "path": "/api/protocols/proposals/pdp_b6b4c8888cd7308da213ec487d73b4d57cb7907d540838a4851f6a14e021c58f/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "protocol-EDITOR-repeat"
+        },
+        "requestBody": "{\"resolution\":\"explained\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Editor role required for protocol reconciliation.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-protocol-EDITOR-missing-B-only",
+        "method": "POST",
+        "path": "/api/protocols/proposals/g1-resolver-missing/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "protocol-EDITOR-missing"
+        },
+        "requestBody": "{\"resolution\":\"explained\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Editor role required for protocol reconciliation.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-protocol-EDITOR-invalid-B-only",
+        "method": "POST",
+        "path": "/api/protocols/proposals/pdp_b6b4c8888cd7308da213ec487d73b4d57cb7907d540838a4851f6a14e021c58f/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "protocol-EDITOR-invalid"
+        },
+        "requestBody": "{}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Invalid request payload.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-protocol-EDITOR-foreign-B-only",
+        "method": "POST",
+        "path": "/api/protocols/proposals/pdp_b6b4c8888cd7308da213ec487d73b4d57cb7907d540838a4851f6a14e021c58f/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://foreign.g1.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "protocol-EDITOR-foreign"
+        },
+        "requestBody": "{\"resolution\":\"explained\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"A matching same-origin request is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-protocol-EDITOR-repeat-A+B",
+        "method": "POST",
+        "path": "/api/protocols/proposals/pdp_b6b4c8888cd7308da213ec487d73b4d57cb7907d540838a4851f6a14e021c58f/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "protocol-EDITOR-repeat"
+        },
+        "requestBody": "{\"resolution\":\"explained\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Editor role required for protocol reconciliation.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-protocol-EDITOR-missing-A+B",
+        "method": "POST",
+        "path": "/api/protocols/proposals/g1-resolver-missing/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "protocol-EDITOR-missing"
+        },
+        "requestBody": "{\"resolution\":\"explained\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Editor role required for protocol reconciliation.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-protocol-EDITOR-invalid-A+B",
+        "method": "POST",
+        "path": "/api/protocols/proposals/pdp_b6b4c8888cd7308da213ec487d73b4d57cb7907d540838a4851f6a14e021c58f/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "protocol-EDITOR-invalid"
+        },
+        "requestBody": "{}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Invalid request payload.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-protocol-EDITOR-foreign-A+B",
+        "method": "POST",
+        "path": "/api/protocols/proposals/pdp_b6b4c8888cd7308da213ec487d73b4d57cb7907d540838a4851f6a14e021c58f/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://foreign.g1.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "protocol-EDITOR-foreign"
+        },
+        "requestBody": "{\"resolution\":\"explained\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"A matching same-origin request is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-protocol-EDITOR-repeat-EDITOR",
+        "method": "POST",
+        "path": "/api/protocols/proposals/pdp_b6b4c8888cd7308da213ec487d73b4d57cb7907d540838a4851f6a14e021c58f/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "protocol-EDITOR-repeat"
+        },
+        "requestBody": "{\"resolution\":\"explained\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 409,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"conflict\",\"message\":\"Proposal is no longer open.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-protocol-EDITOR-missing-EDITOR",
+        "method": "POST",
+        "path": "/api/protocols/proposals/g1-resolver-missing/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "protocol-EDITOR-missing"
+        },
+        "requestBody": "{\"resolution\":\"explained\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 404,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Proposal not found.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-protocol-EDITOR-invalid-EDITOR",
+        "method": "POST",
+        "path": "/api/protocols/proposals/pdp_b6b4c8888cd7308da213ec487d73b4d57cb7907d540838a4851f6a14e021c58f/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "protocol-EDITOR-invalid"
+        },
+        "requestBody": "{}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Invalid request payload.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-protocol-EDITOR-foreign-EDITOR",
+        "method": "POST",
+        "path": "/api/protocols/proposals/pdp_b6b4c8888cd7308da213ec487d73b4d57cb7907d540838a4851f6a14e021c58f/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://foreign.g1.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "protocol-EDITOR-foreign"
+        },
+        "requestBody": "{\"resolution\":\"explained\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"A matching same-origin request is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-protocol-EDITOR-repeat-ADMIN",
+        "method": "POST",
+        "path": "/api/protocols/proposals/pdp_b6b4c8888cd7308da213ec487d73b4d57cb7907d540838a4851f6a14e021c58f/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "protocol-EDITOR-repeat"
+        },
+        "requestBody": "{\"resolution\":\"explained\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 409,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"conflict\",\"message\":\"Proposal is no longer open.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-protocol-EDITOR-missing-ADMIN",
+        "method": "POST",
+        "path": "/api/protocols/proposals/g1-resolver-missing/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "protocol-EDITOR-missing"
+        },
+        "requestBody": "{\"resolution\":\"explained\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 404,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Proposal not found.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-protocol-EDITOR-invalid-ADMIN",
+        "method": "POST",
+        "path": "/api/protocols/proposals/pdp_b6b4c8888cd7308da213ec487d73b4d57cb7907d540838a4851f6a14e021c58f/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "protocol-EDITOR-invalid"
+        },
+        "requestBody": "{}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Invalid request payload.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-protocol-EDITOR-foreign-ADMIN",
+        "method": "POST",
+        "path": "/api/protocols/proposals/pdp_b6b4c8888cd7308da213ec487d73b4d57cb7907d540838a4851f6a14e021c58f/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://foreign.g1.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "protocol-EDITOR-foreign"
+        },
+        "requestBody": "{\"resolution\":\"explained\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"A matching same-origin request is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-protocol-EDITOR-session-malformed",
+        "method": "POST",
+        "path": "/api/protocols/proposals/pdp_b6b4c8888cd7308da213ec487d73b4d57cb7907d540838a4851f6a14e021c58f/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"resolution\":\"explained\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "anonymous",
+        "sessionCase": "malformed",
+        "session": {
+          "case": "malformed",
+          "value": "g1-malformed-session-value"
+        },
+        "cookieSha256": "0b646763360dfbf0b958677056e8f33e616febd688290abe0b8de92864714906",
+        "status": 401,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-protocol-EDITOR-session-signed-expired",
+        "method": "POST",
+        "path": "/api/protocols/proposals/pdp_b6b4c8888cd7308da213ec487d73b4d57cb7907d540838a4851f6a14e021c58f/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"resolution\":\"explained\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "anonymous",
+        "sessionCase": "signed-expired",
+        "session": {
+          "case": "signed-expired",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-01T00:00:00.000Z"
+        },
+        "cookieSha256": "fa480d7e6f4efdbc8ba7f86a08d94834130d3f13a07c89c44103ce2cc60700c0",
+        "status": 401,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-protocol-EDITOR-session-tampered",
+        "method": "POST",
+        "path": "/api/protocols/proposals/pdp_b6b4c8888cd7308da213ec487d73b4d57cb7907d540838a4851f6a14e021c58f/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"resolution\":\"explained\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "anonymous",
+        "sessionCase": "tampered",
+        "session": {
+          "case": "tampered",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z",
+          "substitutedUserId": "g1-user-admin"
+        },
+        "cookieSha256": "79f2621dfa5223e7ab82dbc4fa99562464ae7afc1b7afec9bc74f30ffb1e4a43",
+        "status": 401,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-protocol-EDITOR-session-signed-missing-user",
+        "method": "POST",
+        "path": "/api/protocols/proposals/pdp_b6b4c8888cd7308da213ec487d73b4d57cb7907d540838a4851f6a14e021c58f/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"resolution\":\"explained\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "anonymous",
+        "sessionCase": "signed-missing-user",
+        "session": {
+          "case": "signed-missing-user",
+          "userId": "g1-user-deleted",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "0596f369924b9c8e97061767be36bd17565fc628a3410cbc01a4f414c124818c",
+        "status": 401,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-protocol-ADMIN-open-forbidden-anonymous",
+        "method": "POST",
+        "path": "/api/protocols/proposals/pdp_c344fb09d35174963069ab7b02b4c95848e062d931c219b25d6d3f0cdd57ebb4/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "protocol-ADMIN-open-forbidden"
+        },
+        "requestBody": "{\"resolution\":\"explained\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 401,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-protocol-ADMIN-open-forbidden-A-only",
+        "method": "POST",
+        "path": "/api/protocols/proposals/pdp_c344fb09d35174963069ab7b02b4c95848e062d931c219b25d6d3f0cdd57ebb4/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "protocol-ADMIN-open-forbidden"
+        },
+        "requestBody": "{\"resolution\":\"explained\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Editor role required for protocol reconciliation.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-protocol-ADMIN-open-forbidden-B-only",
+        "method": "POST",
+        "path": "/api/protocols/proposals/pdp_c344fb09d35174963069ab7b02b4c95848e062d931c219b25d6d3f0cdd57ebb4/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "protocol-ADMIN-open-forbidden"
+        },
+        "requestBody": "{\"resolution\":\"explained\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Editor role required for protocol reconciliation.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-protocol-ADMIN-open-forbidden-A+B",
+        "method": "POST",
+        "path": "/api/protocols/proposals/pdp_c344fb09d35174963069ab7b02b4c95848e062d931c219b25d6d3f0cdd57ebb4/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "protocol-ADMIN-open-forbidden"
+        },
+        "requestBody": "{\"resolution\":\"explained\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Editor role required for protocol reconciliation.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-protocol-ADMIN-first-ADMIN",
+        "method": "POST",
+        "path": "/api/protocols/proposals/pdp_c344fb09d35174963069ab7b02b4c95848e062d931c219b25d6d3f0cdd57ebb4/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "protocol-ADMIN-first"
+        },
+        "requestBody": "{\"resolution\":\"explained\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 200,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"status\":\"explained\"}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-protocol-ADMIN-repeat-anonymous",
+        "method": "POST",
+        "path": "/api/protocols/proposals/pdp_c344fb09d35174963069ab7b02b4c95848e062d931c219b25d6d3f0cdd57ebb4/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "protocol-ADMIN-repeat"
+        },
+        "requestBody": "{\"resolution\":\"explained\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 401,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-protocol-ADMIN-missing-anonymous",
+        "method": "POST",
+        "path": "/api/protocols/proposals/g1-resolver-missing/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "protocol-ADMIN-missing"
+        },
+        "requestBody": "{\"resolution\":\"explained\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 401,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-protocol-ADMIN-invalid-anonymous",
+        "method": "POST",
+        "path": "/api/protocols/proposals/pdp_c344fb09d35174963069ab7b02b4c95848e062d931c219b25d6d3f0cdd57ebb4/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "protocol-ADMIN-invalid"
+        },
+        "requestBody": "{}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 401,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-protocol-ADMIN-foreign-anonymous",
+        "method": "POST",
+        "path": "/api/protocols/proposals/pdp_c344fb09d35174963069ab7b02b4c95848e062d931c219b25d6d3f0cdd57ebb4/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://foreign.g1.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "protocol-ADMIN-foreign"
+        },
+        "requestBody": "{\"resolution\":\"explained\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"A matching same-origin request is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-protocol-ADMIN-repeat-A-only",
+        "method": "POST",
+        "path": "/api/protocols/proposals/pdp_c344fb09d35174963069ab7b02b4c95848e062d931c219b25d6d3f0cdd57ebb4/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "protocol-ADMIN-repeat"
+        },
+        "requestBody": "{\"resolution\":\"explained\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Editor role required for protocol reconciliation.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-protocol-ADMIN-missing-A-only",
+        "method": "POST",
+        "path": "/api/protocols/proposals/g1-resolver-missing/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "protocol-ADMIN-missing"
+        },
+        "requestBody": "{\"resolution\":\"explained\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Editor role required for protocol reconciliation.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-protocol-ADMIN-invalid-A-only",
+        "method": "POST",
+        "path": "/api/protocols/proposals/pdp_c344fb09d35174963069ab7b02b4c95848e062d931c219b25d6d3f0cdd57ebb4/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "protocol-ADMIN-invalid"
+        },
+        "requestBody": "{}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Invalid request payload.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-protocol-ADMIN-foreign-A-only",
+        "method": "POST",
+        "path": "/api/protocols/proposals/pdp_c344fb09d35174963069ab7b02b4c95848e062d931c219b25d6d3f0cdd57ebb4/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://foreign.g1.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "protocol-ADMIN-foreign"
+        },
+        "requestBody": "{\"resolution\":\"explained\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"A matching same-origin request is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-protocol-ADMIN-repeat-B-only",
+        "method": "POST",
+        "path": "/api/protocols/proposals/pdp_c344fb09d35174963069ab7b02b4c95848e062d931c219b25d6d3f0cdd57ebb4/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "protocol-ADMIN-repeat"
+        },
+        "requestBody": "{\"resolution\":\"explained\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Editor role required for protocol reconciliation.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-protocol-ADMIN-missing-B-only",
+        "method": "POST",
+        "path": "/api/protocols/proposals/g1-resolver-missing/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "protocol-ADMIN-missing"
+        },
+        "requestBody": "{\"resolution\":\"explained\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Editor role required for protocol reconciliation.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-protocol-ADMIN-invalid-B-only",
+        "method": "POST",
+        "path": "/api/protocols/proposals/pdp_c344fb09d35174963069ab7b02b4c95848e062d931c219b25d6d3f0cdd57ebb4/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "protocol-ADMIN-invalid"
+        },
+        "requestBody": "{}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Invalid request payload.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-protocol-ADMIN-foreign-B-only",
+        "method": "POST",
+        "path": "/api/protocols/proposals/pdp_c344fb09d35174963069ab7b02b4c95848e062d931c219b25d6d3f0cdd57ebb4/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://foreign.g1.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "protocol-ADMIN-foreign"
+        },
+        "requestBody": "{\"resolution\":\"explained\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"A matching same-origin request is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-protocol-ADMIN-repeat-A+B",
+        "method": "POST",
+        "path": "/api/protocols/proposals/pdp_c344fb09d35174963069ab7b02b4c95848e062d931c219b25d6d3f0cdd57ebb4/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "protocol-ADMIN-repeat"
+        },
+        "requestBody": "{\"resolution\":\"explained\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Editor role required for protocol reconciliation.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-protocol-ADMIN-missing-A+B",
+        "method": "POST",
+        "path": "/api/protocols/proposals/g1-resolver-missing/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "protocol-ADMIN-missing"
+        },
+        "requestBody": "{\"resolution\":\"explained\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Editor role required for protocol reconciliation.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-protocol-ADMIN-invalid-A+B",
+        "method": "POST",
+        "path": "/api/protocols/proposals/pdp_c344fb09d35174963069ab7b02b4c95848e062d931c219b25d6d3f0cdd57ebb4/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "protocol-ADMIN-invalid"
+        },
+        "requestBody": "{}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Invalid request payload.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-protocol-ADMIN-foreign-A+B",
+        "method": "POST",
+        "path": "/api/protocols/proposals/pdp_c344fb09d35174963069ab7b02b4c95848e062d931c219b25d6d3f0cdd57ebb4/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://foreign.g1.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "protocol-ADMIN-foreign"
+        },
+        "requestBody": "{\"resolution\":\"explained\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"A matching same-origin request is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-protocol-ADMIN-repeat-EDITOR",
+        "method": "POST",
+        "path": "/api/protocols/proposals/pdp_c344fb09d35174963069ab7b02b4c95848e062d931c219b25d6d3f0cdd57ebb4/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "protocol-ADMIN-repeat"
+        },
+        "requestBody": "{\"resolution\":\"explained\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 409,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"conflict\",\"message\":\"Proposal is no longer open.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-protocol-ADMIN-missing-EDITOR",
+        "method": "POST",
+        "path": "/api/protocols/proposals/g1-resolver-missing/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "protocol-ADMIN-missing"
+        },
+        "requestBody": "{\"resolution\":\"explained\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 404,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Proposal not found.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-protocol-ADMIN-invalid-EDITOR",
+        "method": "POST",
+        "path": "/api/protocols/proposals/pdp_c344fb09d35174963069ab7b02b4c95848e062d931c219b25d6d3f0cdd57ebb4/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "protocol-ADMIN-invalid"
+        },
+        "requestBody": "{}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Invalid request payload.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-protocol-ADMIN-foreign-EDITOR",
+        "method": "POST",
+        "path": "/api/protocols/proposals/pdp_c344fb09d35174963069ab7b02b4c95848e062d931c219b25d6d3f0cdd57ebb4/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://foreign.g1.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "protocol-ADMIN-foreign"
+        },
+        "requestBody": "{\"resolution\":\"explained\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"A matching same-origin request is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-protocol-ADMIN-repeat-ADMIN",
+        "method": "POST",
+        "path": "/api/protocols/proposals/pdp_c344fb09d35174963069ab7b02b4c95848e062d931c219b25d6d3f0cdd57ebb4/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "protocol-ADMIN-repeat"
+        },
+        "requestBody": "{\"resolution\":\"explained\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 409,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"conflict\",\"message\":\"Proposal is no longer open.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-protocol-ADMIN-missing-ADMIN",
+        "method": "POST",
+        "path": "/api/protocols/proposals/g1-resolver-missing/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "protocol-ADMIN-missing"
+        },
+        "requestBody": "{\"resolution\":\"explained\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 404,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Proposal not found.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-protocol-ADMIN-invalid-ADMIN",
+        "method": "POST",
+        "path": "/api/protocols/proposals/pdp_c344fb09d35174963069ab7b02b4c95848e062d931c219b25d6d3f0cdd57ebb4/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "protocol-ADMIN-invalid"
+        },
+        "requestBody": "{}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Invalid request payload.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-protocol-ADMIN-foreign-ADMIN",
+        "method": "POST",
+        "path": "/api/protocols/proposals/pdp_c344fb09d35174963069ab7b02b4c95848e062d931c219b25d6d3f0cdd57ebb4/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://foreign.g1.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "protocol-ADMIN-foreign"
+        },
+        "requestBody": "{\"resolution\":\"explained\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"A matching same-origin request is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-protocol-ADMIN-session-malformed",
+        "method": "POST",
+        "path": "/api/protocols/proposals/pdp_c344fb09d35174963069ab7b02b4c95848e062d931c219b25d6d3f0cdd57ebb4/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"resolution\":\"explained\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "anonymous",
+        "sessionCase": "malformed",
+        "session": {
+          "case": "malformed",
+          "value": "g1-malformed-session-value"
+        },
+        "cookieSha256": "0b646763360dfbf0b958677056e8f33e616febd688290abe0b8de92864714906",
+        "status": 401,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-protocol-ADMIN-session-signed-expired",
+        "method": "POST",
+        "path": "/api/protocols/proposals/pdp_c344fb09d35174963069ab7b02b4c95848e062d931c219b25d6d3f0cdd57ebb4/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"resolution\":\"explained\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "anonymous",
+        "sessionCase": "signed-expired",
+        "session": {
+          "case": "signed-expired",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-01T00:00:00.000Z"
+        },
+        "cookieSha256": "fa480d7e6f4efdbc8ba7f86a08d94834130d3f13a07c89c44103ce2cc60700c0",
+        "status": 401,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-protocol-ADMIN-session-tampered",
+        "method": "POST",
+        "path": "/api/protocols/proposals/pdp_c344fb09d35174963069ab7b02b4c95848e062d931c219b25d6d3f0cdd57ebb4/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"resolution\":\"explained\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "anonymous",
+        "sessionCase": "tampered",
+        "session": {
+          "case": "tampered",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z",
+          "substitutedUserId": "g1-user-admin"
+        },
+        "cookieSha256": "79f2621dfa5223e7ab82dbc4fa99562464ae7afc1b7afec9bc74f30ffb1e4a43",
+        "status": 401,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-protocol-ADMIN-session-signed-missing-user",
+        "method": "POST",
+        "path": "/api/protocols/proposals/pdp_c344fb09d35174963069ab7b02b4c95848e062d931c219b25d6d3f0cdd57ebb4/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"resolution\":\"explained\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "anonymous",
+        "sessionCase": "signed-missing-user",
+        "session": {
+          "case": "signed-missing-user",
+          "userId": "g1-user-deleted",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "0596f369924b9c8e97061767be36bd17565fc628a3410cbc01a4f414c124818c",
+        "status": 401,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-monitoring-EDITOR-open-forbidden-anonymous",
+        "method": "POST",
+        "path": "/api/monitoring/proposals/cmvie54gs00057kobehw5u5s2/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "monitoring-EDITOR-open-forbidden"
+        },
+        "requestBody": "{\"resolution\":\"resolved-no-action\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 401,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-monitoring-EDITOR-open-forbidden-A-only",
+        "method": "POST",
+        "path": "/api/monitoring/proposals/cmvie54gs00057kobehw5u5s2/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "monitoring-EDITOR-open-forbidden"
+        },
+        "requestBody": "{\"resolution\":\"resolved-no-action\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Editor role required to resolve proposals.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-monitoring-EDITOR-open-forbidden-B-only",
+        "method": "POST",
+        "path": "/api/monitoring/proposals/cmvie54gs00057kobehw5u5s2/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "monitoring-EDITOR-open-forbidden"
+        },
+        "requestBody": "{\"resolution\":\"resolved-no-action\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Editor role required to resolve proposals.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-monitoring-EDITOR-open-forbidden-A+B",
+        "method": "POST",
+        "path": "/api/monitoring/proposals/cmvie54gs00057kobehw5u5s2/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "monitoring-EDITOR-open-forbidden"
+        },
+        "requestBody": "{\"resolution\":\"resolved-no-action\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Editor role required to resolve proposals.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-monitoring-EDITOR-first-EDITOR",
+        "method": "POST",
+        "path": "/api/monitoring/proposals/cmvie54gs00057kobehw5u5s2/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "monitoring-EDITOR-first"
+        },
+        "requestBody": "{\"resolution\":\"resolved-no-action\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 200,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"status\":\"resolved-no-action\"}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-monitoring-EDITOR-repeat-anonymous",
+        "method": "POST",
+        "path": "/api/monitoring/proposals/cmvie54gs00057kobehw5u5s2/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "monitoring-EDITOR-repeat"
+        },
+        "requestBody": "{\"resolution\":\"resolved-no-action\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 401,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-monitoring-EDITOR-missing-anonymous",
+        "method": "POST",
+        "path": "/api/monitoring/proposals/g1-resolver-missing/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "monitoring-EDITOR-missing"
+        },
+        "requestBody": "{\"resolution\":\"resolved-no-action\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 401,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-monitoring-EDITOR-invalid-anonymous",
+        "method": "POST",
+        "path": "/api/monitoring/proposals/cmvie54gs00057kobehw5u5s2/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "monitoring-EDITOR-invalid"
+        },
+        "requestBody": "{}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 401,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-monitoring-EDITOR-foreign-anonymous",
+        "method": "POST",
+        "path": "/api/monitoring/proposals/cmvie54gs00057kobehw5u5s2/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://foreign.g1.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "monitoring-EDITOR-foreign"
+        },
+        "requestBody": "{\"resolution\":\"resolved-no-action\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"A matching same-origin request is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-monitoring-EDITOR-repeat-A-only",
+        "method": "POST",
+        "path": "/api/monitoring/proposals/cmvie54gs00057kobehw5u5s2/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "monitoring-EDITOR-repeat"
+        },
+        "requestBody": "{\"resolution\":\"resolved-no-action\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Editor role required to resolve proposals.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-monitoring-EDITOR-missing-A-only",
+        "method": "POST",
+        "path": "/api/monitoring/proposals/g1-resolver-missing/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "monitoring-EDITOR-missing"
+        },
+        "requestBody": "{\"resolution\":\"resolved-no-action\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Editor role required to resolve proposals.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-monitoring-EDITOR-invalid-A-only",
+        "method": "POST",
+        "path": "/api/monitoring/proposals/cmvie54gs00057kobehw5u5s2/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "monitoring-EDITOR-invalid"
+        },
+        "requestBody": "{}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Invalid request payload.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-monitoring-EDITOR-foreign-A-only",
+        "method": "POST",
+        "path": "/api/monitoring/proposals/cmvie54gs00057kobehw5u5s2/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://foreign.g1.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "monitoring-EDITOR-foreign"
+        },
+        "requestBody": "{\"resolution\":\"resolved-no-action\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"A matching same-origin request is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-monitoring-EDITOR-repeat-B-only",
+        "method": "POST",
+        "path": "/api/monitoring/proposals/cmvie54gs00057kobehw5u5s2/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "monitoring-EDITOR-repeat"
+        },
+        "requestBody": "{\"resolution\":\"resolved-no-action\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Editor role required to resolve proposals.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-monitoring-EDITOR-missing-B-only",
+        "method": "POST",
+        "path": "/api/monitoring/proposals/g1-resolver-missing/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "monitoring-EDITOR-missing"
+        },
+        "requestBody": "{\"resolution\":\"resolved-no-action\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Editor role required to resolve proposals.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-monitoring-EDITOR-invalid-B-only",
+        "method": "POST",
+        "path": "/api/monitoring/proposals/cmvie54gs00057kobehw5u5s2/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "monitoring-EDITOR-invalid"
+        },
+        "requestBody": "{}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Invalid request payload.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-monitoring-EDITOR-foreign-B-only",
+        "method": "POST",
+        "path": "/api/monitoring/proposals/cmvie54gs00057kobehw5u5s2/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://foreign.g1.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "monitoring-EDITOR-foreign"
+        },
+        "requestBody": "{\"resolution\":\"resolved-no-action\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"A matching same-origin request is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-monitoring-EDITOR-repeat-A+B",
+        "method": "POST",
+        "path": "/api/monitoring/proposals/cmvie54gs00057kobehw5u5s2/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "monitoring-EDITOR-repeat"
+        },
+        "requestBody": "{\"resolution\":\"resolved-no-action\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Editor role required to resolve proposals.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-monitoring-EDITOR-missing-A+B",
+        "method": "POST",
+        "path": "/api/monitoring/proposals/g1-resolver-missing/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "monitoring-EDITOR-missing"
+        },
+        "requestBody": "{\"resolution\":\"resolved-no-action\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Editor role required to resolve proposals.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-monitoring-EDITOR-invalid-A+B",
+        "method": "POST",
+        "path": "/api/monitoring/proposals/cmvie54gs00057kobehw5u5s2/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "monitoring-EDITOR-invalid"
+        },
+        "requestBody": "{}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Invalid request payload.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-monitoring-EDITOR-foreign-A+B",
+        "method": "POST",
+        "path": "/api/monitoring/proposals/cmvie54gs00057kobehw5u5s2/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://foreign.g1.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "monitoring-EDITOR-foreign"
+        },
+        "requestBody": "{\"resolution\":\"resolved-no-action\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"A matching same-origin request is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-monitoring-EDITOR-repeat-EDITOR",
+        "method": "POST",
+        "path": "/api/monitoring/proposals/cmvie54gs00057kobehw5u5s2/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "monitoring-EDITOR-repeat"
+        },
+        "requestBody": "{\"resolution\":\"resolved-no-action\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 409,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"conflict\",\"message\":\"Proposal not found or already resolved.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-monitoring-EDITOR-missing-EDITOR",
+        "method": "POST",
+        "path": "/api/monitoring/proposals/g1-resolver-missing/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "monitoring-EDITOR-missing"
+        },
+        "requestBody": "{\"resolution\":\"resolved-no-action\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 409,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"conflict\",\"message\":\"Proposal not found or already resolved.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-monitoring-EDITOR-invalid-EDITOR",
+        "method": "POST",
+        "path": "/api/monitoring/proposals/cmvie54gs00057kobehw5u5s2/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "monitoring-EDITOR-invalid"
+        },
+        "requestBody": "{}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Invalid request payload.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-monitoring-EDITOR-foreign-EDITOR",
+        "method": "POST",
+        "path": "/api/monitoring/proposals/cmvie54gs00057kobehw5u5s2/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://foreign.g1.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "monitoring-EDITOR-foreign"
+        },
+        "requestBody": "{\"resolution\":\"resolved-no-action\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"A matching same-origin request is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-monitoring-EDITOR-repeat-ADMIN",
+        "method": "POST",
+        "path": "/api/monitoring/proposals/cmvie54gs00057kobehw5u5s2/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "monitoring-EDITOR-repeat"
+        },
+        "requestBody": "{\"resolution\":\"resolved-no-action\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 409,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"conflict\",\"message\":\"Proposal not found or already resolved.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-monitoring-EDITOR-missing-ADMIN",
+        "method": "POST",
+        "path": "/api/monitoring/proposals/g1-resolver-missing/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "monitoring-EDITOR-missing"
+        },
+        "requestBody": "{\"resolution\":\"resolved-no-action\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 409,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"conflict\",\"message\":\"Proposal not found or already resolved.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-monitoring-EDITOR-invalid-ADMIN",
+        "method": "POST",
+        "path": "/api/monitoring/proposals/cmvie54gs00057kobehw5u5s2/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "monitoring-EDITOR-invalid"
+        },
+        "requestBody": "{}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Invalid request payload.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-monitoring-EDITOR-foreign-ADMIN",
+        "method": "POST",
+        "path": "/api/monitoring/proposals/cmvie54gs00057kobehw5u5s2/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://foreign.g1.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "monitoring-EDITOR-foreign"
+        },
+        "requestBody": "{\"resolution\":\"resolved-no-action\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"A matching same-origin request is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-monitoring-EDITOR-session-malformed",
+        "method": "POST",
+        "path": "/api/monitoring/proposals/cmvie54gs00057kobehw5u5s2/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"resolution\":\"resolved-no-action\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "anonymous",
+        "sessionCase": "malformed",
+        "session": {
+          "case": "malformed",
+          "value": "g1-malformed-session-value"
+        },
+        "cookieSha256": "0b646763360dfbf0b958677056e8f33e616febd688290abe0b8de92864714906",
+        "status": 401,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-monitoring-EDITOR-session-signed-expired",
+        "method": "POST",
+        "path": "/api/monitoring/proposals/cmvie54gs00057kobehw5u5s2/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"resolution\":\"resolved-no-action\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "anonymous",
+        "sessionCase": "signed-expired",
+        "session": {
+          "case": "signed-expired",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-01T00:00:00.000Z"
+        },
+        "cookieSha256": "fa480d7e6f4efdbc8ba7f86a08d94834130d3f13a07c89c44103ce2cc60700c0",
+        "status": 401,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-monitoring-EDITOR-session-tampered",
+        "method": "POST",
+        "path": "/api/monitoring/proposals/cmvie54gs00057kobehw5u5s2/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"resolution\":\"resolved-no-action\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "anonymous",
+        "sessionCase": "tampered",
+        "session": {
+          "case": "tampered",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z",
+          "substitutedUserId": "g1-user-admin"
+        },
+        "cookieSha256": "79f2621dfa5223e7ab82dbc4fa99562464ae7afc1b7afec9bc74f30ffb1e4a43",
+        "status": 401,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-monitoring-EDITOR-session-signed-missing-user",
+        "method": "POST",
+        "path": "/api/monitoring/proposals/cmvie54gs00057kobehw5u5s2/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"resolution\":\"resolved-no-action\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "anonymous",
+        "sessionCase": "signed-missing-user",
+        "session": {
+          "case": "signed-missing-user",
+          "userId": "g1-user-deleted",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "0596f369924b9c8e97061767be36bd17565fc628a3410cbc01a4f414c124818c",
+        "status": 401,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-monitoring-ADMIN-open-forbidden-anonymous",
+        "method": "POST",
+        "path": "/api/monitoring/proposals/cmvie54h8000j7kobzvbdydxa/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "monitoring-ADMIN-open-forbidden"
+        },
+        "requestBody": "{\"resolution\":\"resolved-no-action\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 401,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-monitoring-ADMIN-open-forbidden-A-only",
+        "method": "POST",
+        "path": "/api/monitoring/proposals/cmvie54h8000j7kobzvbdydxa/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "monitoring-ADMIN-open-forbidden"
+        },
+        "requestBody": "{\"resolution\":\"resolved-no-action\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Editor role required to resolve proposals.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-monitoring-ADMIN-open-forbidden-B-only",
+        "method": "POST",
+        "path": "/api/monitoring/proposals/cmvie54h8000j7kobzvbdydxa/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "monitoring-ADMIN-open-forbidden"
+        },
+        "requestBody": "{\"resolution\":\"resolved-no-action\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Editor role required to resolve proposals.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-monitoring-ADMIN-open-forbidden-A+B",
+        "method": "POST",
+        "path": "/api/monitoring/proposals/cmvie54h8000j7kobzvbdydxa/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "monitoring-ADMIN-open-forbidden"
+        },
+        "requestBody": "{\"resolution\":\"resolved-no-action\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Editor role required to resolve proposals.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-monitoring-ADMIN-first-ADMIN",
+        "method": "POST",
+        "path": "/api/monitoring/proposals/cmvie54h8000j7kobzvbdydxa/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "monitoring-ADMIN-first"
+        },
+        "requestBody": "{\"resolution\":\"resolved-no-action\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 200,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"status\":\"resolved-no-action\"}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-monitoring-ADMIN-repeat-anonymous",
+        "method": "POST",
+        "path": "/api/monitoring/proposals/cmvie54h8000j7kobzvbdydxa/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "monitoring-ADMIN-repeat"
+        },
+        "requestBody": "{\"resolution\":\"resolved-no-action\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 401,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-monitoring-ADMIN-missing-anonymous",
+        "method": "POST",
+        "path": "/api/monitoring/proposals/g1-resolver-missing/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "monitoring-ADMIN-missing"
+        },
+        "requestBody": "{\"resolution\":\"resolved-no-action\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 401,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-monitoring-ADMIN-invalid-anonymous",
+        "method": "POST",
+        "path": "/api/monitoring/proposals/cmvie54h8000j7kobzvbdydxa/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "monitoring-ADMIN-invalid"
+        },
+        "requestBody": "{}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 401,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-monitoring-ADMIN-foreign-anonymous",
+        "method": "POST",
+        "path": "/api/monitoring/proposals/cmvie54h8000j7kobzvbdydxa/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://foreign.g1.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "monitoring-ADMIN-foreign"
+        },
+        "requestBody": "{\"resolution\":\"resolved-no-action\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"A matching same-origin request is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-monitoring-ADMIN-repeat-A-only",
+        "method": "POST",
+        "path": "/api/monitoring/proposals/cmvie54h8000j7kobzvbdydxa/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "monitoring-ADMIN-repeat"
+        },
+        "requestBody": "{\"resolution\":\"resolved-no-action\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Editor role required to resolve proposals.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-monitoring-ADMIN-missing-A-only",
+        "method": "POST",
+        "path": "/api/monitoring/proposals/g1-resolver-missing/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "monitoring-ADMIN-missing"
+        },
+        "requestBody": "{\"resolution\":\"resolved-no-action\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Editor role required to resolve proposals.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-monitoring-ADMIN-invalid-A-only",
+        "method": "POST",
+        "path": "/api/monitoring/proposals/cmvie54h8000j7kobzvbdydxa/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "monitoring-ADMIN-invalid"
+        },
+        "requestBody": "{}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Invalid request payload.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-monitoring-ADMIN-foreign-A-only",
+        "method": "POST",
+        "path": "/api/monitoring/proposals/cmvie54h8000j7kobzvbdydxa/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://foreign.g1.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "monitoring-ADMIN-foreign"
+        },
+        "requestBody": "{\"resolution\":\"resolved-no-action\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"A matching same-origin request is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-monitoring-ADMIN-repeat-B-only",
+        "method": "POST",
+        "path": "/api/monitoring/proposals/cmvie54h8000j7kobzvbdydxa/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "monitoring-ADMIN-repeat"
+        },
+        "requestBody": "{\"resolution\":\"resolved-no-action\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Editor role required to resolve proposals.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-monitoring-ADMIN-missing-B-only",
+        "method": "POST",
+        "path": "/api/monitoring/proposals/g1-resolver-missing/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "monitoring-ADMIN-missing"
+        },
+        "requestBody": "{\"resolution\":\"resolved-no-action\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Editor role required to resolve proposals.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-monitoring-ADMIN-invalid-B-only",
+        "method": "POST",
+        "path": "/api/monitoring/proposals/cmvie54h8000j7kobzvbdydxa/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "monitoring-ADMIN-invalid"
+        },
+        "requestBody": "{}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Invalid request payload.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-monitoring-ADMIN-foreign-B-only",
+        "method": "POST",
+        "path": "/api/monitoring/proposals/cmvie54h8000j7kobzvbdydxa/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://foreign.g1.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "monitoring-ADMIN-foreign"
+        },
+        "requestBody": "{\"resolution\":\"resolved-no-action\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"A matching same-origin request is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-monitoring-ADMIN-repeat-A+B",
+        "method": "POST",
+        "path": "/api/monitoring/proposals/cmvie54h8000j7kobzvbdydxa/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "monitoring-ADMIN-repeat"
+        },
+        "requestBody": "{\"resolution\":\"resolved-no-action\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Editor role required to resolve proposals.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-monitoring-ADMIN-missing-A+B",
+        "method": "POST",
+        "path": "/api/monitoring/proposals/g1-resolver-missing/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "monitoring-ADMIN-missing"
+        },
+        "requestBody": "{\"resolution\":\"resolved-no-action\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Editor role required to resolve proposals.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-monitoring-ADMIN-invalid-A+B",
+        "method": "POST",
+        "path": "/api/monitoring/proposals/cmvie54h8000j7kobzvbdydxa/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "monitoring-ADMIN-invalid"
+        },
+        "requestBody": "{}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Invalid request payload.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-monitoring-ADMIN-foreign-A+B",
+        "method": "POST",
+        "path": "/api/monitoring/proposals/cmvie54h8000j7kobzvbdydxa/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://foreign.g1.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "monitoring-ADMIN-foreign"
+        },
+        "requestBody": "{\"resolution\":\"resolved-no-action\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"A matching same-origin request is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-monitoring-ADMIN-repeat-EDITOR",
+        "method": "POST",
+        "path": "/api/monitoring/proposals/cmvie54h8000j7kobzvbdydxa/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "monitoring-ADMIN-repeat"
+        },
+        "requestBody": "{\"resolution\":\"resolved-no-action\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 409,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"conflict\",\"message\":\"Proposal not found or already resolved.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-monitoring-ADMIN-missing-EDITOR",
+        "method": "POST",
+        "path": "/api/monitoring/proposals/g1-resolver-missing/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "monitoring-ADMIN-missing"
+        },
+        "requestBody": "{\"resolution\":\"resolved-no-action\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 409,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"conflict\",\"message\":\"Proposal not found or already resolved.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-monitoring-ADMIN-invalid-EDITOR",
+        "method": "POST",
+        "path": "/api/monitoring/proposals/cmvie54h8000j7kobzvbdydxa/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "monitoring-ADMIN-invalid"
+        },
+        "requestBody": "{}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Invalid request payload.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-monitoring-ADMIN-foreign-EDITOR",
+        "method": "POST",
+        "path": "/api/monitoring/proposals/cmvie54h8000j7kobzvbdydxa/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://foreign.g1.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "monitoring-ADMIN-foreign"
+        },
+        "requestBody": "{\"resolution\":\"resolved-no-action\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"A matching same-origin request is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-monitoring-ADMIN-repeat-ADMIN",
+        "method": "POST",
+        "path": "/api/monitoring/proposals/cmvie54h8000j7kobzvbdydxa/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "monitoring-ADMIN-repeat"
+        },
+        "requestBody": "{\"resolution\":\"resolved-no-action\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 409,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"conflict\",\"message\":\"Proposal not found or already resolved.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-monitoring-ADMIN-missing-ADMIN",
+        "method": "POST",
+        "path": "/api/monitoring/proposals/g1-resolver-missing/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "monitoring-ADMIN-missing"
+        },
+        "requestBody": "{\"resolution\":\"resolved-no-action\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 409,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"conflict\",\"message\":\"Proposal not found or already resolved.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-monitoring-ADMIN-invalid-ADMIN",
+        "method": "POST",
+        "path": "/api/monitoring/proposals/cmvie54h8000j7kobzvbdydxa/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "monitoring-ADMIN-invalid"
+        },
+        "requestBody": "{}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Invalid request payload.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-monitoring-ADMIN-foreign-ADMIN",
+        "method": "POST",
+        "path": "/api/monitoring/proposals/cmvie54h8000j7kobzvbdydxa/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://foreign.g1.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-case": "monitoring-ADMIN-foreign"
+        },
+        "requestBody": "{\"resolution\":\"resolved-no-action\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"A matching same-origin request is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-monitoring-ADMIN-session-malformed",
+        "method": "POST",
+        "path": "/api/monitoring/proposals/cmvie54h8000j7kobzvbdydxa/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"resolution\":\"resolved-no-action\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "anonymous",
+        "sessionCase": "malformed",
+        "session": {
+          "case": "malformed",
+          "value": "g1-malformed-session-value"
+        },
+        "cookieSha256": "0b646763360dfbf0b958677056e8f33e616febd688290abe0b8de92864714906",
+        "status": 401,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-monitoring-ADMIN-session-signed-expired",
+        "method": "POST",
+        "path": "/api/monitoring/proposals/cmvie54h8000j7kobzvbdydxa/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"resolution\":\"resolved-no-action\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "anonymous",
+        "sessionCase": "signed-expired",
+        "session": {
+          "case": "signed-expired",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-01T00:00:00.000Z"
+        },
+        "cookieSha256": "fa480d7e6f4efdbc8ba7f86a08d94834130d3f13a07c89c44103ce2cc60700c0",
+        "status": 401,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-monitoring-ADMIN-session-tampered",
+        "method": "POST",
+        "path": "/api/monitoring/proposals/cmvie54h8000j7kobzvbdydxa/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"resolution\":\"resolved-no-action\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "anonymous",
+        "sessionCase": "tampered",
+        "session": {
+          "case": "tampered",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z",
+          "substitutedUserId": "g1-user-admin"
+        },
+        "cookieSha256": "79f2621dfa5223e7ab82dbc4fa99562464ae7afc1b7afec9bc74f30ffb1e4a43",
+        "status": 401,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "resolver-monitoring-ADMIN-session-signed-missing-user",
+        "method": "POST",
+        "path": "/api/monitoring/proposals/cmvie54h8000j7kobzvbdydxa/resolve",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"resolution\":\"resolved-no-action\",\"note\":\"Synthetic resolution fixture only; no scientific confirmation.\"}",
+        "principal": "anonymous",
+        "sessionCase": "signed-missing-user",
+        "session": {
+          "case": "signed-missing-user",
+          "userId": "g1-user-deleted",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "0596f369924b9c8e97061767be36bd17565fc628a3410cbc01a4f414c124818c",
+        "status": 401,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+        }
+      }
+    ]
+  },
+  "stateSha256": "4ec763fcdce3ea902b31880d27262eb695a2dc31b3c419eeb8d86d64ae082f77",
+  "review": "Independently reviewed native source 102347e: four exact captures, complete native state, Cookie bindings and transitions; review report 70b2ae0bda38988b86b7b249eeb608353b1218b6d7a9a12fc86dfe79ce4559aa. Synthetic conditional proof; mixed producer/resolution clocks retained."
+}

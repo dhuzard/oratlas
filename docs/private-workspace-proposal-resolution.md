@@ -38,9 +38,21 @@ actual admin/public URLs and encoded/decoded passwords: all eight retained files
 and eight escaped-credential controls refused. The original execution is not relabeled as
 having used that later guard. Shared integration uses the already reviewed parent guards.
 
-Shared four-label native comparisons and independent manual golden review remain required.
+Shared four-label native comparisons and independent manual golden review are required acceptance conditions.
 Existing HTTP baselines must remain byte-identical. Any old supplemental state hash update must
 be justified by exactly the twelve added authority metadata entries, with complete public rows,
 all request transitions, fixtures and query traces unchanged. No field may be dropped to obtain
 equality and no candidate is accepted automatically. These methods do not complete G1; rendered
 browser bytes, OAuth successes and forty-six remaining methods stay visible gaps.
+
+The integrated native candidate executed frozen source `102347e` in four empty-schema labels.
+Independent review completed 714 checks plus disclosure controls across 153 retained JSON/log
+files. All ten supplemental programs matched across all four labels; the 1,177-record primary
+capture and all eight pre-existing supplemental HTTP baselines remained exact. Complete public
+rows, fixtures, query traces and transitions were unchanged. Six old state hashes change solely
+for the twelve declared authority metadata entries; known-mutations and synthesis remain exact.
+The two new candidates were manually accepted after that review, changing only their review
+annotations. The independent report SHA-256 is
+`70b2ae0bda38988b86b7b249eeb608353b1218b6d7a9a12fc86dfe79ce4559aa`.
+The candidate run deliberately stopped at the missing independently reviewed baseline gate;
+final-head CI must repeat the complete native matrix against these accepted baselines.
