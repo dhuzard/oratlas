@@ -102,11 +102,13 @@ resolution positive remains a separate obligation with an audit CUID/default-tim
 `PROTOCOL_DOI_PROGRAM` uses basename `protocol-doi.g1.spec.ts`, output variable
 `G1_PROTOCOL_DOI_OUT`, `fixtures/protocol-post-fixtures.sql`, and `.state.json`. The parent must
 reset the six existing base fixtures before loading this supplemental file, independently of every
-other HTTP program. No parent catalog or baseline is changed here. The actual standalone evidence
+other HTTP program. The initial standalone probe changed no parent catalog or baseline; the shared catalog now includes
+this program. The actual standalone evidence
 lives in `/tmp/oratlas-g1-protocol-post-pg`, with protected URLs, native producer output, guarded
 logs, capture/state pairs and all-87-table fixture accounting.
 
-Four-label before/after-empty-private-schema comparisons and independent manual baseline acceptance
-remain parent integration work. Fresh snapshot registration, first proposal resolution, real
+Independent review accepted the four-label before/after-empty-private-schema candidate executed at
+`bef4f82`; manual baseline acceptance changed only review annotations. The final run with reviewed
+disclosure guards and the test snapshot adapter remains pending. Fresh snapshot registration, first proposal resolution, real
 registry/DOI retrieval, scientific validation and the other G1 obligations remain visible gaps.
 This bounded program does not establish complete G1 or a private workspace runtime.

@@ -8,8 +8,9 @@ replay or coverage of first revocation.
 
 The program reuses exactly the previously reviewed 37 worker fixture rows after the six base
 fixtures. No new fixture data, production code, schema, grants, global singleton assignment,
-provider, ID factory or engine hook is added. The shared catalog and reviewed goldens are untouched.
-The declared supplemental descriptor remains unwired pending independent review.
+provider, ID factory or engine hook is added. The initial standalone experiment left the catalog and goldens untouched. The shared catalog now
+includes this descriptor, and independent review accepted its four-label native candidate from
+`bef4f82`. Manual baseline acceptance changed only review annotations.
 
 The independently reviewed AuditDefaultFixture supplies only missing id/createdAt inputs to the
 real native Prisma query extension. The existing platformVersion extension remains active. An
@@ -65,7 +66,7 @@ raw files, all-table parent evidence and retained refused-run observations remai
 `/tmp/oratlas-g1-audit-defaults-pg`. Protected connection files stay local.
 Parent checks cover all 87 inventory tables: setup must add
 exactly the declared worker37 rows without changing any existing row, and each program must add
-only the two expected AuditEvents. Independent four-label lifecycle/golden review and shared
-integration remain pending. First active-credential revocation, fresh credential issuance, other
+only the two expected AuditEvents. Independent four-label lifecycle/golden review is complete for `bef4f82`; a final native run
+with the subsequently reviewed disclosure guards and test snapshot adapter remains pending. First active-credential revocation, fresh credential issuance, other
 metadata-producing models, real providers and populated private-workspace authorization are not
 covered. This program does not pass G1 or its later matrices.

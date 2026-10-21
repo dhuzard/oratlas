@@ -117,8 +117,9 @@ credentials append exactly two native audit rows and leave credentials unchanged
 Only absent AuditEvent id/time inputs are fixed through the separately reviewed
 real Prisma extension; all native constraints and existing grants remain in force.
 See the [protocol/DOI probe](private-workspace-protocol-doi-probe.md) and
-[audit-revocation probe](private-workspace-audit-revocations.md). Their integrated
-four-label evidence and manual golden acceptance remain required.
+[audit-revocation probe](private-workspace-audit-revocations.md). Independent review accepted both four-label candidates executed at `bef4f82`; only the two
+review annotations were changed during manual baseline acceptance. The final run with complete
+disclosure guards and batched test snapshots remains required.
 
 ### Layout
 
