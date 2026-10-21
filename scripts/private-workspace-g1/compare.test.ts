@@ -1,4 +1,4 @@
-import { canonicalJson } from "@oratlas/contracts";
+import { canonicalJson } from "../../packages/contracts/src/canonical-json.js";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
