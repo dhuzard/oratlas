@@ -1,0 +1,56 @@
+{
+  "otherCredentialId": "cmviaklyi00017k3mphr0in6e",
+  "terminalRunId": "cmviakm1700057k3mte36xbc5",
+  "terminalCreatedAt": "2026-10-21T15:53:31.532Z",
+  "terminalCompletedAt": "2026-03-31T23:58:00.000Z",
+  "terminalPacketSha256": "890bdbdfaafb0db8bae2370c838704ff684969413a79160f6e1bd2f89c87bd6e",
+  "existingRunId": "g1-protocol-certification-run",
+  "resultId": "g1-protocol-certification-result",
+  "withdrawnId": "g1-protocol-certification-withdrawn",
+  "resultSha256": "34f8a689f0ca97d58307dbbdfe6128c3e58d145b2172193587f0091fdfd0e8d7",
+  "existingPacketSha256": "890bdbdfaafb0db8bae2370c838704ff684969413a79160f6e1bd2f89c87bd6e",
+  "requests": {
+    "create": {
+      "publicationVersionId": "g1-discovery-version",
+      "certificationProtocolId": "g1-certification-protocol-editorial",
+      "assessmentMode": "human",
+      "idempotencyKey": "g1-protocol-certification-run"
+    },
+    "result": {
+      "conflictOfInterest": {
+        "status": "none-declared"
+      },
+      "criteria": [
+        {
+          "criterionId": "fixture-completeness",
+          "evidenceRefs": [],
+          "rationale": "Synthetic archive field present; no scientific evaluation occurred.",
+          "status": "pass"
+        }
+      ],
+      "independence": {
+        "declared": false,
+        "statement": "Synthetic fixture does not assert independent assessment."
+      },
+      "limitations": ["Synthetic public harness fixture; no external certifier executed."],
+      "outcome": "inconclusive",
+      "packetSha256": "890bdbdfaafb0db8bae2370c838704ff684969413a79160f6e1bd2f89c87bd6e",
+      "provenance": {},
+      "schemaVersion": "1.0.0"
+    },
+    "transition": {
+      "status": "failed",
+      "reason": "Synthetic terminal replay, not a scientific certification."
+    },
+    "lifecycle": {
+      "kind": "withdrawn",
+      "reason": "Synthetic withdrawal: historical assertion stays visible, never a current endorsement."
+    }
+  },
+  "addedRows": {
+    "CertifierCredential": 1,
+    "CertificationRun": 1,
+    "AuditEvent": 2
+  },
+  "primarySetupLastUsedAt": "2026-03-31T23:58:00.000Z"
+}
