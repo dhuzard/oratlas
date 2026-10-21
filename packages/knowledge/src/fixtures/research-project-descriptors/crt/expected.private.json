@@ -1,0 +1,89 @@
+{
+  "schemaVersion": "oratlas.research-project-descriptor-observations/0.1.0",
+  "producer": "computational-review-template",
+  "origin": "captured-producer-output",
+  "producerContract": "research-project-artifacts/0.1",
+  "producerContractPinnedCommit": "3092657a59d27fa14ab2d777568b10e5e5c6a075",
+  "sourceDocumentSha256": "sha256:cdc15cf6c42da13d8d0e17b0a4ecdf7864070b0d87ed12eca70c2fd221bc30e1",
+  "visibility": "private-adapter-output",
+  "accessEffect": "none",
+  "principalAuthorization": "not-performed",
+  "sourceVersionVerification": "not-performed",
+  "project": {
+    "sourceProjectId": "synthetic-project",
+    "researchQuestion": "Synthetic offline review question"
+  },
+  "source": {
+    "provider": "github",
+    "repository": "example/synthetic-review",
+    "declaredCommit": "1111111111111111111111111111111111111111",
+    "declaredVisibility": "private"
+  },
+  "workflow": {
+    "phase": "synthetic-demo",
+    "runId": "offline-run-1"
+  },
+  "artifacts": [
+    {
+      "artifactId": "draft",
+      "path": "files/draft.txt",
+      "sha256": "sha256:ef4afc24f11260a00e93512ad2f40b84a4732a0d246594dacf4b2c5be9aeb702",
+      "byteLength": 29,
+      "kind": "working-draft",
+      "declaredState": "working",
+      "declaredVisibility": "private",
+      "rights": {
+        "license": "CC0-1.0",
+        "redistribution": "allowed"
+      },
+      "clearance": "current",
+      "artifactByteVerification": "not-performed",
+      "crossProjectProcessing": "not-authorized",
+      "generator": null
+    },
+    {
+      "artifactId": "graph",
+      "path": "files/graph.txt",
+      "sha256": "sha256:d5b2a33e9d0af6ecf2bc8e243df11d7e428ca6248e8247bb4227743d14694cac",
+      "byteLength": 31,
+      "kind": "claim-graph",
+      "declaredState": "reviewed",
+      "declaredVisibility": "restricted",
+      "rights": {
+        "license": "CC0-1.0",
+        "redistribution": "allowed"
+      },
+      "clearance": "current",
+      "artifactByteVerification": "not-performed",
+      "crossProjectProcessing": "not-authorized",
+      "generator": null
+    },
+    {
+      "artifactId": "release",
+      "path": "files/release.txt",
+      "sha256": "sha256:e41082c8445f3026292eddadf7ec91e3ba2e0044f768bdc755b809621c545a15",
+      "byteLength": 41,
+      "kind": "reviewed-release",
+      "declaredState": "released",
+      "declaredVisibility": "public",
+      "rights": {
+        "license": "CC0-1.0",
+        "redistribution": "allowed"
+      },
+      "clearance": "current",
+      "artifactByteVerification": "not-performed",
+      "crossProjectProcessing": "not-authorized",
+      "generator": null
+    }
+  ],
+  "creditArtifactIds": [],
+  "report": {
+    "reasonCodes": [
+      "source-permission-not-verified",
+      "source-version-not-verified",
+      "artifact-bytes-not-verified",
+      "processing-not-authorized",
+      "publication-not-authorized"
+    ]
+  }
+}

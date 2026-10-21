@@ -162,3 +162,11 @@ export {
   type GroundingEvalOperationalErrorCode,
   type GroundingEvalOptions,
 } from "./grounding-evaluation.js";
+
+export {
+  adaptCRTProjectDescriptor,
+  researchArtifactIdentity,
+  CRT_PROJECT_DESCRIPTOR_PIN,
+  MAX_PROJECT_DESCRIPTOR_BYTES,
+  ResearchProjectDescriptorError,
+} from "./research-project-descriptors.js";

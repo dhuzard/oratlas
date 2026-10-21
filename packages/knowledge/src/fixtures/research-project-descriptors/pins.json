@@ -1,0 +1,22 @@
+{
+  "producer": "Neuronautix/ComputationalReviewTemplate_trust-knowledge",
+  "commit": "3092657a59d27fa14ab2d777568b10e5e5c6a075",
+  "capture": "tests/fixtures/project-artifacts/expected.private.json",
+  "sourceSchema": "docs/contracts/project-artifacts/v0.1/manifest.schema.json",
+  "syntheticOnly": [
+    "diggypaper.synthetic.private.json",
+    "diggypaper.synthetic.source.json"
+  ],
+  "files": {
+    "crt/descriptor.private.json": "sha256:cdc15cf6c42da13d8d0e17b0a4ecdf7864070b0d87ed12eca70c2fd221bc30e1",
+    "crt/draft.txt": "sha256:ef4afc24f11260a00e93512ad2f40b84a4732a0d246594dacf4b2c5be9aeb702",
+    "crt/expected.private.json": "sha256:6bc5853425851f74a9fc10d5401a606d60c58600a6af92987b7b8e5876426fce",
+    "crt/graph.txt": "sha256:d5b2a33e9d0af6ecf2bc8e243df11d7e428ca6248e8247bb4227743d14694cac",
+    "crt/manifest.schema.json": "sha256:7fbb89653fa1bb632687ab9dc4edb700966438d5560f660728bdfec8e4c23f03",
+    "crt/release.txt": "sha256:e41082c8445f3026292eddadf7ec91e3ba2e0044f768bdc755b809621c545a15",
+    "diggypaper.synthetic.private.json": "sha256:d495b07628d5159e89628aaca3f620d32b7245dd322bf741b56fbf60e17d6286",
+    "diggypaper.synthetic.source.json": "sha256:c7fd726cdd3e094054969c20f06cd1716c231adabdaf9049d19a8f19f3e1b8da",
+    "crt/LICENSE": "sha256:328c35c8fb3331688a900b7a3513de86864119238fb32d6e74390ffc21ed0f1c"
+  },
+  "repositoryId": "1292018500"
+}
