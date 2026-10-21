@@ -42,7 +42,12 @@ export type HttpExpectation = {
   /** Exact status. */
   readonly status: number;
   /** Reviewed denial; required exactly when status >= 400 (code/message must match the body). */
-  readonly denial?: { readonly code: string; readonly message: string };
+  readonly denial?: {
+    readonly code: string;
+    readonly message: string;
+    /** Explicit native top-level envelope; omission keeps the existing nested error envelope. */
+    readonly envelope?: "root";
+  };
   readonly json?: readonly JsonCheck[];
   /** Substrings that must not occur in the body (controls and other principals' data). */
   readonly bodyExcludes?: readonly string[];

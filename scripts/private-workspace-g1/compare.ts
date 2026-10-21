@@ -285,9 +285,10 @@ function validateHttp(
   if (record.status === 200 && record.bodyLength === 0) problems.push(`${prefix}: empty 200 body`);
   const body = json || denial ? parseJson(text) : undefined;
   if (denial) {
+    const envelope = denial.envelope === "root" ? "" : "/error";
     problems.push(
-      ...checkJson(prefix, body, { pointer: "/error/code", equals: denial.code }),
-      ...checkJson(prefix, body, { pointer: "/error/message", equals: denial.message }),
+      ...checkJson(prefix, body, { pointer: `${envelope}/code`, equals: denial.code }),
+      ...checkJson(prefix, body, { pointer: `${envelope}/message`, equals: denial.message }),
     );
   }
   for (const check of json ?? []) problems.push(...checkJson(prefix, body, check));
