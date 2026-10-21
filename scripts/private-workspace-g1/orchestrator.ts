@@ -166,11 +166,18 @@ export function runSpec(
     const timer = setTimeout(() => child.kill("SIGKILL"), 10 * 60_000);
     child.on("close", (code) => {
       clearTimeout(timer);
-      const raw = Buffer.concat(chunks).toString("utf8");
+      let texts: string[] | undefined;
+      try {
+        // Decode complete views, never individual chunks. Preserve a native UTF-8 BOM.
+        texts = [chunks, stdout, stderr].map((view) =>
+          new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(Buffer.concat(view)),
+        );
+      } catch {
+        // Malformed native bytes cannot become substituted/normalized log evidence.
+      }
       if (
-        [raw, Buffer.concat(stdout).toString("utf8"), Buffer.concat(stderr).toString("utf8")].some(
-          (text) => parentLogRefused(text, [...secrets, env.DATABASE_URL ?? ""]),
-        )
+        !texts ||
+        texts.some((text) => parentLogRefused(text, [...secrets, env.DATABASE_URL ?? ""]))
       ) {
         const refusal = "[g1] refused native child log evidence\n";
         writeFileSync(logPath, refusal, { mode: 0o600 });
@@ -178,6 +185,7 @@ export function runSpec(
         resolvePromise(false);
         return;
       }
+      const raw = texts[0]!;
       const outputProblems =
         spec === "index-consumer.g1.spec.ts"
           ? indexRunnerOutputProblems(raw, [

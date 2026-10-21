@@ -6,7 +6,11 @@ import { join } from "node:path";
 import { afterEach, expect, it, vi } from "vitest";
 import { parentLogSecrets, parentLogRefused } from "./parent-log-safety.js";
 
-const stub = vi.hoisted(() => ({ raw: "", separate: false }));
+const stub = vi.hoisted(() => ({
+  raw: "",
+  separate: false,
+  bytes: undefined as undefined | { channel: "stdout" | "stderr"; data: Buffer }[],
+}));
 vi.mock("node:child_process", () => ({
   spawn: () => {
     const child = Object.assign(new EventEmitter(), {
@@ -15,6 +19,11 @@ vi.mock("node:child_process", () => ({
       kill: vi.fn(),
     });
     queueMicrotask(() => {
+      if (stub.bytes) {
+        for (const { channel, data } of stub.bytes) child[channel].emit("data", data);
+        child.emit("close", 0);
+        return;
+      }
       const middle = Math.floor(stub.raw.length / 2);
       child.stdout.emit("data", Buffer.from(stub.raw.slice(0, middle)));
       if (stub.separate) {
@@ -120,6 +129,47 @@ it("preserves safe raw child output exactly at file and console sinks", async ()
   expect(await runSpec("public-routes.g1.spec.ts", { NODE_ENV: "test" }, path, urls)).toBe(true);
   expect(readFileSync(path, "utf8")).toBe(stub.raw);
   expect(write.mock.calls.at(-1)?.[0]).toBe(stub.raw);
+});
+
+it("refuses malformed or truncated native UTF-8 on either stream before output sinks", async () => {
+  const write = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+  try {
+    for (const channel of ["stdout", "stderr"] as const) {
+      for (const data of [Buffer.from([0xff]), Buffer.from([0xe2, 0x82])]) {
+        stub.bytes = [{ channel, data }];
+        const path = join(directory, "invalid-utf8.log");
+        expect(await runSpec("public-routes.g1.spec.ts", { NODE_ENV: "test" }, path, urls)).toBe(
+          false,
+        );
+        expect(readFileSync(path, "utf8") === "[g1] refused native child log evidence\n").toBe(
+          true,
+        );
+        expect(write.mock.calls.at(-1)?.[0] === "[g1] refused native child log evidence\n").toBe(
+          true,
+        );
+      }
+    }
+  } finally {
+    stub.bytes = undefined;
+  }
+});
+
+it("preserves valid UTF-8 multibyte sequences split across native buffer chunks and BOM", async () => {
+  const write = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+  const bytes = Buffer.from("\ufeffnative € multibyte 😀\n");
+  try {
+    // Bytewise chunks deliberately split every multibyte encoding, without changing order.
+    stub.bytes = [...bytes].map((byte) => ({
+      channel: "stdout" as const,
+      data: Buffer.from([byte]),
+    }));
+    const path = join(directory, "multibyte.log");
+    expect(await runSpec("public-routes.g1.spec.ts", { NODE_ENV: "test" }, path, urls)).toBe(true);
+    expect(readFileSync(path).equals(bytes)).toBe(true);
+    expect(Buffer.from(write.mock.calls.at(-1)?.[0] as string).equals(bytes)).toBe(true);
+  } finally {
+    stub.bytes = undefined;
+  }
 });
 
 it("pins the native session payload/HMAC contract without importing app runtime", () => {
