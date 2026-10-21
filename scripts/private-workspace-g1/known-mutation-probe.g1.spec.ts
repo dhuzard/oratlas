@@ -1,9 +1,9 @@
+import { createNativeEvidenceGuard, type NativeEvidenceGuard } from "./native-evidence-guard.js";
 import { workerOutputProblems } from "./worker-capture-safety.js";
 import type { prisma as AppPrisma } from "@/lib/db";
 import { writeFileSync } from "node:fs";
 import { beforeAll, afterAll, it, expect, vi } from "vitest";
 import {
-  captureHttp,
   G1_BASE_URL,
   G1_FIXED_CLOCK,
   G1_CAPTURE_VERSION,
@@ -33,6 +33,7 @@ let output: string;
 let label: string;
 let prisma: typeof AppPrisma;
 let sign: SessionSigner;
+let guard: NativeEvidenceGuard;
 let modules: Record<string, Record<string, unknown>>;
 beforeAll(async () => {
   output = assertPublicChildEnv(process.env, KNOWN_MUTATION_PROGRAM.outVariable);
@@ -50,18 +51,20 @@ beforeAll(async () => {
   };
   ({ prisma } = await import("@/lib/db"));
   ({ createSessionToken: sign } = await import("@/lib/session-token"));
+  guard = createNativeEvidenceGuard(sign, process.env.DATABASE_URL!);
 });
 afterAll(async () => {
   await prisma?.$disconnect();
   vi.useRealTimers();
   vi.unstubAllGlobals();
 });
-const snapshot = async () => ({
-  comments: rowsById(await prisma.reviewComment.findMany({ orderBy: { id: "asc" } })),
-  notifications: rowsById(await prisma.notification.findMany({ orderBy: { id: "asc" } })),
-  users: rowsById(await prisma.user.findMany({ orderBy: { id: "asc" } })),
-  audit: rowsById(await prisma.auditEvent.findMany({ orderBy: { id: "asc" } })),
-});
+const snapshot = async () =>
+  guard.value({
+    comments: rowsById(await prisma.reviewComment.findMany({ orderBy: { id: "asc" } })),
+    notifications: rowsById(await prisma.notification.findMany({ orderBy: { id: "asc" } })),
+    users: rowsById(await prisma.user.findMany({ orderBy: { id: "asc" } })),
+    audit: rowsById(await prisma.auditEvent.findMany({ orderBy: { id: "asc" } })),
+  });
 const publicSnapshot = async (): Promise<KnownPublicSqlState> => {
   const state: Record<string, readonly Record<string, unknown>[]> = {};
   for (const table of PUBLIC_SELECT_TABLES) {
@@ -72,7 +75,7 @@ const publicSnapshot = async (): Promise<KnownPublicSqlState> => {
       throw new Error("Invalid public snapshot result");
     state[table] = result[0]!.rows;
   }
-  return state;
+  return guard.value(state);
 };
 it("executes known-ID updates and proves complete rows unchanged after every denial/repeat", async () => {
   // Dedicated program initialized from the six base fixtures. Establish its one read marker
@@ -91,9 +94,11 @@ it("executes known-ID updates and proves complete rows unchanged after every den
   const handler = modules["api/notifications"]!.POST as Handler;
   const beforePrefix = await snapshot();
   const publicBeforePrefix = await publicSnapshot();
+  guard.cookie(prefix.headers.get("cookie"));
   const prefixResponse = await invokeRouteHandler(prefix, "/api/notifications/route", () =>
     handler(prefix),
   );
+  await guard.response(prefixResponse);
   expect(prefixResponse.status).toBe(200);
   expect(await prefixResponse.json()).toEqual({ status: "read" });
   const initial = await snapshot();
@@ -122,6 +127,7 @@ it("executes known-ID updates and proves complete rows unchanged after every den
       ...(body === null ? {} : { body }),
     });
     const route = modules[scenario.route]?.[scenario.method] as Handler;
+    guard.cookie(request.headers.get("cookie"));
     const response = await invokeRouteHandler(request, `/${scenario.route}/route`, () =>
       route(
         request,
@@ -129,7 +135,7 @@ it("executes known-ID updates and proves complete rows unchanged after every den
       ),
     );
     records.push(
-      await captureHttp(
+      await guard.capture(
         {
           id: scenario.id,
           method: scenario.method,
@@ -175,7 +181,6 @@ it("executes known-ID updates and proves complete rows unchanged after every den
     clock: G1_FIXED_CLOCK,
     records,
   };
-  expect(validateCapture(capture, KNOWN_MUTATION_SCENARIOS, sign)).toEqual([]);
   const stateEvidence = {
     tables: PUBLIC_SELECT_TABLES,
     beforePrefix,
@@ -186,6 +191,8 @@ it("executes known-ID updates and proves complete rows unchanged after every den
   };
   if (workerOutputProblems(JSON.stringify(stateEvidence)).length)
     throw new Error("Worker capability state disclosure refused");
+  guard.value([capture, stateEvidence]);
+  expect(validateCapture(capture, KNOWN_MUTATION_SCENARIOS, sign)).toEqual([]);
   writeFileSync(output, JSON.stringify(capture, null, 2) + "\n", { mode: 0o600 });
   writeFileSync(output + ".states.json", JSON.stringify(stateEvidence, null, 2) + "\n", {
     mode: 0o600,

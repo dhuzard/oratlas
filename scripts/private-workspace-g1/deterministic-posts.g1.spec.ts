@@ -1,3 +1,4 @@
+import { createNativeEvidenceGuard, type NativeEvidenceGuard } from "./native-evidence-guard.js";
 import { writeFileSync } from "node:fs";
 import { beforeAll, afterAll, it, expect, vi } from "vitest";
 import type { prisma as AppPrisma } from "@/lib/db";
@@ -6,7 +7,6 @@ import {
   G1_BASE_URL,
   G1_FIXED_CLOCK,
   G1_CAPTURE_VERSION,
-  captureHttp,
   bodyText,
   type HttpRecord,
   type CaptureFile,
@@ -34,6 +34,7 @@ let out: string;
 let label: string;
 let prisma: typeof AppPrisma;
 let sign: SessionSigner;
+let guard: NativeEvidenceGuard;
 let handlers: Record<string, Handler>;
 let attempts = 0;
 let authorityScope: { roleContract: string; tables: unknown[]; columns: unknown[] };
@@ -58,6 +59,7 @@ beforeAll(async () => {
   ]);
   prisma = db.prisma;
   sign = session.createSessionToken;
+  guard = createNativeEvidenceGuard(sign, process.env.DATABASE_URL!);
   handlers = {
     "api/discuss": discuss.POST,
     "api/federation/inbox": inbox.POST,
@@ -90,6 +92,7 @@ beforeAll(async () => {
     },
     include: { sourceClaim: { include: { reviewVersion: { include: { review: true } } } } },
   });
+  guard.value(controls);
   expect(controls).toHaveLength(2);
   for (const row of controls) {
     expect(row.sourceClaim).not.toBeNull();
@@ -124,7 +127,7 @@ beforeAll(async () => {
  'privateUsage',CASE WHEN to_regnamespace('private_ws') IS NULL THEN false ELSE has_schema_privilege(session_user,'private_ws','USAGE') END,
  'privateCreate',CASE WHEN to_regnamespace('private_ws') IS NULL THEN false ELSE has_schema_privilege(session_user,'private_ws','CREATE') END,
  'tables',${tablePrivilegesSql("session_user")},'columns',${columnPrivilegesSql("session_user")}) AS evidence`);
-  const posture = rows[0]!.evidence;
+  const posture = guard.value(rows[0]!.evidence);
   expect(posture.user).toBe(new URL(process.env.DATABASE_URL!).username);
   expect(posture.current).toBe(posture.user);
   expect(posture.privileged).toBe(false);
@@ -162,7 +165,7 @@ async function snapshot(): Promise<KnownPublicSqlState> {
     );
     result[table] = rows[0]!.rows;
   }
-  return result;
+  return guard.value(result);
 }
 it("captures native deterministic discussion and exact federation replays with unchanged complete public state", async () => {
   const before = await snapshot();
@@ -180,6 +183,7 @@ it("captures native deterministic discussion and exact federation replays with u
     if (request.headers.get("cookie") !== (cookie ?? null))
       throw new Error("Actual cookie differs from synthetic session recipe");
     const actualCookie = request.headers.get("cookie");
+    guard.cookie(request.headers.get("cookie"));
     const response = await invokeRouteHandler(request, `/${scenario.route}/route`, () =>
       handlers[scenario.route]!(
         request,
@@ -187,7 +191,7 @@ it("captures native deterministic discussion and exact federation replays with u
       ),
     );
     records.push(
-      await captureHttp(
+      await guard.capture(
         {
           id: scenario.id,
           method: "POST",
@@ -221,7 +225,6 @@ it("captures native deterministic discussion and exact federation replays with u
     clock: G1_FIXED_CLOCK,
     records,
   };
-  expect(validateCapture(capture, DETERMINISTIC_POST_SCENARIOS, sign)).toEqual([]);
   const state = {
     authorityScope,
     tables: PUBLIC_SELECT_TABLES,
@@ -232,6 +235,8 @@ it("captures native deterministic discussion and exact federation replays with u
   };
   if (workerOutputProblems(JSON.stringify(state)).length)
     throw new Error("Worker capability state disclosure refused");
+  guard.value([capture, state]);
+  expect(validateCapture(capture, DETERMINISTIC_POST_SCENARIOS, sign)).toEqual([]);
   writeFileSync(out, JSON.stringify(capture, null, 2) + "\n", { mode: 0o600 });
   writeFileSync(out + ".state.json", JSON.stringify(state, null, 2) + "\n", { mode: 0o600 });
 }, 120_000);

@@ -1,7 +1,7 @@
+import { createNativeEvidenceGuard, type NativeEvidenceGuard } from "./native-evidence-guard.js";
 import { writeFileSync } from "node:fs";
 import { afterAll, beforeAll, expect, it, vi } from "vitest";
 import {
-  captureHttp,
   G1_BASE_URL,
   G1_FIXED_CLOCK,
   G1_CAPTURE_VERSION,
@@ -21,6 +21,7 @@ type Handler = (
 ) => Response | Promise<Response>;
 let out: string;
 let sign: SessionSigner;
+let guard: NativeEvidenceGuard;
 let disconnect: () => Promise<void>;
 let modules: Record<string, Record<string, unknown>>;
 beforeAll(async () => {
@@ -39,6 +40,7 @@ beforeAll(async () => {
   };
   const [token, db] = await Promise.all([import("@/lib/session-token"), import("@/lib/db")]);
   sign = token.createSessionToken;
+  guard = createNativeEvidenceGuard(sign, process.env.DATABASE_URL!);
   disconnect = () => db.prisma.$disconnect();
 });
 afterAll(async () => {
@@ -60,13 +62,14 @@ it("captures populated native editorial/federation reads and role/visibility con
     const context = scenario.params
       ? { params: Promise.resolve({ ...scenario.params }) }
       : undefined;
+    guard.cookie(request.headers.get("cookie"));
     const response = await invokeRouteHandler(request, `/${scenario.route}/route`, () =>
       handler(request, context),
     );
     if (scenario.method === "OPTIONS")
       expect(response.headers.has("access-control-allow-origin")).toBe(false);
     records.push(
-      await captureHttp(
+      await guard.capture(
         {
           id: scenario.id,
           method: scenario.method,
@@ -89,6 +92,8 @@ it("captures populated native editorial/federation reads and role/visibility con
     clock: G1_FIXED_CLOCK,
     records,
   };
-  writeFileSync(out, `${JSON.stringify(capture, null, 2)}\n`, { mode: 0o600 });
+  guard.value(capture);
+  guard.value(capture);
   expect(validateCapture(capture, EDITORIAL_READ_SCENARIOS, sign)).toEqual([]);
+  writeFileSync(out, `${JSON.stringify(capture, null, 2)}\n`, { mode: 0o600 });
 });

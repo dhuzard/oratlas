@@ -1,10 +1,10 @@
+import { createNativeEvidenceGuard, type NativeEvidenceGuard } from "./native-evidence-guard.js";
 import { workerAuthorityHeaders, workerAuthorityDigests } from "./worker-authority.js";
 import { capabilityHeaderProblems } from "./worker-capture-safety.js";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import {
-  captureHttp,
   deterministicJson,
   G1_BASE_URL,
   G1_CAPTURE_VERSION,
@@ -171,6 +171,7 @@ let modules: Map<string, RouteModule>;
 let loaders: { sitemap: () => Promise<unknown>; robots: () => unknown };
 let prisma: Prisma;
 let sign: SessionSigner;
+let guard: NativeEvidenceGuard;
 
 beforeAll(async () => {
   config = captureConfig();
@@ -200,6 +201,7 @@ beforeAll(async () => {
   loaders = { sitemap: sitemap.default, robots: robots.default };
   prisma = db.prisma as unknown as Prisma;
   sign = token.createSessionToken;
+  guard = createNativeEvidenceGuard(sign, process.env.DATABASE_URL!);
 });
 
 afterAll(async () => {
@@ -253,12 +255,13 @@ async function runHttp(scenario: HttpScenario, earlier: Map<string, CaptureRecor
   if (!handler)
     throw new Error(`${scenario.id}: no ${scenario.method} handler for ${scenario.route}`);
   const context = scenario.params ? { params: Promise.resolve({ ...scenario.params }) } : undefined;
+  guard.cookie(request.headers.get("cookie"));
   const response = await invokeRouteHandler(
     request,
     `/${scenario.route}/route`,
     async () => (await handler(request, context)) as Response,
   );
-  return captureHttp(
+  return guard.capture(
     {
       ...captured,
       ...(scenario.workerAuthority
@@ -291,6 +294,7 @@ async function stateProjection(): Promise<StateProjection> {
       },
     }),
   ]);
+  guard.value([users, notifications, certifiers, audit]);
   const events = audit.map((event) => ({
     actorId: (event.actorId as string | null) ?? null,
     action: event.action as string,
@@ -347,7 +351,7 @@ async function runProgram(): Promise<CaptureRecord[]> {
         const output =
           scenario.loader === "app/sitemap.ts" ? await loaders.sitemap() : loaders.robots();
         record = {
-          ...textRecord("metadata-loader", scenario.id, deterministicJson(output)),
+          ...textRecord("metadata-loader", scenario.id, deterministicJson(guard.value(output))),
           loader: scenario.loader,
         };
       } else {
@@ -359,7 +363,7 @@ async function runProgram(): Promise<CaptureRecord[]> {
   } finally {
     vi.useRealTimers();
   }
-  return records;
+  return guard.value(records);
 }
 
 describe("G1 T-PUB scenario program (restricted public role, real handlers in a Next request context)", () => {
@@ -371,10 +375,11 @@ describe("G1 T-PUB scenario program (restricted public role, real handlers in a 
       clock: G1_FIXED_CLOCK,
       records: await runProgram(),
     };
-    mkdirSync(dirname(config.out), { recursive: true });
-    writeFileSync(config.out, `${JSON.stringify(capture, null, 2)}\n`, { mode: 0o600 });
-    // No request context survives the program.
+    guard.value(capture);
+    // No request context survives the program; validate before creating a retained candidate.
     expect(activeNextStores()).toEqual({ work: false, workUnit: false });
     expect(validateCapture(capture, SCENARIOS, sign)).toEqual([]);
+    mkdirSync(dirname(config.out), { recursive: true });
+    writeFileSync(config.out, `${JSON.stringify(capture, null, 2)}\n`, { mode: 0o600 });
   });
 });

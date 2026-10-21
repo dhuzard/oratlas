@@ -1,10 +1,10 @@
+import { createNativeEvidenceGuard, type NativeEvidenceGuard } from "./native-evidence-guard.js";
 import type { prisma as AppPrisma } from "@/lib/db";
 import { PLATFORM_VERSION } from "../../packages/config/src/index.js";
 import { writeFileSync } from "node:fs";
 import { performance } from "node:perf_hooks";
 import { afterAll, beforeAll, expect, it, vi } from "vitest";
 import {
-  captureHttp,
   G1_BASE_URL,
   G1_FIXED_CLOCK,
   G1_CAPTURE_VERSION,
@@ -27,6 +27,7 @@ type Handler = (
 let output: string;
 let prisma: typeof AppPrisma;
 let sign: SessionSigner;
+let guard: NativeEvidenceGuard;
 let modules: Record<string, Record<string, unknown>>;
 beforeAll(async () => {
   output = assertPublicChildEnv(process.env, "G1_FRESH_REMOVAL_OUT");
@@ -42,6 +43,7 @@ beforeAll(async () => {
   };
   ({ prisma } = await import("@/lib/db"));
   ({ createSessionToken: sign } = await import("@/lib/session-token"));
+  guard = createNativeEvidenceGuard(sign, process.env.DATABASE_URL!);
 });
 afterAll(async () => {
   await prisma?.$disconnect();
@@ -49,12 +51,13 @@ afterAll(async () => {
   vi.unstubAllGlobals();
 });
 const epochNow = () => performance.timeOrigin + performance.now();
-const snapshot = async () => ({
-  comments: await prisma.reviewComment.findMany({ orderBy: { id: "asc" } }),
-  notifications: await prisma.notification.findMany({ orderBy: { id: "asc" } }),
-  users: await prisma.user.findMany({ orderBy: { id: "asc" } }),
-  audit: await prisma.auditEvent.findMany({ orderBy: { id: "asc" } }),
-});
+const snapshot = async () =>
+  guard.value({
+    comments: await prisma.reviewComment.findMany({ orderBy: { id: "asc" } }),
+    notifications: await prisma.notification.findMany({ orderBy: { id: "asc" } }),
+    users: await prisma.user.findMany({ orderBy: { id: "asc" } }),
+    audit: await prisma.auditEvent.findMany({ orderBy: { id: "asc" } }),
+  });
 it("retains raw native clocks and audit identity while observing three real soft-deletion transitions", async () => {
   const initial = await snapshot();
   const records: HttpRecord[] = [];
@@ -69,13 +72,14 @@ it("retains raw native clocks and audit identity while observing three real soft
     });
     const handler = modules[scenario.route]?.[scenario.method] as Handler;
     const beforeEpochMs = epochNow();
+    guard.cookie(request.headers.get("cookie"));
     const response = await invokeRouteHandler(request, `/${scenario.route}/route`, () =>
       handler(request, { params: Promise.resolve({ ...scenario.params }) }),
     );
     const after = await snapshot();
     const afterEpochMs = epochNow();
     records.push(
-      await captureHttp(
+      await guard.capture(
         {
           id: scenario.id,
           method: scenario.method,
@@ -168,6 +172,9 @@ it("retains raw native clocks and audit identity while observing three real soft
     clock: G1_FIXED_CLOCK,
     records,
   };
+  guard.value(capture);
+  guard.value({ initial, observations });
+  expect(validateCapture(capture, FRESH_REMOVAL_SCENARIOS, sign)).toEqual([]);
   writeFileSync(output, JSON.stringify(capture, null, 2) + "\n", { mode: 0o600 });
   writeFileSync(
     output + ".native.json",
@@ -178,5 +185,4 @@ it("retains raw native clocks and audit identity while observing three real soft
     ) + "\n",
     { mode: 0o600 },
   );
-  expect(validateCapture(capture, FRESH_REMOVAL_SCENARIOS, sign)).toEqual([]);
 });
