@@ -64,6 +64,12 @@ remain technical proposals for review, not implemented persistence.
 | `issued_at`, `expires_at`       | timestamptz NOT NULL; `expires_at > issued_at`                                          |
 | `revoked_at`, `revoked_by_kind` | nullable; `revoked_at` written once (trigger or conditional `UPDATE … WHERE … IS NULL`) |
 
+Instance id, principal binding, epoch-at-issue and issue time are immutable in
+the future adapter/schema. Never refresh an old instance to a new epoch; mint a
+new instance after reauthentication instead. Expiry cannot be extended beyond
+the original seven-day maximum. These are storage invariants to implement and
+test, not claims that the disconnected snapshot validator enforces write access.
+
 Cookie v2 (proposed, separate versioned reader; v1 reader untouched) carries the instance id plus
 issue time and HMAC. The cookie is authentication evidence; the row is authority.
 
@@ -109,11 +115,25 @@ the principal row first, then sessions ascending. Never lock backwards, so no cy
 actors. `lock_timeout` and `statement_timeout` are set `LOCAL` and bounded; values are an
 operations choice, not invented here. A timeout aborts the tx and surfaces as `unavailable`.
 
+**Authoritative session validity (every stage, under these locks).** Re-read the
+principal and session from the authoritative primary: both must exist; the
+session must belong to that principal; the principal must be enabled;
+`session.authz_epoch_at_issue` must equal the current `principal.authz_epoch`;
+the session must be nonrevoked and unexpired at the current DB clock. The
+flow/receipt tuple, principal and session binding must also match where present,
+and all applicable flow/receipt/operation deadlines must hold. An old snapshot,
+matching cookie signature or a row's mere existence is never sufficient. Apply
+this predicate in begin, consume, finalize and reconciliation; epoch bumps and
+principal disablement invalidate pending effects even if the session row was
+not individually marked revoked. No such database adapter exists yet.
+
 **Step A: `begin` (`insertFresh`).** One tx: lock principal and session `FOR SHARE`; require
-session not revoked, `expires_at > clock_timestamp()`; `INSERT` flow, treat `23505` on
+the full authoritative validity predicate above, including current epoch and enabled principal;
+`INSERT` flow, treat `23505` on
 `state_digest` as `collision`. Flow `expires_at = min(issued + flowTtl, session.expires_at)`.
 
-**Step B: consume, then exchange.** One short tx: take the same locks; one conditional statement:
+**Step B: consume, then exchange.** One short tx: take the same locks; enforce the
+full authoritative session validity predicate, then execute one conditional statement:
 `UPDATE identity_link_flow SET consumed_at = clock_timestamp() WHERE state_digest = $d AND
 namespace_key/tuple/principal/session all equal AND consumed_at IS NULL AND expires_at >
 clock_timestamp() RETURNING …`; zero rows ⇒ `rejected` and nothing changes. In the same tx insert
@@ -127,7 +147,8 @@ That gap is unresolved and is an activation blocker (§5).
 **Step C: finalize.** One bounded tx, after the exchange:
 
 1. Lock principal then session `FOR SHARE`; re-read both under the lock (a read taken before is
-   never trusted). Missing/deleted principal, `revoked_at` set, or expired ⇒ write terminal
+   never trusted). Enforce the full authoritative validity predicate, including enabled principal,
+   session ownership and equality of the current epoch. Any invalid condition ⇒ write terminal
    `rejected`, commit, return `denied`.
 2. `SELECT … FROM identity_link_receipt WHERE receipt_digest = $r FOR UPDATE`; require
    unterminated, with key, tuple, principal and session equal to the request; assertion tuple equals
@@ -165,6 +186,16 @@ finalizing request still holds the raw receipt) **through the same locks as fina
 conflicts with the original finalizer, so the reconciler either waits for the original to commit or
 abort, or times out and stays `unavailable`. Only the state re-read **after acquiring the receipt
 lock** counts:
+
+Enforce the same authoritative principal/session validity and request binding
+under these locks before reconciliation can return a result or retry an effect.
+If the principal is disabled, the epoch moved, the session is revoked/expired or
+binding is invalid, return `denied` without releasing a prior outcome. An
+internal reconciliation of a historical commit is not authorization to expose
+that result to an invalid session. A missing row or uncertain lock/commit state
+remains `unavailable`. Retrying finalize additionally requires all current
+flow/receipt/operation deadlines; a historical terminal receipt is not a fresh
+effect permit.
 
 - terminal `linked`/`already-linked`/`rejected`/`conflict` ⇒ report that.
 - still unterminated, so the original finished without effect (or never ran): if past `expires_at`,
