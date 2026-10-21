@@ -1,7 +1,7 @@
 # Identity persistence and session-instance design (S1) — reviewed durable-identity component
 
 **Status: PROPOSED DURABLE-IDENTITY COMPONENT design, independently reviewed on 2026-10-20;
-owner policy choices remain open. It is NOT a complete S1 production or HTTP design, and full S1
+detailed retention/lifecycle policy choices remain open. It is NOT a complete S1 production or HTTP design, and full S1
 remains incomplete.** It specifies the durable transaction protocol only. It does not authorize any HTTP
 callback result, fresh-read endpoint or provider-adapter wiring, and it contains no response-release
 or provider-exchange-start ordering contract (§5, which records those as activation blockers). It is
@@ -9,7 +9,10 @@ not owner-approved schema or implemented persistence. Independent re-review foun
 intrinsic blocker/correctness/regression finding in the durable protocol; that is not validation
 of the missing §5 contracts or production safety. The owner approved I1, I2, I3 and
 ADR §14/§15 on 2026-10-20 and _commissioned_ this design (S1); commissioning is not approval of
-anything below. D11 stays provisional; I4 retention and identifier-reuse details are pending. The
+anything below. The 2026-10-21 [owner follow-up](private-workspace-owner-decisions.md#follow-up-decisions-approved-2026-10-21)
+selects server-side session instances plus epochs and the seven-day maximum,
+with local/CI synthetic-only development. D11 stays provisional; detailed I4
+retention and identifier-reuse rules remain pending. The
 G1 PostgreSQL harness is partial and G1 is not passed. Nothing here changes code, schema or config.
 
 Baseline: `1cb74a4`. Inputs: [identity-link foundations](identity-link-foundations.md),
@@ -49,9 +52,9 @@ String/enum conventions follow CLAUDE.md (String columns, contracts-validated, P
 
 **`session_instance`** (rationale: a binding that is neither cookie nor principal needs a
 server-side identity, and "revoke this session" needs a row to fence; epochs alone are per
-principal and cannot name one session). This is a proposal for review, **not** a claim that D5
-adopted a session table; an alternative is epoch-only (one `user.authz_epoch`/generation, kill all
-sessions, no per-session binding), which cannot satisfy `sessionBinding` as written.
+principal and cannot name one session). D5 originally did not choose a session table; the 2026-10-21 owner follow-up
+now selects server-side instances plus epochs. The concrete schema and adapter
+remain technical proposals for review, not implemented persistence.
 
 | Column                          | Constraint / note                                                                       |
 | ------------------------------- | --------------------------------------------------------------------------------------- |
@@ -60,6 +63,12 @@ sessions, no per-session binding), which cannot satisfy `sessionBinding` as writ
 | `authz_epoch_at_issue`          | integer; valid only while equal to the principal's current epoch (once that exists)     |
 | `issued_at`, `expires_at`       | timestamptz NOT NULL; `expires_at > issued_at`                                          |
 | `revoked_at`, `revoked_by_kind` | nullable; `revoked_at` written once (trigger or conditional `UPDATE … WHERE … IS NULL`) |
+
+Instance id, principal binding, epoch-at-issue and issue time are immutable in
+the future adapter/schema. Never refresh an old instance to a new epoch; mint a
+new instance after reauthentication instead. Expiry cannot be extended beyond
+the original seven-day maximum. These are storage invariants to implement and
+test, not claims that the disconnected snapshot validator enforces write access.
 
 Cookie v2 (proposed, separate versioned reader; v1 reader untouched) carries the instance id plus
 issue time and HMAC. The cookie is authentication evidence; the row is authority.
@@ -106,11 +115,25 @@ the principal row first, then sessions ascending. Never lock backwards, so no cy
 actors. `lock_timeout` and `statement_timeout` are set `LOCAL` and bounded; values are an
 operations choice, not invented here. A timeout aborts the tx and surfaces as `unavailable`.
 
+**Authoritative session validity (every stage, under these locks).** Re-read the
+principal and session from the authoritative primary: both must exist; the
+session must belong to that principal; the principal must be enabled;
+`session.authz_epoch_at_issue` must equal the current `principal.authz_epoch`;
+the session must be nonrevoked and unexpired at the current DB clock. The
+flow/receipt tuple, principal and session binding must also match where present,
+and all applicable flow/receipt/operation deadlines must hold. An old snapshot,
+matching cookie signature or a row's mere existence is never sufficient. Apply
+this predicate in begin, consume, finalize and reconciliation; epoch bumps and
+principal disablement invalidate pending effects even if the session row was
+not individually marked revoked. No such database adapter exists yet.
+
 **Step A: `begin` (`insertFresh`).** One tx: lock principal and session `FOR SHARE`; require
-session not revoked, `expires_at > clock_timestamp()`; `INSERT` flow, treat `23505` on
+the full authoritative validity predicate above, including current epoch and enabled principal;
+`INSERT` flow, treat `23505` on
 `state_digest` as `collision`. Flow `expires_at = min(issued + flowTtl, session.expires_at)`.
 
-**Step B: consume, then exchange.** One short tx: take the same locks; one conditional statement:
+**Step B: consume, then exchange.** One short tx: take the same locks; enforce the
+full authoritative session validity predicate, then execute one conditional statement:
 `UPDATE identity_link_flow SET consumed_at = clock_timestamp() WHERE state_digest = $d AND
 namespace_key/tuple/principal/session all equal AND consumed_at IS NULL AND expires_at >
 clock_timestamp() RETURNING …`; zero rows ⇒ `rejected` and nothing changes. In the same tx insert
@@ -124,7 +147,8 @@ That gap is unresolved and is an activation blocker (§5).
 **Step C: finalize.** One bounded tx, after the exchange:
 
 1. Lock principal then session `FOR SHARE`; re-read both under the lock (a read taken before is
-   never trusted). Missing/deleted principal, `revoked_at` set, or expired ⇒ write terminal
+   never trusted). Enforce the full authoritative validity predicate, including enabled principal,
+   session ownership and equality of the current epoch. Any invalid condition ⇒ write terminal
    `rejected`, commit, return `denied`.
 2. `SELECT … FROM identity_link_receipt WHERE receipt_digest = $r FOR UPDATE`; require
    unterminated, with key, tuple, principal and session equal to the request; assertion tuple equals
@@ -162,6 +186,16 @@ finalizing request still holds the raw receipt) **through the same locks as fina
 conflicts with the original finalizer, so the reconciler either waits for the original to commit or
 abort, or times out and stays `unavailable`. Only the state re-read **after acquiring the receipt
 lock** counts:
+
+Enforce the same authoritative principal/session validity and request binding
+under these locks before reconciliation can return a result or retry an effect.
+If the principal is disabled, the epoch moved, the session is revoked/expired or
+binding is invalid, return `denied` without releasing a prior outcome. An
+internal reconciliation of a historical commit is not authorization to expose
+that result to an invalid session. A missing row or uncertain lock/commit state
+remains `unavailable`. Retrying finalize additionally requires all current
+flow/receipt/operation deadlines; a historical terminal receipt is not a fresh
+effect permit.
 
 - terminal `linked`/`already-linked`/`rejected`/`conflict` ⇒ report that.
 - still unterminated, so the original finished without effect (or never ran): if past `expires_at`,
@@ -217,9 +251,8 @@ State is one-time and expected to reach exactly one exchange across instances be
 conditional row update (§4B). Receipts are bound to tuple, key, principal and session instance by
 the composite FK and re-compared in step C; they are single-use by `terminal_at`. Different keys for
 one tuple need separate flows; the same subject through an alias is one owner. Conflict responses
-are identical in shape for "another principal owns it" and "you hold another subject"; whether
-telling a caller that a subject they just proved they control is already linked elsewhere is
-acceptable is a policy item (§8). Errors from constraint violations are mapped to fixed statuses;
+are identical in shape for "another principal owns it" and "you hold another subject"; the 2026-10-21 owner choice requires a generic conflict without
+identifying another account or the conflicting cause (§8). Errors from constraint violations are mapped to fixed statuses;
 SQL error text and constraint names are never returned or logged with subjects.
 
 ## 7. Unresolved provider/CSRF details
@@ -235,11 +268,14 @@ subject. No platform-admin bypass: administrators have no path to create, move o
 
 Session revocation (logout, revoke, epoch bump) invalidates **pending flows bound to that session**
 via the fence; it does **not** remove existing `identity_link` rows. Invalidating a link
-assertion is a different act and is unspecified: unlink, account deletion, identifier reuse after
-unlink or deletion, history retention, and whether the unique constraints release on those events
-are I3/I4 details still pending. Until decided, the schema has no unlink path and `ON DELETE
-RESTRICT` applies; the system fails closed rather than silently activating or reassigning.
-No automatic account merge ever occurs.
+assertion is a different act. The 2026-10-21 owner follow-up requires reauthentication
+for link/unlink, unlink invalidation of the assertion and affected pending work,
+and immediate access disablement/session revocation on deletion. It prohibits
+automatic account merging and identifier transfer. The concrete invalidation
+representation/adapter is not yet implemented by this proposed schema. Detailed
+history retention, erasure, recovery, identifier reuse and release of uniqueness
+constraints remain pending; `ON DELETE RESTRICT` prevents inventing an immediate
+physical cascade while those decisions are unresolved.
 
 ## 9. Phased migration and rollback (descriptions, not migrations)
 
@@ -262,14 +298,23 @@ No automatic account merge ever occurs.
 Privacy: purge jobs for expired/consumed flows, terminal receipts and `session_instance` rows are
 built but **have no default periods and refuse to run unconfigured**; no number is chosen here (I4
 pending). `identity_link.receipt_id` is `SET NULL` so receipt purge never forces link deletion;
-that choice is itself flagged. Real researcher ORCID iDs are personal data: until D11 (counsel/DPIA)
+that technical choice still needs implementation review. Real researcher ORCID iDs are personal data: until D11 (counsel/DPIA)
 and the applicable G2/G3 gates, use synthetic identifiers only and store no real private content.
 
 ## 10. Policy decisions versus technical choices
 
-**Owner/policy (unresolved):** session table versus epoch-only; retention periods and purge
-triggers; unlink/deletion/identifier-reuse and constraint release; whether to disclose "already
-linked elsewhere"; relationship of verified links to `User.orcid`/`orcidVerifiedAt`; D11.
+**Owner session choice resolved 2026-10-21:** server-side session instances plus
+epochs, seven-day maximum; see the [owner register](private-workspace-owner-decisions.md#follow-up-decisions-approved-2026-10-21).
+Synthetic local/CI development is allowed without choosing retention periods;
+purge refuses missing configuration.
+
+**Owner/policy (still unresolved):** detailed retention/purge triggers, final erasure,
+identifier reuse/recovery and constraint release, plus D11. Approved baseline:
+reauthenticated link/unlink, unlink invalidates the assertion and pending work,
+generic conflicts, manual and verified fields stay separate with verified display
+preferred and mismatch explicit, no automatic merge/transfer, deletion immediately
+disables access and revokes sessions. Concrete field migration and lifecycle
+adapters still need implementation review.
 **Technical (proposed here, for review):** `FOR SHARE` fence and lock order; `READ COMMITTED` with
 `clock_timestamp()` deadline; composite-FK receipt binding; terminal receipt atomic with link;
 PG-only immutability trigger; DB clock as store authority; durable-only scope with release and
@@ -314,3 +359,12 @@ needs D11 confirmation plus G2 and G3; G1 remains not passed until independently
 or live enablement needs G6. Full S1, any route result and live provider verification stay
 blocked until the §5 contracts exist and are reviewed. Retention and D11 positions are unchanged. Nothing here claims verification, trustworthiness, or peer review of
 any identity.
+
+## S1 coordination follow-up (proposed reference topology)
+
+[Protected response and provider-start coordination](identity-effect-coordination-design.md)
+specifies a single service-owned egress/revocation authority, actual handoff
+ordering, ambiguous commit recovery and explicit failover/transport blockers.
+It also records disconnected v2 session snapshot contracts. It does not assert
+that the existing deployment supplies those primitives or remove §5 activation
+blockers without the specified independent review and implementation evidence.
