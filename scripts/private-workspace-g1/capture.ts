@@ -27,7 +27,8 @@ export const G1_RATE_LIMIT = { max: "1000", windowMs: "60000" } as const;
 /** The only header names a reviewed comparison may normalize. */
 export const NORMALIZED_HEADERS: ReadonlySet<string> = new Set(["date", "x-request-id"]);
 
-export type HttpMethod = "GET" | "POST";
+/** Next route-handler methods, including independently inventoried mutation/preflight surfaces. */
+export type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "HEAD" | "OPTIONS";
 
 export type CapturedRequest = {
   readonly id: string;
