@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
-import { existsSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { canonicalJson } from "@oratlas/contracts";
@@ -200,6 +200,18 @@ describe("scientific verification ledger", () => {
         },
       ),
     ).rejects.toMatchObject({ code: "forbidden" });
+    await expect(
+      service.getVerificationInput(run.id, auth, bearer(credential.token, "oratlas_lease_invalid")),
+    ).rejects.toMatchObject({ code: "forbidden" });
+    vi.useFakeTimers({ toFake: ["Date"] });
+    try {
+      vi.setSystemTime(new Date(new Date(claim.leaseExpiresAt).getTime() + 1_000));
+      await expect(service.getVerificationInput(run.id, auth, leased)).rejects.toMatchObject({
+        code: "forbidden",
+      });
+    } finally {
+      vi.useRealTimers();
+    }
     const frozen = await service.getVerificationInput(run.id, auth, leased);
     expect(sha(canonicalJson(frozen.input))).toBe(frozen.sha256);
     expect((frozen.input as { contributors: unknown[] }).contributors).toEqual([]);
@@ -207,7 +219,15 @@ describe("scientific verification ledger", () => {
       await prisma.publicationVersion.findUniqueOrThrow({ where: { id: versionId } }),
     ).not.toHaveProperty("verificationScore");
 
-    const bytes = new TextEncoder().encode(canonicalJson({ recomputedP: 0.00335 }));
+    // Authentic output of the pinned external producer; the input/report contract is
+    // checked separately by scripts/producer-contracts/acceptance.test.ts. This
+    // lifecycle test transfers its exact inert bytes, without claiming a fresh run.
+    const bytes = readFileSync(
+      new URL(
+        "../../../../scripts/producer-contracts/fixtures/verify/report.json",
+        import.meta.url,
+      ),
+    );
     const prepared = await service.prepareVerificationArtifact(
       run.id,
       {

@@ -1,0 +1,46 @@
+{
+  "verificationRunId": "run-1",
+  "schemaVersion": "verification-publication-input/1.0.0",
+  "sha256": "99c5940ef95cd29724185d095b0c11c03d2702b6b170aa56f400ef71239c836f",
+  "profile": "blinded-scientific",
+  "profileVersion": "1.0.0",
+  "capturedAt": "2026-08-25T12:00:00Z",
+  "input": {
+    "schemaVersion": "verification-publication-input/1.0.0",
+    "publication": {
+      "id": "synthetic-publication"
+    },
+    "version": {
+      "id": "synthetic-version"
+    },
+    "captures": [],
+    "content": [
+      {
+        "id": "publication-content:results",
+        "title": "Synthetic result",
+        "role": "results",
+        "sourcePath": "article.md",
+        "publishedUrl": "https://example.test/article/",
+        "representation": "published-structured-text",
+        "text": "Results: t(38) = 3.12, p = 0.0034, two-sided.",
+        "sha256": "8dcd1aed78f8d42ff0942d3a7f820739c3407887efde082620db5118ae04a6ca",
+        "sourceArtifactIdentitySha256": "6558838331b742a6f1d5935b32b4612aecdbcc7254868c7eeece68fbd0149ea3",
+        "sourceArtifactSha256": "8dcd1aed78f8d42ff0942d3a7f820739c3407887efde082620db5118ae04a6ca"
+      }
+    ],
+    "contributors": [],
+    "occurrences": [],
+    "productionProvenance": [],
+    "relations": [],
+    "challenges": [],
+    "completeness": {
+      "content": "complete"
+    },
+    "links": {
+      "self": "/packet"
+    },
+    "sourcePacketSchemaVersion": "1.3.0",
+    "sha256": "d7fa3f2d70c5f651ba675fd9b868a1dd667536095cdb035cc9c3f9e58355631e"
+  },
+  "sourceArtifacts": []
+}

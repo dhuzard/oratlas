@@ -1,0 +1,57 @@
+[
+  {
+    "method": "POST",
+    "path": "/api/verification-runs/run-1/claim",
+    "bodySha256": "ecc9dd05d542b3599b6143501ec36abbd37b96c461a1e79b3d3399f1f37907dd"
+  },
+  {
+    "method": "GET",
+    "path": "/api/verification-runs/run-1/input",
+    "bodySha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "method": "GET",
+    "path": "/api/verification-protocols/reported-statistic-consistency-0-1-0",
+    "bodySha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "method": "POST",
+    "path": "/api/verification-runs/run-1/transition",
+    "bodySha256": "409443a6ee5aa296dccd6c0d193e214568daa0053b66155fba8adca995b7823d"
+  },
+  {
+    "method": "POST",
+    "path": "/api/verification-runs/run-1/artifacts/prepare",
+    "bodySha256": "7fdf963f512d671904af040867220293a08761024ef6bd0bc9c3593a577f42e0"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/verification-artifacts/artifact-1/content",
+    "bodySha256": "831b08a1bbee54bfee8ada696a585c6669d155f1539229013e20533183137514"
+  },
+  {
+    "method": "POST",
+    "path": "/api/verification-runs/run-1/artifacts/complete",
+    "bodySha256": "3751e51b4fa6822c65aa2b9e610f8d6c37a30ace8bddadc5b94926a0a4cabe92"
+  },
+  {
+    "method": "POST",
+    "path": "/api/verification-runs/run-1/findings",
+    "bodySha256": "c1672c41491becd151b02ebaf8d9c27f205643ab98647146d4a42b8c91e0b0ec"
+  },
+  {
+    "method": "POST",
+    "path": "/api/verification-runs/run-1/transition",
+    "bodySha256": "d0765f73cd5d1df39be353d538ea7c47a017d66a8bd001dc4707240dbb71e58c"
+  },
+  {
+    "method": "GET",
+    "path": "/api/verification-runs/run-1",
+    "bodySha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "method": "GET",
+    "path": "/api/publication-versions/synthetic-version/verifications",
+    "bodySha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+]

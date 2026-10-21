@@ -1,0 +1,24 @@
+version: 1
+project:
+  id: oratlas-myst-example-basic
+  title: Adolescent stress and persistent behavioural change
+  description: A small example review demonstrating @oratlas/myst claim declarations.
+  license: CC-BY-4.0
+  authors:
+    - name: Example Author
+  bibliography:
+    - references.bib
+  plugins:
+    - ../../dist/oratlas-myst.mjs
+  static_files:
+    # Publish the generated ORAtlas artifacts at the root of the built site.
+    # MyST copies each entry by basename, so `.oratlas/oratlas.manifest.json`
+    # is served at `/oratlas.manifest.json` and the `.oratlas/oratlas`
+    # directory is served at `/oratlas/`.
+    - .oratlas/oratlas.manifest.json
+    - .oratlas/oratlas
+  toc:
+    - file: index.md
+    - file: results.md
+site:
+  template: book-theme
