@@ -63,7 +63,12 @@ import {
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, "../..");
 const DDL_PATH = resolve(ROOT, "packages/db/prisma/schema.postgres.sql");
-const FIXTURE_PATH = resolve(HERE, "fixtures/public-fixtures.sql");
+const FIXTURE_PATHS = [
+  "public-fixtures.sql",
+  "editorial-fixtures.sql",
+  "scholarly-fixtures.sql",
+  "discovery-fixtures.sql",
+].map((file) => resolve(HERE, "fixtures", file));
 const GOLDEN_PATH = resolve(HERE, "baselines/public-routes.golden.json");
 const VITEST_CONFIG = resolve(HERE, "vitest.config.ts");
 const APP_DIRECTORY = resolve(ROOT, "apps/web/src/app");
@@ -293,7 +298,7 @@ export async function runG1Harness(
       tables: inventory.tables.length,
       functions: inventory.functions.length,
     });
-    const fixtureSql = readFileSync(FIXTURE_PATH, "utf8");
+    const fixtureSql = FIXTURE_PATHS.map((path) => readFileSync(path, "utf8")).join("\n");
     await deps.runPsql(target.admin, fixtureSql, { singleTransaction: true, secrets });
     const seeded = await deps.queryJson<ResetState>(target.admin, resetStateSql());
     record(

@@ -13,6 +13,7 @@ import {
   type CapturedRequest,
 } from "./capture.js";
 import { expectedRequest, validateCapture } from "./compare.js";
+import { bindDiscoveryRoutes } from "./discovery-routes.js";
 import { activeNextStores, invokeRouteHandler, nextInternals } from "./next-request-context.js";
 import { assertPublicChildEnv } from "./child-env.js";
 import { cookieHeader, sha256Text, type SessionSigner } from "./principals.js";
@@ -45,6 +46,66 @@ type Handler = (
 ) => unknown;
 
 const ROUTE_MODULES: Readonly<Record<string, () => Promise<RouteModule>>> = {
+  ...bindDiscoveryRoutes({
+    "api/graph": () => import("@/app/api/graph/route"),
+    "api/search": () => import("@/app/api/search/route"),
+    "api/nodes": () => import("@/app/api/nodes/route"),
+    "api/nodes/[id]": () => import("@/app/api/nodes/[id]/route"),
+    "api/nodes/[id]/versions": () => import("@/app/api/nodes/[id]/versions/route"),
+    "api/nodes/[id]/versions/[versionId]": () =>
+      import("@/app/api/nodes/[id]/versions/[versionId]/route"),
+    "api/nodes/[id]/edges": () => import("@/app/api/nodes/[id]/edges/route"),
+    "api/claims/[versionId]/[localClaimId]": () =>
+      import("@/app/api/claims/[versionId]/[localClaimId]/route"),
+    "api/landscape": () => import("@/app/api/landscape/route"),
+    "api/reviews/[slug]": () => import("@/app/api/reviews/[slug]/route"),
+    "api/reviews/[slug]/versions/[versionId]": () =>
+      import("@/app/api/reviews/[slug]/versions/[versionId]/route"),
+    "api/reviews/[slug]/diff": () => import("@/app/api/reviews/[slug]/diff/route"),
+    "api/reviews/[slug]/versions/[versionId]/export/[format]": () =>
+      import("@/app/api/reviews/[slug]/versions/[versionId]/export/[format]/route"),
+    "api/publications/[id]": () => import("@/app/api/publications/[id]/route"),
+    "api/publications/[id]/relations": () => import("@/app/api/publications/[id]/relations/route"),
+    "api/publication-versions/[id]": () => import("@/app/api/publication-versions/[id]/route"),
+    "api/publication-versions/[id]/content": () =>
+      import("@/app/api/publication-versions/[id]/content/route"),
+    "api/publication-versions/[id]/contributors": () =>
+      import("@/app/api/publication-versions/[id]/contributors/route"),
+    "api/publication-versions/[id]/production-provenance": () =>
+      import("@/app/api/publication-versions/[id]/production-provenance/route"),
+    "api/publication-claim-occurrences/[id]": () =>
+      import("@/app/api/publication-claim-occurrences/[id]/route"),
+  }),
+  "api/nodes/[id]/exports/challenges.json": () =>
+    import("@/app/api/nodes/[id]/exports/challenges.json/route"),
+  "api/nodes/[id]/exports/challenges-ro-crate": () =>
+    import("@/app/api/nodes/[id]/exports/challenges-ro-crate/route"),
+  "api/reviews/[slug]/comments": () => import("@/app/api/reviews/[slug]/comments/route"),
+  "api/reviews/[slug]/versions/[versionId]/comments": () =>
+    import("@/app/api/reviews/[slug]/versions/[versionId]/comments/route"),
+  "api/reviews/[slug]/versions/[versionId]/annotations": () =>
+    import("@/app/api/reviews/[slug]/versions/[versionId]/annotations/route"),
+  "api/reviews/[slug]/versions/[versionId]/challenges": () =>
+    import("@/app/api/reviews/[slug]/versions/[versionId]/challenges/route"),
+  "api/nodes/[id]/challenges": () => import("@/app/api/nodes/[id]/challenges/route"),
+  "api/replications": () => import("@/app/api/replications/route"),
+  "api/replications/[slug]": () => import("@/app/api/replications/[slug]/route"),
+  "api/protocols/reviews/[versionId]": () =>
+    import("@/app/api/protocols/reviews/[versionId]/route"),
+  "api/certifiers": () => import("@/app/api/certifiers/route"),
+  "api/certifiers/[id]": () => import("@/app/api/certifiers/[id]/route"),
+  "api/verifiers": () => import("@/app/api/verifiers/route"),
+  "api/verifiers/[id]": () => import("@/app/api/verifiers/[id]/route"),
+  "api/certification-protocols": () => import("@/app/api/certification-protocols/route"),
+  "api/certification-protocols/[id]": () => import("@/app/api/certification-protocols/[id]/route"),
+  "api/verification-protocols": () => import("@/app/api/verification-protocols/route"),
+  "api/verification-protocols/[id]": () => import("@/app/api/verification-protocols/[id]/route"),
+  "api/editorial/verifiers/[id]/status": () =>
+    import("@/app/api/editorial/verifiers/[id]/status/route"),
+  "api/editorial/verification-protocols/[id]/retire": () =>
+    import("@/app/api/editorial/verification-protocols/[id]/retire/route"),
+  "api/editorial/certification-protocols/[id]/retire": () =>
+    import("@/app/api/editorial/certification-protocols/[id]/retire/route"),
   "api/publication-captures/[id]": () => import("@/app/api/publication-captures/[id]/route"),
   "api/publication-versions/[id]/packet": () =>
     import("@/app/api/publication-versions/[id]/packet/route"),

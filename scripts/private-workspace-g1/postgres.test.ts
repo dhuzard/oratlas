@@ -147,9 +147,12 @@ describe("G1 provisioning SQL", () => {
         (grant) =>
           `GRANT ${grant.privileges.join(", ")} ON TABLE public."${grant.table}" TO "oratlas_g1_public";`,
       ),
+      'GRANT UPDATE ("status") ON TABLE public."CertificationProtocol" TO "oratlas_g1_public";',
       'GRANT UPDATE ("activatedAt", "retiredAt", "status") ON TABLE public."Certifier" TO "oratlas_g1_public";',
       'GRANT UPDATE ("readAt") ON TABLE public."Notification" TO "oratlas_g1_public";',
       'GRANT UPDATE ("orcid", "orcidVerifiedAt", "updatedAt") ON TABLE public."User" TO "oratlas_g1_public";',
+      'GRANT UPDATE ("status") ON TABLE public."VerificationProtocol" TO "oratlas_g1_public";',
+      'GRANT UPDATE ("activatedAt", "retiredAt", "status") ON TABLE public."Verifier" TO "oratlas_g1_public";',
     ]);
     // Writes are the audit append and column-scoped updates only; never table-wide or destructive.
     expect(sql).not.toMatch(/ALL TABLES|GRANT ALL|DELETE|TRUNCATE|REFERENCES|TRIGGER|private_ws/u);

@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { methodObligations } from "./obligations.js";
+import { routeDirectories } from "./manifest.js";
 import { NO_SESSION, PRINCIPAL_LABELS } from "./principals.js";
 import { SCENARIOS, type HttpScenario } from "./scenarios.js";
 
@@ -76,18 +77,17 @@ describe("G1 method and channel obligations", () => {
   });
 
   it("inventories rendered surfaces separately and excludes only the private route namespace", () => {
-    const result = methodObligations(
-      app({
-        "page.tsx": "export default function Page() {}",
-        "layout.tsx": "",
-        "robots.ts": "",
-        "api/private/route.ts": "export const GET = handler;",
-        "api/private/object/route.ts": "export const GET = handler;",
-        "api/privately/route.ts": "export const GET = handler;",
-      }),
-      [],
-    );
+    const directory = app({
+      "page.tsx": "export default function Page() {}",
+      "layout.tsx": "",
+      "robots.ts": "",
+      "api/private/route.ts": "export const GET = handler;",
+      "api/private/object/route.ts": "export const GET = handler;",
+      "api/privately/route.ts": "export const GET = handler;",
+    });
+    const result = methodObligations(directory, []);
     expect(result.methods.map((entry) => entry.route)).toEqual(["api/privately"]);
+    expect(routeDirectories(directory)).toEqual(["api/privately"]);
     expect(result.renderedSurfaces).toEqual(["layout.tsx", "page.tsx", "robots.ts"]);
     expect(result.renderedSurfaceStatus).toContain("separate real Next");
   });

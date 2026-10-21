@@ -82,14 +82,14 @@ Next implementation dependencies remain separate: reviewed persistence/session b
 
 **Validation:** see the implementation record below for the exact commands and observed results.
 The dedicated G1 workflow passed on [#225](https://github.com/dhuzard/oratlas/pull/225).
-This public-artifact extension still needs its own CI result; the earlier pass does not complete
-G1 or validate this extension.
+The public-artifact extension passed in #227. The larger method-aware batch below
+requires its own final-head CI; neither result completes G1.
 
 ## Implementation record (G1-empty, partial)
 
 Status: **G1-empty harness implemented with partial coverage. All six principal cases now execute
-against 17 of the 133 public route files and two metadata loaders; populated T-ROLE/T-PUB
-matrices, the other 116 route files, Next HTTP serving, pages and non-HTTP channels remain
+against 56 of the 133 public route files (57 of 143 exported methods) and two metadata loaders; populated T-ROLE/T-PUB
+matrices, the other 77 route files / 86 methods, Next HTTP serving, pages and non-HTTP channels remain
 outstanding. G1 is not recorded as passed.**
 
 ### Layout
@@ -557,14 +557,75 @@ pnpm g1:private-workspace
 
 The last command requires all dedicated G1 variables and the disposable-target acknowledgement
 above; missing infrastructure fails rather than skipping. Runtime, private-storage and
-publication/export policies are unchanged. Standards export formats remain a manifest gap.
+publication/export policies are unchanged. All nine existing review export formats are
+now exercised by the method-aware batch below; other mutation/provider gaps remain explicit.
+
+## Expanded method-aware public captures — 2026-10-21
+
+Integration baseline: `9ed83ed` after #228/#229. This batch expands the reviewed
+program from **93 to 895 records**: **878 HTTP**, **15 state projections**, and
+**2 metadata loaders**. It exercises **56/133 route files**, **57/143 exported
+methods**, and all six principal cases on **56 methods**. The remaining method
+is the existing notification POST, whose broader principal matrix is still a gap.
+The static inventory explicitly lists **77 route-file gaps, 86 method gaps and
+40 rendered source surfaces**, plus non-HTTP/timing evidence. **G1 is not passed.**
+
+- `principal-matrix.ts`: 70 additional signed-session public read requests, reusing
+  existing health/feed/OpenAPI/search/claim/graph assertions before any mutations.
+  Graph rate-limit headers remain exact and intentionally vary with request order.
+- `discovery-scenarios.ts`: 378 real GET requests over canonical nodes, exact
+  versions/passports, reviewed public relationships, source occurrences, nine
+  review export formats and populated public author/software declarations. See
+  [discovery evidence](../scripts/private-workspace-g1/discovery-coverage.md).
+- `scholarly-scenarios.ts`: 192 requests for comments, annotations, challenge
+  ledgers/exports, replication briefs and protocol snapshots. Removed, unpublished
+  and tombstoned canaries remain withheld. SQL fixture tests use the real challenge
+  ledger/integrity validators and public URL contract; no schema was relaxed.
+- `editorial-scenarios.ts`: 150 requests and 12 exact state checkpoints for public
+  registries and three ADMIN mutations, including denied/no-write checks,
+  persisted target/control reads, exact audit deltas and idempotence. See the
+  [editorial record](private-workspace-g1-editorial-coverage.md).
+
+The fixtures revealed a real route bug: malformed node challenge cursors returned
+500 in the register and both exports. The three GET handlers now map only typed
+`ChallengeError` instances; unexpected or duck-typed errors retain sanitized 500s.
+Twenty-one route regressions cover these cases; a negative control against the
+old handlers fails the three malformed-cursor assertions. No POST behavior changes.
+
+The additional role privileges are an enumerated public SELECT closure plus
+column-only protocol/verifier status writes required by actual handlers; no
+private schema/table/credential grants or blanket writes are added. Every reset
+loads all four synthetic fixture files and verifies exact counts before capture.
+The ORA protocol's old invalid placeholder is repaired in its original INSERT,
+never by changing an immutable row. New contributor/software assertions derive
+from exact native MyST 0.3 manifest bytes, with production normalization tests,
+0.2 rejection controls and source/claim/corpus digest checks. This is a synthetic
+native fixture, not evidence of an upstream producer execution.
+
+Before golden replacement, the complete real-PostgreSQL run passed every capture
+outcome, all four reset-based paired comparisons, auth 6/6, roles 7/7 and cleanup
+4/4; its only failed check was the expected old 93-record golden mismatch. All
+**93 previous record values were unchanged**. Evidence after native fixture
+repair: `/tmp/oratlas-g1-integrated-native/`. Independent review approved candidate
+SHA-256 `5c36d72c848b4d4c091db33708a6316e888e3c1bdef1b22f343f0fb0dde902b5`.
+The checked-in golden is formatted by Prettier; its parsed content is exactly
+identical to that reviewed candidate (formatted file SHA-256 `5e0920de352a9422a2a32a5a2e0be92a91a83582e05498044c0841c97e7e0617`).
+After copying the candidate, a fresh full run passed **26/26 steps**, all four **895-record**
+captures, auth **6/6**, roles **7/7** and cleanup **4/4**; evidence is
+`/tmp/oratlas-g1-integrated-final/`. A scan of all 14 evidence files found none of
+the three disposable database passwords. Focused offline/architecture/cache/route
+regressions passed **284 tests** across runs; the four stale test expectations
+exposed by integration were updated explicitly and all 44 affected tests reran
+green. Script-aware TypeScript, lint, formatting and diff checks passed. Full
+final-head GitHub CI remains required before merge. These results still do not
+record G1 as passed.
 
 ### Outstanding (not covered; G1 must not be recorded complete on this basis)
 
 - Populated T-ROLE (`SELECT`/DML denial, ownership and RLS on real `private_ws` tables) and the full
   §11 T-PUB matrix with seeded private A/B content. At G1, A/B are labels on public users only.
-- 116 of the 133 public route files (every manifest `gap` surface), including the other
-  editorial/certification/verification mutations, submissions/ingestion, exports, federation and
+- 77 of the 133 public route files and 86 of 143 exported methods, including the other
+  editorial/certification/verification mutations, submissions/ingestion, federation and
   OAuth start/callback (never activated).
 - Next HTTP serving: routing, middleware, RSC/HTML pages, page metadata/JSON-LD/OpenGraph, and the
   `/sitemap.xml` and `/robots.txt` HTTP serialization (only the loader outputs are captured).

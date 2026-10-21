@@ -222,10 +222,16 @@ describe("G1 orchestrator sequence (offline fault injection)", () => {
     // A reset (truncate + reload of the recorded tables) precedes every handler child.
     expect(truncations).toHaveLength(RESET_LABELS.length);
     expect(truncations[0]).toBe(
-      `TRUNCATE TABLE public."Review", public."ReviewVersion" RESTART IDENTITY;\n${readFileSync(
-        join(process.cwd(), "scripts/private-workspace-g1/fixtures/public-fixtures.sql"),
-        "utf8",
-      )}`,
+      `TRUNCATE TABLE public."Review", public."ReviewVersion" RESTART IDENTITY;\n${[
+        "public-fixtures.sql",
+        "editorial-fixtures.sql",
+        "scholarly-fixtures.sql",
+        "discovery-fixtures.sql",
+      ]
+        .map((file) =>
+          readFileSync(join(process.cwd(), "scripts/private-workspace-g1/fixtures", file), "utf8"),
+        )
+        .join("\n")}`,
     );
     expect(summary.steps.filter((s) => s.step.startsWith("reset")).map((s) => s.step)).toEqual(
       RESET_LABELS.map((label) => `reset public fixtures before ${label}`),
@@ -240,7 +246,7 @@ describe("G1 orchestrator sequence (offline fault injection)", () => {
       Object.keys(CLEANUP_SQL).map((step) => [step, true]),
     );
     expect(cleanupAttempts).toEqual(Object.values(CLEANUP_SQL));
-    expect(summary.manifest?.coverage.routeFilesExercised).toBe(17);
+    expect(summary.manifest?.coverage.routeFilesExercised).toBe(56);
     expect(summary.manifest?.coverage.principalsExecuted).toHaveLength(6);
     expect(output.at(-1)).toBe("[g1] result: passed (G1-empty partial coverage only)");
     expectSanitized(summaryText);

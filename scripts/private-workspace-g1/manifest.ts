@@ -15,7 +15,8 @@ import { methodObligations } from "./obligations.js";
 export const G1_COVERAGE_STATUS =
   "G1-empty partial: populated T-ROLE/T-PUB matrix deferred" as const;
 
-export type Coverage = "captured-g1-empty" | "metadata-loader-g1-empty" | "gap";
+export type Coverage =
+  "captured-g1-empty" | "partial-g1-empty" | "metadata-loader-g1-empty" | "gap";
 
 export type SurfaceEntry = {
   readonly id: string;
@@ -34,7 +35,7 @@ export type SurfaceEntry = {
 const DEFERRED =
   "Not captured at G1: needs deterministic fixtures, principals and mutation reset for this group.";
 
-export const SURFACES: readonly SurfaceEntry[] = [
+const DECLARED_SURFACES: readonly SurfaceEntry[] = [
   {
     id: "health-ready",
     adr: "§3.1",
@@ -293,6 +294,26 @@ const PRINCIPAL_NOTES: Readonly<Record<PrincipalLabel, string>> = {
   ADMIN: "",
 };
 
+/** Groups stay explicitly partial when only some routes/methods have scenarios. */
+export const SURFACES: readonly SurfaceEntry[] = DECLARED_SURFACES.map((surface) => {
+  if (surface.coverage !== "gap" || surface.channel !== "http-route") return surface;
+  const hasScenario = SCENARIOS.some(
+    (scenario) =>
+      scenario.kind === "http" &&
+      !DECLARED_SURFACES.some((entry) => entry.exact?.includes(scenario.route)) &&
+      surface.prefixes?.some(
+        (prefix) => scenario.route === prefix || scenario.route.startsWith(`${prefix}/`),
+      ),
+  );
+  return hasScenario
+    ? {
+        ...surface,
+        coverage: "partial-g1-empty",
+        note: "Partially exercised by the scenario program; remaining routes, methods and principals are listed in methodAndChannelObligations.",
+      }
+    : surface;
+});
+
 const LABEL_ONLY =
   "Production-signed fixture session for a synthetic public User row. At G1, A/B are labels only — no workspace or membership exists — so this is public-route evidence under a real session, not workspace authorization.";
 
@@ -345,7 +366,9 @@ export function routeDirectories(appDirectory: string): string[] {
     }
   };
   walk(appDirectory);
-  return found.filter((route) => !route.startsWith("api/private")).sort();
+  return found
+    .filter((route) => route !== "api/private" && !route.startsWith("api/private/"))
+    .sort();
 }
 
 /** Coverage actually executed by the program, against the current route tree. */
@@ -380,6 +403,9 @@ export function coverageSummary(appDirectory: string, program: readonly Scenario
       ),
     ],
     gapSurfaces: SURFACES.filter((surface) => surface.coverage === "gap").map((s) => s.id),
+    partialSurfaces: SURFACES.filter((surface) => surface.coverage === "partial-g1-empty").map(
+      (s) => s.id,
+    ),
     notCovered: [
       "remaining route files (see routeFilesNotExercised and gap surfaces)",
       "Next HTTP serving: routing, middleware, RSC/HTML pages, metadata route serialization",

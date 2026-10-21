@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createChallengeInputSchema } from "@oratlas/contracts";
 import { errorResponse, handleRouteError } from "@/lib/api";
-import { createNodeChallenge, listNodeChallenges } from "@/lib/challenges";
+import { ChallengeError, createNodeChallenge, listNodeChallenges } from "@/lib/challenges";
 import { handleLifecyclePost } from "@/lib/editorial-api";
 
 export const dynamic = "force-dynamic";
@@ -21,6 +21,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     if (!result) return errorResponse("not-found", "Knowledge node not found.");
     return NextResponse.json(result);
   } catch (error) {
+    if (error instanceof ChallengeError) return errorResponse(error.code, error.message);
     return handleRouteError(error);
   }
 }
