@@ -41,3 +41,13 @@ export function protocolDoiOutputProblems(
     ? ["Protocol/DOI capability disclosure refused"]
     : [];
 }
+
+/** Refuse raw values before an assertion framework or validator can format diagnostics. */
+export function assertProtocolDoiOutputSafe(
+  records: readonly Pick<HttpRecord, "headers" | "setCookie" | "bodyBase64">[],
+  state: unknown,
+  cookieSecrets: readonly string[],
+): void {
+  if (protocolDoiOutputProblems(records, state, cookieSecrets).length)
+    throw new Error("Protocol/DOI capability output refused");
+}

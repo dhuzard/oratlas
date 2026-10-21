@@ -14,7 +14,11 @@ import {
   PROTOCOL_DOI_PROGRAM,
   protocolDoiScenarios,
 } from "./protocol-doi-scenarios.js";
-import { protocolDoiStateProblems, protocolDoiOutputProblems } from "./protocol-doi-state.js";
+import {
+  protocolDoiStateProblems,
+  protocolDoiOutputProblems,
+  assertProtocolDoiOutputSafe,
+} from "./protocol-doi-state.js";
 import { PRINCIPAL_LABELS, NEGATIVE_SESSIONS, sha256Text } from "./principals.js";
 import { programProblems } from "./scenarios.js";
 import { PUBLIC_SELECT_TABLES, PUBLIC_COLUMN_UPDATE_GRANTS } from "./sql.js";
@@ -244,4 +248,35 @@ it("rejects same-count full-state mutations, partial scope and raw Cookie/worker
   expect(protocolDoiOutputProblems([{ ...record, setCookie: [canary] }], {}, [canary])).toEqual([
     "Unexpected protocol/DOI cookie or redirect refused",
   ]);
+});
+
+it("refuses response/state cookie fragments before value-bearing diagnostics", () => {
+  const secret = "synthetic-signed-cookie-component",
+    record = {
+      headers: [] as Array<readonly [string, string]>,
+      setCookie: [] as string[],
+      bodyBase64: Buffer.from(JSON.stringify({ confidence: secret })).toString("base64"),
+    };
+  for (const [records, state] of [
+    [[record], {}],
+    [[], { native: { rawJson: secret } }],
+  ] as const) {
+    let diagnosticReached = false,
+      caught: unknown;
+    try {
+      assertProtocolDoiOutputSafe(records, state, [secret]);
+      diagnosticReached = true;
+      throw new Error(`value-bearing diagnostic: ${secret}`);
+    } catch (error) {
+      caught = error;
+    }
+    expect(diagnosticReached).toBe(false);
+    expect(
+      caught instanceof Error && caught.message === "Protocol/DOI capability output refused",
+    ).toBe(true);
+  }
+  const source = readFileSync(new URL("./protocol-doi.g1.spec.ts", import.meta.url), "utf8");
+  expect(source.indexOf("safe(state);")).toBeLessThan(source.indexOf("expect(validateCapture("));
+  expect(source.indexOf("safe(before);")).toBeLessThan(source.indexOf("expect(native.rawJson)"));
+  expect(source).toContain("safe({});\n    const after = await snapshot();\n    safe(after);");
 });

@@ -23,7 +23,7 @@ import {
 } from "./sql.js";
 import { publicTableSnapshotSql, type KnownPublicSqlState } from "./known-mutation-state.js";
 import { PROTOCOL_POST_INPUTS, protocolDoiScenarios } from "./protocol-doi-scenarios.js";
-import { protocolDoiStateProblems, protocolDoiOutputProblems } from "./protocol-doi-state.js";
+import { protocolDoiStateProblems, assertProtocolDoiOutputSafe } from "./protocol-doi-state.js";
 import { requestBodyText } from "./scenarios.js";
 let out: string;
 let label: string;
@@ -133,7 +133,25 @@ afterAll(async () => {
 it("captures actual snapshot replay and local DOI reports without changing any public row", async () => {
   const scenarios = protocolDoiScenarios(),
     records: HttpRecord[] = [],
-    before = await snapshot();
+    cookieSecrets = new Set<string>();
+  // Enumerate every dispatched cookie before any database/response assertion can format values.
+  for (const scenario of scenarios) {
+    const cookie = cookieHeader(scenario.session, sign);
+    if (!cookie) continue;
+    if (scenario.session.case === "malformed") {
+      cookieSecrets.add(cookie);
+      continue;
+    }
+    const value = cookie.slice(cookie.indexOf("=") + 1),
+      parts = value.split(".");
+    for (const secret of [cookie, value, parts.slice(0, -1).join("."), parts.at(-1)!].filter(
+      Boolean,
+    ))
+      cookieSecrets.add(secret);
+  }
+  const safe = (state: unknown) => assertProtocolDoiOutputSafe(records, state, [...cookieSecrets]);
+  const before = await snapshot();
+  safe(before);
   const native = before.ProtocolSnapshot!.find(
     (row) => row.id === PROTOCOL_POST_INPUTS.replay.snapshotId,
   )!;
@@ -142,10 +160,10 @@ it("captures actual snapshot replay and local DOI reports without changing any p
     sha256Text(canonicalJson({ payload: PROTOCOL_POST_INPUTS.input.payload, osfQuestions: null })),
   );
   const perRequest: unknown[] = [],
-    cookieSecrets = new Set<string>(),
     expectedDigest = sha256Text(canonicalJson(before));
   for (const scenario of scenarios) {
     const previous = await snapshot();
+    safe(previous);
     expect(
       protocolDoiStateProblems(before, previous),
       `${scenario.id}: state continuity before`,
@@ -160,18 +178,6 @@ it("captures actual snapshot replay and local DOI reports without changing any p
     const actualCookie = request.headers.get("cookie");
     if (actualCookie !== (cookie ?? null))
       throw new Error("Protocol/DOI Cookie header differs from recipe");
-    if (actualCookie && scenario.session.case === "malformed") cookieSecrets.add(actualCookie);
-    if (actualCookie && scenario.session.case !== "malformed") {
-      const value = actualCookie.slice(actualCookie.indexOf("=") + 1),
-        parts = value.split(".");
-      for (const secret of [
-        actualCookie,
-        value,
-        parts.slice(0, -1).join("."),
-        parts.at(-1)!,
-      ].filter(Boolean))
-        cookieSecrets.add(secret);
-    }
     const response = await invokeRouteHandler(request, `/${scenario.route}/route`, () =>
       handlers[scenario.route]!(request),
     );
@@ -192,7 +198,9 @@ it("captures actual snapshot replay and local DOI reports without changing any p
         request.headers,
       ),
     );
+    safe({});
     const after = await snapshot();
+    safe(after);
     expect(
       protocolDoiStateProblems(before, after),
       `${scenario.id}: complete unchanged state`,
@@ -204,6 +212,7 @@ it("captures actual snapshot replay and local DOI reports without changing any p
     perRequest.push({ id: scenario.id, beforeSha256, afterSha256 });
   }
   const after = await snapshot();
+  safe(after);
   expect(protocolDoiStateProblems(before, after)).toEqual([]);
   expect(outboundAttempts).toBe(0);
   const capture: CaptureFile = {
@@ -213,7 +222,6 @@ it("captures actual snapshot replay and local DOI reports without changing any p
     clock: G1_FIXED_CLOCK,
     records,
   };
-  expect(validateCapture(capture, scenarios, sign)).toEqual([]);
   const state = {
     authorityScope,
     clock: G1_FIXED_CLOCK,
@@ -223,8 +231,8 @@ it("captures actual snapshot replay and local DOI reports without changing any p
     outboundAttempts,
     expectedPublicStateSha256: expectedDigest,
   };
-  if (protocolDoiOutputProblems(records, state, [...cookieSecrets]).length)
-    throw new Error("Protocol/DOI capability output refused");
+  safe(state);
+  expect(validateCapture(capture, scenarios, sign)).toEqual([]);
   writeFileSync(out, `${JSON.stringify(capture, null, 2)}\n`, { mode: 0o600 });
   writeFileSync(`${out}.state.json`, `${JSON.stringify(state, null, 2)}\n`, { mode: 0o600 });
 }, 180_000);
