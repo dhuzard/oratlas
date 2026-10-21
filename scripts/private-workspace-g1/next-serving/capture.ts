@@ -62,10 +62,15 @@ export async function requestServingResponse(
         });
         res.on("error", fail);
         res.on("end", () => {
-          const headers = new Headers();
-          for (let index = 0; index < res.rawHeaders.length; index += 2)
-            headers.append(res.rawHeaders[index]!, res.rawHeaders[index + 1]!);
-          done(new Response(Buffer.concat(chunks), { status: res.statusCode!, headers }));
+          try {
+            const headers = new Headers();
+            for (let index = 0; index < res.rawHeaders.length; index += 2)
+              headers.append(res.rawHeaders[index]!, res.rawHeaders[index + 1]!);
+            done(new Response(Buffer.concat(chunks), { status: res.statusCode!, headers }));
+          } catch (error) {
+            // Conversion failures must reject through captureNextServing's cleanup path.
+            fail(error);
+          }
         });
       },
     );

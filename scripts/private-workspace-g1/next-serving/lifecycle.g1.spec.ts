@@ -81,46 +81,81 @@ it("ends a continuously trickling response at an absolute deadline and closes it
   }
 }, 5_000);
 
-it("includes readiness and trickling bodies in the total capture budget, then stops the server", async () => {
-  const root = mkdtempSync(join(tmpdir(), "g1-next-total-"));
-  try {
-    for (const path of [
-      "apps/web/.next",
-      "apps/web/node_modules/next/dist/bin",
-      "scripts/private-workspace-g1/next-serving",
-    ])
-      mkdirSync(join(root, path), { recursive: true });
-    writeFileSync(join(root, "apps/web/.next/BUILD_ID"), "synthetic-lifecycle");
-    writeFileSync(
-      join(root, "apps/web/node_modules/next/dist/bin/next"),
-      `
+it.each(["trickle", "204"])(
+  "cleans up a full capture after %s rejection",
+  async (mode) => {
+    const root = mkdtempSync(join(tmpdir(), "g1-next-total-"));
+    try {
+      for (const path of [
+        "apps/web/.next",
+        "apps/web/node_modules/next/dist/bin",
+        "scripts/private-workspace-g1/next-serving",
+      ])
+        mkdirSync(join(root, path), { recursive: true });
+      writeFileSync(join(root, "apps/web/.next/BUILD_ID"), "synthetic-lifecycle");
+      writeFileSync(
+        join(root, "apps/web/node_modules/next/dist/bin/next"),
+        `
+      require('node:fs').writeFileSync('synthetic.pid', String(process.pid));
       const server = require('node:http').createServer((_req, res) => {
+        if (${mode === "204"}) { res.writeHead(204); res.end(); return; }
         res.writeHead(200); const timer = setInterval(() => res.write('x'), 10);
         res.on('close', () => clearInterval(timer));
       });
       server.listen(Number(process.argv.at(-1)), '127.0.0.1', () => console.log('Ready in synthetic'));
     `,
-    );
-    copyFileSync(
-      resolve("scripts/private-workspace-g1/next-serving/clock.mjs"),
-      join(root, "scripts/private-workspace-g1/next-serving/clock.mjs"),
-    );
-    const start = performance.now();
+      );
+      copyFileSync(
+        resolve("scripts/private-workspace-g1/next-serving/clock.mjs"),
+        join(root, "scripts/private-workspace-g1/next-serving/clock.mjs"),
+      );
+      const start = performance.now();
+      await expect(
+        captureNextServing({
+          root,
+          node: process.execPath,
+          databaseUrl:
+            "postgresql://oratlas_g1_public_probe:synthetic@127.0.0.1:55465/oratlas_g1_probe",
+          output: join(root, "capture.json"),
+          port: 32572,
+          buildId: "synthetic-lifecycle",
+          sign: () => "synthetic",
+          captureTimeoutMs: 500,
+        }),
+      ).rejects.toThrow(mode === "204" ? /204/u : /deadline exceeded/u);
+      expect(performance.now() - start).toBeLessThan(3_000);
+      const pid = Number(readFileSync(join(root, "apps/web/synthetic.pid"), "utf8"));
+      expect(() => process.kill(-pid, 0)).toThrow();
+      const portProbe = createServer();
+      await new Promise<void>((done, fail) => {
+        portProbe.once("error", fail);
+        portProbe.listen(32572, "127.0.0.1", done);
+      });
+      await new Promise<void>((done, fail) =>
+        portProbe.close((error) => (error ? fail(error) : done())),
+      );
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  },
+  15_000,
+);
+
+it("rejects an unexpected bodyless status instead of throwing outside the request promise", async () => {
+  const server = createServer((_request, response) => {
+    response.writeHead(204);
+    response.end();
+  });
+  await new Promise<void>((done) => server.listen(0, "127.0.0.1", done));
+  const address = server.address();
+  if (!address || typeof address === "string") throw new Error("Expected loopback address");
+  try {
     await expect(
-      captureNextServing({
-        root,
-        node: process.execPath,
-        databaseUrl:
-          "postgresql://oratlas_g1_public_probe:synthetic@127.0.0.1:55465/oratlas_g1_probe",
-        output: join(root, "capture.json"),
-        port: 32572,
-        buildId: "synthetic-lifecycle",
-        sign: () => "synthetic",
-        captureTimeoutMs: 500,
-      }),
-    ).rejects.toThrow("deadline exceeded");
-    expect(performance.now() - start).toBeLessThan(3_000);
+      requestServingResponse(address.port, "/", undefined, performance.now() + 1_000),
+    ).rejects.toThrow(/204/u);
   } finally {
-    rmSync(root, { recursive: true, force: true });
+    await new Promise<void>((done, fail) =>
+      server.close((error) => (error ? fail(error) : done())),
+    );
   }
-}, 15_000);
+});
