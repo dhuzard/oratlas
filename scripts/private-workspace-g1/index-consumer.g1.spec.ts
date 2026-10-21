@@ -148,7 +148,7 @@ it("captures a populated public index with exact runtime authority and unchanged
     const state: Record<string, unknown> = {};
     for (const table of stateTables) {
       const result = await client.$queryRawUnsafe<Array<{ rows: unknown[] }>>(
-        `SELECT COALESCE(json_agg(to_jsonb(t) ORDER BY to_jsonb(t)::text), '[]'::json) AS rows FROM public."${table}" t`,
+        `SELECT COALESCE(json_agg(to_jsonb(t) ORDER BY to_jsonb(t)::text COLLATE "C"), '[]'::json) AS rows FROM public."${table}" t`,
       );
       state[table] = result[0]!.rows;
     }
