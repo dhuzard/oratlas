@@ -1,0 +1,7 @@
+{
+  "keyId": "c0faaa0f767ec352c94e0cbcd1f47158887c9596c265301f60ef6092e8d922a0",
+  "algorithm": "ed25519",
+  "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEACltIfruzdlu10wzfbXUZXYKsfYaY36FnfCqOe3G81UQ=\n-----END PUBLIC KEY-----\n",
+  "issuer": "https://token.actions.githubusercontent.com",
+  "subject": "https://github.com/example/review/.github/workflows/analysis.yml@refs/heads/main"
+}

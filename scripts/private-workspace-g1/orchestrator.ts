@@ -6,6 +6,12 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { publicChildEnv } from "./child-env.js";
 import {
+  indexCaptureDifferences,
+  indexCaptureProblems,
+  indexRunnerOutputProblems,
+  type IndexCapture,
+} from "./index-channel.js";
+import {
   comparePairedCaptures,
   compareWithGolden,
   goldenCandidate,
@@ -68,8 +74,12 @@ const FIXTURE_PATHS = [
   "editorial-fixtures.sql",
   "scholarly-fixtures.sql",
   "discovery-fixtures.sql",
+  "protocol-fixtures.sql",
+  "editorial-read-fixtures.sql",
 ].map((file) => resolve(HERE, "fixtures", file));
 const GOLDEN_PATH = resolve(HERE, "baselines/public-routes.golden.json");
+const INDEX_GOLDEN_PATH = resolve(HERE, "baselines/public-index.golden.json");
+const INDEX_FIXTURE_PATH = resolve(HERE, "fixtures/index-fixtures.sql");
 const VITEST_CONFIG = resolve(HERE, "vitest.config.ts");
 const APP_DIRECTORY = resolve(ROOT, "apps/web/src/app");
 /** Capture children in run order; the first is the reference for paired comparison. */
@@ -144,10 +154,23 @@ function runSpec(
     const timer = setTimeout(() => child.kill("SIGKILL"), 10 * 60_000);
     child.on("close", (code) => {
       clearTimeout(timer);
-      const output = redact(Buffer.concat(chunks).toString("utf8"), secrets);
+      const raw = Buffer.concat(chunks).toString("utf8");
+      const outputProblems =
+        spec === "index-consumer.g1.spec.ts"
+          ? indexRunnerOutputProblems(raw, [
+              ...secrets,
+              ...secrets.map(encodeURIComponent),
+              env.DATABASE_URL ?? "",
+            ])
+          : [];
+      // A rejected sink is a failed check. Never preserve its hidden text or turn
+      // redacted evidence into a claim that the original sink did not leak.
+      const output = outputProblems.length
+        ? `[g1] refused index child output: ${outputProblems.join(", ")}\n`
+        : redact(raw, secrets);
       writeFileSync(logPath, output, { mode: 0o600 });
       process.stdout.write(output);
-      resolvePromise(code === 0);
+      resolvePromise(code === 0 && outputProblems.length === 0);
     });
   });
 }
@@ -356,6 +379,7 @@ export async function runG1Harness(
       [outVariable]: out,
     });
     const capturePaths = new Map<string, string>();
+    const indexPaths = new Map<string, string>();
     const capture = async (label: (typeof CAPTURE_LABELS)[number]) => {
       await reset(`${label} capture`);
       const out = join(evidenceDir, `capture-${label}.json`);
@@ -374,6 +398,30 @@ export async function runG1Harness(
         records: SCENARIOS.length,
         problems,
       });
+      // The index consumes its own reset. Its extra exclusion fixtures never
+      // alter the HTTP program or hide a changed public response in a new golden.
+      await reset(`${label} index capture`);
+      await deps.runPsql(target.admin, readFileSync(INDEX_FIXTURE_PATH, "utf8"), {
+        singleTransaction: true,
+        secrets,
+      });
+      const indexOut = join(evidenceDir, `index-${label}.json`);
+      indexPaths.set(label, indexOut);
+      record(
+        `${label} index: fresh actual consumer child under the public runtime role`,
+        await deps.runSpec(
+          "index-consumer.g1.spec.ts",
+          handlerEnv("G1_INDEX_CAPTURE_OUT", indexOut, { G1_INDEX_LABEL: label }),
+          join(evidenceDir, `index-${label}.log`),
+          secrets,
+        ),
+      );
+      const indexProblems = indexCaptureProblems(readJson(indexOut) as IndexCapture);
+      record(
+        `${label} index matches populated outcomes and unchanged rows`,
+        indexProblems.length === 0,
+        indexProblems,
+      );
     };
 
     // 4. Baseline and its repeat, each after a reset, under the public role only.
@@ -454,13 +502,41 @@ export async function runG1Harness(
       CAPTURE_LABELS.map((label) => [label, readJson(capturePaths.get(label)!)]),
     );
     const reference = captures.get("baseline");
+    const indexes = new Map(
+      CAPTURE_LABELS.map((label) => [label, readJson(indexPaths.get(label)!) as IndexCapture]),
+    );
+    const indexReference = indexes.get("baseline")!;
     for (const label of CAPTURE_LABELS.slice(1)) {
       const paired = comparePairedCaptures(reference, captures.get(label));
       record(`baseline and ${label} captures byte-identical`, paired.length === 0, paired);
+      const indexDifferences = indexCaptureDifferences(indexReference, indexes.get(label)!);
+      record(
+        `baseline and ${label} canonical indexes and public rows identical`,
+        indexDifferences.length === 0,
+        indexDifferences,
+      );
     }
+    writeJson(join(evidenceDir, "index-golden-candidate.json"), indexReference);
     writeJson(
       join(evidenceDir, "golden-candidate.json"),
       goldenCandidate(reference, "CANDIDATE — not reviewed; never copied automatically"),
+    );
+    if (!existsSync(INDEX_GOLDEN_PATH))
+      record(
+        "reviewed index golden present",
+        false,
+        "index-golden-candidate.json written; independent review required",
+      );
+    const indexGolden = readJson(INDEX_GOLDEN_PATH) as IndexCapture;
+    const indexGoldenDifferences = CAPTURE_LABELS.flatMap((label) =>
+      indexCaptureDifferences(indexGolden, indexes.get(label)!).map(
+        (difference) => `${label}: ${difference}`,
+      ),
+    );
+    record(
+      "all canonical indexes and public rows match the reviewed index golden",
+      indexGoldenDifferences.length === 0,
+      indexGoldenDifferences,
     );
     if (!existsSync(GOLDEN_PATH)) {
       record("reviewed golden baseline present", false, "golden-candidate.json written");

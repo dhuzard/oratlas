@@ -36,9 +36,39 @@ const http = (file: CaptureFile, id: string) =>
   file.records.find((record) => record.id === id) as HttpRecord;
 
 describe("the reviewed program and golden agree", () => {
+  it("rejects forbidden CORS and cookie headers independently of a regenerated golden", () => {
+    const original = SCENARIOS.find((scenario) => scenario.id === "openapi-json");
+    if (original?.kind !== "http") throw new Error("Expected public HTTP fixture");
+    const scenario = {
+      ...original,
+      expect: { ...original.expect, absentHeaders: ["Access-Control-Allow-Origin", "set-cookie"] },
+    };
+    const record = http(capture, scenario.id);
+    const file = { ...capture, records: [record] };
+    expect(validateCapture(file, [scenario], createSessionToken)).toEqual([]);
+    expect(
+      validateCapture(
+        {
+          ...file,
+          records: [
+            { ...record, headers: [...record.headers, ["access-control-allow-origin", "*"]] },
+          ],
+        },
+        [scenario],
+        createSessionToken,
+      ),
+    ).toContain(`${scenario.id}: forbidden header Access-Control-Allow-Origin present`);
+    expect(
+      validateCapture(
+        { ...file, records: [{ ...record, setCookie: ["unexpected=synthetic"] }] },
+        [scenario],
+        createSessionToken,
+      ),
+    ).toContain(`${scenario.id}: forbidden header set-cookie present`);
+  });
   it("has a valid program: unique ids/composite keys and coherent denials", () => {
     expect(programProblems(SCENARIOS)).toEqual([]);
-    expect(SCENARIOS.length).toBe(895);
+    expect(SCENARIOS.length).toBe(1165);
   });
 
   it("validates the golden-derived capture, re-deriving every cookie with the production signer", () => {
@@ -59,12 +89,14 @@ describe("the reviewed program and golden agree", () => {
       }
     }
     expect(statuses).toEqual({
-      "200": 477,
+      "200": 569,
+      "204": 12,
       "304": 12,
-      "400": 30,
-      "401": 11,
-      "403": 20,
-      "404": 328,
+      "400": 66,
+      "401": 42,
+      "403": 23,
+      "404": 418,
+      "409": 6,
       "db-state": 15,
       "metadata-loader": 2,
     });

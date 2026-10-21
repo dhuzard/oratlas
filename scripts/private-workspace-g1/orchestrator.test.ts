@@ -2,6 +2,9 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { existsSync } from "node:fs";
+import { indexDigest, INDEX_READ_TABLES, type IndexCapture } from "./index-channel.js";
+import { SCENARIOS } from "./scenarios.js";
 import type { CaptureFile, HttpRecord } from "./capture.js";
 import { FORBIDDEN_CHILD_ENV } from "./child-env.js";
 import { CAPTURE_LABELS, runG1Harness, type G1HarnessDeps } from "./orchestrator.js";
@@ -48,7 +51,23 @@ const CLEANUP_SQL = {
   "drop run-created public objects": dropRecordedPublicObjectsSql(INVENTORY),
 } as const;
 type CleanupStep = keyof typeof CLEANUP_SQL;
-const RESET_LABELS = [...CAPTURE_LABELS.map((label) => `${label} capture`), "auth evidence"];
+const RESET_LABELS = [
+  ...CAPTURE_LABELS.flatMap((label) => [`${label} capture`, `${label} index capture`]),
+  "auth evidence",
+];
+const INDEX_GOLDEN_PATH = join(
+  process.cwd(),
+  "scripts/private-workspace-g1/baselines/public-index.golden.json",
+);
+const INDEX_FIXTURE_SQL = readFileSync(
+  join(process.cwd(), "scripts/private-workspace-g1/fixtures/index-fixtures.sql"),
+  "utf8",
+);
+// This is a separate independently reviewed native consumer baseline. Never generate a fake
+// golden from expectations just to make orchestration mocks pass. The root supplies it after review.
+function reviewedIndex(label: string): IndexCapture {
+  return { ...JSON.parse(readFileSync(INDEX_GOLDEN_PATH, "utf8")), label };
+}
 
 type Scenario = {
   failCleanup?: readonly CleanupStep[];
@@ -62,11 +81,16 @@ type Scenario = {
   dirtyResetAt?: number;
   /** Rewrite one capture child's output. */
   captureFor?: (label: string, capture: CaptureFile) => CaptureFile;
+  /** Refuse this index child before it writes any capture. */
+  failIndexLabel?: string;
+  /** Rewrite an independently reviewed index capture for negative evidence controls. */
+  indexFor?: (label: string, capture: IndexCapture) => IndexCapture;
 };
 
 function fakes(scenario: Scenario) {
   const psqlCalls: string[] = [];
   const specEnvs: Array<{ spec: string; env: Record<string, string> }> = [];
+  const events: string[] = [];
   const failing = new Set(scenario.failCleanup ?? []);
   let resets = 0;
   let targetChecks = 0;
@@ -74,7 +98,9 @@ function fakes(scenario: Scenario) {
   const deps: G1HarnessDeps = {
     runPsql: async (_connection, sql) => {
       psqlCalls.push(sql);
+      if (sql === INDEX_FIXTURE_SQL) events.push("index-only fixtures");
       if (sql.startsWith("TRUNCATE TABLE")) {
+        events.push(`reset:${RESET_LABELS[resets]}`);
         if (resets++ === scenario.failResetAt) {
           throw new PsqlError(
             `psql exited with code 1: ERROR: cannot truncate for postgresql://${ADMIN_ROLE}:${ADMIN_SECRET}@${HOST}:${PORT}/${DATABASE}`,
@@ -141,6 +167,7 @@ function fakes(scenario: Scenario) {
     },
     runSpec: async (spec, env, logPath) => {
       specEnvs.push({ spec, env });
+      events.push(`child:${spec}:${env.G1_CAPTURE_LABEL ?? env.G1_INDEX_LABEL ?? ""}`);
       writeFileSync(logPath, "fake spec output\n");
       if (spec === "public-routes.g1.spec.ts") {
         const label = env.G1_CAPTURE_LABEL!;
@@ -151,6 +178,16 @@ function fakes(scenario: Scenario) {
         );
         return true;
       }
+      if (spec === "index-consumer.g1.spec.ts") {
+        const label = env.G1_INDEX_LABEL!;
+        if (scenario.failIndexLabel === label) return false;
+        const capture = reviewedIndex(label);
+        writeFileSync(
+          env.G1_INDEX_CAPTURE_OUT!,
+          JSON.stringify(scenario.indexFor ? scenario.indexFor(label, capture) : capture),
+        );
+        return true;
+      }
       if (spec === "auth-context.g1.spec.ts") {
         writeFileSync(env.G1_AUTH_EVIDENCE_OUT!, "{}\n");
         return true;
@@ -158,7 +195,7 @@ function fakes(scenario: Scenario) {
       return scenario.rolesPass ?? true;
     },
   };
-  return { deps, psqlCalls, specEnvs };
+  return { deps, psqlCalls, specEnvs, events };
 }
 
 const evidenceRoot = mkdtempSync(join(tmpdir(), "oratlas-g1-orchestrator-"));
@@ -175,7 +212,7 @@ afterEach(() => vi.restoreAllMocks());
 
 async function harness(scenario: Scenario) {
   const evidence = mkdtempSync(join(evidenceRoot, "run-"));
-  const { deps, psqlCalls, specEnvs } = fakes(scenario);
+  const { deps, psqlCalls, specEnvs, events } = fakes(scenario);
   const code = await runG1Harness(
     {
       [G1_ENV.admin]: `postgresql://${ADMIN_ROLE}:${ADMIN_SECRET}@${HOST}:${PORT}/${DATABASE}`,
@@ -198,7 +235,7 @@ async function harness(scenario: Scenario) {
     Object.values(CLEANUP_SQL).includes(sql as never),
   );
   const truncations = psqlCalls.filter((sql) => sql.startsWith("TRUNCATE TABLE"));
-  return { code, summary, summaryText, cleanupAttempts, specEnvs, truncations };
+  return { code, summary, summaryText, cleanupAttempts, specEnvs, truncations, events, evidence };
 }
 
 function expectSanitized(...texts: string[]) {
@@ -212,9 +249,8 @@ const failedChecks = (summary: { steps: Array<{ step: string; ok: boolean }> }) 
 
 describe("G1 orchestrator sequence (offline fault injection)", () => {
   it("passes only when every check and every cleanup step succeeds", async () => {
-    const { code, summary, summaryText, cleanupAttempts, specEnvs, truncations } = await harness(
-      {},
-    );
+    const { code, summary, summaryText, cleanupAttempts, specEnvs, truncations, events, evidence } =
+      await harness({});
     expect(code).toBe(0);
     expect(summary.result).toBe("passed (G1-empty partial coverage only)");
     expect(summary.failure).toBeUndefined();
@@ -227,6 +263,8 @@ describe("G1 orchestrator sequence (offline fault injection)", () => {
         "editorial-fixtures.sql",
         "scholarly-fixtures.sql",
         "discovery-fixtures.sql",
+        "protocol-fixtures.sql",
+        "editorial-read-fixtures.sql",
       ]
         .map((file) =>
           readFileSync(join(process.cwd(), "scripts/private-workspace-g1/fixtures", file), "utf8"),
@@ -237,8 +275,15 @@ describe("G1 orchestrator sequence (offline fault injection)", () => {
       RESET_LABELS.map((label) => `reset public fixtures before ${label}`),
     );
     // Fresh child per capture, in order, then the auth child and the role child.
-    expect(specEnvs.map(({ spec, env }) => `${spec}:${env.G1_CAPTURE_LABEL ?? ""}`)).toEqual([
-      ...CAPTURE_LABELS.map((label) => `public-routes.g1.spec.ts:${label}`),
+    expect(
+      specEnvs.map(
+        ({ spec, env }) => `${spec}:${env.G1_CAPTURE_LABEL ?? env.G1_INDEX_LABEL ?? ""}`,
+      ),
+    ).toEqual([
+      ...CAPTURE_LABELS.flatMap((label) => [
+        `public-routes.g1.spec.ts:${label}`,
+        `index-consumer.g1.spec.ts:${label}`,
+      ]),
       "auth-context.g1.spec.ts:",
       "roles.g1.spec.ts:",
     ]);
@@ -246,7 +291,24 @@ describe("G1 orchestrator sequence (offline fault injection)", () => {
       Object.keys(CLEANUP_SQL).map((step) => [step, true]),
     );
     expect(cleanupAttempts).toEqual(Object.values(CLEANUP_SQL));
-    expect(summary.manifest?.coverage.routeFilesExercised).toBe(56);
+    expect(summary.manifest?.coverage.routeFilesExercised).toBe(
+      new Set(SCENARIOS.filter((s) => s.kind === "http").map((s) => s.route)).size,
+    );
+    expect(events).toEqual([
+      ...CAPTURE_LABELS.flatMap((label) => [
+        `reset:${label} capture`,
+        `child:public-routes.g1.spec.ts:${label}`,
+        `reset:${label} index capture`,
+        "index-only fixtures",
+        `child:index-consumer.g1.spec.ts:${label}`,
+      ]),
+      "reset:auth evidence",
+      "child:auth-context.g1.spec.ts:",
+      "child:roles.g1.spec.ts:",
+    ]);
+    expect(JSON.parse(readFileSync(join(evidence, "index-golden-candidate.json"), "utf8"))).toEqual(
+      reviewedIndex("baseline"),
+    );
     expect(summary.manifest?.coverage.principalsExecuted).toHaveLength(6);
     expect(output.at(-1)).toBe("[g1] result: passed (G1-empty partial coverage only)");
     expectSanitized(summaryText);
@@ -271,7 +333,9 @@ describe("G1 orchestrator sequence (offline fault injection)", () => {
           "SESSION_SECRET",
           ...(spec === "public-routes.g1.spec.ts"
             ? ["G1_CAPTURE_LABEL", "G1_CAPTURE_OUT"]
-            : ["G1_AUTH_EVIDENCE_OUT"]),
+            : spec === "index-consumer.g1.spec.ts"
+              ? ["G1_INDEX_CAPTURE_OUT", "G1_INDEX_LABEL"]
+              : ["G1_AUTH_EVIDENCE_OUT"]),
           ...["PATH", "HOME", "TMPDIR", "CI"].filter((name) => process.env[name]),
         ].sort(),
       );
@@ -281,7 +345,7 @@ describe("G1 orchestrator sequence (offline fault injection)", () => {
 
   it("fails and still cleans up when a reset transaction is rejected", async () => {
     const { code, summary, summaryText, cleanupAttempts, specEnvs } = await harness({
-      failResetAt: 2,
+      failResetAt: RESET_LABELS.indexOf("after capture"),
     });
     expect(code).toBe(1);
     expect(summary.result).toBe("failed");
@@ -291,26 +355,34 @@ describe("G1 orchestrator sequence (offline fault injection)", () => {
       cleanup: [],
     });
     // No capture child ran on the unreset state.
-    expect(specEnvs.map(({ env }) => env.G1_CAPTURE_LABEL)).toEqual([
-      "baseline",
-      "baseline-repeat",
+    expect(
+      specEnvs.map(({ spec, env }) => `${spec}:${env.G1_CAPTURE_LABEL ?? env.G1_INDEX_LABEL}`),
+    ).toEqual([
+      "public-routes.g1.spec.ts:baseline",
+      "index-consumer.g1.spec.ts:baseline",
+      "public-routes.g1.spec.ts:baseline-repeat",
+      "index-consumer.g1.spec.ts:baseline-repeat",
     ]);
     expect(cleanupAttempts).toEqual(Object.values(CLEANUP_SQL));
     expectSanitized(summaryText);
   });
 
   it("refuses to reset a drifted target and does not truncate", async () => {
-    const { code, summary, truncations } = await harness({ driftTargetAt: 1 });
+    const { code, summary, truncations } = await harness({
+      driftTargetAt: RESET_LABELS.indexOf("baseline-repeat capture"),
+    });
     expect(code).toBe(1);
     expect(failedChecks(summary)).toEqual(["reset public fixtures before baseline-repeat capture"]);
     expect(summary.steps.find((step) => !step.ok)?.detail).toEqual([
       "public objects differ from the run-created inventory",
     ]);
-    expect(truncations).toHaveLength(1);
+    expect(truncations).toHaveLength(RESET_LABELS.indexOf("baseline-repeat capture"));
   });
 
   it("fails when a reset leaves mutation state behind", async () => {
-    const { code, summary } = await harness({ dirtyResetAt: 3 });
+    const { code, summary } = await harness({
+      dirtyResetAt: RESET_LABELS.indexOf("after-repeat capture"),
+    });
     expect(code).toBe(1);
     expect(failedChecks(summary)).toEqual(["reset public fixtures before after-repeat capture"]);
   });
@@ -345,6 +417,141 @@ describe("G1 orchestrator sequence (offline fault injection)", () => {
     });
     expect(code).toBe(1);
     expect(failedChecks(summary)).toEqual(["baseline and after-repeat captures byte-identical"]);
+  });
+});
+
+describe("G1 isolated index orchestration (offline fault injection)", () => {
+  it("fails a rejected index child before reading missing evidence and preserves cleanup", async () => {
+    const { code, summary, cleanupAttempts, specEnvs, evidence } = await harness({
+      failIndexLabel: "after",
+    });
+    expect(code).toBe(1);
+    expect(failedChecks(summary)).toEqual([
+      "after index: fresh actual consumer child under the public runtime role",
+    ]);
+    expect(specEnvs.at(-1)?.spec).toBe("index-consumer.g1.spec.ts");
+    expect(specEnvs.at(-1)?.env.G1_INDEX_LABEL).toBe("after");
+    expect(existsSync(join(evidence, "index-after.json"))).toBe(false);
+    expect(cleanupAttempts).toEqual(Object.values(CLEANUP_SQL));
+    expect(summary.cleanup.every((step) => step.ok)).toBe(true);
+  });
+
+  it("refuses an index reset failure before loading its extra controls or invoking its child", async () => {
+    const { code, summary, events, cleanupAttempts } = await harness({
+      failResetAt: RESET_LABELS.indexOf("after index capture"),
+    });
+    expect(code).toBe(1);
+    expect(failedChecks(summary)).toEqual(["reset public fixtures before after index capture"]);
+    expect(events.at(-1)).toBe("reset:after index capture");
+    expect(events.filter((event) => event === "index-only fixtures")).toHaveLength(2);
+    expect(cleanupAttempts).toEqual(Object.values(CLEANUP_SQL));
+  });
+
+  it("fails a tampered canonical index digest before any pair or golden acceptance", async () => {
+    const { code, summary } = await harness({
+      indexFor: (label, capture) =>
+        label === "baseline" ? { ...capture, indexSha256: "0".repeat(64) } : capture,
+    });
+    expect(code).toBe(1);
+    expect(failedChecks(summary)).toEqual([
+      "baseline index matches populated outcomes and unchanged rows",
+    ]);
+    expect(summary.steps.find((step) => !step.ok)?.detail).toContain("index digest mismatch");
+    expect(
+      summary.steps.some((step) => step.step.includes("match the reviewed index golden")),
+    ).toBe(false);
+  });
+
+  it("fails a same-count value mutation reported by a consumer capture", async () => {
+    const { code, summary } = await harness({
+      indexFor: (label, capture) =>
+        label === "baseline"
+          ? {
+              ...capture,
+              stateAfterSha256: indexDigest({ User: [{ id: "same-row", role: "ADMIN" }] }),
+            }
+          : capture,
+    });
+    expect(code).toBe(1);
+    expect(failedChecks(summary)).toEqual([
+      "baseline index matches populated outcomes and unchanged rows",
+    ]);
+    expect(summary.steps.find((step) => !step.ok)?.detail).toContain("consumer mutated database");
+  });
+
+  it("compares public row values across runs even when each consumer individually makes no changes", async () => {
+    const changed = indexDigest({ User: [{ id: "same-row", orcid: "changed-value" }] });
+    const { code, summary } = await harness({
+      indexFor: (label, capture) =>
+        label === "after"
+          ? { ...capture, stateBeforeSha256: changed, stateAfterSha256: changed }
+          : capture,
+    });
+    expect(code).toBe(1);
+    expect(failedChecks(summary)).toEqual([
+      "baseline and after canonical indexes and public rows identical",
+    ]);
+    expect(summary.steps.find((step) => !step.ok)?.detail).toContain(
+      "public fixture state differs",
+    );
+  });
+
+  it("rejects an index whose content differs even after its own digest is recomputed", async () => {
+    const { code, summary } = await harness({
+      indexFor: (label, capture) => {
+        if (label !== "after") return capture;
+        capture.index.claims[0]!.text = "Changed synthetic public source content";
+        return { ...capture, indexSha256: indexDigest(capture.index) };
+      },
+    });
+    expect(code).toBe(1);
+    expect(failedChecks(summary)).toEqual([
+      "baseline and after canonical indexes and public rows identical",
+    ]);
+    expect(summary.steps.find((step) => !step.ok)?.detail).toContain("index bytes differ");
+  });
+
+  it("rejects comparison under a different otherwise valid index authority", async () => {
+    const { code, summary } = await harness({
+      indexFor: (label, capture) =>
+        label === "after"
+          ? { ...capture, roleContract: "read-only-probe", stateTables: INDEX_READ_TABLES }
+          : capture,
+    });
+    expect(code).toBe(1);
+    expect(failedChecks(summary)).toEqual([
+      "baseline and after canonical indexes and public rows identical",
+    ]);
+    expect(summary.steps.find((step) => !step.ok)?.detail).toContain(
+      "authority or state scope differs",
+    );
+  });
+
+  it("writes a separate candidate without changing the independently reviewed index golden", async () => {
+    const reviewed = readFileSync(INDEX_GOLDEN_PATH, "utf8");
+    const { code, evidence } = await harness({});
+    expect(code).toBe(0);
+    expect(readFileSync(INDEX_GOLDEN_PATH, "utf8")).toBe(reviewed);
+    expect(JSON.parse(readFileSync(join(evidence, "index-golden-candidate.json"), "utf8"))).toEqual(
+      reviewedIndex("baseline"),
+    );
+  });
+
+  it("keeps an index failure as the original cause while attempting all failing cleanup steps", async () => {
+    const failCleanup = Object.keys(CLEANUP_SQL) as CleanupStep[];
+    const { code, summary, summaryText, cleanupAttempts } = await harness({
+      failIndexLabel: "after",
+      failCleanup,
+    });
+    expect(code).toBe(1);
+    expect(summary.result).toBe("failed (cleanup incomplete; run-created resources may remain)");
+    expect(summary.failure).toEqual({
+      check: "after index: fresh actual consumer child under the public runtime role",
+      cleanup: failCleanup,
+    });
+    expect(cleanupAttempts).toEqual(Object.values(CLEANUP_SQL));
+    expect(summary.cleanup.every((step) => !step.ok)).toBe(true);
+    expectSanitized(summaryText);
   });
 });
 

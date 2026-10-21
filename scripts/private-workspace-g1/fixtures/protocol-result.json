@@ -1,0 +1,22 @@
+{
+  "schemaVersion": "1.0.0",
+  "packetSha256": "890bdbdfaafb0db8bae2370c838704ff684969413a79160f6e1bd2f89c87bd6e",
+  "criteria": [
+    {
+      "criterionId": "fixture-completeness",
+      "status": "pass",
+      "rationale": "Synthetic archive field present; no scientific evaluation occurred.",
+      "evidenceRefs": []
+    }
+  ],
+  "outcome": "inconclusive",
+  "limitations": ["Synthetic public harness fixture; no external certifier executed."],
+  "conflictOfInterest": {
+    "status": "none-declared"
+  },
+  "independence": {
+    "declared": false,
+    "statement": "Synthetic fixture does not assert independent assessment."
+  },
+  "provenance": {}
+}

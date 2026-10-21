@@ -277,6 +277,14 @@ function validateHttp(
     if (record.headers.find(([key]) => key === name)?.[1] !== value)
       problems.push(`${prefix}: expected header ${name} differs`);
   }
+  for (const name of scenario.expect.absentHeaders ?? []) {
+    const lower = name.toLowerCase();
+    if (
+      record.headers.some(([key]) => key.toLowerCase() === lower) ||
+      (lower === "set-cookie" && record.setCookie.length > 0)
+    )
+      problems.push(`${prefix}: forbidden header ${name} present`);
+  }
   if (sameResponseAs) {
     const prior = earlier.get(sameResponseAs);
     if (prior?.kind !== "http") problems.push(`${prefix}: comparison response missing`);

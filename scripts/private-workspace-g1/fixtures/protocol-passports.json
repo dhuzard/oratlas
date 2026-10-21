@@ -1,0 +1,1087 @@
+[
+  {
+    "id": "g1-protocol-passport-public",
+    "bindingClaimId": "g1-claim-2",
+    "source": {
+      "crate": {
+        "@context": [
+          "https://w3id.org/ro/crate/1.1/context",
+          "https://w3id.org/ro/terms/workflow-run/context"
+        ],
+        "@graph": [
+          {
+            "@id": "ro-crate-metadata.json",
+            "@type": "CreativeWork",
+            "about": {
+              "@id": "./"
+            },
+            "conformsTo": [
+              {
+                "@id": "https://w3id.org/ro/crate/1.1"
+              },
+              {
+                "@id": "https://w3id.org/workflowhub/workflow-ro-crate/1.0"
+              }
+            ]
+          },
+          {
+            "@id": "./",
+            "@type": "Dataset",
+            "name": "Attested analysis run",
+            "conformsTo": [
+              {
+                "@id": "https://w3id.org/ro/wfrun/workflow/0.5"
+              },
+              {
+                "@id": "https://w3id.org/ro/wfrun/process/0.5"
+              },
+              {
+                "@id": "https://w3id.org/workflowhub/workflow-ro-crate/1.0"
+              }
+            ],
+            "license": "MIT",
+            "mainEntity": {
+              "@id": ".github/workflows/analysis.yml"
+            },
+            "mentions": [
+              {
+                "@id": "#source"
+              },
+              {
+                "@id": "#run"
+              },
+              {
+                "@id": "#claim-1"
+              }
+            ],
+            "hasPart": [
+              {
+                "@id": ".github/workflows/analysis.yml"
+              },
+              {
+                "@id": "inputs/data.csv"
+              },
+              {
+                "@id": "outputs/result.json"
+              }
+            ]
+          },
+          {
+            "@id": "https://w3id.org/ro/wfrun/workflow/0.5",
+            "@type": "CreativeWork",
+            "name": "Workflow Run RO-Crate 0.5"
+          },
+          {
+            "@id": "https://w3id.org/ro/wfrun/process/0.5",
+            "@type": "CreativeWork",
+            "name": "Process Run RO-Crate 0.5"
+          },
+          {
+            "@id": "https://w3id.org/workflowhub/workflow-ro-crate/1.0",
+            "@type": "CreativeWork",
+            "name": "Workflow RO-Crate 1.0"
+          },
+          {
+            "@id": "#github-actions",
+            "@type": "ComputerLanguage",
+            "name": "GitHub Actions workflow"
+          },
+          {
+            "@id": "#source",
+            "@type": "SoftwareSourceCode",
+            "codeRepository": "https://github.com/example/review",
+            "commitSha": "1111111111111111111111111111111111111111",
+            "treeSha": "2222222222222222222222222222222222222222"
+          },
+          {
+            "@id": ".github/workflows/analysis.yml",
+            "@type": ["File", "SoftwareSourceCode", "ComputationalWorkflow"],
+            "name": "analysis.yml",
+            "programmingLanguage": {
+              "@id": "#github-actions"
+            },
+            "workflowPath": ".github/workflows/analysis.yml",
+            "sha256": "da7f739f627198465eeab537a6f7a435dc4a0c332f9e4a8462293eb3f4ab7ee0"
+          },
+          {
+            "@id": "#run",
+            "@type": "CreateAction",
+            "name": "GitHub Actions run 42",
+            "actionStatus": "https://schema.org/CompletedActionStatus",
+            "instrument": {
+              "@id": ".github/workflows/analysis.yml"
+            },
+            "object": {
+              "@id": "inputs/data.csv"
+            },
+            "result": {
+              "@id": "outputs/result.json"
+            },
+            "claimBindings": {
+              "@id": "#claim-1"
+            },
+            "runId": "42",
+            "runAttempt": 1
+          },
+          {
+            "@id": "inputs/data.csv",
+            "@type": "File",
+            "name": "data.csv",
+            "sha256": "c96c6d5be8d08a12e7b5cdc1b207fa6b2430974c86803d8891675e76fd992c20",
+            "contentSize": 5,
+            "encodingFormat": "text/csv"
+          },
+          {
+            "@id": "outputs/result.json",
+            "@type": "File",
+            "name": "result.json",
+            "sha256": "e0ee8bb50685e05fa0f47ed04203ae953fdfd055f5bd2892ea186504254f8c3a",
+            "contentSize": 6,
+            "encodingFormat": "application/json"
+          },
+          {
+            "@id": "#claim-1",
+            "@type": "EvidenceBinding",
+            "name": "Immutable Atlas claim binding",
+            "oratlasClaimId": "oratlas:claim:v1:00670031002d00760065007200730069006f006e002d0034:0063006c00610069006d002d0031"
+          }
+        ]
+      },
+      "attestation": {
+        "payloadType": "application/vnd.oratlas.execution-attestation.v1+json",
+        "payload": "eyJhcnRpZmFjdHMiOlt7ImJ5dGVTaXplIjo1LCJlbnRpdHlJZCI6ImlucHV0cy9kYXRhLmNzdiIsIm1lZGlhVHlwZSI6InRleHQvY3N2IiwibmFtZSI6ImRhdGEuY3N2IiwicGF0aCI6ImlucHV0cy9kYXRhLmNzdiIsInJvbGUiOiJpbnB1dCIsInNoYTI1NiI6ImM5NmM2ZDViZThkMDhhMTJlN2I1Y2RjMWIyMDdmYTZiMjQzMDk3NGM4NjgwM2Q4ODkxNjc1ZTc2ZmQ5OTJjMjAifSx7ImJ5dGVTaXplIjo2LCJlbnRpdHlJZCI6Im91dHB1dHMvcmVzdWx0Lmpzb24iLCJtZWRpYVR5cGUiOiJhcHBsaWNhdGlvbi9qc29uIiwibmFtZSI6InJlc3VsdC5qc29uIiwicGF0aCI6Im91dHB1dHMvcmVzdWx0Lmpzb24iLCJyb2xlIjoib3V0cHV0Iiwic2hhMjU2IjoiZTBlZThiYjUwNjg1ZTA1ZmEwZjQ3ZWQwNDIwM2FlOTUzZmRmZDA1NWY1YmQyODkyZWExODY1MDQyNTRmOGMzYSJ9XSwiY2xhaW1zIjpbeyJjbGFpbUlkIjoib3JhdGxhczpjbGFpbTp2MTowMDY3MDAzMTAwMmQwMDc2MDA2NTAwNzIwMDczMDA2OTAwNmYwMDZlMDAyZDAwMzQ6MDA2MzAwNmMwMDYxMDA2OTAwNmQwMDJkMDAzMSIsImxvY2FsQ2xhaW1JZCI6ImNsYWltLTEiLCJ2ZXJzaW9uSWQiOiJnMS12ZXJzaW9uLTQifV0sImNyYXRlU2hhMjU2IjoiMTI0OGExYTU3ZWU5MmZlNDRiOGZlYjY1YzViZWFjN2EyOWEwMTU3MWE4OTg0OGU4ZGE5N2I2MGUxNjlkZGY2ZSIsImlzc3VlZEF0IjoiMjAyNi0wMy0xNVQwODowMDowMC4wMDBaIiwicHJlZGljYXRlVHlwZSI6Imh0dHBzOi8vb3JhdGxhcy5vcmcvYXR0ZXN0YXRpb25zL2V4ZWN1dGlvbi92MSIsInJlcG9zaXRvcnkiOnsiY29tbWl0U2hhIjoiMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMSIsInRyZWVTaGEiOiIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyIiwidXJsIjoiaHR0cHM6Ly9naXRodWIuY29tL2V4YW1wbGUvcmV2aWV3In0sInNjaGVtYVZlcnNpb24iOiIxLjAiLCJzaWduaW5nSWRlbnRpdHkiOnsiaXNzdWVyIjoiaHR0cHM6Ly90b2tlbi5hY3Rpb25zLmdpdGh1YnVzZXJjb250ZW50LmNvbSIsInN1YmplY3QiOiJodHRwczovL2dpdGh1Yi5jb20vZXhhbXBsZS9yZXZpZXcvLmdpdGh1Yi93b3JrZmxvd3MvYW5hbHlzaXMueW1sQHJlZnMvaGVhZHMvbWFpbiJ9LCJ3b3JrZmxvdyI6eyJlbnRpdHlJZCI6Ii5naXRodWIvd29ya2Zsb3dzL2FuYWx5c2lzLnltbCIsInBhdGgiOiIuZ2l0aHViL3dvcmtmbG93cy9hbmFseXNpcy55bWwiLCJydW5BdHRlbXB0IjoxLCJydW5JZCI6IjQyIiwic2hhMjU2IjoiZGE3ZjczOWY2MjcxOTg0NjVlZWFiNTM3YTZmN2E0MzVkYzRhMGMzMzJmOWU0YTg0NjIyOTNlYjNmNGFiN2VlMCJ9fQ==",
+        "signatures": [
+          {
+            "keyId": "b170f6a987b79c56992c1bfe8f88fd973184836bb65931646ab679088a7bba82",
+            "sig": "+h5QfsrST67SGqjBFoke3DS8uMPHOvW4i6lNojFhnVYiCAwMi4I5ypwm7qdjoiOmXazF0/Uztrmz6BO3rj9MAA=="
+          }
+        ]
+      }
+    },
+    "verified": {
+      "status": "execution-attested",
+      "crateSha256": "1248a1a57ee92fe44b8feb65c5beac7a29a01571a89848e8da97b60e169ddf6e",
+      "attestationSha256": "67c05565848aa96013f963f5fc51bdb06fdddb7b30f495c5ebefaceb0518232e",
+      "payloadSha256": "e6185a6e6fe5b70445d99a5d81632aa4bb8ec16d3bbe1bdeebf9a6537365393d",
+      "repository": {
+        "url": "https://github.com/example/review",
+        "commitSha": "1111111111111111111111111111111111111111",
+        "treeSha": "2222222222222222222222222222222222222222"
+      },
+      "workflow": {
+        "entityId": ".github/workflows/analysis.yml",
+        "path": ".github/workflows/analysis.yml",
+        "sha256": "da7f739f627198465eeab537a6f7a435dc4a0c332f9e4a8462293eb3f4ab7ee0",
+        "runId": "42",
+        "runAttempt": 1
+      },
+      "claims": [
+        {
+          "versionId": "g1-version-4",
+          "localClaimId": "claim-1",
+          "claimId": "oratlas:claim:v1:00670031002d00760065007200730069006f006e002d0034:0063006c00610069006d002d0031"
+        }
+      ],
+      "artifacts": [
+        {
+          "entityId": "inputs/data.csv",
+          "role": "input",
+          "name": "data.csv",
+          "path": "inputs/data.csv",
+          "mediaType": "text/csv",
+          "byteSize": 5,
+          "sha256": "c96c6d5be8d08a12e7b5cdc1b207fa6b2430974c86803d8891675e76fd992c20"
+        },
+        {
+          "entityId": "outputs/result.json",
+          "role": "output",
+          "name": "result.json",
+          "path": "outputs/result.json",
+          "mediaType": "application/json",
+          "byteSize": 6,
+          "sha256": "e0ee8bb50685e05fa0f47ed04203ae953fdfd055f5bd2892ea186504254f8c3a"
+        }
+      ],
+      "signingIdentity": {
+        "issuer": "https://token.actions.githubusercontent.com",
+        "subject": "https://github.com/example/review/.github/workflows/analysis.yml@refs/heads/main",
+        "keyId": "b170f6a987b79c56992c1bfe8f88fd973184836bb65931646ab679088a7bba82"
+      },
+      "issuedAt": "2026-03-15T08:00:00.000Z",
+      "checks": {
+        "structure": "verified",
+        "artifactDigests": "verified",
+        "signature": "verified",
+        "signingIdentity": "verified"
+      }
+    }
+  },
+  {
+    "id": "g1-protocol-passport-hidden",
+    "bindingClaimId": "g1-claim-control",
+    "source": {
+      "crate": {
+        "@context": [
+          "https://w3id.org/ro/crate/1.1/context",
+          "https://w3id.org/ro/terms/workflow-run/context"
+        ],
+        "@graph": [
+          {
+            "@id": "ro-crate-metadata.json",
+            "@type": "CreativeWork",
+            "about": {
+              "@id": "./"
+            },
+            "conformsTo": [
+              {
+                "@id": "https://w3id.org/ro/crate/1.1"
+              },
+              {
+                "@id": "https://w3id.org/workflowhub/workflow-ro-crate/1.0"
+              }
+            ]
+          },
+          {
+            "@id": "./",
+            "@type": "Dataset",
+            "name": "Attested analysis run",
+            "conformsTo": [
+              {
+                "@id": "https://w3id.org/ro/wfrun/workflow/0.5"
+              },
+              {
+                "@id": "https://w3id.org/ro/wfrun/process/0.5"
+              },
+              {
+                "@id": "https://w3id.org/workflowhub/workflow-ro-crate/1.0"
+              }
+            ],
+            "license": "MIT",
+            "mainEntity": {
+              "@id": ".github/workflows/analysis.yml"
+            },
+            "mentions": [
+              {
+                "@id": "#source"
+              },
+              {
+                "@id": "#run"
+              },
+              {
+                "@id": "#claim-1"
+              }
+            ],
+            "hasPart": [
+              {
+                "@id": ".github/workflows/analysis.yml"
+              },
+              {
+                "@id": "inputs/data.csv"
+              },
+              {
+                "@id": "outputs/result.json"
+              }
+            ]
+          },
+          {
+            "@id": "https://w3id.org/ro/wfrun/workflow/0.5",
+            "@type": "CreativeWork",
+            "name": "Workflow Run RO-Crate 0.5"
+          },
+          {
+            "@id": "https://w3id.org/ro/wfrun/process/0.5",
+            "@type": "CreativeWork",
+            "name": "Process Run RO-Crate 0.5"
+          },
+          {
+            "@id": "https://w3id.org/workflowhub/workflow-ro-crate/1.0",
+            "@type": "CreativeWork",
+            "name": "Workflow RO-Crate 1.0"
+          },
+          {
+            "@id": "#github-actions",
+            "@type": "ComputerLanguage",
+            "name": "GitHub Actions workflow"
+          },
+          {
+            "@id": "#source",
+            "@type": "SoftwareSourceCode",
+            "codeRepository": "https://github.com/example/review",
+            "commitSha": "1111111111111111111111111111111111111111",
+            "treeSha": "2222222222222222222222222222222222222222"
+          },
+          {
+            "@id": ".github/workflows/analysis.yml",
+            "@type": ["File", "SoftwareSourceCode", "ComputationalWorkflow"],
+            "name": "analysis.yml",
+            "programmingLanguage": {
+              "@id": "#github-actions"
+            },
+            "workflowPath": ".github/workflows/analysis.yml",
+            "sha256": "da7f739f627198465eeab537a6f7a435dc4a0c332f9e4a8462293eb3f4ab7ee0"
+          },
+          {
+            "@id": "#run",
+            "@type": "CreateAction",
+            "name": "GitHub Actions run 42",
+            "actionStatus": "https://schema.org/CompletedActionStatus",
+            "instrument": {
+              "@id": ".github/workflows/analysis.yml"
+            },
+            "object": {
+              "@id": "inputs/data.csv"
+            },
+            "result": {
+              "@id": "outputs/result.json"
+            },
+            "claimBindings": {
+              "@id": "#claim-1"
+            },
+            "runId": "42",
+            "runAttempt": 1
+          },
+          {
+            "@id": "inputs/data.csv",
+            "@type": "File",
+            "name": "data.csv",
+            "sha256": "c96c6d5be8d08a12e7b5cdc1b207fa6b2430974c86803d8891675e76fd992c20",
+            "contentSize": 5,
+            "encodingFormat": "text/csv"
+          },
+          {
+            "@id": "outputs/result.json",
+            "@type": "File",
+            "name": "result.json",
+            "sha256": "e0ee8bb50685e05fa0f47ed04203ae953fdfd055f5bd2892ea186504254f8c3a",
+            "contentSize": 6,
+            "encodingFormat": "application/json"
+          },
+          {
+            "@id": "#claim-1",
+            "@type": "EvidenceBinding",
+            "name": "Immutable Atlas claim binding",
+            "oratlasClaimId": "oratlas:claim:v1:00670031002d00760065007200730069006f006e002d0033:0063006c00610069006d002d0031"
+          }
+        ]
+      },
+      "attestation": {
+        "payloadType": "application/vnd.oratlas.execution-attestation.v1+json",
+        "payload": "eyJhcnRpZmFjdHMiOlt7ImJ5dGVTaXplIjo1LCJlbnRpdHlJZCI6ImlucHV0cy9kYXRhLmNzdiIsIm1lZGlhVHlwZSI6InRleHQvY3N2IiwibmFtZSI6ImRhdGEuY3N2IiwicGF0aCI6ImlucHV0cy9kYXRhLmNzdiIsInJvbGUiOiJpbnB1dCIsInNoYTI1NiI6ImM5NmM2ZDViZThkMDhhMTJlN2I1Y2RjMWIyMDdmYTZiMjQzMDk3NGM4NjgwM2Q4ODkxNjc1ZTc2ZmQ5OTJjMjAifSx7ImJ5dGVTaXplIjo2LCJlbnRpdHlJZCI6Im91dHB1dHMvcmVzdWx0Lmpzb24iLCJtZWRpYVR5cGUiOiJhcHBsaWNhdGlvbi9qc29uIiwibmFtZSI6InJlc3VsdC5qc29uIiwicGF0aCI6Im91dHB1dHMvcmVzdWx0Lmpzb24iLCJyb2xlIjoib3V0cHV0Iiwic2hhMjU2IjoiZTBlZThiYjUwNjg1ZTA1ZmEwZjQ3ZWQwNDIwM2FlOTUzZmRmZDA1NWY1YmQyODkyZWExODY1MDQyNTRmOGMzYSJ9XSwiY2xhaW1zIjpbeyJjbGFpbUlkIjoib3JhdGxhczpjbGFpbTp2MTowMDY3MDAzMTAwMmQwMDc2MDA2NTAwNzIwMDczMDA2OTAwNmYwMDZlMDAyZDAwMzM6MDA2MzAwNmMwMDYxMDA2OTAwNmQwMDJkMDAzMSIsImxvY2FsQ2xhaW1JZCI6ImNsYWltLTEiLCJ2ZXJzaW9uSWQiOiJnMS12ZXJzaW9uLTMifV0sImNyYXRlU2hhMjU2IjoiMDY1MzU2NjM4MmIyYjU4OTliMTIzNDRiOGIwMDliZjRiYmI1MmQyNGIzN2VhODZlNzZjNDc3Y2Y3YzNjN2VjZiIsImlzc3VlZEF0IjoiMjAyNi0wMy0xNVQwODowMDowMS4wMDBaIiwicHJlZGljYXRlVHlwZSI6Imh0dHBzOi8vb3JhdGxhcy5vcmcvYXR0ZXN0YXRpb25zL2V4ZWN1dGlvbi92MSIsInJlcG9zaXRvcnkiOnsiY29tbWl0U2hhIjoiMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMSIsInRyZWVTaGEiOiIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyIiwidXJsIjoiaHR0cHM6Ly9naXRodWIuY29tL2V4YW1wbGUvcmV2aWV3In0sInNjaGVtYVZlcnNpb24iOiIxLjAiLCJzaWduaW5nSWRlbnRpdHkiOnsiaXNzdWVyIjoiaHR0cHM6Ly90b2tlbi5hY3Rpb25zLmdpdGh1YnVzZXJjb250ZW50LmNvbSIsInN1YmplY3QiOiJodHRwczovL2dpdGh1Yi5jb20vZXhhbXBsZS9yZXZpZXcvLmdpdGh1Yi93b3JrZmxvd3MvYW5hbHlzaXMueW1sQHJlZnMvaGVhZHMvbWFpbiJ9LCJ3b3JrZmxvdyI6eyJlbnRpdHlJZCI6Ii5naXRodWIvd29ya2Zsb3dzL2FuYWx5c2lzLnltbCIsInBhdGgiOiIuZ2l0aHViL3dvcmtmbG93cy9hbmFseXNpcy55bWwiLCJydW5BdHRlbXB0IjoxLCJydW5JZCI6IjQyIiwic2hhMjU2IjoiZGE3ZjczOWY2MjcxOTg0NjVlZWFiNTM3YTZmN2E0MzVkYzRhMGMzMzJmOWU0YTg0NjIyOTNlYjNmNGFiN2VlMCJ9fQ==",
+        "signatures": [
+          {
+            "keyId": "b7ba734eada0bc30652748ffd2a6df2a5d80b3cfe44096a06836230a61922449",
+            "sig": "nem4EM6noegG21El+3pDnjg5Li5/fZEwbTCyommjWQZLsZmcOnvQwMrlzWsNfDcUDBD9Ag7fmNOelB9uG1h/Bg=="
+          }
+        ]
+      }
+    },
+    "verified": {
+      "status": "execution-attested",
+      "crateSha256": "0653566382b2b5899b12344b8b009bf4bbb52d24b37ea86e76c477cf7c3c7ecf",
+      "attestationSha256": "d241435903c2754afa1a913990f87857d310631c861a87ccfcf20cd5ed56da18",
+      "payloadSha256": "fcad94a053b33129c8ee12d62b6e1b11f71df75df8aac1a9d41ce59bf4d81aa9",
+      "repository": {
+        "url": "https://github.com/example/review",
+        "commitSha": "1111111111111111111111111111111111111111",
+        "treeSha": "2222222222222222222222222222222222222222"
+      },
+      "workflow": {
+        "entityId": ".github/workflows/analysis.yml",
+        "path": ".github/workflows/analysis.yml",
+        "sha256": "da7f739f627198465eeab537a6f7a435dc4a0c332f9e4a8462293eb3f4ab7ee0",
+        "runId": "42",
+        "runAttempt": 1
+      },
+      "claims": [
+        {
+          "versionId": "g1-version-3",
+          "localClaimId": "claim-1",
+          "claimId": "oratlas:claim:v1:00670031002d00760065007200730069006f006e002d0033:0063006c00610069006d002d0031"
+        }
+      ],
+      "artifacts": [
+        {
+          "entityId": "inputs/data.csv",
+          "role": "input",
+          "name": "data.csv",
+          "path": "inputs/data.csv",
+          "mediaType": "text/csv",
+          "byteSize": 5,
+          "sha256": "c96c6d5be8d08a12e7b5cdc1b207fa6b2430974c86803d8891675e76fd992c20"
+        },
+        {
+          "entityId": "outputs/result.json",
+          "role": "output",
+          "name": "result.json",
+          "path": "outputs/result.json",
+          "mediaType": "application/json",
+          "byteSize": 6,
+          "sha256": "e0ee8bb50685e05fa0f47ed04203ae953fdfd055f5bd2892ea186504254f8c3a"
+        }
+      ],
+      "signingIdentity": {
+        "issuer": "https://token.actions.githubusercontent.com",
+        "subject": "https://github.com/example/review/.github/workflows/analysis.yml@refs/heads/main",
+        "keyId": "b7ba734eada0bc30652748ffd2a6df2a5d80b3cfe44096a06836230a61922449"
+      },
+      "issuedAt": "2026-03-15T08:00:01.000Z",
+      "checks": {
+        "structure": "verified",
+        "artifactDigests": "verified",
+        "signature": "verified",
+        "signingIdentity": "verified"
+      }
+    }
+  },
+  {
+    "id": "g1-protocol-passport-tombstoned",
+    "bindingClaimId": "g1-discovery-claim-tombstoned",
+    "source": {
+      "crate": {
+        "@context": [
+          "https://w3id.org/ro/crate/1.1/context",
+          "https://w3id.org/ro/terms/workflow-run/context"
+        ],
+        "@graph": [
+          {
+            "@id": "ro-crate-metadata.json",
+            "@type": "CreativeWork",
+            "about": {
+              "@id": "./"
+            },
+            "conformsTo": [
+              {
+                "@id": "https://w3id.org/ro/crate/1.1"
+              },
+              {
+                "@id": "https://w3id.org/workflowhub/workflow-ro-crate/1.0"
+              }
+            ]
+          },
+          {
+            "@id": "./",
+            "@type": "Dataset",
+            "name": "Attested analysis run",
+            "conformsTo": [
+              {
+                "@id": "https://w3id.org/ro/wfrun/workflow/0.5"
+              },
+              {
+                "@id": "https://w3id.org/ro/wfrun/process/0.5"
+              },
+              {
+                "@id": "https://w3id.org/workflowhub/workflow-ro-crate/1.0"
+              }
+            ],
+            "license": "MIT",
+            "mainEntity": {
+              "@id": ".github/workflows/analysis.yml"
+            },
+            "mentions": [
+              {
+                "@id": "#source"
+              },
+              {
+                "@id": "#run"
+              },
+              {
+                "@id": "#claim-1"
+              }
+            ],
+            "hasPart": [
+              {
+                "@id": ".github/workflows/analysis.yml"
+              },
+              {
+                "@id": "inputs/data.csv"
+              },
+              {
+                "@id": "outputs/result.json"
+              }
+            ]
+          },
+          {
+            "@id": "https://w3id.org/ro/wfrun/workflow/0.5",
+            "@type": "CreativeWork",
+            "name": "Workflow Run RO-Crate 0.5"
+          },
+          {
+            "@id": "https://w3id.org/ro/wfrun/process/0.5",
+            "@type": "CreativeWork",
+            "name": "Process Run RO-Crate 0.5"
+          },
+          {
+            "@id": "https://w3id.org/workflowhub/workflow-ro-crate/1.0",
+            "@type": "CreativeWork",
+            "name": "Workflow RO-Crate 1.0"
+          },
+          {
+            "@id": "#github-actions",
+            "@type": "ComputerLanguage",
+            "name": "GitHub Actions workflow"
+          },
+          {
+            "@id": "#source",
+            "@type": "SoftwareSourceCode",
+            "codeRepository": "https://github.com/example/review",
+            "commitSha": "1111111111111111111111111111111111111111",
+            "treeSha": "2222222222222222222222222222222222222222"
+          },
+          {
+            "@id": ".github/workflows/analysis.yml",
+            "@type": ["File", "SoftwareSourceCode", "ComputationalWorkflow"],
+            "name": "analysis.yml",
+            "programmingLanguage": {
+              "@id": "#github-actions"
+            },
+            "workflowPath": ".github/workflows/analysis.yml",
+            "sha256": "da7f739f627198465eeab537a6f7a435dc4a0c332f9e4a8462293eb3f4ab7ee0"
+          },
+          {
+            "@id": "#run",
+            "@type": "CreateAction",
+            "name": "GitHub Actions run 42",
+            "actionStatus": "https://schema.org/CompletedActionStatus",
+            "instrument": {
+              "@id": ".github/workflows/analysis.yml"
+            },
+            "object": {
+              "@id": "inputs/data.csv"
+            },
+            "result": {
+              "@id": "outputs/result.json"
+            },
+            "claimBindings": {
+              "@id": "#claim-1"
+            },
+            "runId": "42",
+            "runAttempt": 1
+          },
+          {
+            "@id": "inputs/data.csv",
+            "@type": "File",
+            "name": "data.csv",
+            "sha256": "c96c6d5be8d08a12e7b5cdc1b207fa6b2430974c86803d8891675e76fd992c20",
+            "contentSize": 5,
+            "encodingFormat": "text/csv"
+          },
+          {
+            "@id": "outputs/result.json",
+            "@type": "File",
+            "name": "result.json",
+            "sha256": "e0ee8bb50685e05fa0f47ed04203ae953fdfd055f5bd2892ea186504254f8c3a",
+            "contentSize": 6,
+            "encodingFormat": "application/json"
+          },
+          {
+            "@id": "#claim-1",
+            "@type": "EvidenceBinding",
+            "name": "Immutable Atlas claim binding",
+            "oratlasClaimId": "oratlas:claim:v1:00670031002d00760065007200730069006f006e002d0074006f006d006200730074006f006e00650064:0064006900730063006f0076006500720079002d0063006c00610069006d"
+          }
+        ]
+      },
+      "attestation": {
+        "payloadType": "application/vnd.oratlas.execution-attestation.v1+json",
+        "payload": "eyJhcnRpZmFjdHMiOlt7ImJ5dGVTaXplIjo1LCJlbnRpdHlJZCI6ImlucHV0cy9kYXRhLmNzdiIsIm1lZGlhVHlwZSI6InRleHQvY3N2IiwibmFtZSI6ImRhdGEuY3N2IiwicGF0aCI6ImlucHV0cy9kYXRhLmNzdiIsInJvbGUiOiJpbnB1dCIsInNoYTI1NiI6ImM5NmM2ZDViZThkMDhhMTJlN2I1Y2RjMWIyMDdmYTZiMjQzMDk3NGM4NjgwM2Q4ODkxNjc1ZTc2ZmQ5OTJjMjAifSx7ImJ5dGVTaXplIjo2LCJlbnRpdHlJZCI6Im91dHB1dHMvcmVzdWx0Lmpzb24iLCJtZWRpYVR5cGUiOiJhcHBsaWNhdGlvbi9qc29uIiwibmFtZSI6InJlc3VsdC5qc29uIiwicGF0aCI6Im91dHB1dHMvcmVzdWx0Lmpzb24iLCJyb2xlIjoib3V0cHV0Iiwic2hhMjU2IjoiZTBlZThiYjUwNjg1ZTA1ZmEwZjQ3ZWQwNDIwM2FlOTUzZmRmZDA1NWY1YmQyODkyZWExODY1MDQyNTRmOGMzYSJ9XSwiY2xhaW1zIjpbeyJjbGFpbUlkIjoib3JhdGxhczpjbGFpbTp2MTowMDY3MDAzMTAwMmQwMDc2MDA2NTAwNzIwMDczMDA2OTAwNmYwMDZlMDAyZDAwNzQwMDZmMDA2ZDAwNjIwMDczMDA3NDAwNmYwMDZlMDA2NTAwNjQ6MDA2NDAwNjkwMDczMDA2MzAwNmYwMDc2MDA2NTAwNzIwMDc5MDAyZDAwNjMwMDZjMDA2MTAwNjkwMDZkIiwibG9jYWxDbGFpbUlkIjoiZGlzY292ZXJ5LWNsYWltIiwidmVyc2lvbklkIjoiZzEtdmVyc2lvbi10b21ic3RvbmVkIn1dLCJjcmF0ZVNoYTI1NiI6ImRhYjRjZjJiNGYzYTQyMTA0MWYxM2U1ZTliZmM3NTE0ZjE2NDc2YWYxMmZjNzlkZjEzZDA0YmRhOTkyYzVmNzUiLCJpc3N1ZWRBdCI6IjIwMjYtMDMtMTVUMDg6MDA6MDIuMDAwWiIsInByZWRpY2F0ZVR5cGUiOiJodHRwczovL29yYXRsYXMub3JnL2F0dGVzdGF0aW9ucy9leGVjdXRpb24vdjEiLCJyZXBvc2l0b3J5Ijp7ImNvbW1pdFNoYSI6IjExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTEiLCJ0cmVlU2hhIjoiMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMiIsInVybCI6Imh0dHBzOi8vZ2l0aHViLmNvbS9leGFtcGxlL3JldmlldyJ9LCJzY2hlbWFWZXJzaW9uIjoiMS4wIiwic2lnbmluZ0lkZW50aXR5Ijp7Imlzc3VlciI6Imh0dHBzOi8vdG9rZW4uYWN0aW9ucy5naXRodWJ1c2VyY29udGVudC5jb20iLCJzdWJqZWN0IjoiaHR0cHM6Ly9naXRodWIuY29tL2V4YW1wbGUvcmV2aWV3Ly5naXRodWIvd29ya2Zsb3dzL2FuYWx5c2lzLnltbEByZWZzL2hlYWRzL21haW4ifSwid29ya2Zsb3ciOnsiZW50aXR5SWQiOiIuZ2l0aHViL3dvcmtmbG93cy9hbmFseXNpcy55bWwiLCJwYXRoIjoiLmdpdGh1Yi93b3JrZmxvd3MvYW5hbHlzaXMueW1sIiwicnVuQXR0ZW1wdCI6MSwicnVuSWQiOiI0MiIsInNoYTI1NiI6ImRhN2Y3MzlmNjI3MTk4NDY1ZWVhYjUzN2E2ZjdhNDM1ZGM0YTBjMzMyZjllNGE4NDYyMjkzZWIzZjRhYjdlZTAifX0=",
+        "signatures": [
+          {
+            "keyId": "654b15b18977e097e98078ceb1bd87b39094d34692fcbefbf76305e4370bd15f",
+            "sig": "aXuktNVA9MpADIM8ZVGYwm71hHcquB+cQyutr8shuMGbynomU8DDHaXDKmoSLAqeTl7MIb8FfRCt0DxmKdNHBg=="
+          }
+        ]
+      }
+    },
+    "verified": {
+      "status": "execution-attested",
+      "crateSha256": "dab4cf2b4f3a421041f13e5e9bfc7514f16476af12fc79df13d04bda992c5f75",
+      "attestationSha256": "a2aaa957c379c3d24b7bcb75c70d1e4bc86139f91f753f936614d3a44b85e054",
+      "payloadSha256": "fe7d8b156b462f65cddd10cba4b607c99273e2bec5f35269d5b782dac1891c80",
+      "repository": {
+        "url": "https://github.com/example/review",
+        "commitSha": "1111111111111111111111111111111111111111",
+        "treeSha": "2222222222222222222222222222222222222222"
+      },
+      "workflow": {
+        "entityId": ".github/workflows/analysis.yml",
+        "path": ".github/workflows/analysis.yml",
+        "sha256": "da7f739f627198465eeab537a6f7a435dc4a0c332f9e4a8462293eb3f4ab7ee0",
+        "runId": "42",
+        "runAttempt": 1
+      },
+      "claims": [
+        {
+          "versionId": "g1-version-tombstoned",
+          "localClaimId": "discovery-claim",
+          "claimId": "oratlas:claim:v1:00670031002d00760065007200730069006f006e002d0074006f006d006200730074006f006e00650064:0064006900730063006f0076006500720079002d0063006c00610069006d"
+        }
+      ],
+      "artifacts": [
+        {
+          "entityId": "inputs/data.csv",
+          "role": "input",
+          "name": "data.csv",
+          "path": "inputs/data.csv",
+          "mediaType": "text/csv",
+          "byteSize": 5,
+          "sha256": "c96c6d5be8d08a12e7b5cdc1b207fa6b2430974c86803d8891675e76fd992c20"
+        },
+        {
+          "entityId": "outputs/result.json",
+          "role": "output",
+          "name": "result.json",
+          "path": "outputs/result.json",
+          "mediaType": "application/json",
+          "byteSize": 6,
+          "sha256": "e0ee8bb50685e05fa0f47ed04203ae953fdfd055f5bd2892ea186504254f8c3a"
+        }
+      ],
+      "signingIdentity": {
+        "issuer": "https://token.actions.githubusercontent.com",
+        "subject": "https://github.com/example/review/.github/workflows/analysis.yml@refs/heads/main",
+        "keyId": "654b15b18977e097e98078ceb1bd87b39094d34692fcbefbf76305e4370bd15f"
+      },
+      "issuedAt": "2026-03-15T08:00:02.000Z",
+      "checks": {
+        "structure": "verified",
+        "artifactDigests": "verified",
+        "signature": "verified",
+        "signingIdentity": "verified"
+      }
+    }
+  },
+  {
+    "id": "g1-protocol-passport-tampered",
+    "bindingClaimId": "g1-claim-2",
+    "source": {
+      "crate": {
+        "@context": [
+          "https://w3id.org/ro/crate/1.1/context",
+          "https://w3id.org/ro/terms/workflow-run/context"
+        ],
+        "@graph": [
+          {
+            "@id": "ro-crate-metadata.json",
+            "@type": "CreativeWork",
+            "about": {
+              "@id": "./"
+            },
+            "conformsTo": [
+              {
+                "@id": "https://w3id.org/ro/crate/1.1"
+              },
+              {
+                "@id": "https://w3id.org/workflowhub/workflow-ro-crate/1.0"
+              }
+            ]
+          },
+          {
+            "@id": "./",
+            "@type": "Dataset",
+            "name": "Attested analysis run",
+            "conformsTo": [
+              {
+                "@id": "https://w3id.org/ro/wfrun/workflow/0.5"
+              },
+              {
+                "@id": "https://w3id.org/ro/wfrun/process/0.5"
+              },
+              {
+                "@id": "https://w3id.org/workflowhub/workflow-ro-crate/1.0"
+              }
+            ],
+            "license": "MIT",
+            "mainEntity": {
+              "@id": ".github/workflows/analysis.yml"
+            },
+            "mentions": [
+              {
+                "@id": "#source"
+              },
+              {
+                "@id": "#run"
+              },
+              {
+                "@id": "#claim-1"
+              }
+            ],
+            "hasPart": [
+              {
+                "@id": ".github/workflows/analysis.yml"
+              },
+              {
+                "@id": "inputs/data.csv"
+              },
+              {
+                "@id": "outputs/result.json"
+              }
+            ]
+          },
+          {
+            "@id": "https://w3id.org/ro/wfrun/workflow/0.5",
+            "@type": "CreativeWork",
+            "name": "Workflow Run RO-Crate 0.5"
+          },
+          {
+            "@id": "https://w3id.org/ro/wfrun/process/0.5",
+            "@type": "CreativeWork",
+            "name": "Process Run RO-Crate 0.5"
+          },
+          {
+            "@id": "https://w3id.org/workflowhub/workflow-ro-crate/1.0",
+            "@type": "CreativeWork",
+            "name": "Workflow RO-Crate 1.0"
+          },
+          {
+            "@id": "#github-actions",
+            "@type": "ComputerLanguage",
+            "name": "GitHub Actions workflow"
+          },
+          {
+            "@id": "#source",
+            "@type": "SoftwareSourceCode",
+            "codeRepository": "https://github.com/example/review",
+            "commitSha": "1111111111111111111111111111111111111111",
+            "treeSha": "2222222222222222222222222222222222222222"
+          },
+          {
+            "@id": ".github/workflows/analysis.yml",
+            "@type": ["File", "SoftwareSourceCode", "ComputationalWorkflow"],
+            "name": "analysis.yml",
+            "programmingLanguage": {
+              "@id": "#github-actions"
+            },
+            "workflowPath": ".github/workflows/analysis.yml",
+            "sha256": "da7f739f627198465eeab537a6f7a435dc4a0c332f9e4a8462293eb3f4ab7ee0"
+          },
+          {
+            "@id": "#run",
+            "@type": "CreateAction",
+            "name": "GitHub Actions run 42",
+            "actionStatus": "https://schema.org/CompletedActionStatus",
+            "instrument": {
+              "@id": ".github/workflows/analysis.yml"
+            },
+            "object": {
+              "@id": "inputs/data.csv"
+            },
+            "result": {
+              "@id": "outputs/result.json"
+            },
+            "claimBindings": {
+              "@id": "#claim-1"
+            },
+            "runId": "42",
+            "runAttempt": 1
+          },
+          {
+            "@id": "inputs/data.csv",
+            "@type": "File",
+            "name": "data.csv",
+            "sha256": "c96c6d5be8d08a12e7b5cdc1b207fa6b2430974c86803d8891675e76fd992c20",
+            "contentSize": 5,
+            "encodingFormat": "text/csv"
+          },
+          {
+            "@id": "outputs/result.json",
+            "@type": "File",
+            "name": "result.json",
+            "sha256": "d121be3103007b41edf96f8262925f8c7d61894afe9a041843b631f69445bc57",
+            "contentSize": 6,
+            "encodingFormat": "application/json"
+          },
+          {
+            "@id": "#claim-1",
+            "@type": "EvidenceBinding",
+            "name": "Immutable Atlas claim binding",
+            "oratlasClaimId": "oratlas:claim:v1:00670031002d00760065007200730069006f006e002d0034:0063006c00610069006d002d0031"
+          }
+        ]
+      },
+      "attestation": {
+        "payloadType": "application/vnd.oratlas.execution-attestation.v1+json",
+        "payload": "eyJhcnRpZmFjdHMiOlt7ImJ5dGVTaXplIjo1LCJlbnRpdHlJZCI6ImlucHV0cy9kYXRhLmNzdiIsIm1lZGlhVHlwZSI6InRleHQvY3N2IiwibmFtZSI6ImRhdGEuY3N2IiwicGF0aCI6ImlucHV0cy9kYXRhLmNzdiIsInJvbGUiOiJpbnB1dCIsInNoYTI1NiI6ImM5NmM2ZDViZThkMDhhMTJlN2I1Y2RjMWIyMDdmYTZiMjQzMDk3NGM4NjgwM2Q4ODkxNjc1ZTc2ZmQ5OTJjMjAifSx7ImJ5dGVTaXplIjo2LCJlbnRpdHlJZCI6Im91dHB1dHMvcmVzdWx0Lmpzb24iLCJtZWRpYVR5cGUiOiJhcHBsaWNhdGlvbi9qc29uIiwibmFtZSI6InJlc3VsdC5qc29uIiwicGF0aCI6Im91dHB1dHMvcmVzdWx0Lmpzb24iLCJyb2xlIjoib3V0cHV0Iiwic2hhMjU2IjoiZTBlZThiYjUwNjg1ZTA1ZmEwZjQ3ZWQwNDIwM2FlOTUzZmRmZDA1NWY1YmQyODkyZWExODY1MDQyNTRmOGMzYSJ9XSwiY2xhaW1zIjpbeyJjbGFpbUlkIjoib3JhdGxhczpjbGFpbTp2MTowMDY3MDAzMTAwMmQwMDc2MDA2NTAwNzIwMDczMDA2OTAwNmYwMDZlMDAyZDAwMzQ6MDA2MzAwNmMwMDYxMDA2OTAwNmQwMDJkMDAzMSIsImxvY2FsQ2xhaW1JZCI6ImNsYWltLTEiLCJ2ZXJzaW9uSWQiOiJnMS12ZXJzaW9uLTQifV0sImNyYXRlU2hhMjU2IjoiMTI0OGExYTU3ZWU5MmZlNDRiOGZlYjY1YzViZWFjN2EyOWEwMTU3MWE4OTg0OGU4ZGE5N2I2MGUxNjlkZGY2ZSIsImlzc3VlZEF0IjoiMjAyNi0wMy0xNVQwODowMDowMy4wMDBaIiwicHJlZGljYXRlVHlwZSI6Imh0dHBzOi8vb3JhdGxhcy5vcmcvYXR0ZXN0YXRpb25zL2V4ZWN1dGlvbi92MSIsInJlcG9zaXRvcnkiOnsiY29tbWl0U2hhIjoiMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMSIsInRyZWVTaGEiOiIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyIiwidXJsIjoiaHR0cHM6Ly9naXRodWIuY29tL2V4YW1wbGUvcmV2aWV3In0sInNjaGVtYVZlcnNpb24iOiIxLjAiLCJzaWduaW5nSWRlbnRpdHkiOnsiaXNzdWVyIjoiaHR0cHM6Ly90b2tlbi5hY3Rpb25zLmdpdGh1YnVzZXJjb250ZW50LmNvbSIsInN1YmplY3QiOiJodHRwczovL2dpdGh1Yi5jb20vZXhhbXBsZS9yZXZpZXcvLmdpdGh1Yi93b3JrZmxvd3MvYW5hbHlzaXMueW1sQHJlZnMvaGVhZHMvbWFpbiJ9LCJ3b3JrZmxvdyI6eyJlbnRpdHlJZCI6Ii5naXRodWIvd29ya2Zsb3dzL2FuYWx5c2lzLnltbCIsInBhdGgiOiIuZ2l0aHViL3dvcmtmbG93cy9hbmFseXNpcy55bWwiLCJydW5BdHRlbXB0IjoxLCJydW5JZCI6IjQyIiwic2hhMjU2IjoiZGE3ZjczOWY2MjcxOTg0NjVlZWFiNTM3YTZmN2E0MzVkYzRhMGMzMzJmOWU0YTg0NjIyOTNlYjNmNGFiN2VlMCJ9fQ==",
+        "signatures": [
+          {
+            "keyId": "b5f1e48136c73aeecef1dd2d8253187836bd6bef0bce4256e671f32e7404aec9",
+            "sig": "Ei5jN/s/b9jEh/22b7DLM3Ku8HLi/1uo1cebKxUVeNYfNpMPntNZVJ1LKSyNEBpLeUVJlzse7FFaUJoBx1z0BA=="
+          }
+        ]
+      }
+    },
+    "verified": {
+      "status": "execution-attested",
+      "crateSha256": "1248a1a57ee92fe44b8feb65c5beac7a29a01571a89848e8da97b60e169ddf6e",
+      "attestationSha256": "9f661dca693ac7d10c5e26754f5c8bcd53c7d24fe75c6b7d535814a786d66b2a",
+      "payloadSha256": "5aaa6865812643adbc396080168bff80810305524cc79b57763ba60b04f453db",
+      "repository": {
+        "url": "https://github.com/example/review",
+        "commitSha": "1111111111111111111111111111111111111111",
+        "treeSha": "2222222222222222222222222222222222222222"
+      },
+      "workflow": {
+        "entityId": ".github/workflows/analysis.yml",
+        "path": ".github/workflows/analysis.yml",
+        "sha256": "da7f739f627198465eeab537a6f7a435dc4a0c332f9e4a8462293eb3f4ab7ee0",
+        "runId": "42",
+        "runAttempt": 1
+      },
+      "claims": [
+        {
+          "versionId": "g1-version-4",
+          "localClaimId": "claim-1",
+          "claimId": "oratlas:claim:v1:00670031002d00760065007200730069006f006e002d0034:0063006c00610069006d002d0031"
+        }
+      ],
+      "artifacts": [
+        {
+          "entityId": "inputs/data.csv",
+          "role": "input",
+          "name": "data.csv",
+          "path": "inputs/data.csv",
+          "mediaType": "text/csv",
+          "byteSize": 5,
+          "sha256": "c96c6d5be8d08a12e7b5cdc1b207fa6b2430974c86803d8891675e76fd992c20"
+        },
+        {
+          "entityId": "outputs/result.json",
+          "role": "output",
+          "name": "result.json",
+          "path": "outputs/result.json",
+          "mediaType": "application/json",
+          "byteSize": 6,
+          "sha256": "e0ee8bb50685e05fa0f47ed04203ae953fdfd055f5bd2892ea186504254f8c3a"
+        }
+      ],
+      "signingIdentity": {
+        "issuer": "https://token.actions.githubusercontent.com",
+        "subject": "https://github.com/example/review/.github/workflows/analysis.yml@refs/heads/main",
+        "keyId": "b5f1e48136c73aeecef1dd2d8253187836bd6bef0bce4256e671f32e7404aec9"
+      },
+      "issuedAt": "2026-03-15T08:00:03.000Z",
+      "checks": {
+        "structure": "verified",
+        "artifactDigests": "verified",
+        "signature": "verified",
+        "signingIdentity": "verified"
+      }
+    }
+  },
+  {
+    "id": "g1-protocol-passport-unknown-key",
+    "bindingClaimId": "g1-claim-2",
+    "source": {
+      "crate": {
+        "@context": [
+          "https://w3id.org/ro/crate/1.1/context",
+          "https://w3id.org/ro/terms/workflow-run/context"
+        ],
+        "@graph": [
+          {
+            "@id": "ro-crate-metadata.json",
+            "@type": "CreativeWork",
+            "about": {
+              "@id": "./"
+            },
+            "conformsTo": [
+              {
+                "@id": "https://w3id.org/ro/crate/1.1"
+              },
+              {
+                "@id": "https://w3id.org/workflowhub/workflow-ro-crate/1.0"
+              }
+            ]
+          },
+          {
+            "@id": "./",
+            "@type": "Dataset",
+            "name": "Attested analysis run",
+            "conformsTo": [
+              {
+                "@id": "https://w3id.org/ro/wfrun/workflow/0.5"
+              },
+              {
+                "@id": "https://w3id.org/ro/wfrun/process/0.5"
+              },
+              {
+                "@id": "https://w3id.org/workflowhub/workflow-ro-crate/1.0"
+              }
+            ],
+            "license": "MIT",
+            "mainEntity": {
+              "@id": ".github/workflows/analysis.yml"
+            },
+            "mentions": [
+              {
+                "@id": "#source"
+              },
+              {
+                "@id": "#run"
+              },
+              {
+                "@id": "#claim-1"
+              }
+            ],
+            "hasPart": [
+              {
+                "@id": ".github/workflows/analysis.yml"
+              },
+              {
+                "@id": "inputs/data.csv"
+              },
+              {
+                "@id": "outputs/result.json"
+              }
+            ]
+          },
+          {
+            "@id": "https://w3id.org/ro/wfrun/workflow/0.5",
+            "@type": "CreativeWork",
+            "name": "Workflow Run RO-Crate 0.5"
+          },
+          {
+            "@id": "https://w3id.org/ro/wfrun/process/0.5",
+            "@type": "CreativeWork",
+            "name": "Process Run RO-Crate 0.5"
+          },
+          {
+            "@id": "https://w3id.org/workflowhub/workflow-ro-crate/1.0",
+            "@type": "CreativeWork",
+            "name": "Workflow RO-Crate 1.0"
+          },
+          {
+            "@id": "#github-actions",
+            "@type": "ComputerLanguage",
+            "name": "GitHub Actions workflow"
+          },
+          {
+            "@id": "#source",
+            "@type": "SoftwareSourceCode",
+            "codeRepository": "https://github.com/example/review",
+            "commitSha": "1111111111111111111111111111111111111111",
+            "treeSha": "2222222222222222222222222222222222222222"
+          },
+          {
+            "@id": ".github/workflows/analysis.yml",
+            "@type": ["File", "SoftwareSourceCode", "ComputationalWorkflow"],
+            "name": "analysis.yml",
+            "programmingLanguage": {
+              "@id": "#github-actions"
+            },
+            "workflowPath": ".github/workflows/analysis.yml",
+            "sha256": "da7f739f627198465eeab537a6f7a435dc4a0c332f9e4a8462293eb3f4ab7ee0"
+          },
+          {
+            "@id": "#run",
+            "@type": "CreateAction",
+            "name": "GitHub Actions run 42",
+            "actionStatus": "https://schema.org/CompletedActionStatus",
+            "instrument": {
+              "@id": ".github/workflows/analysis.yml"
+            },
+            "object": {
+              "@id": "inputs/data.csv"
+            },
+            "result": {
+              "@id": "outputs/result.json"
+            },
+            "claimBindings": {
+              "@id": "#claim-1"
+            },
+            "runId": "42",
+            "runAttempt": 1
+          },
+          {
+            "@id": "inputs/data.csv",
+            "@type": "File",
+            "name": "data.csv",
+            "sha256": "c96c6d5be8d08a12e7b5cdc1b207fa6b2430974c86803d8891675e76fd992c20",
+            "contentSize": 5,
+            "encodingFormat": "text/csv"
+          },
+          {
+            "@id": "outputs/result.json",
+            "@type": "File",
+            "name": "result.json",
+            "sha256": "e0ee8bb50685e05fa0f47ed04203ae953fdfd055f5bd2892ea186504254f8c3a",
+            "contentSize": 6,
+            "encodingFormat": "application/json"
+          },
+          {
+            "@id": "#claim-1",
+            "@type": "EvidenceBinding",
+            "name": "Immutable Atlas claim binding",
+            "oratlasClaimId": "oratlas:claim:v1:00670031002d00760065007200730069006f006e002d0034:0063006c00610069006d002d0031"
+          }
+        ]
+      },
+      "attestation": {
+        "payloadType": "application/vnd.oratlas.execution-attestation.v1+json",
+        "payload": "eyJhcnRpZmFjdHMiOlt7ImJ5dGVTaXplIjo1LCJlbnRpdHlJZCI6ImlucHV0cy9kYXRhLmNzdiIsIm1lZGlhVHlwZSI6InRleHQvY3N2IiwibmFtZSI6ImRhdGEuY3N2IiwicGF0aCI6ImlucHV0cy9kYXRhLmNzdiIsInJvbGUiOiJpbnB1dCIsInNoYTI1NiI6ImM5NmM2ZDViZThkMDhhMTJlN2I1Y2RjMWIyMDdmYTZiMjQzMDk3NGM4NjgwM2Q4ODkxNjc1ZTc2ZmQ5OTJjMjAifSx7ImJ5dGVTaXplIjo2LCJlbnRpdHlJZCI6Im91dHB1dHMvcmVzdWx0Lmpzb24iLCJtZWRpYVR5cGUiOiJhcHBsaWNhdGlvbi9qc29uIiwibmFtZSI6InJlc3VsdC5qc29uIiwicGF0aCI6Im91dHB1dHMvcmVzdWx0Lmpzb24iLCJyb2xlIjoib3V0cHV0Iiwic2hhMjU2IjoiZTBlZThiYjUwNjg1ZTA1ZmEwZjQ3ZWQwNDIwM2FlOTUzZmRmZDA1NWY1YmQyODkyZWExODY1MDQyNTRmOGMzYSJ9XSwiY2xhaW1zIjpbeyJjbGFpbUlkIjoib3JhdGxhczpjbGFpbTp2MTowMDY3MDAzMTAwMmQwMDc2MDA2NTAwNzIwMDczMDA2OTAwNmYwMDZlMDAyZDAwMzQ6MDA2MzAwNmMwMDYxMDA2OTAwNmQwMDJkMDAzMSIsImxvY2FsQ2xhaW1JZCI6ImNsYWltLTEiLCJ2ZXJzaW9uSWQiOiJnMS12ZXJzaW9uLTQifV0sImNyYXRlU2hhMjU2IjoiMTI0OGExYTU3ZWU5MmZlNDRiOGZlYjY1YzViZWFjN2EyOWEwMTU3MWE4OTg0OGU4ZGE5N2I2MGUxNjlkZGY2ZSIsImlzc3VlZEF0IjoiMjAyNi0wMy0xNVQwODowMDowNC4wMDBaIiwicHJlZGljYXRlVHlwZSI6Imh0dHBzOi8vb3JhdGxhcy5vcmcvYXR0ZXN0YXRpb25zL2V4ZWN1dGlvbi92MSIsInJlcG9zaXRvcnkiOnsiY29tbWl0U2hhIjoiMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMSIsInRyZWVTaGEiOiIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyIiwidXJsIjoiaHR0cHM6Ly9naXRodWIuY29tL2V4YW1wbGUvcmV2aWV3In0sInNjaGVtYVZlcnNpb24iOiIxLjAiLCJzaWduaW5nSWRlbnRpdHkiOnsiaXNzdWVyIjoiaHR0cHM6Ly90b2tlbi5hY3Rpb25zLmdpdGh1YnVzZXJjb250ZW50LmNvbSIsInN1YmplY3QiOiJodHRwczovL2dpdGh1Yi5jb20vZXhhbXBsZS9yZXZpZXcvLmdpdGh1Yi93b3JrZmxvd3MvYW5hbHlzaXMueW1sQHJlZnMvaGVhZHMvbWFpbiJ9LCJ3b3JrZmxvdyI6eyJlbnRpdHlJZCI6Ii5naXRodWIvd29ya2Zsb3dzL2FuYWx5c2lzLnltbCIsInBhdGgiOiIuZ2l0aHViL3dvcmtmbG93cy9hbmFseXNpcy55bWwiLCJydW5BdHRlbXB0IjoxLCJydW5JZCI6IjQyIiwic2hhMjU2IjoiZGE3ZjczOWY2MjcxOTg0NjVlZWFiNTM3YTZmN2E0MzVkYzRhMGMzMzJmOWU0YTg0NjIyOTNlYjNmNGFiN2VlMCJ9fQ==",
+        "signatures": [
+          {
+            "keyId": "c0faaa0f767ec352c94e0cbcd1f47158887c9596c265301f60ef6092e8d922a0",
+            "sig": "CbPcWViU0Av7PKck6WxBpcNyXAj73PCuY0y/OMCWLWhaRvwJlg7aM6oySWQSYvae6iiTVu9lAZx3/aBpR63tBg=="
+          }
+        ]
+      }
+    },
+    "verified": {
+      "status": "execution-attested",
+      "crateSha256": "1248a1a57ee92fe44b8feb65c5beac7a29a01571a89848e8da97b60e169ddf6e",
+      "attestationSha256": "6419e52e920deada596b170898fc898879ea23139909660c53d4ad0f15914041",
+      "payloadSha256": "205908e167a142fb4a2329796a117c6faa8f320c8b8f484d2492f7bccffda91f",
+      "repository": {
+        "url": "https://github.com/example/review",
+        "commitSha": "1111111111111111111111111111111111111111",
+        "treeSha": "2222222222222222222222222222222222222222"
+      },
+      "workflow": {
+        "entityId": ".github/workflows/analysis.yml",
+        "path": ".github/workflows/analysis.yml",
+        "sha256": "da7f739f627198465eeab537a6f7a435dc4a0c332f9e4a8462293eb3f4ab7ee0",
+        "runId": "42",
+        "runAttempt": 1
+      },
+      "claims": [
+        {
+          "versionId": "g1-version-4",
+          "localClaimId": "claim-1",
+          "claimId": "oratlas:claim:v1:00670031002d00760065007200730069006f006e002d0034:0063006c00610069006d002d0031"
+        }
+      ],
+      "artifacts": [
+        {
+          "entityId": "inputs/data.csv",
+          "role": "input",
+          "name": "data.csv",
+          "path": "inputs/data.csv",
+          "mediaType": "text/csv",
+          "byteSize": 5,
+          "sha256": "c96c6d5be8d08a12e7b5cdc1b207fa6b2430974c86803d8891675e76fd992c20"
+        },
+        {
+          "entityId": "outputs/result.json",
+          "role": "output",
+          "name": "result.json",
+          "path": "outputs/result.json",
+          "mediaType": "application/json",
+          "byteSize": 6,
+          "sha256": "e0ee8bb50685e05fa0f47ed04203ae953fdfd055f5bd2892ea186504254f8c3a"
+        }
+      ],
+      "signingIdentity": {
+        "issuer": "https://token.actions.githubusercontent.com",
+        "subject": "https://github.com/example/review/.github/workflows/analysis.yml@refs/heads/main",
+        "keyId": "c0faaa0f767ec352c94e0cbcd1f47158887c9596c265301f60ef6092e8d922a0"
+      },
+      "issuedAt": "2026-03-15T08:00:04.000Z",
+      "checks": {
+        "structure": "verified",
+        "artifactDigests": "verified",
+        "signature": "verified",
+        "signingIdentity": "verified"
+      }
+    }
+  }
+]

@@ -87,6 +87,7 @@ export function methodObligations(appDirectory: string, program: readonly Scenar
     renderedSurfaceStatus:
       "requires separate real Next serving/HTML/metadata capture evidence" as const,
     nonHttpStatus:
-      "jobs, CLIs, backups, indexes, logs, metrics, audit, notification delivery, outbound calls and timing require separate evidence" as const,
+      "public knowledge-index consumer has a separate capture contract; jobs, CLIs, backups, other indexes, logs, metrics, audit, notification delivery, outbound calls and timing require separate evidence" as const,
+    nonHttpEvidenceLedger: "docs/private-workspace-operational-channel-ledger.md" as const,
   };
 }

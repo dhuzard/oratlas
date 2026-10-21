@@ -63,7 +63,10 @@ const input = {
 describe("native MyST discovery fixture contract", () => {
   it("captures exact closed-schema 0.3 manifest bytes and normalizes its contributor declarations", () => {
     expect(manifest.schemaVersion).toBe("0.3.0");
-    expect(Buffer.from(capture.contentBytes!, "base64")).toEqual(manifestBytes);
+    expect(capture.contentBytes).toBe(
+      new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(manifestBytes),
+    );
+    expect(Buffer.from(capture.contentBytes!, "utf8")).toEqual(manifestBytes);
     expect(Number(capture.byteLength)).toBe(manifestBytes.length);
     expect(capture.contentSha256).toBe(sha256(manifestBytes));
     expect(capture.declaredSha256).toBe(sha256(manifestBytes));
@@ -105,7 +108,7 @@ describe("native MyST discovery fixture contract", () => {
     expect(manifest.artifacts.claims.sha256).toBe(sha256(claimsBytes));
     expect(manifest.artifacts.claims.records).toBe(claims.length);
     const source = row("PublicationCapture", "g1-discovery-source");
-    const sourceBytes = Buffer.from(source.contentBytes!, "base64");
+    const sourceBytes = Buffer.from(source.contentBytes!, "utf8");
     expect(sourceBytes.toString("utf8")).toBe(DISCOVERY_TEXT);
     expect(source.contentSha256).toBe(sha256(sourceBytes));
     expect(source.declaredSha256).toBe(sha256(sourceBytes));

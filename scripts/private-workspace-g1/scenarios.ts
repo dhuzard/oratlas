@@ -3,6 +3,8 @@ import { publicPrincipalScenarios } from "./principal-matrix.js";
 import { editorialScenarios } from "./editorial-scenarios.js";
 import { SCHOLARLY_SCENARIOS } from "./scholarly-scenarios.js";
 import { publicDiscoveryScenarios } from "./discovery-scenarios.js";
+import { publicProtocolScenarios } from "./protocol-scenarios.js";
+import { EDITORIAL_READ_SCENARIOS } from "./editorial-read-scenarios.js";
 import {
   fixtureUser,
   sha256Text,
@@ -45,6 +47,8 @@ export type HttpExpectation = {
   /** Exact public download bytes and security headers, independently of the golden. */
   readonly bodyEquals?: string;
   readonly headers?: Readonly<Record<string, string>>;
+  /** Headers whose absence is an independent contract, not merely a golden observation. */
+  readonly absentHeaders?: readonly string[];
   /** Equal status/body/headers/cookies across principals; request identity stays distinct. */
   readonly sameResponseAs?: string;
 };
@@ -840,6 +844,8 @@ export const SCENARIOS: readonly Scenario[] = [
   ...metadataScenarios(),
   ...publicDiscoveryScenarios(),
   ...SCHOLARLY_SCENARIOS,
+  ...publicProtocolScenarios(),
+  ...EDITORIAL_READ_SCENARIOS,
   ...editorialScenarios(AUTH_FINAL_STATE.expect),
 ];
 

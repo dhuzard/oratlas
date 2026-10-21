@@ -88,8 +88,8 @@ requires its own final-head CI; neither result completes G1.
 ## Implementation record (G1-empty, partial)
 
 Status: **G1-empty harness implemented with partial coverage. All six principal cases now execute
-against 56 of the 133 public route files (57 of 143 exported methods) and two metadata loaders; populated T-ROLE/T-PUB
-matrices, the other 77 route files / 86 methods, Next HTTP serving, pages and non-HTTP channels remain
+against 71 of the 133 public route files (73 of 143 exported methods) and two metadata loaders; the separate real index consumer also runs four times. Populated T-ROLE/T-PUB
+matrices, the other 62 route files / 70 methods, integrated Next HTTP serving, pages and remaining non-HTTP channels remain
 outstanding. G1 is not recorded as passed.**
 
 ### Layout
@@ -637,3 +637,87 @@ record G1 as passed.
   PostgreSQL repeat above do not cover the remaining surfaces or populated matrices.
 
 References: [ADR test matrix](./private-workspace-security-architecture.md#11-test-matrix-and-acceptance-mapping), [G1 gate](./private-workspace-security-architecture.md#13-rollout-gates-and-migration-consequences), [R0 evidence limits](./private-workspace-r0-review.md), [identity interfaces/limitations](./identity-link-foundations.md), [next-phase plan](./private-workspace-poc-next-phase.md).
+
+## Protocol, editorial-read and index integration — 2026-10-21
+
+This bounded extension starts from `07ef428635c02f93fef5968dadfe9837ab55a5c4`
+(after #232), with no production code, private table, provider, external tester or
+deployment changes. The HTTP program now has **1,165 records**: **1,148 HTTP**,
+**15 database-state** and **2 metadata-loader** records. It exercises **71/133
+route files** and **73/143 methods**; **72 methods** have all six principal cases.
+Four worker GETs have denial-only evidence; user cookies never substitute for
+worker credentials. The remaining **62 files/70 methods**, rendered surfaces,
+other operational channels and timing remain explicit gaps. **G1 is not passed.**
+
+The additional 162 protocol requests cover seven populated public GETs plus four
+worker-only authentication controls. Native signature, packet, result and finding
+validation runs unchanged, including tampered/unknown-key and corrupt-artifact
+controls. Only the exact committed public synthetic trust keys are injected in the
+test runner after its closed-environment assertion; inherited trust remains
+forbidden. See [protocol scope](../scripts/private-workspace-g1/protocol-coverage.md).
+
+The additional 108 editorial/federation/proposal requests cover four GETs and
+OPTIONS, including populated open process history, exact role and visibility
+controls, native request/announcement bindings and accepted-only pagination.
+Independent review repaired unreachable fixture states and provenance before
+acceptance. OPTIONS returns empty 204 responses; absence of a CORS grant is now an
+independent `absentHeaders` expectation with an added-header rejection regression.
+
+The actual `buildKnowledgeIndex` consumer runs in a fresh child after its own reset
+for every baseline/repeat/after/repeat label. Supplemental index exclusion fixtures
+never enter the HTTP program. The consumer uses the same reviewed public runtime
+authority: **64 explicit SELECT tables**, existing AuditEvent INSERT, and **12
+column UPDATE privileges**. No new runtime writes are granted. Canonical function
+output and full-row state digests compare separately from HTTP bodies; the
+evidence envelope correctly records differing private-schema existence. The
+Date-only clock is bound, and real same-count update controls reject drift and
+roll back. Raw child stdout/stderr is checked before logs are preserved; refused
+output fails the run, so redaction cannot turn a leaking sink into passed evidence.
+
+The expanded row-count probe uses `json_object_agg` over rows: PostgreSQL's
+100-function-argument limit made the previous 50-table `json_build_object` pattern
+fail after the grant closure grew. Shared reset and T-ROLE queries now use the same
+aggregation without dropping tables or weakening expected counts.
+
+Independent review approved both candidates from the complete local lifecycle
+(`/tmp/oratlas-g1-operational-candidate`): HTTP candidate SHA-256
+`25b7c97c3ce6a1e0dfb89de31f8d1f7ff284a5f2e68b1c1a9ab5ddf74ed1ef2b`,
+index candidate `dfcaecc384ebeceebc5b41d4fc106b27d762818513c7e962efd304125161e515`.
+The index output digest is
+`0aafb06b1a793898811bba4334c9daff58278e0ffb0d1df28455bcb6218400f2`;
+the original four 64-table public-state digests were
+`bc8942566a9ece20ceda2fe46e5d11ab479927e813a07388f4265ee62f726b46`.
+Manually accepted baselines add review metadata and formatting; compared data is
+unchanged. No candidate is copied automatically. The final baseline-backed local
+run (`/tmp/oratlas-g1-operational-final`) passed **42/42** steps, including auth
+**6/6**, role **7/7** and cleanup **4/4**. All **270** focused G1/architecture
+tests passed; 23 evidence/log files had no credential matches. Final-head CI
+remains required.
+
+Exactly **12 of the previous 895 record bodies** change from populated fixtures:
+six publication-version certification counts become 1, and six claim passports
+gain the native open/retracted and dismissed/corrected update alerts. Both now
+have independent scenario assertions. Their envelopes and the other **883 record
+values** are unchanged; the original 93-record historical program remains intact.
+See the [operational channel ledger](private-workspace-operational-channel-ledger.md)
+for bounded index evidence and the remaining jobs, CLIs, recovery and sink work.
+
+A subsequent native source-artifact probe found that the discovery fixture stored
+two `PublicationCapture.contentBytes` values as base64 text, while native
+registration stores decoded UTF-8. The production reader correctly rejected the
+fixture bytes. The fixture and its test oracle now use the exact native UTF-8
+representation (1,298 manifest bytes and 71 source bytes, including trailing
+newlines); hashes, metadata and production validators are unchanged. Independent
+review compared every row: only those two stored values change. All 1,165 HTTP
+records and the canonical index output remain identical.
+
+The independently reviewed corrected index candidate SHA-256 is
+`bf6b05f5ae03b6f6aaa5eb724ea7e287f612ce472a65e4c077c3d6fc8ef4d15b`;
+its four public-state digests are
+`40e66352b8e29901930a084fcc90e4b988eadc5751d90808e7870c212904595f`.
+Only the two state digest fields and review metadata were manually updated in the
+index golden. The corrected baseline-backed lifecycle in
+`/tmp/oratlas-g1-native-storage-final` passed **42/42** steps, auth **6/6**, role
+**7/7** and cleanup **4/4**. A separate native-fixture/architecture run passed
+**121** tests. This correction supersedes the original state digest above; it
+does not establish complete G1 coverage or enable private data.
