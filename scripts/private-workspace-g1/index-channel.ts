@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { canonicalJson } from "../../packages/contracts/src/canonical-json.js";
 import type { KnowledgeIndexData } from "../../packages/knowledge/src/types.js";
 import { PUBLIC_SELECT_TABLES } from "./sql.js";
+import { G1_FIXED_CLOCK } from "./capture.js";
 
 /** The real index-builder's Prisma read closure, not a production permission policy. */
 export const INDEX_READ_TABLES = [
@@ -72,6 +73,7 @@ export function indexContentProblems(index: KnowledgeIndexData): string[] {
 
 export interface IndexCapture {
   protocol: typeof INDEX_PROTOCOL;
+  clock: string;
   label: string;
   roleContract: "public-runtime" | "read-only-probe";
   stateTables: readonly string[];
@@ -87,6 +89,7 @@ export function indexCaptureProblems(capture: IndexCapture): string[] {
   return [
     ...indexContentProblems(capture.index),
     ...(capture.protocol === INDEX_PROTOCOL ? [] : ["protocol mismatch"]),
+    ...(capture.clock === G1_FIXED_CLOCK ? [] : ["clock mismatch"]),
     ...(["baseline", "baseline-repeat", "after", "after-repeat"].includes(capture.label)
       ? []
       : ["invalid run label"]),

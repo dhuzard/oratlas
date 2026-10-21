@@ -36,6 +36,36 @@ const http = (file: CaptureFile, id: string) =>
   file.records.find((record) => record.id === id) as HttpRecord;
 
 describe("the reviewed program and golden agree", () => {
+  it("rejects forbidden CORS and cookie headers independently of a regenerated golden", () => {
+    const original = SCENARIOS.find((scenario) => scenario.id === "openapi-json");
+    if (original?.kind !== "http") throw new Error("Expected public HTTP fixture");
+    const scenario = {
+      ...original,
+      expect: { ...original.expect, absentHeaders: ["Access-Control-Allow-Origin", "set-cookie"] },
+    };
+    const record = http(capture, scenario.id);
+    const file = { ...capture, records: [record] };
+    expect(validateCapture(file, [scenario], createSessionToken)).toEqual([]);
+    expect(
+      validateCapture(
+        {
+          ...file,
+          records: [
+            { ...record, headers: [...record.headers, ["access-control-allow-origin", "*"]] },
+          ],
+        },
+        [scenario],
+        createSessionToken,
+      ),
+    ).toContain(`${scenario.id}: forbidden header Access-Control-Allow-Origin present`);
+    expect(
+      validateCapture(
+        { ...file, records: [{ ...record, setCookie: ["unexpected=synthetic"] }] },
+        [scenario],
+        createSessionToken,
+      ),
+    ).toContain(`${scenario.id}: forbidden header set-cookie present`);
+  });
   it("has a valid program: unique ids/composite keys and coherent denials", () => {
     expect(programProblems(SCENARIOS)).toEqual([]);
     expect(SCENARIOS.length).toBe(895);

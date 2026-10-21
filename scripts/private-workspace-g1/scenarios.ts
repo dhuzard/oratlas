@@ -45,6 +45,8 @@ export type HttpExpectation = {
   /** Exact public download bytes and security headers, independently of the golden. */
   readonly bodyEquals?: string;
   readonly headers?: Readonly<Record<string, string>>;
+  /** Headers whose absence is an independent contract, not merely a golden observation. */
+  readonly absentHeaders?: readonly string[];
   /** Equal status/body/headers/cookies across principals; request identity stays distinct. */
   readonly sameResponseAs?: string;
 };

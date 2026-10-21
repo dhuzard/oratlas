@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { KnowledgeIndexData } from "../../packages/knowledge/src/types.js";
 import { PUBLIC_SELECT_TABLES } from "./sql.js";
+import { G1_FIXED_CLOCK } from "./capture.js";
 import {
   INDEX_CONTROLS,
   INDEX_PROTOCOL,
@@ -36,6 +37,7 @@ const capture = (): IndexCapture => {
   const index = projection();
   return {
     protocol: INDEX_PROTOCOL,
+    clock: G1_FIXED_CLOCK,
     label: "baseline",
     roleContract: "public-runtime",
     stateTables: PUBLIC_SELECT_TABLES,
@@ -125,5 +127,10 @@ describe("index non-HTTP evidence contract", () => {
     value.stateTables = PUBLIC_SELECT_TABLES;
     value.label = "unspecified";
     expect(indexCaptureProblems(value)).toContain("invalid run label");
+  });
+  it("rejects a changed clock even when the index and row digests match", () => {
+    const changed = { ...capture(), clock: "2026-04-02T00:00:00.000Z" };
+    expect(indexCaptureProblems(changed)).toContain("clock mismatch");
+    expect(indexCaptureDifferences(capture(), changed)).toContain("clock mismatch");
   });
 });

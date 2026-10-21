@@ -50,6 +50,7 @@ export const EDITORIAL_READ_SCENARIOS: readonly HttpScenario[] = PRINCIPAL_LABEL
     const capabilities: HttpExpectation = {
       status: 204,
       bodyEquals: "",
+      absentHeaders: ["access-control-allow-origin"],
       headers: {
         allow: "GET, HEAD, OPTIONS, POST",
         "accept-post": "application/ld+json, application/json",

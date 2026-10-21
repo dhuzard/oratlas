@@ -2,6 +2,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { afterAll, expect, it, vi } from "vitest";
 import { assertPublicChildEnv } from "./child-env.js";
+import { G1_FIXED_CLOCK } from "./capture.js";
 import { canonicalJson } from "../../packages/contracts/src/canonical-json.js";
 import {
   columnPrivilegesSql,
@@ -22,12 +23,14 @@ import {
 // impersonation, mocked Prisma, search DTO projection or fake empty successful index.
 let disconnect: (() => Promise<void>) | undefined;
 afterAll(async () => {
+  vi.useRealTimers();
   vi.unstubAllGlobals();
   await disconnect?.();
 });
 
 it("captures a populated public index with exact runtime authority and unchanged source rows", async () => {
   const out = assertPublicChildEnv(process.env, "G1_INDEX_CAPTURE_OUT");
+  vi.useFakeTimers({ toFake: ["Date"], now: new Date(G1_FIXED_CLOCK) });
   const label = process.env.G1_INDEX_LABEL;
   if (!label || !/^(baseline|baseline-repeat|after|after-repeat)$/u.test(label))
     throw new Error("Explicit index run label required");
@@ -155,6 +158,7 @@ it("captures a populated public index with exact runtime authority and unchanged
   const index = await buildKnowledgeIndex();
   const capture: IndexCapture = {
     protocol: INDEX_PROTOCOL,
+    clock: G1_FIXED_CLOCK,
     label,
     roleContract,
     stateTables,
