@@ -84,6 +84,9 @@ jobs:
           apps/web/src/lib/openapi-response.test.ts
           apps/web/src/app/llms.txt/route.test.ts
 
+      - name: Typecheck G1 scripts and real Next imports
+        run: pnpm exec tsc --project scripts/private-workspace-g1/tsconfig.json
+
       - name: G1-empty harness on disposable PostgreSQL 16 (T-ROLE, T-PUB, auth evidence)
         run: pnpm g1:private-workspace
         env:

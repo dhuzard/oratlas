@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "review": "Author-reviewed 2026-10-20 (alpha-g1-coverage; independent review pending). Program v2 (scripts/private-workspace-g1/scenarios.ts): the eight legacy anonymous requests are byte-identical to the v1 golden except feeds-atom, which deliberately gains the second public review (entries v4, v2, v1; the non-public control stays excluded). Outcomes: 27x200, 2x304, 8x401, 8x403, 1x404 (every error status is a declared denial with exact code/message), 3 db-state projections, 2 metadata-loader outputs. Regenerated deliberately from golden-candidate.json; never copied automatically.",
+  "review": "G1 public-artifact extension from main 154b399; 93 scenarios, public handler captures only; reviewer must inspect new artifact records. G1 remains partial.",
   "baseUrl": "https://g1.oratlas.example",
   "clock": "2026-04-01T00:00:00.000Z",
   "records": [
@@ -1303,6 +1303,1138 @@
       "body": {
         "encoding": "utf8",
         "text": "{\n  \"users\": [\n    {\n      \"id\": \"g1-user-a-and-b\",\n      \"role\": \"USER\",\n      \"orcid\": null,\n      \"orcidVerifiedAt\": null\n    },\n    {\n      \"id\": \"g1-user-a-only\",\n      \"role\": \"USER\",\n      \"orcid\": null,\n      \"orcidVerifiedAt\": null\n    },\n    {\n      \"id\": \"g1-user-admin\",\n      \"role\": \"ADMIN\",\n      \"orcid\": null,\n      \"orcidVerifiedAt\": null\n    },\n    {\n      \"id\": \"g1-user-b-only\",\n      \"role\": \"USER\",\n      \"orcid\": null,\n      \"orcidVerifiedAt\": null\n    },\n    {\n      \"id\": \"g1-user-editor\",\n      \"role\": \"EDITOR\",\n      \"orcid\": null,\n      \"orcidVerifiedAt\": null\n    }\n  ],\n  \"notifications\": [\n    {\n      \"id\": \"g1-notification-a-and-b-1\",\n      \"userId\": \"g1-user-a-and-b\",\n      \"readAt\": null\n    },\n    {\n      \"id\": \"g1-notification-a-only-1\",\n      \"userId\": \"g1-user-a-only\",\n      \"readAt\": \"2026-04-01T00:00:00.000Z\"\n    },\n    {\n      \"id\": \"g1-notification-a-only-2\",\n      \"userId\": \"g1-user-a-only\",\n      \"readAt\": null\n    },\n    {\n      \"id\": \"g1-notification-admin-1\",\n      \"userId\": \"g1-user-admin\",\n      \"readAt\": null\n    },\n    {\n      \"id\": \"g1-notification-b-only-1\",\n      \"userId\": \"g1-user-b-only\",\n      \"readAt\": null\n    },\n    {\n      \"id\": \"g1-notification-editor-1\",\n      \"userId\": \"g1-user-editor\",\n      \"readAt\": null\n    }\n  ],\n  \"certifiers\": [\n    {\n      \"id\": \"g1-certifier-1\",\n      \"status\": \"suspended\",\n      \"activatedAt\": \"2026-01-05T00:00:00.000Z\",\n      \"retiredAt\": null\n    },\n    {\n      \"id\": \"g1-certifier-ora\",\n      \"status\": \"active\",\n      \"activatedAt\": \"2026-01-05T00:00:00.000Z\",\n      \"retiredAt\": null\n    }\n  ],\n  \"audit\": {\n    \"count\": 6,\n    \"events\": [\n      {\n        \"actorId\": \"g1-user-admin\",\n        \"action\": \"certification.certifier-status\",\n        \"subjectType\": \"certifier\",\n        \"subjectId\": \"g1-certifier-1\",\n        \"details\": {\n          \"previous\": \"active\",\n          \"status\": \"suspended\"\n        }\n      },\n      {\n        \"actorId\": \"g1-user-a-and-b\",\n        \"action\": \"profile.orcid-set\",\n        \"subjectType\": \"user\",\n        \"subjectId\": \"g1-user-a-and-b\",\n        \"details\": {\n          \"orcid\": null,\n          \"verified\": false\n        }\n      },\n      {\n        \"actorId\": \"g1-user-a-only\",\n        \"action\": \"profile.orcid-set\",\n        \"subjectType\": \"user\",\n        \"subjectId\": \"g1-user-a-only\",\n        \"details\": {\n          \"orcid\": null,\n          \"verified\": false\n        }\n      },\n      {\n        \"actorId\": \"g1-user-admin\",\n        \"action\": \"profile.orcid-set\",\n        \"subjectType\": \"user\",\n        \"subjectId\": \"g1-user-admin\",\n        \"details\": {\n          \"orcid\": null,\n          \"verified\": false\n        }\n      },\n      {\n        \"actorId\": \"g1-user-b-only\",\n        \"action\": \"profile.orcid-set\",\n        \"subjectType\": \"user\",\n        \"subjectId\": \"g1-user-b-only\",\n        \"details\": {\n          \"orcid\": null,\n          \"verified\": false\n        }\n      },\n      {\n        \"actorId\": \"g1-user-editor\",\n        \"action\": \"profile.orcid-set\",\n        \"subjectType\": \"user\",\n        \"subjectId\": \"g1-user-editor\",\n        \"details\": {\n          \"orcid\": null,\n          \"verified\": false\n        }\n      }\n    ]\n  },\n  \"excluded\": [\n    \"AuditEvent.id\",\n    \"AuditEvent.createdAt\",\n    \"AuditEvent.platformVersion\",\n    \"User.updatedAt\"\n  ]\n}\n"
+      }
+    },
+    {
+      "kind": "http",
+      "id": "capture-anonymous",
+      "method": "GET",
+      "path": "/api/publication-captures/g1-capture-source",
+      "requestHeaders": {},
+      "requestBody": null,
+      "principal": "anonymous",
+      "sessionCase": "none",
+      "session": {
+        "case": "none"
+      },
+      "cookieSha256": null,
+      "status": 200,
+      "headers": [["content-type", "application/json"]],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "{\"schemaVersion\":\"1.0.0\",\"id\":\"g1-capture-source\",\"publicationVersionId\":\"g1-publication-version-1\",\"publicationVersionHref\":\"/api/publication-versions/g1-publication-version-1\",\"artifactKind\":\"source-document\",\"declaredPath\":\"article.md\",\"requestedUrl\":\"https://publications.g1.oratlas.example/p1/article.md\",\"observedUrl\":\"https://publications.g1.oratlas.example/p1/article.md\",\"mediaType\":\"text/plain\",\"contentSha256\":\"5d6e3bf06175c7079a93531c1b6835fcf8b010c1ba56244678651fb0a2e44d29\",\"declaredSha256\":\"5d6e3bf06175c7079a93531c1b6835fcf8b010c1ba56244678651fb0a2e44d29\",\"byteLength\":49,\"verificationLevel\":\"published-structure\",\"capturedAt\":\"2026-03-10T00:00:00.000Z\",\"httpProvenance\":{}}"
+      }
+    },
+    {
+      "kind": "http",
+      "id": "capture-missing-anonymous",
+      "method": "GET",
+      "path": "/api/publication-captures/g1-missing-capture",
+      "requestHeaders": {},
+      "requestBody": null,
+      "principal": "anonymous",
+      "sessionCase": "none",
+      "session": {
+        "case": "none"
+      },
+      "cookieSha256": null,
+      "status": 404,
+      "headers": [
+        ["content-type", "application/json"],
+        [
+          "link",
+          "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+        ]
+      ],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Publication capture not found.\"}}"
+      }
+    },
+    {
+      "kind": "http",
+      "id": "packet-anonymous",
+      "method": "GET",
+      "path": "/api/publication-versions/g1-publication-version-1/packet",
+      "requestHeaders": {},
+      "requestBody": null,
+      "principal": "anonymous",
+      "sessionCase": "none",
+      "session": {
+        "case": "none"
+      },
+      "cookieSha256": null,
+      "status": 200,
+      "headers": [["content-type", "application/json"]],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "{\"schemaVersion\":\"1.3.0\",\"publication\":{\"id\":\"g1-publication-1\",\"publicationType\":\"review-article\",\"recordSource\":\"external-publication\",\"sourceLocalPublicationId\":null},\"version\":{\"id\":\"g1-publication-version-1\",\"sourcesSha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"sourceLocalPublicationId\":null,\"versionLabel\":\"v1\",\"title\":\"G1 fixture publication\",\"publisherCanonicalUrl\":\"https://publications.g1.oratlas.example/p1\",\"observedPublicationBaseUrl\":\"https://publications.g1.oratlas.example/p1/\",\"adapterType\":\"myst\",\"structuralProvenance\":\"published-structure\",\"observedAt\":\"2026-03-10T00:00:00.000Z\"},\"captures\":[{\"id\":\"g1-capture-manifest\",\"artifactKind\":\"publication-manifest\",\"declaredPath\":null,\"requestedUrl\":\"https://publications.g1.oratlas.example/p1/oratlas.manifest.json\",\"observedUrl\":\"https://publications.g1.oratlas.example/p1/oratlas.manifest.json\",\"contentSha256\":\"1596a4c89d2e847ffa7b24c3a4214bcd1e496518d138b7233405a3d778812ea2\",\"byteLength\":25,\"structuralProvenance\":\"published-structure\"},{\"id\":\"g1-capture-source\",\"artifactKind\":\"source-document\",\"declaredPath\":\"article.md\",\"requestedUrl\":\"https://publications.g1.oratlas.example/p1/article.md\",\"observedUrl\":\"https://publications.g1.oratlas.example/p1/article.md\",\"contentSha256\":\"5d6e3bf06175c7079a93531c1b6835fcf8b010c1ba56244678651fb0a2e44d29\",\"byteLength\":49,\"structuralProvenance\":\"published-structure\"}],\"content\":[],\"occurrences\":[],\"productionProvenance\":[],\"relations\":[],\"challenges\":[],\"sha256\":\"1ac97c7b68422cef0141f4da02a3b90dde2d60d1a34a065be3b7b15c2eb95c2a\",\"contributors\":[],\"completeness\":{\"captures\":{\"returned\":2,\"total\":2,\"truncated\":false},\"content\":{\"returnedDocuments\":0,\"totalDocumentsKnown\":null,\"truncated\":false,\"coverage\":\"unsupported\"},\"occurrences\":{\"returned\":0,\"total\":0,\"truncated\":false},\"productionProvenance\":{\"returned\":0,\"total\":0,\"truncated\":false},\"relations\":{\"returned\":0,\"total\":0,\"truncated\":false},\"challenges\":{\"returned\":0,\"total\":0,\"truncated\":false},\"contributors\":{\"returned\":0,\"total\":0,\"truncated\":false}},\"links\":{\"self\":\"/api/publication-versions/g1-publication-version-1/packet\",\"publication\":\"/api/publications/g1-publication-1\",\"publicationVersion\":\"/api/publication-versions/g1-publication-version-1\",\"content\":\"/api/publication-versions/g1-publication-version-1/content\",\"productionProvenance\":\"/api/publication-versions/g1-publication-version-1/production-provenance\",\"contributors\":\"/api/publication-versions/g1-publication-version-1/contributors\"}}"
+      }
+    },
+    {
+      "kind": "http",
+      "id": "packet-missing-anonymous",
+      "method": "GET",
+      "path": "/api/publication-versions/g1-missing-publication-version/packet",
+      "requestHeaders": {},
+      "requestBody": null,
+      "principal": "anonymous",
+      "sessionCase": "none",
+      "session": {
+        "case": "none"
+      },
+      "cookieSha256": null,
+      "status": 404,
+      "headers": [
+        ["content-type", "application/json"],
+        [
+          "link",
+          "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+        ]
+      ],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Publication version not found.\"}}"
+      }
+    },
+    {
+      "kind": "http",
+      "id": "file-public-anonymous",
+      "method": "GET",
+      "path": "/api/reviews/g1-fixture-review/versions/g1-version-2/files/article.md",
+      "requestHeaders": {},
+      "requestBody": null,
+      "principal": "anonymous",
+      "sessionCase": "none",
+      "session": {
+        "case": "none"
+      },
+      "cookieSha256": null,
+      "status": 200,
+      "headers": [
+        ["cache-control", "no-store, must-revalidate"],
+        ["content-disposition", "attachment; filename=\"article.md.txt\""],
+        ["content-type", "text/plain; charset=utf-8"],
+        ["pragma", "no-cache"],
+        ["x-content-type-options", "nosniff"]
+      ],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "<script>G1 inert public attachment</script>\n"
+      }
+    },
+    {
+      "kind": "http",
+      "id": "file-missing-anonymous",
+      "method": "GET",
+      "path": "/api/reviews/g1-fixture-review/versions/g1-version-missing/files/article.md",
+      "requestHeaders": {},
+      "requestBody": null,
+      "principal": "anonymous",
+      "sessionCase": "none",
+      "session": {
+        "case": "none"
+      },
+      "cookieSha256": null,
+      "status": 404,
+      "headers": [
+        ["content-type", "application/json"],
+        [
+          "link",
+          "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+        ]
+      ],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"No preserved content for this path. Only textual files captured at inspection are preserved.\"}}"
+      }
+    },
+    {
+      "kind": "http",
+      "id": "file-tombstoned-anonymous",
+      "method": "GET",
+      "path": "/api/reviews/g1-fixture-review/versions/g1-version-tombstoned/files/article.md",
+      "requestHeaders": {},
+      "requestBody": null,
+      "principal": "anonymous",
+      "sessionCase": "none",
+      "session": {
+        "case": "none"
+      },
+      "cookieSha256": null,
+      "status": 404,
+      "headers": [
+        ["content-type", "application/json"],
+        [
+          "link",
+          "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+        ]
+      ],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"No preserved content for this path. Only textual files captured at inspection are preserved.\"}}"
+      }
+    },
+    {
+      "kind": "http",
+      "id": "capture-a-only",
+      "method": "GET",
+      "path": "/api/publication-captures/g1-capture-source",
+      "requestHeaders": {},
+      "requestBody": null,
+      "principal": "A-only",
+      "sessionCase": "valid",
+      "session": {
+        "case": "valid",
+        "userId": "g1-user-a-only",
+        "issuedAt": "2026-03-31T00:00:00.000Z"
+      },
+      "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+      "status": 200,
+      "headers": [["content-type", "application/json"]],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "{\"schemaVersion\":\"1.0.0\",\"id\":\"g1-capture-source\",\"publicationVersionId\":\"g1-publication-version-1\",\"publicationVersionHref\":\"/api/publication-versions/g1-publication-version-1\",\"artifactKind\":\"source-document\",\"declaredPath\":\"article.md\",\"requestedUrl\":\"https://publications.g1.oratlas.example/p1/article.md\",\"observedUrl\":\"https://publications.g1.oratlas.example/p1/article.md\",\"mediaType\":\"text/plain\",\"contentSha256\":\"5d6e3bf06175c7079a93531c1b6835fcf8b010c1ba56244678651fb0a2e44d29\",\"declaredSha256\":\"5d6e3bf06175c7079a93531c1b6835fcf8b010c1ba56244678651fb0a2e44d29\",\"byteLength\":49,\"verificationLevel\":\"published-structure\",\"capturedAt\":\"2026-03-10T00:00:00.000Z\",\"httpProvenance\":{}}"
+      }
+    },
+    {
+      "kind": "http",
+      "id": "capture-missing-a-only",
+      "method": "GET",
+      "path": "/api/publication-captures/g1-missing-capture",
+      "requestHeaders": {},
+      "requestBody": null,
+      "principal": "A-only",
+      "sessionCase": "valid",
+      "session": {
+        "case": "valid",
+        "userId": "g1-user-a-only",
+        "issuedAt": "2026-03-31T00:00:00.000Z"
+      },
+      "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+      "status": 404,
+      "headers": [
+        ["content-type", "application/json"],
+        [
+          "link",
+          "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+        ]
+      ],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Publication capture not found.\"}}"
+      }
+    },
+    {
+      "kind": "http",
+      "id": "packet-a-only",
+      "method": "GET",
+      "path": "/api/publication-versions/g1-publication-version-1/packet",
+      "requestHeaders": {},
+      "requestBody": null,
+      "principal": "A-only",
+      "sessionCase": "valid",
+      "session": {
+        "case": "valid",
+        "userId": "g1-user-a-only",
+        "issuedAt": "2026-03-31T00:00:00.000Z"
+      },
+      "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+      "status": 200,
+      "headers": [["content-type", "application/json"]],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "{\"schemaVersion\":\"1.3.0\",\"publication\":{\"id\":\"g1-publication-1\",\"publicationType\":\"review-article\",\"recordSource\":\"external-publication\",\"sourceLocalPublicationId\":null},\"version\":{\"id\":\"g1-publication-version-1\",\"sourcesSha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"sourceLocalPublicationId\":null,\"versionLabel\":\"v1\",\"title\":\"G1 fixture publication\",\"publisherCanonicalUrl\":\"https://publications.g1.oratlas.example/p1\",\"observedPublicationBaseUrl\":\"https://publications.g1.oratlas.example/p1/\",\"adapterType\":\"myst\",\"structuralProvenance\":\"published-structure\",\"observedAt\":\"2026-03-10T00:00:00.000Z\"},\"captures\":[{\"id\":\"g1-capture-manifest\",\"artifactKind\":\"publication-manifest\",\"declaredPath\":null,\"requestedUrl\":\"https://publications.g1.oratlas.example/p1/oratlas.manifest.json\",\"observedUrl\":\"https://publications.g1.oratlas.example/p1/oratlas.manifest.json\",\"contentSha256\":\"1596a4c89d2e847ffa7b24c3a4214bcd1e496518d138b7233405a3d778812ea2\",\"byteLength\":25,\"structuralProvenance\":\"published-structure\"},{\"id\":\"g1-capture-source\",\"artifactKind\":\"source-document\",\"declaredPath\":\"article.md\",\"requestedUrl\":\"https://publications.g1.oratlas.example/p1/article.md\",\"observedUrl\":\"https://publications.g1.oratlas.example/p1/article.md\",\"contentSha256\":\"5d6e3bf06175c7079a93531c1b6835fcf8b010c1ba56244678651fb0a2e44d29\",\"byteLength\":49,\"structuralProvenance\":\"published-structure\"}],\"content\":[],\"occurrences\":[],\"productionProvenance\":[],\"relations\":[],\"challenges\":[],\"sha256\":\"1ac97c7b68422cef0141f4da02a3b90dde2d60d1a34a065be3b7b15c2eb95c2a\",\"contributors\":[],\"completeness\":{\"captures\":{\"returned\":2,\"total\":2,\"truncated\":false},\"content\":{\"returnedDocuments\":0,\"totalDocumentsKnown\":null,\"truncated\":false,\"coverage\":\"unsupported\"},\"occurrences\":{\"returned\":0,\"total\":0,\"truncated\":false},\"productionProvenance\":{\"returned\":0,\"total\":0,\"truncated\":false},\"relations\":{\"returned\":0,\"total\":0,\"truncated\":false},\"challenges\":{\"returned\":0,\"total\":0,\"truncated\":false},\"contributors\":{\"returned\":0,\"total\":0,\"truncated\":false}},\"links\":{\"self\":\"/api/publication-versions/g1-publication-version-1/packet\",\"publication\":\"/api/publications/g1-publication-1\",\"publicationVersion\":\"/api/publication-versions/g1-publication-version-1\",\"content\":\"/api/publication-versions/g1-publication-version-1/content\",\"productionProvenance\":\"/api/publication-versions/g1-publication-version-1/production-provenance\",\"contributors\":\"/api/publication-versions/g1-publication-version-1/contributors\"}}"
+      }
+    },
+    {
+      "kind": "http",
+      "id": "packet-missing-a-only",
+      "method": "GET",
+      "path": "/api/publication-versions/g1-missing-publication-version/packet",
+      "requestHeaders": {},
+      "requestBody": null,
+      "principal": "A-only",
+      "sessionCase": "valid",
+      "session": {
+        "case": "valid",
+        "userId": "g1-user-a-only",
+        "issuedAt": "2026-03-31T00:00:00.000Z"
+      },
+      "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+      "status": 404,
+      "headers": [
+        ["content-type", "application/json"],
+        [
+          "link",
+          "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+        ]
+      ],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Publication version not found.\"}}"
+      }
+    },
+    {
+      "kind": "http",
+      "id": "file-public-a-only",
+      "method": "GET",
+      "path": "/api/reviews/g1-fixture-review/versions/g1-version-2/files/article.md",
+      "requestHeaders": {},
+      "requestBody": null,
+      "principal": "A-only",
+      "sessionCase": "valid",
+      "session": {
+        "case": "valid",
+        "userId": "g1-user-a-only",
+        "issuedAt": "2026-03-31T00:00:00.000Z"
+      },
+      "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+      "status": 200,
+      "headers": [
+        ["cache-control", "no-store, must-revalidate"],
+        ["content-disposition", "attachment; filename=\"article.md.txt\""],
+        ["content-type", "text/plain; charset=utf-8"],
+        ["pragma", "no-cache"],
+        ["x-content-type-options", "nosniff"]
+      ],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "<script>G1 inert public attachment</script>\n"
+      }
+    },
+    {
+      "kind": "http",
+      "id": "file-missing-a-only",
+      "method": "GET",
+      "path": "/api/reviews/g1-fixture-review/versions/g1-version-missing/files/article.md",
+      "requestHeaders": {},
+      "requestBody": null,
+      "principal": "A-only",
+      "sessionCase": "valid",
+      "session": {
+        "case": "valid",
+        "userId": "g1-user-a-only",
+        "issuedAt": "2026-03-31T00:00:00.000Z"
+      },
+      "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+      "status": 404,
+      "headers": [
+        ["content-type", "application/json"],
+        [
+          "link",
+          "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+        ]
+      ],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"No preserved content for this path. Only textual files captured at inspection are preserved.\"}}"
+      }
+    },
+    {
+      "kind": "http",
+      "id": "file-tombstoned-a-only",
+      "method": "GET",
+      "path": "/api/reviews/g1-fixture-review/versions/g1-version-tombstoned/files/article.md",
+      "requestHeaders": {},
+      "requestBody": null,
+      "principal": "A-only",
+      "sessionCase": "valid",
+      "session": {
+        "case": "valid",
+        "userId": "g1-user-a-only",
+        "issuedAt": "2026-03-31T00:00:00.000Z"
+      },
+      "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+      "status": 404,
+      "headers": [
+        ["content-type", "application/json"],
+        [
+          "link",
+          "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+        ]
+      ],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"No preserved content for this path. Only textual files captured at inspection are preserved.\"}}"
+      }
+    },
+    {
+      "kind": "http",
+      "id": "capture-b-only",
+      "method": "GET",
+      "path": "/api/publication-captures/g1-capture-source",
+      "requestHeaders": {},
+      "requestBody": null,
+      "principal": "B-only",
+      "sessionCase": "valid",
+      "session": {
+        "case": "valid",
+        "userId": "g1-user-b-only",
+        "issuedAt": "2026-03-31T00:00:00.000Z"
+      },
+      "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+      "status": 200,
+      "headers": [["content-type", "application/json"]],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "{\"schemaVersion\":\"1.0.0\",\"id\":\"g1-capture-source\",\"publicationVersionId\":\"g1-publication-version-1\",\"publicationVersionHref\":\"/api/publication-versions/g1-publication-version-1\",\"artifactKind\":\"source-document\",\"declaredPath\":\"article.md\",\"requestedUrl\":\"https://publications.g1.oratlas.example/p1/article.md\",\"observedUrl\":\"https://publications.g1.oratlas.example/p1/article.md\",\"mediaType\":\"text/plain\",\"contentSha256\":\"5d6e3bf06175c7079a93531c1b6835fcf8b010c1ba56244678651fb0a2e44d29\",\"declaredSha256\":\"5d6e3bf06175c7079a93531c1b6835fcf8b010c1ba56244678651fb0a2e44d29\",\"byteLength\":49,\"verificationLevel\":\"published-structure\",\"capturedAt\":\"2026-03-10T00:00:00.000Z\",\"httpProvenance\":{}}"
+      }
+    },
+    {
+      "kind": "http",
+      "id": "capture-missing-b-only",
+      "method": "GET",
+      "path": "/api/publication-captures/g1-missing-capture",
+      "requestHeaders": {},
+      "requestBody": null,
+      "principal": "B-only",
+      "sessionCase": "valid",
+      "session": {
+        "case": "valid",
+        "userId": "g1-user-b-only",
+        "issuedAt": "2026-03-31T00:00:00.000Z"
+      },
+      "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+      "status": 404,
+      "headers": [
+        ["content-type", "application/json"],
+        [
+          "link",
+          "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+        ]
+      ],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Publication capture not found.\"}}"
+      }
+    },
+    {
+      "kind": "http",
+      "id": "packet-b-only",
+      "method": "GET",
+      "path": "/api/publication-versions/g1-publication-version-1/packet",
+      "requestHeaders": {},
+      "requestBody": null,
+      "principal": "B-only",
+      "sessionCase": "valid",
+      "session": {
+        "case": "valid",
+        "userId": "g1-user-b-only",
+        "issuedAt": "2026-03-31T00:00:00.000Z"
+      },
+      "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+      "status": 200,
+      "headers": [["content-type", "application/json"]],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "{\"schemaVersion\":\"1.3.0\",\"publication\":{\"id\":\"g1-publication-1\",\"publicationType\":\"review-article\",\"recordSource\":\"external-publication\",\"sourceLocalPublicationId\":null},\"version\":{\"id\":\"g1-publication-version-1\",\"sourcesSha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"sourceLocalPublicationId\":null,\"versionLabel\":\"v1\",\"title\":\"G1 fixture publication\",\"publisherCanonicalUrl\":\"https://publications.g1.oratlas.example/p1\",\"observedPublicationBaseUrl\":\"https://publications.g1.oratlas.example/p1/\",\"adapterType\":\"myst\",\"structuralProvenance\":\"published-structure\",\"observedAt\":\"2026-03-10T00:00:00.000Z\"},\"captures\":[{\"id\":\"g1-capture-manifest\",\"artifactKind\":\"publication-manifest\",\"declaredPath\":null,\"requestedUrl\":\"https://publications.g1.oratlas.example/p1/oratlas.manifest.json\",\"observedUrl\":\"https://publications.g1.oratlas.example/p1/oratlas.manifest.json\",\"contentSha256\":\"1596a4c89d2e847ffa7b24c3a4214bcd1e496518d138b7233405a3d778812ea2\",\"byteLength\":25,\"structuralProvenance\":\"published-structure\"},{\"id\":\"g1-capture-source\",\"artifactKind\":\"source-document\",\"declaredPath\":\"article.md\",\"requestedUrl\":\"https://publications.g1.oratlas.example/p1/article.md\",\"observedUrl\":\"https://publications.g1.oratlas.example/p1/article.md\",\"contentSha256\":\"5d6e3bf06175c7079a93531c1b6835fcf8b010c1ba56244678651fb0a2e44d29\",\"byteLength\":49,\"structuralProvenance\":\"published-structure\"}],\"content\":[],\"occurrences\":[],\"productionProvenance\":[],\"relations\":[],\"challenges\":[],\"sha256\":\"1ac97c7b68422cef0141f4da02a3b90dde2d60d1a34a065be3b7b15c2eb95c2a\",\"contributors\":[],\"completeness\":{\"captures\":{\"returned\":2,\"total\":2,\"truncated\":false},\"content\":{\"returnedDocuments\":0,\"totalDocumentsKnown\":null,\"truncated\":false,\"coverage\":\"unsupported\"},\"occurrences\":{\"returned\":0,\"total\":0,\"truncated\":false},\"productionProvenance\":{\"returned\":0,\"total\":0,\"truncated\":false},\"relations\":{\"returned\":0,\"total\":0,\"truncated\":false},\"challenges\":{\"returned\":0,\"total\":0,\"truncated\":false},\"contributors\":{\"returned\":0,\"total\":0,\"truncated\":false}},\"links\":{\"self\":\"/api/publication-versions/g1-publication-version-1/packet\",\"publication\":\"/api/publications/g1-publication-1\",\"publicationVersion\":\"/api/publication-versions/g1-publication-version-1\",\"content\":\"/api/publication-versions/g1-publication-version-1/content\",\"productionProvenance\":\"/api/publication-versions/g1-publication-version-1/production-provenance\",\"contributors\":\"/api/publication-versions/g1-publication-version-1/contributors\"}}"
+      }
+    },
+    {
+      "kind": "http",
+      "id": "packet-missing-b-only",
+      "method": "GET",
+      "path": "/api/publication-versions/g1-missing-publication-version/packet",
+      "requestHeaders": {},
+      "requestBody": null,
+      "principal": "B-only",
+      "sessionCase": "valid",
+      "session": {
+        "case": "valid",
+        "userId": "g1-user-b-only",
+        "issuedAt": "2026-03-31T00:00:00.000Z"
+      },
+      "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+      "status": 404,
+      "headers": [
+        ["content-type", "application/json"],
+        [
+          "link",
+          "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+        ]
+      ],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Publication version not found.\"}}"
+      }
+    },
+    {
+      "kind": "http",
+      "id": "file-public-b-only",
+      "method": "GET",
+      "path": "/api/reviews/g1-fixture-review/versions/g1-version-2/files/article.md",
+      "requestHeaders": {},
+      "requestBody": null,
+      "principal": "B-only",
+      "sessionCase": "valid",
+      "session": {
+        "case": "valid",
+        "userId": "g1-user-b-only",
+        "issuedAt": "2026-03-31T00:00:00.000Z"
+      },
+      "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+      "status": 200,
+      "headers": [
+        ["cache-control", "no-store, must-revalidate"],
+        ["content-disposition", "attachment; filename=\"article.md.txt\""],
+        ["content-type", "text/plain; charset=utf-8"],
+        ["pragma", "no-cache"],
+        ["x-content-type-options", "nosniff"]
+      ],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "<script>G1 inert public attachment</script>\n"
+      }
+    },
+    {
+      "kind": "http",
+      "id": "file-missing-b-only",
+      "method": "GET",
+      "path": "/api/reviews/g1-fixture-review/versions/g1-version-missing/files/article.md",
+      "requestHeaders": {},
+      "requestBody": null,
+      "principal": "B-only",
+      "sessionCase": "valid",
+      "session": {
+        "case": "valid",
+        "userId": "g1-user-b-only",
+        "issuedAt": "2026-03-31T00:00:00.000Z"
+      },
+      "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+      "status": 404,
+      "headers": [
+        ["content-type", "application/json"],
+        [
+          "link",
+          "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+        ]
+      ],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"No preserved content for this path. Only textual files captured at inspection are preserved.\"}}"
+      }
+    },
+    {
+      "kind": "http",
+      "id": "file-tombstoned-b-only",
+      "method": "GET",
+      "path": "/api/reviews/g1-fixture-review/versions/g1-version-tombstoned/files/article.md",
+      "requestHeaders": {},
+      "requestBody": null,
+      "principal": "B-only",
+      "sessionCase": "valid",
+      "session": {
+        "case": "valid",
+        "userId": "g1-user-b-only",
+        "issuedAt": "2026-03-31T00:00:00.000Z"
+      },
+      "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+      "status": 404,
+      "headers": [
+        ["content-type", "application/json"],
+        [
+          "link",
+          "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+        ]
+      ],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"No preserved content for this path. Only textual files captured at inspection are preserved.\"}}"
+      }
+    },
+    {
+      "kind": "http",
+      "id": "capture-a-and-b",
+      "method": "GET",
+      "path": "/api/publication-captures/g1-capture-source",
+      "requestHeaders": {},
+      "requestBody": null,
+      "principal": "A+B",
+      "sessionCase": "valid",
+      "session": {
+        "case": "valid",
+        "userId": "g1-user-a-and-b",
+        "issuedAt": "2026-03-31T00:00:00.000Z"
+      },
+      "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+      "status": 200,
+      "headers": [["content-type", "application/json"]],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "{\"schemaVersion\":\"1.0.0\",\"id\":\"g1-capture-source\",\"publicationVersionId\":\"g1-publication-version-1\",\"publicationVersionHref\":\"/api/publication-versions/g1-publication-version-1\",\"artifactKind\":\"source-document\",\"declaredPath\":\"article.md\",\"requestedUrl\":\"https://publications.g1.oratlas.example/p1/article.md\",\"observedUrl\":\"https://publications.g1.oratlas.example/p1/article.md\",\"mediaType\":\"text/plain\",\"contentSha256\":\"5d6e3bf06175c7079a93531c1b6835fcf8b010c1ba56244678651fb0a2e44d29\",\"declaredSha256\":\"5d6e3bf06175c7079a93531c1b6835fcf8b010c1ba56244678651fb0a2e44d29\",\"byteLength\":49,\"verificationLevel\":\"published-structure\",\"capturedAt\":\"2026-03-10T00:00:00.000Z\",\"httpProvenance\":{}}"
+      }
+    },
+    {
+      "kind": "http",
+      "id": "capture-missing-a-and-b",
+      "method": "GET",
+      "path": "/api/publication-captures/g1-missing-capture",
+      "requestHeaders": {},
+      "requestBody": null,
+      "principal": "A+B",
+      "sessionCase": "valid",
+      "session": {
+        "case": "valid",
+        "userId": "g1-user-a-and-b",
+        "issuedAt": "2026-03-31T00:00:00.000Z"
+      },
+      "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+      "status": 404,
+      "headers": [
+        ["content-type", "application/json"],
+        [
+          "link",
+          "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+        ]
+      ],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Publication capture not found.\"}}"
+      }
+    },
+    {
+      "kind": "http",
+      "id": "packet-a-and-b",
+      "method": "GET",
+      "path": "/api/publication-versions/g1-publication-version-1/packet",
+      "requestHeaders": {},
+      "requestBody": null,
+      "principal": "A+B",
+      "sessionCase": "valid",
+      "session": {
+        "case": "valid",
+        "userId": "g1-user-a-and-b",
+        "issuedAt": "2026-03-31T00:00:00.000Z"
+      },
+      "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+      "status": 200,
+      "headers": [["content-type", "application/json"]],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "{\"schemaVersion\":\"1.3.0\",\"publication\":{\"id\":\"g1-publication-1\",\"publicationType\":\"review-article\",\"recordSource\":\"external-publication\",\"sourceLocalPublicationId\":null},\"version\":{\"id\":\"g1-publication-version-1\",\"sourcesSha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"sourceLocalPublicationId\":null,\"versionLabel\":\"v1\",\"title\":\"G1 fixture publication\",\"publisherCanonicalUrl\":\"https://publications.g1.oratlas.example/p1\",\"observedPublicationBaseUrl\":\"https://publications.g1.oratlas.example/p1/\",\"adapterType\":\"myst\",\"structuralProvenance\":\"published-structure\",\"observedAt\":\"2026-03-10T00:00:00.000Z\"},\"captures\":[{\"id\":\"g1-capture-manifest\",\"artifactKind\":\"publication-manifest\",\"declaredPath\":null,\"requestedUrl\":\"https://publications.g1.oratlas.example/p1/oratlas.manifest.json\",\"observedUrl\":\"https://publications.g1.oratlas.example/p1/oratlas.manifest.json\",\"contentSha256\":\"1596a4c89d2e847ffa7b24c3a4214bcd1e496518d138b7233405a3d778812ea2\",\"byteLength\":25,\"structuralProvenance\":\"published-structure\"},{\"id\":\"g1-capture-source\",\"artifactKind\":\"source-document\",\"declaredPath\":\"article.md\",\"requestedUrl\":\"https://publications.g1.oratlas.example/p1/article.md\",\"observedUrl\":\"https://publications.g1.oratlas.example/p1/article.md\",\"contentSha256\":\"5d6e3bf06175c7079a93531c1b6835fcf8b010c1ba56244678651fb0a2e44d29\",\"byteLength\":49,\"structuralProvenance\":\"published-structure\"}],\"content\":[],\"occurrences\":[],\"productionProvenance\":[],\"relations\":[],\"challenges\":[],\"sha256\":\"1ac97c7b68422cef0141f4da02a3b90dde2d60d1a34a065be3b7b15c2eb95c2a\",\"contributors\":[],\"completeness\":{\"captures\":{\"returned\":2,\"total\":2,\"truncated\":false},\"content\":{\"returnedDocuments\":0,\"totalDocumentsKnown\":null,\"truncated\":false,\"coverage\":\"unsupported\"},\"occurrences\":{\"returned\":0,\"total\":0,\"truncated\":false},\"productionProvenance\":{\"returned\":0,\"total\":0,\"truncated\":false},\"relations\":{\"returned\":0,\"total\":0,\"truncated\":false},\"challenges\":{\"returned\":0,\"total\":0,\"truncated\":false},\"contributors\":{\"returned\":0,\"total\":0,\"truncated\":false}},\"links\":{\"self\":\"/api/publication-versions/g1-publication-version-1/packet\",\"publication\":\"/api/publications/g1-publication-1\",\"publicationVersion\":\"/api/publication-versions/g1-publication-version-1\",\"content\":\"/api/publication-versions/g1-publication-version-1/content\",\"productionProvenance\":\"/api/publication-versions/g1-publication-version-1/production-provenance\",\"contributors\":\"/api/publication-versions/g1-publication-version-1/contributors\"}}"
+      }
+    },
+    {
+      "kind": "http",
+      "id": "packet-missing-a-and-b",
+      "method": "GET",
+      "path": "/api/publication-versions/g1-missing-publication-version/packet",
+      "requestHeaders": {},
+      "requestBody": null,
+      "principal": "A+B",
+      "sessionCase": "valid",
+      "session": {
+        "case": "valid",
+        "userId": "g1-user-a-and-b",
+        "issuedAt": "2026-03-31T00:00:00.000Z"
+      },
+      "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+      "status": 404,
+      "headers": [
+        ["content-type", "application/json"],
+        [
+          "link",
+          "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+        ]
+      ],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Publication version not found.\"}}"
+      }
+    },
+    {
+      "kind": "http",
+      "id": "file-public-a-and-b",
+      "method": "GET",
+      "path": "/api/reviews/g1-fixture-review/versions/g1-version-2/files/article.md",
+      "requestHeaders": {},
+      "requestBody": null,
+      "principal": "A+B",
+      "sessionCase": "valid",
+      "session": {
+        "case": "valid",
+        "userId": "g1-user-a-and-b",
+        "issuedAt": "2026-03-31T00:00:00.000Z"
+      },
+      "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+      "status": 200,
+      "headers": [
+        ["cache-control", "no-store, must-revalidate"],
+        ["content-disposition", "attachment; filename=\"article.md.txt\""],
+        ["content-type", "text/plain; charset=utf-8"],
+        ["pragma", "no-cache"],
+        ["x-content-type-options", "nosniff"]
+      ],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "<script>G1 inert public attachment</script>\n"
+      }
+    },
+    {
+      "kind": "http",
+      "id": "file-missing-a-and-b",
+      "method": "GET",
+      "path": "/api/reviews/g1-fixture-review/versions/g1-version-missing/files/article.md",
+      "requestHeaders": {},
+      "requestBody": null,
+      "principal": "A+B",
+      "sessionCase": "valid",
+      "session": {
+        "case": "valid",
+        "userId": "g1-user-a-and-b",
+        "issuedAt": "2026-03-31T00:00:00.000Z"
+      },
+      "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+      "status": 404,
+      "headers": [
+        ["content-type", "application/json"],
+        [
+          "link",
+          "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+        ]
+      ],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"No preserved content for this path. Only textual files captured at inspection are preserved.\"}}"
+      }
+    },
+    {
+      "kind": "http",
+      "id": "file-tombstoned-a-and-b",
+      "method": "GET",
+      "path": "/api/reviews/g1-fixture-review/versions/g1-version-tombstoned/files/article.md",
+      "requestHeaders": {},
+      "requestBody": null,
+      "principal": "A+B",
+      "sessionCase": "valid",
+      "session": {
+        "case": "valid",
+        "userId": "g1-user-a-and-b",
+        "issuedAt": "2026-03-31T00:00:00.000Z"
+      },
+      "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+      "status": 404,
+      "headers": [
+        ["content-type", "application/json"],
+        [
+          "link",
+          "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+        ]
+      ],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"No preserved content for this path. Only textual files captured at inspection are preserved.\"}}"
+      }
+    },
+    {
+      "kind": "http",
+      "id": "capture-editor",
+      "method": "GET",
+      "path": "/api/publication-captures/g1-capture-source",
+      "requestHeaders": {},
+      "requestBody": null,
+      "principal": "EDITOR",
+      "sessionCase": "valid",
+      "session": {
+        "case": "valid",
+        "userId": "g1-user-editor",
+        "issuedAt": "2026-03-31T00:00:00.000Z"
+      },
+      "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+      "status": 200,
+      "headers": [["content-type", "application/json"]],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "{\"schemaVersion\":\"1.0.0\",\"id\":\"g1-capture-source\",\"publicationVersionId\":\"g1-publication-version-1\",\"publicationVersionHref\":\"/api/publication-versions/g1-publication-version-1\",\"artifactKind\":\"source-document\",\"declaredPath\":\"article.md\",\"requestedUrl\":\"https://publications.g1.oratlas.example/p1/article.md\",\"observedUrl\":\"https://publications.g1.oratlas.example/p1/article.md\",\"mediaType\":\"text/plain\",\"contentSha256\":\"5d6e3bf06175c7079a93531c1b6835fcf8b010c1ba56244678651fb0a2e44d29\",\"declaredSha256\":\"5d6e3bf06175c7079a93531c1b6835fcf8b010c1ba56244678651fb0a2e44d29\",\"byteLength\":49,\"verificationLevel\":\"published-structure\",\"capturedAt\":\"2026-03-10T00:00:00.000Z\",\"httpProvenance\":{}}"
+      }
+    },
+    {
+      "kind": "http",
+      "id": "capture-missing-editor",
+      "method": "GET",
+      "path": "/api/publication-captures/g1-missing-capture",
+      "requestHeaders": {},
+      "requestBody": null,
+      "principal": "EDITOR",
+      "sessionCase": "valid",
+      "session": {
+        "case": "valid",
+        "userId": "g1-user-editor",
+        "issuedAt": "2026-03-31T00:00:00.000Z"
+      },
+      "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+      "status": 404,
+      "headers": [
+        ["content-type", "application/json"],
+        [
+          "link",
+          "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+        ]
+      ],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Publication capture not found.\"}}"
+      }
+    },
+    {
+      "kind": "http",
+      "id": "packet-editor",
+      "method": "GET",
+      "path": "/api/publication-versions/g1-publication-version-1/packet",
+      "requestHeaders": {},
+      "requestBody": null,
+      "principal": "EDITOR",
+      "sessionCase": "valid",
+      "session": {
+        "case": "valid",
+        "userId": "g1-user-editor",
+        "issuedAt": "2026-03-31T00:00:00.000Z"
+      },
+      "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+      "status": 200,
+      "headers": [["content-type", "application/json"]],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "{\"schemaVersion\":\"1.3.0\",\"publication\":{\"id\":\"g1-publication-1\",\"publicationType\":\"review-article\",\"recordSource\":\"external-publication\",\"sourceLocalPublicationId\":null},\"version\":{\"id\":\"g1-publication-version-1\",\"sourcesSha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"sourceLocalPublicationId\":null,\"versionLabel\":\"v1\",\"title\":\"G1 fixture publication\",\"publisherCanonicalUrl\":\"https://publications.g1.oratlas.example/p1\",\"observedPublicationBaseUrl\":\"https://publications.g1.oratlas.example/p1/\",\"adapterType\":\"myst\",\"structuralProvenance\":\"published-structure\",\"observedAt\":\"2026-03-10T00:00:00.000Z\"},\"captures\":[{\"id\":\"g1-capture-manifest\",\"artifactKind\":\"publication-manifest\",\"declaredPath\":null,\"requestedUrl\":\"https://publications.g1.oratlas.example/p1/oratlas.manifest.json\",\"observedUrl\":\"https://publications.g1.oratlas.example/p1/oratlas.manifest.json\",\"contentSha256\":\"1596a4c89d2e847ffa7b24c3a4214bcd1e496518d138b7233405a3d778812ea2\",\"byteLength\":25,\"structuralProvenance\":\"published-structure\"},{\"id\":\"g1-capture-source\",\"artifactKind\":\"source-document\",\"declaredPath\":\"article.md\",\"requestedUrl\":\"https://publications.g1.oratlas.example/p1/article.md\",\"observedUrl\":\"https://publications.g1.oratlas.example/p1/article.md\",\"contentSha256\":\"5d6e3bf06175c7079a93531c1b6835fcf8b010c1ba56244678651fb0a2e44d29\",\"byteLength\":49,\"structuralProvenance\":\"published-structure\"}],\"content\":[],\"occurrences\":[],\"productionProvenance\":[],\"relations\":[],\"challenges\":[],\"sha256\":\"1ac97c7b68422cef0141f4da02a3b90dde2d60d1a34a065be3b7b15c2eb95c2a\",\"contributors\":[],\"completeness\":{\"captures\":{\"returned\":2,\"total\":2,\"truncated\":false},\"content\":{\"returnedDocuments\":0,\"totalDocumentsKnown\":null,\"truncated\":false,\"coverage\":\"unsupported\"},\"occurrences\":{\"returned\":0,\"total\":0,\"truncated\":false},\"productionProvenance\":{\"returned\":0,\"total\":0,\"truncated\":false},\"relations\":{\"returned\":0,\"total\":0,\"truncated\":false},\"challenges\":{\"returned\":0,\"total\":0,\"truncated\":false},\"contributors\":{\"returned\":0,\"total\":0,\"truncated\":false}},\"links\":{\"self\":\"/api/publication-versions/g1-publication-version-1/packet\",\"publication\":\"/api/publications/g1-publication-1\",\"publicationVersion\":\"/api/publication-versions/g1-publication-version-1\",\"content\":\"/api/publication-versions/g1-publication-version-1/content\",\"productionProvenance\":\"/api/publication-versions/g1-publication-version-1/production-provenance\",\"contributors\":\"/api/publication-versions/g1-publication-version-1/contributors\"}}"
+      }
+    },
+    {
+      "kind": "http",
+      "id": "packet-missing-editor",
+      "method": "GET",
+      "path": "/api/publication-versions/g1-missing-publication-version/packet",
+      "requestHeaders": {},
+      "requestBody": null,
+      "principal": "EDITOR",
+      "sessionCase": "valid",
+      "session": {
+        "case": "valid",
+        "userId": "g1-user-editor",
+        "issuedAt": "2026-03-31T00:00:00.000Z"
+      },
+      "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+      "status": 404,
+      "headers": [
+        ["content-type", "application/json"],
+        [
+          "link",
+          "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+        ]
+      ],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Publication version not found.\"}}"
+      }
+    },
+    {
+      "kind": "http",
+      "id": "file-public-editor",
+      "method": "GET",
+      "path": "/api/reviews/g1-fixture-review/versions/g1-version-2/files/article.md",
+      "requestHeaders": {},
+      "requestBody": null,
+      "principal": "EDITOR",
+      "sessionCase": "valid",
+      "session": {
+        "case": "valid",
+        "userId": "g1-user-editor",
+        "issuedAt": "2026-03-31T00:00:00.000Z"
+      },
+      "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+      "status": 200,
+      "headers": [
+        ["cache-control", "no-store, must-revalidate"],
+        ["content-disposition", "attachment; filename=\"article.md.txt\""],
+        ["content-type", "text/plain; charset=utf-8"],
+        ["pragma", "no-cache"],
+        ["x-content-type-options", "nosniff"]
+      ],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "<script>G1 inert public attachment</script>\n"
+      }
+    },
+    {
+      "kind": "http",
+      "id": "file-missing-editor",
+      "method": "GET",
+      "path": "/api/reviews/g1-fixture-review/versions/g1-version-missing/files/article.md",
+      "requestHeaders": {},
+      "requestBody": null,
+      "principal": "EDITOR",
+      "sessionCase": "valid",
+      "session": {
+        "case": "valid",
+        "userId": "g1-user-editor",
+        "issuedAt": "2026-03-31T00:00:00.000Z"
+      },
+      "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+      "status": 404,
+      "headers": [
+        ["content-type", "application/json"],
+        [
+          "link",
+          "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+        ]
+      ],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"No preserved content for this path. Only textual files captured at inspection are preserved.\"}}"
+      }
+    },
+    {
+      "kind": "http",
+      "id": "file-tombstoned-editor",
+      "method": "GET",
+      "path": "/api/reviews/g1-fixture-review/versions/g1-version-tombstoned/files/article.md",
+      "requestHeaders": {},
+      "requestBody": null,
+      "principal": "EDITOR",
+      "sessionCase": "valid",
+      "session": {
+        "case": "valid",
+        "userId": "g1-user-editor",
+        "issuedAt": "2026-03-31T00:00:00.000Z"
+      },
+      "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+      "status": 404,
+      "headers": [
+        ["content-type", "application/json"],
+        [
+          "link",
+          "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+        ]
+      ],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"No preserved content for this path. Only textual files captured at inspection are preserved.\"}}"
+      }
+    },
+    {
+      "kind": "http",
+      "id": "capture-admin",
+      "method": "GET",
+      "path": "/api/publication-captures/g1-capture-source",
+      "requestHeaders": {},
+      "requestBody": null,
+      "principal": "ADMIN",
+      "sessionCase": "valid",
+      "session": {
+        "case": "valid",
+        "userId": "g1-user-admin",
+        "issuedAt": "2026-03-31T00:00:00.000Z"
+      },
+      "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+      "status": 200,
+      "headers": [["content-type", "application/json"]],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "{\"schemaVersion\":\"1.0.0\",\"id\":\"g1-capture-source\",\"publicationVersionId\":\"g1-publication-version-1\",\"publicationVersionHref\":\"/api/publication-versions/g1-publication-version-1\",\"artifactKind\":\"source-document\",\"declaredPath\":\"article.md\",\"requestedUrl\":\"https://publications.g1.oratlas.example/p1/article.md\",\"observedUrl\":\"https://publications.g1.oratlas.example/p1/article.md\",\"mediaType\":\"text/plain\",\"contentSha256\":\"5d6e3bf06175c7079a93531c1b6835fcf8b010c1ba56244678651fb0a2e44d29\",\"declaredSha256\":\"5d6e3bf06175c7079a93531c1b6835fcf8b010c1ba56244678651fb0a2e44d29\",\"byteLength\":49,\"verificationLevel\":\"published-structure\",\"capturedAt\":\"2026-03-10T00:00:00.000Z\",\"httpProvenance\":{}}"
+      }
+    },
+    {
+      "kind": "http",
+      "id": "capture-missing-admin",
+      "method": "GET",
+      "path": "/api/publication-captures/g1-missing-capture",
+      "requestHeaders": {},
+      "requestBody": null,
+      "principal": "ADMIN",
+      "sessionCase": "valid",
+      "session": {
+        "case": "valid",
+        "userId": "g1-user-admin",
+        "issuedAt": "2026-03-31T00:00:00.000Z"
+      },
+      "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+      "status": 404,
+      "headers": [
+        ["content-type", "application/json"],
+        [
+          "link",
+          "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+        ]
+      ],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Publication capture not found.\"}}"
+      }
+    },
+    {
+      "kind": "http",
+      "id": "packet-admin",
+      "method": "GET",
+      "path": "/api/publication-versions/g1-publication-version-1/packet",
+      "requestHeaders": {},
+      "requestBody": null,
+      "principal": "ADMIN",
+      "sessionCase": "valid",
+      "session": {
+        "case": "valid",
+        "userId": "g1-user-admin",
+        "issuedAt": "2026-03-31T00:00:00.000Z"
+      },
+      "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+      "status": 200,
+      "headers": [["content-type", "application/json"]],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "{\"schemaVersion\":\"1.3.0\",\"publication\":{\"id\":\"g1-publication-1\",\"publicationType\":\"review-article\",\"recordSource\":\"external-publication\",\"sourceLocalPublicationId\":null},\"version\":{\"id\":\"g1-publication-version-1\",\"sourcesSha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"sourceLocalPublicationId\":null,\"versionLabel\":\"v1\",\"title\":\"G1 fixture publication\",\"publisherCanonicalUrl\":\"https://publications.g1.oratlas.example/p1\",\"observedPublicationBaseUrl\":\"https://publications.g1.oratlas.example/p1/\",\"adapterType\":\"myst\",\"structuralProvenance\":\"published-structure\",\"observedAt\":\"2026-03-10T00:00:00.000Z\"},\"captures\":[{\"id\":\"g1-capture-manifest\",\"artifactKind\":\"publication-manifest\",\"declaredPath\":null,\"requestedUrl\":\"https://publications.g1.oratlas.example/p1/oratlas.manifest.json\",\"observedUrl\":\"https://publications.g1.oratlas.example/p1/oratlas.manifest.json\",\"contentSha256\":\"1596a4c89d2e847ffa7b24c3a4214bcd1e496518d138b7233405a3d778812ea2\",\"byteLength\":25,\"structuralProvenance\":\"published-structure\"},{\"id\":\"g1-capture-source\",\"artifactKind\":\"source-document\",\"declaredPath\":\"article.md\",\"requestedUrl\":\"https://publications.g1.oratlas.example/p1/article.md\",\"observedUrl\":\"https://publications.g1.oratlas.example/p1/article.md\",\"contentSha256\":\"5d6e3bf06175c7079a93531c1b6835fcf8b010c1ba56244678651fb0a2e44d29\",\"byteLength\":49,\"structuralProvenance\":\"published-structure\"}],\"content\":[],\"occurrences\":[],\"productionProvenance\":[],\"relations\":[],\"challenges\":[],\"sha256\":\"1ac97c7b68422cef0141f4da02a3b90dde2d60d1a34a065be3b7b15c2eb95c2a\",\"contributors\":[],\"completeness\":{\"captures\":{\"returned\":2,\"total\":2,\"truncated\":false},\"content\":{\"returnedDocuments\":0,\"totalDocumentsKnown\":null,\"truncated\":false,\"coverage\":\"unsupported\"},\"occurrences\":{\"returned\":0,\"total\":0,\"truncated\":false},\"productionProvenance\":{\"returned\":0,\"total\":0,\"truncated\":false},\"relations\":{\"returned\":0,\"total\":0,\"truncated\":false},\"challenges\":{\"returned\":0,\"total\":0,\"truncated\":false},\"contributors\":{\"returned\":0,\"total\":0,\"truncated\":false}},\"links\":{\"self\":\"/api/publication-versions/g1-publication-version-1/packet\",\"publication\":\"/api/publications/g1-publication-1\",\"publicationVersion\":\"/api/publication-versions/g1-publication-version-1\",\"content\":\"/api/publication-versions/g1-publication-version-1/content\",\"productionProvenance\":\"/api/publication-versions/g1-publication-version-1/production-provenance\",\"contributors\":\"/api/publication-versions/g1-publication-version-1/contributors\"}}"
+      }
+    },
+    {
+      "kind": "http",
+      "id": "packet-missing-admin",
+      "method": "GET",
+      "path": "/api/publication-versions/g1-missing-publication-version/packet",
+      "requestHeaders": {},
+      "requestBody": null,
+      "principal": "ADMIN",
+      "sessionCase": "valid",
+      "session": {
+        "case": "valid",
+        "userId": "g1-user-admin",
+        "issuedAt": "2026-03-31T00:00:00.000Z"
+      },
+      "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+      "status": 404,
+      "headers": [
+        ["content-type", "application/json"],
+        [
+          "link",
+          "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+        ]
+      ],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Publication version not found.\"}}"
+      }
+    },
+    {
+      "kind": "http",
+      "id": "file-public-admin",
+      "method": "GET",
+      "path": "/api/reviews/g1-fixture-review/versions/g1-version-2/files/article.md",
+      "requestHeaders": {},
+      "requestBody": null,
+      "principal": "ADMIN",
+      "sessionCase": "valid",
+      "session": {
+        "case": "valid",
+        "userId": "g1-user-admin",
+        "issuedAt": "2026-03-31T00:00:00.000Z"
+      },
+      "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+      "status": 200,
+      "headers": [
+        ["cache-control", "no-store, must-revalidate"],
+        ["content-disposition", "attachment; filename=\"article.md.txt\""],
+        ["content-type", "text/plain; charset=utf-8"],
+        ["pragma", "no-cache"],
+        ["x-content-type-options", "nosniff"]
+      ],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "<script>G1 inert public attachment</script>\n"
+      }
+    },
+    {
+      "kind": "http",
+      "id": "file-missing-admin",
+      "method": "GET",
+      "path": "/api/reviews/g1-fixture-review/versions/g1-version-missing/files/article.md",
+      "requestHeaders": {},
+      "requestBody": null,
+      "principal": "ADMIN",
+      "sessionCase": "valid",
+      "session": {
+        "case": "valid",
+        "userId": "g1-user-admin",
+        "issuedAt": "2026-03-31T00:00:00.000Z"
+      },
+      "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+      "status": 404,
+      "headers": [
+        ["content-type", "application/json"],
+        [
+          "link",
+          "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+        ]
+      ],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"No preserved content for this path. Only textual files captured at inspection are preserved.\"}}"
+      }
+    },
+    {
+      "kind": "http",
+      "id": "file-tombstoned-admin",
+      "method": "GET",
+      "path": "/api/reviews/g1-fixture-review/versions/g1-version-tombstoned/files/article.md",
+      "requestHeaders": {},
+      "requestBody": null,
+      "principal": "ADMIN",
+      "sessionCase": "valid",
+      "session": {
+        "case": "valid",
+        "userId": "g1-user-admin",
+        "issuedAt": "2026-03-31T00:00:00.000Z"
+      },
+      "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+      "status": 404,
+      "headers": [
+        ["content-type", "application/json"],
+        [
+          "link",
+          "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+        ]
+      ],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"No preserved content for this path. Only textual files captured at inspection are preserved.\"}}"
       }
     },
     {

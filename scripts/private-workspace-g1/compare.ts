@@ -254,7 +254,8 @@ function validateHttp(
     const hash = cookie === undefined ? null : sha256Text(cookie);
     if (hash !== request.cookieSha256) problems.push(`${prefix}: dispatched cookie != recipe`);
   }
-  const { status, denial, json, bodyExcludes } = scenario.expect;
+  const { status, denial, json, bodyExcludes, bodyEquals, headers, sameResponseAs } =
+    scenario.expect;
   if (record.status !== status)
     problems.push(`${prefix}: status ${record.status} != expected ${status}`);
   if (record.status >= 400 && !denial) {
@@ -270,6 +271,25 @@ function validateHttp(
     );
   }
   for (const check of json ?? []) problems.push(...checkJson(prefix, body, check));
+  if (bodyEquals !== undefined && text !== bodyEquals)
+    problems.push(`${prefix}: exact body differs`);
+  for (const [name, value] of Object.entries(headers ?? {})) {
+    if (record.headers.find(([key]) => key === name)?.[1] !== value)
+      problems.push(`${prefix}: expected header ${name} differs`);
+  }
+  if (sameResponseAs) {
+    const prior = earlier.get(sameResponseAs);
+    if (prior?.kind !== "http") problems.push(`${prefix}: comparison response missing`);
+    else if (
+      prior.status !== record.status ||
+      prior.bodySha256 !== record.bodySha256 ||
+      prior.bodyLength !== record.bodyLength ||
+      !sameJson(normalizedHeaders(prior), normalizedHeaders(record)) ||
+      !sameJson(prior.setCookie, record.setCookie)
+    ) {
+      problems.push(`${prefix}: response differs from ${sameResponseAs}`);
+    }
+  }
   for (const excluded of bodyExcludes ?? []) {
     if (text.includes(excluded)) problems.push(`${prefix}: body contains excluded ${excluded}`);
   }

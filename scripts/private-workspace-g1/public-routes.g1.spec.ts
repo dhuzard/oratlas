@@ -39,9 +39,17 @@ function captureConfig(): { out: string; label: string } {
 }
 
 type RouteModule = Record<string, unknown>;
-type Handler = (request: Request, context?: { params: Promise<Record<string, string>> }) => unknown;
+type Handler = (
+  request: Request,
+  context?: { params: Promise<Record<string, string | string[]>> },
+) => unknown;
 
 const ROUTE_MODULES: Readonly<Record<string, () => Promise<RouteModule>>> = {
+  "api/publication-captures/[id]": () => import("@/app/api/publication-captures/[id]/route"),
+  "api/publication-versions/[id]/packet": () =>
+    import("@/app/api/publication-versions/[id]/packet/route"),
+  "api/reviews/[slug]/versions/[versionId]/files/[...path]": () =>
+    import("@/app/api/reviews/[slug]/versions/[versionId]/files/[...path]/route"),
   "api/health/ready": () => import("@/app/api/health/ready/route"),
   "api/health": () => import("@/app/api/health/route"),
   "api/feeds/atom": () => import("@/app/api/feeds/atom/route"),
