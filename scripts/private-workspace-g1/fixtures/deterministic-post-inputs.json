@@ -1,0 +1,214 @@
+{
+  "scopes": {
+    "visible": {
+      "nodes": [
+        {
+          "nodeId": "cmvi843rs00037kcmi0nfj6y2",
+          "nodeVersionId": "cmvi843rw00057kcm7d1urdrv"
+        },
+        {
+          "nodeId": "cmvi843s200087kcmipbro2p1",
+          "nodeVersionId": "cmvi843s6000a7kcmwr2xoy4i"
+        }
+      ],
+      "edgeIds": ["cmvi843s9000c7kcmzqqijsl9"],
+      "signature": "X5IBkDKaRtpwTNmq8GLzodK0yAWlX6atWkTJ8aD98SM"
+    },
+    "hidden": {
+      "nodes": [
+        {
+          "nodeId": "cmvi843sk000g7kcmulwl7dht",
+          "nodeVersionId": "cmvi843sn000i7kcm78lxx775"
+        }
+      ],
+      "edgeIds": [],
+      "signature": "u_SHJUnve93aSfwTBBLhCxhZ443jvN0WfT4ylrSliho"
+    },
+    "tombstone": {
+      "nodes": [
+        {
+          "nodeId": "cmvi843ta000y7kcmkxj8zl5b",
+          "nodeVersionId": "cmvi843td00107kcm74nxiav4"
+        }
+      ],
+      "edgeIds": [],
+      "signature": "LvpqVMl4Vg8m6yFfG2IHs4LYPwSuaY8HI_xs3mpTVqI"
+    },
+    "missing": {
+      "nodes": [
+        {
+          "nodeId": "g1-post-missing",
+          "nodeVersionId": "g1-post-missing-v1"
+        }
+      ],
+      "edgeIds": [],
+      "signature": "JS9wYQmLARc7t-lZkF86otceawm3mwAqyrmBgRINUn0"
+    },
+    "stale": {
+      "nodes": [
+        {
+          "nodeId": "cmvi843rs00037kcmi0nfj6y2",
+          "nodeVersionId": "cmvi843s6000a7kcmwr2xoy4i"
+        }
+      ],
+      "edgeIds": [],
+      "signature": "dR-0uNORQd-uLeVbPuh2iL46flFTitswh_NFDn99VO4"
+    },
+    "detached": {
+      "nodes": [
+        {
+          "nodeId": "cmvi843rs00037kcmi0nfj6y2",
+          "nodeVersionId": "cmvi843rw00057kcm7d1urdrv"
+        }
+      ],
+      "edgeIds": ["cmvi843s9000c7kcmzqqijsl9"],
+      "signature": "ganoUIPL0fsDx44Pzr1hJOcDLT-wokn8mHgQCnpSCII"
+    }
+  },
+  "inbox": {
+    "id": "g1-read-federation-pending",
+    "payload": {
+      "@context": ["https://www.w3.org/ns/activitystreams", "https://coar-notify.net"],
+      "actor": {
+        "id": "https://example.org/synthetic-actor",
+        "type": "Service"
+      },
+      "id": "https://example.org/g1-notify/pending",
+      "object": {
+        "id": "https://example.org/synthetic-object",
+        "ietf:item": {
+          "id": "https://example.org/synthetic-content.pdf",
+          "mediaType": "application/pdf",
+          "type": "Article"
+        },
+        "type": "Article"
+      },
+      "origin": {
+        "id": "https://example.org/synthetic-origin",
+        "inbox": "https://example.org/synthetic-inbox",
+        "type": "Service"
+      },
+      "summary": "g1-read-queue-private-payload",
+      "target": {
+        "id": "https://g1.oratlas.example",
+        "inbox": "https://g1.oratlas.example/api/federation/inbox",
+        "type": "Service"
+      },
+      "type": ["Offer", "coar-notify:ReviewAction"]
+    },
+    "hash": "849544d5976ed2028ddf8beef0358f519944fcc0f403b6d9f5d7c4fcb70bede0"
+  },
+  "announcement": {
+    "id": "g1-read-federation-outbound",
+    "payload": {
+      "@context": ["https://www.w3.org/ns/activitystreams", "https://coar-notify.net"],
+      "actor": {
+        "id": "https://g1.oratlas.example/system",
+        "name": "Open Review Atlas",
+        "type": "Service"
+      },
+      "context": {
+        "id": "https://example.org/synthetic-object",
+        "ietf:item": {
+          "id": "https://example.org/synthetic-content.pdf",
+          "mediaType": "application/pdf",
+          "type": "Article"
+        },
+        "type": "Article"
+      },
+      "id": "urn:uuid:ceb8b432-4dd7-50b1-aca4-fc41ca46730c",
+      "inReplyTo": "https://example.org/g1-notify/accepted-old",
+      "object": {
+        "https://oratlas.org/ns/exports": [
+          {
+            "id": "https://g1.oratlas.example/api/reviews/g1-fixture-review/versions/g1-version-2/export/ro-crate",
+            "mediaType": "application/ld+json",
+            "type": "Document"
+          }
+        ],
+        "id": "https://g1.oratlas.example/reviews/g1-fixture-review/versions/g1-version-2",
+        "ietf:item": {
+          "id": "https://g1.oratlas.example/api/reviews/g1-fixture-review/versions/g1-version-2/export/json",
+          "mediaType": "application/vnd.oratlas.scholarly+json",
+          "type": "Document"
+        },
+        "type": ["Page", "sorg:Review"]
+      },
+      "origin": {
+        "id": "https://g1.oratlas.example/system",
+        "inbox": "https://g1.oratlas.example/api/federation/inbox",
+        "type": "Service"
+      },
+      "target": {
+        "id": "https://example.org/synthetic-origin",
+        "inbox": "https://example.org/synthetic-inbox",
+        "type": "Service"
+      },
+      "type": ["Announce", "coar-notify:ReviewAction"]
+    },
+    "hash": "78afe3cc0e307589d2ee455b090749f83079fb6c957a5e9510602eecfb6d5b41"
+  },
+  "addedRows": {
+    "KnowledgeNode": 9,
+    "KnowledgeNodeVersion": 10,
+    "NodeEdge": 7
+  },
+  "fixtureUpdates": {
+    "Review": [
+      {
+        "id": "g1-review-1",
+        "fields": ["knowledgeNodeId", "updatedAt"]
+      },
+      {
+        "id": "g1-review-control",
+        "fields": ["knowledgeNodeId", "updatedAt"]
+      }
+    ],
+    "Claim": [
+      {
+        "id": "g1-claim-1",
+        "fields": ["knowledgeNodeId"]
+      },
+      {
+        "id": "g1-claim-control",
+        "fields": ["knowledgeNodeId"]
+      },
+      {
+        "id": "g1-discovery-claim-tombstoned",
+        "fields": ["knowledgeNodeId"]
+      },
+      {
+        "id": "g1-read-tombstone-claim",
+        "fields": ["knowledgeNodeId"]
+      }
+    ],
+    "Citation": [
+      {
+        "id": "g1-citation-1",
+        "fields": ["knowledgeNodeId", "workId"]
+      },
+      {
+        "id": "g1-read-citation-hidden",
+        "fields": ["knowledgeNodeId", "workId"]
+      },
+      {
+        "id": "g1-read-citation-tombstone",
+        "fields": ["knowledgeNodeId", "workId"]
+      }
+    ],
+    "ClaimEvidenceRelation": [
+      {
+        "id": "g1-read-relation-hidden",
+        "fields": ["nodeEdgeId"]
+      },
+      {
+        "id": "g1-read-relation-tombstone",
+        "fields": ["nodeEdgeId"]
+      },
+      {
+        "id": "g1-relation-1",
+        "fields": ["nodeEdgeId"]
+      }
+    ]
+  }
+}
