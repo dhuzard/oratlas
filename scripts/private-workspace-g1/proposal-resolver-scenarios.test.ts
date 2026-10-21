@@ -1,3 +1,4 @@
+import { programProblems } from "./scenarios.js";
 import { describe, it, expect } from "vitest";
 import {
   proposalResolverScenarios,
@@ -15,6 +16,7 @@ describe("isolated resolver contract", () => {
   it("declares four distinct first successes and complete six-principal repeat/missing/integrity controls", () => {
     const s = proposalResolverScenarios(targets);
     expect(s).toHaveLength(132);
+    expect(programProblems(s)).toEqual([]);
     expect(new Set(s.map((x) => x.id)).size).toBe(s.length);
     for (const t of targets) {
       const rows = s.filter((x) => x.target === t);
