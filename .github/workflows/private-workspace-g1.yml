@@ -1,0 +1,100 @@
+name: Private workspace G1 harness
+
+# G1-empty isolation harness (docs/private-workspace-g1-harness.md): T-IMP fixtures, T-ROLE
+# empty-schema posture and grant closure, the T-PUB scenario program (real handlers in a Next
+# request context, six synthetic principal cases, fixture reset before each fresh capture child)
+# and the auth evidence suite against a disposable PostgreSQL 16 service, plus the unused
+# `private, no-store` helper. Passing this job is partial G1-empty evidence only (synthetic public
+# fixtures; A/B are labels without memberships); it does not enable private tables, data, endpoints
+# or providers.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  g1-harness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          # Bootstrap credentials of this throwaway service only; never runtime credentials.
+          POSTGRES_USER: g1_admin
+          POSTGRES_PASSWORD: g1-admin-ci-disposable
+          POSTGRES_DB: oratlas_g1
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U g1_admin -d oratlas_g1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      # Deliberately no DATABASE_URL: the harness never falls back to it.
+      G1_TEST_ADMIN_DATABASE_URL: "postgresql://g1_admin:g1-admin-ci-disposable@localhost:5432/oratlas_g1"
+      G1_TEST_PUBLIC_DATABASE_URL: "postgresql://oratlas_g1_public:g1-public-ci-disposable@localhost:5432/oratlas_g1"
+      G1_TEST_PRIVATE_DATABASE_URL: "postgresql://oratlas_g1_private:g1-private-ci-disposable@localhost:5432/oratlas_g1"
+      G1_TEST_DISPOSABLE_TARGET_ACK: "disposable-g1-target:localhost:5432/oratlas_g1"
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          version: 10.33.0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Require the PostgreSQL client (missing infrastructure fails)
+        run: psql --version
+
+      - name: Generate PostgreSQL schema
+        run: pnpm --filter @oratlas/db db:pg:schema
+
+      - name: Generate Prisma client (postgres)
+        run: pnpm --filter @oratlas/db db:generate:postgres
+
+      - name: Offline G1 safeguards, T-IMP fixtures, cache helper and public route regressions
+        run: >-
+          pnpm exec vitest run
+          scripts/private-workspace-g1
+          scripts/architecture-boundaries.test.ts
+          apps/web/src/lib/private
+          apps/web/src/lib/openapi-response.test.ts
+          apps/web/src/app/llms.txt/route.test.ts
+
+      - name: G1-empty harness on disposable PostgreSQL 16 (T-ROLE, T-PUB, auth evidence)
+        run: pnpm g1:private-workspace
+        env:
+          G1_EVIDENCE_DIR: ${{ runner.temp }}/g1-evidence
+
+      - name: Upload sanitized G1 evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: private-workspace-g1-evidence
+          path: ${{ runner.temp }}/g1-evidence
+          if-no-files-found: error
+          retention-days: 14
+          overwrite: true

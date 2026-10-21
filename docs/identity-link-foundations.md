@@ -1,11 +1,11 @@
 # Identity-link foundations (#203, ORA-203)
 
-Status: **foundation only, not activated.** This page describes
-`apps/web/src/lib/identity-link-foundations.ts` and its tests. No route, page, API, database
-table, migration, configuration, environment variable or existing module imports or calls it.
-Existing sign-in, session, GitHub identity, API and source-credit behaviour is unchanged. No live
-provider, endpoint, credential or real person's data is used anywhere; every fixture is synthetic
-(`*.invalid` issuer, `synthetic-*` subjects).
+Status: **foundation logic and ratified policy, not activated.** Owner ratified I1–I3 and S1 on
+2026-10-20 (see decision checklist). This page describes `apps/web/src/lib/identity-link-foundations.ts`
+and its tests. No route, page, API, database table, migration, configuration, environment variable
+or existing module imports or calls it. Existing sign-in, session, GitHub identity, API and
+source-credit behaviour is unchanged. No live provider, endpoint, credential or real person's data
+is used anywhere; every fixture is synthetic (`*.invalid` issuer, `synthetic-*` subjects).
 
 ## What it is and is not
 
@@ -166,24 +166,33 @@ These tests prove the **orchestrator logic and the contract it expects**. They d
 - **ADR epochs and unlink are unresolved.** `user.authz_epoch` (§8), unlink and recovery do not
   exist yet. Their absence does not defer or waive any control above; it means those controls are
   still missing.
-- **Per-user cardinality is an owner decision.** Until it is ratified, a second subject for the
-  same principal in one namespace tuple (through any key) fails closed as `conflict`
-  (`other-subject-linked` in the store contract). This is a provisional refusal, not a chosen
-  policy.
-- **Manual vs verified precedence is an owner decision.** The module never reads or compares any
-  manually entered identifier and never changes one.
+- **Per-user cardinality was ratified on 2026-10-20.** A second subject for the same principal in
+  one namespace tuple (through any key) fails closed as `conflict` (`other-subject-linked`).
+  Concrete unlink/recovery and identifier-release lifecycle details remain design decisions.
+- **Manual versus verified assertions remain separate.** Approved manual-entry checksum/API
+  recognition is not implemented by this module, which never reads or changes manual identifiers.
+  API recognition is not OAuth proof of identifier control; errors prove neither nonexistence nor
+  recognition. ORCID priority does not make linking mandatory or grant workspace membership.
 
-## Owner decision checklist (unresolved — not defaults)
+<a id="owner-decision-checklist-unresolved--not-defaults"></a>
 
-- [ ] Precedence between manually entered and verified identifiers, and the wording for each.
-- [ ] Per-user link cardinality per namespace.
-- [ ] Unlink, account recovery, and invalidation of links on account deletion or identity change;
-      interaction with `user.authz_epoch`.
-- [ ] Retention and privacy of link records, flows and receipts; public versus private display;
-      the public wording for a verified link. It must not imply trust, peer review, authorship or
-      access.
-- [ ] Ratification of ADR-0001 §14 (still proposed), including the §14.2 finalization fence.
-- [ ] D11 counsel and DPIA confirmation before real private workspace content or metadata is stored; separately resolve the privacy/legal requirements for live identity linking.
+## Owner decision checklist (ratified 2026-10-20; retention details pending)
+
+- [x] **I1 Precedence (2026-10-20):** ORCID is primary identifier. Manual entry checks ORCID API for
+      recognition (API match is identifier existence, not authenticated control). Verified and manual
+      assertions preserved separately; never silently merged.
+- [x] **I2 Per-user cardinality (2026-10-20):** One subject per `(provider, issuer, environment)`
+      per principal. Conflicting link fails closed, no automatic reassignment.
+- [x] **I3 Unlink and recovery (2026-10-20, framework):** Require reauthentication for link-management
+      actions. Invalidate affected flows and fence finalization. No automatic merging or transfers.
+      Detailed lifecycle decisions (invalidation on account deletion, unlink/deletion identifier
+      release, history retention) deferred with S1 session design.
+- [ ] **I4 Retention and privacy (principles accepted; details pending):** Exact triggers, periods, deletion, public wording and
+      lawful processing bases still to be decided with privacy review before activation.
+- [x] **S1 Session-instance binding and finalization (2026-10-20, commissioned):** Prepare a reviewed
+      design specifying instance identity, revocation authority and fencing per ADR §14.2.
+- [x] **ADR §14 and §15 (2026-10-20):** Ratified. §14.1–14.6 refinements accepted; §15 PoC model
+      and synthetic-only initial policy accepted. D11 remains provisional pending counsel/DPIA.
 
 ## Next slices (none built now)
 

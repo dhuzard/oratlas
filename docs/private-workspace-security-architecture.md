@@ -4,15 +4,16 @@
   owner's answers). **D11 (retention and controller/processor roles) is provisional** and must be
   confirmed by counsel and a data-protection impact assessment (DPIA) before any real workspace data
   is stored (gate G2). R0 security gate, [ORAtlas #202](https://github.com/dhuzard/oratlas/issues/202).
+  **Sections §14–15 ratified 2026-10-20** by the owner: ADR§14.1–14.6 (refinements) and ADR§15
+  (PoC model with synthetic-only initial content policy). These explicit owner approvals supersede
+  pre-2026-10-20 pending-ratification labels in the historical text and related R0 documents.
+  Historical D1–D11 outcomes are unchanged. Approval is not implementation or a passed rollout gate.
 - **Version:** `oratlas.private-workspace-adr/0.1.0` (accepted text, §1–§13).
-  **Proposed follow-up:** `oratlas.private-workspace-adr/0.2.0-proposed` adds §14 only. §14 is
-  **PROPOSED, pending owner ratification**; the G0 acceptance of D1–D11 on 2026-10-19 does **not**
-  ratify it. Sections whose original wording §14 corrects carry a "Proposed correction" note; the
-  original wording is kept as the historical record. Evidence ledger:
+  **Ratified amendment:** §14–15 accepted 2026-10-20. Sections whose original wording §14 corrects
+  carry a "Proposed correction" note; the historical wording is kept as the record. §15 specifies
+  owner-operated PoC hosting and independent-researcher testing (synthetic-only policy, user
+  notice, readiness checklist). Evidence ledger:
   [`private-workspace-r0-review.md`](./private-workspace-r0-review.md).
-  **PoC operational model proposal:** §15 adds a **separate proposal** for owner-operated PoC
-  hosting and independent-researcher testing (synthetic-only policy, user notice, readiness
-  checklist). See [§15](#15-proposed-poc-owner-operated-model-and-hosted-researcher-testing-proposed--pending-owner-ratification).
 - **Baseline:** `main` at `f6c834b` (route and schema inventory below was taken from that commit).
 - **Scope:** architecture, policy, protocols and tests only. **No** database model, route,
   authentication provider, UI, job or index is added by this document.
@@ -627,15 +628,15 @@ invitations but is not an access input. #204 implements §5.1 and §5.2. #206 an
 validated source observations to a workspace through the §4.3 entitlement; PR C of #209 and #207
 implement §6.3–§6.5. #208's projector and #210's adapters are consumed unchanged.
 
-## 14. Proposed refinements from the R0 follow-up review (PROPOSED — pending owner ratification)
+<a id="14-proposed-refinements-from-the-r0-follow-up-review-proposed--pending-owner-ratification"></a>
 
-> **Status: PROPOSED.** This section comes from the R0 follow-up review
-> ([`private-workspace-r0-review.md`](./private-workspace-r0-review.md)). It is **not accepted**.
-> The owner's 2026-10-19 acceptance of D1–D11 (gate G0) does not ratify anything here, and D11
-> remains provisional. Each subsection names the earlier text it would correct; that text stays
-> in place as the historical record. Until the owner rules, the review recommends that R1 work
-> follow whichever of the earlier text and this section is stricter. That recommendation is itself
-> part of the proposal.
+## 14. Refinements from the R0 follow-up review (ACCEPTED 2026-10-20)
+
+> **Status: ACCEPTED.** The owner ratified ADR§14.1–14.6 on 2026-10-20. This section comes from the
+> R0 follow-up review ([`private-workspace-r0-review.md`](./private-workspace-r0-review.md)).
+> D11 remains provisional, requiring counsel and DPIA confirmation. Each subsection names the
+> earlier text it corrects; that text stays in place as the historical record. R1 work uses the
+> accepted §14 text.
 
 Nothing in this section is implemented. It states requirements for future work and corrects
 claims that were stronger than the design can deliver. It gives no universal security, privacy
@@ -787,10 +788,14 @@ only fixes precedence for whatever narrowing restrictions exist.
 | T-POL   | New: precedence cases of §14.4, including unknown class, explicit deny over allow, `owner-only` without membership and `withheld` fields.     |
 | T-GATE  | New: no real private content is accepted while G3 is incomplete (§14.1).                                                                      |
 
-## 15. Proposed PoC owner-operated model and hosted researcher testing (PROPOSED — pending owner ratification)
+<a id="15-proposed-poc-owner-operated-model-and-hosted-researcher-testing-proposed--pending-owner-ratification"></a>
 
-> **Status: PROPOSED.** This amendment awaits owner ratification. It does not resolve D11,
-> ratify §14, authorize hosted private-workspace access, or change any existing rollout gate.
+## 15. PoC owner-operated model and hosted researcher testing (ACCEPTED 2026-10-20)
+
+> **Status: ACCEPTED.** The owner ratified ADR§15 on 2026-10-20. This amendment specifies the
+> owner-operated PoC model and synthetic-only initial content policy. It does not resolve D11
+> (which remains provisional), authorize hosted private-workspace access before evidence exists,
+> or change any existing rollout gate.
 
 ### 15.1 Operating model and unresolved responsibilities
 
@@ -851,17 +856,16 @@ controls, completed reviews or approved retention periods:
 
 ### 15.4 Ratification and relationship to existing gates
 
-1. The owner must separately ratify the hosted-testing scope, content policy, notice and readiness
-   requirements. Required review and implementation evidence must then be recorded before access.
-   Ratification of wording alone is not evidence that a gate has passed.
-2. §14.1's **proposed** local/CI synthetic-fixture allowance does not authorize hosted researcher
+1. The owner ratified the hosted-testing scope, initial content policy, draft notice and readiness
+   requirements on 2026-10-20. Required review and implementation evidence must still be recorded
+   before access. Ratification of wording alone is not evidence that a gate has passed.
+2. §14.1's accepted local/CI synthetic-fixture allowance does not authorize hosted researcher
    testing. This amendment provides no exemption from applicable §13 gates or a way to bypass G6
-   by calling a deployment a PoC. External access remains blocked pending explicit authorization
-   and readiness evidence.
+   by calling a deployment a PoC. External access remains blocked pending explicit enablement
+   authorization and readiness evidence.
 3. **D11 remains provisional.** Existing counsel/DPIA conditions before real private data remain
-   unchanged. The separate §14.1 proposal requires both G2 and G3 before any real private content
-   or metadata; it is still pending ratification, not an accepted change here. Processing real
-   tester account/security metadata must be assessed before hosted access, not hidden under the
-   synthetic-content label.
-4. Historical §1–§13 and the separate proposed §14 are unchanged. No runtime, UI, database or
-   hosted-testing capability is activated by this documentation amendment.
+   unchanged. Accepted §14.1 requires both G2 and G3 before any real private content or metadata.
+   Processing real tester account/security metadata must be assessed before hosted access, not
+   hidden under the synthetic-content label.
+4. Historical §1–§13 outcomes are unchanged; §14 corrections now apply. No runtime, UI, database
+   or hosted-testing capability is activated by this documentation amendment.
