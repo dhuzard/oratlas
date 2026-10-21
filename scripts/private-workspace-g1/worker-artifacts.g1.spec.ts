@@ -28,7 +28,10 @@ import {
   columnPrivilegesSql,
 } from "./sql.js";
 import { publicTableSnapshotSql, type KnownPublicSqlState } from "./known-mutation-state.js";
-import { workerArtifactStateProblems } from "./worker-artifact-state.js";
+import {
+  expectedWorkerArtifactState,
+  workerArtifactStateProblems,
+} from "./worker-artifact-state.js";
 import {
   ARTIFACT_INPUTS,
   workerArtifactScenarios,
@@ -98,6 +101,7 @@ beforeAll(async () => {
     'owned', (SELECT count(*) FROM pg_class WHERE relowner = (SELECT oid FROM pg_roles WHERE rolname = session_user))
       + (SELECT count(*) FROM pg_namespace WHERE nspowner = (SELECT oid FROM pg_roles WHERE rolname = session_user))
       + (SELECT count(*) FROM pg_proc WHERE proowner = (SELECT oid FROM pg_roles WHERE rolname = session_user))
+      + (SELECT count(*) FROM pg_type WHERE typowner = (SELECT oid FROM pg_roles WHERE rolname = session_user))
       + (SELECT count(*) FROM pg_database WHERE datdba = (SELECT oid FROM pg_roles WHERE rolname = session_user)),
     'publicCreate', has_schema_privilege(session_user, 'public', 'CREATE'),
     'tables', ${tablePrivilegesSql("session_user")}, 'columns', ${columnPrivilegesSql("session_user")},
@@ -185,8 +189,10 @@ it("captures native artifact replays and exactly one existing artifact completio
   expect(run.inputSchemaVersion).toBe(ARTIFACT_INPUTS.runInputSchemaVersion);
   expect(sha256Text(String(run.inputJson))).toBe(run.inputSha256);
   const perRequest: unknown[] = [];
+  let expectedState = before;
   for (const scenario of scenarios) {
     const previous = await snapshot();
+    expect(previous, `${scenario.id}: state continuity before dispatch`).toEqual(expectedState);
     const cookie = cookieHeader(scenario.session, sign);
     const body = requestBodyText(scenario);
     const request = new Request(`${G1_BASE_URL}${scenario.path}`, {
@@ -229,6 +235,8 @@ it("captures native artifact replays and exactly one existing artifact completio
     );
     const after = await snapshot();
     expect(workerArtifactStateProblems(previous, after, scenario)).toEqual([]);
+    expectedState = expectedWorkerArtifactState(expectedState, scenario);
+    expect(after, `${scenario.id}: complete cumulative state`).toEqual(expectedState);
     perRequest.push({
       id: scenario.id,
       before: focused(previous),
@@ -238,6 +246,7 @@ it("captures native artifact replays and exactly one existing artifact completio
     });
   }
   const after = await snapshot();
+  expect(after, "complete final cumulative state").toEqual(expectedState);
   expect(
     after.VerificationArtifact!.find((row) => row.id === ARTIFACT_INPUTS.ids.uploaded)?.status,
   ).toBe("completed");
