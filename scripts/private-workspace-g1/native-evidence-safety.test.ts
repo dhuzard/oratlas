@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { nativeEvidenceProblems } from "./native-evidence-safety.js";
+import { nativeEvidenceProblems, nativeLogEvidenceProblems } from "./native-evidence-safety.js";
 it("refuses actual cookie/database fragments through native bodies, JSON strings and keys", () => {
   const secret = 'synthetic"credential\\component';
   const escaped = [...secret]
@@ -41,4 +41,27 @@ it("refuses bounded inspection overflow with fixed errors", () => {
   expect(nativeEvidenceProblems("x".repeat(16 * 1024 * 1024 + 1), [])).toEqual([
     "Native evidence inspection bound refused",
   ]);
+});
+
+it("inspects exact multiline raw/escaped/Unicode JSON records with bounded lines", () => {
+  const secret = 'synthetic"log\\component';
+  const unicode = [...secret]
+    .map((c) => "\\u" + c.charCodeAt(0).toString(16).padStart(4, "0"))
+    .join("");
+  const values = [
+    secret,
+    JSON.stringify({ message: secret }),
+    '{"message":"' + unicode + '"}',
+    JSON.stringify(secret),
+  ];
+  for (const value of values) {
+    const text = "public prefix\n" + value + "\npublic suffix";
+    expect(nativeLogEvidenceProblems(text, [secret])).toEqual([
+      "Native evidence capability disclosure refused",
+    ]);
+  }
+  expect(nativeLogEvidenceProblems("public\n".repeat(4097), [])).toEqual([
+    "Native log evidence line bound refused",
+  ]);
+  expect(nativeLogEvidenceProblems("public\n".repeat(4095), [])).toEqual([]);
 });

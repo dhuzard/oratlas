@@ -49,3 +49,10 @@ export function nativeEvidenceProblems(value: unknown, secrets: readonly string[
   }
   return [];
 }
+
+/** Inspect exact raw logs plus complete JSON lines; embedded non-JSON/ANSI fragments are not decoded. */
+export function nativeLogEvidenceProblems(text: string, secrets: readonly string[]): string[] {
+  const lines = text.split("\n", 4097);
+  if (lines.length > 4096) return ["Native log evidence line bound refused"];
+  return nativeEvidenceProblems([text, ...lines], secrets);
+}
