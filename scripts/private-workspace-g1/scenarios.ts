@@ -1,4 +1,8 @@
 import { G1_BASE_URL, G1_FIXED_CLOCK, type HttpMethod } from "./capture.js";
+import { publicPrincipalScenarios } from "./principal-matrix.js";
+import { editorialScenarios } from "./editorial-scenarios.js";
+import { SCHOLARLY_SCENARIOS } from "./scholarly-scenarios.js";
+import { publicDiscoveryScenarios } from "./discovery-scenarios.js";
 import {
   fixtureUser,
   sha256Text,
@@ -816,12 +820,27 @@ function artifactScenarios(): HttpScenario[] {
   return scenarios;
 }
 
-export const SCENARIOS: readonly Scenario[] = [
+const PUBLIC_BASE_SCENARIOS: readonly Scenario[] = [
   ...legacyPublicScenarios(),
   ...discoveryScenarios(),
-  ...authScenarios(),
+];
+
+const AUTH_SCENARIOS = authScenarios();
+const AUTH_FINAL_STATE = AUTH_SCENARIOS.find(
+  (scenario): scenario is StateScenario =>
+    scenario.kind === "db-state" && scenario.id === "state-final",
+);
+if (!AUTH_FINAL_STATE) throw new Error("G1 auth final state is required");
+
+export const SCENARIOS: readonly Scenario[] = [
+  ...PUBLIC_BASE_SCENARIOS,
+  ...publicPrincipalScenarios(PUBLIC_BASE_SCENARIOS),
+  ...AUTH_SCENARIOS,
   ...artifactScenarios(),
   ...metadataScenarios(),
+  ...publicDiscoveryScenarios(),
+  ...SCHOLARLY_SCENARIOS,
+  ...editorialScenarios(AUTH_FINAL_STATE.expect),
 ];
 
 export function httpScenarios(program: readonly Scenario[] = SCENARIOS): HttpScenario[] {

@@ -9,8 +9,8 @@ run the complete before/repeat/after/repeat program through the restricted publi
 
 1. Append `fixtures/editorial-fixtures.sql` after `fixtures/public-fixtures.sql` in every reset
    transaction. It creates five synthetic public rows: two verifiers, two verification protocols,
-   and one certification protocol. It also replaces the existing ORA protocol's invalid `{}`
-   placeholder definition with an explicit valid synthetic contract and its exact SHA-256.
+   and one certification protocol. The base ORA protocol INSERT now uses an explicit valid synthetic contract and its exact
+   SHA-256, replacing the old invalid `{}` fixture at construction rather than updating an immutable row.
    This is fixture repair only, with no application or migration changes.
 2. Add literal imports in `public-routes.g1.spec.ts` for every route declared by
    `EDITORIAL_ROUTE_MODULES` in `editorial-routes.ts`. That inventory contains strings only;

@@ -26,9 +26,29 @@ export const PUBLIC_TABLE_GRANTS = [
     reason: "ORA readiness protocol lookup",
   },
   {
+    table: "CertificationResult",
+    privileges: ["SELECT"],
+    reason: "public discovery/export projection dependency",
+  },
+  {
     table: "Certifier",
     privileges: ["SELECT"],
     reason: "certifier status mutation and ORA readiness relation filter",
+  },
+  {
+    table: "Challenge",
+    privileges: ["SELECT"],
+    reason: "synthetic public scholarly read projections",
+  },
+  {
+    table: "ChallengeResponse",
+    privileges: ["SELECT"],
+    reason: "synthetic public scholarly read projections",
+  },
+  {
+    table: "ChallengeTransition",
+    privileges: ["SELECT"],
+    reason: "synthetic public scholarly read projections",
   },
   {
     table: "Citation",
@@ -46,6 +66,26 @@ export const PUBLIC_TABLE_GRANTS = [
     reason: "knowledge index evidence relations; graph edge include",
   },
   {
+    table: "ClaimUpdateProposal",
+    privileges: ["SELECT"],
+    reason: "public discovery/export projection dependency",
+  },
+  {
+    table: "ExecutionPassport",
+    privileges: ["SELECT"],
+    reason: "public discovery/export projection dependency",
+  },
+  {
+    table: "ExecutionPassportClaim",
+    privileges: ["SELECT"],
+    reason: "public discovery/export projection dependency",
+  },
+  {
+    table: "Identifier",
+    privileges: ["SELECT"],
+    reason: "public discovery/export projection dependency",
+  },
+  {
     table: "KnowledgeNode",
     privileges: ["SELECT"],
     reason: "canonical graph seed/edges and sitemap node records",
@@ -58,11 +98,36 @@ export const PUBLIC_TABLE_GRANTS = [
   { table: "NodeAlias", privileges: ["SELECT"], reason: "canonical graph node aliases include" },
   { table: "NodeEdge", privileges: ["SELECT"], reason: "canonical graph source assertions" },
   {
+    table: "NodeEdgeProposal",
+    privileges: ["SELECT"],
+    reason: "synthetic public scholarly read projections",
+  },
+  {
+    table: "NodeIdentityProposal",
+    privileges: ["SELECT"],
+    reason: "public discovery/export projection dependency",
+  },
+  {
+    table: "NodeRelationTrustAssessment",
+    privileges: ["SELECT"],
+    reason: "synthetic public scholarly read projections",
+  },
+  {
     table: "Notification",
     privileges: ["SELECT"],
     reason: "per-user notification list and mark-read",
   },
   { table: "Person", privileges: ["SELECT"], reason: "Atom feed and knowledge index contributors" },
+  {
+    table: "ProtocolDriftProposal",
+    privileges: ["SELECT"],
+    reason: "synthetic public scholarly read projections",
+  },
+  {
+    table: "ProtocolSnapshot",
+    privileges: ["SELECT"],
+    reason: "synthetic public scholarly read projections",
+  },
   {
     table: "Publication",
     privileges: ["SELECT"],
@@ -84,6 +149,11 @@ export const PUBLIC_TABLE_GRANTS = [
     reason: "public version packet exact production assertions (empty fixture)",
   },
   {
+    table: "PublicationRelation",
+    privileges: ["SELECT"],
+    reason: "public discovery/export projection dependency",
+  },
+  {
     table: "PublicationVersion",
     privileges: ["SELECT"],
     reason: "ORA readiness and public version packet read; graph predicate",
@@ -92,6 +162,16 @@ export const PUBLIC_TABLE_GRANTS = [
     table: "PublicationVersionContributor",
     privileges: ["SELECT"],
     reason: "public version packet exact contributor snapshot (empty fixture)",
+  },
+  {
+    table: "ReplicationBrief",
+    privileges: ["SELECT"],
+    reason: "synthetic public scholarly read projections",
+  },
+  {
+    table: "ReplicationBriefClaim",
+    privileges: ["SELECT"],
+    reason: "synthetic public scholarly read projections",
   },
   {
     table: "Repository",
@@ -107,6 +187,11 @@ export const PUBLIC_TABLE_GRANTS = [
     table: "Review",
     privileges: ["SELECT"],
     reason: "feeds, index, sitemap, lifecycle and readability predicates",
+  },
+  {
+    table: "ReviewComment",
+    privileges: ["SELECT"],
+    reason: "synthetic public scholarly read projections",
   },
   {
     table: "ReviewContributor",
@@ -130,6 +215,16 @@ export const PUBLIC_TABLE_GRANTS = [
     reason: "sitemap review projection selects the synthesis draft relation",
   },
   {
+    table: "TrustAdjudication",
+    privileges: ["SELECT"],
+    reason: "synthetic public scholarly read projections",
+  },
+  {
+    table: "TrustAdjudicationReference",
+    privileges: ["SELECT"],
+    reason: "synthetic public scholarly read projections",
+  },
+  {
     table: "TrustAssessment",
     privileges: ["SELECT"],
     reason: "knowledge index and graph edge TRUST include",
@@ -144,6 +239,16 @@ export const PUBLIC_TABLE_GRANTS = [
     privileges: ["SELECT"],
     reason: "session resolution (getCurrentUser) and lifecycle actor login",
   },
+  {
+    table: "VerificationProtocol",
+    privileges: ["SELECT"],
+    reason: "public protocol registry and retirement",
+  },
+  {
+    table: "Verifier",
+    privileges: ["SELECT"],
+    reason: "public verifier registry and status mutation",
+  },
 ] as const satisfies ReadonlyArray<{
   table: string;
   privileges: ReadonlyArray<"SELECT" | "INSERT">;
@@ -152,6 +257,7 @@ export const PUBLIC_TABLE_GRANTS = [
 
 /** Column-only UPDATE grants; table-level UPDATE is never granted. */
 export const PUBLIC_COLUMN_UPDATE_GRANTS = [
+  { table: "CertificationProtocol", columns: ["status"], reason: "retireCertificationProtocol" },
   {
     table: "Certifier",
     columns: ["activatedAt", "retiredAt", "status"],
@@ -162,6 +268,12 @@ export const PUBLIC_COLUMN_UPDATE_GRANTS = [
     table: "User",
     columns: ["orcid", "orcidVerifiedAt", "updatedAt"],
     reason: "setUserOrcid (Prisma stamps updatedAt)",
+  },
+  { table: "VerificationProtocol", columns: ["status"], reason: "retireVerificationProtocol" },
+  {
+    table: "Verifier",
+    columns: ["activatedAt", "retiredAt", "status"],
+    reason: "setVerifierStatus",
   },
 ] as const satisfies ReadonlyArray<{ table: string; columns: readonly string[]; reason: string }>;
 
@@ -423,34 +535,55 @@ export type ResetState = {
 export const EXPECTED_RESET_STATE: ResetState = {
   counts: {
     AuditEvent: 0,
-    CertificationProtocol: 1,
+    CertificationProtocol: 2,
+    CertificationResult: 0,
     Certifier: 2,
+    Challenge: 2,
+    ChallengeResponse: 2,
+    ChallengeTransition: 6,
     Citation: 1,
-    Claim: 3,
+    Claim: 4,
     ClaimEvidenceRelation: 1,
+    ClaimUpdateProposal: 0,
+    ExecutionPassport: 0,
+    ExecutionPassportClaim: 0,
+    Identifier: 0,
     KnowledgeNode: 4,
     KnowledgeNodeVersion: 4,
     NodeAlias: 0,
-    NodeEdge: 3,
+    NodeEdge: 4,
+    NodeEdgeProposal: 0,
+    NodeIdentityProposal: 0,
+    NodeRelationTrustAssessment: 0,
     Notification: 6,
     Person: 2,
-    Publication: 1,
-    PublicationCapture: 2,
-    PublicationClaimOccurrence: 0,
-    PublicationProductionAssertion: 0,
-    PublicationVersion: 1,
-    PublicationVersionContributor: 0,
+    ProtocolDriftProposal: 1,
+    ProtocolSnapshot: 1,
+    Publication: 2,
+    PublicationCapture: 4,
+    PublicationClaimOccurrence: 1,
+    PublicationProductionAssertion: 1,
+    PublicationRelation: 1,
+    PublicationVersion: 2,
+    PublicationVersionContributor: 1,
+    ReplicationBrief: 3,
+    ReplicationBriefClaim: 3,
     Repository: 3,
     RepositorySnapshot: 4,
     Review: 3,
+    ReviewComment: 6,
     ReviewContributor: 5,
     ReviewLifecycleEvent: 3,
     ReviewVersion: 5,
     Submission: 0,
     SynthesisDraft: 0,
+    TrustAdjudication: 0,
+    TrustAdjudicationReference: 0,
     TrustAssessment: 0,
     TrustVerification: 0,
     User: 5,
+    VerificationProtocol: 2,
+    Verifier: 2,
   },
   users: [
     ["g1-user-a-and-b", "0000-0000-0000-0003", false],

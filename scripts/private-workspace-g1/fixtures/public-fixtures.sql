@@ -247,8 +247,8 @@ INSERT INTO "CertificationProtocol" ("id", "certifierId", "seriesKey", "protocol
   "description", "protocolJson", "protocolSha256", "status", "createdAt")
 VALUES
   ('g1-protocol-ora', 'g1-certifier-ora', 'scientific-merit-pilot', '0.1.0',
-    'Synthetic G1 protocol fixture', 'Synthetic protocol row for the readiness read.', '{}',
-    '44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a', 'active',
+    'Synthetic G1 protocol fixture', 'Synthetic protocol row for the readiness read.', '{"assessmentModes":["human"],"criteria":[{"allowedStatuses":["pass","fail"],"description":"Synthetic harness criterion only.","evidenceRequired":false,"id":"fixture-completeness","required":true,"title":"Synthetic fixture completeness"}],"outcomes":["inconclusive"],"requireCompleteSections":[]}',
+    '38457c42f5ad19f7c54c3b1198f704d9958be9be7a418c99ebce0558b0d4d84b', 'active',
     TIMESTAMP '2026-01-05 00:00:00');
 
 -- Public artifact fixtures: retained bytes must not leak through metadata or packet routes.

@@ -38,7 +38,7 @@ const http = (file: CaptureFile, id: string) =>
 describe("the reviewed program and golden agree", () => {
   it("has a valid program: unique ids/composite keys and coherent denials", () => {
     expect(programProblems(SCENARIOS)).toEqual([]);
-    expect(SCENARIOS.length).toBe(93);
+    expect(SCENARIOS.length).toBe(895);
   });
 
   it("validates the golden-derived capture, re-deriving every cookie with the production signer", () => {
@@ -59,12 +59,13 @@ describe("the reviewed program and golden agree", () => {
       }
     }
     expect(statuses).toEqual({
-      "200": 45,
-      "304": 2,
-      "401": 8,
-      "403": 8,
-      "404": 25,
-      "db-state": 3,
+      "200": 477,
+      "304": 12,
+      "400": 30,
+      "401": 11,
+      "403": 20,
+      "404": 328,
+      "db-state": 15,
       "metadata-loader": 2,
     });
     const feed = golden.records.find((entry) => entry.id === "feeds-atom");
@@ -335,6 +336,9 @@ describe("capture validation regressions", () => {
     expect(problems(empty)).toEqual([
       "claims: /total is 0",
       "claims: /items length is not 2 (empty or changed collection)",
+      ...["a-only", "b-only", "a-and-b", "editor", "admin"].map(
+        (principal) => `matrix-claims-${principal}: response differs from claims`,
+      ),
     ]);
     const reordered = withJsonBody(capture, "feeds-lifecycle", (body) => ({
       ...body,

@@ -1,9 +1,6 @@
 -- Supplemental deterministic PUBLIC G1 editorial fixtures. Synthetic-only; load AFTER
 -- public-fixtures.sql, inside the same reset transaction. No credentials, providers or private data.
--- The base ORA readiness row previously used {} as a placeholder. Registry handlers validate
--- protocol definitions, so use one valid synthetic contract with its exact canonical byte digest.
-UPDATE "CertificationProtocol" SET "protocolJson" = '{"assessmentModes":["human"],"criteria":[{"allowedStatuses":["pass","fail"],"description":"Synthetic harness criterion only.","evidenceRequired":false,"id":"fixture-completeness","required":true,"title":"Synthetic fixture completeness"}],"outcomes":["inconclusive"],"requireCompleteSections":[]}',
-  "protocolSha256" = '38457c42f5ad19f7c54c3b1198f704d9958be9be7a418c99ebce0558b0d4d84b' WHERE "id" = 'g1-protocol-ora';
+-- The base ORA row is inserted with the same valid synthetic definition; immutable rows are not updated.
 
 INSERT INTO "CertificationProtocol" ("id", "certifierId", "seriesKey", "protocolVersion", "title",
   "description", "protocolJson", "protocolSha256", "status", "createdAt")
