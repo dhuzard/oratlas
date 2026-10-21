@@ -89,10 +89,10 @@ describe("G1 route/principal coverage manifest", () => {
     }
     const summary = coverageSummary(APP);
     expect(summary.routeFiles).toBe(routes.length);
-    expect(summary.routeFilesExercised).toBe(56);
-    expect(summary.routeFilesNotExercised).toBe(routes.length - 56);
-    expect(summary.methodAndChannelObligations.routeMethodsWithScenarios).toBe(57);
-    expect(summary.methodAndChannelObligations.routeMethodsWithAllPrincipalCases).toBe(56);
+    expect(summary.routeFilesExercised).toBe(71);
+    expect(summary.routeFilesNotExercised).toBe(routes.length - 71);
+    expect(summary.methodAndChannelObligations.routeMethodsWithScenarios).toBe(73);
+    expect(summary.methodAndChannelObligations.routeMethodsWithAllPrincipalCases).toBe(72);
     expect(summary.invalidSessionCases.sort()).toEqual(
       ["malformed", "signed-expired", "signed-missing-user", "tampered"].sort(),
     );
@@ -101,7 +101,6 @@ describe("G1 route/principal coverage manifest", () => {
       "auth",
       "ingestion-discussion",
       "scholarly-exchange",
-      "federation",
       "pages",
       "non-http-channels",
     ]);
@@ -110,6 +109,7 @@ describe("G1 route/principal coverage manifest", () => {
       "reviews-publications-exports",
       "protocol-snapshots",
       "editorial-verification-certification",
+      "federation",
     ]);
   });
 });

@@ -1,7 +1,7 @@
 # Private-workspace execution plan — 2026-10-21
 
 Initial baseline: `154b399235c3320b3080ce54066434b52d2d0eb4`; implementation checkpoint
-`78c3df09cdc5127e771cb9fee07464694c1a1a6c` after #225–#230. This plan tracks the requested
+`07ef428635c02f93fef5968dadfe9837ab55a5c4` after #225–#232. This plan tracks the requested
 #202 → #203/#204 → #206 → #205 dependencies against actual code and the ratified
 owner decision register. It does not redefine the ADR's G1–G6 gates.
 
@@ -9,7 +9,7 @@ owner decision register. It does not redefine the ADR's G1–G6 gates.
 | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [#202](https://github.com/dhuzard/oratlas/issues/202) | Closed; security architecture and owner refinements recorded.                                                                                                                   | Preserve the public/private boundary and test it in every slice.                                                                                            | Gate completion needs executable evidence; D11 remains provisional.                                                                                                                   |
 | [#203](https://github.com/dhuzard/oratlas/issues/203) | Unconnected link orchestrator and proposed S1 durable design; #225 added checksum/recognition; #229 adds disconnected v2 instance validation and reference effect coordination. | Checksum validation before profile writes; injected, synthetic public-record recognition with explicit unverified/inconclusive results.                     | Reviewed provider contract, session-instance implementation and durable/effect fences, detailed retention/recovery policy, live callback and researcher directory.                    |
-| [#204](https://github.com/dhuzard/oratlas/issues/204) | Partial G1-empty PostgreSQL roles; expanded 895-record program exercises 56/133 files and 57/143 methods.                                                                       | Expand public read/export/scholarly/editorial captures with native source fixtures, exact denial/state/audit assertions, and typed cursor error regression. | Remaining public/non-HTTP surfaces, independently accepted G1, then G2 synthetic workspace authority/invitations/revocation and G3 protection.                                        |
+| [#204](https://github.com/dhuzard/oratlas/issues/204) | Partial G1-empty PostgreSQL roles; expanded 1,165-record program exercises 71/133 files and 73/143 methods; real public-index captures are separate.                            | Expand public read/export/scholarly/editorial captures with native source fixtures, exact denial/state/audit assertions, and typed cursor error regression. | Remaining public/non-HTTP surfaces, independently accepted G1, then G2 synthetic workspace authority/invitations/revocation and G3 protection.                                        |
 | [#206](https://github.com/dhuzard/oratlas/issues/206) | Source-credit and pinned CRT descriptor adapters exist after #226; live source grants do not exist.                                                                             | Closed private descriptor observations, pinned real CRT fixture/adapter and explicitly synthetic Diggypaper fixture, no access effect.                      | Principal-scoped source grant verification, registry integration, expiry/replay/revocation, secure source retrieval and protected result release.                                     |
 | [#205](https://github.com/dhuzard/oratlas/issues/205) | Owner-only credit projection exists; it is not an authorization service.                                                                                                        | Preserve its dependency boundary; do not duplicate its project-level callback or activate discovery routes early.                                           | Exact object/source permissions and processing consent, fenced finalization, private persistence and revocation, then deterministic candidates and #207 credit/disclosure acceptance. |
 
@@ -69,9 +69,9 @@ Authoritative references: [owner register](private-workspace-owner-decisions.md)
 
 #228 records approved policy and method obligations; #229 delivers only unused
 session validation plus a reviewed reference topology. No runtime session store
-or effect coordinator is present. The expanded G1 batch has independent module
+or effect coordinator is present. The expanded G1 batches have independent module
 reviews and real restricted-role capture evidence, but does not complete G1.
-Next: remaining 86 methods (mostly mutation/provider/worker workflows), a real
+Next: remaining 70 methods (mostly mutation/provider/worker workflows), a real
 Next serving/HTML/metadata capture stage, then separately scoped non-HTTP/timing
 evidence and independent complete-gate acceptance. The
 [real-serving prototype](private-workspace-next-http-prototype.md) observes exact

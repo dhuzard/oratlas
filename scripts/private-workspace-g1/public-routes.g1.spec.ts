@@ -1,5 +1,5 @@
-import { mkdirSync, writeFileSync } from "node:fs";
-import { dirname } from "node:path";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import {
   captureHttp,
@@ -14,6 +14,7 @@ import {
 } from "./capture.js";
 import { expectedRequest, validateCapture } from "./compare.js";
 import { bindDiscoveryRoutes } from "./discovery-routes.js";
+import { bindProtocolRoutes } from "./protocol-routes.js";
 import { activeNextStores, invokeRouteHandler, nextInternals } from "./next-request-context.js";
 import { assertPublicChildEnv } from "./child-env.js";
 import { cookieHeader, sha256Text, type SessionSigner } from "./principals.js";
@@ -46,6 +47,31 @@ type Handler = (
 ) => unknown;
 
 const ROUTE_MODULES: Readonly<Record<string, () => Promise<RouteModule>>> = {
+  ...bindProtocolRoutes({
+    "api/execution-passports/[id]": () => import("@/app/api/execution-passports/[id]/route"),
+    "api/verification-runs/[id]": () => import("@/app/api/verification-runs/[id]/route"),
+    "api/verification-runs/[id]/findings": () =>
+      import("@/app/api/verification-runs/[id]/findings/route"),
+    "api/verification-artifacts/[id]/content": () =>
+      import("@/app/api/verification-artifacts/[id]/content/route"),
+    "api/publication-versions/[id]/verifications": () =>
+      import("@/app/api/publication-versions/[id]/verifications/route"),
+    "api/certification-results/[id]": () => import("@/app/api/certification-results/[id]/route"),
+    "api/publication-versions/[id]/certifications": () =>
+      import("@/app/api/publication-versions/[id]/certifications/route"),
+    "api/verification-runs/[id]/input": () =>
+      import("@/app/api/verification-runs/[id]/input/route"),
+    "api/verification-runs/[id]/source-artifacts/[artifactId]": () =>
+      import("@/app/api/verification-runs/[id]/source-artifacts/[artifactId]/route"),
+    "api/certification-runs/[id]": () => import("@/app/api/certification-runs/[id]/route"),
+    "api/certification-runs/[id]/input": () =>
+      import("@/app/api/certification-runs/[id]/input/route"),
+  }),
+  "api/editorial/process": () => import("@/app/api/editorial/process/route"),
+  "api/editorial/federation": () => import("@/app/api/editorial/federation/route"),
+  "api/reviews/[slug]/update-proposals": () =>
+    import("@/app/api/reviews/[slug]/update-proposals/route"),
+  "api/federation/inbox": () => import("@/app/api/federation/inbox/route"),
   ...bindDiscoveryRoutes({
     "api/graph": () => import("@/app/api/graph/route"),
     "api/search": () => import("@/app/api/search/route"),
@@ -144,6 +170,17 @@ let sign: SessionSigner;
 
 beforeAll(async () => {
   config = captureConfig();
+  // Inherited provider trust remains forbidden. Only these committed public
+  // synthetic verification keys are injected after the closed-env assertion.
+  vi.stubEnv(
+    "EXECUTION_PASSPORT_TRUSTED_KEYS_JSON",
+    readFileSync(
+      resolve(process.cwd(), "scripts/private-workspace-g1/fixtures/protocol-trusted-keys.json"),
+      "utf8",
+    ),
+  );
+  const { resetServerEnvCache } = await import("../../packages/config/src/index.js");
+  resetServerEnvCache();
   nextInternals(); // fail fast before any capture if the request context cannot be real
   vi.stubGlobal("fetch", () => {
     throw new Error("External HTTP is blocked in the G1 capture");
@@ -164,6 +201,9 @@ beforeAll(async () => {
 afterAll(async () => {
   vi.useRealTimers();
   vi.unstubAllGlobals();
+  vi.unstubAllEnvs();
+  const { resetServerEnvCache } = await import("../../packages/config/src/index.js");
+  resetServerEnvCache();
   await prisma?.$disconnect();
 });
 

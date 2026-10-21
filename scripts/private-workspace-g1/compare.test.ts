@@ -68,7 +68,7 @@ describe("the reviewed program and golden agree", () => {
   });
   it("has a valid program: unique ids/composite keys and coherent denials", () => {
     expect(programProblems(SCENARIOS)).toEqual([]);
-    expect(SCENARIOS.length).toBe(895);
+    expect(SCENARIOS.length).toBe(1165);
   });
 
   it("validates the golden-derived capture, re-deriving every cookie with the production signer", () => {
@@ -89,12 +89,14 @@ describe("the reviewed program and golden agree", () => {
       }
     }
     expect(statuses).toEqual({
-      "200": 477,
+      "200": 569,
+      "204": 12,
       "304": 12,
-      "400": 30,
-      "401": 11,
-      "403": 20,
-      "404": 328,
+      "400": 66,
+      "401": 42,
+      "403": 23,
+      "404": 418,
+      "409": 6,
       "db-state": 15,
       "metadata-loader": 2,
     });

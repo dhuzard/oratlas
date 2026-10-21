@@ -6,9 +6,9 @@ import {
   EXPECTED_RESET_STATE,
   isEmptySchema,
   PUBLIC_COLUMN_UPDATE_GRANTS,
-  PUBLIC_SELECT_TABLES,
   PUBLIC_TABLE_GRANTS,
   probeSql,
+  publicReadCountsSql,
   rolePostureSql,
   schemaObjectCountsSql,
   type ProbeResult,
@@ -338,12 +338,7 @@ describe("G1 T-ROLE: rolled-back DDL/role probes record SQLSTATEs", () => {
   }
 
   it("public role can read exactly its fixture data (grants are functional, not degraded)", async () => {
-    const counts = await queryJson<Record<string, number>>(
-      targets.public,
-      `SELECT json_build_object(${PUBLIC_SELECT_TABLES.map(
-        (table) => `'${table}', (SELECT count(*) FROM public."${table}")`,
-      ).join(", ")});`,
-    );
+    const counts = await queryJson<Record<string, number>>(targets.public, publicReadCountsSql());
     evidence.publicFixtureCounts = counts;
     expect(counts).toEqual(EXPECTED_RESET_STATE.counts);
   });

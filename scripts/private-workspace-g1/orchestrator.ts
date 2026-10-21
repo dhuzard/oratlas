@@ -74,6 +74,8 @@ const FIXTURE_PATHS = [
   "editorial-fixtures.sql",
   "scholarly-fixtures.sql",
   "discovery-fixtures.sql",
+  "protocol-fixtures.sql",
+  "editorial-read-fixtures.sql",
 ].map((file) => resolve(HERE, "fixtures", file));
 const GOLDEN_PATH = resolve(HERE, "baselines/public-routes.golden.json");
 const INDEX_GOLDEN_PATH = resolve(HERE, "baselines/public-index.golden.json");
@@ -515,6 +517,10 @@ export async function runG1Harness(
       );
     }
     writeJson(join(evidenceDir, "index-golden-candidate.json"), indexReference);
+    writeJson(
+      join(evidenceDir, "golden-candidate.json"),
+      goldenCandidate(reference, "CANDIDATE — not reviewed; never copied automatically"),
+    );
     if (!existsSync(INDEX_GOLDEN_PATH))
       record(
         "reviewed index golden present",
@@ -531,10 +537,6 @@ export async function runG1Harness(
       "all canonical indexes and public rows match the reviewed index golden",
       indexGoldenDifferences.length === 0,
       indexGoldenDifferences,
-    );
-    writeJson(
-      join(evidenceDir, "golden-candidate.json"),
-      goldenCandidate(reference, "CANDIDATE — not reviewed; never copied automatically"),
     );
     if (!existsSync(GOLDEN_PATH)) {
       record("reviewed golden baseline present", false, "golden-candidate.json written");

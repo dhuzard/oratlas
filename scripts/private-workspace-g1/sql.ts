@@ -249,6 +249,76 @@ export const PUBLIC_TABLE_GRANTS = [
     privileges: ["SELECT"],
     reason: "public verifier registry and status mutation",
   },
+  {
+    table: "AuthorResponse",
+    privileges: ["SELECT"],
+    reason: "synthetic public protocol/editorial read dependency",
+  },
+  {
+    table: "CertificationLifecycleEvent",
+    privileges: ["SELECT"],
+    reason: "synthetic public protocol/editorial read dependency",
+  },
+  {
+    table: "CertificationRun",
+    privileges: ["SELECT"],
+    reason: "synthetic public protocol/editorial read dependency",
+  },
+  {
+    table: "CitationStatusRecord",
+    privileges: ["SELECT"],
+    reason: "synthetic public protocol/editorial read dependency",
+  },
+  {
+    table: "DecisionLetter",
+    privileges: ["SELECT"],
+    reason: "synthetic public protocol/editorial read dependency",
+  },
+  {
+    table: "ExecutionPassportArtifact",
+    privileges: ["SELECT"],
+    reason: "synthetic public protocol/editorial read dependency",
+  },
+  {
+    table: "FederationNotification",
+    privileges: ["SELECT"],
+    reason: "synthetic public protocol/editorial read dependency",
+  },
+  {
+    table: "FormalReviewReport",
+    privileges: ["SELECT"],
+    reason: "synthetic public protocol/editorial read dependency",
+  },
+  {
+    table: "ReviewRound",
+    privileges: ["SELECT"],
+    reason: "synthetic public protocol/editorial read dependency",
+  },
+  {
+    table: "VerificationArtifact",
+    privileges: ["SELECT"],
+    reason: "synthetic public protocol/editorial read dependency",
+  },
+  {
+    table: "VerificationArtifactBlob",
+    privileges: ["SELECT"],
+    reason: "synthetic public protocol/editorial read dependency",
+  },
+  {
+    table: "VerificationFinding",
+    privileges: ["SELECT"],
+    reason: "synthetic public protocol/editorial read dependency",
+  },
+  {
+    table: "VerificationRun",
+    privileges: ["SELECT"],
+    reason: "synthetic public protocol/editorial read dependency",
+  },
+  {
+    table: "VerificationRunLifecycleEvent",
+    privileges: ["SELECT"],
+    reason: "synthetic public protocol/editorial read dependency",
+  },
 ] as const satisfies ReadonlyArray<{
   table: string;
   privileges: ReadonlyArray<"SELECT" | "INSERT">;
@@ -280,7 +350,7 @@ export const PUBLIC_COLUMN_UPDATE_GRANTS = [
 /** Tables the restricted public role may read (row-count evidence covers exactly these). */
 export const PUBLIC_SELECT_TABLES: readonly string[] = PUBLIC_TABLE_GRANTS.map(
   (grant) => grant.table,
-);
+).sort();
 
 const TABLE_NAME = /^[A-Z][A-Za-z0-9]{0,62}$/u;
 const COLUMN_NAME = /^[a-z][A-Za-z0-9]{0,62}$/u;
@@ -512,12 +582,17 @@ export function truncateRecordedPublicTablesSql(inventory: PublicObjectInventory
  * Mutable fixture state after a reset: row counts of every granted table plus the columns the
  * scenarios mutate. Must equal `EXPECTED_RESET_STATE` before each capture child starts.
  */
-export function resetStateSql(): string {
+/** Aggregate rows instead of function arguments: PostgreSQL limits function calls to 100 args. */
+export function publicReadCountsSql(): string {
   const counts = PUBLIC_SELECT_TABLES.map(
-    (table) => `'${table}', (SELECT count(*) FROM ${publicTable(table)})`,
+    (table) => `(${quoteLiteral(table)}, (SELECT count(*) FROM ${publicTable(table)}))`,
   ).join(", ");
+  return `SELECT json_object_agg(name, total ORDER BY name COLLATE "C") FROM (VALUES ${counts}) AS counts(name, total)`;
+}
+
+export function resetStateSql(): string {
   return `SELECT json_build_object(
-  'counts', json_build_object(${counts}),
+  'counts', (${publicReadCountsSql()}),
   'users', (SELECT json_agg(json_build_array("id", "orcid", "orcidVerifiedAt" IS NOT NULL) ORDER BY "id" COLLATE "C") FROM public."User"),
   'unreadNotifications', (SELECT count(*) FROM public."Notification" WHERE "readAt" IS NULL),
   'certifiers', (SELECT json_agg(json_build_array("id", "status") ORDER BY "id" COLLATE "C") FROM public."Certifier")
@@ -535,18 +610,26 @@ export type ResetState = {
 export const EXPECTED_RESET_STATE: ResetState = {
   counts: {
     AuditEvent: 0,
+    AuthorResponse: 1,
+    CertificationLifecycleEvent: 2,
     CertificationProtocol: 2,
-    CertificationResult: 0,
+    CertificationResult: 1,
+    CertificationRun: 1,
     Certifier: 2,
     Challenge: 2,
     ChallengeResponse: 2,
     ChallengeTransition: 6,
-    Citation: 1,
-    Claim: 4,
-    ClaimEvidenceRelation: 1,
-    ClaimUpdateProposal: 0,
-    ExecutionPassport: 0,
-    ExecutionPassportClaim: 0,
+    Citation: 3,
+    CitationStatusRecord: 2,
+    Claim: 5,
+    ClaimEvidenceRelation: 3,
+    ClaimUpdateProposal: 4,
+    DecisionLetter: 0,
+    ExecutionPassport: 5,
+    ExecutionPassportArtifact: 10,
+    ExecutionPassportClaim: 5,
+    FederationNotification: 5,
+    FormalReviewReport: 1,
     Identifier: 0,
     KnowledgeNode: 4,
     KnowledgeNodeVersion: 4,
@@ -574,15 +657,21 @@ export const EXPECTED_RESET_STATE: ResetState = {
     ReviewComment: 6,
     ReviewContributor: 5,
     ReviewLifecycleEvent: 3,
+    ReviewRound: 1,
     ReviewVersion: 5,
-    Submission: 0,
+    Submission: 1,
     SynthesisDraft: 0,
     TrustAdjudication: 0,
     TrustAdjudicationReference: 0,
     TrustAssessment: 0,
     TrustVerification: 0,
     User: 5,
+    VerificationArtifact: 4,
+    VerificationArtifactBlob: 3,
+    VerificationFinding: 2,
     VerificationProtocol: 2,
+    VerificationRun: 1,
+    VerificationRunLifecycleEvent: 4,
     Verifier: 2,
   },
   users: [
