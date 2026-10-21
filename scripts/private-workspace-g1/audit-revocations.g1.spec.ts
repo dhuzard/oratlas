@@ -59,7 +59,7 @@ beforeAll(async () => {
     attempts++;
     throw new Error("Outbound HTTP forbidden in audit revocation probe");
   });
-  const native = await import("@oratlas/db");
+  const native = await import("../../packages/db/src/index.js");
   const base = native.getPrisma();
   const extended = base.$extends({
     name: "g1-unwired-audit-revocation-input",

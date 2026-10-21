@@ -31,7 +31,7 @@ it("retains native audit semantics with separately declared absent metadata inpu
     outbound++;
     throw Error("Audit fixture outbound request refused");
   });
-  const native = await import("@oratlas/db");
+  const native = await import("../../packages/db/src/index.js");
   const base = native.getPrisma();
   const fixture = new AuditDefaultFixture();
   let delegatedQueries = 0;
