@@ -259,7 +259,14 @@ it("captures valid worker reads and narrow credential last-use updates independe
   const databaseAfter = await unchangedDatabaseDigest();
   expect(databaseAfter).toBe(databaseBefore);
   expect(state).toHaveLength(12);
-  expect(state.filter((row) => row.lastUsedAt !== null).map((row) => row.id)).toEqual([
+  expect(
+    state
+      .filter(
+        (row) =>
+          row.lastUsedAt !== credentialsBefore.find((before) => before.id === row.id)?.lastUsedAt,
+      )
+      .map((row) => row.id),
+  ).toEqual([
     "g1-worker-certifier-active",
     "g1-worker-certifier-wrong-owner",
     "g1-worker-verifier-active",

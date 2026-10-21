@@ -3,7 +3,10 @@ import { createHash } from "node:crypto";
 import { expect, it } from "vitest";
 import { canonicalJson } from "../../packages/contracts/src/canonical-json.js";
 import { publicationVersionPacketSchema } from "../../packages/contracts/src/publication-version-packets.js";
-import { claimVerificationRunSchema } from "../../packages/contracts/src/verification.js";
+import {
+  claimVerificationRunSchema,
+  issueVerifierCredentialSchema,
+} from "../../packages/contracts/src/verification.js";
 import { G1_FIXED_CLOCK } from "./capture.js";
 import { PRINCIPAL_LABELS } from "./principals.js";
 import { workerReadScenarios } from "./worker-read-scenarios.js";
@@ -69,8 +72,8 @@ it("binds immutable worker input to the native packet schema, internal digest an
   expect(runOverrides.find((r) => r.id === "g1-worker-run-terminal")!.terminalReason).toBe(
     "Synthetic terminal control.",
   );
-  expect(sql).toContain('\"reason\":null');
-  expect(sql).toContain('\"reason\":\"Synthetic terminal control.\"');
+  expect(sql).toContain('"reason":null');
+  expect(sql).toContain('"reason":"Synthetic terminal control."');
 });
 it("stores credential digests only, preserves native shape checks and has no shared fixture mutations", () => {
   for (const kind of ["verifier", "certifier"] as const)
@@ -93,4 +96,88 @@ it("stores credential digests only, preserves native shape checks and has no sha
     expect(file).not.toMatch(/^\s*(?:UPDATE|DELETE|TRUNCATE|DROP|ALTER|GRANT|SET)\b/gmu);
     expect(file).not.toContain("private_ws");
   }
+});
+
+it("retains native claim/transition details and a coherent historical submit credential stamp", () => {
+  const events = [
+    ...sql.matchAll(/INSERT INTO "VerificationRunLifecycleEvent" .*? VALUES \((.*?)\);/gu),
+  ].map((match) => {
+    const values = [...match[1]!.matchAll(/'(?:''|[^'])*'|NULL/gu)].map((value) =>
+      value[0] === "NULL" ? null : value[0].slice(1, -1).replaceAll("''", "'"),
+    );
+    return {
+      id: values[0],
+      run: values[1],
+      kind: values[2],
+      user: values[3],
+      verifier: values[4],
+      details: JSON.parse(values[5]!),
+      time: values[6],
+    };
+  });
+  expect(events).toHaveLength(10);
+  for (const row of runOverrides) {
+    const own = events.filter((event) => event.run === row.id);
+    expect(own.map((event) => event.kind)).toEqual(
+      row.status === "failed"
+        ? ["requested", "claimed", "running", "failed"]
+        : ["requested", "claimed", "running"],
+    );
+    expect(own[0]).toMatchObject({
+      user: row.requestedById,
+      verifier: null,
+      time: row.requestedAt,
+      details: {},
+    });
+    expect(own[1]).toMatchObject({
+      user: null,
+      verifier: row.claimedVerifierId,
+      time: row.claimedAt,
+      details: {
+        credentialId: "g1-worker-verifier-submit-only",
+        leaseGeneration: row.leaseGeneration,
+        leaseExpiresAt: row.leaseExpiresAt,
+      },
+    });
+    expect(own[2]).toMatchObject({
+      user: null,
+      verifier: row.claimedVerifierId,
+      time: row.startedAt,
+      details: { reason: null },
+    });
+    if (row.status === "failed")
+      expect(own[3]).toMatchObject({
+        time: row.completedAt,
+        details: { reason: row.terminalReason },
+      });
+    expect(Date.parse(row.claimedAt as string)).toBeLessThan(Date.parse(G1_FIXED_CLOCK));
+  }
+  const credentialLine = sql
+    .split("\n")
+    .find(
+      (line) =>
+        line.startsWith('INSERT INTO "VerifierCredential"') &&
+        line.includes("'g1-worker-verifier-submit-only'"),
+    )!;
+  const credentialValues = [...credentialLine.matchAll(/'(?:''|[^'])*'|NULL/gu)].map((value) =>
+    value[0] === "NULL" ? null : value[0].slice(1, -1).replaceAll("''", "'"),
+  );
+  expect(
+    issueVerifierCredentialSchema.parse({
+      label: credentialValues[2],
+      scopes: JSON.parse(credentialValues[5]!),
+      expiresAt: credentialValues[6],
+    }).scopes,
+  ).toEqual(["verification:submit"]);
+  expect(credentialValues[7]).toBeNull();
+  expect(credentialValues[11]).toBe(
+    events
+      .filter((event) => event.verifier === credentialValues[1])
+      .map((event) => event.time)
+      .sort()
+      .at(-1),
+  );
+  expect(credentialLine).toContain("'g1-worker-verifier-primary'");
+  expect(credentialLine).toContain('["verification:submit"]');
+  expect(credentialLine).toMatch(/,'2026-03-31T23:59:00.000Z'\);$/u);
 });

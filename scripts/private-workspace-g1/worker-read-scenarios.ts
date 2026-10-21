@@ -127,6 +127,7 @@ export function workerReadScenarios(): WorkerHttpScenario[] {
                 equals: "29646099c1b6861ec0899ca4fd2dad813e4b9ac799788e051407eb888959236b",
               },
               { pointer: "/schemaVersion", equals: "1.3.0" },
+              { pointer: "/capturedAt", equals: "2026-03-31T23:58:00.000Z" },
               { pointer: "/input/version/id", equals: "g1-worker-version" },
               { pointer: "/input/occurrences/0/canonicalBinding", equals: null },
               { pointer: "/sourceArtifacts", length: 2 },
