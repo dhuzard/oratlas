@@ -52,6 +52,13 @@ export function captureFromGolden(label: string, golden: GoldenFile = readGolden
           sessionCase: entry.sessionCase,
           session: entry.session,
           cookieSha256: entry.cookieSha256,
+          ...(entry.workerAuthority === undefined
+            ? {}
+            : {
+                workerAuthority: entry.workerAuthority,
+                authorizationSha256: entry.authorizationSha256,
+                verificationLeaseSha256: entry.verificationLeaseSha256,
+              }),
         },
         status: entry.status,
         headers: entry.headers,

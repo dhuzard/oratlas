@@ -1,4 +1,7 @@
 import { createHash } from "node:crypto";
+import type { WorkerAuthority } from "./worker-authority.js";
+import { workerAuthorityDigests } from "./worker-authority.js";
+import { workerRequestProblems, workerOutputProblems } from "./worker-capture-safety.js";
 import {
   NO_SESSION,
   type PrincipalLabel,
@@ -34,7 +37,7 @@ export type CapturedRequest = {
   readonly id: string;
   readonly method: HttpMethod;
   readonly path: string;
-  /** Request headers except Cookie, lower-case names. */
+  /** Request headers except Cookie, Authorization and verification lease, lower-case names. */
   readonly headers: Readonly<Record<string, string>>;
   /** Exact request body text, or null. */
   readonly body: string | null;
@@ -43,6 +46,9 @@ export type CapturedRequest = {
   readonly session: SessionRecipe;
   /** SHA-256 of the Cookie header actually dispatched; null when no cookie was sent. */
   readonly cookieSha256: string | null;
+  readonly workerAuthority?: WorkerAuthority;
+  readonly authorizationSha256?: string | null;
+  readonly verificationLeaseSha256?: string | null;
 };
 
 export type HttpRecord = {
@@ -172,13 +178,30 @@ export function upgradeCapture(raw: unknown): CaptureFile {
 export async function captureHttp(
   request: CapturedRequest,
   response: Response,
+  dispatchedHeaders?: Headers,
 ): Promise<HttpRecord> {
+  if (workerRequestProblems(request).length || workerOutputProblems(JSON.stringify(request)).length)
+    throw new CaptureFormatError("Unsafe or invalid worker request evidence");
+  if (request.workerAuthority) {
+    if (!dispatchedHeaders) throw new CaptureFormatError("Actual worker dispatch headers required");
+    const actual = workerAuthorityDigests(dispatchedHeaders);
+    if (
+      actual.authorizationSha256 !== request.authorizationSha256 ||
+      actual.verificationLeaseSha256 !== request.verificationLeaseSha256
+    )
+      throw new CaptureFormatError("Actual worker dispatch header digest differs");
+  } else if (
+    dispatchedHeaders &&
+    (dispatchedHeaders.has("authorization") ||
+      dispatchedHeaders.has("x-oratlas-verification-lease"))
+  )
+    throw new CaptureFormatError("Undeclared worker dispatch headers");
   const bytes = new Uint8Array(await response.arrayBuffer());
   const headers: Array<[string, string]> = [];
   response.headers.forEach((value, name) => {
     if (name !== "set-cookie") headers.push([name, value]);
   });
-  return {
+  const result: HttpRecord = {
     kind: "http",
     id: request.id,
     request,
@@ -189,6 +212,13 @@ export async function captureHttp(
     bodySha256: sha256Hex(bytes),
     bodyLength: bytes.byteLength,
   };
+  if (
+    workerOutputProblems(Buffer.from(bytes).toString("utf8")).length ||
+    workerOutputProblems(JSON.stringify({ headers: result.headers, setCookie: result.setCookie }))
+      .length
+  )
+    throw new CaptureFormatError("Worker capability response disclosure refused");
+  return result;
 }
 
 /** JSON with Dates as ISO strings and insertion-ordered keys (deterministic for fixed input). */

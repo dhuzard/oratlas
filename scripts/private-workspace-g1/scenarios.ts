@@ -1,4 +1,8 @@
 import { G1_BASE_URL, G1_FIXED_CLOCK, type HttpMethod } from "./capture.js";
+import type { WorkerAuthority } from "./worker-authority.js";
+import { workerAuthorityProblems } from "./worker-authority.js";
+import { capabilityHeaderProblems, workerOutputProblems } from "./worker-capture-safety.js";
+import { canonicalJson } from "../../packages/contracts/src/canonical-json.js";
 import { publicPrincipalScenarios } from "./principal-matrix.js";
 import { editorialScenarios } from "./editorial-scenarios.js";
 import { SCHOLARLY_SCENARIOS } from "./scholarly-scenarios.js";
@@ -68,6 +72,7 @@ export type HttpScenario = {
   readonly method: HttpMethod;
   readonly path: string;
   readonly headers?: Readonly<Record<string, string>>;
+  readonly workerAuthority?: WorkerAuthority;
   readonly body?: unknown;
   readonly params?: Readonly<Record<string, string | string[]>>;
   readonly principal: PrincipalLabel;
@@ -864,11 +869,27 @@ export function programProblems(program: readonly Scenario[]): string[] {
   const ids = new Set<string>();
   const composite = new Set<string>();
   program.forEach((scenario, index) => {
+    if (workerOutputProblems(JSON.stringify(scenario)).length) {
+      problems.push("Raw worker capability in program definition");
+      return;
+    }
+    if (scenario.kind === "http" && capabilityHeaderProblems(scenario.headers ?? {}).length) {
+      problems.push("Raw request capability header in program definition");
+      return;
+    }
+    if (
+      scenario.kind === "http" &&
+      scenario.workerAuthority !== undefined &&
+      workerAuthorityProblems(scenario.workerAuthority).length
+    ) {
+      problems.push("Invalid worker authority in program definition");
+      return;
+    }
     if (ids.has(scenario.id)) problems.push(`duplicate scenario id ${scenario.id}`);
     ids.add(scenario.id);
     const key =
       scenario.kind === "http"
-        ? `${scenario.kind}|${scenario.method}|${scenario.path}|${scenario.principal}|${scenario.session.case}|${requestBodyText(scenario) ?? ""}|${JSON.stringify(scenario.headers ?? {})}|${scenario.derive?.from ?? ""}|${scenario.repeatOf ?? ""}`
+        ? `${scenario.kind}|${scenario.method}|${scenario.path}|${scenario.principal}|${scenario.session.case}|${requestBodyText(scenario) ?? ""}|${JSON.stringify(scenario.headers ?? {})}|${scenario.derive?.from ?? ""}|${scenario.repeatOf ?? ""}${scenario.workerAuthority === undefined ? "" : `|${canonicalJson(scenario.workerAuthority)}`}`
         : `${scenario.kind}|${scenario.id}`;
     if (composite.has(key)) problems.push(`duplicate composite key ${key}`);
     composite.add(key);

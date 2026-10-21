@@ -1,3 +1,4 @@
+import { workerChildOutput } from "./worker-capture-safety.js";
 import { spawn } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
@@ -165,12 +166,15 @@ function runSpec(
           : [];
       // A rejected sink is a failed check. Never preserve its hidden text or turn
       // redacted evidence into a claim that the original sink did not leak.
-      const output = outputProblems.length
-        ? `[g1] refused index child output: ${outputProblems.join(", ")}\n`
-        : redact(raw, secrets);
+      const guarded = workerChildOutput(raw);
+      const output = !guarded.ok
+        ? guarded.text
+        : outputProblems.length
+          ? `[g1] refused index child output: ${outputProblems.join(", ")}\n`
+          : redact(raw, secrets);
       writeFileSync(logPath, output, { mode: 0o600 });
       process.stdout.write(output);
-      resolvePromise(code === 0 && outputProblems.length === 0);
+      resolvePromise(code === 0 && outputProblems.length === 0 && guarded.ok);
     });
   });
 }
