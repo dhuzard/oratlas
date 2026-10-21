@@ -56,7 +56,8 @@ export class ChallengeModerationInputFixture {
       if (!isDeepStrictEqual(args, expected))
         throw Error("Challenge moderation update input refused");
       // Explicit updatedAt, unknown fields and other targets fail the exact input comparison.
-      supplied = { ...expected, data: { ...expected.data, updatedAt: new Date(G1_FIXED_CLOCK) } };
+      const actual = args as typeof expected;
+      supplied = { ...actual, data: { ...actual.data, updatedAt: new Date(G1_FIXED_CLOCK) } };
       this.#nextUpdate++;
       this.#updates.push({ target: target.id, injected: ["updatedAt"] });
     }

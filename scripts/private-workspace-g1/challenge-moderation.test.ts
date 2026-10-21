@@ -63,6 +63,8 @@ it("injects only three absent update timestamps and three exact audit metadata t
       return args;
     });
     expect(u).toEqual(original);
+    expect((result as typeof u).where).toBe(u.where);
+    expect((result as typeof u).data.removedAt).toBe(u.data.removedAt);
     expect(result).toEqual({ ...u, data: { ...u.data, updatedAt: new Date(G1_FIXED_CLOCK) } });
     const a = audit(i);
     const appended = await f.query("AuditEvent", "create", a, async (args) => {
