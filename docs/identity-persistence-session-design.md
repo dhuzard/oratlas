@@ -314,3 +314,12 @@ needs D11 confirmation plus G2 and G3; G1 remains not passed until independently
 or live enablement needs G6. Full S1, any route result and live provider verification stay
 blocked until the §5 contracts exist and are reviewed. Retention and D11 positions are unchanged. Nothing here claims verification, trustworthiness, or peer review of
 any identity.
+
+## S1 coordination follow-up (proposed reference topology)
+
+[Protected response and provider-start coordination](identity-effect-coordination-design.md)
+specifies a single service-owned egress/revocation authority, actual handoff
+ordering, ambiguous commit recovery and explicit failover/transport blockers.
+It also records disconnected v2 session snapshot contracts. It does not assert
+that the existing deployment supplies those primitives or remove §5 activation
+blockers without the specified independent review and implementation evidence.
