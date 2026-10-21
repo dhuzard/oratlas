@@ -46,6 +46,33 @@ challenge subrecords, corrupt persisted-data branches, pages, deployed caching,
 non-HTTP channels and actual private data are outside this batch. This inventory is
 not a claim that those surfaces are covered elsewhere.
 
+## Native synthetic publication contract
+
+The discovery publication uses a closed-schema MyST **0.3.0** manifest; its claim
+stream retains the supported claim-record **0.2.0** format. Exact committed
+`fixtures/discovery.manifest.json` bytes are captured in the SQL, with their byte
+length, SHA-256 and capture-slot identity. The manifest declares the human author's
+key, kind, name, role and position, and the software actor and drafting activity.
+Contributor provenance points to that same exact manifest capture. Source capture
+identity is derived from its declared path using the production identity helper.
+The source-set digest is explicitly synthetic: SHA-256 of canonical JSON containing
+the single source path and its content SHA-256. It is not evidence of a producer run.
+
+`discovery-native-fixtures.test.ts` parses these bytes with the production native
+schema and normalizes them with `normalizeMystPublication`, then compares the
+resulting adapter, contributor/provenance, production and occurrence fields with
+committed SQL. It also binds the native claim stream, source bytes and document
+corpus to their hashes. Negative controls independently reject contributor and
+production declarations under frozen manifest 0.2.0, and reject native contributor
+normalization without the exact manifest capture. No production schema is relaxed.
+
+This repair followed independent review of the original probe fixture: its 0.2
+adapter and underspecified captured JSON did not support the persisted author and
+production DTOs, even though all HTTP expectations passed. The corrected fixture is
+synthetic contract evidence only; native producer execution and scientific validation
+remain separate acceptance claims. Fixture row counts and HTTP expectations do not
+change.
+
 ## Root integration
 
 1. Import `publicDiscoveryScenarios` into the shared scenario program and append its
@@ -97,7 +124,7 @@ boundaries, append-only fixture count deltas, exact loader injection and method 
 Run them with:
 
 ```bash
-pnpm exec vitest run scripts/private-workspace-g1/discovery-scenarios.test.ts scripts/architecture-boundaries.test.ts
+pnpm exec vitest run scripts/private-workspace-g1/discovery-scenarios.test.ts scripts/private-workspace-g1/discovery-native-fixtures.test.ts scripts/architecture-boundaries.test.ts
 pnpm exec tsc --project scripts/private-workspace-g1/tsconfig.json
 ```
 

@@ -1,0 +1,46 @@
+{
+  "adapter": { "type": "myst", "xref": "myst.xref.json" },
+  "artifacts": {
+    "claims": {
+      "declarations": "publication-source",
+      "format": "jsonl",
+      "path": "oratlas/claims.jsonl",
+      "records": 1,
+      "sha256": "448bb4fdff5ae233d2afeccd4611d00d44998c191bc62786614e35531ba41e05"
+    }
+  },
+  "contributors": [
+    {
+      "displayName": "G1 Discovery Author",
+      "kind": "person",
+      "position": 1,
+      "roles": ["author"],
+      "sourceContributorKey": "author-1"
+    }
+  ],
+  "generator": { "name": "g1-synthetic", "version": "1" },
+  "production": {
+    "actors": [
+      {
+        "activities": ["drafting"],
+        "id": "synthetic-tool",
+        "kind": "software",
+        "name": "Synthetic Discovery Tool",
+        "version": "fixture-1"
+      }
+    ],
+    "mode": "ai-assisted",
+    "sourceAssertionKey": "synthetic-production",
+    "statement": "Synthetic source declaration, never scientific verification.",
+    "strength": "source-declared"
+  },
+  "publication": {
+    "canonicalUrl": "https://publications.g1.oratlas.example/discovery/",
+    "title": "G1 public discovery fixture",
+    "version": {
+      "label": "v1",
+      "sourcesSha256": "de3d3960b987df55170f1389cd5ece8544d1733a539ab7fdebc8c58c3abc0076"
+    }
+  },
+  "schemaVersion": "0.3.0"
+}

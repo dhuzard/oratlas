@@ -1,5 +1,7 @@
 -- G1 synthetic PUBLIC discovery fixtures. Append after public-fixtures.sql, inside each reset.
 -- No live producer, private content, scientific endorsement, canonical merge or membership grant.
+-- Exact native MyST 0.3 manifest/0.2 claim bytes live in discovery.manifest.json/discovery.claims.jsonl.
+-- These are synthetic protocol-shaped fixtures, not captured output of a producer execution.
 -- Existing base-fixture rows are untouched; source occurrences remain distinct from graph nodes.
 INSERT INTO "Publication" (
   "id", "stableKey", "publicationType", "recordSource", "identityEvidenceJson", "createdAt", "updatedAt"
@@ -18,16 +20,16 @@ INSERT INTO "PublicationVersion" (
   'g1-discovery-version',
   'g1-discovery-publication',
   'g1-discovery:version-1',
-  '73fce482f3180f2bc684bad2a97d7246ab1c751c3c2dc65d09d0f7b75f08a78f',
+  'de3d3960b987df55170f1389cd5ece8544d1733a539ab7fdebc8c58c3abc0076',
   'v1',
   'G1 public discovery fixture',
   'https://publications.g1.oratlas.example/discovery/',
   'https://publications.g1.oratlas.example/discovery/',
   'myst',
-  '{"crossReferenceInventoryPath":"myst.xref.json","generatorName":"g1-synthetic","generatorVersion":"1","protocolVersion":"0.2.0","type":"myst"}',
+  '{"crossReferenceInventoryPath":"myst.xref.json","generatorName":"g1-synthetic","generatorVersion":"1","protocolVersion":"0.3.0","type":"myst"}',
   'published-structure',
-  '[{"id":"g1-discovery-document","publishedUrl":"https://publications.g1.oratlas.example/discovery/article","representation":"source-text","role":"results","sha256":"53eb23ed90cbe24de9dcf779876d7a59acca8ab0e0b765bc6701dbede9b34c08","sourceArtifactIdentitySha256":"6b9e400090a3afd8304bce7afb9e6a735a7b86f0818f5fee5f5774bacb735e0e","sourceArtifactSha256":"53eb23ed90cbe24de9dcf779876d7a59acca8ab0e0b765bc6701dbede9b34c08","sourcePath":"article.md","text":"Synthetic public result: alpha and beta are independent fixture labels.","title":"G1 public discovery result"}]',
-  '95f141b6198ca68b61ac90b10b096602ea283b9e876e80e264c06e29c85a79fa',
+  '[{"id":"g1-discovery-document","publishedUrl":"https://publications.g1.oratlas.example/discovery/article","representation":"source-text","role":"results","sha256":"53eb23ed90cbe24de9dcf779876d7a59acca8ab0e0b765bc6701dbede9b34c08","sourceArtifactIdentitySha256":"17f318edde9cd8fc6f8473dbe80d7763d9ef99eb35530d080b718bd59c4889e4","sourceArtifactSha256":"53eb23ed90cbe24de9dcf779876d7a59acca8ab0e0b765bc6701dbede9b34c08","sourcePath":"article.md","text":"Synthetic public result: alpha and beta are independent fixture labels.","title":"G1 public discovery result"}]',
+  'b860917604289dd04b0f16f63d17846687331979a836a6cf2761d6d49708caf7',
   '{"coverage":"complete","returnedDocuments":1,"totalDocumentsKnown":1,"truncated":false}',
   true,
   '2026-03-12T00:00:00.000Z',
@@ -39,15 +41,15 @@ INSERT INTO "PublicationCapture" (
   'g1-discovery-manifest',
   'g1-discovery-version',
   'publication-manifest',
-  'ee25eab560fc2cb1d2d431110812508cdf78493fda947bfc9af13243db7bd1ed',
+  'ba0969399c05d646c5703cf94a829be4a4dc5879203422d425f34bd399c27395',
   NULL,
   'https://publications.g1.oratlas.example/discovery/oratlas.manifest.json',
   'https://publications.g1.oratlas.example/discovery/oratlas.manifest.json',
   'application/json',
-  '490df2e64421971f9a3d5eca777f0bf716c947b8fd1983525c114eccee450232',
-  105,
-  'eyJjb250cmlidXRvcnMiOlt7ImRpc3BsYXlOYW1lIjoiRzEgRGlzY292ZXJ5IEF1dGhvciJ9XSwiaWQiOiJnMS1kaXNjb3ZlcnktcHVibGljYXRpb24iLCJzeW50aGV0aWMiOnRydWV9',
-  '490df2e64421971f9a3d5eca777f0bf716c947b8fd1983525c114eccee450232',
+  'a023519b0542fafd6f3120246286537d6205dbf649a2db3f5ee9e1984444fc43',
+  1298,
+  'ewogICJhZGFwdGVyIjogeyAidHlwZSI6ICJteXN0IiwgInhyZWYiOiAibXlzdC54cmVmLmpzb24iIH0sCiAgImFydGlmYWN0cyI6IHsKICAgICJjbGFpbXMiOiB7CiAgICAgICJkZWNsYXJhdGlvbnMiOiAicHVibGljYXRpb24tc291cmNlIiwKICAgICAgImZvcm1hdCI6ICJqc29ubCIsCiAgICAgICJwYXRoIjogIm9yYXRsYXMvY2xhaW1zLmpzb25sIiwKICAgICAgInJlY29yZHMiOiAxLAogICAgICAic2hhMjU2IjogIjQ0OGJiNGZkZmY1YWUyMzNkMmFmZWNjZDQ2MTFkMDBkNDQ5OThjMTkxYmM2Mjc4NjYxNGUzNTUzMWJhNDFlMDUiCiAgICB9CiAgfSwKICAiY29udHJpYnV0b3JzIjogWwogICAgewogICAgICAiZGlzcGxheU5hbWUiOiAiRzEgRGlzY292ZXJ5IEF1dGhvciIsCiAgICAgICJraW5kIjogInBlcnNvbiIsCiAgICAgICJwb3NpdGlvbiI6IDEsCiAgICAgICJyb2xlcyI6IFsiYXV0aG9yIl0sCiAgICAgICJzb3VyY2VDb250cmlidXRvcktleSI6ICJhdXRob3ItMSIKICAgIH0KICBdLAogICJnZW5lcmF0b3IiOiB7ICJuYW1lIjogImcxLXN5bnRoZXRpYyIsICJ2ZXJzaW9uIjogIjEiIH0sCiAgInByb2R1Y3Rpb24iOiB7CiAgICAiYWN0b3JzIjogWwogICAgICB7CiAgICAgICAgImFjdGl2aXRpZXMiOiBbImRyYWZ0aW5nIl0sCiAgICAgICAgImlkIjogInN5bnRoZXRpYy10b29sIiwKICAgICAgICAia2luZCI6ICJzb2Z0d2FyZSIsCiAgICAgICAgIm5hbWUiOiAiU3ludGhldGljIERpc2NvdmVyeSBUb29sIiwKICAgICAgICAidmVyc2lvbiI6ICJmaXh0dXJlLTEiCiAgICAgIH0KICAgIF0sCiAgICAibW9kZSI6ICJhaS1hc3Npc3RlZCIsCiAgICAic291cmNlQXNzZXJ0aW9uS2V5IjogInN5bnRoZXRpYy1wcm9kdWN0aW9uIiwKICAgICJzdGF0ZW1lbnQiOiAiU3ludGhldGljIHNvdXJjZSBkZWNsYXJhdGlvbiwgbmV2ZXIgc2NpZW50aWZpYyB2ZXJpZmljYXRpb24uIiwKICAgICJzdHJlbmd0aCI6ICJzb3VyY2UtZGVjbGFyZWQiCiAgfSwKICAicHVibGljYXRpb24iOiB7CiAgICAiY2Fub25pY2FsVXJsIjogImh0dHBzOi8vcHVibGljYXRpb25zLmcxLm9yYXRsYXMuZXhhbXBsZS9kaXNjb3ZlcnkvIiwKICAgICJ0aXRsZSI6ICJHMSBwdWJsaWMgZGlzY292ZXJ5IGZpeHR1cmUiLAogICAgInZlcnNpb24iOiB7CiAgICAgICJsYWJlbCI6ICJ2MSIsCiAgICAgICJzb3VyY2VzU2hhMjU2IjogImRlM2QzOTYwYjk4N2RmNTUxNzBmMTM4OWNkNWVjZTg1NDRkMTczM2E1MzlhYjdmZGViYzhjNThjM2FiYzAwNzYiCiAgICB9CiAgfSwKICAic2NoZW1hVmVyc2lvbiI6ICIwLjMuMCIKfQo=',
+  'a023519b0542fafd6f3120246286537d6205dbf649a2db3f5ee9e1984444fc43',
   'published-structure',
   '2026-03-12T00:00:00.000Z',
   '2026-03-12T00:00:00.000Z'
@@ -58,7 +60,7 @@ INSERT INTO "PublicationCapture" (
   'g1-discovery-source',
   'g1-discovery-version',
   'source-document',
-  '6b9e400090a3afd8304bce7afb9e6a735a7b86f0818f5fee5f5774bacb735e0e',
+  '17f318edde9cd8fc6f8473dbe80d7763d9ef99eb35530d080b718bd59c4889e4',
   'article.md',
   'https://publications.g1.oratlas.example/discovery/article.md',
   'https://publications.g1.oratlas.example/discovery/article.md',
@@ -81,7 +83,7 @@ INSERT INTO "PublicationVersionContributor" (
   'G1 Discovery Author',
   '["author"]',
   1,
-  '{"sourceArtifactIdentitySha256":"ee25eab560fc2cb1d2d431110812508cdf78493fda947bfc9af13243db7bd1ed","sourceArtifactKind":"publication-manifest","sourceArtifactSha256":"490df2e64421971f9a3d5eca777f0bf716c947b8fd1983525c114eccee450232","type":"source-declared"}',
+  '{"sourceArtifactIdentitySha256":"ba0969399c05d646c5703cf94a829be4a4dc5879203422d425f34bd399c27395","sourceArtifactKind":"publication-manifest","sourceArtifactSha256":"a023519b0542fafd6f3120246286537d6205dbf649a2db3f5ee9e1984444fc43","type":"source-declared"}',
   '2026-03-12T00:00:00.000Z'
 );
 INSERT INTO "PublicationProductionAssertion" (
