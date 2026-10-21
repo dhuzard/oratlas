@@ -330,10 +330,12 @@ export const WORKER_ARTIFACT_FIXTURE_DELTAS = Object.fromEntries(
 );
 export const WORKER_ARTIFACT_PROGRAM: SupplementalProgram = {
   name: "worker-artifacts",
-  spec: "scripts/private-workspace-g1/worker-artifacts.g1.spec.ts",
+  spec: "worker-artifacts.g1.spec.ts",
   outVariable: "G1_WORKER_ARTIFACT_OUT",
   stateSuffix: ".state.json",
   scenarios: workerArtifactScenarios(),
-  fixtures: [...WORKER_READ_FIXTURE_FILES, "worker-artifact-fixtures.sql"],
+  fixtures: [...WORKER_READ_FIXTURE_FILES, "worker-artifact-fixtures.sql"].map(
+    (file) => `fixtures/${file}`,
+  ),
   addedRows: WORKER_ARTIFACT_FIXTURE_DELTAS,
 };

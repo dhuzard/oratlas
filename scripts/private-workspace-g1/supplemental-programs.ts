@@ -1,4 +1,5 @@
 import { DETERMINISTIC_POST_PROGRAM } from "./deterministic-post-scenarios.js";
+import { WORKER_ARTIFACT_PROGRAM } from "./worker-artifact-scenarios.js";
 import {
   workerReadScenarios,
   WORKER_READ_FIXTURE_DELTAS,
@@ -11,6 +12,7 @@ import type { SupplementalProgram } from "./supplemental-channel.js";
 
 /** Fixed catalog: each program has its own reset, sidecar and independently reviewed golden. */
 export const SUPPLEMENTAL_PROGRAMS: readonly SupplementalProgram[] = [
+  WORKER_ARTIFACT_PROGRAM,
   DETERMINISTIC_POST_PROGRAM,
   {
     name: "worker-reads",
