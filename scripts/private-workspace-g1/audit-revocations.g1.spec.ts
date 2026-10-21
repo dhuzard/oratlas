@@ -42,6 +42,10 @@ let attempts = 0;
 let delegatedQueries = 0;
 const fixture = new AuditDefaultFixture();
 const secrets: string[] = [];
+function guard(value: unknown): void {
+  if (auditRevokeDisclosureProblems(value, secrets).length)
+    throw new Error("Audit revocation capability disclosure refused");
+}
 let authorityScope: { roleContract: string; tables: unknown[]; columns: unknown[] };
 beforeAll(async () => {
   out = assertPublicChildEnv(process.env, "G1_AUDIT_REVOKE_OUT");
@@ -93,7 +97,11 @@ beforeAll(async () => {
   const url = new URL(process.env.DATABASE_URL!);
   secrets.push(process.env.DATABASE_URL!, url.password, decodeURIComponent(url.password));
   for (const scenario of AUDIT_REVOKE_SCENARIOS) {
-    if (scenario.session.case === "none" || scenario.session.case === "malformed") continue;
+    if (scenario.session.case === "none") continue;
+    if (scenario.session.case === "malformed") {
+      secrets.push(cookieHeader(scenario.session, sign)!);
+      continue;
+    }
     const cookie = cookieHeader(scenario.session, sign)!;
     secrets.push(...auditRevokeCookieSecrets(cookie));
   }
@@ -102,6 +110,7 @@ beforeAll(async () => {
       target.kind === "verifier"
         ? await prisma.verifierCredential.findUnique({ where: { id: target.id } })
         : await prisma.certifierCredential.findUnique({ where: { id: target.id } });
+    guard(row);
     expect(row?.revokedAt?.toISOString()).toBe("2026-03-31T23:00:00.000Z");
     expect(row?.revokedById).toBe("g1-user-admin");
   }
@@ -132,6 +141,7 @@ beforeAll(async () => {
  'privateCreate',CASE WHEN to_regnamespace('private_ws') IS NULL THEN false ELSE has_schema_privilege(session_user,'private_ws','CREATE') END,
  'tables',${tablePrivilegesSql("session_user")},'columns',${columnPrivilegesSql("session_user")}) AS evidence`);
   const posture = rows[0]!.evidence;
+  guard(posture);
   expect(posture.user).toBe(new URL(process.env.DATABASE_URL!).username);
   expect(posture.current).toBe(posture.user);
   expect(posture.privileged).toBe(false);
@@ -170,6 +180,7 @@ async function snapshot(): Promise<KnownPublicSqlState> {
     );
     result[table] = rows[0]!.rows;
   }
+  guard(result);
   return result;
 }
 it("captures native already-revoked admin requests with exact cumulative audit-only writes", async () => {
@@ -212,23 +223,34 @@ it("captures native already-revoked admin requests with exact cumulative audit-o
     const response = await invokeRouteHandler(request, `/${scenario.route}/route`, () =>
       handlers[scenario.route]!(request, { params: Promise.resolve({ id: scenario.params.id }) }),
     );
-    records.push(
-      await captureHttp(
-        {
-          id: scenario.id,
-          method: "POST",
-          path: scenario.path,
-          headers: scenario.headers ?? {},
-          body,
-          principal: scenario.principal,
-          sessionCase: scenario.session.case,
-          session: scenario.session,
-          cookieSha256: actualCookie === null ? null : sha256Text(actualCookie),
-        },
-        response,
-        request.headers,
-      ),
+    if (response.headers.has("set-cookie") || response.headers.has("location"))
+      throw Error("Unexpected audit revocation response capability header refused");
+    let responseBody: string;
+    try {
+      responseBody = new TextDecoder("utf-8", { fatal: true }).decode(
+        await response.clone().arrayBuffer(),
+      );
+    } catch {
+      throw Error("Audit revocation response UTF-8 refused");
+    }
+    guard({ headers: Object.fromEntries(response.headers), body: responseBody });
+    const recorded = await captureHttp(
+      {
+        id: scenario.id,
+        method: "POST",
+        path: scenario.path,
+        headers: scenario.headers ?? {},
+        body,
+        principal: scenario.principal,
+        sessionCase: scenario.session.case,
+        session: scenario.session,
+        cookieSha256: actualCookie === null ? null : sha256Text(actualCookie),
+      },
+      response,
+      request.headers,
     );
+    guard([recorded, bodyText(recorded)]);
+    records.push(recorded);
     if (scenario.expect.status === 200) {
       const target = AUDIT_REVOKE_TARGETS.find((target) => target.id === scenario.params.id)!;
       expect(scenario.principal).toBe("ADMIN");
@@ -256,6 +278,7 @@ it("captures native already-revoked admin requests with exact cumulative audit-o
   const after = await snapshot();
   check(after);
   expect(expectedAdded).toHaveLength(2);
+  guard(fixture.trace);
   expect(fixture.trace.filter((row) => row.operation === "create")).toHaveLength(2);
   expect(
     fixture.trace.filter((row) => row.operation === "create").map((row) => row.injected),
@@ -272,7 +295,6 @@ it("captures native already-revoked admin requests with exact cumulative audit-o
     clock: G1_FIXED_CLOCK,
     records,
   };
-  expect(validateCapture(capture, AUDIT_REVOKE_SCENARIOS, sign)).toEqual([]);
   const state = {
     authorityScope,
     tables: PUBLIC_SELECT_TABLES,
@@ -283,9 +305,8 @@ it("captures native already-revoked admin requests with exact cumulative audit-o
     expectedAdded,
     queryTrace: fixture.trace,
   };
-  expect(
-    auditRevokeDisclosureProblems([capture, state, ...records.map(bodyText)], secrets),
-  ).toEqual([]);
+  guard([capture, state, ...records.map(bodyText)]);
+  expect(validateCapture(capture, AUDIT_REVOKE_SCENARIOS, sign)).toEqual([]);
   writeFileSync(out, JSON.stringify(capture, null, 2) + "\n", { mode: 0o600, flag: "wx" });
   writeFileSync(out + ".state.json", JSON.stringify(state, null, 2) + "\n", {
     mode: 0o600,
