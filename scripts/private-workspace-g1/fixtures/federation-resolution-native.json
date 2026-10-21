@@ -1,0 +1,149 @@
+{
+  "inputs": [
+    {
+      "@context": ["https://www.w3.org/ns/activitystreams", "https://coar-notify.net"],
+      "actor": {
+        "id": "https://example.org/synthetic-actor",
+        "type": "Service"
+      },
+      "id": "https://example.org/g1-federation-resolution/editor",
+      "object": {
+        "id": "https://example.org/synthetic-object",
+        "ietf:item": {
+          "id": "https://example.org/synthetic-content.pdf",
+          "mediaType": "application/pdf",
+          "type": "Article"
+        },
+        "type": "Article"
+      },
+      "origin": {
+        "id": "https://example.org/synthetic-origin",
+        "inbox": "https://example.org/synthetic-inbox",
+        "type": "Service"
+      },
+      "summary": "g1-read-queue-private-payload",
+      "target": {
+        "id": "https://g1.oratlas.example",
+        "inbox": "https://g1.oratlas.example/api/federation/inbox",
+        "type": "Service"
+      },
+      "type": ["Offer", "coar-notify:ReviewAction"]
+    },
+    {
+      "@context": ["https://www.w3.org/ns/activitystreams", "https://coar-notify.net"],
+      "actor": {
+        "id": "https://example.org/synthetic-actor",
+        "type": "Service"
+      },
+      "id": "https://example.org/g1-federation-resolution/admin",
+      "object": {
+        "id": "https://example.org/synthetic-object",
+        "ietf:item": {
+          "id": "https://example.org/synthetic-content.pdf",
+          "mediaType": "application/pdf",
+          "type": "Article"
+        },
+        "type": "Article"
+      },
+      "origin": {
+        "id": "https://example.org/synthetic-origin",
+        "inbox": "https://example.org/synthetic-inbox",
+        "type": "Service"
+      },
+      "summary": "g1-read-queue-private-payload",
+      "target": {
+        "id": "https://g1.oratlas.example",
+        "inbox": "https://g1.oratlas.example/api/federation/inbox",
+        "type": "Service"
+      },
+      "type": ["Offer", "coar-notify:ReviewAction"]
+    }
+  ],
+  "receipts": [
+    {
+      "id": "cmvieqdid00007k9tngs6ty4x",
+      "activityId": "https://example.org/g1-federation-resolution/editor",
+      "pattern": "request-review",
+      "status": "pending",
+      "deduplicated": false
+    },
+    {
+      "id": "cmvieqdik00027k9to6oh26g7",
+      "activityId": "https://example.org/g1-federation-resolution/admin",
+      "pattern": "request-review",
+      "status": "pending",
+      "deduplicated": false
+    }
+  ],
+  "notifications": [
+    {
+      "id": "cmvieqdid00007k9tngs6ty4x",
+      "status": "pending",
+      "pattern": "request-review",
+      "actorUri": "https://example.org/synthetic-actor",
+      "createdAt": "2026-10-21T17:49:58.885",
+      "direction": "inbound",
+      "inReplyTo": null,
+      "objectUri": "https://example.org/synthetic-object",
+      "originUri": "https://example.org/synthetic-origin",
+      "targetUri": "https://g1.oratlas.example",
+      "activityId": "https://example.org/g1-federation-resolution/editor",
+      "contextUri": null,
+      "resolvedAt": null,
+      "originInbox": "https://example.org/synthetic-inbox",
+      "payloadHash": "a0ee94f57783f1425d8edbd2a4b2d574909c6db63863d35a4f882b83c16731c0",
+      "payloadJson": "{\"@context\":[\"https://www.w3.org/ns/activitystreams\",\"https://coar-notify.net\"],\"actor\":{\"id\":\"https://example.org/synthetic-actor\",\"type\":\"Service\"},\"id\":\"https://example.org/g1-federation-resolution/editor\",\"object\":{\"id\":\"https://example.org/synthetic-object\",\"ietf:item\":{\"id\":\"https://example.org/synthetic-content.pdf\",\"mediaType\":\"application/pdf\",\"type\":\"Article\"},\"type\":\"Article\"},\"origin\":{\"id\":\"https://example.org/synthetic-origin\",\"inbox\":\"https://example.org/synthetic-inbox\",\"type\":\"Service\"},\"summary\":\"g1-read-queue-private-payload\",\"target\":{\"id\":\"https://g1.oratlas.example\",\"inbox\":\"https://g1.oratlas.example/api/federation/inbox\",\"type\":\"Service\"},\"type\":[\"Offer\",\"coar-notify:ReviewAction\"]}",
+      "targetInbox": "https://g1.oratlas.example/api/federation/inbox",
+      "resolvedById": null,
+      "resolutionNote": null,
+      "reviewVersionId": null
+    },
+    {
+      "id": "cmvieqdik00027k9to6oh26g7",
+      "status": "pending",
+      "pattern": "request-review",
+      "actorUri": "https://example.org/synthetic-actor",
+      "createdAt": "2026-10-21T17:49:58.892",
+      "direction": "inbound",
+      "inReplyTo": null,
+      "objectUri": "https://example.org/synthetic-object",
+      "originUri": "https://example.org/synthetic-origin",
+      "targetUri": "https://g1.oratlas.example",
+      "activityId": "https://example.org/g1-federation-resolution/admin",
+      "contextUri": null,
+      "resolvedAt": null,
+      "originInbox": "https://example.org/synthetic-inbox",
+      "payloadHash": "d39f9252db76d9e1309607c4ec4a731221ebb83ea6bdeec5c675b9f85f49318e",
+      "payloadJson": "{\"@context\":[\"https://www.w3.org/ns/activitystreams\",\"https://coar-notify.net\"],\"actor\":{\"id\":\"https://example.org/synthetic-actor\",\"type\":\"Service\"},\"id\":\"https://example.org/g1-federation-resolution/admin\",\"object\":{\"id\":\"https://example.org/synthetic-object\",\"ietf:item\":{\"id\":\"https://example.org/synthetic-content.pdf\",\"mediaType\":\"application/pdf\",\"type\":\"Article\"},\"type\":\"Article\"},\"origin\":{\"id\":\"https://example.org/synthetic-origin\",\"inbox\":\"https://example.org/synthetic-inbox\",\"type\":\"Service\"},\"summary\":\"g1-read-queue-private-payload\",\"target\":{\"id\":\"https://g1.oratlas.example\",\"inbox\":\"https://g1.oratlas.example/api/federation/inbox\",\"type\":\"Service\"},\"type\":[\"Offer\",\"coar-notify:ReviewAction\"]}",
+      "targetInbox": "https://g1.oratlas.example/api/federation/inbox",
+      "resolvedById": null,
+      "resolutionNote": null,
+      "reviewVersionId": null
+    }
+  ],
+  "audits": [
+    {
+      "id": "cmvieqdie00017k9tgyvjt0f8",
+      "action": "federation.notification-received",
+      "actorId": null,
+      "createdAt": "2026-10-21T17:49:58.887",
+      "subjectId": "cmvieqdid00007k9tngs6ty4x",
+      "detailsJson": "{\"activityId\":\"https://example.org/g1-federation-resolution/editor\",\"actorUri\":\"https://example.org/synthetic-actor\",\"originUri\":\"https://example.org/synthetic-origin\",\"pattern\":\"request-review\",\"payloadHash\":\"a0ee94f57783f1425d8edbd2a4b2d574909c6db63863d35a4f882b83c16731c0\"}",
+      "subjectType": "federation-notification",
+      "idempotencyKey": "federation.receive:https://example.org/g1-federation-resolution/editor",
+      "platformVersion": "0.1.0"
+    },
+    {
+      "id": "cmvieqdil00037k9tlis4e3f9",
+      "action": "federation.notification-received",
+      "actorId": null,
+      "createdAt": "2026-10-21T17:49:58.893",
+      "subjectId": "cmvieqdik00027k9to6oh26g7",
+      "detailsJson": "{\"activityId\":\"https://example.org/g1-federation-resolution/admin\",\"actorUri\":\"https://example.org/synthetic-actor\",\"originUri\":\"https://example.org/synthetic-origin\",\"pattern\":\"request-review\",\"payloadHash\":\"d39f9252db76d9e1309607c4ec4a731221ebb83ea6bdeec5c675b9f85f49318e\"}",
+      "subjectType": "federation-notification",
+      "idempotencyKey": "federation.receive:https://example.org/g1-federation-resolution/admin",
+      "platformVersion": "0.1.0"
+    }
+  ],
+  "outbound": 0
+}

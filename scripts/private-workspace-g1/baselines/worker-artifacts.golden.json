@@ -14103,6 +14103,6 @@
       }
     ]
   },
-  "stateSha256": "ad56bf5ace0e3a0ac26f7dbe1f688ceee319815cc96952328a2078f4b864c09d",
+  "stateSha256": "f54e02709555c94729a0587efc7156d2752a051eb8fc81438970e475db3b2687",
   "review": "Independently reviewed 2026-10-21: four 379-request native worker artifact captures, exact actual-header bindings, 52 native worker/history fixture rows and the recorded setup credential timestamp; complete cumulative 72-table state allows only two native authentication stamps and one existing uploaded artifact completion. Measured authority adds only VerificationArtifact.status/completedAt UPDATE. Partial synthetic G1; fresh creation/upload remains uncovered."
 }

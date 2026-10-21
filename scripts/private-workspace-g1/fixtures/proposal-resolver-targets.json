@@ -1,0 +1,22 @@
+[
+  {
+    "kind": "protocol",
+    "id": "pdp_b6b4c8888cd7308da213ec487d73b4d57cb7907d540838a4851f6a14e021c58f",
+    "actor": "EDITOR"
+  },
+  {
+    "kind": "protocol",
+    "id": "pdp_c344fb09d35174963069ab7b02b4c95848e062d931c219b25d6d3f0cdd57ebb4",
+    "actor": "ADMIN"
+  },
+  {
+    "kind": "monitoring",
+    "id": "cmvie54gs00057kobehw5u5s2",
+    "actor": "EDITOR"
+  },
+  {
+    "kind": "monitoring",
+    "id": "cmvie54h8000j7kobzvbdydxa",
+    "actor": "ADMIN"
+  }
+]

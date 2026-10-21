@@ -1,0 +1,185 @@
+{
+  "input": {
+    "reviewVersionId": "g1-version-2",
+    "registry": "clinicaltrials-gov",
+    "sourceUrl": "https://clinicaltrials.gov/study/NCT09999992",
+    "sourceVersion": "synthetic-resolver-version-1",
+    "fetchedAt": "2026-03-31T23:55:00.000Z",
+    "payload": {
+      "protocolSection": {
+        "identificationModule": {
+          "nctId": "NCT09999992",
+          "briefTitle": "Synthetic resolver fixture; no scientific interpretation"
+        },
+        "eligibilityModule": {
+          "eligibilityCriteria": "Inclusion Criteria:\nSynthetic resolver population"
+        },
+        "outcomesModule": {
+          "primaryOutcomes": [
+            {
+              "measure": "Synthetic resolver outcome"
+            }
+          ]
+        }
+      }
+    }
+  },
+  "registered": {
+    "snapshotId": "ps_972b1a0f558dc247f4bf46227967b9a57540d0d0f908f85bd2cd3014a757901d",
+    "sourceId": "NCT09999992",
+    "proposalsOpened": 2,
+    "idempotent": false,
+    "publicPath": "/api/protocols/reviews/g1-version-2"
+  },
+  "protocols": [
+    {
+      "id": "pdp_b6b4c8888cd7308da213ec487d73b4d57cb7907d540838a4851f6a14e021c58f",
+      "snapshotId": "ps_972b1a0f558dc247f4bf46227967b9a57540d0d0f908f85bd2cd3014a757901d",
+      "category": "outcomes",
+      "kind": "not-described-in-review",
+      "registeredJson": "[{\"sourcePointer\":\"/protocolSection/outcomesModule/primaryOutcomes/0\",\"value\":\"Synthetic resolver outcome\"}]",
+      "observedJson": "[]",
+      "rationale": "Human review requested: the registration describes outcomes, while the review has no structured outcomes scope. Confirm whether this reflects an intended protocol update, a reporting choice, or a metadata gap.",
+      "comparatorVersion": "1.0.0",
+      "status": "open",
+      "resolvedById": null,
+      "resolutionNote": null,
+      "resolvedAt": null,
+      "createdAt": "2026-10-21T17:33:27.378Z"
+    },
+    {
+      "id": "pdp_c344fb09d35174963069ab7b02b4c95848e062d931c219b25d6d3f0cdd57ebb4",
+      "snapshotId": "ps_972b1a0f558dc247f4bf46227967b9a57540d0d0f908f85bd2cd3014a757901d",
+      "category": "population",
+      "kind": "not-described-in-review",
+      "registeredJson": "[{\"sourcePointer\":\"/protocolSection/eligibilityModule/eligibilityCriteria#inclusion\",\"value\":\"Inclusion Criteria:\\nSynthetic resolver population\"}]",
+      "observedJson": "[]",
+      "rationale": "Human review requested: the registration describes population, while the review has no structured population scope. Confirm whether this reflects an intended protocol update, a reporting choice, or a metadata gap.",
+      "comparatorVersion": "1.0.0",
+      "status": "open",
+      "resolvedById": null,
+      "resolutionNote": null,
+      "resolvedAt": null,
+      "createdAt": "2026-10-21T17:33:27.376Z"
+    }
+  ],
+  "monitoring": [
+    {
+      "result": {
+        "statusRecordId": "cmvie54gr00037kobgp598x54",
+        "workAlias": "doi:10.5555/g1-fixture-citation-1",
+        "proposalsOpened": 3,
+        "affectedClaimIds": ["g1-claim-1", "g1-read-tombstone-claim", "g1-claim-control"]
+      },
+      "proposals": [
+        {
+          "id": "cmvie54gs00057kobehw5u5s2",
+          "statusRecordId": "cmvie54gr00037kobgp598x54",
+          "claimId": "g1-claim-1",
+          "citationId": "g1-citation-1",
+          "status": "open",
+          "rationale": "Cited work doi:10.5555/g1-fixture-citation-1 was marked \"new-evidence\" (source: Synthetic resolver editor input). This claim relies on it via a \"supports\" relation.",
+          "resolvedById": null,
+          "resolutionNote": null,
+          "createdAt": "2026-10-21T17:33:27.388Z",
+          "resolvedAt": null
+        },
+        {
+          "id": "cmvie54gw00077kobvsftp6ma",
+          "statusRecordId": "cmvie54gr00037kobgp598x54",
+          "claimId": "g1-read-tombstone-claim",
+          "citationId": "g1-read-citation-tombstone",
+          "status": "open",
+          "rationale": "Cited work doi:10.5555/g1-fixture-citation-1 was marked \"new-evidence\" (source: Synthetic resolver editor input). This claim relies on it via a \"supports\" relation.",
+          "resolvedById": null,
+          "resolutionNote": null,
+          "createdAt": "2026-10-21T17:33:27.392Z",
+          "resolvedAt": null
+        },
+        {
+          "id": "cmvie54gy00097kobw3gv9lt6",
+          "statusRecordId": "cmvie54gr00037kobgp598x54",
+          "claimId": "g1-claim-control",
+          "citationId": "g1-read-citation-hidden",
+          "status": "open",
+          "rationale": "Cited work doi:10.5555/g1-fixture-citation-1 was marked \"new-evidence\" (source: Synthetic resolver editor input). This claim relies on it via a \"supports\" relation.",
+          "resolvedById": null,
+          "resolutionNote": null,
+          "createdAt": "2026-10-21T17:33:27.394Z",
+          "resolvedAt": null
+        }
+      ],
+      "selectedId": "cmvie54gs00057kobehw5u5s2"
+    },
+    {
+      "result": {
+        "statusRecordId": "cmvie54h8000h7kobv9dx83yd",
+        "workAlias": "doi:10.5555/g1-fixture-citation-1",
+        "proposalsOpened": 3,
+        "affectedClaimIds": ["g1-claim-1", "g1-read-tombstone-claim", "g1-claim-control"]
+      },
+      "proposals": [
+        {
+          "id": "cmvie54h8000j7kobzvbdydxa",
+          "statusRecordId": "cmvie54h8000h7kobv9dx83yd",
+          "claimId": "g1-claim-1",
+          "citationId": "g1-citation-1",
+          "status": "open",
+          "rationale": "Cited work doi:10.5555/g1-fixture-citation-1 was marked \"new-evidence\" (source: Synthetic resolver admin input). This claim relies on it via a \"supports\" relation.",
+          "resolvedById": null,
+          "resolutionNote": null,
+          "createdAt": "2026-10-21T17:33:27.405Z",
+          "resolvedAt": null
+        },
+        {
+          "id": "cmvie54h9000l7kob2wiae07n",
+          "statusRecordId": "cmvie54h8000h7kobv9dx83yd",
+          "claimId": "g1-read-tombstone-claim",
+          "citationId": "g1-read-citation-tombstone",
+          "status": "open",
+          "rationale": "Cited work doi:10.5555/g1-fixture-citation-1 was marked \"new-evidence\" (source: Synthetic resolver admin input). This claim relies on it via a \"supports\" relation.",
+          "resolvedById": null,
+          "resolutionNote": null,
+          "createdAt": "2026-10-21T17:33:27.406Z",
+          "resolvedAt": null
+        },
+        {
+          "id": "cmvie54ha000n7kob2j3td7fy",
+          "statusRecordId": "cmvie54h8000h7kobv9dx83yd",
+          "claimId": "g1-claim-control",
+          "citationId": "g1-read-citation-hidden",
+          "status": "open",
+          "rationale": "Cited work doi:10.5555/g1-fixture-citation-1 was marked \"new-evidence\" (source: Synthetic resolver admin input). This claim relies on it via a \"supports\" relation.",
+          "resolvedById": null,
+          "resolutionNote": null,
+          "createdAt": "2026-10-21T17:33:27.406Z",
+          "resolvedAt": null
+        }
+      ],
+      "selectedId": "cmvie54h8000j7kobzvbdydxa"
+    }
+  ],
+  "targets": [
+    {
+      "kind": "protocol",
+      "id": "pdp_b6b4c8888cd7308da213ec487d73b4d57cb7907d540838a4851f6a14e021c58f",
+      "actor": "EDITOR"
+    },
+    {
+      "kind": "protocol",
+      "id": "pdp_c344fb09d35174963069ab7b02b4c95848e062d931c219b25d6d3f0cdd57ebb4",
+      "actor": "ADMIN"
+    },
+    {
+      "kind": "monitoring",
+      "id": "cmvie54gs00057kobehw5u5s2",
+      "actor": "EDITOR"
+    },
+    {
+      "kind": "monitoring",
+      "id": "cmvie54h8000j7kobzvbdydxa",
+      "actor": "ADMIN"
+    }
+  ],
+  "outbound": 0
+}

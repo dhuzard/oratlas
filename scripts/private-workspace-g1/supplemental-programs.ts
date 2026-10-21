@@ -1,3 +1,5 @@
+import { PROPOSAL_RESOLVER_PROGRAM } from "./proposal-resolver-scenarios.js";
+import { FEDERATION_RESOLUTION_PROGRAM } from "./federation-resolution-scenarios.js";
 import { AUDIT_REVOKE_PROGRAM } from "./audit-revoke-scenarios.js";
 import { PROTOCOL_DOI_PROGRAM } from "./protocol-doi-scenarios.js";
 import { DETERMINISTIC_POST_PROGRAM } from "./deterministic-post-scenarios.js";
@@ -15,6 +17,8 @@ import type { SupplementalProgram } from "./supplemental-channel.js";
 
 /** Fixed catalog: each program has its own reset, sidecar and independently reviewed golden. */
 export const SUPPLEMENTAL_PROGRAMS: readonly SupplementalProgram[] = [
+  PROPOSAL_RESOLVER_PROGRAM,
+  FEDERATION_RESOLUTION_PROGRAM,
   AUDIT_REVOKE_PROGRAM,
   PROTOCOL_DOI_PROGRAM,
   CERTIFIER_REPLAY_PROGRAM,

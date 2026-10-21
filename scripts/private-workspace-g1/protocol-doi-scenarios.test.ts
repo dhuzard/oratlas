@@ -68,9 +68,12 @@ it("declares two meaningful native POST methods with six cookies and honest inva
   expect(PROTOCOL_DOI_PROGRAM.spec).toBe("protocol-doi.g1.spec.ts");
   expect(PROTOCOL_DOI_PROGRAM.fixtures).toEqual(["fixtures/protocol-post-fixtures.sql"]);
   expect(Object.values(PROTOCOL_DOI_PROGRAM.addedRows).reduce((a, b) => a + b, 0)).toBe(5);
+  // The separate resolver program now has four narrow updates; snapshot registration
+  // still has no table-wide update or creation grant through this role.
   expect(
-    PUBLIC_COLUMN_UPDATE_GRANTS.some((grant) => String(grant.table) === "ProtocolDriftProposal"),
-  ).toBe(false);
+    PUBLIC_COLUMN_UPDATE_GRANTS.find((grant) => String(grant.table) === "ProtocolDriftProposal")
+      ?.columns,
+  ).toEqual(["status", "resolvedById", "resolutionNote", "resolvedAt"]);
 });
 it("stores exact native rows without hash/ID/time substitutions and counts all bootstrap effects", () => {
   expect(rows).toHaveLength(5);
