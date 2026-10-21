@@ -1,6 +1,6 @@
 # Owner decision register: identity and private-workspace proposals
 
-**Status: Ratification recorded 2026-10-20.** Owner ratified ADR §14.1–14.6 (refinements) and §15
+**Status: Ratification recorded 2026-10-20; follow-up choices approved 2026-10-21 below.** Owner ratified ADR §14.1–14.6 (refinements) and §15
 (PoC model). Identity-decision items I1, I2, I3 (baseline framework) and S1 (session design
 commission) approved with ORCID as primary identifier per checklist decision source. This register
 records the approved choices. No persistence, session or workspace policy is yet implemented.
@@ -43,7 +43,35 @@ pending counsel/DPIA. ORCID confirmed as primary identifier; manual entry checks
 recognition only (not authenticated control; no account merge). Source: recorded owner decision
 responding to ADR §14/§15 proposal and identity-decision checklist.
 
-## Dependency boundary
+## Follow-up decisions approved 2026-10-21
+
+The owner answered “1. Ok / 2. Ok / 3. Ok / Use all recommendation” to the
+three explicit session, lifecycle and rollout recommendations. This records those
+choices; it does not record a passed security gate or authorize a deployment.
+
+- **S1 session choice:** server-side session instances plus authorization epochs,
+  retaining the existing seven-day maximum lifetime. Support revoking one session
+  and revoking all sessions. Existing cookies require sign-in again before new
+  protected features; existing public behavior can remain compatible during migration.
+- **I1–I3 lifecycle detail:** reauthentication for link/unlink; manual and verified
+  ORCID assertions remain separate. Prefer the verified identifier in display, with
+  mismatches visible for explicit resolution. Unlink invalidates the assertion and
+  pending work. Conflicts expose a generic error. No automatic account merge,
+  identifier transfer or reassignment. Account deletion immediately disables access
+  and revokes sessions; final erasure and identifier reuse remain blocked pending an
+  approved retention/recovery policy. Immediate disablement is not a claim of erasure.
+- **I4 and rollout scope:** implement and test local/CI synthetic fixtures only.
+  Live providers, external testers and real private data remain disabled. Purge jobs
+  have no invented default retention period and refuse to run unconfigured. This
+  explicitly permits synthetic development while real-data retention remains open;
+  it does not authorize indefinite retention of real personal data.
+
+The detailed retention schedule, legal/privacy artifacts (D11), deployment,
+external access and real-data enablement are still separate prerequisites. Technical
+session/release/provider-start designs require independent review and executable
+evidence. G1 still precedes private tables; G2/G3 and the later gates are unchanged.
+
+## Dependency boundary (updated 2026-10-21)
 
 The [G1 harness specification](./private-workspace-g1-harness.md) can be refined independently of these identity choices. Relevant I1–I4 decisions and reviewed S1/A14.2 semantics precede policy-dependent persistence/session implementation. G1 must pass before private tables; authorization/invitations, G3 protection and the applicable later gates remain separate. D11 is not resolved by G1, a merged PR, or engineering tests.
 

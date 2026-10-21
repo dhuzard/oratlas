@@ -2,6 +2,7 @@ import { readdirSync } from "node:fs";
 import { join, relative } from "node:path";
 import { PRINCIPAL_LABELS, type PrincipalLabel } from "./principals.js";
 import { SCENARIOS, type Scenario } from "./scenarios.js";
+import { methodObligations } from "./obligations.js";
 
 /**
  * G1 route/principal/channel coverage manifest (ADR §3.1/§3.2, §11 T-PUB). It records what the
@@ -362,6 +363,7 @@ export function coverageSummary(appDirectory: string, program: readonly Scenario
     routeFiles: routes.length,
     routeFilesExercised: exercised.length,
     routeFilesNotExercised: routes.filter((route) => !exercised.includes(route)).length,
+    methodAndChannelObligations: methodObligations(appDirectory, program),
     exercisedRoutes: exercised,
     httpScenarios: http.length,
     expectedStatuses: statuses,

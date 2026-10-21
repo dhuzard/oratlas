@@ -125,6 +125,34 @@ describe("public artifact capture integrity", () => {
 });
 
 describe("capture validation regressions", () => {
+  it("requires reviewed export text markers even when a replacement golden would accept new bytes", () => {
+    const program = SCENARIOS.map((scenario) =>
+      scenario.id === "file-public-anonymous" && scenario.kind === "http"
+        ? {
+            ...scenario,
+            expect: {
+              ...scenario.expect,
+              bodyEquals: undefined,
+              bodyIncludes: ["G1 inert public attachment"],
+            },
+          }
+        : scenario,
+    );
+    expect(validateCapture(capture, program)).toEqual([]);
+    const mutated = withRecord(capture, "file-public-anonymous", (record) => {
+      if (record.kind !== "http") throw new Error("http required");
+      const body = "unrelated public text\n";
+      return {
+        ...record,
+        bodyBase64: Buffer.from(body).toString("base64"),
+        bodySha256: sha256Hex(body),
+        bodyLength: Buffer.byteLength(body),
+      };
+    });
+    expect(validateCapture(mutated, program)).toContain(
+      "file-public-anonymous: body missing required G1 inert public attachment",
+    );
+  });
   it("rejects retained bytes, public principal divergence and stripped attachment headers", () => {
     const leaked = withJsonBody(capture, "capture-anonymous", (body) => ({
       ...body,

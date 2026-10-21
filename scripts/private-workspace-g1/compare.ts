@@ -254,7 +254,7 @@ function validateHttp(
     const hash = cookie === undefined ? null : sha256Text(cookie);
     if (hash !== request.cookieSha256) problems.push(`${prefix}: dispatched cookie != recipe`);
   }
-  const { status, denial, json, bodyExcludes, bodyEquals, headers, sameResponseAs } =
+  const { status, denial, json, bodyExcludes, bodyIncludes, bodyEquals, headers, sameResponseAs } =
     scenario.expect;
   if (record.status !== status)
     problems.push(`${prefix}: status ${record.status} != expected ${status}`);
@@ -292,6 +292,9 @@ function validateHttp(
   }
   for (const excluded of bodyExcludes ?? []) {
     if (text.includes(excluded)) problems.push(`${prefix}: body contains excluded ${excluded}`);
+  }
+  for (const included of bodyIncludes ?? []) {
+    if (!text.includes(included)) problems.push(`${prefix}: body missing required ${included}`);
   }
   return problems;
 }
