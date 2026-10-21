@@ -1,3 +1,6 @@
+import { supplementalChannels } from "./supplemental-orchestrator.js";
+import { SUPPLEMENTAL_PROGRAMS } from "./supplemental-programs.js";
+import { workerChildOutput } from "./worker-capture-safety.js";
 import { spawn } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
@@ -165,12 +168,15 @@ function runSpec(
           : [];
       // A rejected sink is a failed check. Never preserve its hidden text or turn
       // redacted evidence into a claim that the original sink did not leak.
-      const output = outputProblems.length
-        ? `[g1] refused index child output: ${outputProblems.join(", ")}\n`
-        : redact(raw, secrets);
+      const guarded = workerChildOutput(raw);
+      const output = !guarded.ok
+        ? guarded.text
+        : outputProblems.length
+          ? `[g1] refused index child output: ${outputProblems.join(", ")}\n`
+          : redact(raw, secrets);
       writeFileSync(logPath, output, { mode: 0o600 });
       process.stdout.write(output);
-      resolvePromise(code === 0 && outputProblems.length === 0);
+      resolvePromise(code === 0 && outputProblems.length === 0 && guarded.ok);
     });
   });
 }
@@ -378,6 +384,19 @@ export async function runG1Harness(
       ...extra,
       [outVariable]: out,
     });
+    const supplemental = supplementalChannels({
+      programs: SUPPLEMENTAL_PROGRAMS,
+      labels: CAPTURE_LABELS,
+      directory: HERE,
+      evidenceDir,
+      inventoryTables: inventory.tables,
+      admin: target.admin,
+      secrets,
+      deps,
+      reset,
+      childEnv: handlerEnv,
+      record,
+    });
     const capturePaths = new Map<string, string>();
     const indexPaths = new Map<string, string>();
     const capture = async (label: (typeof CAPTURE_LABELS)[number]) => {
@@ -422,6 +441,7 @@ export async function runG1Harness(
         indexProblems.length === 0,
         indexProblems,
       );
+      await supplemental.capture(label);
     };
 
     // 4. Baseline and its repeat, each after a reset, under the public role only.
@@ -521,6 +541,7 @@ export async function runG1Harness(
       join(evidenceDir, "golden-candidate.json"),
       goldenCandidate(reference, "CANDIDATE — not reviewed; never copied automatically"),
     );
+    supplemental.compare();
     if (!existsSync(INDEX_GOLDEN_PATH))
       record(
         "reviewed index golden present",
@@ -551,7 +572,17 @@ export async function runG1Harness(
       differences: goldenDifferences,
     });
     summary.manifest = {
-      coverage: coverageSummary(APP_DIRECTORY),
+      coverage: coverageSummary(APP_DIRECTORY, [
+        ...SCENARIOS,
+        ...SUPPLEMENTAL_PROGRAMS.flatMap((program) => program.scenarios),
+      ]),
+      programs: [
+        { name: "public-routes", records: SCENARIOS.length },
+        ...SUPPLEMENTAL_PROGRAMS.map((program) => ({
+          name: program.name,
+          records: program.scenarios.length,
+        })),
+      ],
       surfaces: SURFACES,
       principals: PRINCIPALS,
     };

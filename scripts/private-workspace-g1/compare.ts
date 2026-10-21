@@ -23,6 +23,8 @@ import {
   type JsonCheck,
   type Scenario,
 } from "./scenarios.js";
+import { workerAuthorityHeaders, workerAuthorityDigests } from "./worker-authority.js";
+import { workerCaptureProblems, workerRequestProblems } from "./worker-capture-safety.js";
 
 /**
  * Comparators for G1 captures. `validateCapture` proves one capture is exactly the reviewed
@@ -47,6 +49,9 @@ export type GoldenHttpRecord = {
   readonly sessionCase: HttpRecord["request"]["sessionCase"];
   readonly session: HttpRecord["request"]["session"];
   readonly cookieSha256: string | null;
+  readonly workerAuthority?: HttpRecord["request"]["workerAuthority"];
+  readonly authorizationSha256?: string | null;
+  readonly verificationLeaseSha256?: string | null;
   readonly status: number;
   readonly headers: ReadonlyArray<readonly [string, string]>;
   readonly setCookie: readonly string[];
@@ -96,6 +101,8 @@ export const GOLDEN_TEXT_LIMIT = 16 * 1024;
 const sameJson = (left: unknown, right: unknown) => JSON.stringify(left) === JSON.stringify(right);
 
 export function upgradeGolden(raw: unknown): GoldenFile {
+  if (workerCaptureProblems(raw).length)
+    throw new Error("Unsafe or invalid worker golden evidence");
   const file = raw as { version?: unknown };
   if (file?.version === G1_CAPTURE_VERSION) return raw as GoldenFile;
   if (file?.version === LEGACY_CAPTURE_VERSION) {
@@ -226,6 +233,19 @@ function validateHttp(
   const prefix = record.id;
   const problems: string[] = [];
   const request = record.request;
+  problems.push(...workerRequestProblems(request));
+  if (!sameJson(request.workerAuthority, scenario.workerAuthority))
+    problems.push(`${prefix}: worker authority recipe differs`);
+  if (scenario.workerAuthority) {
+    const expectedWorker = workerAuthorityDigests(
+      new Headers(workerAuthorityHeaders(scenario.workerAuthority)),
+    );
+    if (
+      request.authorizationSha256 !== expectedWorker.authorizationSha256 ||
+      request.verificationLeaseSha256 !== expectedWorker.verificationLeaseSha256
+    )
+      problems.push(`${prefix}: worker dispatched header digest differs from scenario`);
+  }
   if (request.id !== scenario.id) problems.push(`${prefix}: request id differs`);
   if (request.method !== scenario.method) problems.push(`${prefix}: method differs`);
   const expected = expectedRequest(scenario, earlier);
@@ -265,9 +285,10 @@ function validateHttp(
   if (record.status === 200 && record.bodyLength === 0) problems.push(`${prefix}: empty 200 body`);
   const body = json || denial ? parseJson(text) : undefined;
   if (denial) {
+    const envelope = denial.envelope === "root" ? "" : "/error";
     problems.push(
-      ...checkJson(prefix, body, { pointer: "/error/code", equals: denial.code }),
-      ...checkJson(prefix, body, { pointer: "/error/message", equals: denial.message }),
+      ...checkJson(prefix, body, { pointer: `${envelope}/code`, equals: denial.code }),
+      ...checkJson(prefix, body, { pointer: `${envelope}/message`, equals: denial.message }),
     );
   }
   for (const check of json ?? []) problems.push(...checkJson(prefix, body, check));
@@ -346,6 +367,8 @@ export function validateCapture(
   program: readonly Scenario[] = SCENARIOS,
   sign?: SessionSigner,
 ): string[] {
+  const unsafe = workerCaptureProblems(raw);
+  if (unsafe.length) return unsafe;
   let capture: CaptureFile;
   try {
     capture = upgradeCapture(raw);
@@ -353,6 +376,7 @@ export function validateCapture(
     return [error instanceof Error ? error.message : String(error)];
   }
   const problems = [...programProblems(program)];
+  if (problems.length) return problems;
   const ids = capture.records.map((record) => record.id);
   problems.push(...idProblems("capture", ids));
   const order = orderProblems(
@@ -406,6 +430,8 @@ function compareRecord(prefix: string, left: CaptureRecord, right: CaptureRecord
 
 /** Differences between two captures of the same program (empty when byte-identical). */
 export function comparePairedCaptures(beforeRaw: unknown, afterRaw: unknown): string[] {
+  const unsafe = [...workerCaptureProblems(beforeRaw), ...workerCaptureProblems(afterRaw)];
+  if (unsafe.length) return unsafe;
   const before = upgradeCapture(beforeRaw);
   const after = upgradeCapture(afterRaw);
   const differences: string[] = [];
@@ -432,6 +458,12 @@ export function compareWithGolden(
   goldenRaw: unknown,
   program: readonly Scenario[] = SCENARIOS,
 ): string[] {
+  const unsafe = [
+    ...workerCaptureProblems(captureRaw),
+    ...workerCaptureProblems(goldenRaw),
+    ...programProblems(program),
+  ];
+  if (unsafe.length) return unsafe;
   const capture = upgradeCapture(captureRaw);
   const golden = upgradeGolden(goldenRaw);
   const differences: string[] = [];
@@ -477,7 +509,10 @@ export function compareWithGolden(
       !sameJson(request.headers, entry.requestHeaders) ||
       request.body !== entry.requestBody ||
       !sameJson(request.session, entry.session) ||
-      request.cookieSha256 !== entry.cookieSha256
+      request.cookieSha256 !== entry.cookieSha256 ||
+      !sameJson(request.workerAuthority, entry.workerAuthority) ||
+      request.authorizationSha256 !== entry.authorizationSha256 ||
+      request.verificationLeaseSha256 !== entry.verificationLeaseSha256
     ) {
       differences.push(`${prefix}: request differs`);
     }
@@ -537,6 +572,8 @@ function goldenBody(text: string, bytesBase64: string, length: number, sha256: s
  * the reviewed golden file and never accepts it automatically after a failure.
  */
 export function goldenCandidate(captureRaw: unknown, review: string): GoldenFile {
+  if (workerCaptureProblems(captureRaw).length)
+    throw new Error("Unsafe or invalid worker capture evidence");
   const capture = upgradeCapture(captureRaw);
   return {
     version: G1_CAPTURE_VERSION,
@@ -572,6 +609,13 @@ export function goldenCandidate(captureRaw: unknown, review: string): GoldenFile
         sessionCase: record.request.sessionCase,
         session: record.request.session,
         cookieSha256: record.request.cookieSha256,
+        ...(record.request.workerAuthority === undefined
+          ? {}
+          : {
+              workerAuthority: record.request.workerAuthority,
+              authorizationSha256: record.request.authorizationSha256,
+              verificationLeaseSha256: record.request.verificationLeaseSha256,
+            }),
         status: record.status,
         headers: normalizedHeaders(record),
         setCookie: record.setCookie,

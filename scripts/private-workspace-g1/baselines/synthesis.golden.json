@@ -1,0 +1,2930 @@
+{
+  "protocol": "oratlas.g1.supplemental/0.1",
+  "program": "synthesis",
+  "http": {
+    "version": 2,
+    "review": "Independently reviewed 2026-10-21: four restricted captures, native outcomes and complete state; partial synthetic G1 only.",
+    "baseUrl": "https://g1.oratlas.example",
+    "clock": "2026-04-01T00:00:00.000Z",
+    "records": [
+      {
+        "kind": "http",
+        "id": "synthesis-notification-g1-read-federation-accepted-old-anonymous",
+        "method": "GET",
+        "path": "/api/federation/notifications/g1-read-federation-accepted-old",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 200,
+        "headers": [
+          ["cache-control", "no-store, must-revalidate"],
+          ["content-type", "application/ld+json; charset=utf-8"]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"@context\":[\"https://www.w3.org/ns/activitystreams\",\"https://coar-notify.net\"],\"actor\":{\"id\":\"https://example.org/synthetic-actor\",\"type\":\"Service\"},\"id\":\"https://example.org/g1-notify/accepted-old\",\"object\":{\"id\":\"https://example.org/synthetic-object\",\"ietf:item\":{\"id\":\"https://example.org/synthetic-content.pdf\",\"mediaType\":\"application/pdf\",\"type\":\"Article\"},\"type\":\"Article\"},\"origin\":{\"id\":\"https://example.org/synthetic-origin\",\"inbox\":\"https://example.org/synthetic-inbox\",\"type\":\"Service\"},\"summary\":\"g1-read-queue-private-payload\",\"target\":{\"id\":\"https://g1.oratlas.example\",\"inbox\":\"https://g1.oratlas.example/api/federation/inbox\",\"type\":\"Service\"},\"type\":[\"Offer\",\"coar-notify:ReviewAction\"]}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-notification-g1-synthesis-announce-anonymous",
+        "method": "GET",
+        "path": "/api/federation/notifications/g1-synthesis-announce",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 200,
+        "headers": [
+          ["cache-control", "no-store, must-revalidate"],
+          ["content-type", "application/ld+json; charset=utf-8"]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"@context\":[\"https://www.w3.org/ns/activitystreams\",\"https://coar-notify.net\"],\"actor\":{\"id\":\"https://example.org/g1-synthetic-producer\",\"name\":\"Synthetic Fixture Producer\",\"type\":\"Service\"},\"context\":{\"id\":\"https://example.org/g1-synthetic-source\"},\"id\":\"https://example.org/g1-synthesis/announce\",\"object\":{\"id\":\"https://g1.oratlas.example/reviews/synthesis-c368583d7cdfc3a55a55\",\"ietf:item\":{\"id\":\"https://g1.oratlas.example/api/syntheses/synthesis-c368583d7cdfc3a55a55\",\"mediaType\":\"application/json\",\"type\":\"Document\"},\"type\":[\"Page\",\"sorg:Review\"]},\"origin\":{\"id\":\"https://example.org/g1-synthetic-producer\",\"inbox\":\"https://example.org/g1-synthetic-inbox\",\"type\":\"Service\"},\"target\":{\"id\":\"https://g1.oratlas.example\",\"inbox\":\"https://g1.oratlas.example/api/federation/inbox\",\"type\":\"Service\"},\"type\":[\"Announce\",\"coar-notify:ReviewAction\"]}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-notification-g1-read-federation-pending-anonymous",
+        "method": "GET",
+        "path": "/api/federation/notifications/g1-read-federation-pending",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 404,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Federation notification not found.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-notification-g1-read-federation-rejected-anonymous",
+        "method": "GET",
+        "path": "/api/federation/notifications/g1-read-federation-rejected",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 404,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Federation notification not found.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-notification-g1-read-federation-outbound-anonymous",
+        "method": "GET",
+        "path": "/api/federation/notifications/g1-read-federation-outbound",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 404,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Federation notification not found.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-notification-g1-read-federation-missing-anonymous",
+        "method": "GET",
+        "path": "/api/federation/notifications/g1-read-federation-missing",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 404,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Federation notification not found.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-accepted-anonymous",
+        "method": "GET",
+        "path": "/api/syntheses/synthesis-c368583d7cdfc3a55a55",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 200,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"slug\":\"synthesis-c368583d7cdfc3a55a55\",\"reviewType\":\"ai-synthesis\",\"title\":\"Synthesis review: Synthetic bounded source claim\",\"abstract\":\"This deterministic review summarizes 1 non-example immutable nodes and 0 confirmed relations from one bounded evidence packet.\",\"document\":{\"schemaVersion\":\"1.0.0\",\"title\":\"Synthesis review: Synthetic bounded source claim\",\"summary\":\"This deterministic review summarizes 1 non-example immutable nodes and 0 confirmed relations from one bounded evidence packet.\",\"citations\":[],\"sections\":[{\"id\":\"background\",\"title\":\"Background\",\"paragraphs\":[{\"text\":\"The bounded topic is Synthetic bounded source claim. The packet contains 1 claim nodes.\",\"citations\":[]}]},{\"id\":\"state-of-knowledge\",\"title\":\"State of knowledge\",\"paragraphs\":[{\"text\":\"claim evidence: Synthetic bounded source claim.\",\"citations\":[{\"referenceId\":\"reference:sha256:26d2da99ae1f13bf08d1844d2c6ca9a22404e4429aec199debc291075d4e52c2\",\"nodeId\":\"g1-synthesis-source\",\"nodeVersionId\":\"g1-synthesis-source-v2\"}]}]},{\"id\":\"agreements\",\"title\":\"Agreements\",\"paragraphs\":[{\"text\":\"The packet records no confirmed support, replication, or extension relation.\",\"citations\":[]}]},{\"id\":\"contradictions-and-open-questions\",\"title\":\"Contradictions and open questions\",\"paragraphs\":[{\"text\":\"The packet records no confirmed contradiction relation; unrepresented questions remain open.\",\"citations\":[]}]},{\"id\":\"data-and-code-availability\",\"title\":\"Data and code availability\",\"paragraphs\":[{\"text\":\"The packet contains no non-example data or code node.\",\"citations\":[]}]},{\"id\":\"limitations\",\"title\":\"Limitations\",\"paragraphs\":[{\"text\":\"This review is limited to the supplied bounded subgraph and does not establish scientific consensus or independent replication.\",\"citations\":[]}]}]},\"provenance\":{\"generationMode\":\"deterministic-template\",\"pipelineSoftware\":{\"id\":\"software:oratlas-synthesis-writer\",\"kind\":\"software-agent\",\"displayName\":\"Open Review Atlas Synthesis Writer\",\"pipelineVersion\":\"synthesis-writer/1.0.0\"},\"provider\":\"deterministic\",\"model\":\"bounded-template-1.0\",\"modelVersion\":\"unavailable\",\"promptVersion\":\"atlas-synthesis-1.0\",\"promptHash\":\"d537d25db53180e834c45b7dcfff5156f41588aef9ed78365972f847bc019453\",\"packetHash\":\"26249e055137ef1565f5cf6797a85982db2c87ced4bd32b0b356c5fe9aac1543\",\"documentHash\":\"e75bc69d5bb13b66f98bf8caa082abb513fc660dc25fae68b8dc948847bf4e22\",\"generatedAt\":\"2026-04-01T00:00:00.000Z\",\"attributionPolicyVersion\":\"synthesis-attribution/1.0.0\",\"materializationPolicyVersion\":\"synthesis-materialization/1.0.0\",\"acceptedAt\":\"2026-04-01T00:00:00.000Z\",\"approvingEditor\":{\"displayName\":\"G1 Fixture Admin\",\"githubLogin\":\"g1-fixture-admin\",\"roleSnapshot\":\"ADMIN\"},\"rightsStatement\":\"Synthetic fixture text is permitted for this test archive only.\",\"licenseSpdx\":\"CC-BY-4.0\",\"checklistVersion\":\"synthesis-checklist/1.0.0\",\"acceptedPredecessorVersionId\":null,\"acceptedPredecessorOrdinal\":null,\"ordinal\":1},\"citations\":[{\"referenceId\":\"reference:sha256:26d2da99ae1f13bf08d1844d2c6ca9a22404e4429aec199debc291075d4e52c2\",\"nodeId\":\"g1-synthesis-source\",\"nodeVersionId\":\"g1-synthesis-source-v2\",\"nodeKind\":\"claim\",\"title\":\"Synthetic bounded source claim\",\"href\":\"/nodes/g1-synthesis-source/versions/g1-synthesis-source-v2\",\"location\":\"sections.state-of-knowledge.paragraphs.0\",\"occurrenceOrdinal\":0}],\"version\":{\"id\":\"cmvi69rl000097k5d9nezdvby\",\"ordinal\":1,\"isCurrent\":true},\"freshness\":{\"status\":\"unchecked\",\"policyVersion\":\"synthesis-staleness/1.0.0\",\"reasonCodes\":[],\"affectedReferenceCount\":0}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-unavailable-g1-fixture-review-anonymous",
+        "method": "GET",
+        "path": "/api/syntheses/g1-fixture-review",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 404,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"code\":\"not-found\",\"message\":\"Synthesis not found.\"}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-unavailable-g1-control-review-anonymous",
+        "method": "GET",
+        "path": "/api/syntheses/g1-control-review",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 404,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"code\":\"not-found\",\"message\":\"Synthesis not found.\"}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-unavailable-g1-synthesis-missing-anonymous",
+        "method": "GET",
+        "path": "/api/syntheses/g1-synthesis-missing",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 404,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"code\":\"not-found\",\"message\":\"Synthesis not found.\"}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-contradictions-anonymous",
+        "method": "GET",
+        "path": "/api/synthesis/contradictions",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 200,
+        "headers": [
+          ["cache-control", "no-store, must-revalidate"],
+          ["content-type", "application/json"]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"reviewCount\":2,\"statementCount\":4,\"contradictions\":[{\"kind\":\"genuine-contradiction\",\"sharedFamilyCount\":1,\"differingScopeFields\":[],\"a\":{\"claimId\":\"oratlas:claim:v1:00670031002d00760065007200730069006f006e002d0034:00670031002d00730079006e007400680065007400690063002d006f00700070006f00730065\",\"text\":\"Synthetic oppose evidence declaration; this exercises classification only, not a scientific conclusion.\",\"passportPath\":\"/claims/g1-version-4/g1-synthetic-oppose\"},\"b\":{\"claimId\":\"oratlas:claim:v1:00670031002d00760065007200730069006f006e002d0032:00670031002d00730079006e007400680065007400690063002d0073007500700070006f00720074\",\"text\":\"Synthetic support evidence declaration; this exercises classification only, not a scientific conclusion.\",\"passportPath\":\"/claims/g1-version-2/g1-synthetic-support\"}}],\"counts\":{\"genuine-contradiction\":1,\"scope-difference\":0,\"undetermined-scope\":0}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-archive-anonymous",
+        "method": "GET",
+        "path": "/api/search?contentType=synthesis&q=Synthetic%20bounded&pageSize=20",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 200,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"total\":1,\"page\":1,\"pageSize\":20,\"synthesisCandidateScan\":{\"limit\":500,\"limitReached\":false},\"items\":[{\"contentType\":\"synthesis\",\"slug\":\"synthesis-c368583d7cdfc3a55a55\",\"title\":\"Synthesis review: Synthetic bounded source claim\",\"abstract\":\"This deterministic review summarizes 1 non-example immutable nodes and 0 confirmed relations from one bounded evidence packet.\",\"version\":{\"id\":\"cmvi69rl000097k5d9nezdvby\",\"ordinal\":1,\"isCurrent\":true},\"freshness\":{\"status\":\"unchecked\",\"affectedReferenceCount\":0},\"score\":1,\"sortDate\":\"2026-04-01T00:00:00.000Z\",\"links\":{\"self\":\"/api/syntheses/synthesis-c368583d7cdfc3a55a55\",\"html\":\"/reviews/synthesis-c368583d7cdfc3a55a55\",\"exactVersion\":\"/reviews/synthesis-c368583d7cdfc3a55a55/syntheses/cmvi69rl000097k5d9nezdvby\"}}]}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-inbox-anonymous",
+        "method": "GET",
+        "path": "/api/federation/inbox",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 200,
+        "headers": [
+          ["cache-control", "no-store, must-revalidate"],
+          ["content-type", "application/ld+json; charset=utf-8"]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"@context\":\"http://www.w3.org/ns/ldp\",\"@id\":\"https://g1.oratlas.example/api/federation/inbox\",\"contains\":[\"https://g1.oratlas.example/api/federation/notifications/g1-synthesis-announce\",\"https://g1.oratlas.example/api/federation/notifications/g1-read-federation-accepted-new\",\"https://g1.oratlas.example/api/federation/notifications/g1-read-federation-accepted-old\"]}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-feed-anonymous",
+        "method": "GET",
+        "path": "/api/feeds/atom",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 200,
+        "headers": [
+          ["cache-control", "no-store, must-revalidate"],
+          ["content-type", "application/atom+xml; charset=utf-8"],
+          ["pragma", "no-cache"],
+          ["x-content-type-options", "nosniff"]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<feed xmlns=\"http://www.w3.org/2005/Atom\">\n  <id>https://g1.oratlas.example/api/feeds/atom</id>\n  <title>Open Review Atlas — recently accepted reviews</title>\n  <updated>2026-03-05T12:00:00.000Z</updated>\n  <link rel=\"alternate\" href=\"https://g1.oratlas.example/archive\"/>\n  <link rel=\"self\" href=\"https://g1.oratlas.example/api/feeds/atom\"/>\n  <entry>\n    <id>https://g1.oratlas.example/reviews/g1-second-review/versions/g1-version-4</id>\n    <title>G1 second fixture review v1</title>\n    <updated>2026-03-05T12:00:00.000Z</updated>\n    <link rel=\"alternate\" href=\"https://g1.oratlas.example/reviews/g1-second-review/versions/g1-version-4\"/>\n    <author><name>Fixture Author Two</name></author>\n    <summary>Synthetic second public version.</summary>\n  </entry>\n  <entry>\n    <id>https://g1.oratlas.example/reviews/g1-fixture-review/versions/g1-version-2</id>\n    <title>G1 fixture review v2 &amp; &quot;quoted&quot;</title>\n    <updated>2026-02-03T12:00:00.000Z</updated>\n    <link rel=\"alternate\" href=\"https://g1.oratlas.example/reviews/g1-fixture-review/versions/g1-version-2\"/>\n    <author><name>Fixture Author Two</name></author>\n    <author><name>Fixture Author One</name></author>\n    <summary>Second synthetic public version.</summary>\n  </entry>\n  <entry>\n    <id>https://g1.oratlas.example/reviews/g1-fixture-review/versions/g1-version-1</id>\n    <title>G1 fixture review v1</title>\n    <updated>2026-01-03T12:00:00.000Z</updated>\n    <link rel=\"alternate\" href=\"https://g1.oratlas.example/reviews/g1-fixture-review/versions/g1-version-1\"/>\n    <author><name>Fixture Author One</name></author>\n    <summary>First synthetic public version.</summary>\n  </entry>\n</feed>\n"
+        },
+        "atomEntryIds": [
+          "https://g1.oratlas.example/reviews/g1-second-review/versions/g1-version-4",
+          "https://g1.oratlas.example/reviews/g1-fixture-review/versions/g1-version-2",
+          "https://g1.oratlas.example/reviews/g1-fixture-review/versions/g1-version-1"
+        ]
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-claim-support-anonymous",
+        "method": "GET",
+        "path": "/api/claims/g1-version-2/g1-synthetic-support",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 200,
+        "headers": [
+          ["cache-control", "no-store, must-revalidate"],
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"claimId\":\"oratlas:claim:v1:00670031002d00760065007200730069006f006e002d0032:00670031002d00730079006e007400680065007400690063002d0073007500700070006f00720074\",\"localClaimId\":\"g1-synthetic-support\",\"anchor\":\"oratlas-claim-v1-00670031002d00760065007200730069006f006e002d0032-00670031002d00730079006e007400680065007400690063002d0073007500700070006f00720074\",\"text\":\"Synthetic support evidence declaration; this exercises classification only, not a scientific conclusion.\",\"section\":\"Synthetic comparison\",\"claimType\":\"empirical\",\"reviewSlug\":\"g1-fixture-review\",\"reviewTitle\":\"G1 fixture review v2 & \\\"quoted\\\"\",\"versionId\":\"g1-version-2\",\"semanticVersion\":\"1.1.0\",\"publishedAt\":\"2026-02-03T12:00:00.000Z\",\"isExample\":false,\"evidence\":[{\"id\":\"g1-synthesis-relation-support\",\"relationType\":\"supports\",\"supportDirection\":\"positive\",\"citationLocalId\":\"g1-synthetic-support\",\"citationTitle\":\"Explicit synthetic evidence work for classification only\",\"citationDoi\":\"10.5555/g1-synthesis-shared-work\",\"citationIsExample\":true,\"hasTrustAssessment\":false,\"trustAssessments\":[]}],\"lineage\":[{\"versionId\":\"g1-version-2\",\"semanticVersion\":\"1.1.0\",\"publishedAt\":\"2026-02-03T12:00:00.000Z\",\"isCurrent\":true,\"isThisVersion\":true,\"textChanged\":false}],\"alerts\":[],\"executionPassports\":[],\"protocolDrift\":{\"reviewVersionId\":\"g1-version-2\",\"claimLocalId\":\"g1-synthetic-support\",\"openCount\":0,\"snapshots\":[]},\"sourceEvidenceLinks\":{\"schemaVersion\":\"1.0.0\",\"status\":\"sidecar-unavailable\",\"sidecar\":null,\"packets\":[],\"citations\":[],\"rejected\":[],\"nativeAssessment\":null,\"nativeAssessmentWithheld\":null,\"labels\":{\"producer\":\"Producer finding: a statement about the cited article, recorded in an external Diggypaper evidence packet. It is not a claim of this review.\",\"packet\":\"ORAtlas has not imported or verified the contents of this packet; the identifier, digest and location are the producer's declaration as carried by the review's sidecar.\",\"passage\":\"Passage digests, match states and native support judgments, where shown, are the producer's declaration in the sidecar. Quote text is never shown. To check a digest, fetch the packet from its declared location and hash it; ORAtlas has not.\",\"candidate\":\"Same-paper candidate: a finding about a paper this claim cites. No reviewed decision says this claim uses it, so it is not shown as evidence for the claim.\",\"nativeAssessment\":\"Source-native Computational Review TRUST v2 as exported by the review repository. It is not an ORAtlas TRUST assessment, is not converted to one, and does not affect ORAtlas verification.\",\"nativeAssessmentUnverified\":\"ORAtlas could not recheck this value against the review's frozen claim graph and TRUST report, because they were not preserved with this version. Treat it as an unverified source declaration.\"}},\"alsoAssertedIn\":[],\"links\":{\"self\":\"/api/claims/g1-version-2/g1-synthetic-support\",\"html\":\"/claims/g1-version-2/g1-synthetic-support\",\"review\":\"/api/reviews/g1-fixture-review\",\"reviewVersion\":\"/api/reviews/g1-fixture-review/versions/g1-version-2\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-claim-oppose-anonymous",
+        "method": "GET",
+        "path": "/api/claims/g1-version-4/g1-synthetic-oppose",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 200,
+        "headers": [
+          ["cache-control", "no-store, must-revalidate"],
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"claimId\":\"oratlas:claim:v1:00670031002d00760065007200730069006f006e002d0034:00670031002d00730079006e007400680065007400690063002d006f00700070006f00730065\",\"localClaimId\":\"g1-synthetic-oppose\",\"anchor\":\"oratlas-claim-v1-00670031002d00760065007200730069006f006e002d0034-00670031002d00730079006e007400680065007400690063002d006f00700070006f00730065\",\"text\":\"Synthetic oppose evidence declaration; this exercises classification only, not a scientific conclusion.\",\"section\":\"Synthetic comparison\",\"claimType\":\"empirical\",\"reviewSlug\":\"g1-second-review\",\"reviewTitle\":\"G1 second fixture review v1\",\"versionId\":\"g1-version-4\",\"semanticVersion\":\"1.0.0\",\"publishedAt\":\"2026-03-05T12:00:00.000Z\",\"isExample\":false,\"evidence\":[{\"id\":\"g1-synthesis-relation-oppose\",\"relationType\":\"contradicts\",\"supportDirection\":\"negative\",\"citationLocalId\":\"g1-synthetic-oppose\",\"citationTitle\":\"Explicit synthetic evidence work for classification only\",\"citationDoi\":\"10.5555/g1-synthesis-shared-work\",\"citationIsExample\":true,\"hasTrustAssessment\":false,\"trustAssessments\":[]}],\"lineage\":[{\"versionId\":\"g1-version-4\",\"semanticVersion\":\"1.0.0\",\"publishedAt\":\"2026-03-05T12:00:00.000Z\",\"isCurrent\":true,\"isThisVersion\":true,\"textChanged\":false}],\"alerts\":[],\"executionPassports\":[],\"protocolDrift\":{\"reviewVersionId\":\"g1-version-4\",\"claimLocalId\":\"g1-synthetic-oppose\",\"openCount\":0,\"snapshots\":[]},\"sourceEvidenceLinks\":{\"schemaVersion\":\"1.0.0\",\"status\":\"sidecar-unavailable\",\"sidecar\":null,\"packets\":[],\"citations\":[],\"rejected\":[],\"nativeAssessment\":null,\"nativeAssessmentWithheld\":null,\"labels\":{\"producer\":\"Producer finding: a statement about the cited article, recorded in an external Diggypaper evidence packet. It is not a claim of this review.\",\"packet\":\"ORAtlas has not imported or verified the contents of this packet; the identifier, digest and location are the producer's declaration as carried by the review's sidecar.\",\"passage\":\"Passage digests, match states and native support judgments, where shown, are the producer's declaration in the sidecar. Quote text is never shown. To check a digest, fetch the packet from its declared location and hash it; ORAtlas has not.\",\"candidate\":\"Same-paper candidate: a finding about a paper this claim cites. No reviewed decision says this claim uses it, so it is not shown as evidence for the claim.\",\"nativeAssessment\":\"Source-native Computational Review TRUST v2 as exported by the review repository. It is not an ORAtlas TRUST assessment, is not converted to one, and does not affect ORAtlas verification.\",\"nativeAssessmentUnverified\":\"ORAtlas could not recheck this value against the review's frozen claim graph and TRUST report, because they were not preserved with this version. Treat it as an unverified source declaration.\"}},\"alsoAssertedIn\":[],\"links\":{\"self\":\"/api/claims/g1-version-4/g1-synthetic-oppose\",\"html\":\"/claims/g1-version-4/g1-synthetic-oppose\",\"review\":\"/api/reviews/g1-second-review\",\"reviewVersion\":\"/api/reviews/g1-second-review/versions/g1-version-4\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-claim-hidden-anonymous",
+        "method": "GET",
+        "path": "/api/claims/g1-version-3/g1-synthetic-hidden",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 404,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Claim not found.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-claim-tombstone-anonymous",
+        "method": "GET",
+        "path": "/api/claims/g1-version-tombstoned/g1-synthetic-tombstone",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 404,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Claim not found.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-notification-g1-read-federation-accepted-old-a-only",
+        "method": "GET",
+        "path": "/api/federation/notifications/g1-read-federation-accepted-old",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 200,
+        "headers": [
+          ["cache-control", "no-store, must-revalidate"],
+          ["content-type", "application/ld+json; charset=utf-8"]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"@context\":[\"https://www.w3.org/ns/activitystreams\",\"https://coar-notify.net\"],\"actor\":{\"id\":\"https://example.org/synthetic-actor\",\"type\":\"Service\"},\"id\":\"https://example.org/g1-notify/accepted-old\",\"object\":{\"id\":\"https://example.org/synthetic-object\",\"ietf:item\":{\"id\":\"https://example.org/synthetic-content.pdf\",\"mediaType\":\"application/pdf\",\"type\":\"Article\"},\"type\":\"Article\"},\"origin\":{\"id\":\"https://example.org/synthetic-origin\",\"inbox\":\"https://example.org/synthetic-inbox\",\"type\":\"Service\"},\"summary\":\"g1-read-queue-private-payload\",\"target\":{\"id\":\"https://g1.oratlas.example\",\"inbox\":\"https://g1.oratlas.example/api/federation/inbox\",\"type\":\"Service\"},\"type\":[\"Offer\",\"coar-notify:ReviewAction\"]}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-notification-g1-synthesis-announce-a-only",
+        "method": "GET",
+        "path": "/api/federation/notifications/g1-synthesis-announce",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 200,
+        "headers": [
+          ["cache-control", "no-store, must-revalidate"],
+          ["content-type", "application/ld+json; charset=utf-8"]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"@context\":[\"https://www.w3.org/ns/activitystreams\",\"https://coar-notify.net\"],\"actor\":{\"id\":\"https://example.org/g1-synthetic-producer\",\"name\":\"Synthetic Fixture Producer\",\"type\":\"Service\"},\"context\":{\"id\":\"https://example.org/g1-synthetic-source\"},\"id\":\"https://example.org/g1-synthesis/announce\",\"object\":{\"id\":\"https://g1.oratlas.example/reviews/synthesis-c368583d7cdfc3a55a55\",\"ietf:item\":{\"id\":\"https://g1.oratlas.example/api/syntheses/synthesis-c368583d7cdfc3a55a55\",\"mediaType\":\"application/json\",\"type\":\"Document\"},\"type\":[\"Page\",\"sorg:Review\"]},\"origin\":{\"id\":\"https://example.org/g1-synthetic-producer\",\"inbox\":\"https://example.org/g1-synthetic-inbox\",\"type\":\"Service\"},\"target\":{\"id\":\"https://g1.oratlas.example\",\"inbox\":\"https://g1.oratlas.example/api/federation/inbox\",\"type\":\"Service\"},\"type\":[\"Announce\",\"coar-notify:ReviewAction\"]}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-notification-g1-read-federation-pending-a-only",
+        "method": "GET",
+        "path": "/api/federation/notifications/g1-read-federation-pending",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 404,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Federation notification not found.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-notification-g1-read-federation-rejected-a-only",
+        "method": "GET",
+        "path": "/api/federation/notifications/g1-read-federation-rejected",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 404,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Federation notification not found.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-notification-g1-read-federation-outbound-a-only",
+        "method": "GET",
+        "path": "/api/federation/notifications/g1-read-federation-outbound",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 404,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Federation notification not found.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-notification-g1-read-federation-missing-a-only",
+        "method": "GET",
+        "path": "/api/federation/notifications/g1-read-federation-missing",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 404,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Federation notification not found.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-accepted-a-only",
+        "method": "GET",
+        "path": "/api/syntheses/synthesis-c368583d7cdfc3a55a55",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 200,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"slug\":\"synthesis-c368583d7cdfc3a55a55\",\"reviewType\":\"ai-synthesis\",\"title\":\"Synthesis review: Synthetic bounded source claim\",\"abstract\":\"This deterministic review summarizes 1 non-example immutable nodes and 0 confirmed relations from one bounded evidence packet.\",\"document\":{\"schemaVersion\":\"1.0.0\",\"title\":\"Synthesis review: Synthetic bounded source claim\",\"summary\":\"This deterministic review summarizes 1 non-example immutable nodes and 0 confirmed relations from one bounded evidence packet.\",\"citations\":[],\"sections\":[{\"id\":\"background\",\"title\":\"Background\",\"paragraphs\":[{\"text\":\"The bounded topic is Synthetic bounded source claim. The packet contains 1 claim nodes.\",\"citations\":[]}]},{\"id\":\"state-of-knowledge\",\"title\":\"State of knowledge\",\"paragraphs\":[{\"text\":\"claim evidence: Synthetic bounded source claim.\",\"citations\":[{\"referenceId\":\"reference:sha256:26d2da99ae1f13bf08d1844d2c6ca9a22404e4429aec199debc291075d4e52c2\",\"nodeId\":\"g1-synthesis-source\",\"nodeVersionId\":\"g1-synthesis-source-v2\"}]}]},{\"id\":\"agreements\",\"title\":\"Agreements\",\"paragraphs\":[{\"text\":\"The packet records no confirmed support, replication, or extension relation.\",\"citations\":[]}]},{\"id\":\"contradictions-and-open-questions\",\"title\":\"Contradictions and open questions\",\"paragraphs\":[{\"text\":\"The packet records no confirmed contradiction relation; unrepresented questions remain open.\",\"citations\":[]}]},{\"id\":\"data-and-code-availability\",\"title\":\"Data and code availability\",\"paragraphs\":[{\"text\":\"The packet contains no non-example data or code node.\",\"citations\":[]}]},{\"id\":\"limitations\",\"title\":\"Limitations\",\"paragraphs\":[{\"text\":\"This review is limited to the supplied bounded subgraph and does not establish scientific consensus or independent replication.\",\"citations\":[]}]}]},\"provenance\":{\"generationMode\":\"deterministic-template\",\"pipelineSoftware\":{\"id\":\"software:oratlas-synthesis-writer\",\"kind\":\"software-agent\",\"displayName\":\"Open Review Atlas Synthesis Writer\",\"pipelineVersion\":\"synthesis-writer/1.0.0\"},\"provider\":\"deterministic\",\"model\":\"bounded-template-1.0\",\"modelVersion\":\"unavailable\",\"promptVersion\":\"atlas-synthesis-1.0\",\"promptHash\":\"d537d25db53180e834c45b7dcfff5156f41588aef9ed78365972f847bc019453\",\"packetHash\":\"26249e055137ef1565f5cf6797a85982db2c87ced4bd32b0b356c5fe9aac1543\",\"documentHash\":\"e75bc69d5bb13b66f98bf8caa082abb513fc660dc25fae68b8dc948847bf4e22\",\"generatedAt\":\"2026-04-01T00:00:00.000Z\",\"attributionPolicyVersion\":\"synthesis-attribution/1.0.0\",\"materializationPolicyVersion\":\"synthesis-materialization/1.0.0\",\"acceptedAt\":\"2026-04-01T00:00:00.000Z\",\"approvingEditor\":{\"displayName\":\"G1 Fixture Admin\",\"githubLogin\":\"g1-fixture-admin\",\"roleSnapshot\":\"ADMIN\"},\"rightsStatement\":\"Synthetic fixture text is permitted for this test archive only.\",\"licenseSpdx\":\"CC-BY-4.0\",\"checklistVersion\":\"synthesis-checklist/1.0.0\",\"acceptedPredecessorVersionId\":null,\"acceptedPredecessorOrdinal\":null,\"ordinal\":1},\"citations\":[{\"referenceId\":\"reference:sha256:26d2da99ae1f13bf08d1844d2c6ca9a22404e4429aec199debc291075d4e52c2\",\"nodeId\":\"g1-synthesis-source\",\"nodeVersionId\":\"g1-synthesis-source-v2\",\"nodeKind\":\"claim\",\"title\":\"Synthetic bounded source claim\",\"href\":\"/nodes/g1-synthesis-source/versions/g1-synthesis-source-v2\",\"location\":\"sections.state-of-knowledge.paragraphs.0\",\"occurrenceOrdinal\":0}],\"version\":{\"id\":\"cmvi69rl000097k5d9nezdvby\",\"ordinal\":1,\"isCurrent\":true},\"freshness\":{\"status\":\"unchecked\",\"policyVersion\":\"synthesis-staleness/1.0.0\",\"reasonCodes\":[],\"affectedReferenceCount\":0}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-unavailable-g1-fixture-review-a-only",
+        "method": "GET",
+        "path": "/api/syntheses/g1-fixture-review",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 404,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"code\":\"not-found\",\"message\":\"Synthesis not found.\"}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-unavailable-g1-control-review-a-only",
+        "method": "GET",
+        "path": "/api/syntheses/g1-control-review",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 404,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"code\":\"not-found\",\"message\":\"Synthesis not found.\"}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-unavailable-g1-synthesis-missing-a-only",
+        "method": "GET",
+        "path": "/api/syntheses/g1-synthesis-missing",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 404,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"code\":\"not-found\",\"message\":\"Synthesis not found.\"}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-contradictions-a-only",
+        "method": "GET",
+        "path": "/api/synthesis/contradictions",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 200,
+        "headers": [
+          ["cache-control", "no-store, must-revalidate"],
+          ["content-type", "application/json"]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"reviewCount\":2,\"statementCount\":4,\"contradictions\":[{\"kind\":\"genuine-contradiction\",\"sharedFamilyCount\":1,\"differingScopeFields\":[],\"a\":{\"claimId\":\"oratlas:claim:v1:00670031002d00760065007200730069006f006e002d0034:00670031002d00730079006e007400680065007400690063002d006f00700070006f00730065\",\"text\":\"Synthetic oppose evidence declaration; this exercises classification only, not a scientific conclusion.\",\"passportPath\":\"/claims/g1-version-4/g1-synthetic-oppose\"},\"b\":{\"claimId\":\"oratlas:claim:v1:00670031002d00760065007200730069006f006e002d0032:00670031002d00730079006e007400680065007400690063002d0073007500700070006f00720074\",\"text\":\"Synthetic support evidence declaration; this exercises classification only, not a scientific conclusion.\",\"passportPath\":\"/claims/g1-version-2/g1-synthetic-support\"}}],\"counts\":{\"genuine-contradiction\":1,\"scope-difference\":0,\"undetermined-scope\":0}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-archive-a-only",
+        "method": "GET",
+        "path": "/api/search?contentType=synthesis&q=Synthetic%20bounded&pageSize=20",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 200,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"total\":1,\"page\":1,\"pageSize\":20,\"synthesisCandidateScan\":{\"limit\":500,\"limitReached\":false},\"items\":[{\"contentType\":\"synthesis\",\"slug\":\"synthesis-c368583d7cdfc3a55a55\",\"title\":\"Synthesis review: Synthetic bounded source claim\",\"abstract\":\"This deterministic review summarizes 1 non-example immutable nodes and 0 confirmed relations from one bounded evidence packet.\",\"version\":{\"id\":\"cmvi69rl000097k5d9nezdvby\",\"ordinal\":1,\"isCurrent\":true},\"freshness\":{\"status\":\"unchecked\",\"affectedReferenceCount\":0},\"score\":1,\"sortDate\":\"2026-04-01T00:00:00.000Z\",\"links\":{\"self\":\"/api/syntheses/synthesis-c368583d7cdfc3a55a55\",\"html\":\"/reviews/synthesis-c368583d7cdfc3a55a55\",\"exactVersion\":\"/reviews/synthesis-c368583d7cdfc3a55a55/syntheses/cmvi69rl000097k5d9nezdvby\"}}]}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-inbox-a-only",
+        "method": "GET",
+        "path": "/api/federation/inbox",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 200,
+        "headers": [
+          ["cache-control", "no-store, must-revalidate"],
+          ["content-type", "application/ld+json; charset=utf-8"]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"@context\":\"http://www.w3.org/ns/ldp\",\"@id\":\"https://g1.oratlas.example/api/federation/inbox\",\"contains\":[\"https://g1.oratlas.example/api/federation/notifications/g1-synthesis-announce\",\"https://g1.oratlas.example/api/federation/notifications/g1-read-federation-accepted-new\",\"https://g1.oratlas.example/api/federation/notifications/g1-read-federation-accepted-old\"]}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-feed-a-only",
+        "method": "GET",
+        "path": "/api/feeds/atom",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 200,
+        "headers": [
+          ["cache-control", "no-store, must-revalidate"],
+          ["content-type", "application/atom+xml; charset=utf-8"],
+          ["pragma", "no-cache"],
+          ["x-content-type-options", "nosniff"]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<feed xmlns=\"http://www.w3.org/2005/Atom\">\n  <id>https://g1.oratlas.example/api/feeds/atom</id>\n  <title>Open Review Atlas — recently accepted reviews</title>\n  <updated>2026-03-05T12:00:00.000Z</updated>\n  <link rel=\"alternate\" href=\"https://g1.oratlas.example/archive\"/>\n  <link rel=\"self\" href=\"https://g1.oratlas.example/api/feeds/atom\"/>\n  <entry>\n    <id>https://g1.oratlas.example/reviews/g1-second-review/versions/g1-version-4</id>\n    <title>G1 second fixture review v1</title>\n    <updated>2026-03-05T12:00:00.000Z</updated>\n    <link rel=\"alternate\" href=\"https://g1.oratlas.example/reviews/g1-second-review/versions/g1-version-4\"/>\n    <author><name>Fixture Author Two</name></author>\n    <summary>Synthetic second public version.</summary>\n  </entry>\n  <entry>\n    <id>https://g1.oratlas.example/reviews/g1-fixture-review/versions/g1-version-2</id>\n    <title>G1 fixture review v2 &amp; &quot;quoted&quot;</title>\n    <updated>2026-02-03T12:00:00.000Z</updated>\n    <link rel=\"alternate\" href=\"https://g1.oratlas.example/reviews/g1-fixture-review/versions/g1-version-2\"/>\n    <author><name>Fixture Author Two</name></author>\n    <author><name>Fixture Author One</name></author>\n    <summary>Second synthetic public version.</summary>\n  </entry>\n  <entry>\n    <id>https://g1.oratlas.example/reviews/g1-fixture-review/versions/g1-version-1</id>\n    <title>G1 fixture review v1</title>\n    <updated>2026-01-03T12:00:00.000Z</updated>\n    <link rel=\"alternate\" href=\"https://g1.oratlas.example/reviews/g1-fixture-review/versions/g1-version-1\"/>\n    <author><name>Fixture Author One</name></author>\n    <summary>First synthetic public version.</summary>\n  </entry>\n</feed>\n"
+        },
+        "atomEntryIds": [
+          "https://g1.oratlas.example/reviews/g1-second-review/versions/g1-version-4",
+          "https://g1.oratlas.example/reviews/g1-fixture-review/versions/g1-version-2",
+          "https://g1.oratlas.example/reviews/g1-fixture-review/versions/g1-version-1"
+        ]
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-claim-support-a-only",
+        "method": "GET",
+        "path": "/api/claims/g1-version-2/g1-synthetic-support",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 200,
+        "headers": [
+          ["cache-control", "no-store, must-revalidate"],
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"claimId\":\"oratlas:claim:v1:00670031002d00760065007200730069006f006e002d0032:00670031002d00730079006e007400680065007400690063002d0073007500700070006f00720074\",\"localClaimId\":\"g1-synthetic-support\",\"anchor\":\"oratlas-claim-v1-00670031002d00760065007200730069006f006e002d0032-00670031002d00730079006e007400680065007400690063002d0073007500700070006f00720074\",\"text\":\"Synthetic support evidence declaration; this exercises classification only, not a scientific conclusion.\",\"section\":\"Synthetic comparison\",\"claimType\":\"empirical\",\"reviewSlug\":\"g1-fixture-review\",\"reviewTitle\":\"G1 fixture review v2 & \\\"quoted\\\"\",\"versionId\":\"g1-version-2\",\"semanticVersion\":\"1.1.0\",\"publishedAt\":\"2026-02-03T12:00:00.000Z\",\"isExample\":false,\"evidence\":[{\"id\":\"g1-synthesis-relation-support\",\"relationType\":\"supports\",\"supportDirection\":\"positive\",\"citationLocalId\":\"g1-synthetic-support\",\"citationTitle\":\"Explicit synthetic evidence work for classification only\",\"citationDoi\":\"10.5555/g1-synthesis-shared-work\",\"citationIsExample\":true,\"hasTrustAssessment\":false,\"trustAssessments\":[]}],\"lineage\":[{\"versionId\":\"g1-version-2\",\"semanticVersion\":\"1.1.0\",\"publishedAt\":\"2026-02-03T12:00:00.000Z\",\"isCurrent\":true,\"isThisVersion\":true,\"textChanged\":false}],\"alerts\":[],\"executionPassports\":[],\"protocolDrift\":{\"reviewVersionId\":\"g1-version-2\",\"claimLocalId\":\"g1-synthetic-support\",\"openCount\":0,\"snapshots\":[]},\"sourceEvidenceLinks\":{\"schemaVersion\":\"1.0.0\",\"status\":\"sidecar-unavailable\",\"sidecar\":null,\"packets\":[],\"citations\":[],\"rejected\":[],\"nativeAssessment\":null,\"nativeAssessmentWithheld\":null,\"labels\":{\"producer\":\"Producer finding: a statement about the cited article, recorded in an external Diggypaper evidence packet. It is not a claim of this review.\",\"packet\":\"ORAtlas has not imported or verified the contents of this packet; the identifier, digest and location are the producer's declaration as carried by the review's sidecar.\",\"passage\":\"Passage digests, match states and native support judgments, where shown, are the producer's declaration in the sidecar. Quote text is never shown. To check a digest, fetch the packet from its declared location and hash it; ORAtlas has not.\",\"candidate\":\"Same-paper candidate: a finding about a paper this claim cites. No reviewed decision says this claim uses it, so it is not shown as evidence for the claim.\",\"nativeAssessment\":\"Source-native Computational Review TRUST v2 as exported by the review repository. It is not an ORAtlas TRUST assessment, is not converted to one, and does not affect ORAtlas verification.\",\"nativeAssessmentUnverified\":\"ORAtlas could not recheck this value against the review's frozen claim graph and TRUST report, because they were not preserved with this version. Treat it as an unverified source declaration.\"}},\"alsoAssertedIn\":[],\"links\":{\"self\":\"/api/claims/g1-version-2/g1-synthetic-support\",\"html\":\"/claims/g1-version-2/g1-synthetic-support\",\"review\":\"/api/reviews/g1-fixture-review\",\"reviewVersion\":\"/api/reviews/g1-fixture-review/versions/g1-version-2\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-claim-oppose-a-only",
+        "method": "GET",
+        "path": "/api/claims/g1-version-4/g1-synthetic-oppose",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 200,
+        "headers": [
+          ["cache-control", "no-store, must-revalidate"],
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"claimId\":\"oratlas:claim:v1:00670031002d00760065007200730069006f006e002d0034:00670031002d00730079006e007400680065007400690063002d006f00700070006f00730065\",\"localClaimId\":\"g1-synthetic-oppose\",\"anchor\":\"oratlas-claim-v1-00670031002d00760065007200730069006f006e002d0034-00670031002d00730079006e007400680065007400690063002d006f00700070006f00730065\",\"text\":\"Synthetic oppose evidence declaration; this exercises classification only, not a scientific conclusion.\",\"section\":\"Synthetic comparison\",\"claimType\":\"empirical\",\"reviewSlug\":\"g1-second-review\",\"reviewTitle\":\"G1 second fixture review v1\",\"versionId\":\"g1-version-4\",\"semanticVersion\":\"1.0.0\",\"publishedAt\":\"2026-03-05T12:00:00.000Z\",\"isExample\":false,\"evidence\":[{\"id\":\"g1-synthesis-relation-oppose\",\"relationType\":\"contradicts\",\"supportDirection\":\"negative\",\"citationLocalId\":\"g1-synthetic-oppose\",\"citationTitle\":\"Explicit synthetic evidence work for classification only\",\"citationDoi\":\"10.5555/g1-synthesis-shared-work\",\"citationIsExample\":true,\"hasTrustAssessment\":false,\"trustAssessments\":[]}],\"lineage\":[{\"versionId\":\"g1-version-4\",\"semanticVersion\":\"1.0.0\",\"publishedAt\":\"2026-03-05T12:00:00.000Z\",\"isCurrent\":true,\"isThisVersion\":true,\"textChanged\":false}],\"alerts\":[],\"executionPassports\":[],\"protocolDrift\":{\"reviewVersionId\":\"g1-version-4\",\"claimLocalId\":\"g1-synthetic-oppose\",\"openCount\":0,\"snapshots\":[]},\"sourceEvidenceLinks\":{\"schemaVersion\":\"1.0.0\",\"status\":\"sidecar-unavailable\",\"sidecar\":null,\"packets\":[],\"citations\":[],\"rejected\":[],\"nativeAssessment\":null,\"nativeAssessmentWithheld\":null,\"labels\":{\"producer\":\"Producer finding: a statement about the cited article, recorded in an external Diggypaper evidence packet. It is not a claim of this review.\",\"packet\":\"ORAtlas has not imported or verified the contents of this packet; the identifier, digest and location are the producer's declaration as carried by the review's sidecar.\",\"passage\":\"Passage digests, match states and native support judgments, where shown, are the producer's declaration in the sidecar. Quote text is never shown. To check a digest, fetch the packet from its declared location and hash it; ORAtlas has not.\",\"candidate\":\"Same-paper candidate: a finding about a paper this claim cites. No reviewed decision says this claim uses it, so it is not shown as evidence for the claim.\",\"nativeAssessment\":\"Source-native Computational Review TRUST v2 as exported by the review repository. It is not an ORAtlas TRUST assessment, is not converted to one, and does not affect ORAtlas verification.\",\"nativeAssessmentUnverified\":\"ORAtlas could not recheck this value against the review's frozen claim graph and TRUST report, because they were not preserved with this version. Treat it as an unverified source declaration.\"}},\"alsoAssertedIn\":[],\"links\":{\"self\":\"/api/claims/g1-version-4/g1-synthetic-oppose\",\"html\":\"/claims/g1-version-4/g1-synthetic-oppose\",\"review\":\"/api/reviews/g1-second-review\",\"reviewVersion\":\"/api/reviews/g1-second-review/versions/g1-version-4\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-claim-hidden-a-only",
+        "method": "GET",
+        "path": "/api/claims/g1-version-3/g1-synthetic-hidden",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 404,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Claim not found.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-claim-tombstone-a-only",
+        "method": "GET",
+        "path": "/api/claims/g1-version-tombstoned/g1-synthetic-tombstone",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 404,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Claim not found.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-notification-g1-read-federation-accepted-old-b-only",
+        "method": "GET",
+        "path": "/api/federation/notifications/g1-read-federation-accepted-old",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 200,
+        "headers": [
+          ["cache-control", "no-store, must-revalidate"],
+          ["content-type", "application/ld+json; charset=utf-8"]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"@context\":[\"https://www.w3.org/ns/activitystreams\",\"https://coar-notify.net\"],\"actor\":{\"id\":\"https://example.org/synthetic-actor\",\"type\":\"Service\"},\"id\":\"https://example.org/g1-notify/accepted-old\",\"object\":{\"id\":\"https://example.org/synthetic-object\",\"ietf:item\":{\"id\":\"https://example.org/synthetic-content.pdf\",\"mediaType\":\"application/pdf\",\"type\":\"Article\"},\"type\":\"Article\"},\"origin\":{\"id\":\"https://example.org/synthetic-origin\",\"inbox\":\"https://example.org/synthetic-inbox\",\"type\":\"Service\"},\"summary\":\"g1-read-queue-private-payload\",\"target\":{\"id\":\"https://g1.oratlas.example\",\"inbox\":\"https://g1.oratlas.example/api/federation/inbox\",\"type\":\"Service\"},\"type\":[\"Offer\",\"coar-notify:ReviewAction\"]}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-notification-g1-synthesis-announce-b-only",
+        "method": "GET",
+        "path": "/api/federation/notifications/g1-synthesis-announce",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 200,
+        "headers": [
+          ["cache-control", "no-store, must-revalidate"],
+          ["content-type", "application/ld+json; charset=utf-8"]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"@context\":[\"https://www.w3.org/ns/activitystreams\",\"https://coar-notify.net\"],\"actor\":{\"id\":\"https://example.org/g1-synthetic-producer\",\"name\":\"Synthetic Fixture Producer\",\"type\":\"Service\"},\"context\":{\"id\":\"https://example.org/g1-synthetic-source\"},\"id\":\"https://example.org/g1-synthesis/announce\",\"object\":{\"id\":\"https://g1.oratlas.example/reviews/synthesis-c368583d7cdfc3a55a55\",\"ietf:item\":{\"id\":\"https://g1.oratlas.example/api/syntheses/synthesis-c368583d7cdfc3a55a55\",\"mediaType\":\"application/json\",\"type\":\"Document\"},\"type\":[\"Page\",\"sorg:Review\"]},\"origin\":{\"id\":\"https://example.org/g1-synthetic-producer\",\"inbox\":\"https://example.org/g1-synthetic-inbox\",\"type\":\"Service\"},\"target\":{\"id\":\"https://g1.oratlas.example\",\"inbox\":\"https://g1.oratlas.example/api/federation/inbox\",\"type\":\"Service\"},\"type\":[\"Announce\",\"coar-notify:ReviewAction\"]}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-notification-g1-read-federation-pending-b-only",
+        "method": "GET",
+        "path": "/api/federation/notifications/g1-read-federation-pending",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 404,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Federation notification not found.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-notification-g1-read-federation-rejected-b-only",
+        "method": "GET",
+        "path": "/api/federation/notifications/g1-read-federation-rejected",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 404,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Federation notification not found.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-notification-g1-read-federation-outbound-b-only",
+        "method": "GET",
+        "path": "/api/federation/notifications/g1-read-federation-outbound",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 404,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Federation notification not found.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-notification-g1-read-federation-missing-b-only",
+        "method": "GET",
+        "path": "/api/federation/notifications/g1-read-federation-missing",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 404,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Federation notification not found.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-accepted-b-only",
+        "method": "GET",
+        "path": "/api/syntheses/synthesis-c368583d7cdfc3a55a55",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 200,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"slug\":\"synthesis-c368583d7cdfc3a55a55\",\"reviewType\":\"ai-synthesis\",\"title\":\"Synthesis review: Synthetic bounded source claim\",\"abstract\":\"This deterministic review summarizes 1 non-example immutable nodes and 0 confirmed relations from one bounded evidence packet.\",\"document\":{\"schemaVersion\":\"1.0.0\",\"title\":\"Synthesis review: Synthetic bounded source claim\",\"summary\":\"This deterministic review summarizes 1 non-example immutable nodes and 0 confirmed relations from one bounded evidence packet.\",\"citations\":[],\"sections\":[{\"id\":\"background\",\"title\":\"Background\",\"paragraphs\":[{\"text\":\"The bounded topic is Synthetic bounded source claim. The packet contains 1 claim nodes.\",\"citations\":[]}]},{\"id\":\"state-of-knowledge\",\"title\":\"State of knowledge\",\"paragraphs\":[{\"text\":\"claim evidence: Synthetic bounded source claim.\",\"citations\":[{\"referenceId\":\"reference:sha256:26d2da99ae1f13bf08d1844d2c6ca9a22404e4429aec199debc291075d4e52c2\",\"nodeId\":\"g1-synthesis-source\",\"nodeVersionId\":\"g1-synthesis-source-v2\"}]}]},{\"id\":\"agreements\",\"title\":\"Agreements\",\"paragraphs\":[{\"text\":\"The packet records no confirmed support, replication, or extension relation.\",\"citations\":[]}]},{\"id\":\"contradictions-and-open-questions\",\"title\":\"Contradictions and open questions\",\"paragraphs\":[{\"text\":\"The packet records no confirmed contradiction relation; unrepresented questions remain open.\",\"citations\":[]}]},{\"id\":\"data-and-code-availability\",\"title\":\"Data and code availability\",\"paragraphs\":[{\"text\":\"The packet contains no non-example data or code node.\",\"citations\":[]}]},{\"id\":\"limitations\",\"title\":\"Limitations\",\"paragraphs\":[{\"text\":\"This review is limited to the supplied bounded subgraph and does not establish scientific consensus or independent replication.\",\"citations\":[]}]}]},\"provenance\":{\"generationMode\":\"deterministic-template\",\"pipelineSoftware\":{\"id\":\"software:oratlas-synthesis-writer\",\"kind\":\"software-agent\",\"displayName\":\"Open Review Atlas Synthesis Writer\",\"pipelineVersion\":\"synthesis-writer/1.0.0\"},\"provider\":\"deterministic\",\"model\":\"bounded-template-1.0\",\"modelVersion\":\"unavailable\",\"promptVersion\":\"atlas-synthesis-1.0\",\"promptHash\":\"d537d25db53180e834c45b7dcfff5156f41588aef9ed78365972f847bc019453\",\"packetHash\":\"26249e055137ef1565f5cf6797a85982db2c87ced4bd32b0b356c5fe9aac1543\",\"documentHash\":\"e75bc69d5bb13b66f98bf8caa082abb513fc660dc25fae68b8dc948847bf4e22\",\"generatedAt\":\"2026-04-01T00:00:00.000Z\",\"attributionPolicyVersion\":\"synthesis-attribution/1.0.0\",\"materializationPolicyVersion\":\"synthesis-materialization/1.0.0\",\"acceptedAt\":\"2026-04-01T00:00:00.000Z\",\"approvingEditor\":{\"displayName\":\"G1 Fixture Admin\",\"githubLogin\":\"g1-fixture-admin\",\"roleSnapshot\":\"ADMIN\"},\"rightsStatement\":\"Synthetic fixture text is permitted for this test archive only.\",\"licenseSpdx\":\"CC-BY-4.0\",\"checklistVersion\":\"synthesis-checklist/1.0.0\",\"acceptedPredecessorVersionId\":null,\"acceptedPredecessorOrdinal\":null,\"ordinal\":1},\"citations\":[{\"referenceId\":\"reference:sha256:26d2da99ae1f13bf08d1844d2c6ca9a22404e4429aec199debc291075d4e52c2\",\"nodeId\":\"g1-synthesis-source\",\"nodeVersionId\":\"g1-synthesis-source-v2\",\"nodeKind\":\"claim\",\"title\":\"Synthetic bounded source claim\",\"href\":\"/nodes/g1-synthesis-source/versions/g1-synthesis-source-v2\",\"location\":\"sections.state-of-knowledge.paragraphs.0\",\"occurrenceOrdinal\":0}],\"version\":{\"id\":\"cmvi69rl000097k5d9nezdvby\",\"ordinal\":1,\"isCurrent\":true},\"freshness\":{\"status\":\"unchecked\",\"policyVersion\":\"synthesis-staleness/1.0.0\",\"reasonCodes\":[],\"affectedReferenceCount\":0}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-unavailable-g1-fixture-review-b-only",
+        "method": "GET",
+        "path": "/api/syntheses/g1-fixture-review",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 404,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"code\":\"not-found\",\"message\":\"Synthesis not found.\"}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-unavailable-g1-control-review-b-only",
+        "method": "GET",
+        "path": "/api/syntheses/g1-control-review",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 404,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"code\":\"not-found\",\"message\":\"Synthesis not found.\"}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-unavailable-g1-synthesis-missing-b-only",
+        "method": "GET",
+        "path": "/api/syntheses/g1-synthesis-missing",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 404,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"code\":\"not-found\",\"message\":\"Synthesis not found.\"}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-contradictions-b-only",
+        "method": "GET",
+        "path": "/api/synthesis/contradictions",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 200,
+        "headers": [
+          ["cache-control", "no-store, must-revalidate"],
+          ["content-type", "application/json"]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"reviewCount\":2,\"statementCount\":4,\"contradictions\":[{\"kind\":\"genuine-contradiction\",\"sharedFamilyCount\":1,\"differingScopeFields\":[],\"a\":{\"claimId\":\"oratlas:claim:v1:00670031002d00760065007200730069006f006e002d0034:00670031002d00730079006e007400680065007400690063002d006f00700070006f00730065\",\"text\":\"Synthetic oppose evidence declaration; this exercises classification only, not a scientific conclusion.\",\"passportPath\":\"/claims/g1-version-4/g1-synthetic-oppose\"},\"b\":{\"claimId\":\"oratlas:claim:v1:00670031002d00760065007200730069006f006e002d0032:00670031002d00730079006e007400680065007400690063002d0073007500700070006f00720074\",\"text\":\"Synthetic support evidence declaration; this exercises classification only, not a scientific conclusion.\",\"passportPath\":\"/claims/g1-version-2/g1-synthetic-support\"}}],\"counts\":{\"genuine-contradiction\":1,\"scope-difference\":0,\"undetermined-scope\":0}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-archive-b-only",
+        "method": "GET",
+        "path": "/api/search?contentType=synthesis&q=Synthetic%20bounded&pageSize=20",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 200,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"total\":1,\"page\":1,\"pageSize\":20,\"synthesisCandidateScan\":{\"limit\":500,\"limitReached\":false},\"items\":[{\"contentType\":\"synthesis\",\"slug\":\"synthesis-c368583d7cdfc3a55a55\",\"title\":\"Synthesis review: Synthetic bounded source claim\",\"abstract\":\"This deterministic review summarizes 1 non-example immutable nodes and 0 confirmed relations from one bounded evidence packet.\",\"version\":{\"id\":\"cmvi69rl000097k5d9nezdvby\",\"ordinal\":1,\"isCurrent\":true},\"freshness\":{\"status\":\"unchecked\",\"affectedReferenceCount\":0},\"score\":1,\"sortDate\":\"2026-04-01T00:00:00.000Z\",\"links\":{\"self\":\"/api/syntheses/synthesis-c368583d7cdfc3a55a55\",\"html\":\"/reviews/synthesis-c368583d7cdfc3a55a55\",\"exactVersion\":\"/reviews/synthesis-c368583d7cdfc3a55a55/syntheses/cmvi69rl000097k5d9nezdvby\"}}]}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-inbox-b-only",
+        "method": "GET",
+        "path": "/api/federation/inbox",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 200,
+        "headers": [
+          ["cache-control", "no-store, must-revalidate"],
+          ["content-type", "application/ld+json; charset=utf-8"]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"@context\":\"http://www.w3.org/ns/ldp\",\"@id\":\"https://g1.oratlas.example/api/federation/inbox\",\"contains\":[\"https://g1.oratlas.example/api/federation/notifications/g1-synthesis-announce\",\"https://g1.oratlas.example/api/federation/notifications/g1-read-federation-accepted-new\",\"https://g1.oratlas.example/api/federation/notifications/g1-read-federation-accepted-old\"]}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-feed-b-only",
+        "method": "GET",
+        "path": "/api/feeds/atom",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 200,
+        "headers": [
+          ["cache-control", "no-store, must-revalidate"],
+          ["content-type", "application/atom+xml; charset=utf-8"],
+          ["pragma", "no-cache"],
+          ["x-content-type-options", "nosniff"]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<feed xmlns=\"http://www.w3.org/2005/Atom\">\n  <id>https://g1.oratlas.example/api/feeds/atom</id>\n  <title>Open Review Atlas — recently accepted reviews</title>\n  <updated>2026-03-05T12:00:00.000Z</updated>\n  <link rel=\"alternate\" href=\"https://g1.oratlas.example/archive\"/>\n  <link rel=\"self\" href=\"https://g1.oratlas.example/api/feeds/atom\"/>\n  <entry>\n    <id>https://g1.oratlas.example/reviews/g1-second-review/versions/g1-version-4</id>\n    <title>G1 second fixture review v1</title>\n    <updated>2026-03-05T12:00:00.000Z</updated>\n    <link rel=\"alternate\" href=\"https://g1.oratlas.example/reviews/g1-second-review/versions/g1-version-4\"/>\n    <author><name>Fixture Author Two</name></author>\n    <summary>Synthetic second public version.</summary>\n  </entry>\n  <entry>\n    <id>https://g1.oratlas.example/reviews/g1-fixture-review/versions/g1-version-2</id>\n    <title>G1 fixture review v2 &amp; &quot;quoted&quot;</title>\n    <updated>2026-02-03T12:00:00.000Z</updated>\n    <link rel=\"alternate\" href=\"https://g1.oratlas.example/reviews/g1-fixture-review/versions/g1-version-2\"/>\n    <author><name>Fixture Author Two</name></author>\n    <author><name>Fixture Author One</name></author>\n    <summary>Second synthetic public version.</summary>\n  </entry>\n  <entry>\n    <id>https://g1.oratlas.example/reviews/g1-fixture-review/versions/g1-version-1</id>\n    <title>G1 fixture review v1</title>\n    <updated>2026-01-03T12:00:00.000Z</updated>\n    <link rel=\"alternate\" href=\"https://g1.oratlas.example/reviews/g1-fixture-review/versions/g1-version-1\"/>\n    <author><name>Fixture Author One</name></author>\n    <summary>First synthetic public version.</summary>\n  </entry>\n</feed>\n"
+        },
+        "atomEntryIds": [
+          "https://g1.oratlas.example/reviews/g1-second-review/versions/g1-version-4",
+          "https://g1.oratlas.example/reviews/g1-fixture-review/versions/g1-version-2",
+          "https://g1.oratlas.example/reviews/g1-fixture-review/versions/g1-version-1"
+        ]
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-claim-support-b-only",
+        "method": "GET",
+        "path": "/api/claims/g1-version-2/g1-synthetic-support",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 200,
+        "headers": [
+          ["cache-control", "no-store, must-revalidate"],
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"claimId\":\"oratlas:claim:v1:00670031002d00760065007200730069006f006e002d0032:00670031002d00730079006e007400680065007400690063002d0073007500700070006f00720074\",\"localClaimId\":\"g1-synthetic-support\",\"anchor\":\"oratlas-claim-v1-00670031002d00760065007200730069006f006e002d0032-00670031002d00730079006e007400680065007400690063002d0073007500700070006f00720074\",\"text\":\"Synthetic support evidence declaration; this exercises classification only, not a scientific conclusion.\",\"section\":\"Synthetic comparison\",\"claimType\":\"empirical\",\"reviewSlug\":\"g1-fixture-review\",\"reviewTitle\":\"G1 fixture review v2 & \\\"quoted\\\"\",\"versionId\":\"g1-version-2\",\"semanticVersion\":\"1.1.0\",\"publishedAt\":\"2026-02-03T12:00:00.000Z\",\"isExample\":false,\"evidence\":[{\"id\":\"g1-synthesis-relation-support\",\"relationType\":\"supports\",\"supportDirection\":\"positive\",\"citationLocalId\":\"g1-synthetic-support\",\"citationTitle\":\"Explicit synthetic evidence work for classification only\",\"citationDoi\":\"10.5555/g1-synthesis-shared-work\",\"citationIsExample\":true,\"hasTrustAssessment\":false,\"trustAssessments\":[]}],\"lineage\":[{\"versionId\":\"g1-version-2\",\"semanticVersion\":\"1.1.0\",\"publishedAt\":\"2026-02-03T12:00:00.000Z\",\"isCurrent\":true,\"isThisVersion\":true,\"textChanged\":false}],\"alerts\":[],\"executionPassports\":[],\"protocolDrift\":{\"reviewVersionId\":\"g1-version-2\",\"claimLocalId\":\"g1-synthetic-support\",\"openCount\":0,\"snapshots\":[]},\"sourceEvidenceLinks\":{\"schemaVersion\":\"1.0.0\",\"status\":\"sidecar-unavailable\",\"sidecar\":null,\"packets\":[],\"citations\":[],\"rejected\":[],\"nativeAssessment\":null,\"nativeAssessmentWithheld\":null,\"labels\":{\"producer\":\"Producer finding: a statement about the cited article, recorded in an external Diggypaper evidence packet. It is not a claim of this review.\",\"packet\":\"ORAtlas has not imported or verified the contents of this packet; the identifier, digest and location are the producer's declaration as carried by the review's sidecar.\",\"passage\":\"Passage digests, match states and native support judgments, where shown, are the producer's declaration in the sidecar. Quote text is never shown. To check a digest, fetch the packet from its declared location and hash it; ORAtlas has not.\",\"candidate\":\"Same-paper candidate: a finding about a paper this claim cites. No reviewed decision says this claim uses it, so it is not shown as evidence for the claim.\",\"nativeAssessment\":\"Source-native Computational Review TRUST v2 as exported by the review repository. It is not an ORAtlas TRUST assessment, is not converted to one, and does not affect ORAtlas verification.\",\"nativeAssessmentUnverified\":\"ORAtlas could not recheck this value against the review's frozen claim graph and TRUST report, because they were not preserved with this version. Treat it as an unverified source declaration.\"}},\"alsoAssertedIn\":[],\"links\":{\"self\":\"/api/claims/g1-version-2/g1-synthetic-support\",\"html\":\"/claims/g1-version-2/g1-synthetic-support\",\"review\":\"/api/reviews/g1-fixture-review\",\"reviewVersion\":\"/api/reviews/g1-fixture-review/versions/g1-version-2\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-claim-oppose-b-only",
+        "method": "GET",
+        "path": "/api/claims/g1-version-4/g1-synthetic-oppose",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 200,
+        "headers": [
+          ["cache-control", "no-store, must-revalidate"],
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"claimId\":\"oratlas:claim:v1:00670031002d00760065007200730069006f006e002d0034:00670031002d00730079006e007400680065007400690063002d006f00700070006f00730065\",\"localClaimId\":\"g1-synthetic-oppose\",\"anchor\":\"oratlas-claim-v1-00670031002d00760065007200730069006f006e002d0034-00670031002d00730079006e007400680065007400690063002d006f00700070006f00730065\",\"text\":\"Synthetic oppose evidence declaration; this exercises classification only, not a scientific conclusion.\",\"section\":\"Synthetic comparison\",\"claimType\":\"empirical\",\"reviewSlug\":\"g1-second-review\",\"reviewTitle\":\"G1 second fixture review v1\",\"versionId\":\"g1-version-4\",\"semanticVersion\":\"1.0.0\",\"publishedAt\":\"2026-03-05T12:00:00.000Z\",\"isExample\":false,\"evidence\":[{\"id\":\"g1-synthesis-relation-oppose\",\"relationType\":\"contradicts\",\"supportDirection\":\"negative\",\"citationLocalId\":\"g1-synthetic-oppose\",\"citationTitle\":\"Explicit synthetic evidence work for classification only\",\"citationDoi\":\"10.5555/g1-synthesis-shared-work\",\"citationIsExample\":true,\"hasTrustAssessment\":false,\"trustAssessments\":[]}],\"lineage\":[{\"versionId\":\"g1-version-4\",\"semanticVersion\":\"1.0.0\",\"publishedAt\":\"2026-03-05T12:00:00.000Z\",\"isCurrent\":true,\"isThisVersion\":true,\"textChanged\":false}],\"alerts\":[],\"executionPassports\":[],\"protocolDrift\":{\"reviewVersionId\":\"g1-version-4\",\"claimLocalId\":\"g1-synthetic-oppose\",\"openCount\":0,\"snapshots\":[]},\"sourceEvidenceLinks\":{\"schemaVersion\":\"1.0.0\",\"status\":\"sidecar-unavailable\",\"sidecar\":null,\"packets\":[],\"citations\":[],\"rejected\":[],\"nativeAssessment\":null,\"nativeAssessmentWithheld\":null,\"labels\":{\"producer\":\"Producer finding: a statement about the cited article, recorded in an external Diggypaper evidence packet. It is not a claim of this review.\",\"packet\":\"ORAtlas has not imported or verified the contents of this packet; the identifier, digest and location are the producer's declaration as carried by the review's sidecar.\",\"passage\":\"Passage digests, match states and native support judgments, where shown, are the producer's declaration in the sidecar. Quote text is never shown. To check a digest, fetch the packet from its declared location and hash it; ORAtlas has not.\",\"candidate\":\"Same-paper candidate: a finding about a paper this claim cites. No reviewed decision says this claim uses it, so it is not shown as evidence for the claim.\",\"nativeAssessment\":\"Source-native Computational Review TRUST v2 as exported by the review repository. It is not an ORAtlas TRUST assessment, is not converted to one, and does not affect ORAtlas verification.\",\"nativeAssessmentUnverified\":\"ORAtlas could not recheck this value against the review's frozen claim graph and TRUST report, because they were not preserved with this version. Treat it as an unverified source declaration.\"}},\"alsoAssertedIn\":[],\"links\":{\"self\":\"/api/claims/g1-version-4/g1-synthetic-oppose\",\"html\":\"/claims/g1-version-4/g1-synthetic-oppose\",\"review\":\"/api/reviews/g1-second-review\",\"reviewVersion\":\"/api/reviews/g1-second-review/versions/g1-version-4\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-claim-hidden-b-only",
+        "method": "GET",
+        "path": "/api/claims/g1-version-3/g1-synthetic-hidden",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 404,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Claim not found.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-claim-tombstone-b-only",
+        "method": "GET",
+        "path": "/api/claims/g1-version-tombstoned/g1-synthetic-tombstone",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 404,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Claim not found.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-notification-g1-read-federation-accepted-old-a-and-b",
+        "method": "GET",
+        "path": "/api/federation/notifications/g1-read-federation-accepted-old",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 200,
+        "headers": [
+          ["cache-control", "no-store, must-revalidate"],
+          ["content-type", "application/ld+json; charset=utf-8"]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"@context\":[\"https://www.w3.org/ns/activitystreams\",\"https://coar-notify.net\"],\"actor\":{\"id\":\"https://example.org/synthetic-actor\",\"type\":\"Service\"},\"id\":\"https://example.org/g1-notify/accepted-old\",\"object\":{\"id\":\"https://example.org/synthetic-object\",\"ietf:item\":{\"id\":\"https://example.org/synthetic-content.pdf\",\"mediaType\":\"application/pdf\",\"type\":\"Article\"},\"type\":\"Article\"},\"origin\":{\"id\":\"https://example.org/synthetic-origin\",\"inbox\":\"https://example.org/synthetic-inbox\",\"type\":\"Service\"},\"summary\":\"g1-read-queue-private-payload\",\"target\":{\"id\":\"https://g1.oratlas.example\",\"inbox\":\"https://g1.oratlas.example/api/federation/inbox\",\"type\":\"Service\"},\"type\":[\"Offer\",\"coar-notify:ReviewAction\"]}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-notification-g1-synthesis-announce-a-and-b",
+        "method": "GET",
+        "path": "/api/federation/notifications/g1-synthesis-announce",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 200,
+        "headers": [
+          ["cache-control", "no-store, must-revalidate"],
+          ["content-type", "application/ld+json; charset=utf-8"]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"@context\":[\"https://www.w3.org/ns/activitystreams\",\"https://coar-notify.net\"],\"actor\":{\"id\":\"https://example.org/g1-synthetic-producer\",\"name\":\"Synthetic Fixture Producer\",\"type\":\"Service\"},\"context\":{\"id\":\"https://example.org/g1-synthetic-source\"},\"id\":\"https://example.org/g1-synthesis/announce\",\"object\":{\"id\":\"https://g1.oratlas.example/reviews/synthesis-c368583d7cdfc3a55a55\",\"ietf:item\":{\"id\":\"https://g1.oratlas.example/api/syntheses/synthesis-c368583d7cdfc3a55a55\",\"mediaType\":\"application/json\",\"type\":\"Document\"},\"type\":[\"Page\",\"sorg:Review\"]},\"origin\":{\"id\":\"https://example.org/g1-synthetic-producer\",\"inbox\":\"https://example.org/g1-synthetic-inbox\",\"type\":\"Service\"},\"target\":{\"id\":\"https://g1.oratlas.example\",\"inbox\":\"https://g1.oratlas.example/api/federation/inbox\",\"type\":\"Service\"},\"type\":[\"Announce\",\"coar-notify:ReviewAction\"]}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-notification-g1-read-federation-pending-a-and-b",
+        "method": "GET",
+        "path": "/api/federation/notifications/g1-read-federation-pending",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 404,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Federation notification not found.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-notification-g1-read-federation-rejected-a-and-b",
+        "method": "GET",
+        "path": "/api/federation/notifications/g1-read-federation-rejected",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 404,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Federation notification not found.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-notification-g1-read-federation-outbound-a-and-b",
+        "method": "GET",
+        "path": "/api/federation/notifications/g1-read-federation-outbound",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 404,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Federation notification not found.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-notification-g1-read-federation-missing-a-and-b",
+        "method": "GET",
+        "path": "/api/federation/notifications/g1-read-federation-missing",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 404,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Federation notification not found.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-accepted-a-and-b",
+        "method": "GET",
+        "path": "/api/syntheses/synthesis-c368583d7cdfc3a55a55",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 200,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"slug\":\"synthesis-c368583d7cdfc3a55a55\",\"reviewType\":\"ai-synthesis\",\"title\":\"Synthesis review: Synthetic bounded source claim\",\"abstract\":\"This deterministic review summarizes 1 non-example immutable nodes and 0 confirmed relations from one bounded evidence packet.\",\"document\":{\"schemaVersion\":\"1.0.0\",\"title\":\"Synthesis review: Synthetic bounded source claim\",\"summary\":\"This deterministic review summarizes 1 non-example immutable nodes and 0 confirmed relations from one bounded evidence packet.\",\"citations\":[],\"sections\":[{\"id\":\"background\",\"title\":\"Background\",\"paragraphs\":[{\"text\":\"The bounded topic is Synthetic bounded source claim. The packet contains 1 claim nodes.\",\"citations\":[]}]},{\"id\":\"state-of-knowledge\",\"title\":\"State of knowledge\",\"paragraphs\":[{\"text\":\"claim evidence: Synthetic bounded source claim.\",\"citations\":[{\"referenceId\":\"reference:sha256:26d2da99ae1f13bf08d1844d2c6ca9a22404e4429aec199debc291075d4e52c2\",\"nodeId\":\"g1-synthesis-source\",\"nodeVersionId\":\"g1-synthesis-source-v2\"}]}]},{\"id\":\"agreements\",\"title\":\"Agreements\",\"paragraphs\":[{\"text\":\"The packet records no confirmed support, replication, or extension relation.\",\"citations\":[]}]},{\"id\":\"contradictions-and-open-questions\",\"title\":\"Contradictions and open questions\",\"paragraphs\":[{\"text\":\"The packet records no confirmed contradiction relation; unrepresented questions remain open.\",\"citations\":[]}]},{\"id\":\"data-and-code-availability\",\"title\":\"Data and code availability\",\"paragraphs\":[{\"text\":\"The packet contains no non-example data or code node.\",\"citations\":[]}]},{\"id\":\"limitations\",\"title\":\"Limitations\",\"paragraphs\":[{\"text\":\"This review is limited to the supplied bounded subgraph and does not establish scientific consensus or independent replication.\",\"citations\":[]}]}]},\"provenance\":{\"generationMode\":\"deterministic-template\",\"pipelineSoftware\":{\"id\":\"software:oratlas-synthesis-writer\",\"kind\":\"software-agent\",\"displayName\":\"Open Review Atlas Synthesis Writer\",\"pipelineVersion\":\"synthesis-writer/1.0.0\"},\"provider\":\"deterministic\",\"model\":\"bounded-template-1.0\",\"modelVersion\":\"unavailable\",\"promptVersion\":\"atlas-synthesis-1.0\",\"promptHash\":\"d537d25db53180e834c45b7dcfff5156f41588aef9ed78365972f847bc019453\",\"packetHash\":\"26249e055137ef1565f5cf6797a85982db2c87ced4bd32b0b356c5fe9aac1543\",\"documentHash\":\"e75bc69d5bb13b66f98bf8caa082abb513fc660dc25fae68b8dc948847bf4e22\",\"generatedAt\":\"2026-04-01T00:00:00.000Z\",\"attributionPolicyVersion\":\"synthesis-attribution/1.0.0\",\"materializationPolicyVersion\":\"synthesis-materialization/1.0.0\",\"acceptedAt\":\"2026-04-01T00:00:00.000Z\",\"approvingEditor\":{\"displayName\":\"G1 Fixture Admin\",\"githubLogin\":\"g1-fixture-admin\",\"roleSnapshot\":\"ADMIN\"},\"rightsStatement\":\"Synthetic fixture text is permitted for this test archive only.\",\"licenseSpdx\":\"CC-BY-4.0\",\"checklistVersion\":\"synthesis-checklist/1.0.0\",\"acceptedPredecessorVersionId\":null,\"acceptedPredecessorOrdinal\":null,\"ordinal\":1},\"citations\":[{\"referenceId\":\"reference:sha256:26d2da99ae1f13bf08d1844d2c6ca9a22404e4429aec199debc291075d4e52c2\",\"nodeId\":\"g1-synthesis-source\",\"nodeVersionId\":\"g1-synthesis-source-v2\",\"nodeKind\":\"claim\",\"title\":\"Synthetic bounded source claim\",\"href\":\"/nodes/g1-synthesis-source/versions/g1-synthesis-source-v2\",\"location\":\"sections.state-of-knowledge.paragraphs.0\",\"occurrenceOrdinal\":0}],\"version\":{\"id\":\"cmvi69rl000097k5d9nezdvby\",\"ordinal\":1,\"isCurrent\":true},\"freshness\":{\"status\":\"unchecked\",\"policyVersion\":\"synthesis-staleness/1.0.0\",\"reasonCodes\":[],\"affectedReferenceCount\":0}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-unavailable-g1-fixture-review-a-and-b",
+        "method": "GET",
+        "path": "/api/syntheses/g1-fixture-review",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 404,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"code\":\"not-found\",\"message\":\"Synthesis not found.\"}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-unavailable-g1-control-review-a-and-b",
+        "method": "GET",
+        "path": "/api/syntheses/g1-control-review",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 404,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"code\":\"not-found\",\"message\":\"Synthesis not found.\"}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-unavailable-g1-synthesis-missing-a-and-b",
+        "method": "GET",
+        "path": "/api/syntheses/g1-synthesis-missing",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 404,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"code\":\"not-found\",\"message\":\"Synthesis not found.\"}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-contradictions-a-and-b",
+        "method": "GET",
+        "path": "/api/synthesis/contradictions",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 200,
+        "headers": [
+          ["cache-control", "no-store, must-revalidate"],
+          ["content-type", "application/json"]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"reviewCount\":2,\"statementCount\":4,\"contradictions\":[{\"kind\":\"genuine-contradiction\",\"sharedFamilyCount\":1,\"differingScopeFields\":[],\"a\":{\"claimId\":\"oratlas:claim:v1:00670031002d00760065007200730069006f006e002d0034:00670031002d00730079006e007400680065007400690063002d006f00700070006f00730065\",\"text\":\"Synthetic oppose evidence declaration; this exercises classification only, not a scientific conclusion.\",\"passportPath\":\"/claims/g1-version-4/g1-synthetic-oppose\"},\"b\":{\"claimId\":\"oratlas:claim:v1:00670031002d00760065007200730069006f006e002d0032:00670031002d00730079006e007400680065007400690063002d0073007500700070006f00720074\",\"text\":\"Synthetic support evidence declaration; this exercises classification only, not a scientific conclusion.\",\"passportPath\":\"/claims/g1-version-2/g1-synthetic-support\"}}],\"counts\":{\"genuine-contradiction\":1,\"scope-difference\":0,\"undetermined-scope\":0}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-archive-a-and-b",
+        "method": "GET",
+        "path": "/api/search?contentType=synthesis&q=Synthetic%20bounded&pageSize=20",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 200,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"total\":1,\"page\":1,\"pageSize\":20,\"synthesisCandidateScan\":{\"limit\":500,\"limitReached\":false},\"items\":[{\"contentType\":\"synthesis\",\"slug\":\"synthesis-c368583d7cdfc3a55a55\",\"title\":\"Synthesis review: Synthetic bounded source claim\",\"abstract\":\"This deterministic review summarizes 1 non-example immutable nodes and 0 confirmed relations from one bounded evidence packet.\",\"version\":{\"id\":\"cmvi69rl000097k5d9nezdvby\",\"ordinal\":1,\"isCurrent\":true},\"freshness\":{\"status\":\"unchecked\",\"affectedReferenceCount\":0},\"score\":1,\"sortDate\":\"2026-04-01T00:00:00.000Z\",\"links\":{\"self\":\"/api/syntheses/synthesis-c368583d7cdfc3a55a55\",\"html\":\"/reviews/synthesis-c368583d7cdfc3a55a55\",\"exactVersion\":\"/reviews/synthesis-c368583d7cdfc3a55a55/syntheses/cmvi69rl000097k5d9nezdvby\"}}]}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-inbox-a-and-b",
+        "method": "GET",
+        "path": "/api/federation/inbox",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 200,
+        "headers": [
+          ["cache-control", "no-store, must-revalidate"],
+          ["content-type", "application/ld+json; charset=utf-8"]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"@context\":\"http://www.w3.org/ns/ldp\",\"@id\":\"https://g1.oratlas.example/api/federation/inbox\",\"contains\":[\"https://g1.oratlas.example/api/federation/notifications/g1-synthesis-announce\",\"https://g1.oratlas.example/api/federation/notifications/g1-read-federation-accepted-new\",\"https://g1.oratlas.example/api/federation/notifications/g1-read-federation-accepted-old\"]}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-feed-a-and-b",
+        "method": "GET",
+        "path": "/api/feeds/atom",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 200,
+        "headers": [
+          ["cache-control", "no-store, must-revalidate"],
+          ["content-type", "application/atom+xml; charset=utf-8"],
+          ["pragma", "no-cache"],
+          ["x-content-type-options", "nosniff"]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<feed xmlns=\"http://www.w3.org/2005/Atom\">\n  <id>https://g1.oratlas.example/api/feeds/atom</id>\n  <title>Open Review Atlas — recently accepted reviews</title>\n  <updated>2026-03-05T12:00:00.000Z</updated>\n  <link rel=\"alternate\" href=\"https://g1.oratlas.example/archive\"/>\n  <link rel=\"self\" href=\"https://g1.oratlas.example/api/feeds/atom\"/>\n  <entry>\n    <id>https://g1.oratlas.example/reviews/g1-second-review/versions/g1-version-4</id>\n    <title>G1 second fixture review v1</title>\n    <updated>2026-03-05T12:00:00.000Z</updated>\n    <link rel=\"alternate\" href=\"https://g1.oratlas.example/reviews/g1-second-review/versions/g1-version-4\"/>\n    <author><name>Fixture Author Two</name></author>\n    <summary>Synthetic second public version.</summary>\n  </entry>\n  <entry>\n    <id>https://g1.oratlas.example/reviews/g1-fixture-review/versions/g1-version-2</id>\n    <title>G1 fixture review v2 &amp; &quot;quoted&quot;</title>\n    <updated>2026-02-03T12:00:00.000Z</updated>\n    <link rel=\"alternate\" href=\"https://g1.oratlas.example/reviews/g1-fixture-review/versions/g1-version-2\"/>\n    <author><name>Fixture Author Two</name></author>\n    <author><name>Fixture Author One</name></author>\n    <summary>Second synthetic public version.</summary>\n  </entry>\n  <entry>\n    <id>https://g1.oratlas.example/reviews/g1-fixture-review/versions/g1-version-1</id>\n    <title>G1 fixture review v1</title>\n    <updated>2026-01-03T12:00:00.000Z</updated>\n    <link rel=\"alternate\" href=\"https://g1.oratlas.example/reviews/g1-fixture-review/versions/g1-version-1\"/>\n    <author><name>Fixture Author One</name></author>\n    <summary>First synthetic public version.</summary>\n  </entry>\n</feed>\n"
+        },
+        "atomEntryIds": [
+          "https://g1.oratlas.example/reviews/g1-second-review/versions/g1-version-4",
+          "https://g1.oratlas.example/reviews/g1-fixture-review/versions/g1-version-2",
+          "https://g1.oratlas.example/reviews/g1-fixture-review/versions/g1-version-1"
+        ]
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-claim-support-a-and-b",
+        "method": "GET",
+        "path": "/api/claims/g1-version-2/g1-synthetic-support",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 200,
+        "headers": [
+          ["cache-control", "no-store, must-revalidate"],
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"claimId\":\"oratlas:claim:v1:00670031002d00760065007200730069006f006e002d0032:00670031002d00730079006e007400680065007400690063002d0073007500700070006f00720074\",\"localClaimId\":\"g1-synthetic-support\",\"anchor\":\"oratlas-claim-v1-00670031002d00760065007200730069006f006e002d0032-00670031002d00730079006e007400680065007400690063002d0073007500700070006f00720074\",\"text\":\"Synthetic support evidence declaration; this exercises classification only, not a scientific conclusion.\",\"section\":\"Synthetic comparison\",\"claimType\":\"empirical\",\"reviewSlug\":\"g1-fixture-review\",\"reviewTitle\":\"G1 fixture review v2 & \\\"quoted\\\"\",\"versionId\":\"g1-version-2\",\"semanticVersion\":\"1.1.0\",\"publishedAt\":\"2026-02-03T12:00:00.000Z\",\"isExample\":false,\"evidence\":[{\"id\":\"g1-synthesis-relation-support\",\"relationType\":\"supports\",\"supportDirection\":\"positive\",\"citationLocalId\":\"g1-synthetic-support\",\"citationTitle\":\"Explicit synthetic evidence work for classification only\",\"citationDoi\":\"10.5555/g1-synthesis-shared-work\",\"citationIsExample\":true,\"hasTrustAssessment\":false,\"trustAssessments\":[]}],\"lineage\":[{\"versionId\":\"g1-version-2\",\"semanticVersion\":\"1.1.0\",\"publishedAt\":\"2026-02-03T12:00:00.000Z\",\"isCurrent\":true,\"isThisVersion\":true,\"textChanged\":false}],\"alerts\":[],\"executionPassports\":[],\"protocolDrift\":{\"reviewVersionId\":\"g1-version-2\",\"claimLocalId\":\"g1-synthetic-support\",\"openCount\":0,\"snapshots\":[]},\"sourceEvidenceLinks\":{\"schemaVersion\":\"1.0.0\",\"status\":\"sidecar-unavailable\",\"sidecar\":null,\"packets\":[],\"citations\":[],\"rejected\":[],\"nativeAssessment\":null,\"nativeAssessmentWithheld\":null,\"labels\":{\"producer\":\"Producer finding: a statement about the cited article, recorded in an external Diggypaper evidence packet. It is not a claim of this review.\",\"packet\":\"ORAtlas has not imported or verified the contents of this packet; the identifier, digest and location are the producer's declaration as carried by the review's sidecar.\",\"passage\":\"Passage digests, match states and native support judgments, where shown, are the producer's declaration in the sidecar. Quote text is never shown. To check a digest, fetch the packet from its declared location and hash it; ORAtlas has not.\",\"candidate\":\"Same-paper candidate: a finding about a paper this claim cites. No reviewed decision says this claim uses it, so it is not shown as evidence for the claim.\",\"nativeAssessment\":\"Source-native Computational Review TRUST v2 as exported by the review repository. It is not an ORAtlas TRUST assessment, is not converted to one, and does not affect ORAtlas verification.\",\"nativeAssessmentUnverified\":\"ORAtlas could not recheck this value against the review's frozen claim graph and TRUST report, because they were not preserved with this version. Treat it as an unverified source declaration.\"}},\"alsoAssertedIn\":[],\"links\":{\"self\":\"/api/claims/g1-version-2/g1-synthetic-support\",\"html\":\"/claims/g1-version-2/g1-synthetic-support\",\"review\":\"/api/reviews/g1-fixture-review\",\"reviewVersion\":\"/api/reviews/g1-fixture-review/versions/g1-version-2\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-claim-oppose-a-and-b",
+        "method": "GET",
+        "path": "/api/claims/g1-version-4/g1-synthetic-oppose",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 200,
+        "headers": [
+          ["cache-control", "no-store, must-revalidate"],
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"claimId\":\"oratlas:claim:v1:00670031002d00760065007200730069006f006e002d0034:00670031002d00730079006e007400680065007400690063002d006f00700070006f00730065\",\"localClaimId\":\"g1-synthetic-oppose\",\"anchor\":\"oratlas-claim-v1-00670031002d00760065007200730069006f006e002d0034-00670031002d00730079006e007400680065007400690063002d006f00700070006f00730065\",\"text\":\"Synthetic oppose evidence declaration; this exercises classification only, not a scientific conclusion.\",\"section\":\"Synthetic comparison\",\"claimType\":\"empirical\",\"reviewSlug\":\"g1-second-review\",\"reviewTitle\":\"G1 second fixture review v1\",\"versionId\":\"g1-version-4\",\"semanticVersion\":\"1.0.0\",\"publishedAt\":\"2026-03-05T12:00:00.000Z\",\"isExample\":false,\"evidence\":[{\"id\":\"g1-synthesis-relation-oppose\",\"relationType\":\"contradicts\",\"supportDirection\":\"negative\",\"citationLocalId\":\"g1-synthetic-oppose\",\"citationTitle\":\"Explicit synthetic evidence work for classification only\",\"citationDoi\":\"10.5555/g1-synthesis-shared-work\",\"citationIsExample\":true,\"hasTrustAssessment\":false,\"trustAssessments\":[]}],\"lineage\":[{\"versionId\":\"g1-version-4\",\"semanticVersion\":\"1.0.0\",\"publishedAt\":\"2026-03-05T12:00:00.000Z\",\"isCurrent\":true,\"isThisVersion\":true,\"textChanged\":false}],\"alerts\":[],\"executionPassports\":[],\"protocolDrift\":{\"reviewVersionId\":\"g1-version-4\",\"claimLocalId\":\"g1-synthetic-oppose\",\"openCount\":0,\"snapshots\":[]},\"sourceEvidenceLinks\":{\"schemaVersion\":\"1.0.0\",\"status\":\"sidecar-unavailable\",\"sidecar\":null,\"packets\":[],\"citations\":[],\"rejected\":[],\"nativeAssessment\":null,\"nativeAssessmentWithheld\":null,\"labels\":{\"producer\":\"Producer finding: a statement about the cited article, recorded in an external Diggypaper evidence packet. It is not a claim of this review.\",\"packet\":\"ORAtlas has not imported or verified the contents of this packet; the identifier, digest and location are the producer's declaration as carried by the review's sidecar.\",\"passage\":\"Passage digests, match states and native support judgments, where shown, are the producer's declaration in the sidecar. Quote text is never shown. To check a digest, fetch the packet from its declared location and hash it; ORAtlas has not.\",\"candidate\":\"Same-paper candidate: a finding about a paper this claim cites. No reviewed decision says this claim uses it, so it is not shown as evidence for the claim.\",\"nativeAssessment\":\"Source-native Computational Review TRUST v2 as exported by the review repository. It is not an ORAtlas TRUST assessment, is not converted to one, and does not affect ORAtlas verification.\",\"nativeAssessmentUnverified\":\"ORAtlas could not recheck this value against the review's frozen claim graph and TRUST report, because they were not preserved with this version. Treat it as an unverified source declaration.\"}},\"alsoAssertedIn\":[],\"links\":{\"self\":\"/api/claims/g1-version-4/g1-synthetic-oppose\",\"html\":\"/claims/g1-version-4/g1-synthetic-oppose\",\"review\":\"/api/reviews/g1-second-review\",\"reviewVersion\":\"/api/reviews/g1-second-review/versions/g1-version-4\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-claim-hidden-a-and-b",
+        "method": "GET",
+        "path": "/api/claims/g1-version-3/g1-synthetic-hidden",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 404,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Claim not found.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-claim-tombstone-a-and-b",
+        "method": "GET",
+        "path": "/api/claims/g1-version-tombstoned/g1-synthetic-tombstone",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 404,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Claim not found.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-notification-g1-read-federation-accepted-old-editor",
+        "method": "GET",
+        "path": "/api/federation/notifications/g1-read-federation-accepted-old",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 200,
+        "headers": [
+          ["cache-control", "no-store, must-revalidate"],
+          ["content-type", "application/ld+json; charset=utf-8"]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"@context\":[\"https://www.w3.org/ns/activitystreams\",\"https://coar-notify.net\"],\"actor\":{\"id\":\"https://example.org/synthetic-actor\",\"type\":\"Service\"},\"id\":\"https://example.org/g1-notify/accepted-old\",\"object\":{\"id\":\"https://example.org/synthetic-object\",\"ietf:item\":{\"id\":\"https://example.org/synthetic-content.pdf\",\"mediaType\":\"application/pdf\",\"type\":\"Article\"},\"type\":\"Article\"},\"origin\":{\"id\":\"https://example.org/synthetic-origin\",\"inbox\":\"https://example.org/synthetic-inbox\",\"type\":\"Service\"},\"summary\":\"g1-read-queue-private-payload\",\"target\":{\"id\":\"https://g1.oratlas.example\",\"inbox\":\"https://g1.oratlas.example/api/federation/inbox\",\"type\":\"Service\"},\"type\":[\"Offer\",\"coar-notify:ReviewAction\"]}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-notification-g1-synthesis-announce-editor",
+        "method": "GET",
+        "path": "/api/federation/notifications/g1-synthesis-announce",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 200,
+        "headers": [
+          ["cache-control", "no-store, must-revalidate"],
+          ["content-type", "application/ld+json; charset=utf-8"]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"@context\":[\"https://www.w3.org/ns/activitystreams\",\"https://coar-notify.net\"],\"actor\":{\"id\":\"https://example.org/g1-synthetic-producer\",\"name\":\"Synthetic Fixture Producer\",\"type\":\"Service\"},\"context\":{\"id\":\"https://example.org/g1-synthetic-source\"},\"id\":\"https://example.org/g1-synthesis/announce\",\"object\":{\"id\":\"https://g1.oratlas.example/reviews/synthesis-c368583d7cdfc3a55a55\",\"ietf:item\":{\"id\":\"https://g1.oratlas.example/api/syntheses/synthesis-c368583d7cdfc3a55a55\",\"mediaType\":\"application/json\",\"type\":\"Document\"},\"type\":[\"Page\",\"sorg:Review\"]},\"origin\":{\"id\":\"https://example.org/g1-synthetic-producer\",\"inbox\":\"https://example.org/g1-synthetic-inbox\",\"type\":\"Service\"},\"target\":{\"id\":\"https://g1.oratlas.example\",\"inbox\":\"https://g1.oratlas.example/api/federation/inbox\",\"type\":\"Service\"},\"type\":[\"Announce\",\"coar-notify:ReviewAction\"]}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-notification-g1-read-federation-pending-editor",
+        "method": "GET",
+        "path": "/api/federation/notifications/g1-read-federation-pending",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 404,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Federation notification not found.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-notification-g1-read-federation-rejected-editor",
+        "method": "GET",
+        "path": "/api/federation/notifications/g1-read-federation-rejected",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 404,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Federation notification not found.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-notification-g1-read-federation-outbound-editor",
+        "method": "GET",
+        "path": "/api/federation/notifications/g1-read-federation-outbound",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 404,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Federation notification not found.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-notification-g1-read-federation-missing-editor",
+        "method": "GET",
+        "path": "/api/federation/notifications/g1-read-federation-missing",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 404,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Federation notification not found.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-accepted-editor",
+        "method": "GET",
+        "path": "/api/syntheses/synthesis-c368583d7cdfc3a55a55",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 200,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"slug\":\"synthesis-c368583d7cdfc3a55a55\",\"reviewType\":\"ai-synthesis\",\"title\":\"Synthesis review: Synthetic bounded source claim\",\"abstract\":\"This deterministic review summarizes 1 non-example immutable nodes and 0 confirmed relations from one bounded evidence packet.\",\"document\":{\"schemaVersion\":\"1.0.0\",\"title\":\"Synthesis review: Synthetic bounded source claim\",\"summary\":\"This deterministic review summarizes 1 non-example immutable nodes and 0 confirmed relations from one bounded evidence packet.\",\"citations\":[],\"sections\":[{\"id\":\"background\",\"title\":\"Background\",\"paragraphs\":[{\"text\":\"The bounded topic is Synthetic bounded source claim. The packet contains 1 claim nodes.\",\"citations\":[]}]},{\"id\":\"state-of-knowledge\",\"title\":\"State of knowledge\",\"paragraphs\":[{\"text\":\"claim evidence: Synthetic bounded source claim.\",\"citations\":[{\"referenceId\":\"reference:sha256:26d2da99ae1f13bf08d1844d2c6ca9a22404e4429aec199debc291075d4e52c2\",\"nodeId\":\"g1-synthesis-source\",\"nodeVersionId\":\"g1-synthesis-source-v2\"}]}]},{\"id\":\"agreements\",\"title\":\"Agreements\",\"paragraphs\":[{\"text\":\"The packet records no confirmed support, replication, or extension relation.\",\"citations\":[]}]},{\"id\":\"contradictions-and-open-questions\",\"title\":\"Contradictions and open questions\",\"paragraphs\":[{\"text\":\"The packet records no confirmed contradiction relation; unrepresented questions remain open.\",\"citations\":[]}]},{\"id\":\"data-and-code-availability\",\"title\":\"Data and code availability\",\"paragraphs\":[{\"text\":\"The packet contains no non-example data or code node.\",\"citations\":[]}]},{\"id\":\"limitations\",\"title\":\"Limitations\",\"paragraphs\":[{\"text\":\"This review is limited to the supplied bounded subgraph and does not establish scientific consensus or independent replication.\",\"citations\":[]}]}]},\"provenance\":{\"generationMode\":\"deterministic-template\",\"pipelineSoftware\":{\"id\":\"software:oratlas-synthesis-writer\",\"kind\":\"software-agent\",\"displayName\":\"Open Review Atlas Synthesis Writer\",\"pipelineVersion\":\"synthesis-writer/1.0.0\"},\"provider\":\"deterministic\",\"model\":\"bounded-template-1.0\",\"modelVersion\":\"unavailable\",\"promptVersion\":\"atlas-synthesis-1.0\",\"promptHash\":\"d537d25db53180e834c45b7dcfff5156f41588aef9ed78365972f847bc019453\",\"packetHash\":\"26249e055137ef1565f5cf6797a85982db2c87ced4bd32b0b356c5fe9aac1543\",\"documentHash\":\"e75bc69d5bb13b66f98bf8caa082abb513fc660dc25fae68b8dc948847bf4e22\",\"generatedAt\":\"2026-04-01T00:00:00.000Z\",\"attributionPolicyVersion\":\"synthesis-attribution/1.0.0\",\"materializationPolicyVersion\":\"synthesis-materialization/1.0.0\",\"acceptedAt\":\"2026-04-01T00:00:00.000Z\",\"approvingEditor\":{\"displayName\":\"G1 Fixture Admin\",\"githubLogin\":\"g1-fixture-admin\",\"roleSnapshot\":\"ADMIN\"},\"rightsStatement\":\"Synthetic fixture text is permitted for this test archive only.\",\"licenseSpdx\":\"CC-BY-4.0\",\"checklistVersion\":\"synthesis-checklist/1.0.0\",\"acceptedPredecessorVersionId\":null,\"acceptedPredecessorOrdinal\":null,\"ordinal\":1},\"citations\":[{\"referenceId\":\"reference:sha256:26d2da99ae1f13bf08d1844d2c6ca9a22404e4429aec199debc291075d4e52c2\",\"nodeId\":\"g1-synthesis-source\",\"nodeVersionId\":\"g1-synthesis-source-v2\",\"nodeKind\":\"claim\",\"title\":\"Synthetic bounded source claim\",\"href\":\"/nodes/g1-synthesis-source/versions/g1-synthesis-source-v2\",\"location\":\"sections.state-of-knowledge.paragraphs.0\",\"occurrenceOrdinal\":0}],\"version\":{\"id\":\"cmvi69rl000097k5d9nezdvby\",\"ordinal\":1,\"isCurrent\":true},\"freshness\":{\"status\":\"unchecked\",\"policyVersion\":\"synthesis-staleness/1.0.0\",\"reasonCodes\":[],\"affectedReferenceCount\":0}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-unavailable-g1-fixture-review-editor",
+        "method": "GET",
+        "path": "/api/syntheses/g1-fixture-review",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 404,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"code\":\"not-found\",\"message\":\"Synthesis not found.\"}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-unavailable-g1-control-review-editor",
+        "method": "GET",
+        "path": "/api/syntheses/g1-control-review",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 404,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"code\":\"not-found\",\"message\":\"Synthesis not found.\"}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-unavailable-g1-synthesis-missing-editor",
+        "method": "GET",
+        "path": "/api/syntheses/g1-synthesis-missing",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 404,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"code\":\"not-found\",\"message\":\"Synthesis not found.\"}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-contradictions-editor",
+        "method": "GET",
+        "path": "/api/synthesis/contradictions",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 200,
+        "headers": [
+          ["cache-control", "no-store, must-revalidate"],
+          ["content-type", "application/json"]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"reviewCount\":2,\"statementCount\":4,\"contradictions\":[{\"kind\":\"genuine-contradiction\",\"sharedFamilyCount\":1,\"differingScopeFields\":[],\"a\":{\"claimId\":\"oratlas:claim:v1:00670031002d00760065007200730069006f006e002d0034:00670031002d00730079006e007400680065007400690063002d006f00700070006f00730065\",\"text\":\"Synthetic oppose evidence declaration; this exercises classification only, not a scientific conclusion.\",\"passportPath\":\"/claims/g1-version-4/g1-synthetic-oppose\"},\"b\":{\"claimId\":\"oratlas:claim:v1:00670031002d00760065007200730069006f006e002d0032:00670031002d00730079006e007400680065007400690063002d0073007500700070006f00720074\",\"text\":\"Synthetic support evidence declaration; this exercises classification only, not a scientific conclusion.\",\"passportPath\":\"/claims/g1-version-2/g1-synthetic-support\"}}],\"counts\":{\"genuine-contradiction\":1,\"scope-difference\":0,\"undetermined-scope\":0}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-archive-editor",
+        "method": "GET",
+        "path": "/api/search?contentType=synthesis&q=Synthetic%20bounded&pageSize=20",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 200,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"total\":1,\"page\":1,\"pageSize\":20,\"synthesisCandidateScan\":{\"limit\":500,\"limitReached\":false},\"items\":[{\"contentType\":\"synthesis\",\"slug\":\"synthesis-c368583d7cdfc3a55a55\",\"title\":\"Synthesis review: Synthetic bounded source claim\",\"abstract\":\"This deterministic review summarizes 1 non-example immutable nodes and 0 confirmed relations from one bounded evidence packet.\",\"version\":{\"id\":\"cmvi69rl000097k5d9nezdvby\",\"ordinal\":1,\"isCurrent\":true},\"freshness\":{\"status\":\"unchecked\",\"affectedReferenceCount\":0},\"score\":1,\"sortDate\":\"2026-04-01T00:00:00.000Z\",\"links\":{\"self\":\"/api/syntheses/synthesis-c368583d7cdfc3a55a55\",\"html\":\"/reviews/synthesis-c368583d7cdfc3a55a55\",\"exactVersion\":\"/reviews/synthesis-c368583d7cdfc3a55a55/syntheses/cmvi69rl000097k5d9nezdvby\"}}]}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-inbox-editor",
+        "method": "GET",
+        "path": "/api/federation/inbox",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 200,
+        "headers": [
+          ["cache-control", "no-store, must-revalidate"],
+          ["content-type", "application/ld+json; charset=utf-8"]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"@context\":\"http://www.w3.org/ns/ldp\",\"@id\":\"https://g1.oratlas.example/api/federation/inbox\",\"contains\":[\"https://g1.oratlas.example/api/federation/notifications/g1-synthesis-announce\",\"https://g1.oratlas.example/api/federation/notifications/g1-read-federation-accepted-new\",\"https://g1.oratlas.example/api/federation/notifications/g1-read-federation-accepted-old\"]}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-feed-editor",
+        "method": "GET",
+        "path": "/api/feeds/atom",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 200,
+        "headers": [
+          ["cache-control", "no-store, must-revalidate"],
+          ["content-type", "application/atom+xml; charset=utf-8"],
+          ["pragma", "no-cache"],
+          ["x-content-type-options", "nosniff"]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<feed xmlns=\"http://www.w3.org/2005/Atom\">\n  <id>https://g1.oratlas.example/api/feeds/atom</id>\n  <title>Open Review Atlas — recently accepted reviews</title>\n  <updated>2026-03-05T12:00:00.000Z</updated>\n  <link rel=\"alternate\" href=\"https://g1.oratlas.example/archive\"/>\n  <link rel=\"self\" href=\"https://g1.oratlas.example/api/feeds/atom\"/>\n  <entry>\n    <id>https://g1.oratlas.example/reviews/g1-second-review/versions/g1-version-4</id>\n    <title>G1 second fixture review v1</title>\n    <updated>2026-03-05T12:00:00.000Z</updated>\n    <link rel=\"alternate\" href=\"https://g1.oratlas.example/reviews/g1-second-review/versions/g1-version-4\"/>\n    <author><name>Fixture Author Two</name></author>\n    <summary>Synthetic second public version.</summary>\n  </entry>\n  <entry>\n    <id>https://g1.oratlas.example/reviews/g1-fixture-review/versions/g1-version-2</id>\n    <title>G1 fixture review v2 &amp; &quot;quoted&quot;</title>\n    <updated>2026-02-03T12:00:00.000Z</updated>\n    <link rel=\"alternate\" href=\"https://g1.oratlas.example/reviews/g1-fixture-review/versions/g1-version-2\"/>\n    <author><name>Fixture Author Two</name></author>\n    <author><name>Fixture Author One</name></author>\n    <summary>Second synthetic public version.</summary>\n  </entry>\n  <entry>\n    <id>https://g1.oratlas.example/reviews/g1-fixture-review/versions/g1-version-1</id>\n    <title>G1 fixture review v1</title>\n    <updated>2026-01-03T12:00:00.000Z</updated>\n    <link rel=\"alternate\" href=\"https://g1.oratlas.example/reviews/g1-fixture-review/versions/g1-version-1\"/>\n    <author><name>Fixture Author One</name></author>\n    <summary>First synthetic public version.</summary>\n  </entry>\n</feed>\n"
+        },
+        "atomEntryIds": [
+          "https://g1.oratlas.example/reviews/g1-second-review/versions/g1-version-4",
+          "https://g1.oratlas.example/reviews/g1-fixture-review/versions/g1-version-2",
+          "https://g1.oratlas.example/reviews/g1-fixture-review/versions/g1-version-1"
+        ]
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-claim-support-editor",
+        "method": "GET",
+        "path": "/api/claims/g1-version-2/g1-synthetic-support",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 200,
+        "headers": [
+          ["cache-control", "no-store, must-revalidate"],
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"claimId\":\"oratlas:claim:v1:00670031002d00760065007200730069006f006e002d0032:00670031002d00730079006e007400680065007400690063002d0073007500700070006f00720074\",\"localClaimId\":\"g1-synthetic-support\",\"anchor\":\"oratlas-claim-v1-00670031002d00760065007200730069006f006e002d0032-00670031002d00730079006e007400680065007400690063002d0073007500700070006f00720074\",\"text\":\"Synthetic support evidence declaration; this exercises classification only, not a scientific conclusion.\",\"section\":\"Synthetic comparison\",\"claimType\":\"empirical\",\"reviewSlug\":\"g1-fixture-review\",\"reviewTitle\":\"G1 fixture review v2 & \\\"quoted\\\"\",\"versionId\":\"g1-version-2\",\"semanticVersion\":\"1.1.0\",\"publishedAt\":\"2026-02-03T12:00:00.000Z\",\"isExample\":false,\"evidence\":[{\"id\":\"g1-synthesis-relation-support\",\"relationType\":\"supports\",\"supportDirection\":\"positive\",\"citationLocalId\":\"g1-synthetic-support\",\"citationTitle\":\"Explicit synthetic evidence work for classification only\",\"citationDoi\":\"10.5555/g1-synthesis-shared-work\",\"citationIsExample\":true,\"hasTrustAssessment\":false,\"trustAssessments\":[]}],\"lineage\":[{\"versionId\":\"g1-version-2\",\"semanticVersion\":\"1.1.0\",\"publishedAt\":\"2026-02-03T12:00:00.000Z\",\"isCurrent\":true,\"isThisVersion\":true,\"textChanged\":false}],\"alerts\":[],\"executionPassports\":[],\"protocolDrift\":{\"reviewVersionId\":\"g1-version-2\",\"claimLocalId\":\"g1-synthetic-support\",\"openCount\":0,\"snapshots\":[]},\"sourceEvidenceLinks\":{\"schemaVersion\":\"1.0.0\",\"status\":\"sidecar-unavailable\",\"sidecar\":null,\"packets\":[],\"citations\":[],\"rejected\":[],\"nativeAssessment\":null,\"nativeAssessmentWithheld\":null,\"labels\":{\"producer\":\"Producer finding: a statement about the cited article, recorded in an external Diggypaper evidence packet. It is not a claim of this review.\",\"packet\":\"ORAtlas has not imported or verified the contents of this packet; the identifier, digest and location are the producer's declaration as carried by the review's sidecar.\",\"passage\":\"Passage digests, match states and native support judgments, where shown, are the producer's declaration in the sidecar. Quote text is never shown. To check a digest, fetch the packet from its declared location and hash it; ORAtlas has not.\",\"candidate\":\"Same-paper candidate: a finding about a paper this claim cites. No reviewed decision says this claim uses it, so it is not shown as evidence for the claim.\",\"nativeAssessment\":\"Source-native Computational Review TRUST v2 as exported by the review repository. It is not an ORAtlas TRUST assessment, is not converted to one, and does not affect ORAtlas verification.\",\"nativeAssessmentUnverified\":\"ORAtlas could not recheck this value against the review's frozen claim graph and TRUST report, because they were not preserved with this version. Treat it as an unverified source declaration.\"}},\"alsoAssertedIn\":[],\"links\":{\"self\":\"/api/claims/g1-version-2/g1-synthetic-support\",\"html\":\"/claims/g1-version-2/g1-synthetic-support\",\"review\":\"/api/reviews/g1-fixture-review\",\"reviewVersion\":\"/api/reviews/g1-fixture-review/versions/g1-version-2\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-claim-oppose-editor",
+        "method": "GET",
+        "path": "/api/claims/g1-version-4/g1-synthetic-oppose",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 200,
+        "headers": [
+          ["cache-control", "no-store, must-revalidate"],
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"claimId\":\"oratlas:claim:v1:00670031002d00760065007200730069006f006e002d0034:00670031002d00730079006e007400680065007400690063002d006f00700070006f00730065\",\"localClaimId\":\"g1-synthetic-oppose\",\"anchor\":\"oratlas-claim-v1-00670031002d00760065007200730069006f006e002d0034-00670031002d00730079006e007400680065007400690063002d006f00700070006f00730065\",\"text\":\"Synthetic oppose evidence declaration; this exercises classification only, not a scientific conclusion.\",\"section\":\"Synthetic comparison\",\"claimType\":\"empirical\",\"reviewSlug\":\"g1-second-review\",\"reviewTitle\":\"G1 second fixture review v1\",\"versionId\":\"g1-version-4\",\"semanticVersion\":\"1.0.0\",\"publishedAt\":\"2026-03-05T12:00:00.000Z\",\"isExample\":false,\"evidence\":[{\"id\":\"g1-synthesis-relation-oppose\",\"relationType\":\"contradicts\",\"supportDirection\":\"negative\",\"citationLocalId\":\"g1-synthetic-oppose\",\"citationTitle\":\"Explicit synthetic evidence work for classification only\",\"citationDoi\":\"10.5555/g1-synthesis-shared-work\",\"citationIsExample\":true,\"hasTrustAssessment\":false,\"trustAssessments\":[]}],\"lineage\":[{\"versionId\":\"g1-version-4\",\"semanticVersion\":\"1.0.0\",\"publishedAt\":\"2026-03-05T12:00:00.000Z\",\"isCurrent\":true,\"isThisVersion\":true,\"textChanged\":false}],\"alerts\":[],\"executionPassports\":[],\"protocolDrift\":{\"reviewVersionId\":\"g1-version-4\",\"claimLocalId\":\"g1-synthetic-oppose\",\"openCount\":0,\"snapshots\":[]},\"sourceEvidenceLinks\":{\"schemaVersion\":\"1.0.0\",\"status\":\"sidecar-unavailable\",\"sidecar\":null,\"packets\":[],\"citations\":[],\"rejected\":[],\"nativeAssessment\":null,\"nativeAssessmentWithheld\":null,\"labels\":{\"producer\":\"Producer finding: a statement about the cited article, recorded in an external Diggypaper evidence packet. It is not a claim of this review.\",\"packet\":\"ORAtlas has not imported or verified the contents of this packet; the identifier, digest and location are the producer's declaration as carried by the review's sidecar.\",\"passage\":\"Passage digests, match states and native support judgments, where shown, are the producer's declaration in the sidecar. Quote text is never shown. To check a digest, fetch the packet from its declared location and hash it; ORAtlas has not.\",\"candidate\":\"Same-paper candidate: a finding about a paper this claim cites. No reviewed decision says this claim uses it, so it is not shown as evidence for the claim.\",\"nativeAssessment\":\"Source-native Computational Review TRUST v2 as exported by the review repository. It is not an ORAtlas TRUST assessment, is not converted to one, and does not affect ORAtlas verification.\",\"nativeAssessmentUnverified\":\"ORAtlas could not recheck this value against the review's frozen claim graph and TRUST report, because they were not preserved with this version. Treat it as an unverified source declaration.\"}},\"alsoAssertedIn\":[],\"links\":{\"self\":\"/api/claims/g1-version-4/g1-synthetic-oppose\",\"html\":\"/claims/g1-version-4/g1-synthetic-oppose\",\"review\":\"/api/reviews/g1-second-review\",\"reviewVersion\":\"/api/reviews/g1-second-review/versions/g1-version-4\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-claim-hidden-editor",
+        "method": "GET",
+        "path": "/api/claims/g1-version-3/g1-synthetic-hidden",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 404,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Claim not found.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-claim-tombstone-editor",
+        "method": "GET",
+        "path": "/api/claims/g1-version-tombstoned/g1-synthetic-tombstone",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 404,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Claim not found.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-notification-g1-read-federation-accepted-old-admin",
+        "method": "GET",
+        "path": "/api/federation/notifications/g1-read-federation-accepted-old",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 200,
+        "headers": [
+          ["cache-control", "no-store, must-revalidate"],
+          ["content-type", "application/ld+json; charset=utf-8"]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"@context\":[\"https://www.w3.org/ns/activitystreams\",\"https://coar-notify.net\"],\"actor\":{\"id\":\"https://example.org/synthetic-actor\",\"type\":\"Service\"},\"id\":\"https://example.org/g1-notify/accepted-old\",\"object\":{\"id\":\"https://example.org/synthetic-object\",\"ietf:item\":{\"id\":\"https://example.org/synthetic-content.pdf\",\"mediaType\":\"application/pdf\",\"type\":\"Article\"},\"type\":\"Article\"},\"origin\":{\"id\":\"https://example.org/synthetic-origin\",\"inbox\":\"https://example.org/synthetic-inbox\",\"type\":\"Service\"},\"summary\":\"g1-read-queue-private-payload\",\"target\":{\"id\":\"https://g1.oratlas.example\",\"inbox\":\"https://g1.oratlas.example/api/federation/inbox\",\"type\":\"Service\"},\"type\":[\"Offer\",\"coar-notify:ReviewAction\"]}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-notification-g1-synthesis-announce-admin",
+        "method": "GET",
+        "path": "/api/federation/notifications/g1-synthesis-announce",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 200,
+        "headers": [
+          ["cache-control", "no-store, must-revalidate"],
+          ["content-type", "application/ld+json; charset=utf-8"]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"@context\":[\"https://www.w3.org/ns/activitystreams\",\"https://coar-notify.net\"],\"actor\":{\"id\":\"https://example.org/g1-synthetic-producer\",\"name\":\"Synthetic Fixture Producer\",\"type\":\"Service\"},\"context\":{\"id\":\"https://example.org/g1-synthetic-source\"},\"id\":\"https://example.org/g1-synthesis/announce\",\"object\":{\"id\":\"https://g1.oratlas.example/reviews/synthesis-c368583d7cdfc3a55a55\",\"ietf:item\":{\"id\":\"https://g1.oratlas.example/api/syntheses/synthesis-c368583d7cdfc3a55a55\",\"mediaType\":\"application/json\",\"type\":\"Document\"},\"type\":[\"Page\",\"sorg:Review\"]},\"origin\":{\"id\":\"https://example.org/g1-synthetic-producer\",\"inbox\":\"https://example.org/g1-synthetic-inbox\",\"type\":\"Service\"},\"target\":{\"id\":\"https://g1.oratlas.example\",\"inbox\":\"https://g1.oratlas.example/api/federation/inbox\",\"type\":\"Service\"},\"type\":[\"Announce\",\"coar-notify:ReviewAction\"]}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-notification-g1-read-federation-pending-admin",
+        "method": "GET",
+        "path": "/api/federation/notifications/g1-read-federation-pending",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 404,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Federation notification not found.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-notification-g1-read-federation-rejected-admin",
+        "method": "GET",
+        "path": "/api/federation/notifications/g1-read-federation-rejected",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 404,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Federation notification not found.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-notification-g1-read-federation-outbound-admin",
+        "method": "GET",
+        "path": "/api/federation/notifications/g1-read-federation-outbound",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 404,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Federation notification not found.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-notification-g1-read-federation-missing-admin",
+        "method": "GET",
+        "path": "/api/federation/notifications/g1-read-federation-missing",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 404,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Federation notification not found.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-accepted-admin",
+        "method": "GET",
+        "path": "/api/syntheses/synthesis-c368583d7cdfc3a55a55",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 200,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"slug\":\"synthesis-c368583d7cdfc3a55a55\",\"reviewType\":\"ai-synthesis\",\"title\":\"Synthesis review: Synthetic bounded source claim\",\"abstract\":\"This deterministic review summarizes 1 non-example immutable nodes and 0 confirmed relations from one bounded evidence packet.\",\"document\":{\"schemaVersion\":\"1.0.0\",\"title\":\"Synthesis review: Synthetic bounded source claim\",\"summary\":\"This deterministic review summarizes 1 non-example immutable nodes and 0 confirmed relations from one bounded evidence packet.\",\"citations\":[],\"sections\":[{\"id\":\"background\",\"title\":\"Background\",\"paragraphs\":[{\"text\":\"The bounded topic is Synthetic bounded source claim. The packet contains 1 claim nodes.\",\"citations\":[]}]},{\"id\":\"state-of-knowledge\",\"title\":\"State of knowledge\",\"paragraphs\":[{\"text\":\"claim evidence: Synthetic bounded source claim.\",\"citations\":[{\"referenceId\":\"reference:sha256:26d2da99ae1f13bf08d1844d2c6ca9a22404e4429aec199debc291075d4e52c2\",\"nodeId\":\"g1-synthesis-source\",\"nodeVersionId\":\"g1-synthesis-source-v2\"}]}]},{\"id\":\"agreements\",\"title\":\"Agreements\",\"paragraphs\":[{\"text\":\"The packet records no confirmed support, replication, or extension relation.\",\"citations\":[]}]},{\"id\":\"contradictions-and-open-questions\",\"title\":\"Contradictions and open questions\",\"paragraphs\":[{\"text\":\"The packet records no confirmed contradiction relation; unrepresented questions remain open.\",\"citations\":[]}]},{\"id\":\"data-and-code-availability\",\"title\":\"Data and code availability\",\"paragraphs\":[{\"text\":\"The packet contains no non-example data or code node.\",\"citations\":[]}]},{\"id\":\"limitations\",\"title\":\"Limitations\",\"paragraphs\":[{\"text\":\"This review is limited to the supplied bounded subgraph and does not establish scientific consensus or independent replication.\",\"citations\":[]}]}]},\"provenance\":{\"generationMode\":\"deterministic-template\",\"pipelineSoftware\":{\"id\":\"software:oratlas-synthesis-writer\",\"kind\":\"software-agent\",\"displayName\":\"Open Review Atlas Synthesis Writer\",\"pipelineVersion\":\"synthesis-writer/1.0.0\"},\"provider\":\"deterministic\",\"model\":\"bounded-template-1.0\",\"modelVersion\":\"unavailable\",\"promptVersion\":\"atlas-synthesis-1.0\",\"promptHash\":\"d537d25db53180e834c45b7dcfff5156f41588aef9ed78365972f847bc019453\",\"packetHash\":\"26249e055137ef1565f5cf6797a85982db2c87ced4bd32b0b356c5fe9aac1543\",\"documentHash\":\"e75bc69d5bb13b66f98bf8caa082abb513fc660dc25fae68b8dc948847bf4e22\",\"generatedAt\":\"2026-04-01T00:00:00.000Z\",\"attributionPolicyVersion\":\"synthesis-attribution/1.0.0\",\"materializationPolicyVersion\":\"synthesis-materialization/1.0.0\",\"acceptedAt\":\"2026-04-01T00:00:00.000Z\",\"approvingEditor\":{\"displayName\":\"G1 Fixture Admin\",\"githubLogin\":\"g1-fixture-admin\",\"roleSnapshot\":\"ADMIN\"},\"rightsStatement\":\"Synthetic fixture text is permitted for this test archive only.\",\"licenseSpdx\":\"CC-BY-4.0\",\"checklistVersion\":\"synthesis-checklist/1.0.0\",\"acceptedPredecessorVersionId\":null,\"acceptedPredecessorOrdinal\":null,\"ordinal\":1},\"citations\":[{\"referenceId\":\"reference:sha256:26d2da99ae1f13bf08d1844d2c6ca9a22404e4429aec199debc291075d4e52c2\",\"nodeId\":\"g1-synthesis-source\",\"nodeVersionId\":\"g1-synthesis-source-v2\",\"nodeKind\":\"claim\",\"title\":\"Synthetic bounded source claim\",\"href\":\"/nodes/g1-synthesis-source/versions/g1-synthesis-source-v2\",\"location\":\"sections.state-of-knowledge.paragraphs.0\",\"occurrenceOrdinal\":0}],\"version\":{\"id\":\"cmvi69rl000097k5d9nezdvby\",\"ordinal\":1,\"isCurrent\":true},\"freshness\":{\"status\":\"unchecked\",\"policyVersion\":\"synthesis-staleness/1.0.0\",\"reasonCodes\":[],\"affectedReferenceCount\":0}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-unavailable-g1-fixture-review-admin",
+        "method": "GET",
+        "path": "/api/syntheses/g1-fixture-review",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 404,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"code\":\"not-found\",\"message\":\"Synthesis not found.\"}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-unavailable-g1-control-review-admin",
+        "method": "GET",
+        "path": "/api/syntheses/g1-control-review",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 404,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"code\":\"not-found\",\"message\":\"Synthesis not found.\"}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-unavailable-g1-synthesis-missing-admin",
+        "method": "GET",
+        "path": "/api/syntheses/g1-synthesis-missing",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 404,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"code\":\"not-found\",\"message\":\"Synthesis not found.\"}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-contradictions-admin",
+        "method": "GET",
+        "path": "/api/synthesis/contradictions",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 200,
+        "headers": [
+          ["cache-control", "no-store, must-revalidate"],
+          ["content-type", "application/json"]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"reviewCount\":2,\"statementCount\":4,\"contradictions\":[{\"kind\":\"genuine-contradiction\",\"sharedFamilyCount\":1,\"differingScopeFields\":[],\"a\":{\"claimId\":\"oratlas:claim:v1:00670031002d00760065007200730069006f006e002d0034:00670031002d00730079006e007400680065007400690063002d006f00700070006f00730065\",\"text\":\"Synthetic oppose evidence declaration; this exercises classification only, not a scientific conclusion.\",\"passportPath\":\"/claims/g1-version-4/g1-synthetic-oppose\"},\"b\":{\"claimId\":\"oratlas:claim:v1:00670031002d00760065007200730069006f006e002d0032:00670031002d00730079006e007400680065007400690063002d0073007500700070006f00720074\",\"text\":\"Synthetic support evidence declaration; this exercises classification only, not a scientific conclusion.\",\"passportPath\":\"/claims/g1-version-2/g1-synthetic-support\"}}],\"counts\":{\"genuine-contradiction\":1,\"scope-difference\":0,\"undetermined-scope\":0}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-archive-admin",
+        "method": "GET",
+        "path": "/api/search?contentType=synthesis&q=Synthetic%20bounded&pageSize=20",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 200,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"total\":1,\"page\":1,\"pageSize\":20,\"synthesisCandidateScan\":{\"limit\":500,\"limitReached\":false},\"items\":[{\"contentType\":\"synthesis\",\"slug\":\"synthesis-c368583d7cdfc3a55a55\",\"title\":\"Synthesis review: Synthetic bounded source claim\",\"abstract\":\"This deterministic review summarizes 1 non-example immutable nodes and 0 confirmed relations from one bounded evidence packet.\",\"version\":{\"id\":\"cmvi69rl000097k5d9nezdvby\",\"ordinal\":1,\"isCurrent\":true},\"freshness\":{\"status\":\"unchecked\",\"affectedReferenceCount\":0},\"score\":1,\"sortDate\":\"2026-04-01T00:00:00.000Z\",\"links\":{\"self\":\"/api/syntheses/synthesis-c368583d7cdfc3a55a55\",\"html\":\"/reviews/synthesis-c368583d7cdfc3a55a55\",\"exactVersion\":\"/reviews/synthesis-c368583d7cdfc3a55a55/syntheses/cmvi69rl000097k5d9nezdvby\"}}]}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-inbox-admin",
+        "method": "GET",
+        "path": "/api/federation/inbox",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 200,
+        "headers": [
+          ["cache-control", "no-store, must-revalidate"],
+          ["content-type", "application/ld+json; charset=utf-8"]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"@context\":\"http://www.w3.org/ns/ldp\",\"@id\":\"https://g1.oratlas.example/api/federation/inbox\",\"contains\":[\"https://g1.oratlas.example/api/federation/notifications/g1-synthesis-announce\",\"https://g1.oratlas.example/api/federation/notifications/g1-read-federation-accepted-new\",\"https://g1.oratlas.example/api/federation/notifications/g1-read-federation-accepted-old\"]}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-feed-admin",
+        "method": "GET",
+        "path": "/api/feeds/atom",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 200,
+        "headers": [
+          ["cache-control", "no-store, must-revalidate"],
+          ["content-type", "application/atom+xml; charset=utf-8"],
+          ["pragma", "no-cache"],
+          ["x-content-type-options", "nosniff"]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<feed xmlns=\"http://www.w3.org/2005/Atom\">\n  <id>https://g1.oratlas.example/api/feeds/atom</id>\n  <title>Open Review Atlas — recently accepted reviews</title>\n  <updated>2026-03-05T12:00:00.000Z</updated>\n  <link rel=\"alternate\" href=\"https://g1.oratlas.example/archive\"/>\n  <link rel=\"self\" href=\"https://g1.oratlas.example/api/feeds/atom\"/>\n  <entry>\n    <id>https://g1.oratlas.example/reviews/g1-second-review/versions/g1-version-4</id>\n    <title>G1 second fixture review v1</title>\n    <updated>2026-03-05T12:00:00.000Z</updated>\n    <link rel=\"alternate\" href=\"https://g1.oratlas.example/reviews/g1-second-review/versions/g1-version-4\"/>\n    <author><name>Fixture Author Two</name></author>\n    <summary>Synthetic second public version.</summary>\n  </entry>\n  <entry>\n    <id>https://g1.oratlas.example/reviews/g1-fixture-review/versions/g1-version-2</id>\n    <title>G1 fixture review v2 &amp; &quot;quoted&quot;</title>\n    <updated>2026-02-03T12:00:00.000Z</updated>\n    <link rel=\"alternate\" href=\"https://g1.oratlas.example/reviews/g1-fixture-review/versions/g1-version-2\"/>\n    <author><name>Fixture Author Two</name></author>\n    <author><name>Fixture Author One</name></author>\n    <summary>Second synthetic public version.</summary>\n  </entry>\n  <entry>\n    <id>https://g1.oratlas.example/reviews/g1-fixture-review/versions/g1-version-1</id>\n    <title>G1 fixture review v1</title>\n    <updated>2026-01-03T12:00:00.000Z</updated>\n    <link rel=\"alternate\" href=\"https://g1.oratlas.example/reviews/g1-fixture-review/versions/g1-version-1\"/>\n    <author><name>Fixture Author One</name></author>\n    <summary>First synthetic public version.</summary>\n  </entry>\n</feed>\n"
+        },
+        "atomEntryIds": [
+          "https://g1.oratlas.example/reviews/g1-second-review/versions/g1-version-4",
+          "https://g1.oratlas.example/reviews/g1-fixture-review/versions/g1-version-2",
+          "https://g1.oratlas.example/reviews/g1-fixture-review/versions/g1-version-1"
+        ]
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-claim-support-admin",
+        "method": "GET",
+        "path": "/api/claims/g1-version-2/g1-synthetic-support",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 200,
+        "headers": [
+          ["cache-control", "no-store, must-revalidate"],
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"claimId\":\"oratlas:claim:v1:00670031002d00760065007200730069006f006e002d0032:00670031002d00730079006e007400680065007400690063002d0073007500700070006f00720074\",\"localClaimId\":\"g1-synthetic-support\",\"anchor\":\"oratlas-claim-v1-00670031002d00760065007200730069006f006e002d0032-00670031002d00730079006e007400680065007400690063002d0073007500700070006f00720074\",\"text\":\"Synthetic support evidence declaration; this exercises classification only, not a scientific conclusion.\",\"section\":\"Synthetic comparison\",\"claimType\":\"empirical\",\"reviewSlug\":\"g1-fixture-review\",\"reviewTitle\":\"G1 fixture review v2 & \\\"quoted\\\"\",\"versionId\":\"g1-version-2\",\"semanticVersion\":\"1.1.0\",\"publishedAt\":\"2026-02-03T12:00:00.000Z\",\"isExample\":false,\"evidence\":[{\"id\":\"g1-synthesis-relation-support\",\"relationType\":\"supports\",\"supportDirection\":\"positive\",\"citationLocalId\":\"g1-synthetic-support\",\"citationTitle\":\"Explicit synthetic evidence work for classification only\",\"citationDoi\":\"10.5555/g1-synthesis-shared-work\",\"citationIsExample\":true,\"hasTrustAssessment\":false,\"trustAssessments\":[]}],\"lineage\":[{\"versionId\":\"g1-version-2\",\"semanticVersion\":\"1.1.0\",\"publishedAt\":\"2026-02-03T12:00:00.000Z\",\"isCurrent\":true,\"isThisVersion\":true,\"textChanged\":false}],\"alerts\":[],\"executionPassports\":[],\"protocolDrift\":{\"reviewVersionId\":\"g1-version-2\",\"claimLocalId\":\"g1-synthetic-support\",\"openCount\":0,\"snapshots\":[]},\"sourceEvidenceLinks\":{\"schemaVersion\":\"1.0.0\",\"status\":\"sidecar-unavailable\",\"sidecar\":null,\"packets\":[],\"citations\":[],\"rejected\":[],\"nativeAssessment\":null,\"nativeAssessmentWithheld\":null,\"labels\":{\"producer\":\"Producer finding: a statement about the cited article, recorded in an external Diggypaper evidence packet. It is not a claim of this review.\",\"packet\":\"ORAtlas has not imported or verified the contents of this packet; the identifier, digest and location are the producer's declaration as carried by the review's sidecar.\",\"passage\":\"Passage digests, match states and native support judgments, where shown, are the producer's declaration in the sidecar. Quote text is never shown. To check a digest, fetch the packet from its declared location and hash it; ORAtlas has not.\",\"candidate\":\"Same-paper candidate: a finding about a paper this claim cites. No reviewed decision says this claim uses it, so it is not shown as evidence for the claim.\",\"nativeAssessment\":\"Source-native Computational Review TRUST v2 as exported by the review repository. It is not an ORAtlas TRUST assessment, is not converted to one, and does not affect ORAtlas verification.\",\"nativeAssessmentUnverified\":\"ORAtlas could not recheck this value against the review's frozen claim graph and TRUST report, because they were not preserved with this version. Treat it as an unverified source declaration.\"}},\"alsoAssertedIn\":[],\"links\":{\"self\":\"/api/claims/g1-version-2/g1-synthetic-support\",\"html\":\"/claims/g1-version-2/g1-synthetic-support\",\"review\":\"/api/reviews/g1-fixture-review\",\"reviewVersion\":\"/api/reviews/g1-fixture-review/versions/g1-version-2\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-claim-oppose-admin",
+        "method": "GET",
+        "path": "/api/claims/g1-version-4/g1-synthetic-oppose",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 200,
+        "headers": [
+          ["cache-control", "no-store, must-revalidate"],
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"claimId\":\"oratlas:claim:v1:00670031002d00760065007200730069006f006e002d0034:00670031002d00730079006e007400680065007400690063002d006f00700070006f00730065\",\"localClaimId\":\"g1-synthetic-oppose\",\"anchor\":\"oratlas-claim-v1-00670031002d00760065007200730069006f006e002d0034-00670031002d00730079006e007400680065007400690063002d006f00700070006f00730065\",\"text\":\"Synthetic oppose evidence declaration; this exercises classification only, not a scientific conclusion.\",\"section\":\"Synthetic comparison\",\"claimType\":\"empirical\",\"reviewSlug\":\"g1-second-review\",\"reviewTitle\":\"G1 second fixture review v1\",\"versionId\":\"g1-version-4\",\"semanticVersion\":\"1.0.0\",\"publishedAt\":\"2026-03-05T12:00:00.000Z\",\"isExample\":false,\"evidence\":[{\"id\":\"g1-synthesis-relation-oppose\",\"relationType\":\"contradicts\",\"supportDirection\":\"negative\",\"citationLocalId\":\"g1-synthetic-oppose\",\"citationTitle\":\"Explicit synthetic evidence work for classification only\",\"citationDoi\":\"10.5555/g1-synthesis-shared-work\",\"citationIsExample\":true,\"hasTrustAssessment\":false,\"trustAssessments\":[]}],\"lineage\":[{\"versionId\":\"g1-version-4\",\"semanticVersion\":\"1.0.0\",\"publishedAt\":\"2026-03-05T12:00:00.000Z\",\"isCurrent\":true,\"isThisVersion\":true,\"textChanged\":false}],\"alerts\":[],\"executionPassports\":[],\"protocolDrift\":{\"reviewVersionId\":\"g1-version-4\",\"claimLocalId\":\"g1-synthetic-oppose\",\"openCount\":0,\"snapshots\":[]},\"sourceEvidenceLinks\":{\"schemaVersion\":\"1.0.0\",\"status\":\"sidecar-unavailable\",\"sidecar\":null,\"packets\":[],\"citations\":[],\"rejected\":[],\"nativeAssessment\":null,\"nativeAssessmentWithheld\":null,\"labels\":{\"producer\":\"Producer finding: a statement about the cited article, recorded in an external Diggypaper evidence packet. It is not a claim of this review.\",\"packet\":\"ORAtlas has not imported or verified the contents of this packet; the identifier, digest and location are the producer's declaration as carried by the review's sidecar.\",\"passage\":\"Passage digests, match states and native support judgments, where shown, are the producer's declaration in the sidecar. Quote text is never shown. To check a digest, fetch the packet from its declared location and hash it; ORAtlas has not.\",\"candidate\":\"Same-paper candidate: a finding about a paper this claim cites. No reviewed decision says this claim uses it, so it is not shown as evidence for the claim.\",\"nativeAssessment\":\"Source-native Computational Review TRUST v2 as exported by the review repository. It is not an ORAtlas TRUST assessment, is not converted to one, and does not affect ORAtlas verification.\",\"nativeAssessmentUnverified\":\"ORAtlas could not recheck this value against the review's frozen claim graph and TRUST report, because they were not preserved with this version. Treat it as an unverified source declaration.\"}},\"alsoAssertedIn\":[],\"links\":{\"self\":\"/api/claims/g1-version-4/g1-synthetic-oppose\",\"html\":\"/claims/g1-version-4/g1-synthetic-oppose\",\"review\":\"/api/reviews/g1-second-review\",\"reviewVersion\":\"/api/reviews/g1-second-review/versions/g1-version-4\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-claim-hidden-admin",
+        "method": "GET",
+        "path": "/api/claims/g1-version-3/g1-synthetic-hidden",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 404,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Claim not found.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "synthesis-claim-tombstone-admin",
+        "method": "GET",
+        "path": "/api/claims/g1-version-tombstoned/g1-synthetic-tombstone",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 404,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Claim not found.\"}}"
+        }
+      }
+    ]
+  },
+  "stateSha256": "1d81e8a21ccdcd4beb342f5c749c12cb119335d37326287e59fc3270edc73581",
+  "review": "Independently reviewed 2026-10-21: four restricted captures, native outcomes and complete state; partial synthetic G1 only."
+}

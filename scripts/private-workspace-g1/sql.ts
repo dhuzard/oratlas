@@ -319,6 +319,46 @@ export const PUBLIC_TABLE_GRANTS = [
     privileges: ["SELECT"],
     reason: "synthetic public protocol/editorial read dependency",
   },
+  {
+    table: "AgentRun",
+    privileges: ["SELECT"],
+    reason: "accepted synthesis projector native relation",
+  },
+  {
+    table: "SynthesisDraftMembership",
+    privileges: ["SELECT"],
+    reason: "accepted synthesis projector native relation",
+  },
+  {
+    table: "SynthesisDraftCitation",
+    privileges: ["SELECT"],
+    reason: "accepted synthesis projector native relation",
+  },
+  {
+    table: "SynthesisAttributionContributor",
+    privileges: ["SELECT"],
+    reason: "accepted synthesis projector native relation",
+  },
+  {
+    table: "SynthesisStalenessHead",
+    privileges: ["SELECT"],
+    reason: "accepted synthesis projector native relation",
+  },
+  {
+    table: "SynthesisStalenessEvaluation",
+    privileges: ["SELECT"],
+    reason: "accepted synthesis projector native relation",
+  },
+  {
+    table: "CertifierCredential",
+    privileges: ["SELECT"],
+    reason: "native worker credential authentication",
+  },
+  {
+    table: "VerifierCredential",
+    privileges: ["SELECT"],
+    reason: "native worker credential authentication",
+  },
 ] as const satisfies ReadonlyArray<{
   table: string;
   privileges: ReadonlyArray<"SELECT" | "INSERT">;
@@ -344,6 +384,16 @@ export const PUBLIC_COLUMN_UPDATE_GRANTS = [
     table: "Verifier",
     columns: ["activatedAt", "retiredAt", "status"],
     reason: "setVerifierStatus",
+  },
+  {
+    table: "CertifierCredential",
+    columns: ["lastUsedAt"],
+    reason: "native successful worker authentication timestamp",
+  },
+  {
+    table: "VerifierCredential",
+    columns: ["lastUsedAt"],
+    reason: "native successful worker authentication timestamp",
   },
 ] as const satisfies ReadonlyArray<{ table: string; columns: readonly string[]; reason: string }>;
 
@@ -609,6 +659,7 @@ export type ResetState = {
 /** Seed state of fixtures/public-fixtures.sql (reviewed with the fixture file). */
 export const EXPECTED_RESET_STATE: ResetState = {
   counts: {
+    AgentRun: 0,
     AuditEvent: 0,
     AuthorResponse: 1,
     CertificationLifecycleEvent: 2,
@@ -616,6 +667,7 @@ export const EXPECTED_RESET_STATE: ResetState = {
     CertificationResult: 1,
     CertificationRun: 1,
     Certifier: 2,
+    CertifierCredential: 0,
     Challenge: 2,
     ChallengeResponse: 2,
     ChallengeTransition: 6,
@@ -660,7 +712,12 @@ export const EXPECTED_RESET_STATE: ResetState = {
     ReviewRound: 1,
     ReviewVersion: 5,
     Submission: 1,
+    SynthesisAttributionContributor: 0,
     SynthesisDraft: 0,
+    SynthesisDraftCitation: 0,
+    SynthesisDraftMembership: 0,
+    SynthesisStalenessEvaluation: 0,
+    SynthesisStalenessHead: 0,
     TrustAdjudication: 0,
     TrustAdjudicationReference: 0,
     TrustAssessment: 0,
@@ -673,6 +730,7 @@ export const EXPECTED_RESET_STATE: ResetState = {
     VerificationRun: 1,
     VerificationRunLifecycleEvent: 4,
     Verifier: 2,
+    VerifierCredential: 0,
   },
   users: [
     ["g1-user-a-and-b", "0000-0000-0000-0003", false],

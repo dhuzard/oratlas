@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "review": "Independently reviewed 2026-10-21: 1165 synthetic records; bounded G1-empty coverage only, not G1 acceptance.",
+  "review": "Independently reviewed 2026-10-21: original1165 unchanged plus12 actual provider-disabled OAuth denials, all four captures and six user session cases; partial synthetic G1 only.",
   "baseUrl": "https://g1.oratlas.example",
   "clock": "2026-04-01T00:00:00.000Z",
   "records": [
@@ -27678,6 +27678,350 @@
       "body": {
         "encoding": "utf8",
         "text": ""
+      }
+    },
+    {
+      "kind": "http",
+      "id": "oauth-disabled-start-anonymous",
+      "method": "GET",
+      "path": "/api/auth/github/start",
+      "requestHeaders": {},
+      "requestBody": null,
+      "principal": "anonymous",
+      "sessionCase": "none",
+      "session": {
+        "case": "none"
+      },
+      "cookieSha256": null,
+      "status": 400,
+      "headers": [
+        ["content-type", "application/json"],
+        [
+          "link",
+          "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+        ]
+      ],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"GitHub OAuth is not configured.\"}}"
+      }
+    },
+    {
+      "kind": "http",
+      "id": "oauth-disabled-start-a-only",
+      "method": "GET",
+      "path": "/api/auth/github/start",
+      "requestHeaders": {},
+      "requestBody": null,
+      "principal": "A-only",
+      "sessionCase": "valid",
+      "session": {
+        "case": "valid",
+        "userId": "g1-user-a-only",
+        "issuedAt": "2026-03-31T00:00:00.000Z"
+      },
+      "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+      "status": 400,
+      "headers": [
+        ["content-type", "application/json"],
+        [
+          "link",
+          "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+        ]
+      ],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"GitHub OAuth is not configured.\"}}"
+      }
+    },
+    {
+      "kind": "http",
+      "id": "oauth-disabled-start-b-only",
+      "method": "GET",
+      "path": "/api/auth/github/start",
+      "requestHeaders": {},
+      "requestBody": null,
+      "principal": "B-only",
+      "sessionCase": "valid",
+      "session": {
+        "case": "valid",
+        "userId": "g1-user-b-only",
+        "issuedAt": "2026-03-31T00:00:00.000Z"
+      },
+      "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+      "status": 400,
+      "headers": [
+        ["content-type", "application/json"],
+        [
+          "link",
+          "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+        ]
+      ],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"GitHub OAuth is not configured.\"}}"
+      }
+    },
+    {
+      "kind": "http",
+      "id": "oauth-disabled-start-a-and-b",
+      "method": "GET",
+      "path": "/api/auth/github/start",
+      "requestHeaders": {},
+      "requestBody": null,
+      "principal": "A+B",
+      "sessionCase": "valid",
+      "session": {
+        "case": "valid",
+        "userId": "g1-user-a-and-b",
+        "issuedAt": "2026-03-31T00:00:00.000Z"
+      },
+      "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+      "status": 400,
+      "headers": [
+        ["content-type", "application/json"],
+        [
+          "link",
+          "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+        ]
+      ],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"GitHub OAuth is not configured.\"}}"
+      }
+    },
+    {
+      "kind": "http",
+      "id": "oauth-disabled-start-editor",
+      "method": "GET",
+      "path": "/api/auth/github/start",
+      "requestHeaders": {},
+      "requestBody": null,
+      "principal": "EDITOR",
+      "sessionCase": "valid",
+      "session": {
+        "case": "valid",
+        "userId": "g1-user-editor",
+        "issuedAt": "2026-03-31T00:00:00.000Z"
+      },
+      "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+      "status": 400,
+      "headers": [
+        ["content-type", "application/json"],
+        [
+          "link",
+          "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+        ]
+      ],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"GitHub OAuth is not configured.\"}}"
+      }
+    },
+    {
+      "kind": "http",
+      "id": "oauth-disabled-start-admin",
+      "method": "GET",
+      "path": "/api/auth/github/start",
+      "requestHeaders": {},
+      "requestBody": null,
+      "principal": "ADMIN",
+      "sessionCase": "valid",
+      "session": {
+        "case": "valid",
+        "userId": "g1-user-admin",
+        "issuedAt": "2026-03-31T00:00:00.000Z"
+      },
+      "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+      "status": 400,
+      "headers": [
+        ["content-type", "application/json"],
+        [
+          "link",
+          "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+        ]
+      ],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"GitHub OAuth is not configured.\"}}"
+      }
+    },
+    {
+      "kind": "http",
+      "id": "oauth-disabled-callback-anonymous",
+      "method": "GET",
+      "path": "/api/auth/github/callback",
+      "requestHeaders": {},
+      "requestBody": null,
+      "principal": "anonymous",
+      "sessionCase": "none",
+      "session": {
+        "case": "none"
+      },
+      "cookieSha256": null,
+      "status": 400,
+      "headers": [
+        ["content-type", "application/json"],
+        [
+          "link",
+          "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+        ]
+      ],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"GitHub OAuth is not configured.\"}}"
+      }
+    },
+    {
+      "kind": "http",
+      "id": "oauth-disabled-callback-a-only",
+      "method": "GET",
+      "path": "/api/auth/github/callback",
+      "requestHeaders": {},
+      "requestBody": null,
+      "principal": "A-only",
+      "sessionCase": "valid",
+      "session": {
+        "case": "valid",
+        "userId": "g1-user-a-only",
+        "issuedAt": "2026-03-31T00:00:00.000Z"
+      },
+      "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+      "status": 400,
+      "headers": [
+        ["content-type", "application/json"],
+        [
+          "link",
+          "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+        ]
+      ],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"GitHub OAuth is not configured.\"}}"
+      }
+    },
+    {
+      "kind": "http",
+      "id": "oauth-disabled-callback-b-only",
+      "method": "GET",
+      "path": "/api/auth/github/callback",
+      "requestHeaders": {},
+      "requestBody": null,
+      "principal": "B-only",
+      "sessionCase": "valid",
+      "session": {
+        "case": "valid",
+        "userId": "g1-user-b-only",
+        "issuedAt": "2026-03-31T00:00:00.000Z"
+      },
+      "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+      "status": 400,
+      "headers": [
+        ["content-type", "application/json"],
+        [
+          "link",
+          "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+        ]
+      ],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"GitHub OAuth is not configured.\"}}"
+      }
+    },
+    {
+      "kind": "http",
+      "id": "oauth-disabled-callback-a-and-b",
+      "method": "GET",
+      "path": "/api/auth/github/callback",
+      "requestHeaders": {},
+      "requestBody": null,
+      "principal": "A+B",
+      "sessionCase": "valid",
+      "session": {
+        "case": "valid",
+        "userId": "g1-user-a-and-b",
+        "issuedAt": "2026-03-31T00:00:00.000Z"
+      },
+      "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+      "status": 400,
+      "headers": [
+        ["content-type", "application/json"],
+        [
+          "link",
+          "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+        ]
+      ],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"GitHub OAuth is not configured.\"}}"
+      }
+    },
+    {
+      "kind": "http",
+      "id": "oauth-disabled-callback-editor",
+      "method": "GET",
+      "path": "/api/auth/github/callback",
+      "requestHeaders": {},
+      "requestBody": null,
+      "principal": "EDITOR",
+      "sessionCase": "valid",
+      "session": {
+        "case": "valid",
+        "userId": "g1-user-editor",
+        "issuedAt": "2026-03-31T00:00:00.000Z"
+      },
+      "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+      "status": 400,
+      "headers": [
+        ["content-type", "application/json"],
+        [
+          "link",
+          "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+        ]
+      ],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"GitHub OAuth is not configured.\"}}"
+      }
+    },
+    {
+      "kind": "http",
+      "id": "oauth-disabled-callback-admin",
+      "method": "GET",
+      "path": "/api/auth/github/callback",
+      "requestHeaders": {},
+      "requestBody": null,
+      "principal": "ADMIN",
+      "sessionCase": "valid",
+      "session": {
+        "case": "valid",
+        "userId": "g1-user-admin",
+        "issuedAt": "2026-03-31T00:00:00.000Z"
+      },
+      "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+      "status": 400,
+      "headers": [
+        ["content-type", "application/json"],
+        [
+          "link",
+          "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+        ]
+      ],
+      "setCookie": [],
+      "body": {
+        "encoding": "utf8",
+        "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"GitHub OAuth is not configured.\"}}"
       }
     },
     {

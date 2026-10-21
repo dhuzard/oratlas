@@ -1,3 +1,5 @@
+import { workerAuthorityHeaders, workerAuthorityDigests } from "./worker-authority.js";
+import { capabilityHeaderProblems } from "./worker-capture-safety.js";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
@@ -47,6 +49,8 @@ type Handler = (
 ) => unknown;
 
 const ROUTE_MODULES: Readonly<Record<string, () => Promise<RouteModule>>> = {
+  "api/auth/github/start": () => import("@/app/api/auth/github/start/route"),
+  "api/auth/github/callback": () => import("@/app/api/auth/github/callback/route"),
   ...bindProtocolRoutes({
     "api/execution-passports/[id]": () => import("@/app/api/execution-passports/[id]/route"),
     "api/verification-runs/[id]": () => import("@/app/api/verification-runs/[id]/route"),
@@ -217,7 +221,8 @@ async function runHttp(scenario: HttpScenario, earlier: Map<string, CaptureRecor
   const derived = expectedRequest(scenario, earlier);
   if ("problem" in derived) throw new Error(`${scenario.id}: ${derived.problem}`);
   const headers = lowerCaseHeaders(derived.headers);
-  if ("cookie" in headers) throw new Error(`${scenario.id}: cookies come from the session recipe`);
+  if (capabilityHeaderProblems(headers).length)
+    throw new Error("Raw request capability header refused");
   const cookie = cookieHeader(scenario.session, sign);
   const body = requestBodyText(scenario);
   const captured: CapturedRequest = {
@@ -233,7 +238,11 @@ async function runHttp(scenario: HttpScenario, earlier: Map<string, CaptureRecor
   };
   const request = new Request(`${G1_BASE_URL}${derived.path}`, {
     method: scenario.method,
-    headers: { ...headers, ...(cookie === undefined ? {} : { cookie }) },
+    headers: {
+      ...headers,
+      ...(cookie === undefined ? {} : { cookie }),
+      ...(scenario.workerAuthority ? workerAuthorityHeaders(scenario.workerAuthority) : {}),
+    },
     ...(body === null ? {} : { body }),
   });
   // The dispatched Cookie header is exactly the recipe's (no ambient cookie, no dropped identity).
@@ -249,7 +258,16 @@ async function runHttp(scenario: HttpScenario, earlier: Map<string, CaptureRecor
     `/${scenario.route}/route`,
     async () => (await handler(request, context)) as Response,
   );
-  return captureHttp(captured, response);
+  return captureHttp(
+    {
+      ...captured,
+      ...(scenario.workerAuthority
+        ? { workerAuthority: scenario.workerAuthority, ...workerAuthorityDigests(request.headers) }
+        : {}),
+    },
+    response,
+    request.headers,
+  );
 }
 
 const byCodeUnits = (left: string, right: string) => (left < right ? -1 : left > right ? 1 : 0);

@@ -87,10 +87,14 @@ requires its own final-head CI; neither result completes G1.
 
 ## Implementation record (G1-empty, partial)
 
-Status: **G1-empty harness implemented with partial coverage. All six principal cases now execute
-against 71 of the 133 public route files (73 of 143 exported methods) and two metadata loaders; the separate real index consumer also runs four times. Populated T-ROLE/T-PUB
-matrices, the other 62 route files / 70 methods, integrated Next HTTP serving, pages and remaining non-HTTP channels remain
-outstanding. G1 is not recorded as passed.**
+Status: **G1-empty harness implemented with partial coverage. Four separately reset programs
+declare 1,617 records (1,600 HTTP, 15 state and two metadata), spanning 77 of the
+133 public route files and 79 of 143 exported methods. All 79 declared methods
+include six user/session cases; four worker GETs also have independent credential
+and lease positives. The index consumer has its own four-label capture. The
+other 56 files / 64 methods, OAuth success, integrated real Next HTTP serving,
+remaining operational channels and timing are still outstanding. Populated
+T-ROLE/T-PUB remains later. G1 is not passed.**
 
 ### Layout
 
@@ -721,3 +725,115 @@ index golden. The corrected baseline-backed lifecycle in
 **7/7** and cleanup **4/4**. A separate native-fixture/architecture run passed
 **121** tests. This correction supersedes the original state digest above; it
 does not establish complete G1 coverage or enable private data.
+
+## Isolated authority and synthesis programs
+
+The fixed supplemental catalog runs three independent HTTP programs after their
+own full fixture reset for each of baseline, baseline-repeat, after and
+after-repeat. None is appended to an earlier mutated state. The original program
+now has **1,177 records**: its previous 1,165 records are unchanged and twelve
+new GitHub OAuth start/callback cases return the actual provider-disabled 400
+under every user session, without redirects or Set-Cookie. No OAuth positive,
+provider exchange or session creation is inferred.
+
+- **Worker reads: 270 requests**, 24×200, 96×401, 126×403 and 24×404. Four real
+  worker GETs read native frozen input/source bytes under verifier or certifier
+  credentials; user cookies cannot supply worker authority. Native claim and
+  transition history binds the submitting credential, lease generation, exact
+  300-second lifetime, scope and owner. Every request preserves complete
+  credential rows, allowing only the native authenticated credential's fixed
+  lastUsedAt stamp. Ownership/lease denials after successful authentication can
+  legitimately stamp that field. Its values are retained and compared, separately
+  from a complete database digest of the remaining fields.
+- **Known mutations: 62 requests**. A real notification POST establishes the
+  declared starting state; five later own-notification writes are the only
+  permitted row changes. Every other request compares all columns of every
+  public SELECT table exactly, including native comment/audit timestamps and
+  IDs. Comment removal cases here are missing, forbidden or already removed;
+  fresh removals remain a separate observation below.
+- **Synthesis: 108 requests**. A real deterministic writer and ADMIN acceptance
+  pipeline produced a six-section synthesis with one grounded citation and
+  separate software/editor attribution. Native accepted federation notification
+  detail and a populated contradiction map have genuine hidden/tombstone
+  controls. Archive, feed, inbox and claim observers exercise the supplemented
+  corpus. All public table rows remain unchanged. Root-shaped synthesis errors
+  require an explicit denial-envelope declaration; nested errors stay the
+  default, with no fallback matching.
+
+The measured public role now has **72 SELECT tables**, the existing append-only
+audit INSERT and **14 column UPDATE grants**. Six additional synthesis projector
+relations and two worker credential tables explain the eight new SELECTs. The
+only extra updates are the two credential lastUsedAt columns. The parent counts
+**all 87 recorded schema tables** before/after each supplement, including the
+synthesis generation lineage row that the public role cannot read. Supplement
+deltas are exactly 28 synthesis rows and 37 worker rows, with no count exception.
+
+Each fixed child must succeed and produce its state sidecar; the parent checks
+its independently declared outcomes, three pairs of exact HTTP/state evidence
+and its separate manually reviewed golden. Candidates never become goldens
+automatically. Only Date/request-ID normalization already documented is allowed;
+no response body field is stripped. The supplemental sidecars retain native
+identifiers and timestamps exactly. The primary program keeps its previously
+documented selected-state projection exclusions; this batch does not extend
+them or claim a complete mutation-state proof for that historical projection.
+The first 64-table state digest remains `40e66352b8e29901930a084fcc90e4b988eadc5751d90808e7870c212904595f`;
+adding eight empty dependencies gives the independently reconstructed
+72-table index-state digest `9e76209ef545a88c382e6e060840daa2af8ad03ba3286913f5c93225d61f4edb`.
+The canonical index digest remains `0aafb06b1a793898811bba4334c9daff58278e0ffb0d1df28455bcb6218400f2`.
+
+Worker recipes never persist raw Authorization, Cookie or lease headers. Optional
+authority recipes and digests bind the actual dispatched headers; old capture
+records omit these fields entirely. Capture bodies, raw child stdout/stderr and
+complete state sidecars are checked before persistence. Both supported legacy
+capture and golden formats have decoded-body/raw-header controls; unsupported
+legacy authority fields fail closed. Disclosure errors never echo the capability.
+
+The separate **24-request fresh-removal observation** executes real owner, editor
+and ADMIN removals with exactly one attributable audit each, then repeat/denial
+controls. Two HTTP captures match, but native comment updatedAt and audit IDs/times
+vary. Raw sidecars preserve these values and measured real-clock windows; the
+explicit bounded observation is not wired into strict G1 acceptance and does not
+waive the unresolved native entropy requirement. See
+[fresh-removal evidence limits](../scripts/private-workspace-g1/fresh-removal-observation.md)
+and [worker read details](private-workspace-worker-read-probe.md).
+
+This is synthetic local/CI evidence. Session-instance/epoch and identity lifecycle
+decisions remain those approved in the owner decision record; private schema
+tables, live providers, real private data, testers, deployment and erasure/reuse
+remain gated on their respective prerequisites.
+
+Final local validation in `/tmp/oratlas-g1-authority-final` passed **105/105**
+checks, auth **6/6**, role **7/7** and cleanup **4/4**. Four captures of each
+1,177/270/62/108-record program and four index captures match the independently
+reviewed baselines and pairs. All **62** harness evidence/log files contain no
+dedicated database credential, worker capability or secret component, including
+decoded response-body checks. The required offline G1/architecture/public-response
+suite passed **340 tests in 34 files**; full G1 TypeScript, zero-warning lint,
+formatting and diff checks also passed. Required CI must pass on the final PR
+head before merge; none of these counts completes G1.
+
+Independently approved candidate file SHA-256 values (review metadata is added
+manually in the committed goldens):
+
+| Program            | Candidate SHA-256                                                  |
+| ------------------ | ------------------------------------------------------------------ |
+| Primary 1,177      | `bdb0c53c78baadffcc38fa60efc0159fb7f60f4c14d24def03f4c0c370228d34` |
+| Worker 270         | `a7529d15963a05ac22d73580dddf92ad0e1fe2f12ef24fb4b07b635301a46544` |
+| Known mutations 62 | `7497906da297718211be5651ef8e4c531510cd6d2bb0490fd905f51e5c62a6bb` |
+| Synthesis 108      | `98fc78fbdcd39624b681d9cfc025d8257701965fe77c04b8f93a4941f0b5e8f9` |
+| Public index       | `938b3ce02493c6b337695983a8169f9a7a310c7611777ee373d1043f24fd1f41` |
+
+The corrected native worker history changes exactly six verification-input
+positive response capturedAt values from 00:00 to 23:58; this is the native input
+capture preceding the 23:59 claim/start and 00:04 expiry. The other 264 worker
+records and every previously accepted program/index candidate are unchanged.
+The raw producer JSON/log contains no lease/bearer capability.
+
+The first PR CI run exposed a locale difference in the known-mutation sidecar's
+ORM user/notification array ordering. All public HTTP bytes and all 72 raw SQL
+state tables already matched. Comparing every CI label against the reviewed
+local evidence proved that sorting only the four complete ORM collections by
+explicit binary ID removes every difference, without changing a row or field.
+The producer now applies that order before serialization; its SQL snapshots
+continue using COLLATE "C". Existing reviewed goldens are unchanged. A regression
+control covers the a-only/admin ordering and retains every native field.

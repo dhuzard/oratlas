@@ -1,0 +1,632 @@
+{
+  "nativeGenerationInput": {
+    "requestKey": "g1-synthesis-native-source-3",
+    "selector": {
+      "schemaVersion": "synthesis-selector/1.0.0",
+      "selection": {
+        "kind": "seed",
+        "nodeId": "g1-synthesis-source"
+      },
+      "depth": 1,
+      "maxNodes": 10,
+      "maxEdges": 20,
+      "relationTypes": ["background", "contradicts"],
+      "trustPolicy": "authoritative-current-relation-trust-v1",
+      "currentVersionPolicy": "newest-valid-no-history-fallback",
+      "topicSeedPolicy": "current-public-title-abstract-search-v1",
+      "topicSeedLimit": 1,
+      "edgePolicy": "editor-confirmed-exact-versions-only",
+      "includeContradictions": true
+    }
+  },
+  "nativeAcceptanceInput": {
+    "action": "accept",
+    "expectedRevision": 0,
+    "idempotencyKey": "g1-synthesis-accept-1",
+    "rationale": "Synthetic harness editorial approval only; no scientific assessment occurred.",
+    "licenseSpdx": "CC-BY-4.0",
+    "rightsStatement": "Synthetic fixture text is permitted for this test archive only.",
+    "checklist": {
+      "groundingAndCitationsReviewed": true,
+      "contradictionAndNonConsensusFramingReviewed": true,
+      "attributionAndAiDisclosureReviewed": true,
+      "limitationsReviewed": true,
+      "privacyAndInjectionLeakageReviewed": true,
+      "rightsAndLicenseConfirmed": true
+    }
+  },
+  "rows": {
+    "KnowledgeNode": [
+      {
+        "id": "cmvi69rl6000a7k5dxurfc3e2",
+        "kind": "review",
+        "createdAt": "2026-10-21T13:53:07.05",
+        "stableKey": "review:cmvi69rky00077k5dt3k7aufy",
+        "updatedAt": "2026-10-21T13:53:07.05",
+        "originType": "review-record",
+        "localNodeId": "cmvi69rky00077k5dt3k7aufy",
+        "repositoryId": null
+      },
+      {
+        "id": "g1-synthesis-source",
+        "kind": "claim",
+        "createdAt": "2026-03-20T00:00:00",
+        "stableKey": null,
+        "updatedAt": "2026-03-20T00:00:00",
+        "originType": "repository-object",
+        "localNodeId": "native-synthesis-claim",
+        "repositoryId": "g1-repo-1"
+      }
+    ],
+    "KnowledgeNodeVersion": [
+      {
+        "id": "cmvi69rl9000c7k5dhkivd63e",
+        "text": "{\"citations\":[],\"schemaVersion\":\"1.0.0\",\"sections\":[{\"id\":\"background\",\"paragraphs\":[{\"citations\":[],\"text\":\"The bounded topic is Synthetic bounded source claim. The packet contains 1 claim nodes.\"}],\"title\":\"Background\"},{\"id\":\"state-of-knowledge\",\"paragraphs\":[{\"citations\":[{\"nodeId\":\"g1-synthesis-source\",\"nodeVersionId\":\"g1-synthesis-source-v2\",\"referenceId\":\"reference:sha256:26d2da99ae1f13bf08d1844d2c6ca9a22404e4429aec199debc291075d4e52c2\"}],\"text\":\"claim evidence: Synthetic bounded source claim.\"}],\"title\":\"State of knowledge\"},{\"id\":\"agreements\",\"paragraphs\":[{\"citations\":[],\"text\":\"The packet records no confirmed support, replication, or extension relation.\"}],\"title\":\"Agreements\"},{\"id\":\"contradictions-and-open-questions\",\"paragraphs\":[{\"citations\":[],\"text\":\"The packet records no confirmed contradiction relation; unrepresented questions remain open.\"}],\"title\":\"Contradictions and open questions\"},{\"id\":\"data-and-code-availability\",\"paragraphs\":[{\"citations\":[],\"text\":\"The packet contains no non-example data or code node.\"}],\"title\":\"Data and code availability\"},{\"id\":\"limitations\",\"paragraphs\":[{\"citations\":[],\"text\":\"This review is limited to the supplied bounded subgraph and does not establish scientific consensus or independent replication.\"}],\"title\":\"Limitations\"}],\"summary\":\"This deterministic review summarizes 1 non-example immutable nodes and 0 confirmed relations from one bounded evidence packet.\",\"title\":\"Synthesis review: Synthetic bounded source claim\"}",
+        "title": "Synthesis review: Synthetic bounded source claim",
+        "license": "CC-BY-4.0",
+        "abstract": "This deterministic review summarizes 1 non-example immutable nodes and 0 confirmed relations from one bounded evidence packet.",
+        "createdAt": "2026-10-21T13:53:07.053",
+        "isExample": false,
+        "conceptDoi": null,
+        "snapshotId": null,
+        "versionDoi": null,
+        "payloadJson": "{\"recordSourceType\":\"synthesis\",\"reviewId\":\"cmvi69rky00077k5dt3k7aufy\",\"reviewVersionId\":\"cmvi69rl000097k5d9nezdvby\"}",
+        "sourceClaimId": null,
+        "provenanceJson": "{\"reviewId\":\"cmvi69rky00077k5dt3k7aufy\",\"reviewVersionId\":\"cmvi69rl000097k5d9nezdvby\",\"sourceType\":\"review-version\"}",
+        "knowledgeNodeId": "cmvi69rl6000a7k5dxurfc3e2",
+        "contributorsJson": "[]",
+        "sourceCitationId": null,
+        "capturePayloadHash": null,
+        "sourceSubmissionId": null,
+        "inspectionCaptureId": null,
+        "sourceReviewVersionId": "cmvi69rl000097k5d9nezdvby",
+        "sourcePublicationClaimOccurrenceId": null
+      },
+      {
+        "id": "g1-synthesis-source-v2",
+        "text": null,
+        "title": "Synthetic bounded source claim",
+        "license": "CC-BY-4.0",
+        "abstract": null,
+        "createdAt": "2026-03-21T00:00:00",
+        "isExample": false,
+        "conceptDoi": null,
+        "snapshotId": "g1-snap-2",
+        "versionDoi": null,
+        "payloadJson": "{\"statement\":\"A synthetic bounded source claim is used solely to exercise the public synthesis contract.\",\"qualifiers\":[\"synthetic fixture; no scientific inference\"]}",
+        "sourceClaimId": null,
+        "provenanceJson": "{\"sourcePath\":\"knowledge/synthesis-claim.json\",\"repositoryUrl\":\"https://github.com/oratlas-g1-fixture/g1-review\",\"commitSha\":\"2222222222222222222222222222222222222222\"}",
+        "knowledgeNodeId": "g1-synthesis-source",
+        "contributorsJson": "[{\"displayName\":\"Synthetic Source Author\"}]",
+        "sourceCitationId": null,
+        "capturePayloadHash": null,
+        "sourceSubmissionId": null,
+        "inspectionCaptureId": null,
+        "sourceReviewVersionId": null,
+        "sourcePublicationClaimOccurrenceId": null
+      }
+    ],
+    "AgentRun": [
+      {
+        "id": "cmvi69rk200007k5d4h92rvnn",
+        "error": null,
+        "status": "succeeded",
+        "agentType": "synthesis-review",
+        "inputHash": "26249e055137ef1565f5cf6797a85982db2c87ced4bd32b0b356c5fe9aac1543",
+        "modelName": "bounded-template-1.0",
+        "startedAt": "2026-10-21T13:53:07.011",
+        "outputJson": "{\"citations\":[],\"schemaVersion\":\"1.0.0\",\"sections\":[{\"id\":\"background\",\"paragraphs\":[{\"citations\":[],\"text\":\"The bounded topic is Synthetic bounded source claim. The packet contains 1 claim nodes.\"}],\"title\":\"Background\"},{\"id\":\"state-of-knowledge\",\"paragraphs\":[{\"citations\":[{\"nodeId\":\"g1-synthesis-source\",\"nodeVersionId\":\"g1-synthesis-source-v2\",\"referenceId\":\"reference:sha256:26d2da99ae1f13bf08d1844d2c6ca9a22404e4429aec199debc291075d4e52c2\"}],\"text\":\"claim evidence: Synthetic bounded source claim.\"}],\"title\":\"State of knowledge\"},{\"id\":\"agreements\",\"paragraphs\":[{\"citations\":[],\"text\":\"The packet records no confirmed support, replication, or extension relation.\"}],\"title\":\"Agreements\"},{\"id\":\"contradictions-and-open-questions\",\"paragraphs\":[{\"citations\":[],\"text\":\"The packet records no confirmed contradiction relation; unrepresented questions remain open.\"}],\"title\":\"Contradictions and open questions\"},{\"id\":\"data-and-code-availability\",\"paragraphs\":[{\"citations\":[],\"text\":\"The packet contains no non-example data or code node.\"}],\"title\":\"Data and code availability\"},{\"id\":\"limitations\",\"paragraphs\":[{\"citations\":[],\"text\":\"This review is limited to the supplied bounded subgraph and does not establish scientific consensus or independent replication.\"}],\"title\":\"Limitations\"}],\"summary\":\"This deterministic review summarizes 1 non-example immutable nodes and 0 confirmed relations from one bounded evidence packet.\",\"title\":\"Synthesis review: Synthetic bounded source claim\"}",
+        "packetHash": "26249e055137ef1565f5cf6797a85982db2c87ced4bd32b0b356c5fe9aac1543",
+        "promptHash": "d537d25db53180e834c45b7dcfff5156f41588aef9ed78365972f847bc019453",
+        "completedAt": "2026-04-01T00:00:00",
+        "modelVersion": null,
+        "modelProvider": "deterministic",
+        "promptVersion": "atlas-synthesis-1.0",
+        "humanReviewStatus": "approved",
+        "inputReferencesJson": "{\"contradictions\":[],\"edges\":[],\"identifierWhitelist\":[],\"nodes\":[{\"commitSha\":\"2222222222222222222222222222222222222222\",\"contributors\":[{\"displayName\":\"Synthetic Source Author\"}],\"createdAt\":\"2026-03-21T00:00:00.000Z\",\"id\":\"g1-synthesis-source\",\"identifiers\":[],\"isExample\":false,\"kind\":\"claim\",\"license\":\"CC-BY-4.0\",\"localNodeId\":\"native-synthesis-claim\",\"payload\":{\"qualifiers\":[\"synthetic fixture; no scientific inference\"],\"statement\":\"A synthetic bounded source claim is used solely to exercise the public synthesis contract.\"},\"provenance\":{\"commitSha\":\"2222222222222222222222222222222222222222\",\"repositoryUrl\":\"https://github.com/oratlas-g1-fixture/g1-review\",\"sourcePath\":\"knowledge/synthesis-claim.json\"},\"repository\":{\"name\":\"g1-review\",\"owner\":\"oratlas-g1-fixture\",\"url\":\"https://github.com/oratlas-g1-fixture/g1-review\"},\"snapshotId\":\"g1-snap-2\",\"title\":\"Synthetic bounded source claim\",\"versionId\":\"g1-synthesis-source-v2\"}],\"references\":[{\"kind\":\"node\",\"nodeId\":\"g1-synthesis-source\",\"nodeVersionId\":\"g1-synthesis-source-v2\",\"referenceId\":\"reference:sha256:26d2da99ae1f13bf08d1844d2c6ca9a22404e4429aec199debc291075d4e52c2\"}],\"schemaVersion\":\"1.0.0\",\"selection\":{\"kind\":\"seed\",\"nodeId\":\"g1-synthesis-source\",\"versionId\":\"g1-synthesis-source-v2\"},\"source\":{\"kind\":\"bounded-supplied-subgraph\",\"selectorFingerprint\":\"e1350f7331d00c837d999b67b4db7951770034cbbb2e9da1cd5a245c20dddd16\"}}"
+      }
+    ],
+    "Review": [
+      {
+        "id": "cmvi69rky00077k5dt3k7aufy",
+        "slug": "synthesis-c368583d7cdfc3a55a55",
+        "title": "Synthesis review: Synthetic bounded source claim",
+        "status": "published",
+        "abstract": "This deterministic review summarizes 1 non-example immutable nodes and 0 confirmed relations from one bounded evidence packet.",
+        "createdAt": "2026-10-21T13:53:07.043",
+        "updatedAt": "2026-10-21T13:53:07.051",
+        "acceptedAt": "2026-04-01T00:00:00",
+        "reviewType": "ai-synthesis",
+        "licenseSpdx": "CC-BY-4.0",
+        "repositoryId": null,
+        "knowledgeNodeId": "cmvi69rl6000a7k5dxurfc3e2",
+        "currentSnapshotId": null,
+        "lifecycleRevision": 0,
+        "publishedReviewUrl": null,
+        "synthesisSeriesKey": "c368583d7cdfc3a55a556fc3159edff8f5792f075c8ff4ca73d80c3569423783",
+        "currentSynthesisVersionId": "cmvi69rl000097k5d9nezdvby"
+      }
+    ],
+    "SynthesisDraft": [
+      {
+        "id": "cmvi69rke00027k5dwd5iikvw",
+        "model": "bounded-template-1.0",
+        "status": "accepted",
+        "provider": "deterministic",
+        "reviewId": "cmvi69rky00077k5dt3k7aufy",
+        "revision": 1,
+        "createdAt": "2026-10-21T13:53:07.023",
+        "seriesKey": "c368583d7cdfc3a55a556fc3159edff8f5792f075c8ff4ca73d80c3569423783",
+        "updatedAt": "2026-10-21T13:53:07.057",
+        "acceptedAt": "2026-04-01T00:00:00",
+        "agentRunId": "cmvi69rk200007k5d4h92rvnn",
+        "conceptDoi": null,
+        "packetHash": "26249e055137ef1565f5cf6797a85982db2c87ced4bd32b0b356c5fe9aac1543",
+        "packetJson": "{\"contradictions\":[],\"edges\":[],\"identifierWhitelist\":[],\"nodes\":[{\"commitSha\":\"2222222222222222222222222222222222222222\",\"contributors\":[{\"displayName\":\"Synthetic Source Author\"}],\"createdAt\":\"2026-03-21T00:00:00.000Z\",\"id\":\"g1-synthesis-source\",\"identifiers\":[],\"isExample\":false,\"kind\":\"claim\",\"license\":\"CC-BY-4.0\",\"localNodeId\":\"native-synthesis-claim\",\"payload\":{\"qualifiers\":[\"synthetic fixture; no scientific inference\"],\"statement\":\"A synthetic bounded source claim is used solely to exercise the public synthesis contract.\"},\"provenance\":{\"commitSha\":\"2222222222222222222222222222222222222222\",\"repositoryUrl\":\"https://github.com/oratlas-g1-fixture/g1-review\",\"sourcePath\":\"knowledge/synthesis-claim.json\"},\"repository\":{\"name\":\"g1-review\",\"owner\":\"oratlas-g1-fixture\",\"url\":\"https://github.com/oratlas-g1-fixture/g1-review\"},\"snapshotId\":\"g1-snap-2\",\"title\":\"Synthetic bounded source claim\",\"versionId\":\"g1-synthesis-source-v2\"}],\"references\":[{\"kind\":\"node\",\"nodeId\":\"g1-synthesis-source\",\"nodeVersionId\":\"g1-synthesis-source-v2\",\"referenceId\":\"reference:sha256:26d2da99ae1f13bf08d1844d2c6ca9a22404e4429aec199debc291075d4e52c2\"}],\"schemaVersion\":\"1.0.0\",\"selection\":{\"kind\":\"seed\",\"nodeId\":\"g1-synthesis-source\",\"versionId\":\"g1-synthesis-source-v2\"},\"source\":{\"kind\":\"bounded-supplied-subgraph\",\"selectorFingerprint\":\"e1350f7331d00c837d999b67b4db7951770034cbbb2e9da1cd5a245c20dddd16\"}}",
+        "promptHash": "d537d25db53180e834c45b7dcfff5156f41588aef9ed78365972f847bc019453",
+        "requestKey": "g1-synthesis-native-source-3",
+        "versionDoi": null,
+        "generatedAt": "2026-04-01T00:00:00",
+        "licenseSpdx": "CC-BY-4.0",
+        "acceptedById": "g1-user-admin",
+        "documentHash": "e75bc69d5bb13b66f98bf8caa082abb513fc660dc25fae68b8dc948847bf4e22",
+        "documentJson": "{\"citations\":[],\"schemaVersion\":\"1.0.0\",\"sections\":[{\"id\":\"background\",\"paragraphs\":[{\"citations\":[],\"text\":\"The bounded topic is Synthetic bounded source claim. The packet contains 1 claim nodes.\"}],\"title\":\"Background\"},{\"id\":\"state-of-knowledge\",\"paragraphs\":[{\"citations\":[{\"nodeId\":\"g1-synthesis-source\",\"nodeVersionId\":\"g1-synthesis-source-v2\",\"referenceId\":\"reference:sha256:26d2da99ae1f13bf08d1844d2c6ca9a22404e4429aec199debc291075d4e52c2\"}],\"text\":\"claim evidence: Synthetic bounded source claim.\"}],\"title\":\"State of knowledge\"},{\"id\":\"agreements\",\"paragraphs\":[{\"citations\":[],\"text\":\"The packet records no confirmed support, replication, or extension relation.\"}],\"title\":\"Agreements\"},{\"id\":\"contradictions-and-open-questions\",\"paragraphs\":[{\"citations\":[],\"text\":\"The packet records no confirmed contradiction relation; unrepresented questions remain open.\"}],\"title\":\"Contradictions and open questions\"},{\"id\":\"data-and-code-availability\",\"paragraphs\":[{\"citations\":[],\"text\":\"The packet contains no non-example data or code node.\"}],\"title\":\"Data and code availability\"},{\"id\":\"limitations\",\"paragraphs\":[{\"citations\":[],\"text\":\"This review is limited to the supplied bounded subgraph and does not establish scientific consensus or independent replication.\"}],\"title\":\"Limitations\"}],\"summary\":\"This deterministic review summarizes 1 non-example immutable nodes and 0 confirmed relations from one bounded evidence packet.\",\"title\":\"Synthesis review: Synthetic bounded source claim\"}",
+        "modelVersion": "unavailable",
+        "selectorHash": "678e9854361ab8c433ede57501e077549efa1ef6cc1d725e49d7d930a1d6e3e5",
+        "selectorJson": "{\"currentVersionPolicy\":\"newest-valid-no-history-fallback\",\"depth\":1,\"edgePolicy\":\"editor-confirmed-exact-versions-only\",\"includeContradictions\":true,\"maxEdges\":20,\"maxNodes\":10,\"relationTypes\":[\"background\",\"contradicts\"],\"schemaVersion\":\"synthesis-selector/1.0.0\",\"selection\":{\"kind\":\"seed\",\"nodeId\":\"g1-synthesis-source\"},\"topicSeedLimit\":1,\"topicSeedPolicy\":\"current-public-title-abstract-search-v1\",\"trustPolicy\":\"authoritative-current-relation-trust-v1\"}",
+        "checklistJson": "{\"attributionAndAiDisclosureReviewed\":true,\"contradictionAndNonConsensusFramingReviewed\":true,\"groundingAndCitationsReviewed\":true,\"limitationsReviewed\":true,\"privacyAndInjectionLeakageReviewed\":true,\"rightsAndLicenseConfirmed\":true}",
+        "generationKey": "684e0c4ee5968d77c3111f39d664f26f2f48c6144f20d76ec7cd80c5f2fbe1a0",
+        "parentDraftId": null,
+        "promptVersion": "atlas-synthesis-1.0",
+        "generationMode": "deterministic-template",
+        "rightsStatement": "Synthetic fixture text is permitted for this test archive only.",
+        "checklistVersion": "synthesis-checklist/1.0.0",
+        "decisionRationale": "Synthetic harness editorial approval only; no scientific assessment occurred.",
+        "pipelineSoftwareId": "software:oratlas-synthesis-writer",
+        "regenerationOrdinal": 1,
+        "pipelineSoftwareKind": "software-agent",
+        "pipelineSoftwareName": "Open Review Atlas Synthesis Writer",
+        "acceptedByDisplayName": "G1 Fixture Admin",
+        "acceptedByGithubLogin": "g1-fixture-admin",
+        "acceptedByRoleSnapshot": "ADMIN",
+        "pipelineSoftwareVersion": "synthesis-writer/1.0.0",
+        "previousAcceptedDraftId": null,
+        "previousAcceptedOrdinal": null,
+        "attributionPolicyVersion": "synthesis-attribution/1.0.0",
+        "materializationPolicyVersion": "synthesis-materialization/1.0.0"
+      }
+    ],
+    "ReviewVersion": [
+      {
+        "id": "cmvi69rl000097k5d9nezdvby",
+        "title": "Synthesis review: Synthetic bounded source claim",
+        "abstract": "This deterministic review summarizes 1 non-example immutable nodes and 0 confirmed relations from one bounded evidence packet.",
+        "reviewId": "cmvi69rky00077k5dt3k7aufy",
+        "createdAt": "2026-10-21T13:53:07.044",
+        "isExample": false,
+        "conceptDoi": null,
+        "releaseTag": null,
+        "releaseUrl": null,
+        "snapshotId": null,
+        "sourceKind": null,
+        "versionDoi": null,
+        "publicState": "published",
+        "publishedAt": "2026-04-01T00:00:00",
+        "metadataJson": "{\"license\":\"CC-BY-4.0\",\"reviewType\":\"ai-synthesis\"}",
+        "sourceBranch": null,
+        "tagObjectSha": null,
+        "synthesisModel": "bounded-template-1.0",
+        "zenodoRecordId": null,
+        "semanticVersion": null,
+        "sourceCreatedAt": null,
+        "recordSourceType": "synthesis",
+        "synthesisDraftId": "cmvi69rke00027k5dwd5iikvw",
+        "synthesisOrdinal": 1,
+        "synthesisProvider": "deterministic",
+        "capturePayloadHash": null,
+        "sourceSelectionKey": "c368583d7cdfc3a55a556fc3159edff8f5792f075c8ff4ca73d80c3569423783:1",
+        "sourceSubmissionId": null,
+        "inspectionCaptureId": null,
+        "synthesisAcceptedAt": "2026-04-01T00:00:00",
+        "synthesisPacketHash": "26249e055137ef1565f5cf6797a85982db2c87ced4bd32b0b356c5fe9aac1543",
+        "synthesisPipelineId": "software:oratlas-synthesis-writer",
+        "synthesisPromptHash": "d537d25db53180e834c45b7dcfff5156f41588aef9ed78365972f847bc019453",
+        "synthesisGeneratedAt": "2026-04-01T00:00:00",
+        "synthesisLicenseSpdx": "CC-BY-4.0",
+        "synthesisApprovedById": "g1-user-admin",
+        "synthesisApproverRole": "ADMIN",
+        "synthesisDocumentHash": "e75bc69d5bb13b66f98bf8caa082abb513fc660dc25fae68b8dc948847bf4e22",
+        "synthesisDocumentJson": "{\"citations\":[],\"schemaVersion\":\"1.0.0\",\"sections\":[{\"id\":\"background\",\"paragraphs\":[{\"citations\":[],\"text\":\"The bounded topic is Synthetic bounded source claim. The packet contains 1 claim nodes.\"}],\"title\":\"Background\"},{\"id\":\"state-of-knowledge\",\"paragraphs\":[{\"citations\":[{\"nodeId\":\"g1-synthesis-source\",\"nodeVersionId\":\"g1-synthesis-source-v2\",\"referenceId\":\"reference:sha256:26d2da99ae1f13bf08d1844d2c6ca9a22404e4429aec199debc291075d4e52c2\"}],\"text\":\"claim evidence: Synthetic bounded source claim.\"}],\"title\":\"State of knowledge\"},{\"id\":\"agreements\",\"paragraphs\":[{\"citations\":[],\"text\":\"The packet records no confirmed support, replication, or extension relation.\"}],\"title\":\"Agreements\"},{\"id\":\"contradictions-and-open-questions\",\"paragraphs\":[{\"citations\":[],\"text\":\"The packet records no confirmed contradiction relation; unrepresented questions remain open.\"}],\"title\":\"Contradictions and open questions\"},{\"id\":\"data-and-code-availability\",\"paragraphs\":[{\"citations\":[],\"text\":\"The packet contains no non-example data or code node.\"}],\"title\":\"Data and code availability\"},{\"id\":\"limitations\",\"paragraphs\":[{\"citations\":[],\"text\":\"This review is limited to the supplied bounded subgraph and does not establish scientific consensus or independent replication.\"}],\"title\":\"Limitations\"}],\"summary\":\"This deterministic review summarizes 1 non-example immutable nodes and 0 confirmed relations from one bounded evidence packet.\",\"title\":\"Synthesis review: Synthetic bounded source claim\"}",
+        "synthesisModelVersion": "unavailable",
+        "synthesisPipelineKind": "software-agent",
+        "synthesisPipelineName": "Open Review Atlas Synthesis Writer",
+        "synthesisPromptVersion": "atlas-synthesis-1.0",
+        "synthesisGenerationMode": "deterministic-template",
+        "synthesisPipelineVersion": "synthesis-writer/1.0.0",
+        "synthesisRightsStatement": "Synthetic fixture text is permitted for this test archive only.",
+        "synthesisChecklistVersion": "synthesis-checklist/1.0.0",
+        "publicationConsistencyJson": null,
+        "acceptedPredecessorVersionId": null,
+        "synthesisApproverDisplayName": "G1 Fixture Admin",
+        "synthesisApproverGithubLogin": "g1-fixture-admin",
+        "synthesisAttributionPolicyVersion": "synthesis-attribution/1.0.0",
+        "synthesisMaterializationPolicyVersion": "synthesis-materialization/1.0.0"
+      }
+    ],
+    "SynthesisDraftMembership": [
+      {
+        "kind": "node",
+        "nodeId": "g1-synthesis-source",
+        "draftId": "cmvi69rke00027k5dwd5iikvw",
+        "position": 0,
+        "referenceId": "reference:sha256:26d2da99ae1f13bf08d1844d2c6ca9a22404e4429aec199debc291075d4e52c2",
+        "nodeVersionId": "g1-synthesis-source-v2",
+        "identifierRole": null,
+        "identifierValue": null,
+        "identifierScheme": null
+      }
+    ],
+    "SynthesisDraftCitation": [
+      {
+        "id": "cmvi69rkf00047k5d0o3q0yrz",
+        "nodeId": "g1-synthesis-source",
+        "draftId": "cmvi69rke00027k5dwd5iikvw",
+        "location": "sections.state-of-knowledge.paragraphs.0",
+        "nodeKind": "claim",
+        "nodeTitle": "Synthetic bounded source claim",
+        "sectionId": "state-of-knowledge",
+        "referenceId": "reference:sha256:26d2da99ae1f13bf08d1844d2c6ca9a22404e4429aec199debc291075d4e52c2",
+        "citationIndex": 0,
+        "nodeVersionId": "g1-synthesis-source-v2",
+        "occurrenceKey": "sections.state-of-knowledge.paragraphs.0:0",
+        "identifierRole": null,
+        "paragraphIndex": 0,
+        "identifierValue": null,
+        "identifierScheme": null
+      }
+    ],
+    "SynthesisAttributionContributor": [
+      {
+        "kind": "approving-editor",
+        "role": "editorial-approval",
+        "userId": "g1-user-admin",
+        "position": 1,
+        "displayName": "G1 Fixture Admin",
+        "reviewVersionId": "cmvi69rl000097k5d9nezdvby",
+        "softwareVersion": null,
+        "userRoleSnapshot": "ADMIN",
+        "githubLoginSnapshot": "g1-fixture-admin"
+      },
+      {
+        "kind": "software-agent",
+        "role": "synthesis-generation",
+        "userId": null,
+        "position": 0,
+        "displayName": "Open Review Atlas Synthesis Writer",
+        "reviewVersionId": "cmvi69rl000097k5d9nezdvby",
+        "softwareVersion": "synthesis-writer/1.0.0",
+        "userRoleSnapshot": null,
+        "githubLoginSnapshot": null
+      }
+    ],
+    "SynthesisGenerationRequestClaim": [
+      {
+        "key": "17f3cbd527aecb4818868f9b8ce0f395de230505b5ba7e67f05c581a78551d36",
+        "status": "completed",
+        "attempt": 1,
+        "draftId": "cmvi69rke00027k5dwd5iikvw",
+        "createdAt": "2026-10-21T13:53:06.997",
+        "errorCode": null,
+        "updatedAt": "2026-10-21T13:53:07.028",
+        "agentRunId": "cmvi69rk200007k5d4h92rvnn",
+        "leaseToken": null,
+        "requestKey": "g1-synthesis-native-source-3",
+        "selectorHash": "678e9854361ab8c433ede57501e077549efa1ef6cc1d725e49d7d930a1d6e3e5",
+        "selectorJson": "{\"currentVersionPolicy\":\"newest-valid-no-history-fallback\",\"depth\":1,\"edgePolicy\":\"editor-confirmed-exact-versions-only\",\"includeContradictions\":true,\"maxEdges\":20,\"maxNodes\":10,\"relationTypes\":[\"background\",\"contradicts\"],\"schemaVersion\":\"synthesis-selector/1.0.0\",\"selection\":{\"kind\":\"seed\",\"nodeId\":\"g1-synthesis-source\"},\"topicSeedLimit\":1,\"topicSeedPolicy\":\"current-public-title-abstract-search-v1\",\"trustPolicy\":\"authoritative-current-relation-trust-v1\"}",
+        "leaseExpiresAt": null
+      }
+    ],
+    "AuditEvent": [
+      {
+        "id": "cmvi69rkj00067k5dszwn7aog",
+        "action": "synthesis.draft.generated",
+        "actorId": "g1-user-admin",
+        "createdAt": "2026-10-21T13:53:07.027",
+        "subjectId": "cmvi69rke00027k5dwd5iikvw",
+        "detailsJson": "{\"documentHash\":\"e75bc69d5bb13b66f98bf8caa082abb513fc660dc25fae68b8dc948847bf4e22\",\"packetHash\":\"26249e055137ef1565f5cf6797a85982db2c87ced4bd32b0b356c5fe9aac1543\",\"regenerationOrdinal\":1,\"seriesKey\":\"c368583d7cdfc3a55a556fc3159edff8f5792f075c8ff4ca73d80c3569423783\"}",
+        "subjectType": "synthesisDraft",
+        "idempotencyKey": "synthesis-generation:g1-synthesis-native-source-3",
+        "platformVersion": "0.1.0"
+      },
+      {
+        "id": "cmvi69rle000d7k5dw4ecehtu",
+        "action": "synthesis.draft.accepted",
+        "actorId": "g1-user-admin",
+        "createdAt": "2026-10-21T13:53:07.059",
+        "subjectId": "cmvi69rke00027k5dwd5iikvw",
+        "detailsJson": "{\"ordinal\":1,\"reviewId\":\"cmvi69rky00077k5dt3k7aufy\",\"reviewVersionId\":\"cmvi69rl000097k5d9nezdvby\"}",
+        "subjectType": "synthesisDraft",
+        "idempotencyKey": "synthesis-decision:cmvi69rke00027k5dwd5iikvw:g1-synthesis-accept-1",
+        "platformVersion": "0.1.0"
+      }
+    ]
+  },
+  "notification": {
+    "id": "g1-synthesis-announce",
+    "activityId": "https://example.org/g1-synthesis/announce",
+    "direction": "inbound",
+    "pattern": "announce-review",
+    "status": "accepted",
+    "actorUri": "https://example.org/g1-synthetic-producer",
+    "objectUri": "https://g1.oratlas.example/reviews/synthesis-c368583d7cdfc3a55a55",
+    "contextUri": "https://example.org/g1-synthetic-source",
+    "originUri": "https://example.org/g1-synthetic-producer",
+    "originInbox": "https://example.org/g1-synthetic-inbox",
+    "targetUri": "https://g1.oratlas.example",
+    "targetInbox": "https://g1.oratlas.example/api/federation/inbox",
+    "payloadJson": "{\"@context\":[\"https://www.w3.org/ns/activitystreams\",\"https://coar-notify.net\"],\"actor\":{\"id\":\"https://example.org/g1-synthetic-producer\",\"name\":\"Synthetic Fixture Producer\",\"type\":\"Service\"},\"context\":{\"id\":\"https://example.org/g1-synthetic-source\"},\"id\":\"https://example.org/g1-synthesis/announce\",\"object\":{\"id\":\"https://g1.oratlas.example/reviews/synthesis-c368583d7cdfc3a55a55\",\"ietf:item\":{\"id\":\"https://g1.oratlas.example/api/syntheses/synthesis-c368583d7cdfc3a55a55\",\"mediaType\":\"application/json\",\"type\":\"Document\"},\"type\":[\"Page\",\"sorg:Review\"]},\"origin\":{\"id\":\"https://example.org/g1-synthetic-producer\",\"inbox\":\"https://example.org/g1-synthetic-inbox\",\"type\":\"Service\"},\"target\":{\"id\":\"https://g1.oratlas.example\",\"inbox\":\"https://g1.oratlas.example/api/federation/inbox\",\"type\":\"Service\"},\"type\":[\"Announce\",\"coar-notify:ReviewAction\"]}",
+    "payloadHash": "0742d923f844c8afc73e54708e893f0dd7e1f224a0d8f8a1a28979651416ad17",
+    "createdAt": "2026-03-25T00:00:00",
+    "resolvedById": "g1-user-editor",
+    "resolutionNote": "Synthetic accepted AnnounceReview fixture only.",
+    "resolvedAt": "2026-03-25T12:00:00"
+  },
+  "comparisonRows": {
+    "Claim": [
+      {
+        "id": "g1-synthesis-support",
+        "reviewVersionId": "g1-version-2",
+        "localClaimId": "g1-synthetic-support",
+        "text": "Synthetic support evidence declaration; this exercises classification only, not a scientific conclusion.",
+        "normalizedText": "synthetic support evidence declaration; this exercises classification only, not a scientific conclusion.",
+        "section": "Synthetic comparison",
+        "claimType": "empirical",
+        "scopeJson": "{\"method\":\"deterministic contract comparison\",\"population\":\"synthetic fixture labels\"}",
+        "createdAt": "2026-03-20T00:00:00"
+      },
+      {
+        "id": "g1-synthesis-oppose",
+        "reviewVersionId": "g1-version-4",
+        "localClaimId": "g1-synthetic-oppose",
+        "text": "Synthetic oppose evidence declaration; this exercises classification only, not a scientific conclusion.",
+        "normalizedText": "synthetic oppose evidence declaration; this exercises classification only, not a scientific conclusion.",
+        "section": "Synthetic comparison",
+        "claimType": "empirical",
+        "scopeJson": "{\"method\":\"deterministic contract comparison\",\"population\":\"synthetic fixture labels\"}",
+        "createdAt": "2026-03-20T00:00:00"
+      },
+      {
+        "id": "g1-synthesis-hidden",
+        "reviewVersionId": "g1-version-3",
+        "localClaimId": "g1-synthetic-hidden",
+        "text": "Synthetic hidden evidence declaration; this exercises classification only, not a scientific conclusion.",
+        "normalizedText": "synthetic hidden evidence declaration; this exercises classification only, not a scientific conclusion.",
+        "section": "Synthetic comparison",
+        "claimType": "empirical",
+        "scopeJson": "{\"method\":\"deterministic contract comparison\",\"population\":\"synthetic fixture labels\"}",
+        "createdAt": "2026-03-20T00:00:00"
+      },
+      {
+        "id": "g1-synthesis-tombstone",
+        "reviewVersionId": "g1-version-tombstoned",
+        "localClaimId": "g1-synthetic-tombstone",
+        "text": "Synthetic tombstone evidence declaration; this exercises classification only, not a scientific conclusion.",
+        "normalizedText": "synthetic tombstone evidence declaration; this exercises classification only, not a scientific conclusion.",
+        "section": "Synthetic comparison",
+        "claimType": "empirical",
+        "scopeJson": "{\"method\":\"deterministic contract comparison\",\"population\":\"synthetic fixture labels\"}",
+        "createdAt": "2026-03-20T00:00:00"
+      }
+    ],
+    "Citation": [
+      {
+        "id": "g1-synthesis-citation-support",
+        "reviewVersionId": "g1-version-2",
+        "localCitationId": "g1-synthetic-support",
+        "doi": "10.5555/g1-synthesis-shared-work",
+        "title": "Explicit synthetic evidence work for classification only",
+        "year": 2026,
+        "rawCitationJson": "{\"isExample\":true}"
+      },
+      {
+        "id": "g1-synthesis-citation-oppose",
+        "reviewVersionId": "g1-version-4",
+        "localCitationId": "g1-synthetic-oppose",
+        "doi": "10.5555/g1-synthesis-shared-work",
+        "title": "Explicit synthetic evidence work for classification only",
+        "year": 2026,
+        "rawCitationJson": "{\"isExample\":true}"
+      },
+      {
+        "id": "g1-synthesis-citation-hidden",
+        "reviewVersionId": "g1-version-3",
+        "localCitationId": "g1-synthetic-hidden",
+        "doi": "10.5555/g1-synthesis-shared-work",
+        "title": "Explicit synthetic evidence work for classification only",
+        "year": 2026,
+        "rawCitationJson": "{\"isExample\":true}"
+      },
+      {
+        "id": "g1-synthesis-citation-tombstone",
+        "reviewVersionId": "g1-version-tombstoned",
+        "localCitationId": "g1-synthetic-tombstone",
+        "doi": "10.5555/g1-synthesis-shared-work",
+        "title": "Explicit synthetic evidence work for classification only",
+        "year": 2026,
+        "rawCitationJson": "{\"isExample\":true}"
+      }
+    ],
+    "ClaimEvidenceRelation": [
+      {
+        "id": "g1-synthesis-relation-support",
+        "claimId": "g1-synthesis-support",
+        "citationId": "g1-synthesis-citation-support",
+        "relationType": "supports",
+        "supportDirection": "positive",
+        "extractionMethod": "manifest",
+        "humanReviewed": false
+      },
+      {
+        "id": "g1-synthesis-relation-oppose",
+        "claimId": "g1-synthesis-oppose",
+        "citationId": "g1-synthesis-citation-oppose",
+        "relationType": "contradicts",
+        "supportDirection": "negative",
+        "extractionMethod": "manifest",
+        "humanReviewed": false
+      },
+      {
+        "id": "g1-synthesis-relation-hidden",
+        "claimId": "g1-synthesis-hidden",
+        "citationId": "g1-synthesis-citation-hidden",
+        "relationType": "contradicts",
+        "supportDirection": "negative",
+        "extractionMethod": "manifest",
+        "humanReviewed": false
+      },
+      {
+        "id": "g1-synthesis-relation-tombstone",
+        "claimId": "g1-synthesis-tombstone",
+        "citationId": "g1-synthesis-citation-tombstone",
+        "relationType": "contradicts",
+        "supportDirection": "negative",
+        "extractionMethod": "manifest",
+        "humanReviewed": false
+      }
+    ]
+  },
+  "publicSynthesis": {
+    "slug": "synthesis-c368583d7cdfc3a55a55",
+    "reviewType": "ai-synthesis",
+    "title": "Synthesis review: Synthetic bounded source claim",
+    "abstract": "This deterministic review summarizes 1 non-example immutable nodes and 0 confirmed relations from one bounded evidence packet.",
+    "document": {
+      "schemaVersion": "1.0.0",
+      "title": "Synthesis review: Synthetic bounded source claim",
+      "summary": "This deterministic review summarizes 1 non-example immutable nodes and 0 confirmed relations from one bounded evidence packet.",
+      "citations": [],
+      "sections": [
+        {
+          "id": "background",
+          "title": "Background",
+          "paragraphs": [
+            {
+              "text": "The bounded topic is Synthetic bounded source claim. The packet contains 1 claim nodes.",
+              "citations": []
+            }
+          ]
+        },
+        {
+          "id": "state-of-knowledge",
+          "title": "State of knowledge",
+          "paragraphs": [
+            {
+              "text": "claim evidence: Synthetic bounded source claim.",
+              "citations": [
+                {
+                  "referenceId": "reference:sha256:26d2da99ae1f13bf08d1844d2c6ca9a22404e4429aec199debc291075d4e52c2",
+                  "nodeId": "g1-synthesis-source",
+                  "nodeVersionId": "g1-synthesis-source-v2"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "agreements",
+          "title": "Agreements",
+          "paragraphs": [
+            {
+              "text": "The packet records no confirmed support, replication, or extension relation.",
+              "citations": []
+            }
+          ]
+        },
+        {
+          "id": "contradictions-and-open-questions",
+          "title": "Contradictions and open questions",
+          "paragraphs": [
+            {
+              "text": "The packet records no confirmed contradiction relation; unrepresented questions remain open.",
+              "citations": []
+            }
+          ]
+        },
+        {
+          "id": "data-and-code-availability",
+          "title": "Data and code availability",
+          "paragraphs": [
+            {
+              "text": "The packet contains no non-example data or code node.",
+              "citations": []
+            }
+          ]
+        },
+        {
+          "id": "limitations",
+          "title": "Limitations",
+          "paragraphs": [
+            {
+              "text": "This review is limited to the supplied bounded subgraph and does not establish scientific consensus or independent replication.",
+              "citations": []
+            }
+          ]
+        }
+      ]
+    },
+    "provenance": {
+      "generationMode": "deterministic-template",
+      "pipelineSoftware": {
+        "id": "software:oratlas-synthesis-writer",
+        "kind": "software-agent",
+        "displayName": "Open Review Atlas Synthesis Writer",
+        "pipelineVersion": "synthesis-writer/1.0.0"
+      },
+      "provider": "deterministic",
+      "model": "bounded-template-1.0",
+      "modelVersion": "unavailable",
+      "promptVersion": "atlas-synthesis-1.0",
+      "promptHash": "d537d25db53180e834c45b7dcfff5156f41588aef9ed78365972f847bc019453",
+      "packetHash": "26249e055137ef1565f5cf6797a85982db2c87ced4bd32b0b356c5fe9aac1543",
+      "documentHash": "e75bc69d5bb13b66f98bf8caa082abb513fc660dc25fae68b8dc948847bf4e22",
+      "generatedAt": "2026-04-01T00:00:00.000Z",
+      "attributionPolicyVersion": "synthesis-attribution/1.0.0",
+      "materializationPolicyVersion": "synthesis-materialization/1.0.0",
+      "acceptedAt": "2026-04-01T00:00:00.000Z",
+      "approvingEditor": {
+        "displayName": "G1 Fixture Admin",
+        "githubLogin": "g1-fixture-admin",
+        "roleSnapshot": "ADMIN"
+      },
+      "rightsStatement": "Synthetic fixture text is permitted for this test archive only.",
+      "licenseSpdx": "CC-BY-4.0",
+      "checklistVersion": "synthesis-checklist/1.0.0",
+      "acceptedPredecessorVersionId": null,
+      "acceptedPredecessorOrdinal": null,
+      "ordinal": 1
+    },
+    "citations": [
+      {
+        "referenceId": "reference:sha256:26d2da99ae1f13bf08d1844d2c6ca9a22404e4429aec199debc291075d4e52c2",
+        "nodeId": "g1-synthesis-source",
+        "nodeVersionId": "g1-synthesis-source-v2",
+        "nodeKind": "claim",
+        "title": "Synthetic bounded source claim",
+        "href": "/nodes/g1-synthesis-source/versions/g1-synthesis-source-v2",
+        "location": "sections.state-of-knowledge.paragraphs.0",
+        "occurrenceOrdinal": 0
+      }
+    ],
+    "version": {
+      "id": "cmvi69rl000097k5d9nezdvby",
+      "ordinal": 1,
+      "isCurrent": true
+    },
+    "freshness": {
+      "status": "unchecked",
+      "policyVersion": "synthesis-staleness/1.0.0",
+      "reasonCodes": [],
+      "affectedReferenceCount": 0
+    }
+  }
+}
