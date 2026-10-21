@@ -24,9 +24,11 @@ function main(): void {
 
   if (!url.startsWith("file:")) {
     console.info("DATABASE_URL is not a SQLite file: URL — no file copy performed.");
+    console.info("Keep DATABASE_URL set in your shell; its value is omitted from this guidance.");
     console.info("To restore a Postgres database from a dump, run (operator action):\n");
-    console.info(`  pg_restore --clean --if-exists -d "${url}" "${backupArg}"`);
-    console.info(`  # or, for a plain SQL dump:  psql "${url}" -f "${backupArg}"\n`);
+    console.info("Set BACKUP_PATH to the supplied dump path in your shell, then run:");
+    console.info('  pg_restore --clean --if-exists -d "$DATABASE_URL" "$BACKUP_PATH"');
+    console.info('  # or, for a plain SQL dump:  psql "$DATABASE_URL" -f "$BACKUP_PATH"\n');
     process.exit(0);
   }
 
