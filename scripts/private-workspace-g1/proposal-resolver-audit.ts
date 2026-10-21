@@ -1,3 +1,15 @@
+import targets from "./fixtures/proposal-resolver-targets.json";
+import { canonicalJson } from "../../packages/contracts/src/canonical-json.js";
+export const RESOLVER_AUDIT_INPUTS = targets.map((target) => ({
+  actorId: target.actor === "EDITOR" ? "g1-user-editor" : "g1-user-admin",
+  action:
+    target.kind === "protocol" ? "protocol.proposal-resolved" : "monitoring.proposal-resolved",
+  subjectType: target.kind === "protocol" ? "protocol-drift-proposal" : "claim-update-proposal",
+  subjectId: target.id,
+  detailsJson: canonicalJson({
+    resolution: target.kind === "protocol" ? "explained" : "resolved-no-action",
+  }),
+}));
 /** Isolated resolver input fixture: native defaults outside these four absent metadata inputs are untested. */
 export const RESOLVER_AUDIT_IDS = [
   "g1-resolve-protocol-editor",
@@ -39,6 +51,16 @@ export class ResolverAuditFixture {
       if (model !== "AuditEvent" || operation !== "create" || !record(args.data))
         throw Error("Unsupported resolver create");
       const d = args.data;
+      const expected = RESOLVER_AUDIT_INPUTS[this.#next];
+      if (!expected) throw Error("Resolver audit sequence exhausted");
+      if (
+        Object.entries(expected).some(([key, value]) => d[key] !== value) ||
+        Object.keys(d).some(
+          (key) => !Object.hasOwn(expected, key) && !["id", "createdAt"].includes(key),
+        )
+      )
+        throw Error("Unexpected resolver audit actor/action/target");
+      const id = RESOLVER_AUDIT_IDS[this.#next++];
       // Explicit fields are preserved. The contract only supplies genuinely absent defaults.
       if (
         (Object.hasOwn(d, "id") && (typeof d.id !== "string" || !d.id)) ||
@@ -49,8 +71,6 @@ export class ResolverAuditFixture {
         throw Error("Unsupported explicit resolver metadata");
       injected.push(...["id", "createdAt"].filter((k) => !Object.hasOwn(d, k)));
       if (injected.length) {
-        const id = RESOLVER_AUDIT_IDS[this.#next++];
-        if (!id) throw Error("Resolver audit sequence exhausted");
         prepared = {
           ...args,
           data: {

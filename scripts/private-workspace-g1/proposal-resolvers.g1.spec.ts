@@ -67,7 +67,7 @@ beforeAll(async () => {
     attempts++;
     throw new Error("Outbound HTTP forbidden in proposal resolver probe");
   });
-  const native = await import("@oratlas/db");
+  const native = await import("../../packages/db/src/index.js");
   const base = native.getPrisma();
   const extended = base.$extends({
     name: "g1-unwired-proposal-resolver-input",
