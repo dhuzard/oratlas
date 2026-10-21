@@ -2,7 +2,7 @@ import type { HttpRecord } from "./capture.js";
 import { canonicalJson } from "../../packages/contracts/src/canonical-json.js";
 import { PUBLIC_SELECT_TABLES } from "./sql.js";
 import type { KnownPublicSqlState } from "./known-mutation-state.js";
-import { workerOutputProblems } from "./worker-capture-safety.js";
+import { nativeEvidenceProblems } from "./native-evidence-safety.js";
 export function protocolDoiStateProblems(
   before: KnownPublicSqlState,
   after: KnownPublicSqlState,
@@ -28,37 +28,9 @@ export function protocolDoiOutputProblems(
     )
   )
     return ["Unexpected protocol/DOI cookie or redirect refused"];
-  const values = [
-    JSON.stringify(records),
-    JSON.stringify(state),
-    ...records.map((record) => Buffer.from(record.bodyBase64, "base64").toString("utf8")),
-  ];
-  const pending: unknown[] = [...values];
-  let visited = 0;
-  while (pending.length) {
-    if (++visited > 250_000) return ["Protocol/DOI disclosure inspection bound refused"];
-    const value = pending.pop();
-    if (typeof value === "string") {
-      if (
-        value.length > 16 * 1024 * 1024 ||
-        workerOutputProblems(value).length ||
-        cookieSecrets.some(
-          (secret) =>
-            secret.length > 0 &&
-            (value.includes(secret) || value.includes(JSON.stringify(secret).slice(1, -1))),
-        )
-      )
-        return ["Protocol/DOI capability disclosure refused"];
-      try {
-        pending.push(JSON.parse(value));
-      } catch {
-        /* Ordinary public text. */
-      }
-    } else if (value && typeof value === "object") {
-      for (const [key, child] of Object.entries(value)) pending.push(key, child);
-    }
-  }
-  return [];
+  return nativeEvidenceProblems([records, state], cookieSecrets).length
+    ? ["Protocol/DOI capability disclosure refused"]
+    : [];
 }
 
 /** Refuse raw values before an assertion framework or validator can format diagnostics. */
