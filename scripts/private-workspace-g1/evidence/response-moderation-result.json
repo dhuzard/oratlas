@@ -1,0 +1,105 @@
+{
+  "executedHead": "7ffa1a4adf45360d6080019736b46550cea601bb",
+  "baseHead": "575d722623413f8c9cccc18f2476bfff4a81566b",
+  "status": "Unwired standalone native prototype only; no shared catalog/grants or accepted golden.",
+  "sourceSha256": {
+    "apps/web/src/lib/challenge-commands.ts": "c5d38e9a7aafe6efed52c08070697925b047530b8dc4a19e2076595845e38bce",
+    "apps/web/src/lib/challenge-ledger.ts": "d7b2e48d777f9f04e84733b5e27770b7c6893f49083957ad19f004b18d9a22bd",
+    "apps/web/src/lib/challenge-subjects.ts": "ea64c924cfdea8aa9d005a8b942c8c5f302ecbcb7480125be4625ba0170045a8",
+    "apps/web/src/lib/challenge-authorization.ts": "df4a9547a39f886b417716373ec02a04c9d52cb39b84b6a41023d571f25c4c11",
+    "apps/web/src/lib/editorial-api.ts": "89fdad197048edfad459f4582d687c0933ab7b0c524141f280ae95cec06f9bb7",
+    "apps/web/src/app/api/challenge-responses/[id]/moderation/route.ts": "605b5f67f577fd21763e1dc4ec3afd2c5a6425d3054898397ce07e8b5d50a0d9",
+    "apps/web/src/app/api/reviews/[slug]/versions/[versionId]/challenges/route.ts": "e158ae6742e6b56dfbf1503a922262c9c112a3855bb279e22c11241d892822fc",
+    "packages/contracts/src/challenges.ts": "c572fa0dadfc632102e94f44b124f6f45d0dc7b5d50ffa2fbfe5009d7d3ce57c",
+    "packages/db/src/index.ts": "43a95343b3217e7a2257fb612f6698a6acb9d5d25d7396d91196bc91c3ab5490",
+    "packages/db/prisma/schema.prisma": "bd376799bfea231fa4e0f6b4a79b439c9cdd3aa93e4d99c3b99174a2dbfaa88c",
+    "scripts/private-workspace-g1/response-moderation-audit.ts": "e6b3a009cc15bf46ddcc5f4efe796eb3bb95ba3f16847e15da325456ff1fe1a0",
+    "scripts/private-workspace-g1/response-moderation-scenarios.ts": "95e89da3011a9cb57baee1d8f3f7c3b40a771dab85f25608ab8e5ef841abb9d6",
+    "scripts/private-workspace-g1/response-moderation.g1.spec.ts": "19730a5622f37ba6f6e31c62a008a33c6c2fbfc04137f0898e6e4d8b8156f72e",
+    "scripts/private-workspace-g1/response-moderation.test.ts": "81e7cfcaf05bc32ce19c15af976467f7d658e450513a16d5d3219b727b901a60",
+    "scripts/private-workspace-g1/audit-default-fixture.ts": "d4aa9cbd1bf3617c2219eea7eb76419edd6e9f9a9fd347bacd7e91bd44240b36",
+    "scripts/private-workspace-g1/public-snapshot.ts": "4c33b1fde3134e4c7123b12163222afdf4c456b8ed3be9b70789f980b309b515",
+    "scripts/private-workspace-g1/native-evidence-guard.ts": "4067b5c0d02e34e1fd7a6c404ee808e138bd0804aae07b3eb5dade333f16ed67",
+    "scripts/private-workspace-g1/native-evidence-safety.ts": "be8bb095afe78b893a70e0b2700d03afdc5d928c7db4bde5a68262c250a7b502",
+    "scripts/private-workspace-g1/fixtures/response-moderation-fixtures.sql": "c2f81c48fbb40ae4fa4ce74320bdc89df98c43e48146c9d22122d5b29619dbc8",
+    "scripts/private-workspace-g1/fixtures/response-moderation-native.json": "4dc68f132a72264acadbc2f99bf0e970affece29f1d66aa1805083e33ed835e1",
+    "scripts/private-workspace-g1/fixtures/response-moderation-producer.ts.txt": "e6e0efa7f3225f08e1d4e89858de96c0092034066c667762dd76ee9ecfa52e25"
+  },
+  "evidenceSha256": {
+    "moderation-first.json": "2fa3d3561f303491568737e464d16aee34a3fc0a911f324fc3b5adab5366098f",
+    "moderation-first.json.state.json": "7878a5391b95cb8a6b8968f92e80f78e8e779f44da125ad868d63161dac411ad",
+    "moderation-first.parent-state.json": "9a35bdb38a568baa46414b37178e4f1761d20fedc06c0272a6864e5eb596bc0e",
+    "moderation-first.log": "1f4a83173720a28d0c9efd970edbd83ec78aecc343b188023c5613315d76b6d3",
+    "moderation-repeat.json": "f70fb413353d5721498be1c4d829d4f25a91552767857c6b280a06351522fc57",
+    "moderation-repeat.json.state.json": "7878a5391b95cb8a6b8968f92e80f78e8e779f44da125ad868d63161dac411ad",
+    "moderation-repeat.parent-state.json": "9a35bdb38a568baa46414b37178e4f1761d20fedc06c0272a6864e5eb596bc0e",
+    "moderation-repeat.log": "0dab6536efb5e16e2630359630722742fe2c0d68cf91869f466ab6259d836021",
+    "native-fixture.json": "4dc68f132a72264acadbc2f99bf0e970affece29f1d66aa1805083e33ed835e1",
+    "native-producer.log": "0461f0e6ce43b31e8db3a34247ad10b89b8d57f79fd0121e891fe19eec0aff07"
+  },
+  "recordsPerRun": 76,
+  "resetRuns": 2,
+  "statuses": {
+    "200": 9,
+    "400": 22,
+    "401": 10,
+    "403": 24,
+    "404": 5,
+    "409": 6
+  },
+  "httpPairsExact": true,
+  "completeStatePairsExact": true,
+  "runtimeSelectTables": 72,
+  "runtimeColumnUpdates": 21,
+  "extraColumnUpdates": {
+    "ChallengeResponse": [
+      "contentStatus",
+      "contentRevision",
+      "removedAt",
+      "removedById",
+      "removedByRoleSnapshot"
+    ]
+  },
+  "allInventoryTables": 87,
+  "nativeSetupRows": {
+    "Person": 1,
+    "ReviewContributor": 1,
+    "Challenge": 3,
+    "ChallengeResponse": 3,
+    "ChallengeTransition": 9,
+    "AuditEvent": 12
+  },
+  "runtimeEffects": {
+    "responseRowsChanged": 3,
+    "fieldsPerResponse": 5,
+    "auditAppends": 3,
+    "otherRowsFieldsUnchanged": true
+  },
+  "queryOperations": {
+    "AuditEvent.create": 3,
+    "Challenge.findMany": 6,
+    "ChallengeResponse.findUnique": 23,
+    "ChallengeResponse.updateMany": 3,
+    "Claim.findUnique": 45,
+    "ReviewVersion.findFirst": 6,
+    "ReviewVersion.findUnique": 15,
+    "User.findUnique": 31
+  },
+  "allModelDelegationsOnce": true,
+  "modelDelegations": 132,
+  "challengeUpdatesOrReconciliation": 0,
+  "outboundAttempts": 0,
+  "cookieRecipesBound": true,
+  "completePreDiagnosticsAndPreRetentionGuard": true,
+  "mixedClockLimitation": "Native October producer IDs/database/JS timestamps retained. Existing fixed April1 JS runtime moderation and absent-audit metadata precede receipt. No chronological lifecycle or scientific timeline claim; no native chronology check bypassed.",
+  "failedObservation": "Initial producer without GitHub-linked contributor correctly refused; isolated target reset before final producer. No baseline.",
+  "limitations": [
+    "Four empty-private-schema labels and independent authority/baseline acceptance not yet run.",
+    "Active/hidden-container moderation, fresh challenge/response creation, concurrent mutations and other methods remain gaps.",
+    "No private authorization/provider/scientific validity/chronological/timing claim."
+  ],
+  "canonicalStateSha256": "f024155363839074befc3556c3fe1b07e2b9dbfce1927df2df692a040b161785",
+  "independentActualCookieDigests": 152,
+  "independentFullStateTransitions": 152,
+  "accepted": false
+}

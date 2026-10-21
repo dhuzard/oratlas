@@ -1,0 +1,115 @@
+{
+  "protocol": "oratlas.g1.response-moderation-integration/0.1",
+  "accepted": false,
+  "scope": "Conditional 33-column integration observation only; no new baseline or PR accepted; no 39-column or complete G1 claim.",
+  "executedSource": "d02a0cce76bac5592b4d5e8f77246f9718722674",
+  "executedTree": "7f95a8714c2d828ad9503cbaa51eaedef85693c6",
+  "rebasedSource": "dfc6e2eed28c90ce3d6e80e0853953b2c1be08ac",
+  "rebasedOnto": "fe5965ebb4886654e07ddf206946fea9f86a0e62",
+  "rebasedTreeIdenticalToExecution": true,
+  "rawDirectory": "/tmp/oratlas-g1-response-integration-candidate",
+  "rawSha256": {
+    "response-moderations-baseline.json": "2fa3d3561f303491568737e464d16aee34a3fc0a911f324fc3b5adab5366098f",
+    "response-moderations-baseline.json.state.json": "a245e22d80b7cb705f5c4266ab417e3cd38a7bb9e0b109881ecd5abfa5506e24",
+    "response-moderations-baseline.log": "cac3c52ddb9e166c6e7163812271b6fba391f2b6118262b90e0c94080d076a23",
+    "response-moderations-baseline-repeat.json": "f70fb413353d5721498be1c4d829d4f25a91552767857c6b280a06351522fc57",
+    "response-moderations-baseline-repeat.json.state.json": "a245e22d80b7cb705f5c4266ab417e3cd38a7bb9e0b109881ecd5abfa5506e24",
+    "response-moderations-baseline-repeat.log": "72f6bcf07646ae49917cff353dca624a5736500bca73aff2dcc763944daa28e5",
+    "response-moderations-after.json": "ce0ec8264a1cbeb1da086272791da567f95dbe94a084ae314d95241541eac5e0",
+    "response-moderations-after.json.state.json": "a245e22d80b7cb705f5c4266ab417e3cd38a7bb9e0b109881ecd5abfa5506e24",
+    "response-moderations-after.log": "30001111be59d6209ba0abcc92474dde18a5cd7ba9e91a11308ce76210a40469",
+    "response-moderations-after-repeat.json": "94fa33413248a01d9988093e1854ede07415812de8c97078aeec4f1e614ae965",
+    "response-moderations-after-repeat.json.state.json": "a245e22d80b7cb705f5c4266ab417e3cd38a7bb9e0b109881ecd5abfa5506e24",
+    "response-moderations-after-repeat.log": "b2e10ebdc066863346539a2c3ca8d567dfb881783c0f9bd95cbd59341252499d",
+    "response-moderations-golden-candidate.json": "93a7fdc3030151c0886293a10af3c9b94263344772b30de344763b0e478e6572",
+    "summary.json": "3924c084f97e3c88fcee606c4838d3e3620254d5fb0caadf2bb02b65595f9aaa",
+    "parent-run.log": "ff401f8a36107f6887964e1c7a7d23b6c0b835ce0881de6108ec7a7b6cd5ef97",
+    "post-cleanup.json": "9eaf73d17280609aae4ae661a6a9f4b73bb9ae6fcac7ca9f4b5befee34da49ff"
+  },
+  "authorDataCheckSha256": "08589dbf37e3568816ab68d3471e62dd794014c80ac4cf1d70c63e225853a511",
+  "authorDataChecks": 650,
+  "boundedCapabilityInspectedJsonAndLogs": 167,
+  "additionalStrictZeroPostCleanupObservation": 1,
+  "labels": ["baseline", "baseline-repeat", "after", "after-repeat"],
+  "captureArtifacts": 52,
+  "supplementalPrograms": 11,
+  "recordsPerLabel": {
+    "http": 2873,
+    "db-state": 15,
+    "metadata-loader": 2
+  },
+  "separateIndexCaptures": 4,
+  "moderationRequestsPerLabel": 76,
+  "moderationStatusesPerLabel": {
+    "200": 9,
+    "400": 22,
+    "401": 10,
+    "403": 24,
+    "404": 5,
+    "409": 6
+  },
+  "newCandidateSha256": "93a7fdc3030151c0886293a10af3c9b94263344772b30de344763b0e478e6572",
+  "newCanonicalStateSha256": "c5c9456761851877b92a801b9b6ac11a27ad9dc45981d532ac6bb368561c1f7c",
+  "newRawStateSha256": "a245e22d80b7cb705f5c4266ab417e3cd38a7bb9e0b109881ecd5abfa5506e24",
+  "fourRawStateSidecarsByteIdenticalForAllElevenPrograms": true,
+  "allFourHttpPairsExact": true,
+  "nativeSourceFixtureAndDataUnchangedFromStandalone": true,
+  "runtimeSelectTables": 72,
+  "runtimeColumnUpdates": 33,
+  "responseAddedColumns": [
+    "contentStatus",
+    "contentRevision",
+    "removedAt",
+    "removedById",
+    "removedByRoleSnapshot"
+  ],
+  "existingPrograms": {
+    "httpAndPrimaryRecordsExactlyMatch239RawReferences": true,
+    "eightStateMigrations": "Only five explicit ChallengeResponse UPDATE triples in authorityScope.columns. Every row, field, transition, fixture and query trace unchanged.",
+    "knownMutationsAndSynthesis": "Exact full-state match; no metadata differences.",
+    "index": "Function output and all public-row digests exact. Raw posture additionally has five new column triples and exactly two session-role identity strings bound to this separate target."
+  },
+  "moderationNativeEffects": {
+    "targetResponses": 3,
+    "fieldsPerResponse": 5,
+    "auditAppends": 3,
+    "modelDelegations": 132,
+    "everyDelegationExactlyOnce": true,
+    "challengeUpdatesOrReconciliation": 0,
+    "outboundAttempts": 0
+  },
+  "allSupplementalSetupDeltaChecks": 44,
+  "inventoryTablesPerSetupCheck": 87,
+  "summarySteps": 220,
+  "soleRefusal": "response-moderations independently reviewed golden present",
+  "authPrincipals": 6,
+  "invalidSessions": 4,
+  "publicRoleProbes": 14,
+  "privateRoleProbes": 8,
+  "cleanupStepsPassed": 4,
+  "timing": {
+    "childLogDurations": 54,
+    "totalChildDurationSeconds": 717.84,
+    "moderationChildrenSeconds": {
+      "response-moderations-after.log": 8.36,
+      "response-moderations-baseline-repeat.log": 8.8,
+      "response-moderations-after-repeat.log": 8.64,
+      "response-moderations-baseline.log": 9.43
+    },
+    "earliestRetainedArtifactToSummarySeconds": 769.54,
+    "limits": "No original parent stopwatch was recorded. Artifact interval excludes initial bootstrap/first-child start; local timings do not guarantee the CI 20-minute job budget. No timeout changed."
+  },
+  "remainingConditions": [
+    "Root independent data review; no automatic golden acceptance.",
+    "A proposed combined 39-column two-program run requires separately reviewed source and new native execution.",
+    "Ordinary-browser raw replay refusal and all remaining G1 obligations remain open.",
+    "Original native bootstrap timestamps and fixed-JS runtime tombstones retain the disclosed mixed-clock limitation."
+  ],
+  "logGuardAttribution": {
+    "nativeResponsesAndFullState": "Selected native callers guard full values before value-bearing diagnostics and files.",
+    "outerParentLog": "Wrapper inspected raw parent stdout/stderr with actual Cookie components and all three URL/password sets before retaining parent-run.log.",
+    "frozenChildLogSink": "orchestrator.runSpec applied worker guard and DB redaction before individual child logs, without the complete decoded Cookie/DB log inspector. Universal decoded pre-retention child-log protection is not proved.",
+    "retrospectiveInspection": "All 167 retained JSON/log artifacts passed the bounded Cookie/DB/worker/Unicode/body inspection after execution; this does not relabel the original parent sinks.",
+    "followup": "Separate parent-log hardening is required for fresh guarded execution; neither d02 nor an active later run is relabeled."
+  }
+}

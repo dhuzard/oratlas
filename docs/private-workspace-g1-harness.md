@@ -87,15 +87,25 @@ requires its own final-head CI; neither result completes G1.
 
 ## Implementation record (G1-empty, partial)
 
-Status: **G1-empty harness implemented with partial coverage. Eleven separately reset programs
-declare 2,814 records (2,797 HTTP, 15 state and two metadata), spanning 92 of the
-133 public route files and 97 of 143 exported methods. All 97 declared methods
+Status: **G1-empty harness implemented with partial coverage. Thirteen separately reset programs
+declare 2,966 records (2,949 HTTP, 15 state and two metadata), spanning 94 of the
+133 public route files and 99 of 143 exported methods. All 99 declared methods
 include six user/session cases; four worker GETs also have independent credential
 and lease positives. The index consumer has its own four-label capture. The
-other 41 files / 46 methods, OAuth success and integrated real Next HTTP serving
+other 39 files / 44 methods, OAuth success and integrated real Next HTTP serving
 remain G1 gaps. Operational channels and timing are separately tracked against
 their applicable later gates, as specified above and in ADR §13. Populated
 T-ROLE/T-PUB remains later. G1 is not passed.**
+
+The terminal-content integration declares two separately reset 76-request programs for
+response and challenge text removal. Source `2f3472d` completed all four labels; independent
+review checked all 56 captures, 11,796 Cookie bindings and full native state/transition/trace
+continuity. Two goldens were manually accepted; eight old state digests change only for the
+eleven new authority entries. The public synthetic role now has 39 column UPDATE privileges,
+with unchanged 72 SELECT tables and AuditEvent INSERT. Its decoded parent-log inspection was
+retrospective and clear; a separate reviewed hardening now checks complete stdout/stderr and
+merged bytes before sinks, with fatal UTF-8 refusal. Final-head CI remains required. See
+[terminal moderation](private-workspace-terminal-moderation.md) for source pins and limits.
 
 The worker artifact supplement declares 379 native requests over four methods,
 including one completion of an already uploaded artifact and exact replays. Its

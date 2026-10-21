@@ -2981,6 +2981,6 @@
       }
     ]
   },
-  "stateSha256": "cc4e240200c20bcdd273b881cf8d8b4ce34ca4f326abadf01ef06e52c5082b34",
+  "stateSha256": "73bca79be190eb9354d90416c34a23e8b12fd8fe56a6fd53cdf99f84af396c82",
   "review": "Independently reviewed 2026-10-21 at bef4f829e2bbf8d23d03cff642b2677f47d8a951: four 92-request native captures; actual signed Cookie bindings; all 87 parent table fixture counts and complete cumulative 72-table state. Two administrator calls target already-revoked credentials and append exactly two native AuditEvents with narrowly fixed test-only absent-ID/time inputs. Existing rows and runtime grants unchanged. Partial synthetic G1; active credential revocation and first-write behavior remain uncovered."
 }

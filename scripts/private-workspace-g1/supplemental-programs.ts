@@ -1,3 +1,5 @@
+import { CHALLENGE_MODERATION_PROGRAM } from "./challenge-moderation-scenarios.js";
+import { RESPONSE_MODERATION_PROGRAM } from "./response-moderation-scenarios.js";
 import { PROPOSAL_RESOLVER_PROGRAM } from "./proposal-resolver-scenarios.js";
 import { FEDERATION_RESOLUTION_PROGRAM } from "./federation-resolution-scenarios.js";
 import { AUDIT_REVOKE_PROGRAM } from "./audit-revoke-scenarios.js";
@@ -17,6 +19,8 @@ import type { SupplementalProgram } from "./supplemental-channel.js";
 
 /** Fixed catalog: each program has its own reset, sidecar and independently reviewed golden. */
 export const SUPPLEMENTAL_PROGRAMS: readonly SupplementalProgram[] = [
+  RESPONSE_MODERATION_PROGRAM,
+  CHALLENGE_MODERATION_PROGRAM,
   PROPOSAL_RESOLVER_PROGRAM,
   FEDERATION_RESOLUTION_PROGRAM,
   AUDIT_REVOKE_PROGRAM,

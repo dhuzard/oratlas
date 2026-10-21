@@ -1,0 +1,11 @@
+# Parent child-log boundary
+
+The parent fatally decodes complete stdout, stderr and interleaved UTF-8 buffers (preserving BOMs), refusing malformed/truncated bytes instead of substituting characters. Valid multibyte sequences split across chunks are decoded only after reassembly. The parent inspects complete raw stdout, stderr, and the original interleaved output before any worker guard, redactor, console write, assertion, or file write in `runSpec`. A refusal retains only fixed generic text and fails the child check. Safe output follows the existing path byte-for-byte. The pool includes the three explicit connection URLs/passwords, their URL password representations, all closed G1 valid/negative cookie recipe headers, token values, signed payloads and HMACs; known worker capabilities remain covered by the shared inspector and existing guard.
+
+The synthetic cookie derivation follows the pinned native `session-token.ts` payload/HMAC contract. It does not replace native handler authentication or import application runtime into the parent. An offline contract test refuses source-contract drift. Children continue to dispatch actual native cookies with their existing digest bindings.
+
+`nativeLogEvidenceProblems` retains finite complete-text/JSON-line inspection bounds (4096 lines, depth 64, 250,000 scheduled/visited nodes, 16 MiB per string, 64 MiB cumulative strings). It handles raw known fragments and complete JSON records/string literals, including Unicode escaping. It does not decode arbitrary embedded non-JSON or ANSI fragments and is not a universal obfuscation detector. Each channel and the interleaved stream must pass independently.
+
+This source hardening does not relabel earlier d02 response or combined moderation executions. Their retrospective evidence clearance is distinct from executing this pre-retention decoded log guard. Fresh integrated native/CI execution remains required; no PostgreSQL, HTTP, state, privilege, default, baseline, or normalization change is included here.
+
+The legacy in-memory chunk collector remains unchanged; inspector string/line limits apply after collection and do not establish a pre-collection memory cap. Commit ae0e94b is the earlier unexecuted source freeze; this fatal-decoding follow-up also awaits independent review and native execution.

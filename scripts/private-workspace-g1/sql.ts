@@ -368,6 +368,30 @@ export const PUBLIC_TABLE_GRANTS = [
 /** Column-only UPDATE grants; table-level UPDATE is never granted. */
 export const PUBLIC_COLUMN_UPDATE_GRANTS = [
   {
+    table: "Challenge",
+    columns: [
+      "contentStatus",
+      "contentRevision",
+      "removedAt",
+      "removedById",
+      "removedByRoleSnapshot",
+      "updatedAt",
+    ],
+    reason:
+      "native known terminal challenge text tombstones and update timestamp; no filing or lifecycle authority",
+  },
+  {
+    table: "ChallengeResponse",
+    columns: [
+      "contentStatus",
+      "contentRevision",
+      "removedAt",
+      "removedById",
+      "removedByRoleSnapshot",
+    ],
+    reason: "native known terminal-response tombstones; no response creation or Challenge update",
+  },
+  {
     table: "ProtocolDriftProposal",
     columns: ["status", "resolvedById", "resolutionNote", "resolvedAt"],
     reason: "native existing protocol proposal resolution; no creation or other update grant",

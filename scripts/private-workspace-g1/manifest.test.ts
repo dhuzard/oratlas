@@ -107,10 +107,10 @@ describe("G1 route/principal coverage manifest", () => {
     }
     const summary = coverageSummary(APP);
     expect(summary.routeFiles).toBe(routes.length);
-    expect(summary.routeFilesExercised).toBe(92);
-    expect(summary.routeFilesNotExercised).toBe(routes.length - 92);
-    expect(summary.methodAndChannelObligations.routeMethodsWithScenarios).toBe(97);
-    expect(summary.methodAndChannelObligations.routeMethodsWithAllPrincipalCases).toBe(97);
+    expect(summary.routeFilesExercised).toBe(94);
+    expect(summary.routeFilesNotExercised).toBe(routes.length - 94);
+    expect(summary.methodAndChannelObligations.routeMethodsWithScenarios).toBe(99);
+    expect(summary.methodAndChannelObligations.routeMethodsWithAllPrincipalCases).toBe(99);
     expect(summary.invalidSessionCases.sort()).toEqual(
       ["malformed", "signed-expired", "signed-missing-user", "tampered"].sort(),
     );
