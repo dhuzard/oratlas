@@ -6,18 +6,42 @@ import {
   RESPONSE_MODERATION_EXTRA_COLUMNS,
 } from "./response-moderation-scenarios.js";
 
-it("registers the independent native program with exactly five new column-scoped privileges", () => {
+import {
+  CHALLENGE_MODERATION_PROGRAM,
+  CHALLENGE_MODERATION_EXTRA_COLUMNS,
+} from "./challenge-moderation-scenarios.js";
+
+it("registers two separately reset terminal programs with exactly five and six column-scoped privileges", () => {
   expect(SUPPLEMENTAL_PROGRAMS.filter((p) => p.name === RESPONSE_MODERATION_PROGRAM.name)).toEqual([
     RESPONSE_MODERATION_PROGRAM,
   ]);
   expect(RESPONSE_MODERATION_PROGRAM.spec).toBe("response-moderation.g1.spec.ts");
+  expect(SUPPLEMENTAL_PROGRAMS.filter((p) => p.name === CHALLENGE_MODERATION_PROGRAM.name)).toEqual(
+    [CHALLENGE_MODERATION_PROGRAM],
+  );
+  expect(CHALLENGE_MODERATION_PROGRAM.spec).toBe("challenge-moderation.g1.spec.ts");
+  expect(CHALLENGE_MODERATION_PROGRAM.fixtures).toEqual(RESPONSE_MODERATION_PROGRAM.fixtures);
+  expect(CHALLENGE_MODERATION_PROGRAM.addedRows).toEqual(RESPONSE_MODERATION_PROGRAM.addedRows);
+  expect(PUBLIC_COLUMN_UPDATE_GRANTS.find((g) => String(g.table) === "Challenge")?.columns).toEqual(
+    CHALLENGE_MODERATION_EXTRA_COLUMNS,
+  );
+
   expect(RESPONSE_MODERATION_PROGRAM.fixtures).toEqual([
     "fixtures/response-moderation-fixtures.sql",
   ]);
   const grant = PUBLIC_COLUMN_UPDATE_GRANTS.find((g) => g.table === "ChallengeResponse");
   expect(grant?.columns).toEqual(RESPONSE_MODERATION_EXTRA_COLUMNS);
-  expect(PUBLIC_COLUMN_UPDATE_GRANTS.flatMap((g) => g.columns)).toHaveLength(33);
-  expect(PUBLIC_COLUMN_UPDATE_GRANTS.some((g) => String(g.table) === "Challenge")).toBe(false);
+  expect(PUBLIC_COLUMN_UPDATE_GRANTS.flatMap((g) => g.columns)).toHaveLength(39);
+  expect(PUBLIC_COLUMN_UPDATE_GRANTS.find((g) => String(g.table) === "Challenge")?.columns).toEqual(
+    [
+      "contentStatus",
+      "contentRevision",
+      "removedAt",
+      "removedById",
+      "removedByRoleSnapshot",
+      "updatedAt",
+    ],
+  );
   expect(
     PUBLIC_TABLE_GRANTS.filter((g) => g.table === "ChallengeResponse").map(
       ({ table, privileges }) => ({ table, privileges }),
