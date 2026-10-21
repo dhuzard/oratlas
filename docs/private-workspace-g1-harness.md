@@ -92,8 +92,9 @@ declare 2,092 records (2,075 HTTP, 15 state and two metadata), spanning 81 of th
 133 public route files and 86 of 143 exported methods. All 86 declared methods
 include six user/session cases; four worker GETs also have independent credential
 and lease positives. The index consumer has its own four-label capture. The
-other 52 files / 57 methods, OAuth success, integrated real Next HTTP serving,
-remaining operational channels and timing are still outstanding. Populated
+other 52 files / 57 methods, OAuth success and integrated real Next HTTP serving
+remain G1 gaps. Operational channels and timing are separately tracked against
+their applicable later gates, as specified above and in ADR §13. Populated
 T-ROLE/T-PUB remains later. G1 is not passed.**
 
 The worker artifact supplement declares 379 native requests over four methods,
