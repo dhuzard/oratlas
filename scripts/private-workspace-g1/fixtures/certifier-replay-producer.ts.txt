@@ -1,0 +1,34 @@
+import { it, vi, expect } from "vitest";
+import { writeFileSync } from "node:fs";
+import { workerAuthorityHeaders } from "./worker-authority.js";
+it("emits a native terminal certifier run and credential issuance without recording capabilities", async () => {
+  vi.useFakeTimers({toFake:["Date"],now:new Date("2026-03-31T23:56:00.000Z")});
+  const api=await import("@/lib/certification");const {prisma}=await import("@/lib/db");
+  try {
+    const issued=await api.issueCertifierCredential("g1-worker-certifier-other",{label:"Synthetic independent submit credential",scopes:["certification:submit"],expiresAt:"2026-04-02T00:00:00.000Z"},"g1-user-admin");
+    const otherCredential=await prisma.certifierCredential.findUniqueOrThrow({where:{id:issued.id}});
+    vi.setSystemTime(new Date("2026-03-31T23:57:00.000Z"));
+    const request=new Request("https://g1.oratlas.example/native-certifier-setup",{headers:workerAuthorityHeaders({kind:"certifier",credential:"submit-only"})});
+    let auth=await api.authenticateCertifier(request,"certification:submit");
+    const input={publicationVersionId:"g1-discovery-version",certificationProtocolId:"g1-certification-protocol-editorial",assessmentMode:"human",idempotencyKey:"g1-certifier-native-terminal"};
+    const created=await api.createCertificationRun(input,auth);
+    const createdRun=await prisma.certificationRun.findUniqueOrThrow({where:{id:created.id}});
+    vi.setSystemTime(new Date("2026-03-31T23:58:00.000Z"));
+    auth=await api.authenticateCertifier(request,"certification:submit");
+    const transition={status:"failed" as const,reason:"Synthetic terminal replay, not a scientific certification."};
+    const completed=await api.transitionCertificationRun(created.id,transition,auth);
+    expect(completed.status).toBe("failed");expect(completed.replayed).toBe(false);
+    const terminalRun=await prisma.certificationRun.findUniqueOrThrow({where:{id:created.id}});
+    const existingRun=await prisma.certificationRun.findUniqueOrThrow({where:{id:"g1-protocol-certification-run"}});
+    const result=await prisma.certificationResult.findUniqueOrThrow({where:{certificationRunId:existingRun.id}});
+    const withdrawn=await prisma.certificationLifecycleEvent.findUniqueOrThrow({where:{resultId_kind:{resultId:result.id,kind:"withdrawn"}}});
+    const createReplayInput={publicationVersionId:existingRun.publicationVersionId,certificationProtocolId:existingRun.protocolId,assessmentMode:existingRun.assessmentMode,idempotencyKey:existingRun.idempotencyKey,...(existingRun.externalRunReference?{externalRunReference:existingRun.externalRunReference}:{})};
+    expect((await api.createCertificationRun(createReplayInput,auth)).replayed).toBe(true);
+    expect((await api.submitCertificationResult(existingRun.id,JSON.parse(result.resultJson),auth)).replayed).toBe(true);
+    expect((await api.addCertificationLifecycle(result.id,"withdrawn",withdrawn.reason!,{certifierId:auth.certifierId})).replayed).toBe(true);
+    const primaryCredential=await prisma.certifierCredential.findUniqueOrThrow({where:{id:"g1-worker-certifier-submit-only"}});
+    const audit=await prisma.auditEvent.findMany({where:{OR:[{subjectId:terminalRun.id},{subjectId:otherCredential.id}]},orderBy:{id:"asc"}});
+    expect(audit).toHaveLength(2);
+    writeFileSync("/tmp/oratlas-g1-certifier-pg/native-fixture.json",JSON.stringify({otherCredential,primaryCredential,createdRun,terminalRun,audit,existingRun,result,withdrawn,requests:{create:createReplayInput,result:JSON.parse(result.resultJson),transition,lifecycle:{kind:"withdrawn",reason:withdrawn.reason}}},null,2)+"\n",{mode:0o600});
+  }finally{await prisma.$disconnect();vi.useRealTimers();}
+});

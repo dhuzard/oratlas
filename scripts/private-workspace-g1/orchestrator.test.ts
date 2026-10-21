@@ -440,7 +440,9 @@ describe("G1 orchestrator sequence (offline fault injection)", () => {
     expect(summary.manifest?.coverage.principalsExecuted).toHaveLength(6);
     expect(output.at(-1)).toBe("[g1] result: passed (G1-empty partial coverage only)");
     expectSanitized(summaryText);
-  });
+    // Full four-label/catalog assertions process thousands of exact reviewed records.
+    // Keep this offline-only budget bounded without changing native child deadlines.
+  }, 15_000);
 
   it("gives handler children a closed public-only environment (no credential or provider leak)", async () => {
     const { specEnvs } = await harness({});
