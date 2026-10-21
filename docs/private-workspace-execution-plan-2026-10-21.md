@@ -1,7 +1,7 @@
 # Private-workspace execution plan — 2026-10-21
 
 Initial baseline: `154b399235c3320b3080ce54066434b52d2d0eb4`; implementation checkpoint
-`9ed83ed391c7415ee58db5aabde804923167ff1d` after #225–#229. This plan tracks the requested
+`78c3df09cdc5127e771cb9fee07464694c1a1a6c` after #225–#230. This plan tracks the requested
 #202 → #203/#204 → #206 → #205 dependencies against actual code and the ratified
 owner decision register. It does not redefine the ADR's G1–G6 gates.
 
@@ -73,5 +73,34 @@ or effect coordinator is present. The expanded G1 batch has independent module
 reviews and real restricted-role capture evidence, but does not complete G1.
 Next: remaining 86 methods (mostly mutation/provider/worker workflows), a real
 Next serving/HTML/metadata capture stage, then separately scoped non-HTTP/timing
-evidence and independent complete-gate acceptance. G1 still precedes private
-tables. No further owner decision is needed to continue this synthetic work.
+evidence and independent complete-gate acceptance. The
+[real-serving prototype](private-workspace-next-http-prototype.md) observes exact
+metadata responses across fresh processes and preserves HTML nonce variance. It
+is not yet part of the before/after database lifecycle, and neither its HTML
+variance characterization nor its historical build evidence closes that gap.
+G1 still precedes private tables. No further owner decision is needed to continue
+this synthetic work.
+
+### G1 completion work packages
+
+1. Complete remaining public reads with populated, natively valid protocol,
+   verification, certification and execution fixtures, including hidden-container
+   and missing-object controls for every principal.
+2. Cover mutation and worker/provider methods using their actual authority types.
+   User-cookie denial is only denial evidence for a worker endpoint. Success needs
+   a valid worker credential or an injected provider boundary, explicit state and
+   audit assertions, replay/idempotence controls, and no real external exchange.
+3. Integrate an attested production build and fresh real-server captures into each
+   reset before/after run. Include rendered HTML, RSC and metadata without stripping
+   security headers or rewriting response bodies. Any controlled entropy fixture
+   requires separate review and unhooked controls; it cannot prove production nonce
+   unpredictability or quietly replace real-entropy observations.
+4. Inventory and test operational channels against actual entrypoints: jobs and
+   CLIs, indexes, backup/restore, logs/audit/metrics, notification delivery and
+   outbound lookups. Record unavailable or untested channels as gaps rather than
+   treating an absent HTTP response as isolation evidence. Timing needs a stated
+   experimental design and bounded claims, not exact wall-clock snapshots.
+5. Reconcile the method/principal/rendered/channel inventory with the evidence,
+   repeat restricted-role captures and cleanup, and obtain independent complete
+   G1 acceptance. Only then begin private tables and durable session/workspace
+   adapters. Keep later populated-role, G2/G3 and real-data gates separate.
