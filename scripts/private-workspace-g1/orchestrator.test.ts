@@ -152,6 +152,7 @@ function fakes(scenario: Scenario) {
   );
   let supplementalCounts = { ...baseCounts };
   const fixturePrograms = new Set<string>();
+  let activeSupplemental: SupplementalProgram | undefined;
   for (const program of SUPPLEMENTAL_PROGRAMS)
     syntheticReviewedStates.set(
       supplementalGoldenPath(program),
@@ -161,7 +162,8 @@ function fakes(scenario: Scenario) {
     runPsql: async (_connection, sql) => {
       psqlCalls.push(sql);
       if (sql === INDEX_FIXTURE_SQL) events.push("index-only fixtures");
-      for (const program of SUPPLEMENTAL_PROGRAMS) {
+      // Shared SQL belongs to the current reset, not every descriptor referencing that file.
+      for (const program of activeSupplemental ? [activeSupplemental] : []) {
         for (const fixture of program.fixtures ?? []) {
           if (
             sql !==
@@ -178,6 +180,9 @@ function fakes(scenario: Scenario) {
       }
       if (sql.startsWith("TRUNCATE TABLE")) {
         events.push(`reset:${RESET_LABELS[resets]}`);
+        activeSupplemental = SUPPLEMENTAL_PROGRAMS.find((program) =>
+          RESET_LABELS[resets]?.endsWith(` ${program.name} capture`),
+        );
         supplementalCounts = { ...baseCounts };
         fixturePrograms.clear();
         if (resets++ === scenario.failResetAt) {
