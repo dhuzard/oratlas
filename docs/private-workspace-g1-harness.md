@@ -61,7 +61,10 @@ Use two synthetic principals to exercise absence of response reuse. This is a he
 
 Next implementation dependencies remain separate: reviewed persistence/session binding/fencing; G2 principal resolution, epochs, authorization/RLS and invitations; G3 KMS/private audit/backup protection; later applicable gates and legal/privacy evidence. No test harness waives these requirements.
 
-**Validation:** see the implementation record below for the exact commands and local results. The dedicated CI workflow has not yet run on GitHub at the time of writing; no CI result is claimed here.
+**Validation:** see the implementation record below for the exact commands and observed results.
+The dedicated G1 workflow passed on [#225](https://github.com/dhuzard/oratlas/pull/225).
+This public-artifact extension still needs its own CI result; the earlier pass does not complete
+G1 or validate this extension.
 
 ## Implementation record (G1-empty, partial)
 
@@ -407,7 +410,8 @@ run against the code-identical implementation worktree passed **245 files / 2,09
 local PATH shim exposing `corepack pnpm` resolved the earlier PATH-only failures. The dedicated
 PostgreSQL evidence is separate and non-skipped; these ordinary-suite skips are not G1 coverage.
 Full log: `/tmp/oratlas-g1-parent-full-tests.log`; sanitized repaired PostgreSQL evidence:
-`/tmp/oratlas-g1-607a-evidence-repair/`. GitHub CI has not run for this branch.
+`/tmp/oratlas-g1-607a-evidence-repair/`. No GitHub CI run was claimed for that historical
+repair; the later dedicated workflow passed on #225.
 
 Effective-privilege repair (2026-10-20, local synthetic, `postgres:16` 16.15 loopback container
 created for this check and then removed). An independent review found that the column inventory
@@ -492,8 +496,8 @@ Observed validation on PostgreSQL **16.15**, Node **24.16.0**:
   modified. The first complete run passed all four program captures, auth and role suites,
   and paired comparisons, and correctly failed against the old golden. The candidate was
   regenerated deliberately from that validated baseline capture; all previous **51 record
-  values were unchanged**. The additional 42 records and review text require independent
-  review before merge.
+  values were unchanged**. The additional 42 records and review text were independently
+  reviewed as recorded below.
 - Final `pnpm g1:private-workspace` equivalent: **26/26 steps passed**, all four independent
   **93-record** captures matched the program and golden and each other, auth **6/6**, role
   **7/7**, cleanup **4/4**. Final result explicitly remains `passed (G1-empty partial coverage only)`.
@@ -503,10 +507,26 @@ Observed validation on PostgreSQL **16.15**, Node **24.16.0**:
 - Focused offline safeguards, architecture, cache and public regressions: **11 files,
   221 tests passed**. Outcomes in each public capture: 45 × `200`, 2 × `304`, 8 × `401`,
   8 × `403`, 25 × `404`, plus the five state/metadata records.
+- Independent root review inspected the patch, minimal SELECT grants, comparator expectations,
+  unchanged 51 golden records and source/tombstone fixtures, with no blocking findings for this
+  bounded slice. The root independently reran the actual PostgreSQL harness: **26/26 steps**,
+  four **93-record** captures, auth **6/6**, role **7/7** and all cleanup passed. Sanitized
+  independent evidence: `/tmp/oratlas-private-g1-root-review/`. This review and repeat do not
+  record the complete G1 gate as passed.
 - G1 script-aware TypeScript check uses the new reusable configuration below. It includes the
   actual `.g1.spec.ts` files and their Next/application imports, with no casts or suppressions.
-  ESLint, Prettier and `git diff --check` passed on the change. No full suite, build, browser
-  E2E or GitHub CI result is claimed for this local extension.
+  The dedicated G1 CI workflow now runs this check explicitly, because the monorepo workspace
+  typecheck does not include root scripts. ESLint, Prettier and `git diff --check` passed on
+  the change. No full suite, build, browser E2E or GitHub CI result is claimed for this local extension.
+
+Final integration rerun after rebasing onto `main` at
+`da80dbebe102928bf7c1b4e518a525e763abc983` (#226): **11 files / 223 focused tests** passed
+(the main-branch architecture suite gained two tests); the script-aware TypeScript check,
+ESLint, Prettier and diff checks passed. The full disposable PostgreSQL harness again passed
+**26/26 steps**, four **93-record** captures, auth **6/6**, role **7/7** and cleanup **4/4**.
+Sanitized final evidence: `/tmp/oratlas-private-g1-evidence-rebased/`. The root re-reviewed
+the rebased implementation with no new blockers. These public fixture comparisons do not
+establish private workspace authorization or complete the G1 gate.
 
 Reproducible checks (with dependencies and a generated PostgreSQL client):
 
@@ -531,8 +551,9 @@ publication/export policies are unchanged. Standards export formats remain a man
   `/sitemap.xml` and `/robots.txt` HTTP serialization (only the loader outputs are captured).
 - Non-HTTP channels (jobs/CLIs, backups, search index, logs/audit sinks, email, external lookups)
   and timing evidence.
-- Deployment/CDN caching, the dedicated workflow's first GitHub run and any decision on whether it
-  becomes a required check.
-- Independent review of this evidence and of the regenerated golden.
+- Deployment/CDN caching and any decision on whether the dedicated workflow becomes a required
+  check. Its #225 pass is existing evidence, not completion of the unimplemented G1 surfaces.
+- Independent acceptance of the complete G1 gate evidence. The bounded patch review and
+  PostgreSQL repeat above do not cover the remaining surfaces or populated matrices.
 
 References: [ADR test matrix](./private-workspace-security-architecture.md#11-test-matrix-and-acceptance-mapping), [G1 gate](./private-workspace-security-architecture.md#13-rollout-gates-and-migration-consequences), [R0 evidence limits](./private-workspace-r0-review.md), [identity interfaces/limitations](./identity-link-foundations.md), [next-phase plan](./private-workspace-poc-next-phase.md).
