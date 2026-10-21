@@ -63,3 +63,11 @@ were captured separately and are not mixed with app-authority comparisons.
 This historical isolated execution preceded the root integration described above and is not complete G1 acceptance.
 The local target and protected credentials are disposable test infrastructure, not repository
 artifacts or production configuration.
+
+Native source-artifact validation subsequently corrected two discovery fixture
+`PublicationCapture.contentBytes` values from base64 text to native UTF-8 storage.
+The corrected lifecycle in `/tmp/oratlas-g1-native-storage-final` again passed
+42/42 steps and cleanup 4/4. All 1,165 HTTP records and canonical index output
+remain unchanged; independently reviewed full-row state digests changed only for
+those two stored values. The corrected candidate and state hashes are recorded
+in the harness guide. This remains partial G1 evidence.

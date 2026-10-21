@@ -685,7 +685,7 @@ Independent review approved both candidates from the complete local lifecycle
 index candidate `dfcaecc384ebeceebc5b41d4fc106b27d762818513c7e962efd304125161e515`.
 The index output digest is
 `0aafb06b1a793898811bba4334c9daff58278e0ffb0d1df28455bcb6218400f2`;
-all four 64-table public-state digests are
+the original four 64-table public-state digests were
 `bc8942566a9ece20ceda2fe46e5d11ab479927e813a07388f4265ee62f726b46`.
 Manually accepted baselines add review metadata and formatting; compared data is
 unchanged. No candidate is copied automatically. The final baseline-backed local
@@ -701,3 +701,23 @@ have independent scenario assertions. Their envelopes and the other **883 record
 values** are unchanged; the original 93-record historical program remains intact.
 See the [operational channel ledger](private-workspace-operational-channel-ledger.md)
 for bounded index evidence and the remaining jobs, CLIs, recovery and sink work.
+
+A subsequent native source-artifact probe found that the discovery fixture stored
+two `PublicationCapture.contentBytes` values as base64 text, while native
+registration stores decoded UTF-8. The production reader correctly rejected the
+fixture bytes. The fixture and its test oracle now use the exact native UTF-8
+representation (1,298 manifest bytes and 71 source bytes, including trailing
+newlines); hashes, metadata and production validators are unchanged. Independent
+review compared every row: only those two stored values change. All 1,165 HTTP
+records and the canonical index output remain identical.
+
+The independently reviewed corrected index candidate SHA-256 is
+`bf6b05f5ae03b6f6aaa5eb724ea7e287f612ce472a65e4c077c3d6fc8ef4d15b`;
+its four public-state digests are
+`40e66352b8e29901930a084fcc90e4b988eadc5751d90808e7870c212904595f`.
+Only the two state digest fields and review metadata were manually updated in the
+index golden. The corrected baseline-backed lifecycle in
+`/tmp/oratlas-g1-native-storage-final` passed **42/42** steps, auth **6/6**, role
+**7/7** and cleanup **4/4**. A separate native-fixture/architecture run passed
+**121** tests. This correction supersedes the original state digest above; it
+does not establish complete G1 coverage or enable private data.

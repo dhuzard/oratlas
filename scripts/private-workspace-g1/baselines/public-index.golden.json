@@ -211,8 +211,8 @@
   "protocol": "oratlas.g1.index-consumer/0.1",
   "roleContract": "public-runtime",
   "sameCountUpdateControl": "rejected-and-rolled-back",
-  "stateAfterSha256": "bc8942566a9ece20ceda2fe46e5d11ab479927e813a07388f4265ee62f726b46",
-  "stateBeforeSha256": "bc8942566a9ece20ceda2fe46e5d11ab479927e813a07388f4265ee62f726b46",
+  "stateAfterSha256": "40e66352b8e29901930a084fcc90e4b988eadc5751d90808e7870c212904595f",
+  "stateBeforeSha256": "40e66352b8e29901930a084fcc90e4b988eadc5751d90808e7870c212904595f",
   "stateTables": [
     "AuditEvent",
     "AuthorResponse",
@@ -279,5 +279,5 @@
     "VerificationRunLifecycleEvent",
     "Verifier"
   ],
-  "review": "Independently reviewed 2026-10-21: canonical public index and 64-table fixture-state digests; bounded G1-empty coverage only."
+  "review": "Independently reviewed 2026-10-21: canonical public index and 64-table state digests with exact native UTF-8 captures; bounded G1-empty evidence only."
 }
