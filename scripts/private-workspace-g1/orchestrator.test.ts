@@ -1,8 +1,16 @@
+import type * as NativeFs from "node:fs";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { existsSync } from "node:fs";
+import { upgradeGolden } from "./compare.js";
+import { SUPPLEMENTAL_PROGRAMS } from "./supplemental-programs.js";
+import {
+  supplementalCountsSql,
+  supplementalStateDigest,
+  type SupplementalProgram,
+} from "./supplemental-channel.js";
 import { indexDigest, INDEX_READ_TABLES, type IndexCapture } from "./index-channel.js";
 import { SCENARIOS } from "./scenarios.js";
 import type { CaptureFile, HttpRecord } from "./capture.js";
@@ -20,12 +28,31 @@ import {
   publicGrantSnapshotSql,
   RESET_TARGET_SQL,
   resetStateSql,
+  truncateRecordedPublicTablesSql,
   schemaObjectCountsSql,
   type PublicObjectInventory,
   type ResetState,
 } from "./sql.js";
 import { expectedAck, G1_ENV, PRIVATE_SCHEMA } from "./target.js";
 import { captureFromGolden, withRecord } from "./test-support.js";
+
+// Only reviewed supplemental state hashes are replaced with small, explicitly synthetic unit
+// state. HTTP bytes, declared outcomes, actual supplemental lifecycle and golden checks remain real.
+// Native full-row state evidence belongs to the separately executed PostgreSQL child programs.
+const syntheticReviewedStates = vi.hoisted(() => new Map<string, string>());
+vi.mock("node:fs", async (importOriginal) => {
+  const native = await importOriginal<typeof NativeFs>();
+  return {
+    ...native,
+    readFileSync: ((...args: Parameters<typeof native.readFileSync>) => {
+      const original = native.readFileSync(...args);
+      const digest = syntheticReviewedStates.get(String(args[0]));
+      if (digest === undefined) return original;
+      const rewritten = JSON.stringify({ ...JSON.parse(original.toString()), stateSha256: digest });
+      return typeof original === "string" ? rewritten : Buffer.from(rewritten);
+    }) as typeof native.readFileSync,
+  };
+});
 
 // Offline fault injection through the real orchestrator path: `runG1Harness` with in-memory psql
 // and spec runners. Nothing here spawns psql/Vitest or opens a connection; the loopback port is
@@ -41,7 +68,13 @@ const PUBLIC_ROLE = "oratlas_g1_public";
 const PRIVATE_ROLE = "oratlas_g1_private";
 const ADMIN_ROLE = "g1_admin";
 const INVENTORY: PublicObjectInventory = {
-  tables: ["Review", "ReviewVersion"],
+  tables: [
+    ...readFileSync(join(process.cwd(), "packages/db/prisma/schema.postgres.sql"), "utf8").matchAll(
+      /^CREATE TABLE "([A-Z][A-Za-z0-9]+)"/gmu,
+    ),
+  ]
+    .map((match) => match[1]!)
+    .sort(),
   functions: ["oratlas_protect_verification()"],
 };
 const CLEANUP_SQL = {
@@ -52,7 +85,11 @@ const CLEANUP_SQL = {
 } as const;
 type CleanupStep = keyof typeof CLEANUP_SQL;
 const RESET_LABELS = [
-  ...CAPTURE_LABELS.flatMap((label) => [`${label} capture`, `${label} index capture`]),
+  ...CAPTURE_LABELS.flatMap((label) => [
+    `${label} capture`,
+    `${label} index capture`,
+    ...SUPPLEMENTAL_PROGRAMS.map((program) => `${label} ${program.name} capture`),
+  ]),
   "auth evidence",
 ];
 const INDEX_GOLDEN_PATH = join(
@@ -68,6 +105,20 @@ const INDEX_FIXTURE_SQL = readFileSync(
 function reviewedIndex(label: string): IndexCapture {
   return { ...JSON.parse(readFileSync(INDEX_GOLDEN_PATH, "utf8")), label };
 }
+
+const supplementalGoldenPath = (program: SupplementalProgram) =>
+  join(process.cwd(), "scripts/private-workspace-g1/baselines", `${program.name}.golden.json`);
+const syntheticSupplementalUnitState = (program: SupplementalProgram) => ({
+  protocol: "g1.unit.synthetic-parent-state/0.1",
+  program: program.name,
+  purpose: "small synthetic unit state; not native G1 row evidence",
+});
+const childSequence = (labels: readonly string[]) =>
+  labels.flatMap((label) => [
+    `public-routes.g1.spec.ts:${label}`,
+    `index-consumer.g1.spec.ts:${label}`,
+    ...SUPPLEMENTAL_PROGRAMS.map((program) => `${program.spec}:${label}`),
+  ]);
 
 type Scenario = {
   failCleanup?: readonly CleanupStep[];
@@ -89,18 +140,46 @@ type Scenario = {
 
 function fakes(scenario: Scenario) {
   const psqlCalls: string[] = [];
+  const countQueries: string[] = [];
   const specEnvs: Array<{ spec: string; env: Record<string, string> }> = [];
   const events: string[] = [];
   const failing = new Set(scenario.failCleanup ?? []);
   let resets = 0;
   let targetChecks = 0;
   let resetStates = 0;
+  const baseCounts = Object.fromEntries(
+    INVENTORY.tables.map((table) => [table, EXPECTED_RESET_STATE.counts[table] ?? 0]),
+  );
+  let supplementalCounts = { ...baseCounts };
+  const fixturePrograms = new Set<string>();
+  for (const program of SUPPLEMENTAL_PROGRAMS)
+    syntheticReviewedStates.set(
+      supplementalGoldenPath(program),
+      supplementalStateDigest(syntheticSupplementalUnitState(program)),
+    );
   const deps: G1HarnessDeps = {
     runPsql: async (_connection, sql) => {
       psqlCalls.push(sql);
       if (sql === INDEX_FIXTURE_SQL) events.push("index-only fixtures");
+      for (const program of SUPPLEMENTAL_PROGRAMS) {
+        for (const fixture of program.fixtures ?? []) {
+          if (
+            sql !==
+            readFileSync(join(process.cwd(), "scripts/private-workspace-g1", fixture), "utf8")
+          )
+            continue;
+          events.push(`supplemental-only fixtures:${program.name}:${fixture}`);
+          if (!fixturePrograms.has(program.name)) {
+            for (const [table, delta] of Object.entries(program.addedRows))
+              supplementalCounts[table] = (supplementalCounts[table] ?? 0) + delta;
+            fixturePrograms.add(program.name);
+          }
+        }
+      }
       if (sql.startsWith("TRUNCATE TABLE")) {
         events.push(`reset:${RESET_LABELS[resets]}`);
+        supplementalCounts = { ...baseCounts };
+        fixturePrograms.clear();
         if (resets++ === scenario.failResetAt) {
           throw new PsqlError(
             `psql exited with code 1: ERROR: cannot truncate for postgresql://${ADMIN_ROLE}:${ADMIN_SECRET}@${HOST}:${PORT}/${DATABASE}`,
@@ -142,6 +221,10 @@ function fakes(scenario: Scenario) {
         } as T;
       }
       if (sql === PUBLIC_OBJECT_INVENTORY_SQL) return INVENTORY as T;
+      if (sql === supplementalCountsSql(INVENTORY.tables)) {
+        countQueries.push(sql);
+        return { ...supplementalCounts } as T;
+      }
       if (sql === RESET_TARGET_SQL) {
         const drift = targetChecks++ === scenario.driftTargetAt;
         return {
@@ -188,6 +271,19 @@ function fakes(scenario: Scenario) {
         );
         return true;
       }
+      const program = SUPPLEMENTAL_PROGRAMS.find((program) => program.spec === spec);
+      if (program) {
+        // Native HTTP is reconstructed only from the independently reviewed committed golden.
+        // Never manufacture HTTP/golden success from scenario expectations.
+        const reviewed = JSON.parse(readFileSync(supplementalGoldenPath(program), "utf8"));
+        const capture = captureFromGolden(env.G1_CAPTURE_LABEL!, upgradeGolden(reviewed.http));
+        writeFileSync(env[program.outVariable]!, JSON.stringify(capture));
+        writeFileSync(
+          env[program.outVariable]! + program.stateSuffix,
+          JSON.stringify(syntheticSupplementalUnitState(program)),
+        );
+        return true;
+      }
       if (spec === "auth-context.g1.spec.ts") {
         writeFileSync(env.G1_AUTH_EVIDENCE_OUT!, "{}\n");
         return true;
@@ -195,7 +291,7 @@ function fakes(scenario: Scenario) {
       return scenario.rolesPass ?? true;
     },
   };
-  return { deps, psqlCalls, specEnvs, events };
+  return { deps, psqlCalls, specEnvs, events, countQueries };
 }
 
 const evidenceRoot = mkdtempSync(join(tmpdir(), "oratlas-g1-orchestrator-"));
@@ -204,6 +300,7 @@ afterAll(() => rmSync(evidenceRoot, { recursive: true, force: true }));
 let output: string[];
 beforeEach(() => {
   output = [];
+  syntheticReviewedStates.clear();
   const capture = (...args: unknown[]) => void output.push(args.map(String).join(" "));
   vi.spyOn(console, "info").mockImplementation(capture);
   vi.spyOn(console, "error").mockImplementation(capture);
@@ -212,7 +309,7 @@ afterEach(() => vi.restoreAllMocks());
 
 async function harness(scenario: Scenario) {
   const evidence = mkdtempSync(join(evidenceRoot, "run-"));
-  const { deps, psqlCalls, specEnvs, events } = fakes(scenario);
+  const { deps, psqlCalls, specEnvs, events, countQueries } = fakes(scenario);
   const code = await runG1Harness(
     {
       [G1_ENV.admin]: `postgresql://${ADMIN_ROLE}:${ADMIN_SECRET}@${HOST}:${PORT}/${DATABASE}`,
@@ -235,7 +332,17 @@ async function harness(scenario: Scenario) {
     Object.values(CLEANUP_SQL).includes(sql as never),
   );
   const truncations = psqlCalls.filter((sql) => sql.startsWith("TRUNCATE TABLE"));
-  return { code, summary, summaryText, cleanupAttempts, specEnvs, truncations, events, evidence };
+  return {
+    code,
+    summary,
+    summaryText,
+    cleanupAttempts,
+    specEnvs,
+    truncations,
+    events,
+    evidence,
+    countQueries,
+  };
 }
 
 function expectSanitized(...texts: string[]) {
@@ -249,16 +356,28 @@ const failedChecks = (summary: { steps: Array<{ step: string; ok: boolean }> }) 
 
 describe("G1 orchestrator sequence (offline fault injection)", () => {
   it("passes only when every check and every cleanup step succeeds", async () => {
-    const { code, summary, summaryText, cleanupAttempts, specEnvs, truncations, events, evidence } =
-      await harness({});
+    const {
+      code,
+      summary,
+      summaryText,
+      cleanupAttempts,
+      specEnvs,
+      truncations,
+      events,
+      evidence,
+      countQueries,
+    } = await harness({});
     expect(code).toBe(0);
+    expect(INVENTORY.tables).toHaveLength(87);
+    expect(countQueries).toHaveLength(CAPTURE_LABELS.length * SUPPLEMENTAL_PROGRAMS.length * 2);
+    expect(countQueries.every((sql) => sql === supplementalCountsSql(INVENTORY.tables))).toBe(true);
     expect(summary.result).toBe("passed (G1-empty partial coverage only)");
     expect(summary.failure).toBeUndefined();
     expect(summary.steps.every((step) => step.ok)).toBe(true);
     // A reset (truncate + reload of the recorded tables) precedes every handler child.
     expect(truncations).toHaveLength(RESET_LABELS.length);
     expect(truncations[0]).toBe(
-      `TRUNCATE TABLE public."Review", public."ReviewVersion" RESTART IDENTITY;\n${[
+      `${truncateRecordedPublicTablesSql(INVENTORY)}\n${[
         "public-fixtures.sql",
         "editorial-fixtures.sql",
         "scholarly-fixtures.sql",
@@ -279,20 +398,17 @@ describe("G1 orchestrator sequence (offline fault injection)", () => {
       specEnvs.map(
         ({ spec, env }) => `${spec}:${env.G1_CAPTURE_LABEL ?? env.G1_INDEX_LABEL ?? ""}`,
       ),
-    ).toEqual([
-      ...CAPTURE_LABELS.flatMap((label) => [
-        `public-routes.g1.spec.ts:${label}`,
-        `index-consumer.g1.spec.ts:${label}`,
-      ]),
-      "auth-context.g1.spec.ts:",
-      "roles.g1.spec.ts:",
-    ]);
+    ).toEqual([...childSequence(CAPTURE_LABELS), "auth-context.g1.spec.ts:", "roles.g1.spec.ts:"]);
     expect(summary.cleanup.map((step) => [step.step, step.ok])).toEqual(
       Object.keys(CLEANUP_SQL).map((step) => [step, true]),
     );
     expect(cleanupAttempts).toEqual(Object.values(CLEANUP_SQL));
     expect(summary.manifest?.coverage.routeFilesExercised).toBe(
-      new Set(SCENARIOS.filter((s) => s.kind === "http").map((s) => s.route)).size,
+      new Set(
+        [...SCENARIOS, ...SUPPLEMENTAL_PROGRAMS.flatMap((program) => program.scenarios)]
+          .filter((scenario) => scenario.kind === "http")
+          .map((scenario) => scenario.route),
+      ).size,
     );
     expect(events).toEqual([
       ...CAPTURE_LABELS.flatMap((label) => [
@@ -301,6 +417,13 @@ describe("G1 orchestrator sequence (offline fault injection)", () => {
         `reset:${label} index capture`,
         "index-only fixtures",
         `child:index-consumer.g1.spec.ts:${label}`,
+        ...SUPPLEMENTAL_PROGRAMS.flatMap((program) => [
+          `reset:${label} ${program.name} capture`,
+          ...(program.fixtures ?? []).map(
+            (fixture) => `supplemental-only fixtures:${program.name}:${fixture}`,
+          ),
+          `child:${program.spec}:${label}`,
+        ]),
       ]),
       "reset:auth evidence",
       "child:auth-context.g1.spec.ts:",
@@ -335,7 +458,12 @@ describe("G1 orchestrator sequence (offline fault injection)", () => {
             ? ["G1_CAPTURE_LABEL", "G1_CAPTURE_OUT"]
             : spec === "index-consumer.g1.spec.ts"
               ? ["G1_INDEX_CAPTURE_OUT", "G1_INDEX_LABEL"]
-              : ["G1_AUTH_EVIDENCE_OUT"]),
+              : SUPPLEMENTAL_PROGRAMS.some((program) => program.spec === spec)
+                ? [
+                    "G1_CAPTURE_LABEL",
+                    SUPPLEMENTAL_PROGRAMS.find((program) => program.spec === spec)!.outVariable,
+                  ]
+                : ["G1_AUTH_EVIDENCE_OUT"]),
           ...["PATH", "HOME", "TMPDIR", "CI"].filter((name) => process.env[name]),
         ].sort(),
       );
@@ -357,12 +485,7 @@ describe("G1 orchestrator sequence (offline fault injection)", () => {
     // No capture child ran on the unreset state.
     expect(
       specEnvs.map(({ spec, env }) => `${spec}:${env.G1_CAPTURE_LABEL ?? env.G1_INDEX_LABEL}`),
-    ).toEqual([
-      "public-routes.g1.spec.ts:baseline",
-      "index-consumer.g1.spec.ts:baseline",
-      "public-routes.g1.spec.ts:baseline-repeat",
-      "index-consumer.g1.spec.ts:baseline-repeat",
-    ]);
+    ).toEqual([...childSequence(["baseline", "baseline-repeat"])]);
     expect(cleanupAttempts).toEqual(Object.values(CLEANUP_SQL));
     expectSanitized(summaryText);
   });
@@ -417,6 +540,33 @@ describe("G1 orchestrator sequence (offline fault injection)", () => {
     });
     expect(code).toBe(1);
     expect(failedChecks(summary)).toEqual(["baseline and after-repeat captures byte-identical"]);
+  });
+});
+
+describe("G1 fixed supplemental parent lifecycle (offline fault injection)", () => {
+  it("fails a supplemental reset before loading its fixtures or invoking that child", async () => {
+    const program = SUPPLEMENTAL_PROGRAMS[0]!;
+    const label = `baseline ${program.name} capture`;
+    const { code, summary, events, specEnvs, cleanupAttempts, countQueries } = await harness({
+      failResetAt: RESET_LABELS.indexOf(label),
+    });
+    expect(code).toBe(1);
+    expect(failedChecks(summary)).toEqual([`reset public fixtures before ${label}`]);
+    expect(events.at(-1)).toBe(`reset:${label}`);
+    expect(specEnvs.map(({ spec }) => spec)).toEqual([
+      "public-routes.g1.spec.ts",
+      "index-consumer.g1.spec.ts",
+    ]);
+    expect(countQueries).toEqual([]);
+    // The first baseline supplemental reset precedes private schema/role creation.
+    expect(cleanupAttempts).toEqual([
+      CLEANUP_SQL["drop public role"],
+      CLEANUP_SQL["drop run-created public objects"],
+    ]);
+    expect(summary.cleanup.map(({ step, ok }) => [step, ok])).toEqual([
+      ["drop public role", true],
+      ["drop run-created public objects", true],
+    ]);
   });
 });
 
