@@ -9417,6 +9417,6 @@
       }
     ]
   },
-  "stateSha256": "f273a475cfeb7b400a68127e8e7008e1aed444e605c82e7b8cb1bd8de4e96600",
+  "stateSha256": "0565356388cbc8354bc20926412fe7aeb7413c2c4f60ba281cff2fcb7197f809",
   "review": "Independently reviewed 2026-10-21: four270-request native-worker captures, exact actual-header bindings, coherent native claim history and complete credential/state evidence under measured72-table authority; partial synthetic G1 only. Independently reviewed authority-only update: the complete state adds exactly VerificationArtifact.completedAt/status UPDATE to authorityScope.columns; every public row and HTTP field is unchanged."
 }

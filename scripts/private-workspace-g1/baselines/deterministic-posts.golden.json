@@ -2995,6 +2995,6 @@
       }
     ]
   },
-  "stateSha256": "b079e331ce3a16f1ddac7e8e373d3e9e0f0d8818a2c8679efbfe513d2972fb0e",
+  "stateSha256": "1b421bbe8893e5e49238acce235da52cc756ee7f0ef3e53dc20a9bcc4b895734",
   "review": "Independently reviewed 2026-10-21: four 96-request native Discuss and federation captures, exact public signed scopes and immutable payloads, 26 native fixture rows and compatibility updates, complete unchanged 72-table state and measured authority, zero outbound attempts; canonical signed traversal order restored in the native selector. Partial synthetic G1 only. Independently reviewed authority-only update: the complete state adds exactly VerificationArtifact.completedAt/status UPDATE to authorityScope.columns; every public row and HTTP field is unchanged."
 }

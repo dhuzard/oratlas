@@ -1,0 +1,2414 @@
+{
+  "protocol": "oratlas.g1.supplemental/0.1",
+  "program": "challenge-moderations",
+  "http": {
+    "version": 2,
+    "review": "Manually accepted after independent frozen-source 2f3472d native review: four exact labels, complete native rows/transitions/query traces and actual Cookie bindings. Report SHA256 7bc5d7d6a2ad410b103eb2b88d7cbe5782783affccd5ec2793beab710f3f8a52. Synthetic conditional proof; mixed clocks and finite metadata inputs retained. Parent decoded-log protection is retrospective for 2f; final hardened-parent CI remains required.",
+    "baseUrl": "https://g1.oratlas.example",
+    "clock": "2026-04-01T00:00:00.000Z",
+    "records": [
+      {
+        "kind": "http",
+        "id": "challenge-moderation-stale-before-anonymous",
+        "method": "POST",
+        "path": "/api/challenges/cmvifjxw700017k9xvy7n1a8q/moderation",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"expectedContentRevision\":7}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 401,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "challenge-moderation-visible-anonymous",
+        "method": "POST",
+        "path": "/api/challenges/cmvifjxw700017k9xvy7n1a8q/moderation",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"expectedContentRevision\":0}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 401,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "challenge-moderation-replay-anonymous",
+        "method": "POST",
+        "path": "/api/challenges/cmvifjxw700017k9xvy7n1a8q/moderation",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-observation": "exact-replay"
+        },
+        "requestBody": "{\"expectedContentRevision\":0}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 401,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "challenge-moderation-missing-anonymous",
+        "method": "POST",
+        "path": "/api/challenges/g1-challenge-moderation-missing/moderation",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"expectedContentRevision\":0}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 401,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "challenge-moderation-invalid-revision-anonymous",
+        "method": "POST",
+        "path": "/api/challenges/cmvifjxw700017k9xvy7n1a8q/moderation",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"expectedContentRevision\":-1}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 401,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "challenge-moderation-extra-field-anonymous",
+        "method": "POST",
+        "path": "/api/challenges/cmvifjxw700017k9xvy7n1a8q/moderation",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"expectedContentRevision\":0,\"reason\":\"unrecognized\"}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 401,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "challenge-moderation-missing-origin-anonymous",
+        "method": "POST",
+        "path": "/api/challenges/cmvifjxw700017k9xvy7n1a8q/moderation",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"expectedContentRevision\":0}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"A matching same-origin request is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "challenge-moderation-foreign-origin-anonymous",
+        "method": "POST",
+        "path": "/api/challenges/cmvifjxw700017k9xvy7n1a8q/moderation",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://foreign.g1.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"expectedContentRevision\":0}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"A matching same-origin request is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "challenge-moderation-cross-site-anonymous",
+        "method": "POST",
+        "path": "/api/challenges/cmvifjxw700017k9xvy7n1a8q/moderation",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "cross-site"
+        },
+        "requestBody": "{\"expectedContentRevision\":0}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Cross-site mutation requests are refused.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "challenge-moderation-wrong-media-anonymous",
+        "method": "POST",
+        "path": "/api/challenges/cmvifjxw700017k9xvy7n1a8q/moderation",
+        "requestHeaders": {
+          "content-type": "text/plain",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"expectedContentRevision\":0}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Content-Type application/json is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "challenge-moderation-missing-media-anonymous",
+        "method": "POST",
+        "path": "/api/challenges/cmvifjxw700017k9xvy7n1a8q/moderation",
+        "requestHeaders": {
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"expectedContentRevision\":0}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Content-Type application/json is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "challenge-moderation-stale-before-A-only",
+        "method": "POST",
+        "path": "/api/challenges/cmvifjxw700017k9xvy7n1a8q/moderation",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"expectedContentRevision\":7}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Only the filer or an editor may remove this challenge text.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "challenge-moderation-visible-A-only",
+        "method": "POST",
+        "path": "/api/challenges/cmvifjxw700017k9xvy7n1a8q/moderation",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"expectedContentRevision\":0}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Only the filer or an editor may remove this challenge text.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "challenge-moderation-replay-A-only",
+        "method": "POST",
+        "path": "/api/challenges/cmvifjxw700017k9xvy7n1a8q/moderation",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-observation": "exact-replay"
+        },
+        "requestBody": "{\"expectedContentRevision\":0}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Only the filer or an editor may remove this challenge text.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "challenge-moderation-missing-A-only",
+        "method": "POST",
+        "path": "/api/challenges/g1-challenge-moderation-missing/moderation",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"expectedContentRevision\":0}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 404,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Challenge not found.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "challenge-moderation-invalid-revision-A-only",
+        "method": "POST",
+        "path": "/api/challenges/cmvifjxw700017k9xvy7n1a8q/moderation",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"expectedContentRevision\":-1}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Invalid request payload.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "challenge-moderation-extra-field-A-only",
+        "method": "POST",
+        "path": "/api/challenges/cmvifjxw700017k9xvy7n1a8q/moderation",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"expectedContentRevision\":0,\"reason\":\"unrecognized\"}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Invalid request payload.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "challenge-moderation-missing-origin-A-only",
+        "method": "POST",
+        "path": "/api/challenges/cmvifjxw700017k9xvy7n1a8q/moderation",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"expectedContentRevision\":0}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"A matching same-origin request is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "challenge-moderation-foreign-origin-A-only",
+        "method": "POST",
+        "path": "/api/challenges/cmvifjxw700017k9xvy7n1a8q/moderation",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://foreign.g1.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"expectedContentRevision\":0}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"A matching same-origin request is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "challenge-moderation-cross-site-A-only",
+        "method": "POST",
+        "path": "/api/challenges/cmvifjxw700017k9xvy7n1a8q/moderation",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "cross-site"
+        },
+        "requestBody": "{\"expectedContentRevision\":0}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Cross-site mutation requests are refused.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "challenge-moderation-wrong-media-A-only",
+        "method": "POST",
+        "path": "/api/challenges/cmvifjxw700017k9xvy7n1a8q/moderation",
+        "requestHeaders": {
+          "content-type": "text/plain",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"expectedContentRevision\":0}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Content-Type application/json is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "challenge-moderation-missing-media-A-only",
+        "method": "POST",
+        "path": "/api/challenges/cmvifjxw700017k9xvy7n1a8q/moderation",
+        "requestHeaders": {
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"expectedContentRevision\":0}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Content-Type application/json is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "challenge-moderation-stale-before-B-only",
+        "method": "POST",
+        "path": "/api/challenges/cmvifjxw700017k9xvy7n1a8q/moderation",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"expectedContentRevision\":7}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Only the filer or an editor may remove this challenge text.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "challenge-moderation-visible-B-only",
+        "method": "POST",
+        "path": "/api/challenges/cmvifjxw700017k9xvy7n1a8q/moderation",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"expectedContentRevision\":0}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Only the filer or an editor may remove this challenge text.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "challenge-moderation-replay-B-only",
+        "method": "POST",
+        "path": "/api/challenges/cmvifjxw700017k9xvy7n1a8q/moderation",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-observation": "exact-replay"
+        },
+        "requestBody": "{\"expectedContentRevision\":0}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Only the filer or an editor may remove this challenge text.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "challenge-moderation-missing-B-only",
+        "method": "POST",
+        "path": "/api/challenges/g1-challenge-moderation-missing/moderation",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"expectedContentRevision\":0}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 404,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Challenge not found.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "challenge-moderation-invalid-revision-B-only",
+        "method": "POST",
+        "path": "/api/challenges/cmvifjxw700017k9xvy7n1a8q/moderation",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"expectedContentRevision\":-1}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Invalid request payload.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "challenge-moderation-extra-field-B-only",
+        "method": "POST",
+        "path": "/api/challenges/cmvifjxw700017k9xvy7n1a8q/moderation",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"expectedContentRevision\":0,\"reason\":\"unrecognized\"}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Invalid request payload.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "challenge-moderation-missing-origin-B-only",
+        "method": "POST",
+        "path": "/api/challenges/cmvifjxw700017k9xvy7n1a8q/moderation",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"expectedContentRevision\":0}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"A matching same-origin request is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "challenge-moderation-foreign-origin-B-only",
+        "method": "POST",
+        "path": "/api/challenges/cmvifjxw700017k9xvy7n1a8q/moderation",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://foreign.g1.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"expectedContentRevision\":0}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"A matching same-origin request is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "challenge-moderation-cross-site-B-only",
+        "method": "POST",
+        "path": "/api/challenges/cmvifjxw700017k9xvy7n1a8q/moderation",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "cross-site"
+        },
+        "requestBody": "{\"expectedContentRevision\":0}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Cross-site mutation requests are refused.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "challenge-moderation-wrong-media-B-only",
+        "method": "POST",
+        "path": "/api/challenges/cmvifjxw700017k9xvy7n1a8q/moderation",
+        "requestHeaders": {
+          "content-type": "text/plain",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"expectedContentRevision\":0}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Content-Type application/json is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "challenge-moderation-missing-media-B-only",
+        "method": "POST",
+        "path": "/api/challenges/cmvifjxw700017k9xvy7n1a8q/moderation",
+        "requestHeaders": {
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"expectedContentRevision\":0}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Content-Type application/json is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "challenge-moderation-stale-before-A+B",
+        "method": "POST",
+        "path": "/api/challenges/cmvifjxw700017k9xvy7n1a8q/moderation",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"expectedContentRevision\":7}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 409,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"conflict\",\"message\":\"Challenge content changed. Refresh and retry.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "challenge-moderation-visible-A+B",
+        "method": "POST",
+        "path": "/api/challenges/cmvifjxw700017k9xvy7n1a8q/moderation",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"expectedContentRevision\":0}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 200,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"contentRevision\":1,\"contentStatus\":\"removed\"}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "challenge-moderation-replay-A+B",
+        "method": "POST",
+        "path": "/api/challenges/cmvifjxw700017k9xvy7n1a8q/moderation",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-observation": "exact-replay"
+        },
+        "requestBody": "{\"expectedContentRevision\":0}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 409,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"conflict\",\"message\":\"Challenge content changed. Refresh and retry.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "challenge-moderation-missing-A+B",
+        "method": "POST",
+        "path": "/api/challenges/g1-challenge-moderation-missing/moderation",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"expectedContentRevision\":0}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 404,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Challenge not found.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "challenge-moderation-invalid-revision-A+B",
+        "method": "POST",
+        "path": "/api/challenges/cmvifjxw700017k9xvy7n1a8q/moderation",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"expectedContentRevision\":-1}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Invalid request payload.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "challenge-moderation-extra-field-A+B",
+        "method": "POST",
+        "path": "/api/challenges/cmvifjxw700017k9xvy7n1a8q/moderation",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"expectedContentRevision\":0,\"reason\":\"unrecognized\"}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Invalid request payload.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "challenge-moderation-missing-origin-A+B",
+        "method": "POST",
+        "path": "/api/challenges/cmvifjxw700017k9xvy7n1a8q/moderation",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"expectedContentRevision\":0}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"A matching same-origin request is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "challenge-moderation-foreign-origin-A+B",
+        "method": "POST",
+        "path": "/api/challenges/cmvifjxw700017k9xvy7n1a8q/moderation",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://foreign.g1.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"expectedContentRevision\":0}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"A matching same-origin request is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "challenge-moderation-cross-site-A+B",
+        "method": "POST",
+        "path": "/api/challenges/cmvifjxw700017k9xvy7n1a8q/moderation",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "cross-site"
+        },
+        "requestBody": "{\"expectedContentRevision\":0}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Cross-site mutation requests are refused.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "challenge-moderation-wrong-media-A+B",
+        "method": "POST",
+        "path": "/api/challenges/cmvifjxw700017k9xvy7n1a8q/moderation",
+        "requestHeaders": {
+          "content-type": "text/plain",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"expectedContentRevision\":0}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Content-Type application/json is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "challenge-moderation-missing-media-A+B",
+        "method": "POST",
+        "path": "/api/challenges/cmvifjxw700017k9xvy7n1a8q/moderation",
+        "requestHeaders": {
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"expectedContentRevision\":0}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Content-Type application/json is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "challenge-moderation-stale-before-EDITOR",
+        "method": "POST",
+        "path": "/api/challenges/cmvifjxxk000h7k9xjiqktafx/moderation",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"expectedContentRevision\":7}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 409,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"conflict\",\"message\":\"Challenge content changed. Refresh and retry.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "challenge-moderation-visible-EDITOR",
+        "method": "POST",
+        "path": "/api/challenges/cmvifjxxk000h7k9xjiqktafx/moderation",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"expectedContentRevision\":0}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 200,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"contentRevision\":1,\"contentStatus\":\"removed\"}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "challenge-moderation-replay-EDITOR",
+        "method": "POST",
+        "path": "/api/challenges/cmvifjxxk000h7k9xjiqktafx/moderation",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-observation": "exact-replay"
+        },
+        "requestBody": "{\"expectedContentRevision\":0}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 409,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"conflict\",\"message\":\"Challenge content changed. Refresh and retry.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "challenge-moderation-missing-EDITOR",
+        "method": "POST",
+        "path": "/api/challenges/g1-challenge-moderation-missing/moderation",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"expectedContentRevision\":0}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 404,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Challenge not found.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "challenge-moderation-invalid-revision-EDITOR",
+        "method": "POST",
+        "path": "/api/challenges/cmvifjxxk000h7k9xjiqktafx/moderation",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"expectedContentRevision\":-1}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Invalid request payload.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "challenge-moderation-extra-field-EDITOR",
+        "method": "POST",
+        "path": "/api/challenges/cmvifjxxk000h7k9xjiqktafx/moderation",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"expectedContentRevision\":0,\"reason\":\"unrecognized\"}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Invalid request payload.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "challenge-moderation-missing-origin-EDITOR",
+        "method": "POST",
+        "path": "/api/challenges/cmvifjxxk000h7k9xjiqktafx/moderation",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"expectedContentRevision\":0}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"A matching same-origin request is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "challenge-moderation-foreign-origin-EDITOR",
+        "method": "POST",
+        "path": "/api/challenges/cmvifjxxk000h7k9xjiqktafx/moderation",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://foreign.g1.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"expectedContentRevision\":0}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"A matching same-origin request is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "challenge-moderation-cross-site-EDITOR",
+        "method": "POST",
+        "path": "/api/challenges/cmvifjxxk000h7k9xjiqktafx/moderation",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "cross-site"
+        },
+        "requestBody": "{\"expectedContentRevision\":0}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Cross-site mutation requests are refused.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "challenge-moderation-wrong-media-EDITOR",
+        "method": "POST",
+        "path": "/api/challenges/cmvifjxxk000h7k9xjiqktafx/moderation",
+        "requestHeaders": {
+          "content-type": "text/plain",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"expectedContentRevision\":0}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Content-Type application/json is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "challenge-moderation-missing-media-EDITOR",
+        "method": "POST",
+        "path": "/api/challenges/cmvifjxxk000h7k9xjiqktafx/moderation",
+        "requestHeaders": {
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"expectedContentRevision\":0}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Content-Type application/json is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "challenge-moderation-stale-before-ADMIN",
+        "method": "POST",
+        "path": "/api/challenges/cmvifjxyl000x7k9xpjmty3vr/moderation",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"expectedContentRevision\":7}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 409,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"conflict\",\"message\":\"Challenge content changed. Refresh and retry.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "challenge-moderation-visible-ADMIN",
+        "method": "POST",
+        "path": "/api/challenges/cmvifjxyl000x7k9xpjmty3vr/moderation",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"expectedContentRevision\":0}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 200,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"contentRevision\":1,\"contentStatus\":\"removed\"}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "challenge-moderation-replay-ADMIN",
+        "method": "POST",
+        "path": "/api/challenges/cmvifjxyl000x7k9xpjmty3vr/moderation",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin",
+          "x-g1-observation": "exact-replay"
+        },
+        "requestBody": "{\"expectedContentRevision\":0}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 409,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"conflict\",\"message\":\"Challenge content changed. Refresh and retry.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "challenge-moderation-missing-ADMIN",
+        "method": "POST",
+        "path": "/api/challenges/g1-challenge-moderation-missing/moderation",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"expectedContentRevision\":0}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 404,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Challenge not found.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "challenge-moderation-invalid-revision-ADMIN",
+        "method": "POST",
+        "path": "/api/challenges/cmvifjxyl000x7k9xpjmty3vr/moderation",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"expectedContentRevision\":-1}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Invalid request payload.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "challenge-moderation-extra-field-ADMIN",
+        "method": "POST",
+        "path": "/api/challenges/cmvifjxyl000x7k9xpjmty3vr/moderation",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"expectedContentRevision\":0,\"reason\":\"unrecognized\"}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Invalid request payload.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "challenge-moderation-missing-origin-ADMIN",
+        "method": "POST",
+        "path": "/api/challenges/cmvifjxyl000x7k9xpjmty3vr/moderation",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"expectedContentRevision\":0}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"A matching same-origin request is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "challenge-moderation-foreign-origin-ADMIN",
+        "method": "POST",
+        "path": "/api/challenges/cmvifjxyl000x7k9xpjmty3vr/moderation",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://foreign.g1.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"expectedContentRevision\":0}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"A matching same-origin request is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "challenge-moderation-cross-site-ADMIN",
+        "method": "POST",
+        "path": "/api/challenges/cmvifjxyl000x7k9xpjmty3vr/moderation",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "cross-site"
+        },
+        "requestBody": "{\"expectedContentRevision\":0}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Cross-site mutation requests are refused.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "challenge-moderation-wrong-media-ADMIN",
+        "method": "POST",
+        "path": "/api/challenges/cmvifjxyl000x7k9xpjmty3vr/moderation",
+        "requestHeaders": {
+          "content-type": "text/plain",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"expectedContentRevision\":0}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Content-Type application/json is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "challenge-moderation-missing-media-ADMIN",
+        "method": "POST",
+        "path": "/api/challenges/cmvifjxyl000x7k9xpjmty3vr/moderation",
+        "requestHeaders": {
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"expectedContentRevision\":0}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Content-Type application/json is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "challenge-moderation-session-malformed-anonymous",
+        "method": "POST",
+        "path": "/api/challenges/cmvifjxw700017k9xvy7n1a8q/moderation",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"expectedContentRevision\":0}",
+        "principal": "anonymous",
+        "sessionCase": "malformed",
+        "session": {
+          "case": "malformed",
+          "value": "g1-malformed-session-value"
+        },
+        "cookieSha256": "0b646763360dfbf0b958677056e8f33e616febd688290abe0b8de92864714906",
+        "status": 401,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "challenge-moderation-session-signed-expired-anonymous",
+        "method": "POST",
+        "path": "/api/challenges/cmvifjxw700017k9xvy7n1a8q/moderation",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"expectedContentRevision\":0}",
+        "principal": "anonymous",
+        "sessionCase": "signed-expired",
+        "session": {
+          "case": "signed-expired",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-01T00:00:00.000Z"
+        },
+        "cookieSha256": "fa480d7e6f4efdbc8ba7f86a08d94834130d3f13a07c89c44103ce2cc60700c0",
+        "status": 401,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "challenge-moderation-session-tampered-anonymous",
+        "method": "POST",
+        "path": "/api/challenges/cmvifjxw700017k9xvy7n1a8q/moderation",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"expectedContentRevision\":0}",
+        "principal": "anonymous",
+        "sessionCase": "tampered",
+        "session": {
+          "case": "tampered",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z",
+          "substitutedUserId": "g1-user-admin"
+        },
+        "cookieSha256": "79f2621dfa5223e7ab82dbc4fa99562464ae7afc1b7afec9bc74f30ffb1e4a43",
+        "status": 401,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "challenge-moderation-session-signed-missing-user-anonymous",
+        "method": "POST",
+        "path": "/api/challenges/cmvifjxw700017k9xvy7n1a8q/moderation",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"expectedContentRevision\":0}",
+        "principal": "anonymous",
+        "sessionCase": "signed-missing-user",
+        "session": {
+          "case": "signed-missing-user",
+          "userId": "g1-user-deleted",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "0596f369924b9c8e97061767be36bd17565fc628a3410cbc01a4f414c124818c",
+        "status": 401,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "challenge-moderation-observer-anonymous",
+        "method": "GET",
+        "path": "/api/reviews/g1-fixture-review/versions/g1-version-2/challenges",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 200,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"reviewSlug\":\"g1-fixture-review\",\"reviewVersionId\":\"g1-version-2\",\"challenges\":[{\"id\":\"g1-challenge-removed\",\"containerType\":\"review-version\",\"reviewVersionId\":\"g1-version-2\",\"nodeEdgeProposalId\":null,\"subjectType\":\"claim\",\"subjectLabel\":\"Claim claim-1\",\"subjectHref\":\"/reviews/g1-fixture-review/versions/g1-version-2#claim-subject-g1-claim-1\",\"canonicalSubjectHash\":\"cf024573a3c583308e315938b81ab36714e94a89580f2c963d1d74bde5b1bd24\",\"filedContentHash\":\"e914a9d4db0fdb9100f2ea1d774b70a1847c1097ded95179c76d73416b8ab72e\",\"grounds\":\"methodology\",\"body\":\"\",\"contentStatus\":\"removed\",\"contentRevision\":0,\"status\":\"dismissed\",\"revision\":2,\"challenger\":{\"githubLogin\":\"g1-fixture-a-only\",\"displayName\":\"G1 Fixture A-only\"},\"transitions\":[{\"id\":\"g1-challenge-removed-filed\",\"fromStatus\":null,\"toStatus\":\"open\",\"actor\":{\"githubLogin\":\"g1-fixture-a-only\"},\"conflictOfInterest\":{\"status\":\"not-provided\"},\"revision\":0,\"createdAt\":\"2026-03-10T00:00:00.000Z\"},{\"id\":\"g1-challenge-removed-responded\",\"fromStatus\":\"open\",\"toStatus\":\"author-responded\",\"actor\":{\"githubLogin\":\"g1-fixture-b-only\"},\"conflictOfInterest\":{\"status\":\"not-provided\"},\"revision\":1,\"createdAt\":\"2026-03-10T00:01:00.000Z\"},{\"id\":\"g1-challenge-removed-dismissed\",\"fromStatus\":\"author-responded\",\"toStatus\":\"dismissed\",\"actor\":{\"githubLogin\":\"g1-fixture-editor\"},\"conflictOfInterest\":{\"status\":\"not-provided\"},\"revision\":2,\"createdAt\":\"2026-03-10T00:02:00.000Z\"}],\"response\":{\"id\":\"g1-challenge-removed-response\",\"body\":\"\",\"contentHash\":\"b67b30c0bebfcfe3e31a5e744a4cca39660ccc580e53916286eaf6317d3cfee6\",\"contentStatus\":\"removed\",\"contentRevision\":0,\"responder\":{\"githubLogin\":\"g1-fixture-b-only\",\"displayName\":\"G1 Fixture B-only\"},\"createdAt\":\"2026-03-10T00:01:00.000Z\"},\"createdAt\":\"2026-03-10T00:00:00.000Z\"},{\"id\":\"g1-challenge-visible\",\"containerType\":\"review-version\",\"reviewVersionId\":\"g1-version-2\",\"nodeEdgeProposalId\":null,\"subjectType\":\"claim\",\"subjectLabel\":\"Claim claim-1\",\"subjectHref\":\"/reviews/g1-fixture-review/versions/g1-version-2#claim-subject-g1-claim-1\",\"canonicalSubjectHash\":\"cf024573a3c583308e315938b81ab36714e94a89580f2c963d1d74bde5b1bd24\",\"filedContentHash\":\"ed09756722c75b86048023e9f32bd4194cab1b038609ef48148bc82fc6ca1319\",\"grounds\":\"methodology\",\"body\":\"Synthetic dismissed challenge with recorded editorial outcome.\",\"contentStatus\":\"visible\",\"contentRevision\":0,\"status\":\"dismissed\",\"revision\":2,\"challenger\":{\"githubLogin\":\"g1-fixture-a-only\",\"displayName\":\"G1 Fixture A-only\"},\"transitions\":[{\"id\":\"g1-challenge-visible-filed\",\"fromStatus\":null,\"toStatus\":\"open\",\"actor\":{\"githubLogin\":\"g1-fixture-a-only\"},\"conflictOfInterest\":{\"status\":\"not-provided\"},\"revision\":0,\"createdAt\":\"2026-03-10T00:00:00.000Z\"},{\"id\":\"g1-challenge-visible-responded\",\"fromStatus\":\"open\",\"toStatus\":\"author-responded\",\"actor\":{\"githubLogin\":\"g1-fixture-b-only\"},\"conflictOfInterest\":{\"status\":\"not-provided\"},\"revision\":1,\"createdAt\":\"2026-03-10T00:01:00.000Z\"},{\"id\":\"g1-challenge-visible-dismissed\",\"fromStatus\":\"author-responded\",\"toStatus\":\"dismissed\",\"actor\":{\"githubLogin\":\"g1-fixture-editor\"},\"conflictOfInterest\":{\"status\":\"not-provided\"},\"revision\":2,\"createdAt\":\"2026-03-10T00:02:00.000Z\"}],\"response\":{\"id\":\"g1-challenge-visible-response\",\"body\":\"Synthetic contributor response before editorial dismissal.\",\"contentHash\":\"39bdc2240f013155bb27914c666b27173a78a4ca80932ce398c4264e4979e248\",\"contentStatus\":\"visible\",\"contentRevision\":0,\"responder\":{\"githubLogin\":\"g1-fixture-b-only\",\"displayName\":\"G1 Fixture B-only\"},\"createdAt\":\"2026-03-10T00:01:00.000Z\"},\"createdAt\":\"2026-03-10T00:00:00.000Z\"},{\"id\":\"cmvifjxw700017k9xvy7n1a8q\",\"containerType\":\"review-version\",\"reviewVersionId\":\"g1-version-2\",\"nodeEdgeProposalId\":null,\"subjectType\":\"claim\",\"subjectLabel\":\"Claim claim-1\",\"subjectHref\":\"/reviews/g1-fixture-review/versions/g1-version-2#claim-subject-g1-claim-1\",\"canonicalSubjectHash\":\"cf024573a3c583308e315938b81ab36714e94a89580f2c963d1d74bde5b1bd24\",\"filedContentHash\":\"c98c6665994937063d3c8ad23654b32866c441dd2c05d340aa8f79963aa071d9\",\"grounds\":\"methodology\",\"body\":\"\",\"contentStatus\":\"removed\",\"contentRevision\":1,\"status\":\"dismissed\",\"revision\":2,\"challenger\":{\"githubLogin\":\"g1-fixture-a-and-b\",\"displayName\":\"G1 Fixture A+B\"},\"transitions\":[{\"id\":\"cmvifjxwa00037k9x2suizd1o\",\"fromStatus\":null,\"toStatus\":\"open\",\"actor\":{\"githubLogin\":\"g1-fixture-a-and-b\"},\"conflictOfInterest\":{\"status\":\"not-provided\"},\"revision\":0,\"createdAt\":\"2026-10-21T18:12:58.330Z\"},{\"id\":\"cmvifjxwv00097k9xmr7xxvsz\",\"fromStatus\":\"open\",\"toStatus\":\"author-responded\",\"actor\":{\"githubLogin\":\"g1-fixture-b-only\"},\"conflictOfInterest\":{\"status\":\"not-provided\"},\"revision\":1,\"createdAt\":\"2026-10-21T18:12:58.352Z\"},{\"id\":\"cmvifjxxb000d7k9xoda7qf2f\",\"fromStatus\":\"author-responded\",\"toStatus\":\"dismissed\",\"actor\":{\"githubLogin\":\"g1-fixture-editor\"},\"conflictOfInterest\":{\"status\":\"none-declared\"},\"revision\":2,\"createdAt\":\"2026-10-21T18:12:58.365Z\"}],\"response\":{\"id\":\"cmvifjxwu00077k9xum8v1wln\",\"body\":\"Synthetic responder attributed response retained after moderation.\",\"contentHash\":\"bc9404ddb9960ef4b61bcb802fca70df39249ab0e8c4fa7c84dba7c2830abafe\",\"contentStatus\":\"visible\",\"contentRevision\":0,\"responder\":{\"githubLogin\":\"g1-fixture-b-only\",\"displayName\":\"G1 Fixture B-only\"},\"createdAt\":\"2026-10-21T18:12:58.350Z\"},\"createdAt\":\"2026-10-21T18:12:58.328Z\"},{\"id\":\"cmvifjxxk000h7k9xjiqktafx\",\"containerType\":\"review-version\",\"reviewVersionId\":\"g1-version-2\",\"nodeEdgeProposalId\":null,\"subjectType\":\"claim\",\"subjectLabel\":\"Claim claim-1\",\"subjectHref\":\"/reviews/g1-fixture-review/versions/g1-version-2#claim-subject-g1-claim-1\",\"canonicalSubjectHash\":\"cf024573a3c583308e315938b81ab36714e94a89580f2c963d1d74bde5b1bd24\",\"filedContentHash\":\"549448d226ec4ae1051e5e3357b571f80173f8f0fb0098e679bc687439fcca41\",\"grounds\":\"methodology\",\"body\":\"\",\"contentStatus\":\"removed\",\"contentRevision\":1,\"status\":\"dismissed\",\"revision\":2,\"challenger\":{\"githubLogin\":\"g1-fixture-a-and-b\",\"displayName\":\"G1 Fixture A+B\"},\"transitions\":[{\"id\":\"cmvifjxxl000j7k9xcwv1cb80\",\"fromStatus\":null,\"toStatus\":\"open\",\"actor\":{\"githubLogin\":\"g1-fixture-a-and-b\"},\"conflictOfInterest\":{\"status\":\"not-provided\"},\"revision\":0,\"createdAt\":\"2026-10-21T18:12:58.377Z\"},{\"id\":\"cmvifjxxz000p7k9x722jrkkj\",\"fromStatus\":\"open\",\"toStatus\":\"author-responded\",\"actor\":{\"githubLogin\":\"g1-fixture-b-only\"},\"conflictOfInterest\":{\"status\":\"not-provided\"},\"revision\":1,\"createdAt\":\"2026-10-21T18:12:58.391Z\"},{\"id\":\"cmvifjxyd000t7k9xj8jlu1ef\",\"fromStatus\":\"author-responded\",\"toStatus\":\"dismissed\",\"actor\":{\"githubLogin\":\"g1-fixture-editor\"},\"conflictOfInterest\":{\"status\":\"none-declared\"},\"revision\":2,\"createdAt\":\"2026-10-21T18:12:58.403Z\"}],\"response\":{\"id\":\"cmvifjxxy000n7k9xesikbmb1\",\"body\":\"Synthetic editor attributed response retained after moderation.\",\"contentHash\":\"538d8d35ddbb14f8dfafc0262daceceedb7d015207cf29beafa563d9eb601ae5\",\"contentStatus\":\"visible\",\"contentRevision\":0,\"responder\":{\"githubLogin\":\"g1-fixture-b-only\",\"displayName\":\"G1 Fixture B-only\"},\"createdAt\":\"2026-10-21T18:12:58.390Z\"},\"createdAt\":\"2026-10-21T18:12:58.376Z\"},{\"id\":\"cmvifjxyl000x7k9xpjmty3vr\",\"containerType\":\"review-version\",\"reviewVersionId\":\"g1-version-2\",\"nodeEdgeProposalId\":null,\"subjectType\":\"claim\",\"subjectLabel\":\"Claim claim-1\",\"subjectHref\":\"/reviews/g1-fixture-review/versions/g1-version-2#claim-subject-g1-claim-1\",\"canonicalSubjectHash\":\"cf024573a3c583308e315938b81ab36714e94a89580f2c963d1d74bde5b1bd24\",\"filedContentHash\":\"1af606db6e238cfd9d4d1523e88bd6d1307b1a0456319fdb41a3858da9e61a29\",\"grounds\":\"methodology\",\"body\":\"\",\"contentStatus\":\"removed\",\"contentRevision\":1,\"status\":\"dismissed\",\"revision\":2,\"challenger\":{\"githubLogin\":\"g1-fixture-a-and-b\",\"displayName\":\"G1 Fixture A+B\"},\"transitions\":[{\"id\":\"cmvifjxym000z7k9x0pt3l0bt\",\"fromStatus\":null,\"toStatus\":\"open\",\"actor\":{\"githubLogin\":\"g1-fixture-a-and-b\"},\"conflictOfInterest\":{\"status\":\"not-provided\"},\"revision\":0,\"createdAt\":\"2026-10-21T18:12:58.415Z\"},{\"id\":\"cmvifjxyz00157k9xut27zcxt\",\"fromStatus\":\"open\",\"toStatus\":\"author-responded\",\"actor\":{\"githubLogin\":\"g1-fixture-b-only\"},\"conflictOfInterest\":{\"status\":\"not-provided\"},\"revision\":1,\"createdAt\":\"2026-10-21T18:12:58.428Z\"},{\"id\":\"cmvifjxzd00197k9xzqtekk0r\",\"fromStatus\":\"author-responded\",\"toStatus\":\"dismissed\",\"actor\":{\"githubLogin\":\"g1-fixture-editor\"},\"conflictOfInterest\":{\"status\":\"none-declared\"},\"revision\":2,\"createdAt\":\"2026-10-21T18:12:58.440Z\"}],\"response\":{\"id\":\"cmvifjxyy00137k9xzf3nz2io\",\"body\":\"Synthetic admin attributed response retained after moderation.\",\"contentHash\":\"1435d2e9132a12f4d6e3fd88cccc0a8ceb4d1d9c3c831bbebd9ccd8b04f713ea\",\"contentStatus\":\"visible\",\"contentRevision\":0,\"responder\":{\"githubLogin\":\"g1-fixture-b-only\",\"displayName\":\"G1 Fixture B-only\"},\"createdAt\":\"2026-10-21T18:12:58.427Z\"},\"createdAt\":\"2026-10-21T18:12:58.414Z\"}]}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "challenge-moderation-observer-A-only",
+        "method": "GET",
+        "path": "/api/reviews/g1-fixture-review/versions/g1-version-2/challenges",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 200,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"reviewSlug\":\"g1-fixture-review\",\"reviewVersionId\":\"g1-version-2\",\"challenges\":[{\"id\":\"g1-challenge-removed\",\"containerType\":\"review-version\",\"reviewVersionId\":\"g1-version-2\",\"nodeEdgeProposalId\":null,\"subjectType\":\"claim\",\"subjectLabel\":\"Claim claim-1\",\"subjectHref\":\"/reviews/g1-fixture-review/versions/g1-version-2#claim-subject-g1-claim-1\",\"canonicalSubjectHash\":\"cf024573a3c583308e315938b81ab36714e94a89580f2c963d1d74bde5b1bd24\",\"filedContentHash\":\"e914a9d4db0fdb9100f2ea1d774b70a1847c1097ded95179c76d73416b8ab72e\",\"grounds\":\"methodology\",\"body\":\"\",\"contentStatus\":\"removed\",\"contentRevision\":0,\"status\":\"dismissed\",\"revision\":2,\"challenger\":{\"githubLogin\":\"g1-fixture-a-only\",\"displayName\":\"G1 Fixture A-only\"},\"transitions\":[{\"id\":\"g1-challenge-removed-filed\",\"fromStatus\":null,\"toStatus\":\"open\",\"actor\":{\"githubLogin\":\"g1-fixture-a-only\"},\"conflictOfInterest\":{\"status\":\"not-provided\"},\"revision\":0,\"createdAt\":\"2026-03-10T00:00:00.000Z\"},{\"id\":\"g1-challenge-removed-responded\",\"fromStatus\":\"open\",\"toStatus\":\"author-responded\",\"actor\":{\"githubLogin\":\"g1-fixture-b-only\"},\"conflictOfInterest\":{\"status\":\"not-provided\"},\"revision\":1,\"createdAt\":\"2026-03-10T00:01:00.000Z\"},{\"id\":\"g1-challenge-removed-dismissed\",\"fromStatus\":\"author-responded\",\"toStatus\":\"dismissed\",\"actor\":{\"githubLogin\":\"g1-fixture-editor\"},\"conflictOfInterest\":{\"status\":\"not-provided\"},\"revision\":2,\"createdAt\":\"2026-03-10T00:02:00.000Z\"}],\"response\":{\"id\":\"g1-challenge-removed-response\",\"body\":\"\",\"contentHash\":\"b67b30c0bebfcfe3e31a5e744a4cca39660ccc580e53916286eaf6317d3cfee6\",\"contentStatus\":\"removed\",\"contentRevision\":0,\"responder\":{\"githubLogin\":\"g1-fixture-b-only\",\"displayName\":\"G1 Fixture B-only\"},\"createdAt\":\"2026-03-10T00:01:00.000Z\"},\"createdAt\":\"2026-03-10T00:00:00.000Z\"},{\"id\":\"g1-challenge-visible\",\"containerType\":\"review-version\",\"reviewVersionId\":\"g1-version-2\",\"nodeEdgeProposalId\":null,\"subjectType\":\"claim\",\"subjectLabel\":\"Claim claim-1\",\"subjectHref\":\"/reviews/g1-fixture-review/versions/g1-version-2#claim-subject-g1-claim-1\",\"canonicalSubjectHash\":\"cf024573a3c583308e315938b81ab36714e94a89580f2c963d1d74bde5b1bd24\",\"filedContentHash\":\"ed09756722c75b86048023e9f32bd4194cab1b038609ef48148bc82fc6ca1319\",\"grounds\":\"methodology\",\"body\":\"Synthetic dismissed challenge with recorded editorial outcome.\",\"contentStatus\":\"visible\",\"contentRevision\":0,\"status\":\"dismissed\",\"revision\":2,\"challenger\":{\"githubLogin\":\"g1-fixture-a-only\",\"displayName\":\"G1 Fixture A-only\"},\"transitions\":[{\"id\":\"g1-challenge-visible-filed\",\"fromStatus\":null,\"toStatus\":\"open\",\"actor\":{\"githubLogin\":\"g1-fixture-a-only\"},\"conflictOfInterest\":{\"status\":\"not-provided\"},\"revision\":0,\"createdAt\":\"2026-03-10T00:00:00.000Z\"},{\"id\":\"g1-challenge-visible-responded\",\"fromStatus\":\"open\",\"toStatus\":\"author-responded\",\"actor\":{\"githubLogin\":\"g1-fixture-b-only\"},\"conflictOfInterest\":{\"status\":\"not-provided\"},\"revision\":1,\"createdAt\":\"2026-03-10T00:01:00.000Z\"},{\"id\":\"g1-challenge-visible-dismissed\",\"fromStatus\":\"author-responded\",\"toStatus\":\"dismissed\",\"actor\":{\"githubLogin\":\"g1-fixture-editor\"},\"conflictOfInterest\":{\"status\":\"not-provided\"},\"revision\":2,\"createdAt\":\"2026-03-10T00:02:00.000Z\"}],\"response\":{\"id\":\"g1-challenge-visible-response\",\"body\":\"Synthetic contributor response before editorial dismissal.\",\"contentHash\":\"39bdc2240f013155bb27914c666b27173a78a4ca80932ce398c4264e4979e248\",\"contentStatus\":\"visible\",\"contentRevision\":0,\"responder\":{\"githubLogin\":\"g1-fixture-b-only\",\"displayName\":\"G1 Fixture B-only\"},\"createdAt\":\"2026-03-10T00:01:00.000Z\"},\"createdAt\":\"2026-03-10T00:00:00.000Z\"},{\"id\":\"cmvifjxw700017k9xvy7n1a8q\",\"containerType\":\"review-version\",\"reviewVersionId\":\"g1-version-2\",\"nodeEdgeProposalId\":null,\"subjectType\":\"claim\",\"subjectLabel\":\"Claim claim-1\",\"subjectHref\":\"/reviews/g1-fixture-review/versions/g1-version-2#claim-subject-g1-claim-1\",\"canonicalSubjectHash\":\"cf024573a3c583308e315938b81ab36714e94a89580f2c963d1d74bde5b1bd24\",\"filedContentHash\":\"c98c6665994937063d3c8ad23654b32866c441dd2c05d340aa8f79963aa071d9\",\"grounds\":\"methodology\",\"body\":\"\",\"contentStatus\":\"removed\",\"contentRevision\":1,\"status\":\"dismissed\",\"revision\":2,\"challenger\":{\"githubLogin\":\"g1-fixture-a-and-b\",\"displayName\":\"G1 Fixture A+B\"},\"transitions\":[{\"id\":\"cmvifjxwa00037k9x2suizd1o\",\"fromStatus\":null,\"toStatus\":\"open\",\"actor\":{\"githubLogin\":\"g1-fixture-a-and-b\"},\"conflictOfInterest\":{\"status\":\"not-provided\"},\"revision\":0,\"createdAt\":\"2026-10-21T18:12:58.330Z\"},{\"id\":\"cmvifjxwv00097k9xmr7xxvsz\",\"fromStatus\":\"open\",\"toStatus\":\"author-responded\",\"actor\":{\"githubLogin\":\"g1-fixture-b-only\"},\"conflictOfInterest\":{\"status\":\"not-provided\"},\"revision\":1,\"createdAt\":\"2026-10-21T18:12:58.352Z\"},{\"id\":\"cmvifjxxb000d7k9xoda7qf2f\",\"fromStatus\":\"author-responded\",\"toStatus\":\"dismissed\",\"actor\":{\"githubLogin\":\"g1-fixture-editor\"},\"conflictOfInterest\":{\"status\":\"none-declared\"},\"revision\":2,\"createdAt\":\"2026-10-21T18:12:58.365Z\"}],\"response\":{\"id\":\"cmvifjxwu00077k9xum8v1wln\",\"body\":\"Synthetic responder attributed response retained after moderation.\",\"contentHash\":\"bc9404ddb9960ef4b61bcb802fca70df39249ab0e8c4fa7c84dba7c2830abafe\",\"contentStatus\":\"visible\",\"contentRevision\":0,\"responder\":{\"githubLogin\":\"g1-fixture-b-only\",\"displayName\":\"G1 Fixture B-only\"},\"createdAt\":\"2026-10-21T18:12:58.350Z\"},\"createdAt\":\"2026-10-21T18:12:58.328Z\"},{\"id\":\"cmvifjxxk000h7k9xjiqktafx\",\"containerType\":\"review-version\",\"reviewVersionId\":\"g1-version-2\",\"nodeEdgeProposalId\":null,\"subjectType\":\"claim\",\"subjectLabel\":\"Claim claim-1\",\"subjectHref\":\"/reviews/g1-fixture-review/versions/g1-version-2#claim-subject-g1-claim-1\",\"canonicalSubjectHash\":\"cf024573a3c583308e315938b81ab36714e94a89580f2c963d1d74bde5b1bd24\",\"filedContentHash\":\"549448d226ec4ae1051e5e3357b571f80173f8f0fb0098e679bc687439fcca41\",\"grounds\":\"methodology\",\"body\":\"\",\"contentStatus\":\"removed\",\"contentRevision\":1,\"status\":\"dismissed\",\"revision\":2,\"challenger\":{\"githubLogin\":\"g1-fixture-a-and-b\",\"displayName\":\"G1 Fixture A+B\"},\"transitions\":[{\"id\":\"cmvifjxxl000j7k9xcwv1cb80\",\"fromStatus\":null,\"toStatus\":\"open\",\"actor\":{\"githubLogin\":\"g1-fixture-a-and-b\"},\"conflictOfInterest\":{\"status\":\"not-provided\"},\"revision\":0,\"createdAt\":\"2026-10-21T18:12:58.377Z\"},{\"id\":\"cmvifjxxz000p7k9x722jrkkj\",\"fromStatus\":\"open\",\"toStatus\":\"author-responded\",\"actor\":{\"githubLogin\":\"g1-fixture-b-only\"},\"conflictOfInterest\":{\"status\":\"not-provided\"},\"revision\":1,\"createdAt\":\"2026-10-21T18:12:58.391Z\"},{\"id\":\"cmvifjxyd000t7k9xj8jlu1ef\",\"fromStatus\":\"author-responded\",\"toStatus\":\"dismissed\",\"actor\":{\"githubLogin\":\"g1-fixture-editor\"},\"conflictOfInterest\":{\"status\":\"none-declared\"},\"revision\":2,\"createdAt\":\"2026-10-21T18:12:58.403Z\"}],\"response\":{\"id\":\"cmvifjxxy000n7k9xesikbmb1\",\"body\":\"Synthetic editor attributed response retained after moderation.\",\"contentHash\":\"538d8d35ddbb14f8dfafc0262daceceedb7d015207cf29beafa563d9eb601ae5\",\"contentStatus\":\"visible\",\"contentRevision\":0,\"responder\":{\"githubLogin\":\"g1-fixture-b-only\",\"displayName\":\"G1 Fixture B-only\"},\"createdAt\":\"2026-10-21T18:12:58.390Z\"},\"createdAt\":\"2026-10-21T18:12:58.376Z\"},{\"id\":\"cmvifjxyl000x7k9xpjmty3vr\",\"containerType\":\"review-version\",\"reviewVersionId\":\"g1-version-2\",\"nodeEdgeProposalId\":null,\"subjectType\":\"claim\",\"subjectLabel\":\"Claim claim-1\",\"subjectHref\":\"/reviews/g1-fixture-review/versions/g1-version-2#claim-subject-g1-claim-1\",\"canonicalSubjectHash\":\"cf024573a3c583308e315938b81ab36714e94a89580f2c963d1d74bde5b1bd24\",\"filedContentHash\":\"1af606db6e238cfd9d4d1523e88bd6d1307b1a0456319fdb41a3858da9e61a29\",\"grounds\":\"methodology\",\"body\":\"\",\"contentStatus\":\"removed\",\"contentRevision\":1,\"status\":\"dismissed\",\"revision\":2,\"challenger\":{\"githubLogin\":\"g1-fixture-a-and-b\",\"displayName\":\"G1 Fixture A+B\"},\"transitions\":[{\"id\":\"cmvifjxym000z7k9x0pt3l0bt\",\"fromStatus\":null,\"toStatus\":\"open\",\"actor\":{\"githubLogin\":\"g1-fixture-a-and-b\"},\"conflictOfInterest\":{\"status\":\"not-provided\"},\"revision\":0,\"createdAt\":\"2026-10-21T18:12:58.415Z\"},{\"id\":\"cmvifjxyz00157k9xut27zcxt\",\"fromStatus\":\"open\",\"toStatus\":\"author-responded\",\"actor\":{\"githubLogin\":\"g1-fixture-b-only\"},\"conflictOfInterest\":{\"status\":\"not-provided\"},\"revision\":1,\"createdAt\":\"2026-10-21T18:12:58.428Z\"},{\"id\":\"cmvifjxzd00197k9xzqtekk0r\",\"fromStatus\":\"author-responded\",\"toStatus\":\"dismissed\",\"actor\":{\"githubLogin\":\"g1-fixture-editor\"},\"conflictOfInterest\":{\"status\":\"none-declared\"},\"revision\":2,\"createdAt\":\"2026-10-21T18:12:58.440Z\"}],\"response\":{\"id\":\"cmvifjxyy00137k9xzf3nz2io\",\"body\":\"Synthetic admin attributed response retained after moderation.\",\"contentHash\":\"1435d2e9132a12f4d6e3fd88cccc0a8ceb4d1d9c3c831bbebd9ccd8b04f713ea\",\"contentStatus\":\"visible\",\"contentRevision\":0,\"responder\":{\"githubLogin\":\"g1-fixture-b-only\",\"displayName\":\"G1 Fixture B-only\"},\"createdAt\":\"2026-10-21T18:12:58.427Z\"},\"createdAt\":\"2026-10-21T18:12:58.414Z\"}]}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "challenge-moderation-observer-B-only",
+        "method": "GET",
+        "path": "/api/reviews/g1-fixture-review/versions/g1-version-2/challenges",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 200,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"reviewSlug\":\"g1-fixture-review\",\"reviewVersionId\":\"g1-version-2\",\"challenges\":[{\"id\":\"g1-challenge-removed\",\"containerType\":\"review-version\",\"reviewVersionId\":\"g1-version-2\",\"nodeEdgeProposalId\":null,\"subjectType\":\"claim\",\"subjectLabel\":\"Claim claim-1\",\"subjectHref\":\"/reviews/g1-fixture-review/versions/g1-version-2#claim-subject-g1-claim-1\",\"canonicalSubjectHash\":\"cf024573a3c583308e315938b81ab36714e94a89580f2c963d1d74bde5b1bd24\",\"filedContentHash\":\"e914a9d4db0fdb9100f2ea1d774b70a1847c1097ded95179c76d73416b8ab72e\",\"grounds\":\"methodology\",\"body\":\"\",\"contentStatus\":\"removed\",\"contentRevision\":0,\"status\":\"dismissed\",\"revision\":2,\"challenger\":{\"githubLogin\":\"g1-fixture-a-only\",\"displayName\":\"G1 Fixture A-only\"},\"transitions\":[{\"id\":\"g1-challenge-removed-filed\",\"fromStatus\":null,\"toStatus\":\"open\",\"actor\":{\"githubLogin\":\"g1-fixture-a-only\"},\"conflictOfInterest\":{\"status\":\"not-provided\"},\"revision\":0,\"createdAt\":\"2026-03-10T00:00:00.000Z\"},{\"id\":\"g1-challenge-removed-responded\",\"fromStatus\":\"open\",\"toStatus\":\"author-responded\",\"actor\":{\"githubLogin\":\"g1-fixture-b-only\"},\"conflictOfInterest\":{\"status\":\"not-provided\"},\"revision\":1,\"createdAt\":\"2026-03-10T00:01:00.000Z\"},{\"id\":\"g1-challenge-removed-dismissed\",\"fromStatus\":\"author-responded\",\"toStatus\":\"dismissed\",\"actor\":{\"githubLogin\":\"g1-fixture-editor\"},\"conflictOfInterest\":{\"status\":\"not-provided\"},\"revision\":2,\"createdAt\":\"2026-03-10T00:02:00.000Z\"}],\"response\":{\"id\":\"g1-challenge-removed-response\",\"body\":\"\",\"contentHash\":\"b67b30c0bebfcfe3e31a5e744a4cca39660ccc580e53916286eaf6317d3cfee6\",\"contentStatus\":\"removed\",\"contentRevision\":0,\"responder\":{\"githubLogin\":\"g1-fixture-b-only\",\"displayName\":\"G1 Fixture B-only\"},\"createdAt\":\"2026-03-10T00:01:00.000Z\"},\"createdAt\":\"2026-03-10T00:00:00.000Z\"},{\"id\":\"g1-challenge-visible\",\"containerType\":\"review-version\",\"reviewVersionId\":\"g1-version-2\",\"nodeEdgeProposalId\":null,\"subjectType\":\"claim\",\"subjectLabel\":\"Claim claim-1\",\"subjectHref\":\"/reviews/g1-fixture-review/versions/g1-version-2#claim-subject-g1-claim-1\",\"canonicalSubjectHash\":\"cf024573a3c583308e315938b81ab36714e94a89580f2c963d1d74bde5b1bd24\",\"filedContentHash\":\"ed09756722c75b86048023e9f32bd4194cab1b038609ef48148bc82fc6ca1319\",\"grounds\":\"methodology\",\"body\":\"Synthetic dismissed challenge with recorded editorial outcome.\",\"contentStatus\":\"visible\",\"contentRevision\":0,\"status\":\"dismissed\",\"revision\":2,\"challenger\":{\"githubLogin\":\"g1-fixture-a-only\",\"displayName\":\"G1 Fixture A-only\"},\"transitions\":[{\"id\":\"g1-challenge-visible-filed\",\"fromStatus\":null,\"toStatus\":\"open\",\"actor\":{\"githubLogin\":\"g1-fixture-a-only\"},\"conflictOfInterest\":{\"status\":\"not-provided\"},\"revision\":0,\"createdAt\":\"2026-03-10T00:00:00.000Z\"},{\"id\":\"g1-challenge-visible-responded\",\"fromStatus\":\"open\",\"toStatus\":\"author-responded\",\"actor\":{\"githubLogin\":\"g1-fixture-b-only\"},\"conflictOfInterest\":{\"status\":\"not-provided\"},\"revision\":1,\"createdAt\":\"2026-03-10T00:01:00.000Z\"},{\"id\":\"g1-challenge-visible-dismissed\",\"fromStatus\":\"author-responded\",\"toStatus\":\"dismissed\",\"actor\":{\"githubLogin\":\"g1-fixture-editor\"},\"conflictOfInterest\":{\"status\":\"not-provided\"},\"revision\":2,\"createdAt\":\"2026-03-10T00:02:00.000Z\"}],\"response\":{\"id\":\"g1-challenge-visible-response\",\"body\":\"Synthetic contributor response before editorial dismissal.\",\"contentHash\":\"39bdc2240f013155bb27914c666b27173a78a4ca80932ce398c4264e4979e248\",\"contentStatus\":\"visible\",\"contentRevision\":0,\"responder\":{\"githubLogin\":\"g1-fixture-b-only\",\"displayName\":\"G1 Fixture B-only\"},\"createdAt\":\"2026-03-10T00:01:00.000Z\"},\"createdAt\":\"2026-03-10T00:00:00.000Z\"},{\"id\":\"cmvifjxw700017k9xvy7n1a8q\",\"containerType\":\"review-version\",\"reviewVersionId\":\"g1-version-2\",\"nodeEdgeProposalId\":null,\"subjectType\":\"claim\",\"subjectLabel\":\"Claim claim-1\",\"subjectHref\":\"/reviews/g1-fixture-review/versions/g1-version-2#claim-subject-g1-claim-1\",\"canonicalSubjectHash\":\"cf024573a3c583308e315938b81ab36714e94a89580f2c963d1d74bde5b1bd24\",\"filedContentHash\":\"c98c6665994937063d3c8ad23654b32866c441dd2c05d340aa8f79963aa071d9\",\"grounds\":\"methodology\",\"body\":\"\",\"contentStatus\":\"removed\",\"contentRevision\":1,\"status\":\"dismissed\",\"revision\":2,\"challenger\":{\"githubLogin\":\"g1-fixture-a-and-b\",\"displayName\":\"G1 Fixture A+B\"},\"transitions\":[{\"id\":\"cmvifjxwa00037k9x2suizd1o\",\"fromStatus\":null,\"toStatus\":\"open\",\"actor\":{\"githubLogin\":\"g1-fixture-a-and-b\"},\"conflictOfInterest\":{\"status\":\"not-provided\"},\"revision\":0,\"createdAt\":\"2026-10-21T18:12:58.330Z\"},{\"id\":\"cmvifjxwv00097k9xmr7xxvsz\",\"fromStatus\":\"open\",\"toStatus\":\"author-responded\",\"actor\":{\"githubLogin\":\"g1-fixture-b-only\"},\"conflictOfInterest\":{\"status\":\"not-provided\"},\"revision\":1,\"createdAt\":\"2026-10-21T18:12:58.352Z\"},{\"id\":\"cmvifjxxb000d7k9xoda7qf2f\",\"fromStatus\":\"author-responded\",\"toStatus\":\"dismissed\",\"actor\":{\"githubLogin\":\"g1-fixture-editor\"},\"conflictOfInterest\":{\"status\":\"none-declared\"},\"revision\":2,\"createdAt\":\"2026-10-21T18:12:58.365Z\"}],\"response\":{\"id\":\"cmvifjxwu00077k9xum8v1wln\",\"body\":\"Synthetic responder attributed response retained after moderation.\",\"contentHash\":\"bc9404ddb9960ef4b61bcb802fca70df39249ab0e8c4fa7c84dba7c2830abafe\",\"contentStatus\":\"visible\",\"contentRevision\":0,\"responder\":{\"githubLogin\":\"g1-fixture-b-only\",\"displayName\":\"G1 Fixture B-only\"},\"createdAt\":\"2026-10-21T18:12:58.350Z\"},\"createdAt\":\"2026-10-21T18:12:58.328Z\"},{\"id\":\"cmvifjxxk000h7k9xjiqktafx\",\"containerType\":\"review-version\",\"reviewVersionId\":\"g1-version-2\",\"nodeEdgeProposalId\":null,\"subjectType\":\"claim\",\"subjectLabel\":\"Claim claim-1\",\"subjectHref\":\"/reviews/g1-fixture-review/versions/g1-version-2#claim-subject-g1-claim-1\",\"canonicalSubjectHash\":\"cf024573a3c583308e315938b81ab36714e94a89580f2c963d1d74bde5b1bd24\",\"filedContentHash\":\"549448d226ec4ae1051e5e3357b571f80173f8f0fb0098e679bc687439fcca41\",\"grounds\":\"methodology\",\"body\":\"\",\"contentStatus\":\"removed\",\"contentRevision\":1,\"status\":\"dismissed\",\"revision\":2,\"challenger\":{\"githubLogin\":\"g1-fixture-a-and-b\",\"displayName\":\"G1 Fixture A+B\"},\"transitions\":[{\"id\":\"cmvifjxxl000j7k9xcwv1cb80\",\"fromStatus\":null,\"toStatus\":\"open\",\"actor\":{\"githubLogin\":\"g1-fixture-a-and-b\"},\"conflictOfInterest\":{\"status\":\"not-provided\"},\"revision\":0,\"createdAt\":\"2026-10-21T18:12:58.377Z\"},{\"id\":\"cmvifjxxz000p7k9x722jrkkj\",\"fromStatus\":\"open\",\"toStatus\":\"author-responded\",\"actor\":{\"githubLogin\":\"g1-fixture-b-only\"},\"conflictOfInterest\":{\"status\":\"not-provided\"},\"revision\":1,\"createdAt\":\"2026-10-21T18:12:58.391Z\"},{\"id\":\"cmvifjxyd000t7k9xj8jlu1ef\",\"fromStatus\":\"author-responded\",\"toStatus\":\"dismissed\",\"actor\":{\"githubLogin\":\"g1-fixture-editor\"},\"conflictOfInterest\":{\"status\":\"none-declared\"},\"revision\":2,\"createdAt\":\"2026-10-21T18:12:58.403Z\"}],\"response\":{\"id\":\"cmvifjxxy000n7k9xesikbmb1\",\"body\":\"Synthetic editor attributed response retained after moderation.\",\"contentHash\":\"538d8d35ddbb14f8dfafc0262daceceedb7d015207cf29beafa563d9eb601ae5\",\"contentStatus\":\"visible\",\"contentRevision\":0,\"responder\":{\"githubLogin\":\"g1-fixture-b-only\",\"displayName\":\"G1 Fixture B-only\"},\"createdAt\":\"2026-10-21T18:12:58.390Z\"},\"createdAt\":\"2026-10-21T18:12:58.376Z\"},{\"id\":\"cmvifjxyl000x7k9xpjmty3vr\",\"containerType\":\"review-version\",\"reviewVersionId\":\"g1-version-2\",\"nodeEdgeProposalId\":null,\"subjectType\":\"claim\",\"subjectLabel\":\"Claim claim-1\",\"subjectHref\":\"/reviews/g1-fixture-review/versions/g1-version-2#claim-subject-g1-claim-1\",\"canonicalSubjectHash\":\"cf024573a3c583308e315938b81ab36714e94a89580f2c963d1d74bde5b1bd24\",\"filedContentHash\":\"1af606db6e238cfd9d4d1523e88bd6d1307b1a0456319fdb41a3858da9e61a29\",\"grounds\":\"methodology\",\"body\":\"\",\"contentStatus\":\"removed\",\"contentRevision\":1,\"status\":\"dismissed\",\"revision\":2,\"challenger\":{\"githubLogin\":\"g1-fixture-a-and-b\",\"displayName\":\"G1 Fixture A+B\"},\"transitions\":[{\"id\":\"cmvifjxym000z7k9x0pt3l0bt\",\"fromStatus\":null,\"toStatus\":\"open\",\"actor\":{\"githubLogin\":\"g1-fixture-a-and-b\"},\"conflictOfInterest\":{\"status\":\"not-provided\"},\"revision\":0,\"createdAt\":\"2026-10-21T18:12:58.415Z\"},{\"id\":\"cmvifjxyz00157k9xut27zcxt\",\"fromStatus\":\"open\",\"toStatus\":\"author-responded\",\"actor\":{\"githubLogin\":\"g1-fixture-b-only\"},\"conflictOfInterest\":{\"status\":\"not-provided\"},\"revision\":1,\"createdAt\":\"2026-10-21T18:12:58.428Z\"},{\"id\":\"cmvifjxzd00197k9xzqtekk0r\",\"fromStatus\":\"author-responded\",\"toStatus\":\"dismissed\",\"actor\":{\"githubLogin\":\"g1-fixture-editor\"},\"conflictOfInterest\":{\"status\":\"none-declared\"},\"revision\":2,\"createdAt\":\"2026-10-21T18:12:58.440Z\"}],\"response\":{\"id\":\"cmvifjxyy00137k9xzf3nz2io\",\"body\":\"Synthetic admin attributed response retained after moderation.\",\"contentHash\":\"1435d2e9132a12f4d6e3fd88cccc0a8ceb4d1d9c3c831bbebd9ccd8b04f713ea\",\"contentStatus\":\"visible\",\"contentRevision\":0,\"responder\":{\"githubLogin\":\"g1-fixture-b-only\",\"displayName\":\"G1 Fixture B-only\"},\"createdAt\":\"2026-10-21T18:12:58.427Z\"},\"createdAt\":\"2026-10-21T18:12:58.414Z\"}]}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "challenge-moderation-observer-A+B",
+        "method": "GET",
+        "path": "/api/reviews/g1-fixture-review/versions/g1-version-2/challenges",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 200,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"reviewSlug\":\"g1-fixture-review\",\"reviewVersionId\":\"g1-version-2\",\"challenges\":[{\"id\":\"g1-challenge-removed\",\"containerType\":\"review-version\",\"reviewVersionId\":\"g1-version-2\",\"nodeEdgeProposalId\":null,\"subjectType\":\"claim\",\"subjectLabel\":\"Claim claim-1\",\"subjectHref\":\"/reviews/g1-fixture-review/versions/g1-version-2#claim-subject-g1-claim-1\",\"canonicalSubjectHash\":\"cf024573a3c583308e315938b81ab36714e94a89580f2c963d1d74bde5b1bd24\",\"filedContentHash\":\"e914a9d4db0fdb9100f2ea1d774b70a1847c1097ded95179c76d73416b8ab72e\",\"grounds\":\"methodology\",\"body\":\"\",\"contentStatus\":\"removed\",\"contentRevision\":0,\"status\":\"dismissed\",\"revision\":2,\"challenger\":{\"githubLogin\":\"g1-fixture-a-only\",\"displayName\":\"G1 Fixture A-only\"},\"transitions\":[{\"id\":\"g1-challenge-removed-filed\",\"fromStatus\":null,\"toStatus\":\"open\",\"actor\":{\"githubLogin\":\"g1-fixture-a-only\"},\"conflictOfInterest\":{\"status\":\"not-provided\"},\"revision\":0,\"createdAt\":\"2026-03-10T00:00:00.000Z\"},{\"id\":\"g1-challenge-removed-responded\",\"fromStatus\":\"open\",\"toStatus\":\"author-responded\",\"actor\":{\"githubLogin\":\"g1-fixture-b-only\"},\"conflictOfInterest\":{\"status\":\"not-provided\"},\"revision\":1,\"createdAt\":\"2026-03-10T00:01:00.000Z\"},{\"id\":\"g1-challenge-removed-dismissed\",\"fromStatus\":\"author-responded\",\"toStatus\":\"dismissed\",\"actor\":{\"githubLogin\":\"g1-fixture-editor\"},\"conflictOfInterest\":{\"status\":\"not-provided\"},\"revision\":2,\"createdAt\":\"2026-03-10T00:02:00.000Z\"}],\"response\":{\"id\":\"g1-challenge-removed-response\",\"body\":\"\",\"contentHash\":\"b67b30c0bebfcfe3e31a5e744a4cca39660ccc580e53916286eaf6317d3cfee6\",\"contentStatus\":\"removed\",\"contentRevision\":0,\"responder\":{\"githubLogin\":\"g1-fixture-b-only\",\"displayName\":\"G1 Fixture B-only\"},\"createdAt\":\"2026-03-10T00:01:00.000Z\"},\"createdAt\":\"2026-03-10T00:00:00.000Z\"},{\"id\":\"g1-challenge-visible\",\"containerType\":\"review-version\",\"reviewVersionId\":\"g1-version-2\",\"nodeEdgeProposalId\":null,\"subjectType\":\"claim\",\"subjectLabel\":\"Claim claim-1\",\"subjectHref\":\"/reviews/g1-fixture-review/versions/g1-version-2#claim-subject-g1-claim-1\",\"canonicalSubjectHash\":\"cf024573a3c583308e315938b81ab36714e94a89580f2c963d1d74bde5b1bd24\",\"filedContentHash\":\"ed09756722c75b86048023e9f32bd4194cab1b038609ef48148bc82fc6ca1319\",\"grounds\":\"methodology\",\"body\":\"Synthetic dismissed challenge with recorded editorial outcome.\",\"contentStatus\":\"visible\",\"contentRevision\":0,\"status\":\"dismissed\",\"revision\":2,\"challenger\":{\"githubLogin\":\"g1-fixture-a-only\",\"displayName\":\"G1 Fixture A-only\"},\"transitions\":[{\"id\":\"g1-challenge-visible-filed\",\"fromStatus\":null,\"toStatus\":\"open\",\"actor\":{\"githubLogin\":\"g1-fixture-a-only\"},\"conflictOfInterest\":{\"status\":\"not-provided\"},\"revision\":0,\"createdAt\":\"2026-03-10T00:00:00.000Z\"},{\"id\":\"g1-challenge-visible-responded\",\"fromStatus\":\"open\",\"toStatus\":\"author-responded\",\"actor\":{\"githubLogin\":\"g1-fixture-b-only\"},\"conflictOfInterest\":{\"status\":\"not-provided\"},\"revision\":1,\"createdAt\":\"2026-03-10T00:01:00.000Z\"},{\"id\":\"g1-challenge-visible-dismissed\",\"fromStatus\":\"author-responded\",\"toStatus\":\"dismissed\",\"actor\":{\"githubLogin\":\"g1-fixture-editor\"},\"conflictOfInterest\":{\"status\":\"not-provided\"},\"revision\":2,\"createdAt\":\"2026-03-10T00:02:00.000Z\"}],\"response\":{\"id\":\"g1-challenge-visible-response\",\"body\":\"Synthetic contributor response before editorial dismissal.\",\"contentHash\":\"39bdc2240f013155bb27914c666b27173a78a4ca80932ce398c4264e4979e248\",\"contentStatus\":\"visible\",\"contentRevision\":0,\"responder\":{\"githubLogin\":\"g1-fixture-b-only\",\"displayName\":\"G1 Fixture B-only\"},\"createdAt\":\"2026-03-10T00:01:00.000Z\"},\"createdAt\":\"2026-03-10T00:00:00.000Z\"},{\"id\":\"cmvifjxw700017k9xvy7n1a8q\",\"containerType\":\"review-version\",\"reviewVersionId\":\"g1-version-2\",\"nodeEdgeProposalId\":null,\"subjectType\":\"claim\",\"subjectLabel\":\"Claim claim-1\",\"subjectHref\":\"/reviews/g1-fixture-review/versions/g1-version-2#claim-subject-g1-claim-1\",\"canonicalSubjectHash\":\"cf024573a3c583308e315938b81ab36714e94a89580f2c963d1d74bde5b1bd24\",\"filedContentHash\":\"c98c6665994937063d3c8ad23654b32866c441dd2c05d340aa8f79963aa071d9\",\"grounds\":\"methodology\",\"body\":\"\",\"contentStatus\":\"removed\",\"contentRevision\":1,\"status\":\"dismissed\",\"revision\":2,\"challenger\":{\"githubLogin\":\"g1-fixture-a-and-b\",\"displayName\":\"G1 Fixture A+B\"},\"transitions\":[{\"id\":\"cmvifjxwa00037k9x2suizd1o\",\"fromStatus\":null,\"toStatus\":\"open\",\"actor\":{\"githubLogin\":\"g1-fixture-a-and-b\"},\"conflictOfInterest\":{\"status\":\"not-provided\"},\"revision\":0,\"createdAt\":\"2026-10-21T18:12:58.330Z\"},{\"id\":\"cmvifjxwv00097k9xmr7xxvsz\",\"fromStatus\":\"open\",\"toStatus\":\"author-responded\",\"actor\":{\"githubLogin\":\"g1-fixture-b-only\"},\"conflictOfInterest\":{\"status\":\"not-provided\"},\"revision\":1,\"createdAt\":\"2026-10-21T18:12:58.352Z\"},{\"id\":\"cmvifjxxb000d7k9xoda7qf2f\",\"fromStatus\":\"author-responded\",\"toStatus\":\"dismissed\",\"actor\":{\"githubLogin\":\"g1-fixture-editor\"},\"conflictOfInterest\":{\"status\":\"none-declared\"},\"revision\":2,\"createdAt\":\"2026-10-21T18:12:58.365Z\"}],\"response\":{\"id\":\"cmvifjxwu00077k9xum8v1wln\",\"body\":\"Synthetic responder attributed response retained after moderation.\",\"contentHash\":\"bc9404ddb9960ef4b61bcb802fca70df39249ab0e8c4fa7c84dba7c2830abafe\",\"contentStatus\":\"visible\",\"contentRevision\":0,\"responder\":{\"githubLogin\":\"g1-fixture-b-only\",\"displayName\":\"G1 Fixture B-only\"},\"createdAt\":\"2026-10-21T18:12:58.350Z\"},\"createdAt\":\"2026-10-21T18:12:58.328Z\"},{\"id\":\"cmvifjxxk000h7k9xjiqktafx\",\"containerType\":\"review-version\",\"reviewVersionId\":\"g1-version-2\",\"nodeEdgeProposalId\":null,\"subjectType\":\"claim\",\"subjectLabel\":\"Claim claim-1\",\"subjectHref\":\"/reviews/g1-fixture-review/versions/g1-version-2#claim-subject-g1-claim-1\",\"canonicalSubjectHash\":\"cf024573a3c583308e315938b81ab36714e94a89580f2c963d1d74bde5b1bd24\",\"filedContentHash\":\"549448d226ec4ae1051e5e3357b571f80173f8f0fb0098e679bc687439fcca41\",\"grounds\":\"methodology\",\"body\":\"\",\"contentStatus\":\"removed\",\"contentRevision\":1,\"status\":\"dismissed\",\"revision\":2,\"challenger\":{\"githubLogin\":\"g1-fixture-a-and-b\",\"displayName\":\"G1 Fixture A+B\"},\"transitions\":[{\"id\":\"cmvifjxxl000j7k9xcwv1cb80\",\"fromStatus\":null,\"toStatus\":\"open\",\"actor\":{\"githubLogin\":\"g1-fixture-a-and-b\"},\"conflictOfInterest\":{\"status\":\"not-provided\"},\"revision\":0,\"createdAt\":\"2026-10-21T18:12:58.377Z\"},{\"id\":\"cmvifjxxz000p7k9x722jrkkj\",\"fromStatus\":\"open\",\"toStatus\":\"author-responded\",\"actor\":{\"githubLogin\":\"g1-fixture-b-only\"},\"conflictOfInterest\":{\"status\":\"not-provided\"},\"revision\":1,\"createdAt\":\"2026-10-21T18:12:58.391Z\"},{\"id\":\"cmvifjxyd000t7k9xj8jlu1ef\",\"fromStatus\":\"author-responded\",\"toStatus\":\"dismissed\",\"actor\":{\"githubLogin\":\"g1-fixture-editor\"},\"conflictOfInterest\":{\"status\":\"none-declared\"},\"revision\":2,\"createdAt\":\"2026-10-21T18:12:58.403Z\"}],\"response\":{\"id\":\"cmvifjxxy000n7k9xesikbmb1\",\"body\":\"Synthetic editor attributed response retained after moderation.\",\"contentHash\":\"538d8d35ddbb14f8dfafc0262daceceedb7d015207cf29beafa563d9eb601ae5\",\"contentStatus\":\"visible\",\"contentRevision\":0,\"responder\":{\"githubLogin\":\"g1-fixture-b-only\",\"displayName\":\"G1 Fixture B-only\"},\"createdAt\":\"2026-10-21T18:12:58.390Z\"},\"createdAt\":\"2026-10-21T18:12:58.376Z\"},{\"id\":\"cmvifjxyl000x7k9xpjmty3vr\",\"containerType\":\"review-version\",\"reviewVersionId\":\"g1-version-2\",\"nodeEdgeProposalId\":null,\"subjectType\":\"claim\",\"subjectLabel\":\"Claim claim-1\",\"subjectHref\":\"/reviews/g1-fixture-review/versions/g1-version-2#claim-subject-g1-claim-1\",\"canonicalSubjectHash\":\"cf024573a3c583308e315938b81ab36714e94a89580f2c963d1d74bde5b1bd24\",\"filedContentHash\":\"1af606db6e238cfd9d4d1523e88bd6d1307b1a0456319fdb41a3858da9e61a29\",\"grounds\":\"methodology\",\"body\":\"\",\"contentStatus\":\"removed\",\"contentRevision\":1,\"status\":\"dismissed\",\"revision\":2,\"challenger\":{\"githubLogin\":\"g1-fixture-a-and-b\",\"displayName\":\"G1 Fixture A+B\"},\"transitions\":[{\"id\":\"cmvifjxym000z7k9x0pt3l0bt\",\"fromStatus\":null,\"toStatus\":\"open\",\"actor\":{\"githubLogin\":\"g1-fixture-a-and-b\"},\"conflictOfInterest\":{\"status\":\"not-provided\"},\"revision\":0,\"createdAt\":\"2026-10-21T18:12:58.415Z\"},{\"id\":\"cmvifjxyz00157k9xut27zcxt\",\"fromStatus\":\"open\",\"toStatus\":\"author-responded\",\"actor\":{\"githubLogin\":\"g1-fixture-b-only\"},\"conflictOfInterest\":{\"status\":\"not-provided\"},\"revision\":1,\"createdAt\":\"2026-10-21T18:12:58.428Z\"},{\"id\":\"cmvifjxzd00197k9xzqtekk0r\",\"fromStatus\":\"author-responded\",\"toStatus\":\"dismissed\",\"actor\":{\"githubLogin\":\"g1-fixture-editor\"},\"conflictOfInterest\":{\"status\":\"none-declared\"},\"revision\":2,\"createdAt\":\"2026-10-21T18:12:58.440Z\"}],\"response\":{\"id\":\"cmvifjxyy00137k9xzf3nz2io\",\"body\":\"Synthetic admin attributed response retained after moderation.\",\"contentHash\":\"1435d2e9132a12f4d6e3fd88cccc0a8ceb4d1d9c3c831bbebd9ccd8b04f713ea\",\"contentStatus\":\"visible\",\"contentRevision\":0,\"responder\":{\"githubLogin\":\"g1-fixture-b-only\",\"displayName\":\"G1 Fixture B-only\"},\"createdAt\":\"2026-10-21T18:12:58.427Z\"},\"createdAt\":\"2026-10-21T18:12:58.414Z\"}]}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "challenge-moderation-observer-EDITOR",
+        "method": "GET",
+        "path": "/api/reviews/g1-fixture-review/versions/g1-version-2/challenges",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 200,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"reviewSlug\":\"g1-fixture-review\",\"reviewVersionId\":\"g1-version-2\",\"challenges\":[{\"id\":\"g1-challenge-removed\",\"containerType\":\"review-version\",\"reviewVersionId\":\"g1-version-2\",\"nodeEdgeProposalId\":null,\"subjectType\":\"claim\",\"subjectLabel\":\"Claim claim-1\",\"subjectHref\":\"/reviews/g1-fixture-review/versions/g1-version-2#claim-subject-g1-claim-1\",\"canonicalSubjectHash\":\"cf024573a3c583308e315938b81ab36714e94a89580f2c963d1d74bde5b1bd24\",\"filedContentHash\":\"e914a9d4db0fdb9100f2ea1d774b70a1847c1097ded95179c76d73416b8ab72e\",\"grounds\":\"methodology\",\"body\":\"\",\"contentStatus\":\"removed\",\"contentRevision\":0,\"status\":\"dismissed\",\"revision\":2,\"challenger\":{\"githubLogin\":\"g1-fixture-a-only\",\"displayName\":\"G1 Fixture A-only\"},\"transitions\":[{\"id\":\"g1-challenge-removed-filed\",\"fromStatus\":null,\"toStatus\":\"open\",\"actor\":{\"githubLogin\":\"g1-fixture-a-only\"},\"conflictOfInterest\":{\"status\":\"not-provided\"},\"revision\":0,\"createdAt\":\"2026-03-10T00:00:00.000Z\"},{\"id\":\"g1-challenge-removed-responded\",\"fromStatus\":\"open\",\"toStatus\":\"author-responded\",\"actor\":{\"githubLogin\":\"g1-fixture-b-only\"},\"conflictOfInterest\":{\"status\":\"not-provided\"},\"revision\":1,\"createdAt\":\"2026-03-10T00:01:00.000Z\"},{\"id\":\"g1-challenge-removed-dismissed\",\"fromStatus\":\"author-responded\",\"toStatus\":\"dismissed\",\"actor\":{\"githubLogin\":\"g1-fixture-editor\"},\"conflictOfInterest\":{\"status\":\"not-provided\"},\"revision\":2,\"createdAt\":\"2026-03-10T00:02:00.000Z\"}],\"response\":{\"id\":\"g1-challenge-removed-response\",\"body\":\"\",\"contentHash\":\"b67b30c0bebfcfe3e31a5e744a4cca39660ccc580e53916286eaf6317d3cfee6\",\"contentStatus\":\"removed\",\"contentRevision\":0,\"responder\":{\"githubLogin\":\"g1-fixture-b-only\",\"displayName\":\"G1 Fixture B-only\"},\"createdAt\":\"2026-03-10T00:01:00.000Z\"},\"createdAt\":\"2026-03-10T00:00:00.000Z\"},{\"id\":\"g1-challenge-visible\",\"containerType\":\"review-version\",\"reviewVersionId\":\"g1-version-2\",\"nodeEdgeProposalId\":null,\"subjectType\":\"claim\",\"subjectLabel\":\"Claim claim-1\",\"subjectHref\":\"/reviews/g1-fixture-review/versions/g1-version-2#claim-subject-g1-claim-1\",\"canonicalSubjectHash\":\"cf024573a3c583308e315938b81ab36714e94a89580f2c963d1d74bde5b1bd24\",\"filedContentHash\":\"ed09756722c75b86048023e9f32bd4194cab1b038609ef48148bc82fc6ca1319\",\"grounds\":\"methodology\",\"body\":\"Synthetic dismissed challenge with recorded editorial outcome.\",\"contentStatus\":\"visible\",\"contentRevision\":0,\"status\":\"dismissed\",\"revision\":2,\"challenger\":{\"githubLogin\":\"g1-fixture-a-only\",\"displayName\":\"G1 Fixture A-only\"},\"transitions\":[{\"id\":\"g1-challenge-visible-filed\",\"fromStatus\":null,\"toStatus\":\"open\",\"actor\":{\"githubLogin\":\"g1-fixture-a-only\"},\"conflictOfInterest\":{\"status\":\"not-provided\"},\"revision\":0,\"createdAt\":\"2026-03-10T00:00:00.000Z\"},{\"id\":\"g1-challenge-visible-responded\",\"fromStatus\":\"open\",\"toStatus\":\"author-responded\",\"actor\":{\"githubLogin\":\"g1-fixture-b-only\"},\"conflictOfInterest\":{\"status\":\"not-provided\"},\"revision\":1,\"createdAt\":\"2026-03-10T00:01:00.000Z\"},{\"id\":\"g1-challenge-visible-dismissed\",\"fromStatus\":\"author-responded\",\"toStatus\":\"dismissed\",\"actor\":{\"githubLogin\":\"g1-fixture-editor\"},\"conflictOfInterest\":{\"status\":\"not-provided\"},\"revision\":2,\"createdAt\":\"2026-03-10T00:02:00.000Z\"}],\"response\":{\"id\":\"g1-challenge-visible-response\",\"body\":\"Synthetic contributor response before editorial dismissal.\",\"contentHash\":\"39bdc2240f013155bb27914c666b27173a78a4ca80932ce398c4264e4979e248\",\"contentStatus\":\"visible\",\"contentRevision\":0,\"responder\":{\"githubLogin\":\"g1-fixture-b-only\",\"displayName\":\"G1 Fixture B-only\"},\"createdAt\":\"2026-03-10T00:01:00.000Z\"},\"createdAt\":\"2026-03-10T00:00:00.000Z\"},{\"id\":\"cmvifjxw700017k9xvy7n1a8q\",\"containerType\":\"review-version\",\"reviewVersionId\":\"g1-version-2\",\"nodeEdgeProposalId\":null,\"subjectType\":\"claim\",\"subjectLabel\":\"Claim claim-1\",\"subjectHref\":\"/reviews/g1-fixture-review/versions/g1-version-2#claim-subject-g1-claim-1\",\"canonicalSubjectHash\":\"cf024573a3c583308e315938b81ab36714e94a89580f2c963d1d74bde5b1bd24\",\"filedContentHash\":\"c98c6665994937063d3c8ad23654b32866c441dd2c05d340aa8f79963aa071d9\",\"grounds\":\"methodology\",\"body\":\"\",\"contentStatus\":\"removed\",\"contentRevision\":1,\"status\":\"dismissed\",\"revision\":2,\"challenger\":{\"githubLogin\":\"g1-fixture-a-and-b\",\"displayName\":\"G1 Fixture A+B\"},\"transitions\":[{\"id\":\"cmvifjxwa00037k9x2suizd1o\",\"fromStatus\":null,\"toStatus\":\"open\",\"actor\":{\"githubLogin\":\"g1-fixture-a-and-b\"},\"conflictOfInterest\":{\"status\":\"not-provided\"},\"revision\":0,\"createdAt\":\"2026-10-21T18:12:58.330Z\"},{\"id\":\"cmvifjxwv00097k9xmr7xxvsz\",\"fromStatus\":\"open\",\"toStatus\":\"author-responded\",\"actor\":{\"githubLogin\":\"g1-fixture-b-only\"},\"conflictOfInterest\":{\"status\":\"not-provided\"},\"revision\":1,\"createdAt\":\"2026-10-21T18:12:58.352Z\"},{\"id\":\"cmvifjxxb000d7k9xoda7qf2f\",\"fromStatus\":\"author-responded\",\"toStatus\":\"dismissed\",\"actor\":{\"githubLogin\":\"g1-fixture-editor\"},\"conflictOfInterest\":{\"status\":\"none-declared\"},\"revision\":2,\"createdAt\":\"2026-10-21T18:12:58.365Z\"}],\"response\":{\"id\":\"cmvifjxwu00077k9xum8v1wln\",\"body\":\"Synthetic responder attributed response retained after moderation.\",\"contentHash\":\"bc9404ddb9960ef4b61bcb802fca70df39249ab0e8c4fa7c84dba7c2830abafe\",\"contentStatus\":\"visible\",\"contentRevision\":0,\"responder\":{\"githubLogin\":\"g1-fixture-b-only\",\"displayName\":\"G1 Fixture B-only\"},\"createdAt\":\"2026-10-21T18:12:58.350Z\"},\"createdAt\":\"2026-10-21T18:12:58.328Z\"},{\"id\":\"cmvifjxxk000h7k9xjiqktafx\",\"containerType\":\"review-version\",\"reviewVersionId\":\"g1-version-2\",\"nodeEdgeProposalId\":null,\"subjectType\":\"claim\",\"subjectLabel\":\"Claim claim-1\",\"subjectHref\":\"/reviews/g1-fixture-review/versions/g1-version-2#claim-subject-g1-claim-1\",\"canonicalSubjectHash\":\"cf024573a3c583308e315938b81ab36714e94a89580f2c963d1d74bde5b1bd24\",\"filedContentHash\":\"549448d226ec4ae1051e5e3357b571f80173f8f0fb0098e679bc687439fcca41\",\"grounds\":\"methodology\",\"body\":\"\",\"contentStatus\":\"removed\",\"contentRevision\":1,\"status\":\"dismissed\",\"revision\":2,\"challenger\":{\"githubLogin\":\"g1-fixture-a-and-b\",\"displayName\":\"G1 Fixture A+B\"},\"transitions\":[{\"id\":\"cmvifjxxl000j7k9xcwv1cb80\",\"fromStatus\":null,\"toStatus\":\"open\",\"actor\":{\"githubLogin\":\"g1-fixture-a-and-b\"},\"conflictOfInterest\":{\"status\":\"not-provided\"},\"revision\":0,\"createdAt\":\"2026-10-21T18:12:58.377Z\"},{\"id\":\"cmvifjxxz000p7k9x722jrkkj\",\"fromStatus\":\"open\",\"toStatus\":\"author-responded\",\"actor\":{\"githubLogin\":\"g1-fixture-b-only\"},\"conflictOfInterest\":{\"status\":\"not-provided\"},\"revision\":1,\"createdAt\":\"2026-10-21T18:12:58.391Z\"},{\"id\":\"cmvifjxyd000t7k9xj8jlu1ef\",\"fromStatus\":\"author-responded\",\"toStatus\":\"dismissed\",\"actor\":{\"githubLogin\":\"g1-fixture-editor\"},\"conflictOfInterest\":{\"status\":\"none-declared\"},\"revision\":2,\"createdAt\":\"2026-10-21T18:12:58.403Z\"}],\"response\":{\"id\":\"cmvifjxxy000n7k9xesikbmb1\",\"body\":\"Synthetic editor attributed response retained after moderation.\",\"contentHash\":\"538d8d35ddbb14f8dfafc0262daceceedb7d015207cf29beafa563d9eb601ae5\",\"contentStatus\":\"visible\",\"contentRevision\":0,\"responder\":{\"githubLogin\":\"g1-fixture-b-only\",\"displayName\":\"G1 Fixture B-only\"},\"createdAt\":\"2026-10-21T18:12:58.390Z\"},\"createdAt\":\"2026-10-21T18:12:58.376Z\"},{\"id\":\"cmvifjxyl000x7k9xpjmty3vr\",\"containerType\":\"review-version\",\"reviewVersionId\":\"g1-version-2\",\"nodeEdgeProposalId\":null,\"subjectType\":\"claim\",\"subjectLabel\":\"Claim claim-1\",\"subjectHref\":\"/reviews/g1-fixture-review/versions/g1-version-2#claim-subject-g1-claim-1\",\"canonicalSubjectHash\":\"cf024573a3c583308e315938b81ab36714e94a89580f2c963d1d74bde5b1bd24\",\"filedContentHash\":\"1af606db6e238cfd9d4d1523e88bd6d1307b1a0456319fdb41a3858da9e61a29\",\"grounds\":\"methodology\",\"body\":\"\",\"contentStatus\":\"removed\",\"contentRevision\":1,\"status\":\"dismissed\",\"revision\":2,\"challenger\":{\"githubLogin\":\"g1-fixture-a-and-b\",\"displayName\":\"G1 Fixture A+B\"},\"transitions\":[{\"id\":\"cmvifjxym000z7k9x0pt3l0bt\",\"fromStatus\":null,\"toStatus\":\"open\",\"actor\":{\"githubLogin\":\"g1-fixture-a-and-b\"},\"conflictOfInterest\":{\"status\":\"not-provided\"},\"revision\":0,\"createdAt\":\"2026-10-21T18:12:58.415Z\"},{\"id\":\"cmvifjxyz00157k9xut27zcxt\",\"fromStatus\":\"open\",\"toStatus\":\"author-responded\",\"actor\":{\"githubLogin\":\"g1-fixture-b-only\"},\"conflictOfInterest\":{\"status\":\"not-provided\"},\"revision\":1,\"createdAt\":\"2026-10-21T18:12:58.428Z\"},{\"id\":\"cmvifjxzd00197k9xzqtekk0r\",\"fromStatus\":\"author-responded\",\"toStatus\":\"dismissed\",\"actor\":{\"githubLogin\":\"g1-fixture-editor\"},\"conflictOfInterest\":{\"status\":\"none-declared\"},\"revision\":2,\"createdAt\":\"2026-10-21T18:12:58.440Z\"}],\"response\":{\"id\":\"cmvifjxyy00137k9xzf3nz2io\",\"body\":\"Synthetic admin attributed response retained after moderation.\",\"contentHash\":\"1435d2e9132a12f4d6e3fd88cccc0a8ceb4d1d9c3c831bbebd9ccd8b04f713ea\",\"contentStatus\":\"visible\",\"contentRevision\":0,\"responder\":{\"githubLogin\":\"g1-fixture-b-only\",\"displayName\":\"G1 Fixture B-only\"},\"createdAt\":\"2026-10-21T18:12:58.427Z\"},\"createdAt\":\"2026-10-21T18:12:58.414Z\"}]}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "challenge-moderation-observer-ADMIN",
+        "method": "GET",
+        "path": "/api/reviews/g1-fixture-review/versions/g1-version-2/challenges",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 200,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"reviewSlug\":\"g1-fixture-review\",\"reviewVersionId\":\"g1-version-2\",\"challenges\":[{\"id\":\"g1-challenge-removed\",\"containerType\":\"review-version\",\"reviewVersionId\":\"g1-version-2\",\"nodeEdgeProposalId\":null,\"subjectType\":\"claim\",\"subjectLabel\":\"Claim claim-1\",\"subjectHref\":\"/reviews/g1-fixture-review/versions/g1-version-2#claim-subject-g1-claim-1\",\"canonicalSubjectHash\":\"cf024573a3c583308e315938b81ab36714e94a89580f2c963d1d74bde5b1bd24\",\"filedContentHash\":\"e914a9d4db0fdb9100f2ea1d774b70a1847c1097ded95179c76d73416b8ab72e\",\"grounds\":\"methodology\",\"body\":\"\",\"contentStatus\":\"removed\",\"contentRevision\":0,\"status\":\"dismissed\",\"revision\":2,\"challenger\":{\"githubLogin\":\"g1-fixture-a-only\",\"displayName\":\"G1 Fixture A-only\"},\"transitions\":[{\"id\":\"g1-challenge-removed-filed\",\"fromStatus\":null,\"toStatus\":\"open\",\"actor\":{\"githubLogin\":\"g1-fixture-a-only\"},\"conflictOfInterest\":{\"status\":\"not-provided\"},\"revision\":0,\"createdAt\":\"2026-03-10T00:00:00.000Z\"},{\"id\":\"g1-challenge-removed-responded\",\"fromStatus\":\"open\",\"toStatus\":\"author-responded\",\"actor\":{\"githubLogin\":\"g1-fixture-b-only\"},\"conflictOfInterest\":{\"status\":\"not-provided\"},\"revision\":1,\"createdAt\":\"2026-03-10T00:01:00.000Z\"},{\"id\":\"g1-challenge-removed-dismissed\",\"fromStatus\":\"author-responded\",\"toStatus\":\"dismissed\",\"actor\":{\"githubLogin\":\"g1-fixture-editor\"},\"conflictOfInterest\":{\"status\":\"not-provided\"},\"revision\":2,\"createdAt\":\"2026-03-10T00:02:00.000Z\"}],\"response\":{\"id\":\"g1-challenge-removed-response\",\"body\":\"\",\"contentHash\":\"b67b30c0bebfcfe3e31a5e744a4cca39660ccc580e53916286eaf6317d3cfee6\",\"contentStatus\":\"removed\",\"contentRevision\":0,\"responder\":{\"githubLogin\":\"g1-fixture-b-only\",\"displayName\":\"G1 Fixture B-only\"},\"createdAt\":\"2026-03-10T00:01:00.000Z\"},\"createdAt\":\"2026-03-10T00:00:00.000Z\"},{\"id\":\"g1-challenge-visible\",\"containerType\":\"review-version\",\"reviewVersionId\":\"g1-version-2\",\"nodeEdgeProposalId\":null,\"subjectType\":\"claim\",\"subjectLabel\":\"Claim claim-1\",\"subjectHref\":\"/reviews/g1-fixture-review/versions/g1-version-2#claim-subject-g1-claim-1\",\"canonicalSubjectHash\":\"cf024573a3c583308e315938b81ab36714e94a89580f2c963d1d74bde5b1bd24\",\"filedContentHash\":\"ed09756722c75b86048023e9f32bd4194cab1b038609ef48148bc82fc6ca1319\",\"grounds\":\"methodology\",\"body\":\"Synthetic dismissed challenge with recorded editorial outcome.\",\"contentStatus\":\"visible\",\"contentRevision\":0,\"status\":\"dismissed\",\"revision\":2,\"challenger\":{\"githubLogin\":\"g1-fixture-a-only\",\"displayName\":\"G1 Fixture A-only\"},\"transitions\":[{\"id\":\"g1-challenge-visible-filed\",\"fromStatus\":null,\"toStatus\":\"open\",\"actor\":{\"githubLogin\":\"g1-fixture-a-only\"},\"conflictOfInterest\":{\"status\":\"not-provided\"},\"revision\":0,\"createdAt\":\"2026-03-10T00:00:00.000Z\"},{\"id\":\"g1-challenge-visible-responded\",\"fromStatus\":\"open\",\"toStatus\":\"author-responded\",\"actor\":{\"githubLogin\":\"g1-fixture-b-only\"},\"conflictOfInterest\":{\"status\":\"not-provided\"},\"revision\":1,\"createdAt\":\"2026-03-10T00:01:00.000Z\"},{\"id\":\"g1-challenge-visible-dismissed\",\"fromStatus\":\"author-responded\",\"toStatus\":\"dismissed\",\"actor\":{\"githubLogin\":\"g1-fixture-editor\"},\"conflictOfInterest\":{\"status\":\"not-provided\"},\"revision\":2,\"createdAt\":\"2026-03-10T00:02:00.000Z\"}],\"response\":{\"id\":\"g1-challenge-visible-response\",\"body\":\"Synthetic contributor response before editorial dismissal.\",\"contentHash\":\"39bdc2240f013155bb27914c666b27173a78a4ca80932ce398c4264e4979e248\",\"contentStatus\":\"visible\",\"contentRevision\":0,\"responder\":{\"githubLogin\":\"g1-fixture-b-only\",\"displayName\":\"G1 Fixture B-only\"},\"createdAt\":\"2026-03-10T00:01:00.000Z\"},\"createdAt\":\"2026-03-10T00:00:00.000Z\"},{\"id\":\"cmvifjxw700017k9xvy7n1a8q\",\"containerType\":\"review-version\",\"reviewVersionId\":\"g1-version-2\",\"nodeEdgeProposalId\":null,\"subjectType\":\"claim\",\"subjectLabel\":\"Claim claim-1\",\"subjectHref\":\"/reviews/g1-fixture-review/versions/g1-version-2#claim-subject-g1-claim-1\",\"canonicalSubjectHash\":\"cf024573a3c583308e315938b81ab36714e94a89580f2c963d1d74bde5b1bd24\",\"filedContentHash\":\"c98c6665994937063d3c8ad23654b32866c441dd2c05d340aa8f79963aa071d9\",\"grounds\":\"methodology\",\"body\":\"\",\"contentStatus\":\"removed\",\"contentRevision\":1,\"status\":\"dismissed\",\"revision\":2,\"challenger\":{\"githubLogin\":\"g1-fixture-a-and-b\",\"displayName\":\"G1 Fixture A+B\"},\"transitions\":[{\"id\":\"cmvifjxwa00037k9x2suizd1o\",\"fromStatus\":null,\"toStatus\":\"open\",\"actor\":{\"githubLogin\":\"g1-fixture-a-and-b\"},\"conflictOfInterest\":{\"status\":\"not-provided\"},\"revision\":0,\"createdAt\":\"2026-10-21T18:12:58.330Z\"},{\"id\":\"cmvifjxwv00097k9xmr7xxvsz\",\"fromStatus\":\"open\",\"toStatus\":\"author-responded\",\"actor\":{\"githubLogin\":\"g1-fixture-b-only\"},\"conflictOfInterest\":{\"status\":\"not-provided\"},\"revision\":1,\"createdAt\":\"2026-10-21T18:12:58.352Z\"},{\"id\":\"cmvifjxxb000d7k9xoda7qf2f\",\"fromStatus\":\"author-responded\",\"toStatus\":\"dismissed\",\"actor\":{\"githubLogin\":\"g1-fixture-editor\"},\"conflictOfInterest\":{\"status\":\"none-declared\"},\"revision\":2,\"createdAt\":\"2026-10-21T18:12:58.365Z\"}],\"response\":{\"id\":\"cmvifjxwu00077k9xum8v1wln\",\"body\":\"Synthetic responder attributed response retained after moderation.\",\"contentHash\":\"bc9404ddb9960ef4b61bcb802fca70df39249ab0e8c4fa7c84dba7c2830abafe\",\"contentStatus\":\"visible\",\"contentRevision\":0,\"responder\":{\"githubLogin\":\"g1-fixture-b-only\",\"displayName\":\"G1 Fixture B-only\"},\"createdAt\":\"2026-10-21T18:12:58.350Z\"},\"createdAt\":\"2026-10-21T18:12:58.328Z\"},{\"id\":\"cmvifjxxk000h7k9xjiqktafx\",\"containerType\":\"review-version\",\"reviewVersionId\":\"g1-version-2\",\"nodeEdgeProposalId\":null,\"subjectType\":\"claim\",\"subjectLabel\":\"Claim claim-1\",\"subjectHref\":\"/reviews/g1-fixture-review/versions/g1-version-2#claim-subject-g1-claim-1\",\"canonicalSubjectHash\":\"cf024573a3c583308e315938b81ab36714e94a89580f2c963d1d74bde5b1bd24\",\"filedContentHash\":\"549448d226ec4ae1051e5e3357b571f80173f8f0fb0098e679bc687439fcca41\",\"grounds\":\"methodology\",\"body\":\"\",\"contentStatus\":\"removed\",\"contentRevision\":1,\"status\":\"dismissed\",\"revision\":2,\"challenger\":{\"githubLogin\":\"g1-fixture-a-and-b\",\"displayName\":\"G1 Fixture A+B\"},\"transitions\":[{\"id\":\"cmvifjxxl000j7k9xcwv1cb80\",\"fromStatus\":null,\"toStatus\":\"open\",\"actor\":{\"githubLogin\":\"g1-fixture-a-and-b\"},\"conflictOfInterest\":{\"status\":\"not-provided\"},\"revision\":0,\"createdAt\":\"2026-10-21T18:12:58.377Z\"},{\"id\":\"cmvifjxxz000p7k9x722jrkkj\",\"fromStatus\":\"open\",\"toStatus\":\"author-responded\",\"actor\":{\"githubLogin\":\"g1-fixture-b-only\"},\"conflictOfInterest\":{\"status\":\"not-provided\"},\"revision\":1,\"createdAt\":\"2026-10-21T18:12:58.391Z\"},{\"id\":\"cmvifjxyd000t7k9xj8jlu1ef\",\"fromStatus\":\"author-responded\",\"toStatus\":\"dismissed\",\"actor\":{\"githubLogin\":\"g1-fixture-editor\"},\"conflictOfInterest\":{\"status\":\"none-declared\"},\"revision\":2,\"createdAt\":\"2026-10-21T18:12:58.403Z\"}],\"response\":{\"id\":\"cmvifjxxy000n7k9xesikbmb1\",\"body\":\"Synthetic editor attributed response retained after moderation.\",\"contentHash\":\"538d8d35ddbb14f8dfafc0262daceceedb7d015207cf29beafa563d9eb601ae5\",\"contentStatus\":\"visible\",\"contentRevision\":0,\"responder\":{\"githubLogin\":\"g1-fixture-b-only\",\"displayName\":\"G1 Fixture B-only\"},\"createdAt\":\"2026-10-21T18:12:58.390Z\"},\"createdAt\":\"2026-10-21T18:12:58.376Z\"},{\"id\":\"cmvifjxyl000x7k9xpjmty3vr\",\"containerType\":\"review-version\",\"reviewVersionId\":\"g1-version-2\",\"nodeEdgeProposalId\":null,\"subjectType\":\"claim\",\"subjectLabel\":\"Claim claim-1\",\"subjectHref\":\"/reviews/g1-fixture-review/versions/g1-version-2#claim-subject-g1-claim-1\",\"canonicalSubjectHash\":\"cf024573a3c583308e315938b81ab36714e94a89580f2c963d1d74bde5b1bd24\",\"filedContentHash\":\"1af606db6e238cfd9d4d1523e88bd6d1307b1a0456319fdb41a3858da9e61a29\",\"grounds\":\"methodology\",\"body\":\"\",\"contentStatus\":\"removed\",\"contentRevision\":1,\"status\":\"dismissed\",\"revision\":2,\"challenger\":{\"githubLogin\":\"g1-fixture-a-and-b\",\"displayName\":\"G1 Fixture A+B\"},\"transitions\":[{\"id\":\"cmvifjxym000z7k9x0pt3l0bt\",\"fromStatus\":null,\"toStatus\":\"open\",\"actor\":{\"githubLogin\":\"g1-fixture-a-and-b\"},\"conflictOfInterest\":{\"status\":\"not-provided\"},\"revision\":0,\"createdAt\":\"2026-10-21T18:12:58.415Z\"},{\"id\":\"cmvifjxyz00157k9xut27zcxt\",\"fromStatus\":\"open\",\"toStatus\":\"author-responded\",\"actor\":{\"githubLogin\":\"g1-fixture-b-only\"},\"conflictOfInterest\":{\"status\":\"not-provided\"},\"revision\":1,\"createdAt\":\"2026-10-21T18:12:58.428Z\"},{\"id\":\"cmvifjxzd00197k9xzqtekk0r\",\"fromStatus\":\"author-responded\",\"toStatus\":\"dismissed\",\"actor\":{\"githubLogin\":\"g1-fixture-editor\"},\"conflictOfInterest\":{\"status\":\"none-declared\"},\"revision\":2,\"createdAt\":\"2026-10-21T18:12:58.440Z\"}],\"response\":{\"id\":\"cmvifjxyy00137k9xzf3nz2io\",\"body\":\"Synthetic admin attributed response retained after moderation.\",\"contentHash\":\"1435d2e9132a12f4d6e3fd88cccc0a8ceb4d1d9c3c831bbebd9ccd8b04f713ea\",\"contentStatus\":\"visible\",\"contentRevision\":0,\"responder\":{\"githubLogin\":\"g1-fixture-b-only\",\"displayName\":\"G1 Fixture B-only\"},\"createdAt\":\"2026-10-21T18:12:58.427Z\"},\"createdAt\":\"2026-10-21T18:12:58.414Z\"}]}"
+        }
+      }
+    ]
+  },
+  "stateSha256": "a6224352460372e4082b8fc5f8be5dd3fa3e4a46a473cb8c2c8d58b34cb75c99",
+  "review": "Manually accepted after independent frozen-source 2f3472d native review: four exact labels, complete native rows/transitions/query traces and actual Cookie bindings. Report SHA256 7bc5d7d6a2ad410b103eb2b88d7cbe5782783affccd5ec2793beab710f3f8a52. Synthetic conditional proof; mixed clocks and finite metadata inputs retained. Parent decoded-log protection is retrospective for 2f; final hardened-parent CI remains required."
+}

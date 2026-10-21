@@ -3275,6 +3275,6 @@
       }
     ]
   },
-  "stateSha256": "02422034eb646657ec3e473478bc53e964ba8f2418f9c577c25162998cf3206f",
+  "stateSha256": "a8a44bcb2752bce40858a191c3b67d80f1b06bd5d89bcf664eaacead797c6a72",
   "review": "Independently reviewed 2026-10-21 at bef4f829e2bbf8d23d03cff642b2677f47d8a951: four 110-request native captures; actual signed Cookie bindings; five native protocol bootstrap rows; all 87 parent table fixture counts and unchanged complete cumulative 72-table runtime state. Existing protocol snapshot replay and reserved synthetic DOI validation only; no live provider resolution or scientific confirmation. Existing goldens and runtime grants unchanged. Partial synthetic G1."
 }

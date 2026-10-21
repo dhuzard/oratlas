@@ -35,3 +35,23 @@ review must verify every existing HTTP byte, full public rows, transitions and q
 any old state hash migration must consist solely of the eleven declared authority triples.
 Both new candidate goldens require separate manual acceptance after that review. Prior proofs,
 method counts, owner decisions and missing-baseline candidate runs do not complete G1.
+
+Frozen source `2f3472d` completed all 56 native captures and four cleanup operations. Its 236
+recorded steps stop solely at the intentionally absent independently reviewed response golden.
+Independent data review completed 745 comparison/scan checks plus controls over 179 retained
+JSON/log artifacts and the outer log, and independently reconstructed 11,796 Cookie bindings.
+All twelve supplemental pairs, primary HTTP, complete public rows, transitions and query traces
+match. Eight existing state hashes change only for the eleven declared authority entries;
+known-mutations and synthesis states, all ten old HTTP baselines and primary/index data remain
+unchanged. The report SHA-256 is
+`7bc5d7d6a2ad410b103eb2b88d7cbe5782783affccd5ec2793beab710f3f8a52`.
+Two new candidates were then manually accepted, changing only outer/HTTP review annotations.
+
+The 2f parent did not provide decoded Cookie-fragment inspection at every child-log sink;
+its retrospective full decoded scan found no actual leak. This execution is not relabeled
+as having used the later guard. Reviewed parent changes `ae0e94b` + `24437a8` add that check
+to complete stdout, stderr and their original merged view before worker checks, redaction,
+files or console. Malformed UTF-8 refuses; valid BOM and multibyte bytes remain exact. The
+guard covers complete raw text and bounded complete JSON lines, not arbitrary ANSI fragments.
+Pre-inspection collection memory retains the documented legacy limit. Final-head CI must
+repeat all four labels under the stronger parent before merge; no gate is waived.
