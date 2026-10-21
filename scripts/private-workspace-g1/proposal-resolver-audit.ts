@@ -1,6 +1,8 @@
+import { PLATFORM_VERSION } from "../../packages/config/src/index.js";
 import targets from "./fixtures/proposal-resolver-targets.json";
 import { canonicalJson } from "../../packages/contracts/src/canonical-json.js";
 export const RESOLVER_AUDIT_INPUTS = targets.map((target) => ({
+  platformVersion: PLATFORM_VERSION,
   actorId: target.actor === "EDITOR" ? "g1-user-editor" : "g1-user-admin",
   action:
     target.kind === "protocol" ? "protocol.proposal-resolved" : "monitoring.proposal-resolved",
