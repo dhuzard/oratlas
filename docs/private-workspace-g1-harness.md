@@ -4,6 +4,25 @@
 
 ## Gate and scope
 
+### Method and channel inventory added 2026-10-21
+
+`coverageSummary().methodAndChannelObligations` now inventories each exported
+HTTP method using the existing OpenAPI TypeScript parser, without importing or
+executing route source. It lists scenario IDs, missing principal cases, successful
+cases and explicit denials separately. Wildcard exports and unknown operations
+require review. A GET capture never covers POST on the same route, and six 404s
+never establish a positive path. This is a static obligation inventory, not
+evidence that scenarios executed or a gate passed.
+
+At baseline `a442e1d`: **143 exported methods**, **18 with scenarios**, **7 with
+all six principal cases**, and **40 rendered page/layout/metadata source files**.
+Real Next serving and non-HTTP evidence remain separate obligations. These
+method counts supplement the older 17/133 route-file count. Tests cover a hidden
+POST gap, missing-only scenarios, unresolved exports and nonexecuting source
+inspection. Public text exports can additionally require reviewed body markers,
+independent of a replacement golden; a mutation regression checks that omission
+is rejected.
+
 [ADR §13 G1](./private-workspace-security-architecture.md#13-rollout-gates-and-migration-consequences) requires T-IMP, T-ROLE, T-PUB harness and a `private, no-store` helper running in CI against an **empty private schema**, with public-contract snapshots. Passing G1 unlocks creation of private tables, **not storage of real private data or enablement of a workspace service**. This document alone passes nothing.
 
 The §11 final T-ROLE matrix needs actual tables; final T-PUB needs seeded private A/B content. G1 provides executable empty-schema prerequisites and a harness for those later tests, not a vacuous claim that nonexistent tables or private rows were protected. Record coverage as **G1-empty** versus **populated matrix deferred**. Any unresolved interpretation of this staging must be reviewed explicitly, not hidden by naming all tests “passed.”

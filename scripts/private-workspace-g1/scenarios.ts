@@ -36,6 +36,8 @@ export type HttpExpectation = {
   readonly json?: readonly JsonCheck[];
   /** Substrings that must not occur in the body (controls and other principals' data). */
   readonly bodyExcludes?: readonly string[];
+  /** Required public text-export markers, independent of regenerated golden bytes. */
+  readonly bodyIncludes?: readonly string[];
   /** Exact public download bytes and security headers, independently of the golden. */
   readonly bodyEquals?: string;
   readonly headers?: Readonly<Record<string, string>>;
