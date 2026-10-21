@@ -52,7 +52,7 @@ let delegatedQueries = 0;
 const fixture = new ResolverAuditFixture();
 const secrets: string[] = [];
 function guard(value: unknown): void {
-  if (auditRevokeDisclosureProblems(value, secrets).length)
+  if (auditRevokeDisclosureProblems(value, [...new Set(secrets)]).length)
     throw new Error("Audit revocation capability disclosure refused");
 }
 let authorityScope: { roleContract: string; tables: unknown[]; columns: unknown[] };

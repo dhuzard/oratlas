@@ -75,7 +75,7 @@ export function proposalResolverScenarios(
         changes,
         principal,
         session: principal === "anonymous" ? NO_SESSION : validSession(principal),
-        headers: requestHeaders,
+        headers: { ...requestHeaders, "x-g1-case": `${target.kind}-${target.actor}-${name}` },
         body: body as HttpScenario["body"],
         expect: { ...expect, absentHeaders: ["set-cookie", "location"] },
       });
