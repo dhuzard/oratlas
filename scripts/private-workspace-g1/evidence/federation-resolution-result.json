@@ -1,0 +1,69 @@
+{
+  "executedHead": "53a2a567f5bae1015d65eabca77bf7c240719a13",
+  "status": "unwired standalone native prototype only; no shared catalog/grants or accepted golden",
+  "sourceSha256": {
+    "apps/web/src/lib/federation.ts": "7e30d519d487b789d0556437c1baec54feb707376fa00ce015569137acb6a163",
+    "apps/web/src/lib/editorial-api.ts": "89fdad197048edfad459f4582d687c0933ab7b0c524141f280ae95cec06f9bb7",
+    "apps/web/src/app/api/editorial/federation/[id]/resolve/route.ts": "b87c8a83f691fbb65f5eb0677ff8b9bb89b2626804f26bd81335039a02f22aa0",
+    "apps/web/src/app/api/federation/inbox/route.ts": "995a96ccc22e627976d00b8c86b0767eb82f806170b3e6e7be89be55a582bd52",
+    "apps/web/src/app/api/federation/notifications/[id]/route.ts": "40eafe95b78d23a969e71ddf2e591d68ee61a2c7d086cf7cedd75f069727a7a5",
+    "packages/federation/src/notify.ts": "9e0b47be6777e56a43c8c324b42b92967c7bd9801a9e803e889d5b23fc5dfd16",
+    "packages/db/src/index.ts": "43a95343b3217e7a2257fb612f6698a6acb9d5d25d7396d91196bc91c3ab5490",
+    "packages/db/prisma/schema.prisma": "bd376799bfea231fa4e0f6b4a79b439c9cdd3aa93e4d99c3b99174a2dbfaa88c",
+    "scripts/private-workspace-g1/federation-resolution.g1.spec.ts": "7a9158a3b784113b8310d0d3ca6af59b6a8bed124e85176a86ec3bde07bcbc38",
+    "scripts/private-workspace-g1/federation-resolution-audit.ts": "e42d5403136c314aed6cff1393098d49efced393be34603fda9b5dc2389738e3",
+    "scripts/private-workspace-g1/federation-resolution-scenarios.ts": "205640b7ed97447cf42db5fad2788d19eaf92519c858d9338acc60f5ccc20d25",
+    "scripts/private-workspace-g1/audit-default-fixture.ts": "d4aa9cbd1bf3617c2219eea7eb76419edd6e9f9a9fd347bacd7e91bd44240b36",
+    "scripts/private-workspace-g1/public-snapshot.ts": "4c33b1fde3134e4c7123b12163222afdf4c456b8ed3be9b70789f980b309b515",
+    "scripts/private-workspace-g1/native-evidence-guard.ts": "4067b5c0d02e34e1fd7a6c404ee808e138bd0804aae07b3eb5dade333f16ed67",
+    "scripts/private-workspace-g1/native-evidence-safety.ts": "be8bb095afe78b893a70e0b2700d03afdc5d928c7db4bde5a68262c250a7b502",
+    "scripts/private-workspace-g1/fixtures/federation-resolution-fixtures.sql": "17910fd8ec9ec5c3f6b4ee4aa8e40b77926fd6b75f757aabbe819a59112b1092",
+    "scripts/private-workspace-g1/fixtures/federation-resolution-native.json": "82336d4c66be467986b0dee5980ed2d4cd9a92def559d587ad7ef6f143e71928",
+    "scripts/private-workspace-g1/fixtures/federation-resolution-producer.ts.txt": "1f117590c5390c3fd72d0f591f74dc5d85446d5eb12612d2a30a51f5d3d987bc"
+  },
+  "evidenceSha256": {
+    "resolution-first.json": "c09e66242cbb1fed1b4206451058b6ef1d074bd43119efbd8ea2fc1b548ac395",
+    "resolution-repeat.json": "26a9f8154d96031b3895ea6ca64f22b8ae763332eeb282783eceb521dc4e2105",
+    "resolution-first.json.state.json": "62459ecc45af5047c61f467fa6952e174e93b0ee1304c3adfdf987e3803af8d4",
+    "resolution-repeat.json.state.json": "62459ecc45af5047c61f467fa6952e174e93b0ee1304c3adfdf987e3803af8d4",
+    "resolution-first.parent-state.json": "c63e60d49d423bb652c62b643eb76df432aa86b3b1ad9fd3f280c0acc320eb5e",
+    "resolution-repeat.parent-state.json": "c63e60d49d423bb652c62b643eb76df432aa86b3b1ad9fd3f280c0acc320eb5e",
+    "resolution-first.log": "56544008ffa07c35178e5b353e6dfa7e820ec3c1cb7bf6fa924d8a5612baa502",
+    "resolution-repeat.log": "a5e84e297c9facc22fc8eed2eb7c8b0bb131f06bd6fe09ac45b141f8181e4104",
+    "native-fixture.json": "82336d4c66be467986b0dee5980ed2d4cd9a92def559d587ad7ef6f143e71928",
+    "native-producer.log": "7d03987f237480cd34ce420b57e0f781eaa356c34a4c2311e1b98873f798a1a4"
+  },
+  "recordsPerRun": 88,
+  "resetRuns": 2,
+  "httpPairsExact": true,
+  "completeStatePairsExact": true,
+  "canonicalStateSha256": "0232ed76ac5863d904a0bf7075acab7c8609f1b8de4869ffecef30651cd2cf94",
+  "runtimeSelectTables": 72,
+  "runtimeColumnUpdates": 20,
+  "extraColumnUpdates": {
+    "FederationNotification": ["status", "resolutionNote", "resolvedById", "resolvedAt"]
+  },
+  "allInventoryTables": 87,
+  "nativeSetupRows": {
+    "FederationNotification": 2,
+    "AuditEvent": 2
+  },
+  "nativeBusinessEffects": {
+    "notificationRowsChanged": 2,
+    "fieldsPerNotification": ["status", "resolutionNote", "resolvedById", "resolvedAt"],
+    "auditAppends": 2
+  },
+  "auditDefaults": 2,
+  "queryDelegations": 71,
+  "allDelegationsOnce": true,
+  "outboundAttempts": 0,
+  "cookieRecipesBound": true,
+  "completePreDiagnosticsAndPreRetentionGuard": true,
+  "failedObservation": "Earlier duplicate composite-key observation refused; no baseline produced; retained locally separately.",
+  "limits": [
+    "baseline/baseline-repeat only; integrated four labels need separate review",
+    "fresh receipt creation/delivery not runtime coverage",
+    "other generated metadata models not enabled",
+    "no private-workspace authorization/operational/timing claim"
+  ]
+}
