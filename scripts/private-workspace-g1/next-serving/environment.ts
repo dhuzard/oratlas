@@ -12,7 +12,7 @@ export function nextServingEnvironment(databaseUrl: string, root: string, output
   }
   const env = {
     ...publicChildEnv(databaseUrl),
-    NODE_ENV: "production",
+    NODE_ENV: "production" as const,
     NEXT_TELEMETRY_DISABLED: "1",
     NODE_OPTIONS: `--import=${JSON.stringify(resolve(root, "scripts/private-workspace-g1/next-serving/clock.mjs"))}`,
     G1_NEXT_CAPTURE_OUT: output,
