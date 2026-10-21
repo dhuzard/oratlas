@@ -9,7 +9,7 @@ owner decision register. It does not redefine the ADR's G1–G6 gates.
 | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [#202](https://github.com/dhuzard/oratlas/issues/202) | Closed; security architecture and owner refinements recorded.                                                                                                                   | Preserve the public/private boundary and test it in every slice.                                                                                            | Gate completion needs executable evidence; D11 remains provisional.                                                                                                                   |
 | [#203](https://github.com/dhuzard/oratlas/issues/203) | Unconnected link orchestrator and proposed S1 durable design; #225 added checksum/recognition; #229 adds disconnected v2 instance validation and reference effect coordination. | Checksum validation before profile writes; injected, synthetic public-record recognition with explicit unverified/inconclusive results.                     | Reviewed provider contract, session-instance implementation and durable/effect fences, detailed retention/recovery policy, live callback and researcher directory.                    |
-| [#204](https://github.com/dhuzard/oratlas/issues/204) | Partial G1-empty PostgreSQL roles; six isolated programs declare 2,092 records, 81/133 files and 86/143 methods; real public-index captures remain separate.                    | Expand public read/export/scholarly/editorial captures with native source fixtures, exact denial/state/audit assertions, and typed cursor error regression. | Remaining public/non-HTTP surfaces, independently accepted G1, then G2 synthetic workspace authority/invitations/revocation and G3 protection.                                        |
+| [#204](https://github.com/dhuzard/oratlas/issues/204) | Partial G1-empty PostgreSQL roles; seven isolated programs declare 2,392 records, 85/133 files and 90/143 methods; real public-index captures remain separate.                  | Expand public read/export/scholarly/editorial captures with native source fixtures, exact denial/state/audit assertions, and typed cursor error regression. | Remaining public methods/rendered surfaces, independently accepted G1, then G2 synthetic workspace authority/invitations/revocation and G3 protection.                                |
 | [#206](https://github.com/dhuzard/oratlas/issues/206) | Source-credit and pinned CRT descriptor adapters exist after #226; live source grants do not exist.                                                                             | Closed private descriptor observations, pinned real CRT fixture/adapter and explicitly synthetic Diggypaper fixture, no access effect.                      | Principal-scoped source grant verification, registry integration, expiry/replay/revocation, secure source retrieval and protected result release.                                     |
 | [#205](https://github.com/dhuzard/oratlas/issues/205) | Owner-only credit projection exists; it is not an authorization service.                                                                                                        | Preserve its dependency boundary; do not duplicate its project-level callback or activate discovery routes early.                                           | Exact object/source permissions and processing consent, fenced finalization, private persistence and revocation, then deterministic candidates and #207 credit/disclosure acceptance. |
 
@@ -97,7 +97,7 @@ or widen the existing Date/request-ID header normalization.
 session validation plus a reviewed reference topology. No runtime session store
 or effect coordinator is present. The expanded G1 batches have independent module
 reviews and real restricted-role capture evidence, but do not complete G1.
-Next: remaining 57 methods (mostly mutation/provider/worker workflows), a real
+Next: remaining 53 methods (mostly mutation/provider/worker workflows), a real
 Next serving/HTML/metadata capture stage and independent G1 acceptance. Separately
 track operational and timing evidence against their applicable later gates. The
 [real-serving prototype](private-workspace-next-http-prototype.md) observes exact
@@ -139,9 +139,11 @@ notification/comment operations (62) and accepted synthesis/discovery reads
 requests with its own fixture reset, complete unchanged public state and reviewed
 golden. Its four-label run exposed a native Discuss database-order dependency;
 the selector now preserves verified signed scope order, with a regression and
-independent review. The next worker artifact batch adds 379 native requests over
+independent review. Merged #236 adds 379 native requests over
 four methods, one existing uploaded-artifact completion and explicit credential
-stamp deltas, with only two additional column UPDATE grants. All 86 declared
+stamp deltas, with only two additional column UPDATE grants. The certifier replay
+batch adds 300 native requests over four further POST methods,
+with independent credentials and exact existing-record replay outcomes. All 90 declared
 methods have six user/session cases; worker
 authority is explicitly separate from those cookies. Native worker claim history
 and real source packet bytes have independent review. The remaining public methods,

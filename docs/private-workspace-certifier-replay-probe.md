@@ -3,7 +3,8 @@
 This standalone supplemental program exercises four existing POST methods: certification-run
 creation, result submission, terminal transition and result lifecycle. It uses actual handlers,
 certifier authentication, public packet construction, Prisma and restricted PostgreSQL. It adds no
-production behavior, providers, private workspace tables, shared catalog entries or accepted golden.
+production behavior, providers or private workspace tables. The shared catalog executes this
+program with its own reset and independently reviewed golden.
 It does not complete G1 or establish scientific confirmation or independent certification.
 
 `CERTIFIER_REPLAY_PROGRAM` declares 300 requests: 18×200, 6×201, 24×400, 96×401, 66×403,
@@ -102,8 +103,13 @@ complete state pairs and capability guards. The evidence is retained under
 authority, capture and architecture tests pass, along with the full G1 script TypeScript config and
 focused lint/format checks.
 
-Four-label empty-private-schema comparisons, independent manual baseline review and shared lifecycle
-integration remain pending. No baseline is accepted here. Fresh run creation, fresh result issuance,
+The integrated four-label candidate produced exact HTTP/state pairs under the empty-private-schema
+lifecycle. Independent review passed 83 checks against candidate file SHA-256
+`c42b34d7042ac22136f2c7369e2c17a6f564bbf930d4a644c2349f3a25b74073` and canonical
+state SHA-256 `41841090e9ddf323723cdfdcb701f03b32aa1a917b1025ad26e3eaddf18d2f01`.
+The new golden was manually accepted only after that review. All previously accepted HTTP and full
+state captures remain unchanged; the raw index matches #236, including its already measured two
+artifact UPDATE columns. No existing golden is rewritten. Final integrated validation follows. Fresh run creation, fresh result issuance,
 first terminal mutation and first lifecycle event creation remain positive-path gaps because they
 produce native IDs, audit records or timestamps during runtime. This batch introduces no entropy
 waiver or extra write grants to hide those differences. Real certifier execution, providers, actual
