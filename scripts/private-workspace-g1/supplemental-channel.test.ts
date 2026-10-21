@@ -4,6 +4,7 @@ import { captureFromGolden } from "./test-support.js";
 import {
   supplementalCandidate,
   supplementalCountsProblems,
+  supplementalCountsSql,
   supplementalGoldenProblems,
   supplementalPairProblems,
   type SupplementalProgram,
@@ -47,6 +48,15 @@ describe("independently reviewed supplemental programs", () => {
       r.kind === "http" ? { ...r, status: 500 } : r,
     );
     expect(supplementalGoldenProblems(program, statusChanged, golden).length).toBeGreaterThan(0);
+  });
+  it("counts every recorded table without granting runtime access or accepting SQL identifiers", () => {
+    const sql = supplementalCountsSql(["SynthesisGenerationRequestClaim", "User"]);
+    expect(sql).toContain('FROM public."SynthesisGenerationRequestClaim"');
+    expect(sql).toContain('FROM public."User"');
+    expect(sql).not.toContain("GRANT");
+    expect(() => supplementalCountsSql([])).toThrow();
+    expect(() => supplementalCountsSql(["User", "User"])).toThrow();
+    expect(() => supplementalCountsSql(['User"; DROP TABLE User; --'])).toThrow();
   });
   it("rejects undeclared count changes and omitted tables, including zero-valued deltas", () => {
     const base = { Review: 3, User: 5 };

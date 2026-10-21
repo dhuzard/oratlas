@@ -7,6 +7,7 @@ import {
   validateCapture,
 } from "./compare.js";
 import type { Scenario } from "./scenarios.js";
+import { quoteLiteral } from "./postgres.js";
 
 /** Compiled descriptors only. These never accept an arbitrary spec, SQL path or program from env. */
 export type SupplementalProgram = {
@@ -99,4 +100,19 @@ export function supplementalCountsProblems(
       ? []
       : [`Supplemental row count differs: ${table}`];
   });
+}
+
+/** Bootstrap-only fixture accounting over the recorded schema inventory, not runtime SELECT grants. */
+export function supplementalCountsSql(tables: readonly string[]): string {
+  if (
+    tables.length === 0 ||
+    new Set(tables).size !== tables.length ||
+    tables.some((table) => !/^[A-Z][A-Za-z0-9]{0,62}$/u.test(table))
+  )
+    throw new Error("Invalid supplemental count inventory");
+  const values = [...tables]
+    .sort()
+    .map((table) => `(${quoteLiteral(table)}, (SELECT count(*) FROM public."${table}"))`)
+    .join(", ");
+  return `SELECT json_object_agg(name, total ORDER BY name COLLATE "C") FROM (VALUES ${values}) AS counts(name, total)`;
 }
