@@ -1,0 +1,2986 @@
+{
+  "protocol": "oratlas.g1.supplemental/0.1",
+  "program": "audit-revocations",
+  "http": {
+    "version": 2,
+    "review": "Independently reviewed 2026-10-21 at bef4f829e2bbf8d23d03cff642b2677f47d8a951: four 92-request native captures; actual signed Cookie bindings; all 87 parent table fixture counts and complete cumulative 72-table state. Two administrator calls target already-revoked credentials and append exactly two native AuditEvents with narrowly fixed test-only absent-ID/time inputs. Existing rows and runtime grants unchanged. Partial synthetic G1; active credential revocation and first-write behavior remain uncovered.",
+    "baseUrl": "https://g1.oratlas.example",
+    "clock": "2026-04-01T00:00:00.000Z",
+    "records": [
+      {
+        "kind": "http",
+        "id": "audit-revoke-verifier-already-revoked-anonymous",
+        "method": "POST",
+        "path": "/api/editorial/verifier-credentials/g1-worker-verifier-revoked/revoke",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 401,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-verifier-missing-anonymous",
+        "method": "POST",
+        "path": "/api/editorial/verifier-credentials/g1-audit-revoke-missing/revoke",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 401,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-verifier-missing-origin-anonymous",
+        "method": "POST",
+        "path": "/api/editorial/verifier-credentials/g1-worker-verifier-revoked/revoke",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"A matching same-origin request is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-verifier-foreign-origin-anonymous",
+        "method": "POST",
+        "path": "/api/editorial/verifier-credentials/g1-worker-verifier-revoked/revoke",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://foreign.g1.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"A matching same-origin request is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-verifier-cross-site-anonymous",
+        "method": "POST",
+        "path": "/api/editorial/verifier-credentials/g1-worker-verifier-revoked/revoke",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "cross-site"
+        },
+        "requestBody": "{}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Cross-site mutation requests are refused.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-verifier-wrong-media-anonymous",
+        "method": "POST",
+        "path": "/api/editorial/verifier-credentials/g1-worker-verifier-revoked/revoke",
+        "requestHeaders": {
+          "content-type": "text/plain",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 415,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unsupported-media-type\",\"message\":\"Content-Type application/json is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-verifier-missing-media-anonymous",
+        "method": "POST",
+        "path": "/api/editorial/verifier-credentials/g1-worker-verifier-revoked/revoke",
+        "requestHeaders": {
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 415,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unsupported-media-type\",\"message\":\"Content-Type application/json is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-verifier-already-revoked-A-only",
+        "method": "POST",
+        "path": "/api/editorial/verifier-credentials/g1-worker-verifier-revoked/revoke",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Administrator role required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-verifier-missing-A-only",
+        "method": "POST",
+        "path": "/api/editorial/verifier-credentials/g1-audit-revoke-missing/revoke",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Administrator role required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-verifier-missing-origin-A-only",
+        "method": "POST",
+        "path": "/api/editorial/verifier-credentials/g1-worker-verifier-revoked/revoke",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"A matching same-origin request is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-verifier-foreign-origin-A-only",
+        "method": "POST",
+        "path": "/api/editorial/verifier-credentials/g1-worker-verifier-revoked/revoke",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://foreign.g1.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"A matching same-origin request is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-verifier-cross-site-A-only",
+        "method": "POST",
+        "path": "/api/editorial/verifier-credentials/g1-worker-verifier-revoked/revoke",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "cross-site"
+        },
+        "requestBody": "{}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Cross-site mutation requests are refused.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-verifier-wrong-media-A-only",
+        "method": "POST",
+        "path": "/api/editorial/verifier-credentials/g1-worker-verifier-revoked/revoke",
+        "requestHeaders": {
+          "content-type": "text/plain",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 415,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unsupported-media-type\",\"message\":\"Content-Type application/json is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-verifier-missing-media-A-only",
+        "method": "POST",
+        "path": "/api/editorial/verifier-credentials/g1-worker-verifier-revoked/revoke",
+        "requestHeaders": {
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 415,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unsupported-media-type\",\"message\":\"Content-Type application/json is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-verifier-already-revoked-B-only",
+        "method": "POST",
+        "path": "/api/editorial/verifier-credentials/g1-worker-verifier-revoked/revoke",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Administrator role required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-verifier-missing-B-only",
+        "method": "POST",
+        "path": "/api/editorial/verifier-credentials/g1-audit-revoke-missing/revoke",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Administrator role required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-verifier-missing-origin-B-only",
+        "method": "POST",
+        "path": "/api/editorial/verifier-credentials/g1-worker-verifier-revoked/revoke",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"A matching same-origin request is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-verifier-foreign-origin-B-only",
+        "method": "POST",
+        "path": "/api/editorial/verifier-credentials/g1-worker-verifier-revoked/revoke",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://foreign.g1.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"A matching same-origin request is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-verifier-cross-site-B-only",
+        "method": "POST",
+        "path": "/api/editorial/verifier-credentials/g1-worker-verifier-revoked/revoke",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "cross-site"
+        },
+        "requestBody": "{}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Cross-site mutation requests are refused.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-verifier-wrong-media-B-only",
+        "method": "POST",
+        "path": "/api/editorial/verifier-credentials/g1-worker-verifier-revoked/revoke",
+        "requestHeaders": {
+          "content-type": "text/plain",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 415,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unsupported-media-type\",\"message\":\"Content-Type application/json is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-verifier-missing-media-B-only",
+        "method": "POST",
+        "path": "/api/editorial/verifier-credentials/g1-worker-verifier-revoked/revoke",
+        "requestHeaders": {
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 415,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unsupported-media-type\",\"message\":\"Content-Type application/json is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-verifier-already-revoked-A+B",
+        "method": "POST",
+        "path": "/api/editorial/verifier-credentials/g1-worker-verifier-revoked/revoke",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Administrator role required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-verifier-missing-A+B",
+        "method": "POST",
+        "path": "/api/editorial/verifier-credentials/g1-audit-revoke-missing/revoke",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Administrator role required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-verifier-missing-origin-A+B",
+        "method": "POST",
+        "path": "/api/editorial/verifier-credentials/g1-worker-verifier-revoked/revoke",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"A matching same-origin request is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-verifier-foreign-origin-A+B",
+        "method": "POST",
+        "path": "/api/editorial/verifier-credentials/g1-worker-verifier-revoked/revoke",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://foreign.g1.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"A matching same-origin request is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-verifier-cross-site-A+B",
+        "method": "POST",
+        "path": "/api/editorial/verifier-credentials/g1-worker-verifier-revoked/revoke",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "cross-site"
+        },
+        "requestBody": "{}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Cross-site mutation requests are refused.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-verifier-wrong-media-A+B",
+        "method": "POST",
+        "path": "/api/editorial/verifier-credentials/g1-worker-verifier-revoked/revoke",
+        "requestHeaders": {
+          "content-type": "text/plain",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 415,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unsupported-media-type\",\"message\":\"Content-Type application/json is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-verifier-missing-media-A+B",
+        "method": "POST",
+        "path": "/api/editorial/verifier-credentials/g1-worker-verifier-revoked/revoke",
+        "requestHeaders": {
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 415,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unsupported-media-type\",\"message\":\"Content-Type application/json is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-verifier-already-revoked-EDITOR",
+        "method": "POST",
+        "path": "/api/editorial/verifier-credentials/g1-worker-verifier-revoked/revoke",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Administrator role required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-verifier-missing-EDITOR",
+        "method": "POST",
+        "path": "/api/editorial/verifier-credentials/g1-audit-revoke-missing/revoke",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Administrator role required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-verifier-missing-origin-EDITOR",
+        "method": "POST",
+        "path": "/api/editorial/verifier-credentials/g1-worker-verifier-revoked/revoke",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"A matching same-origin request is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-verifier-foreign-origin-EDITOR",
+        "method": "POST",
+        "path": "/api/editorial/verifier-credentials/g1-worker-verifier-revoked/revoke",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://foreign.g1.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"A matching same-origin request is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-verifier-cross-site-EDITOR",
+        "method": "POST",
+        "path": "/api/editorial/verifier-credentials/g1-worker-verifier-revoked/revoke",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "cross-site"
+        },
+        "requestBody": "{}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Cross-site mutation requests are refused.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-verifier-wrong-media-EDITOR",
+        "method": "POST",
+        "path": "/api/editorial/verifier-credentials/g1-worker-verifier-revoked/revoke",
+        "requestHeaders": {
+          "content-type": "text/plain",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 415,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unsupported-media-type\",\"message\":\"Content-Type application/json is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-verifier-missing-media-EDITOR",
+        "method": "POST",
+        "path": "/api/editorial/verifier-credentials/g1-worker-verifier-revoked/revoke",
+        "requestHeaders": {
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 415,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unsupported-media-type\",\"message\":\"Content-Type application/json is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-verifier-already-revoked-ADMIN",
+        "method": "POST",
+        "path": "/api/editorial/verifier-credentials/g1-worker-verifier-revoked/revoke",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 200,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"revoked\":true}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-verifier-missing-ADMIN",
+        "method": "POST",
+        "path": "/api/editorial/verifier-credentials/g1-audit-revoke-missing/revoke",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 404,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Verifier credential not found.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-verifier-missing-origin-ADMIN",
+        "method": "POST",
+        "path": "/api/editorial/verifier-credentials/g1-worker-verifier-revoked/revoke",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"A matching same-origin request is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-verifier-foreign-origin-ADMIN",
+        "method": "POST",
+        "path": "/api/editorial/verifier-credentials/g1-worker-verifier-revoked/revoke",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://foreign.g1.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"A matching same-origin request is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-verifier-cross-site-ADMIN",
+        "method": "POST",
+        "path": "/api/editorial/verifier-credentials/g1-worker-verifier-revoked/revoke",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "cross-site"
+        },
+        "requestBody": "{}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Cross-site mutation requests are refused.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-verifier-wrong-media-ADMIN",
+        "method": "POST",
+        "path": "/api/editorial/verifier-credentials/g1-worker-verifier-revoked/revoke",
+        "requestHeaders": {
+          "content-type": "text/plain",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 415,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unsupported-media-type\",\"message\":\"Content-Type application/json is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-verifier-missing-media-ADMIN",
+        "method": "POST",
+        "path": "/api/editorial/verifier-credentials/g1-worker-verifier-revoked/revoke",
+        "requestHeaders": {
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 415,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unsupported-media-type\",\"message\":\"Content-Type application/json is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-verifier-session-malformed",
+        "method": "POST",
+        "path": "/api/editorial/verifier-credentials/g1-worker-verifier-revoked/revoke",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{}",
+        "principal": "anonymous",
+        "sessionCase": "malformed",
+        "session": {
+          "case": "malformed",
+          "value": "g1-malformed-session-value"
+        },
+        "cookieSha256": "0b646763360dfbf0b958677056e8f33e616febd688290abe0b8de92864714906",
+        "status": 401,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-verifier-session-signed-expired",
+        "method": "POST",
+        "path": "/api/editorial/verifier-credentials/g1-worker-verifier-revoked/revoke",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{}",
+        "principal": "anonymous",
+        "sessionCase": "signed-expired",
+        "session": {
+          "case": "signed-expired",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-01T00:00:00.000Z"
+        },
+        "cookieSha256": "fa480d7e6f4efdbc8ba7f86a08d94834130d3f13a07c89c44103ce2cc60700c0",
+        "status": 401,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-verifier-session-tampered",
+        "method": "POST",
+        "path": "/api/editorial/verifier-credentials/g1-worker-verifier-revoked/revoke",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{}",
+        "principal": "anonymous",
+        "sessionCase": "tampered",
+        "session": {
+          "case": "tampered",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z",
+          "substitutedUserId": "g1-user-admin"
+        },
+        "cookieSha256": "79f2621dfa5223e7ab82dbc4fa99562464ae7afc1b7afec9bc74f30ffb1e4a43",
+        "status": 401,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-verifier-session-signed-missing-user",
+        "method": "POST",
+        "path": "/api/editorial/verifier-credentials/g1-worker-verifier-revoked/revoke",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{}",
+        "principal": "anonymous",
+        "sessionCase": "signed-missing-user",
+        "session": {
+          "case": "signed-missing-user",
+          "userId": "g1-user-deleted",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "0596f369924b9c8e97061767be36bd17565fc628a3410cbc01a4f414c124818c",
+        "status": 401,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-certifier-already-revoked-anonymous",
+        "method": "POST",
+        "path": "/api/editorial/certifier-credentials/g1-worker-certifier-revoked/revoke",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 401,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-certifier-missing-anonymous",
+        "method": "POST",
+        "path": "/api/editorial/certifier-credentials/g1-audit-revoke-missing/revoke",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 401,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-certifier-missing-origin-anonymous",
+        "method": "POST",
+        "path": "/api/editorial/certifier-credentials/g1-worker-certifier-revoked/revoke",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"A matching same-origin request is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-certifier-foreign-origin-anonymous",
+        "method": "POST",
+        "path": "/api/editorial/certifier-credentials/g1-worker-certifier-revoked/revoke",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://foreign.g1.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"A matching same-origin request is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-certifier-cross-site-anonymous",
+        "method": "POST",
+        "path": "/api/editorial/certifier-credentials/g1-worker-certifier-revoked/revoke",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "cross-site"
+        },
+        "requestBody": "{}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Cross-site mutation requests are refused.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-certifier-wrong-media-anonymous",
+        "method": "POST",
+        "path": "/api/editorial/certifier-credentials/g1-worker-certifier-revoked/revoke",
+        "requestHeaders": {
+          "content-type": "text/plain",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 415,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unsupported-media-type\",\"message\":\"Content-Type application/json is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-certifier-missing-media-anonymous",
+        "method": "POST",
+        "path": "/api/editorial/certifier-credentials/g1-worker-certifier-revoked/revoke",
+        "requestHeaders": {
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 415,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unsupported-media-type\",\"message\":\"Content-Type application/json is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-certifier-already-revoked-A-only",
+        "method": "POST",
+        "path": "/api/editorial/certifier-credentials/g1-worker-certifier-revoked/revoke",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Administrator role required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-certifier-missing-A-only",
+        "method": "POST",
+        "path": "/api/editorial/certifier-credentials/g1-audit-revoke-missing/revoke",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Administrator role required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-certifier-missing-origin-A-only",
+        "method": "POST",
+        "path": "/api/editorial/certifier-credentials/g1-worker-certifier-revoked/revoke",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"A matching same-origin request is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-certifier-foreign-origin-A-only",
+        "method": "POST",
+        "path": "/api/editorial/certifier-credentials/g1-worker-certifier-revoked/revoke",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://foreign.g1.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"A matching same-origin request is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-certifier-cross-site-A-only",
+        "method": "POST",
+        "path": "/api/editorial/certifier-credentials/g1-worker-certifier-revoked/revoke",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "cross-site"
+        },
+        "requestBody": "{}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Cross-site mutation requests are refused.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-certifier-wrong-media-A-only",
+        "method": "POST",
+        "path": "/api/editorial/certifier-credentials/g1-worker-certifier-revoked/revoke",
+        "requestHeaders": {
+          "content-type": "text/plain",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 415,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unsupported-media-type\",\"message\":\"Content-Type application/json is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-certifier-missing-media-A-only",
+        "method": "POST",
+        "path": "/api/editorial/certifier-credentials/g1-worker-certifier-revoked/revoke",
+        "requestHeaders": {
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 415,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unsupported-media-type\",\"message\":\"Content-Type application/json is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-certifier-already-revoked-B-only",
+        "method": "POST",
+        "path": "/api/editorial/certifier-credentials/g1-worker-certifier-revoked/revoke",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Administrator role required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-certifier-missing-B-only",
+        "method": "POST",
+        "path": "/api/editorial/certifier-credentials/g1-audit-revoke-missing/revoke",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Administrator role required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-certifier-missing-origin-B-only",
+        "method": "POST",
+        "path": "/api/editorial/certifier-credentials/g1-worker-certifier-revoked/revoke",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"A matching same-origin request is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-certifier-foreign-origin-B-only",
+        "method": "POST",
+        "path": "/api/editorial/certifier-credentials/g1-worker-certifier-revoked/revoke",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://foreign.g1.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"A matching same-origin request is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-certifier-cross-site-B-only",
+        "method": "POST",
+        "path": "/api/editorial/certifier-credentials/g1-worker-certifier-revoked/revoke",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "cross-site"
+        },
+        "requestBody": "{}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Cross-site mutation requests are refused.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-certifier-wrong-media-B-only",
+        "method": "POST",
+        "path": "/api/editorial/certifier-credentials/g1-worker-certifier-revoked/revoke",
+        "requestHeaders": {
+          "content-type": "text/plain",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 415,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unsupported-media-type\",\"message\":\"Content-Type application/json is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-certifier-missing-media-B-only",
+        "method": "POST",
+        "path": "/api/editorial/certifier-credentials/g1-worker-certifier-revoked/revoke",
+        "requestHeaders": {
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 415,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unsupported-media-type\",\"message\":\"Content-Type application/json is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-certifier-already-revoked-A+B",
+        "method": "POST",
+        "path": "/api/editorial/certifier-credentials/g1-worker-certifier-revoked/revoke",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Administrator role required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-certifier-missing-A+B",
+        "method": "POST",
+        "path": "/api/editorial/certifier-credentials/g1-audit-revoke-missing/revoke",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Administrator role required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-certifier-missing-origin-A+B",
+        "method": "POST",
+        "path": "/api/editorial/certifier-credentials/g1-worker-certifier-revoked/revoke",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"A matching same-origin request is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-certifier-foreign-origin-A+B",
+        "method": "POST",
+        "path": "/api/editorial/certifier-credentials/g1-worker-certifier-revoked/revoke",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://foreign.g1.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"A matching same-origin request is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-certifier-cross-site-A+B",
+        "method": "POST",
+        "path": "/api/editorial/certifier-credentials/g1-worker-certifier-revoked/revoke",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "cross-site"
+        },
+        "requestBody": "{}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Cross-site mutation requests are refused.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-certifier-wrong-media-A+B",
+        "method": "POST",
+        "path": "/api/editorial/certifier-credentials/g1-worker-certifier-revoked/revoke",
+        "requestHeaders": {
+          "content-type": "text/plain",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 415,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unsupported-media-type\",\"message\":\"Content-Type application/json is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-certifier-missing-media-A+B",
+        "method": "POST",
+        "path": "/api/editorial/certifier-credentials/g1-worker-certifier-revoked/revoke",
+        "requestHeaders": {
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 415,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unsupported-media-type\",\"message\":\"Content-Type application/json is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-certifier-already-revoked-EDITOR",
+        "method": "POST",
+        "path": "/api/editorial/certifier-credentials/g1-worker-certifier-revoked/revoke",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Administrator role required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-certifier-missing-EDITOR",
+        "method": "POST",
+        "path": "/api/editorial/certifier-credentials/g1-audit-revoke-missing/revoke",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Administrator role required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-certifier-missing-origin-EDITOR",
+        "method": "POST",
+        "path": "/api/editorial/certifier-credentials/g1-worker-certifier-revoked/revoke",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"A matching same-origin request is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-certifier-foreign-origin-EDITOR",
+        "method": "POST",
+        "path": "/api/editorial/certifier-credentials/g1-worker-certifier-revoked/revoke",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://foreign.g1.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"A matching same-origin request is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-certifier-cross-site-EDITOR",
+        "method": "POST",
+        "path": "/api/editorial/certifier-credentials/g1-worker-certifier-revoked/revoke",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "cross-site"
+        },
+        "requestBody": "{}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Cross-site mutation requests are refused.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-certifier-wrong-media-EDITOR",
+        "method": "POST",
+        "path": "/api/editorial/certifier-credentials/g1-worker-certifier-revoked/revoke",
+        "requestHeaders": {
+          "content-type": "text/plain",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 415,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unsupported-media-type\",\"message\":\"Content-Type application/json is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-certifier-missing-media-EDITOR",
+        "method": "POST",
+        "path": "/api/editorial/certifier-credentials/g1-worker-certifier-revoked/revoke",
+        "requestHeaders": {
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 415,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unsupported-media-type\",\"message\":\"Content-Type application/json is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-certifier-already-revoked-ADMIN",
+        "method": "POST",
+        "path": "/api/editorial/certifier-credentials/g1-worker-certifier-revoked/revoke",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 200,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"revoked\":true}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-certifier-missing-ADMIN",
+        "method": "POST",
+        "path": "/api/editorial/certifier-credentials/g1-audit-revoke-missing/revoke",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 404,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Credential not found.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-certifier-missing-origin-ADMIN",
+        "method": "POST",
+        "path": "/api/editorial/certifier-credentials/g1-worker-certifier-revoked/revoke",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"A matching same-origin request is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-certifier-foreign-origin-ADMIN",
+        "method": "POST",
+        "path": "/api/editorial/certifier-credentials/g1-worker-certifier-revoked/revoke",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://foreign.g1.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"A matching same-origin request is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-certifier-cross-site-ADMIN",
+        "method": "POST",
+        "path": "/api/editorial/certifier-credentials/g1-worker-certifier-revoked/revoke",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "cross-site"
+        },
+        "requestBody": "{}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Cross-site mutation requests are refused.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-certifier-wrong-media-ADMIN",
+        "method": "POST",
+        "path": "/api/editorial/certifier-credentials/g1-worker-certifier-revoked/revoke",
+        "requestHeaders": {
+          "content-type": "text/plain",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 415,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unsupported-media-type\",\"message\":\"Content-Type application/json is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-certifier-missing-media-ADMIN",
+        "method": "POST",
+        "path": "/api/editorial/certifier-credentials/g1-worker-certifier-revoked/revoke",
+        "requestHeaders": {
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 415,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unsupported-media-type\",\"message\":\"Content-Type application/json is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-certifier-session-malformed",
+        "method": "POST",
+        "path": "/api/editorial/certifier-credentials/g1-worker-certifier-revoked/revoke",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{}",
+        "principal": "anonymous",
+        "sessionCase": "malformed",
+        "session": {
+          "case": "malformed",
+          "value": "g1-malformed-session-value"
+        },
+        "cookieSha256": "0b646763360dfbf0b958677056e8f33e616febd688290abe0b8de92864714906",
+        "status": 401,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-certifier-session-signed-expired",
+        "method": "POST",
+        "path": "/api/editorial/certifier-credentials/g1-worker-certifier-revoked/revoke",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{}",
+        "principal": "anonymous",
+        "sessionCase": "signed-expired",
+        "session": {
+          "case": "signed-expired",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-01T00:00:00.000Z"
+        },
+        "cookieSha256": "fa480d7e6f4efdbc8ba7f86a08d94834130d3f13a07c89c44103ce2cc60700c0",
+        "status": 401,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-certifier-session-tampered",
+        "method": "POST",
+        "path": "/api/editorial/certifier-credentials/g1-worker-certifier-revoked/revoke",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{}",
+        "principal": "anonymous",
+        "sessionCase": "tampered",
+        "session": {
+          "case": "tampered",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z",
+          "substitutedUserId": "g1-user-admin"
+        },
+        "cookieSha256": "79f2621dfa5223e7ab82dbc4fa99562464ae7afc1b7afec9bc74f30ffb1e4a43",
+        "status": 401,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "audit-revoke-certifier-session-signed-missing-user",
+        "method": "POST",
+        "path": "/api/editorial/certifier-credentials/g1-worker-certifier-revoked/revoke",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{}",
+        "principal": "anonymous",
+        "sessionCase": "signed-missing-user",
+        "session": {
+          "case": "signed-missing-user",
+          "userId": "g1-user-deleted",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "0596f369924b9c8e97061767be36bd17565fc628a3410cbc01a4f414c124818c",
+        "status": 401,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+        }
+      }
+    ]
+  },
+  "stateSha256": "e3237246b1a1df0eb2307cc9b1e0bd501092296fc3a48f29ba4bb650b8aa14d7",
+  "review": "Independently reviewed 2026-10-21 at bef4f829e2bbf8d23d03cff642b2677f47d8a951: four 92-request native captures; actual signed Cookie bindings; all 87 parent table fixture counts and complete cumulative 72-table state. Two administrator calls target already-revoked credentials and append exactly two native AuditEvents with narrowly fixed test-only absent-ID/time inputs. Existing rows and runtime grants unchanged. Partial synthetic G1; active credential revocation and first-write behavior remain uncovered."
+}
