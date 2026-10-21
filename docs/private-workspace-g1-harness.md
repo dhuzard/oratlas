@@ -66,8 +66,8 @@ Next implementation dependencies remain separate: reviewed persistence/session b
 ## Implementation record (G1-empty, partial)
 
 Status: **G1-empty harness implemented with partial coverage. All six principal cases now execute
-against 14 of the 133 public route files and two metadata loaders; populated T-ROLE/T-PUB
-matrices, the other ~119 route files, Next HTTP serving, pages and non-HTTP channels remain
+against 17 of the 133 public route files and two metadata loaders; populated T-ROLE/T-PUB
+matrices, the other 116 route files, Next HTTP serving, pages and non-HTTP channels remain
 outstanding. G1 is not recorded as passed.**
 
 ### Layout
@@ -341,7 +341,8 @@ not accepted on timeout alone. Sanitized PostgreSQL evidence: `/tmp/alpha-g1-f70
 `/tmp/alpha-parent-final-full-tests.log`, `/tmp/alpha-parent-final-focused.log`, and
 `/tmp/alpha-parent-script-typecheck-final.log`.
 
-**Epic boundary:** G1 still has 119 unexecuted route files plus the documented pages/channel gaps.
+**Historical epic boundary for the 2026-10-20 expansion:** that snapshot had 119 unexecuted
+route files; the public-artifact extension below reduces this to 116. The documented pages/channel gaps remain.
 No private application tables, session/persistence adapters or workspace browser demonstration were
 added by this slice. Those dependent slices remain gated; the local effect-ordering fixture is not
 PostgreSQL session/persistence evidence. Session-instance storage and lifecycle/retention choices
@@ -453,11 +454,77 @@ and a golden cannot change an expected outcome: statuses, denials, collections a
 The OpenAPI golden is tied to `docs/openapi.yaml` and the generated ETags by an offline test, so a
 contract change requires a reviewed golden update in the same change.
 
+### Public artifact coverage extension (2026-10-21, local synthetic)
+
+Baseline: `main` at `154b399`. This extension adds **42 HTTP records** to the existing
+51-record program: **93 records**, comprising 88 HTTP requests, 3 state projections and
+2 metadata loaders. The current manifest derives **17 of 133 route files exercised** and
+**116 unexecuted** from the route tree. A/B remain public-user fixture labels; no private
+workspace or membership exists, and **G1 remains partial**.
+
+All six principals (anonymous, A-only, B-only, A+B, EDITOR and ADMIN) execute:
+
+- `GET /api/publication-captures/{id}`: exact source version/path/hash/byte length,
+  metadata-only output and missing-id `404`. The source capture stores a distinctive raw
+  inert marker as base64; metadata must contain neither the raw nor encoded retained bytes.
+- `GET /api/publication-versions/{id}/packet`: two exact captured artifact metadata entries,
+  schema `1.3.0`, a recomputed canonical packet digest, no retained bytes and missing-id `404`.
+  Contributor and production snapshots are empty controls; their two tables receive explicit
+  `SELECT` grants solely for this public packet path, with no added write grants.
+- `GET /api/reviews/{slug}/versions/{versionId}/files/{path}`: exact inert text download,
+  attachment filename, plain-text content type, `nosniff`, `no-store, must-revalidate` and
+  `Pragma: no-cache`. Missing and pre-seeded tombstoned versions produce identical `404`
+  status/body/headers. The tombstoned row belongs to a published review and references the
+  same populated preserved snapshot as the readable version, so denial is not a missing-file
+  or withdrawn-review artifact.
+
+The scenario comparator independently checks exact body/header expectations and response
+equality across principals (including status, bytes/digest/length, normalized headers and
+cookies). Fault-injection unit tests fail on retained-byte leakage, an extra principal-specific
+metadata field, a stripped attachment header and changed download bytes. This covers the
+handler response boundary; it does not test a lifecycle transition, in-flight revocation,
+Next serving, a browser or deployed/CDN cache invalidation.
+
+Observed validation on PostgreSQL **16.15**, Node **24.16.0**:
+
+- A newly initialized, password-authenticated, loopback-only PostgreSQL cluster served a new
+  acknowledged disposable database. No existing service/database or system installation was
+  modified. The first complete run passed all four program captures, auth and role suites,
+  and paired comparisons, and correctly failed against the old golden. The candidate was
+  regenerated deliberately from that validated baseline capture; all previous **51 record
+  values were unchanged**. The additional 42 records and review text require independent
+  review before merge.
+- Final `pnpm g1:private-workspace` equivalent: **26/26 steps passed**, all four independent
+  **93-record** captures matched the program and golden and each other, auth **6/6**, role
+  **7/7**, cleanup **4/4**. Final result explicitly remains `passed (G1-empty partial coverage only)`.
+  Sanitized evidence: `/tmp/oratlas-private-g1-evidence-final/`. A direct post-cleanup
+  query found zero public relations, zero `private_ws` schemas and zero run-specific runtime
+  roles; scanning every evidence file found no fixture passwords.
+- Focused offline safeguards, architecture, cache and public regressions: **11 files,
+  221 tests passed**. Outcomes in each public capture: 45 × `200`, 2 × `304`, 8 × `401`,
+  8 × `403`, 25 × `404`, plus the five state/metadata records.
+- G1 script-aware TypeScript check uses the new reusable configuration below. It includes the
+  actual `.g1.spec.ts` files and their Next/application imports, with no casts or suppressions.
+  ESLint, Prettier and `git diff --check` passed on the change. No full suite, build, browser
+  E2E or GitHub CI result is claimed for this local extension.
+
+Reproducible checks (with dependencies and a generated PostgreSQL client):
+
+```bash
+pnpm exec vitest run scripts/private-workspace-g1 scripts/architecture-boundaries.test.ts apps/web/src/lib/private apps/web/src/lib/openapi-response.test.ts apps/web/src/app/llms.txt/route.test.ts
+pnpm exec tsc --project scripts/private-workspace-g1/tsconfig.json
+pnpm g1:private-workspace
+```
+
+The last command requires all dedicated G1 variables and the disposable-target acknowledgement
+above; missing infrastructure fails rather than skipping. Runtime, private-storage and
+publication/export policies are unchanged. Standards export formats remain a manifest gap.
+
 ### Outstanding (not covered; G1 must not be recorded complete on this basis)
 
 - Populated T-ROLE (`SELECT`/DML denial, ownership and RLS on real `private_ws` tables) and the full
   §11 T-PUB matrix with seeded private A/B content. At G1, A/B are labels on public users only.
-- About 119 of the 133 public route files (every manifest `gap` surface), including the other
+- 116 of the 133 public route files (every manifest `gap` surface), including the other
   editorial/certification/verification mutations, submissions/ingestion, exports, federation and
   OAuth start/callback (never activated).
 - Next HTTP serving: routing, middleware, RSC/HTML pages, page metadata/JSON-LD/OpenGraph, and the

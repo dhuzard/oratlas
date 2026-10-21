@@ -250,3 +250,81 @@ VALUES
     'Synthetic G1 protocol fixture', 'Synthetic protocol row for the readiness read.', '{}',
     '44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a', 'active',
     TIMESTAMP '2026-01-05 00:00:00');
+
+-- Public artifact fixtures: retained bytes must not leak through metadata or packet routes.
+INSERT INTO "PublicationCapture" (
+  "id",
+  "publicationVersionId",
+  "artifactKind",
+  "artifactIdentitySha256",
+  "declaredPath",
+  "requestedUrl",
+  "observedUrl",
+  "mediaType",
+  "contentSha256",
+  "byteLength",
+  "contentBytes",
+  "declaredSha256",
+  "structuralProvenance",
+  "capturedAt",
+  "createdAt"
+) VALUES (
+  'g1-capture-manifest',
+  'g1-publication-version-1',
+  'publication-manifest',
+  '7c365b5fa7a844f052e8c60f33cd2be98039791e78a6a865c6ebb0589cfc167e',
+  NULL,
+  'https://publications.g1.oratlas.example/p1/oratlas.manifest.json',
+  'https://publications.g1.oratlas.example/p1/oratlas.manifest.json',
+  'application/json',
+  '1596a4c89d2e847ffa7b24c3a4214bcd1e496518d138b7233405a3d778812ea2',
+  25,
+  'eyJzY2hlbWFWZXJzaW9uIjoiMC4yLjAifQ==',
+  '1596a4c89d2e847ffa7b24c3a4214bcd1e496518d138b7233405a3d778812ea2',
+  'published-structure',
+  TIMESTAMP '2026-03-10 00:00:00',
+  TIMESTAMP '2026-03-10 00:00:00'
+);
+INSERT INTO "PublicationCapture" (
+  "id",
+  "publicationVersionId",
+  "artifactKind",
+  "artifactIdentitySha256",
+  "declaredPath",
+  "requestedUrl",
+  "observedUrl",
+  "mediaType",
+  "contentSha256",
+  "byteLength",
+  "contentBytes",
+  "declaredSha256",
+  "structuralProvenance",
+  "capturedAt",
+  "createdAt"
+) VALUES (
+  'g1-capture-source',
+  'g1-publication-version-1',
+  'source-document',
+  '336103bd9e7dfb6f1218bd7fb19ce36dcb1632284380904fdcfbc292deb2260d',
+  'article.md',
+  'https://publications.g1.oratlas.example/p1/article.md',
+  'https://publications.g1.oratlas.example/p1/article.md',
+  'text/plain',
+  '5d6e3bf06175c7079a93531c1b6835fcf8b010c1ba56244678651fb0a2e44d29',
+  49,
+  'RzEgcmV0YWluZWQgY2FwdHVyZSBieXRlczogPHNjcmlwdD5pbmVydDwvc2NyaXB0Pg==',
+  '5d6e3bf06175c7079a93531c1b6835fcf8b010c1ba56244678651fb0a2e44d29',
+  'published-structure',
+  TIMESTAMP '2026-03-10 00:00:00',
+  TIMESTAMP '2026-03-10 00:00:00'
+);
+-- The tombstone shares a populated snapshot with the readable version: denial must be
+-- attributable to publicState, not to a missing snapshot/file or a withdrawn review.
+UPDATE "RepositorySnapshot"
+SET "preservedFilesJson" = '{"article.md":{"size":44,"truncated":false,"content":"<script>G1 inert public attachment</script>\n"}}'
+WHERE "id" = 'g1-snap-2';
+INSERT INTO "ReviewVersion" ("id", "reviewId", "snapshotId", "recordSourceType", "semanticVersion",
+  "title", "metadataJson", "publishedAt", "createdAt", "publicState")
+VALUES ('g1-version-tombstoned', 'g1-review-1', 'g1-snap-2', 'repository', '0.9.0',
+  'G1 tombstoned attachment control', '{}', TIMESTAMP '2025-12-01 00:00:00',
+  TIMESTAMP '2025-12-01 00:00:00', 'tombstoned');

@@ -240,7 +240,7 @@ describe("G1 orchestrator sequence (offline fault injection)", () => {
       Object.keys(CLEANUP_SQL).map((step) => [step, true]),
     );
     expect(cleanupAttempts).toEqual(Object.values(CLEANUP_SQL));
-    expect(summary.manifest?.coverage.routeFilesExercised).toBe(14);
+    expect(summary.manifest?.coverage.routeFilesExercised).toBe(17);
     expect(summary.manifest?.coverage.principalsExecuted).toHaveLength(6);
     expect(output.at(-1)).toBe("[g1] result: passed (G1-empty partial coverage only)");
     expectSanitized(summaryText);

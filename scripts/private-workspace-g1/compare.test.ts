@@ -1,3 +1,4 @@
+import { canonicalJson } from "@oratlas/contracts";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -24,7 +25,7 @@ import {
   validateCapture,
 } from "./compare.js";
 import { validSession } from "./principals.js";
-import { programProblems, SCENARIOS, type Scenario } from "./scenarios.js";
+import { CAPTURE_BYTES_SENTINEL, programProblems, SCENARIOS, type Scenario } from "./scenarios.js";
 import { captureFromGolden, readGolden, withJsonBody, withRecord } from "./test-support.js";
 
 // Offline: synthetic captures derived from the reviewed golden, the reviewed program and the
@@ -37,7 +38,7 @@ const http = (file: CaptureFile, id: string) =>
 describe("the reviewed program and golden agree", () => {
   it("has a valid program: unique ids/composite keys and coherent denials", () => {
     expect(programProblems(SCENARIOS)).toEqual([]);
-    expect(SCENARIOS.length).toBe(51);
+    expect(SCENARIOS.length).toBe(93);
   });
 
   it("validates the golden-derived capture, re-deriving every cookie with the production signer", () => {
@@ -58,11 +59,11 @@ describe("the reviewed program and golden agree", () => {
       }
     }
     expect(statuses).toEqual({
-      "200": 27,
+      "200": 45,
       "304": 2,
       "401": 8,
       "403": 8,
-      "404": 1,
+      "404": 25,
       "db-state": 3,
       "metadata-loader": 2,
     });
@@ -100,7 +101,70 @@ describe("the reviewed program and golden agree", () => {
   });
 });
 
+describe("public artifact capture integrity", () => {
+  it("binds exact source bytes/digest metadata without copying retained bytes into packets", () => {
+    const packet = JSON.parse(bodyText(http(capture, "packet-anonymous"))) as Record<
+      string,
+      unknown
+    >;
+    const { sha256, ...unsigned } = packet;
+    expect(sha256).toBe(sha256Hex(canonicalJson(unsigned)));
+    const metadata = JSON.parse(bodyText(http(capture, "capture-anonymous"))) as Record<
+      string,
+      unknown
+    >;
+    expect(metadata.contentSha256).toBe(sha256Hex(CAPTURE_BYTES_SENTINEL));
+    expect(metadata.byteLength).toBe(Buffer.byteLength(CAPTURE_BYTES_SENTINEL));
+    for (const id of ["capture-anonymous", "packet-anonymous"]) {
+      expect(bodyText(http(capture, id))).not.toContain(CAPTURE_BYTES_SENTINEL);
+      expect(bodyText(http(capture, id))).not.toContain(
+        Buffer.from(CAPTURE_BYTES_SENTINEL).toString("base64"),
+      );
+    }
+  });
+});
+
 describe("capture validation regressions", () => {
+  it("rejects retained bytes, public principal divergence and stripped attachment headers", () => {
+    const leaked = withJsonBody(capture, "capture-anonymous", (body) => ({
+      ...body,
+      contentBytes: "G1 retained capture bytes: <script>inert</script>",
+    }));
+    expect(validateCapture(leaked, SCENARIOS)).toContain(
+      "capture-anonymous: body contains excluded G1 retained capture bytes: <script>inert</script>",
+    );
+    const divergent = withJsonBody(capture, "capture-a-only", (body) => ({
+      ...body,
+      unexpectedPrincipalMetadata: "A-only",
+    }));
+    expect(validateCapture(divergent, SCENARIOS)).toContain(
+      "capture-a-only: response differs from capture-anonymous",
+    );
+    const stripped = withRecord(capture, "file-public-a-only", (record) => {
+      if (record.kind !== "http") throw new Error("http required");
+      return {
+        ...record,
+        headers: record.headers.filter(([name]) => name !== "x-content-type-options"),
+      };
+    });
+    expect(validateCapture(stripped, SCENARIOS)).toContain(
+      "file-public-a-only: expected header x-content-type-options differs",
+    );
+    const wrongBytes = withRecord(capture, "file-public-anonymous", (record) => {
+      if (record.kind !== "http") throw new Error("http required");
+      const body = Buffer.from("changed download");
+      return {
+        ...record,
+        bodyBase64: body.toString("base64"),
+        bodySha256: sha256Hex(body),
+        bodyLength: body.byteLength,
+      };
+    });
+    expect(validateCapture(wrongBytes, SCENARIOS)).toContain(
+      "file-public-anonymous: exact body differs",
+    );
+  });
+
   const problems = (file: unknown) => validateCapture(file, SCENARIOS, createSessionToken);
 
   it("rejects a principal swap, a dropped identity and a cookie that is not the recipe", () => {

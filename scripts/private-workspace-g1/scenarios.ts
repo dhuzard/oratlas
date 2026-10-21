@@ -1,6 +1,7 @@
 import { G1_BASE_URL, G1_FIXED_CLOCK, type HttpMethod } from "./capture.js";
 import {
   fixtureUser,
+  sha256Text,
   FIXTURE_USERS,
   NEGATIVE_SESSIONS,
   NO_SESSION,
@@ -16,8 +17,8 @@ import {
  * real production handlers. Expected outcomes live here, not in the golden file: a golden can never
  * authorize an error status, an empty collection or a swapped principal on its own.
  *
- * This is still partial G1 coverage: about two dozen production route handlers and two metadata
- * loaders out of the ~133 route files. Everything else stays a visible gap in manifest.ts.
+ * This is still partial G1 coverage: a bounded subset of production route handlers and two metadata
+ * loaders. The manifest derives exact exercised and gap counts from the current route tree. Everything else stays a visible gap in manifest.ts.
  */
 
 export type JsonCheck =
@@ -35,6 +36,11 @@ export type HttpExpectation = {
   readonly json?: readonly JsonCheck[];
   /** Substrings that must not occur in the body (controls and other principals' data). */
   readonly bodyExcludes?: readonly string[];
+  /** Exact public download bytes and security headers, independently of the golden. */
+  readonly bodyEquals?: string;
+  readonly headers?: Readonly<Record<string, string>>;
+  /** Equal status/body/headers/cookies across principals; request identity stays distinct. */
+  readonly sameResponseAs?: string;
 };
 
 /** A request input taken from an earlier record of the same capture (cursor, ETag). */
@@ -53,7 +59,7 @@ export type HttpScenario = {
   readonly path: string;
   readonly headers?: Readonly<Record<string, string>>;
   readonly body?: unknown;
-  readonly params?: Readonly<Record<string, string>>;
+  readonly params?: Readonly<Record<string, string | string[]>>;
   readonly principal: PrincipalLabel;
   readonly session: SessionRecipe;
   readonly derive?: DerivedInput;
@@ -667,10 +673,152 @@ function metadataScenarios(): MetadataScenario[] {
 }
 
 /** The ordered program; ids are unique and the order is part of the contract. */
+
+/** Synthetic PUBLIC content only; this does not stand in for private authorization. */
+export const CAPTURE_BYTES_SENTINEL = "G1 retained capture bytes: <script>inert</script>";
+export const PRESERVED_DOWNLOAD = "<script>G1 inert public attachment</script>\n";
+
+function artifactScenarios(): HttpScenario[] {
+  const labels: readonly PrincipalLabel[] = ["anonymous", ...USER_LABELS];
+  const scenarios: HttpScenario[] = [];
+  const metadata = "api/publication-captures/[id]";
+  const packet = "api/publication-versions/[id]/packet";
+  const files = "api/reviews/[slug]/versions/[versionId]/files/[...path]";
+  for (const label of labels) {
+    const principalSlug = slug(label);
+    const session = label === "anonymous" ? NO_SESSION : validSession(label);
+    for (const kind of ["capture", "packet"] as const) {
+      const missing = kind === "capture" ? "g1-missing-capture" : "g1-missing-publication-version";
+      const id = kind === "capture" ? "g1-capture-source" : "g1-publication-version-1";
+      const route = kind === "capture" ? metadata : packet;
+      const path = (value: string) =>
+        kind === "capture"
+          ? `/api/publication-captures/${value}`
+          : `/api/publication-versions/${value}/packet`;
+      scenarios.push(
+        {
+          kind: "http",
+          id: `${kind}-${principalSlug}`,
+          route,
+          method: "GET",
+          path: path(id),
+          params: { id },
+          principal: label,
+          session,
+          expect: {
+            status: 200,
+            headers: { "content-type": "application/json" },
+            bodyExcludes: [
+              CAPTURE_BYTES_SENTINEL,
+              Buffer.from(CAPTURE_BYTES_SENTINEL).toString("base64"),
+              '"contentBytes"',
+            ],
+            ...(label === "anonymous" ? {} : { sameResponseAs: `${kind}-anonymous` }),
+            json:
+              kind === "capture"
+                ? [
+                    { pointer: "/id", equals: "g1-capture-source" },
+                    { pointer: "/publicationVersionId", equals: "g1-publication-version-1" },
+                    { pointer: "/declaredPath", equals: "article.md" },
+                    { pointer: "/byteLength", equals: Buffer.byteLength(CAPTURE_BYTES_SENTINEL) },
+                    { pointer: "/contentSha256", equals: sha256Text(CAPTURE_BYTES_SENTINEL) },
+                    { pointer: "/contentBytes", absent: true },
+                  ]
+                : [
+                    { pointer: "/schemaVersion", equals: "1.3.0" },
+                    { pointer: "/version/id", equals: "g1-publication-version-1" },
+                    { pointer: "/captures", length: 2 },
+                    { pointer: "/captures/0/id", equals: "g1-capture-manifest" },
+                    { pointer: "/captures/1/id", equals: "g1-capture-source" },
+                    {
+                      pointer: "/captures/1/contentSha256",
+                      equals: sha256Text(CAPTURE_BYTES_SENTINEL),
+                    },
+                    { pointer: "/captures/1/contentBytes", absent: true },
+                    { pointer: "/content", length: 0 },
+                    { pointer: "/occurrences", length: 0 },
+                  ],
+          },
+        },
+        {
+          kind: "http",
+          id: `${kind}-missing-${principalSlug}`,
+          route,
+          method: "GET",
+          path: path(missing),
+          params: { id: missing },
+          principal: label,
+          session,
+          expect: {
+            status: 404,
+            denial: {
+              code: "not-found",
+              message:
+                kind === "capture"
+                  ? "Publication capture not found."
+                  : "Publication version not found.",
+            },
+            ...(label === "anonymous" ? {} : { sameResponseAs: `${kind}-missing-anonymous` }),
+          },
+        },
+      );
+    }
+    for (const state of ["public", "missing", "tombstoned"] as const) {
+      const versionId =
+        state === "public"
+          ? "g1-version-2"
+          : state === "missing"
+            ? "g1-version-missing"
+            : "g1-version-tombstoned";
+      scenarios.push({
+        kind: "http",
+        id: `file-${state}-${principalSlug}`,
+        route: files,
+        method: "GET",
+        path: `/api/reviews/g1-fixture-review/versions/${versionId}/files/article.md`,
+        params: { slug: "g1-fixture-review", versionId, path: ["article.md"] },
+        principal: label,
+        session,
+        expect:
+          state === "public"
+            ? {
+                status: 200,
+                bodyEquals: PRESERVED_DOWNLOAD,
+                headers: {
+                  "content-type": "text/plain; charset=utf-8",
+                  "content-disposition": 'attachment; filename="article.md.txt"',
+                  "x-content-type-options": "nosniff",
+                  "cache-control": "no-store, must-revalidate",
+                  pragma: "no-cache",
+                },
+                ...(label === "anonymous" ? {} : { sameResponseAs: "file-public-anonymous" }),
+              }
+            : {
+                status: 404,
+                denial: {
+                  code: "not-found",
+                  message:
+                    "No preserved content for this path. Only textual files captured at inspection are preserved.",
+                },
+                sameResponseAs:
+                  state === "tombstoned"
+                    ? `file-missing-${principalSlug}`
+                    : label === "anonymous"
+                      ? undefined
+                      : "file-missing-anonymous",
+                bodyExcludes: [PRESERVED_DOWNLOAD, "G1 tombstoned attachment control"],
+              },
+      });
+    }
+  }
+  return scenarios;
+}
+
 export const SCENARIOS: readonly Scenario[] = [
   ...legacyPublicScenarios(),
   ...discoveryScenarios(),
   ...authScenarios(),
+  ...artifactScenarios(),
   ...metadataScenarios(),
 ];
 
@@ -704,6 +852,9 @@ export function programProblems(program: readonly Scenario[]): string[] {
     const earlier = (id: string) => program.slice(0, index).some((prior) => prior.id === id);
     if (scenario.derive && !earlier(scenario.derive.from)) {
       problems.push(`${scenario.id}: derives from a later or unknown scenario`);
+    }
+    if (scenario.expect.sameResponseAs && !earlier(scenario.expect.sameResponseAs)) {
+      problems.push(`${scenario.id}: compares response with a later or unknown scenario`);
     }
     if (scenario.repeatOf && !earlier(scenario.repeatOf)) {
       problems.push(`${scenario.id}: repeats a later or unknown scenario`);
