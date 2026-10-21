@@ -275,6 +275,21 @@ it("refuses response/state cookie fragments before value-bearing diagnostics", (
       caught instanceof Error && caught.message === "Protocol/DOI capability output refused",
     ).toBe(true);
   }
+  const escaped = [...secret]
+    .map((c) => "\\u" + c.charCodeAt(0).toString(16).padStart(4, "0"))
+    .join("");
+  expect(() =>
+    assertProtocolDoiOutputSafe(
+      [
+        {
+          ...record,
+          bodyBase64: Buffer.from('{"confidence":"' + escaped + '"}').toString("base64"),
+        },
+      ],
+      {},
+      [secret],
+    ),
+  ).toThrow("Protocol/DOI capability output refused");
   const source = readFileSync(new URL("./protocol-doi.g1.spec.ts", import.meta.url), "utf8");
   expect(source.indexOf("safe(state);")).toBeLessThan(source.indexOf("expect(validateCapture("));
   expect(source.indexOf("safe(before);")).toBeLessThan(source.indexOf("expect(native.rawJson)"));

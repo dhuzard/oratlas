@@ -33,13 +33,32 @@ export function protocolDoiOutputProblems(
     JSON.stringify(state),
     ...records.map((record) => Buffer.from(record.bodyBase64, "base64").toString("utf8")),
   ];
-  return values.some(
-    (value) =>
-      workerOutputProblems(value).length ||
-      cookieSecrets.some((secret) => secret.length > 0 && value.includes(secret)),
-  )
-    ? ["Protocol/DOI capability disclosure refused"]
-    : [];
+  const pending: unknown[] = [...values];
+  let visited = 0;
+  while (pending.length) {
+    if (++visited > 250_000) return ["Protocol/DOI disclosure inspection bound refused"];
+    const value = pending.pop();
+    if (typeof value === "string") {
+      if (
+        value.length > 16 * 1024 * 1024 ||
+        workerOutputProblems(value).length ||
+        cookieSecrets.some(
+          (secret) =>
+            secret.length > 0 &&
+            (value.includes(secret) || value.includes(JSON.stringify(secret).slice(1, -1))),
+        )
+      )
+        return ["Protocol/DOI capability disclosure refused"];
+      try {
+        pending.push(JSON.parse(value));
+      } catch {
+        /* Ordinary public text. */
+      }
+    } else if (value && typeof value === "object") {
+      for (const [key, child] of Object.entries(value)) pending.push(key, child);
+    }
+  }
+  return [];
 }
 
 /** Refuse raw values before an assertion framework or validator can format diagnostics. */
