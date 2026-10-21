@@ -1,0 +1,354 @@
+{
+  "run": {
+    "id": "cmvi9k4vq00017kznkqcvsgyw",
+    "protocolId": "g1-verification-protocol-editorial",
+    "publicationVersionId": "g1-worker-version",
+    "publicationClaimOccurrenceId": null,
+    "knowledgeNodeVersionId": null,
+    "claimedVerifierId": "g1-worker-verifier-primary",
+    "status": "running",
+    "inputProfile": "full",
+    "inputProfileVersion": "1.0.0",
+    "inputSchemaVersion": "1.3.0",
+    "inputJson": "{\"captures\":[{\"artifactKind\":\"publication-manifest\",\"byteLength\":1298,\"contentSha256\":\"a023519b0542fafd6f3120246286537d6205dbf649a2db3f5ee9e1984444fc43\",\"declaredPath\":null,\"id\":\"g1-worker-manifest\",\"observedUrl\":\"https://publications.g1.oratlas.example/discovery/oratlas.manifest.json\",\"requestedUrl\":\"https://publications.g1.oratlas.example/discovery/oratlas.manifest.json\",\"structuralProvenance\":\"published-structure\"},{\"artifactKind\":\"source-document\",\"byteLength\":71,\"contentSha256\":\"53eb23ed90cbe24de9dcf779876d7a59acca8ab0e0b765bc6701dbede9b34c08\",\"declaredPath\":\"article.md\",\"id\":\"g1-worker-source\",\"observedUrl\":\"https://publications.g1.oratlas.example/discovery/article.md\",\"requestedUrl\":\"https://publications.g1.oratlas.example/discovery/article.md\",\"structuralProvenance\":\"published-structure\"}],\"challenges\":[],\"completeness\":{\"captures\":{\"returned\":2,\"total\":2,\"truncated\":false},\"challenges\":{\"returned\":0,\"total\":0,\"truncated\":false},\"content\":{\"coverage\":\"complete\",\"returnedDocuments\":1,\"totalDocumentsKnown\":1,\"truncated\":false},\"contributors\":{\"returned\":1,\"total\":1,\"truncated\":false},\"occurrences\":{\"returned\":1,\"total\":1,\"truncated\":false},\"productionProvenance\":{\"returned\":1,\"total\":1,\"truncated\":false},\"relations\":{\"returned\":0,\"total\":0,\"truncated\":false}},\"content\":[{\"id\":\"g1-discovery-document\",\"publishedUrl\":\"https://publications.g1.oratlas.example/discovery/article\",\"representation\":\"source-text\",\"role\":\"results\",\"sha256\":\"53eb23ed90cbe24de9dcf779876d7a59acca8ab0e0b765bc6701dbede9b34c08\",\"sourceArtifactIdentitySha256\":\"17f318edde9cd8fc6f8473dbe80d7763d9ef99eb35530d080b718bd59c4889e4\",\"sourceArtifactSha256\":\"53eb23ed90cbe24de9dcf779876d7a59acca8ab0e0b765bc6701dbede9b34c08\",\"sourcePath\":\"article.md\",\"text\":\"Synthetic public result: alpha and beta are independent fixture labels.\",\"title\":\"G1 public discovery result\"}],\"contributors\":[{\"affiliations\":[],\"declarationStatus\":\"source-declared\",\"displayName\":\"G1 Discovery Author\",\"familyName\":null,\"givenName\":null,\"id\":\"g1-worker-contributor\",\"identifiers\":[],\"kind\":\"person\",\"links\":{\"publicProfile\":null,\"publicationVersion\":\"/api/publication-versions/g1-worker-version\"},\"position\":1,\"publicUrl\":null,\"publicationVersionId\":\"g1-worker-version\",\"roles\":[\"author\"],\"sourceContributorKey\":\"author-1\",\"sourceDeclarationProvenance\":{\"sourceArtifactIdentitySha256\":\"ba0969399c05d646c5703cf94a829be4a4dc5879203422d425f34bd399c27395\",\"sourceArtifactKind\":\"publication-manifest\",\"sourceArtifactSha256\":\"a023519b0542fafd6f3120246286537d6205dbf649a2db3f5ee9e1984444fc43\",\"type\":\"source-declared\"}}],\"links\":{\"content\":\"/api/publication-versions/g1-worker-version/content\",\"contributors\":\"/api/publication-versions/g1-worker-version/contributors\",\"productionProvenance\":\"/api/publication-versions/g1-worker-version/production-provenance\",\"publication\":\"/api/publications/g1-worker-publication\",\"publicationVersion\":\"/api/publication-versions/g1-worker-version\",\"self\":\"/api/publication-versions/g1-worker-version/packet\"},\"occurrences\":[{\"canonicalBinding\":null,\"claimType\":\"empirical\",\"declarationAuthority\":\"publication-source\",\"declarationSha256\":\"6a8159c20e6f58a8f5da18a3c970df1f92f0bd232f2b34c53d0cf5a99c4e7503\",\"id\":\"g1-worker-occurrence\",\"links\":{\"canonicalGraph\":null,\"occurrence\":\"/api/publication-claim-occurrences/g1-worker-occurrence\",\"originalPublication\":\"https://publications.g1.oratlas.example/discovery/article#synthetic-result\"},\"publishedTargetUrl\":\"https://publications.g1.oratlas.example/discovery/article#synthetic-result\",\"qualification\":null,\"selector\":{\"representation\":\"oratlas-myst-source-utf8-v1\",\"textPosition\":{\"end\":71,\"start\":0,\"type\":\"TextPositionSelector\"},\"textQuote\":{\"exact\":\"Synthetic public result: alpha and beta are independent fixture labels.\",\"type\":\"TextQuoteSelector\"},\"unit\":\"body\"},\"sourceBinding\":{\"blockSha256\":\"53eb23ed90cbe24de9dcf779876d7a59acca8ab0e0b765bc6701dbede9b34c08\",\"documentPath\":\"article.md\",\"documentSha256\":\"53eb23ed90cbe24de9dcf779876d7a59acca8ab0e0b765bc6701dbede9b34c08\",\"endLine\":1,\"startLine\":1},\"sourceLocalClaimId\":\"synthetic-result\",\"target\":{\"htmlId\":\"synthetic-result\",\"identifier\":\"synthetic-result\",\"type\":\"myst-xref\"},\"text\":\"Synthetic public result: alpha and beta are independent fixture labels.\"}],\"productionProvenance\":[{\"activities\":[\"drafting\"],\"actors\":[{\"kind\":\"software\",\"name\":\"Synthetic Discovery Tool\",\"version\":\"fixture-1\"}],\"agentRunId\":null,\"assertedAt\":\"2026-03-12T00:00:00.000Z\",\"assertedBy\":null,\"executionPassportId\":null,\"id\":\"g1-worker-production\",\"lifecycleState\":\"active\",\"links\":{\"executionPassport\":null,\"publicEvidence\":null,\"publicationVersion\":\"/api/publication-versions/g1-worker-version\"},\"mode\":\"ai-assisted\",\"publicEvidenceUrl\":null,\"publicationVersionId\":\"g1-worker-version\",\"sourceAssertionKey\":\"synthetic-production\",\"statement\":\"Synthetic source declaration, never scientific verification.\",\"strength\":\"source-declared\",\"supersededByAssertionId\":null,\"supersedesAssertionId\":null}],\"publication\":{\"id\":\"g1-worker-publication\",\"publicationType\":\"research-article\",\"recordSource\":\"external-publication\",\"sourceLocalPublicationId\":null},\"relations\":[],\"schemaVersion\":\"1.3.0\",\"sha256\":\"3d6f3178b78638a056c88bec1ca56db1b9fd55a064e8d360adf5bc701e30e21e\",\"version\":{\"adapterType\":\"myst\",\"id\":\"g1-worker-version\",\"observedAt\":\"2026-03-12T00:00:00.000Z\",\"observedPublicationBaseUrl\":\"https://publications.g1.oratlas.example/discovery/\",\"publisherCanonicalUrl\":\"https://publications.g1.oratlas.example/discovery/\",\"sourceLocalPublicationId\":null,\"sourcesSha256\":\"de3d3960b987df55170f1389cd5ece8544d1733a539ab7fdebc8c58c3abc0076\",\"structuralProvenance\":\"published-structure\",\"title\":\"G1 public discovery fixture\",\"versionLabel\":\"v1\"}}",
+    "inputSha256": "29646099c1b6861ec0899ca4fd2dad813e4b9ac799788e051407eb888959236b",
+    "inputCapturedAt": "2026-03-31T23:51:00.000Z",
+    "idempotencyKey": "g1-artifact-native-run",
+    "requestedById": "g1-user-admin",
+    "requestedAt": "2026-03-31T23:51:00.000Z",
+    "claimedAt": "2026-03-31T23:58:00.000Z",
+    "startedAt": "2026-03-31T23:58:00.000Z",
+    "completedAt": null,
+    "terminalReason": null,
+    "leaseTokenHash": "aa20b36e47065cd9032c840bebab082cca074d430230a2ed0067874a51b34b6b",
+    "leaseIssuedAt": "2026-03-31T23:58:00.000Z",
+    "leaseExpiresAt": "2026-04-01T00:03:00.000Z",
+    "leaseGeneration": 2,
+    "agentRunId": null,
+    "executionPassportId": null,
+    "replicationBriefId": null,
+    "createdAt": "2026-10-21T15:25:09.686Z"
+  },
+  "initialRun": {
+    "id": "cmvi9k4vq00017kznkqcvsgyw",
+    "protocolId": "g1-verification-protocol-editorial",
+    "publicationVersionId": "g1-worker-version",
+    "publicationClaimOccurrenceId": null,
+    "knowledgeNodeVersionId": null,
+    "claimedVerifierId": "g1-worker-verifier-other",
+    "status": "claimed",
+    "inputProfile": "full",
+    "inputProfileVersion": "1.0.0",
+    "inputSchemaVersion": "1.3.0",
+    "inputJson": "{\"captures\":[{\"artifactKind\":\"publication-manifest\",\"byteLength\":1298,\"contentSha256\":\"a023519b0542fafd6f3120246286537d6205dbf649a2db3f5ee9e1984444fc43\",\"declaredPath\":null,\"id\":\"g1-worker-manifest\",\"observedUrl\":\"https://publications.g1.oratlas.example/discovery/oratlas.manifest.json\",\"requestedUrl\":\"https://publications.g1.oratlas.example/discovery/oratlas.manifest.json\",\"structuralProvenance\":\"published-structure\"},{\"artifactKind\":\"source-document\",\"byteLength\":71,\"contentSha256\":\"53eb23ed90cbe24de9dcf779876d7a59acca8ab0e0b765bc6701dbede9b34c08\",\"declaredPath\":\"article.md\",\"id\":\"g1-worker-source\",\"observedUrl\":\"https://publications.g1.oratlas.example/discovery/article.md\",\"requestedUrl\":\"https://publications.g1.oratlas.example/discovery/article.md\",\"structuralProvenance\":\"published-structure\"}],\"challenges\":[],\"completeness\":{\"captures\":{\"returned\":2,\"total\":2,\"truncated\":false},\"challenges\":{\"returned\":0,\"total\":0,\"truncated\":false},\"content\":{\"coverage\":\"complete\",\"returnedDocuments\":1,\"totalDocumentsKnown\":1,\"truncated\":false},\"contributors\":{\"returned\":1,\"total\":1,\"truncated\":false},\"occurrences\":{\"returned\":1,\"total\":1,\"truncated\":false},\"productionProvenance\":{\"returned\":1,\"total\":1,\"truncated\":false},\"relations\":{\"returned\":0,\"total\":0,\"truncated\":false}},\"content\":[{\"id\":\"g1-discovery-document\",\"publishedUrl\":\"https://publications.g1.oratlas.example/discovery/article\",\"representation\":\"source-text\",\"role\":\"results\",\"sha256\":\"53eb23ed90cbe24de9dcf779876d7a59acca8ab0e0b765bc6701dbede9b34c08\",\"sourceArtifactIdentitySha256\":\"17f318edde9cd8fc6f8473dbe80d7763d9ef99eb35530d080b718bd59c4889e4\",\"sourceArtifactSha256\":\"53eb23ed90cbe24de9dcf779876d7a59acca8ab0e0b765bc6701dbede9b34c08\",\"sourcePath\":\"article.md\",\"text\":\"Synthetic public result: alpha and beta are independent fixture labels.\",\"title\":\"G1 public discovery result\"}],\"contributors\":[{\"affiliations\":[],\"declarationStatus\":\"source-declared\",\"displayName\":\"G1 Discovery Author\",\"familyName\":null,\"givenName\":null,\"id\":\"g1-worker-contributor\",\"identifiers\":[],\"kind\":\"person\",\"links\":{\"publicProfile\":null,\"publicationVersion\":\"/api/publication-versions/g1-worker-version\"},\"position\":1,\"publicUrl\":null,\"publicationVersionId\":\"g1-worker-version\",\"roles\":[\"author\"],\"sourceContributorKey\":\"author-1\",\"sourceDeclarationProvenance\":{\"sourceArtifactIdentitySha256\":\"ba0969399c05d646c5703cf94a829be4a4dc5879203422d425f34bd399c27395\",\"sourceArtifactKind\":\"publication-manifest\",\"sourceArtifactSha256\":\"a023519b0542fafd6f3120246286537d6205dbf649a2db3f5ee9e1984444fc43\",\"type\":\"source-declared\"}}],\"links\":{\"content\":\"/api/publication-versions/g1-worker-version/content\",\"contributors\":\"/api/publication-versions/g1-worker-version/contributors\",\"productionProvenance\":\"/api/publication-versions/g1-worker-version/production-provenance\",\"publication\":\"/api/publications/g1-worker-publication\",\"publicationVersion\":\"/api/publication-versions/g1-worker-version\",\"self\":\"/api/publication-versions/g1-worker-version/packet\"},\"occurrences\":[{\"canonicalBinding\":null,\"claimType\":\"empirical\",\"declarationAuthority\":\"publication-source\",\"declarationSha256\":\"6a8159c20e6f58a8f5da18a3c970df1f92f0bd232f2b34c53d0cf5a99c4e7503\",\"id\":\"g1-worker-occurrence\",\"links\":{\"canonicalGraph\":null,\"occurrence\":\"/api/publication-claim-occurrences/g1-worker-occurrence\",\"originalPublication\":\"https://publications.g1.oratlas.example/discovery/article#synthetic-result\"},\"publishedTargetUrl\":\"https://publications.g1.oratlas.example/discovery/article#synthetic-result\",\"qualification\":null,\"selector\":{\"representation\":\"oratlas-myst-source-utf8-v1\",\"textPosition\":{\"end\":71,\"start\":0,\"type\":\"TextPositionSelector\"},\"textQuote\":{\"exact\":\"Synthetic public result: alpha and beta are independent fixture labels.\",\"type\":\"TextQuoteSelector\"},\"unit\":\"body\"},\"sourceBinding\":{\"blockSha256\":\"53eb23ed90cbe24de9dcf779876d7a59acca8ab0e0b765bc6701dbede9b34c08\",\"documentPath\":\"article.md\",\"documentSha256\":\"53eb23ed90cbe24de9dcf779876d7a59acca8ab0e0b765bc6701dbede9b34c08\",\"endLine\":1,\"startLine\":1},\"sourceLocalClaimId\":\"synthetic-result\",\"target\":{\"htmlId\":\"synthetic-result\",\"identifier\":\"synthetic-result\",\"type\":\"myst-xref\"},\"text\":\"Synthetic public result: alpha and beta are independent fixture labels.\"}],\"productionProvenance\":[{\"activities\":[\"drafting\"],\"actors\":[{\"kind\":\"software\",\"name\":\"Synthetic Discovery Tool\",\"version\":\"fixture-1\"}],\"agentRunId\":null,\"assertedAt\":\"2026-03-12T00:00:00.000Z\",\"assertedBy\":null,\"executionPassportId\":null,\"id\":\"g1-worker-production\",\"lifecycleState\":\"active\",\"links\":{\"executionPassport\":null,\"publicEvidence\":null,\"publicationVersion\":\"/api/publication-versions/g1-worker-version\"},\"mode\":\"ai-assisted\",\"publicEvidenceUrl\":null,\"publicationVersionId\":\"g1-worker-version\",\"sourceAssertionKey\":\"synthetic-production\",\"statement\":\"Synthetic source declaration, never scientific verification.\",\"strength\":\"source-declared\",\"supersededByAssertionId\":null,\"supersedesAssertionId\":null}],\"publication\":{\"id\":\"g1-worker-publication\",\"publicationType\":\"research-article\",\"recordSource\":\"external-publication\",\"sourceLocalPublicationId\":null},\"relations\":[],\"schemaVersion\":\"1.3.0\",\"sha256\":\"3d6f3178b78638a056c88bec1ca56db1b9fd55a064e8d360adf5bc701e30e21e\",\"version\":{\"adapterType\":\"myst\",\"id\":\"g1-worker-version\",\"observedAt\":\"2026-03-12T00:00:00.000Z\",\"observedPublicationBaseUrl\":\"https://publications.g1.oratlas.example/discovery/\",\"publisherCanonicalUrl\":\"https://publications.g1.oratlas.example/discovery/\",\"sourceLocalPublicationId\":null,\"sourcesSha256\":\"de3d3960b987df55170f1389cd5ece8544d1733a539ab7fdebc8c58c3abc0076\",\"structuralProvenance\":\"published-structure\",\"title\":\"G1 public discovery fixture\",\"versionLabel\":\"v1\"}}",
+    "inputSha256": "29646099c1b6861ec0899ca4fd2dad813e4b9ac799788e051407eb888959236b",
+    "inputCapturedAt": "2026-03-31T23:51:00.000Z",
+    "idempotencyKey": "g1-artifact-native-run",
+    "requestedById": "g1-user-admin",
+    "requestedAt": "2026-03-31T23:51:00.000Z",
+    "claimedAt": "2026-03-31T23:52:00.000Z",
+    "startedAt": null,
+    "completedAt": null,
+    "terminalReason": null,
+    "leaseTokenHash": "50653be498b1c364710f0fbd35d93e121fc9a360dc974d5b6d2c3f9439e2e8b4",
+    "leaseIssuedAt": "2026-03-31T23:52:00.000Z",
+    "leaseExpiresAt": "2026-03-31T23:57:00.000Z",
+    "leaseGeneration": 1,
+    "agentRunId": null,
+    "executionPassportId": null,
+    "replicationBriefId": null,
+    "createdAt": "2026-10-21T15:25:09.686Z"
+  },
+  "events": [
+    {
+      "id": "cmvi9k4vu00037kzn6wij2zgl",
+      "verificationRunId": "cmvi9k4vq00017kznkqcvsgyw",
+      "kind": "requested",
+      "actorUserId": "g1-user-admin",
+      "actorVerifierId": null,
+      "detailsJson": "{}",
+      "createdAt": "2026-10-21T15:25:09.691Z"
+    },
+    {
+      "id": "cmvi9k4wh00057kznnwj46zk3",
+      "verificationRunId": "cmvi9k4vq00017kznkqcvsgyw",
+      "kind": "claimed",
+      "actorUserId": null,
+      "actorVerifierId": "g1-worker-verifier-other",
+      "detailsJson": "{\"credentialId\":\"g1-worker-verifier-wrong-owner-submit\",\"leaseExpiresAt\":\"2026-03-31T23:57:00.000Z\",\"leaseGeneration\":1}",
+      "createdAt": "2026-10-21T15:25:09.714Z"
+    },
+    {
+      "id": "cmvi9k4ya000b7kzno1l4ltos",
+      "verificationRunId": "cmvi9k4vq00017kznkqcvsgyw",
+      "kind": "reclaimed",
+      "actorUserId": null,
+      "actorVerifierId": "g1-worker-verifier-primary",
+      "detailsJson": "{\"credentialId\":\"g1-worker-verifier-submit-only\",\"leaseExpiresAt\":\"2026-04-01T00:03:00.000Z\",\"leaseGeneration\":2}",
+      "createdAt": "2026-10-21T15:25:09.779Z"
+    },
+    {
+      "id": "cmvi9k4yp000d7kzn9spds60b",
+      "verificationRunId": "cmvi9k4vq00017kznkqcvsgyw",
+      "kind": "running",
+      "actorUserId": null,
+      "actorVerifierId": "g1-worker-verifier-primary",
+      "detailsJson": "{\"reason\":null}",
+      "createdAt": "2026-10-21T15:25:09.794Z"
+    }
+  ],
+  "artifacts": [
+    {
+      "id": "cmvi9k4wy00077kznjyyiz76d",
+      "verificationRunId": "cmvi9k4vq00017kznkqcvsgyw",
+      "submittedByVerifierId": "g1-worker-verifier-other",
+      "artifactKey": "g1-artifact-priorowner",
+      "kind": "synthetic-storage-observation",
+      "mediaType": "application/json",
+      "sha256": "1a6a4b81f647dbee932e438c2a7f319127ad94b9a1e9be66793603bc939e5a8f",
+      "byteLength": 62,
+      "visibility": "private",
+      "status": "prepared",
+      "storageRef": null,
+      "provenanceJson": "{\"credentialId\":\"g1-worker-verifier-wrong-owner-submit\",\"leaseGeneration\":1}",
+      "preparedAt": "2026-03-31T23:53:00.000Z",
+      "uploadExpiresAt": "2026-03-31T23:57:00.000Z",
+      "uploadedAt": null,
+      "completedAt": null,
+      "createdAt": "2026-10-21T15:25:09.730Z"
+    },
+    {
+      "id": "cmvi9k4xs00097kznvexk2zr3",
+      "verificationRunId": "g1-worker-run-expired",
+      "submittedByVerifierId": "g1-worker-verifier-primary",
+      "artifactKey": "g1-artifact-expired",
+      "kind": "synthetic-storage-observation",
+      "mediaType": "application/json",
+      "sha256": "a695acc13dad58752fee42a732f550cb0492986805cd20aae0138b74e640cb64",
+      "byteLength": 58,
+      "visibility": "private",
+      "status": "prepared",
+      "storageRef": null,
+      "provenanceJson": "{\"credentialId\":\"g1-worker-verifier-submit-only\",\"leaseGeneration\":1}",
+      "preparedAt": "2026-03-31T23:56:00.000Z",
+      "uploadExpiresAt": "2026-04-01T00:00:00.000Z",
+      "uploadedAt": null,
+      "completedAt": null,
+      "createdAt": "2026-10-21T15:25:09.760Z"
+    },
+    {
+      "id": "cmvi9k4z3000f7kznisvmc4sf",
+      "verificationRunId": "cmvi9k4vq00017kznkqcvsgyw",
+      "submittedByVerifierId": "g1-worker-verifier-primary",
+      "artifactKey": "g1-artifact-uploaded",
+      "kind": "synthetic-storage-observation",
+      "mediaType": "application/json",
+      "sha256": "aadbc14a89f44cdaea1a4bb47916f634758fa484ef2a5a1163b1f7ce739a64cb",
+      "byteLength": 64,
+      "visibility": "private",
+      "status": "uploaded",
+      "storageRef": "verification-blob:cmvi9k4z3000f7kznisvmc4sf",
+      "provenanceJson": "{\"credentialId\":\"g1-worker-verifier-submit-only\",\"leaseGeneration\":2}",
+      "preparedAt": "2026-03-31T23:58:10.000Z",
+      "uploadExpiresAt": "2026-04-01T00:03:00.000Z",
+      "uploadedAt": "2026-03-31T23:58:20.000Z",
+      "completedAt": null,
+      "createdAt": "2026-10-21T15:25:09.808Z"
+    },
+    {
+      "id": "cmvi9k500000h7kznihpxulr4",
+      "verificationRunId": "cmvi9k4vq00017kznkqcvsgyw",
+      "submittedByVerifierId": "g1-worker-verifier-primary",
+      "artifactKey": "g1-artifact-completed",
+      "kind": "synthetic-storage-observation",
+      "mediaType": "application/json",
+      "sha256": "6aa06a2a50cad47d56b93c75b51cb6e6dcd22c04d5d4352ebe1bdf85afc0c26a",
+      "byteLength": 64,
+      "visibility": "private",
+      "status": "completed",
+      "storageRef": "verification-blob:cmvi9k500000h7kznihpxulr4",
+      "provenanceJson": "{\"credentialId\":\"g1-worker-verifier-submit-only\",\"leaseGeneration\":2}",
+      "preparedAt": "2026-03-31T23:58:30.000Z",
+      "uploadExpiresAt": "2026-04-01T00:03:00.000Z",
+      "uploadedAt": "2026-03-31T23:58:40.000Z",
+      "completedAt": "2026-03-31T23:58:50.000Z",
+      "createdAt": "2026-10-21T15:25:09.841Z"
+    },
+    {
+      "id": "cmvi9k523000l7kznizwn567a",
+      "verificationRunId": "cmvi9k4vq00017kznkqcvsgyw",
+      "submittedByVerifierId": "g1-worker-verifier-primary",
+      "artifactKey": "g1-artifact-prepared",
+      "kind": "synthetic-storage-observation",
+      "mediaType": "application/json",
+      "sha256": "bf892caf1267b79bf795ddd92fe956bf4aa652a6416d4fd135744549fe6ba834",
+      "byteLength": 60,
+      "visibility": "private",
+      "status": "prepared",
+      "storageRef": null,
+      "provenanceJson": "{\"credentialId\":\"g1-worker-verifier-submit-only\",\"leaseGeneration\":2}",
+      "preparedAt": "2026-03-31T23:59:10.000Z",
+      "uploadExpiresAt": "2026-04-01T00:03:00.000Z",
+      "uploadedAt": null,
+      "completedAt": null,
+      "createdAt": "2026-10-21T15:25:09.915Z"
+    }
+  ],
+  "blobs": [
+    {
+      "bytes": "\\x7b2266697874757265223a2273796e7468657469632d67312d6172746966616374222c22726f6c65223a2275706c6f616465642d7472616e736974696f6e227d",
+      "createdAt": "2026-10-21T15:25:09.822",
+      "artifactId": "cmvi9k4z3000f7kznisvmc4sf"
+    },
+    {
+      "bytes": "\\x7b2266697874757265223a2273796e7468657469632d67312d6172746966616374222c22726f6c65223a22636f6d706c657465642d7265666572656e6365227d",
+      "createdAt": "2026-10-21T15:25:09.857",
+      "artifactId": "cmvi9k500000h7kznihpxulr4"
+    }
+  ],
+  "finding": {
+    "id": "cmvi9k51r000j7kzn2gral809",
+    "verificationRunId": "cmvi9k4vq00017kznkqcvsgyw",
+    "submittedByVerifierId": "g1-worker-verifier-primary",
+    "findingKey": "g1-artifact-existing-finding",
+    "findingType": "synthetic-storage-observation",
+    "status": "not-applicable",
+    "impact": "informational",
+    "statement": "Synthetic storage fixture, not a scientific finding.",
+    "rationale": "This fixture exercises an attributed native replay without asserting scientific validity.",
+    "reportedJson": null,
+    "observedJson": null,
+    "toleranceJson": null,
+    "evidenceRefsJson": "[{\"id\":\"g1-worker-source\",\"type\":\"capture\"}]",
+    "payloadJson": "{\"artifactRefs\":[\"cmvi9k500000h7kznihpxulr4\"],\"evidenceRefs\":[{\"id\":\"g1-worker-source\",\"type\":\"capture\"}],\"findingKey\":\"g1-artifact-existing-finding\",\"findingType\":\"synthetic-storage-observation\",\"impact\":\"informational\",\"rationale\":\"This fixture exercises an attributed native replay without asserting scientific validity.\",\"statement\":\"Synthetic storage fixture, not a scientific finding.\",\"status\":\"not-applicable\"}",
+    "payloadSha256": "decfcb6c5f5ad907784dee674aa8726f48f4541c213dabb7cac6821c94baa8e6",
+    "supersedesFindingId": null,
+    "createdAt": "2026-10-21T15:25:09.904Z"
+  },
+  "joins": [
+    {
+      "verificationFindingId": "cmvi9k51r000j7kzn2gral809",
+      "verificationArtifactId": "cmvi9k500000h7kznihpxulr4"
+    }
+  ],
+  "credentials": [
+    {
+      "id": "g1-worker-verifier-submit-only",
+      "verifierId": "g1-worker-verifier-primary",
+      "label": "Synthetic worker submit-only",
+      "tokenPrefix": "9haWkpG6ZiW_",
+      "tokenHash": "effde350e9e6f578d5b789c088ecc11695b9605e80b405437a9bf97035367094",
+      "scopesJson": "[\"verification:submit\"]",
+      "expiresAt": "2026-04-02T00:00:00.000Z",
+      "revokedAt": null,
+      "issuedById": "g1-user-admin",
+      "revokedById": null,
+      "createdAt": "2026-03-30T00:00:00.000Z",
+      "lastUsedAt": "2026-03-31T23:59:10.000Z"
+    },
+    {
+      "id": "g1-worker-verifier-wrong-owner-submit",
+      "verifierId": "g1-worker-verifier-other",
+      "label": "Synthetic other-verifier submit authority",
+      "tokenPrefix": "XEV52Flvf5Yo",
+      "tokenHash": "ed418e09456eae9ddd3e02eeeadf861f1f41613ca194350a8f17b9487aab7b6f",
+      "scopesJson": "[\"verification:submit\"]",
+      "expiresAt": "2026-04-02T00:00:00.000Z",
+      "revokedAt": null,
+      "issuedById": "g1-user-admin",
+      "revokedById": null,
+      "createdAt": "2026-03-30T00:00:00.000Z",
+      "lastUsedAt": "2026-03-31T23:53:00.000Z"
+    }
+  ],
+  "requests": {
+    "bodies": {
+      "uploaded": {
+        "fixture": "synthetic-g1-artifact",
+        "role": "uploaded-transition"
+      },
+      "completed": {
+        "fixture": "synthetic-g1-artifact",
+        "role": "completed-reference"
+      },
+      "prepared": {
+        "fixture": "synthetic-g1-artifact",
+        "role": "prepared-replay"
+      },
+      "priorOwner": {
+        "fixture": "synthetic-g1-artifact",
+        "role": "prior-lease-owner"
+      },
+      "expired": {
+        "fixture": "synthetic-g1-artifact",
+        "role": "expired-lease"
+      }
+    },
+    "metadata": {
+      "uploaded": {
+        "artifactKey": "g1-artifact-uploaded",
+        "kind": "synthetic-storage-observation",
+        "mediaType": "application/json",
+        "sha256": "aadbc14a89f44cdaea1a4bb47916f634758fa484ef2a5a1163b1f7ce739a64cb",
+        "byteLength": 64,
+        "visibility": "private"
+      },
+      "completed": {
+        "artifactKey": "g1-artifact-completed",
+        "kind": "synthetic-storage-observation",
+        "mediaType": "application/json",
+        "sha256": "6aa06a2a50cad47d56b93c75b51cb6e6dcd22c04d5d4352ebe1bdf85afc0c26a",
+        "byteLength": 64,
+        "visibility": "private"
+      },
+      "prepared": {
+        "artifactKey": "g1-artifact-prepared",
+        "kind": "synthetic-storage-observation",
+        "mediaType": "application/json",
+        "sha256": "bf892caf1267b79bf795ddd92fe956bf4aa652a6416d4fd135744549fe6ba834",
+        "byteLength": 60,
+        "visibility": "private"
+      },
+      "priorOwner": {
+        "artifactKey": "g1-artifact-priorowner",
+        "kind": "synthetic-storage-observation",
+        "mediaType": "application/json",
+        "sha256": "1a6a4b81f647dbee932e438c2a7f319127ad94b9a1e9be66793603bc939e5a8f",
+        "byteLength": 62,
+        "visibility": "private"
+      },
+      "expired": {
+        "artifactKey": "g1-artifact-expired",
+        "kind": "synthetic-storage-observation",
+        "mediaType": "application/json",
+        "sha256": "a695acc13dad58752fee42a732f550cb0492986805cd20aae0138b74e640cb64",
+        "byteLength": 58,
+        "visibility": "private"
+      }
+    },
+    "finding": {
+      "findingKey": "g1-artifact-existing-finding",
+      "findingType": "synthetic-storage-observation",
+      "status": "not-applicable",
+      "impact": "informational",
+      "statement": "Synthetic storage fixture, not a scientific finding.",
+      "rationale": "This fixture exercises an attributed native replay without asserting scientific validity.",
+      "evidenceRefs": [
+        {
+          "type": "capture",
+          "id": "g1-worker-source"
+        }
+      ],
+      "artifactRefs": ["cmvi9k500000h7kznihpxulr4"]
+    }
+  },
+  "ids": {
+    "run": "cmvi9k4vq00017kznkqcvsgyw",
+    "uploaded": "cmvi9k4z3000f7kznisvmc4sf",
+    "completed": "cmvi9k500000h7kznihpxulr4",
+    "prepared": "cmvi9k523000l7kznizwn567a",
+    "priorOwner": "cmvi9k4wy00077kznjyyiz76d",
+    "expired": "cmvi9k4xs00097kznvexk2zr3",
+    "finding": "cmvi9k51r000j7kzn2gral809"
+  }
+}

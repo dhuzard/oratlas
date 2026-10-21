@@ -1,0 +1,231 @@
+{
+  "ids": {
+    "run": "cmvi9k4vq00017kznkqcvsgyw",
+    "uploaded": "cmvi9k4z3000f7kznisvmc4sf",
+    "completed": "cmvi9k500000h7kznihpxulr4",
+    "prepared": "cmvi9k523000l7kznizwn567a",
+    "priorOwner": "cmvi9k4wy00077kznjyyiz76d",
+    "expired": "cmvi9k4xs00097kznvexk2zr3",
+    "finding": "cmvi9k51r000j7kzn2gral809"
+  },
+  "requests": {
+    "bodies": {
+      "uploaded": {
+        "fixture": "synthetic-g1-artifact",
+        "role": "uploaded-transition"
+      },
+      "completed": {
+        "fixture": "synthetic-g1-artifact",
+        "role": "completed-reference"
+      },
+      "prepared": {
+        "fixture": "synthetic-g1-artifact",
+        "role": "prepared-replay"
+      },
+      "priorOwner": {
+        "fixture": "synthetic-g1-artifact",
+        "role": "prior-lease-owner"
+      },
+      "expired": {
+        "fixture": "synthetic-g1-artifact",
+        "role": "expired-lease"
+      }
+    },
+    "metadata": {
+      "uploaded": {
+        "artifactKey": "g1-artifact-uploaded",
+        "kind": "synthetic-storage-observation",
+        "mediaType": "application/json",
+        "sha256": "aadbc14a89f44cdaea1a4bb47916f634758fa484ef2a5a1163b1f7ce739a64cb",
+        "byteLength": 64,
+        "visibility": "private"
+      },
+      "completed": {
+        "artifactKey": "g1-artifact-completed",
+        "kind": "synthetic-storage-observation",
+        "mediaType": "application/json",
+        "sha256": "6aa06a2a50cad47d56b93c75b51cb6e6dcd22c04d5d4352ebe1bdf85afc0c26a",
+        "byteLength": 64,
+        "visibility": "private"
+      },
+      "prepared": {
+        "artifactKey": "g1-artifact-prepared",
+        "kind": "synthetic-storage-observation",
+        "mediaType": "application/json",
+        "sha256": "bf892caf1267b79bf795ddd92fe956bf4aa652a6416d4fd135744549fe6ba834",
+        "byteLength": 60,
+        "visibility": "private"
+      },
+      "priorOwner": {
+        "artifactKey": "g1-artifact-priorowner",
+        "kind": "synthetic-storage-observation",
+        "mediaType": "application/json",
+        "sha256": "1a6a4b81f647dbee932e438c2a7f319127ad94b9a1e9be66793603bc939e5a8f",
+        "byteLength": 62,
+        "visibility": "private"
+      },
+      "expired": {
+        "artifactKey": "g1-artifact-expired",
+        "kind": "synthetic-storage-observation",
+        "mediaType": "application/json",
+        "sha256": "a695acc13dad58752fee42a732f550cb0492986805cd20aae0138b74e640cb64",
+        "byteLength": 58,
+        "visibility": "private"
+      }
+    },
+    "finding": {
+      "findingKey": "g1-artifact-existing-finding",
+      "findingType": "synthetic-storage-observation",
+      "status": "not-applicable",
+      "impact": "informational",
+      "statement": "Synthetic storage fixture, not a scientific finding.",
+      "rationale": "This fixture exercises an attributed native replay without asserting scientific validity.",
+      "evidenceRefs": [
+        {
+          "type": "capture",
+          "id": "g1-worker-source"
+        }
+      ],
+      "artifactRefs": ["cmvi9k500000h7kznihpxulr4"]
+    }
+  },
+  "addedRows": {
+    "VerifierCredential": 1,
+    "VerificationRun": 1,
+    "VerificationRunLifecycleEvent": 4,
+    "VerificationArtifact": 5,
+    "VerificationArtifactBlob": 2,
+    "VerificationFinding": 1,
+    "VerificationFindingArtifact": 1
+  },
+  "initialArtifactRows": [
+    {
+      "id": "cmvi9k4wy00077kznjyyiz76d",
+      "verificationRunId": "cmvi9k4vq00017kznkqcvsgyw",
+      "submittedByVerifierId": "g1-worker-verifier-other",
+      "artifactKey": "g1-artifact-priorowner",
+      "kind": "synthetic-storage-observation",
+      "mediaType": "application/json",
+      "sha256": "1a6a4b81f647dbee932e438c2a7f319127ad94b9a1e9be66793603bc939e5a8f",
+      "byteLength": 62,
+      "visibility": "private",
+      "status": "prepared",
+      "storageRef": null,
+      "provenanceJson": "{\"credentialId\":\"g1-worker-verifier-wrong-owner-submit\",\"leaseGeneration\":1}",
+      "preparedAt": "2026-03-31T23:53:00.000Z",
+      "uploadExpiresAt": "2026-03-31T23:57:00.000Z",
+      "uploadedAt": null,
+      "completedAt": null,
+      "createdAt": "2026-10-21T15:25:09.730Z"
+    },
+    {
+      "id": "cmvi9k4xs00097kznvexk2zr3",
+      "verificationRunId": "g1-worker-run-expired",
+      "submittedByVerifierId": "g1-worker-verifier-primary",
+      "artifactKey": "g1-artifact-expired",
+      "kind": "synthetic-storage-observation",
+      "mediaType": "application/json",
+      "sha256": "a695acc13dad58752fee42a732f550cb0492986805cd20aae0138b74e640cb64",
+      "byteLength": 58,
+      "visibility": "private",
+      "status": "prepared",
+      "storageRef": null,
+      "provenanceJson": "{\"credentialId\":\"g1-worker-verifier-submit-only\",\"leaseGeneration\":1}",
+      "preparedAt": "2026-03-31T23:56:00.000Z",
+      "uploadExpiresAt": "2026-04-01T00:00:00.000Z",
+      "uploadedAt": null,
+      "completedAt": null,
+      "createdAt": "2026-10-21T15:25:09.760Z"
+    },
+    {
+      "id": "cmvi9k4z3000f7kznisvmc4sf",
+      "verificationRunId": "cmvi9k4vq00017kznkqcvsgyw",
+      "submittedByVerifierId": "g1-worker-verifier-primary",
+      "artifactKey": "g1-artifact-uploaded",
+      "kind": "synthetic-storage-observation",
+      "mediaType": "application/json",
+      "sha256": "aadbc14a89f44cdaea1a4bb47916f634758fa484ef2a5a1163b1f7ce739a64cb",
+      "byteLength": 64,
+      "visibility": "private",
+      "status": "uploaded",
+      "storageRef": "verification-blob:cmvi9k4z3000f7kznisvmc4sf",
+      "provenanceJson": "{\"credentialId\":\"g1-worker-verifier-submit-only\",\"leaseGeneration\":2}",
+      "preparedAt": "2026-03-31T23:58:10.000Z",
+      "uploadExpiresAt": "2026-04-01T00:03:00.000Z",
+      "uploadedAt": "2026-03-31T23:58:20.000Z",
+      "completedAt": null,
+      "createdAt": "2026-10-21T15:25:09.808Z"
+    },
+    {
+      "id": "cmvi9k500000h7kznihpxulr4",
+      "verificationRunId": "cmvi9k4vq00017kznkqcvsgyw",
+      "submittedByVerifierId": "g1-worker-verifier-primary",
+      "artifactKey": "g1-artifact-completed",
+      "kind": "synthetic-storage-observation",
+      "mediaType": "application/json",
+      "sha256": "6aa06a2a50cad47d56b93c75b51cb6e6dcd22c04d5d4352ebe1bdf85afc0c26a",
+      "byteLength": 64,
+      "visibility": "private",
+      "status": "completed",
+      "storageRef": "verification-blob:cmvi9k500000h7kznihpxulr4",
+      "provenanceJson": "{\"credentialId\":\"g1-worker-verifier-submit-only\",\"leaseGeneration\":2}",
+      "preparedAt": "2026-03-31T23:58:30.000Z",
+      "uploadExpiresAt": "2026-04-01T00:03:00.000Z",
+      "uploadedAt": "2026-03-31T23:58:40.000Z",
+      "completedAt": "2026-03-31T23:58:50.000Z",
+      "createdAt": "2026-10-21T15:25:09.841Z"
+    },
+    {
+      "id": "cmvi9k523000l7kznizwn567a",
+      "verificationRunId": "cmvi9k4vq00017kznkqcvsgyw",
+      "submittedByVerifierId": "g1-worker-verifier-primary",
+      "artifactKey": "g1-artifact-prepared",
+      "kind": "synthetic-storage-observation",
+      "mediaType": "application/json",
+      "sha256": "bf892caf1267b79bf795ddd92fe956bf4aa652a6416d4fd135744549fe6ba834",
+      "byteLength": 60,
+      "visibility": "private",
+      "status": "prepared",
+      "storageRef": null,
+      "provenanceJson": "{\"credentialId\":\"g1-worker-verifier-submit-only\",\"leaseGeneration\":2}",
+      "preparedAt": "2026-03-31T23:59:10.000Z",
+      "uploadExpiresAt": "2026-04-01T00:03:00.000Z",
+      "uploadedAt": null,
+      "completedAt": null,
+      "createdAt": "2026-10-21T15:25:09.915Z"
+    }
+  ],
+  "initialCredentials": [
+    {
+      "id": "g1-worker-verifier-submit-only",
+      "verifierId": "g1-worker-verifier-primary",
+      "label": "Synthetic worker submit-only",
+      "tokenPrefix": "9haWkpG6ZiW_",
+      "tokenHash": "effde350e9e6f578d5b789c088ecc11695b9605e80b405437a9bf97035367094",
+      "scopesJson": "[\"verification:submit\"]",
+      "expiresAt": "2026-04-02T00:00:00.000Z",
+      "revokedAt": null,
+      "issuedById": "g1-user-admin",
+      "revokedById": null,
+      "createdAt": "2026-03-30T00:00:00.000Z",
+      "lastUsedAt": "2026-03-31T23:59:10.000Z"
+    },
+    {
+      "id": "g1-worker-verifier-wrong-owner-submit",
+      "verifierId": "g1-worker-verifier-other",
+      "label": "Synthetic other-verifier submit authority",
+      "tokenPrefix": "XEV52Flvf5Yo",
+      "tokenHash": "ed418e09456eae9ddd3e02eeeadf861f1f41613ca194350a8f17b9487aab7b6f",
+      "scopesJson": "[\"verification:submit\"]",
+      "expiresAt": "2026-04-02T00:00:00.000Z",
+      "revokedAt": null,
+      "issuedById": "g1-user-admin",
+      "revokedById": null,
+      "createdAt": "2026-03-30T00:00:00.000Z",
+      "lastUsedAt": "2026-03-31T23:53:00.000Z"
+    }
+  ],
+  "runInputSha256": "29646099c1b6861ec0899ca4fd2dad813e4b9ac799788e051407eb888959236b",
+  "runInputSchemaVersion": "1.3.0",
+  "findingPayloadSha256": "decfcb6c5f5ad907784dee674aa8726f48f4541c213dabb7cac6821c94baa8e6"
+}

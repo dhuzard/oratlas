@@ -367,6 +367,11 @@ export const PUBLIC_TABLE_GRANTS = [
 
 /** Column-only UPDATE grants; table-level UPDATE is never granted. */
 export const PUBLIC_COLUMN_UPDATE_GRANTS = [
+  {
+    table: "VerificationArtifact",
+    columns: ["status", "completedAt"],
+    reason: "native existing uploaded artifact completion; no artifact creation or upload grant",
+  },
   { table: "CertificationProtocol", columns: ["status"], reason: "retireCertificationProtocol" },
   {
     table: "Certifier",

@@ -10,7 +10,12 @@ export const WORKER_CREDENTIAL_CASES = [
   "bad-hash",
   "unknown",
 ] as const;
-export type WorkerCredentialCase = (typeof WORKER_CREDENTIAL_CASES)[number];
+/** Preserve the reviewed read program while extending the finite dispatch/secret inventory. */
+export const KNOWN_WORKER_CREDENTIAL_CASES = [
+  ...WORKER_CREDENTIAL_CASES,
+  "wrong-owner-submit",
+] as const;
+export type WorkerCredentialCase = (typeof KNOWN_WORKER_CREDENTIAL_CASES)[number];
 export interface WorkerAuthority {
   readonly kind: "verifier" | "certifier";
   readonly credential: WorkerCredentialCase;
@@ -27,7 +32,7 @@ export function workerAuthorityProblems(value: unknown): string[] {
   if (
     Object.keys(row).some((key) => !["kind", "credential", "lease"].includes(key)) ||
     !["verifier", "certifier"].includes(row.kind as string) ||
-    !WORKER_CREDENTIAL_CASES.includes(row.credential as WorkerCredentialCase) ||
+    !KNOWN_WORKER_CREDENTIAL_CASES.includes(row.credential as WorkerCredentialCase) ||
     (row.lease !== undefined &&
       (row.kind !== "verifier" || !["active", "missing", "wrong"].includes(row.lease as string)))
   )
