@@ -200,8 +200,9 @@ it("captures valid worker reads and narrow credential last-use updates independe
         ...(cookie ? { cookie } : {}),
       },
     });
-    expect(request.headers.get("cookie")).toBe(cookie ?? null);
     const dispatchedCookie = request.headers.get("cookie");
+    if (dispatchedCookie !== (cookie ?? null))
+      throw new Error("Worker Cookie header differs from session recipe");
     const digests = workerAuthorityDigests(request.headers);
     expect(digests).toEqual(
       workerAuthorityDigests(new Headers(workerAuthorityHeaders(scenario.workerAuthority))),

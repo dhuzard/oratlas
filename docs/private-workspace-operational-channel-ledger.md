@@ -86,5 +86,5 @@ The final reviewed local four-program lifecycle in
 `/tmp/oratlas-g1-authority-final` passed 105/105 checks, auth 6/6, role 7/7 and
 cleanup 4/4; all 62 harness evidence/log files passed database/worker capability
 scanning, including decoded HTTP bodies. The required offline regression suite
-passed 339 tests across 34 files. Final-head CI is still required. These exact
+passed 340 tests across 34 files. Final-head CI is still required. These exact
 read/known-write/index results leave every other operational row above open.

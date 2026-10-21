@@ -808,7 +808,7 @@ checks, auth **6/6**, role **7/7** and cleanup **4/4**. Four captures of each
 reviewed baselines and pairs. All **62** harness evidence/log files contain no
 dedicated database credential, worker capability or secret component, including
 decoded response-body checks. The required offline G1/architecture/public-response
-suite passed **339 tests in 34 files**; full G1 TypeScript, zero-warning lint,
+suite passed **340 tests in 34 files**; full G1 TypeScript, zero-warning lint,
 formatting and diff checks also passed. Required CI must pass on the final PR
 head before merge; none of these counts completes G1.
 
