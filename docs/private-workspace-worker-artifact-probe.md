@@ -121,6 +121,15 @@ under `/tmp/oratlas-g1-artifacts-pg/{first,repeat}.json` with `.state.json` side
 These are two baseline probes; four-label before/after-private-schema captures and a manually
 reviewed golden are still required in the parent lifecycle. No existing golden is changed here.
 
+The parent integration subsequently produced four identical 379-request HTTP and complete state
+captures. Independent review passed 98 evidence checks and approved candidate SHA-256
+`f4ddeed102e1870393cc03e74b00122c3a50e16c659c45a405ccb305fe9f38af`, with canonical complete state
+`ad56bf5ace0e3a0ac26f7dbe1f688ceee319815cc96952328a2078f4b864c09d`. The coordinator manually
+accepted that candidate, changing only its review metadata. Existing worker-read and deterministic
+POST state hashes were separately reviewed and updated only for the two additional authority
+columns; every old HTTP field and public row is unchanged. Known-mutation, synthesis, primary and
+index accepted goldens remain unchanged. Final lifecycle and CI checks remain required.
+
 Offline validation uses the artifact scenario/native-fixture/state regression tests, existing worker
 authority/capture/read tests, architecture tests and the complete G1 script TypeScript config.
 Reproduction of the restricted child uses the existing closed public child environment plus
