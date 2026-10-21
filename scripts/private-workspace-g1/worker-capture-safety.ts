@@ -77,33 +77,47 @@ export function workerRequestProblems(request: RequestEvidence): string[] {
 /** Inspect decoded bodies too: JSON-only scans cannot see a token hidden in bodyBase64. */
 export function workerCaptureProblems(raw: unknown): string[] {
   const problems = workerOutputProblems(JSON.stringify(raw) ?? "");
-  const records = (raw as { records?: unknown[] } | null)?.records;
-  if (Array.isArray(records))
-    for (const record of records) {
-      if (!record || typeof record !== "object") continue;
-      const row = record as {
-        kind?: string;
-        request?: RequestEvidence;
-        bodyBase64?: string;
-        requestHeaders?: RequestEvidence["headers"];
-      } & Partial<RequestEvidence>;
-      if (row.kind !== "http") continue;
-      if (row.request?.headers) problems.push(...workerRequestProblems(row.request));
-      else if (row.requestHeaders) {
-        const evidence: RequestEvidence = { headers: row.requestHeaders };
-        for (const key of [
-          "workerAuthority",
-          "authorizationSha256",
-          "verificationLeaseSha256",
-        ] as const)
-          if (Object.hasOwn(row, key)) Object.assign(evidence, { [key]: row[key] });
-        problems.push(...workerRequestProblems(evidence));
-      }
-      if (typeof row.bodyBase64 === "string")
-        problems.push(
-          ...workerOutputProblems(Buffer.from(row.bodyBase64, "base64").toString("utf8")),
-        );
+  const file = raw as { records?: unknown[]; responses?: unknown[]; version?: unknown } | null;
+  const records = [
+    ...(Array.isArray(file?.records) ? file.records : []),
+    ...(file?.version === 1 && Array.isArray(file.responses)
+      ? file.responses.map((row) => ({ ...(row as object), kind: "http", legacy: true }))
+      : []),
+  ];
+  for (const record of records) {
+    if (!record || typeof record !== "object") continue;
+    const row = record as {
+      kind?: string;
+      legacy?: boolean;
+      request?: RequestEvidence;
+      bodyBase64?: string;
+      requestHeaders?: RequestEvidence["headers"];
+    } & Partial<RequestEvidence>;
+    if (row.kind !== "http") continue;
+    if (
+      row.legacy &&
+      row.request &&
+      ["workerAuthority", "authorizationSha256", "verificationLeaseSha256"].some((key) =>
+        Object.hasOwn(row.request!, key),
+      )
+    )
+      problems.push("Worker authority is unsupported in legacy evidence");
+    if (row.request?.headers) problems.push(...workerRequestProblems(row.request));
+    else if (row.requestHeaders) {
+      const evidence: RequestEvidence = { headers: row.requestHeaders };
+      for (const key of [
+        "workerAuthority",
+        "authorizationSha256",
+        "verificationLeaseSha256",
+      ] as const)
+        if (Object.hasOwn(row, key)) Object.assign(evidence, { [key]: row[key] });
+      problems.push(...workerRequestProblems(evidence));
     }
+    if (typeof row.bodyBase64 === "string")
+      problems.push(
+        ...workerOutputProblems(Buffer.from(row.bodyBase64, "base64").toString("utf8")),
+      );
+  }
   return [...new Set(problems)];
 }
 

@@ -192,3 +192,51 @@ it("refuses malformed scenario capabilities before order or expectation diagnost
     }
   }
 });
+
+it("scans supported legacy response bytes and raw request headers before any upgrade", async () => {
+  const file = await capture();
+  const row = file.records[0]!;
+  const {
+    workerAuthority: _a,
+    authorizationSha256: _b,
+    verificationLeaseSha256: _c,
+    ...oldRequest
+  } = row.request;
+  const legacy = {
+    version: 1,
+    label: "baseline",
+    baseUrl: G1_BASE_URL,
+    clock: G1_FIXED_CLOCK,
+    principal: "anonymous",
+    responses: [{ ...row, request: oldRequest }],
+  };
+  expect(() => goldenCandidate(legacy, "synthetic legacy control")).not.toThrow();
+  const secret = workerAuthoritySecrets(authority)[0]!;
+  for (const invalidRow of [
+    { ...row, request: oldRequest, bodyBase64: Buffer.from(secret).toString("base64") },
+    { ...row, request: { ...oldRequest, headers: { Authorization: "unknown-private-value" } } },
+    { ...row, request: { ...oldRequest, headers: { Cookie: "unknown-private-value" } } },
+    {
+      ...row,
+      request: {
+        ...oldRequest,
+        headers: { "X-Oratlas-Verification-Lease": "unknown-private-value" },
+      },
+    },
+    row,
+  ]) {
+    const invalid = { ...legacy, responses: [invalidRow] };
+    for (const errors of [
+      validateCapture(invalid, [scenario]),
+      comparePairedCaptures(invalid, legacy),
+      compareWithGolden(invalid, goldenCandidate(legacy, "synthetic"), [scenario]),
+    ]) {
+      expect(errors.length).toBeGreaterThan(0);
+      expect(errors.join(" ")).not.toContain(secret);
+      expect(errors.join(" ")).not.toContain("unknown-private-value");
+    }
+    expect(() => goldenCandidate(invalid, "synthetic")).toThrow(
+      "Unsafe or invalid worker capture evidence",
+    );
+  }
+});
