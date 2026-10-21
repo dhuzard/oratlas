@@ -48,7 +48,53 @@ INSERT INTO "PublicationCapture" (
   'application/json',
   'a023519b0542fafd6f3120246286537d6205dbf649a2db3f5ee9e1984444fc43',
   1298,
-  'ewogICJhZGFwdGVyIjogeyAidHlwZSI6ICJteXN0IiwgInhyZWYiOiAibXlzdC54cmVmLmpzb24iIH0sCiAgImFydGlmYWN0cyI6IHsKICAgICJjbGFpbXMiOiB7CiAgICAgICJkZWNsYXJhdGlvbnMiOiAicHVibGljYXRpb24tc291cmNlIiwKICAgICAgImZvcm1hdCI6ICJqc29ubCIsCiAgICAgICJwYXRoIjogIm9yYXRsYXMvY2xhaW1zLmpzb25sIiwKICAgICAgInJlY29yZHMiOiAxLAogICAgICAic2hhMjU2IjogIjQ0OGJiNGZkZmY1YWUyMzNkMmFmZWNjZDQ2MTFkMDBkNDQ5OThjMTkxYmM2Mjc4NjYxNGUzNTUzMWJhNDFlMDUiCiAgICB9CiAgfSwKICAiY29udHJpYnV0b3JzIjogWwogICAgewogICAgICAiZGlzcGxheU5hbWUiOiAiRzEgRGlzY292ZXJ5IEF1dGhvciIsCiAgICAgICJraW5kIjogInBlcnNvbiIsCiAgICAgICJwb3NpdGlvbiI6IDEsCiAgICAgICJyb2xlcyI6IFsiYXV0aG9yIl0sCiAgICAgICJzb3VyY2VDb250cmlidXRvcktleSI6ICJhdXRob3ItMSIKICAgIH0KICBdLAogICJnZW5lcmF0b3IiOiB7ICJuYW1lIjogImcxLXN5bnRoZXRpYyIsICJ2ZXJzaW9uIjogIjEiIH0sCiAgInByb2R1Y3Rpb24iOiB7CiAgICAiYWN0b3JzIjogWwogICAgICB7CiAgICAgICAgImFjdGl2aXRpZXMiOiBbImRyYWZ0aW5nIl0sCiAgICAgICAgImlkIjogInN5bnRoZXRpYy10b29sIiwKICAgICAgICAia2luZCI6ICJzb2Z0d2FyZSIsCiAgICAgICAgIm5hbWUiOiAiU3ludGhldGljIERpc2NvdmVyeSBUb29sIiwKICAgICAgICAidmVyc2lvbiI6ICJmaXh0dXJlLTEiCiAgICAgIH0KICAgIF0sCiAgICAibW9kZSI6ICJhaS1hc3Npc3RlZCIsCiAgICAic291cmNlQXNzZXJ0aW9uS2V5IjogInN5bnRoZXRpYy1wcm9kdWN0aW9uIiwKICAgICJzdGF0ZW1lbnQiOiAiU3ludGhldGljIHNvdXJjZSBkZWNsYXJhdGlvbiwgbmV2ZXIgc2NpZW50aWZpYyB2ZXJpZmljYXRpb24uIiwKICAgICJzdHJlbmd0aCI6ICJzb3VyY2UtZGVjbGFyZWQiCiAgfSwKICAicHVibGljYXRpb24iOiB7CiAgICAiY2Fub25pY2FsVXJsIjogImh0dHBzOi8vcHVibGljYXRpb25zLmcxLm9yYXRsYXMuZXhhbXBsZS9kaXNjb3ZlcnkvIiwKICAgICJ0aXRsZSI6ICJHMSBwdWJsaWMgZGlzY292ZXJ5IGZpeHR1cmUiLAogICAgInZlcnNpb24iOiB7CiAgICAgICJsYWJlbCI6ICJ2MSIsCiAgICAgICJzb3VyY2VzU2hhMjU2IjogImRlM2QzOTYwYjk4N2RmNTUxNzBmMTM4OWNkNWVjZTg1NDRkMTczM2E1MzlhYjdmZGViYzhjNThjM2FiYzAwNzYiCiAgICB9CiAgfSwKICAic2NoZW1hVmVyc2lvbiI6ICIwLjMuMCIKfQo=',
+  '{
+  "adapter": { "type": "myst", "xref": "myst.xref.json" },
+  "artifacts": {
+    "claims": {
+      "declarations": "publication-source",
+      "format": "jsonl",
+      "path": "oratlas/claims.jsonl",
+      "records": 1,
+      "sha256": "448bb4fdff5ae233d2afeccd4611d00d44998c191bc62786614e35531ba41e05"
+    }
+  },
+  "contributors": [
+    {
+      "displayName": "G1 Discovery Author",
+      "kind": "person",
+      "position": 1,
+      "roles": ["author"],
+      "sourceContributorKey": "author-1"
+    }
+  ],
+  "generator": { "name": "g1-synthetic", "version": "1" },
+  "production": {
+    "actors": [
+      {
+        "activities": ["drafting"],
+        "id": "synthetic-tool",
+        "kind": "software",
+        "name": "Synthetic Discovery Tool",
+        "version": "fixture-1"
+      }
+    ],
+    "mode": "ai-assisted",
+    "sourceAssertionKey": "synthetic-production",
+    "statement": "Synthetic source declaration, never scientific verification.",
+    "strength": "source-declared"
+  },
+  "publication": {
+    "canonicalUrl": "https://publications.g1.oratlas.example/discovery/",
+    "title": "G1 public discovery fixture",
+    "version": {
+      "label": "v1",
+      "sourcesSha256": "de3d3960b987df55170f1389cd5ece8544d1733a539ab7fdebc8c58c3abc0076"
+    }
+  },
+  "schemaVersion": "0.3.0"
+}
+',
   'a023519b0542fafd6f3120246286537d6205dbf649a2db3f5ee9e1984444fc43',
   'published-structure',
   '2026-03-12T00:00:00.000Z',
@@ -67,7 +113,7 @@ INSERT INTO "PublicationCapture" (
   'text/plain',
   '53eb23ed90cbe24de9dcf779876d7a59acca8ab0e0b765bc6701dbede9b34c08',
   71,
-  'U3ludGhldGljIHB1YmxpYyByZXN1bHQ6IGFscGhhIGFuZCBiZXRhIGFyZSBpbmRlcGVuZGVudCBmaXh0dXJlIGxhYmVscy4=',
+  'Synthetic public result: alpha and beta are independent fixture labels.',
   '53eb23ed90cbe24de9dcf779876d7a59acca8ab0e0b765bc6701dbede9b34c08',
   'published-structure',
   '2026-03-12T00:00:00.000Z',
