@@ -1,5 +1,5 @@
 import type { prisma as AppPrisma } from "@/lib/db";
-import { PLATFORM_VERSION } from "@oratlas/config";
+import { PLATFORM_VERSION } from "../../packages/config/src/index.js";
 import { writeFileSync } from "node:fs";
 import { performance } from "node:perf_hooks";
 import { afterAll, beforeAll, expect, it, vi } from "vitest";
