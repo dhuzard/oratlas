@@ -9,6 +9,7 @@ const excluded = [
   "G1_REMOVED_COMMENT_CANARY",
   "G1_REMOVED_ALONE_CANARY",
   "G1_REMOVED_CHALLENGE_CANARY",
+  "G1_REMOVED_RESPONSE_CANARY",
   "G1_TOMBSTONE_COMMENT_CANARY",
   "G1_RAW_PROTOCOL_CANARY",
 ];
@@ -151,7 +152,12 @@ all(
         equals: "Synthetic dismissed challenge with recorded editorial outcome.",
       },
       { pointer: "/challenges/1/status", equals: "dismissed" },
-      { pointer: "/challenges/1/transitions", length: 2 },
+      { pointer: "/challenges/1/transitions", length: 3 },
+      { pointer: "/challenges/0/response/body", equals: "" },
+      {
+        pointer: "/challenges/1/response/body",
+        equals: "Synthetic contributor response before editorial dismissal.",
+      },
     ],
   },
 );
