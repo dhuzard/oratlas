@@ -1,4 +1,4 @@
-/** Disconnected proposal helper. Never called by a handler, capture runner, or acceptance gate. */
+/** Separate bounded clock-observation helper; never used by strict G1 acceptance or a handler. */
 export function nativeClockUpdateProblems(input: {
   beforeUpdatedAt: string;
   afterUpdatedAt: string;
