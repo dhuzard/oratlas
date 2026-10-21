@@ -1,0 +1,43 @@
+{
+  "measuredArtifacts": 66,
+  "maxima": {
+    "bytes": 12955308,
+    "visited": 619323,
+    "stringBytes": 13970221,
+    "maxDepth": 19,
+    "maxString": 590200,
+    "maxPending": 2408
+  },
+  "largestNativeCapture": {
+    "name": "capture-baseline-repeat.json",
+    "bytes": 7937497,
+    "visited": 283924,
+    "stringBytes": 13970221,
+    "maxDepth": 19,
+    "maxString": 590200,
+    "maxPending": 2408
+  },
+  "largestNativeSidecar": {
+    "name": "worker-artifacts-baseline-repeat.json.state.json",
+    "bytes": 12955308,
+    "visited": 619323,
+    "stringBytes": 8165955,
+    "maxDepth": 11,
+    "maxString": 5774,
+    "maxPending": 827
+  },
+  "largestNativeCaptureStateAggregate": {
+    "name": "worker-artifacts-baseline-repeat.json",
+    "visited": 656504,
+    "stringBytes": 8777016
+  },
+  "factoryEntryLimit": 1000000,
+  "strictDefaultEntryLimit": 250000,
+  "stringLimitBytes": 16777216,
+  "totalInspectedStringBytesLimit": 67108864,
+  "depthLimit": 64,
+  "measurement": "Exact JSON/key/bodyBase64 traversal; counters only, no values emitted. Native files accepted by merged505 certifier-final and standalone DOI/audit candidate; labels duplicate some artifacts.",
+  "realEvidencePreflightArtifactsPassed": 33,
+  "combinedStressVisited": 903252,
+  "actualLargestAggregateHeadroomPercent": 52.3
+}

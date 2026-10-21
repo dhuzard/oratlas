@@ -28,3 +28,20 @@ comparisons are removed. Focused negative controls exercise actual HMAC fragment
 components, raw full-row mismatches, encoded confidence responses and unreadable response streams
 before diagnostic callbacks, alongside byte-preservation checks. Parent native four-label reruns
 must establish final-source positive evidence; these unit/source checks alone pass no G1 gate.
+
+The default common inspector retains its 250,000-entry bound. The native factory explicitly selects
+an aggregate budget of 1,000,000 total scheduled entries; queued plus already visited work is bounded
+before enqueueing. All byte and depth limits remain unchanged. Measurement across 66 retained
+baseline capture/state/auth artifacts found 283,924 entries for the actual 1,177-record capture,
+619,323 for the largest complete artifact sidecar, and 656,504 for its actual capture/state pair.
+The factory budget provides about 52% headroom over that measured largest runtime aggregate; it is
+finite and does not exempt any record, envelope or state field. Future growth must be measured again.
+
+Budget regressions retain the golden-derived 1,177-record shape and the exact corresponding native
+capture (whose hash-only golden bodies cannot be reconstructed from the golden alone), plus the
+largest native sidecar, as gzip data with raw-byte SHA-256 provenance. Their combined stress check
+inspects over 900,000 entries. Tests also require the strict default to reject authentic oversized
+aggregates and both budgets to refuse overflow. No accepted golden or native response is changed.
+The counter-only measurement summary is `fixtures/native-evidence-budget.json`; original raw
+artifacts remain attributed to the prior native runs. Final guarded native integration remains
+parent work.

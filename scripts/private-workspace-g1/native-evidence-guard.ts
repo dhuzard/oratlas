@@ -40,7 +40,7 @@ export function createNativeEvidenceGuard(
     throw new Error("Native evidence guard initialization refused");
   }
   function value<T>(input: T): T {
-    if (nativeEvidenceProblems(input, [...secrets]).length)
+    if (nativeEvidenceProblems(input, [...secrets], "capture").length)
       throw new Error("Native evidence capability disclosure refused");
     return input;
   }
