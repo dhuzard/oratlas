@@ -1,6 +1,7 @@
 import { nodeChallengeRoCrate } from "@oratlas/exports";
 import { errorResponse, handleRouteError } from "@/lib/api";
 import { loadNodeChallengeExport } from "@/lib/node-challenge-exports";
+import { ChallengeError } from "@/lib/challenges";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -21,6 +22,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       headers: { "Content-Type": "application/ld+json; charset=utf-8" },
     });
   } catch (error) {
+    if (error instanceof ChallengeError) return errorResponse(error.code, error.message);
     return handleRouteError(error);
   }
 }
