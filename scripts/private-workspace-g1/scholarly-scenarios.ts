@@ -260,5 +260,60 @@ for (const hidden of ["g1-version-tombstoned", "g1-version-3", "g1-missing-versi
     absent("Review version not found."),
   );
 
+// Requires the typed ChallengeError route boundary fix (745a480) in integration.
+all(
+  "node-challenges-cursor",
+  "api/nodes/[id]/challenges",
+  "/api/nodes/g1-node-1/challenges?cursor=invalid",
+  { id: "g1-node-1" },
+  bad("Invalid node challenge cursor."),
+);
+for (const format of ["challenges.json", "challenges-ro-crate"] as const) {
+  const route = `api/nodes/[id]/exports/${format}` as const;
+  all(
+    `node-${format}-cursor`,
+    route,
+    `/api/nodes/g1-node-1/exports/${format}?cursor=invalid`,
+    { id: "g1-node-1" },
+    bad("Invalid node challenge cursor."),
+  );
+  all(
+    `node-${format}-empty`,
+    route,
+    `/api/nodes/g1-node-1/exports/${format}`,
+    { id: "g1-node-1" },
+    {
+      status: 200,
+      headers: {
+        "content-type":
+          format === "challenges.json"
+            ? "application/vnd.oratlas.node-challenges+json; charset=utf-8"
+            : "application/ld+json; charset=utf-8",
+      },
+      json:
+        format === "challenges.json"
+          ? [
+              { pointer: "/schemaVersion", equals: "1.0.0" },
+              { pointer: "/node/id", equals: "g1-node-1" },
+              { pointer: "/challenges", length: 0 },
+              { pointer: "/nextCursor", equals: null },
+            ]
+          : [
+              { pointer: "/@context", equals: "https://w3id.org/ro/crate/1.1/context" },
+              { pointer: "/@graph", length: 3 },
+              { pointer: "/@graph/1/@type", equals: "Dataset" },
+              { pointer: "/@graph/1/mentions", length: 0 },
+            ],
+    },
+  );
+  all(
+    `node-${format}-hidden`,
+    route,
+    `/api/nodes/g1-node-control/exports/${format}?cursor=invalid`,
+    { id: "g1-node-control" },
+    absent("Knowledge node not found."),
+  );
+}
+
 /** Declarative only; real handler/database evidence is produced by root integration. */
 export const SCHOLARLY_SCENARIOS: readonly HttpScenario[] = cases;

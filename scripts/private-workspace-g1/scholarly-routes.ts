@@ -8,6 +8,9 @@ export const SCHOLARLY_ROUTES = {
   "api/reviews/[slug]/versions/[versionId]/challenges":
     "@/app/api/reviews/[slug]/versions/[versionId]/challenges/route",
   "api/nodes/[id]/challenges": "@/app/api/nodes/[id]/challenges/route",
+  "api/nodes/[id]/exports/challenges.json": "@/app/api/nodes/[id]/exports/challenges.json/route",
+  "api/nodes/[id]/exports/challenges-ro-crate":
+    "@/app/api/nodes/[id]/exports/challenges-ro-crate/route",
   "api/replications": "@/app/api/replications/route",
   "api/replications/[slug]": "@/app/api/replications/[slug]/route",
   "api/protocols/reviews/[versionId]": "@/app/api/protocols/reviews/[versionId]/route",

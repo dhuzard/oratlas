@@ -71,6 +71,20 @@ describe("declarative scholarly G1 batch (not PostgreSQL capture evidence)", () 
     }
     expect(text).toContain("scholar-comments-tombstone");
     expect(text).toContain("scholar-node-challenges-limit");
+    for (const name of [
+      "node-challenges-cursor",
+      "node-challenges.json-cursor",
+      "node-challenges-ro-crate-cursor",
+    ]) {
+      const control = SCHOLARLY_SCENARIOS.find(
+        (scenario) => scenario.id === `scholar-${name}-anonymous`,
+      )!;
+      expect(control.expect.status).toBe(400);
+      expect(control.expect.denial).toEqual({
+        code: "bad-request",
+        message: "Invalid node challenge cursor.",
+      });
+    }
   });
 
   it("requests only read grants and seeds terminal challenges with complete ledgers", () => {
