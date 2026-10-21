@@ -119,7 +119,7 @@ it("refuses confidence, denial and full-row fragments generically before diagnos
     const problems = auditRevokeDisclosureProblems(value, [capability]);
     if (problems.length === 0) diagnosticCalled = true;
     expect(diagnosticCalled).toBe(false);
-    expect(problems).toEqual(["Audit revocation capability disclosure refused"]);
+    expect(problems).toEqual(["Native evidence capability disclosure refused"]);
     expect(JSON.stringify(problems)).not.toContain(capability);
   }
 });
@@ -145,4 +145,27 @@ it("keeps native observation guards ahead of value-bearing diagnostics", () => {
   before("guard([capture, state, ...records.map(bodyText)])", "expect(validateCapture(");
   before("guard(posture)", "expect(posture.user)");
   before("guard(row)", "expect(row?.revokedAt");
+});
+it("inspects Unicode JSON literals and body encodings before generic refusal", () => {
+  const capability = "synthetic-signed-cookie-component";
+  const escaped = [...capability]
+    .map((c) => "\\u" + c.charCodeAt(0).toString(16).padStart(4, "0"))
+    .join("");
+  for (const body of [
+    '"' + escaped + '"',
+    JSON.stringify('"' + escaped + '"'),
+    '{"confidence":"' + escaped + '"}',
+  ]) {
+    expect(
+      auditRevokeDisclosureProblems({ bodyBase64: Buffer.from(body).toString("base64") }, [
+        capability,
+      ]),
+    ).toEqual(["Native evidence capability disclosure refused"]);
+  }
+  const worker = [..."oratlas_lease_synthetic-escaped-control"]
+    .map((c) => "\\u" + c.charCodeAt(0).toString(16).padStart(4, "0"))
+    .join("");
+  expect(auditRevokeDisclosureProblems({ error: '"' + worker + '"' }, [])).toEqual([
+    "Native evidence capability disclosure refused",
+  ]);
 });
