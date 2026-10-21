@@ -11,6 +11,7 @@ import {
   compareWithGolden,
   goldenCandidate,
   validateCapture,
+  upgradeGolden,
 } from "./compare.js";
 import { NO_SESSION } from "./principals.js";
 import { programProblems, type HttpScenario } from "./scenarios.js";
@@ -237,6 +238,35 @@ it("scans supported legacy response bytes and raw request headers before any upg
     }
     expect(() => goldenCandidate(invalid, "synthetic")).toThrow(
       "Unsafe or invalid worker capture evidence",
+    );
+  }
+});
+
+it("checks legacy golden routes before raw headers or worker identity could be discarded", async () => {
+  const golden = goldenCandidate(await capture(), "synthetic");
+  const row = golden.records[0]!;
+  const {
+    workerAuthority: _a,
+    authorizationSha256: _b,
+    verificationLeaseSha256: _c,
+    ...old
+  } = row as Extract<typeof row, { kind: "http" }>;
+  const legacy = {
+    version: 1,
+    review: "synthetic",
+    baseUrl: G1_BASE_URL,
+    clock: G1_FIXED_CLOCK,
+    routes: [old],
+  };
+  expect(() => upgradeGolden(legacy)).not.toThrow();
+  for (const route of [
+    row,
+    { ...old, requestHeaders: { Authorization: "unknown-private-value" } },
+    { ...old, requestHeaders: { Cookie: "unknown-private-value" } },
+    { ...old, requestHeaders: { "X-Oratlas-Verification-Lease": "unknown-private-value" } },
+  ]) {
+    expect(() => upgradeGolden({ ...legacy, routes: [route] })).toThrow(
+      "Unsafe or invalid worker golden evidence",
     );
   }
 });

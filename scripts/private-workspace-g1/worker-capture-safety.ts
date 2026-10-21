@@ -77,11 +77,18 @@ export function workerRequestProblems(request: RequestEvidence): string[] {
 /** Inspect decoded bodies too: JSON-only scans cannot see a token hidden in bodyBase64. */
 export function workerCaptureProblems(raw: unknown): string[] {
   const problems = workerOutputProblems(JSON.stringify(raw) ?? "");
-  const file = raw as { records?: unknown[]; responses?: unknown[]; version?: unknown } | null;
+  const file = raw as {
+    records?: unknown[];
+    responses?: unknown[];
+    routes?: unknown[];
+    version?: unknown;
+  } | null;
   const records = [
     ...(Array.isArray(file?.records) ? file.records : []),
-    ...(file?.version === 1 && Array.isArray(file.responses)
-      ? file.responses.map((row) => ({ ...(row as object), kind: "http", legacy: true }))
+    ...(file?.version === 1 && (Array.isArray(file.responses) || Array.isArray(file.routes))
+      ? [...(file.responses ?? []), ...(Array.isArray(file.routes) ? file.routes : [])].map(
+          (row) => ({ ...(row as object), kind: "http", legacy: true }),
+        )
       : []),
   ];
   for (const record of records) {
@@ -96,9 +103,8 @@ export function workerCaptureProblems(raw: unknown): string[] {
     if (row.kind !== "http") continue;
     if (
       row.legacy &&
-      row.request &&
-      ["workerAuthority", "authorizationSha256", "verificationLeaseSha256"].some((key) =>
-        Object.hasOwn(row.request!, key),
+      ["workerAuthority", "authorizationSha256", "verificationLeaseSha256"].some(
+        (key) => Object.hasOwn(row, key) || (!!row.request && Object.hasOwn(row.request, key)),
       )
     )
       problems.push("Worker authority is unsupported in legacy evidence");
