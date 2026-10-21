@@ -1,0 +1,3000 @@
+{
+  "protocol": "oratlas.g1.supplemental/0.1",
+  "program": "deterministic-posts",
+  "http": {
+    "version": 2,
+    "review": "Independently reviewed 2026-10-21: four 96-request native Discuss and federation captures, exact public signed scopes and immutable payloads, 26 native fixture rows and compatibility updates, complete unchanged 72-table state and measured authority, zero outbound attempts; canonical signed traversal order restored in the native selector. Partial synthetic G1 only.",
+    "baseUrl": "https://g1.oratlas.example",
+    "clock": "2026-04-01T00:00:00.000Z",
+    "records": [
+      {
+        "kind": "http",
+        "id": "deterministic-post-discuss-visible-anonymous",
+        "method": "POST",
+        "path": "/api/discuss",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"question\":\"What evidence supports the synthetic public claim?\",\"scope\":{\"nodes\":[{\"nodeId\":\"cmvi843rs00037kcmi0nfj6y2\",\"nodeVersionId\":\"cmvi843rw00057kcm7d1urdrv\"},{\"nodeId\":\"cmvi843s200087kcmipbro2p1\",\"nodeVersionId\":\"cmvi843s6000a7kcmwr2xoy4i\"}],\"edgeIds\":[\"cmvi843s9000c7kcmzqqijsl9\"],\"signature\":\"X5IBkDKaRtpwTNmq8GLzodK0yAWlX6atWkTJ8aD98SM\"}}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 200,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"mode\":\"deterministic\",\"result\":{\"mode\":\"deterministic\",\"question\":\"What evidence supports the synthetic public claim?\",\"matchedClaimCount\":1,\"groups\":[{\"relationType\":\"supports\",\"claims\":[{\"claimId\":\"oratlas:claim:v1:00670031002d00760065007200730069006f006e002d0032:0063006c00610069006d002d0031\",\"localClaimId\":\"claim-1\",\"reviewSlug\":\"g1-fixture-review\",\"reviewTitle\":\"G1 fixture review v2 & \\\"quoted\\\"\",\"reviewVersionId\":\"g1-version-2\",\"commitSha\":\"2222222222222222222222222222222222222222\",\"text\":\"Synthetic fixture claim: paired public captures are byte-identical.\",\"section\":\"Results\",\"anchor\":\"oratlas-claim-v1-00670031002d00760065007200730069006f006e002d0032-0063006c00610069006d002d0031\",\"claimType\":\"empirical\",\"relations\":[{\"citationId\":\"oratlas:citation:v1:00670031002d00760065007200730069006f006e002d0032:007200650066002d0031\",\"relationType\":\"supports\",\"trustAssessments\":[]}]}]}],\"reviewsCovered\":[{\"reviewSlug\":\"g1-fixture-review\",\"title\":\"G1 fixture review v2 & \\\"quoted\\\"\"}],\"insufficientEvidence\":false,\"notes\":[\"This is a deterministic evidence summary, not a generated answer. Multiple reviews citing the same source are not independent replication.\",\"All matched evidence comes from a single review; treat with appropriate caution.\"]},\"llmAvailable\":false,\"packetHash\":\"beabfa7fa839159b4f4304537fee41e8188113ff3809ce1ea94d18c7b6d8538d\",\"packetSchemaVersion\":\"1.1.0\",\"references\":[{\"kind\":\"claim\",\"id\":\"oratlas:claim:v1:00670031002d00760065007200730069006f006e002d0032:0063006c00610069006d002d0031\",\"label\":\"Synthetic fixture claim: paired public captures are byte-identical.\",\"href\":\"/claims/g1-version-2/claim-1\",\"landscapeNodeId\":\"graph:cmvi843rs00037kcmi0nfj6y2:cmvi843rw00057kcm7d1urdrv\"},{\"kind\":\"citation\",\"id\":\"oratlas:citation:v1:00670031002d00760065007200730069006f006e002d0032:007200650066002d0031\",\"label\":\"Synthetic fixture work\",\"href\":\"/claims/g1-version-2/claim-1#linked-evidence\",\"landscapeNodeId\":\"graph:cmvi843s200087kcmipbro2p1:cmvi843s6000a7kcmwr2xoy4i\"}],\"scope\":{\"kind\":\"explore\",\"claimIds\":[\"oratlas:claim:v1:00670031002d00760065007200730069006f006e002d0032:0063006c00610069006d002d0031\"],\"landscapeNodeIds\":[\"graph:cmvi843rs00037kcmi0nfj6y2:cmvi843rw00057kcm7d1urdrv\",\"graph:cmvi843s200087kcmipbro2p1:cmvi843s6000a7kcmwr2xoy4i\"],\"landscapeNodeVersionIds\":[\"cmvi843rw00057kcm7d1urdrv\",\"cmvi843s6000a7kcmwr2xoy4i\"],\"landscapeEdgeIds\":[\"cmvi843s9000c7kcmzqqijsl9\"],\"claimLandscapeNodeIds\":{\"oratlas:claim:v1:00670031002d00760065007200730069006f006e002d0032:0063006c00610069006d002d0031\":\"graph:cmvi843rs00037kcmi0nfj6y2:cmvi843rw00057kcm7d1urdrv\"},\"citationLandscapeNodeIds\":{\"oratlas:citation:v1:00670031002d00760065007200730069006f006e002d0032:007200650066002d0031\":\"graph:cmvi843s200087kcmipbro2p1:cmvi843s6000a7kcmwr2xoy4i\"},\"label\":\"2 exact graph occurrences · 1 visible edge\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-discuss-tampered-anonymous",
+        "method": "POST",
+        "path": "/api/discuss",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"question\":\"What evidence supports the synthetic public claim?\",\"scope\":{\"nodes\":[{\"nodeId\":\"cmvi843rs00037kcmi0nfj6y2\",\"nodeVersionId\":\"cmvi843rw00057kcm7d1urdrv\"},{\"nodeId\":\"cmvi843s200087kcmipbro2p1\",\"nodeVersionId\":\"cmvi843s6000a7kcmwr2xoy4i\"}],\"edgeIds\":[\"cmvi843s9000c7kcmzqqijsl9\"],\"signature\":\"a5IBkDKaRtpwTNmq8GLzodK0yAWlX6atWkTJ8aD98SM\"}}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Atlas Discuss traversal scope is invalid or was modified.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-discuss-hidden-anonymous",
+        "method": "POST",
+        "path": "/api/discuss",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"question\":\"What evidence supports the synthetic public claim?\",\"scope\":{\"nodes\":[{\"nodeId\":\"cmvi843sk000g7kcmulwl7dht\",\"nodeVersionId\":\"cmvi843sn000i7kcm78lxx775\"}],\"edgeIds\":[],\"signature\":\"u_SHJUnve93aSfwTBBLhCxhZ443jvN0WfT4ylrSliho\"}}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 409,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"conflict\",\"message\":\"A selected graph occurrence is missing, stale, or no longer public.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-discuss-tombstone-anonymous",
+        "method": "POST",
+        "path": "/api/discuss",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"question\":\"What evidence supports the synthetic public claim?\",\"scope\":{\"nodes\":[{\"nodeId\":\"cmvi843ta000y7kcmkxj8zl5b\",\"nodeVersionId\":\"cmvi843td00107kcm74nxiav4\"}],\"edgeIds\":[],\"signature\":\"LvpqVMl4Vg8m6yFfG2IHs4LYPwSuaY8HI_xs3mpTVqI\"}}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 409,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"conflict\",\"message\":\"A selected graph occurrence is missing, stale, or no longer public.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-discuss-missing-anonymous",
+        "method": "POST",
+        "path": "/api/discuss",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"question\":\"What evidence supports the synthetic public claim?\",\"scope\":{\"nodes\":[{\"nodeId\":\"g1-post-missing\",\"nodeVersionId\":\"g1-post-missing-v1\"}],\"edgeIds\":[],\"signature\":\"JS9wYQmLARc7t-lZkF86otceawm3mwAqyrmBgRINUn0\"}}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 409,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"conflict\",\"message\":\"A selected graph occurrence is missing, stale, or no longer public.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-discuss-stale-anonymous",
+        "method": "POST",
+        "path": "/api/discuss",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"question\":\"What evidence supports the synthetic public claim?\",\"scope\":{\"nodes\":[{\"nodeId\":\"cmvi843rs00037kcmi0nfj6y2\",\"nodeVersionId\":\"cmvi843s6000a7kcmwr2xoy4i\"}],\"edgeIds\":[],\"signature\":\"dR-0uNORQd-uLeVbPuh2iL46flFTitswh_NFDn99VO4\"}}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 409,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"conflict\",\"message\":\"A selected graph occurrence is missing, stale, or no longer public.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-discuss-detached-anonymous",
+        "method": "POST",
+        "path": "/api/discuss",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"question\":\"What evidence supports the synthetic public claim?\",\"scope\":{\"nodes\":[{\"nodeId\":\"cmvi843rs00037kcmi0nfj6y2\",\"nodeVersionId\":\"cmvi843rw00057kcm7d1urdrv\"}],\"edgeIds\":[\"cmvi843s9000c7kcmzqqijsl9\"],\"signature\":\"ganoUIPL0fsDx44Pzr1hJOcDLT-wokn8mHgQCnpSCII\"}}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 409,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"conflict\",\"message\":\"A selected graph edge does not connect the exact visible occurrences.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-discuss-invalid-question-anonymous",
+        "method": "POST",
+        "path": "/api/discuss",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"question\":\"x\",\"scope\":{\"nodes\":[{\"nodeId\":\"cmvi843rs00037kcmi0nfj6y2\",\"nodeVersionId\":\"cmvi843rw00057kcm7d1urdrv\"},{\"nodeId\":\"cmvi843s200087kcmipbro2p1\",\"nodeVersionId\":\"cmvi843s6000a7kcmwr2xoy4i\"}],\"edgeIds\":[\"cmvi843s9000c7kcmzqqijsl9\"],\"signature\":\"X5IBkDKaRtpwTNmq8GLzodK0yAWlX6atWkTJ8aD98SM\"}}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"A valid question, exact traversed graph scope, and optional Anthropic/OpenAI key configuration are required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-inbox-duplicate-anonymous",
+        "method": "POST",
+        "path": "/api/federation/inbox",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"@context\":[\"https://www.w3.org/ns/activitystreams\",\"https://coar-notify.net\"],\"actor\":{\"id\":\"https://example.org/synthetic-actor\",\"type\":\"Service\"},\"id\":\"https://example.org/g1-notify/pending\",\"object\":{\"id\":\"https://example.org/synthetic-object\",\"ietf:item\":{\"id\":\"https://example.org/synthetic-content.pdf\",\"mediaType\":\"application/pdf\",\"type\":\"Article\"},\"type\":\"Article\"},\"origin\":{\"id\":\"https://example.org/synthetic-origin\",\"inbox\":\"https://example.org/synthetic-inbox\",\"type\":\"Service\"},\"summary\":\"g1-read-queue-private-payload\",\"target\":{\"id\":\"https://g1.oratlas.example\",\"inbox\":\"https://g1.oratlas.example/api/federation/inbox\",\"type\":\"Service\"},\"type\":[\"Offer\",\"coar-notify:ReviewAction\"]}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 200,
+        "headers": [
+          ["cache-control", "no-store"],
+          ["content-type", "application/json"],
+          ["location", "/api/federation/notifications/g1-read-federation-pending"]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"id\":\"g1-read-federation-pending\",\"activityId\":\"https://example.org/g1-notify/pending\",\"pattern\":\"request-review\",\"status\":\"pending\",\"deduplicated\":true}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-inbox-collision-anonymous",
+        "method": "POST",
+        "path": "/api/federation/inbox",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"@context\":[\"https://www.w3.org/ns/activitystreams\",\"https://coar-notify.net\"],\"actor\":{\"id\":\"https://example.org/synthetic-actor\",\"type\":\"Service\"},\"id\":\"https://example.org/g1-notify/pending\",\"object\":{\"id\":\"https://example.org/synthetic-modified-object\",\"ietf:item\":{\"id\":\"https://example.org/synthetic-content.pdf\",\"mediaType\":\"application/pdf\",\"type\":\"Article\"},\"type\":\"Article\"},\"origin\":{\"id\":\"https://example.org/synthetic-origin\",\"inbox\":\"https://example.org/synthetic-inbox\",\"type\":\"Service\"},\"summary\":\"g1-read-queue-private-payload\",\"target\":{\"id\":\"https://g1.oratlas.example\",\"inbox\":\"https://g1.oratlas.example/api/federation/inbox\",\"type\":\"Service\"},\"type\":[\"Offer\",\"coar-notify:ReviewAction\"]}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 409,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"conflict\",\"message\":\"Activity id was already received with different immutable content.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-inbox-wrong-target-anonymous",
+        "method": "POST",
+        "path": "/api/federation/inbox",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"@context\":[\"https://www.w3.org/ns/activitystreams\",\"https://coar-notify.net\"],\"actor\":{\"id\":\"https://example.org/synthetic-actor\",\"type\":\"Service\"},\"id\":\"https://example.org/g1-notify/pending\",\"object\":{\"id\":\"https://example.org/synthetic-object\",\"ietf:item\":{\"id\":\"https://example.org/synthetic-content.pdf\",\"mediaType\":\"application/pdf\",\"type\":\"Article\"},\"type\":\"Article\"},\"origin\":{\"id\":\"https://example.org/synthetic-origin\",\"inbox\":\"https://example.org/synthetic-inbox\",\"type\":\"Service\"},\"summary\":\"g1-read-queue-private-payload\",\"target\":{\"id\":\"https://g1.oratlas.example\",\"inbox\":\"https://example.org/wrong-inbox\",\"type\":\"Service\"},\"type\":[\"Offer\",\"coar-notify:ReviewAction\"]}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Notification target inbox does not identify this ORAtlas service.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-inbox-malformed-anonymous",
+        "method": "POST",
+        "path": "/api/federation/inbox",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Invalid or unsupported COAR Notify payload.\",\"details\":[\"Unsupported COAR Notify review pattern.\"]}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-announce-prepared-anonymous",
+        "method": "POST",
+        "path": "/api/reviews/g1-fixture-review/versions/g1-version-2/federation/announce",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"inReplyTo\":\"https://example.org/g1-notify/accepted-old\"}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 401,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-announce-pending-anonymous",
+        "method": "POST",
+        "path": "/api/reviews/g1-fixture-review/versions/g1-version-2/federation/announce",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"inReplyTo\":\"https://example.org/g1-notify/pending\"}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 401,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-announce-missing-anonymous",
+        "method": "POST",
+        "path": "/api/reviews/g1-fixture-review/versions/g1-version-2/federation/announce",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"inReplyTo\":\"https://example.org/g1-notify/missing\"}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 401,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-announce-hidden-anonymous",
+        "method": "POST",
+        "path": "/api/reviews/g1-control-review/versions/g1-version-3/federation/announce",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"inReplyTo\":\"https://example.org/g1-notify/accepted-old\"}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 401,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-discuss-visible-a-only",
+        "method": "POST",
+        "path": "/api/discuss",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"question\":\"What evidence supports the synthetic public claim?\",\"scope\":{\"nodes\":[{\"nodeId\":\"cmvi843rs00037kcmi0nfj6y2\",\"nodeVersionId\":\"cmvi843rw00057kcm7d1urdrv\"},{\"nodeId\":\"cmvi843s200087kcmipbro2p1\",\"nodeVersionId\":\"cmvi843s6000a7kcmwr2xoy4i\"}],\"edgeIds\":[\"cmvi843s9000c7kcmzqqijsl9\"],\"signature\":\"X5IBkDKaRtpwTNmq8GLzodK0yAWlX6atWkTJ8aD98SM\"}}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 200,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"mode\":\"deterministic\",\"result\":{\"mode\":\"deterministic\",\"question\":\"What evidence supports the synthetic public claim?\",\"matchedClaimCount\":1,\"groups\":[{\"relationType\":\"supports\",\"claims\":[{\"claimId\":\"oratlas:claim:v1:00670031002d00760065007200730069006f006e002d0032:0063006c00610069006d002d0031\",\"localClaimId\":\"claim-1\",\"reviewSlug\":\"g1-fixture-review\",\"reviewTitle\":\"G1 fixture review v2 & \\\"quoted\\\"\",\"reviewVersionId\":\"g1-version-2\",\"commitSha\":\"2222222222222222222222222222222222222222\",\"text\":\"Synthetic fixture claim: paired public captures are byte-identical.\",\"section\":\"Results\",\"anchor\":\"oratlas-claim-v1-00670031002d00760065007200730069006f006e002d0032-0063006c00610069006d002d0031\",\"claimType\":\"empirical\",\"relations\":[{\"citationId\":\"oratlas:citation:v1:00670031002d00760065007200730069006f006e002d0032:007200650066002d0031\",\"relationType\":\"supports\",\"trustAssessments\":[]}]}]}],\"reviewsCovered\":[{\"reviewSlug\":\"g1-fixture-review\",\"title\":\"G1 fixture review v2 & \\\"quoted\\\"\"}],\"insufficientEvidence\":false,\"notes\":[\"This is a deterministic evidence summary, not a generated answer. Multiple reviews citing the same source are not independent replication.\",\"All matched evidence comes from a single review; treat with appropriate caution.\"]},\"llmAvailable\":false,\"packetHash\":\"beabfa7fa839159b4f4304537fee41e8188113ff3809ce1ea94d18c7b6d8538d\",\"packetSchemaVersion\":\"1.1.0\",\"references\":[{\"kind\":\"claim\",\"id\":\"oratlas:claim:v1:00670031002d00760065007200730069006f006e002d0032:0063006c00610069006d002d0031\",\"label\":\"Synthetic fixture claim: paired public captures are byte-identical.\",\"href\":\"/claims/g1-version-2/claim-1\",\"landscapeNodeId\":\"graph:cmvi843rs00037kcmi0nfj6y2:cmvi843rw00057kcm7d1urdrv\"},{\"kind\":\"citation\",\"id\":\"oratlas:citation:v1:00670031002d00760065007200730069006f006e002d0032:007200650066002d0031\",\"label\":\"Synthetic fixture work\",\"href\":\"/claims/g1-version-2/claim-1#linked-evidence\",\"landscapeNodeId\":\"graph:cmvi843s200087kcmipbro2p1:cmvi843s6000a7kcmwr2xoy4i\"}],\"scope\":{\"kind\":\"explore\",\"claimIds\":[\"oratlas:claim:v1:00670031002d00760065007200730069006f006e002d0032:0063006c00610069006d002d0031\"],\"landscapeNodeIds\":[\"graph:cmvi843rs00037kcmi0nfj6y2:cmvi843rw00057kcm7d1urdrv\",\"graph:cmvi843s200087kcmipbro2p1:cmvi843s6000a7kcmwr2xoy4i\"],\"landscapeNodeVersionIds\":[\"cmvi843rw00057kcm7d1urdrv\",\"cmvi843s6000a7kcmwr2xoy4i\"],\"landscapeEdgeIds\":[\"cmvi843s9000c7kcmzqqijsl9\"],\"claimLandscapeNodeIds\":{\"oratlas:claim:v1:00670031002d00760065007200730069006f006e002d0032:0063006c00610069006d002d0031\":\"graph:cmvi843rs00037kcmi0nfj6y2:cmvi843rw00057kcm7d1urdrv\"},\"citationLandscapeNodeIds\":{\"oratlas:citation:v1:00670031002d00760065007200730069006f006e002d0032:007200650066002d0031\":\"graph:cmvi843s200087kcmipbro2p1:cmvi843s6000a7kcmwr2xoy4i\"},\"label\":\"2 exact graph occurrences · 1 visible edge\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-discuss-tampered-a-only",
+        "method": "POST",
+        "path": "/api/discuss",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"question\":\"What evidence supports the synthetic public claim?\",\"scope\":{\"nodes\":[{\"nodeId\":\"cmvi843rs00037kcmi0nfj6y2\",\"nodeVersionId\":\"cmvi843rw00057kcm7d1urdrv\"},{\"nodeId\":\"cmvi843s200087kcmipbro2p1\",\"nodeVersionId\":\"cmvi843s6000a7kcmwr2xoy4i\"}],\"edgeIds\":[\"cmvi843s9000c7kcmzqqijsl9\"],\"signature\":\"a5IBkDKaRtpwTNmq8GLzodK0yAWlX6atWkTJ8aD98SM\"}}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Atlas Discuss traversal scope is invalid or was modified.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-discuss-hidden-a-only",
+        "method": "POST",
+        "path": "/api/discuss",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"question\":\"What evidence supports the synthetic public claim?\",\"scope\":{\"nodes\":[{\"nodeId\":\"cmvi843sk000g7kcmulwl7dht\",\"nodeVersionId\":\"cmvi843sn000i7kcm78lxx775\"}],\"edgeIds\":[],\"signature\":\"u_SHJUnve93aSfwTBBLhCxhZ443jvN0WfT4ylrSliho\"}}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 409,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"conflict\",\"message\":\"A selected graph occurrence is missing, stale, or no longer public.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-discuss-tombstone-a-only",
+        "method": "POST",
+        "path": "/api/discuss",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"question\":\"What evidence supports the synthetic public claim?\",\"scope\":{\"nodes\":[{\"nodeId\":\"cmvi843ta000y7kcmkxj8zl5b\",\"nodeVersionId\":\"cmvi843td00107kcm74nxiav4\"}],\"edgeIds\":[],\"signature\":\"LvpqVMl4Vg8m6yFfG2IHs4LYPwSuaY8HI_xs3mpTVqI\"}}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 409,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"conflict\",\"message\":\"A selected graph occurrence is missing, stale, or no longer public.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-discuss-missing-a-only",
+        "method": "POST",
+        "path": "/api/discuss",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"question\":\"What evidence supports the synthetic public claim?\",\"scope\":{\"nodes\":[{\"nodeId\":\"g1-post-missing\",\"nodeVersionId\":\"g1-post-missing-v1\"}],\"edgeIds\":[],\"signature\":\"JS9wYQmLARc7t-lZkF86otceawm3mwAqyrmBgRINUn0\"}}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 409,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"conflict\",\"message\":\"A selected graph occurrence is missing, stale, or no longer public.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-discuss-stale-a-only",
+        "method": "POST",
+        "path": "/api/discuss",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"question\":\"What evidence supports the synthetic public claim?\",\"scope\":{\"nodes\":[{\"nodeId\":\"cmvi843rs00037kcmi0nfj6y2\",\"nodeVersionId\":\"cmvi843s6000a7kcmwr2xoy4i\"}],\"edgeIds\":[],\"signature\":\"dR-0uNORQd-uLeVbPuh2iL46flFTitswh_NFDn99VO4\"}}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 409,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"conflict\",\"message\":\"A selected graph occurrence is missing, stale, or no longer public.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-discuss-detached-a-only",
+        "method": "POST",
+        "path": "/api/discuss",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"question\":\"What evidence supports the synthetic public claim?\",\"scope\":{\"nodes\":[{\"nodeId\":\"cmvi843rs00037kcmi0nfj6y2\",\"nodeVersionId\":\"cmvi843rw00057kcm7d1urdrv\"}],\"edgeIds\":[\"cmvi843s9000c7kcmzqqijsl9\"],\"signature\":\"ganoUIPL0fsDx44Pzr1hJOcDLT-wokn8mHgQCnpSCII\"}}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 409,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"conflict\",\"message\":\"A selected graph edge does not connect the exact visible occurrences.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-discuss-invalid-question-a-only",
+        "method": "POST",
+        "path": "/api/discuss",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"question\":\"x\",\"scope\":{\"nodes\":[{\"nodeId\":\"cmvi843rs00037kcmi0nfj6y2\",\"nodeVersionId\":\"cmvi843rw00057kcm7d1urdrv\"},{\"nodeId\":\"cmvi843s200087kcmipbro2p1\",\"nodeVersionId\":\"cmvi843s6000a7kcmwr2xoy4i\"}],\"edgeIds\":[\"cmvi843s9000c7kcmzqqijsl9\"],\"signature\":\"X5IBkDKaRtpwTNmq8GLzodK0yAWlX6atWkTJ8aD98SM\"}}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"A valid question, exact traversed graph scope, and optional Anthropic/OpenAI key configuration are required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-inbox-duplicate-a-only",
+        "method": "POST",
+        "path": "/api/federation/inbox",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"@context\":[\"https://www.w3.org/ns/activitystreams\",\"https://coar-notify.net\"],\"actor\":{\"id\":\"https://example.org/synthetic-actor\",\"type\":\"Service\"},\"id\":\"https://example.org/g1-notify/pending\",\"object\":{\"id\":\"https://example.org/synthetic-object\",\"ietf:item\":{\"id\":\"https://example.org/synthetic-content.pdf\",\"mediaType\":\"application/pdf\",\"type\":\"Article\"},\"type\":\"Article\"},\"origin\":{\"id\":\"https://example.org/synthetic-origin\",\"inbox\":\"https://example.org/synthetic-inbox\",\"type\":\"Service\"},\"summary\":\"g1-read-queue-private-payload\",\"target\":{\"id\":\"https://g1.oratlas.example\",\"inbox\":\"https://g1.oratlas.example/api/federation/inbox\",\"type\":\"Service\"},\"type\":[\"Offer\",\"coar-notify:ReviewAction\"]}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 200,
+        "headers": [
+          ["cache-control", "no-store"],
+          ["content-type", "application/json"],
+          ["location", "/api/federation/notifications/g1-read-federation-pending"]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"id\":\"g1-read-federation-pending\",\"activityId\":\"https://example.org/g1-notify/pending\",\"pattern\":\"request-review\",\"status\":\"pending\",\"deduplicated\":true}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-inbox-collision-a-only",
+        "method": "POST",
+        "path": "/api/federation/inbox",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"@context\":[\"https://www.w3.org/ns/activitystreams\",\"https://coar-notify.net\"],\"actor\":{\"id\":\"https://example.org/synthetic-actor\",\"type\":\"Service\"},\"id\":\"https://example.org/g1-notify/pending\",\"object\":{\"id\":\"https://example.org/synthetic-modified-object\",\"ietf:item\":{\"id\":\"https://example.org/synthetic-content.pdf\",\"mediaType\":\"application/pdf\",\"type\":\"Article\"},\"type\":\"Article\"},\"origin\":{\"id\":\"https://example.org/synthetic-origin\",\"inbox\":\"https://example.org/synthetic-inbox\",\"type\":\"Service\"},\"summary\":\"g1-read-queue-private-payload\",\"target\":{\"id\":\"https://g1.oratlas.example\",\"inbox\":\"https://g1.oratlas.example/api/federation/inbox\",\"type\":\"Service\"},\"type\":[\"Offer\",\"coar-notify:ReviewAction\"]}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 409,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"conflict\",\"message\":\"Activity id was already received with different immutable content.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-inbox-wrong-target-a-only",
+        "method": "POST",
+        "path": "/api/federation/inbox",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"@context\":[\"https://www.w3.org/ns/activitystreams\",\"https://coar-notify.net\"],\"actor\":{\"id\":\"https://example.org/synthetic-actor\",\"type\":\"Service\"},\"id\":\"https://example.org/g1-notify/pending\",\"object\":{\"id\":\"https://example.org/synthetic-object\",\"ietf:item\":{\"id\":\"https://example.org/synthetic-content.pdf\",\"mediaType\":\"application/pdf\",\"type\":\"Article\"},\"type\":\"Article\"},\"origin\":{\"id\":\"https://example.org/synthetic-origin\",\"inbox\":\"https://example.org/synthetic-inbox\",\"type\":\"Service\"},\"summary\":\"g1-read-queue-private-payload\",\"target\":{\"id\":\"https://g1.oratlas.example\",\"inbox\":\"https://example.org/wrong-inbox\",\"type\":\"Service\"},\"type\":[\"Offer\",\"coar-notify:ReviewAction\"]}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Notification target inbox does not identify this ORAtlas service.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-inbox-malformed-a-only",
+        "method": "POST",
+        "path": "/api/federation/inbox",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Invalid or unsupported COAR Notify payload.\",\"details\":[\"Unsupported COAR Notify review pattern.\"]}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-announce-prepared-a-only",
+        "method": "POST",
+        "path": "/api/reviews/g1-fixture-review/versions/g1-version-2/federation/announce",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"inReplyTo\":\"https://example.org/g1-notify/accepted-old\"}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Editor role required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-announce-pending-a-only",
+        "method": "POST",
+        "path": "/api/reviews/g1-fixture-review/versions/g1-version-2/federation/announce",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"inReplyTo\":\"https://example.org/g1-notify/pending\"}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Editor role required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-announce-missing-a-only",
+        "method": "POST",
+        "path": "/api/reviews/g1-fixture-review/versions/g1-version-2/federation/announce",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"inReplyTo\":\"https://example.org/g1-notify/missing\"}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Editor role required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-announce-hidden-a-only",
+        "method": "POST",
+        "path": "/api/reviews/g1-control-review/versions/g1-version-3/federation/announce",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"inReplyTo\":\"https://example.org/g1-notify/accepted-old\"}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Editor role required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-discuss-visible-b-only",
+        "method": "POST",
+        "path": "/api/discuss",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"question\":\"What evidence supports the synthetic public claim?\",\"scope\":{\"nodes\":[{\"nodeId\":\"cmvi843rs00037kcmi0nfj6y2\",\"nodeVersionId\":\"cmvi843rw00057kcm7d1urdrv\"},{\"nodeId\":\"cmvi843s200087kcmipbro2p1\",\"nodeVersionId\":\"cmvi843s6000a7kcmwr2xoy4i\"}],\"edgeIds\":[\"cmvi843s9000c7kcmzqqijsl9\"],\"signature\":\"X5IBkDKaRtpwTNmq8GLzodK0yAWlX6atWkTJ8aD98SM\"}}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 200,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"mode\":\"deterministic\",\"result\":{\"mode\":\"deterministic\",\"question\":\"What evidence supports the synthetic public claim?\",\"matchedClaimCount\":1,\"groups\":[{\"relationType\":\"supports\",\"claims\":[{\"claimId\":\"oratlas:claim:v1:00670031002d00760065007200730069006f006e002d0032:0063006c00610069006d002d0031\",\"localClaimId\":\"claim-1\",\"reviewSlug\":\"g1-fixture-review\",\"reviewTitle\":\"G1 fixture review v2 & \\\"quoted\\\"\",\"reviewVersionId\":\"g1-version-2\",\"commitSha\":\"2222222222222222222222222222222222222222\",\"text\":\"Synthetic fixture claim: paired public captures are byte-identical.\",\"section\":\"Results\",\"anchor\":\"oratlas-claim-v1-00670031002d00760065007200730069006f006e002d0032-0063006c00610069006d002d0031\",\"claimType\":\"empirical\",\"relations\":[{\"citationId\":\"oratlas:citation:v1:00670031002d00760065007200730069006f006e002d0032:007200650066002d0031\",\"relationType\":\"supports\",\"trustAssessments\":[]}]}]}],\"reviewsCovered\":[{\"reviewSlug\":\"g1-fixture-review\",\"title\":\"G1 fixture review v2 & \\\"quoted\\\"\"}],\"insufficientEvidence\":false,\"notes\":[\"This is a deterministic evidence summary, not a generated answer. Multiple reviews citing the same source are not independent replication.\",\"All matched evidence comes from a single review; treat with appropriate caution.\"]},\"llmAvailable\":false,\"packetHash\":\"beabfa7fa839159b4f4304537fee41e8188113ff3809ce1ea94d18c7b6d8538d\",\"packetSchemaVersion\":\"1.1.0\",\"references\":[{\"kind\":\"claim\",\"id\":\"oratlas:claim:v1:00670031002d00760065007200730069006f006e002d0032:0063006c00610069006d002d0031\",\"label\":\"Synthetic fixture claim: paired public captures are byte-identical.\",\"href\":\"/claims/g1-version-2/claim-1\",\"landscapeNodeId\":\"graph:cmvi843rs00037kcmi0nfj6y2:cmvi843rw00057kcm7d1urdrv\"},{\"kind\":\"citation\",\"id\":\"oratlas:citation:v1:00670031002d00760065007200730069006f006e002d0032:007200650066002d0031\",\"label\":\"Synthetic fixture work\",\"href\":\"/claims/g1-version-2/claim-1#linked-evidence\",\"landscapeNodeId\":\"graph:cmvi843s200087kcmipbro2p1:cmvi843s6000a7kcmwr2xoy4i\"}],\"scope\":{\"kind\":\"explore\",\"claimIds\":[\"oratlas:claim:v1:00670031002d00760065007200730069006f006e002d0032:0063006c00610069006d002d0031\"],\"landscapeNodeIds\":[\"graph:cmvi843rs00037kcmi0nfj6y2:cmvi843rw00057kcm7d1urdrv\",\"graph:cmvi843s200087kcmipbro2p1:cmvi843s6000a7kcmwr2xoy4i\"],\"landscapeNodeVersionIds\":[\"cmvi843rw00057kcm7d1urdrv\",\"cmvi843s6000a7kcmwr2xoy4i\"],\"landscapeEdgeIds\":[\"cmvi843s9000c7kcmzqqijsl9\"],\"claimLandscapeNodeIds\":{\"oratlas:claim:v1:00670031002d00760065007200730069006f006e002d0032:0063006c00610069006d002d0031\":\"graph:cmvi843rs00037kcmi0nfj6y2:cmvi843rw00057kcm7d1urdrv\"},\"citationLandscapeNodeIds\":{\"oratlas:citation:v1:00670031002d00760065007200730069006f006e002d0032:007200650066002d0031\":\"graph:cmvi843s200087kcmipbro2p1:cmvi843s6000a7kcmwr2xoy4i\"},\"label\":\"2 exact graph occurrences · 1 visible edge\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-discuss-tampered-b-only",
+        "method": "POST",
+        "path": "/api/discuss",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"question\":\"What evidence supports the synthetic public claim?\",\"scope\":{\"nodes\":[{\"nodeId\":\"cmvi843rs00037kcmi0nfj6y2\",\"nodeVersionId\":\"cmvi843rw00057kcm7d1urdrv\"},{\"nodeId\":\"cmvi843s200087kcmipbro2p1\",\"nodeVersionId\":\"cmvi843s6000a7kcmwr2xoy4i\"}],\"edgeIds\":[\"cmvi843s9000c7kcmzqqijsl9\"],\"signature\":\"a5IBkDKaRtpwTNmq8GLzodK0yAWlX6atWkTJ8aD98SM\"}}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Atlas Discuss traversal scope is invalid or was modified.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-discuss-hidden-b-only",
+        "method": "POST",
+        "path": "/api/discuss",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"question\":\"What evidence supports the synthetic public claim?\",\"scope\":{\"nodes\":[{\"nodeId\":\"cmvi843sk000g7kcmulwl7dht\",\"nodeVersionId\":\"cmvi843sn000i7kcm78lxx775\"}],\"edgeIds\":[],\"signature\":\"u_SHJUnve93aSfwTBBLhCxhZ443jvN0WfT4ylrSliho\"}}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 409,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"conflict\",\"message\":\"A selected graph occurrence is missing, stale, or no longer public.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-discuss-tombstone-b-only",
+        "method": "POST",
+        "path": "/api/discuss",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"question\":\"What evidence supports the synthetic public claim?\",\"scope\":{\"nodes\":[{\"nodeId\":\"cmvi843ta000y7kcmkxj8zl5b\",\"nodeVersionId\":\"cmvi843td00107kcm74nxiav4\"}],\"edgeIds\":[],\"signature\":\"LvpqVMl4Vg8m6yFfG2IHs4LYPwSuaY8HI_xs3mpTVqI\"}}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 409,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"conflict\",\"message\":\"A selected graph occurrence is missing, stale, or no longer public.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-discuss-missing-b-only",
+        "method": "POST",
+        "path": "/api/discuss",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"question\":\"What evidence supports the synthetic public claim?\",\"scope\":{\"nodes\":[{\"nodeId\":\"g1-post-missing\",\"nodeVersionId\":\"g1-post-missing-v1\"}],\"edgeIds\":[],\"signature\":\"JS9wYQmLARc7t-lZkF86otceawm3mwAqyrmBgRINUn0\"}}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 409,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"conflict\",\"message\":\"A selected graph occurrence is missing, stale, or no longer public.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-discuss-stale-b-only",
+        "method": "POST",
+        "path": "/api/discuss",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"question\":\"What evidence supports the synthetic public claim?\",\"scope\":{\"nodes\":[{\"nodeId\":\"cmvi843rs00037kcmi0nfj6y2\",\"nodeVersionId\":\"cmvi843s6000a7kcmwr2xoy4i\"}],\"edgeIds\":[],\"signature\":\"dR-0uNORQd-uLeVbPuh2iL46flFTitswh_NFDn99VO4\"}}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 409,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"conflict\",\"message\":\"A selected graph occurrence is missing, stale, or no longer public.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-discuss-detached-b-only",
+        "method": "POST",
+        "path": "/api/discuss",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"question\":\"What evidence supports the synthetic public claim?\",\"scope\":{\"nodes\":[{\"nodeId\":\"cmvi843rs00037kcmi0nfj6y2\",\"nodeVersionId\":\"cmvi843rw00057kcm7d1urdrv\"}],\"edgeIds\":[\"cmvi843s9000c7kcmzqqijsl9\"],\"signature\":\"ganoUIPL0fsDx44Pzr1hJOcDLT-wokn8mHgQCnpSCII\"}}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 409,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"conflict\",\"message\":\"A selected graph edge does not connect the exact visible occurrences.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-discuss-invalid-question-b-only",
+        "method": "POST",
+        "path": "/api/discuss",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"question\":\"x\",\"scope\":{\"nodes\":[{\"nodeId\":\"cmvi843rs00037kcmi0nfj6y2\",\"nodeVersionId\":\"cmvi843rw00057kcm7d1urdrv\"},{\"nodeId\":\"cmvi843s200087kcmipbro2p1\",\"nodeVersionId\":\"cmvi843s6000a7kcmwr2xoy4i\"}],\"edgeIds\":[\"cmvi843s9000c7kcmzqqijsl9\"],\"signature\":\"X5IBkDKaRtpwTNmq8GLzodK0yAWlX6atWkTJ8aD98SM\"}}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"A valid question, exact traversed graph scope, and optional Anthropic/OpenAI key configuration are required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-inbox-duplicate-b-only",
+        "method": "POST",
+        "path": "/api/federation/inbox",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"@context\":[\"https://www.w3.org/ns/activitystreams\",\"https://coar-notify.net\"],\"actor\":{\"id\":\"https://example.org/synthetic-actor\",\"type\":\"Service\"},\"id\":\"https://example.org/g1-notify/pending\",\"object\":{\"id\":\"https://example.org/synthetic-object\",\"ietf:item\":{\"id\":\"https://example.org/synthetic-content.pdf\",\"mediaType\":\"application/pdf\",\"type\":\"Article\"},\"type\":\"Article\"},\"origin\":{\"id\":\"https://example.org/synthetic-origin\",\"inbox\":\"https://example.org/synthetic-inbox\",\"type\":\"Service\"},\"summary\":\"g1-read-queue-private-payload\",\"target\":{\"id\":\"https://g1.oratlas.example\",\"inbox\":\"https://g1.oratlas.example/api/federation/inbox\",\"type\":\"Service\"},\"type\":[\"Offer\",\"coar-notify:ReviewAction\"]}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 200,
+        "headers": [
+          ["cache-control", "no-store"],
+          ["content-type", "application/json"],
+          ["location", "/api/federation/notifications/g1-read-federation-pending"]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"id\":\"g1-read-federation-pending\",\"activityId\":\"https://example.org/g1-notify/pending\",\"pattern\":\"request-review\",\"status\":\"pending\",\"deduplicated\":true}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-inbox-collision-b-only",
+        "method": "POST",
+        "path": "/api/federation/inbox",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"@context\":[\"https://www.w3.org/ns/activitystreams\",\"https://coar-notify.net\"],\"actor\":{\"id\":\"https://example.org/synthetic-actor\",\"type\":\"Service\"},\"id\":\"https://example.org/g1-notify/pending\",\"object\":{\"id\":\"https://example.org/synthetic-modified-object\",\"ietf:item\":{\"id\":\"https://example.org/synthetic-content.pdf\",\"mediaType\":\"application/pdf\",\"type\":\"Article\"},\"type\":\"Article\"},\"origin\":{\"id\":\"https://example.org/synthetic-origin\",\"inbox\":\"https://example.org/synthetic-inbox\",\"type\":\"Service\"},\"summary\":\"g1-read-queue-private-payload\",\"target\":{\"id\":\"https://g1.oratlas.example\",\"inbox\":\"https://g1.oratlas.example/api/federation/inbox\",\"type\":\"Service\"},\"type\":[\"Offer\",\"coar-notify:ReviewAction\"]}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 409,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"conflict\",\"message\":\"Activity id was already received with different immutable content.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-inbox-wrong-target-b-only",
+        "method": "POST",
+        "path": "/api/federation/inbox",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"@context\":[\"https://www.w3.org/ns/activitystreams\",\"https://coar-notify.net\"],\"actor\":{\"id\":\"https://example.org/synthetic-actor\",\"type\":\"Service\"},\"id\":\"https://example.org/g1-notify/pending\",\"object\":{\"id\":\"https://example.org/synthetic-object\",\"ietf:item\":{\"id\":\"https://example.org/synthetic-content.pdf\",\"mediaType\":\"application/pdf\",\"type\":\"Article\"},\"type\":\"Article\"},\"origin\":{\"id\":\"https://example.org/synthetic-origin\",\"inbox\":\"https://example.org/synthetic-inbox\",\"type\":\"Service\"},\"summary\":\"g1-read-queue-private-payload\",\"target\":{\"id\":\"https://g1.oratlas.example\",\"inbox\":\"https://example.org/wrong-inbox\",\"type\":\"Service\"},\"type\":[\"Offer\",\"coar-notify:ReviewAction\"]}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Notification target inbox does not identify this ORAtlas service.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-inbox-malformed-b-only",
+        "method": "POST",
+        "path": "/api/federation/inbox",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Invalid or unsupported COAR Notify payload.\",\"details\":[\"Unsupported COAR Notify review pattern.\"]}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-announce-prepared-b-only",
+        "method": "POST",
+        "path": "/api/reviews/g1-fixture-review/versions/g1-version-2/federation/announce",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"inReplyTo\":\"https://example.org/g1-notify/accepted-old\"}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Editor role required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-announce-pending-b-only",
+        "method": "POST",
+        "path": "/api/reviews/g1-fixture-review/versions/g1-version-2/federation/announce",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"inReplyTo\":\"https://example.org/g1-notify/pending\"}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Editor role required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-announce-missing-b-only",
+        "method": "POST",
+        "path": "/api/reviews/g1-fixture-review/versions/g1-version-2/federation/announce",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"inReplyTo\":\"https://example.org/g1-notify/missing\"}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Editor role required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-announce-hidden-b-only",
+        "method": "POST",
+        "path": "/api/reviews/g1-control-review/versions/g1-version-3/federation/announce",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"inReplyTo\":\"https://example.org/g1-notify/accepted-old\"}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Editor role required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-discuss-visible-a-and-b",
+        "method": "POST",
+        "path": "/api/discuss",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"question\":\"What evidence supports the synthetic public claim?\",\"scope\":{\"nodes\":[{\"nodeId\":\"cmvi843rs00037kcmi0nfj6y2\",\"nodeVersionId\":\"cmvi843rw00057kcm7d1urdrv\"},{\"nodeId\":\"cmvi843s200087kcmipbro2p1\",\"nodeVersionId\":\"cmvi843s6000a7kcmwr2xoy4i\"}],\"edgeIds\":[\"cmvi843s9000c7kcmzqqijsl9\"],\"signature\":\"X5IBkDKaRtpwTNmq8GLzodK0yAWlX6atWkTJ8aD98SM\"}}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 200,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"mode\":\"deterministic\",\"result\":{\"mode\":\"deterministic\",\"question\":\"What evidence supports the synthetic public claim?\",\"matchedClaimCount\":1,\"groups\":[{\"relationType\":\"supports\",\"claims\":[{\"claimId\":\"oratlas:claim:v1:00670031002d00760065007200730069006f006e002d0032:0063006c00610069006d002d0031\",\"localClaimId\":\"claim-1\",\"reviewSlug\":\"g1-fixture-review\",\"reviewTitle\":\"G1 fixture review v2 & \\\"quoted\\\"\",\"reviewVersionId\":\"g1-version-2\",\"commitSha\":\"2222222222222222222222222222222222222222\",\"text\":\"Synthetic fixture claim: paired public captures are byte-identical.\",\"section\":\"Results\",\"anchor\":\"oratlas-claim-v1-00670031002d00760065007200730069006f006e002d0032-0063006c00610069006d002d0031\",\"claimType\":\"empirical\",\"relations\":[{\"citationId\":\"oratlas:citation:v1:00670031002d00760065007200730069006f006e002d0032:007200650066002d0031\",\"relationType\":\"supports\",\"trustAssessments\":[]}]}]}],\"reviewsCovered\":[{\"reviewSlug\":\"g1-fixture-review\",\"title\":\"G1 fixture review v2 & \\\"quoted\\\"\"}],\"insufficientEvidence\":false,\"notes\":[\"This is a deterministic evidence summary, not a generated answer. Multiple reviews citing the same source are not independent replication.\",\"All matched evidence comes from a single review; treat with appropriate caution.\"]},\"llmAvailable\":false,\"packetHash\":\"beabfa7fa839159b4f4304537fee41e8188113ff3809ce1ea94d18c7b6d8538d\",\"packetSchemaVersion\":\"1.1.0\",\"references\":[{\"kind\":\"claim\",\"id\":\"oratlas:claim:v1:00670031002d00760065007200730069006f006e002d0032:0063006c00610069006d002d0031\",\"label\":\"Synthetic fixture claim: paired public captures are byte-identical.\",\"href\":\"/claims/g1-version-2/claim-1\",\"landscapeNodeId\":\"graph:cmvi843rs00037kcmi0nfj6y2:cmvi843rw00057kcm7d1urdrv\"},{\"kind\":\"citation\",\"id\":\"oratlas:citation:v1:00670031002d00760065007200730069006f006e002d0032:007200650066002d0031\",\"label\":\"Synthetic fixture work\",\"href\":\"/claims/g1-version-2/claim-1#linked-evidence\",\"landscapeNodeId\":\"graph:cmvi843s200087kcmipbro2p1:cmvi843s6000a7kcmwr2xoy4i\"}],\"scope\":{\"kind\":\"explore\",\"claimIds\":[\"oratlas:claim:v1:00670031002d00760065007200730069006f006e002d0032:0063006c00610069006d002d0031\"],\"landscapeNodeIds\":[\"graph:cmvi843rs00037kcmi0nfj6y2:cmvi843rw00057kcm7d1urdrv\",\"graph:cmvi843s200087kcmipbro2p1:cmvi843s6000a7kcmwr2xoy4i\"],\"landscapeNodeVersionIds\":[\"cmvi843rw00057kcm7d1urdrv\",\"cmvi843s6000a7kcmwr2xoy4i\"],\"landscapeEdgeIds\":[\"cmvi843s9000c7kcmzqqijsl9\"],\"claimLandscapeNodeIds\":{\"oratlas:claim:v1:00670031002d00760065007200730069006f006e002d0032:0063006c00610069006d002d0031\":\"graph:cmvi843rs00037kcmi0nfj6y2:cmvi843rw00057kcm7d1urdrv\"},\"citationLandscapeNodeIds\":{\"oratlas:citation:v1:00670031002d00760065007200730069006f006e002d0032:007200650066002d0031\":\"graph:cmvi843s200087kcmipbro2p1:cmvi843s6000a7kcmwr2xoy4i\"},\"label\":\"2 exact graph occurrences · 1 visible edge\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-discuss-tampered-a-and-b",
+        "method": "POST",
+        "path": "/api/discuss",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"question\":\"What evidence supports the synthetic public claim?\",\"scope\":{\"nodes\":[{\"nodeId\":\"cmvi843rs00037kcmi0nfj6y2\",\"nodeVersionId\":\"cmvi843rw00057kcm7d1urdrv\"},{\"nodeId\":\"cmvi843s200087kcmipbro2p1\",\"nodeVersionId\":\"cmvi843s6000a7kcmwr2xoy4i\"}],\"edgeIds\":[\"cmvi843s9000c7kcmzqqijsl9\"],\"signature\":\"a5IBkDKaRtpwTNmq8GLzodK0yAWlX6atWkTJ8aD98SM\"}}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Atlas Discuss traversal scope is invalid or was modified.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-discuss-hidden-a-and-b",
+        "method": "POST",
+        "path": "/api/discuss",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"question\":\"What evidence supports the synthetic public claim?\",\"scope\":{\"nodes\":[{\"nodeId\":\"cmvi843sk000g7kcmulwl7dht\",\"nodeVersionId\":\"cmvi843sn000i7kcm78lxx775\"}],\"edgeIds\":[],\"signature\":\"u_SHJUnve93aSfwTBBLhCxhZ443jvN0WfT4ylrSliho\"}}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 409,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"conflict\",\"message\":\"A selected graph occurrence is missing, stale, or no longer public.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-discuss-tombstone-a-and-b",
+        "method": "POST",
+        "path": "/api/discuss",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"question\":\"What evidence supports the synthetic public claim?\",\"scope\":{\"nodes\":[{\"nodeId\":\"cmvi843ta000y7kcmkxj8zl5b\",\"nodeVersionId\":\"cmvi843td00107kcm74nxiav4\"}],\"edgeIds\":[],\"signature\":\"LvpqVMl4Vg8m6yFfG2IHs4LYPwSuaY8HI_xs3mpTVqI\"}}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 409,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"conflict\",\"message\":\"A selected graph occurrence is missing, stale, or no longer public.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-discuss-missing-a-and-b",
+        "method": "POST",
+        "path": "/api/discuss",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"question\":\"What evidence supports the synthetic public claim?\",\"scope\":{\"nodes\":[{\"nodeId\":\"g1-post-missing\",\"nodeVersionId\":\"g1-post-missing-v1\"}],\"edgeIds\":[],\"signature\":\"JS9wYQmLARc7t-lZkF86otceawm3mwAqyrmBgRINUn0\"}}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 409,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"conflict\",\"message\":\"A selected graph occurrence is missing, stale, or no longer public.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-discuss-stale-a-and-b",
+        "method": "POST",
+        "path": "/api/discuss",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"question\":\"What evidence supports the synthetic public claim?\",\"scope\":{\"nodes\":[{\"nodeId\":\"cmvi843rs00037kcmi0nfj6y2\",\"nodeVersionId\":\"cmvi843s6000a7kcmwr2xoy4i\"}],\"edgeIds\":[],\"signature\":\"dR-0uNORQd-uLeVbPuh2iL46flFTitswh_NFDn99VO4\"}}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 409,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"conflict\",\"message\":\"A selected graph occurrence is missing, stale, or no longer public.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-discuss-detached-a-and-b",
+        "method": "POST",
+        "path": "/api/discuss",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"question\":\"What evidence supports the synthetic public claim?\",\"scope\":{\"nodes\":[{\"nodeId\":\"cmvi843rs00037kcmi0nfj6y2\",\"nodeVersionId\":\"cmvi843rw00057kcm7d1urdrv\"}],\"edgeIds\":[\"cmvi843s9000c7kcmzqqijsl9\"],\"signature\":\"ganoUIPL0fsDx44Pzr1hJOcDLT-wokn8mHgQCnpSCII\"}}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 409,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"conflict\",\"message\":\"A selected graph edge does not connect the exact visible occurrences.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-discuss-invalid-question-a-and-b",
+        "method": "POST",
+        "path": "/api/discuss",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"question\":\"x\",\"scope\":{\"nodes\":[{\"nodeId\":\"cmvi843rs00037kcmi0nfj6y2\",\"nodeVersionId\":\"cmvi843rw00057kcm7d1urdrv\"},{\"nodeId\":\"cmvi843s200087kcmipbro2p1\",\"nodeVersionId\":\"cmvi843s6000a7kcmwr2xoy4i\"}],\"edgeIds\":[\"cmvi843s9000c7kcmzqqijsl9\"],\"signature\":\"X5IBkDKaRtpwTNmq8GLzodK0yAWlX6atWkTJ8aD98SM\"}}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"A valid question, exact traversed graph scope, and optional Anthropic/OpenAI key configuration are required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-inbox-duplicate-a-and-b",
+        "method": "POST",
+        "path": "/api/federation/inbox",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"@context\":[\"https://www.w3.org/ns/activitystreams\",\"https://coar-notify.net\"],\"actor\":{\"id\":\"https://example.org/synthetic-actor\",\"type\":\"Service\"},\"id\":\"https://example.org/g1-notify/pending\",\"object\":{\"id\":\"https://example.org/synthetic-object\",\"ietf:item\":{\"id\":\"https://example.org/synthetic-content.pdf\",\"mediaType\":\"application/pdf\",\"type\":\"Article\"},\"type\":\"Article\"},\"origin\":{\"id\":\"https://example.org/synthetic-origin\",\"inbox\":\"https://example.org/synthetic-inbox\",\"type\":\"Service\"},\"summary\":\"g1-read-queue-private-payload\",\"target\":{\"id\":\"https://g1.oratlas.example\",\"inbox\":\"https://g1.oratlas.example/api/federation/inbox\",\"type\":\"Service\"},\"type\":[\"Offer\",\"coar-notify:ReviewAction\"]}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 200,
+        "headers": [
+          ["cache-control", "no-store"],
+          ["content-type", "application/json"],
+          ["location", "/api/federation/notifications/g1-read-federation-pending"]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"id\":\"g1-read-federation-pending\",\"activityId\":\"https://example.org/g1-notify/pending\",\"pattern\":\"request-review\",\"status\":\"pending\",\"deduplicated\":true}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-inbox-collision-a-and-b",
+        "method": "POST",
+        "path": "/api/federation/inbox",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"@context\":[\"https://www.w3.org/ns/activitystreams\",\"https://coar-notify.net\"],\"actor\":{\"id\":\"https://example.org/synthetic-actor\",\"type\":\"Service\"},\"id\":\"https://example.org/g1-notify/pending\",\"object\":{\"id\":\"https://example.org/synthetic-modified-object\",\"ietf:item\":{\"id\":\"https://example.org/synthetic-content.pdf\",\"mediaType\":\"application/pdf\",\"type\":\"Article\"},\"type\":\"Article\"},\"origin\":{\"id\":\"https://example.org/synthetic-origin\",\"inbox\":\"https://example.org/synthetic-inbox\",\"type\":\"Service\"},\"summary\":\"g1-read-queue-private-payload\",\"target\":{\"id\":\"https://g1.oratlas.example\",\"inbox\":\"https://g1.oratlas.example/api/federation/inbox\",\"type\":\"Service\"},\"type\":[\"Offer\",\"coar-notify:ReviewAction\"]}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 409,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"conflict\",\"message\":\"Activity id was already received with different immutable content.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-inbox-wrong-target-a-and-b",
+        "method": "POST",
+        "path": "/api/federation/inbox",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"@context\":[\"https://www.w3.org/ns/activitystreams\",\"https://coar-notify.net\"],\"actor\":{\"id\":\"https://example.org/synthetic-actor\",\"type\":\"Service\"},\"id\":\"https://example.org/g1-notify/pending\",\"object\":{\"id\":\"https://example.org/synthetic-object\",\"ietf:item\":{\"id\":\"https://example.org/synthetic-content.pdf\",\"mediaType\":\"application/pdf\",\"type\":\"Article\"},\"type\":\"Article\"},\"origin\":{\"id\":\"https://example.org/synthetic-origin\",\"inbox\":\"https://example.org/synthetic-inbox\",\"type\":\"Service\"},\"summary\":\"g1-read-queue-private-payload\",\"target\":{\"id\":\"https://g1.oratlas.example\",\"inbox\":\"https://example.org/wrong-inbox\",\"type\":\"Service\"},\"type\":[\"Offer\",\"coar-notify:ReviewAction\"]}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Notification target inbox does not identify this ORAtlas service.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-inbox-malformed-a-and-b",
+        "method": "POST",
+        "path": "/api/federation/inbox",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Invalid or unsupported COAR Notify payload.\",\"details\":[\"Unsupported COAR Notify review pattern.\"]}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-announce-prepared-a-and-b",
+        "method": "POST",
+        "path": "/api/reviews/g1-fixture-review/versions/g1-version-2/federation/announce",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"inReplyTo\":\"https://example.org/g1-notify/accepted-old\"}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Editor role required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-announce-pending-a-and-b",
+        "method": "POST",
+        "path": "/api/reviews/g1-fixture-review/versions/g1-version-2/federation/announce",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"inReplyTo\":\"https://example.org/g1-notify/pending\"}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Editor role required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-announce-missing-a-and-b",
+        "method": "POST",
+        "path": "/api/reviews/g1-fixture-review/versions/g1-version-2/federation/announce",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"inReplyTo\":\"https://example.org/g1-notify/missing\"}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Editor role required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-announce-hidden-a-and-b",
+        "method": "POST",
+        "path": "/api/reviews/g1-control-review/versions/g1-version-3/federation/announce",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"inReplyTo\":\"https://example.org/g1-notify/accepted-old\"}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Editor role required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-discuss-visible-editor",
+        "method": "POST",
+        "path": "/api/discuss",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"question\":\"What evidence supports the synthetic public claim?\",\"scope\":{\"nodes\":[{\"nodeId\":\"cmvi843rs00037kcmi0nfj6y2\",\"nodeVersionId\":\"cmvi843rw00057kcm7d1urdrv\"},{\"nodeId\":\"cmvi843s200087kcmipbro2p1\",\"nodeVersionId\":\"cmvi843s6000a7kcmwr2xoy4i\"}],\"edgeIds\":[\"cmvi843s9000c7kcmzqqijsl9\"],\"signature\":\"X5IBkDKaRtpwTNmq8GLzodK0yAWlX6atWkTJ8aD98SM\"}}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 200,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"mode\":\"deterministic\",\"result\":{\"mode\":\"deterministic\",\"question\":\"What evidence supports the synthetic public claim?\",\"matchedClaimCount\":1,\"groups\":[{\"relationType\":\"supports\",\"claims\":[{\"claimId\":\"oratlas:claim:v1:00670031002d00760065007200730069006f006e002d0032:0063006c00610069006d002d0031\",\"localClaimId\":\"claim-1\",\"reviewSlug\":\"g1-fixture-review\",\"reviewTitle\":\"G1 fixture review v2 & \\\"quoted\\\"\",\"reviewVersionId\":\"g1-version-2\",\"commitSha\":\"2222222222222222222222222222222222222222\",\"text\":\"Synthetic fixture claim: paired public captures are byte-identical.\",\"section\":\"Results\",\"anchor\":\"oratlas-claim-v1-00670031002d00760065007200730069006f006e002d0032-0063006c00610069006d002d0031\",\"claimType\":\"empirical\",\"relations\":[{\"citationId\":\"oratlas:citation:v1:00670031002d00760065007200730069006f006e002d0032:007200650066002d0031\",\"relationType\":\"supports\",\"trustAssessments\":[]}]}]}],\"reviewsCovered\":[{\"reviewSlug\":\"g1-fixture-review\",\"title\":\"G1 fixture review v2 & \\\"quoted\\\"\"}],\"insufficientEvidence\":false,\"notes\":[\"This is a deterministic evidence summary, not a generated answer. Multiple reviews citing the same source are not independent replication.\",\"All matched evidence comes from a single review; treat with appropriate caution.\"]},\"llmAvailable\":false,\"packetHash\":\"beabfa7fa839159b4f4304537fee41e8188113ff3809ce1ea94d18c7b6d8538d\",\"packetSchemaVersion\":\"1.1.0\",\"references\":[{\"kind\":\"claim\",\"id\":\"oratlas:claim:v1:00670031002d00760065007200730069006f006e002d0032:0063006c00610069006d002d0031\",\"label\":\"Synthetic fixture claim: paired public captures are byte-identical.\",\"href\":\"/claims/g1-version-2/claim-1\",\"landscapeNodeId\":\"graph:cmvi843rs00037kcmi0nfj6y2:cmvi843rw00057kcm7d1urdrv\"},{\"kind\":\"citation\",\"id\":\"oratlas:citation:v1:00670031002d00760065007200730069006f006e002d0032:007200650066002d0031\",\"label\":\"Synthetic fixture work\",\"href\":\"/claims/g1-version-2/claim-1#linked-evidence\",\"landscapeNodeId\":\"graph:cmvi843s200087kcmipbro2p1:cmvi843s6000a7kcmwr2xoy4i\"}],\"scope\":{\"kind\":\"explore\",\"claimIds\":[\"oratlas:claim:v1:00670031002d00760065007200730069006f006e002d0032:0063006c00610069006d002d0031\"],\"landscapeNodeIds\":[\"graph:cmvi843rs00037kcmi0nfj6y2:cmvi843rw00057kcm7d1urdrv\",\"graph:cmvi843s200087kcmipbro2p1:cmvi843s6000a7kcmwr2xoy4i\"],\"landscapeNodeVersionIds\":[\"cmvi843rw00057kcm7d1urdrv\",\"cmvi843s6000a7kcmwr2xoy4i\"],\"landscapeEdgeIds\":[\"cmvi843s9000c7kcmzqqijsl9\"],\"claimLandscapeNodeIds\":{\"oratlas:claim:v1:00670031002d00760065007200730069006f006e002d0032:0063006c00610069006d002d0031\":\"graph:cmvi843rs00037kcmi0nfj6y2:cmvi843rw00057kcm7d1urdrv\"},\"citationLandscapeNodeIds\":{\"oratlas:citation:v1:00670031002d00760065007200730069006f006e002d0032:007200650066002d0031\":\"graph:cmvi843s200087kcmipbro2p1:cmvi843s6000a7kcmwr2xoy4i\"},\"label\":\"2 exact graph occurrences · 1 visible edge\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-discuss-tampered-editor",
+        "method": "POST",
+        "path": "/api/discuss",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"question\":\"What evidence supports the synthetic public claim?\",\"scope\":{\"nodes\":[{\"nodeId\":\"cmvi843rs00037kcmi0nfj6y2\",\"nodeVersionId\":\"cmvi843rw00057kcm7d1urdrv\"},{\"nodeId\":\"cmvi843s200087kcmipbro2p1\",\"nodeVersionId\":\"cmvi843s6000a7kcmwr2xoy4i\"}],\"edgeIds\":[\"cmvi843s9000c7kcmzqqijsl9\"],\"signature\":\"a5IBkDKaRtpwTNmq8GLzodK0yAWlX6atWkTJ8aD98SM\"}}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Atlas Discuss traversal scope is invalid or was modified.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-discuss-hidden-editor",
+        "method": "POST",
+        "path": "/api/discuss",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"question\":\"What evidence supports the synthetic public claim?\",\"scope\":{\"nodes\":[{\"nodeId\":\"cmvi843sk000g7kcmulwl7dht\",\"nodeVersionId\":\"cmvi843sn000i7kcm78lxx775\"}],\"edgeIds\":[],\"signature\":\"u_SHJUnve93aSfwTBBLhCxhZ443jvN0WfT4ylrSliho\"}}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 409,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"conflict\",\"message\":\"A selected graph occurrence is missing, stale, or no longer public.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-discuss-tombstone-editor",
+        "method": "POST",
+        "path": "/api/discuss",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"question\":\"What evidence supports the synthetic public claim?\",\"scope\":{\"nodes\":[{\"nodeId\":\"cmvi843ta000y7kcmkxj8zl5b\",\"nodeVersionId\":\"cmvi843td00107kcm74nxiav4\"}],\"edgeIds\":[],\"signature\":\"LvpqVMl4Vg8m6yFfG2IHs4LYPwSuaY8HI_xs3mpTVqI\"}}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 409,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"conflict\",\"message\":\"A selected graph occurrence is missing, stale, or no longer public.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-discuss-missing-editor",
+        "method": "POST",
+        "path": "/api/discuss",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"question\":\"What evidence supports the synthetic public claim?\",\"scope\":{\"nodes\":[{\"nodeId\":\"g1-post-missing\",\"nodeVersionId\":\"g1-post-missing-v1\"}],\"edgeIds\":[],\"signature\":\"JS9wYQmLARc7t-lZkF86otceawm3mwAqyrmBgRINUn0\"}}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 409,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"conflict\",\"message\":\"A selected graph occurrence is missing, stale, or no longer public.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-discuss-stale-editor",
+        "method": "POST",
+        "path": "/api/discuss",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"question\":\"What evidence supports the synthetic public claim?\",\"scope\":{\"nodes\":[{\"nodeId\":\"cmvi843rs00037kcmi0nfj6y2\",\"nodeVersionId\":\"cmvi843s6000a7kcmwr2xoy4i\"}],\"edgeIds\":[],\"signature\":\"dR-0uNORQd-uLeVbPuh2iL46flFTitswh_NFDn99VO4\"}}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 409,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"conflict\",\"message\":\"A selected graph occurrence is missing, stale, or no longer public.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-discuss-detached-editor",
+        "method": "POST",
+        "path": "/api/discuss",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"question\":\"What evidence supports the synthetic public claim?\",\"scope\":{\"nodes\":[{\"nodeId\":\"cmvi843rs00037kcmi0nfj6y2\",\"nodeVersionId\":\"cmvi843rw00057kcm7d1urdrv\"}],\"edgeIds\":[\"cmvi843s9000c7kcmzqqijsl9\"],\"signature\":\"ganoUIPL0fsDx44Pzr1hJOcDLT-wokn8mHgQCnpSCII\"}}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 409,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"conflict\",\"message\":\"A selected graph edge does not connect the exact visible occurrences.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-discuss-invalid-question-editor",
+        "method": "POST",
+        "path": "/api/discuss",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"question\":\"x\",\"scope\":{\"nodes\":[{\"nodeId\":\"cmvi843rs00037kcmi0nfj6y2\",\"nodeVersionId\":\"cmvi843rw00057kcm7d1urdrv\"},{\"nodeId\":\"cmvi843s200087kcmipbro2p1\",\"nodeVersionId\":\"cmvi843s6000a7kcmwr2xoy4i\"}],\"edgeIds\":[\"cmvi843s9000c7kcmzqqijsl9\"],\"signature\":\"X5IBkDKaRtpwTNmq8GLzodK0yAWlX6atWkTJ8aD98SM\"}}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"A valid question, exact traversed graph scope, and optional Anthropic/OpenAI key configuration are required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-inbox-duplicate-editor",
+        "method": "POST",
+        "path": "/api/federation/inbox",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"@context\":[\"https://www.w3.org/ns/activitystreams\",\"https://coar-notify.net\"],\"actor\":{\"id\":\"https://example.org/synthetic-actor\",\"type\":\"Service\"},\"id\":\"https://example.org/g1-notify/pending\",\"object\":{\"id\":\"https://example.org/synthetic-object\",\"ietf:item\":{\"id\":\"https://example.org/synthetic-content.pdf\",\"mediaType\":\"application/pdf\",\"type\":\"Article\"},\"type\":\"Article\"},\"origin\":{\"id\":\"https://example.org/synthetic-origin\",\"inbox\":\"https://example.org/synthetic-inbox\",\"type\":\"Service\"},\"summary\":\"g1-read-queue-private-payload\",\"target\":{\"id\":\"https://g1.oratlas.example\",\"inbox\":\"https://g1.oratlas.example/api/federation/inbox\",\"type\":\"Service\"},\"type\":[\"Offer\",\"coar-notify:ReviewAction\"]}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 200,
+        "headers": [
+          ["cache-control", "no-store"],
+          ["content-type", "application/json"],
+          ["location", "/api/federation/notifications/g1-read-federation-pending"]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"id\":\"g1-read-federation-pending\",\"activityId\":\"https://example.org/g1-notify/pending\",\"pattern\":\"request-review\",\"status\":\"pending\",\"deduplicated\":true}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-inbox-collision-editor",
+        "method": "POST",
+        "path": "/api/federation/inbox",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"@context\":[\"https://www.w3.org/ns/activitystreams\",\"https://coar-notify.net\"],\"actor\":{\"id\":\"https://example.org/synthetic-actor\",\"type\":\"Service\"},\"id\":\"https://example.org/g1-notify/pending\",\"object\":{\"id\":\"https://example.org/synthetic-modified-object\",\"ietf:item\":{\"id\":\"https://example.org/synthetic-content.pdf\",\"mediaType\":\"application/pdf\",\"type\":\"Article\"},\"type\":\"Article\"},\"origin\":{\"id\":\"https://example.org/synthetic-origin\",\"inbox\":\"https://example.org/synthetic-inbox\",\"type\":\"Service\"},\"summary\":\"g1-read-queue-private-payload\",\"target\":{\"id\":\"https://g1.oratlas.example\",\"inbox\":\"https://g1.oratlas.example/api/federation/inbox\",\"type\":\"Service\"},\"type\":[\"Offer\",\"coar-notify:ReviewAction\"]}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 409,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"conflict\",\"message\":\"Activity id was already received with different immutable content.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-inbox-wrong-target-editor",
+        "method": "POST",
+        "path": "/api/federation/inbox",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"@context\":[\"https://www.w3.org/ns/activitystreams\",\"https://coar-notify.net\"],\"actor\":{\"id\":\"https://example.org/synthetic-actor\",\"type\":\"Service\"},\"id\":\"https://example.org/g1-notify/pending\",\"object\":{\"id\":\"https://example.org/synthetic-object\",\"ietf:item\":{\"id\":\"https://example.org/synthetic-content.pdf\",\"mediaType\":\"application/pdf\",\"type\":\"Article\"},\"type\":\"Article\"},\"origin\":{\"id\":\"https://example.org/synthetic-origin\",\"inbox\":\"https://example.org/synthetic-inbox\",\"type\":\"Service\"},\"summary\":\"g1-read-queue-private-payload\",\"target\":{\"id\":\"https://g1.oratlas.example\",\"inbox\":\"https://example.org/wrong-inbox\",\"type\":\"Service\"},\"type\":[\"Offer\",\"coar-notify:ReviewAction\"]}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Notification target inbox does not identify this ORAtlas service.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-inbox-malformed-editor",
+        "method": "POST",
+        "path": "/api/federation/inbox",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Invalid or unsupported COAR Notify payload.\",\"details\":[\"Unsupported COAR Notify review pattern.\"]}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-announce-prepared-editor",
+        "method": "POST",
+        "path": "/api/reviews/g1-fixture-review/versions/g1-version-2/federation/announce",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"inReplyTo\":\"https://example.org/g1-notify/accepted-old\"}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 200,
+        "headers": [
+          ["cache-control", "no-store"],
+          ["content-type", "application/ld+json; charset=utf-8"]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"@context\":[\"https://www.w3.org/ns/activitystreams\",\"https://coar-notify.net\"],\"id\":\"urn:uuid:ceb8b432-4dd7-50b1-aca4-fc41ca46730c\",\"actor\":{\"id\":\"https://g1.oratlas.example/system\",\"type\":\"Service\",\"name\":\"Open Review Atlas\"},\"origin\":{\"id\":\"https://g1.oratlas.example/system\",\"type\":\"Service\",\"inbox\":\"https://g1.oratlas.example/api/federation/inbox\"},\"target\":{\"id\":\"https://example.org/synthetic-origin\",\"type\":\"Service\",\"inbox\":\"https://example.org/synthetic-inbox\"},\"type\":[\"Announce\",\"coar-notify:ReviewAction\"],\"inReplyTo\":\"https://example.org/g1-notify/accepted-old\",\"context\":{\"id\":\"https://example.org/synthetic-object\",\"type\":\"Article\",\"ietf:item\":{\"id\":\"https://example.org/synthetic-content.pdf\",\"type\":\"Article\",\"mediaType\":\"application/pdf\"}},\"object\":{\"id\":\"https://g1.oratlas.example/reviews/g1-fixture-review/versions/g1-version-2\",\"type\":[\"Page\",\"sorg:Review\"],\"ietf:item\":{\"id\":\"https://g1.oratlas.example/api/reviews/g1-fixture-review/versions/g1-version-2/export/json\",\"type\":\"Document\",\"mediaType\":\"application/vnd.oratlas.scholarly+json\"},\"https://oratlas.org/ns/exports\":[{\"id\":\"https://g1.oratlas.example/api/reviews/g1-fixture-review/versions/g1-version-2/export/ro-crate\",\"type\":\"Document\",\"mediaType\":\"application/ld+json\"}]}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-announce-pending-editor",
+        "method": "POST",
+        "path": "/api/reviews/g1-fixture-review/versions/g1-version-2/federation/announce",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"inReplyTo\":\"https://example.org/g1-notify/pending\"}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 404,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Accepted Request Review notification not found.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-announce-missing-editor",
+        "method": "POST",
+        "path": "/api/reviews/g1-fixture-review/versions/g1-version-2/federation/announce",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"inReplyTo\":\"https://example.org/g1-notify/missing\"}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 404,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Accepted Request Review notification not found.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-announce-hidden-editor",
+        "method": "POST",
+        "path": "/api/reviews/g1-control-review/versions/g1-version-3/federation/announce",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"inReplyTo\":\"https://example.org/g1-notify/accepted-old\"}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 404,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Readable review version not found.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-discuss-visible-admin",
+        "method": "POST",
+        "path": "/api/discuss",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"question\":\"What evidence supports the synthetic public claim?\",\"scope\":{\"nodes\":[{\"nodeId\":\"cmvi843rs00037kcmi0nfj6y2\",\"nodeVersionId\":\"cmvi843rw00057kcm7d1urdrv\"},{\"nodeId\":\"cmvi843s200087kcmipbro2p1\",\"nodeVersionId\":\"cmvi843s6000a7kcmwr2xoy4i\"}],\"edgeIds\":[\"cmvi843s9000c7kcmzqqijsl9\"],\"signature\":\"X5IBkDKaRtpwTNmq8GLzodK0yAWlX6atWkTJ8aD98SM\"}}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 200,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"mode\":\"deterministic\",\"result\":{\"mode\":\"deterministic\",\"question\":\"What evidence supports the synthetic public claim?\",\"matchedClaimCount\":1,\"groups\":[{\"relationType\":\"supports\",\"claims\":[{\"claimId\":\"oratlas:claim:v1:00670031002d00760065007200730069006f006e002d0032:0063006c00610069006d002d0031\",\"localClaimId\":\"claim-1\",\"reviewSlug\":\"g1-fixture-review\",\"reviewTitle\":\"G1 fixture review v2 & \\\"quoted\\\"\",\"reviewVersionId\":\"g1-version-2\",\"commitSha\":\"2222222222222222222222222222222222222222\",\"text\":\"Synthetic fixture claim: paired public captures are byte-identical.\",\"section\":\"Results\",\"anchor\":\"oratlas-claim-v1-00670031002d00760065007200730069006f006e002d0032-0063006c00610069006d002d0031\",\"claimType\":\"empirical\",\"relations\":[{\"citationId\":\"oratlas:citation:v1:00670031002d00760065007200730069006f006e002d0032:007200650066002d0031\",\"relationType\":\"supports\",\"trustAssessments\":[]}]}]}],\"reviewsCovered\":[{\"reviewSlug\":\"g1-fixture-review\",\"title\":\"G1 fixture review v2 & \\\"quoted\\\"\"}],\"insufficientEvidence\":false,\"notes\":[\"This is a deterministic evidence summary, not a generated answer. Multiple reviews citing the same source are not independent replication.\",\"All matched evidence comes from a single review; treat with appropriate caution.\"]},\"llmAvailable\":false,\"packetHash\":\"beabfa7fa839159b4f4304537fee41e8188113ff3809ce1ea94d18c7b6d8538d\",\"packetSchemaVersion\":\"1.1.0\",\"references\":[{\"kind\":\"claim\",\"id\":\"oratlas:claim:v1:00670031002d00760065007200730069006f006e002d0032:0063006c00610069006d002d0031\",\"label\":\"Synthetic fixture claim: paired public captures are byte-identical.\",\"href\":\"/claims/g1-version-2/claim-1\",\"landscapeNodeId\":\"graph:cmvi843rs00037kcmi0nfj6y2:cmvi843rw00057kcm7d1urdrv\"},{\"kind\":\"citation\",\"id\":\"oratlas:citation:v1:00670031002d00760065007200730069006f006e002d0032:007200650066002d0031\",\"label\":\"Synthetic fixture work\",\"href\":\"/claims/g1-version-2/claim-1#linked-evidence\",\"landscapeNodeId\":\"graph:cmvi843s200087kcmipbro2p1:cmvi843s6000a7kcmwr2xoy4i\"}],\"scope\":{\"kind\":\"explore\",\"claimIds\":[\"oratlas:claim:v1:00670031002d00760065007200730069006f006e002d0032:0063006c00610069006d002d0031\"],\"landscapeNodeIds\":[\"graph:cmvi843rs00037kcmi0nfj6y2:cmvi843rw00057kcm7d1urdrv\",\"graph:cmvi843s200087kcmipbro2p1:cmvi843s6000a7kcmwr2xoy4i\"],\"landscapeNodeVersionIds\":[\"cmvi843rw00057kcm7d1urdrv\",\"cmvi843s6000a7kcmwr2xoy4i\"],\"landscapeEdgeIds\":[\"cmvi843s9000c7kcmzqqijsl9\"],\"claimLandscapeNodeIds\":{\"oratlas:claim:v1:00670031002d00760065007200730069006f006e002d0032:0063006c00610069006d002d0031\":\"graph:cmvi843rs00037kcmi0nfj6y2:cmvi843rw00057kcm7d1urdrv\"},\"citationLandscapeNodeIds\":{\"oratlas:citation:v1:00670031002d00760065007200730069006f006e002d0032:007200650066002d0031\":\"graph:cmvi843s200087kcmipbro2p1:cmvi843s6000a7kcmwr2xoy4i\"},\"label\":\"2 exact graph occurrences · 1 visible edge\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-discuss-tampered-admin",
+        "method": "POST",
+        "path": "/api/discuss",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"question\":\"What evidence supports the synthetic public claim?\",\"scope\":{\"nodes\":[{\"nodeId\":\"cmvi843rs00037kcmi0nfj6y2\",\"nodeVersionId\":\"cmvi843rw00057kcm7d1urdrv\"},{\"nodeId\":\"cmvi843s200087kcmipbro2p1\",\"nodeVersionId\":\"cmvi843s6000a7kcmwr2xoy4i\"}],\"edgeIds\":[\"cmvi843s9000c7kcmzqqijsl9\"],\"signature\":\"a5IBkDKaRtpwTNmq8GLzodK0yAWlX6atWkTJ8aD98SM\"}}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Atlas Discuss traversal scope is invalid or was modified.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-discuss-hidden-admin",
+        "method": "POST",
+        "path": "/api/discuss",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"question\":\"What evidence supports the synthetic public claim?\",\"scope\":{\"nodes\":[{\"nodeId\":\"cmvi843sk000g7kcmulwl7dht\",\"nodeVersionId\":\"cmvi843sn000i7kcm78lxx775\"}],\"edgeIds\":[],\"signature\":\"u_SHJUnve93aSfwTBBLhCxhZ443jvN0WfT4ylrSliho\"}}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 409,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"conflict\",\"message\":\"A selected graph occurrence is missing, stale, or no longer public.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-discuss-tombstone-admin",
+        "method": "POST",
+        "path": "/api/discuss",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"question\":\"What evidence supports the synthetic public claim?\",\"scope\":{\"nodes\":[{\"nodeId\":\"cmvi843ta000y7kcmkxj8zl5b\",\"nodeVersionId\":\"cmvi843td00107kcm74nxiav4\"}],\"edgeIds\":[],\"signature\":\"LvpqVMl4Vg8m6yFfG2IHs4LYPwSuaY8HI_xs3mpTVqI\"}}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 409,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"conflict\",\"message\":\"A selected graph occurrence is missing, stale, or no longer public.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-discuss-missing-admin",
+        "method": "POST",
+        "path": "/api/discuss",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"question\":\"What evidence supports the synthetic public claim?\",\"scope\":{\"nodes\":[{\"nodeId\":\"g1-post-missing\",\"nodeVersionId\":\"g1-post-missing-v1\"}],\"edgeIds\":[],\"signature\":\"JS9wYQmLARc7t-lZkF86otceawm3mwAqyrmBgRINUn0\"}}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 409,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"conflict\",\"message\":\"A selected graph occurrence is missing, stale, or no longer public.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-discuss-stale-admin",
+        "method": "POST",
+        "path": "/api/discuss",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"question\":\"What evidence supports the synthetic public claim?\",\"scope\":{\"nodes\":[{\"nodeId\":\"cmvi843rs00037kcmi0nfj6y2\",\"nodeVersionId\":\"cmvi843s6000a7kcmwr2xoy4i\"}],\"edgeIds\":[],\"signature\":\"dR-0uNORQd-uLeVbPuh2iL46flFTitswh_NFDn99VO4\"}}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 409,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"conflict\",\"message\":\"A selected graph occurrence is missing, stale, or no longer public.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-discuss-detached-admin",
+        "method": "POST",
+        "path": "/api/discuss",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"question\":\"What evidence supports the synthetic public claim?\",\"scope\":{\"nodes\":[{\"nodeId\":\"cmvi843rs00037kcmi0nfj6y2\",\"nodeVersionId\":\"cmvi843rw00057kcm7d1urdrv\"}],\"edgeIds\":[\"cmvi843s9000c7kcmzqqijsl9\"],\"signature\":\"ganoUIPL0fsDx44Pzr1hJOcDLT-wokn8mHgQCnpSCII\"}}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 409,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"conflict\",\"message\":\"A selected graph edge does not connect the exact visible occurrences.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-discuss-invalid-question-admin",
+        "method": "POST",
+        "path": "/api/discuss",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"question\":\"x\",\"scope\":{\"nodes\":[{\"nodeId\":\"cmvi843rs00037kcmi0nfj6y2\",\"nodeVersionId\":\"cmvi843rw00057kcm7d1urdrv\"},{\"nodeId\":\"cmvi843s200087kcmipbro2p1\",\"nodeVersionId\":\"cmvi843s6000a7kcmwr2xoy4i\"}],\"edgeIds\":[\"cmvi843s9000c7kcmzqqijsl9\"],\"signature\":\"X5IBkDKaRtpwTNmq8GLzodK0yAWlX6atWkTJ8aD98SM\"}}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"A valid question, exact traversed graph scope, and optional Anthropic/OpenAI key configuration are required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-inbox-duplicate-admin",
+        "method": "POST",
+        "path": "/api/federation/inbox",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"@context\":[\"https://www.w3.org/ns/activitystreams\",\"https://coar-notify.net\"],\"actor\":{\"id\":\"https://example.org/synthetic-actor\",\"type\":\"Service\"},\"id\":\"https://example.org/g1-notify/pending\",\"object\":{\"id\":\"https://example.org/synthetic-object\",\"ietf:item\":{\"id\":\"https://example.org/synthetic-content.pdf\",\"mediaType\":\"application/pdf\",\"type\":\"Article\"},\"type\":\"Article\"},\"origin\":{\"id\":\"https://example.org/synthetic-origin\",\"inbox\":\"https://example.org/synthetic-inbox\",\"type\":\"Service\"},\"summary\":\"g1-read-queue-private-payload\",\"target\":{\"id\":\"https://g1.oratlas.example\",\"inbox\":\"https://g1.oratlas.example/api/federation/inbox\",\"type\":\"Service\"},\"type\":[\"Offer\",\"coar-notify:ReviewAction\"]}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 200,
+        "headers": [
+          ["cache-control", "no-store"],
+          ["content-type", "application/json"],
+          ["location", "/api/federation/notifications/g1-read-federation-pending"]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"id\":\"g1-read-federation-pending\",\"activityId\":\"https://example.org/g1-notify/pending\",\"pattern\":\"request-review\",\"status\":\"pending\",\"deduplicated\":true}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-inbox-collision-admin",
+        "method": "POST",
+        "path": "/api/federation/inbox",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"@context\":[\"https://www.w3.org/ns/activitystreams\",\"https://coar-notify.net\"],\"actor\":{\"id\":\"https://example.org/synthetic-actor\",\"type\":\"Service\"},\"id\":\"https://example.org/g1-notify/pending\",\"object\":{\"id\":\"https://example.org/synthetic-modified-object\",\"ietf:item\":{\"id\":\"https://example.org/synthetic-content.pdf\",\"mediaType\":\"application/pdf\",\"type\":\"Article\"},\"type\":\"Article\"},\"origin\":{\"id\":\"https://example.org/synthetic-origin\",\"inbox\":\"https://example.org/synthetic-inbox\",\"type\":\"Service\"},\"summary\":\"g1-read-queue-private-payload\",\"target\":{\"id\":\"https://g1.oratlas.example\",\"inbox\":\"https://g1.oratlas.example/api/federation/inbox\",\"type\":\"Service\"},\"type\":[\"Offer\",\"coar-notify:ReviewAction\"]}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 409,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"conflict\",\"message\":\"Activity id was already received with different immutable content.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-inbox-wrong-target-admin",
+        "method": "POST",
+        "path": "/api/federation/inbox",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"@context\":[\"https://www.w3.org/ns/activitystreams\",\"https://coar-notify.net\"],\"actor\":{\"id\":\"https://example.org/synthetic-actor\",\"type\":\"Service\"},\"id\":\"https://example.org/g1-notify/pending\",\"object\":{\"id\":\"https://example.org/synthetic-object\",\"ietf:item\":{\"id\":\"https://example.org/synthetic-content.pdf\",\"mediaType\":\"application/pdf\",\"type\":\"Article\"},\"type\":\"Article\"},\"origin\":{\"id\":\"https://example.org/synthetic-origin\",\"inbox\":\"https://example.org/synthetic-inbox\",\"type\":\"Service\"},\"summary\":\"g1-read-queue-private-payload\",\"target\":{\"id\":\"https://g1.oratlas.example\",\"inbox\":\"https://example.org/wrong-inbox\",\"type\":\"Service\"},\"type\":[\"Offer\",\"coar-notify:ReviewAction\"]}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Notification target inbox does not identify this ORAtlas service.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-inbox-malformed-admin",
+        "method": "POST",
+        "path": "/api/federation/inbox",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Invalid or unsupported COAR Notify payload.\",\"details\":[\"Unsupported COAR Notify review pattern.\"]}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-announce-prepared-admin",
+        "method": "POST",
+        "path": "/api/reviews/g1-fixture-review/versions/g1-version-2/federation/announce",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"inReplyTo\":\"https://example.org/g1-notify/accepted-old\"}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 200,
+        "headers": [
+          ["cache-control", "no-store"],
+          ["content-type", "application/ld+json; charset=utf-8"]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"@context\":[\"https://www.w3.org/ns/activitystreams\",\"https://coar-notify.net\"],\"id\":\"urn:uuid:ceb8b432-4dd7-50b1-aca4-fc41ca46730c\",\"actor\":{\"id\":\"https://g1.oratlas.example/system\",\"type\":\"Service\",\"name\":\"Open Review Atlas\"},\"origin\":{\"id\":\"https://g1.oratlas.example/system\",\"type\":\"Service\",\"inbox\":\"https://g1.oratlas.example/api/federation/inbox\"},\"target\":{\"id\":\"https://example.org/synthetic-origin\",\"type\":\"Service\",\"inbox\":\"https://example.org/synthetic-inbox\"},\"type\":[\"Announce\",\"coar-notify:ReviewAction\"],\"inReplyTo\":\"https://example.org/g1-notify/accepted-old\",\"context\":{\"id\":\"https://example.org/synthetic-object\",\"type\":\"Article\",\"ietf:item\":{\"id\":\"https://example.org/synthetic-content.pdf\",\"type\":\"Article\",\"mediaType\":\"application/pdf\"}},\"object\":{\"id\":\"https://g1.oratlas.example/reviews/g1-fixture-review/versions/g1-version-2\",\"type\":[\"Page\",\"sorg:Review\"],\"ietf:item\":{\"id\":\"https://g1.oratlas.example/api/reviews/g1-fixture-review/versions/g1-version-2/export/json\",\"type\":\"Document\",\"mediaType\":\"application/vnd.oratlas.scholarly+json\"},\"https://oratlas.org/ns/exports\":[{\"id\":\"https://g1.oratlas.example/api/reviews/g1-fixture-review/versions/g1-version-2/export/ro-crate\",\"type\":\"Document\",\"mediaType\":\"application/ld+json\"}]}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-announce-pending-admin",
+        "method": "POST",
+        "path": "/api/reviews/g1-fixture-review/versions/g1-version-2/federation/announce",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"inReplyTo\":\"https://example.org/g1-notify/pending\"}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 404,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Accepted Request Review notification not found.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-announce-missing-admin",
+        "method": "POST",
+        "path": "/api/reviews/g1-fixture-review/versions/g1-version-2/federation/announce",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"inReplyTo\":\"https://example.org/g1-notify/missing\"}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 404,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Accepted Request Review notification not found.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "deterministic-post-announce-hidden-admin",
+        "method": "POST",
+        "path": "/api/reviews/g1-control-review/versions/g1-version-3/federation/announce",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"inReplyTo\":\"https://example.org/g1-notify/accepted-old\"}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 404,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Readable review version not found.\"}}"
+        }
+      }
+    ]
+  },
+  "stateSha256": "412f8da425f78da77a35d83d63554ff432edd42a6582e122a88a342cd9442cb7",
+  "review": "Independently reviewed 2026-10-21: four 96-request native Discuss and federation captures, exact public signed scopes and immutable payloads, 26 native fixture rows and compatibility updates, complete unchanged 72-table state and measured authority, zero outbound attempts; canonical signed traversal order restored in the native selector. Partial synthetic G1 only."
+}

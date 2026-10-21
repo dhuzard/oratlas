@@ -1,7 +1,7 @@
 # Private-workspace execution plan — 2026-10-21
 
 Initial baseline: `154b399235c3320b3080ce54066434b52d2d0eb4`; implementation checkpoint
-`201114e7c0b546ce9173d462c249394caeafbf87` after #225–#233. This plan tracks the requested
+`809c1fb29f5b4cda57f1807a26339851018abd8e` after #225–#234. This plan tracks the requested
 #202 → #203/#204 → #206 → #205 dependencies against actual code and the ratified
 owner decision register. It does not redefine the ADR's G1–G6 gates.
 
@@ -70,8 +70,8 @@ Authoritative references: [owner register](private-workspace-owner-decisions.md)
 #228 records approved policy and method obligations; #229 delivers only unused
 session validation plus a reviewed reference topology. No runtime session store
 or effect coordinator is present. The expanded G1 batches have independent module
-reviews and real restricted-role capture evidence, but does not complete G1.
-Next: remaining 70 methods (mostly mutation/provider/worker workflows), a real
+reviews and real restricted-role capture evidence, but do not complete G1.
+Next: remaining 61 methods (mostly mutation/provider/worker workflows), a real
 Next serving/HTML/metadata capture stage, then separately scoped non-HTTP/timing
 evidence and independent complete-gate acceptance. The
 [real-serving prototype](private-workspace-next-http-prototype.md) observes exact
@@ -105,16 +105,21 @@ this synthetic work.
    G1 acceptance. Only then begin private tables and durable session/workspace
    adapters. Keep later populated-role, G2/G3 and real-data gates separate.
 
-The next G1 batch keeps the previous 1,165 records unchanged, adds twelve
+Merged #234 keeps the previous 1,165 records unchanged, adds twelve
 provider-disabled OAuth cases, and separately resets worker reads (270), known
 notification/comment operations (62) and accepted synthesis/discovery reads
-(108). All 79 declared methods have six user/session cases; worker authority is
-explicitly separate from those cookies. Native worker claim history and real
-source packet bytes have independent review. Complete per-program state and
-manual goldens precede final lifecycle/CI acceptance. The remaining 64 mutation
-methods, rendered Next responses, other operational channels and timing still
-prevent G1 closure. The 24-request fresh-comment-removal observation preserves
-native timestamp/audit-ID variation and supplies no strict-equality waiver.
+(108). The next batch adds 96 native deterministic Discuss and federation POST
+requests with its own fixture reset, complete unchanged public state and reviewed
+golden. Its four-label run exposed a native Discuss database-order dependency;
+the selector now preserves verified signed scope order, with a regression and
+independent review. All 82 declared methods have six user/session cases; worker
+authority is explicitly separate from those cookies. Native worker claim history
+and real source packet bytes have independent review. The remaining 61 methods,
+rendered Next responses, other operational channels and timing still prevent G1
+closure. Separate artifact-worker and production-log prototypes and a metadata-only
+Next entropy observer are under development; none yet supplies gate acceptance.
+The 24-request fresh-comment-removal observation preserves native timestamp/audit-ID
+variation and supplies no strict-equality waiver.
 
 No further owner answer is needed for this synthetic work. The approved session
 instance/epoch and identity lifecycle policies are already recorded. Detailed
