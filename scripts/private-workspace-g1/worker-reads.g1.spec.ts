@@ -200,6 +200,8 @@ it("captures valid worker reads and narrow credential last-use updates independe
         ...(cookie ? { cookie } : {}),
       },
     });
+    expect(request.headers.get("cookie")).toBe(cookie ?? null);
+    const dispatchedCookie = request.headers.get("cookie");
     const digests = workerAuthorityDigests(request.headers);
     expect(digests).toEqual(
       workerAuthorityDigests(new Headers(workerAuthorityHeaders(scenario.workerAuthority))),
@@ -223,7 +225,7 @@ it("captures valid worker reads and narrow credential last-use updates independe
         principal: scenario.principal,
         sessionCase: scenario.session.case,
         session: scenario.session,
-        cookieSha256: cookie ? sha256Text(cookie) : null,
+        cookieSha256: dispatchedCookie === null ? null : sha256Text(dispatchedCookie),
         workerAuthority: scenario.workerAuthority,
         ...digests,
       },
