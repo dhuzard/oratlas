@@ -1,0 +1,145 @@
+{
+  "input": {
+    "reviewVersionId": "g1-version-2",
+    "registry": "clinicaltrials-gov",
+    "sourceUrl": "https://clinicaltrials.gov/study/NCT09999991",
+    "sourceVersion": "synthetic-g1-protocol-version-1",
+    "fetchedAt": "2026-03-31T23:55:00.000Z",
+    "payload": {
+      "protocolSection": {
+        "identificationModule": {
+          "nctId": "NCT09999991",
+          "briefTitle": "Synthetic G1 metadata reconciliation, not a real registered study"
+        },
+        "eligibilityModule": {
+          "eligibilityCriteria": "Inclusion Criteria:\nSynthetic protocol population label"
+        },
+        "outcomesModule": {
+          "primaryOutcomes": [
+            {
+              "measure": "Synthetic protocol outcome label"
+            }
+          ]
+        }
+      }
+    }
+  },
+  "replay": {
+    "snapshotId": "ps_6cd1900e14f55ab42eec5c8aa534509389b9931a7caa785cdc20df8514926126",
+    "sourceId": "NCT09999991",
+    "proposalsOpened": 0,
+    "idempotent": true,
+    "publicPath": "/api/protocols/reviews/g1-version-2"
+  },
+  "doi": [
+    {
+      "request": {
+        "doi": "10.5555/g1.protocol.native.v1",
+        "expectedKind": "version"
+      },
+      "report": {
+        "schemaVersion": "1.0.0",
+        "input": "10.5555/g1.protocol.native.v1",
+        "status": "example-not-resolvable",
+        "isZenodo": false,
+        "doiKind": "unknown",
+        "recordCreators": [],
+        "recordRepositoryUrls": [],
+        "checks": [
+          {
+            "id": "syntax",
+            "description": "DOI is syntactically valid",
+            "outcome": "pass"
+          },
+          {
+            "id": "resolution",
+            "description": "DOI resolves via doi.org",
+            "outcome": "skipped",
+            "details": "Reserved example DOI (10.5555/*) \u2014 outbound resolution intentionally skipped."
+          }
+        ],
+        "errors": [],
+        "warnings": ["This is a synthetic example DOI and does not resolve."],
+        "confidence": "none",
+        "validatedAt": "2026-04-01T00:00:00.000Z",
+        "normalizedDoi": "10.5555/g1.protocol.native.v1"
+      }
+    },
+    {
+      "request": {
+        "doi": "https://doi.org/10.5555/G1.PROTOCOL.NATIVE.CONCEPT",
+        "expectedKind": "concept"
+      },
+      "report": {
+        "schemaVersion": "1.0.0",
+        "input": "https://doi.org/10.5555/G1.PROTOCOL.NATIVE.CONCEPT",
+        "status": "example-not-resolvable",
+        "isZenodo": false,
+        "doiKind": "unknown",
+        "recordCreators": [],
+        "recordRepositoryUrls": [],
+        "checks": [
+          {
+            "id": "syntax",
+            "description": "DOI is syntactically valid",
+            "outcome": "pass"
+          },
+          {
+            "id": "resolution",
+            "description": "DOI resolves via doi.org",
+            "outcome": "skipped",
+            "details": "Reserved example DOI (10.5555/*) \u2014 outbound resolution intentionally skipped."
+          }
+        ],
+        "errors": [],
+        "warnings": ["This is a synthetic example DOI and does not resolve."],
+        "confidence": "none",
+        "validatedAt": "2026-04-01T00:00:00.000Z",
+        "normalizedDoi": "10.5555/g1.protocol.native.concept"
+      }
+    },
+    {
+      "request": {
+        "doi": "not-a-doi"
+      },
+      "report": {
+        "schemaVersion": "1.0.0",
+        "input": "not-a-doi",
+        "status": "invalid",
+        "isZenodo": false,
+        "doiKind": "unknown",
+        "recordCreators": [],
+        "recordRepositoryUrls": [],
+        "checks": [],
+        "errors": ["Not a syntactically valid DOI."],
+        "warnings": [],
+        "confidence": "none",
+        "validatedAt": "2026-04-01T00:00:00.000Z"
+      }
+    },
+    {
+      "request": {
+        "doi": "   "
+      },
+      "report": {
+        "schemaVersion": "1.0.0",
+        "input": "   ",
+        "status": "invalid",
+        "isZenodo": false,
+        "doiKind": "unknown",
+        "recordCreators": [],
+        "recordRepositoryUrls": [],
+        "checks": [],
+        "errors": ["DOI is empty."],
+        "warnings": [],
+        "confidence": "none",
+        "validatedAt": "2026-04-01T00:00:00.000Z"
+      }
+    }
+  ],
+  "addedRows": {
+    "ProtocolSnapshot": 1,
+    "ProtocolDriftProposal": 2,
+    "AuditEvent": 2
+  }
+}

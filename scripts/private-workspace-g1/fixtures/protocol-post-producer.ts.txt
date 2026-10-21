@@ -1,0 +1,16 @@
+import{it,vi,expect}from"vitest";import{writeFileSync}from"node:fs";
+it("freezes a genuinely registered protocol and resolved proposal plus provider-free native DOI reports",async()=>{
+ vi.useFakeTimers({toFake:["Date"],now:new Date("2026-03-31T23:55:00.000Z")});let outbound=0;vi.stubGlobal("fetch",()=>{outbound++;throw new Error("Synthetic native setup forbids outbound HTTP");});
+ const api=await import("@/lib/protocol-drift"),{prisma}=await import("@/lib/db");const{validateDoi}=await import("../../packages/zenodo/src/validate.js");
+ try{
+ const input={reviewVersionId:"g1-version-2",registry:"clinicaltrials-gov"as const,sourceUrl:"https://clinicaltrials.gov/study/NCT09999991",sourceVersion:"synthetic-g1-protocol-version-1",fetchedAt:"2026-03-31T23:55:00.000Z",payload:{protocolSection:{identificationModule:{nctId:"NCT09999991",briefTitle:"Synthetic G1 metadata reconciliation, not a real registered study"},eligibilityModule:{eligibilityCriteria:"Inclusion Criteria:\nSynthetic protocol population label"},outcomesModule:{primaryOutcomes:[{measure:"Synthetic protocol outcome label"}]}}}};
+ const actor={id:"g1-user-admin",role:"ADMIN"};const first=await api.registerProtocolSnapshot(actor,input);expect(first.idempotent).toBe(false);
+ const initialProposals=await prisma.protocolDriftProposal.findMany({where:{snapshotId:first.snapshotId},orderBy:{id:"asc"}});expect(initialProposals.length).toBeGreaterThan(0);
+ const resolution={resolution:"explained"as const,note:"Synthetic metadata reconciliation only; no scientific confirmation."};vi.setSystemTime(new Date("2026-03-31T23:56:00.000Z"));await api.resolveProtocolProposal(actor,initialProposals[0]!.id,resolution);
+ const replay=await api.registerProtocolSnapshot(actor,input);expect(replay.idempotent).toBe(true);
+ let closedReplay:{code:string;message:string}|undefined;try{await api.resolveProtocolProposal(actor,initialProposals[0]!.id,resolution);}catch(error){if(!(error instanceof api.ProtocolDriftError))throw new Error("Unexpected native resolution characterization");closedReplay={code:error.code,message:error.message};}expect(closedReplay).toEqual({code:"conflict",message:"Proposal is no longer open."});
+ const snapshot=await prisma.protocolSnapshot.findUniqueOrThrow({where:{id:first.snapshotId}}),proposals=await prisma.protocolDriftProposal.findMany({where:{snapshotId:first.snapshotId},orderBy:{id:"asc"}}),audits=await prisma.auditEvent.findMany({where:{OR:[{subjectId:first.snapshotId},{subjectId:initialProposals[0]!.id}]},orderBy:{id:"asc"}});
+ vi.setSystemTime(new Date("2026-04-01T00:00:00.000Z"));const doiInputs=[{doi:"10.5555/g1.protocol.native.v1",expectedKind:"version"as const},{doi:"https://doi.org/10.5555/G1.PROTOCOL.NATIVE.CONCEPT",expectedKind:"concept"as const},{doi:"not-a-doi"},{doi:"   "}];const doi=[];for(const request of doiInputs)doi.push({request,report:await validateDoi(request)});expect(outbound).toBe(0);
+ writeFileSync("/tmp/oratlas-g1-protocol-post-pg/native-fixture.json",JSON.stringify({input,first,replay,snapshot,initialProposals,proposals,audits,resolution,closedReplay,doi,outbound},null,2)+"\n",{mode:0o600});
+ }finally{await prisma.$disconnect();vi.useRealTimers();vi.unstubAllGlobals();}
+});
