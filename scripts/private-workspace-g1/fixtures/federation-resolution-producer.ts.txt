@@ -1,0 +1,26 @@
+import { writeFileSync } from "node:fs";
+import { it, expect, vi } from "vitest";
+import { nativeEvidenceProblems } from "./native-evidence-safety.js";
+it("prepares two native pending inbound RequestReview fixtures without resolving them", async () => {
+  vi.useFakeTimers({ toFake: ["Date"], now: new Date("2026-03-31T23:50:00.000Z") });
+  let outbound = 0;
+  vi.stubGlobal("fetch", () => { outbound++; throw Error("Synthetic producer outbound refused"); });
+  const api = await import("@/lib/federation"), { prisma } = await import("@/lib/db");
+  try {
+    const source = await prisma.federationNotification.findUniqueOrThrow({ where: { id: "g1-read-federation-accepted-new" } });
+    const inputs = [], receipts = [];
+    for (const label of ["editor", "admin"]) {
+      const input = { ...JSON.parse(source.payloadJson), id: `https://example.org/g1-federation-resolution/${label}` };
+      inputs.push(input); receipts.push(await api.receiveFederationNotification(input));
+    }
+    expect(receipts.every(r=>r.status === "pending" && !r.deduplicated)).toBe(true);
+    const ids = receipts.map(r=>r.id);
+    const notifications = await prisma.$queryRawUnsafe<Array<{row: unknown}>>('SELECT to_jsonb(t) row FROM public."FederationNotification" t WHERE id IN ($1,$2) ORDER BY id COLLATE "C"', ...ids);
+    const audits = await prisma.$queryRawUnsafe<Array<{row: unknown}>>('SELECT to_jsonb(t) row FROM public."AuditEvent" t WHERE "subjectId" IN ($1,$2) ORDER BY id COLLATE "C"', ...ids);
+    const result = { inputs, receipts, notifications: notifications.map(r=>r.row), audits: audits.map(r=>r.row), outbound };
+    const url = new URL(process.env.DATABASE_URL!);
+    if (nativeEvidenceProblems(result,[process.env.DATABASE_URL!,url.password,decodeURIComponent(url.password)]).length) throw Error("Native producer disclosure refused");
+    expect(notifications).toHaveLength(2); expect(audits).toHaveLength(2); expect(outbound).toBe(0);
+    writeFileSync("/tmp/oratlas-g1-federation-pg/native-fixture.json",JSON.stringify(result,null,2)+"\n",{mode:0o600,flag:"wx"});
+  } finally { await prisma.$disconnect();vi.useRealTimers();vi.unstubAllGlobals(); }
+});
