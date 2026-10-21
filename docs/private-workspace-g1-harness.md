@@ -87,12 +87,12 @@ requires its own final-head CI; neither result completes G1.
 
 ## Implementation record (G1-empty, partial)
 
-Status: **G1-empty harness implemented with partial coverage. Seven separately reset programs
-declare 2,392 records (2,375 HTTP, 15 state and two metadata), spanning 85 of the
-133 public route files and 90 of 143 exported methods. All 90 declared methods
+Status: **G1-empty harness implemented with partial coverage. Nine separately reset programs
+declare 2,594 records (2,577 HTTP, 15 state and two metadata), spanning 89 of the
+133 public route files and 94 of 143 exported methods. All 94 declared methods
 include six user/session cases; four worker GETs also have independent credential
 and lease positives. The index consumer has its own four-label capture. The
-other 48 files / 53 methods, OAuth success and integrated real Next HTTP serving
+other 44 files / 49 methods, OAuth success and integrated real Next HTTP serving
 remain G1 gaps. Operational channels and timing are separately tracked against
 their applicable later gates, as specified above and in ADR §13. Populated
 T-ROLE/T-PUB remains later. G1 is not passed.**
@@ -108,6 +108,17 @@ and complete public rows must stay unchanged; separately reviewed authority
 metadata is retained rather than omitted to keep old state hashes. See the
 [artifact probe](private-workspace-worker-artifact-probe.md) for native fixture
 provenance, credential-versus-cookie controls and the remaining fresh-write gaps.
+
+The protocol/DOI supplement adds 110 native requests: an exact existing registry
+snapshot replay and populated reserved-example/invalid DOI reports, with complete
+unchanged public state. It makes no provider calls. The audit-revocation supplement
+adds 92 requests over two admin methods; requests against already-revoked fixture
+credentials append exactly two native audit rows and leave credentials unchanged.
+Only absent AuditEvent id/time inputs are fixed through the separately reviewed
+real Prisma extension; all native constraints and existing grants remain in force.
+See the [protocol/DOI probe](private-workspace-protocol-doi-probe.md) and
+[audit-revocation probe](private-workspace-audit-revocations.md). Their integrated
+four-label evidence and manual golden acceptance remain required.
 
 ### Layout
 
