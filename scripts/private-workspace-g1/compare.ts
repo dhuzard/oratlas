@@ -175,7 +175,8 @@ function checkJson(prefix: string, body: unknown, check: JsonCheck): string[] {
   const value = jsonPointer(body, check.pointer);
   const at = `${prefix}: ${check.pointer}`;
   if ("equals" in check) {
-    return sameJson(value, check.equals) ? [] : [`${at} is ${JSON.stringify(value)}`];
+    // Response values may contain capabilities; diagnostics identify only the reviewed field.
+    return sameJson(value, check.equals) ? [] : [`${at} differs from reviewed expectation`];
   }
   if ("length" in check) {
     return Array.isArray(value) && value.length === check.length

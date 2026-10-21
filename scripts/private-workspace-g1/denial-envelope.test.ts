@@ -53,29 +53,29 @@ async function problems(body: unknown, root = false) {
 it("keeps the existing nested error envelope as the default", async () => {
   expect(await problems({ error: native })).toEqual([]);
   expect(await problems(native)).toEqual([
-    "native-synthesis-missing: /error/code is undefined",
-    "native-synthesis-missing: /error/message is undefined",
+    "native-synthesis-missing: /error/code differs from reviewed expectation",
+    "native-synthesis-missing: /error/message differs from reviewed expectation",
   ]);
 });
 it("accepts the native top-level synthesis404 only with its explicit root declaration", async () => {
   expect(await problems(native, true)).toEqual([]);
   expect(await problems({ error: native }, true)).toEqual([
-    "native-synthesis-missing: /code is undefined",
-    "native-synthesis-missing: /message is undefined",
+    "native-synthesis-missing: /code differs from reviewed expectation",
+    "native-synthesis-missing: /message differs from reviewed expectation",
   ]);
 });
 it("rejects wrong code or message at the declared path even when the other envelope matches", async () => {
   expect(await problems({ ...native, code: "forbidden", error: native }, true)).toEqual([
-    'native-synthesis-missing: /code is "forbidden"',
+    "native-synthesis-missing: /code differs from reviewed expectation",
   ]);
   expect(await problems({ ...native, message: "Wrong message", error: native }, true)).toEqual([
-    'native-synthesis-missing: /message is "Wrong message"',
+    "native-synthesis-missing: /message differs from reviewed expectation",
   ]);
   expect(await problems({ ...native, error: { ...native, code: "forbidden" } })).toEqual([
-    'native-synthesis-missing: /error/code is "forbidden"',
+    "native-synthesis-missing: /error/code differs from reviewed expectation",
   ]);
   expect(await problems({ ...native, error: { ...native, message: "Wrong message" } })).toEqual([
-    'native-synthesis-missing: /error/message is "Wrong message"',
+    "native-synthesis-missing: /error/message differs from reviewed expectation",
   ]);
 });
 it("never treats a malformed envelope as an alternative successful denial", async () => {
