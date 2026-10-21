@@ -1,0 +1,123 @@
+{
+  "executedHead": "8bd1ac808ab124918e67c8a275fc59a20c7440f8",
+  "baseHead": "8b8b850112067f501e3fa4d557bfa48adfe538d1",
+  "status": "independently reviewed standalone synthetic native proof; no shared golden or activation",
+  "sourceSha256": {
+    "scripts/private-workspace-g1/challenge-moderation-audit.ts": "670f88693e4bab06602d827c7939cb53ac8f008d02dbbbb0f9baeb3645c8c7ba",
+    "scripts/private-workspace-g1/challenge-moderation-coverage.md": "2a2c021b17fb2759856867f04c2a450e5a250f574408a643c3e83197c82f572a",
+    "scripts/private-workspace-g1/challenge-moderation-scenarios.ts": "31a8666fe742b1e54a74cf533b265969cac918eef5ecffce60d9cd35865107d7",
+    "scripts/private-workspace-g1/challenge-moderation.g1.spec.ts": "745adff4820731fa9a2102840954af55e17ff9d115161271527c821d103c4284",
+    "scripts/private-workspace-g1/challenge-moderation.test.ts": "bf5995b4391f752d9d2382cba4803d56c1a6b10df00aa1f08a46e56c66f50102"
+  },
+  "parentSourceSha256": {
+    "setup.py": "376add8eea8629773475350074d4448446312af30a813b873cab5a4b4201578f",
+    "run.py": "0a589fb9ceb66148af897147f2d857b0ff3c36e1db99ad35a4d3c43dfe111de1",
+    "constraints.py": "929ca4f3ce4a929251999d9d645c5c10df442176a7e7cf1322a971f6c218e1c9"
+  },
+  "nativeSchemaSqlSha256": "df977455412f7871b14a06cbe45fbcdec1231e17ca6542cf0ae7be76d200c204",
+  "evidenceSha256": {
+    "moderation-first.json": "c00d6a325c6e252ec94c88492d55f39f41ea8bfcc8ec9a3f24e16b1e50cece47",
+    "moderation-first.json.state.json": "f6371367e9acadcce251aac9ecf4791d10f4621d9f4ef3fe22d6b5bffd9ad90f",
+    "moderation-first.log": "fdbc5ed27ff9fb257c5be1bc174c43436aade79368077bab72eab4f38e0310b2",
+    "moderation-first.parent-state.json": "f9f0129d8090bc143cdacf833292fcdb0a44f758e76ac7a2e03aefb1d9fc9926",
+    "moderation-repeat.json": "42aafe767cd3900b57e6c1c932c79fdb23a6f02a38f7c78c146717a2d5cf3363",
+    "moderation-repeat.json.state.json": "f6371367e9acadcce251aac9ecf4791d10f4621d9f4ef3fe22d6b5bffd9ad90f",
+    "moderation-repeat.log": "e39516878f229b9c9e2a4bc832c6100a80efce33de298fd357a236658ffc712c",
+    "moderation-repeat.parent-state.json": "f9f0129d8090bc143cdacf833292fcdb0a44f758e76ac7a2e03aefb1d9fc9926",
+    "moderation-summary.json": "65052fcf9a38fc259d6dbe651fc47717d6e89af39c748441e6d52eb5294b654f",
+    "native-constraints.json": "f3a606753657d99a10f283e63410968f7c35e31ee95c6da364fd40e3ed95c289"
+  },
+  "independentReviewSha256": "ae75838f3a8beb8b812828a3c436e9ddf8ab37bbe242115379968b300d109773",
+  "recordsPerRun": 76,
+  "resetRuns": 2,
+  "statuses": {
+    "200": 9,
+    "400": 22,
+    "401": 10,
+    "403": 24,
+    "404": 5,
+    "409": 6
+  },
+  "actualCookieBindingsVerified": 152,
+  "independentlyReconstructedTransitions": 152,
+  "publicTables": 72,
+  "parentTables": 87,
+  "runtimeColumnUpdates": 22,
+  "extraChallengeColumnUpdates": [
+    "contentStatus",
+    "contentRevision",
+    "removedAt",
+    "removedById",
+    "removedByRoleSnapshot",
+    "updatedAt"
+  ],
+  "nativeSetupRows": {
+    "AuditEvent": 12,
+    "Challenge": 3,
+    "ChallengeResponse": 3,
+    "ChallengeTransition": 9,
+    "Person": 1,
+    "ReviewContributor": 1
+  },
+  "runtimeEffects": {
+    "Challenge": {
+      "rows": 3,
+      "fields": [
+        "contentStatus",
+        "contentRevision",
+        "removedAt",
+        "removedById",
+        "removedByRoleSnapshot",
+        "updatedAt"
+      ]
+    },
+    "AuditEvent": 3
+  },
+  "canonicalStateSha256": "a3bf46c2bdd9a8ea7bb9870cd9c880f64bcceca98aceac189ff4797bed4dc96d",
+  "queryDelegationsOnce": true,
+  "absentTimestampInputs": 3,
+  "absentAuditMetadataInputs": 3,
+  "outboundAttempts": 0,
+  "httpPairsExact": true,
+  "completeStatePairsExact": true,
+  "nativeConstraintControls": {
+    "controls": [
+      {
+        "control": "audit-actor-foreign-key",
+        "actualSqlstate": "23503",
+        "transactionClosedWithoutCommit": true
+      },
+      {
+        "control": "user-role-update",
+        "actualSqlstate": "42501",
+        "transactionClosedWithoutCommit": true
+      },
+      {
+        "control": "challenge-insert",
+        "actualSqlstate": "42501",
+        "transactionClosedWithoutCommit": true
+      },
+      {
+        "control": "response-update",
+        "actualSqlstate": "42501",
+        "transactionClosedWithoutCommit": true
+      },
+      {
+        "control": "audit-update",
+        "actualSqlstate": "42501",
+        "transactionClosedWithoutCommit": true
+      }
+    ],
+    "validNativeUpdateRolledBack": true,
+    "completeChallengeRowsUnchangedSha256": "5e692fd6b275d55663728b664703ed04523c9927d9d82da7d5ea15cacafad0fc",
+    "accepted": false
+  },
+  "limitations": [
+    "standalone two-reset proof only; no four-label shared integration or accepted golden",
+    "terminal native fixture targets only; no active challenge reconciliation/concurrency proof",
+    "native producer clocks and fixed runtime resolution clock retained; no historical chronological/scientific timeline claim",
+    "three missing update timestamps and three missing audit IDs/timestamps are explicit finite test inputs; production default generation excluded",
+    "no private workspace authority, live providers, testers, real private data or deployment"
+  ],
+  "accepted": false
+}
