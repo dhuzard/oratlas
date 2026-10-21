@@ -68,6 +68,12 @@ export const EDITORIAL_READ_SCENARIOS: readonly HttpScenario[] = PRINCIPAL_LABEL
             { pointer: "/history", length: 1 },
             { pointer: "/history/0/submissionId", equals: "g1-read-submission" },
             { pointer: "/history/0/submitterLogin", equals: "g1-fixture-a-only" },
+            { pointer: "/history/0/status", equals: "pending-editorial-review" },
+            {
+              pointer: "/history/0/rounds/0/reports/0/reviewerOrcid",
+              equals: "0000-0000-0000-0002",
+            },
+            { pointer: "/history/0/rounds/0/reports/0/orcidVerified", equals: false },
             { pointer: "/history/0/rounds", length: 1 },
             { pointer: "/history/0/rounds/0/reports", length: 1 },
             { pointer: "/history/0/rounds/0/reports/0/reviewerLogin", equals: "g1-fixture-b-only" },

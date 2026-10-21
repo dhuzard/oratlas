@@ -1,11 +1,14 @@
 -- Disposable synthetic G1 read fixtures only; load after public-fixtures.sql.
 -- Native fixed IDs/times, valid stored bodies/hashes; no mutation/provider/real identities.
 INSERT INTO "Submission" ("id","submitterId","repositoryId","snapshotId","status","editorialNote","submittedAt","createdAt","updatedAt")
-VALUES ('g1-read-submission','g1-user-a-only','g1-repo-1','g1-snap-2','submitted','g1-read-internal-note','2026-03-01','2026-03-01','2026-03-01');
+VALUES ('g1-read-submission','g1-user-a-only','g1-repo-1','g1-snap-2','pending-editorial-review','g1-read-internal-note','2026-03-01','2026-03-01','2026-03-01');
+-- Reachable openReviewRound prerequisites: pending editorial review and an active opening editor.
+INSERT INTO "EditorAssignment" ("id","submissionId","editorId","assignedById","status","coiDeclared","coiStatement","createdAt","updatedAt")
+VALUES ('g1-read-assignment','g1-read-submission','g1-user-editor','g1-user-admin','active',true,'No conflicts declared for this synthetic fixture.','2026-03-01 12:00:00','2026-03-01 12:00:00');
 INSERT INTO "ReviewRound" ("id","submissionId","roundNumber","status","openedById","openedAt")
 VALUES ('g1-read-round','g1-read-submission',1,'open','g1-user-editor','2026-03-02');
-INSERT INTO "FormalReviewReport" ("id","roundId","reviewerId","reviewerOrcidVerified","recommendation","bodyJson","bodyHash","submittedAt")
-VALUES ('g1-read-report','g1-read-round','g1-user-b-only',false,'minor-revision','{"questions":[],"schemaVersion":"1.0.0","strengths":["Fixed synthetic inputs."],"summary":"Synthetic G1 review report describing a fixture, without any scientific assessment.","weaknesses":[]}','9a0bdcaeb99fcb067da46a28d37960f6830bed4b7a5aec1a729251367cf622b8','2026-03-03');
+INSERT INTO "FormalReviewReport" ("id","roundId","reviewerId","reviewerOrcid","reviewerOrcidVerified","recommendation","bodyJson","bodyHash","submittedAt")
+VALUES ('g1-read-report','g1-read-round','g1-user-b-only','0000-0000-0000-0002',false,'minor-revision','{"questions":[],"schemaVersion":"1.0.0","strengths":["Fixed synthetic inputs."],"summary":"Synthetic G1 review report describing a fixture, without any scientific assessment.","weaknesses":[]}','9a0bdcaeb99fcb067da46a28d37960f6830bed4b7a5aec1a729251367cf622b8','2026-03-03');
 INSERT INTO "AuthorResponse" ("id","roundId","authorId","bodyJson","bodyHash","submittedAt")
 VALUES ('g1-read-response','g1-read-round','g1-user-a-only','{"response":"Synthetic G1 author response to the fixed fixture review report.","schemaVersion":"1.0.0"}','a8af877c4229053e28bf83d2fe0780c41161079bf90684099a2b783c8a150946','2026-03-04');
 INSERT INTO "CitationStatusRecord" ("id","workAlias","status","source","recordedAt")
