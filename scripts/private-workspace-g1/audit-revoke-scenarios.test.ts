@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { expect, it } from "vitest";
 import {
   AUDIT_REVOKE_SCENARIOS,
@@ -106,4 +107,42 @@ it("guards actual native cookie payload/signature while retaining public identit
     auditRevokeDisclosureProblems({ userId: "g1-user-admin", issuedAt: "1774915200000" }, secrets),
   ).toEqual([]);
   expect(() => auditRevokeCookieSecrets("oratlas_session=malformed")).toThrow("layout");
+});
+it("refuses confidence, denial and full-row fragments generically before diagnostic callbacks", () => {
+  const capability = "synthetic-guard-order-component";
+  for (const value of [
+    { confidence: JSON.stringify({ message: capability }) },
+    { error: { message: capability } },
+    { AuditEvent: [{ detailsJson: JSON.stringify({ message: capability }) }] },
+  ]) {
+    let diagnosticCalled = false;
+    const problems = auditRevokeDisclosureProblems(value, [capability]);
+    if (problems.length === 0) diagnosticCalled = true;
+    expect(diagnosticCalled).toBe(false);
+    expect(problems).toEqual(["Audit revocation capability disclosure refused"]);
+    expect(JSON.stringify(problems)).not.toContain(capability);
+  }
+});
+
+it("keeps native observation guards ahead of value-bearing diagnostics", () => {
+  const source = readFileSync(new URL("./audit-revocations.g1.spec.ts", import.meta.url), "utf8");
+  const before = (guard: string, diagnostic: string, text = source) => {
+    const first = text.indexOf(guard),
+      second = text.indexOf(diagnostic);
+    expect(first, guard).toBeGreaterThanOrEqual(0);
+    expect(second, diagnostic).toBeGreaterThanOrEqual(0);
+    expect(first).toBeLessThan(second);
+  };
+  const snapshot = source.slice(
+    source.indexOf("async function snapshot()"),
+    source.indexOf('it("captures native'),
+  );
+  before("guard(result)", "return result", snapshot);
+  const request = source.slice(source.indexOf("const response = await invokeRouteHandler"));
+  before('response.headers.has("set-cookie")', "const recorded = await captureHttp", request);
+  before("guard({ headers:", "const recorded = await captureHttp", request);
+  before("guard([recorded, bodyText(recorded)])", "if (scenario.expect.status", request);
+  before("guard([capture, state, ...records.map(bodyText)])", "expect(validateCapture(");
+  before("guard(posture)", "expect(posture.user)");
+  before("guard(row)", "expect(row?.revokedAt");
 });
