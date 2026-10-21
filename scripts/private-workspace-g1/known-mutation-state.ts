@@ -45,3 +45,8 @@ export function knownPublicStateProblems(
     ? []
     : ["Unexpected public row or field delta"];
 }
+
+/** Canonical fixture-state serialization; never changes a public handler's response ordering. */
+export function rowsById<T extends { readonly id: string }>(rows: readonly T[]): T[] {
+  return [...rows].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+}

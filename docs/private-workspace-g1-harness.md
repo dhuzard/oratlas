@@ -828,3 +828,12 @@ positive response capturedAt values from 00:00 to 23:58; this is the native inpu
 capture preceding the 23:59 claim/start and 00:04 expiry. The other 264 worker
 records and every previously accepted program/index candidate are unchanged.
 The raw producer JSON/log contains no lease/bearer capability.
+
+The first PR CI run exposed a locale difference in the known-mutation sidecar's
+ORM user/notification array ordering. All public HTTP bytes and all 72 raw SQL
+state tables already matched. Comparing every CI label against the reviewed
+local evidence proved that sorting only the four complete ORM collections by
+explicit binary ID removes every difference, without changing a row or field.
+The producer now applies that order before serialization; its SQL snapshots
+continue using COLLATE "C". Existing reviewed goldens are unchanged. A regression
+control covers the a-only/admin ordering and retains every native field.

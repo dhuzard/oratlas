@@ -14,6 +14,7 @@ import { PUBLIC_SELECT_TABLES } from "./sql.js";
 import { KNOWN_MUTATION_PROGRAM } from "./known-mutation-descriptor.js";
 import {
   publicTableSnapshotSql,
+  rowsById,
   knownPublicStateProblems,
   knownMutationLabel,
   type KnownPublicSqlState,
@@ -56,10 +57,10 @@ afterAll(async () => {
   vi.unstubAllGlobals();
 });
 const snapshot = async () => ({
-  comments: await prisma.reviewComment.findMany({ orderBy: { id: "asc" } }),
-  notifications: await prisma.notification.findMany({ orderBy: { id: "asc" } }),
-  users: await prisma.user.findMany({ orderBy: { id: "asc" } }),
-  audit: await prisma.auditEvent.findMany({ orderBy: { id: "asc" } }),
+  comments: rowsById(await prisma.reviewComment.findMany({ orderBy: { id: "asc" } })),
+  notifications: rowsById(await prisma.notification.findMany({ orderBy: { id: "asc" } })),
+  users: rowsById(await prisma.user.findMany({ orderBy: { id: "asc" } })),
+  audit: rowsById(await prisma.auditEvent.findMany({ orderBy: { id: "asc" } })),
 });
 const publicSnapshot = async (): Promise<KnownPublicSqlState> => {
   const state: Record<string, readonly Record<string, unknown>[]> = {};

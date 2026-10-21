@@ -3,6 +3,7 @@ import { PUBLIC_SELECT_TABLES } from "./sql.js";
 import { KNOWN_MUTATION_PROGRAM } from "./known-mutation-descriptor.js";
 import {
   expectedKnownPublicState,
+  rowsById,
   knownPublicStateProblems,
   publicTableSnapshotSql,
   knownMutationLabel,
@@ -77,4 +78,16 @@ it("exports a fixed dedicated descriptor and validates the runner label before c
   expect(knownMutationLabel("baseline-repeat")).toBe("baseline-repeat");
   for (const label of [undefined, "", "Invalid Label", "a".repeat(41), "baseline\n"])
     expect(() => knownMutationLabel(label)).toThrow();
+});
+
+it("orders complete ORM rows by binary ID regardless of the database locale", () => {
+  const rows = [
+    { id: "g1-user-admin", updatedAt: "native-retained", role: "ADMIN" },
+    { id: "g1-user-a-only", updatedAt: "native-retained-other", role: "USER" },
+    { id: "g1-user-a-and-b", updatedAt: "native-retained-third", role: "USER" },
+  ];
+  const copy = structuredClone(rows);
+  expect(rowsById(rows)).toEqual([rows[2], rows[1], rows[0]]);
+  expect(rows).toEqual(copy);
+  expect(rowsById(rowsById(rows))).toEqual(rowsById(rows));
 });
