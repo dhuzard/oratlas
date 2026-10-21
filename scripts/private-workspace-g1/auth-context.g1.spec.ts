@@ -1,3 +1,4 @@
+import { createNativeEvidenceGuard, type NativeEvidenceGuard } from "./native-evidence-guard.js";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
@@ -37,6 +38,7 @@ type Auth = {
 let out: string;
 let auth: Auth;
 let sign: SessionSigner;
+let guard: NativeEvidenceGuard;
 let read: (token: string, secret: string, nowMs?: number) => string | null;
 let disconnect: () => Promise<void>;
 const evidence: Record<string, unknown> = {};
@@ -55,6 +57,7 @@ beforeAll(async () => {
   ]);
   auth = authModule as unknown as Auth;
   sign = token.createSessionToken;
+  guard = createNativeEvidenceGuard(sign, process.env.DATABASE_URL!);
   read = token.readSessionToken;
   disconnect = () => db.prisma.$disconnect();
 });
@@ -63,6 +66,7 @@ afterAll(async () => {
   vi.useRealTimers();
   vi.unstubAllGlobals();
   if (out) {
+    guard.value(evidence);
     mkdirSync(dirname(out), { recursive: true });
     writeFileSync(out, `${JSON.stringify(evidence, null, 2)}\n`, { mode: 0o600 });
   }
@@ -74,8 +78,9 @@ function inSession<T>(recipe: SessionRecipe, callback: () => Promise<T>): Promis
   const request = new Request(`${G1_BASE_URL}/api/g1-auth-probe`, {
     headers: cookie === undefined ? {} : { cookie },
   });
-  return runInRouteContext(request, "/api/g1-auth-probe/route", callback).then(
-    ({ result }) => result,
+  guard.cookie(request.headers.get("cookie"));
+  return runInRouteContext(request, "/api/g1-auth-probe/route", callback).then(({ result }) =>
+    guard.value(result),
   );
 }
 
@@ -99,8 +104,10 @@ describe("G1 auth evidence: production session functions in a real Next request 
   it("issues every valid fixture token with the production signer and reads it back", () => {
     const tokens = FIXTURE_USERS.map((user) => {
       const token = sign(user.id, G1_SESSION_SECRET, Date.parse(G1_SESSION_ISSUED_AT));
-      expect(cookieHeader(validSession(user.label), sign)).toBe(`${G1_SESSION_COOKIE}=${token}`);
-      expect(read(token, G1_SESSION_SECRET)).toBe(user.id);
+      expect(cookieHeader(validSession(user.label), sign) === `${G1_SESSION_COOKIE}=${token}`).toBe(
+        true,
+      );
+      expect(guard.value(read(token, G1_SESSION_SECRET))).toBe(user.id);
       return { label: user.label, userId: user.id, readBack: read(token, G1_SESSION_SECRET) };
     });
     evidence.tokens = tokens;

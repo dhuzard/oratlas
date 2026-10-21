@@ -1,0 +1,11 @@
+{
+  "source": "/tmp/oratlas-g1-certifier-final/worker-artifacts-baseline.json.state.json",
+  "rawSha256": "a370eb1649d8a3e9c53cf7ae1f5559d8f3c9572fecae758c5a4af12f0012fc1e",
+  "gzipSha256": "b5ad92f51211d6a2314c325da891099fdce9f21c5d18cadad5df7b00bf79b551",
+  "bytes": 12955308,
+  "gzipBytes": 185121,
+  "visited": 619323,
+  "stringBytes": 8165955,
+  "maxDepth": 11,
+  "acceptedMain": "505b0f45a71b4f6540cece4bce94da992347fbcc"
+}

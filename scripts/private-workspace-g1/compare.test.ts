@@ -24,7 +24,7 @@ import {
   upgradeGolden,
   validateCapture,
 } from "./compare.js";
-import { validSession } from "./principals.js";
+import { cookieHeader, validSession } from "./principals.js";
 import { CAPTURE_BYTES_SENTINEL, programProblems, SCENARIOS, type Scenario } from "./scenarios.js";
 import { captureFromGolden, readGolden, withJsonBody, withRecord } from "./test-support.js";
 
@@ -341,7 +341,7 @@ describe("capture validation regressions", () => {
       error: { code: "forbidden", message: "Cross-site mutation requests are refused." },
     }));
     expect(problems(wrongDenial)).toEqual([
-      'ora-readiness-a-only: /error/message is "Cross-site mutation requests are refused."',
+      "ora-readiness-a-only: /error/message differs from reviewed expectation",
     ]);
     const leaked = withRecord(capture, "certifier-suspend-editor", (record) => ({
       ...(record as HttpRecord),
@@ -366,7 +366,7 @@ describe("capture validation regressions", () => {
   it("refuses empty collections, changed order, a wrong cursor and leaked controls", () => {
     const empty = withJsonBody(capture, "claims", (body) => ({ ...body, total: 0, items: [] }));
     expect(problems(empty)).toEqual([
-      "claims: /total is 0",
+      "claims: /total differs from reviewed expectation",
       "claims: /items length is not 2 (empty or changed collection)",
       ...["a-only", "b-only", "a-and-b", "editor", "admin"].map(
         (principal) => `matrix-claims-${principal}: response differs from claims`,
@@ -377,7 +377,7 @@ describe("capture validation regressions", () => {
       events: [...body.events].reverse(),
     }));
     expect(problems(reordered)).toEqual(
-      expect.arrayContaining(['feeds-lifecycle: /events/0/id is "g1-lifecycle-1"']),
+      expect.arrayContaining(["feeds-lifecycle: /events/0/id differs from reviewed expectation"]),
     );
     const wrongCursor = withRecord(capture, "graph-source-assertions-page-2", (record) => {
       const r = record as HttpRecord;
@@ -566,4 +566,23 @@ describe("paired and golden comparison regressions", () => {
     expect(jsonPointer({ a: [{ "b/c": 1 }] }, "/a/0/b~1c")).toBe(1);
     expect(jsonPointer({ a: 1 }, "/missing")).toBeUndefined();
   });
+});
+
+it("rejects mismatched response values without formatting native cookie components in diagnostics", () => {
+  const cookie = cookieHeader(validSession("ADMIN"), createSessionToken)!;
+  const value = cookie.slice(cookie.indexOf("=") + 1);
+  const split = value.lastIndexOf(".");
+  const fragments = [cookie, value, value.slice(0, split), value.slice(split + 1)];
+  for (const fragment of [...fragments, "synthetic-database-password-control"]) {
+    const changed = withJsonBody(capture, "ora-readiness-a-only", () => ({
+      error: { code: fragment, message: fragment },
+    }));
+    const diagnostics = validateCapture(changed, SCENARIOS, createSessionToken);
+    if ([...fragments, fragment].some((secret) => diagnostics.join("\n").includes(secret)))
+      throw new Error("Response diagnostic disclosed a refused value");
+    expect(diagnostics).toEqual([
+      "ora-readiness-a-only: /error/code differs from reviewed expectation",
+      "ora-readiness-a-only: /error/message differs from reviewed expectation",
+    ]);
+  }
 });

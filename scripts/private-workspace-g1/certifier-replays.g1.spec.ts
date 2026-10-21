@@ -1,8 +1,9 @@
+import { readPublicSnapshot } from "./public-snapshot.js";
+import { createNativeEvidenceGuard, type NativeEvidenceGuard } from "./native-evidence-guard.js";
 import { writeFileSync } from "node:fs";
 import { canonicalJson } from "../../packages/contracts/src/canonical-json.js";
 import { afterAll, beforeAll, expect, it, vi } from "vitest";
 import {
-  captureHttp,
   G1_BASE_URL,
   G1_FIXED_CLOCK,
   G1_CAPTURE_VERSION,
@@ -26,7 +27,7 @@ import {
   tablePrivilegesSql,
   columnPrivilegesSql,
 } from "./sql.js";
-import { publicTableSnapshotSql, type KnownPublicSqlState } from "./known-mutation-state.js";
+import { type KnownPublicSqlState } from "./known-mutation-state.js";
 import {
   expectedCertifierReplayState,
   certifierReplayStateProblems,
@@ -41,6 +42,7 @@ type Handler = (
 let out: string;
 let label: string;
 let sign: SessionSigner;
+let guard: NativeEvidenceGuard;
 let handlers: Record<string, Handler>;
 let disconnect: (() => Promise<void>) | undefined;
 let snapshot: () => Promise<KnownPublicSqlState>;
@@ -72,6 +74,7 @@ beforeAll(async () => {
     "api/certification-results/[id]/lifecycle": lifecycle.POST,
   };
   sign = token.createSessionToken;
+  guard = createNativeEvidenceGuard(sign, process.env.DATABASE_URL!);
   disconnect = () => db.prisma.$disconnect();
   const postureRows = await db.prisma.$queryRawUnsafe<
     Array<{
@@ -104,7 +107,7 @@ beforeAll(async () => {
     'privateUsage', CASE WHEN to_regnamespace('private_ws') IS NULL THEN false ELSE has_schema_privilege(session_user, 'private_ws', 'USAGE') END,
     'privateCreate', CASE WHEN to_regnamespace('private_ws') IS NULL THEN false ELSE has_schema_privilege(session_user, 'private_ws', 'CREATE') END
   ) AS evidence`);
-  const posture = postureRows[0]!.evidence;
+  const posture = guard.value(postureRows[0]!.evidence);
   expect(posture.user).toBe(new URL(process.env.DATABASE_URL!).username);
   expect(posture.current).toBe(posture.user);
   expect(posture.privileged).toBe(false);
@@ -138,14 +141,8 @@ beforeAll(async () => {
   const packet = await getPublicationVersionPacket("g1-discovery-version");
   expect(sha256Text(canonicalJson(packet))).toBe(CERTIFIER_INPUTS.terminalPacketSha256);
   snapshot = async () => {
-    const result: Record<string, Readonly<Record<string, unknown>>[]> = {};
-    for (const table of PUBLIC_SELECT_TABLES) {
-      const rows = await db.prisma.$queryRawUnsafe<
-        Array<{ rows: Readonly<Record<string, unknown>>[] }>
-      >(publicTableSnapshotSql(table));
-      result[table] = rows[0]!.rows;
-    }
-    return result;
+    const result = await readPublicSnapshot(db.prisma);
+    return guard.value(result);
   };
 });
 afterAll(async () => {
@@ -208,13 +205,14 @@ it("captures native certifier replays with cumulative full-state and independent
     expect(digests).toEqual(
       workerAuthorityDigests(new Headers(workerAuthorityHeaders(scenario.workerAuthority))),
     );
+    guard.cookie(request.headers.get("cookie"));
     const response = await invokeRouteHandler(request, `/${scenario.route}/route`, () =>
       handlers[scenario.route]!(request, {
         params: Promise.resolve({ id: scenario.params.id ?? "unused-collection-parameter" }),
       }),
     );
     records.push(
-      await captureHttp(
+      await guard.capture(
         {
           id: scenario.id,
           method: "POST",
@@ -254,7 +252,6 @@ it("captures native certifier replays with cumulative full-state and independent
     clock: G1_FIXED_CLOCK,
     records,
   };
-  expect(validateCapture(capture, scenarios, sign)).toEqual([]);
   const state = {
     authorityScope,
     clock: G1_FIXED_CLOCK,
@@ -266,6 +263,8 @@ it("captures native certifier replays with cumulative full-state and independent
   };
   if (certifierReplayCapabilityProblems(records, state, [...cookieSecrets]).length)
     throw new Error("Certifier capability output refused");
+  guard.value([capture, state]);
+  expect(validateCapture(capture, scenarios, sign)).toEqual([]);
   writeFileSync(out, `${JSON.stringify(capture, null, 2)}\n`, { mode: 0o600 });
   writeFileSync(`${out}.state.json`, `${JSON.stringify(state, null, 2)}\n`, { mode: 0o600 });
 }, 240_000);

@@ -1,14 +1,9 @@
+import { createNativeEvidenceGuard, type NativeEvidenceGuard } from "./native-evidence-guard.js";
 import { workerOutputProblems } from "./worker-capture-safety.js";
 import { writeFileSync } from "node:fs";
 import { beforeAll, afterAll, expect, it, vi } from "vitest";
 import { assertPublicChildEnv } from "./child-env.js";
-import {
-  G1_BASE_URL,
-  G1_FIXED_CLOCK,
-  G1_CAPTURE_VERSION,
-  captureHttp,
-  type HttpRecord,
-} from "./capture.js";
+import { G1_BASE_URL, G1_FIXED_CLOCK, G1_CAPTURE_VERSION, type HttpRecord } from "./capture.js";
 import { validateCapture } from "./compare.js";
 import { invokeRouteHandler, nextInternals } from "./next-request-context.js";
 import { cookieHeader, sha256Text, type SessionSigner } from "./principals.js";
@@ -19,6 +14,7 @@ import type { prisma as AppPrisma } from "@/lib/db";
 let output: string;
 let prisma: typeof AppPrisma;
 let sign: SessionSigner;
+let guard: NativeEvidenceGuard;
 let routes: Record<string, Record<string, unknown>>;
 beforeAll(async () => {
   output = assertPublicChildEnv(process.env, "G1_SYNTHESIS_OUT");
@@ -40,6 +36,7 @@ beforeAll(async () => {
   };
   ({ prisma } = await import("@/lib/db"));
   ({ createSessionToken: sign } = await import("@/lib/session-token"));
+  guard = createNativeEvidenceGuard(sign, process.env.DATABASE_URL!);
 });
 afterAll(async () => {
   await prisma?.$disconnect();
@@ -52,7 +49,7 @@ async function state() {
     result[table] = await prisma.$queryRawUnsafe(
       `SELECT to_jsonb(t) AS row FROM "${table}" t ORDER BY to_jsonb(t)::text COLLATE "C"`,
     );
-  return result;
+  return guard.value(result);
 }
 it("executes the separately seeded synthesis reads under restricted authority with exact state preservation", async () => {
   const before = await state();
@@ -65,6 +62,7 @@ it("executes the separately seeded synthesis reads under restricted authority wi
       request: Request,
       context?: { params: Promise<Record<string, string | string[]>> },
     ) => Promise<Response>;
+    guard.cookie(request.headers.get("cookie"));
     const response = await invokeRouteHandler(request, `/${scenario.route}/route`, () =>
       handler(
         request,
@@ -72,7 +70,7 @@ it("executes the separately seeded synthesis reads under restricted authority wi
       ),
     );
     records.push(
-      await captureHttp(
+      await guard.capture(
         {
           id: scenario.id,
           method: "GET",
@@ -97,12 +95,15 @@ it("executes the separately seeded synthesis reads under restricted authority wi
     clock: G1_FIXED_CLOCK,
     records,
   };
-  expect(validateCapture(capture, SYNTHESIS_SCENARIOS, sign)).toEqual([]);
   const stateEvidence = { before, after };
   if (workerOutputProblems(JSON.stringify(stateEvidence)).length)
     throw new Error("Worker capability state disclosure refused");
+  guard.value(stateEvidence);
+  guard.value([capture, stateEvidence]);
+  expect(validateCapture(capture, SYNTHESIS_SCENARIOS, sign)).toEqual([]);
   writeFileSync(output + ".state.json", JSON.stringify(stateEvidence, null, 2) + "\n", {
     mode: 0o600,
   });
+  guard.value(capture);
   writeFileSync(output, JSON.stringify(capture, null, 2) + "\n", { mode: 0o600 });
 });

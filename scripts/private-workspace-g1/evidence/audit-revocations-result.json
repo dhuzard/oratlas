@@ -1,0 +1,131 @@
+{
+  "captures": {
+    "first": {
+      "captureSha256": "f0e9bb95efd8179456d8ba6909d148059c58c9411aa35cacb4eeb77f9e26480a",
+      "stateSha256": "79a2a3a8cfa0f618011ea28cda8ad894cd6c1f4395fbe43eb25a80510ab82d71",
+      "tables": 87,
+      "delta": {
+        "AuditEvent": 2
+      },
+      "setupDelta": {
+        "Certifier": 2,
+        "CertifierCredential": 6,
+        "Publication": 1,
+        "PublicationCapture": 2,
+        "PublicationClaimOccurrence": 1,
+        "PublicationProductionAssertion": 1,
+        "PublicationVersion": 1,
+        "PublicationVersionContributor": 1,
+        "VerificationRun": 3,
+        "VerificationRunLifecycleEvent": 10,
+        "Verifier": 3,
+        "VerifierCredential": 6
+      }
+    },
+    "repeat": {
+      "captureSha256": "33851027000ca4e1c70dd28715e05124a076b271dab8d9c46c88c8b418e709a5",
+      "stateSha256": "79a2a3a8cfa0f618011ea28cda8ad894cd6c1f4395fbe43eb25a80510ab82d71",
+      "tables": 87,
+      "delta": {
+        "AuditEvent": 2
+      },
+      "setupDelta": {
+        "Certifier": 2,
+        "CertifierCredential": 6,
+        "Publication": 1,
+        "PublicationCapture": 2,
+        "PublicationClaimOccurrence": 1,
+        "PublicationProductionAssertion": 1,
+        "PublicationVersion": 1,
+        "PublicationVersionContributor": 1,
+        "VerificationRun": 3,
+        "VerificationRunLifecycleEvent": 10,
+        "Verifier": 3,
+        "VerifierCredential": 6
+      }
+    }
+  },
+  "httpPairsExact": true,
+  "completeStatePairsExact": true,
+  "parentTables": 87,
+  "runtimeGrantChanges": 0,
+  "protocol": "oratlas.g1.audit-revocations-evidence/0.1",
+  "main": "505b0f45a71b4f6540cece4bce94da992347fbcc",
+  "executedSourceCommit": "75b101eb7e0d1ffca831197d719d3eb2f04d66de",
+  "sharedInspectorSource": "13f4aa3b4f23204d41726b9a660df97144acb5e9",
+  "sourceSha256": {
+    "packages/db/src/index.ts": "43a95343b3217e7a2257fb612f6698a6acb9d5d25d7396d91196bc91c3ab5490",
+    "packages/db/prisma/schema.prisma": "bd376799bfea231fa4e0f6b4a79b439c9cdd3aa93e4d99c3b99174a2dbfaa88c",
+    "packages/db/prisma/schema.postgres.sql": "df977455412f7871b14a06cbe45fbcdec1231e17ca6542cf0ae7be76d200c204",
+    "apps/web/src/lib/auth.ts": "a19793ecf00ef57d03ff8330a9729a15024a7b6e52cad45b8fccc4af99e49a2c",
+    "apps/web/src/lib/scientific-verification.ts": "b56f8268ed55784f3b009c85f1de3f0ed317b4b8548b4ebde5632b518ce753bf",
+    "apps/web/src/lib/certification.ts": "65af2464f3fb6e768b37e4619e7c886c5dc851a1966c8e44493bd7b3e49ec862",
+    "apps/web/src/app/api/editorial/verifier-credentials/[id]/revoke/route.ts": "9312f9a695e045c0cca3a43f741ded1738d9a592b1a2df615bfd8c90a683dedc",
+    "apps/web/src/app/api/editorial/certifier-credentials/[id]/revoke/route.ts": "a69402d92bdc2b36ac20c44a05636f5844e99b78c5f16c647db64b3a4f4053c6",
+    "scripts/private-workspace-g1/audit-default-fixture.ts": "d4aa9cbd1bf3617c2219eea7eb76419edd6e9f9a9fd347bacd7e91bd44240b36",
+    "scripts/private-workspace-g1/audit-revoke-scenarios.ts": "f1a2b9b202381390499ca37871e2c892c2c873bc7a489263f8f68c86edab8793",
+    "scripts/private-workspace-g1/audit-revoke-safety.ts": "6567643f4afc6d45a3ca454c64766a4c8f95e1ac930405ead347c0def72c8d15",
+    "scripts/private-workspace-g1/audit-revocations.g1.spec.ts": "620661b53ce10c5bf057b37dcbb52ff18c875ebfa79cb8e7a85bf6dab009d780",
+    "scripts/private-workspace-g1/native-evidence-safety.ts": "f2b63f7e2a25de7e83195520a56c8810fe6f3f2e87d7930b24849f892c6cc376"
+  },
+  "actualStatuses": {
+    "200": 2,
+    "401": 12,
+    "403": 52,
+    "404": 2,
+    "415": 24
+  },
+  "canonicalFullStateSha256": "e3237246b1a1df0eb2307cc9b1e0bd501092296fc3a48f29ba4bb650b8aa14d7",
+  "changedTransitions": [
+    "audit-revoke-verifier-already-revoked-ADMIN",
+    "audit-revoke-certifier-already-revoked-ADMIN"
+  ],
+  "nativeCreateCallbacks": [
+    {
+      "ordinal": 12,
+      "model": "AuditEvent",
+      "operation": "create",
+      "injected": ["id", "createdAt"],
+      "queryCalls": 1
+    },
+    {
+      "ordinal": 26,
+      "model": "AuditEvent",
+      "operation": "create",
+      "injected": ["id", "createdAt"],
+      "queryCalls": 1
+    }
+  ],
+  "expectedAdded": [
+    {
+      "id": "g1-audit-default-1",
+      "actorId": "g1-user-admin",
+      "action": "verification.credential-revoked",
+      "subjectType": "verifier-credential",
+      "subjectId": "g1-worker-verifier-revoked",
+      "detailsJson": "{\"verifierId\":\"g1-worker-verifier-primary\"}",
+      "idempotencyKey": null,
+      "platformVersion": "0.1.0",
+      "createdAt": "2026-04-01T00:00:00"
+    },
+    {
+      "id": "g1-audit-default-2",
+      "actorId": "g1-user-admin",
+      "action": "certification.credential-revoked",
+      "subjectType": "certifier-credential",
+      "subjectId": "g1-worker-certifier-revoked",
+      "detailsJson": "{\"certifierId\":\"g1-certifier-ora\"}",
+      "idempotencyKey": null,
+      "platformVersion": "0.1.0",
+      "createdAt": "2026-04-01T00:00:00"
+    }
+  ],
+  "capabilityGuardProblems": 0,
+  "priorPrototypeIndependentProofSha256": "29b1bbf8b750c1a2c7e2c1f3a215b6003d5281fef8bdb0200bab423cca237f91",
+  "parentStateSha256": {
+    "first": "ac0f5446746e2185e1b47b866bbf57be5f3bb7a8206d43a999ae044090ef66e9",
+    "repeat": "ac0f5446746e2185e1b47b866bbf57be5f3bb7a8206d43a999ae044090ef66e9"
+  },
+  "evidenceDirectory": "/tmp/oratlas-g1-audit-defaults-pg",
+  "boundary": "Standalone native synthetic pair; shared four-label lifecycle and independent manual golden acceptance pending. No new runtime grants or production behavior."
+}

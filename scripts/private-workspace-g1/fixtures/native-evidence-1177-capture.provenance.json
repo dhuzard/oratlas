@@ -1,0 +1,12 @@
+{
+  "source": "/tmp/oratlas-g1-certifier-final/capture-baseline-repeat.json",
+  "rawSha256": "c200ae23a710c7ba9cb87d79bae05a024bf70e6e6ba8cb7a87ad86b3c3565e7e",
+  "gzipSha256": "3c7ca62f40ffda33452139f01b5f2cdb71d4344c552de75eb4232bada6772a80",
+  "bytes": 7937497,
+  "gzipBytes": 1038642,
+  "visited": 283924,
+  "stringBytes": 13970221,
+  "maxDepth": 19,
+  "relation": "Exact native1177 capture; tests compare it to unchanged reviewed public-routes golden, including bodies stored there only by hash.",
+  "acceptedMain": "505b0f45a71b4f6540cece4bce94da992347fbcc"
+}

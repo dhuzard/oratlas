@@ -1,3 +1,5 @@
+import { readPublicSnapshot } from "./public-snapshot.js";
+import { createNativeEvidenceGuard } from "./native-evidence-guard.js";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { afterAll, expect, it, vi } from "vitest";
@@ -45,6 +47,8 @@ it("captures a populated public index with exact runtime authority and unchanged
     import("@/lib/index-builder"),
     import("@/lib/db"),
   ]);
+  const { createSessionToken } = await import("@/lib/session-token");
+  const guard = createNativeEvidenceGuard(createSessionToken, process.env.DATABASE_URL!);
   disconnect = () => prisma.$disconnect();
   const rows = await prisma.$queryRawUnsafe<
     Array<{
@@ -78,7 +82,7 @@ it("captures a populated public index with exact runtime authority and unchanged
     'privateUsage', CASE WHEN to_regnamespace('private_ws') IS NULL THEN false ELSE has_schema_privilege(session_user, 'private_ws', 'USAGE') END,
     'privateCreate', CASE WHEN to_regnamespace('private_ws') IS NULL THEN false ELSE has_schema_privilege(session_user, 'private_ws', 'CREATE') END
   ) AS evidence`);
-  const posture = rows[0]!.evidence;
+  const posture = guard.value(rows[0]!.evidence);
   expect(posture.user).toBe(new URL(process.env.DATABASE_URL!).username);
   expect(posture.current).toBe(posture.user);
   expect(posture.privileged).toBe(false);
@@ -128,6 +132,7 @@ it("captures a populated public index with exact runtime authority and unchanged
       },
     },
   });
+  guard.value(controls);
   expect(controls.map((row) => row.id)).toEqual([
     "g1-index-invalid-sha",
     "g1-index-tombstone",
@@ -145,6 +150,8 @@ it("captures a populated public index with exact runtime authority and unchanged
   }
 
   const snapshot = async (client: Pick<typeof prisma, "$queryRawUnsafe"> = prisma) => {
+    if (roleContract === "public-runtime")
+      return indexDigest(guard.value(await readPublicSnapshot(client)));
     const state: Record<string, unknown> = {};
     for (const table of stateTables) {
       const result = await client.$queryRawUnsafe<Array<{ rows: unknown[] }>>(
@@ -152,10 +159,11 @@ it("captures a populated public index with exact runtime authority and unchanged
       );
       state[table] = result[0]!.rows;
     }
+    guard.value(state);
     return indexDigest(state);
   };
   const before = await snapshot();
-  const index = await buildKnowledgeIndex();
+  const index = guard.value(await buildKnowledgeIndex());
   const capture: IndexCapture = {
     protocol: INDEX_PROTOCOL,
     clock: G1_FIXED_CLOCK,
@@ -167,6 +175,7 @@ it("captures a populated public index with exact runtime authority and unchanged
     stateBeforeSha256: before,
     stateAfterSha256: await snapshot(),
   };
+  guard.value(capture);
   expect(indexCaptureProblems(capture)).toEqual([]);
   // Exercise a genuine same-count UPDATE under actual app authority, entirely inside a
   // rolled-back transaction. This is a negative control for value snapshots, not a mock
@@ -203,6 +212,7 @@ it("captures a populated public index with exact runtime authority and unchanged
   for (const secret of [process.env.DATABASE_URL!, url.password, decodeURIComponent(url.password)])
     if (secret.length > 0 && bytes.includes(secret))
       throw new Error("Index evidence contains credential");
+  guard.value(bytes);
   mkdirSync(dirname(out), { recursive: true });
   writeFileSync(out, `${bytes}\n`, { mode: 0o600 });
 }, 30_000);

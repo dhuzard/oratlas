@@ -1,8 +1,9 @@
+import { readPublicSnapshot } from "./public-snapshot.js";
+import { createNativeEvidenceGuard, type NativeEvidenceGuard } from "./native-evidence-guard.js";
 import { readFileSync, writeFileSync } from "node:fs";
 import { canonicalJson } from "../../packages/contracts/src/canonical-json.js";
 import { afterAll, beforeAll, expect, it, vi } from "vitest";
 import {
-  captureHttp,
   G1_BASE_URL,
   G1_FIXED_CLOCK,
   G1_CAPTURE_VERSION,
@@ -27,7 +28,7 @@ import {
   tablePrivilegesSql,
   columnPrivilegesSql,
 } from "./sql.js";
-import { publicTableSnapshotSql, type KnownPublicSqlState } from "./known-mutation-state.js";
+import { type KnownPublicSqlState } from "./known-mutation-state.js";
 import {
   expectedWorkerArtifactState,
   workerArtifactStateProblems,
@@ -46,6 +47,7 @@ type Handler = (
 let out: string;
 let label: string;
 let sign: SessionSigner;
+let guard: NativeEvidenceGuard;
 let handlers: Record<string, Handler>;
 let disconnect: (() => Promise<void>) | undefined;
 let snapshot: () => Promise<KnownPublicSqlState>;
@@ -77,6 +79,7 @@ beforeAll(async () => {
     "api/verification-runs/[id]/findings": finding.POST,
   };
   sign = token.createSessionToken;
+  guard = createNativeEvidenceGuard(sign, process.env.DATABASE_URL!);
   disconnect = () => db.prisma.$disconnect();
   const postureRows = await db.prisma.$queryRawUnsafe<
     Array<{
@@ -109,7 +112,7 @@ beforeAll(async () => {
     'privateUsage', CASE WHEN to_regnamespace('private_ws') IS NULL THEN false ELSE has_schema_privilege(session_user, 'private_ws', 'USAGE') END,
     'privateCreate', CASE WHEN to_regnamespace('private_ws') IS NULL THEN false ELSE has_schema_privilege(session_user, 'private_ws', 'CREATE') END
   ) AS evidence`);
-  const posture = postureRows[0]!.evidence;
+  const posture = guard.value(postureRows[0]!.evidence);
   expect(posture.user).toBe(new URL(process.env.DATABASE_URL!).username);
   expect(posture.current).toBe(posture.user);
   expect(posture.privileged).toBe(false);
@@ -142,18 +145,12 @@ beforeAll(async () => {
     columns: expectedColumns,
   };
   const { getPublicationVersionPacket } = await import("@/lib/publication-version-packet");
-  expect(await getPublicationVersionPacket("g1-worker-version")).toEqual(
+  expect(guard.value(await getPublicationVersionPacket("g1-worker-version"))).toEqual(
     JSON.parse(readFileSync(new URL("./fixtures/worker-input.json", import.meta.url), "utf8")),
   );
   snapshot = async () => {
-    const state: Record<string, Readonly<Record<string, unknown>>[]> = {};
-    for (const table of PUBLIC_SELECT_TABLES) {
-      const rows = await db.prisma.$queryRawUnsafe<
-        Array<{ rows: Readonly<Record<string, unknown>>[] }>
-      >(publicTableSnapshotSql(table));
-      state[table] = rows[0]!.rows;
-    }
-    return state;
+    const state = await readPublicSnapshot(db.prisma);
+    return guard.value(state);
   };
 });
 afterAll(async () => {
@@ -211,11 +208,12 @@ it("captures native artifact replays and exactly one existing artifact completio
     expect(digests).toEqual(
       workerAuthorityDigests(new Headers(workerAuthorityHeaders(scenario.workerAuthority))),
     );
+    guard.cookie(request.headers.get("cookie"));
     const response = await invokeRouteHandler(request, `/${scenario.route}/route`, () =>
       handlers[scenario.route]!(request, { params: Promise.resolve(scenario.params) }),
     );
     records.push(
-      await captureHttp(
+      await guard.capture(
         {
           id: scenario.id,
           method: scenario.method,
@@ -258,7 +256,6 @@ it("captures native artifact replays and exactly one existing artifact completio
     clock: G1_FIXED_CLOCK,
     records,
   };
-  expect(validateCapture(capture, scenarios, sign)).toEqual([]);
   const state = {
     authorityScope,
     clock: G1_FIXED_CLOCK,
@@ -278,6 +275,8 @@ it("captures native artifact replays and exactly one existing artifact completio
     workerOutputProblems(JSON.stringify(capture)).length
   )
     throw new Error("Worker artifact capability disclosure refused");
+  guard.value([capture, state]);
+  expect(validateCapture(capture, scenarios, sign)).toEqual([]);
   writeFileSync(out, `${JSON.stringify(capture, null, 2)}\n`, { mode: 0o600 });
   writeFileSync(`${out}.state.json`, `${JSON.stringify(state, null, 2)}\n`, { mode: 0o600 });
 }, 240_000);

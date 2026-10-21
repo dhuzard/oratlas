@@ -1,9 +1,9 @@
+import { createNativeEvidenceGuard, type NativeEvidenceGuard } from "./native-evidence-guard.js";
 import { workerOutputProblems } from "./worker-capture-safety.js";
 import { readFileSync, writeFileSync } from "node:fs";
 import { canonicalJson } from "../../packages/contracts/src/canonical-json.js";
 import { afterAll, beforeAll, expect, it, vi } from "vitest";
 import {
-  captureHttp,
   G1_BASE_URL,
   G1_FIXED_CLOCK,
   G1_CAPTURE_VERSION,
@@ -45,6 +45,7 @@ type WorkerRecord = HttpRecord & {
 };
 let out: string;
 let sign: SessionSigner;
+let guard: NativeEvidenceGuard;
 let disconnect: (() => Promise<void>) | undefined;
 let handlers: Record<string, Handler>;
 type CredentialRow = Readonly<Record<string, unknown>> & { id: string; lastUsedAt: string | null };
@@ -84,6 +85,7 @@ beforeAll(async () => {
     "api/certification-runs/[id]/input": cInput.GET,
   };
   sign = token.createSessionToken;
+  guard = createNativeEvidenceGuard(sign, process.env.DATABASE_URL!);
   disconnect = () => db.prisma.$disconnect();
   const postureRows = await db.prisma.$queryRawUnsafe<
     Array<{
@@ -115,7 +117,7 @@ beforeAll(async () => {
     'privateUsage', CASE WHEN to_regnamespace('private_ws') IS NULL THEN false ELSE has_schema_privilege(session_user, 'private_ws', 'USAGE') END,
     'privateCreate', CASE WHEN to_regnamespace('private_ws') IS NULL THEN false ELSE has_schema_privilege(session_user, 'private_ws', 'CREATE') END
   ) AS evidence`);
-  const posture = postureRows[0]!.evidence;
+  const posture = guard.value(postureRows[0]!.evidence);
   expect(posture.user).toBe(new URL(process.env.DATABASE_URL!).username);
   expect(posture.current).toBe(posture.user);
   expect(posture.privileged).toBe(false);
@@ -147,7 +149,7 @@ beforeAll(async () => {
   };
   const { getPublicationVersionPacket } = await import("@/lib/publication-version-packet");
   // Re-run the actual readonly native builder; do not accept a hand-shaped packet as proof.
-  expect(await getPublicationVersionPacket("g1-worker-version")).toEqual(
+  expect(guard.value(await getPublicationVersionPacket("g1-worker-version"))).toEqual(
     JSON.parse(readFileSync(new URL("./fixtures/worker-input.json", import.meta.url), "utf8")),
   );
   credentialState = async () => {
@@ -159,6 +161,7 @@ beforeAll(async () => {
         orderBy: { id: "asc" },
       }),
     ]);
+    guard.value([verifier, certifier]);
     return (JSON.parse(canonicalJson([...verifier, ...certifier])) as CredentialRow[]).sort(
       (a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0),
     );
@@ -176,6 +179,7 @@ beforeAll(async () => {
       );
       rows[table] = result[0]!.rows;
     }
+    guard.value(rows);
     return sha256Text(canonicalJson(rows));
   };
 });
@@ -211,12 +215,13 @@ it("captures valid worker reads and narrow credential last-use updates independe
     const artifactId = scenario.params?.artifactId;
     if (typeof id !== "string" || (artifactId !== undefined && typeof artifactId !== "string"))
       throw new Error("Invalid synthetic worker route parameters");
+    guard.cookie(request.headers.get("cookie"));
     const response = await invokeRouteHandler(request, `/${scenario.route}/route`, () =>
       handlers[scenario.route]!(request, {
         params: Promise.resolve({ id, ...(artifactId ? { artifactId } : {}) }),
       }),
     );
-    const base = await captureHttp(
+    const base = await guard.capture(
       {
         id: scenario.id,
         method: "GET",
@@ -255,7 +260,6 @@ it("captures valid worker reads and narrow credential last-use updates independe
     clock: G1_FIXED_CLOCK,
     records,
   };
-  expect(validateCapture(capture, scenarios, sign)).toEqual([]);
   const state = await credentialState();
   const databaseAfter = await unchangedDatabaseDigest();
   expect(databaseAfter).toBe(databaseBefore);
@@ -287,6 +291,8 @@ it("captures valid worker reads and narrow credential last-use updates independe
   };
   if (workerOutputProblems(JSON.stringify(stateEvidence)).length)
     throw new Error("Worker capability state disclosure refused");
+  guard.value([capture, stateEvidence]);
+  expect(validateCapture(capture, scenarios, sign)).toEqual([]);
   writeFileSync(out, `${JSON.stringify(capture, null, 2)}\n`, { mode: 0o600 });
   writeFileSync(`${out}.state.json`, `${JSON.stringify(stateEvidence, null, 2)}\n`, {
     mode: 0o600,

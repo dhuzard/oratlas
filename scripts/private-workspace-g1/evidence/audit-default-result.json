@@ -1,0 +1,70 @@
+{
+  "captures": {
+    "unextended-first": {
+      "sha256": "718cc7db5547911798e8896dbb6bc26426eb2f5d5538d4fc06d0332e9cb6760b",
+      "tables": 87,
+      "delta": {
+        "AuditEvent": 3
+      }
+    },
+    "unextended-second": {
+      "sha256": "1d4737483fb7fcef6d8a23089000f18ca72a7849024adc837fccb997d6c9253c",
+      "tables": 87,
+      "delta": {
+        "AuditEvent": 3
+      }
+    },
+    "fixed-first": {
+      "sha256": "29b1bbf8b750c1a2c7e2c1f3a215b6003d5281fef8bdb0200bab423cca237f91",
+      "tables": 87,
+      "delta": {
+        "AuditEvent": 3
+      }
+    },
+    "fixed-second": {
+      "sha256": "29b1bbf8b750c1a2c7e2c1f3a215b6003d5281fef8bdb0200bab423cca237f91",
+      "tables": 87,
+      "delta": {
+        "AuditEvent": 3
+      }
+    }
+  },
+  "fixedExact": true,
+  "nativeVarianceRetained": true,
+  "parentTables": 87,
+  "adminUpdateRolledBack": true,
+  "appendOnlyTriggerPresent": false,
+  "nativeGeneratedIdsDiffer": true,
+  "nativeDefaultTimestampsDiffer": true,
+  "nativeSourceSha256": {
+    "packages/db/src/index.ts": "43a95343b3217e7a2257fb612f6698a6acb9d5d25d7396d91196bc91c3ab5490",
+    "packages/db/prisma/schema.prisma": "bd376799bfea231fa4e0f6b4a79b439c9cdd3aa93e4d99c3b99174a2dbfaa88c",
+    "packages/db/prisma/schema.postgres.sql": "df977455412f7871b14a06cbe45fbcdec1231e17ca6542cf0ae7be76d200c204",
+    "apps/web/src/lib/audit.ts": "1a2b8183e5728f0affa0abe3e3aff69bd1bef462b70c3ce48df606d2fe5710d5",
+    "scripts/private-workspace-g1/audit-default-fixture.ts": "d4aa9cbd1bf3617c2219eea7eb76419edd6e9f9a9fd347bacd7e91bd44240b36",
+    "scripts/private-workspace-g1/audit-default-probe.g1.spec.ts": "d1a5f570262d3aa6e7baace1f759841290b9746bcca042eaf093636b23034b7b"
+  },
+  "parentStateFilesSha256": {
+    "fixed-first.parent-state.json": "354823c326fde8783a4f3e7d51f605520b6b5044cc2928952065469b49aaad14",
+    "fixed-second.parent-state.json": "354823c326fde8783a4f3e7d51f605520b6b5044cc2928952065469b49aaad14",
+    "unextended-first.parent-state.json": "124ee91b08a7eafa98ba2197bbca454042bdc6fdc5161b0885a75b553619a995",
+    "unextended-second.parent-state.json": "c0779b70e5db928ff9357b7d37c1524e38926a4b9a0a9fc04fc5cd81da80c7a8"
+  },
+  "boundary": "Unwired synthetic input-fixture prototype; no shared catalog, golden, private tables, production code or permission changes.",
+  "nativeControls": {
+    "unique": "P2002",
+    "foreignKey": "P2003",
+    "publicRawUpdateSqlstate": "42501",
+    "interactiveRollback": true,
+    "explicitMetadataPreserved": true,
+    "nativePlatformStampPreserved": true,
+    "unsupportedCreatesRefusedBeforeQuery": 5,
+    "delegatedCallbacks": 8,
+    "eachCallbackInvokedOnce": true,
+    "outbound": 0,
+    "publicSelectTables": 72,
+    "columnUpdateGrants": 16,
+    "parentOnlyAdminUpdateSucceededAndRolledBack": true
+  },
+  "evidenceDirectory": "/tmp/oratlas-g1-audit-defaults-pg"
+}

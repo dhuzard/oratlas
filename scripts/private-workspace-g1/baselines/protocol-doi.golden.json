@@ -1,0 +1,3280 @@
+{
+  "protocol": "oratlas.g1.supplemental/0.1",
+  "program": "protocol-doi",
+  "http": {
+    "version": 2,
+    "review": "Independently reviewed 2026-10-21 at bef4f829e2bbf8d23d03cff642b2677f47d8a951: four 110-request native captures; actual signed Cookie bindings; five native protocol bootstrap rows; all 87 parent table fixture counts and unchanged complete cumulative 72-table runtime state. Existing protocol snapshot replay and reserved synthetic DOI validation only; no live provider resolution or scientific confirmation. Existing goldens and runtime grants unchanged. Partial synthetic G1.",
+    "baseUrl": "https://g1.oratlas.example",
+    "clock": "2026-04-01T00:00:00.000Z",
+    "records": [
+      {
+        "kind": "http",
+        "id": "protocol-post-native-replay-anonymous",
+        "method": "POST",
+        "path": "/api/protocols/snapshots",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"reviewVersionId\":\"g1-version-2\",\"registry\":\"clinicaltrials-gov\",\"sourceUrl\":\"https://clinicaltrials.gov/study/NCT09999991\",\"sourceVersion\":\"synthetic-g1-protocol-version-1\",\"fetchedAt\":\"2026-03-31T23:55:00.000Z\",\"payload\":{\"protocolSection\":{\"identificationModule\":{\"nctId\":\"NCT09999991\",\"briefTitle\":\"Synthetic G1 metadata reconciliation, not a real registered study\"},\"eligibilityModule\":{\"eligibilityCriteria\":\"Inclusion Criteria:\\nSynthetic protocol population label\"},\"outcomesModule\":{\"primaryOutcomes\":[{\"measure\":\"Synthetic protocol outcome label\"}]}}}}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 401,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "protocol-post-native-replay-a-only",
+        "method": "POST",
+        "path": "/api/protocols/snapshots",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"reviewVersionId\":\"g1-version-2\",\"registry\":\"clinicaltrials-gov\",\"sourceUrl\":\"https://clinicaltrials.gov/study/NCT09999991\",\"sourceVersion\":\"synthetic-g1-protocol-version-1\",\"fetchedAt\":\"2026-03-31T23:55:00.000Z\",\"payload\":{\"protocolSection\":{\"identificationModule\":{\"nctId\":\"NCT09999991\",\"briefTitle\":\"Synthetic G1 metadata reconciliation, not a real registered study\"},\"eligibilityModule\":{\"eligibilityCriteria\":\"Inclusion Criteria:\\nSynthetic protocol population label\"},\"outcomesModule\":{\"primaryOutcomes\":[{\"measure\":\"Synthetic protocol outcome label\"}]}}}}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Editor role required for protocol reconciliation.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "protocol-post-native-replay-b-only",
+        "method": "POST",
+        "path": "/api/protocols/snapshots",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"reviewVersionId\":\"g1-version-2\",\"registry\":\"clinicaltrials-gov\",\"sourceUrl\":\"https://clinicaltrials.gov/study/NCT09999991\",\"sourceVersion\":\"synthetic-g1-protocol-version-1\",\"fetchedAt\":\"2026-03-31T23:55:00.000Z\",\"payload\":{\"protocolSection\":{\"identificationModule\":{\"nctId\":\"NCT09999991\",\"briefTitle\":\"Synthetic G1 metadata reconciliation, not a real registered study\"},\"eligibilityModule\":{\"eligibilityCriteria\":\"Inclusion Criteria:\\nSynthetic protocol population label\"},\"outcomesModule\":{\"primaryOutcomes\":[{\"measure\":\"Synthetic protocol outcome label\"}]}}}}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Editor role required for protocol reconciliation.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "protocol-post-native-replay-a-and-b",
+        "method": "POST",
+        "path": "/api/protocols/snapshots",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"reviewVersionId\":\"g1-version-2\",\"registry\":\"clinicaltrials-gov\",\"sourceUrl\":\"https://clinicaltrials.gov/study/NCT09999991\",\"sourceVersion\":\"synthetic-g1-protocol-version-1\",\"fetchedAt\":\"2026-03-31T23:55:00.000Z\",\"payload\":{\"protocolSection\":{\"identificationModule\":{\"nctId\":\"NCT09999991\",\"briefTitle\":\"Synthetic G1 metadata reconciliation, not a real registered study\"},\"eligibilityModule\":{\"eligibilityCriteria\":\"Inclusion Criteria:\\nSynthetic protocol population label\"},\"outcomesModule\":{\"primaryOutcomes\":[{\"measure\":\"Synthetic protocol outcome label\"}]}}}}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Editor role required for protocol reconciliation.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "protocol-post-native-replay-editor",
+        "method": "POST",
+        "path": "/api/protocols/snapshots",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"reviewVersionId\":\"g1-version-2\",\"registry\":\"clinicaltrials-gov\",\"sourceUrl\":\"https://clinicaltrials.gov/study/NCT09999991\",\"sourceVersion\":\"synthetic-g1-protocol-version-1\",\"fetchedAt\":\"2026-03-31T23:55:00.000Z\",\"payload\":{\"protocolSection\":{\"identificationModule\":{\"nctId\":\"NCT09999991\",\"briefTitle\":\"Synthetic G1 metadata reconciliation, not a real registered study\"},\"eligibilityModule\":{\"eligibilityCriteria\":\"Inclusion Criteria:\\nSynthetic protocol population label\"},\"outcomesModule\":{\"primaryOutcomes\":[{\"measure\":\"Synthetic protocol outcome label\"}]}}}}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 200,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"snapshotId\":\"ps_6cd1900e14f55ab42eec5c8aa534509389b9931a7caa785cdc20df8514926126\",\"sourceId\":\"NCT09999991\",\"proposalsOpened\":0,\"idempotent\":true,\"publicPath\":\"/api/protocols/reviews/g1-version-2\"}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "protocol-post-native-replay-admin",
+        "method": "POST",
+        "path": "/api/protocols/snapshots",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"reviewVersionId\":\"g1-version-2\",\"registry\":\"clinicaltrials-gov\",\"sourceUrl\":\"https://clinicaltrials.gov/study/NCT09999991\",\"sourceVersion\":\"synthetic-g1-protocol-version-1\",\"fetchedAt\":\"2026-03-31T23:55:00.000Z\",\"payload\":{\"protocolSection\":{\"identificationModule\":{\"nctId\":\"NCT09999991\",\"briefTitle\":\"Synthetic G1 metadata reconciliation, not a real registered study\"},\"eligibilityModule\":{\"eligibilityCriteria\":\"Inclusion Criteria:\\nSynthetic protocol population label\"},\"outcomesModule\":{\"primaryOutcomes\":[{\"measure\":\"Synthetic protocol outcome label\"}]}}}}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 200,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"snapshotId\":\"ps_6cd1900e14f55ab42eec5c8aa534509389b9931a7caa785cdc20df8514926126\",\"sourceId\":\"NCT09999991\",\"proposalsOpened\":0,\"idempotent\":true,\"publicPath\":\"/api/protocols/reviews/g1-version-2\"}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "protocol-post-immutable-source-collision-anonymous",
+        "method": "POST",
+        "path": "/api/protocols/snapshots",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"reviewVersionId\":\"g1-version-2\",\"registry\":\"clinicaltrials-gov\",\"sourceUrl\":\"https://clinicaltrials.gov/study/NCT09999991\",\"sourceVersion\":\"synthetic-g1-protocol-version-1\",\"fetchedAt\":\"2026-03-31T23:55:00.000Z\",\"payload\":{\"protocolSection\":{\"identificationModule\":{\"nctId\":\"NCT09999991\",\"briefTitle\":\"Different synthetic immutable source content\"},\"eligibilityModule\":{\"eligibilityCriteria\":\"Inclusion Criteria:\\nSynthetic protocol population label\"},\"outcomesModule\":{\"primaryOutcomes\":[{\"measure\":\"Synthetic protocol outcome label\"}]}}}}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 401,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "protocol-post-immutable-source-collision-a-only",
+        "method": "POST",
+        "path": "/api/protocols/snapshots",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"reviewVersionId\":\"g1-version-2\",\"registry\":\"clinicaltrials-gov\",\"sourceUrl\":\"https://clinicaltrials.gov/study/NCT09999991\",\"sourceVersion\":\"synthetic-g1-protocol-version-1\",\"fetchedAt\":\"2026-03-31T23:55:00.000Z\",\"payload\":{\"protocolSection\":{\"identificationModule\":{\"nctId\":\"NCT09999991\",\"briefTitle\":\"Different synthetic immutable source content\"},\"eligibilityModule\":{\"eligibilityCriteria\":\"Inclusion Criteria:\\nSynthetic protocol population label\"},\"outcomesModule\":{\"primaryOutcomes\":[{\"measure\":\"Synthetic protocol outcome label\"}]}}}}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Editor role required for protocol reconciliation.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "protocol-post-immutable-source-collision-b-only",
+        "method": "POST",
+        "path": "/api/protocols/snapshots",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"reviewVersionId\":\"g1-version-2\",\"registry\":\"clinicaltrials-gov\",\"sourceUrl\":\"https://clinicaltrials.gov/study/NCT09999991\",\"sourceVersion\":\"synthetic-g1-protocol-version-1\",\"fetchedAt\":\"2026-03-31T23:55:00.000Z\",\"payload\":{\"protocolSection\":{\"identificationModule\":{\"nctId\":\"NCT09999991\",\"briefTitle\":\"Different synthetic immutable source content\"},\"eligibilityModule\":{\"eligibilityCriteria\":\"Inclusion Criteria:\\nSynthetic protocol population label\"},\"outcomesModule\":{\"primaryOutcomes\":[{\"measure\":\"Synthetic protocol outcome label\"}]}}}}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Editor role required for protocol reconciliation.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "protocol-post-immutable-source-collision-a-and-b",
+        "method": "POST",
+        "path": "/api/protocols/snapshots",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"reviewVersionId\":\"g1-version-2\",\"registry\":\"clinicaltrials-gov\",\"sourceUrl\":\"https://clinicaltrials.gov/study/NCT09999991\",\"sourceVersion\":\"synthetic-g1-protocol-version-1\",\"fetchedAt\":\"2026-03-31T23:55:00.000Z\",\"payload\":{\"protocolSection\":{\"identificationModule\":{\"nctId\":\"NCT09999991\",\"briefTitle\":\"Different synthetic immutable source content\"},\"eligibilityModule\":{\"eligibilityCriteria\":\"Inclusion Criteria:\\nSynthetic protocol population label\"},\"outcomesModule\":{\"primaryOutcomes\":[{\"measure\":\"Synthetic protocol outcome label\"}]}}}}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Editor role required for protocol reconciliation.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "protocol-post-immutable-source-collision-editor",
+        "method": "POST",
+        "path": "/api/protocols/snapshots",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"reviewVersionId\":\"g1-version-2\",\"registry\":\"clinicaltrials-gov\",\"sourceUrl\":\"https://clinicaltrials.gov/study/NCT09999991\",\"sourceVersion\":\"synthetic-g1-protocol-version-1\",\"fetchedAt\":\"2026-03-31T23:55:00.000Z\",\"payload\":{\"protocolSection\":{\"identificationModule\":{\"nctId\":\"NCT09999991\",\"briefTitle\":\"Different synthetic immutable source content\"},\"eligibilityModule\":{\"eligibilityCriteria\":\"Inclusion Criteria:\\nSynthetic protocol population label\"},\"outcomesModule\":{\"primaryOutcomes\":[{\"measure\":\"Synthetic protocol outcome label\"}]}}}}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 409,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"conflict\",\"message\":\"The same upstream source version was already captured with different content.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "protocol-post-immutable-source-collision-admin",
+        "method": "POST",
+        "path": "/api/protocols/snapshots",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"reviewVersionId\":\"g1-version-2\",\"registry\":\"clinicaltrials-gov\",\"sourceUrl\":\"https://clinicaltrials.gov/study/NCT09999991\",\"sourceVersion\":\"synthetic-g1-protocol-version-1\",\"fetchedAt\":\"2026-03-31T23:55:00.000Z\",\"payload\":{\"protocolSection\":{\"identificationModule\":{\"nctId\":\"NCT09999991\",\"briefTitle\":\"Different synthetic immutable source content\"},\"eligibilityModule\":{\"eligibilityCriteria\":\"Inclusion Criteria:\\nSynthetic protocol population label\"},\"outcomesModule\":{\"primaryOutcomes\":[{\"measure\":\"Synthetic protocol outcome label\"}]}}}}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 409,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"conflict\",\"message\":\"The same upstream source version was already captured with different content.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "protocol-post-source-url-mismatch-anonymous",
+        "method": "POST",
+        "path": "/api/protocols/snapshots",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"reviewVersionId\":\"g1-version-2\",\"registry\":\"clinicaltrials-gov\",\"sourceUrl\":\"https://clinicaltrials.gov/study/NCT09999991\",\"sourceVersion\":\"synthetic-g1-protocol-version-1\",\"fetchedAt\":\"2026-03-31T23:55:00.000Z\",\"payload\":{\"protocolSection\":{\"identificationModule\":{\"nctId\":\"NCT09999992\",\"briefTitle\":\"Synthetic G1 metadata reconciliation, not a real registered study\"},\"eligibilityModule\":{\"eligibilityCriteria\":\"Inclusion Criteria:\\nSynthetic protocol population label\"},\"outcomesModule\":{\"primaryOutcomes\":[{\"measure\":\"Synthetic protocol outcome label\"}]}}}}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 401,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "protocol-post-source-url-mismatch-a-only",
+        "method": "POST",
+        "path": "/api/protocols/snapshots",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"reviewVersionId\":\"g1-version-2\",\"registry\":\"clinicaltrials-gov\",\"sourceUrl\":\"https://clinicaltrials.gov/study/NCT09999991\",\"sourceVersion\":\"synthetic-g1-protocol-version-1\",\"fetchedAt\":\"2026-03-31T23:55:00.000Z\",\"payload\":{\"protocolSection\":{\"identificationModule\":{\"nctId\":\"NCT09999992\",\"briefTitle\":\"Synthetic G1 metadata reconciliation, not a real registered study\"},\"eligibilityModule\":{\"eligibilityCriteria\":\"Inclusion Criteria:\\nSynthetic protocol population label\"},\"outcomesModule\":{\"primaryOutcomes\":[{\"measure\":\"Synthetic protocol outcome label\"}]}}}}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Editor role required for protocol reconciliation.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "protocol-post-source-url-mismatch-b-only",
+        "method": "POST",
+        "path": "/api/protocols/snapshots",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"reviewVersionId\":\"g1-version-2\",\"registry\":\"clinicaltrials-gov\",\"sourceUrl\":\"https://clinicaltrials.gov/study/NCT09999991\",\"sourceVersion\":\"synthetic-g1-protocol-version-1\",\"fetchedAt\":\"2026-03-31T23:55:00.000Z\",\"payload\":{\"protocolSection\":{\"identificationModule\":{\"nctId\":\"NCT09999992\",\"briefTitle\":\"Synthetic G1 metadata reconciliation, not a real registered study\"},\"eligibilityModule\":{\"eligibilityCriteria\":\"Inclusion Criteria:\\nSynthetic protocol population label\"},\"outcomesModule\":{\"primaryOutcomes\":[{\"measure\":\"Synthetic protocol outcome label\"}]}}}}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Editor role required for protocol reconciliation.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "protocol-post-source-url-mismatch-a-and-b",
+        "method": "POST",
+        "path": "/api/protocols/snapshots",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"reviewVersionId\":\"g1-version-2\",\"registry\":\"clinicaltrials-gov\",\"sourceUrl\":\"https://clinicaltrials.gov/study/NCT09999991\",\"sourceVersion\":\"synthetic-g1-protocol-version-1\",\"fetchedAt\":\"2026-03-31T23:55:00.000Z\",\"payload\":{\"protocolSection\":{\"identificationModule\":{\"nctId\":\"NCT09999992\",\"briefTitle\":\"Synthetic G1 metadata reconciliation, not a real registered study\"},\"eligibilityModule\":{\"eligibilityCriteria\":\"Inclusion Criteria:\\nSynthetic protocol population label\"},\"outcomesModule\":{\"primaryOutcomes\":[{\"measure\":\"Synthetic protocol outcome label\"}]}}}}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Editor role required for protocol reconciliation.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "protocol-post-source-url-mismatch-editor",
+        "method": "POST",
+        "path": "/api/protocols/snapshots",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"reviewVersionId\":\"g1-version-2\",\"registry\":\"clinicaltrials-gov\",\"sourceUrl\":\"https://clinicaltrials.gov/study/NCT09999991\",\"sourceVersion\":\"synthetic-g1-protocol-version-1\",\"fetchedAt\":\"2026-03-31T23:55:00.000Z\",\"payload\":{\"protocolSection\":{\"identificationModule\":{\"nctId\":\"NCT09999992\",\"briefTitle\":\"Synthetic G1 metadata reconciliation, not a real registered study\"},\"eligibilityModule\":{\"eligibilityCriteria\":\"Inclusion Criteria:\\nSynthetic protocol population label\"},\"outcomesModule\":{\"primaryOutcomes\":[{\"measure\":\"Synthetic protocol outcome label\"}]}}}}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Registry URL does not identify the source id declared by the registry payload.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "protocol-post-source-url-mismatch-admin",
+        "method": "POST",
+        "path": "/api/protocols/snapshots",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"reviewVersionId\":\"g1-version-2\",\"registry\":\"clinicaltrials-gov\",\"sourceUrl\":\"https://clinicaltrials.gov/study/NCT09999991\",\"sourceVersion\":\"synthetic-g1-protocol-version-1\",\"fetchedAt\":\"2026-03-31T23:55:00.000Z\",\"payload\":{\"protocolSection\":{\"identificationModule\":{\"nctId\":\"NCT09999992\",\"briefTitle\":\"Synthetic G1 metadata reconciliation, not a real registered study\"},\"eligibilityModule\":{\"eligibilityCriteria\":\"Inclusion Criteria:\\nSynthetic protocol population label\"},\"outcomesModule\":{\"primaryOutcomes\":[{\"measure\":\"Synthetic protocol outcome label\"}]}}}}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Registry URL does not identify the source id declared by the registry payload.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "protocol-post-missing-version-anonymous",
+        "method": "POST",
+        "path": "/api/protocols/snapshots",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"reviewVersionId\":\"g1-protocol-post-missing\",\"registry\":\"clinicaltrials-gov\",\"sourceUrl\":\"https://clinicaltrials.gov/study/NCT09999991\",\"sourceVersion\":\"synthetic-g1-protocol-version-1\",\"fetchedAt\":\"2026-03-31T23:55:00.000Z\",\"payload\":{\"protocolSection\":{\"identificationModule\":{\"nctId\":\"NCT09999991\",\"briefTitle\":\"Synthetic G1 metadata reconciliation, not a real registered study\"},\"eligibilityModule\":{\"eligibilityCriteria\":\"Inclusion Criteria:\\nSynthetic protocol population label\"},\"outcomesModule\":{\"primaryOutcomes\":[{\"measure\":\"Synthetic protocol outcome label\"}]}}}}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 401,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "protocol-post-missing-version-a-only",
+        "method": "POST",
+        "path": "/api/protocols/snapshots",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"reviewVersionId\":\"g1-protocol-post-missing\",\"registry\":\"clinicaltrials-gov\",\"sourceUrl\":\"https://clinicaltrials.gov/study/NCT09999991\",\"sourceVersion\":\"synthetic-g1-protocol-version-1\",\"fetchedAt\":\"2026-03-31T23:55:00.000Z\",\"payload\":{\"protocolSection\":{\"identificationModule\":{\"nctId\":\"NCT09999991\",\"briefTitle\":\"Synthetic G1 metadata reconciliation, not a real registered study\"},\"eligibilityModule\":{\"eligibilityCriteria\":\"Inclusion Criteria:\\nSynthetic protocol population label\"},\"outcomesModule\":{\"primaryOutcomes\":[{\"measure\":\"Synthetic protocol outcome label\"}]}}}}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Editor role required for protocol reconciliation.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "protocol-post-missing-version-b-only",
+        "method": "POST",
+        "path": "/api/protocols/snapshots",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"reviewVersionId\":\"g1-protocol-post-missing\",\"registry\":\"clinicaltrials-gov\",\"sourceUrl\":\"https://clinicaltrials.gov/study/NCT09999991\",\"sourceVersion\":\"synthetic-g1-protocol-version-1\",\"fetchedAt\":\"2026-03-31T23:55:00.000Z\",\"payload\":{\"protocolSection\":{\"identificationModule\":{\"nctId\":\"NCT09999991\",\"briefTitle\":\"Synthetic G1 metadata reconciliation, not a real registered study\"},\"eligibilityModule\":{\"eligibilityCriteria\":\"Inclusion Criteria:\\nSynthetic protocol population label\"},\"outcomesModule\":{\"primaryOutcomes\":[{\"measure\":\"Synthetic protocol outcome label\"}]}}}}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Editor role required for protocol reconciliation.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "protocol-post-missing-version-a-and-b",
+        "method": "POST",
+        "path": "/api/protocols/snapshots",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"reviewVersionId\":\"g1-protocol-post-missing\",\"registry\":\"clinicaltrials-gov\",\"sourceUrl\":\"https://clinicaltrials.gov/study/NCT09999991\",\"sourceVersion\":\"synthetic-g1-protocol-version-1\",\"fetchedAt\":\"2026-03-31T23:55:00.000Z\",\"payload\":{\"protocolSection\":{\"identificationModule\":{\"nctId\":\"NCT09999991\",\"briefTitle\":\"Synthetic G1 metadata reconciliation, not a real registered study\"},\"eligibilityModule\":{\"eligibilityCriteria\":\"Inclusion Criteria:\\nSynthetic protocol population label\"},\"outcomesModule\":{\"primaryOutcomes\":[{\"measure\":\"Synthetic protocol outcome label\"}]}}}}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Editor role required for protocol reconciliation.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "protocol-post-missing-version-editor",
+        "method": "POST",
+        "path": "/api/protocols/snapshots",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"reviewVersionId\":\"g1-protocol-post-missing\",\"registry\":\"clinicaltrials-gov\",\"sourceUrl\":\"https://clinicaltrials.gov/study/NCT09999991\",\"sourceVersion\":\"synthetic-g1-protocol-version-1\",\"fetchedAt\":\"2026-03-31T23:55:00.000Z\",\"payload\":{\"protocolSection\":{\"identificationModule\":{\"nctId\":\"NCT09999991\",\"briefTitle\":\"Synthetic G1 metadata reconciliation, not a real registered study\"},\"eligibilityModule\":{\"eligibilityCriteria\":\"Inclusion Criteria:\\nSynthetic protocol population label\"},\"outcomesModule\":{\"primaryOutcomes\":[{\"measure\":\"Synthetic protocol outcome label\"}]}}}}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 404,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Review version not found.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "protocol-post-missing-version-admin",
+        "method": "POST",
+        "path": "/api/protocols/snapshots",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"reviewVersionId\":\"g1-protocol-post-missing\",\"registry\":\"clinicaltrials-gov\",\"sourceUrl\":\"https://clinicaltrials.gov/study/NCT09999991\",\"sourceVersion\":\"synthetic-g1-protocol-version-1\",\"fetchedAt\":\"2026-03-31T23:55:00.000Z\",\"payload\":{\"protocolSection\":{\"identificationModule\":{\"nctId\":\"NCT09999991\",\"briefTitle\":\"Synthetic G1 metadata reconciliation, not a real registered study\"},\"eligibilityModule\":{\"eligibilityCriteria\":\"Inclusion Criteria:\\nSynthetic protocol population label\"},\"outcomesModule\":{\"primaryOutcomes\":[{\"measure\":\"Synthetic protocol outcome label\"}]}}}}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 404,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Review version not found.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "protocol-post-missing-claim-anonymous",
+        "method": "POST",
+        "path": "/api/protocols/snapshots",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"reviewVersionId\":\"g1-version-2\",\"registry\":\"clinicaltrials-gov\",\"sourceUrl\":\"https://clinicaltrials.gov/study/NCT09999991\",\"sourceVersion\":\"synthetic-g1-protocol-version-1\",\"fetchedAt\":\"2026-03-31T23:55:00.000Z\",\"payload\":{\"protocolSection\":{\"identificationModule\":{\"nctId\":\"NCT09999991\",\"briefTitle\":\"Synthetic G1 metadata reconciliation, not a real registered study\"},\"eligibilityModule\":{\"eligibilityCriteria\":\"Inclusion Criteria:\\nSynthetic protocol population label\"},\"outcomesModule\":{\"primaryOutcomes\":[{\"measure\":\"Synthetic protocol outcome label\"}]}}},\"claimLocalId\":\"g1-protocol-post-missing\"}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 401,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "protocol-post-missing-claim-a-only",
+        "method": "POST",
+        "path": "/api/protocols/snapshots",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"reviewVersionId\":\"g1-version-2\",\"registry\":\"clinicaltrials-gov\",\"sourceUrl\":\"https://clinicaltrials.gov/study/NCT09999991\",\"sourceVersion\":\"synthetic-g1-protocol-version-1\",\"fetchedAt\":\"2026-03-31T23:55:00.000Z\",\"payload\":{\"protocolSection\":{\"identificationModule\":{\"nctId\":\"NCT09999991\",\"briefTitle\":\"Synthetic G1 metadata reconciliation, not a real registered study\"},\"eligibilityModule\":{\"eligibilityCriteria\":\"Inclusion Criteria:\\nSynthetic protocol population label\"},\"outcomesModule\":{\"primaryOutcomes\":[{\"measure\":\"Synthetic protocol outcome label\"}]}}},\"claimLocalId\":\"g1-protocol-post-missing\"}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Editor role required for protocol reconciliation.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "protocol-post-missing-claim-b-only",
+        "method": "POST",
+        "path": "/api/protocols/snapshots",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"reviewVersionId\":\"g1-version-2\",\"registry\":\"clinicaltrials-gov\",\"sourceUrl\":\"https://clinicaltrials.gov/study/NCT09999991\",\"sourceVersion\":\"synthetic-g1-protocol-version-1\",\"fetchedAt\":\"2026-03-31T23:55:00.000Z\",\"payload\":{\"protocolSection\":{\"identificationModule\":{\"nctId\":\"NCT09999991\",\"briefTitle\":\"Synthetic G1 metadata reconciliation, not a real registered study\"},\"eligibilityModule\":{\"eligibilityCriteria\":\"Inclusion Criteria:\\nSynthetic protocol population label\"},\"outcomesModule\":{\"primaryOutcomes\":[{\"measure\":\"Synthetic protocol outcome label\"}]}}},\"claimLocalId\":\"g1-protocol-post-missing\"}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Editor role required for protocol reconciliation.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "protocol-post-missing-claim-a-and-b",
+        "method": "POST",
+        "path": "/api/protocols/snapshots",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"reviewVersionId\":\"g1-version-2\",\"registry\":\"clinicaltrials-gov\",\"sourceUrl\":\"https://clinicaltrials.gov/study/NCT09999991\",\"sourceVersion\":\"synthetic-g1-protocol-version-1\",\"fetchedAt\":\"2026-03-31T23:55:00.000Z\",\"payload\":{\"protocolSection\":{\"identificationModule\":{\"nctId\":\"NCT09999991\",\"briefTitle\":\"Synthetic G1 metadata reconciliation, not a real registered study\"},\"eligibilityModule\":{\"eligibilityCriteria\":\"Inclusion Criteria:\\nSynthetic protocol population label\"},\"outcomesModule\":{\"primaryOutcomes\":[{\"measure\":\"Synthetic protocol outcome label\"}]}}},\"claimLocalId\":\"g1-protocol-post-missing\"}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Editor role required for protocol reconciliation.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "protocol-post-missing-claim-editor",
+        "method": "POST",
+        "path": "/api/protocols/snapshots",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"reviewVersionId\":\"g1-version-2\",\"registry\":\"clinicaltrials-gov\",\"sourceUrl\":\"https://clinicaltrials.gov/study/NCT09999991\",\"sourceVersion\":\"synthetic-g1-protocol-version-1\",\"fetchedAt\":\"2026-03-31T23:55:00.000Z\",\"payload\":{\"protocolSection\":{\"identificationModule\":{\"nctId\":\"NCT09999991\",\"briefTitle\":\"Synthetic G1 metadata reconciliation, not a real registered study\"},\"eligibilityModule\":{\"eligibilityCriteria\":\"Inclusion Criteria:\\nSynthetic protocol population label\"},\"outcomesModule\":{\"primaryOutcomes\":[{\"measure\":\"Synthetic protocol outcome label\"}]}}},\"claimLocalId\":\"g1-protocol-post-missing\"}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 404,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Claim not found in the requested review version.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "protocol-post-missing-claim-admin",
+        "method": "POST",
+        "path": "/api/protocols/snapshots",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"reviewVersionId\":\"g1-version-2\",\"registry\":\"clinicaltrials-gov\",\"sourceUrl\":\"https://clinicaltrials.gov/study/NCT09999991\",\"sourceVersion\":\"synthetic-g1-protocol-version-1\",\"fetchedAt\":\"2026-03-31T23:55:00.000Z\",\"payload\":{\"protocolSection\":{\"identificationModule\":{\"nctId\":\"NCT09999991\",\"briefTitle\":\"Synthetic G1 metadata reconciliation, not a real registered study\"},\"eligibilityModule\":{\"eligibilityCriteria\":\"Inclusion Criteria:\\nSynthetic protocol population label\"},\"outcomesModule\":{\"primaryOutcomes\":[{\"measure\":\"Synthetic protocol outcome label\"}]}}},\"claimLocalId\":\"g1-protocol-post-missing\"}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 404,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Claim not found in the requested review version.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "protocol-post-invalid-input-anonymous",
+        "method": "POST",
+        "path": "/api/protocols/snapshots",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 401,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "protocol-post-invalid-input-a-only",
+        "method": "POST",
+        "path": "/api/protocols/snapshots",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Invalid request payload.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "protocol-post-invalid-input-b-only",
+        "method": "POST",
+        "path": "/api/protocols/snapshots",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Invalid request payload.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "protocol-post-invalid-input-a-and-b",
+        "method": "POST",
+        "path": "/api/protocols/snapshots",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Invalid request payload.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "protocol-post-invalid-input-editor",
+        "method": "POST",
+        "path": "/api/protocols/snapshots",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Invalid request payload.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "protocol-post-invalid-input-admin",
+        "method": "POST",
+        "path": "/api/protocols/snapshots",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Invalid request payload.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "protocol-post-invalid-registry-payload-anonymous",
+        "method": "POST",
+        "path": "/api/protocols/snapshots",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"reviewVersionId\":\"g1-version-2\",\"registry\":\"clinicaltrials-gov\",\"sourceUrl\":\"https://clinicaltrials.gov/study/NCT09999991\",\"sourceVersion\":\"synthetic-g1-protocol-version-1\",\"fetchedAt\":\"2026-03-31T23:55:00.000Z\",\"payload\":{}}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 401,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "protocol-post-invalid-registry-payload-a-only",
+        "method": "POST",
+        "path": "/api/protocols/snapshots",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"reviewVersionId\":\"g1-version-2\",\"registry\":\"clinicaltrials-gov\",\"sourceUrl\":\"https://clinicaltrials.gov/study/NCT09999991\",\"sourceVersion\":\"synthetic-g1-protocol-version-1\",\"fetchedAt\":\"2026-03-31T23:55:00.000Z\",\"payload\":{}}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Editor role required for protocol reconciliation.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "protocol-post-invalid-registry-payload-b-only",
+        "method": "POST",
+        "path": "/api/protocols/snapshots",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"reviewVersionId\":\"g1-version-2\",\"registry\":\"clinicaltrials-gov\",\"sourceUrl\":\"https://clinicaltrials.gov/study/NCT09999991\",\"sourceVersion\":\"synthetic-g1-protocol-version-1\",\"fetchedAt\":\"2026-03-31T23:55:00.000Z\",\"payload\":{}}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Editor role required for protocol reconciliation.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "protocol-post-invalid-registry-payload-a-and-b",
+        "method": "POST",
+        "path": "/api/protocols/snapshots",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"reviewVersionId\":\"g1-version-2\",\"registry\":\"clinicaltrials-gov\",\"sourceUrl\":\"https://clinicaltrials.gov/study/NCT09999991\",\"sourceVersion\":\"synthetic-g1-protocol-version-1\",\"fetchedAt\":\"2026-03-31T23:55:00.000Z\",\"payload\":{}}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Editor role required for protocol reconciliation.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "protocol-post-invalid-registry-payload-editor",
+        "method": "POST",
+        "path": "/api/protocols/snapshots",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"reviewVersionId\":\"g1-version-2\",\"registry\":\"clinicaltrials-gov\",\"sourceUrl\":\"https://clinicaltrials.gov/study/NCT09999991\",\"sourceVersion\":\"synthetic-g1-protocol-version-1\",\"fetchedAt\":\"2026-03-31T23:55:00.000Z\",\"payload\":{}}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Invalid request payload.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "protocol-post-invalid-registry-payload-admin",
+        "method": "POST",
+        "path": "/api/protocols/snapshots",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"reviewVersionId\":\"g1-version-2\",\"registry\":\"clinicaltrials-gov\",\"sourceUrl\":\"https://clinicaltrials.gov/study/NCT09999991\",\"sourceVersion\":\"synthetic-g1-protocol-version-1\",\"fetchedAt\":\"2026-03-31T23:55:00.000Z\",\"payload\":{}}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Invalid request payload.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "protocol-post-foreign-origin-anonymous",
+        "method": "POST",
+        "path": "/api/protocols/snapshots",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://other.g1.oratlas.example"
+        },
+        "requestBody": "{\"reviewVersionId\":\"g1-version-2\",\"registry\":\"clinicaltrials-gov\",\"sourceUrl\":\"https://clinicaltrials.gov/study/NCT09999991\",\"sourceVersion\":\"synthetic-g1-protocol-version-1\",\"fetchedAt\":\"2026-03-31T23:55:00.000Z\",\"payload\":{\"protocolSection\":{\"identificationModule\":{\"nctId\":\"NCT09999991\",\"briefTitle\":\"Synthetic G1 metadata reconciliation, not a real registered study\"},\"eligibilityModule\":{\"eligibilityCriteria\":\"Inclusion Criteria:\\nSynthetic protocol population label\"},\"outcomesModule\":{\"primaryOutcomes\":[{\"measure\":\"Synthetic protocol outcome label\"}]}}}}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"A matching same-origin request is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "protocol-post-foreign-origin-a-only",
+        "method": "POST",
+        "path": "/api/protocols/snapshots",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://other.g1.oratlas.example"
+        },
+        "requestBody": "{\"reviewVersionId\":\"g1-version-2\",\"registry\":\"clinicaltrials-gov\",\"sourceUrl\":\"https://clinicaltrials.gov/study/NCT09999991\",\"sourceVersion\":\"synthetic-g1-protocol-version-1\",\"fetchedAt\":\"2026-03-31T23:55:00.000Z\",\"payload\":{\"protocolSection\":{\"identificationModule\":{\"nctId\":\"NCT09999991\",\"briefTitle\":\"Synthetic G1 metadata reconciliation, not a real registered study\"},\"eligibilityModule\":{\"eligibilityCriteria\":\"Inclusion Criteria:\\nSynthetic protocol population label\"},\"outcomesModule\":{\"primaryOutcomes\":[{\"measure\":\"Synthetic protocol outcome label\"}]}}}}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"A matching same-origin request is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "protocol-post-foreign-origin-b-only",
+        "method": "POST",
+        "path": "/api/protocols/snapshots",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://other.g1.oratlas.example"
+        },
+        "requestBody": "{\"reviewVersionId\":\"g1-version-2\",\"registry\":\"clinicaltrials-gov\",\"sourceUrl\":\"https://clinicaltrials.gov/study/NCT09999991\",\"sourceVersion\":\"synthetic-g1-protocol-version-1\",\"fetchedAt\":\"2026-03-31T23:55:00.000Z\",\"payload\":{\"protocolSection\":{\"identificationModule\":{\"nctId\":\"NCT09999991\",\"briefTitle\":\"Synthetic G1 metadata reconciliation, not a real registered study\"},\"eligibilityModule\":{\"eligibilityCriteria\":\"Inclusion Criteria:\\nSynthetic protocol population label\"},\"outcomesModule\":{\"primaryOutcomes\":[{\"measure\":\"Synthetic protocol outcome label\"}]}}}}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"A matching same-origin request is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "protocol-post-foreign-origin-a-and-b",
+        "method": "POST",
+        "path": "/api/protocols/snapshots",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://other.g1.oratlas.example"
+        },
+        "requestBody": "{\"reviewVersionId\":\"g1-version-2\",\"registry\":\"clinicaltrials-gov\",\"sourceUrl\":\"https://clinicaltrials.gov/study/NCT09999991\",\"sourceVersion\":\"synthetic-g1-protocol-version-1\",\"fetchedAt\":\"2026-03-31T23:55:00.000Z\",\"payload\":{\"protocolSection\":{\"identificationModule\":{\"nctId\":\"NCT09999991\",\"briefTitle\":\"Synthetic G1 metadata reconciliation, not a real registered study\"},\"eligibilityModule\":{\"eligibilityCriteria\":\"Inclusion Criteria:\\nSynthetic protocol population label\"},\"outcomesModule\":{\"primaryOutcomes\":[{\"measure\":\"Synthetic protocol outcome label\"}]}}}}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"A matching same-origin request is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "protocol-post-foreign-origin-editor",
+        "method": "POST",
+        "path": "/api/protocols/snapshots",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://other.g1.oratlas.example"
+        },
+        "requestBody": "{\"reviewVersionId\":\"g1-version-2\",\"registry\":\"clinicaltrials-gov\",\"sourceUrl\":\"https://clinicaltrials.gov/study/NCT09999991\",\"sourceVersion\":\"synthetic-g1-protocol-version-1\",\"fetchedAt\":\"2026-03-31T23:55:00.000Z\",\"payload\":{\"protocolSection\":{\"identificationModule\":{\"nctId\":\"NCT09999991\",\"briefTitle\":\"Synthetic G1 metadata reconciliation, not a real registered study\"},\"eligibilityModule\":{\"eligibilityCriteria\":\"Inclusion Criteria:\\nSynthetic protocol population label\"},\"outcomesModule\":{\"primaryOutcomes\":[{\"measure\":\"Synthetic protocol outcome label\"}]}}}}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"A matching same-origin request is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "protocol-post-foreign-origin-admin",
+        "method": "POST",
+        "path": "/api/protocols/snapshots",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://other.g1.oratlas.example"
+        },
+        "requestBody": "{\"reviewVersionId\":\"g1-version-2\",\"registry\":\"clinicaltrials-gov\",\"sourceUrl\":\"https://clinicaltrials.gov/study/NCT09999991\",\"sourceVersion\":\"synthetic-g1-protocol-version-1\",\"fetchedAt\":\"2026-03-31T23:55:00.000Z\",\"payload\":{\"protocolSection\":{\"identificationModule\":{\"nctId\":\"NCT09999991\",\"briefTitle\":\"Synthetic G1 metadata reconciliation, not a real registered study\"},\"eligibilityModule\":{\"eligibilityCriteria\":\"Inclusion Criteria:\\nSynthetic protocol population label\"},\"outcomesModule\":{\"primaryOutcomes\":[{\"measure\":\"Synthetic protocol outcome label\"}]}}}}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"A matching same-origin request is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "protocol-post-cross-site-anonymous",
+        "method": "POST",
+        "path": "/api/protocols/snapshots",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "cross-site"
+        },
+        "requestBody": "{\"reviewVersionId\":\"g1-version-2\",\"registry\":\"clinicaltrials-gov\",\"sourceUrl\":\"https://clinicaltrials.gov/study/NCT09999991\",\"sourceVersion\":\"synthetic-g1-protocol-version-1\",\"fetchedAt\":\"2026-03-31T23:55:00.000Z\",\"payload\":{\"protocolSection\":{\"identificationModule\":{\"nctId\":\"NCT09999991\",\"briefTitle\":\"Synthetic G1 metadata reconciliation, not a real registered study\"},\"eligibilityModule\":{\"eligibilityCriteria\":\"Inclusion Criteria:\\nSynthetic protocol population label\"},\"outcomesModule\":{\"primaryOutcomes\":[{\"measure\":\"Synthetic protocol outcome label\"}]}}}}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Cross-site mutation requests are refused.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "protocol-post-cross-site-a-only",
+        "method": "POST",
+        "path": "/api/protocols/snapshots",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "cross-site"
+        },
+        "requestBody": "{\"reviewVersionId\":\"g1-version-2\",\"registry\":\"clinicaltrials-gov\",\"sourceUrl\":\"https://clinicaltrials.gov/study/NCT09999991\",\"sourceVersion\":\"synthetic-g1-protocol-version-1\",\"fetchedAt\":\"2026-03-31T23:55:00.000Z\",\"payload\":{\"protocolSection\":{\"identificationModule\":{\"nctId\":\"NCT09999991\",\"briefTitle\":\"Synthetic G1 metadata reconciliation, not a real registered study\"},\"eligibilityModule\":{\"eligibilityCriteria\":\"Inclusion Criteria:\\nSynthetic protocol population label\"},\"outcomesModule\":{\"primaryOutcomes\":[{\"measure\":\"Synthetic protocol outcome label\"}]}}}}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Cross-site mutation requests are refused.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "protocol-post-cross-site-b-only",
+        "method": "POST",
+        "path": "/api/protocols/snapshots",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "cross-site"
+        },
+        "requestBody": "{\"reviewVersionId\":\"g1-version-2\",\"registry\":\"clinicaltrials-gov\",\"sourceUrl\":\"https://clinicaltrials.gov/study/NCT09999991\",\"sourceVersion\":\"synthetic-g1-protocol-version-1\",\"fetchedAt\":\"2026-03-31T23:55:00.000Z\",\"payload\":{\"protocolSection\":{\"identificationModule\":{\"nctId\":\"NCT09999991\",\"briefTitle\":\"Synthetic G1 metadata reconciliation, not a real registered study\"},\"eligibilityModule\":{\"eligibilityCriteria\":\"Inclusion Criteria:\\nSynthetic protocol population label\"},\"outcomesModule\":{\"primaryOutcomes\":[{\"measure\":\"Synthetic protocol outcome label\"}]}}}}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Cross-site mutation requests are refused.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "protocol-post-cross-site-a-and-b",
+        "method": "POST",
+        "path": "/api/protocols/snapshots",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "cross-site"
+        },
+        "requestBody": "{\"reviewVersionId\":\"g1-version-2\",\"registry\":\"clinicaltrials-gov\",\"sourceUrl\":\"https://clinicaltrials.gov/study/NCT09999991\",\"sourceVersion\":\"synthetic-g1-protocol-version-1\",\"fetchedAt\":\"2026-03-31T23:55:00.000Z\",\"payload\":{\"protocolSection\":{\"identificationModule\":{\"nctId\":\"NCT09999991\",\"briefTitle\":\"Synthetic G1 metadata reconciliation, not a real registered study\"},\"eligibilityModule\":{\"eligibilityCriteria\":\"Inclusion Criteria:\\nSynthetic protocol population label\"},\"outcomesModule\":{\"primaryOutcomes\":[{\"measure\":\"Synthetic protocol outcome label\"}]}}}}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Cross-site mutation requests are refused.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "protocol-post-cross-site-editor",
+        "method": "POST",
+        "path": "/api/protocols/snapshots",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "cross-site"
+        },
+        "requestBody": "{\"reviewVersionId\":\"g1-version-2\",\"registry\":\"clinicaltrials-gov\",\"sourceUrl\":\"https://clinicaltrials.gov/study/NCT09999991\",\"sourceVersion\":\"synthetic-g1-protocol-version-1\",\"fetchedAt\":\"2026-03-31T23:55:00.000Z\",\"payload\":{\"protocolSection\":{\"identificationModule\":{\"nctId\":\"NCT09999991\",\"briefTitle\":\"Synthetic G1 metadata reconciliation, not a real registered study\"},\"eligibilityModule\":{\"eligibilityCriteria\":\"Inclusion Criteria:\\nSynthetic protocol population label\"},\"outcomesModule\":{\"primaryOutcomes\":[{\"measure\":\"Synthetic protocol outcome label\"}]}}}}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Cross-site mutation requests are refused.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "protocol-post-cross-site-admin",
+        "method": "POST",
+        "path": "/api/protocols/snapshots",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "cross-site"
+        },
+        "requestBody": "{\"reviewVersionId\":\"g1-version-2\",\"registry\":\"clinicaltrials-gov\",\"sourceUrl\":\"https://clinicaltrials.gov/study/NCT09999991\",\"sourceVersion\":\"synthetic-g1-protocol-version-1\",\"fetchedAt\":\"2026-03-31T23:55:00.000Z\",\"payload\":{\"protocolSection\":{\"identificationModule\":{\"nctId\":\"NCT09999991\",\"briefTitle\":\"Synthetic G1 metadata reconciliation, not a real registered study\"},\"eligibilityModule\":{\"eligibilityCriteria\":\"Inclusion Criteria:\\nSynthetic protocol population label\"},\"outcomesModule\":{\"primaryOutcomes\":[{\"measure\":\"Synthetic protocol outcome label\"}]}}}}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Cross-site mutation requests are refused.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "protocol-post-wrong-media-anonymous",
+        "method": "POST",
+        "path": "/api/protocols/snapshots",
+        "requestHeaders": {
+          "content-type": "text/plain",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"reviewVersionId\":\"g1-version-2\",\"registry\":\"clinicaltrials-gov\",\"sourceUrl\":\"https://clinicaltrials.gov/study/NCT09999991\",\"sourceVersion\":\"synthetic-g1-protocol-version-1\",\"fetchedAt\":\"2026-03-31T23:55:00.000Z\",\"payload\":{\"protocolSection\":{\"identificationModule\":{\"nctId\":\"NCT09999991\",\"briefTitle\":\"Synthetic G1 metadata reconciliation, not a real registered study\"},\"eligibilityModule\":{\"eligibilityCriteria\":\"Inclusion Criteria:\\nSynthetic protocol population label\"},\"outcomesModule\":{\"primaryOutcomes\":[{\"measure\":\"Synthetic protocol outcome label\"}]}}}}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Content-Type application/json is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "protocol-post-wrong-media-a-only",
+        "method": "POST",
+        "path": "/api/protocols/snapshots",
+        "requestHeaders": {
+          "content-type": "text/plain",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"reviewVersionId\":\"g1-version-2\",\"registry\":\"clinicaltrials-gov\",\"sourceUrl\":\"https://clinicaltrials.gov/study/NCT09999991\",\"sourceVersion\":\"synthetic-g1-protocol-version-1\",\"fetchedAt\":\"2026-03-31T23:55:00.000Z\",\"payload\":{\"protocolSection\":{\"identificationModule\":{\"nctId\":\"NCT09999991\",\"briefTitle\":\"Synthetic G1 metadata reconciliation, not a real registered study\"},\"eligibilityModule\":{\"eligibilityCriteria\":\"Inclusion Criteria:\\nSynthetic protocol population label\"},\"outcomesModule\":{\"primaryOutcomes\":[{\"measure\":\"Synthetic protocol outcome label\"}]}}}}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Content-Type application/json is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "protocol-post-wrong-media-b-only",
+        "method": "POST",
+        "path": "/api/protocols/snapshots",
+        "requestHeaders": {
+          "content-type": "text/plain",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"reviewVersionId\":\"g1-version-2\",\"registry\":\"clinicaltrials-gov\",\"sourceUrl\":\"https://clinicaltrials.gov/study/NCT09999991\",\"sourceVersion\":\"synthetic-g1-protocol-version-1\",\"fetchedAt\":\"2026-03-31T23:55:00.000Z\",\"payload\":{\"protocolSection\":{\"identificationModule\":{\"nctId\":\"NCT09999991\",\"briefTitle\":\"Synthetic G1 metadata reconciliation, not a real registered study\"},\"eligibilityModule\":{\"eligibilityCriteria\":\"Inclusion Criteria:\\nSynthetic protocol population label\"},\"outcomesModule\":{\"primaryOutcomes\":[{\"measure\":\"Synthetic protocol outcome label\"}]}}}}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Content-Type application/json is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "protocol-post-wrong-media-a-and-b",
+        "method": "POST",
+        "path": "/api/protocols/snapshots",
+        "requestHeaders": {
+          "content-type": "text/plain",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"reviewVersionId\":\"g1-version-2\",\"registry\":\"clinicaltrials-gov\",\"sourceUrl\":\"https://clinicaltrials.gov/study/NCT09999991\",\"sourceVersion\":\"synthetic-g1-protocol-version-1\",\"fetchedAt\":\"2026-03-31T23:55:00.000Z\",\"payload\":{\"protocolSection\":{\"identificationModule\":{\"nctId\":\"NCT09999991\",\"briefTitle\":\"Synthetic G1 metadata reconciliation, not a real registered study\"},\"eligibilityModule\":{\"eligibilityCriteria\":\"Inclusion Criteria:\\nSynthetic protocol population label\"},\"outcomesModule\":{\"primaryOutcomes\":[{\"measure\":\"Synthetic protocol outcome label\"}]}}}}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Content-Type application/json is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "protocol-post-wrong-media-editor",
+        "method": "POST",
+        "path": "/api/protocols/snapshots",
+        "requestHeaders": {
+          "content-type": "text/plain",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"reviewVersionId\":\"g1-version-2\",\"registry\":\"clinicaltrials-gov\",\"sourceUrl\":\"https://clinicaltrials.gov/study/NCT09999991\",\"sourceVersion\":\"synthetic-g1-protocol-version-1\",\"fetchedAt\":\"2026-03-31T23:55:00.000Z\",\"payload\":{\"protocolSection\":{\"identificationModule\":{\"nctId\":\"NCT09999991\",\"briefTitle\":\"Synthetic G1 metadata reconciliation, not a real registered study\"},\"eligibilityModule\":{\"eligibilityCriteria\":\"Inclusion Criteria:\\nSynthetic protocol population label\"},\"outcomesModule\":{\"primaryOutcomes\":[{\"measure\":\"Synthetic protocol outcome label\"}]}}}}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Content-Type application/json is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "protocol-post-wrong-media-admin",
+        "method": "POST",
+        "path": "/api/protocols/snapshots",
+        "requestHeaders": {
+          "content-type": "text/plain",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"reviewVersionId\":\"g1-version-2\",\"registry\":\"clinicaltrials-gov\",\"sourceUrl\":\"https://clinicaltrials.gov/study/NCT09999991\",\"sourceVersion\":\"synthetic-g1-protocol-version-1\",\"fetchedAt\":\"2026-03-31T23:55:00.000Z\",\"payload\":{\"protocolSection\":{\"identificationModule\":{\"nctId\":\"NCT09999991\",\"briefTitle\":\"Synthetic G1 metadata reconciliation, not a real registered study\"},\"eligibilityModule\":{\"eligibilityCriteria\":\"Inclusion Criteria:\\nSynthetic protocol population label\"},\"outcomesModule\":{\"primaryOutcomes\":[{\"measure\":\"Synthetic protocol outcome label\"}]}}}}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"Content-Type application/json is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "doi-post-local-report-0-anonymous",
+        "method": "POST",
+        "path": "/api/validate-doi",
+        "requestHeaders": {
+          "content-type": "application/json"
+        },
+        "requestBody": "{\"doi\":\"10.5555/g1.protocol.native.v1\",\"expectedKind\":\"version\"}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 200,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"schemaVersion\":\"1.0.0\",\"input\":\"10.5555/g1.protocol.native.v1\",\"status\":\"example-not-resolvable\",\"isZenodo\":false,\"doiKind\":\"unknown\",\"recordCreators\":[],\"recordRepositoryUrls\":[],\"checks\":[{\"id\":\"syntax\",\"description\":\"DOI is syntactically valid\",\"outcome\":\"pass\"},{\"id\":\"resolution\",\"description\":\"DOI resolves via doi.org\",\"outcome\":\"skipped\",\"details\":\"Reserved example DOI (10.5555/*) — outbound resolution intentionally skipped.\"}],\"errors\":[],\"warnings\":[\"This is a synthetic example DOI and does not resolve.\"],\"confidence\":\"none\",\"validatedAt\":\"2026-04-01T00:00:00.000Z\",\"normalizedDoi\":\"10.5555/g1.protocol.native.v1\"}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "doi-post-local-report-0-a-only",
+        "method": "POST",
+        "path": "/api/validate-doi",
+        "requestHeaders": {
+          "content-type": "application/json"
+        },
+        "requestBody": "{\"doi\":\"10.5555/g1.protocol.native.v1\",\"expectedKind\":\"version\"}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 200,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"schemaVersion\":\"1.0.0\",\"input\":\"10.5555/g1.protocol.native.v1\",\"status\":\"example-not-resolvable\",\"isZenodo\":false,\"doiKind\":\"unknown\",\"recordCreators\":[],\"recordRepositoryUrls\":[],\"checks\":[{\"id\":\"syntax\",\"description\":\"DOI is syntactically valid\",\"outcome\":\"pass\"},{\"id\":\"resolution\",\"description\":\"DOI resolves via doi.org\",\"outcome\":\"skipped\",\"details\":\"Reserved example DOI (10.5555/*) — outbound resolution intentionally skipped.\"}],\"errors\":[],\"warnings\":[\"This is a synthetic example DOI and does not resolve.\"],\"confidence\":\"none\",\"validatedAt\":\"2026-04-01T00:00:00.000Z\",\"normalizedDoi\":\"10.5555/g1.protocol.native.v1\"}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "doi-post-local-report-0-b-only",
+        "method": "POST",
+        "path": "/api/validate-doi",
+        "requestHeaders": {
+          "content-type": "application/json"
+        },
+        "requestBody": "{\"doi\":\"10.5555/g1.protocol.native.v1\",\"expectedKind\":\"version\"}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 200,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"schemaVersion\":\"1.0.0\",\"input\":\"10.5555/g1.protocol.native.v1\",\"status\":\"example-not-resolvable\",\"isZenodo\":false,\"doiKind\":\"unknown\",\"recordCreators\":[],\"recordRepositoryUrls\":[],\"checks\":[{\"id\":\"syntax\",\"description\":\"DOI is syntactically valid\",\"outcome\":\"pass\"},{\"id\":\"resolution\",\"description\":\"DOI resolves via doi.org\",\"outcome\":\"skipped\",\"details\":\"Reserved example DOI (10.5555/*) — outbound resolution intentionally skipped.\"}],\"errors\":[],\"warnings\":[\"This is a synthetic example DOI and does not resolve.\"],\"confidence\":\"none\",\"validatedAt\":\"2026-04-01T00:00:00.000Z\",\"normalizedDoi\":\"10.5555/g1.protocol.native.v1\"}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "doi-post-local-report-0-a-and-b",
+        "method": "POST",
+        "path": "/api/validate-doi",
+        "requestHeaders": {
+          "content-type": "application/json"
+        },
+        "requestBody": "{\"doi\":\"10.5555/g1.protocol.native.v1\",\"expectedKind\":\"version\"}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 200,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"schemaVersion\":\"1.0.0\",\"input\":\"10.5555/g1.protocol.native.v1\",\"status\":\"example-not-resolvable\",\"isZenodo\":false,\"doiKind\":\"unknown\",\"recordCreators\":[],\"recordRepositoryUrls\":[],\"checks\":[{\"id\":\"syntax\",\"description\":\"DOI is syntactically valid\",\"outcome\":\"pass\"},{\"id\":\"resolution\",\"description\":\"DOI resolves via doi.org\",\"outcome\":\"skipped\",\"details\":\"Reserved example DOI (10.5555/*) — outbound resolution intentionally skipped.\"}],\"errors\":[],\"warnings\":[\"This is a synthetic example DOI and does not resolve.\"],\"confidence\":\"none\",\"validatedAt\":\"2026-04-01T00:00:00.000Z\",\"normalizedDoi\":\"10.5555/g1.protocol.native.v1\"}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "doi-post-local-report-0-editor",
+        "method": "POST",
+        "path": "/api/validate-doi",
+        "requestHeaders": {
+          "content-type": "application/json"
+        },
+        "requestBody": "{\"doi\":\"10.5555/g1.protocol.native.v1\",\"expectedKind\":\"version\"}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 200,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"schemaVersion\":\"1.0.0\",\"input\":\"10.5555/g1.protocol.native.v1\",\"status\":\"example-not-resolvable\",\"isZenodo\":false,\"doiKind\":\"unknown\",\"recordCreators\":[],\"recordRepositoryUrls\":[],\"checks\":[{\"id\":\"syntax\",\"description\":\"DOI is syntactically valid\",\"outcome\":\"pass\"},{\"id\":\"resolution\",\"description\":\"DOI resolves via doi.org\",\"outcome\":\"skipped\",\"details\":\"Reserved example DOI (10.5555/*) — outbound resolution intentionally skipped.\"}],\"errors\":[],\"warnings\":[\"This is a synthetic example DOI and does not resolve.\"],\"confidence\":\"none\",\"validatedAt\":\"2026-04-01T00:00:00.000Z\",\"normalizedDoi\":\"10.5555/g1.protocol.native.v1\"}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "doi-post-local-report-0-admin",
+        "method": "POST",
+        "path": "/api/validate-doi",
+        "requestHeaders": {
+          "content-type": "application/json"
+        },
+        "requestBody": "{\"doi\":\"10.5555/g1.protocol.native.v1\",\"expectedKind\":\"version\"}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 200,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"schemaVersion\":\"1.0.0\",\"input\":\"10.5555/g1.protocol.native.v1\",\"status\":\"example-not-resolvable\",\"isZenodo\":false,\"doiKind\":\"unknown\",\"recordCreators\":[],\"recordRepositoryUrls\":[],\"checks\":[{\"id\":\"syntax\",\"description\":\"DOI is syntactically valid\",\"outcome\":\"pass\"},{\"id\":\"resolution\",\"description\":\"DOI resolves via doi.org\",\"outcome\":\"skipped\",\"details\":\"Reserved example DOI (10.5555/*) — outbound resolution intentionally skipped.\"}],\"errors\":[],\"warnings\":[\"This is a synthetic example DOI and does not resolve.\"],\"confidence\":\"none\",\"validatedAt\":\"2026-04-01T00:00:00.000Z\",\"normalizedDoi\":\"10.5555/g1.protocol.native.v1\"}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "doi-post-local-report-1-anonymous",
+        "method": "POST",
+        "path": "/api/validate-doi",
+        "requestHeaders": {
+          "content-type": "application/json"
+        },
+        "requestBody": "{\"doi\":\"https://doi.org/10.5555/G1.PROTOCOL.NATIVE.CONCEPT\",\"expectedKind\":\"concept\"}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 200,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"schemaVersion\":\"1.0.0\",\"input\":\"https://doi.org/10.5555/G1.PROTOCOL.NATIVE.CONCEPT\",\"status\":\"example-not-resolvable\",\"isZenodo\":false,\"doiKind\":\"unknown\",\"recordCreators\":[],\"recordRepositoryUrls\":[],\"checks\":[{\"id\":\"syntax\",\"description\":\"DOI is syntactically valid\",\"outcome\":\"pass\"},{\"id\":\"resolution\",\"description\":\"DOI resolves via doi.org\",\"outcome\":\"skipped\",\"details\":\"Reserved example DOI (10.5555/*) — outbound resolution intentionally skipped.\"}],\"errors\":[],\"warnings\":[\"This is a synthetic example DOI and does not resolve.\"],\"confidence\":\"none\",\"validatedAt\":\"2026-04-01T00:00:00.000Z\",\"normalizedDoi\":\"10.5555/g1.protocol.native.concept\"}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "doi-post-local-report-1-a-only",
+        "method": "POST",
+        "path": "/api/validate-doi",
+        "requestHeaders": {
+          "content-type": "application/json"
+        },
+        "requestBody": "{\"doi\":\"https://doi.org/10.5555/G1.PROTOCOL.NATIVE.CONCEPT\",\"expectedKind\":\"concept\"}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 200,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"schemaVersion\":\"1.0.0\",\"input\":\"https://doi.org/10.5555/G1.PROTOCOL.NATIVE.CONCEPT\",\"status\":\"example-not-resolvable\",\"isZenodo\":false,\"doiKind\":\"unknown\",\"recordCreators\":[],\"recordRepositoryUrls\":[],\"checks\":[{\"id\":\"syntax\",\"description\":\"DOI is syntactically valid\",\"outcome\":\"pass\"},{\"id\":\"resolution\",\"description\":\"DOI resolves via doi.org\",\"outcome\":\"skipped\",\"details\":\"Reserved example DOI (10.5555/*) — outbound resolution intentionally skipped.\"}],\"errors\":[],\"warnings\":[\"This is a synthetic example DOI and does not resolve.\"],\"confidence\":\"none\",\"validatedAt\":\"2026-04-01T00:00:00.000Z\",\"normalizedDoi\":\"10.5555/g1.protocol.native.concept\"}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "doi-post-local-report-1-b-only",
+        "method": "POST",
+        "path": "/api/validate-doi",
+        "requestHeaders": {
+          "content-type": "application/json"
+        },
+        "requestBody": "{\"doi\":\"https://doi.org/10.5555/G1.PROTOCOL.NATIVE.CONCEPT\",\"expectedKind\":\"concept\"}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 200,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"schemaVersion\":\"1.0.0\",\"input\":\"https://doi.org/10.5555/G1.PROTOCOL.NATIVE.CONCEPT\",\"status\":\"example-not-resolvable\",\"isZenodo\":false,\"doiKind\":\"unknown\",\"recordCreators\":[],\"recordRepositoryUrls\":[],\"checks\":[{\"id\":\"syntax\",\"description\":\"DOI is syntactically valid\",\"outcome\":\"pass\"},{\"id\":\"resolution\",\"description\":\"DOI resolves via doi.org\",\"outcome\":\"skipped\",\"details\":\"Reserved example DOI (10.5555/*) — outbound resolution intentionally skipped.\"}],\"errors\":[],\"warnings\":[\"This is a synthetic example DOI and does not resolve.\"],\"confidence\":\"none\",\"validatedAt\":\"2026-04-01T00:00:00.000Z\",\"normalizedDoi\":\"10.5555/g1.protocol.native.concept\"}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "doi-post-local-report-1-a-and-b",
+        "method": "POST",
+        "path": "/api/validate-doi",
+        "requestHeaders": {
+          "content-type": "application/json"
+        },
+        "requestBody": "{\"doi\":\"https://doi.org/10.5555/G1.PROTOCOL.NATIVE.CONCEPT\",\"expectedKind\":\"concept\"}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 200,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"schemaVersion\":\"1.0.0\",\"input\":\"https://doi.org/10.5555/G1.PROTOCOL.NATIVE.CONCEPT\",\"status\":\"example-not-resolvable\",\"isZenodo\":false,\"doiKind\":\"unknown\",\"recordCreators\":[],\"recordRepositoryUrls\":[],\"checks\":[{\"id\":\"syntax\",\"description\":\"DOI is syntactically valid\",\"outcome\":\"pass\"},{\"id\":\"resolution\",\"description\":\"DOI resolves via doi.org\",\"outcome\":\"skipped\",\"details\":\"Reserved example DOI (10.5555/*) — outbound resolution intentionally skipped.\"}],\"errors\":[],\"warnings\":[\"This is a synthetic example DOI and does not resolve.\"],\"confidence\":\"none\",\"validatedAt\":\"2026-04-01T00:00:00.000Z\",\"normalizedDoi\":\"10.5555/g1.protocol.native.concept\"}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "doi-post-local-report-1-editor",
+        "method": "POST",
+        "path": "/api/validate-doi",
+        "requestHeaders": {
+          "content-type": "application/json"
+        },
+        "requestBody": "{\"doi\":\"https://doi.org/10.5555/G1.PROTOCOL.NATIVE.CONCEPT\",\"expectedKind\":\"concept\"}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 200,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"schemaVersion\":\"1.0.0\",\"input\":\"https://doi.org/10.5555/G1.PROTOCOL.NATIVE.CONCEPT\",\"status\":\"example-not-resolvable\",\"isZenodo\":false,\"doiKind\":\"unknown\",\"recordCreators\":[],\"recordRepositoryUrls\":[],\"checks\":[{\"id\":\"syntax\",\"description\":\"DOI is syntactically valid\",\"outcome\":\"pass\"},{\"id\":\"resolution\",\"description\":\"DOI resolves via doi.org\",\"outcome\":\"skipped\",\"details\":\"Reserved example DOI (10.5555/*) — outbound resolution intentionally skipped.\"}],\"errors\":[],\"warnings\":[\"This is a synthetic example DOI and does not resolve.\"],\"confidence\":\"none\",\"validatedAt\":\"2026-04-01T00:00:00.000Z\",\"normalizedDoi\":\"10.5555/g1.protocol.native.concept\"}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "doi-post-local-report-1-admin",
+        "method": "POST",
+        "path": "/api/validate-doi",
+        "requestHeaders": {
+          "content-type": "application/json"
+        },
+        "requestBody": "{\"doi\":\"https://doi.org/10.5555/G1.PROTOCOL.NATIVE.CONCEPT\",\"expectedKind\":\"concept\"}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 200,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"schemaVersion\":\"1.0.0\",\"input\":\"https://doi.org/10.5555/G1.PROTOCOL.NATIVE.CONCEPT\",\"status\":\"example-not-resolvable\",\"isZenodo\":false,\"doiKind\":\"unknown\",\"recordCreators\":[],\"recordRepositoryUrls\":[],\"checks\":[{\"id\":\"syntax\",\"description\":\"DOI is syntactically valid\",\"outcome\":\"pass\"},{\"id\":\"resolution\",\"description\":\"DOI resolves via doi.org\",\"outcome\":\"skipped\",\"details\":\"Reserved example DOI (10.5555/*) — outbound resolution intentionally skipped.\"}],\"errors\":[],\"warnings\":[\"This is a synthetic example DOI and does not resolve.\"],\"confidence\":\"none\",\"validatedAt\":\"2026-04-01T00:00:00.000Z\",\"normalizedDoi\":\"10.5555/g1.protocol.native.concept\"}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "doi-post-local-report-2-anonymous",
+        "method": "POST",
+        "path": "/api/validate-doi",
+        "requestHeaders": {
+          "content-type": "application/json"
+        },
+        "requestBody": "{\"doi\":\"not-a-doi\"}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 200,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"schemaVersion\":\"1.0.0\",\"input\":\"not-a-doi\",\"status\":\"invalid\",\"isZenodo\":false,\"doiKind\":\"unknown\",\"recordCreators\":[],\"recordRepositoryUrls\":[],\"checks\":[],\"errors\":[\"Not a syntactically valid DOI.\"],\"warnings\":[],\"confidence\":\"none\",\"validatedAt\":\"2026-04-01T00:00:00.000Z\"}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "doi-post-local-report-2-a-only",
+        "method": "POST",
+        "path": "/api/validate-doi",
+        "requestHeaders": {
+          "content-type": "application/json"
+        },
+        "requestBody": "{\"doi\":\"not-a-doi\"}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 200,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"schemaVersion\":\"1.0.0\",\"input\":\"not-a-doi\",\"status\":\"invalid\",\"isZenodo\":false,\"doiKind\":\"unknown\",\"recordCreators\":[],\"recordRepositoryUrls\":[],\"checks\":[],\"errors\":[\"Not a syntactically valid DOI.\"],\"warnings\":[],\"confidence\":\"none\",\"validatedAt\":\"2026-04-01T00:00:00.000Z\"}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "doi-post-local-report-2-b-only",
+        "method": "POST",
+        "path": "/api/validate-doi",
+        "requestHeaders": {
+          "content-type": "application/json"
+        },
+        "requestBody": "{\"doi\":\"not-a-doi\"}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 200,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"schemaVersion\":\"1.0.0\",\"input\":\"not-a-doi\",\"status\":\"invalid\",\"isZenodo\":false,\"doiKind\":\"unknown\",\"recordCreators\":[],\"recordRepositoryUrls\":[],\"checks\":[],\"errors\":[\"Not a syntactically valid DOI.\"],\"warnings\":[],\"confidence\":\"none\",\"validatedAt\":\"2026-04-01T00:00:00.000Z\"}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "doi-post-local-report-2-a-and-b",
+        "method": "POST",
+        "path": "/api/validate-doi",
+        "requestHeaders": {
+          "content-type": "application/json"
+        },
+        "requestBody": "{\"doi\":\"not-a-doi\"}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 200,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"schemaVersion\":\"1.0.0\",\"input\":\"not-a-doi\",\"status\":\"invalid\",\"isZenodo\":false,\"doiKind\":\"unknown\",\"recordCreators\":[],\"recordRepositoryUrls\":[],\"checks\":[],\"errors\":[\"Not a syntactically valid DOI.\"],\"warnings\":[],\"confidence\":\"none\",\"validatedAt\":\"2026-04-01T00:00:00.000Z\"}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "doi-post-local-report-2-editor",
+        "method": "POST",
+        "path": "/api/validate-doi",
+        "requestHeaders": {
+          "content-type": "application/json"
+        },
+        "requestBody": "{\"doi\":\"not-a-doi\"}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 200,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"schemaVersion\":\"1.0.0\",\"input\":\"not-a-doi\",\"status\":\"invalid\",\"isZenodo\":false,\"doiKind\":\"unknown\",\"recordCreators\":[],\"recordRepositoryUrls\":[],\"checks\":[],\"errors\":[\"Not a syntactically valid DOI.\"],\"warnings\":[],\"confidence\":\"none\",\"validatedAt\":\"2026-04-01T00:00:00.000Z\"}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "doi-post-local-report-2-admin",
+        "method": "POST",
+        "path": "/api/validate-doi",
+        "requestHeaders": {
+          "content-type": "application/json"
+        },
+        "requestBody": "{\"doi\":\"not-a-doi\"}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 200,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"schemaVersion\":\"1.0.0\",\"input\":\"not-a-doi\",\"status\":\"invalid\",\"isZenodo\":false,\"doiKind\":\"unknown\",\"recordCreators\":[],\"recordRepositoryUrls\":[],\"checks\":[],\"errors\":[\"Not a syntactically valid DOI.\"],\"warnings\":[],\"confidence\":\"none\",\"validatedAt\":\"2026-04-01T00:00:00.000Z\"}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "doi-post-local-report-3-anonymous",
+        "method": "POST",
+        "path": "/api/validate-doi",
+        "requestHeaders": {
+          "content-type": "application/json"
+        },
+        "requestBody": "{\"doi\":\"   \"}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 200,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"schemaVersion\":\"1.0.0\",\"input\":\"   \",\"status\":\"invalid\",\"isZenodo\":false,\"doiKind\":\"unknown\",\"recordCreators\":[],\"recordRepositoryUrls\":[],\"checks\":[],\"errors\":[\"DOI is empty.\"],\"warnings\":[],\"confidence\":\"none\",\"validatedAt\":\"2026-04-01T00:00:00.000Z\"}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "doi-post-local-report-3-a-only",
+        "method": "POST",
+        "path": "/api/validate-doi",
+        "requestHeaders": {
+          "content-type": "application/json"
+        },
+        "requestBody": "{\"doi\":\"   \"}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 200,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"schemaVersion\":\"1.0.0\",\"input\":\"   \",\"status\":\"invalid\",\"isZenodo\":false,\"doiKind\":\"unknown\",\"recordCreators\":[],\"recordRepositoryUrls\":[],\"checks\":[],\"errors\":[\"DOI is empty.\"],\"warnings\":[],\"confidence\":\"none\",\"validatedAt\":\"2026-04-01T00:00:00.000Z\"}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "doi-post-local-report-3-b-only",
+        "method": "POST",
+        "path": "/api/validate-doi",
+        "requestHeaders": {
+          "content-type": "application/json"
+        },
+        "requestBody": "{\"doi\":\"   \"}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 200,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"schemaVersion\":\"1.0.0\",\"input\":\"   \",\"status\":\"invalid\",\"isZenodo\":false,\"doiKind\":\"unknown\",\"recordCreators\":[],\"recordRepositoryUrls\":[],\"checks\":[],\"errors\":[\"DOI is empty.\"],\"warnings\":[],\"confidence\":\"none\",\"validatedAt\":\"2026-04-01T00:00:00.000Z\"}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "doi-post-local-report-3-a-and-b",
+        "method": "POST",
+        "path": "/api/validate-doi",
+        "requestHeaders": {
+          "content-type": "application/json"
+        },
+        "requestBody": "{\"doi\":\"   \"}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 200,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"schemaVersion\":\"1.0.0\",\"input\":\"   \",\"status\":\"invalid\",\"isZenodo\":false,\"doiKind\":\"unknown\",\"recordCreators\":[],\"recordRepositoryUrls\":[],\"checks\":[],\"errors\":[\"DOI is empty.\"],\"warnings\":[],\"confidence\":\"none\",\"validatedAt\":\"2026-04-01T00:00:00.000Z\"}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "doi-post-local-report-3-editor",
+        "method": "POST",
+        "path": "/api/validate-doi",
+        "requestHeaders": {
+          "content-type": "application/json"
+        },
+        "requestBody": "{\"doi\":\"   \"}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 200,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"schemaVersion\":\"1.0.0\",\"input\":\"   \",\"status\":\"invalid\",\"isZenodo\":false,\"doiKind\":\"unknown\",\"recordCreators\":[],\"recordRepositoryUrls\":[],\"checks\":[],\"errors\":[\"DOI is empty.\"],\"warnings\":[],\"confidence\":\"none\",\"validatedAt\":\"2026-04-01T00:00:00.000Z\"}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "doi-post-local-report-3-admin",
+        "method": "POST",
+        "path": "/api/validate-doi",
+        "requestHeaders": {
+          "content-type": "application/json"
+        },
+        "requestBody": "{\"doi\":\"   \"}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 200,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"schemaVersion\":\"1.0.0\",\"input\":\"   \",\"status\":\"invalid\",\"isZenodo\":false,\"doiKind\":\"unknown\",\"recordCreators\":[],\"recordRepositoryUrls\":[],\"checks\":[],\"errors\":[\"DOI is empty.\"],\"warnings\":[],\"confidence\":\"none\",\"validatedAt\":\"2026-04-01T00:00:00.000Z\"}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "doi-post-missing-anonymous",
+        "method": "POST",
+        "path": "/api/validate-doi",
+        "requestHeaders": {
+          "content-type": "application/json"
+        },
+        "requestBody": "{}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"A DOI is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "doi-post-missing-a-only",
+        "method": "POST",
+        "path": "/api/validate-doi",
+        "requestHeaders": {
+          "content-type": "application/json"
+        },
+        "requestBody": "{}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"A DOI is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "doi-post-missing-b-only",
+        "method": "POST",
+        "path": "/api/validate-doi",
+        "requestHeaders": {
+          "content-type": "application/json"
+        },
+        "requestBody": "{}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"A DOI is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "doi-post-missing-a-and-b",
+        "method": "POST",
+        "path": "/api/validate-doi",
+        "requestHeaders": {
+          "content-type": "application/json"
+        },
+        "requestBody": "{}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"A DOI is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "doi-post-missing-editor",
+        "method": "POST",
+        "path": "/api/validate-doi",
+        "requestHeaders": {
+          "content-type": "application/json"
+        },
+        "requestBody": "{}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"A DOI is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "doi-post-missing-admin",
+        "method": "POST",
+        "path": "/api/validate-doi",
+        "requestHeaders": {
+          "content-type": "application/json"
+        },
+        "requestBody": "{}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"A DOI is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "doi-post-wrong-type-anonymous",
+        "method": "POST",
+        "path": "/api/validate-doi",
+        "requestHeaders": {
+          "content-type": "application/json"
+        },
+        "requestBody": "{\"doi\":123}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"A DOI is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "doi-post-wrong-type-a-only",
+        "method": "POST",
+        "path": "/api/validate-doi",
+        "requestHeaders": {
+          "content-type": "application/json"
+        },
+        "requestBody": "{\"doi\":123}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"A DOI is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "doi-post-wrong-type-b-only",
+        "method": "POST",
+        "path": "/api/validate-doi",
+        "requestHeaders": {
+          "content-type": "application/json"
+        },
+        "requestBody": "{\"doi\":123}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"A DOI is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "doi-post-wrong-type-a-and-b",
+        "method": "POST",
+        "path": "/api/validate-doi",
+        "requestHeaders": {
+          "content-type": "application/json"
+        },
+        "requestBody": "{\"doi\":123}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"A DOI is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "doi-post-wrong-type-editor",
+        "method": "POST",
+        "path": "/api/validate-doi",
+        "requestHeaders": {
+          "content-type": "application/json"
+        },
+        "requestBody": "{\"doi\":123}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"A DOI is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "doi-post-wrong-type-admin",
+        "method": "POST",
+        "path": "/api/validate-doi",
+        "requestHeaders": {
+          "content-type": "application/json"
+        },
+        "requestBody": "{\"doi\":123}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"A DOI is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "doi-post-wrong-kind-anonymous",
+        "method": "POST",
+        "path": "/api/validate-doi",
+        "requestHeaders": {
+          "content-type": "application/json"
+        },
+        "requestBody": "{\"doi\":\"10.5555/g1.invalid-kind\",\"expectedKind\":\"dataset\"}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"A DOI is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "doi-post-wrong-kind-a-only",
+        "method": "POST",
+        "path": "/api/validate-doi",
+        "requestHeaders": {
+          "content-type": "application/json"
+        },
+        "requestBody": "{\"doi\":\"10.5555/g1.invalid-kind\",\"expectedKind\":\"dataset\"}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"A DOI is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "doi-post-wrong-kind-b-only",
+        "method": "POST",
+        "path": "/api/validate-doi",
+        "requestHeaders": {
+          "content-type": "application/json"
+        },
+        "requestBody": "{\"doi\":\"10.5555/g1.invalid-kind\",\"expectedKind\":\"dataset\"}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"A DOI is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "doi-post-wrong-kind-a-and-b",
+        "method": "POST",
+        "path": "/api/validate-doi",
+        "requestHeaders": {
+          "content-type": "application/json"
+        },
+        "requestBody": "{\"doi\":\"10.5555/g1.invalid-kind\",\"expectedKind\":\"dataset\"}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"A DOI is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "doi-post-wrong-kind-editor",
+        "method": "POST",
+        "path": "/api/validate-doi",
+        "requestHeaders": {
+          "content-type": "application/json"
+        },
+        "requestBody": "{\"doi\":\"10.5555/g1.invalid-kind\",\"expectedKind\":\"dataset\"}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"A DOI is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "doi-post-wrong-kind-admin",
+        "method": "POST",
+        "path": "/api/validate-doi",
+        "requestHeaders": {
+          "content-type": "application/json"
+        },
+        "requestBody": "{\"doi\":\"10.5555/g1.invalid-kind\",\"expectedKind\":\"dataset\"}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 400,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"bad-request\",\"message\":\"A DOI is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "protocol-post-invalid-cookie-malformed",
+        "method": "POST",
+        "path": "/api/protocols/snapshots",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"reviewVersionId\":\"g1-version-2\",\"registry\":\"clinicaltrials-gov\",\"sourceUrl\":\"https://clinicaltrials.gov/study/NCT09999991\",\"sourceVersion\":\"synthetic-g1-protocol-version-1\",\"fetchedAt\":\"2026-03-31T23:55:00.000Z\",\"payload\":{\"protocolSection\":{\"identificationModule\":{\"nctId\":\"NCT09999991\",\"briefTitle\":\"Synthetic G1 metadata reconciliation, not a real registered study\"},\"eligibilityModule\":{\"eligibilityCriteria\":\"Inclusion Criteria:\\nSynthetic protocol population label\"},\"outcomesModule\":{\"primaryOutcomes\":[{\"measure\":\"Synthetic protocol outcome label\"}]}}}}",
+        "principal": "anonymous",
+        "sessionCase": "malformed",
+        "session": {
+          "case": "malformed",
+          "value": "g1-malformed-session-value"
+        },
+        "cookieSha256": "0b646763360dfbf0b958677056e8f33e616febd688290abe0b8de92864714906",
+        "status": 401,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "doi-post-invalid-cookie-malformed",
+        "method": "POST",
+        "path": "/api/validate-doi",
+        "requestHeaders": {
+          "content-type": "application/json"
+        },
+        "requestBody": "{\"doi\":\"10.5555/g1.protocol.native.v1\",\"expectedKind\":\"version\"}",
+        "principal": "anonymous",
+        "sessionCase": "malformed",
+        "session": {
+          "case": "malformed",
+          "value": "g1-malformed-session-value"
+        },
+        "cookieSha256": "0b646763360dfbf0b958677056e8f33e616febd688290abe0b8de92864714906",
+        "status": 200,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"schemaVersion\":\"1.0.0\",\"input\":\"10.5555/g1.protocol.native.v1\",\"status\":\"example-not-resolvable\",\"isZenodo\":false,\"doiKind\":\"unknown\",\"recordCreators\":[],\"recordRepositoryUrls\":[],\"checks\":[{\"id\":\"syntax\",\"description\":\"DOI is syntactically valid\",\"outcome\":\"pass\"},{\"id\":\"resolution\",\"description\":\"DOI resolves via doi.org\",\"outcome\":\"skipped\",\"details\":\"Reserved example DOI (10.5555/*) — outbound resolution intentionally skipped.\"}],\"errors\":[],\"warnings\":[\"This is a synthetic example DOI and does not resolve.\"],\"confidence\":\"none\",\"validatedAt\":\"2026-04-01T00:00:00.000Z\",\"normalizedDoi\":\"10.5555/g1.protocol.native.v1\"}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "protocol-post-invalid-cookie-signed-expired",
+        "method": "POST",
+        "path": "/api/protocols/snapshots",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"reviewVersionId\":\"g1-version-2\",\"registry\":\"clinicaltrials-gov\",\"sourceUrl\":\"https://clinicaltrials.gov/study/NCT09999991\",\"sourceVersion\":\"synthetic-g1-protocol-version-1\",\"fetchedAt\":\"2026-03-31T23:55:00.000Z\",\"payload\":{\"protocolSection\":{\"identificationModule\":{\"nctId\":\"NCT09999991\",\"briefTitle\":\"Synthetic G1 metadata reconciliation, not a real registered study\"},\"eligibilityModule\":{\"eligibilityCriteria\":\"Inclusion Criteria:\\nSynthetic protocol population label\"},\"outcomesModule\":{\"primaryOutcomes\":[{\"measure\":\"Synthetic protocol outcome label\"}]}}}}",
+        "principal": "anonymous",
+        "sessionCase": "signed-expired",
+        "session": {
+          "case": "signed-expired",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-01T00:00:00.000Z"
+        },
+        "cookieSha256": "fa480d7e6f4efdbc8ba7f86a08d94834130d3f13a07c89c44103ce2cc60700c0",
+        "status": 401,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "doi-post-invalid-cookie-signed-expired",
+        "method": "POST",
+        "path": "/api/validate-doi",
+        "requestHeaders": {
+          "content-type": "application/json"
+        },
+        "requestBody": "{\"doi\":\"10.5555/g1.protocol.native.v1\",\"expectedKind\":\"version\"}",
+        "principal": "anonymous",
+        "sessionCase": "signed-expired",
+        "session": {
+          "case": "signed-expired",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-01T00:00:00.000Z"
+        },
+        "cookieSha256": "fa480d7e6f4efdbc8ba7f86a08d94834130d3f13a07c89c44103ce2cc60700c0",
+        "status": 200,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"schemaVersion\":\"1.0.0\",\"input\":\"10.5555/g1.protocol.native.v1\",\"status\":\"example-not-resolvable\",\"isZenodo\":false,\"doiKind\":\"unknown\",\"recordCreators\":[],\"recordRepositoryUrls\":[],\"checks\":[{\"id\":\"syntax\",\"description\":\"DOI is syntactically valid\",\"outcome\":\"pass\"},{\"id\":\"resolution\",\"description\":\"DOI resolves via doi.org\",\"outcome\":\"skipped\",\"details\":\"Reserved example DOI (10.5555/*) — outbound resolution intentionally skipped.\"}],\"errors\":[],\"warnings\":[\"This is a synthetic example DOI and does not resolve.\"],\"confidence\":\"none\",\"validatedAt\":\"2026-04-01T00:00:00.000Z\",\"normalizedDoi\":\"10.5555/g1.protocol.native.v1\"}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "protocol-post-invalid-cookie-tampered",
+        "method": "POST",
+        "path": "/api/protocols/snapshots",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"reviewVersionId\":\"g1-version-2\",\"registry\":\"clinicaltrials-gov\",\"sourceUrl\":\"https://clinicaltrials.gov/study/NCT09999991\",\"sourceVersion\":\"synthetic-g1-protocol-version-1\",\"fetchedAt\":\"2026-03-31T23:55:00.000Z\",\"payload\":{\"protocolSection\":{\"identificationModule\":{\"nctId\":\"NCT09999991\",\"briefTitle\":\"Synthetic G1 metadata reconciliation, not a real registered study\"},\"eligibilityModule\":{\"eligibilityCriteria\":\"Inclusion Criteria:\\nSynthetic protocol population label\"},\"outcomesModule\":{\"primaryOutcomes\":[{\"measure\":\"Synthetic protocol outcome label\"}]}}}}",
+        "principal": "anonymous",
+        "sessionCase": "tampered",
+        "session": {
+          "case": "tampered",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z",
+          "substitutedUserId": "g1-user-admin"
+        },
+        "cookieSha256": "79f2621dfa5223e7ab82dbc4fa99562464ae7afc1b7afec9bc74f30ffb1e4a43",
+        "status": 401,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "doi-post-invalid-cookie-tampered",
+        "method": "POST",
+        "path": "/api/validate-doi",
+        "requestHeaders": {
+          "content-type": "application/json"
+        },
+        "requestBody": "{\"doi\":\"10.5555/g1.protocol.native.v1\",\"expectedKind\":\"version\"}",
+        "principal": "anonymous",
+        "sessionCase": "tampered",
+        "session": {
+          "case": "tampered",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z",
+          "substitutedUserId": "g1-user-admin"
+        },
+        "cookieSha256": "79f2621dfa5223e7ab82dbc4fa99562464ae7afc1b7afec9bc74f30ffb1e4a43",
+        "status": 200,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"schemaVersion\":\"1.0.0\",\"input\":\"10.5555/g1.protocol.native.v1\",\"status\":\"example-not-resolvable\",\"isZenodo\":false,\"doiKind\":\"unknown\",\"recordCreators\":[],\"recordRepositoryUrls\":[],\"checks\":[{\"id\":\"syntax\",\"description\":\"DOI is syntactically valid\",\"outcome\":\"pass\"},{\"id\":\"resolution\",\"description\":\"DOI resolves via doi.org\",\"outcome\":\"skipped\",\"details\":\"Reserved example DOI (10.5555/*) — outbound resolution intentionally skipped.\"}],\"errors\":[],\"warnings\":[\"This is a synthetic example DOI and does not resolve.\"],\"confidence\":\"none\",\"validatedAt\":\"2026-04-01T00:00:00.000Z\",\"normalizedDoi\":\"10.5555/g1.protocol.native.v1\"}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "protocol-post-invalid-cookie-signed-missing-user",
+        "method": "POST",
+        "path": "/api/protocols/snapshots",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example"
+        },
+        "requestBody": "{\"reviewVersionId\":\"g1-version-2\",\"registry\":\"clinicaltrials-gov\",\"sourceUrl\":\"https://clinicaltrials.gov/study/NCT09999991\",\"sourceVersion\":\"synthetic-g1-protocol-version-1\",\"fetchedAt\":\"2026-03-31T23:55:00.000Z\",\"payload\":{\"protocolSection\":{\"identificationModule\":{\"nctId\":\"NCT09999991\",\"briefTitle\":\"Synthetic G1 metadata reconciliation, not a real registered study\"},\"eligibilityModule\":{\"eligibilityCriteria\":\"Inclusion Criteria:\\nSynthetic protocol population label\"},\"outcomesModule\":{\"primaryOutcomes\":[{\"measure\":\"Synthetic protocol outcome label\"}]}}}}",
+        "principal": "anonymous",
+        "sessionCase": "signed-missing-user",
+        "session": {
+          "case": "signed-missing-user",
+          "userId": "g1-user-deleted",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "0596f369924b9c8e97061767be36bd17565fc628a3410cbc01a4f414c124818c",
+        "status": 401,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "doi-post-invalid-cookie-signed-missing-user",
+        "method": "POST",
+        "path": "/api/validate-doi",
+        "requestHeaders": {
+          "content-type": "application/json"
+        },
+        "requestBody": "{\"doi\":\"10.5555/g1.protocol.native.v1\",\"expectedKind\":\"version\"}",
+        "principal": "anonymous",
+        "sessionCase": "signed-missing-user",
+        "session": {
+          "case": "signed-missing-user",
+          "userId": "g1-user-deleted",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "0596f369924b9c8e97061767be36bd17565fc628a3410cbc01a4f414c124818c",
+        "status": 200,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"schemaVersion\":\"1.0.0\",\"input\":\"10.5555/g1.protocol.native.v1\",\"status\":\"example-not-resolvable\",\"isZenodo\":false,\"doiKind\":\"unknown\",\"recordCreators\":[],\"recordRepositoryUrls\":[],\"checks\":[{\"id\":\"syntax\",\"description\":\"DOI is syntactically valid\",\"outcome\":\"pass\"},{\"id\":\"resolution\",\"description\":\"DOI resolves via doi.org\",\"outcome\":\"skipped\",\"details\":\"Reserved example DOI (10.5555/*) — outbound resolution intentionally skipped.\"}],\"errors\":[],\"warnings\":[\"This is a synthetic example DOI and does not resolve.\"],\"confidence\":\"none\",\"validatedAt\":\"2026-04-01T00:00:00.000Z\",\"normalizedDoi\":\"10.5555/g1.protocol.native.v1\"}"
+        }
+      }
+    ]
+  },
+  "stateSha256": "124f5cc2e4ecd119a5c0f2095842cd76fe2c67f969ec2d0ddcab85c2c5f0e162",
+  "review": "Independently reviewed 2026-10-21 at bef4f829e2bbf8d23d03cff642b2677f47d8a951: four 110-request native captures; actual signed Cookie bindings; five native protocol bootstrap rows; all 87 parent table fixture counts and unchanged complete cumulative 72-table runtime state. Existing protocol snapshot replay and reserved synthetic DOI validation only; no live provider resolution or scientific confirmation. Existing goldens and runtime grants unchanged. Partial synthetic G1."
+}

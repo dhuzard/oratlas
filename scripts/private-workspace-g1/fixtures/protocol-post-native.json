@@ -1,0 +1,264 @@
+{
+  "input": {
+    "reviewVersionId": "g1-version-2",
+    "registry": "clinicaltrials-gov",
+    "sourceUrl": "https://clinicaltrials.gov/study/NCT09999991",
+    "sourceVersion": "synthetic-g1-protocol-version-1",
+    "fetchedAt": "2026-03-31T23:55:00.000Z",
+    "payload": {
+      "protocolSection": {
+        "identificationModule": {
+          "nctId": "NCT09999991",
+          "briefTitle": "Synthetic G1 metadata reconciliation, not a real registered study"
+        },
+        "eligibilityModule": {
+          "eligibilityCriteria": "Inclusion Criteria:\nSynthetic protocol population label"
+        },
+        "outcomesModule": {
+          "primaryOutcomes": [
+            {
+              "measure": "Synthetic protocol outcome label"
+            }
+          ]
+        }
+      }
+    }
+  },
+  "first": {
+    "snapshotId": "ps_6cd1900e14f55ab42eec5c8aa534509389b9931a7caa785cdc20df8514926126",
+    "sourceId": "NCT09999991",
+    "proposalsOpened": 2,
+    "idempotent": false,
+    "publicPath": "/api/protocols/reviews/g1-version-2"
+  },
+  "replay": {
+    "snapshotId": "ps_6cd1900e14f55ab42eec5c8aa534509389b9931a7caa785cdc20df8514926126",
+    "sourceId": "NCT09999991",
+    "proposalsOpened": 0,
+    "idempotent": true,
+    "publicPath": "/api/protocols/reviews/g1-version-2"
+  },
+  "snapshot": {
+    "id": "ps_6cd1900e14f55ab42eec5c8aa534509389b9931a7caa785cdc20df8514926126",
+    "reviewVersionId": "g1-version-2",
+    "claimId": null,
+    "createdById": "g1-user-admin",
+    "targetKey": "review-version:g1-version-2",
+    "registry": "clinicaltrials-gov",
+    "sourceId": "NCT09999991",
+    "sourceUrl": "https://clinicaltrials.gov/study/NCT09999991",
+    "sourceVersion": "synthetic-g1-protocol-version-1",
+    "sourceTimestamp": null,
+    "fetchedAt": "2026-03-31T23:55:00.000Z",
+    "normalizedJson": "{\"fields\":{\"analysis-plan\":[],\"exclusions\":[],\"outcomes\":[{\"sourcePointer\":\"/protocolSection/outcomesModule/primaryOutcomes/0\",\"value\":\"Synthetic protocol outcome label\"}],\"population\":[{\"sourcePointer\":\"/protocolSection/eligibilityModule/eligibilityCriteria#inclusion\",\"value\":\"Inclusion Criteria:\\nSynthetic protocol population label\"}]},\"schemaVersion\":\"1.0.0\",\"source\":{\"capturedAt\":\"2026-03-31T23:55:00.000Z\",\"registry\":\"clinicaltrials-gov\",\"sourceId\":\"NCT09999991\",\"sourceUrl\":\"https://clinicaltrials.gov/study/NCT09999991\",\"sourceVersion\":\"synthetic-g1-protocol-version-1\"},\"title\":\"Synthetic G1 metadata reconciliation, not a real registered study\",\"unclassified\":[]}",
+    "rawJson": "{\"protocolSection\":{\"eligibilityModule\":{\"eligibilityCriteria\":\"Inclusion Criteria:\\nSynthetic protocol population label\"},\"identificationModule\":{\"briefTitle\":\"Synthetic G1 metadata reconciliation, not a real registered study\",\"nctId\":\"NCT09999991\"},\"outcomesModule\":{\"primaryOutcomes\":[{\"measure\":\"Synthetic protocol outcome label\"}]}}}",
+    "questionMetadataJson": null,
+    "contentHash": "0cbcd2a6035a1aed9b96113b736075210a7a861a0b4688f02552aa601cf8dfe4",
+    "observedJson": "{\"fields\":{\"analysis-plan\":[],\"exclusions\":[],\"outcomes\":[],\"population\":[]},\"reviewVersionId\":\"g1-version-2\",\"targetKey\":\"review-version:g1-version-2\"}",
+    "comparatorVersion": "1.0.0",
+    "createdAt": "2026-10-21T16:29:59.630Z"
+  },
+  "initialProposals": [
+    {
+      "id": "pdp_1a260c0f345a4b8a009c70be9ac73e894056167201b1c04046bdabe7aa41626d",
+      "snapshotId": "ps_6cd1900e14f55ab42eec5c8aa534509389b9931a7caa785cdc20df8514926126",
+      "category": "population",
+      "kind": "not-described-in-review",
+      "registeredJson": "[{\"sourcePointer\":\"/protocolSection/eligibilityModule/eligibilityCriteria#inclusion\",\"value\":\"Inclusion Criteria:\\nSynthetic protocol population label\"}]",
+      "observedJson": "[]",
+      "rationale": "Human review requested: the registration describes population, while the review has no structured population scope. Confirm whether this reflects an intended protocol update, a reporting choice, or a metadata gap.",
+      "comparatorVersion": "1.0.0",
+      "status": "open",
+      "resolvedById": null,
+      "resolutionNote": null,
+      "resolvedAt": null,
+      "createdAt": "2026-10-21T16:29:59.634Z"
+    },
+    {
+      "id": "pdp_5b6793ee88a784b386226b51691efdb77836d34c8074c96bf3de05184dd00985",
+      "snapshotId": "ps_6cd1900e14f55ab42eec5c8aa534509389b9931a7caa785cdc20df8514926126",
+      "category": "outcomes",
+      "kind": "not-described-in-review",
+      "registeredJson": "[{\"sourcePointer\":\"/protocolSection/outcomesModule/primaryOutcomes/0\",\"value\":\"Synthetic protocol outcome label\"}]",
+      "observedJson": "[]",
+      "rationale": "Human review requested: the registration describes outcomes, while the review has no structured outcomes scope. Confirm whether this reflects an intended protocol update, a reporting choice, or a metadata gap.",
+      "comparatorVersion": "1.0.0",
+      "status": "open",
+      "resolvedById": null,
+      "resolutionNote": null,
+      "resolvedAt": null,
+      "createdAt": "2026-10-21T16:29:59.637Z"
+    }
+  ],
+  "proposals": [
+    {
+      "id": "pdp_1a260c0f345a4b8a009c70be9ac73e894056167201b1c04046bdabe7aa41626d",
+      "snapshotId": "ps_6cd1900e14f55ab42eec5c8aa534509389b9931a7caa785cdc20df8514926126",
+      "category": "population",
+      "kind": "not-described-in-review",
+      "registeredJson": "[{\"sourcePointer\":\"/protocolSection/eligibilityModule/eligibilityCriteria#inclusion\",\"value\":\"Inclusion Criteria:\\nSynthetic protocol population label\"}]",
+      "observedJson": "[]",
+      "rationale": "Human review requested: the registration describes population, while the review has no structured population scope. Confirm whether this reflects an intended protocol update, a reporting choice, or a metadata gap.",
+      "comparatorVersion": "1.0.0",
+      "status": "explained",
+      "resolvedById": "g1-user-admin",
+      "resolutionNote": "Synthetic metadata reconciliation only; no scientific confirmation.",
+      "resolvedAt": "2026-03-31T23:56:00.000Z",
+      "createdAt": "2026-10-21T16:29:59.634Z"
+    },
+    {
+      "id": "pdp_5b6793ee88a784b386226b51691efdb77836d34c8074c96bf3de05184dd00985",
+      "snapshotId": "ps_6cd1900e14f55ab42eec5c8aa534509389b9931a7caa785cdc20df8514926126",
+      "category": "outcomes",
+      "kind": "not-described-in-review",
+      "registeredJson": "[{\"sourcePointer\":\"/protocolSection/outcomesModule/primaryOutcomes/0\",\"value\":\"Synthetic protocol outcome label\"}]",
+      "observedJson": "[]",
+      "rationale": "Human review requested: the registration describes outcomes, while the review has no structured outcomes scope. Confirm whether this reflects an intended protocol update, a reporting choice, or a metadata gap.",
+      "comparatorVersion": "1.0.0",
+      "status": "open",
+      "resolvedById": null,
+      "resolutionNote": null,
+      "resolvedAt": null,
+      "createdAt": "2026-10-21T16:29:59.637Z"
+    }
+  ],
+  "audits": [
+    {
+      "id": "cmvibvidz00017kcy31dy8lwd",
+      "actorId": "g1-user-admin",
+      "action": "protocol.snapshot-registered",
+      "subjectType": "protocol-snapshot",
+      "subjectId": "ps_6cd1900e14f55ab42eec5c8aa534509389b9931a7caa785cdc20df8514926126",
+      "detailsJson": "{\"contentHash\":\"0cbcd2a6035a1aed9b96113b736075210a7a861a0b4688f02552aa601cf8dfe4\",\"proposalsOpened\":2,\"registry\":\"clinicaltrials-gov\",\"sourceId\":\"NCT09999991\",\"sourceVersion\":\"synthetic-g1-protocol-version-1\",\"targetKey\":\"review-version:g1-version-2\"}",
+      "idempotencyKey": "protocol.snapshot-registered:ps_6cd1900e14f55ab42eec5c8aa534509389b9931a7caa785cdc20df8514926126",
+      "platformVersion": "0.1.0",
+      "createdAt": "2026-10-21T16:29:59.639Z"
+    },
+    {
+      "id": "cmvibvieg00037kcymcyenjxn",
+      "actorId": "g1-user-admin",
+      "action": "protocol.proposal-resolved",
+      "subjectType": "protocol-drift-proposal",
+      "subjectId": "pdp_1a260c0f345a4b8a009c70be9ac73e894056167201b1c04046bdabe7aa41626d",
+      "detailsJson": "{\"resolution\":\"explained\"}",
+      "idempotencyKey": null,
+      "platformVersion": "0.1.0",
+      "createdAt": "2026-10-21T16:29:59.657Z"
+    }
+  ],
+  "resolution": {
+    "resolution": "explained",
+    "note": "Synthetic metadata reconciliation only; no scientific confirmation."
+  },
+  "closedReplay": {
+    "code": "conflict",
+    "message": "Proposal is no longer open."
+  },
+  "doi": [
+    {
+      "request": {
+        "doi": "10.5555/g1.protocol.native.v1",
+        "expectedKind": "version"
+      },
+      "report": {
+        "schemaVersion": "1.0.0",
+        "input": "10.5555/g1.protocol.native.v1",
+        "status": "example-not-resolvable",
+        "isZenodo": false,
+        "doiKind": "unknown",
+        "recordCreators": [],
+        "recordRepositoryUrls": [],
+        "checks": [
+          {
+            "id": "syntax",
+            "description": "DOI is syntactically valid",
+            "outcome": "pass"
+          },
+          {
+            "id": "resolution",
+            "description": "DOI resolves via doi.org",
+            "outcome": "skipped",
+            "details": "Reserved example DOI (10.5555/*) \u2014 outbound resolution intentionally skipped."
+          }
+        ],
+        "errors": [],
+        "warnings": ["This is a synthetic example DOI and does not resolve."],
+        "confidence": "none",
+        "validatedAt": "2026-04-01T00:00:00.000Z",
+        "normalizedDoi": "10.5555/g1.protocol.native.v1"
+      }
+    },
+    {
+      "request": {
+        "doi": "https://doi.org/10.5555/G1.PROTOCOL.NATIVE.CONCEPT",
+        "expectedKind": "concept"
+      },
+      "report": {
+        "schemaVersion": "1.0.0",
+        "input": "https://doi.org/10.5555/G1.PROTOCOL.NATIVE.CONCEPT",
+        "status": "example-not-resolvable",
+        "isZenodo": false,
+        "doiKind": "unknown",
+        "recordCreators": [],
+        "recordRepositoryUrls": [],
+        "checks": [
+          {
+            "id": "syntax",
+            "description": "DOI is syntactically valid",
+            "outcome": "pass"
+          },
+          {
+            "id": "resolution",
+            "description": "DOI resolves via doi.org",
+            "outcome": "skipped",
+            "details": "Reserved example DOI (10.5555/*) \u2014 outbound resolution intentionally skipped."
+          }
+        ],
+        "errors": [],
+        "warnings": ["This is a synthetic example DOI and does not resolve."],
+        "confidence": "none",
+        "validatedAt": "2026-04-01T00:00:00.000Z",
+        "normalizedDoi": "10.5555/g1.protocol.native.concept"
+      }
+    },
+    {
+      "request": {
+        "doi": "not-a-doi"
+      },
+      "report": {
+        "schemaVersion": "1.0.0",
+        "input": "not-a-doi",
+        "status": "invalid",
+        "isZenodo": false,
+        "doiKind": "unknown",
+        "recordCreators": [],
+        "recordRepositoryUrls": [],
+        "checks": [],
+        "errors": ["Not a syntactically valid DOI."],
+        "warnings": [],
+        "confidence": "none",
+        "validatedAt": "2026-04-01T00:00:00.000Z"
+      }
+    },
+    {
+      "request": {
+        "doi": "   "
+      },
+      "report": {
+        "schemaVersion": "1.0.0",
+        "input": "   ",
+        "status": "invalid",
+        "isZenodo": false,
+        "doiKind": "unknown",
+        "recordCreators": [],
+        "recordRepositoryUrls": [],
+        "checks": [],
+        "errors": ["DOI is empty."],
+        "warnings": [],
+        "confidence": "none",
+        "validatedAt": "2026-04-01T00:00:00.000Z"
+      }
+    }
+  ],
+  "outbound": 0
+}
