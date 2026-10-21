@@ -107,20 +107,21 @@ describe("G1 route/principal coverage manifest", () => {
     }
     const summary = coverageSummary(APP);
     expect(summary.routeFiles).toBe(routes.length);
-    expect(summary.routeFilesExercised).toBe(77);
-    expect(summary.routeFilesNotExercised).toBe(routes.length - 77);
-    expect(summary.methodAndChannelObligations.routeMethodsWithScenarios).toBe(79);
-    expect(summary.methodAndChannelObligations.routeMethodsWithAllPrincipalCases).toBe(79);
+    expect(summary.routeFilesExercised).toBe(79);
+    expect(summary.routeFilesNotExercised).toBe(routes.length - 79);
+    expect(summary.methodAndChannelObligations.routeMethodsWithScenarios).toBe(82);
+    expect(summary.methodAndChannelObligations.routeMethodsWithAllPrincipalCases).toBe(82);
     expect(summary.invalidSessionCases.sort()).toEqual(
       ["malformed", "signed-expired", "signed-missing-user", "tampered"].sort(),
     );
     expect(summary.metadataLoaderRecords).toBe(2);
-    expect(summary.gapSurfaces).toEqual(["ingestion-discussion", "pages", "non-http-channels"]);
+    expect(summary.gapSurfaces).toEqual(["pages", "non-http-channels"]);
     expect(summary.partialSurfaces).toEqual([
       "graph-search-discovery",
       "reviews-publications-exports",
       "protocol-snapshots",
       "auth",
+      "ingestion-discussion",
       "scholarly-exchange",
       "editorial-verification-certification",
       "federation",

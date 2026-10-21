@@ -87,12 +87,12 @@ requires its own final-head CI; neither result completes G1.
 
 ## Implementation record (G1-empty, partial)
 
-Status: **G1-empty harness implemented with partial coverage. Four separately reset programs
-declare 1,617 records (1,600 HTTP, 15 state and two metadata), spanning 77 of the
-133 public route files and 79 of 143 exported methods. All 79 declared methods
+Status: **G1-empty harness implemented with partial coverage. Five separately reset programs
+declare 1,713 records (1,696 HTTP, 15 state and two metadata), spanning 79 of the
+133 public route files and 82 of 143 exported methods. All 82 declared methods
 include six user/session cases; four worker GETs also have independent credential
 and lease positives. The index consumer has its own four-label capture. The
-other 56 files / 64 methods, OAuth success, integrated real Next HTTP serving,
+other 54 files / 61 methods, OAuth success, integrated real Next HTTP serving,
 remaining operational channels and timing are still outstanding. Populated
 T-ROLE/T-PUB remains later. G1 is not passed.**
 
