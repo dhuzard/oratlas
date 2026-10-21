@@ -49,6 +49,8 @@ type Handler = (
 ) => unknown;
 
 const ROUTE_MODULES: Readonly<Record<string, () => Promise<RouteModule>>> = {
+  "api/auth/github/start": () => import("@/app/api/auth/github/start/route"),
+  "api/auth/github/callback": () => import("@/app/api/auth/github/callback/route"),
   ...bindProtocolRoutes({
     "api/execution-passports/[id]": () => import("@/app/api/execution-passports/[id]/route"),
     "api/verification-runs/[id]": () => import("@/app/api/verification-runs/[id]/route"),

@@ -179,7 +179,6 @@ it("executes known-ID updates and proves complete rows unchanged after every den
     output + ".states.json",
     JSON.stringify(
       {
-        label,
         tables: PUBLIC_SELECT_TABLES,
         beforePrefix,
         publicBeforePrefix,

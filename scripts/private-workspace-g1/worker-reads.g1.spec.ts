@@ -1,3 +1,4 @@
+import { workerOutputProblems } from "./worker-capture-safety.js";
 import { readFileSync, writeFileSync } from "node:fs";
 import { canonicalJson } from "../../packages/contracts/src/canonical-json.js";
 import { afterAll, beforeAll, expect, it, vi } from "vitest";
@@ -262,22 +263,22 @@ it("captures valid worker reads and narrow credential last-use updates independe
     "g1-worker-verifier-active",
     "g1-worker-verifier-wrong-owner",
   ]);
+  const stateEvidence = {
+    authorityScope,
+    credentialsBefore,
+    credentialsAfter: state,
+    perRequest,
+    unchangedDatabaseBefore: databaseBefore,
+    unchangedDatabaseAfter: databaseAfter,
+    independentlyAssertedCredentialFields: [
+      "CertifierCredential.lastUsedAt",
+      "VerifierCredential.lastUsedAt",
+    ],
+  };
+  if (workerOutputProblems(JSON.stringify(stateEvidence)).length)
+    throw new Error("Worker capability state disclosure refused");
   writeFileSync(out, `${JSON.stringify(capture, null, 2)}\n`, { mode: 0o600 });
-  writeFileSync(
-    `${out}.state.json`,
-    `${JSON.stringify(
-      {
-        authorityScope,
-        credentialsBefore,
-        credentialsAfter: state,
-        perRequest,
-        unchangedDatabaseBefore: databaseBefore,
-        unchangedDatabaseAfter: databaseAfter,
-        excludedFields: ["CertifierCredential.lastUsedAt", "VerifierCredential.lastUsedAt"],
-      },
-      null,
-      2,
-    )}\n`,
-    { mode: 0o600 },
-  );
+  writeFileSync(`${out}.state.json`, `${JSON.stringify(stateEvidence, null, 2)}\n`, {
+    mode: 0o600,
+  });
 }, 60_000);

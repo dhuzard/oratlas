@@ -15,7 +15,7 @@ export type SupplementalProgram = {
   readonly spec: string;
   readonly outVariable: string;
   readonly scenarios: readonly Scenario[];
-  readonly fixture?: string;
+  readonly fixtures?: readonly string[];
   readonly addedRows: Readonly<Record<string, number>>;
   readonly stateSuffix: string;
 };

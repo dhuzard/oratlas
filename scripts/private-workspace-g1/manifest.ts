@@ -1,8 +1,15 @@
+import { SUPPLEMENTAL_PROGRAMS } from "./supplemental-programs.js";
 import { readdirSync } from "node:fs";
 import { join, relative } from "node:path";
 import { PRINCIPAL_LABELS, type PrincipalLabel } from "./principals.js";
 import { SCENARIOS, type Scenario } from "./scenarios.js";
 import { methodObligations } from "./obligations.js";
+
+/** Inventory union only: each component is executed/reset/compared as a distinct program. */
+export const COVERAGE_SCENARIOS: readonly Scenario[] = [
+  ...SCENARIOS,
+  ...SUPPLEMENTAL_PROGRAMS.flatMap((program) => program.scenarios),
+];
 
 /**
  * G1 route/principal/channel coverage manifest (ADR §3.1/§3.2, §11 T-PUB). It records what the
@@ -208,7 +215,7 @@ const DECLARED_SURFACES: readonly SurfaceEntry[] = [
     channel: "http-route",
     prefixes: ["api/auth"],
     coverage: "gap",
-    note: "OAuth start/callback are not exercised; no provider activation in G1.",
+    note: "Only provider-disabled start/callback denials are exercised; OAuth success remains a gap.",
   },
   {
     id: "ingestion-discussion",
@@ -216,7 +223,7 @@ const DECLARED_SURFACES: readonly SurfaceEntry[] = [
     channel: "http-route",
     prefixes: ["api/submissions", "api/inspect", "api/validate-doi", "api/discuss"],
     coverage: "gap",
-    note: `${DEFERRED} External GitHub/DOI/LLM providers must stay mocked.`,
+    note: `${DEFERRED} Live GitHub/DOI/LLM providers remain disabled.`,
   },
   {
     id: "scholarly-exchange",
@@ -297,7 +304,7 @@ const PRINCIPAL_NOTES: Readonly<Record<PrincipalLabel, string>> = {
 /** Groups stay explicitly partial when only some routes/methods have scenarios. */
 export const SURFACES: readonly SurfaceEntry[] = DECLARED_SURFACES.map((surface) => {
   if (surface.coverage !== "gap" || surface.channel !== "http-route") return surface;
-  const hasScenario = SCENARIOS.some(
+  const hasScenario = COVERAGE_SCENARIOS.some(
     (scenario) =>
       scenario.kind === "http" &&
       !DECLARED_SURFACES.some((entry) => entry.exact?.includes(scenario.route)) &&
@@ -320,7 +327,9 @@ const LABEL_ONLY =
 /** Principal cases, `executed` derived from the scenario program. */
 export const PRINCIPALS: readonly PrincipalCase[] = PRINCIPAL_LABELS.map((label) => ({
   label,
-  executed: SCENARIOS.some((scenario) => scenario.kind === "http" && scenario.principal === label),
+  executed: COVERAGE_SCENARIOS.some(
+    (scenario) => scenario.kind === "http" && scenario.principal === label,
+  ),
   note: PRINCIPAL_NOTES[label] || LABEL_ONLY,
 }));
 
@@ -342,7 +351,7 @@ export function surfacesForRoute(routeDirectory: string): SurfaceEntry[] {
 /** Scenario ids executed for a surface (HTTP routes by route directory, metadata by loader). */
 export function scenarioIdsFor(
   surface: SurfaceEntry,
-  program: readonly Scenario[] = SCENARIOS,
+  program: readonly Scenario[] = COVERAGE_SCENARIOS,
 ): string[] {
   return program
     .filter((scenario) =>
@@ -372,7 +381,10 @@ export function routeDirectories(appDirectory: string): string[] {
 }
 
 /** Coverage actually executed by the program, against the current route tree. */
-export function coverageSummary(appDirectory: string, program: readonly Scenario[] = SCENARIOS) {
+export function coverageSummary(
+  appDirectory: string,
+  program: readonly Scenario[] = COVERAGE_SCENARIOS,
+) {
   const routes = routeDirectories(appDirectory);
   const http = program.filter((scenario) => scenario.kind === "http");
   const exercised = [...new Set(http.map((scenario) => scenario.route))].sort();
@@ -416,6 +428,6 @@ export function coverageSummary(appDirectory: string, program: readonly Scenario
   };
 }
 
-export function capturedIds(program: readonly Scenario[] = SCENARIOS): string[] {
+export function capturedIds(program: readonly Scenario[] = COVERAGE_SCENARIOS): string[] {
   return SURFACES.flatMap((entry) => scenarioIdsFor(entry, program));
 }

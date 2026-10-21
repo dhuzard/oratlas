@@ -89,9 +89,6 @@ it("executes the separately seeded synthesis reads under restricted authority wi
   }
   const after = await state();
   expect(after).toEqual(before);
-  writeFileSync(output + ".state.json", JSON.stringify({ before, after }, null, 2) + "\n", {
-    mode: 0o600,
-  });
   const capture = {
     version: G1_CAPTURE_VERSION,
     label: "synthesis-probe",
@@ -99,6 +96,9 @@ it("executes the separately seeded synthesis reads under restricted authority wi
     clock: G1_FIXED_CLOCK,
     records,
   };
-  writeFileSync(output, JSON.stringify(capture, null, 2) + "\n", { mode: 0o600 });
   expect(validateCapture(capture, SYNTHESIS_SCENARIOS, sign)).toEqual([]);
+  writeFileSync(output + ".state.json", JSON.stringify({ before, after }, null, 2) + "\n", {
+    mode: 0o600,
+  });
+  writeFileSync(output, JSON.stringify(capture, null, 2) + "\n", { mode: 0o600 });
 });

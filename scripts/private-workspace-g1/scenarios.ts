@@ -1,3 +1,4 @@
+import { OAUTH_DISABLED_SCENARIOS } from "./oauth-disabled-scenarios.js";
 import { G1_BASE_URL, G1_FIXED_CLOCK, type HttpMethod } from "./capture.js";
 import type { WorkerAuthority } from "./worker-authority.js";
 import { workerAuthorityProblems } from "./worker-authority.js";
@@ -856,6 +857,7 @@ export const SCENARIOS: readonly Scenario[] = [
   ...SCHOLARLY_SCENARIOS,
   ...publicProtocolScenarios(),
   ...EDITORIAL_READ_SCENARIOS,
+  ...OAUTH_DISABLED_SCENARIOS,
   ...editorialScenarios(AUTH_FINAL_STATE.expect),
 ];
 
