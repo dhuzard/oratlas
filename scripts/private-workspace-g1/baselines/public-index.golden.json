@@ -122,6 +122,7 @@
       ["Certifier", "activatedAt", "UPDATE"],
       ["Certifier", "retiredAt", "UPDATE"],
       ["Certifier", "status", "UPDATE"],
+      ["CertifierCredential", "lastUsedAt", "UPDATE"],
       ["Notification", "readAt", "UPDATE"],
       ["User", "orcid", "UPDATE"],
       ["User", "orcidVerifiedAt", "UPDATE"],
@@ -129,7 +130,8 @@
       ["VerificationProtocol", "status", "UPDATE"],
       ["Verifier", "activatedAt", "UPDATE"],
       ["Verifier", "retiredAt", "UPDATE"],
-      ["Verifier", "status", "UPDATE"]
+      ["Verifier", "status", "UPDATE"],
+      ["VerifierCredential", "lastUsedAt", "UPDATE"]
     ],
     "current": "oratlas_g1_public_integrated",
     "memberships": 0,
@@ -140,6 +142,7 @@
     "privileged": false,
     "publicCreate": false,
     "tables": [
+      ["AgentRun", "SELECT"],
       ["AuditEvent", "INSERT"],
       ["AuditEvent", "SELECT"],
       ["AuthorResponse", "SELECT"],
@@ -148,6 +151,7 @@
       ["CertificationResult", "SELECT"],
       ["CertificationRun", "SELECT"],
       ["Certifier", "SELECT"],
+      ["CertifierCredential", "SELECT"],
       ["Challenge", "SELECT"],
       ["ChallengeResponse", "SELECT"],
       ["ChallengeTransition", "SELECT"],
@@ -192,7 +196,12 @@
       ["ReviewRound", "SELECT"],
       ["ReviewVersion", "SELECT"],
       ["Submission", "SELECT"],
+      ["SynthesisAttributionContributor", "SELECT"],
       ["SynthesisDraft", "SELECT"],
+      ["SynthesisDraftCitation", "SELECT"],
+      ["SynthesisDraftMembership", "SELECT"],
+      ["SynthesisStalenessEvaluation", "SELECT"],
+      ["SynthesisStalenessHead", "SELECT"],
       ["TrustAdjudication", "SELECT"],
       ["TrustAdjudicationReference", "SELECT"],
       ["TrustAssessment", "SELECT"],
@@ -204,16 +213,18 @@
       ["VerificationProtocol", "SELECT"],
       ["VerificationRun", "SELECT"],
       ["VerificationRunLifecycleEvent", "SELECT"],
-      ["Verifier", "SELECT"]
+      ["Verifier", "SELECT"],
+      ["VerifierCredential", "SELECT"]
     ],
     "user": "oratlas_g1_public_integrated"
   },
   "protocol": "oratlas.g1.index-consumer/0.1",
   "roleContract": "public-runtime",
   "sameCountUpdateControl": "rejected-and-rolled-back",
-  "stateAfterSha256": "40e66352b8e29901930a084fcc90e4b988eadc5751d90808e7870c212904595f",
-  "stateBeforeSha256": "40e66352b8e29901930a084fcc90e4b988eadc5751d90808e7870c212904595f",
+  "stateAfterSha256": "9e76209ef545a88c382e6e060840daa2af8ad03ba3286913f5c93225d61f4edb",
+  "stateBeforeSha256": "9e76209ef545a88c382e6e060840daa2af8ad03ba3286913f5c93225d61f4edb",
   "stateTables": [
+    "AgentRun",
     "AuditEvent",
     "AuthorResponse",
     "CertificationLifecycleEvent",
@@ -221,6 +232,7 @@
     "CertificationResult",
     "CertificationRun",
     "Certifier",
+    "CertifierCredential",
     "Challenge",
     "ChallengeResponse",
     "ChallengeTransition",
@@ -265,7 +277,12 @@
     "ReviewRound",
     "ReviewVersion",
     "Submission",
+    "SynthesisAttributionContributor",
     "SynthesisDraft",
+    "SynthesisDraftCitation",
+    "SynthesisDraftMembership",
+    "SynthesisStalenessEvaluation",
+    "SynthesisStalenessHead",
     "TrustAdjudication",
     "TrustAdjudicationReference",
     "TrustAssessment",
@@ -277,7 +294,8 @@
     "VerificationProtocol",
     "VerificationRun",
     "VerificationRunLifecycleEvent",
-    "Verifier"
+    "Verifier",
+    "VerifierCredential"
   ],
-  "review": "Independently reviewed 2026-10-21: canonical public index and 64-table state digests with exact native UTF-8 captures; bounded G1-empty evidence only."
+  "review": "Independently reviewed 2026-10-21: unchanged canonical public index and original64-table state plus eight empty measured dependency tables; partial G1 only."
 }

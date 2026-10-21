@@ -1,3 +1,4 @@
+import { workerCredential } from "./worker-authority.js";
 import { describe, expect, it } from "vitest";
 import { SCENARIOS } from "./scenarios.js";
 import { captureFromGolden } from "./test-support.js";
@@ -28,6 +29,16 @@ const evidence = () => ({
   },
 });
 describe("independently reviewed supplemental programs", () => {
+  it("refuses a worker capability in state before producing any candidate", () => {
+    const original = evidence();
+    expect(() =>
+      supplementalCandidate(
+        program,
+        { ...original, state: { unexpected: workerCredential("verifier", "active").token } },
+        "unit control",
+      ),
+    ).toThrow("Worker capability state disclosure refused");
+  });
   it("binds the program, outcomes, exact HTTP and complete native state to its own golden", () => {
     const original = evidence();
     const golden = supplementalCandidate(program, original, "unit-test control only");

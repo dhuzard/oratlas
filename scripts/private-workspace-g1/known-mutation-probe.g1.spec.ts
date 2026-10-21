@@ -1,3 +1,4 @@
+import { workerOutputProblems } from "./worker-capture-safety.js";
 import type { prisma as AppPrisma } from "@/lib/db";
 import { writeFileSync } from "node:fs";
 import { beforeAll, afterAll, it, expect, vi } from "vitest";
@@ -174,21 +175,18 @@ it("executes known-ID updates and proves complete rows unchanged after every den
     records,
   };
   expect(validateCapture(capture, KNOWN_MUTATION_SCENARIOS, sign)).toEqual([]);
+  const stateEvidence = {
+    tables: PUBLIC_SELECT_TABLES,
+    beforePrefix,
+    publicBeforePrefix,
+    initial,
+    publicInitial,
+    states,
+  };
+  if (workerOutputProblems(JSON.stringify(stateEvidence)).length)
+    throw new Error("Worker capability state disclosure refused");
   writeFileSync(output, JSON.stringify(capture, null, 2) + "\n", { mode: 0o600 });
-  writeFileSync(
-    output + ".states.json",
-    JSON.stringify(
-      {
-        tables: PUBLIC_SELECT_TABLES,
-        beforePrefix,
-        publicBeforePrefix,
-        initial,
-        publicInitial,
-        states,
-      },
-      null,
-      2,
-    ) + "\n",
-    { mode: 0o600 },
-  );
+  writeFileSync(output + ".states.json", JSON.stringify(stateEvidence, null, 2) + "\n", {
+    mode: 0o600,
+  });
 });

@@ -1,0 +1,1882 @@
+{
+  "protocol": "oratlas.g1.supplemental/0.1",
+  "program": "known-mutations",
+  "http": {
+    "version": 2,
+    "review": "Independently reviewed 2026-10-21: four restricted captures, native outcomes and complete state; partial synthetic G1 only.",
+    "baseUrl": "https://g1.oratlas.example",
+    "clock": "2026-04-01T00:00:00.000Z",
+    "records": [
+      {
+        "kind": "http",
+        "id": "known-mutation-notification-cross-anonymous",
+        "method": "POST",
+        "path": "/api/notifications",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"notificationId\":\"g1-notification-a-only-2\"}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 401,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "known-mutation-notification-missing-anonymous",
+        "method": "POST",
+        "path": "/api/notifications",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"notificationId\":\"g1-known-missing\"}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 401,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "known-mutation-notification-origin-anonymous",
+        "method": "POST",
+        "path": "/api/notifications",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://untrusted.example.org",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"notificationId\":\"g1-notification-a-only-2\"}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"A matching same-origin request is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "known-mutation-notification-cross-a-only",
+        "method": "POST",
+        "path": "/api/notifications",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"notificationId\":\"g1-notification-b-only-1\"}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 404,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Notification not found or already read.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "known-mutation-notification-missing-a-only",
+        "method": "POST",
+        "path": "/api/notifications",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"notificationId\":\"g1-known-missing\"}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 404,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Notification not found or already read.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "known-mutation-notification-origin-a-only",
+        "method": "POST",
+        "path": "/api/notifications",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://untrusted.example.org",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"notificationId\":\"g1-notification-a-only-2\"}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"A matching same-origin request is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "known-mutation-notification-cross-b-only",
+        "method": "POST",
+        "path": "/api/notifications",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"notificationId\":\"g1-notification-a-only-2\"}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 404,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Notification not found or already read.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "known-mutation-notification-missing-b-only",
+        "method": "POST",
+        "path": "/api/notifications",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"notificationId\":\"g1-known-missing\"}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 404,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Notification not found or already read.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "known-mutation-notification-origin-b-only",
+        "method": "POST",
+        "path": "/api/notifications",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://untrusted.example.org",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"notificationId\":\"g1-notification-b-only-1\"}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"A matching same-origin request is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "known-mutation-notification-cross-a-and-b",
+        "method": "POST",
+        "path": "/api/notifications",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"notificationId\":\"g1-notification-a-only-2\"}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 404,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Notification not found or already read.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "known-mutation-notification-missing-a-and-b",
+        "method": "POST",
+        "path": "/api/notifications",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"notificationId\":\"g1-known-missing\"}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 404,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Notification not found or already read.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "known-mutation-notification-origin-a-and-b",
+        "method": "POST",
+        "path": "/api/notifications",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://untrusted.example.org",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"notificationId\":\"g1-notification-a-and-b-1\"}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"A matching same-origin request is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "known-mutation-notification-cross-editor",
+        "method": "POST",
+        "path": "/api/notifications",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"notificationId\":\"g1-notification-a-only-2\"}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 404,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Notification not found or already read.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "known-mutation-notification-missing-editor",
+        "method": "POST",
+        "path": "/api/notifications",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"notificationId\":\"g1-known-missing\"}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 404,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Notification not found or already read.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "known-mutation-notification-origin-editor",
+        "method": "POST",
+        "path": "/api/notifications",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://untrusted.example.org",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"notificationId\":\"g1-notification-editor-1\"}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"A matching same-origin request is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "known-mutation-notification-cross-admin",
+        "method": "POST",
+        "path": "/api/notifications",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"notificationId\":\"g1-notification-a-only-2\"}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 404,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Notification not found or already read.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "known-mutation-notification-missing-admin",
+        "method": "POST",
+        "path": "/api/notifications",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"notificationId\":\"g1-known-missing\"}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 404,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Notification not found or already read.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "known-mutation-notification-origin-admin",
+        "method": "POST",
+        "path": "/api/notifications",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://untrusted.example.org",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"notificationId\":\"g1-notification-admin-1\"}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"A matching same-origin request is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "known-mutation-notification-own-anonymous",
+        "method": "POST",
+        "path": "/api/notifications",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"notificationId\":\"g1-notification-a-only-2\"}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 401,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "known-mutation-notification-repeat-anonymous",
+        "method": "POST",
+        "path": "/api/notifications",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"notificationId\":\"g1-notification-a-only-2\"}",
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 401,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "known-mutation-notification-own-a-only",
+        "method": "POST",
+        "path": "/api/notifications",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"notificationId\":\"g1-notification-a-only-2\"}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 200,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"status\":\"read\"}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "known-mutation-notification-repeat-a-only",
+        "method": "POST",
+        "path": "/api/notifications",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"notificationId\":\"g1-notification-a-only-2\"}",
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 404,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Notification not found or already read.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "known-mutation-notification-unread-a-only",
+        "method": "GET",
+        "path": "/api/notifications?unread=1",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 200,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"notifications\":[]}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "known-mutation-notification-own-b-only",
+        "method": "POST",
+        "path": "/api/notifications",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"notificationId\":\"g1-notification-b-only-1\"}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 200,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"status\":\"read\"}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "known-mutation-notification-repeat-b-only",
+        "method": "POST",
+        "path": "/api/notifications",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"notificationId\":\"g1-notification-b-only-1\"}",
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 404,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Notification not found or already read.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "known-mutation-notification-unread-b-only",
+        "method": "GET",
+        "path": "/api/notifications?unread=1",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 200,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"notifications\":[]}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "known-mutation-notification-own-a-and-b",
+        "method": "POST",
+        "path": "/api/notifications",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"notificationId\":\"g1-notification-a-and-b-1\"}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 200,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"status\":\"read\"}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "known-mutation-notification-repeat-a-and-b",
+        "method": "POST",
+        "path": "/api/notifications",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"notificationId\":\"g1-notification-a-and-b-1\"}",
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 404,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Notification not found or already read.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "known-mutation-notification-unread-a-and-b",
+        "method": "GET",
+        "path": "/api/notifications?unread=1",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 200,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"notifications\":[]}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "known-mutation-notification-own-editor",
+        "method": "POST",
+        "path": "/api/notifications",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"notificationId\":\"g1-notification-editor-1\"}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 200,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"status\":\"read\"}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "known-mutation-notification-repeat-editor",
+        "method": "POST",
+        "path": "/api/notifications",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"notificationId\":\"g1-notification-editor-1\"}",
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 404,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Notification not found or already read.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "known-mutation-notification-unread-editor",
+        "method": "GET",
+        "path": "/api/notifications?unread=1",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 200,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"notifications\":[]}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "known-mutation-notification-own-admin",
+        "method": "POST",
+        "path": "/api/notifications",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"notificationId\":\"g1-notification-admin-1\"}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 200,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"status\":\"read\"}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "known-mutation-notification-repeat-admin",
+        "method": "POST",
+        "path": "/api/notifications",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": "{\"notificationId\":\"g1-notification-admin-1\"}",
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 404,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Notification not found or already read.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "known-mutation-notification-unread-admin",
+        "method": "GET",
+        "path": "/api/notifications?unread=1",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 200,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"notifications\":[]}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "known-mutation-comment-cross-origin-anonymous",
+        "method": "DELETE",
+        "path": "/api/comments/g1-comment-visible",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://untrusted.example.org",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": null,
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"A matching same-origin request is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "known-mutation-comment-missing-anonymous",
+        "method": "DELETE",
+        "path": "/api/comments/g1-known-missing",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": null,
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 401,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "known-mutation-comment-removed-anonymous",
+        "method": "DELETE",
+        "path": "/api/comments/g1-comment-removed-parent",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": null,
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 401,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "known-mutation-comment-visible-forbidden-anonymous",
+        "method": "DELETE",
+        "path": "/api/comments/g1-comment-visible",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": null,
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 401,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"unauthorized\",\"message\":\"Sign in required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "known-mutation-comment-cross-origin-a-only",
+        "method": "DELETE",
+        "path": "/api/comments/g1-comment-visible",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://untrusted.example.org",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": null,
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"A matching same-origin request is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "known-mutation-comment-missing-a-only",
+        "method": "DELETE",
+        "path": "/api/comments/g1-known-missing",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": null,
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 404,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Comment not found.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "known-mutation-comment-removed-a-only",
+        "method": "DELETE",
+        "path": "/api/comments/g1-comment-removed-parent",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": null,
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 200,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"status\":\"removed\"}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "known-mutation-comment-cross-origin-b-only",
+        "method": "DELETE",
+        "path": "/api/comments/g1-comment-visible",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://untrusted.example.org",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": null,
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"A matching same-origin request is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "known-mutation-comment-missing-b-only",
+        "method": "DELETE",
+        "path": "/api/comments/g1-known-missing",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": null,
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 404,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Comment not found.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "known-mutation-comment-removed-b-only",
+        "method": "DELETE",
+        "path": "/api/comments/g1-comment-removed-parent",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": null,
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Only the author or an editor can remove a comment.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "known-mutation-comment-visible-forbidden-b-only",
+        "method": "DELETE",
+        "path": "/api/comments/g1-comment-visible",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": null,
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Only the author or an editor can remove a comment.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "known-mutation-comment-cross-origin-a-and-b",
+        "method": "DELETE",
+        "path": "/api/comments/g1-comment-visible",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://untrusted.example.org",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": null,
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"A matching same-origin request is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "known-mutation-comment-missing-a-and-b",
+        "method": "DELETE",
+        "path": "/api/comments/g1-known-missing",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": null,
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 404,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Comment not found.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "known-mutation-comment-removed-a-and-b",
+        "method": "DELETE",
+        "path": "/api/comments/g1-comment-removed-parent",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": null,
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Only the author or an editor can remove a comment.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "known-mutation-comment-visible-forbidden-a-and-b",
+        "method": "DELETE",
+        "path": "/api/comments/g1-comment-visible",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": null,
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"Only the author or an editor can remove a comment.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "known-mutation-comment-cross-origin-editor",
+        "method": "DELETE",
+        "path": "/api/comments/g1-comment-visible",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://untrusted.example.org",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": null,
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"A matching same-origin request is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "known-mutation-comment-missing-editor",
+        "method": "DELETE",
+        "path": "/api/comments/g1-known-missing",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": null,
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 404,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Comment not found.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "known-mutation-comment-removed-editor",
+        "method": "DELETE",
+        "path": "/api/comments/g1-comment-removed-parent",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": null,
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 200,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"status\":\"removed\"}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "known-mutation-comment-cross-origin-admin",
+        "method": "DELETE",
+        "path": "/api/comments/g1-comment-visible",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://untrusted.example.org",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": null,
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 403,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"forbidden\",\"message\":\"A matching same-origin request is required.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "known-mutation-comment-missing-admin",
+        "method": "DELETE",
+        "path": "/api/comments/g1-known-missing",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": null,
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 404,
+        "headers": [
+          ["content-type", "application/json"],
+          [
+            "link",
+            "</openapi.yaml>; rel=\"service-desc\"; type=\"application/yaml\", </api-docs>; rel=\"service-doc\"; type=\"text/html\""
+          ]
+        ],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"error\":{\"code\":\"not-found\",\"message\":\"Comment not found.\"}}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "known-mutation-comment-removed-admin",
+        "method": "DELETE",
+        "path": "/api/comments/g1-comment-removed-parent",
+        "requestHeaders": {
+          "content-type": "application/json",
+          "origin": "https://g1.oratlas.example",
+          "sec-fetch-site": "same-origin"
+        },
+        "requestBody": null,
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 200,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"status\":\"removed\"}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "known-mutation-comment-public-read-anonymous",
+        "method": "GET",
+        "path": "/api/reviews/g1-fixture-review/versions/g1-version-2/comments",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "anonymous",
+        "sessionCase": "none",
+        "session": {
+          "case": "none"
+        },
+        "cookieSha256": null,
+        "status": 200,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"reviewSlug\":\"g1-fixture-review\",\"reviewVersionId\":\"g1-version-2\",\"commentCount\":2,\"comments\":[{\"id\":\"g1-comment-visible\",\"reviewVersionId\":\"g1-version-2\",\"kind\":\"comment\",\"status\":\"visible\",\"body\":\"Visible synthetic scholarly comment.\",\"author\":{\"githubLogin\":\"g1-fixture-a-only\",\"displayName\":\"G1 Fixture A-only\",\"role\":\"USER\"},\"createdAt\":\"2026-03-10T00:00:00.000Z\",\"replies\":[]},{\"id\":\"g1-comment-removed-parent\",\"reviewVersionId\":\"g1-version-2\",\"kind\":\"comment\",\"status\":\"removed\",\"body\":\"\",\"author\":null,\"createdAt\":\"2026-03-10T00:01:00.000Z\",\"replies\":[{\"id\":\"g1-comment-reply\",\"reviewVersionId\":\"g1-version-2\",\"kind\":\"comment\",\"status\":\"visible\",\"body\":\"Visible synthetic reply under removed parent.\",\"author\":{\"githubLogin\":\"g1-fixture-a-only\",\"displayName\":\"G1 Fixture A-only\",\"role\":\"USER\"},\"createdAt\":\"2026-03-10T00:02:00.000Z\"}]}]}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "known-mutation-comment-public-read-a-only",
+        "method": "GET",
+        "path": "/api/reviews/g1-fixture-review/versions/g1-version-2/comments",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "A-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "559c010194dd28fe39e83379f92a9cc86fd81f64b5145ace6c4ecee26acc5dcf",
+        "status": 200,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"reviewSlug\":\"g1-fixture-review\",\"reviewVersionId\":\"g1-version-2\",\"commentCount\":2,\"comments\":[{\"id\":\"g1-comment-visible\",\"reviewVersionId\":\"g1-version-2\",\"kind\":\"comment\",\"status\":\"visible\",\"body\":\"Visible synthetic scholarly comment.\",\"author\":{\"githubLogin\":\"g1-fixture-a-only\",\"displayName\":\"G1 Fixture A-only\",\"role\":\"USER\"},\"createdAt\":\"2026-03-10T00:00:00.000Z\",\"replies\":[]},{\"id\":\"g1-comment-removed-parent\",\"reviewVersionId\":\"g1-version-2\",\"kind\":\"comment\",\"status\":\"removed\",\"body\":\"\",\"author\":null,\"createdAt\":\"2026-03-10T00:01:00.000Z\",\"replies\":[{\"id\":\"g1-comment-reply\",\"reviewVersionId\":\"g1-version-2\",\"kind\":\"comment\",\"status\":\"visible\",\"body\":\"Visible synthetic reply under removed parent.\",\"author\":{\"githubLogin\":\"g1-fixture-a-only\",\"displayName\":\"G1 Fixture A-only\",\"role\":\"USER\"},\"createdAt\":\"2026-03-10T00:02:00.000Z\"}]}]}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "known-mutation-comment-public-read-b-only",
+        "method": "GET",
+        "path": "/api/reviews/g1-fixture-review/versions/g1-version-2/comments",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "B-only",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-b-only",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "55fae0451bedf488c7999bf65c8792549502b55b514936765c0c663d862bd998",
+        "status": 200,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"reviewSlug\":\"g1-fixture-review\",\"reviewVersionId\":\"g1-version-2\",\"commentCount\":2,\"comments\":[{\"id\":\"g1-comment-visible\",\"reviewVersionId\":\"g1-version-2\",\"kind\":\"comment\",\"status\":\"visible\",\"body\":\"Visible synthetic scholarly comment.\",\"author\":{\"githubLogin\":\"g1-fixture-a-only\",\"displayName\":\"G1 Fixture A-only\",\"role\":\"USER\"},\"createdAt\":\"2026-03-10T00:00:00.000Z\",\"replies\":[]},{\"id\":\"g1-comment-removed-parent\",\"reviewVersionId\":\"g1-version-2\",\"kind\":\"comment\",\"status\":\"removed\",\"body\":\"\",\"author\":null,\"createdAt\":\"2026-03-10T00:01:00.000Z\",\"replies\":[{\"id\":\"g1-comment-reply\",\"reviewVersionId\":\"g1-version-2\",\"kind\":\"comment\",\"status\":\"visible\",\"body\":\"Visible synthetic reply under removed parent.\",\"author\":{\"githubLogin\":\"g1-fixture-a-only\",\"displayName\":\"G1 Fixture A-only\",\"role\":\"USER\"},\"createdAt\":\"2026-03-10T00:02:00.000Z\"}]}]}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "known-mutation-comment-public-read-a-and-b",
+        "method": "GET",
+        "path": "/api/reviews/g1-fixture-review/versions/g1-version-2/comments",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "A+B",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-a-and-b",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "d6b47f3305c2d579b2ac273b35694936c849452040dce4a20036cd2326068c2d",
+        "status": 200,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"reviewSlug\":\"g1-fixture-review\",\"reviewVersionId\":\"g1-version-2\",\"commentCount\":2,\"comments\":[{\"id\":\"g1-comment-visible\",\"reviewVersionId\":\"g1-version-2\",\"kind\":\"comment\",\"status\":\"visible\",\"body\":\"Visible synthetic scholarly comment.\",\"author\":{\"githubLogin\":\"g1-fixture-a-only\",\"displayName\":\"G1 Fixture A-only\",\"role\":\"USER\"},\"createdAt\":\"2026-03-10T00:00:00.000Z\",\"replies\":[]},{\"id\":\"g1-comment-removed-parent\",\"reviewVersionId\":\"g1-version-2\",\"kind\":\"comment\",\"status\":\"removed\",\"body\":\"\",\"author\":null,\"createdAt\":\"2026-03-10T00:01:00.000Z\",\"replies\":[{\"id\":\"g1-comment-reply\",\"reviewVersionId\":\"g1-version-2\",\"kind\":\"comment\",\"status\":\"visible\",\"body\":\"Visible synthetic reply under removed parent.\",\"author\":{\"githubLogin\":\"g1-fixture-a-only\",\"displayName\":\"G1 Fixture A-only\",\"role\":\"USER\"},\"createdAt\":\"2026-03-10T00:02:00.000Z\"}]}]}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "known-mutation-comment-public-read-editor",
+        "method": "GET",
+        "path": "/api/reviews/g1-fixture-review/versions/g1-version-2/comments",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "EDITOR",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-editor",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "145aa75dc2a2e17fa4d78b4b8301a5ccdd6a8f1432cfa0d915353f874712d2be",
+        "status": 200,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"reviewSlug\":\"g1-fixture-review\",\"reviewVersionId\":\"g1-version-2\",\"commentCount\":2,\"comments\":[{\"id\":\"g1-comment-visible\",\"reviewVersionId\":\"g1-version-2\",\"kind\":\"comment\",\"status\":\"visible\",\"body\":\"Visible synthetic scholarly comment.\",\"author\":{\"githubLogin\":\"g1-fixture-a-only\",\"displayName\":\"G1 Fixture A-only\",\"role\":\"USER\"},\"createdAt\":\"2026-03-10T00:00:00.000Z\",\"replies\":[]},{\"id\":\"g1-comment-removed-parent\",\"reviewVersionId\":\"g1-version-2\",\"kind\":\"comment\",\"status\":\"removed\",\"body\":\"\",\"author\":null,\"createdAt\":\"2026-03-10T00:01:00.000Z\",\"replies\":[{\"id\":\"g1-comment-reply\",\"reviewVersionId\":\"g1-version-2\",\"kind\":\"comment\",\"status\":\"visible\",\"body\":\"Visible synthetic reply under removed parent.\",\"author\":{\"githubLogin\":\"g1-fixture-a-only\",\"displayName\":\"G1 Fixture A-only\",\"role\":\"USER\"},\"createdAt\":\"2026-03-10T00:02:00.000Z\"}]}]}"
+        }
+      },
+      {
+        "kind": "http",
+        "id": "known-mutation-comment-public-read-admin",
+        "method": "GET",
+        "path": "/api/reviews/g1-fixture-review/versions/g1-version-2/comments",
+        "requestHeaders": {},
+        "requestBody": null,
+        "principal": "ADMIN",
+        "sessionCase": "valid",
+        "session": {
+          "case": "valid",
+          "userId": "g1-user-admin",
+          "issuedAt": "2026-03-31T00:00:00.000Z"
+        },
+        "cookieSha256": "e022cdd18dd698968684b2b8271d29f63f9d60931970c79ae4f3357eafc0ebb1",
+        "status": 200,
+        "headers": [["content-type", "application/json"]],
+        "setCookie": [],
+        "body": {
+          "encoding": "utf8",
+          "text": "{\"reviewSlug\":\"g1-fixture-review\",\"reviewVersionId\":\"g1-version-2\",\"commentCount\":2,\"comments\":[{\"id\":\"g1-comment-visible\",\"reviewVersionId\":\"g1-version-2\",\"kind\":\"comment\",\"status\":\"visible\",\"body\":\"Visible synthetic scholarly comment.\",\"author\":{\"githubLogin\":\"g1-fixture-a-only\",\"displayName\":\"G1 Fixture A-only\",\"role\":\"USER\"},\"createdAt\":\"2026-03-10T00:00:00.000Z\",\"replies\":[]},{\"id\":\"g1-comment-removed-parent\",\"reviewVersionId\":\"g1-version-2\",\"kind\":\"comment\",\"status\":\"removed\",\"body\":\"\",\"author\":null,\"createdAt\":\"2026-03-10T00:01:00.000Z\",\"replies\":[{\"id\":\"g1-comment-reply\",\"reviewVersionId\":\"g1-version-2\",\"kind\":\"comment\",\"status\":\"visible\",\"body\":\"Visible synthetic reply under removed parent.\",\"author\":{\"githubLogin\":\"g1-fixture-a-only\",\"displayName\":\"G1 Fixture A-only\",\"role\":\"USER\"},\"createdAt\":\"2026-03-10T00:02:00.000Z\"}]}]}"
+        }
+      }
+    ]
+  },
+  "stateSha256": "adada0c8de715e1b1e56755e2a471d30cc19963877523741da2891fea438d174",
+  "review": "Independently reviewed 2026-10-21: four restricted captures, native outcomes and complete state; partial synthetic G1 only."
+}

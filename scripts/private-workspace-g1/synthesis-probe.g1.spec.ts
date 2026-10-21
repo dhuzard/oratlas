@@ -1,3 +1,4 @@
+import { workerOutputProblems } from "./worker-capture-safety.js";
 import { writeFileSync } from "node:fs";
 import { beforeAll, afterAll, expect, it, vi } from "vitest";
 import { assertPublicChildEnv } from "./child-env.js";
@@ -97,7 +98,10 @@ it("executes the separately seeded synthesis reads under restricted authority wi
     records,
   };
   expect(validateCapture(capture, SYNTHESIS_SCENARIOS, sign)).toEqual([]);
-  writeFileSync(output + ".state.json", JSON.stringify({ before, after }, null, 2) + "\n", {
+  const stateEvidence = { before, after };
+  if (workerOutputProblems(JSON.stringify(stateEvidence)).length)
+    throw new Error("Worker capability state disclosure refused");
+  writeFileSync(output + ".state.json", JSON.stringify(stateEvidence, null, 2) + "\n", {
     mode: 0o600,
   });
   writeFileSync(output, JSON.stringify(capture, null, 2) + "\n", { mode: 0o600 });

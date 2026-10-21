@@ -1,3 +1,4 @@
+import { workerOutputProblems } from "./worker-capture-safety.js";
 import { createHash } from "node:crypto";
 import { canonicalJson } from "../../packages/contracts/src/canonical-json.js";
 import {
@@ -35,6 +36,8 @@ export function supplementalCandidate(
   evidence: SupplementalEvidence,
   review: string,
 ): SupplementalGolden {
+  if (workerOutputProblems(JSON.stringify(evidence.state)).length)
+    throw new Error("Worker capability state disclosure refused");
   return {
     protocol: "oratlas.g1.supplemental/0.1",
     program: program.name,
