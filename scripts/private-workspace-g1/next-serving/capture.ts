@@ -1,3 +1,4 @@
+import { performance } from "node:perf_hooks";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { request as httpRequest } from "node:http";
@@ -27,7 +28,14 @@ export interface ServingCapture {
   readonly records: readonly HttpRecord[];
 }
 
-async function response(port: number, path: string, cookie: string | undefined): Promise<Response> {
+export async function requestServingResponse(
+  port: number,
+  path: string,
+  cookie: string | undefined,
+  deadline: number,
+): Promise<Response> {
+  if (!Number.isFinite(deadline) || deadline <= performance.now())
+    throw new Error("Serving response deadline exceeded");
   return new Promise((done, fail) => {
     const req = httpRequest(
       {
@@ -61,23 +69,42 @@ async function response(port: number, path: string, cookie: string | undefined):
         });
       },
     );
-    req.once("error", fail);
-    req.setTimeout(30_000, () => req.destroy(new Error("Serving response deadline exceeded")));
+    const timer = setTimeout(
+      () => req.destroy(new Error("Serving response deadline exceeded")),
+      Math.max(1, deadline - performance.now()),
+    );
+    req.once("close", () => clearTimeout(timer));
+    req.once("error", (error) => {
+      clearTimeout(timer);
+      fail(error);
+    });
     req.end();
   });
 }
 
 /** A fresh process for every call; the same prepared build can be reused. */
 export async function captureNextServing(
-  input: Parameters<typeof startNextServer>[0] & { buildId: string; sign: SessionSigner },
+  input: Parameters<typeof startNextServer>[0] & {
+    buildId: string;
+    sign: SessionSigner;
+    captureTimeoutMs?: number;
+  },
 ): Promise<ServingCapture> {
+  const budget = input.captureTimeoutMs ?? 40_000;
+  if (!Number.isFinite(budget) || budget <= 0 || budget > 40_000)
+    throw new Error("Capture timeout must be finite and within (0, 40000] milliseconds");
+  const deadline = performance.now() + budget;
   if (readFileSync(resolve(input.root, "apps/web/.next/BUILD_ID"), "utf8").trim() !== input.buildId)
     throw new Error("Prepared build identity mismatch");
-  const server = await startNextServer(input);
+  const server = await startNextServer({
+    ...input,
+    readyTimeoutMs: Math.min(input.readyTimeoutMs ?? 30_000, budget),
+  });
   try {
     const records: HttpRecord[] = [];
     for (const path of SERVING_PATHS)
       for (const principal of PRINCIPAL_LABELS) {
+        if (performance.now() >= deadline) throw new Error("Serving capture deadline exceeded");
         const recipe = principal === "anonymous" ? NO_SESSION : validSession(principal);
         const cookie = cookieHeader(recipe, input.sign);
         const id = `next-${path === "/" ? "home" : path.slice(1).replaceAll("/", "-")}-${principal}`;
@@ -93,7 +120,12 @@ export async function captureNextServing(
             session: recipe,
             cookieSha256: cookie ? sha256Text(cookie) : null,
           },
-          await response(input.port, path, cookie),
+          await requestServingResponse(
+            input.port,
+            path,
+            cookie,
+            Math.min(deadline, performance.now() + 10_000),
+          ),
         );
         if (record.status !== 200 || record.bodyLength === 0)
           throw new Error(`Real Next serving failed at ${id}`);

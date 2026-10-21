@@ -3,6 +3,7 @@ import { spawn, type ChildProcess } from "node:child_process";
 import { createConnection } from "node:net";
 import { resolve } from "node:path";
 import { performance } from "node:perf_hooks";
+import { redact } from "../postgres.js";
 import { nextServingEnvironment } from "./environment.js";
 
 const delay = (ms: number) => new Promise<void>((done) => setTimeout(done, ms));
@@ -35,6 +36,11 @@ export async function startNextServer(input: {
   port: number;
   readyTimeoutMs?: number;
 }): Promise<NextServer> {
+  const readyTimeoutMs = input.readyTimeoutMs ?? 30_000;
+  if (!Number.isFinite(readyTimeoutMs) || readyTimeoutMs <= 0 || readyTimeoutMs > 30_000)
+    throw new Error("Readiness timeout must be finite and within (0, 30000] milliseconds");
+  const parsedUrl = new URL(input.databaseUrl);
+  const secrets = [input.databaseUrl, parsedUrl.password, decodeURIComponent(parsedUrl.password)];
   if (process.platform === "win32") throw new Error("POSIX process-group lifecycle required");
   if (!Number.isInteger(input.port) || input.port < 1024 || input.port > 65535)
     throw new Error("Invalid loopback port");
@@ -60,6 +66,7 @@ export async function startNextServer(input: {
     },
   );
   let logs = "";
+  const safeLogs = () => redact(logs, secrets);
   let spawnError = false;
   child.on("error", () => {
     spawnError = true;
@@ -99,15 +106,15 @@ export async function startNextServer(input: {
       await delay(25);
     if (alive(child) || groupAlive() || (await portOpen(input.port)))
       throw new Error("Next server failed to become quiescent");
-    writeFileSync(`${input.output}.server.log`, logs, { mode: 0o600 });
+    writeFileSync(`${input.output}.server.log`, safeLogs(), { mode: 0o600 });
   };
   try {
-    const deadline = performance.now() + (input.readyTimeoutMs ?? 30_000);
+    const deadline = performance.now() + readyTimeoutMs;
     while (performance.now() < deadline) {
       if (spawnError || !alive(child)) throw new Error("Next server exited before readiness");
       // Own-child readiness marker prevents accidentally trusting an unrelated listener.
       if (/Ready in/u.test(logs) && (await portOpen(input.port)))
-        return { child, logs: () => logs, stop };
+        return { child, logs: safeLogs, stop };
       await delay(50);
     }
     throw new Error("Next readiness deadline exceeded");
