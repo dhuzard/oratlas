@@ -1,6 +1,8 @@
 import { G1_BASE_URL } from "./capture.js";
 import { PRINCIPAL_LABELS, NEGATIVE_SESSIONS, NO_SESSION, validSession } from "./principals.js";
 import type { HttpScenario, HttpExpectation } from "./scenarios.js";
+import type { SupplementalProgram } from "./supplemental-channel.js";
+import targets from "./fixtures/proposal-resolver-targets.json";
 export type ResolverTarget = {
   readonly kind: "protocol" | "monitoring";
   readonly id: string;
@@ -149,3 +151,21 @@ export function proposalResolverScenarios(
   }
   return result;
 }
+
+/** Fixed native fixture rows; independent from every other catalog program's reset. */
+export const PROPOSAL_RESOLVER_PROGRAM: SupplementalProgram = {
+  name: "proposal-resolvers",
+  spec: "proposal-resolvers.g1.spec.ts",
+  outVariable: "G1_PROPOSAL_RESOLVER_OUT",
+  scenarios: proposalResolverScenarios(targets as readonly ResolverTarget[]),
+  fixtures: ["fixtures/proposal-resolver-fixtures.sql"],
+  addedRows: {
+    ProtocolSnapshot: 1,
+    ProtocolDriftProposal: 2,
+    CitationStatusRecord: 2,
+    ClaimUpdateProposal: 6,
+    AuditEvent: 3,
+    Notification: 4,
+  },
+  stateSuffix: ".state.json",
+};

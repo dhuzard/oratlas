@@ -6,7 +6,6 @@ import {
   G1_BASE_URL,
   G1_FIXED_CLOCK,
   G1_CAPTURE_VERSION,
-  captureHttp,
   bodyText,
   type HttpRecord,
   type CaptureFile,
@@ -22,7 +21,9 @@ import {
   tablePrivilegesSql,
   columnPrivilegesSql,
 } from "./sql.js";
-import { publicTableSnapshotSql, type KnownPublicSqlState } from "./known-mutation-state.js";
+import { type KnownPublicSqlState } from "./known-mutation-state.js";
+import { readPublicSnapshot } from "./public-snapshot.js";
+import { createNativeEvidenceGuard, type NativeEvidenceGuard } from "./native-evidence-guard.js";
 
 import {
   proposalResolverScenarios,
@@ -46,6 +47,7 @@ let out: string;
 let label: string;
 let prisma: typeof AppPrisma;
 let sign: SessionSigner;
+let nativeGuard: NativeEvidenceGuard;
 let handlers: Record<string, Handler>;
 let attempts = 0;
 let delegatedQueries = 0;
@@ -53,7 +55,7 @@ const fixture = new ResolverAuditFixture();
 const secrets: string[] = [];
 function guard(value: unknown): void {
   if (auditRevokeDisclosureProblems(value, [...new Set(secrets)]).length)
-    throw new Error("Audit revocation capability disclosure refused");
+    throw new Error("Proposal resolver capability disclosure refused");
 }
 let authorityScope: { roleContract: string; tables: unknown[]; columns: unknown[] };
 beforeAll(async () => {
@@ -92,6 +94,11 @@ beforeAll(async () => {
   ]);
   prisma = db.prisma;
   sign = session.createSessionToken;
+  nativeGuard = createNativeEvidenceGuard(
+    sign,
+    process.env.DATABASE_URL!,
+    SCENARIOS.map((s) => s.session),
+  );
   handlers = {
     "api/protocols/proposals/[id]/resolve": async (request, context) =>
       protocol.POST(request, {
@@ -158,11 +165,11 @@ beforeAll(async () => {
     ({ table, columns }) => columns.map((c) => [table, c, "UPDATE"]),
   );
   expect(sorted(posture.tables)).toEqual(sorted(tables));
-  expect(sorted(posture.columns)).toEqual(sorted(columns));
+  expect(sorted(posture.columns)).toEqual([...new Set(sorted(columns))]);
   authorityScope = {
     roleContract: "isolated-public-runtime-plus-eight-resolver-columns",
     tables: sorted(tables),
-    columns: sorted(columns),
+    columns: [...new Set(sorted(columns))],
   };
 });
 afterAll(async () => {
@@ -172,13 +179,7 @@ afterAll(async () => {
   await prisma?.$disconnect();
 });
 async function snapshot(): Promise<KnownPublicSqlState> {
-  const result: Record<string, Record<string, unknown>[]> = {};
-  for (const table of PUBLIC_SELECT_TABLES) {
-    const rows = await prisma.$queryRawUnsafe<Array<{ rows: Record<string, unknown>[] }>>(
-      publicTableSnapshotSql(table),
-    );
-    result[table] = rows[0]!.rows;
-  }
+  const result = await readPublicSnapshot(prisma);
   guard(result);
   return result;
 }
@@ -231,10 +232,10 @@ it("captures real first resolutions and denied/repeat no-writes with exact full-
         await response.clone().arrayBuffer(),
       );
     } catch {
-      throw Error("Audit revocation response UTF-8 refused");
+      throw Error("Proposal resolver response UTF-8 refused");
     }
     guard({ headers: Object.fromEntries(response.headers), body: responseBody });
-    const recorded = await captureHttp(
+    const recorded = await nativeGuard.capture(
       {
         id: scenario.id,
         method: "POST",
