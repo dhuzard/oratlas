@@ -1,0 +1,32 @@
+{
+  "myst": {
+    "repository": "dhuzard/oratlas-myst",
+    "commit": "51336a5446b449d4d661a4f46d8f8913a0bac2cb",
+    "manifestSchemaVersion": "0.2.0",
+    "claimSchemaVersion": "0.2.0",
+    "repositoryId": "1343684403"
+  },
+  "verify": {
+    "repository": "dhuzard/oratlas-verify",
+    "commit": "9b8455f5bfe9a411a7f1f06d13e4de97e539ac16",
+    "oratlasCommit": "999580bad1fee5b22e8113c5e1c7c9b888eb1217",
+    "apiSchemaVersion": "1.0.0",
+    "protocol": "reported-statistic-consistency/0.1.0",
+    "repositoryId": "1345833003"
+  },
+  "files": {
+    "myst/claims.jsonl": "824de638f3fb9b8450d746460181032e42f23f0e265a4e5d4a0511e0db5eaf14",
+    "myst/manifest.json": "95cb75eb23d44205fddf6e6067555583e26714119f55f8cfec14556a82f6ff00",
+    "myst/source/index.md": "db28240ca69790a96b3cb39cf8e3a93e0feef3581a566fae1e0ceea1314b8cbf",
+    "myst/source/myst.yml": "4727418deb3f2e0b1fd16817dbbdb1331bd8e4b79eab565ea4d53ea11726d05a",
+    "myst/source/oratlas.yml": "d6be46c9381d3f877ffe21b4452c7582c11cbe891a082f906b978d78d544d106",
+    "myst/source/references.bib": "e8f9931587d7b6b6d6d4c73cf706e26b6bf6115011627441f5ab8a9c9016c6ab",
+    "myst/source/results.md": "fb5d936d1fcfbd8736c900e47a37df33535a8621fdfdf74058a7f86563380cac",
+    "verify/finding.json": "c1672c41491becd151b02ebaf8d9c27f205643ab98647146d4a42b8c91e0b0ec",
+    "verify/input.json": "b242090d330be33bcffa77b94a2761207a1d27031c5c64a15ac0842b214d2789",
+    "verify/protocol.json": "0382320f3c5f7d19f8a1fed29d899f15b89446f32dfdf3e369ec81ae77ef1081",
+    "verify/report.json": "831b08a1bbee54bfee8ada696a585c6669d155f1539229013e20533183137514",
+    "verify/requests.json": "7a9c4220f5fe2e7f162b4d78c05fc1aca9a1fdb38c387eb5a04ce80e0ff96e33",
+    "myst/LICENSE": "3217b7149b37c7ee864403f24be8409b33aaa7645140f75689629dcecf491014"
+  }
+}

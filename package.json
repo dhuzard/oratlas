@@ -48,7 +48,8 @@
     "release:notes": "tsx scripts/release-notes.ts",
     "demo:ora-certification": "tsx scripts/ora-demo-certification.ts",
     "evidence-lineage:verify": "tsx scripts/evidence-lineage/verify-fixture.ts",
-    "evidence-lineage:build": "node scripts/evidence-lineage/build-fixture.mjs"
+    "evidence-lineage:build": "node scripts/evidence-lineage/build-fixture.mjs",
+    "test:producer-contracts": "vitest run scripts/producer-contracts/acceptance.test.ts apps/web/src/lib/scientific-verification.integration.test.ts"
   },
   "devDependencies": {
     "@oratlas/certifier-client": "workspace:*",

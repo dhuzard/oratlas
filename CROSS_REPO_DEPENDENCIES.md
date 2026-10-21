@@ -97,6 +97,21 @@ only in local capture scripts (ORA-K02).
   honest report — it is not "fixed up".
 - **Backlog links:** ORA-A03, ORA-K02, ORA-A02.
 
+## 5. dhuzard/oratlas-myst and dhuzard/oratlas-verify — offline producer contracts
+
+- **MyST pin:** repository id `1343684403`, commit
+  `51336a5446b449d4d661a4f46d8f8913a0bac2cb`, manifest/claim protocol `0.2.0`.
+- **Verifier pin:** repository id `1345833003`, commit
+  `9b8455f5bfe9a411a7f1f06d13e4de97e539ac16`, scientific protocol
+  `reported-statistic-consistency/0.1.0`, API `1.0.0`, producer-declared ORAtlas baseline
+  `999580bad1fee5b22e8113c5e1c7c9b888eb1217`.
+- Exact emitted bytes and per-file SHA-256 hashes live in
+  `scripts/producer-contracts/fixtures/pins.json`. No producer runtime is vendored.
+- Run `pnpm test:producer-contracts`; see `docs/pinned-producer-contracts.md` for capture
+  commands, producer-owned tests and explicit missing capabilities. This bounded slice
+  references #221 without asserting full cross-language acceptance or closing it.
+- Drift requires a reviewed new capture and explicit pin change, never automatic updates.
+
 ## Consumption principles (all upstreams)
 
 1. Conventions in, never code in: ORAtlas reads file layouts and record formats; it does not

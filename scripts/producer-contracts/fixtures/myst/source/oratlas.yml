@@ -1,0 +1,24 @@
+# Configuration for @oratlas/myst.
+#
+# A dedicated file rather than a namespaced key in myst.yml: MyST validates
+# project keys strictly and prints "extra key ignored" for anything it does not
+# recognise, which would mean a warning on every build.
+
+# Source-local publication identifier, stable across versions of this
+# publication. Not an ORAtlas canonical id; the adapter never mints one.
+# Defaults to myst.yml's project.id when omitted.
+id: adolescent-stress-review
+
+canonical_url: https://example.org/adolescent-stress/
+version_label: v1.0.0
+output: .oratlas
+
+# Where the exact source bytes live. Declaring this is what lets a consumer
+# that only has the published website reach source-byte verification: without
+# it, the site publishes HTML and the ORAtlas artifacts, but not results.md,
+# so documentSha256 cannot be checked. See docs/protocol.md.
+source:
+  type: git
+  repository: https://github.com/dhuzard/oratlas-myst
+  # `commit` is supplied at build time, because the config file is itself part
+  # of the commit: `oratlas-myst export --source-commit "$GITHUB_SHA"`.

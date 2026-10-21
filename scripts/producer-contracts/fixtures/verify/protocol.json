@@ -1,0 +1,24 @@
+{
+  "id": "reported-statistic-consistency-0-1-0",
+  "authorityVerifierId": "verifier-1",
+  "authority": {
+    "id": "verifier-1",
+    "slug": "verify",
+    "name": "Verify"
+  },
+  "seriesKey": "reported-statistic-consistency",
+  "protocolVersion": "0.1.0",
+  "title": "Reported statistic consistency",
+  "description": "External deterministic protocol.",
+  "verificationType": "reported-statistic-consistency",
+  "executionMode": "external-execution",
+  "supportedSubjectTypes": [
+    "publication-version"
+  ],
+  "definition": {},
+  "definitionSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+  "status": "active",
+  "supersedesProtocolId": null,
+  "createdAt": "2026-08-25T12:00:00Z",
+  "href": "/api/verification-protocols/reported-statistic-consistency-0-1-0"
+}

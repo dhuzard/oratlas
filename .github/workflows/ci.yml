@@ -108,6 +108,9 @@ jobs:
       - name: Typecheck
         run: pnpm typecheck
 
+      - name: Pinned producer contracts (offline)
+        run: pnpm test:producer-contracts
+
       - name: Unit & integration tests
         run: pnpm test
 
