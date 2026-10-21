@@ -1,0 +1,39 @@
+import { writeFileSync } from "node:fs";
+import { it, expect, vi } from "vitest";
+import { nativeEvidenceProblems } from "./native-evidence-safety.js";
+it("prepares three native terminal challenge response ledgers", async () => {
+  let outbound = 0;
+  vi.stubGlobal("fetch", () => { outbound++; throw Error("Synthetic producer outbound refused"); });
+  const api = await import("@/lib/challenges"), { prisma } = await import("@/lib/db");
+  const url = new URL(process.env.DATABASE_URL!);
+  const safe = (v: unknown) => { if(nativeEvidenceProblems(v,[process.env.DATABASE_URL!,url.password,decodeURIComponent(url.password)],"capture").length) throw Error("Native producer disclosure refused"); };
+  try {
+    const challenger = await prisma.user.findUniqueOrThrow({where:{id:"g1-user-a-and-b"}});
+    const responder = await prisma.user.findUniqueOrThrow({where:{id:"g1-user-b-only"}});
+    const editor = await prisma.user.findUniqueOrThrow({where:{id:"g1-user-editor"}});
+    const person=await prisma.person.create({data:{id:"g1-response-moderation-person",displayName:"Synthetic response contributor",githubLogin:responder.githubLogin}});
+    const contributor=await prisma.reviewContributor.create({data:{reviewVersionId:"g1-version-2",personId:person.id,rolesJson:'["author"]',position:2}});
+    const subject = {type:"claim" as const,claimId:"g1-claim-1"};
+    const binding = await api.resolveChallengeSubject(prisma,"g1-version-2",subject);
+    const receipts=[];
+    for(const label of ["responder","editor","admin"]){
+      const input={reviewVersionId:"g1-version-2",subject,canonicalSubjectHash:binding.hash,grounds:"methodology" as const,body:`Synthetic ${label} moderation challenge; no scientific finding.`};
+      const challenge=await api.createChallenge("g1-fixture-review",challenger,input);
+      const response=await api.createChallengeResponse(challenge.id,responder,{expectedRevision:0,body:`Synthetic ${label} attributed response retained after moderation.`});
+      const terminal=await api.transitionChallenge(challenge.id,editor,{expectedRevision:1,toStatus:"dismissed",rationale:"Synthetic terminal ledger for response moderation; no scientific assessment.",conflictOfInterest:{status:"none-declared"}});
+      receipts.push({label,input,challenge,response,terminal});
+    }
+    const tables=["Challenge","ChallengeResponse","ChallengeTransition","AuditEvent"];
+    const challenges=receipts.map(r=>r.challenge.id),responses=receipts.map(r=>r.response.id);
+    const rows:Record<string,unknown[]>={};
+    for(const table of tables){
+      const ids=table==="ChallengeResponse"?responses:challenges;
+      const column=table==="ChallengeTransition"?"challengeId":table==="AuditEvent"?"subjectId":"id";
+      const selected=await prisma.$queryRawUnsafe<Array<{row:unknown}>>(`SELECT to_jsonb(t) row FROM public."${table}" t WHERE "${column}"=ANY($1::text[]) ORDER BY to_jsonb(t)::text COLLATE "C"`,table==="AuditEvent"?[...challenges,...responses]:ids);
+      rows[table]=selected.map(r=>r.row);
+    }
+    const result={receipts,rows,person,contributor,outbound};safe(result);
+    expect(rows.Challenge).toHaveLength(3);expect(rows.ChallengeResponse).toHaveLength(3);expect(rows.ChallengeTransition).toHaveLength(9);expect(rows.AuditEvent).toHaveLength(12);expect(outbound).toBe(0);
+    writeFileSync("/tmp/oratlas-g1-response-moderation-pg/native-fixture.json",JSON.stringify(result,null,2)+"\n",{mode:0o600,flag:"wx"});
+  } finally {await prisma.$disconnect();vi.unstubAllGlobals();}
+});
