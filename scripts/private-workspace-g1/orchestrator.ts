@@ -1,3 +1,4 @@
+import { parentLogRefused } from "./parent-log-safety.js";
 import { supplementalChannels } from "./supplemental-orchestrator.js";
 import { SUPPLEMENTAL_PROGRAMS } from "./supplemental-programs.js";
 import { workerChildOutput } from "./worker-capture-safety.js";
@@ -139,7 +140,7 @@ function vitestEntry(): string {
 }
 
 /** Run one dedicated spec in a child with exactly `env`; output is redacted and logged. */
-function runSpec(
+export function runSpec(
   spec: string,
   env: G1ChildEnv,
   logPath: string,
@@ -152,12 +153,31 @@ function runSpec(
       { cwd: ROOT, env, shell: false, stdio: ["ignore", "pipe", "pipe"] },
     );
     const chunks: Buffer[] = [];
-    child.stdout.on("data", (chunk: Buffer) => chunks.push(chunk));
-    child.stderr.on("data", (chunk: Buffer) => chunks.push(chunk));
+    const stdout: Buffer[] = [],
+      stderr: Buffer[] = [];
+    child.stdout.on("data", (chunk: Buffer) => {
+      chunks.push(chunk);
+      stdout.push(chunk);
+    });
+    child.stderr.on("data", (chunk: Buffer) => {
+      chunks.push(chunk);
+      stderr.push(chunk);
+    });
     const timer = setTimeout(() => child.kill("SIGKILL"), 10 * 60_000);
     child.on("close", (code) => {
       clearTimeout(timer);
       const raw = Buffer.concat(chunks).toString("utf8");
+      if (
+        [raw, Buffer.concat(stdout).toString("utf8"), Buffer.concat(stderr).toString("utf8")].some(
+          (text) => parentLogRefused(text, [...secrets, env.DATABASE_URL ?? ""]),
+        )
+      ) {
+        const refusal = "[g1] refused native child log evidence\n";
+        writeFileSync(logPath, refusal, { mode: 0o600 });
+        process.stdout.write(refusal);
+        resolvePromise(false);
+        return;
+      }
       const outputProblems =
         spec === "index-consumer.g1.spec.ts"
           ? indexRunnerOutputProblems(raw, [
@@ -255,7 +275,10 @@ export async function runG1Harness(
     }
     throw error;
   }
-  const secrets = secretsOf(target);
+  const secrets = [
+    ...secretsOf(target),
+    ...[G1_ENV.admin, G1_ENV.public, G1_ENV.private].map((key) => env[key]!).filter(Boolean),
+  ];
   const runId = `${new Date().toISOString().replace(/[:.]/gu, "-")}-${process.pid}`;
   const evidenceDir = resolve(
     env.G1_EVIDENCE_DIR?.trim() || join(tmpdir(), `oratlas-g1-evidence-${runId}`),
