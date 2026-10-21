@@ -1,0 +1,32 @@
+[
+  {
+    "findingKey": "synthetic-a",
+    "findingType": "statistic-consistency",
+    "status": "unverifiable",
+    "impact": "minor",
+    "statement": "Synthetic archive unverifiable fixture; no scientific evaluation occurred.",
+    "rationale": "Only public read projection and provenance are exercised.",
+    "evidenceRefs": [
+      {
+        "type": "publication-occurrence",
+        "id": "g1-discovery-occurrence"
+      }
+    ],
+    "artifactRefs": ["g1-protocol-artifact-public"]
+  },
+  {
+    "findingKey": "synthetic-b",
+    "findingType": "statistic-consistency",
+    "status": "discrepancy",
+    "impact": "minor",
+    "statement": "Synthetic archive discrepancy fixture; no scientific evaluation occurred.",
+    "rationale": "Only public read projection and provenance are exercised.",
+    "evidenceRefs": [
+      {
+        "type": "publication-occurrence",
+        "id": "g1-discovery-occurrence"
+      }
+    ],
+    "artifactRefs": ["g1-protocol-artifact-public"]
+  }
+]

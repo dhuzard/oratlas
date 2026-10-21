@@ -1,0 +1,207 @@
+{
+  "captures": [
+    {
+      "artifactKind": "publication-manifest",
+      "byteLength": 1298,
+      "contentSha256": "a023519b0542fafd6f3120246286537d6205dbf649a2db3f5ee9e1984444fc43",
+      "declaredPath": null,
+      "id": "g1-discovery-manifest",
+      "observedUrl": "https://publications.g1.oratlas.example/discovery/oratlas.manifest.json",
+      "requestedUrl": "https://publications.g1.oratlas.example/discovery/oratlas.manifest.json",
+      "structuralProvenance": "published-structure"
+    },
+    {
+      "artifactKind": "source-document",
+      "byteLength": 71,
+      "contentSha256": "53eb23ed90cbe24de9dcf779876d7a59acca8ab0e0b765bc6701dbede9b34c08",
+      "declaredPath": "article.md",
+      "id": "g1-discovery-source",
+      "observedUrl": "https://publications.g1.oratlas.example/discovery/article.md",
+      "requestedUrl": "https://publications.g1.oratlas.example/discovery/article.md",
+      "structuralProvenance": "published-structure"
+    }
+  ],
+  "challenges": [],
+  "completeness": {
+    "captures": {
+      "returned": 2,
+      "total": 2,
+      "truncated": false
+    },
+    "challenges": {
+      "returned": 0,
+      "total": 0,
+      "truncated": false
+    },
+    "content": {
+      "coverage": "complete",
+      "returnedDocuments": 1,
+      "totalDocumentsKnown": 1,
+      "truncated": false
+    },
+    "contributors": {
+      "returned": 1,
+      "total": 1,
+      "truncated": false
+    },
+    "occurrences": {
+      "returned": 1,
+      "total": 1,
+      "truncated": false
+    },
+    "productionProvenance": {
+      "returned": 1,
+      "total": 1,
+      "truncated": false
+    },
+    "relations": {
+      "returned": 0,
+      "total": 0,
+      "truncated": false
+    }
+  },
+  "content": [
+    {
+      "id": "g1-discovery-document",
+      "publishedUrl": "https://publications.g1.oratlas.example/discovery/article",
+      "representation": "source-text",
+      "role": "results",
+      "sha256": "53eb23ed90cbe24de9dcf779876d7a59acca8ab0e0b765bc6701dbede9b34c08",
+      "sourceArtifactIdentitySha256": "17f318edde9cd8fc6f8473dbe80d7763d9ef99eb35530d080b718bd59c4889e4",
+      "sourceArtifactSha256": "53eb23ed90cbe24de9dcf779876d7a59acca8ab0e0b765bc6701dbede9b34c08",
+      "sourcePath": "article.md",
+      "text": "Synthetic public result: alpha and beta are independent fixture labels.",
+      "title": "G1 public discovery result"
+    }
+  ],
+  "contributors": [
+    {
+      "affiliations": [],
+      "declarationStatus": "source-declared",
+      "displayName": "G1 Discovery Author",
+      "familyName": null,
+      "givenName": null,
+      "id": "g1-discovery-contributor",
+      "identifiers": [],
+      "kind": "person",
+      "links": {
+        "publicProfile": null,
+        "publicationVersion": "/api/publication-versions/g1-discovery-version"
+      },
+      "position": 1,
+      "publicUrl": null,
+      "publicationVersionId": "g1-discovery-version",
+      "roles": ["author"],
+      "sourceContributorKey": "author-1",
+      "sourceDeclarationProvenance": {
+        "sourceArtifactIdentitySha256": "ba0969399c05d646c5703cf94a829be4a4dc5879203422d425f34bd399c27395",
+        "sourceArtifactKind": "publication-manifest",
+        "sourceArtifactSha256": "a023519b0542fafd6f3120246286537d6205dbf649a2db3f5ee9e1984444fc43",
+        "type": "source-declared"
+      }
+    }
+  ],
+  "links": {
+    "content": "/api/publication-versions/g1-discovery-version/content",
+    "contributors": "/api/publication-versions/g1-discovery-version/contributors",
+    "productionProvenance": "/api/publication-versions/g1-discovery-version/production-provenance",
+    "publication": "/api/publications/g1-discovery-publication",
+    "publicationVersion": "/api/publication-versions/g1-discovery-version",
+    "self": "/api/publication-versions/g1-discovery-version/packet"
+  },
+  "occurrences": [
+    {
+      "canonicalBinding": null,
+      "claimType": "empirical",
+      "declarationAuthority": "publication-source",
+      "declarationSha256": "6a8159c20e6f58a8f5da18a3c970df1f92f0bd232f2b34c53d0cf5a99c4e7503",
+      "id": "g1-discovery-occurrence",
+      "links": {
+        "canonicalGraph": null,
+        "occurrence": "/api/publication-claim-occurrences/g1-discovery-occurrence",
+        "originalPublication": "https://publications.g1.oratlas.example/discovery/article#synthetic-result"
+      },
+      "publishedTargetUrl": "https://publications.g1.oratlas.example/discovery/article#synthetic-result",
+      "qualification": null,
+      "selector": {
+        "representation": "oratlas-myst-source-utf8-v1",
+        "textPosition": {
+          "end": 71,
+          "start": 0,
+          "type": "TextPositionSelector"
+        },
+        "textQuote": {
+          "exact": "Synthetic public result: alpha and beta are independent fixture labels.",
+          "type": "TextQuoteSelector"
+        },
+        "unit": "body"
+      },
+      "sourceBinding": {
+        "blockSha256": "53eb23ed90cbe24de9dcf779876d7a59acca8ab0e0b765bc6701dbede9b34c08",
+        "documentPath": "article.md",
+        "documentSha256": "53eb23ed90cbe24de9dcf779876d7a59acca8ab0e0b765bc6701dbede9b34c08",
+        "endLine": 1,
+        "startLine": 1
+      },
+      "sourceLocalClaimId": "synthetic-result",
+      "target": {
+        "htmlId": "synthetic-result",
+        "identifier": "synthetic-result",
+        "type": "myst-xref"
+      },
+      "text": "Synthetic public result: alpha and beta are independent fixture labels."
+    }
+  ],
+  "productionProvenance": [
+    {
+      "activities": ["drafting"],
+      "actors": [
+        {
+          "kind": "software",
+          "name": "Synthetic Discovery Tool",
+          "version": "fixture-1"
+        }
+      ],
+      "agentRunId": null,
+      "assertedAt": "2026-03-12T00:00:00.000Z",
+      "assertedBy": null,
+      "executionPassportId": null,
+      "id": "g1-discovery-production",
+      "lifecycleState": "active",
+      "links": {
+        "executionPassport": null,
+        "publicEvidence": null,
+        "publicationVersion": "/api/publication-versions/g1-discovery-version"
+      },
+      "mode": "ai-assisted",
+      "publicEvidenceUrl": null,
+      "publicationVersionId": "g1-discovery-version",
+      "sourceAssertionKey": "synthetic-production",
+      "statement": "Synthetic source declaration, never scientific verification.",
+      "strength": "source-declared",
+      "supersededByAssertionId": null,
+      "supersedesAssertionId": null
+    }
+  ],
+  "publication": {
+    "id": "g1-discovery-publication",
+    "publicationType": "research-article",
+    "recordSource": "external-publication",
+    "sourceLocalPublicationId": null
+  },
+  "relations": [],
+  "schemaVersion": "1.3.0",
+  "sha256": "c5b7b48e8b2eb1e568713a86c82f3c485598e8ed27eccc9968789453ffa33dd3",
+  "version": {
+    "adapterType": "myst",
+    "id": "g1-discovery-version",
+    "observedAt": "2026-03-12T00:00:00.000Z",
+    "observedPublicationBaseUrl": "https://publications.g1.oratlas.example/discovery/",
+    "publisherCanonicalUrl": "https://publications.g1.oratlas.example/discovery/",
+    "sourceLocalPublicationId": null,
+    "sourcesSha256": "de3d3960b987df55170f1389cd5ece8544d1733a539ab7fdebc8c58c3abc0076",
+    "structuralProvenance": "published-structure",
+    "title": "G1 public discovery fixture",
+    "versionLabel": "v1"
+  }
+}

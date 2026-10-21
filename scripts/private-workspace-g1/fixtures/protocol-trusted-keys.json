@@ -1,0 +1,30 @@
+[
+  {
+    "keyId": "b170f6a987b79c56992c1bfe8f88fd973184836bb65931646ab679088a7bba82",
+    "algorithm": "ed25519",
+    "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAc4sXns/hb4mwZqlaeCw15Xj0yo/55Wi/cm14D+1kFZk=\n-----END PUBLIC KEY-----\n",
+    "issuer": "https://token.actions.githubusercontent.com",
+    "subject": "https://github.com/example/review/.github/workflows/analysis.yml@refs/heads/main"
+  },
+  {
+    "keyId": "b7ba734eada0bc30652748ffd2a6df2a5d80b3cfe44096a06836230a61922449",
+    "algorithm": "ed25519",
+    "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEASrqDLThFZeeJvzot+ihoroxH7/nKH/MHcZE+0T49FjM=\n-----END PUBLIC KEY-----\n",
+    "issuer": "https://token.actions.githubusercontent.com",
+    "subject": "https://github.com/example/review/.github/workflows/analysis.yml@refs/heads/main"
+  },
+  {
+    "keyId": "654b15b18977e097e98078ceb1bd87b39094d34692fcbefbf76305e4370bd15f",
+    "algorithm": "ed25519",
+    "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAb3VIUMNlAaDRs+CUbLXdIvHB1P82ha7yU2m4fyY7b5c=\n-----END PUBLIC KEY-----\n",
+    "issuer": "https://token.actions.githubusercontent.com",
+    "subject": "https://github.com/example/review/.github/workflows/analysis.yml@refs/heads/main"
+  },
+  {
+    "keyId": "b5f1e48136c73aeecef1dd2d8253187836bd6bef0bce4256e671f32e7404aec9",
+    "algorithm": "ed25519",
+    "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAoMQ5aFm4F7WVo2vPxYosXGVlus6cIfpKdIlW7lEa7d8=\n-----END PUBLIC KEY-----\n",
+    "issuer": "https://token.actions.githubusercontent.com",
+    "subject": "https://github.com/example/review/.github/workflows/analysis.yml@refs/heads/main"
+  }
+]
