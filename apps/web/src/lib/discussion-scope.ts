@@ -314,7 +314,12 @@ async function validatePersistedTraversal(scope: DiscussionTraversalScope) {
       "conflict",
     );
   }
-  return { nodes, edges };
+  const nodesById = new Map(nodes.map((node) => [node.id, node]));
+  const edgesById = new Map(edges.map((edge) => [edge.id, edge]));
+  return {
+    nodes: scope.nodes.map(({ nodeVersionId }) => nodesById.get(nodeVersionId)!),
+    edges: scope.edgeIds.map((edgeId) => edgesById.get(edgeId)!),
+  };
 }
 
 function nodeKey(nodeId: string, nodeVersionId: string): string {

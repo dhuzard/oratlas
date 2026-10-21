@@ -178,6 +178,69 @@ describe("exact Atlas Discuss traversal scope", () => {
     });
   });
 
+  it("preserves verified traversal order when the database returns nodes and edges in any order", async () => {
+    const issued = issueDiscussionTraversalScope({
+      nodes: [
+        { nodeId: "node-work", nodeVersionId: "version-work" },
+        { nodeId: "node-claim", nodeVersionId: "version-claim" },
+      ],
+      edges: [{ graphEdgeId: "edge-z" }, { graphEdgeId: "edge-a" }],
+    });
+    const nodes = [
+      {
+        id: "version-claim",
+        knowledgeNodeId: "node-claim",
+        sourceClaimId: "claim-row",
+        sourceCitationId: null,
+      },
+      {
+        id: "version-work",
+        knowledgeNodeId: "node-work",
+        sourceClaimId: null,
+        sourceCitationId: "citation-row",
+      },
+    ];
+    const edges = ["edge-a", "edge-z"].map((id) => ({
+      id,
+      sourceNodeVersionId: "version-claim",
+      targetNodeId: "node-work",
+      confirmedTargetNodeVersionId: "version-work",
+      relationType: "supports",
+    }));
+    const index = {
+      claims: [
+        {
+          graphNodeVersionId: "version-claim",
+          claimId: "global-claim",
+          relations: [{ citationId: "global-citation", relationType: "supports" }],
+        },
+      ],
+      citations: [{ graphNodeVersionId: "version-work", citationId: "global-citation" }],
+    };
+    mocks.buildEvidencePacket.mockReturnValue({ claims: [{ claimId: "global-claim" }] });
+    const results = [];
+    for (const reverseNodes of [false, true])
+      for (const reverseEdges of [false, true]) {
+        mocks.findNodeVersions.mockResolvedValue(reverseNodes ? [...nodes].reverse() : nodes);
+        mocks.findEdges.mockResolvedValue(reverseEdges ? [...edges].reverse() : edges);
+        // Reordered client arrays still verify to the issuer's canonical signed selection.
+        results.push(
+          await selectDiscussionEvidence(index as never, "What is known?", {
+            ...issued,
+            nodes: [...issued.nodes].reverse(),
+            edgeIds: [...issued.edgeIds].reverse(),
+          }),
+        );
+      }
+    for (const result of results) {
+      expect(result).toEqual(results[0]);
+      expect(result.scope.landscapeNodeVersionIds).toEqual(
+        issued.nodes.map((node) => node.nodeVersionId),
+      );
+      expect(result.scope.landscapeEdgeIds).toEqual(issued.edgeIds);
+    }
+  });
+
   it("rejects a signed scope whose occurrence has become stale or private", async () => {
     const issued = issueDiscussionTraversalScope({
       nodes: [{ nodeId: "node-claim", nodeVersionId: "stale-version" }],
