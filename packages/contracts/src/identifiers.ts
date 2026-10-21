@@ -56,3 +56,13 @@ export const httpsUrlSchema = z
   .string()
   .url()
   .refine((u) => u.startsWith("https://"), { message: "Only https:// URLs are accepted." });
+
+/** ISO 7064 MOD 11-2, as enforced by all three pinned producers. Format only, never ownership. */
+export function isChecksumValidOrcid(value: string): boolean {
+  if (!/^\d{4}-\d{4}-\d{4}-\d{3}[\dX]$/u.test(value)) return false;
+  const digits = value.replace(/-/gu, "");
+  let total = 0;
+  for (const character of digits.slice(0, 15)) total = (total + Number(character)) * 2;
+  const check = (12 - (total % 11)) % 11;
+  return digits[15] === (check === 10 ? "X" : String(check));
+}
