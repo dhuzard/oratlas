@@ -96,6 +96,18 @@ other 52 files / 57 methods, OAuth success, integrated real Next HTTP serving,
 remaining operational channels and timing are still outstanding. Populated
 T-ROLE/T-PUB remains later. G1 is not passed.**
 
+The worker artifact supplement declares 379 native requests over four methods,
+including one completion of an already uploaded artifact and exact replays. Its
+own reset adds 52 rows (37 established worker rows and 15 native artifact/history
+rows) and the recorded setup credential timestamp. The shared role gains only
+`VerificationArtifact.status` and `completedAt` column UPDATE, for 16 permitted
+UPDATE columns overall; table SELECT/INSERT authority is unchanged. Existing
+programs must be recaptured under that measured authority. Public HTTP/index data
+and complete public rows must stay unchanged; separately reviewed authority
+metadata is retained rather than omitted to keep old state hashes. See the
+[artifact probe](private-workspace-worker-artifact-probe.md) for native fixture
+provenance, credential-versus-cookie controls and the remaining fresh-write gaps.
+
 ### Layout
 
 | Path                                                                                   | Role                                                                                                                                                                                                                                                                      |

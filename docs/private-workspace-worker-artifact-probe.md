@@ -87,6 +87,13 @@ retains complete start/end snapshots plus all credential and artifact rows aroun
 other tables additionally have per-request digests. The label is excluded from state, not any row
 value, so repeat and future before/after sidecars can compare exactly.
 
+Parent integration also requires each pre-dispatch snapshot to equal the cumulative expected
+state derived from the initial rows, and requires complete expected state after each request and
+at the end. This detects persistent changes between sampled request boundaries as well as
+undeclared handler effects. It does not claim to detect transient concurrent write-and-restore
+activity between snapshots. The ownership posture includes types as well as database, schema,
+relation and function ownership.
+
 Raw worker tokens, their secret components, leases, real session cookies and database credentials
 must never persist in capture bodies, request headers, state files or child logs. The dispatched
 Authorization/lease headers are bound to declarative recipes by hashes of the actual native
