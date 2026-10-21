@@ -608,7 +608,9 @@ outcome, all four reset-based paired comparisons, auth 6/6, roles 7/7 and cleanu
 **93 previous record values were unchanged**. Evidence after native fixture
 repair: `/tmp/oratlas-g1-integrated-native/`. Independent review approved candidate
 SHA-256 `5c36d72c848b4d4c091db33708a6316e888e3c1bdef1b22f343f0fb0dde902b5`.
-After copying it, a fresh full run passed **26/26 steps**, all four **895-record**
+The checked-in golden is formatted by Prettier; its parsed content is exactly
+identical to that reviewed candidate (formatted file SHA-256 `5e0920de352a9422a2a32a5a2e0be92a91a83582e05498044c0841c97e7e0617`).
+After copying the candidate, a fresh full run passed **26/26 steps**, all four **895-record**
 captures, auth **6/6**, roles **7/7** and cleanup **4/4**; evidence is
 `/tmp/oratlas-g1-integrated-final/`. A scan of all 14 evidence files found none of
 the three disposable database passwords. Focused offline/architecture/cache/route
