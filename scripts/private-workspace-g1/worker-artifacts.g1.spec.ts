@@ -1,3 +1,4 @@
+import { readPublicSnapshot } from "./public-snapshot.js";
 import { createNativeEvidenceGuard, type NativeEvidenceGuard } from "./native-evidence-guard.js";
 import { readFileSync, writeFileSync } from "node:fs";
 import { canonicalJson } from "../../packages/contracts/src/canonical-json.js";
@@ -27,7 +28,7 @@ import {
   tablePrivilegesSql,
   columnPrivilegesSql,
 } from "./sql.js";
-import { publicTableSnapshotSql, type KnownPublicSqlState } from "./known-mutation-state.js";
+import { type KnownPublicSqlState } from "./known-mutation-state.js";
 import {
   expectedWorkerArtifactState,
   workerArtifactStateProblems,
@@ -148,13 +149,7 @@ beforeAll(async () => {
     JSON.parse(readFileSync(new URL("./fixtures/worker-input.json", import.meta.url), "utf8")),
   );
   snapshot = async () => {
-    const state: Record<string, Readonly<Record<string, unknown>>[]> = {};
-    for (const table of PUBLIC_SELECT_TABLES) {
-      const rows = await db.prisma.$queryRawUnsafe<
-        Array<{ rows: Readonly<Record<string, unknown>>[] }>
-      >(publicTableSnapshotSql(table));
-      state[table] = rows[0]!.rows;
-    }
+    const state = await readPublicSnapshot(db.prisma);
     return guard.value(state);
   };
 });

@@ -10,7 +10,8 @@ import {
   tablePrivilegesSql,
   columnPrivilegesSql,
 } from "./sql.js";
-import { publicTableSnapshotSql } from "./known-mutation-state.js";
+import { readPublicSnapshot } from "./public-snapshot.js";
+import { createNativeEvidenceGuard } from "./native-evidence-guard.js";
 import { workerOutputProblems } from "./worker-capture-safety.js";
 import {
   AuditDefaultFixture,
@@ -56,17 +57,10 @@ it("retains native audit semantics with separately declared absent metadata inpu
   const bound = await import("@/lib/db");
   expect(bound.prisma).toBe(extended);
   const prisma = extended as unknown as typeof base;
-  const snapshot = async () =>
-    Object.fromEntries(
-      await Promise.all(
-        PUBLIC_SELECT_TABLES.map(async (table) => [
-          table,
-          (
-            await prisma.$queryRawUnsafe<Array<{ rows: unknown[] }>>(publicTableSnapshotSql(table))
-          )[0]!.rows,
-        ]),
-      ),
-    );
+  const { createSessionToken } = await import("@/lib/session-token");
+  const snapshotGuard = createNativeEvidenceGuard(createSessionToken, process.env.DATABASE_URL!);
+  const snapshot = async () => snapshotGuard.value(await readPublicSnapshot(prisma));
+
   try {
     const posture = (
       await prisma.$queryRawUnsafe<
@@ -236,9 +230,7 @@ it("retains native audit semantics with separately declared absent metadata inpu
     expect(after).toEqual(afterPositive);
     for (const table of PUBLIC_SELECT_TABLES)
       if (table !== "AuditEvent") expect(after[table]).toEqual(before[table]);
-    expect((after.AuditEvent as unknown[]).length).toBe(
-      (before.AuditEvent as unknown[]).length + 3,
-    );
+    expect(after.AuditEvent!.length).toBe(before.AuditEvent!.length + 3);
     expect(outbound).toBe(0);
     const proof = {
       protocol: AUDIT_DEFAULT_PROTOCOL,

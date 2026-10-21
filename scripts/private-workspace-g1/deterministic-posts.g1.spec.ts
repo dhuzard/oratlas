@@ -1,3 +1,4 @@
+import { readPublicSnapshot } from "./public-snapshot.js";
 import { createNativeEvidenceGuard, type NativeEvidenceGuard } from "./native-evidence-guard.js";
 import { writeFileSync } from "node:fs";
 import { beforeAll, afterAll, it, expect, vi } from "vitest";
@@ -22,7 +23,7 @@ import {
   tablePrivilegesSql,
   columnPrivilegesSql,
 } from "./sql.js";
-import { publicTableSnapshotSql, type KnownPublicSqlState } from "./known-mutation-state.js";
+import { type KnownPublicSqlState } from "./known-mutation-state.js";
 import { workerOutputProblems } from "./worker-capture-safety.js";
 import { POST_INPUTS, DETERMINISTIC_POST_SCENARIOS } from "./deterministic-post-scenarios.js";
 import { requestBodyText } from "./scenarios.js";
@@ -158,13 +159,7 @@ afterAll(async () => {
   await prisma?.$disconnect();
 });
 async function snapshot(): Promise<KnownPublicSqlState> {
-  const result: Record<string, Record<string, unknown>[]> = {};
-  for (const table of PUBLIC_SELECT_TABLES) {
-    const rows = await prisma.$queryRawUnsafe<Array<{ rows: Record<string, unknown>[] }>>(
-      publicTableSnapshotSql(table),
-    );
-    result[table] = rows[0]!.rows;
-  }
+  const result = await readPublicSnapshot(prisma);
   return guard.value(result);
 }
 it("captures native deterministic discussion and exact federation replays with unchanged complete public state", async () => {

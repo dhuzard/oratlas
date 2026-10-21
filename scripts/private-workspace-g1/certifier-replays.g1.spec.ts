@@ -1,3 +1,4 @@
+import { readPublicSnapshot } from "./public-snapshot.js";
 import { createNativeEvidenceGuard, type NativeEvidenceGuard } from "./native-evidence-guard.js";
 import { writeFileSync } from "node:fs";
 import { canonicalJson } from "../../packages/contracts/src/canonical-json.js";
@@ -26,7 +27,7 @@ import {
   tablePrivilegesSql,
   columnPrivilegesSql,
 } from "./sql.js";
-import { publicTableSnapshotSql, type KnownPublicSqlState } from "./known-mutation-state.js";
+import { type KnownPublicSqlState } from "./known-mutation-state.js";
 import {
   expectedCertifierReplayState,
   certifierReplayStateProblems,
@@ -140,13 +141,7 @@ beforeAll(async () => {
   const packet = await getPublicationVersionPacket("g1-discovery-version");
   expect(sha256Text(canonicalJson(packet))).toBe(CERTIFIER_INPUTS.terminalPacketSha256);
   snapshot = async () => {
-    const result: Record<string, Readonly<Record<string, unknown>>[]> = {};
-    for (const table of PUBLIC_SELECT_TABLES) {
-      const rows = await db.prisma.$queryRawUnsafe<
-        Array<{ rows: Readonly<Record<string, unknown>>[] }>
-      >(publicTableSnapshotSql(table));
-      result[table] = rows[0]!.rows;
-    }
+    const result = await readPublicSnapshot(db.prisma);
     return guard.value(result);
   };
 });

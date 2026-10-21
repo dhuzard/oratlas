@@ -1,0 +1,48 @@
+{
+  "baseGuardRetrofit": "c1b8927",
+  "guardRetrofitCallerFiles": 11,
+  "removedWholeStateQueryExpressions": [
+    {
+      "file": "scripts/private-workspace-g1/certifier-replays.g1.spec.ts",
+      "removedWholeStateQueryExpressions": 1
+    },
+    {
+      "file": "scripts/private-workspace-g1/deterministic-posts.g1.spec.ts",
+      "removedWholeStateQueryExpressions": 1
+    },
+    {
+      "file": "scripts/private-workspace-g1/known-mutation-probe.g1.spec.ts",
+      "removedWholeStateQueryExpressions": 1
+    },
+    {
+      "file": "scripts/private-workspace-g1/worker-artifacts.g1.spec.ts",
+      "removedWholeStateQueryExpressions": 1
+    },
+    {
+      "file": "scripts/private-workspace-g1/audit-revocations.g1.spec.ts",
+      "removedWholeStateQueryExpressions": 1
+    },
+    {
+      "file": "scripts/private-workspace-g1/protocol-doi.g1.spec.ts",
+      "removedWholeStateQueryExpressions": 1
+    },
+    {
+      "file": "scripts/private-workspace-g1/audit-default-probe.g1.spec.ts",
+      "removedWholeStateQueryExpressions": 1
+    }
+  ],
+  "additionalPublicIndexFastPath": true,
+  "partialIndexQueryRetainedVerbatim": true,
+  "allRemainingNativeDbCallsRetainedVerbatim": true,
+  "excludedFilesUnchanged": [
+    "synthesis-probe",
+    "worker-reads",
+    "public-routes",
+    "fresh-removal-probe",
+    "editorial-read",
+    "auth-context"
+  ],
+  "noTimeoutSchemaGrantFixtureGoldenOrProductionChanges": true,
+  "wholePublicAdapterSites": 8,
+  "scope": "AST verifies retained raw/ORM/transaction call expressions against the applied frozen guard stage; seven whole-state query expressions removed, plus conditional public index batching. Source query sites are distinct from runtime statement counts."
+}

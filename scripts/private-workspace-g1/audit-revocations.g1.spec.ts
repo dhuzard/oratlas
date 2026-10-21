@@ -1,3 +1,4 @@
+import { readPublicSnapshot } from "./public-snapshot.js";
 import { writeFileSync } from "node:fs";
 import { beforeAll, afterAll, it, expect, vi } from "vitest";
 import type { prisma as AppPrisma } from "@/lib/db";
@@ -22,7 +23,7 @@ import {
   tablePrivilegesSql,
   columnPrivilegesSql,
 } from "./sql.js";
-import { publicTableSnapshotSql, type KnownPublicSqlState } from "./known-mutation-state.js";
+import { type KnownPublicSqlState } from "./known-mutation-state.js";
 
 import { AUDIT_REVOKE_SCENARIOS, AUDIT_REVOKE_TARGETS } from "./audit-revoke-scenarios.js";
 import { AuditDefaultFixture, AUDIT_DEFAULT_IDS } from "./audit-default-fixture.js";
@@ -173,13 +174,7 @@ afterAll(async () => {
   await prisma?.$disconnect();
 });
 async function snapshot(): Promise<KnownPublicSqlState> {
-  const result: Record<string, Record<string, unknown>[]> = {};
-  for (const table of PUBLIC_SELECT_TABLES) {
-    const rows = await prisma.$queryRawUnsafe<Array<{ rows: Record<string, unknown>[] }>>(
-      publicTableSnapshotSql(table),
-    );
-    result[table] = rows[0]!.rows;
-  }
+  const result = await readPublicSnapshot(prisma);
   guard(result);
   return result;
 }

@@ -1,3 +1,4 @@
+import { readPublicSnapshot } from "./public-snapshot.js";
 import { createNativeEvidenceGuard } from "./native-evidence-guard.js";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
@@ -149,6 +150,8 @@ it("captures a populated public index with exact runtime authority and unchanged
   }
 
   const snapshot = async (client: Pick<typeof prisma, "$queryRawUnsafe"> = prisma) => {
+    if (roleContract === "public-runtime")
+      return indexDigest(guard.value(await readPublicSnapshot(client)));
     const state: Record<string, unknown> = {};
     for (const table of stateTables) {
       const result = await client.$queryRawUnsafe<Array<{ rows: unknown[] }>>(

@@ -1,3 +1,4 @@
+import { readPublicSnapshot } from "./public-snapshot.js";
 import { writeFileSync } from "node:fs";
 import { canonicalJson } from "../../packages/contracts/src/canonical-json.js";
 import { afterAll, beforeAll, expect, it, vi } from "vitest";
@@ -15,13 +16,12 @@ import { invokeRouteHandler, nextInternals } from "./next-request-context.js";
 import { cookieHeader, sha256Text, type SessionSigner } from "./principals.js";
 import { WORKER_READ_SELECT_TABLES, WORKER_READ_COLUMN_UPDATES } from "./worker-authority.js";
 import {
-  PUBLIC_SELECT_TABLES,
   PUBLIC_TABLE_GRANTS,
   PUBLIC_COLUMN_UPDATE_GRANTS,
   tablePrivilegesSql,
   columnPrivilegesSql,
 } from "./sql.js";
-import { publicTableSnapshotSql, type KnownPublicSqlState } from "./known-mutation-state.js";
+import { type KnownPublicSqlState } from "./known-mutation-state.js";
 import { PROTOCOL_POST_INPUTS, protocolDoiScenarios } from "./protocol-doi-scenarios.js";
 import { protocolDoiStateProblems, assertProtocolDoiOutputSafe } from "./protocol-doi-state.js";
 import { requestBodyText } from "./scenarios.js";
@@ -114,16 +114,8 @@ beforeAll(async () => {
     tables: expectedTables,
     columns: expectedColumns,
   };
-  snapshot = async () => {
-    const result: Record<string, Readonly<Record<string, unknown>>[]> = {};
-    for (const table of PUBLIC_SELECT_TABLES) {
-      const rows = await db.prisma.$queryRawUnsafe<
-        Array<{ rows: Readonly<Record<string, unknown>>[] }>
-      >(publicTableSnapshotSql(table));
-      result[table] = rows[0]!.rows;
-    }
-    return result;
-  };
+  // Each caller immediately applies safe() with the actual request Cookie capability pool.
+  snapshot = async () => readPublicSnapshot(db.prisma);
 });
 afterAll(async () => {
   vi.useRealTimers();

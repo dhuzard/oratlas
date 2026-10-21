@@ -1,3 +1,4 @@
+import { readPublicSnapshot } from "./public-snapshot.js";
 import { createNativeEvidenceGuard, type NativeEvidenceGuard } from "./native-evidence-guard.js";
 import { workerOutputProblems } from "./worker-capture-safety.js";
 import type { prisma as AppPrisma } from "@/lib/db";
@@ -13,7 +14,6 @@ import {
 import { PUBLIC_SELECT_TABLES } from "./sql.js";
 import { KNOWN_MUTATION_PROGRAM } from "./known-mutation-descriptor.js";
 import {
-  publicTableSnapshotSql,
   rowsById,
   knownPublicStateProblems,
   knownMutationLabel,
@@ -65,18 +65,9 @@ const snapshot = async () =>
     users: rowsById(await prisma.user.findMany({ orderBy: { id: "asc" } })),
     audit: rowsById(await prisma.auditEvent.findMany({ orderBy: { id: "asc" } })),
   });
-const publicSnapshot = async (): Promise<KnownPublicSqlState> => {
-  const state: Record<string, readonly Record<string, unknown>[]> = {};
-  for (const table of PUBLIC_SELECT_TABLES) {
-    const result = await prisma.$queryRawUnsafe<Array<{ rows: Record<string, unknown>[] }>>(
-      publicTableSnapshotSql(table),
-    );
-    if (result.length !== 1 || !Array.isArray(result[0]!.rows))
-      throw new Error("Invalid public snapshot result");
-    state[table] = result[0]!.rows;
-  }
-  return guard.value(state);
-};
+const publicSnapshot = async (): Promise<KnownPublicSqlState> =>
+  guard.value(await readPublicSnapshot(prisma));
+
 it("executes known-ID updates and proves complete rows unchanged after every denial/repeat", async () => {
   // Dedicated program initialized from the six base fixtures. Establish its one read marker
   // using the real handler; this spec is not appended to or a claim to execute1165 requests.
