@@ -204,3 +204,10 @@ These tests prove the **orchestrator logic and the contract it expects**. They d
    contention tests (for example on Postgres), including cross-instance key aliasing.
 3. Later, a separately reviewed live activation: route wiring, provider client, feature flag
    default off and kill switch, all behind the gates above.
+
+## Manual ORCID checksum and recognition follow-up
+
+[Manual ORCID recognition](manual-orcid-recognition.md) records the bounded #203
+checksum repair and disconnected injected recognition service. The manual route
+now rejects checksum-invalid profile inputs; API lookup remains unwired. This
+does not activate the identity-link orchestrator or complete S1.

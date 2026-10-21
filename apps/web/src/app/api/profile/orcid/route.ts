@@ -1,12 +1,12 @@
 import { z } from "zod";
-import { orcidSchema } from "@oratlas/contracts";
+import { manualOrcidSchema } from "@/lib/manual-orcid-recognition";
 import { setUserOrcid } from "@/lib/editorial-lifecycle";
 import { handleLifecyclePost } from "@/lib/editorial-api";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-const bodySchema = z.object({ orcid: orcidSchema.nullable() });
+const bodySchema = z.object({ orcid: manualOrcidSchema.nullable() });
 
 /**
  * Attach or clear the signed-in user's ORCID iD. Always stored unverified;

@@ -444,7 +444,12 @@ describe("private-workspace import guard (bounded static check, not complete T-I
     for (const name of ["buildEvidencePacket", "discussWithLlm"]) {
       expect(knowledge.has(name), name).toBe(false);
     }
-    for (const name of ["CREDIT_ROLES", "creditRoleSchema", "createVerifierSchema"]) {
+    for (const name of [
+      "CREDIT_ROLES",
+      "creditRoleSchema",
+      "createVerifierSchema",
+      "isChecksumValidOrcid",
+    ]) {
       expect(contracts.has(name), name).toBe(false);
     }
   });

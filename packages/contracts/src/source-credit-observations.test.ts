@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- documents are mutated to probe each rule */
 import { describe, expect, it } from "vitest";
+import { isChecksumValidOrcid } from "./identifiers.js";
 import {
   SOURCE_CREDIT_OBSERVATIONS_V2_VERSION,
   SOURCE_CREDIT_OBSERVATIONS_VERSION,
   SOURCE_CREDIT_PRODUCER_PINS,
-  isChecksumValidOrcid,
   sourceCreditEvidenceSchema,
   sourceCreditObservationsAnyVersionSchema,
   sourceCreditObservationsSchema,

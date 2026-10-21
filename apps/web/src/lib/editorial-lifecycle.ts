@@ -6,7 +6,6 @@ import {
   conflictOfInterestStatusSchema,
   decisionLetterBodySchema,
   formalReviewReportBodySchema,
-  orcidSchema,
   reviewRecommendationSchema,
   roundDecisionSchema,
   type AuthorResponseBody,
@@ -24,6 +23,7 @@ import { type Prisma } from "@oratlas/db";
 import { prisma } from "./db";
 import { prismaCode, withSqliteRetry as sharedWithSqliteRetry } from "./db-retry";
 import { sha256 } from "./hash";
+import { manualOrcidSchema } from "./manual-orcid-recognition";
 import {
   acceptSubmissionInTransaction,
   decideSubmissionInTransaction,
@@ -719,7 +719,7 @@ export async function issueDecision(
 
 /** Attach or clear the signed-in user's ORCID. Always recorded unverified. */
 export async function setUserOrcid(actor: Actor, orcid: string | null): Promise<void> {
-  const value = orcid === null ? null : orcidSchema.parse(orcid);
+  const value = orcid === null ? null : manualOrcidSchema.parse(orcid);
   await prisma.$transaction(async (tx) => {
     await tx.user.update({
       where: { id: actor.id },

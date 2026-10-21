@@ -703,3 +703,17 @@ function validationReport(): SubmissionValidationReport {
 function sha256(value: string): string {
   return createHash("sha256").update(value, "utf8").digest("hex");
 }
+
+it("rejects checksum-invalid profile ORCID before any user or audit write, while null still clears", async () => {
+  const before = await runtime.prisma.user.findUniqueOrThrow({ where: { id: reviewer.id } });
+  const count = await runtime.prisma.auditEvent.count();
+  await expect(runtime.lifecycle.setUserOrcid(reviewer, "0000-0002-1825-0098")).rejects.toThrow();
+  expect(await runtime.prisma.user.findUniqueOrThrow({ where: { id: reviewer.id } })).toEqual(
+    before,
+  );
+  expect(await runtime.prisma.auditEvent.count()).toBe(count);
+  await runtime.lifecycle.setUserOrcid(reviewer, null);
+  const cleared = await runtime.prisma.user.findUniqueOrThrow({ where: { id: reviewer.id } });
+  expect(cleared.orcid).toBeNull();
+  expect(cleared.orcidVerifiedAt).toBeNull();
+});
