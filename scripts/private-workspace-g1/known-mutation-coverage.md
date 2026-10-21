@@ -1,6 +1,6 @@
 # Known-ID mutation batch and native-clock proposal
 
-The deterministic program is an additive candidate starting after the reviewed 1165-record program on `9cb7e7534ed7560fc6bab2e002a2581a472422a1`. It introduces no fixtures or production changes, and therefore changes no earlier request's initial dataset. Root integration owns shared loaders, named state checkpoints, ordering, repeated captures and golden review.
+The deterministic program is a dedicated 62-request candidate initialized independently from the six reviewed base fixtures on `9cb7e7534ed7560fc6bab2e002a2581a472422a1`. It introduces no fixtures or production changes and is not appended to the earlier 1165-record program. Its real-handler prefix establishes one read notification. Root integration owns the parent catalog, fixture resets, four-run invocation and golden review.
 
 ## Implemented deterministic subset
 
@@ -10,7 +10,11 @@ Comment DELETE runs all six principals against missing targets, origin controls 
 
 The opt-in probe first establishes the earlier program's one read notification using the real POST handler. It does not claim to execute all 1165 prior records. After every candidate request, it checks complete comment, user, notification and audit rows. Only the expected five readAt fields change to the fixed JS Date. Every denial and comment idempotent repeat preserves complete rows, including ReviewComment.updatedAt and retained body bytes. There is no new audit row, and no generated audit ID/time is excluded by this subset's checks. Sidecars contain synthetic internal fixture bodies and are not public HTTP results.
 
-The standalone runtime role is NOINHERIT, nonsuperuser, with no role memberships or owned relations. Its only write grant is Notification.readAt; table reads are User, Notification, ReviewComment, Review, ReviewVersion, Claim, AuditEvent and RepositorySnapshot. The last SELECT was required by the real comment reader's snapshot commit lookup. It has no comment UPDATE, INSERT, DDL or credential-table grant. All database targets are isolated and synthetic, external HTTP is blocked, and the child accepts the existing closed public environment.
+The standalone runtime role is NOINHERIT, nonsuperuser, with no role memberships or owned relations. Its only write grant is Notification.readAt. The upgraded dedicated spec uses the entire current PUBLIC_SELECT_TABLES closure (64 tables at this source base); no additional read tables beyond that reviewed closure are requested. It has no comment UPDATE, INSERT, DDL or credential-table grant. All database targets are isolated and synthetic, external HTTP is blocked, and the child accepts the existing closed public environment.
+
+Alongside the four-table ORM checks, the spec snapshots every column of every public-readable table before the prefix, after the prefix and after each of the 62 requests. PostgreSQL orders `json_agg(to_jsonb(t))` by each full row's text under COLLATE "C". The only allowed changes are the exact PostgreSQL JSON representation of the fixed Notification.readAt value: once in the prefix and once for each of five later owner actions. Every other row/field remains exact. The complete snapshots are retained in a stable sidecar; no generated field is removed. Offline controls reject unrelated fields/tables, extra/missing rows, duplicate/already-read targets, incomplete inventories and unsafe table names.
+
+The parent supplies G1_KNOWN_MUTATION_OUT and a validated G1_CAPTURE_LABEL. Capture validation runs before either output file is written. known-mutation-descriptor.ts exports the fixed spec/output variable/scenarios and a zero row-count delta for every public table. These descriptors do not implement orchestration or change any acceptance gate.
 
 ## Proposed fresh-removal evidence: disabled pending review
 

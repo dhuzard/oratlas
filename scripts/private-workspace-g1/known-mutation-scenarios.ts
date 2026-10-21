@@ -66,7 +66,7 @@ function add(scenario: HttpScenario) {
   steps.push({ scenario, newlyRead: [...readIds] });
 }
 
-// Appended after the reviewed1165 program: A-only-1 is already read, all five targets remain unread.
+// Dedicated program: its real-handler prefix reads A-only-1; all five targets remain unread.
 for (const principal of PRINCIPAL_LABELS) {
   const label = principal.toLowerCase().replaceAll("+", "-and-");
   const own =
