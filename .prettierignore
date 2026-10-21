@@ -14,3 +14,6 @@ packages/knowledge/src/fixtures/source-credit-interop
 
 # Exact bytes captured from pinned public producers; digests are contractual.
 scripts/producer-contracts/fixtures/**
+
+# Frozen producer descriptor bytes and their reviewed golden projections.
+packages/knowledge/src/fixtures/research-project-descriptors/**

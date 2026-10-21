@@ -168,8 +168,8 @@ const PUBLIC_APP_ROOT = "apps/web/src";
 /** Future private-scoped app locations (ADR-0001 §5.1). Neither exists yet. */
 const PRIVATE_APP_PATH = /^apps\/web\/src\/(?:lib\/private|app\/api\/private)(?:\/|$)/u;
 const PRIVATE_MODULE_PATHS = [
-  /^packages\/knowledge\/src\/(?:private-research-credit|source-credit-[a-z0-9-]+)$/u,
-  /^packages\/contracts\/src\/(?:private-research-credit|source-credit-observations)$/u,
+  /^packages\/knowledge\/src\/(?:private-research-credit|research-project-descriptors|source-credit-[a-z0-9-]+)$/u,
+  /^packages\/contracts\/src\/(?:private-research-credit|research-project-descriptors|source-credit-observations)$/u,
   /^packages\/private-workspace(?:\/|$)/u,
   PRIVATE_APP_PATH,
 ];
@@ -424,6 +424,8 @@ describe("private-workspace import guard (bounded static check, not complete T-I
     const contracts = barrels.get("@oratlas/contracts")!;
     for (const name of [
       "projectPersonalResearchCredit",
+      "adaptCRTProjectDescriptor",
+      "researchArtifactIdentity",
       "AuthorizePrivateResearchProject",
       "adaptDiggypaperCredit",
       "adaptCRTContributorship",
@@ -434,6 +436,8 @@ describe("private-workspace import guard (bounded static check, not complete T-I
     }
     for (const name of [
       "privateCrossFindingSchema",
+      "researchProjectDescriptorSchema",
+      "ResearchProjectDescriptor",
       "PrivateCrossFinding",
       "CREDIT_ROLE_LABELS",
       "sourceCreditObservationsSchema",
@@ -470,6 +474,14 @@ describe("private-workspace import guard (bounded static check, not complete T-I
   it.each([
     ["named projector", `import { projectPersonalResearchCredit } from "@oratlas/knowledge";`],
     ["aliased adapter", `import { adaptOrcidRoster as roster } from "@oratlas/knowledge";`],
+    [
+      "descriptor direct import",
+      `import { adaptCRTProjectDescriptor } from "@oratlas/knowledge/src/research-project-descriptors.js";`,
+    ],
+    [
+      "descriptor barrel import",
+      `import { researchProjectDescriptorSchema } from "@oratlas/contracts";`,
+    ],
     ["type-only import", `import type { PrivateCrossFinding } from "@oratlas/contracts";`],
     [
       "inline type specifier",

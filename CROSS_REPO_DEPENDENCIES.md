@@ -112,6 +112,22 @@ only in local capture scripts (ORA-K02).
   references #221 without asserting full cross-language acceptance or closing it.
 - Drift requires a reviewed new capture and explicit pin change, never automatic updates.
 
+## 6. CRT private project descriptor — offline observations (#206)
+
+- Repository `Neuronautix/ComputationalReviewTemplate_trust-knowledge`, immutable id
+  `1292018500`; commit `3092657a59d27fa14ab2d777568b10e5e5c6a075` (producer PR #22).
+- Native contract `research-project-artifacts/0.1`; exact synthetic descriptor,
+  schema, MIT license and fixture byte digests are recorded in
+  `packages/knowledge/src/fixtures/research-project-descriptors/pins.json`.
+- The offline adapter emits only
+  `oratlas.research-project-descriptor-observations/0.1.0`, with no access effect.
+  Source commits, artifact bytes, rights and clearance remain declarations, not
+  verified source grants. See `docs/private-project-descriptor-observations.md`.
+- The Diggypaper reference is an explicitly synthetic neutral fixture, not an
+  implemented #53 export or a second verified connector. No native pin is invented.
+- This pin is additive to the review/credit pins above. Updates require a deliberate
+  reviewed recapture, never reinterpreting earlier fixtures or private source rights.
+
 ## Consumption principles (all upstreams)
 
 1. Conventions in, never code in: ORAtlas reads file layouts and record formats; it does not
