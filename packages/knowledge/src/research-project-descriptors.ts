@@ -95,10 +95,15 @@ export function adaptCRTProjectDescriptor(
   raw: Uint8Array,
   expectedSha256: string,
 ): ResearchProjectDescriptor {
+  if (!(raw instanceof Uint8Array)) throw new ResearchProjectDescriptorError("source-invalid");
   if (raw.byteLength > MAX_PROJECT_DESCRIPTOR_BYTES)
     throw new ResearchProjectDescriptorError("source-oversize");
   const sourceDigest = "sha256:" + createHash("sha256").update(raw).digest("hex");
-  if (!/^sha256:[a-f0-9]{64}$/u.test(expectedSha256) || sourceDigest !== expectedSha256) {
+  if (
+    typeof expectedSha256 !== "string" ||
+    !/^sha256:[a-f0-9]{64}$/u.test(expectedSha256) ||
+    sourceDigest !== expectedSha256
+  ) {
     throw new ResearchProjectDescriptorError("source-digest-mismatch");
   }
   let value: unknown;
@@ -178,7 +183,9 @@ export function researchArtifactIdentity(
   descriptor: ResearchProjectDescriptor,
   artifactId: string,
 ): string {
-  const parsed = researchProjectDescriptorSchema.parse(descriptor);
+  const validated = researchProjectDescriptorSchema.safeParse(descriptor);
+  if (!validated.success) throw new ResearchProjectDescriptorError("source-incompatible");
+  const parsed = validated.data;
   const artifact = parsed.artifacts.find((item) => item.artifactId === artifactId);
   if (!artifact) throw new ResearchProjectDescriptorError("source-incompatible");
   return JSON.stringify([

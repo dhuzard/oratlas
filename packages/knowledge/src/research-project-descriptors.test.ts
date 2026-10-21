@@ -146,6 +146,9 @@ describe("private research-project descriptor observations (#206)", () => {
 
   it("rejects changed bytes, oversized/invalid payloads with metadata-free errors", () => {
     const raw = bytes("crt/descriptor.private.json");
+    expect(() => adaptCRTProjectDescriptor(null as unknown as Uint8Array, sha(raw))).toThrow(
+      /^source-invalid$/,
+    );
     expect(() =>
       adaptCRTProjectDescriptor(Buffer.concat([raw, Buffer.from(" ")]), sha(raw)),
     ).toThrow(/^source-digest-mismatch$/);
@@ -209,5 +212,7 @@ describe("private research-project descriptor observations (#206)", () => {
       );
     }
     expect(() => researchArtifactIdentity(crt, "absent")).toThrow("source-incompatible");
+    const malformed = { ...crt, accessEffect: "synthetic-private-secret" } as unknown as typeof crt;
+    expect(() => researchArtifactIdentity(malformed, "draft")).toThrow(/^source-incompatible$/);
   });
 });
