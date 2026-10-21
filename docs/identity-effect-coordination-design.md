@@ -5,8 +5,9 @@ transport adapter is implemented.** This supplements the durable transaction
 protocol in `identity-persistence-session-design.md` §4 and addresses its §5
 ordering questions. It supplies a concrete, deliberately single-authority
 reference topology. It does not pass G1, activate routes/providers or establish
-production readiness. Owner policy choices are recorded separately by the
-coordinator; this document does not ratify policy or retention periods.
+production readiness. The [owner register](private-workspace-owner-decisions.md#follow-up-decisions-approved-2026-10-21)
+records the approved 2026-10-21 server-session/epoch, lifecycle and synthetic-only
+choices. This document does not choose retention periods or authorize activation.
 
 ## Boundary and achievable guarantee
 
@@ -95,6 +96,25 @@ An ordinary application callback, Promise resolution, HTTP response object,
 local buffer enqueue or socket close request is not assumed to provide that
 proof. If the chosen HTTP/proxy stack cannot provide it, that adapter remains a
 production blocker. No generic database/network atomicity is asserted.
+
+## Deadline and clock contract
+
+The authority checks the current authoritative clock immediately before each
+actual handoff, against the minimum session/flow/operation deadline. Queue
+admission and a clock sample taken before preparation are insufficient. A future
+adapter must specify its clock source and bound its skew relative to the DB
+clock used by §4. Unknown clock health or exceeded skew fails closed. No skew
+bound or timeout value is invented or implemented by this design.
+
+Epoch ordering comes from the shared authority, whereas expiry is wall-clock
+based. There is unavoidable latency between the final clock sample and the
+actual transport handoff (and between a final DB deadline check and commit).
+This design does not promise zero-time DB/network expiry atomicity. The
+transport review must state and test its bounded deadline-check/handoff latency,
+including stalls; an unbounded stall cannot inherit an earlier successful
+check. Multi-stage handoffs require renewed checks and the separate streaming
+contract, rather than an implicit indefinitely valid permit. No implementation
+or production expiry guarantee is claimed by these proposed requirements.
 
 ## Database uncertainty, process failure and multiple instances
 

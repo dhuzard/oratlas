@@ -72,7 +72,15 @@ describe("disconnected v2 session instance contracts", () => {
       { ...row, role: "ADMIN" },
     ])
       expect(read(value)).toBeNull();
-    for (const value of [null, {}, "", `${token}x`, token.replace("v2.", "v3."), `${token}\n`])
+    for (const value of [
+      null,
+      {},
+      "",
+      `${token}x`,
+      token.replace("v2.", "v3."),
+      `v2.${"a".repeat(254)}`,
+      `${token}\n`,
+    ])
       expect(validateSessionInstanceToken(value, row, principal, secret, now)).toBeNull();
     expect(validateSessionInstanceToken(token, row, principal, "wrong", now)).toBeNull();
     expect(validateSessionInstanceToken(token, row, principal, "", now)).toBeNull();
