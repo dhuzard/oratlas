@@ -167,7 +167,7 @@ beforeAll(async () => {
   expect(sorted(posture.tables)).toEqual(sorted(tables));
   expect(sorted(posture.columns)).toEqual([...new Set(sorted(columns))]);
   authorityScope = {
-    roleContract: "isolated-public-runtime-plus-eight-resolver-columns",
+    roleContract: "public-runtime",
     tables: sorted(tables),
     columns: [...new Set(sorted(columns))],
   };

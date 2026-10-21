@@ -247,7 +247,7 @@ export const FEDERATION_RESOLUTION_SCENARIOS: readonly FederationResolutionScena
   ...observations,
 ];
 
-/** Unregistered standalone descriptor. Activation/grants/four-label golden require separate review. */
+/** Fixed native program; every activation still requires four-label evidence and manual golden review. */
 export const FEDERATION_RESOLUTION_PROGRAM: SupplementalProgram = {
   name: "federation-resolutions",
   spec: "federation-resolution.g1.spec.ts",

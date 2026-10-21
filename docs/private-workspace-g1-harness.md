@@ -87,12 +87,12 @@ requires its own final-head CI; neither result completes G1.
 
 ## Implementation record (G1-empty, partial)
 
-Status: **G1-empty harness implemented with partial coverage. Nine separately reset programs
-declare 2,594 records (2,577 HTTP, 15 state and two metadata), spanning 89 of the
-133 public route files and 94 of 143 exported methods. All 94 declared methods
+Status: **G1-empty harness implemented with partial coverage. Eleven separately reset programs
+declare 2,814 records (2,797 HTTP, 15 state and two metadata), spanning 92 of the
+133 public route files and 97 of 143 exported methods. All 97 declared methods
 include six user/session cases; four worker GETs also have independent credential
 and lease positives. The index consumer has its own four-label capture. The
-other 44 files / 49 methods, OAuth success and integrated real Next HTTP serving
+other 41 files / 46 methods, OAuth success and integrated real Next HTTP serving
 remain G1 gaps. Operational channels and timing are separately tracked against
 their applicable later gates, as specified above and in ADR §13. Populated
 T-ROLE/T-PUB remains later. G1 is not passed.**
@@ -100,9 +100,10 @@ T-ROLE/T-PUB remains later. G1 is not passed.**
 The worker artifact supplement declares 379 native requests over four methods,
 including one completion of an already uploaded artifact and exact replays. Its
 own reset adds 52 rows (37 established worker rows and 15 native artifact/history
-rows) and the recorded setup credential timestamp. The shared role gains only
-`VerificationArtifact.status` and `completedAt` column UPDATE, for 16 permitted
-UPDATE columns overall; table SELECT/INSERT authority is unchanged. Existing
+rows) and the recorded setup credential timestamp. At that stage the shared role gained only
+`VerificationArtifact.status` and `completedAt` column UPDATE, reaching 16 permitted
+UPDATE columns. The proposal-resolution stage below adds 12 explicitly listed columns;
+table SELECT/INSERT authority remains unchanged. Existing
 programs must be recaptured under that measured authority. Public HTTP/index data
 and complete public rows must stay unchanged; separately reviewed authority
 metadata is retained rather than omitted to keep old state hashes. See the
@@ -118,8 +119,17 @@ Only absent AuditEvent id/time inputs are fixed through the separately reviewed
 real Prisma extension; all native constraints and existing grants remain in force.
 See the [protocol/DOI probe](private-workspace-protocol-doi-probe.md) and
 [audit-revocation probe](private-workspace-audit-revocations.md). Independent review accepted both four-label candidates executed at `bef4f82`; only the two
-review annotations were changed during manual baseline acceptance. The final run with complete
-disclosure guards and batched test snapshots remains required.
+review annotations were changed during manual baseline acceptance. Final head `54b1e24` passed all five required workflows, including all 210 native checks
+and four cleanup checks, before merge in #238. This remains partial G1 evidence.
+
+The proposal-resolution stage declares 132 protocol/monitoring requests and 88 federation
+requests, including native first successes and public federation observers. Its measured
+test-runtime authority adds only status/resolver/note/time UPDATE columns on the three
+existing proposal/notification tables, bringing the explicit column count to 28. Independent
+standalone native proofs precede the shared four-label run and manual candidate review.
+No previous HTTP payload or public row may change from these grant additions; any old
+state-golden hash update must independently prove that only the twelve authority metadata
+entries changed. See [the proposal-resolution integration](private-workspace-proposal-resolution.md).
 
 ### Layout
 

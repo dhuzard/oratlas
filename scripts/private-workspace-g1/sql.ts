@@ -368,6 +368,22 @@ export const PUBLIC_TABLE_GRANTS = [
 /** Column-only UPDATE grants; table-level UPDATE is never granted. */
 export const PUBLIC_COLUMN_UPDATE_GRANTS = [
   {
+    table: "ProtocolDriftProposal",
+    columns: ["status", "resolvedById", "resolutionNote", "resolvedAt"],
+    reason: "native existing protocol proposal resolution; no creation or other update grant",
+  },
+  {
+    table: "ClaimUpdateProposal",
+    columns: ["status", "resolvedById", "resolutionNote", "resolvedAt"],
+    reason: "native existing citation proposal resolution; no creation or other update grant",
+  },
+  {
+    table: "FederationNotification",
+    columns: ["status", "resolutionNote", "resolvedById", "resolvedAt"],
+    reason:
+      "native existing pending inbound federation resolution; no publication or creation grant",
+  },
+  {
     table: "VerificationArtifact",
     columns: ["status", "completedAt"],
     reason: "native existing uploaded artifact completion; no artifact creation or upload grant",

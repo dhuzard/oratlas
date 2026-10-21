@@ -7,7 +7,6 @@ import {
   G1_BASE_URL,
   G1_FIXED_CLOCK,
   G1_CAPTURE_VERSION,
-  captureHttp,
   bodyText,
   type HttpRecord,
   type CaptureFile,
@@ -244,7 +243,7 @@ it("captures native existing pending federation decisions and raw public observe
       throw Error("Federation resolution response UTF-8 refused");
     }
     guard({ headers: Object.fromEntries(response.headers), body: responseBody });
-    const recorded = await captureHttp(
+    const recorded = await evidence.capture(
       {
         id: scenario.id,
         method: scenario.method,
