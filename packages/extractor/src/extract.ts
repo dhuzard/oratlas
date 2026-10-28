@@ -1,5 +1,6 @@
 import {
   extractedMetadataSchema,
+  httpsUrlSchema,
   type ExtractedMetadata,
   type ExtractionSource,
   type FieldProvenance,
@@ -46,6 +47,7 @@ const FIELD_KEYS = [
   "authors",
 ] as const;
 type FieldKey = (typeof FIELD_KEYS)[number];
+const URL_FIELD_KEYS: ReadonlySet<FieldKey> = new Set(["repositoryUrl", "publishedReviewUrl"]);
 
 function fileContent(
   report: InspectionReport,
@@ -177,6 +179,12 @@ export function extractMetadata(
       const value = (run.parsed as unknown as Record<string, unknown>)[key];
       if (value === undefined || value === null) continue;
       if (Array.isArray(value) && value.length === 0) continue;
+      // Untrusted URL values (e.g. an empty or http:// GitHub homepage) must not fail the
+      // whole extraction; skip them so a lower-priority source can still supply the field.
+      if (URL_FIELD_KEYS.has(key) && !httpsUrlSchema.safeParse(value).success) {
+        if (value !== "") warnings.push(`[${run.source}] Ignored ${key}: not an https:// URL.`);
+        continue;
+      }
       fields[key] = {
         value,
         provenance: {
