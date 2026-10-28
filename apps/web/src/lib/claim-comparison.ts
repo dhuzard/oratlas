@@ -13,6 +13,12 @@ import {
 import { prisma } from "./db";
 import { CanonicalGraphQueryError, queryCanonicalGraph } from "./canonical-graph-query";
 import { isReadablePublicState } from "./review-lifecycle";
+import {
+  parseClaimComparisonReference,
+  type ExactClaimComparisonReference as ExactReference,
+} from "./claim-comparison-selection";
+
+export { parseClaimComparisonReference } from "./claim-comparison-selection";
 
 export const CLAIM_COMPARISON_EVIDENCE_LIMIT = 25;
 
@@ -58,41 +64,6 @@ export interface PublicClaimComparison {
   relationships: CanonicalGraphEdge[];
   sharedSourceFacts: string[];
   limitations: string[];
-}
-
-type ExactReference =
-  | { kind: "review"; versionId: string; localClaimId: string }
-  | { kind: "external"; occurrenceId: string }
-  | { kind: "node"; nodeId: string; nodeVersionId: string };
-
-/** Local exact-version paths only: no external fetch, latest alias or inferred identity. */
-export function parseClaimComparisonReference(reference: string): ExactReference | null {
-  if (reference.length > 1600 || /[?#\\]/.test(reference)) return null;
-  const match = /^\/claims\/([^/]+)\/([^/]+)$/.exec(reference);
-  const node = /^\/nodes\/([^/]+)\/versions\/([^/]+)$/.exec(reference);
-  const external = /^\/api\/publication-claim-occurrences\/([^/]+)$/.exec(reference);
-  if (!match && !node && !external) return null;
-  try {
-    const parts = (match ?? node ?? external)!.slice(1).map(decodeURIComponent);
-    if (
-      parts.some(
-        (part) =>
-          !part ||
-          part.length > 300 ||
-          /[/\\]/.test(part) ||
-          [...part].some((character) => character.charCodeAt(0) < 32),
-      )
-    ) {
-      return null;
-    }
-    return external
-      ? { kind: "external", occurrenceId: parts[0]! }
-      : match
-        ? { kind: "review", versionId: parts[0]!, localClaimId: parts[1]! }
-        : { kind: "node", nodeId: parts[0]!, nodeVersionId: parts[1]! };
-  } catch {
-    return null;
-  }
 }
 
 export function claimComparisonHref(left: string, right: string): string {
@@ -343,6 +314,12 @@ async function readExternalClaim(
   };
 }
 
+/** Revalidate one exact public selection on every request, without resolving a latest alias. */
+export async function getPublicComparisonClaim(reference: string): Promise<ComparisonClaim | null> {
+  const parsed = parseClaimComparisonReference(reference);
+  return parsed ? readClaim(parsed) : null;
+}
+
 /** Internal UI composition only. Does not publish a new API or write graph decisions. */
 export async function getPublicClaimComparison(
   left: string,
@@ -353,6 +330,8 @@ export async function getPublicClaimComparison(
   if (!leftRef || !rightRef) return null;
   const [a, b] = await Promise.all([readClaim(leftRef), readClaim(rightRef)]);
   if (!a || !b) return null;
+  if (a.source.type === b.source.type && a.source.occurrenceId === b.source.occurrenceId)
+    return null;
   const graph = a.canonical
     ? await readExactGraph(a.canonical.nodeId, a.canonical.nodeVersionId)
     : null;

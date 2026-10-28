@@ -3169,3 +3169,12 @@ table.data td {
     text-align: left;
   }
 }
+.claim-comparison-selection {
+  min-width: 0;
+  margin-block: 1rem;
+  overflow-wrap: anywhere;
+}
+
+.claim-comparison-selection h2 {
+  font-size: 1.2rem;
+}

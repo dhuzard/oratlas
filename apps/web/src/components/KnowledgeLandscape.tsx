@@ -1,6 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { ClaimComparisonAction } from "@/components/ClaimComparisonSelection";
+import {
+  withClaimComparisonSelection,
+  type ClaimComparisonSelection,
+} from "@/lib/claim-comparison-selection";
 import type { KnowledgeRecommendationAnchor } from "@oratlas/contracts";
 import type {
   KnowledgeLandscapeData,
@@ -68,6 +73,8 @@ export function KnowledgeLandscape({
   focusedGraphNodeId,
   clearFiltersHref,
   exampleHref = "/explore?q=replay",
+  comparisonSelection = {},
+  comparisonCurrentHref = "/explore",
 }: {
   landscape: KnowledgeLandscapeData;
   focus: string;
@@ -81,6 +88,8 @@ export function KnowledgeLandscape({
   focusedGraphNodeId?: string;
   clearFiltersHref?: string;
   exampleHref?: string;
+  comparisonSelection?: ClaimComparisonSelection;
+  comparisonCurrentHref?: string;
 }) {
   const [highlightedNodeIds, setHighlightedNodeIds] = useState<Set<string>>(new Set());
   const visualRef = useRef<HTMLDivElement>(null);
@@ -341,6 +350,8 @@ export function KnowledgeLandscape({
                 {kindNodes.map((node) => (
                   <LandscapeDetail
                     node={node}
+                    comparisonSelection={comparisonSelection}
+                    comparisonCurrentHref={comparisonCurrentHref}
                     highlightedNodeIds={highlightedNodeIds}
                     focused={
                       focusedGraphNodeId
@@ -400,6 +411,8 @@ function LandscapeDetail({
   anchors,
   knownNodeIds,
   labelByGraphNodeVersionId,
+  comparisonSelection,
+  comparisonCurrentHref,
 }: {
   node: KnowledgeLandscapeNode;
   highlightedNodeIds: ReadonlySet<string>;
@@ -410,6 +423,8 @@ function LandscapeDetail({
   anchors: readonly KnowledgeRecommendationAnchor[];
   knownNodeIds: readonly string[];
   labelByGraphNodeVersionId: Readonly<Record<string, string>>;
+  comparisonSelection: ClaimComparisonSelection;
+  comparisonCurrentHref: string;
 }) {
   const anchorCount = new Set(anchors.map((anchor) => anchor.knownNodeId)).size;
   const isDisconnectedNewcomer = Boolean(
@@ -431,7 +446,15 @@ function LandscapeDetail({
     .join(" ");
   return (
     <li className={className || undefined}>
-      <a className="landscape-primary-link" href={node.href} title={node.label}>
+      <a
+        className="landscape-primary-link"
+        href={
+          node.kind === "claim"
+            ? withClaimComparisonSelection(node.href, comparisonSelection)
+            : node.href
+        }
+        title={node.label}
+      >
         {node.label}
       </a>
       <small>{node.detail}</small>
@@ -468,6 +491,13 @@ function LandscapeDetail({
         </ul>
       </details>
       <div className="landscape-detail-actions">
+        {node.kind === "claim" && node.href.startsWith("/claims/") ? (
+          <ClaimComparisonAction
+            reference={node.href}
+            selection={comparisonSelection}
+            currentHref={comparisonCurrentHref}
+          />
+        ) : null}
         {node.graphRecordHref && node.graphRecordHref !== node.href ? (
           <a className="landscape-record-link" href={node.graphRecordHref}>
             Inspect exact graph version
