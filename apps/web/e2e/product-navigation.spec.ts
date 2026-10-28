@@ -87,3 +87,10 @@ test("Sources keeps the supported source handoffs explicit", async ({ page }) =>
     "/connect",
   );
 });
+
+test("Find claims collection links wrap within a narrow viewport", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/explore");
+  await expect(page.getByRole("navigation", { name: "Complete scholarly indexes" })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
