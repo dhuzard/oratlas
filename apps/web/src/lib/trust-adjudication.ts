@@ -256,7 +256,7 @@ async function loadHistoricalAssessmentState(
       const group = buildGroup({
         subjectType: "claim-citation",
         subjectId: first.claimEvidenceRelationId,
-        subjectHref: `/reviews/${first.relation.claim.reviewVersion.review.slug}#claim-${encodeURIComponent(first.relation.claim.localClaimId)}`,
+        subjectHref: `/claims/${encodeURIComponent(first.relation.claim.reviewVersionId)}/${encodeURIComponent(first.relation.claim.localClaimId)}`,
         subjectLabel: `${first.relation.claim.localClaimId} ↔ ${first.relation.citation.localCitationId}`,
         protocolVersion: adjudication.protocolVersion,
         assessments: rows.map((row) => {
@@ -434,7 +434,7 @@ async function loadGroups(
       buildGroup({
         subjectType: "claim-citation",
         subjectId: row.claimEvidenceRelationId,
-        subjectHref: `/reviews/${row.relation.claim.reviewVersion.review.slug}#claim-${encodeURIComponent(row.relation.claim.localClaimId)}`,
+        subjectHref: `/claims/${encodeURIComponent(row.relation.claim.reviewVersionId)}/${encodeURIComponent(row.relation.claim.localClaimId)}`,
         subjectLabel: `${row.relation.claim.localClaimId} ↔ ${row.relation.citation.localCitationId}`,
         protocolVersion: row.protocolVersion,
         assessments: [],

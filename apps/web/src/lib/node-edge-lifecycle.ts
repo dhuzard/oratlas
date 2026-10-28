@@ -552,6 +552,8 @@ export async function listPendingNodeEdgeProposals() {
         rationale: row.rationale ?? "No rationale supplied.",
         source: {
           id: row.sourceNodeVersion.knowledgeNode.id,
+          nodeVersionId: row.sourceNodeVersionId,
+          exactHref: `/graph/occurrences/${encodeURIComponent(row.sourceNodeVersion.knowledgeNode.id)}/versions/${encodeURIComponent(row.sourceNodeVersionId)}`,
           localNodeId: row.sourceNodeVersion.knowledgeNode.localNodeId,
           title:
             row.sourceNodeVersion.title ??
@@ -561,6 +563,8 @@ export async function listPendingNodeEdgeProposals() {
         },
         target: {
           id: row.targetNodeVersion.knowledgeNode.id,
+          nodeVersionId: row.targetNodeVersionId,
+          exactHref: `/graph/occurrences/${encodeURIComponent(row.targetNodeVersion.knowledgeNode.id)}/versions/${encodeURIComponent(row.targetNodeVersionId)}`,
           localNodeId: row.targetNodeVersion.knowledgeNode.localNodeId,
           title:
             row.targetNodeVersion.title ??

@@ -3,6 +3,7 @@ import { type Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Badge, Card, Notice } from "@oratlas/ui";
 import { ExactPairReferences } from "@/components/ExactPairReferences";
+import { ContextualRecordActions } from "@/components/ContextualRecordActions";
 import { getPublicClaimComparison } from "@/lib/claim-comparison";
 import styles from "./page.module.css";
 
@@ -141,6 +142,11 @@ export default async function ClaimComparisonPage({
                 </li>
               ))}
             </ul>
+            <ContextualRecordActions
+              sourceType={side.source.type}
+              sourceHref={side.source.href}
+              reference={side.reference}
+            />
             <p className="muted">
               {side.evidenceTruncated
                 ? "Evidence list truncated; additional records may exist."
@@ -212,6 +218,9 @@ export default async function ClaimComparisonPage({
           2,
         )}
       />
+      <p>
+        <Link href="/api-docs#two-record-recipe">Read and reuse this evidence through REST</Link>
+      </p>
     </article>
   );
 }

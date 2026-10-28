@@ -10,8 +10,8 @@ interface Proposal {
   signals: string[];
   textSimilarity?: number;
   methodVersion: string;
-  source: { localNodeId: string; title: string; repository: string };
-  target: { localNodeId: string; title: string; repository: string };
+  source: { nodeId: string; localNodeId: string; title: string; repository: string };
+  target: { nodeId: string; localNodeId: string; title: string; repository: string };
 }
 
 export function NodeIdentityProposalPanel({ proposals }: { proposals: Proposal[] }) {
@@ -54,6 +54,22 @@ export function NodeIdentityProposalPanel({ proposals }: { proposals: Proposal[]
           </p>
           <p className="muted">
             {proposal.source.repository} ↔ {proposal.target.repository}
+          </p>
+          <nav
+            className="btn-row"
+            aria-label={`Stable identity context for proposal ${proposal.id}`}
+          >
+            <a href={`/nodes/${encodeURIComponent(proposal.source.nodeId)}`}>
+              Inspect source stable node
+            </a>
+            <a href={`/nodes/${encodeURIComponent(proposal.target.nodeId)}`}>
+              Inspect target stable node
+            </a>
+          </nav>
+          <p className="muted">
+            This identity proposal concerns two separate stable nodes. Titles reflect their current
+            records, not frozen evidence for an exact-version relation. Confirmation does not merge
+            their histories or transfer assessments.
           </p>
           <div className="btn-row">
             <input

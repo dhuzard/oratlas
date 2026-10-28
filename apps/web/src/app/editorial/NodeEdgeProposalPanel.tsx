@@ -10,8 +10,20 @@ interface Proposal {
   origin: string;
   relationType: string;
   rationale: string;
-  source: { localNodeId: string; title: string; repository: string };
-  target: { localNodeId: string; title: string; repository: string };
+  source: {
+    localNodeId: string;
+    title: string;
+    repository: string;
+    nodeVersionId: string;
+    exactHref: string;
+  };
+  target: {
+    localNodeId: string;
+    title: string;
+    repository: string;
+    nodeVersionId: string;
+    exactHref: string;
+  };
   agentRunId?: string;
 }
 
@@ -48,6 +60,17 @@ export function NodeEdgeProposalPanel({ proposals }: { proposals: Proposal[] }) 
             <span className="mono">{proposal.target.localNodeId}</span> ({proposal.target.title})
           </p>
           <p>{proposal.rationale}</p>
+          <nav className="btn-row" aria-label={`Exact context for proposal ${proposal.id}`}>
+            <a href={proposal.source.exactHref}>Inspect source exact version</a>
+            <a href={proposal.target.exactHref}>Inspect target exact version</a>
+          </nav>
+          <p className="mono muted">
+            {proposal.source.nodeVersionId} → {proposal.target.nodeVersionId}
+          </p>
+          <p className="muted">
+            Inspect both occurrences before deciding. Confirmation applies to this proposed relation
+            between these versions; it does not establish scientific correctness.
+          </p>
           <p className="muted">
             {proposal.source.repository} → {proposal.target.repository}
             {proposal.agentRunId ? ` · AgentRun ${proposal.agentRunId}` : ""}

@@ -1,6 +1,6 @@
 # Measurable validation
 
-This is a proposed evaluation, not a report of user outcomes. Existing repository [first-reader protocol](../../first-time-exploration-evaluation.md) has no participant results inspected here. Local browser checks prove rendered behavior only. V/I/H: [01](01-product-diagnosis.md).
+This is a proposed evaluation, not a report of user outcomes. Existing repository [first-reader protocol](../../first-time-exploration-evaluation.md) has no participant results inspected here. Local browser checks prove rendered behavior only. V/I/H: [01](01-product-diagnosis.md). A concrete, not-yet-run comparison session protocol and blank local artifact are in [comparison-study-protocol.md](comparison-study-protocol.md) and [comparison-study-template.json](comparison-study-template.json).
 
 ## Operational definitions
 
@@ -37,11 +37,11 @@ Use a small adjudicated comparison set with two domain reviewers and preserved d
 
 In particular, test that the new UI never infers evidence independence from missing overlap metadata and never promotes a machine suggestion to a confirmed relation. Exact provenance checks can be automated; semantic judgments cannot be reduced to hash matching.
 
-## Lightweight study: seven participants
+## Lightweight study: five to eight participants
 
-Recruit four scientists who synthesize literature, two research leads/review collaborators and one researcher/developer who regularly uses an external AI client. At least five should be new to ORAtlas. This is a recruitment target, not completed research. Use public/synthetic content; no sensitive project import or hosted private-workspace trial.
+Recruit four scientists who synthesize literature, two research leads/review collaborators and one researcher/developer who regularly uses an external AI client; a smaller pilot may recruit five, while retaining at least three literature synthesizers, one research lead and one external-AI user if available. At least five should be new to ORAtlas. This is a recruitment target, not completed research. Use public/synthetic content; no sensitive project import or hosted private-workspace trial.
 
-Run 45–60 minute moderated sessions. Counterbalance current and proposed comparison flows using matched public examples; alternate which comes first. Do not explain the graph vocabulary before the tasks. Prototype tests must be labeled prototypes; simulated import latency must not be compared as measured production performance.
+Run 45–60 minute moderated sessions. Counterbalance current and proposed comparison flows using matched public examples; alternate which comes first. Do not explain the graph vocabulary before the tasks. Prototype tests must be labeled prototypes; simulated import latency must not be compared as measured production performance. Follow the linked session protocol for consent, task wording, structured records, local artifact validation and reporting.
 
 | Task                                                                                 | Observe / record                                                                                                 |
 | ------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------- |
@@ -56,13 +56,13 @@ Run 45–60 minute moderated sessions. Counterbalance current and proposed compa
 
 For the agent-oriented participant, substitute one task with discover → retrieve exact pair/packet → inspect lifecycle → return structured references. Test proposed write authorization as a design scenario; do not pretend a general delegated API exists.
 
-Record pseudonymous IDs, task timings, completion/help codes and short structured error categories. Obtain consent for any recording; keep participant files outside the repository. Avoid free-text scientific content in analytics. The current evaluation CLI can inform reporting conventions, but its graph-first schema is not automatically the comparison-study instrument.
+Record pseudonymous IDs, task timings, completion/help codes and short structured error categories. Obtain consent before recording any observation; keep participant files outside the repository. Avoid free-text scientific content in analytics. The current evaluation CLI is graph-first and is not the comparison-study instrument. The new local artifact schema reports counts only and has no server collector or app event integration.
 
 ## Instrumentation proposal
 
 Event families: `comparison_opened`, `source_context_opened`, `evidence_opened`, `references_copied`, `import_started`, `capture_completed`, `import_failed`, `relationship_reviewed`. These are proposed names, not existing instrumentation.
 
-Minimum payload: event/version, pseudonymous session (and opted-in longitudinal identity if needed), public fixture/record-kind category, task mode, elapsed duration bucket, outcome/error category, boundedness and available-evidence flags. Do not log query text, claim text, free-form rationale, private IDs, source URLs, API keys or complete packets. For public-record linking, use a documented minimal reference strategy; private product telemetry needs a separate privacy review. Define retention and access before collecting, rather than borrowing scientific audit retention for behavioral analytics.
+For this study, use the consented local observer sheet and strict artifact, not automatic application telemetry. There is no server collector, analytics request, app UI hook, persistent account identity, or longitudinal tracking. The artifact records only pseudonymous participant codes, coarse participant role/new-to-product flags, task outcome/help/time and allowlisted event categories. It rejects unknown fields and free-form notes. Do not record query text, claim text, source labels, locators, record IDs, source URLs, pair URLs, API keys, clipboard contents or complete packets. Keep the resulting file outside the repository and delete it under the consent notice's stated schedule. Any later product telemetry proposal needs a separate privacy review and an explicit opt-in before instrumentation.
 
 Instrument actual user intent: copy/export counts only after success, not button render. Page views do not mean source inspection. Permission denials, unavailable evidence and cancellations remain in denominators with their cause. Deduplicate retries and do not count automated smoke tests.
 
@@ -83,6 +83,6 @@ The observed accessibility issue, unsupported independence language and identity
 
 ## Provisional go / revise / stop rules
 
-Agree thresholds before the study; these are suggested pilot criteria, not statistical guarantees. Proceed to a limited public pilot if at least 5 of 7 participants complete the comparison/provenance/reuse task unaided, no participant is left believing structural capture establishes correctness after using the output, and integrity/security regressions are zero. Revise when navigation or terminology causes repeated difficulty. Stop expanding the workspace proposition if participants prefer their existing comparison table and cannot name a recurring benefit from exact provenance/reuse.
+Agree thresholds before the study; these are suggested pilot criteria, not statistical guarantees. For a seven-person run, the previously proposed criterion is at least 5 of 7 participants completing the comparison/provenance/reuse task unaided, no participant left believing structural capture establishes correctness after using the output, and zero integrity/security regressions. For any other sample size, report the actual numerator and denominator and agree an interpretation before sessions; do not scale the 5/7 threshold mechanically. Revise when navigation or terminology causes repeated difficulty. Stop expanding the workspace proposition if participants prefer their existing comparison table and cannot name a recurring benefit from exact provenance/reuse.
 
 Do not accept faster completion accompanied by worse scientific interpretation. Report every failed task and contradictory participant preference. A seven-person study informs design; a longer, consented pilot is needed for repeat-use and collaboration evidence. Release checks remain separate from product validation and from pinned producer interoperability.
