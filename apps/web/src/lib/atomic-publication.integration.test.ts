@@ -139,6 +139,81 @@ describe.sequential("atomic publication integration", () => {
     ).rejects.toMatchObject({ code: "conflict" });
   });
 
+  it("keeps the 30-minute capability boundary exclusive and owner-bound", async () => {
+    const capturedAt = new Date();
+    const capability = await capture({ githubRepositoryId: nextRepoId(), capturedAt });
+    expect(new Date(capability.expiresAt).getTime() - capturedAt.getTime()).toBe(30 * 60 * 1000);
+    vi.useFakeTimers({ toFake: ["Date"] });
+    try {
+      vi.setSystemTime(new Date(capability.expiresAt));
+      await expect(
+        runtime.createSubmission({ inspectionToken: capability.token, submitterId }),
+      ).rejects.toMatchObject({
+        code: "bad-request",
+        message: "Inspection capability expired; inspect again.",
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+    const stored = await runtime.prisma.inspectionCapture.findUniqueOrThrow({
+      where: { tokenHash: sha256(capability.token) },
+    });
+    expect(stored.consumedAt).toBeNull();
+  });
+
+  it("rejects a conflicting tree for an already captured commit without consuming the new capability", async () => {
+    const githubRepositoryId = nextRepoId();
+    const first = await capture({ githubRepositoryId });
+    const submitted = await runtime.createSubmission({ inspectionToken: first.token, submitterId });
+    const stored = await runtime.prisma.submission.findUniqueOrThrow({
+      where: { id: submitted.submissionId },
+      include: { snapshot: true },
+    });
+    const conflicting = await capture({ githubRepositoryId, treeSha: "c".repeat(40) });
+    await expect(
+      runtime.createSubmission({ inspectionToken: conflicting.token, submitterId }),
+    ).rejects.toMatchObject({
+      code: "conflict",
+      message: "Stored snapshot tree does not match the selected commit tree.",
+    });
+    expect(
+      await runtime.prisma.repositorySnapshot.findUnique({ where: { id: stored.snapshotId! } }),
+    ).toEqual(stored.snapshot);
+    expect(
+      await runtime.prisma.submission.count({ where: { repositoryId: stored.repositoryId } }),
+    ).toBe(1);
+    expect(
+      (
+        await runtime.prisma.inspectionCapture.findUniqueOrThrow({
+          where: { tokenHash: sha256(conflicting.token) },
+        })
+      ).consumedAt,
+    ).toBeNull();
+  });
+
+  it("reinspection of a changed source creates a new capture and preserves both exact commits", async () => {
+    const githubRepositoryId = nextRepoId();
+    const first = await capture({ githubRepositoryId });
+    const second = await capture({
+      githubRepositoryId,
+      commitSha: "c".repeat(40),
+      treeSha: "d".repeat(40),
+    });
+    expect(second.payloadHash).not.toBe(first.payloadHash);
+    const [a, b] = await Promise.all([
+      runtime.createSubmission({ inspectionToken: first.token, submitterId }),
+      runtime.createSubmission({ inspectionToken: second.token, submitterId }),
+    ]);
+    const rows = await runtime.prisma.submission.findMany({
+      where: { id: { in: [a.submissionId, b.submissionId] } },
+      include: { snapshot: true },
+    });
+    expect(new Set(rows.map((row) => row.snapshot?.commitSha))).toEqual(
+      new Set([commitA, "c".repeat(40)]),
+    );
+    expect(new Set(rows.map((row) => row.inspectionCaptureId)).size).toBe(2);
+  });
+
   it("fails closed on expiry and canonical payload tampering", async () => {
     const expired = await capture({
       githubRepositoryId: nextRepoId(),
@@ -174,6 +249,18 @@ describe.sequential("atomic publication integration", () => {
     });
     expect(stored?.snapshot?.commitSha).toBe(commitA);
     expect(stored?.snapshot?.sourceTreeSha).toBe(treeA);
+    const { getOwnedSubmissionStatus } = await import("./submission-status");
+    expect(await getOwnedSubmissionStatus(first.submissionId, otherUserId)).toBeNull();
+    expect(await getOwnedSubmissionStatus("missing-submission", submitterId)).toBeNull();
+    expect(await getOwnedSubmissionStatus(first.submissionId, submitterId)).toEqual({
+      id: first.submissionId,
+      status: "pending-editorial-review",
+      submittedAt: expect.any(String),
+      sourceKind: "default-branch",
+      releaseTag: null,
+      commitSha: commitA,
+      publicReviewHref: undefined,
+    });
   });
 
   it("normalizes manual DOI and Zenodo record forms before finalizing", async () => {
@@ -1569,6 +1656,8 @@ async function capture(options: {
   releaseTag?: string;
   tagObjectSha?: string;
   metadataCommitSha?: string;
+  commitSha?: string;
+  treeSha?: string;
   knowledge?: FullExtraction["knowledge"];
   nodeExtraction?: NodeExtractionReport;
   reviewContentDetected?: boolean;
@@ -1584,10 +1673,12 @@ async function capture(options: {
     sourceKind,
     releaseTag: options.releaseTag,
     tagObjectSha: options.tagObjectSha,
+    commitSha: options.commitSha,
+    treeSha: options.treeSha,
   });
   const extraction = fullExtraction(
     report,
-    options.metadataCommitSha ?? commitA,
+    options.metadataCommitSha ?? report.selectedSource!.commitSha,
     options.releaseTag,
     options.knowledge,
     options.nodeExtraction,
@@ -1614,6 +1705,8 @@ function inspectionReport(options: {
   sourceKind: "default-branch" | "tag" | "release";
   releaseTag?: string;
   tagObjectSha?: string;
+  commitSha?: string;
+  treeSha?: string;
 }): InspectionReport {
   const releaseTag =
     options.sourceKind === "default-branch" ? undefined : (options.releaseTag ?? "v1");
@@ -1629,14 +1722,14 @@ function inspectionReport(options: {
     status: "succeeded",
     githubRepositoryId: options.githubRepositoryId,
     defaultBranch: "main",
-    latestCommitSha: commitA,
+    latestCommitSha: options.commitSha ?? commitA,
     topics: [],
     releases: [],
-    tags: releaseTag ? [{ name: releaseTag, commitSha: commitA }] : [],
+    tags: releaseTag ? [{ name: releaseTag, commitSha: options.commitSha ?? commitA }] : [],
     selectedSource: {
       kind: options.sourceKind,
-      commitSha: commitA,
-      treeSha: treeA,
+      commitSha: options.commitSha ?? commitA,
+      treeSha: options.treeSha ?? treeA,
       ...(options.tagObjectSha ? { tagObjectSha: options.tagObjectSha } : {}),
       ...(options.sourceKind === "default-branch" ? { branch: "main" } : { releaseTag }),
     },

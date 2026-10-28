@@ -3213,3 +3213,19 @@ table.data td {
   font-size: 1rem;
   margin-bottom: 0.4rem;
 }
+
+.deposit-capture {
+  overflow-wrap: anywhere;
+}
+
+.deposit-review-confirmation {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  margin-block: 1rem;
+}
+
+.deposit-review-confirmation input {
+  flex: 0 0 auto;
+  margin-top: 0.25rem;
+}

@@ -125,6 +125,10 @@ test("submitter finalizes a node-only capture and an editor publishes its nodes"
   );
   expect(firstCapturePayload.extraction.nodeExtraction).toEqual(firstInspection.nodeExtraction);
   await expect(page.getByRole("heading", { name: "Review extracted metadata" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Inspect and correct" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Review extracted node candidates" }),
+  ).toBeVisible();
   const wizardFacets = page.getByLabel("Compatibility by facet");
   await expect(wizardFacets.locator("[data-compatibility-facet]")).toHaveCount(5);
   await expect(wizardFacets.locator('[data-compatibility-facet="article"]')).toContainText(
@@ -133,12 +137,10 @@ test("submitter finalizes a node-only capture and an editor publishes its nodes"
   await expect(wizardFacets.locator('[data-compatibility-facet="claimGraph"]')).toContainText(
     "available",
   );
-  await page.getByRole("button", { name: "Continue to node candidates" }).click();
-  await expect(
-    page.getByRole("heading", { name: "Review extracted node candidates" }),
-  ).toBeVisible();
   await expect(page.getByText(firstSourceTitle)).toBeVisible();
-  await page.getByRole("button", { name: "Continue to validation" }).click();
+  await page.getByLabel("I reviewed this capture and its source version").check();
+  await page.getByRole("button", { name: "Continue to submission" }).click();
+  await expect(page.getByRole("heading", { name: "Submit this exact capture" })).toBeVisible();
   const submissionResponse = page.waitForResponse(
     (response) =>
       response.url().includes("/api/submissions") && response.request().method() === "POST",
@@ -148,6 +150,12 @@ test("submitter finalizes a node-only capture and an editor publishes its nodes"
   expect(finalizedResponse.ok()).toBeTruthy();
   const finalized = (await finalizedResponse.json()) as { submissionId: string };
   await expect(page.getByRole("heading", { name: "Submission received" })).toBeVisible();
+  const ownStatus = await page.request.get(`/submissions/${finalized.submissionId}`);
+  expect(ownStatus.status()).toBe(200);
+  await page.goto(`/submissions/${finalized.submissionId}`);
+  await expect(page.getByRole("heading", { name: "Your submission status" })).toBeVisible();
+  await expect(page.getByText("Next step")).toBeVisible();
+  await expect(page.getByRole("link", { name: "Inspect another source" })).toBeVisible();
   await page.goto("/nodes");
   await expect(page.locator("article.card").filter({ hasText: repositoryName })).toHaveCount(0);
   expect(
@@ -175,6 +183,9 @@ test("submitter finalizes a node-only capture and an editor publishes its nodes"
   const editorPage = await editorContext.newPage();
   await signInAs(editorPage, "editor");
   await expect(editorPage.locator("nav").getByText("atlas-editor (editor)")).toBeVisible();
+  expect((await editorPage.request.get(`/submissions/${finalized.submissionId}`)).status()).toBe(
+    404,
+  );
   const oversizedStatus = await editorPage.evaluate(async () => {
     const response = await fetch("/api/editorial/decision", {
       method: "POST",
@@ -584,11 +595,15 @@ test("submitter finalizes a node-only capture and an editor publishes its nodes"
     followUpInspection.nodeExtraction,
   );
   await expect(page.getByRole("heading", { name: "Review extracted metadata" })).toBeVisible();
-  await expect(page.getByText(secondCommitSha)).toBeVisible();
-  await page.getByRole("button", { name: "Continue to node candidates" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Review extracted node candidates" }),
+  ).toBeVisible();
+  await expect(page.getByText(secondCommitSha, { exact: true })).toBeVisible();
   await expect(page.getByText(followUpSourceTitle, { exact: true })).toBeVisible();
   await expect(page.getByText(followUpNewNodeTitle, { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Continue to validation" }).click();
+  await page.getByLabel("I reviewed this capture and its source version").check();
+  await page.getByRole("button", { name: "Continue to submission" }).click();
+  await expect(page.getByRole("heading", { name: "Submit this exact capture" })).toBeVisible();
   const followUpSubmissionResponse = page.waitForResponse(
     (response) =>
       response.url().includes("/api/submissions") && response.request().method() === "POST",

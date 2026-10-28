@@ -43,7 +43,12 @@ test("inspects the frozen Ethical Debt release through the submission journey", 
   await expect(page.getByLabel("Review title")).toHaveValue(
     "The Ethical Debt: Why wasting animal data is wasting animal lives",
   );
-  await expect(page.getByText(`Captured release: ${COMMIT_SHA}`)).toBeVisible();
-  await page.getByRole("button", { name: "Continue to node candidates" }).click();
+  await expect(page.getByText(`Exact commit: ${COMMIT_SHA}`)).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Review extracted node candidates" }),
+  ).toBeVisible();
   await expect(page.getByText("No node manifest candidates were found.")).toBeVisible();
+  await page.getByLabel("I reviewed this capture and its source version").check();
+  await page.getByRole("button", { name: "Continue to submission" }).click();
+  await expect(page.getByRole("heading", { name: "Submit this exact capture" })).toBeVisible();
 });
