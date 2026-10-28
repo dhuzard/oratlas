@@ -85,7 +85,7 @@ export default async function ClaimPassportPage({
           {
             href: "#disagreements",
             label: "Disagreements",
-            detail: `${disagreementCount} contradiction${disagreementCount === 1 ? "" : "s"}`,
+            detail: `${disagreementCount} candidate pair${disagreementCount === 1 ? "" : "s"}`,
           },
         ]}
       />
@@ -287,21 +287,25 @@ export default async function ClaimPassportPage({
 
       <div id="disagreements" className="inspection-anchor">
         {independence ? (
-          <Card title="Independence &amp; contradictions">
+          <Card title="Source overlap &amp; candidate disagreements">
             <p className="muted">
-              Independent evidence is counted in families: cited works sharing a dataset, cohort or
-              derivative lineage collapse into one. Circular citations back into the archive are
-              excluded.
+              Works are grouped by shared identifiers, declared dataset or cohort accessions, and
+              declared derivation links. These counts describe recorded source overlap, not evidence
+              independence. Citations back into the archive are excluded from work and group counts.
+            </p>
+            <p className="muted">
+              Missing overlap metadata does not establish independence. Authorship and laboratory
+              overlap are not assessed here; dataset and derivation declarations may be incomplete.
             </p>
             <DefinitionList
               items={[
                 {
                   term: "Supporting works",
-                  value: `${independence.summary.supportingWorks} (${independence.summary.independentSupportingFamilies} independent famil${independence.summary.independentSupportingFamilies === 1 ? "y" : "ies"})`,
+                  value: `${independence.summary.supportingWorks} (${independence.summary.independentSupportingFamilies} source-overlap group${independence.summary.independentSupportingFamilies === 1 ? "" : "s"})`,
                 },
                 {
                   term: "Opposing works",
-                  value: `${independence.summary.opposingWorks} (${independence.summary.independentOpposingFamilies} independent famil${independence.summary.independentOpposingFamilies === 1 ? "y" : "ies"})`,
+                  value: `${independence.summary.opposingWorks} (${independence.summary.independentOpposingFamilies} source-overlap group${independence.summary.independentOpposingFamilies === 1 ? "" : "s"})`,
                 },
                 {
                   term: "Shared with other claims",
@@ -309,7 +313,7 @@ export default async function ClaimPassportPage({
                     independence.summary.sharedWorkKeys.length > 0 ? (
                       <span className="mono">{independence.summary.sharedWorkKeys.join(", ")}</span>
                     ) : (
-                      <span className="muted">none</span>
+                      <span className="muted">No shared work identifiers detected</span>
                     ),
                 },
                 {
@@ -334,23 +338,32 @@ export default async function ClaimPassportPage({
                       {row.kind === "scope-difference"
                         ? `Scope difference (${row.differingScopeFields.join(", ")})`
                         : row.kind === "undetermined-scope"
-                          ? "Contradiction over shared evidence (scope undeclared)"
-                          : "Genuine contradiction over shared evidence"}{" "}
+                          ? "Candidate disagreement over shared sources (scope undeclared)"
+                          : "Candidate disagreement over shared sources (no differing declared scope fields)"}{" "}
                       with <Link href={other.passportPath}>{other.text.slice(0, 80)}</Link>
                     </li>
                   );
                 })}
               </ul>
             ) : (
-              <p className="muted">No opposing claims detected in the current corpus.</p>
+              <p className="muted">
+                No candidate pairs detected by these rules in the current corpus.
+              </p>
             )}
+            <p className="muted">
+              Candidates have opposing recorded evidence directions within a shared source group.
+              Scope comparison uses only fields declared by both claims; missing fields remain
+              unknown. These rules do not establish a scientific contradiction.
+            </p>
             <p>
               <Link href="/synthesis">View the full disagreement map</Link>.
             </p>
           </Card>
         ) : (
-          <Card title="Independence &amp; contradictions">
-            <p className="muted">No independence analysis is available for this claim.</p>
+          <Card title="Source overlap &amp; candidate disagreements">
+            <p className="muted">
+              No source-overlap summary is available for this exact claim version.
+            </p>
           </Card>
         )}
       </div>

@@ -1,0 +1,13 @@
+[
+  {
+    "id": "nested-interactive",
+    "impact": "serious",
+    "nodes": [
+      {
+        "target": ["svg[viewBox=\"0 0 920 304\"]"],
+        "html": "<svg viewBox=\"0 0 920 304\" role=\"img\" aria-label=\"Reviews connected to claims, evidence, and graph research objects\">",
+        "failureSummary": "Fix any of the following:\n  Element has focusable descendants"
+      }
+    ]
+  }
+]

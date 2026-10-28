@@ -5,10 +5,12 @@ export function ExplorationIntent({
   query,
   selectedInterests,
   knownNodeIds,
+  preservedParameters = [],
 }: {
   query?: string;
   selectedInterests: ExplorationInterest[];
   knownNodeIds: string[];
+  preservedParameters?: readonly (readonly [string, string])[];
 }) {
   return (
     <section className="exploration-intent" aria-labelledby="exploration-intent-title">
@@ -21,7 +23,10 @@ export function ExplorationIntent({
           available when you need exhaustive lookup.
         </p>
       </div>
-      <form action="/explore" method="get">
+      <form action="/explore" method="get" role="search" aria-label="Explore a topic">
+        {preservedParameters.map(([name, value]) => (
+          <input type="hidden" name={name} value={value} key={name} />
+        ))}
         {knownNodeIds.map((nodeId) => (
           <input type="hidden" name="known" value={nodeId} key={nodeId} />
         ))}
@@ -59,7 +64,7 @@ export function ExplorationIntent({
             Show my knowledge path
           </button>
           {selectedInterests.length > 0 ? (
-            <Link href={resetHref(query, knownNodeIds)}>Reset interests</Link>
+            <Link href={resetHref(query, knownNodeIds, preservedParameters)}>Reset interests</Link>
           ) : null}
         </div>
       </form>
@@ -67,10 +72,15 @@ export function ExplorationIntent({
   );
 }
 
-function resetHref(query?: string, knownNodeIds: string[] = []): string {
+function resetHref(
+  query?: string,
+  knownNodeIds: string[] = [],
+  preservedParameters: readonly (readonly [string, string])[] = [],
+): string {
   const parameters = new URLSearchParams();
   if (query) parameters.set("q", query);
   for (const nodeId of knownNodeIds) parameters.append("known", nodeId);
+  for (const [name, value] of preservedParameters) parameters.set(name, value);
   const serialized = parameters.toString();
   return serialized ? `/explore?${serialized}` : "/explore";
 }

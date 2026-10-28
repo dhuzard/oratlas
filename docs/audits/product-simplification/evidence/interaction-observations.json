@@ -1,0 +1,54 @@
+[
+  {
+    "route": "/",
+    "axe": []
+  },
+  {
+    "route": "/explore?q=replay",
+    "axe": [
+      {
+        "id": "nested-interactive",
+        "impact": "serious",
+        "description": "Ensure interactive controls are not nested as they are not always announced by screen readers or can cause focus problems for assistive technologies",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "route": "/compare",
+    "axe": []
+  },
+  {
+    "journey": "anonymous deterministic Q&A",
+    "text": "EXPLORE ORATLAS\n\nTraverse the evidence graph\n\nEnter through a topic or explicit interest, then move between preserved reviews, claims, evidence, and research objects. Search starts a path; it does not rank a database dump.\n\nSearch claims, reviews, or authors\nEnter graph\n\nPERSONALIZE THIS VIEW\n\nWhat do you want to understand?\n\nDescribe a topic, then choose the lenses that matter to you. ORAtlas will show a small, explainable path through matching graph nodes. Complete record indexes remain separately available when you need exhaustive lookup.\n\nTopic or question\nKnowledge landscape interests\nDisagreements\nClaims connected to contradicting evidence.\nReproducibility\nReplication, robustness, and convergence questions.\nMethods & models\nProtocols, models, populations, and study design.\nData & code\nDatasets, software, analysis, and computational artifacts.\nAssessed evidence\nClaims with separate evidence assessments.\nShow my knowledge path\nRefine graph entry\n\nGUIDED KNOWLEDGE LANDSCAPE\n\nA bounded path through “replay”\n\nShowing 3 of 6 matching claims. Select a focus link to see one step around a node. 8 stable graph nodes are available in this path.\n\nOrdering helps exploration only. It is not a truth, quality, or trust score.\n\nYour explicit known set contains 0 graph nodes. It is held in this URL, not inferred or stored in the shared graph.\n\nSelect a grounded statement in Atlas Discuss to highlight its validated path.\n\nSTART HERE\n\nNodes worth exploring for this interest\n\nThese records are connected through explicit identities and confirmed graph edges.\n\nWaking place-cell sequences are not faithfully reactivated during human sleep replay.\nMatches the declared search entry point\nCortical Oscillations and Selective Attention: A Repository-Only Computational Review\nConnected by a source-asserted asserts relation\nReactivation of hippocampal ensemble memories during sleep (example citation)\nConnected by a source-asserted contradicts relation\nPreserved reviews\nClaims\nEvidence & research objects\nCortical Oscillationsand Selective Attention…\nHippocampal Replay andMemory Consolidation: A…\nWaking place-cell sequences arenot faithfully reactivated during…\nReplay content is strictly averidical reverse-order replay of…\nSharp-wave ripple-associatedreplay during non-REM sleep…\nReactivation ofhippocampal ensemble…\nHippocampal replay isnot a simple function of…\nReactivation ofhippocampal ensemble…\nReview\nClaim\nEvidence\nFigure\nDataset\nCode\nsupports\ncontradicts\nconfirmed graph edge\nPreserved reviews\nCortical Oscillations and Selective Attention: A Repository-Only Computational Review\nReview · exact canonical version\nWhy this?\nExplore graph neighborhood\nMark as known\nFocus on connections\nHippocampal Replay and Memory Consolidation: A Computational Review\nReview · exact canonical version\nWhy this?\nExplore graph neighborhood\nMark as known\nFocus on connections\nClaims\nWaking place-cell sequences are not faithfully reactivated during human sleep replay.\nClaim · exact canonical version\nWhy this?\nExplore graph neighborhood\nMark as known\nFocus on connections\nReplay content is strictly a veridical reverse-order replay of the most recent trajectory.\nClaim · exact canonical version\nWhy this?\nExplore graph neighborhood\nMark as known\nFocus on connections\nSharp-wave ripple-associated replay during non-REM sleep supports the consolidation of recently acquired spatial memories.\nClaim · exact canonical version\nWhy this?\nExplore graph neighborhood\nMark as known\nFocus on connections\nLinked evidence\nReactivation of hippocampal ensemble memories during sleep (example citation)\nEvidence · exact canonical version\nWhy this?\nExplore graph neighborhood\nMark as known\nFocus on connections\nHippocampal replay is not a simple function of experience (example citation)\nEvidence · exact canonical version\nWhy this?\nExplore graph neighborhood\nMark as known\nFocus on connections\nReactivation of hippocampal ensemble memories during sleep (example citation)\nEvidence · exact canonical version\nWhy this?\nExplore graph neighborhood\nMark as known\nFocus on connections\n\nGROUNDED LENS\n\nDiscuss the selected path with Atlas\n\nDiscuss compresses this bounded path after you can inspect it. Without an LLM key, Atlas returns a deterministic evidence summary; generated statements must resolve to exact claim–citation edges.\n\nVisible evidence scope\n8 exact graph occurrences · 6 visible edges\nAtlas will use only these signed, exact node versions and visible edges. Change the Explore path to edit the scope.\nYour question\nUse your own LLM key (optional)\nThinking…\nSpecialist tools for deeper analysis\n\nCOMPLETE INDEXES\n\nNeed an exhaustive record list?\n\nExplore is for connected traversal. The archive and claim explorer remain available for comprehensive lookup, deep links, and agent workflows.\n\nOpen claim explorer\nOpen archive"
+  },
+  {
+    "route": "http://localhost:3187/reviews/hippocampal-replay-computational-review",
+    "claim": "/claims/cmvs9t70r00087k0wkweqami2/claim-001"
+  },
+  {
+    "route": "/claims/cmvs9t70r00087k0wkweqami2/claim-001",
+    "text": "Explore\n/\nClaim passport\nClaim Passport\nEmpirical\nExample Data\nSharp-wave ripple-associated replay during non-REM sleep supports the consolidation of recently acquired spatial memories.\n\nQualification: Primarily evidenced in rodent models; human evidence is indirect.\n\n1\nOriginal record\nExact claim and version\n2\nLinked evidence\n1 relation\n3\nAssessments\n1 separate record\n4\nDisagreements\n1 contradiction\nOriginal claim record\nClaim ID\noratlas:claim:v1:0063006d007600730039007400370030007200300030003000380037006b00300077006b0077006500710061006d00690032:0063006c00610069006d002d003000300031\nLocal ID\nclaim-001\nReview version\nHippocampal Replay and Memory Consolidation: A Computational Review (v1.2.0)\nPublished\n2026-06-15\nSection\nResults\nExplore graph neighborhood\nInspect exact graph version\nAlso asserted in (0)\n\nThese links were confirmed by an editor from deterministic same-claim proposals. They do not merge claims or carry TRUST assessments between review protocols.\n\nNo cross-review same-claim identity has been confirmed.\n\nSource artifact context\n\nRepository-level inspection context. The evidence count below remains specific to this claim.\n\nClaims\nUnknown — report predates per-artifact outcomes\nCitations\nUnknown — report predates per-artifact outcomes\nRelations\nUnknown — report predates per-artifact outcomes\nTRUST assessments\nUnknown — report predates per-artifact outcomes\nLinked evidence (1)\nSupports\nReactivation of hippocampal ensemble memories during sleep (example citation) (10.5555/oratlas.example.wilson1994, example)\n◆\nRepository/source-native — not verified by Atlas\nprotocol trust-poc-1.0\nSeparate assessments (1)\n\nEach TRUST assessment remains an attributable record attached to one evidence relation. ORAtlas does not average ratings or infer assessor independence.\n\nReactivation of hippocampal ensemble memories during sleep (example citation) — protocol trust-poc-1.0 \n◆\nRepository/source-native — not verified by Atlas\nExecution passports (0)\n\nThese records verify signed provenance for exact workflow runs. They do not mean Atlas reran the code, reproduced the result, or established that this claim is true.\n\nNo verified execution attestation is bound to this claim.\n\nIndependence & contradictions\n\nIndependent evidence is counted in families: cited works sharing a dataset, cohort or derivative lineage collapse into one. Circular citations back into the archive are excluded.\n\nSupporting works\n1 (1 independent family)\nOpposing works\n0 (0 independent families)\nShared with other claims\ndoi:10.5555/oratlas.example.wilson1994\nCircular citations\nnone\nScope difference (population, method) with Waking place-cell sequences are not faithfully reactivated during human sleep re\n\nView the full disagreement map.\n\nLineage across versions\n\nDeterministic lineage: the same repository-local claim id across this review's versions. Text changes are surfaced, never inferred.\n\nv1.2.0 (2026-06-15) CurrentThis Passport"
+  },
+  {
+    "journey": "mock editor sign-in",
+    "url": "http://localhost:3187/editorial",
+    "headings": [
+      "Editorial dashboard",
+      "AI-written synthesis drafts",
+      "Synthesis freshness (0 open)",
+      "TRUST disagreements",
+      "Pending submissions (1)",
+      "Corrections, withdrawals and tombstones",
+      "Open formal challenges (0)",
+      "TRUST provenance queue (17)",
+      "Recent decisions",
+      "Knowledge edge proposals (1)",
+      "Same-claim proposals (0)",
+      "Evidence monitoring",
+      "Protocol Drift Radar",
+      "Federated review exchange",
+      "Audit log"
+    ]
+  }
+]

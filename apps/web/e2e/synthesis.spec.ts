@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 
-test.describe("Independence-aware synthesis", () => {
+test.describe("Declared source overlap and disagreement candidates", () => {
   test("contradiction map classifies the seeded scope difference", async ({ request }) => {
     const res = await request.get("/api/synthesis/contradictions");
     expect(res.ok()).toBeTruthy();
@@ -28,7 +28,7 @@ test.describe("Independence-aware synthesis", () => {
     await expect(page.getByText(/scope difference/i).first()).toBeVisible();
   });
 
-  test("claim passport shows an independence summary", async ({ page, request }) => {
+  test("claim passport explains source overlap", async ({ page, request }) => {
     const detail = await request.get("/api/reviews/hippocampal-replay-computational-review");
     const review = await detail.json();
     const claim = review.claims.find(
@@ -36,7 +36,7 @@ test.describe("Independence-aware synthesis", () => {
     );
     await page.goto(`/claims/${review.version.id}/${encodeURIComponent(claim.localClaimId)}`);
     await expect(
-      page.getByRole("heading", { name: /Independence & contradictions/ }),
+      page.getByRole("heading", { name: /Source overlap & candidate disagreements/ }),
     ).toBeVisible();
     await expect(page.getByText(/Supporting works/).first()).toBeVisible();
   });

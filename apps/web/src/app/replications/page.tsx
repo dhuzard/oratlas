@@ -7,6 +7,59 @@ import { SpecialistToolBreadcrumb } from "@/components/SpecialistTools";
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Replication briefs" };
 
+const TRIAGE_SIGNAL_COPY: Record<string, { label: string; explanation: string }> = {
+  "genuine-contradiction": {
+    label: "Matched-scope disagreement candidate",
+    explanation:
+      "A frozen rule matched opposing claim directions and declared scope. A person must assess whether the findings actually conflict.",
+  },
+  "scope-undeclared-contradiction": {
+    label: "Opposing claims with undeclared scope",
+    explanation: "The declared scope is insufficient for this rule to compare the opposing claims.",
+  },
+  "scope-difference": {
+    label: "Different declared scopes",
+    explanation:
+      "The opposing claims declare different comparison scopes and may address different questions.",
+  },
+  "opposing-evidence": {
+    label: "Declared opposing sources",
+    explanation:
+      "The snapshot groups citations associated with opposing claims; it does not establish source independence.",
+  },
+  "no-independent-support": {
+    label: "No supporting source group counted",
+    explanation:
+      "The rule counted no non-circular supporting source group from the available citation metadata. This is not an assessment of support quality.",
+  },
+  "single-independent-family": {
+    label: "One supporting source group counted",
+    explanation:
+      "The rule grouped the declared supporting citations into one source group. Grouping does not establish independence.",
+  },
+  "duplicated-evidence-family": {
+    label: "Overlapping supporting citations",
+    explanation:
+      "Multiple supporting citations were grouped by the available source metadata. The grouping may be incomplete.",
+  },
+  "circular-citation": {
+    label: "Atlas citation loop",
+    explanation:
+      "The rule found citations back into the Atlas corpus and excluded them from its source-group count.",
+  },
+  "scope-undeclared": {
+    label: "Scope not declared",
+    explanation: "This claim has no structured comparison scope in the snapshot.",
+  },
+};
+
+const TRIAGE_BAND_LABEL: Record<string, string> = {
+  "contradiction-attention": "Claim disagreement review",
+  "independence-attention": "Source overlap review",
+  "scope-attention": "Scope review",
+  "routine-attention": "Editorial review",
+};
+
 export default async function ReplicationMarketplacePage({
   searchParams,
 }: {
@@ -30,10 +83,11 @@ export default async function ReplicationMarketplacePage({
         confirmation.
       </p>
       <Notice tone="warning" title="Published triage is provenance—not scientific truth">
-        A frozen triage snapshot records a deterministic reading of declared scope, independent
-        evidence families, circular citations, and contradiction classifications at publication. It
-        is not a truth score, live corpus ranking, quality rating, funding decision, or ranking of
-        researchers. Only a human editor can publish a brief.
+        A frozen triage snapshot records rule-based readings of declared scope, citation groups,
+        citation loops, and possible claim disagreements at publication. Citation metadata may be
+        incomplete. These signals do not establish source independence or a scientific
+        contradiction. They are not a truth score, live corpus ranking, quality rating, funding
+        decision, or ranking of researchers. Only a human editor can publish a brief.
       </Notice>
 
       <div className="btn-row" aria-label="Filter replication briefs">
@@ -87,7 +141,7 @@ export default async function ReplicationMarketplacePage({
               <Badge
                 tone={candidate.triageBand === "contradiction-attention" ? "warning" : "neutral"}
               >
-                {candidate.triageBand.replaceAll("-", " ")}
+                {TRIAGE_BAND_LABEL[candidate.triageBand] ?? candidate.triageBand}
               </Badge>
               <span className="muted">
                 captured {candidate.capturedAt.slice(0, 10)} for {candidate.sourceBriefSlug}
@@ -99,7 +153,8 @@ export default async function ReplicationMarketplacePage({
             <ul>
               {candidate.signals.map((signal) => (
                 <li key={signal.code}>
-                  <span className="mono">{signal.code}</span> — {signal.explanation}
+                  <strong>{TRIAGE_SIGNAL_COPY[signal.code]?.label ?? signal.code}</strong> —{" "}
+                  {TRIAGE_SIGNAL_COPY[signal.code]?.explanation ?? signal.explanation}
                 </li>
               ))}
             </ul>
