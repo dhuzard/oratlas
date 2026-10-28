@@ -24,7 +24,8 @@ concurrency:
 jobs:
   g1-harness:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # The harness routinely takes 18–20 minutes; keep headroom for slow runners.
+    timeout-minutes: 30
     services:
       postgres:
         image: postgres:16
