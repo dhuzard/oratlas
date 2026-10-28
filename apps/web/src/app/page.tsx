@@ -4,12 +4,14 @@ import { listPublicationVersionCertifications } from "@/lib/certification";
 import { prisma } from "@/lib/db";
 import { oraPilotPresentation } from "@/lib/ora-certification-presentation";
 import { listPublicationVersionVerifications } from "@/lib/scientific-verification";
+import { getFeaturedClaimComparisonHref } from "@/lib/claim-comparison";
 
 export const dynamic = "force-dynamic";
 
 const DEMO_VERSION_ID = "ora-demo-publication-version";
 
 export default async function HomePage() {
+  const comparisonHref = await getFeaturedClaimComparisonHref();
   const demo = await prisma.publicationVersion.findUnique({
     where: { id: DEMO_VERSION_ID },
     include: { publication: true },
@@ -37,6 +39,11 @@ export default async function HomePage() {
           the original publication.
         </p>
         <div className="home-actions home-primary-actions">
+          {comparisonHref ? (
+            <Link className="btn btn-secondary" href={comparisonHref}>
+              Compare two claims · synthetic example
+            </Link>
+          ) : null}
           <Link className="btn" href={demoHref}>
             {verifications && verifications.runs.length > 0
               ? "Explore the demo publication’s check runs"

@@ -9,6 +9,7 @@ const state = vi.hoisted(() => ({
   passport: vi.fn(),
   overlap: vi.fn(),
   map: vi.fn(),
+  comparisonHref: vi.fn(),
 }));
 
 vi.mock("server-only", () => ({}));
@@ -20,6 +21,9 @@ vi.mock("@/lib/certification", () => ({
   listPublicationVersionCertifications: state.certifications,
 }));
 vi.mock("@/lib/claim-monitoring", () => ({ getClaimPassport: state.passport }));
+vi.mock("@/lib/claim-comparison", () => ({
+  getFeaturedClaimComparisonHref: state.comparisonHref,
+}));
 vi.mock("@/lib/synthesis", () => ({
   getClaimIndependence: state.overlap,
   getContradictionMap: state.map,
@@ -93,6 +97,7 @@ function sharedSourceFixture(scope?: SynthesisStatement["scope"]) {
 describe("scientific presentation boundaries", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    state.comparisonHref.mockResolvedValue(null);
     state.demo.mockResolvedValue({
       id: "exact-demo-version",
       publicationId: "demo",
