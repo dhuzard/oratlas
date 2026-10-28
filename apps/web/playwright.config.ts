@@ -11,8 +11,9 @@ const nodeOptions = [
   process.env.NODE_OPTIONS?.trim(),
   // Each single-worker shard exercises many dynamically compiled routes. Keep
   // Next's 80%-of-heap dev-server watcher from restarting the server and
-  // invalidating an in-flight browser session within a shard.
-  "--max-old-space-size=5120",
+  // invalidating an in-flight browser session within a shard. The longer
+  // exact-pair suite pushed the 5 GiB limit across that threshold on CI.
+  "--max-old-space-size=6144",
   "--import=tsx",
   `--import=${githubFixturePreload}`,
 ]
