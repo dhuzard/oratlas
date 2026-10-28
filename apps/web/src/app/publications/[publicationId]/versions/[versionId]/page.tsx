@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Badge, Card, DefinitionList } from "@oratlas/ui";
+import { publicationHttpsUrlSchema } from "@oratlas/contracts";
+import { ExactSourceContext } from "@/components/ExactSourceContext";
 import { getCurrentUser, isEditor } from "@/lib/auth";
 import { listPublicationVersionCertifications } from "@/lib/certification";
 import { prisma, parseJsonColumn } from "@/lib/db";
@@ -61,7 +63,10 @@ export default async function PublicationVersionPage({
   const demo =
     version.id === "ora-demo-publication-version" ||
     warnings.some((warning) => /demo|synthetic/i.test(warning));
-  const externalUrl = version.canonicalUrl ?? version.observedPublicationBaseUrl;
+  const sourceUrl = publicationHttpsUrlSchema.safeParse(
+    version.canonicalUrl ?? version.observedPublicationBaseUrl,
+  );
+  const externalUrl = sourceUrl.success ? sourceUrl.data : undefined;
 
   return (
     <article className="publication-record">
@@ -97,6 +102,38 @@ export default async function PublicationVersionPage({
           </p>
         ) : null}
       </header>
+
+      <ExactSourceContext
+        kind={
+          version.publication.recordSource === "external-publication"
+            ? "External publication"
+            : "Archived review"
+        }
+        versionId={version.id}
+        preservedHref={`/publications/${encodeURIComponent(version.publicationId)}/versions/${encodeURIComponent(version.id)}`}
+        originalUrl={externalUrl}
+        originalLabel={
+          version.canonicalUrl
+            ? "Open publisher-declared address"
+            : "Open observed publication address"
+        }
+        lifecycle="Registered publication version; this record has no review withdrawal lifecycle."
+        identity={[
+          { label: "Publication ID", value: version.publicationId },
+          { label: "Sources SHA-256", value: version.sourcesSha256 },
+          { label: "Structural provenance", value: version.structuralProvenance },
+        ]}
+        coverage={[
+          `Content coverage: ${completeness.coverage}; ${completeness.returnedDocuments} of ${completeness.totalDocumentsKnown ?? "unknown"} known documents returned.${completeness.truncated ? " Captured content is truncated." : ""}`,
+          `${version.claimOccurrences.length} source-declared claim occurrences belong to this exact version. An occurrence without a canonical binding remains a separate source declaration.`,
+          "Structural provenance describes captured structure or source bytes; it does not establish scientific correctness, peer review or certification.",
+          ...(version.canonicalUrl
+            ? []
+            : [
+                "No publisher canonical URL was declared. Any original-source link uses the separately recorded observed address.",
+              ]),
+        ]}
+      />
 
       <section
         className="record-section verification-summary-section"
@@ -268,28 +305,45 @@ export default async function PublicationVersionPage({
           <Card title={`Claims (${version.claimOccurrences.length})`}>
             {version.claimOccurrences.length ? (
               <ul>
-                {version.claimOccurrences.map((claim) => (
-                  <li key={claim.id}>
-                    {claim.graphVersion && claim.knowledgeNodeId ? (
-                      <Link
-                        href={`/graph/occurrences/${claim.knowledgeNodeId}/versions/${claim.graphVersion.id}`}
-                      >
-                        {claim.text ?? claim.sourceLocalClaimId}
-                      </Link>
-                    ) : claim.publishedUrl ? (
-                      <a href={claim.publishedUrl} rel="external">
-                        {claim.text ?? claim.sourceLocalClaimId}
-                      </a>
-                    ) : (
-                      (claim.text ?? claim.sourceLocalClaimId)
-                    )}
-                    <br />
-                    <span className="muted">
-                      {claim.claimType?.replaceAll("-", " ") ?? "claim"} ·{" "}
-                      {claim.knowledgeNodeId ? "canonically bound" : "source occurrence"}
-                    </span>
-                  </li>
-                ))}
+                {version.claimOccurrences.map((claim) => {
+                  const boundVersion =
+                    claim.graphVersion?.knowledgeNodeId === claim.knowledgeNodeId
+                      ? claim.graphVersion
+                      : null;
+                  const publishedClaimUrl = publicationHttpsUrlSchema.safeParse(claim.publishedUrl);
+                  return (
+                    <li key={claim.id}>
+                      {boundVersion && claim.knowledgeNodeId ? (
+                        <Link
+                          href={`/graph/occurrences/${encodeURIComponent(claim.knowledgeNodeId)}/versions/${encodeURIComponent(boundVersion.id)}`}
+                        >
+                          {claim.text ?? claim.sourceLocalClaimId}
+                        </Link>
+                      ) : publishedClaimUrl.success ? (
+                        <a href={publishedClaimUrl.data} rel="external">
+                          {claim.text ?? claim.sourceLocalClaimId}
+                        </a>
+                      ) : (
+                        (claim.text ?? claim.sourceLocalClaimId)
+                      )}
+                      <br />
+                      <span className="muted">
+                        {claim.claimType?.replaceAll("-", " ") ?? "claim"} ·{" "}
+                        {boundVersion
+                          ? "canonically bound"
+                          : "source occurrence without a canonical binding"}
+                      </span>
+                      <p>
+                        <a
+                          href={`/api/publication-claim-occurrences/${encodeURIComponent(claim.id)}`}
+                        >
+                          Exact source occurrence JSON
+                        </a>{" "}
+                        <code>{claim.id}</code>
+                      </p>
+                    </li>
+                  );
+                })}
               </ul>
             ) : (
               <p className="muted">No source-declared claims are attached to this exact version.</p>
