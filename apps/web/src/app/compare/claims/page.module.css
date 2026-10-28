@@ -1,0 +1,50 @@
+.page {
+  overflow-wrap: anywhere;
+}
+
+.columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.columns > section {
+  min-width: 0;
+}
+
+.columns h3 {
+  margin-top: 1.5rem;
+}
+
+.reference {
+  display: block;
+  font-size: 0.85rem;
+  margin: 0.75rem 0;
+}
+
+.scope {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.scope dt {
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.scope dd {
+  margin: 0;
+}
+
+.passage {
+  margin: 1rem 0;
+  padding-left: 1rem;
+  border-left: 3px solid var(--border);
+  white-space: pre-wrap;
+}
+
+@media (max-width: 850px) {
+  .columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
