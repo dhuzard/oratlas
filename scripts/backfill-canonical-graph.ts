@@ -45,8 +45,10 @@ interface ManifestEntry {
 
 // A review is the atomic resume unit. Production reviews can contain thousands
 // of graph writes, so the interactive transaction must be bounded by the job's
-// workload envelope rather than Prisma's short request-oriented default.
-const REVIEW_BACKFILL_TRANSACTION_TIMEOUT_MS = 10 * 60 * 1_000;
+// workload envelope rather than Prisma's short request-oriented default. The
+// ceiling stays below the Cloud Run job's 60m --task-timeout (cloudbuild.yaml):
+// a large review on a small Cloud SQL tier exceeded the former 10m bound.
+const REVIEW_BACKFILL_TRANSACTION_TIMEOUT_MS = 45 * 60 * 1_000;
 
 async function main(): Promise<void> {
   const options = parseOptions(process.argv.slice(2));
