@@ -32,8 +32,8 @@ export default async function ClaimComparisonPage({
         </p>
         <div className="btn-row">
           <Link href="/">Home</Link>
-          <Link href="/claims">Find claims</Link>
-          <Link href="/compare">Compare review coverage</Link>
+          <Link href="/explore">Find claims</Link>
+          <Link href="/compare#review-coverage">Compare review coverage</Link>
         </div>
       </header>
 

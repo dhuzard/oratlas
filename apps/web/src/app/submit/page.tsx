@@ -17,6 +17,11 @@ export default async function SubmitPage() {
         knowledge nodes, or both. ORAtlas captures an exact repository state; it does not generate
         the review and no manuscript upload is required.
       </p>
+      <p className="prose muted">
+        This workflow supports public GitHub repositories. For a published MyST site with a
+        supported manifest, follow the <Link href="/connect">publication registration guide</Link>.{" "}
+        <Link href="/publications#add-source">See supported source types</Link>.
+      </p>
       <p className="notice notice-info prose">
         Need to create the review first? Follow the{" "}
         <Link href="/create-review">Allen AIreview → ORAtlas guide</Link>.

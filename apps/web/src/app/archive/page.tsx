@@ -3,6 +3,7 @@ import { Card, Badge, CompatibilityBadge } from "@oratlas/ui";
 import { archiveSearchQuerySchema } from "@oratlas/contracts";
 import { buildKnowledgeIndex } from "@/lib/index-builder";
 import { searchArchive } from "@/lib/archive-search";
+import { SourceNavigation } from "@/components/SourceNavigation";
 
 export const dynamic = "force-dynamic";
 
@@ -43,7 +44,7 @@ export default async function ArchivePage({
   return (
     <>
       <header className="page-hero archive-hero">
-        <p className="home-eyebrow">Open Review Atlas</p>
+        <p className="home-eyebrow">Sources · Archived reviews</p>
         <h1>AI review archive</h1>
         <p className="lead">
           Discover deposited, versioned AI-generated scientific reviews. Open a record to read its
@@ -54,6 +55,7 @@ export default async function ArchivePage({
           <Link href="/create-review">Create &amp; deposit</Link>
         </div>
       </header>
+      <SourceNavigation current="/archive" />
       <p className="muted">
         {results.total} record(s){query.q ? ` matching “${query.q}”` : ""}. Archive acceptance is
         not peer review or scientific endorsement.

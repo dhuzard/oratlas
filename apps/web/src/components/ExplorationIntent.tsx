@@ -19,8 +19,8 @@ export function ExplorationIntent({
         <h2 id="exploration-intent-title">What do you want to understand?</h2>
         <p>
           Describe a topic, then choose the lenses that matter to you. ORAtlas will show a small,
-          explainable path through matching graph nodes. Complete record indexes remain separately
-          available when you need exhaustive lookup.
+          explainable path through matching graph nodes. Separate collection indexes show which
+          source types they cover.
         </p>
       </div>
       <form action="/explore" method="get" role="search" aria-label="Explore a topic">

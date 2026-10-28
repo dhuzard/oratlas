@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Badge, Card } from "@oratlas/ui";
 import { prisma } from "@/lib/db";
+import { SourceNavigation } from "@/components/SourceNavigation";
 
 export const dynamic = "force-dynamic";
 
@@ -25,12 +26,50 @@ export default async function PublicationsPage() {
     <>
       <header className="page-hero">
         <p className="home-eyebrow">Exact scientific records</p>
-        <h1>Publications</h1>
+        <h1>Sources</h1>
         <p className="lead">
           Publications remain at their original homes. ORAtlas records exact versions and connects
           them to claims, verification evidence, discussion and attributed certification.
         </p>
       </header>
+
+      <SourceNavigation current="/publications" />
+      <p className="muted prose">
+        Showing the {versions.length} most recently observed registered publication versions (up to
+        50). A publication may have several exact versions. Archived reviews and research objects
+        have separate collections and filters.
+      </p>
+
+      <section id="add-source" className="source-handoff" aria-labelledby="add-source-title">
+        <h2 id="add-source-title">Add a supported public source</h2>
+        <p>
+          Choose the path for your source. ORAtlas preserves an exact version; submission and
+          structural checks do not establish scientific correctness.
+        </p>
+        <div className="grid grid-2">
+          <Card title="Public GitHub repository">
+            <p>
+              Deposit a completed computational review, declared research objects, or both. Sign in,
+              select an exact release, tag or commit, inspect the capture and submit it for an
+              editorial decision.
+            </p>
+            <Link href="/submit">Inspect and deposit a repository</Link>
+          </Card>
+          <Card title="Published MyST site">
+            <p>
+              A supported machine-readable manifest can be registered by an editor through the
+              existing registration API. Prepare the source with the adapter guide; this page does
+              not import a site URL.
+            </p>
+            <Link href="/connect">Prepare a MyST publication</Link>
+          </Card>
+        </div>
+        <p className="muted">
+          Arbitrary PDF uploads, private sources, JATS and Quarto imports are not supported here.
+        </p>
+      </section>
+
+      <h2>Registered publication versions</h2>
 
       {versions.length === 0 ? (
         <Card>

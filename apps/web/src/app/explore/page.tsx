@@ -187,11 +187,12 @@ export default async function ExplorePage({
   return (
     <>
       <header className="explore-header">
-        <p className="home-eyebrow">Explore ORAtlas</p>
-        <h1>Traverse the evidence graph</h1>
+        <p className="home-eyebrow">Find claims</p>
+        <h1>Find claims for your question</h1>
         <p className="lead">
-          Enter through a topic or explicit interest, then move between preserved reviews, claims,
-          evidence, and research objects. Search starts a path; it does not rank a database dump.
+          Start with a topic or explicit interest, then inspect matching claims, their connections
+          and preserved sources. This bounded graph view shows a path through available records; it
+          is not a complete search of every publication.
         </p>
       </header>
 
@@ -342,16 +343,18 @@ export default async function ExplorePage({
 
       <section className="explore-record-indexes" aria-labelledby="explore-record-indexes-title">
         <div>
-          <p className="home-eyebrow">Complete indexes</p>
-          <h2 id="explore-record-indexes-title">Need an exhaustive record list?</h2>
+          <p className="home-eyebrow">Other collections</p>
+          <h2 id="explore-record-indexes-title">Browse claims and sources by collection</h2>
           <p>
-            Explore is for connected traversal. The archive and claim explorer remain available for
-            comprehensive lookup, deep links, and agent workflows.
+            The claim explorer searches accepted archived reviews. The archive also offers
+            research-object and synthesis result kinds. Registered external publication versions are
+            listed separately under Sources; these collections do not share one search corpus.
           </p>
         </div>
         <nav aria-label="Complete scholarly indexes">
           <Link href={claimsIndexHref(parameters)}>Open claim explorer</Link>
           <Link href={archiveIndexHref(q)}>Open archive</Link>
+          <Link href="/publications">Browse registered publications</Link>
         </nav>
       </section>
     </>

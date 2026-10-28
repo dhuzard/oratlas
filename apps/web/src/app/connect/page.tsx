@@ -5,7 +5,7 @@ export default function ConnectPage() {
   return (
     <>
       <header className="page-hero">
-        <p className="home-eyebrow">Developers</p>
+        <p className="home-eyebrow">Source preparation · Developers</p>
         <h1>Connect a publication</h1>
         <p className="lead">
           Publish wherever you want. ORAtlas works with exact, machine-readable scientific versions
@@ -13,6 +13,20 @@ export default function ConnectPage() {
           separate dimensions.
         </p>
       </header>
+
+      <Card title="How this source reaches ORAtlas">
+        <p>
+          Prepare and publish a supported MyST manifest at your publication’s public home. An
+          ORAtlas editor can then register that manifest using the authenticated publication
+          registration API. Registration captures an exact version; it does not automatically assign
+          canonical claim identities or certify the science.
+        </p>
+        <p>
+          This is an adapter guide, not a URL import form. For a public GitHub review or declared
+          research objects, use the <Link href="/submit">repository deposit workflow</Link>.{" "}
+          <Link href="/publications#add-source">Return to supported sources</Link>.
+        </p>
+      </Card>
 
       <div className="grid grid-2 adapter-grid">
         <Card title="MyST">

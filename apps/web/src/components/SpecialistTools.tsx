@@ -32,6 +32,16 @@ const TOOLS = [
     label: "Scoped grounded Q&A",
     detail: "Traverse exact graph records, then discuss only that visible path.",
   },
+  {
+    href: "/verification",
+    label: "Verification protocols",
+    detail: "Inspect named checks and their scientific scope.",
+  },
+  {
+    href: "/certifications",
+    label: "Certification records",
+    detail: "Read attributable conclusions under named protocols.",
+  },
 ] as const;
 
 export function SpecialistTools() {
@@ -66,5 +76,5 @@ export function SpecialistToolBreadcrumb({
   current: string;
   parent?: { href: string; label: string };
 }) {
-  return <ExploreBreadcrumb current={current} parent={parent} />;
+  return <ExploreBreadcrumb current={current} parent={parent} rootLabel="Find claims" />;
 }

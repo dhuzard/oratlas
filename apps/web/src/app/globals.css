@@ -163,13 +163,15 @@ a:hover {
 .brand span {
   color: var(--accent);
 }
-.main-nav {
+.main-nav,
+.utility-nav {
   display: flex;
   gap: 1.1rem;
   align-items: center;
   flex-wrap: wrap;
 }
-.main-nav a {
+.main-nav a,
+.utility-nav a {
   color: var(--text-muted);
   text-decoration: none;
   font-size: 0.95rem;
@@ -177,6 +179,40 @@ a:hover {
 .main-nav a:hover,
 .main-nav a[aria-current="page"] {
   color: var(--text);
+}
+.utility-nav a:hover {
+  color: var(--text);
+}
+.utility-nav {
+  gap: 0.5rem 0.9rem;
+}
+.utility-nav a {
+  font-size: 0.85rem;
+}
+.source-navigation {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.2rem;
+  margin-block: 1rem;
+  padding-block: 0.8rem;
+  border-block: 1px solid var(--border);
+}
+.source-navigation a[aria-current="page"] {
+  color: var(--text);
+  font-weight: 700;
+  text-decoration-thickness: 2px;
+}
+.source-handoff,
+.comparison-exact-entry {
+  margin-block: 1.5rem 2rem;
+}
+.comparison-exact-entry summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.comparison-exact-entry .filters {
+  max-width: 48rem;
+  margin-block: 1rem;
 }
 .signed-in-user {
   color: var(--text-muted);
@@ -195,6 +231,7 @@ a:hover {
     border-top: 1px solid var(--border);
   }
   .main-nav a,
+  .utility-nav a,
   .signed-in-user {
     font-size: 0.88rem;
   }
@@ -2377,7 +2414,8 @@ textarea {
   display: flex;
   flex-wrap: wrap;
   gap: 0.75rem 1rem;
-  min-width: max-content;
+  min-width: 0;
+  max-width: 100%;
 }
 
 @media (max-width: 700px) {

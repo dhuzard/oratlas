@@ -27,6 +27,17 @@ test("public synthetic pair preserves distinct exact references through copy and
     await expect(side.getByRole("heading", { name: "Linked evidence" })).toBeVisible();
     await expect(side.getByRole("link", { name: "Inspect exact occurrence" })).toBeVisible();
   }
+  const firstSide = page.getByRole("region", { name: "First claim occurrence" });
+  const exactSourceLink = firstSide.getByRole("link", { name: "Read exact source version" });
+  const exactSourceHref = await exactSourceLink.getAttribute("href");
+  expect(exactSourceHref).toMatch(/^\/reviews\/[^/]+\/versions\/[^/]+$/);
+  const sourceResponse = await page.goto(exactSourceHref!);
+  expect(sourceResponse?.ok()).toBe(true);
+  await expect(page).toHaveURL(new URL(exactSourceHref!, original.origin).href);
+  await expect(page.locator("article").first()).toBeVisible();
+  await page.goto(original.href);
+  expect(new URL(page.url()).searchParams.get("left")).toBe(left);
+  expect(new URL(page.url()).searchParams.get("right")).toBe(right);
   await expect(page.getByRole("heading", { name: "Relationship and uncertainty" })).toBeVisible();
   await expect(page.getByText(/No relationship in this bounded view/)).toBeVisible();
   await page.getByRole("button", { name: "Copy exact pair link" }).click();
@@ -65,18 +76,23 @@ test("exact pair is keyboard readable, accessible and contained on mobile", asyn
 });
 
 test("review comparison query behavior remains available", async ({ page }) => {
-  await page.goto("/compare");
+  const left = "hippocampal-replay-computational-review";
+  const right = "cortical-oscillations-attention-review";
+  await page.goto(`/compare?${new URLSearchParams({ left, right })}`);
   await expect(
-    page.getByRole("heading", { name: "Compare reviews, evidence and TRUST" }),
+    page.getByRole("heading", { name: "Compare claims with their evidence" }),
   ).toBeVisible();
-  const left = await page.getByLabel("First record").inputValue();
-  const right = await page.getByLabel("Second record").inputValue();
+  await expect(page.getByRole("heading", { name: "Compare review coverage" })).toBeVisible();
+  await expect(page.getByLabel("First record")).toHaveValue(left);
+  await expect(page.getByLabel("Second record")).toHaveValue(right);
   await page.getByRole("button", { name: "Compare records", exact: true }).click();
   expect(new URL(page.url()).searchParams.get("left")).toBe(left);
   expect(new URL(page.url()).searchParams.get("right")).toBe(right);
   await expect(
     page.getByRole("heading", { name: "What each deposit makes inspectable" }),
   ).toBeVisible();
+  await expect(page.getByRole("link", { name: /Hippocampal replay/i })).toBeVisible();
+  await expect(page.getByRole("link", { name: /Cortical oscillations/i })).toBeVisible();
 });
 
 test("missing or ambiguous exact references do not choose a default pair", async ({ page }) => {
@@ -84,5 +100,12 @@ test("missing or ambiguous exact references do not choose a default pair", async
     const response = await page.goto(`/compare/claims${query}`);
     expect(response?.status()).toBe(404);
     await expect(page.getByRole("heading", { name: "Compare two exact claims" })).toHaveCount(0);
+    await expect(
+      page.getByRole("heading", { name: "This claim pair is unavailable" }),
+    ).toBeVisible();
+    await expect(page.getByRole("link", { name: "Choose two exact claims" })).toHaveAttribute(
+      "href",
+      "/compare",
+    );
   }
 });

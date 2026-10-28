@@ -32,9 +32,13 @@ export default async function ClaimsPage({
   return (
     <>
       <h1>Claim explorer</h1>
+      <p>
+        <Link href="/explore">Find claims and connections</Link> · Archived-review claim index
+      </p>
       <p className="muted">
-        Search claims across all accepted reviews and inspect their supporting and contradicting
-        citations. {results.total} claim(s) match.
+        Search claims from accepted archived reviews and inspect their supporting and contradicting
+        citations. This index does not include every registered external publication.{" "}
+        {results.total} claim(s) match; this view shows up to 30 results.
       </p>
 
       <div className="grid layout-2">
