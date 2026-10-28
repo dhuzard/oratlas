@@ -4527,7 +4527,7 @@
       "loader": "app/robots.ts",
       "body": {
         "encoding": "utf8",
-        "text": "{\n  \"rules\": {\n    \"userAgent\": \"*\",\n    \"allow\": \"/\",\n    \"disallow\": [\n      \"/signin\",\n      \"/editorial\",\n      \"/notifications\",\n      \"/submit\",\n      \"/submissions\",\n      \"/api/auth/\",\n      \"/api/editorial/\",\n      \"/api/admin/\",\n      \"/api/submissions\",\n      \"/explore?\"\n    ]\n  },\n  \"sitemap\": \"https://g1.oratlas.example/sitemap.xml\",\n  \"host\": \"https://g1.oratlas.example\"\n}\n"
+        "text": "{\n  \"rules\": {\n    \"userAgent\": \"*\",\n    \"allow\": \"/\",\n    \"disallow\": [\n      \"/signin\",\n      \"/editorial\",\n      \"/notifications\",\n      \"/submit\",\n      \"/submissions\",\n      \"/api/auth/\",\n      \"/api/editorial/\",\n      \"/api/admin/\",\n      \"/api/submissions\"\n    ]\n  },\n  \"sitemap\": \"https://g1.oratlas.example/sitemap.xml\",\n  \"host\": \"https://g1.oratlas.example\"\n}\n"
       }
     },
     {

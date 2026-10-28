@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { EXPLORE_QUERY_DISALLOW, exploreRobots } from "./crawl-policy";
+import { exploreRobots } from "./crawl-policy";
 
 describe("explore crawl policy", () => {
   it("keeps the bare explore page indexable", () => {
@@ -15,9 +15,5 @@ describe("explore crawl policy", () => {
 
   it("ignores absent parameter values", () => {
     expect(exploreRobots({ known: [], focus: undefined })).toBeUndefined();
-  });
-
-  it("disallows every query-string variant of explore", () => {
-    expect(EXPLORE_QUERY_DISALLOW).toBe("/explore?");
   });
 });

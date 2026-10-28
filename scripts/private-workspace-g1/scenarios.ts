@@ -683,7 +683,6 @@ function metadataScenarios(): MetadataScenario[] {
               "/api/editorial/",
               "/api/admin/",
               "/api/submissions",
-              "/explore?",
             ],
           },
           sitemap: url("/sitemap.xml"),

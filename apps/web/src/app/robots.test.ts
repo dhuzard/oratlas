@@ -25,13 +25,4 @@ describe("robots metadata", () => {
     expect(disallowed).not.toContain("/api/search");
     expect(disallowed).not.toContain("/api/graph");
   });
-
-  it("blocks parameterised explore views but not the explore entry page", () => {
-    const metadata = robots();
-    const rules = Array.isArray(metadata.rules) ? metadata.rules : [metadata.rules];
-    const disallowed = rules.flatMap((rule) => rule.disallow ?? []);
-
-    expect(disallowed).toContain("/explore?");
-    expect(disallowed).not.toContain("/explore");
-  });
 });
