@@ -112,6 +112,19 @@ export default async function EditorialPage({
       <p>
         <a href="/editorial/replications">Manage replication briefs →</a>
       </p>
+      <nav className="source-navigation" aria-label="Editorial tasks">
+        <a href="#pending-submissions">Submissions</a>
+        <a href="#challenge-queue">Formal challenges</a>
+        <a href="#trust-provenance">Assessment provenance</a>
+        <a href="#trust-disagreements-heading">Assessment disagreements</a>
+        <a href="#relation-proposals">Relation proposals</a>
+        <a href="#identity-proposals">Identity proposals</a>
+      </nav>
+      <p className="muted">
+        Open each subject’s preserved context before deciding. Discussion, formal objections,
+        assessment provenance, relation decisions and stable identity decisions are separate tasks.
+        Existing authorization, conflict declarations and revision checks apply to every action.
+      </p>
 
       <SynthesisDraftPanel
         drafts={synthesisDrafts}
@@ -123,7 +136,7 @@ export default async function EditorialPage({
       />
       <TrustAdjudicationPanel items={trustDisagreements} />
 
-      <h2>Pending submissions ({pending.length})</h2>
+      <h2 id="pending-submissions">Pending submissions ({pending.length})</h2>
       {pending.length === 0 ? (
         <Card>
           <p className="muted">No pending submissions.</p>
@@ -286,7 +299,7 @@ export default async function EditorialPage({
         </Card>
       ))}
 
-      <h2>Open formal challenges ({challengePage.items.length})</h2>
+      <h2 id="challenge-queue">Open formal challenges ({challengePage.items.length})</h2>
       <p className="muted">
         Active immutable challenges requiring a contributor response or human editorial outcome.
         Outcome rationales are retained as editorial-only records.
@@ -300,7 +313,7 @@ export default async function EditorialPage({
         </p>
       ) : null}
 
-      <h2>TRUST provenance queue ({trustQueue.total})</h2>
+      <h2 id="trust-provenance">TRUST provenance queue ({trustQueue.total})</h2>
       <p className="muted">
         Repository-supplied review labels are assertions only. Recording a platform marker confirms
         that an editor checked the captured structure and provenance; it is not scientific peer
@@ -407,14 +420,14 @@ export default async function EditorialPage({
         </ul>
       )}
 
-      <h2>Knowledge edge proposals ({nodeEdgeProposals.length})</h2>
+      <h2 id="relation-proposals">Knowledge edge proposals ({nodeEdgeProposals.length})</h2>
       <p className="muted">
         Author assertions and agent suggestions remain non-authoritative proposals until an editor
         confirms them. Confirmation records structural editorial review, not scientific truth.
       </p>
       <NodeEdgeProposalPanel proposals={nodeEdgeProposals} />
 
-      <h2>Same-claim proposals ({nodeIdentityProposals.length})</h2>
+      <h2 id="identity-proposals">Same-claim proposals ({nodeIdentityProposals.length})</h2>
       <p className="muted">
         Deterministic text and alias signals only propose identity. An editor may confirm an “also
         asserted in” relationship, but claims, nodes, and protocol-scoped TRUST assessments remain

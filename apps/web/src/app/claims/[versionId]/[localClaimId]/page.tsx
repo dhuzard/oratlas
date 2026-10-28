@@ -9,6 +9,7 @@ import { ArtifactOutcomes } from "@/components/ArtifactOutcomes";
 import { InspectionPath } from "@/components/InspectionPath";
 import { ExploreBreadcrumb } from "@/components/ExploreBreadcrumb";
 import { SourceEvidenceLinksCard } from "@/components/SourceEvidenceLinksCard";
+import { ContextualRecordActions } from "@/components/ContextualRecordActions";
 
 export const dynamic = "force-dynamic";
 
@@ -236,6 +237,14 @@ export default async function ClaimPassportPage({
       </div>
 
       <SourceEvidenceLinksCard links={passport.sourceEvidenceLinks} />
+      <Card title="Discussion, objections and assessments">
+        <ContextualRecordActions
+          sourceType="review-version"
+          sourceHref={`/reviews/${encodeURIComponent(passport.reviewSlug)}/versions/${encodeURIComponent(passport.versionId)}`}
+          reference={`/claims/${encodeURIComponent(passport.versionId)}/${encodeURIComponent(passport.localClaimId)}`}
+        />
+        <Link href="/api-docs#two-record-recipe">Read and reuse exact claims through REST</Link>
+      </Card>
 
       <Card title={`Execution passports (${passport.executionPassports.length})`}>
         <p className="muted">

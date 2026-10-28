@@ -31,6 +31,11 @@ export default function AgentGuidePage() {
 
       <h2>Canonical identity and provenance</h2>
       <p>
+        Use the <Link href="/api-docs#two-record-recipe">two-record REST read recipe</Link> to
+        inspect two exact claims and retain their source links for reuse. It composes existing
+        public reads locally; it does not save a comparison or confer contribution authority.
+      </p>
+      <p>
         Resolve stable identifiers to exact review and node versions before analysis or citation.
         Use canonical graph traversal for preserved scientific relations. Personalized landscape or
         recommendation projections answer an explicit interest and are not canonical graph state.
@@ -65,6 +70,16 @@ export default function AgentGuidePage() {
           Repeated references to the same underlying source are not independent corroboration.
         </li>
       </ul>
+      <h2>Participation preserves its subject</h2>
+      <p>
+        Informal comments, immutable formal challenges, protocol-scoped assessments and proposed
+        relations are separate records. A proposal is not a confirmed relation; a provenance marker
+        is not scientific confirmation. Existing editor and adjudicator decisions retain their own
+        authorization, recusal, revision and audit requirements. Public readability and a copied
+        pair link provide no write authority. Do not substitute a current review for a historical
+        claim merely to find a contribution form; retain the exact subject or report that the
+        requested action is unavailable for that source kind.
+      </p>
 
       <h2>Lifecycle state controls reuse</h2>
       <p>

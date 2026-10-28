@@ -635,7 +635,7 @@ async function loadTrustEditorialQueueItems(): Promise<TrustQueueItem[]> {
     return {
       assessmentId: row.id,
       subjectType: "claim-citation",
-      subjectHref: `/reviews/${row.relation.claim.reviewVersion.review.slug}`,
+      subjectHref: `/claims/${encodeURIComponent(row.relation.claim.reviewVersionId)}/${encodeURIComponent(row.relation.claim.localClaimId)}`,
       subjectLabel: row.relation.claim.reviewVersion.review.slug,
       canVerify: true,
       claimLocalId: row.relation.claim.localClaimId,

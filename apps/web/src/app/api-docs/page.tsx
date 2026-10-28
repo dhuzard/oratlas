@@ -53,6 +53,73 @@ export default function ApiDocsPage() {
         </code>
       </pre>
 
+      <h2 id="two-record-recipe">Read, inspect and reuse two exact claims</h2>
+      <p>
+        This read-only recipe uses curl and jq with two archived-review claim passports. Replace the
+        placeholders with URL-encoded identifiers returned by the API. Keep the two versions
+        separate even when the text or source-local identifiers match. No comparison resource is
+        created or saved on the server.
+      </p>
+      <pre>
+        <code>{`ORIGIN='${canonicalOrigin().origin}'
+LEFT_VERSION='exact-left-review-version'
+LEFT_CLAIM='left-local-claim-id'
+RIGHT_VERSION='exact-right-review-version'
+RIGHT_CLAIM='right-local-claim-id'
+
+curl --fail --show-error "$ORIGIN/api/claims/$LEFT_VERSION/$LEFT_CLAIM" -o left.json
+curl --fail --show-error "$ORIGIN/api/claims/$RIGHT_VERSION/$RIGHT_CLAIM" -o right.json
+
+# Inspect the claims, exact source links and any existing canonical bindings.
+jq '{text, versionId, localClaimId, graphIdentity, links, evidence}' left.json right.json
+
+# Retain exact references for reuse; this is a local file, not an ORAtlas write.
+jq -s 'map({reference: .links.html, sourceVersion: .versionId,
+  canonical: .graphIdentity, source: .links.reviewVersion})' left.json right.json > exact-pair.json`}</code>
+      </pre>
+      <p>
+        Read both exact source versions via each passport’s <code>links.reviewVersion</code>.
+        Inspect lifecycle state, evidence selectors and each relation’s assessments. If a passport
+        has a canonical binding, use its returned <code>links.graph</code> to inspect the graph;
+        absent bindings must remain absent. For example:
+      </p>
+      <pre>
+        <code>{`GRAPH_PATH=$(jq -r '.links.graph // empty' left.json)
+if [ -n "$GRAPH_PATH" ]; then
+  curl --fail --show-error "$ORIGIN$GRAPH_PATH" -o left-graph.json
+  jq '{nodes, edges, page}' left-graph.json
+fi`}</code>
+      </pre>
+      <p>
+        Repeat for the right record. Follow the graph response’s <code>page.nextCursor</code> or
+        HTTP <code>Link</code> with <code>rel="next"</code>, retaining the seed, version and other
+        query parameters. Compare exact endpoint tuples and relation direction, and keep every
+        edge’s status and rationale. A page with no connecting edge establishes only that none was
+        returned in that bounded view; it does not establish agreement, disagreement or absence
+        throughout the graph. Repeated citations are not independent corroboration.
+      </p>
+      <p>
+        For a canonical node reference, read{" "}
+        <code>
+          /api/nodes/{"{nodeId}"}/versions/{"{versionId}"}
+        </code>
+        . For an external source occurrence, read{" "}
+        <code>/api/publication-claim-occurrences/{"{id}"}</code>, then its exact publication-version
+        record and <code>/api/publication-versions/{"{id}"}/packet</code>. Its{" "}
+        <code>canonicalBinding</code> may be null; when present it supplies the exact graph tuple
+        and graph link. These are different response shapes, not interchangeable claim passport
+        objects. Preserve the occurrence ID and publication-version ID without inferring identity
+        from matching text or digests.
+      </p>
+      <p>
+        Reuse exact human/API links and retain protocol identities, relation status, lifecycle
+        state, bounds and any packet digest returned. Re-check availability before reuse; never
+        replace a denied or tombstoned exact record with a latest-version alias or cached content.
+        There is no public comparison REST endpoint: this recipe composes existing reads locally. It
+        grants no permission to comment, file a challenge, propose a relation or record an
+        assessment.
+      </p>
+
       <h2>Contract and access</h2>
       <p>
         The complete operation, parameter, response, authentication, and error contract is available

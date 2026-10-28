@@ -220,6 +220,30 @@ function input(fixture: Awaited<ReturnType<typeof disagreementFixture>>) {
 }
 
 describe.sequential("TRUST adjudication persistence", () => {
+  it("keeps assessment queue links bound to distinct versions with the same source-local claim ID", async () => {
+    const earlier = await disagreementFixture("exact-context-earlier");
+    const later = await disagreementFixture("exact-context-later");
+    expect(earlier.review.id).toBe(later.review.id);
+    const { listTrustEditorialQueue } = await import("./trust-provenance");
+    const queue = await listTrustEditorialQueue("all");
+    for (const fixture of [earlier, later]) {
+      const subjectHref = `/claims/${fixture.version.id}/claim-1`;
+      const disagreement = (await runtime.list({ reviewVersionId: fixture.version.id })).find(
+        (item) => item.subjectId === fixture.relation.id && item.current,
+      );
+      expect(disagreement).toMatchObject({
+        subjectHref,
+        disagreementHash: fixture.disagreement.disagreementHash,
+      });
+      for (const assessment of fixture.assessments) {
+        expect(queue.find((item) => item.assessmentId === assessment.id)).toMatchObject({
+          subjectHref,
+          claimLocalId: "claim-1",
+        });
+      }
+    }
+  });
+
   it("creates an immutable public-minimal record, retries idempotently, and rejects a conflicting outcome", async () => {
     const fixture = await disagreementFixture("create");
     const created = await runtime.create(editor, input(fixture));
@@ -347,10 +371,15 @@ describe.sequential("TRUST adjudication persistence", () => {
     const afterSupersession = await runtime.list({ reviewVersionId: fixture.version.id });
     expect(afterSupersession).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ current: true, open: true }),
+        expect.objectContaining({
+          current: true,
+          open: true,
+          subjectHref: `/claims/${fixture.version.id}/claim-1`,
+        }),
         expect.objectContaining({
           current: false,
           open: false,
+          subjectHref: `/claims/${fixture.version.id}/claim-1`,
           adjudications: [expect.objectContaining({ id: adjudication.id, valid: true })],
         }),
       ]),

@@ -312,6 +312,21 @@ describe.sequential("node edge lifecycle integration", () => {
     expect(first.idempotent).toBe(false);
     expect(retry).toEqual({ proposalId: first.proposalId, idempotent: true });
     expect(await prisma.nodeEdgeProposal.count({ where: { id: first.proposalId } })).toBe(1);
+    const queued = (await lifecycle.listPendingNodeEdgeProposals()).find(
+      (proposal) => proposal.id === first.proposalId,
+    );
+    expect(queued).toMatchObject({
+      source: {
+        id: sourceNodeId,
+        nodeVersionId: sourceVersionId,
+        exactHref: `/graph/occurrences/${sourceNodeId}/versions/${sourceVersionId}`,
+      },
+      target: {
+        id: targetNodeId,
+        nodeVersionId: targetVersionId,
+        exactHref: `/graph/occurrences/${targetNodeId}/versions/${targetVersionId}`,
+      },
+    });
     expect(
       await prisma.auditEvent.count({
         where: { action: "node-edge.proposed", subjectId: first.proposalId },
