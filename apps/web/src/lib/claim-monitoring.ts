@@ -464,6 +464,7 @@ export async function getClaimPassport(
   const claim = await prisma.claim.findFirst({
     where: { reviewVersionId: versionId, localClaimId },
     include: {
+      graphVersion: { select: { id: true, knowledgeNodeId: true } },
       reviewVersion: {
         include: {
           snapshot: { select: { inspectionReportJson: true, preservedFilesJson: true } },
@@ -505,7 +506,10 @@ export async function getClaimPassport(
     version.snapshot?.preservedFilesJson ?? null,
     claim,
   );
-  const publicNode = claim.knowledgeNodeId ? await getPublicNode(claim.knowledgeNodeId) : null;
+  const publicNode =
+    claim.knowledgeNodeId && claim.graphVersion?.knowledgeNodeId === claim.knowledgeNodeId
+      ? await getPublicNode(claim.knowledgeNodeId, claim.graphVersion.id)
+      : null;
   const graphIdentity = publicNode
     ? {
         nodeId: publicNode.id,

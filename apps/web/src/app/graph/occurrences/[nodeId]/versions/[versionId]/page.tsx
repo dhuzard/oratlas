@@ -7,6 +7,8 @@ import { CanonicalGraphQueryError, queryCanonicalGraph } from "@/lib/canonical-g
 import { canonicalOccurrenceHref } from "@/lib/knowledge-landscape-service";
 import { listPublicationVersionCertifications } from "@/lib/certification";
 import { oraPilotPresentation } from "@/lib/ora-certification-presentation";
+import { ExactSourceContext } from "@/components/ExactSourceContext";
+import { getExternalOccurrencePageContext } from "@/lib/claim-page-source-context";
 
 export const dynamic = "force-dynamic";
 
@@ -27,6 +29,16 @@ export default async function CanonicalOccurrencePage({ params }: OccurrencePage
   const occurrence = await loadOccurrence(nodeId, versionId);
   if (!occurrence) notFound();
   const { node, graph } = occurrence;
+  const externalSource = node.source.type === "publication-claim-occurrence" ? node.source : null;
+  const externalContext = externalSource
+    ? await getExternalOccurrencePageContext({
+        nodeId: node.nodeId,
+        nodeVersionId: node.nodeVersionId,
+        occurrenceId: externalSource.publicationClaimOccurrenceId,
+        publicationVersionId: externalSource.publicationVersionId,
+      })
+    : null;
+  if (externalSource && !externalContext) notFound();
   const certifications =
     node.source.type === "publication-claim-occurrence"
       ? (await listPublicationVersionCertifications(node.source.publicationVersionId))
@@ -56,6 +68,53 @@ export default async function CanonicalOccurrencePage({ params }: OccurrencePage
           </a>
         </p>
       ) : null}
+
+      <ExactSourceContext
+        kind={
+          externalSource
+            ? "External publication"
+            : node.source.type === "repository-snapshot"
+              ? "Repository research object"
+              : "Archived review"
+        }
+        versionId={externalSource?.publicationVersionId ?? node.nodeVersionId}
+        preservedHref={
+          externalSource
+            ? `/publications/${encodeURIComponent(externalSource.publicationId)}/versions/${encodeURIComponent(externalSource.publicationVersionId)}`
+            : `/graph/occurrences/${encodeURIComponent(node.nodeId)}/versions/${encodeURIComponent(node.nodeVersionId)}`
+        }
+        originalUrl={externalSource?.publishedTargetUrl}
+        originalLabel="Open original publication passage"
+        locator={externalContext?.locator}
+        lifecycle={
+          externalSource
+            ? "Registered external occurrence; this record has no review withdrawal lifecycle."
+            : "Readable under the source record’s current public visibility rules."
+        }
+        identity={[
+          { label: "Node ID", value: node.nodeId },
+          { label: "Node version ID", value: node.nodeVersionId },
+          ...(externalSource
+            ? [
+                {
+                  label: "Source occurrence ID",
+                  value: externalSource.publicationClaimOccurrenceId,
+                },
+                { label: "Structural provenance", value: externalSource.structuralProvenance },
+              ]
+            : []),
+        ]}
+        coverage={[
+          `${graph.edges.length} authoritative relations returned in this bounded graph neighborhood.${graph.page.nextCursor ? " Additional relations exist beyond this page." : ""}`,
+          "Source assertions and editor-confirmed relations retain their distinct recorded states. Relation presence does not establish scientific correctness.",
+          ...(externalSource
+            ? [
+                "The recorded locator identifies source context. This graph projection does not supply declared comparison scope; missing scope remains unknown.",
+                "Structural provenance is separate from scientific verification findings and certification conclusions.",
+              ]
+            : []),
+        ]}
+      />
 
       <div className="grid layout-2">
         <div>
@@ -178,7 +237,9 @@ async function loadOccurrence(nodeId: string, versionId: string) {
       status: "authoritative",
       limit: 100,
     });
-    const node = graph.nodes.find((candidate) => candidate.nodeVersionId === versionId);
+    const node = graph.nodes.find(
+      (candidate) => candidate.nodeId === nodeId && candidate.nodeVersionId === versionId,
+    );
     return node ? { graph, node } : null;
   } catch (error) {
     if (error instanceof CanonicalGraphQueryError && error.code === "not-found") return null;

@@ -1,6 +1,12 @@
 import Link from "next/link";
 import { Badge, Card, DefinitionList, Notice, TrustCriterionProfile } from "@oratlas/ui";
-import { TRUST_CRITERIA, type PublicNodeDetail, type PublicNodeVersion } from "@oratlas/contracts";
+import {
+  TRUST_CRITERIA,
+  publicationHttpsUrlSchema,
+  type PublicNodeDetail,
+  type PublicNodeVersion,
+} from "@oratlas/contracts";
+import { ExactSourceContext } from "@/components/ExactSourceContext";
 import { TrustVerificationBadge } from "@/components/TrustVerificationBadge";
 import type { PublicNodeDetailProjection } from "@/lib/node-publication";
 import { ArtifactOutcomes } from "@/components/ArtifactOutcomes";
@@ -14,6 +20,7 @@ export function NodeView({
   historical?: boolean;
 }) {
   const version = node.version;
+  const sourceUrl = publicationHttpsUrlSchema.safeParse(node.repository.url);
   const current = node.versions.find((candidate) => candidate.isCurrent)!;
   return (
     <article>
@@ -36,6 +43,22 @@ export function NodeView({
       </div>
       <h1>{version.title}</h1>
       {version.abstract ? <p className="lead muted">{version.abstract}</p> : null}
+      <ExactSourceContext
+        kind="Repository research object"
+        versionId={version.id}
+        preservedHref={`/nodes/${encodeURIComponent(node.id)}/versions/${encodeURIComponent(version.id)}`}
+        originalUrl={sourceUrl.success ? sourceUrl.data : undefined}
+        originalLabel="Open source repository"
+        locator={[version.provenance.sourcePath, version.provenance.sourcePointer]
+          .filter(Boolean)
+          .join(" · ")}
+        lifecycle="Readable under the source record’s current public visibility rules."
+        identity={[{ label: "Captured commit", value: version.commitSha }]}
+        coverage={[
+          "This exact node version preserves the declared content and source pointer. Confirmed graph context can evolve independently.",
+          "Relation, TRUST and version-history lists are bounded views; they do not establish complete evidence coverage or scientific correctness.",
+        ]}
+      />
       <p>
         <Link
           href={`/graph?seed=${encodeURIComponent(node.id)}&depth=1&limit=10&edgeStatus=confirmed`}

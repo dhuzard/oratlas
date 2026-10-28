@@ -4,6 +4,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const state = vi.hoisted(() => ({ query: vi.fn() }));
 
 vi.mock("server-only", () => ({}));
+vi.mock("@/lib/claim-page-source-context", () => ({
+  getExternalOccurrencePageContext: vi.fn().mockResolvedValue({ locator: "results.md:L3-L4" }),
+}));
 vi.mock("@/lib/canonical-graph-query", () => ({
   CanonicalGraphQueryError: class CanonicalGraphQueryError extends Error {
     code = "not-found";
@@ -92,5 +95,20 @@ describe("external publication canonical occurrence page", () => {
     expect(html).toContain("Institute X");
     expect(html).toContain("Reproducibility v2.0.0: certified with conditions");
     expect(html).toContain("lifecycle: withdrawn");
+    expect(html).toContain("Exact source context");
+    expect(html).toContain('href="/publications/publication-b/versions/publication-version-b"');
+    expect(html).toContain("results.md:L3-L4");
+    expect(html).toContain("no review withdrawal lifecycle");
+  });
+
+  it("discloses truncated evidence without claiming a complete neighborhood", async () => {
+    const graph = await state.query();
+    state.query.mockResolvedValue({ ...graph, page: { limit: 100, nextCursor: "next-page" } });
+    const html = renderToStaticMarkup(
+      await CanonicalOccurrencePage({
+        params: Promise.resolve({ nodeId: "node-b1", versionId: "version-b1" }),
+      }),
+    );
+    expect(html).toContain("Additional relations exist beyond this page.");
   });
 });

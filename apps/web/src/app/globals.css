@@ -3178,3 +3178,38 @@ table.data td {
 .claim-comparison-selection h2 {
   font-size: 1.2rem;
 }
+
+.exact-source-context {
+  min-width: 0;
+  margin-block: 1rem;
+  overflow-wrap: anywhere;
+}
+
+.exact-source-context h2 {
+  font-size: 1.2rem;
+}
+
+.exact-source-context-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
+  gap: 0.75rem 1.5rem;
+}
+
+.exact-source-context-fields > div,
+.exact-source-context .btn-row > * {
+  min-width: 0;
+}
+
+.exact-source-context-fields dt {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.exact-source-context-fields dd {
+  margin: 0.2rem 0 0;
+}
+
+.exact-source-context-coverage h3 {
+  font-size: 1rem;
+  margin-bottom: 0.4rem;
+}

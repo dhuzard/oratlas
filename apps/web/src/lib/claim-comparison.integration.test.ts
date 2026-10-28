@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { type PrismaClient } from "@oratlas/db";
 import type * as Comparison from "./claim-comparison";
+import type * as SourceContext from "./claim-page-source-context";
 
 vi.mock("server-only", () => ({}));
 
@@ -12,6 +13,7 @@ const databasePath = resolve(process.cwd(), "packages/db/prisma", databaseName);
 const databaseUrl = `file:./${databaseName}`;
 let prisma: PrismaClient;
 let comparison: typeof Comparison;
+let sourceContext: typeof SourceContext;
 let leftVersion: string;
 let rightVersion: string;
 let withheldVersion: string;
@@ -41,6 +43,7 @@ beforeAll(async () => {
   );
   ({ prisma } = await import("./db"));
   comparison = await import("./claim-comparison");
+  sourceContext = await import("./claim-page-source-context");
   const repository = await prisma.repository.create({
     data: {
       owner: "comparison",
@@ -177,6 +180,14 @@ describe("bounded public exact claim comparison", () => {
     const original = await comparison.getPublicComparisonClaim(ref(leftVersion));
     expect(original?.source.versionId).toBe(leftVersion);
     expect(original?.scope?.population).toBe("rodent");
+    const context = await sourceContext.getClaimPageSourceContext(leftVersion, "same-local-id");
+    expect(context?.versionId).toBe(leftVersion);
+    expect(context?.scope?.population).toBe("rodent");
+    expect(context?.preservedHref).toBe(`/reviews/comparison-fixture/versions/${leftVersion}`);
+    expect(context?.locator).toBe("Results · result-1");
+    expect(
+      await sourceContext.getClaimPageSourceContext(withheldVersion, "same-local-id"),
+    ).toBeNull();
     expect(await comparison.getPublicComparisonClaim(ref("missing"))).toBeNull();
     expect(await comparison.getPublicComparisonClaim(ref(withheldVersion))).toBeNull();
     expect(await comparison.getPublicComparisonClaim("/nodes/moving-alias")).toBeNull();
@@ -189,11 +200,17 @@ describe("bounded public exact claim comparison", () => {
       expect((await comparison.getPublicComparisonClaim(ref(leftVersion)))?.source.lifecycle).toBe(
         "withdrawn",
       );
+      expect(
+        (await sourceContext.getClaimPageSourceContext(leftVersion, "same-local-id"))?.lifecycle,
+      ).toBe("withdrawn");
       await prisma.reviewVersion.update({
         where: { id: leftVersion },
         data: { publicState: "tombstoned" },
       });
       expect(await comparison.getPublicComparisonClaim(ref(leftVersion))).toBeNull();
+      expect(
+        await sourceContext.getClaimPageSourceContext(leftVersion, "same-local-id"),
+      ).toBeNull();
       // A newer readable version with the same local claim ID is never substituted.
       expect(
         (await comparison.getPublicComparisonClaim(ref(rightVersion)))?.scope?.population,
@@ -363,6 +380,29 @@ describe("bounded public exact claim comparison", () => {
     });
     const aRef = `/nodes/${a.knowledgeNodeId}/versions/${a.knowledgeNodeVersionId}`;
     const bRef = `/nodes/${b.knowledgeNodeId}/versions/${b.knowledgeNodeVersionId}`;
+    const externalContextInput = {
+      nodeId: a.knowledgeNodeId,
+      nodeVersionId: a.knowledgeNodeVersionId,
+      occurrenceId: externalA,
+      publicationVersionId: (
+        await prisma.publicationClaimOccurrence.findUniqueOrThrow({ where: { id: externalA } })
+      ).publicationVersionId,
+    };
+    expect(await sourceContext.getExternalOccurrencePageContext(externalContextInput)).toEqual({
+      locator: "paper.md:L2-L3",
+    });
+    expect(
+      await sourceContext.getExternalOccurrencePageContext({
+        ...externalContextInput,
+        nodeVersionId: b.knowledgeNodeVersionId,
+      }),
+    ).toBeNull();
+    expect(
+      await sourceContext.getExternalOccurrencePageContext({
+        ...externalContextInput,
+        occurrenceId: externalB,
+      }),
+    ).toBeNull();
     const pair = await comparison.getPublicClaimComparison(aRef, bRef);
     expect(await comparison.getPublicClaimComparison(aRef, externalRef(externalA))).toBeNull();
     expect((await comparison.getPublicComparisonClaim(aRef))?.source.occurrenceId).toBe(externalA);

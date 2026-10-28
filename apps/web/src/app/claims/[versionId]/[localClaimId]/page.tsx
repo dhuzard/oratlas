@@ -3,6 +3,8 @@ import Link from "next/link";
 import { type Metadata } from "next";
 import { Badge, Card, DefinitionList, Notice, StatusPill } from "@oratlas/ui";
 import { getClaimPassport } from "@/lib/claim-monitoring";
+import { getClaimPageSourceContext } from "@/lib/claim-page-source-context";
+import { ExactSourceContext } from "@/components/ExactSourceContext";
 import { getClaimIndependence } from "@/lib/synthesis";
 import { TrustVerificationBadge } from "@/components/TrustVerificationBadge";
 import { ArtifactOutcomes } from "@/components/ArtifactOutcomes";
@@ -47,6 +49,8 @@ export default async function ClaimPassportPage({
   const { versionId, localClaimId } = await params;
   const passport = await getClaimPassport(versionId, localClaimId);
   if (!passport) notFound();
+  const sourceContext = await getClaimPageSourceContext(versionId, localClaimId);
+  if (!sourceContext) notFound();
   const query = (await searchParams) ?? {};
   const requestedSelection = readClaimComparisonSelection(query);
   const selectedClaim = requestedSelection.compareLeft
@@ -127,6 +131,29 @@ export default async function ClaimPassportPage({
       />
 
       <div id="original-record" className="inspection-anchor">
+        <ExactSourceContext
+          kind="Archived review"
+          versionId={sourceContext.versionId}
+          preservedHref={sourceContext.preservedHref}
+          originalUrl={sourceContext.originalUrl}
+          originalLabel="Open source repository"
+          locator={sourceContext.locator}
+          lifecycle={sourceContext.lifecycle}
+          identity={
+            sourceContext.commitSha
+              ? [{ label: "Captured commit", value: sourceContext.commitSha }]
+              : []
+          }
+          coverage={[
+            "The stored claim declaration and its recorded evidence are preserved for this exact review version. A separately captured source passage is not available here.",
+            sourceContext.scope && Object.keys(sourceContext.scope).length
+              ? `Declared scope: ${Object.entries(sourceContext.scope)
+                  .map(([key, value]) => `${key}: ${value}`)
+                  .join("; ")}. Undeclared fields remain unknown.`
+              : "No comparison scope was declared; population, method and other missing fields remain unknown.",
+            "Archive acceptance and structural capture do not establish scientific correctness.",
+          ]}
+        />
         <Card title="Original claim record">
           <DefinitionList
             items={[
