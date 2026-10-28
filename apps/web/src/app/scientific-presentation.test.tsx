@@ -21,6 +21,14 @@ vi.mock("@/lib/certification", () => ({
   listPublicationVersionCertifications: state.certifications,
 }));
 vi.mock("@/lib/claim-monitoring", () => ({ getClaimPassport: state.passport }));
+vi.mock("@/lib/claim-page-source-context", () => ({
+  getClaimPageSourceContext: vi.fn().mockResolvedValue({
+    versionId: "version-a",
+    preservedHref: "/reviews/review-a/versions/version-a",
+    lifecycle: "published",
+    scope: null,
+  }),
+}));
 vi.mock("@/lib/claim-comparison", () => ({
   getFeaturedClaimComparisonHref: state.comparisonHref,
 }));

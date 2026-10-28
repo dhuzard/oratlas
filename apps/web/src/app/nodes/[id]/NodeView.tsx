@@ -275,7 +275,6 @@ export function NodeView({
                     </a>
                   ),
                 },
-                { term: "Commit", value: <span className="mono">{version.commitSha}</span> },
                 {
                   term: "Source file",
                   value: <span className="mono">{version.provenance.sourcePath}</span>,

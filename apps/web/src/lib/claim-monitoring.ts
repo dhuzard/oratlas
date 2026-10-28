@@ -464,7 +464,7 @@ export async function getClaimPassport(
   const claim = await prisma.claim.findFirst({
     where: { reviewVersionId: versionId, localClaimId },
     include: {
-      graphVersion: { select: { id: true, knowledgeNodeId: true } },
+      graphVersion: { select: { id: true, knowledgeNodeId: true, snapshotId: true } },
       reviewVersion: {
         include: {
           snapshot: { select: { inspectionReportJson: true, preservedFilesJson: true } },
@@ -506,9 +506,41 @@ export async function getClaimPassport(
     version.snapshot?.preservedFilesJson ?? null,
     claim,
   );
-  const publicNode =
+  let exactNodeVersionId =
     claim.knowledgeNodeId && claim.graphVersion?.knowledgeNodeId === claim.knowledgeNodeId
-      ? await getPublicNode(claim.knowledgeNodeId, claim.graphVersion.id)
+      ? claim.graphVersion.id
+      : undefined;
+  // Legacy repository claims explicitly bind a stable node. They may predate the
+  // sourceClaimId relation or also carry its snapshot-free canonical projection,
+  // which getPublicNode does not render. Resolve the repository view only at the
+  // review's exact snapshot; a foreign occurrence binding cannot enter this path.
+  if (
+    (!claim.graphVersion ||
+      (claim.graphVersion.knowledgeNodeId === claim.knowledgeNodeId &&
+        claim.graphVersion.snapshotId === null)) &&
+    claim.knowledgeNodeId &&
+    version.recordSourceType === "repository" &&
+    version.snapshotId &&
+    review.repositoryId
+  ) {
+    const legacyVersion = await prisma.knowledgeNodeVersion.findFirst({
+      where: {
+        knowledgeNodeId: claim.knowledgeNodeId,
+        snapshotId: version.snapshotId,
+        sourceClaimId: null,
+        knowledgeNode: {
+          originType: "repository-object",
+          kind: "claim",
+          repositoryId: review.repositoryId,
+        },
+      },
+      select: { id: true },
+    });
+    exactNodeVersionId = legacyVersion?.id;
+  }
+  const publicNode =
+    claim.knowledgeNodeId && exactNodeVersionId
+      ? await getPublicNode(claim.knowledgeNodeId, exactNodeVersionId)
       : null;
   const graphIdentity = publicNode
     ? {
