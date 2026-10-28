@@ -1043,17 +1043,24 @@ export const SQLITE_ASSESSMENT_COI_IMMUTABLE_GUARD_NAMES = [
   "TrustAdjudicationReference_immutable_guard_delete",
 ] as const;
 
+export const DATABASE_GUARD_TRANSACTION_TIMEOUT_MS = 300_000;
+
 /** Apply database-native guards after Prisma db push for the selected provider. */
 export async function applyDatabaseGuards(
   client: PrismaClient,
   provider: "sqlite" | "postgresql",
 ): Promise<void> {
   if (provider === "postgresql") {
-    await client.$transaction(async (tx) => {
-      for (const statement of POSTGRES_DATABASE_GUARD_SQL) {
-        await tx.$executeRawUnsafe(statement);
-      }
-    });
+    // All guards apply atomically. The statement list exceeds Prisma's 5 s interactive
+    // default on small Cloud SQL instances, so this deploy-time step gets an explicit budget.
+    await client.$transaction(
+      async (tx) => {
+        for (const statement of POSTGRES_DATABASE_GUARD_SQL) {
+          await tx.$executeRawUnsafe(statement);
+        }
+      },
+      { maxWait: 30_000, timeout: DATABASE_GUARD_TRANSACTION_TIMEOUT_MS },
+    );
     return;
   }
 
