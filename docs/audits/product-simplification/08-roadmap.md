@@ -1,6 +1,13 @@
 # Prioritized simplification roadmap
 
-Design only. No tasks below have been implemented or filed as new issues. All are R, grounded in the V findings cited; expected benefits are H. Complexity is relative engineering effort, not an estimate or delivery promise. Existing owner/security decisions remain in force.
+This roadmap records the original audit proposal. Runs 1–4 were implemented and merged through
+[issue #250](https://github.com/dhuzard/oratlas/issues/250) and PRs #251–#254. A second bounded
+implementation wave is tracked in [issue #255](https://github.com/dhuzard/oratlas/issues/255).
+The comparison study remains prepared but has not been run; implementation and browser checks are
+not participant outcomes. The original priorities and hypotheses below are retained as an audit
+record. All items were R when written, grounded in the V findings cited; expected benefits are H.
+Complexity is relative engineering effort, not an estimate or delivery promise. Existing
+owner/security decisions remain in force.
 
 ## Sequence and review gates
 

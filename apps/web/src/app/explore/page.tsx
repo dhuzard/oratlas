@@ -24,6 +24,12 @@ import {
 import { getCurrentUser, isEditor } from "@/lib/auth";
 import { exploreRobots } from "@/lib/crawl-policy";
 import { type Metadata } from "next";
+import { ClaimComparisonSelection } from "@/components/ClaimComparisonSelection";
+import { getPublicComparisonClaim } from "@/lib/claim-comparison";
+import {
+  readClaimComparisonSelection,
+  withClaimComparisonSelection,
+} from "@/lib/claim-comparison-selection";
 
 export const dynamic = "force-dynamic";
 
@@ -36,6 +42,8 @@ const GRAPH_SCOPE_PARAMETER_KEYS = new Set([
   "relationType",
   "trustCriterion",
   "known",
+  "compareLeft",
+  "replaceSide",
 ]);
 
 function first(parameters: SearchParameters, key: string): string | undefined {
@@ -64,6 +72,21 @@ export default async function ExplorePage({
   searchParams: Promise<SearchParameters>;
 }) {
   const parameters = await searchParams;
+  const requestedSelection = readClaimComparisonSelection(parameters);
+  const selectedClaim = requestedSelection.compareLeft
+    ? await getPublicComparisonClaim(requestedSelection.compareLeft)
+    : null;
+  const selection = selectedClaim
+    ? { compareLeft: selectedClaim.reference, replaceSide: requestedSelection.replaceSide }
+    : {};
+  const unavailableSelection = parameters.compareLeft !== undefined && !selectedClaim;
+  const selectedHref = (href: string) => withClaimComparisonSelection(href, selection);
+  const currentParameters = new URLSearchParams();
+  for (const [key, value] of Object.entries(parameters)) {
+    for (const entry of Array.isArray(value) ? value : value === undefined ? [] : [value])
+      currentParameters.append(key, entry);
+  }
+  const currentHref = exploreHref(currentParameters);
   const get = (key: string) => first(parameters, key);
   const q = get("q")?.trim() || undefined;
   const selectedInterests = normalizeExplorationInterests(all(parameters, "interest"));
@@ -143,25 +166,29 @@ export default async function ExplorePage({
       return label ? ([[reference.nodeVersionId, label]] as const) : [];
     }),
   ]);
-  const landscapeOverviewHref = landscapeHref(parameters);
+  const landscapeOverviewHref = selectedHref(landscapeHref(parameters));
   const landscapeFocusHrefs = Object.fromEntries(
     (landscape?.nodes ?? []).flatMap((node) =>
-      node.graphNodeId ? [[node.id, landscapeHref(parameters, node.graphNodeId)] as const] : [],
+      node.graphNodeId
+        ? [[node.id, selectedHref(landscapeHref(parameters, node.graphNodeId))] as const]
+        : [],
     ),
   );
   const knownToggleHrefByNode = Object.fromEntries(
     graphReferences.map(({ nodeId }) => [
       nodeId,
-      landscapeHref(
-        parameters,
-        requestedLandscapeFocus,
-        knownNodeIds.includes(nodeId)
-          ? knownNodeIds.filter((knownNodeId) => knownNodeId !== nodeId)
-          : [...knownNodeIds, nodeId],
+      selectedHref(
+        landscapeHref(
+          parameters,
+          requestedLandscapeFocus,
+          knownNodeIds.includes(nodeId)
+            ? knownNodeIds.filter((knownNodeId) => knownNodeId !== nodeId)
+            : [...knownNodeIds, nodeId],
+        ),
       ),
     ]),
   );
-  const clearKnownHref = landscapeHref(parameters, requestedLandscapeFocus, []);
+  const clearKnownHref = selectedHref(landscapeHref(parameters, requestedLandscapeFocus, []));
   const activeFilterCount = ["reviewSlug", "claimType", "relationType", "trustCriterion"].filter(
     (key) => get(key),
   ).length;
@@ -172,6 +199,8 @@ export default async function ExplorePage({
     "relationType",
     "trustCriterion",
   ].flatMap((key): [string, string][] => (get(key) ? [[key, get(key)!]] : []));
+  if (selection.compareLeft) preservedParameters.push(["compareLeft", selection.compareLeft]);
+  if (selection.replaceSide) preservedParameters.push(["replaceSide", selection.replaceSide]);
   const clearFiltersHref = scopeHref(q, selectedInterests, knownNodeIds, requestedLandscapeFocus);
   const exampleHref = scopeHref("replay", [], knownNodeIds);
   const hasTraversableLandscape = Boolean(landscape && graphReferences.length > 0);
@@ -196,6 +225,13 @@ export default async function ExplorePage({
         </p>
       </header>
 
+      <ClaimComparisonSelection
+        selection={selection}
+        selectedText={selectedClaim?.text}
+        unavailable={unavailableSelection}
+        currentHref={currentHref}
+      />
+
       <ExplorationIntent
         query={q}
         selectedInterests={selectedInterests}
@@ -213,6 +249,12 @@ export default async function ExplorePage({
               <input type="hidden" name="focus" value={requestedLandscapeFocus} />
             ) : null}
             {q ? <input type="hidden" name="q" value={q} /> : null}
+            {selection.compareLeft ? (
+              <input type="hidden" name="compareLeft" value={selection.compareLeft} />
+            ) : null}
+            {selection.replaceSide ? (
+              <input type="hidden" name="replaceSide" value={selection.replaceSide} />
+            ) : null}
             {selectedInterests.map((interest) => (
               <input type="hidden" name="interest" value={interest} key={interest} />
             ))}
@@ -270,7 +312,7 @@ export default async function ExplorePage({
                 Refine path
               </button>
               {activeFilterCount > 0 ? (
-                <Link href={clearFiltersHref}>Clear refinements</Link>
+                <Link href={selectedHref(clearFiltersHref)}>Clear refinements</Link>
               ) : null}
             </div>
           </form>
@@ -282,8 +324,10 @@ export default async function ExplorePage({
           {landscape ? (
             <KnowledgeLandscape
               landscape={landscape}
-              clearFiltersHref={activeFilterCount > 0 ? clearFiltersHref : undefined}
-              exampleHref={exampleHref}
+              comparisonSelection={selection}
+              comparisonCurrentHref={currentHref}
+              clearFiltersHref={activeFilterCount > 0 ? selectedHref(clearFiltersHref) : undefined}
+              exampleHref={selectedHref(exampleHref)}
               overviewHref={landscapeOverviewHref}
               focusHrefByNode={landscapeFocusHrefs}
               knownNodeIds={knownNodeIds}
@@ -312,9 +356,9 @@ export default async function ExplorePage({
                 hidden profile or silently fill this view with unrelated records.
               </p>
               <p>
-                Try <Link href={exampleHref}>the topic &ldquo;replay&rdquo;</Link>: open a matching
-                claim, follow its linked evidence, then inspect the preserved source. This is a
-                topic example, not a scientific conclusion.
+                Try <Link href={selectedHref(exampleHref)}>the topic &ldquo;replay&rdquo;</Link>:
+                open a matching claim, follow its linked evidence, then inspect the preserved
+                source. This is a topic example, not a scientific conclusion.
               </p>
             </section>
           )}
@@ -352,7 +396,7 @@ export default async function ExplorePage({
           </p>
         </div>
         <nav aria-label="Complete scholarly indexes">
-          <Link href={claimsIndexHref(parameters)}>Open claim explorer</Link>
+          <Link href={selectedHref(claimsIndexHref(parameters))}>Open claim explorer</Link>
           <Link href={archiveIndexHref(q)}>Open archive</Link>
           <Link href="/publications">Browse registered publications</Link>
         </nav>
@@ -402,10 +446,14 @@ function scopeHref(
 
 function claimsIndexHref(parameters: SearchParameters): string {
   const output = new URLSearchParams();
-  for (const key of ["q", "reviewSlug", "claimType", "relationType", "trustCriterion"]) {
+  for (const key of ["q", "reviewSlug", "claimType", "relationType", "trustCriterion", "focus"]) {
     const value = first(parameters, key);
     if (value) output.set(key, value);
   }
+  for (const interest of normalizeExplorationInterests(all(parameters, "interest")))
+    output.append("interest", interest);
+  for (const nodeId of normalizeKnownNodeIds(all(parameters, "known")))
+    output.append("known", nodeId);
   return output.size > 0 ? `/claims?${output}` : "/claims";
 }
 

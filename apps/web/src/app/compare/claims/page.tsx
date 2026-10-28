@@ -62,6 +62,13 @@ export default async function ClaimComparisonPage({
             ) : null}
             <code className={styles.reference}>{side.reference}</code>
             <Link href={side.reference}>Inspect exact occurrence</Link>
+            <p>
+              <Link
+                href={`/explore?${new URLSearchParams({ compareLeft: position === 0 ? pair.right.reference : pair.left.reference, replaceSide: position === 0 ? "first" : "second" })}`}
+              >
+                {position === 0 ? "Change first claim" : "Change second claim"}
+              </Link>
+            </p>
 
             <h3>Declared scope</h3>
             {side.scope && Object.keys(side.scope).length > 0 ? (

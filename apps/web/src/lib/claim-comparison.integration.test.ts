@@ -173,6 +173,54 @@ afterAll(async () => {
 });
 
 describe("bounded public exact claim comparison", () => {
+  it("validates a single pending selection against the exact source and current visibility", async () => {
+    const original = await comparison.getPublicComparisonClaim(ref(leftVersion));
+    expect(original?.source.versionId).toBe(leftVersion);
+    expect(original?.scope?.population).toBe("rodent");
+    expect(await comparison.getPublicComparisonClaim(ref("missing"))).toBeNull();
+    expect(await comparison.getPublicComparisonClaim(ref(withheldVersion))).toBeNull();
+    expect(await comparison.getPublicComparisonClaim("/nodes/moving-alias")).toBeNull();
+    expect(await comparison.getPublicComparisonClaim("https://example.test/claims/a/b")).toBeNull();
+    try {
+      await prisma.reviewVersion.update({
+        where: { id: leftVersion },
+        data: { publicState: "withdrawn" },
+      });
+      expect((await comparison.getPublicComparisonClaim(ref(leftVersion)))?.source.lifecycle).toBe(
+        "withdrawn",
+      );
+      await prisma.reviewVersion.update({
+        where: { id: leftVersion },
+        data: { publicState: "tombstoned" },
+      });
+      expect(await comparison.getPublicComparisonClaim(ref(leftVersion))).toBeNull();
+      // A newer readable version with the same local claim ID is never substituted.
+      expect(
+        (await comparison.getPublicComparisonClaim(ref(rightVersion)))?.scope?.population,
+      ).toBe("human");
+    } finally {
+      await prisma.reviewVersion.update({
+        where: { id: leftVersion },
+        data: { publicState: "published" },
+      });
+    }
+    expect(await comparison.getPublicComparisonClaim(ref(leftVersion))).toEqual(original);
+    expect(
+      await comparison.getPublicClaimComparison(ref(leftVersion), ref(leftVersion)),
+    ).toBeNull();
+  });
+
+  it("validates a single external occurrence without inventing a canonical binding", async () => {
+    const selected = await comparison.getPublicComparisonClaim(externalRef(externalA));
+    expect(selected?.reference).toBe(externalRef(externalA));
+    expect(selected?.source.occurrenceId).toBe(externalA);
+    expect(selected?.canonical).toBeNull();
+    expect(selected?.scope).toBeNull();
+    expect(await comparison.getPublicComparisonClaim(externalRef("missing"))).toBeNull();
+    expect(await prisma.knowledgeNode.count()).toBe(0);
+    expect(await prisma.nodeEdge.count()).toBe(0);
+  });
+
   it("preserves identical text with distinct scope, occurrence and version on reopen", async () => {
     const pair = await comparison.getPublicClaimComparison(ref(leftVersion), ref(rightVersion));
     expect(pair).not.toBeNull();
@@ -316,6 +364,13 @@ describe("bounded public exact claim comparison", () => {
     const aRef = `/nodes/${a.knowledgeNodeId}/versions/${a.knowledgeNodeVersionId}`;
     const bRef = `/nodes/${b.knowledgeNodeId}/versions/${b.knowledgeNodeVersionId}`;
     const pair = await comparison.getPublicClaimComparison(aRef, bRef);
+    expect(await comparison.getPublicClaimComparison(aRef, externalRef(externalA))).toBeNull();
+    expect((await comparison.getPublicComparisonClaim(aRef))?.source.occurrenceId).toBe(externalA);
+    expect(
+      await comparison.getPublicComparisonClaim(
+        `/nodes/${a.knowledgeNodeId}/versions/${b.knowledgeNodeVersionId}`,
+      ),
+    ).toBeNull();
     expect(pair?.left.reference).toBe(aRef);
     expect(pair?.right.reference).toBe(bRef);
     expect(pair?.left.source.occurrenceId).toBe(externalA);
@@ -389,5 +444,25 @@ describe("bounded public exact claim comparison", () => {
     expect(pair!.left.evidence).toHaveLength(25);
     expect(pair!.left.evidenceTruncated).toBe(true);
     expect(pair!.sharedSourceFacts.filter((fact) => fact.includes("DOI"))).toHaveLength(1);
+  });
+
+  it("allows two distinct occurrences within the same exact source version", async () => {
+    const other = await prisma.claim.create({
+      data: {
+        reviewVersionId: leftVersion,
+        localClaimId: "second-occurrence",
+        text: "The intervention improves the outcome.",
+        normalizedText: "the intervention improves the outcome.",
+      },
+    });
+    const pair = await comparison.getPublicClaimComparison(
+      ref(leftVersion),
+      `/claims/${leftVersion}/${other.localClaimId}`,
+    );
+    expect(pair?.left.source.versionId).toBe(pair?.right.source.versionId);
+    expect(pair?.left.source.occurrenceId).not.toBe(pair?.right.source.occurrenceId);
+    expect(pair?.sharedSourceFacts).toContain(
+      "Both occurrences belong to the same exact source version.",
+    );
   });
 });

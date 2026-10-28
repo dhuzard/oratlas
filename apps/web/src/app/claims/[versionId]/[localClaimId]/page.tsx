@@ -10,6 +10,15 @@ import { InspectionPath } from "@/components/InspectionPath";
 import { ExploreBreadcrumb } from "@/components/ExploreBreadcrumb";
 import { SourceEvidenceLinksCard } from "@/components/SourceEvidenceLinksCard";
 import { ContextualRecordActions } from "@/components/ContextualRecordActions";
+import {
+  ClaimComparisonAction,
+  ClaimComparisonSelection,
+} from "@/components/ClaimComparisonSelection";
+import { getPublicComparisonClaim } from "@/lib/claim-comparison";
+import {
+  readClaimComparisonSelection,
+  withClaimComparisonSelection,
+} from "@/lib/claim-comparison-selection";
 
 export const dynamic = "force-dynamic";
 
@@ -30,12 +39,23 @@ export async function generateMetadata({
  */
 export default async function ClaimPassportPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ versionId: string; localClaimId: string }>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { versionId, localClaimId } = await params;
   const passport = await getClaimPassport(versionId, localClaimId);
   if (!passport) notFound();
+  const query = (await searchParams) ?? {};
+  const requestedSelection = readClaimComparisonSelection(query);
+  const selectedClaim = requestedSelection.compareLeft
+    ? await getPublicComparisonClaim(requestedSelection.compareLeft)
+    : null;
+  const selection = selectedClaim
+    ? { compareLeft: selectedClaim.reference, replaceSide: requestedSelection.replaceSide }
+    : {};
+  const reference = `/claims/${encodeURIComponent(versionId)}/${encodeURIComponent(localClaimId)}`;
   const openAlerts = passport.alerts.filter((alert) => alert.status === "open");
   const independence = await getClaimIndependence(versionId, localClaimId);
   const assessments = passport.evidence.flatMap((relation) =>
@@ -45,7 +65,10 @@ export default async function ClaimPassportPage({
 
   return (
     <article>
-      <ExploreBreadcrumb current="Claim passport" href="/explore" />
+      <ExploreBreadcrumb
+        current="Claim passport"
+        href={withClaimComparisonSelection("/explore", selection)}
+      />
       <div className="btn-row" style={{ marginBottom: "0.5rem" }}>
         <Badge>claim passport</Badge>
         {passport.claimType ? <Badge tone="neutral">{passport.claimType}</Badge> : null}
@@ -57,6 +80,18 @@ export default async function ClaimPassportPage({
           <em>Qualification:</em> {passport.qualification}
         </p>
       ) : null}
+
+      <ClaimComparisonSelection
+        selection={selection}
+        selectedText={selectedClaim?.text}
+        unavailable={query.compareLeft !== undefined && !selectedClaim}
+        currentHref={reference}
+      />
+      <ClaimComparisonAction
+        reference={reference}
+        selection={selection}
+        currentHref={withClaimComparisonSelection("/explore", selection)}
+      />
 
       {openAlerts.length > 0 ? (
         <Notice tone="warning" title="Evidence alert">

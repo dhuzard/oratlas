@@ -4,6 +4,16 @@ import { InProcessSearchProvider } from "@oratlas/knowledge";
 import { CLAIM_EVIDENCE_RELATION_TYPES, CLAIM_TYPES } from "@oratlas/contracts";
 import { buildKnowledgeIndex } from "@/lib/index-builder";
 import { TrustVerificationBadge } from "@/components/TrustVerificationBadge";
+import {
+  ClaimComparisonAction,
+  ClaimComparisonSelection,
+} from "@/components/ClaimComparisonSelection";
+import { getPublicComparisonClaim } from "@/lib/claim-comparison";
+import { normalizeExplorationInterests } from "@/lib/knowledge-landscape";
+import {
+  readClaimComparisonSelection,
+  withClaimComparisonSelection,
+} from "@/lib/claim-comparison-selection";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +23,45 @@ export default async function ClaimsPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const sp = await searchParams;
+  const requestedSelection = readClaimComparisonSelection(sp);
+  const selectedClaim = requestedSelection.compareLeft
+    ? await getPublicComparisonClaim(requestedSelection.compareLeft)
+    : null;
+  const selection = selectedClaim
+    ? { compareLeft: selectedClaim.reference, replaceSide: requestedSelection.replaceSide }
+    : {};
+  const query = new URLSearchParams();
+  for (const [key, value] of Object.entries(sp)) {
+    for (const entry of Array.isArray(value) ? value : value === undefined ? [] : [value])
+      query.append(key, entry);
+  }
+  const currentHref = `/claims${query.size ? `?${query}` : ""}`;
   const get = (k: string) => (Array.isArray(sp[k]) ? sp[k]?.[0] : (sp[k] as string | undefined));
+  const all = (key: string): string[] =>
+    typeof sp[key] === "string" ? [sp[key]] : (sp[key] ?? []);
+  const graphContext: [string, string][] = [
+    ...normalizeExplorationInterests(all("interest")).map((value): [string, string] => [
+      "interest",
+      value,
+    ]),
+    ...[
+      ...new Set(
+        all("known")
+          .map((value) => value.trim())
+          .filter((value) => value.length > 0 && value.length <= 200),
+      ),
+    ]
+      .slice(0, 100)
+      .map((value): [string, string] => ["known", value]),
+  ];
+  const focus = get("focus")?.trim();
+  if (focus && focus.length <= 200) graphContext.push(["focus", focus]);
+  const exploreQuery = new URLSearchParams(graphContext);
+  for (const key of ["q", "reviewSlug", "claimType", "relationType", "trustCriterion"]) {
+    const value = get(key);
+    if (value) exploreQuery.set(key, value);
+  }
+  const exploreHref = `/explore${exploreQuery.size ? `?${exploreQuery}` : ""}`;
 
   const index = await buildKnowledgeIndex();
   const provider = new InProcessSearchProvider(index);
@@ -33,8 +81,18 @@ export default async function ClaimsPage({
     <>
       <h1>Claim explorer</h1>
       <p>
-        <Link href="/explore">Find claims and connections</Link> · Archived-review claim index
+        <Link href={withClaimComparisonSelection(exploreHref, selection)}>
+          Find claims and connections
+        </Link>{" "}
+        · Archived-review claim index
       </p>
+
+      <ClaimComparisonSelection
+        selection={selection}
+        selectedText={selectedClaim?.text}
+        unavailable={sp.compareLeft !== undefined && !selectedClaim}
+        currentHref={currentHref}
+      />
       <p className="muted">
         Search claims from accepted archived reviews and inspect their supporting and contradicting
         citations. This index does not include every registered external publication.{" "}
@@ -55,6 +113,7 @@ export default async function ClaimsPage({
               const contradict = claim.relations.filter(
                 (r) => r.relationType === "contradicts",
               ).length;
+              const reference = `/claims/${encodeURIComponent(claim.reviewVersionId)}/${encodeURIComponent(claim.localClaimId)}`;
               return (
                 <Card as="article" key={`${claim.reviewSlug}-${claim.claimId}`}>
                   <p className="claim-text">{claim.text}</p>
@@ -83,6 +142,16 @@ export default async function ClaimsPage({
                       {claim.reviewTitle}
                     </Link>
                   </p>
+                  <div className="btn-row">
+                    <Link href={withClaimComparisonSelection(reference, selection)}>
+                      Inspect exact claim
+                    </Link>
+                    <ClaimComparisonAction
+                      reference={reference}
+                      selection={selection}
+                      currentHref={currentHref}
+                    />
+                  </div>
                 </Card>
               );
             })
@@ -92,6 +161,15 @@ export default async function ClaimsPage({
         <aside>
           <Card title="Filter claims">
             <form method="get" className="filters">
+              {graphContext.map(([name, value]) => (
+                <input type="hidden" key={`${name}:${value}`} name={name} value={value} />
+              ))}
+              {selection.compareLeft ? (
+                <input type="hidden" name="compareLeft" value={selection.compareLeft} />
+              ) : null}
+              {selection.replaceSide ? (
+                <input type="hidden" name="replaceSide" value={selection.replaceSide} />
+              ) : null}
               <div className="field">
                 <label htmlFor="q">Search</label>
                 <input id="q" type="search" name="q" defaultValue={get("q") ?? ""} />
