@@ -152,6 +152,21 @@ describe("runExtraction — non-review repository", () => {
     expect(result.compatibility.overallCompatibility).toBe("unsupported");
     expect(result.compatibility.blockingErrors.length).toBeGreaterThan(0);
   });
+
+  it("ignores an empty or non-https GitHub homepage instead of failing extraction", async () => {
+    for (const homepage of ["", "http://example.org/review"]) {
+      const fixture = structuredClone(plainRepoFixture);
+      fixture.repo = { ...fixture.repo, homepage };
+      const result = runExtraction(await inspect(fixture), now);
+
+      expect(result.metadata.fields.publishedReviewUrl).toBeUndefined();
+      expect(result.metadata.fields.repositoryUrl?.value).toBe(
+        "https://github.com/someone/random-cli-tool",
+      );
+      const ignored = result.metadata.warnings.filter((w) => w.includes("publishedReviewUrl"));
+      expect(ignored).toHaveLength(homepage === "" ? 0 : 1);
+    }
+  });
 });
 
 describe("source assessment documents", () => {
