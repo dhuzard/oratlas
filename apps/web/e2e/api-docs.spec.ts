@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 
 test("public navigation exposes semantic API and agent documentation", async ({ page }) => {
   await page.goto("/");
-  const developersLink = page.getByRole("navigation", { name: "Primary" }).getByRole("link", {
+  const developersLink = page.getByRole("navigation", { name: "Utilities" }).getByRole("link", {
     name: "Developers",
   });
   await expect(developersLink).toHaveAttribute("href", "/connect");
