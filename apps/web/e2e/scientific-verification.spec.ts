@@ -75,7 +75,10 @@ test.describe("Scientific verification", () => {
       page.locator(".verification-metric").filter({ hasText: /analyses/i }),
     ).toContainText(/\d+ independently reproduced/);
     await expect(
-      page.getByText(/Findings are independent, protocol-scoped evidence/),
+      page.getByText(/Findings are protocol-scoped outputs from external verification runs/),
+    ).toBeVisible();
+    await expect(
+      page.getByText(/A finding alone does not establish scientific correctness or certification/),
     ).toBeVisible();
   });
 });
