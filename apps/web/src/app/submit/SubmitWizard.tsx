@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { FacetCompatibilityReport } from "@oratlas/contracts";
 import { CompatibilityFacets } from "@/components/CompatibilityFacets";
 
@@ -90,7 +90,7 @@ const EDITABLE_FIELDS: Array<{ key: string; label: string }> = [
   { key: "contact", label: "Contact / corresponding author" },
 ];
 
-const STEPS = ["Repository", "Inspect", "Review metadata", "Review nodes", "Validation", "Submit"];
+const STEPS = ["Source", "Inspect and correct", "Submit and status"];
 
 export function SubmitWizard({ signedIn }: { signedIn: boolean }) {
   const [step, setStep] = useState(0);
@@ -104,8 +104,30 @@ export function SubmitWizard({ signedIn }: { signedIn: boolean }) {
   const [inspection, setInspection] = useState<InspectResponse | null>(null);
   const [edits, setEdits] = useState<Record<string, string>>({});
   const [result, setResult] = useState<{ submissionId: string; status: string } | null>(null);
+  const inFlight = useRef(false);
+  const goalHeading = useRef<HTMLHeadingElement>(null);
+  const [reviewed, setReviewed] = useState(false);
+  const [captureInvalid, setCaptureInvalid] = useState(false);
+  const [previousCommit, setPreviousCommit] = useState<string | null>(null);
+  const [now, setNow] = useState(() => Date.now());
+  const expiry = inspection ? Date.parse(inspection.captureExpiresAt) : 0;
+  const expired = Boolean(inspection && (!Number.isFinite(expiry) || now >= expiry));
+  const needsCapture = expired || captureInvalid;
+  const goal = step === 0 ? 0 : step === 2 ? 1 : 2;
+
+  useEffect(() => {
+    if (!inspection || result) return;
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [inspection, result]);
+
+  useEffect(() => {
+    if (inspection && step !== 0) goalHeading.current?.focus();
+  }, [step, inspection]);
 
   async function inspect() {
+    if (inFlight.current || !signedIn) return;
+    inFlight.current = true;
     setLoading(true);
     setError(null);
     try {
@@ -125,7 +147,15 @@ export function SubmitWizard({ signedIn }: { signedIn: boolean }) {
         setError(data?.error?.message ?? "Inspection failed.");
         return;
       }
+      setPreviousCommit(
+        inspection?.repo.canonicalUrl === data.repo.canonicalUrl
+          ? inspection!.selectedSource.commitSha
+          : null,
+      );
       setInspection(data as InspectResponse);
+      setReviewed(false);
+      setCaptureInvalid(false);
+      setNow(Date.now());
       const eff = (data as InspectResponse).effectiveMetadata;
       const seed: Record<string, string> = {};
       for (const f of EDITABLE_FIELDS) {
@@ -137,12 +167,18 @@ export function SubmitWizard({ signedIn }: { signedIn: boolean }) {
     } catch {
       setError("Network error during inspection.");
     } finally {
+      inFlight.current = false;
       setLoading(false);
     }
   }
 
   async function submit() {
-    if (!inspection) return;
+    if (!inspection || inFlight.current || result || !reviewed || needsCapture || !signedIn) return;
+    if (Date.now() >= Date.parse(inspection.captureExpiresAt)) {
+      setNow(Date.now());
+      return;
+    }
+    inFlight.current = true;
     setLoading(true);
     setError(null);
     try {
@@ -155,13 +191,25 @@ export function SubmitWizard({ signedIn }: { signedIn: boolean }) {
       const data = await res.json();
       if (!res.ok) {
         setError(data?.error?.message ?? "Submission failed.");
+        if (
+          res.status === 409 ||
+          /capability|capture|inspection token/i.test(data?.error?.message ?? "")
+        ) {
+          setCaptureInvalid(true);
+          setReviewed(false);
+        }
         return;
       }
       setResult(data);
       setStep(5);
     } catch {
-      setError("Network error during submission.");
+      setCaptureInvalid(true);
+      setReviewed(false);
+      setError(
+        "The submission response was lost, so the outcome is unknown. Your source selection and corrections remain here. If you did not receive a submission ID, ask an editor to check whether it was recorded before starting another submission. Reinspect and review a new capture before trying again; this capture will not be resent.",
+      );
     } finally {
+      inFlight.current = false;
       setLoading(false);
     }
   }
@@ -170,7 +218,7 @@ export function SubmitWizard({ signedIn }: { signedIn: boolean }) {
     <div>
       <ol className="wizard-steps">
         {STEPS.map((s, i) => (
-          <li key={s} aria-current={i === step ? "step" : undefined}>
+          <li key={s} aria-current={i === goal ? "step" : undefined}>
             {i + 1}. {s}
           </li>
         ))}
@@ -189,6 +237,70 @@ export function SubmitWizard({ signedIn }: { signedIn: boolean }) {
         </div>
       ) : null}
 
+      {inspection && step !== 0 && !result ? (
+        <section className="card deposit-capture" aria-label="Captured source and expiry">
+          <h2 className="card-title">Captured source</h2>
+          <p>
+            {inspection.repo.canonicalUrl} · {inspection.selectedSource.kind}
+            {inspection.selectedSource.releaseTag || inspection.selectedSource.branch
+              ? ` · ${inspection.selectedSource.releaseTag ?? inspection.selectedSource.branch}`
+              : ""}
+          </p>
+          <p>
+            Exact commit: <code>{inspection.selectedSource.commitSha}</code>
+          </p>
+          <p>
+            The capture is bound to your signed-in account, can be submitted once, and expires after
+            30 minutes. Expires{" "}
+            <time dateTime={inspection.captureExpiresAt}>
+              {new Date(inspection.captureExpiresAt).toLocaleString()}
+            </time>
+            .
+          </p>
+          {previousCommit && previousCommit !== inspection.selectedSource.commitSha ? (
+            <div className="notice notice-warning" role="status">
+              <strong>The source commit changed during reinspection.</strong>
+              <p>
+                Previous commit: <code>{previousCommit}</code>
+              </p>
+              <p>
+                New commit: <code>{inspection.selectedSource.commitSha}</code>. Review the new
+                capture and corrections before continuing.
+              </p>
+            </div>
+          ) : null}
+          {needsCapture ? (
+            <p className="notice notice-warning" role="status">
+              This capture expired or cannot be submitted. Reinspect the source and review the new
+              capture before submitting.
+            </p>
+          ) : null}
+          <p className="muted">
+            Reinspection creates a new capture. Its resolved commit and extracted values may differ;
+            previous corrections are not applied automatically.
+          </p>
+          <div className="btn-row">
+            <button className="btn btn-secondary" onClick={inspect} disabled={loading || !signedIn}>
+              {loading ? "Working…" : "Reinspect captured source"}
+            </button>
+            <button
+              className="btn btn-secondary"
+              onClick={() => {
+                setError(null);
+                setStep(0);
+              }}
+              disabled={loading}
+            >
+              Change source selection
+            </button>
+          </div>
+          <details>
+            <summary>Capture digest</summary>
+            <p className="mono">{inspection.capturePayloadHash}</p>
+          </details>
+        </section>
+      ) : null}
+
       {step <= 1 ? (
         <div className="card">
           <div className="field">
@@ -200,6 +312,7 @@ export function SubmitWizard({ signedIn }: { signedIn: boolean }) {
               onChange={(e) => setUrl(e.target.value)}
               placeholder="https://github.com/owner/repository"
               autoComplete="off"
+              disabled={loading}
             />
             <small>
               Public repositories only. The repository is inspected via the GitHub API; it is never
@@ -211,6 +324,7 @@ export function SubmitWizard({ signedIn }: { signedIn: boolean }) {
             <select
               id="source-kind"
               value={sourceKind}
+              disabled={loading}
               onChange={(event) =>
                 setSourceKind(event.target.value as "default-branch" | "tag" | "release")
               }
@@ -233,6 +347,7 @@ export function SubmitWizard({ signedIn }: { signedIn: boolean }) {
                 onChange={(event) => setSourceTag(event.target.value)}
                 placeholder="v1.2.0"
                 autoComplete="off"
+                disabled={loading}
               />
             </div>
           ) : null}
@@ -252,6 +367,24 @@ export function SubmitWizard({ signedIn }: { signedIn: boolean }) {
       ) : null}
 
       {step === 2 && inspection ? (
+        <section className="card" aria-labelledby="deposit-corrections-title">
+          <h2 id="deposit-corrections-title" className="card-title" ref={goalHeading} tabIndex={-1}>
+            Inspect and correct
+          </h2>
+          <p>
+            Address required corrections first, then review metadata and any node candidates below.
+            These checks describe the captured source; the server validates your submitted
+            corrections.
+          </p>
+          <p className="muted">
+            Unresolved checks can enter the existing automated-checks-failed state for editorial
+            attention. Submitting does not waive checks or grant acceptance.
+          </p>
+          <ValidationView inspection={inspection} />
+        </section>
+      ) : null}
+
+      {step === 2 && inspection ? (
         <div className="card">
           <h2 className="card-title">Review extracted metadata</h2>
           <p className="muted">
@@ -262,13 +395,6 @@ export function SubmitWizard({ signedIn }: { signedIn: boolean }) {
             <strong>Compatibility:</strong> {inspection.compatibility.overallCompatibility}
           </p>
           <CompatibilityFacets facets={inspection.compatibility.facets} />
-          <p className="mono">
-            Captured {inspection.selectedSource.kind}: {inspection.selectedSource.commitSha}
-          </p>
-          <p className="muted">
-            Capability expires {new Date(inspection.captureExpiresAt).toLocaleString()}; exact
-            capture SHA-256 {inspection.capturePayloadHash}.
-          </p>
           {inspection.selectedSource.kind === "default-branch" &&
           typeof inspection.effectiveMetadata.releaseTag === "string" ? (
             <div className="notice notice-warning">
@@ -278,47 +404,52 @@ export function SubmitWizard({ signedIn }: { signedIn: boolean }) {
               release” with that exact tag before submitting the version DOI.
             </div>
           ) : null}
-          {EDITABLE_FIELDS.map((f) => {
-            const field = inspection.extractedMetadata.fields[f.key];
-            return (
-              <div className="field" key={f.key}>
-                <label htmlFor={`f-${f.key}`}>{f.label}</label>
-                {f.key === "abstract" ? (
-                  <textarea
-                    id={`f-${f.key}`}
-                    value={edits[f.key] ?? ""}
-                    onChange={(e) => setEdits({ ...edits, [f.key]: e.target.value })}
-                  />
-                ) : (
-                  <input
-                    id={`f-${f.key}`}
-                    type="text"
-                    value={edits[f.key] ?? ""}
-                    onChange={(e) => setEdits({ ...edits, [f.key]: e.target.value })}
-                  />
-                )}
-                <small>
-                  {field
-                    ? `extracted from ${field.provenance.source} (confidence ${Math.round(
-                        field.provenance.confidence * 100,
-                      )}%)`
-                    : "not extracted — enter manually if applicable"}
-                </small>
-              </div>
-            );
-          })}
-          <div className="btn-row">
-            <button className="btn btn-secondary" onClick={() => setStep(0)}>
-              Back
-            </button>
-            <button className="btn" onClick={() => setStep(3)}>
-              Continue to node candidates
-            </button>
-          </div>
+          {[...EDITABLE_FIELDS]
+            .sort(
+              (a, b) =>
+                Number(inspection.validation.metadataCompleteness.requiredMissing.includes(b.key)) -
+                Number(inspection.validation.metadataCompleteness.requiredMissing.includes(a.key)),
+            )
+            .map((f) => {
+              const field = inspection.extractedMetadata.fields[f.key];
+              return (
+                <div className="field" key={f.key}>
+                  <label htmlFor={`f-${f.key}`}>
+                    {f.label}
+                    {inspection.validation.metadataCompleteness.requiredMissing.includes(f.key)
+                      ? " — required correction"
+                      : ""}
+                  </label>
+                  {f.key === "abstract" ? (
+                    <textarea
+                      id={`f-${f.key}`}
+                      value={edits[f.key] ?? ""}
+                      disabled={loading}
+                      onChange={(e) => setEdits({ ...edits, [f.key]: e.target.value })}
+                    />
+                  ) : (
+                    <input
+                      id={`f-${f.key}`}
+                      type="text"
+                      value={edits[f.key] ?? ""}
+                      disabled={loading}
+                      onChange={(e) => setEdits({ ...edits, [f.key]: e.target.value })}
+                    />
+                  )}
+                  <small>
+                    {field
+                      ? `extracted from ${field.provenance.source} (confidence ${Math.round(
+                          field.provenance.confidence * 100,
+                        )}%)`
+                      : "not extracted — enter manually if applicable"}
+                  </small>
+                </div>
+              );
+            })}
         </div>
       ) : null}
 
-      {step === 3 && inspection ? (
+      {step === 2 && inspection ? (
         <div className="card">
           <h2 className="card-title">Review extracted node candidates</h2>
           <p className="muted">
@@ -358,12 +489,22 @@ export function SubmitWizard({ signedIn }: { signedIn: boolean }) {
               </article>
             ))
           )}
+          <label className="deposit-review-confirmation">
+            <input
+              type="checkbox"
+              checked={reviewed}
+              onChange={(event) => setReviewed(event.target.checked)}
+              disabled={loading || needsCapture}
+            />
+            <span>I reviewed this capture and its source version</span>
+          </label>
           <div className="btn-row">
-            <button className="btn btn-secondary" onClick={() => setStep(2)}>
-              Back
-            </button>
-            <button className="btn" onClick={() => setStep(4)}>
-              Continue to validation
+            <button
+              className="btn"
+              onClick={() => setStep(4)}
+              disabled={loading || !reviewed || needsCapture}
+            >
+              Continue to submission
             </button>
           </div>
         </div>
@@ -371,13 +512,30 @@ export function SubmitWizard({ signedIn }: { signedIn: boolean }) {
 
       {step === 4 && inspection ? (
         <div className="card">
-          <h2 className="card-title">Validation</h2>
-          <ValidationView inspection={inspection} />
+          <h2 className="card-title" ref={goalHeading} tabIndex={-1}>
+            Submit this exact capture
+          </h2>
+          <p>
+            Submit the reviewed capture and your separate metadata corrections for an editorial
+            decision. The source bytes remain unchanged.
+          </p>
+          <p>
+            {Object.keys(buildEditedMetadata(inspection, edits).edits).length} metadata
+            correction(s) will accompany this capture.
+          </p>
+          <p className="muted">
+            The server rechecks the capability, source binding and validation. Required corrections
+            may produce automated-checks-failed rather than pending editorial review.
+          </p>
           <div className="btn-row">
-            <button className="btn btn-secondary" onClick={() => setStep(3)}>
-              Back
+            <button className="btn btn-secondary" onClick={() => setStep(2)} disabled={loading}>
+              Return to corrections
             </button>
-            <button className="btn" onClick={submit} disabled={loading || !signedIn}>
+            <button
+              className="btn"
+              onClick={submit}
+              disabled={loading || !signedIn || !reviewed || needsCapture || Boolean(result)}
+            >
               {loading ? "Submitting…" : "Submit for editorial review"}
             </button>
           </div>
@@ -386,7 +544,9 @@ export function SubmitWizard({ signedIn }: { signedIn: boolean }) {
 
       {step === 5 && result ? (
         <div className="card">
-          <h2 className="card-title">Submission received</h2>
+          <h2 className="card-title" ref={goalHeading} tabIndex={-1}>
+            Submission received
+          </h2>
           <p>
             Status: <strong>{result.status.replace(/-/g, " ")}</strong>
           </p>
@@ -395,6 +555,15 @@ export function SubmitWizard({ signedIn }: { signedIn: boolean }) {
             review. An editor will review the immutable snapshot you submitted.
           </p>
           <p className="mono">Submission ID: {result.submissionId}</p>
+          <p>
+            <a className="btn" href={`/submissions/${encodeURIComponent(result.submissionId)}`}>
+              View submission status and next steps
+            </a>
+          </p>
+          <p className="muted">
+            Keep this status link to revisit the recorded outcome. It requires the account that
+            submitted the capture.
+          </p>
           <a className="btn btn-secondary" href="/archive">
             Browse the archive
           </a>
@@ -410,7 +579,7 @@ function ValidationView({ inspection }: { inspection: InspectResponse }) {
     <>
       {v.hardErrors.length > 0 ? (
         <div className="notice notice-error">
-          <strong>Hard errors</strong>
+          <strong>Required corrections in the captured source</strong>
           <ul>
             {v.hardErrors.map((e, i) => (
               <li key={i}>{e}</li>

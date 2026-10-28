@@ -121,7 +121,7 @@ export async function createSubmission(
           const preservedFilesJson = canonicalJson(preservedFilesFromCapture(exact));
           const snapshot = await tx.repositorySnapshot.upsert({
             where: snapshotKey,
-            update: { sourceTreeSha: source.treeSha, preservedFilesJson },
+            update: { preservedFilesJson },
             create: {
               repositoryId: repository.id,
               commitSha: source.commitSha,
@@ -138,11 +138,17 @@ export async function createSubmission(
               contentHash: sourceContentHash(exact),
             },
           });
-          if (snapshot.sourceTreeSha !== source.treeSha) {
+          if (snapshot.sourceTreeSha && snapshot.sourceTreeSha !== source.treeSha) {
             throw new SubmissionError(
               "Stored snapshot tree does not match the selected commit tree.",
               "conflict",
             );
+          }
+          if (!snapshot.sourceTreeSha) {
+            await tx.repositorySnapshot.update({
+              where: { id: snapshot.id },
+              data: { sourceTreeSha: source.treeSha },
+            });
           }
 
           let previous = null;
