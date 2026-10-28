@@ -4,6 +4,7 @@ import { Card, Badge } from "@oratlas/ui";
 import { nodeArchiveQuerySchema } from "@oratlas/contracts";
 import { listPublicNodes } from "@/lib/node-publication";
 import { SpecialistToolBreadcrumb } from "@/components/SpecialistTools";
+import { SourceNavigation } from "@/components/SourceNavigation";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
@@ -33,6 +34,7 @@ export default async function NodesPage({
     <>
       <SpecialistToolBreadcrumb current="Research objects" />
       <h1>Research objects</h1>
+      <SourceNavigation current="/nodes" />
       <p className="muted">
         {result.total} accepted claim, figure, dataset, or code publication(s), stored as knowledge
         nodes. Each stable URL exposes immutable version history and confirmed graph context.

@@ -41,11 +41,12 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
               OR<span>Atlas</span>
             </Link>
             <nav className="main-nav" aria-label="Primary">
-              <Link href="/explore">Explore</Link>
-              <Link href="/publications">Publications</Link>
-              <Link href="/verification">Verification</Link>
-              <Link href="/certifications">Certifications</Link>
-              <Link href="/discuss">Discuss</Link>
+              <Link href="/explore">Find claims</Link>
+              <Link href="/compare">Compare</Link>
+              <Link href="/publications">Sources</Link>
+            </nav>
+            <nav className="utility-nav" aria-label="Utilities">
+              <Link href={PUBLIC_PATHS.apiDocs}>API &amp; agents</Link>
               <Link href="/connect">Developers</Link>
               {isEditor(user) ? <Link href="/editorial">Editorial</Link> : null}
               {user ? (
@@ -78,6 +79,10 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
               {env.mockAuthEnabled ? "Development mode: mock sign-in enabled. " : ""}
               <Link href="/connect">Connect a publication</Link>.
             </p>
+            <nav className="btn-row" aria-label="Evidence catalogs">
+              <Link href="/verification">Verification</Link>
+              <Link href="/certifications">Certifications</Link>
+            </nav>
           </div>
         </footer>
       </body>

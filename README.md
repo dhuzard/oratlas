@@ -1,18 +1,19 @@
 # Open Review Atlas
 
-**The arXiv for AI-generated scientific reviews.**
+**Find and compare scientific claims against their exact sources and recorded evidence.**
 
-ORAtlas is a proof-of-concept public archive where readers first discover and read deposited AI
-reviews, then inspect a scientific claim, its linked evidence, and the independent assessments,
-challenges, or disagreements around it—without rewriting the original record. It keeps every
-source, assessment, and later interpretation distinct.
+ORAtlas is a proof-of-concept evidence comparison workbench. Readers find recorded claims, compare
+two exact occurrences, inspect their scope and evidence, and reuse exact source references. Preserved
+reviews and registered external publications contribute to the canonical graph while their source
+identities, assessments, and later interpretations remain distinct. People and agents access the same
+records through the website and documented APIs.
 
 Authors do not upload manuscripts. They deposit the URL of a public GitHub repository containing
 a review built with, forked from, or structurally compatible with the
 [AllenNeuralDynamics/ComputationalReviewTemplate](https://github.com/AllenNeuralDynamics/ComputationalReviewTemplate).
 The platform inspects the repository, extracts metadata deterministically, validates optional
 Zenodo DOIs, and — after an editorial decision — publishes an immutable, versioned review record
-with claims, citations, claim-level TRUST assessments, and attributable provenance. Claims,
+with claims, citations, relation-specific TRUST assessments, and attributable provenance. Claims,
 figures, datasets, and code are first-class immutable graph nodes. Grounded Q&A, replication
 briefs, and editor-accepted AI synthesis build on those records without silently changing them.
 
@@ -23,15 +24,18 @@ briefs, and editor-accepted AI synthesis build on those records without silently
 
 The POC ships a restrained, scholarly server-rendered interface:
 
-- **Reviews** — the review-first archive for searching and browsing accepted, immutable deposits.
-- **Create & deposit** — a practical guide from the Allen AI-review workflow to exact-version
-  repository inspection, validation, and editorial deposit.
-- **Compare** — a neutral side-by-side view of review coverage, claims, evidence relations, and
-  TRUST records, without a universal score or ranking.
-- **Explore evidence** — asks what the reader wants to understand, then uses the declared topic and
-  interest lenses to recommend a bounded path through explicitly linked graph nodes. Every
-  recommendation explains why it appeared and links to the exact preserved node version; the
-  complete canonical result list remains available below it.
+- **Find claims** (`/explore`) — one question or topic entry with bounded, explained discovery and
+  exact record links. The legacy `/claims` index covers archived review claims, not every external
+  occurrence.
+- **Compare** — inspect two exact claim occurrences, scope, evidence relations, and provenance;
+  copy and reopen the pair. Review coverage comparison remains available. Neither mode creates a
+  universal score, confirms a relation, or saves a personal judgment.
+- **Sources** (`/publications`) — registered publication versions, with access to the separate
+  archived-review and research-object collections. These collections are not a unified search.
+- **API & agents** — visible utility access to machine discovery, documentation, contracts, and
+  exact-record endpoints.
+- **Create & deposit** — source preparation and public GitHub deposit guidance reached from Sources;
+  exact-version inspection, validation, and editorial authority remain unchanged.
 - **Claim passport** — one claim with its linked evidence, assessments, disagreements, provenance,
   and preserved review context.
 - **Review record** — the archived article, exact claim anchors, repository and commit identity,

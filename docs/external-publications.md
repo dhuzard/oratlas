@@ -537,8 +537,6 @@ These are **not** implemented, and none of them should be inferred from what is:
   there is no polling loop, `.well-known`/DNS/repository challenge or ownership assertion.
 - **Review version projection.** Needs an `atlas-review` adapter variant with a defined
   version digest.
-- **Public product language.** No UI copy, route, or public API describes ORAtlas in terms
-  of publications rather than reviews.
 - **Certification.** Production provenance is descriptive historical evidence, not a
   certification result, authorship inference, quality judgment, or “ORA Certified” state.
 - **Graph snapshots and change feeds.**

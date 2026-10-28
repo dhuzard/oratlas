@@ -3,9 +3,10 @@ import { type Metadata } from "next";
 import { Badge, Card, Notice } from "@oratlas/ui";
 import { buildKnowledgeIndex } from "@/lib/index-builder";
 import { buildReviewComparison, defaultComparisonSlugs } from "@/lib/review-comparison";
+import { getFeaturedClaimComparisonHref } from "@/lib/claim-comparison";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Compare reviews" };
+export const metadata: Metadata = { title: "Compare claims and evidence" };
 
 type SearchParameters = Record<string, string | string[] | undefined>;
 
@@ -19,7 +20,11 @@ export default async function ComparePage({
 }: {
   searchParams: Promise<SearchParameters>;
 }) {
-  const [index, parameters] = await Promise.all([buildKnowledgeIndex(), searchParams]);
+  const [index, parameters, featuredPairHref] = await Promise.all([
+    buildKnowledgeIndex(),
+    searchParams,
+    getFeaturedClaimComparisonHref(),
+  ]);
   const defaults = defaultComparisonSlugs(index);
   const reviews = [...index.reviews].sort((a, b) => a.title.localeCompare(b.title));
   const left = first(parameters, "left") ?? defaults[0];
@@ -33,13 +38,68 @@ export default async function ComparePage({
   return (
     <article className="comparison-page">
       <header className="page-hero">
-        <p className="home-eyebrow">Compare the archive</p>
-        <h1>Compare reviews, evidence and TRUST</h1>
+        <p className="home-eyebrow">Exact claims · Public records</p>
+        <h1>Compare claims with their evidence</h1>
         <p className="lead">
-          Put two deposited records side by side, then inspect their exact claims, citations,
-          evidence relations and independent TRUST assessments.
+          Read two exact assertions side by side, inspect their declared scope and follow their
+          evidence to the preserved source. A comparison does not create a relationship or confirm
+          either claim.
         </p>
+        <div className="btn-row">
+          {featuredPairHref ? (
+            <Link className="btn" href={featuredPairHref}>
+              Compare two claims · synthetic example
+            </Link>
+          ) : null}
+          <Link href="/explore">Find claims for your question</Link>
+          <a href="#review-coverage">Compare review coverage</a>
+        </div>
       </header>
+
+      <details className="comparison-exact-entry">
+        <summary>Already have two exact claim references?</summary>
+        <p>
+          Use the exact occurrence paths from claim records, including their version identifiers.
+          Review slugs and publisher URLs are not exact claim references.
+        </p>
+        <form
+          action="/compare/claims"
+          method="get"
+          className="filters"
+          aria-label="Choose exact claims to compare"
+        >
+          <div className="field">
+            <label htmlFor="exact-left">First exact claim reference</label>
+            <input
+              id="exact-left"
+              name="left"
+              required
+              placeholder="/claims/version-id/local-claim-id"
+            />
+          </div>
+          <div className="field">
+            <label htmlFor="exact-right">Second exact claim reference</label>
+            <input
+              id="exact-right"
+              name="right"
+              required
+              placeholder="/nodes/node-id/versions/version-id"
+            />
+          </div>
+          <button className="btn" type="submit">
+            Compare exact claims
+          </button>
+        </form>
+      </details>
+
+      <section id="review-coverage" aria-labelledby="review-coverage-title">
+        <h2 id="review-coverage-title">Compare review coverage</h2>
+        <p>
+          Compare two archived reviews by their exposed claims, citations, evidence relations and
+          TRUST records. This separate view uses review-level counts rather than an exact claim
+          pair.
+        </p>
+      </section>
 
       <form className="comparison-picker" method="get" aria-label="Choose reviews to compare">
         <div className="field">

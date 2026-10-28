@@ -7,21 +7,17 @@ test.describe("Public archive browsing", () => {
       "Scientific publications that can be independently checked",
     );
     const primaryNavigation = page.getByRole("navigation", { name: "Primary" });
-    await expect(primaryNavigation.getByRole("link", { name: "Publications" })).toHaveAttribute(
+    await expect(primaryNavigation.getByRole("link", { name: "Sources" })).toHaveAttribute(
       "href",
       "/publications",
     );
-    await expect(primaryNavigation.getByRole("link", { name: "Verification" })).toHaveAttribute(
+    await expect(primaryNavigation.getByRole("link", { name: "Find claims" })).toHaveAttribute(
       "href",
-      "/verification",
+      "/explore",
     );
-    await expect(primaryNavigation.getByRole("link", { name: "Certifications" })).toHaveAttribute(
+    await expect(primaryNavigation.getByRole("link", { name: "Compare" })).toHaveAttribute(
       "href",
-      "/certifications",
-    );
-    await expect(primaryNavigation.getByRole("link", { name: "Developers" })).toHaveAttribute(
-      "href",
-      "/connect",
+      "/compare",
     );
     await expect(
       page.getByRole("heading", { name: "Demo / synthetic scientific merit fixture" }),
@@ -29,15 +25,17 @@ test.describe("Public archive browsing", () => {
     await expect(page.getByRole("link", { name: "Inspect the scientific record" })).toBeVisible();
   });
 
-  test("Explore is a traversal surface with separate exhaustive indexes", async ({ page }) => {
+  test("Find claims is a traversal surface with separate bounded collections", async ({ page }) => {
     await page.goto("/explore");
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Traverse the evidence graph");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+      "Find claims for your question",
+    );
     await expect(page.locator(".explore-results")).toHaveCount(0);
     await expect(
       page.getByRole("heading", { name: "Discuss the selected path with Atlas" }),
     ).toHaveCount(0);
     await expect(page.getByLabel("Your question")).toHaveCount(0);
-    const indexes = page.getByRole("region", { name: "Need an exhaustive record list?" });
+    const indexes = page.getByRole("region", { name: "Browse claims and sources by collection" });
     await expect(indexes.getByRole("link", { name: "Open claim explorer" })).toHaveAttribute(
       "href",
       "/claims",
@@ -74,10 +72,10 @@ test.describe("Public archive browsing", () => {
 
     const publicationsLink = page
       .getByRole("navigation", { name: "Primary" })
-      .getByRole("link", { name: "Publications" });
+      .getByRole("link", { name: "Sources" });
     await expect(publicationsLink).toHaveAttribute("href", "/publications");
     await page.goto("/publications");
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Publications");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Sources");
     await expect(
       page.getByRole("link", { name: "Demo / synthetic scientific merit fixture" }),
     ).toBeVisible();
@@ -103,7 +101,7 @@ test.describe("Public archive browsing", () => {
   test("readers can compare claim, evidence and TRUST coverage", async ({ page }) => {
     await page.goto("/compare");
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-      "Compare reviews, evidence and TRUST",
+      "Compare claims with their evidence",
     );
     await expect(page.getByText("Coverage, not a leaderboard")).toBeVisible();
     await expect(
@@ -246,11 +244,15 @@ test.describe("Public archive browsing", () => {
 
   test("unified Explore safely handles malformed public query parameters", async ({ page }) => {
     await page.goto("/explore?page=abc");
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Traverse the evidence graph");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+      "Find claims for your question",
+    );
     await expect(page.getByText("Page NaN")).toHaveCount(0);
 
     await page.goto("/explore?view=reviews&page=abc&sort=unexpected");
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Traverse the evidence graph");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+      "Find claims for your question",
+    );
     await expect(page.locator(".explore-results")).toHaveCount(0);
     await expect(page.locator("#sort")).toHaveCount(0);
   });
