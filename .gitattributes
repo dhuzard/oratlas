@@ -1,1 +1,4 @@
 *.sh text eol=lf
+
+# Byte-exact pinned fixtures: digests are sha256 of exact bytes (no CRLF on Windows checkouts)
+packages/knowledge/src/fixtures/research-project-descriptors/** -text

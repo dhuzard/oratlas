@@ -1,0 +1,52 @@
+{
+  "schemaVersion": "oratlas.research-project-descriptor-observations/0.2.0",
+  "producer": "diggypaper",
+  "origin": "captured-producer-output",
+  "producerContract": "research-project-descriptor/0.1.0",
+  "producerContractPinnedCommit": "ea84932a248275feaaef051ca64c10cbed1d62dd",
+  "sourceDocumentSha256": "sha256:2f9335e118f6193f6738fcb021cabe7ecac1eb029ecc9f7fb48e4b77ad7e96a3",
+  "visibility": "private-adapter-output",
+  "accessEffect": "none",
+  "principalAuthorization": "not-performed",
+  "sourceVersionVerification": "not-performed",
+  "project": {
+    "sourceProjectId": "8cef6a60-f03e-4806-adbc-004fb1bf0e13",
+    "title": {
+      "state": "withheld"
+    },
+    "description": {
+      "state": "withheld"
+    }
+  },
+  "source": {
+    "provider": "producer-connector",
+    "declaredProducerCommit": "ed79cace6d238ab2c2f6f8ded1065685152d35fb",
+    "declaredVisibility": "private",
+    "retrieval": "authorized-export-required"
+  },
+  "declaredHolderRole": "lead",
+  "validity": {
+    "issuedAt": "2026-10-28T10:18:07Z",
+    "expiresAt": "2026-11-04T10:18:07Z"
+  },
+  "artifacts": [
+    {
+      "artifactId": "packet:640fc73c28e4a27519cab9669aef220b",
+      "sha256": "sha256:ca136fc1965f4cdc4d73bdb09f33b204503917d0aa5bf7d69e6c86ee1cd467eb",
+      "kind": "evidence-packet",
+      "producerSchemaVersion": "source-evidence-packet/0.1.0",
+      "declaredVisibility": "restricted",
+      "retrieval": "authorized-export-required",
+      "artifactByteVerification": "held-bytes-match-digest",
+      "crossProjectProcessing": "not-authorized"
+    }
+  ],
+  "report": {
+    "reasonCodes": [
+      "source-permission-not-verified",
+      "source-version-not-verified",
+      "processing-not-authorized",
+      "publication-not-authorized"
+    ]
+  }
+}

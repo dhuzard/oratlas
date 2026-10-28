@@ -152,3 +152,94 @@ export const researchProjectDescriptorSchema = z
     }
   });
 export type ResearchProjectDescriptor = z.infer<typeof researchProjectDescriptorSchema>;
+
+/**
+ * 0.2.0 is additive: 0.1.0 stays frozen for GitHub-hosted producers (CRT). It describes a
+ * producer that serves its descriptor and artifacts through its own permission-bound connector
+ * (Diggypaper #53): no data repository, artifacts retrieved only by authorized export, and
+ * project metadata that is withheld unless the source recorded a disclosure decision.
+ */
+export const RESEARCH_PROJECT_DESCRIPTOR_V2_VERSION =
+  "oratlas.research-project-descriptor-observations/0.2.0" as const;
+
+const timestamp = z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/u);
+const sourceMetadataSchema = z.discriminatedUnion("state", [
+  z.object({ state: z.literal("withheld") }).strict(),
+  z.object({ state: z.literal("disclosed"), value: z.string().min(1).max(2000) }).strict(),
+]);
+
+export const connectorArtifactReferenceSchema = z
+  .object({
+    artifactId: identifier,
+    sha256,
+    kind: z.literal("evidence-packet"),
+    producerSchemaVersion: z.literal("source-evidence-packet/0.1.0"),
+    declaredVisibility: z.enum(["private", "restricted", "embargoed", "public"]),
+    retrieval: z.literal("authorized-export-required"),
+    /** Held bytes matched the digest and every manifest-listed file; never a validity claim. */
+    artifactByteVerification: z.enum(["not-performed", "held-bytes-match-digest"]),
+    crossProjectProcessing: z.literal("not-authorized"),
+  })
+  .strict();
+export type ConnectorArtifactReference = z.infer<typeof connectorArtifactReferenceSchema>;
+
+export const connectorProjectDescriptorSchema = z
+  .object({
+    schemaVersion: z.literal(RESEARCH_PROJECT_DESCRIPTOR_V2_VERSION),
+    producer: z.literal("diggypaper"),
+    origin: z.literal("captured-producer-output"),
+    producerContract: z.literal("research-project-descriptor/0.1.0"),
+    producerContractPinnedCommit: commit,
+    sourceDocumentSha256: sha256,
+    visibility: z.literal("private-adapter-output"),
+    accessEffect: z.literal("none"),
+    principalAuthorization: z.literal("not-performed"),
+    sourceVersionVerification: z.literal("not-performed"),
+    project: z
+      .object({
+        sourceProjectId: identifier,
+        title: sourceMetadataSchema,
+        description: sourceMetadataSchema,
+      })
+      .strict(),
+    source: z
+      .object({
+        provider: z.literal("producer-connector"),
+        declaredProducerCommit: commit,
+        declaredVisibility: z.literal("private"),
+        retrieval: z.literal("authorized-export-required"),
+      })
+      .strict(),
+    declaredHolderRole: z.enum(["lead", "annotator"]),
+    validity: z.object({ issuedAt: timestamp, expiresAt: timestamp }).strict(),
+    /** A project with nothing exported yet lists no artifact. */
+    artifacts: z.array(connectorArtifactReferenceSchema).max(1000),
+    report: z
+      .object({
+        reasonCodes: z
+          .array(
+            z.enum([
+              "source-permission-not-verified",
+              "source-version-not-verified",
+              "artifact-bytes-not-verified",
+              "processing-not-authorized",
+              "publication-not-authorized",
+            ]),
+          )
+          .min(1)
+          .max(5),
+      })
+      .strict(),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    const ids = value.artifacts.map((artifact) => artifact.artifactId);
+    const digests = value.artifacts.map((artifact) => artifact.sha256);
+    if (new Set(ids).size !== ids.length || new Set(digests).size !== digests.length) {
+      context.addIssue({ code: z.ZodIssueCode.custom, message: "Ambiguous artifact identity." });
+    }
+    if (!(value.validity.issuedAt < value.validity.expiresAt)) {
+      context.addIssue({ code: z.ZodIssueCode.custom, message: "Invalid validity window." });
+    }
+  });
+export type ConnectorProjectDescriptor = z.infer<typeof connectorProjectDescriptorSchema>;

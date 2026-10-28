@@ -26,10 +26,41 @@ output with a reviewed golden. CI executes no producer runtime and contacts no A
 ORAtlas bounds may reject otherwise valid producer values (oversized metadata or
 paths outside the destination path policy); such values fail rather than disappear.
 
-The second tool fixture is **synthetic neutral Diggypaper input/output**, not an
-export from an implemented Diggypaper private connector. It has an explicit synthetic
-origin, no producer contract pin, and `producerContract: not-available`. It tests
-producer/project-scoped identity without inventing a working source API.
+## Diggypaper connector capture (0.2.0)
+
+The synthetic Diggypaper fixture is retired. `adaptDiggypaperProjectDescriptor` consumes
+the exact bytes of a Diggypaper `research-project-descriptor/0.1.0` captured from its live
+connector (`dhuzard/diggypaper` #53) at `ea84932a248275feaaef051ca64c10cbed1d62dd`
+(PR #74): a lead granted `list_project`, `list_artifacts` and `obtain_authorized_export`,
+and the capture holds the descriptor, the listed `source-evidence-packet/0.1.0` and the 404s
+returned after revocation. The project data is synthetic. Bytes, schema, license and the
+reviewed golden are pinned in `fixtures/research-project-descriptors/diggypaper/pins.json`.
+
+0.1.0 cannot represent this producer without inventing values: it requires a GitHub data
+repository and commit, a research question and repository paths. Diggypaper has none of
+those: artifacts are retrieved only by authorized export, and the title and description
+are withheld unless the lead recorded a disclosure decision. The additive
+`oratlas.research-project-descriptor-observations/0.2.0` (`connectorProjectDescriptorSchema`)
+therefore records a `producer-connector` source with its declared producer commit, title and
+description as `withheld` or `disclosed`, the holder's declared role, the validity window,
+and zero or more `evidence-packet` references. 0.1.0 and the CRT adapter are unchanged.
+
+The adapter checks the expected digest and size, parses the native descriptor strictly
+(only a live `producer-export` with a 40-hex commit and a grant reference), keeps deep links
+inside their project, and refuses:
+
+- a descriptor issued to any recipient other than `recipient:oratlas`
+  (`source-audience-mismatch`);
+- use outside `[issued_at, expires_at)` at the caller's `asOf` (`source-expired`), as the
+  producer contract requires consumers to re-validate before use;
+- a held packet for an unlisted digest, or whose `manifest.json` or listed files do not match
+  (`packet-digest-mismatch`).
+
+Held bytes that match are recorded as `held-bytes-match-digest`. That is a byte identity
+check only: ORAtlas does not run the producer's packet validator, and matching bytes are not
+a rights, validity or scientific assessment. `connectorArtifactIdentity` scopes an artifact
+by producer, project, producer commit, packet id and digest, so the same packet digest in two
+projects stays two artifacts.
 
 ## What the result means
 

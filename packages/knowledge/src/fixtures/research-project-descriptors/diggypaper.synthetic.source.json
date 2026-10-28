@@ -1,8 +1,0 @@
-{
-  "fixture": "synthetic-not-a-diggypaper-export",
-  "projectId": "synthetic-project",
-  "repository": "example/synthetic-diggypaper",
-  "artifactId": "draft",
-  "kind": "source-finding",
-  "sha256": "ef4afc24f11260a00e93512ad2f40b84a4732a0d246594dacf4b2c5be9aeb702"
-}

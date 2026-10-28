@@ -425,7 +425,9 @@ describe("private-workspace import guard (bounded static check, not complete T-I
     for (const name of [
       "projectPersonalResearchCredit",
       "adaptCRTProjectDescriptor",
+      "adaptDiggypaperProjectDescriptor",
       "researchArtifactIdentity",
+      "connectorArtifactIdentity",
       "AuthorizePrivateResearchProject",
       "adaptDiggypaperCredit",
       "adaptCRTContributorship",
@@ -438,6 +440,8 @@ describe("private-workspace import guard (bounded static check, not complete T-I
       "privateCrossFindingSchema",
       "researchProjectDescriptorSchema",
       "ResearchProjectDescriptor",
+      "connectorProjectDescriptorSchema",
+      "ConnectorProjectDescriptor",
       "PrivateCrossFinding",
       "CREDIT_ROLE_LABELS",
       "sourceCreditObservationsSchema",
