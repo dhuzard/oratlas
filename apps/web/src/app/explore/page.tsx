@@ -22,6 +22,8 @@ import {
   type CanonicalNodeReference,
 } from "@/lib/knowledge-recommendation-service";
 import { getCurrentUser, isEditor } from "@/lib/auth";
+import { exploreRobots } from "@/lib/crawl-policy";
+import { type Metadata } from "next";
 
 export const dynamic = "force-dynamic";
 
@@ -45,6 +47,15 @@ function all(parameters: SearchParameters, key: string): string[] {
   const value = parameters[key];
   if (!value) return [];
   return Array.isArray(value) ? value : [value];
+}
+
+export async function generateMetadata({
+  searchParams,
+}: {
+  searchParams: Promise<SearchParameters>;
+}): Promise<Metadata> {
+  const robots = exploreRobots(await searchParams);
+  return robots ? { robots } : {};
 }
 
 export default async function ExplorePage({
