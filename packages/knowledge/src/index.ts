@@ -165,8 +165,13 @@ export {
 
 export {
   adaptCRTProjectDescriptor,
+  adaptDiggypaperProjectDescriptor,
   researchArtifactIdentity,
+  connectorArtifactIdentity,
   CRT_PROJECT_DESCRIPTOR_PIN,
+  DIGGYPAPER_PROJECT_DESCRIPTOR_PIN,
+  DIGGYPAPER_RECIPIENT,
   MAX_PROJECT_DESCRIPTOR_BYTES,
   ResearchProjectDescriptorError,
+  type HeldPackets,
 } from "./research-project-descriptors.js";

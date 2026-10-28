@@ -1,0 +1,20 @@
+{
+  "producer": "dhuzard/diggypaper",
+  "repositoryId": "1422006232",
+  "commit": "ea84932a248275feaaef051ca64c10cbed1d62dd",
+  "capture": "docs/contracts/research-project-descriptor/v0.1.0/fixtures/captured/connector-e2e",
+  "sourceSchema": "docs/contracts/research-project-descriptor/v0.1.0/schemas/research-project-descriptor.schema.json",
+  "data": "synthetic",
+  "files": {
+    "capture.json": "sha256:4b18e46d0565a550c43fe0ef4942046b0ee994d9ba32a0f96d3f2bd25407c7c0",
+    "descriptor.private.json": "sha256:2f9335e118f6193f6738fcb021cabe7ecac1eb029ecc9f7fb48e4b77ad7e96a3",
+    "expected.private.json": "sha256:03a4aa4b8f48e45d6b68402385cb3bca843df834b97460d95844d36ec277e554",
+    "LICENSE": "sha256:9c469fd8eb669b9a17e46ebbbada990e2968c770b90e4cdde4a8714241f88e47",
+    "packet/assessments.jsonl": "sha256:881af21e2d850421dd62df2612b730e16ffb37314077780b85797c8dcd7af5d1",
+    "packet/findings.jsonl": "sha256:ca6f809644bde106ac1ed8df939ce3cc58b7a40e63c764372e2d70b726814467",
+    "packet/manifest.json": "sha256:ca136fc1965f4cdc4d73bdb09f33b204503917d0aa5bf7d69e6c86ee1cd467eb",
+    "packet/papers.jsonl": "sha256:91571a1d865d08d2559eada2f4cfa0dac81abb2ffa66424b982a02ae4023ecbb",
+    "packet/passages.jsonl": "sha256:f86559927057f740a440467c6825492e351a5e8ea9b5a5fc787ad4c5596bd218",
+    "research-project-descriptor.schema.json": "sha256:45ddb99f61c3e10904209650c7527131db5af2ffbf223d7fc38ff15ca5a83fe0"
+  }
+}

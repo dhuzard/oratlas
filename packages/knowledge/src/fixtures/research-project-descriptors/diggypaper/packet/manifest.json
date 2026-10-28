@@ -1,0 +1,70 @@
+{
+  "access_scope": {
+    "level": "restricted",
+    "redistributable_full_text": false
+  },
+  "artifacts": {
+    "assessments": {
+      "bytes": 595,
+      "path": "assessments.jsonl",
+      "record_count": 1,
+      "sha256": "sha256:881af21e2d850421dd62df2612b730e16ffb37314077780b85797c8dcd7af5d1"
+    },
+    "findings": {
+      "bytes": 870,
+      "path": "findings.jsonl",
+      "record_count": 1,
+      "sha256": "sha256:ca6f809644bde106ac1ed8df939ce3cc58b7a40e63c764372e2d70b726814467"
+    },
+    "papers": {
+      "bytes": 535,
+      "path": "papers.jsonl",
+      "record_count": 1,
+      "sha256": "sha256:91571a1d865d08d2559eada2f4cfa0dac81abb2ffa66424b982a02ae4023ecbb"
+    },
+    "passages": {
+      "bytes": 570,
+      "path": "passages.jsonl",
+      "record_count": 1,
+      "sha256": "sha256:f86559927057f740a440467c6825492e351a5e8ea9b5a5fc787ad4c5596bd218"
+    }
+  },
+  "created_at": "2026-10-28T10:18:07Z",
+  "creation_method": "producer-export",
+  "export_status": {
+    "reasons": [],
+    "state": "complete",
+    "withheld_counts": {
+      "assessments": 0,
+      "findings": 0,
+      "papers": 0,
+      "passages": 0
+    }
+  },
+  "licenses": [
+    {
+      "applies_to": "packet-metadata",
+      "license_id": "unknown"
+    }
+  ],
+  "packet_id": "packet:640fc73c28e4a27519cab9669aef220b",
+  "producer": {
+    "commit": "ed79cace6d238ab2c2f6f8ded1065685152d35fb",
+    "name": "diggypaper",
+    "schema_refs": [
+      {
+        "name": "evidence-envelope-v1",
+        "version": "1"
+      },
+      {
+        "name": "seip-support-v1",
+        "version": "1"
+      },
+      {
+        "name": "quote-matcher-v1",
+        "version": "1"
+      }
+    ]
+  },
+  "schema_version": "source-evidence-packet/0.1.0"
+}

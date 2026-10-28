@@ -123,8 +123,14 @@ only in local capture scripts (ORA-K02).
   `oratlas.research-project-descriptor-observations/0.1.0`, with no access effect.
   Source commits, artifact bytes, rights and clearance remain declarations, not
   verified source grants. See `docs/private-project-descriptor-observations.md`.
-- The Diggypaper reference is an explicitly synthetic neutral fixture, not an
-  implemented #53 export or a second verified connector. No native pin is invented.
+- Diggypaper: repository `dhuzard/diggypaper`, immutable id `1422006232`; commit
+  `ea84932a248275feaaef051ca64c10cbed1d62dd` (Diggypaper PR #74), native contract
+  `research-project-descriptor/0.1.0`. The exact captured connector exchange (descriptor,
+  restricted packet, schema, MIT license, golden) is pinned in
+  `packages/knowledge/src/fixtures/research-project-descriptors/diggypaper/pins.json`; its
+  project data is synthetic. The adapter emits the additive
+  `oratlas.research-project-descriptor-observations/0.2.0` with no access effect; no live
+  connector call exists in ORAtlas.
 - This pin is additive to the review/credit pins above. Updates require a deliberate
   reviewed recapture, never reinterpreting earlier fixtures or private source rights.
 

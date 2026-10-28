@@ -1,0 +1,48 @@
+{
+  "access_effect": "none",
+  "artifacts": [
+    {
+      "access_level": "restricted",
+      "deep_link": "/projects/8cef6a60-f03e-4806-adbc-004fb1bf0e13/findings",
+      "digest": "sha256:ca136fc1965f4cdc4d73bdb09f33b204503917d0aa5bf7d69e6c86ee1cd467eb",
+      "packet_id": "packet:640fc73c28e4a27519cab9669aef220b",
+      "retrieval": "authorized-export-required",
+      "schema_version": "source-evidence-packet/0.1.0",
+      "type": "source-evidence-packet"
+    }
+  ],
+  "audience": {
+    "grant_ref": "grant:7bf34f77fbeb44fc86f26aeb08e7e43d",
+    "recipient_ref": "recipient:oratlas"
+  },
+  "creation_method": "producer-export",
+  "expires_at": "2026-11-04T10:18:07Z",
+  "holder": {
+    "membership": "active",
+    "role": "lead"
+  },
+  "issued_at": "2026-10-28T10:18:07Z",
+  "policy": {
+    "cross_project_processing": "not-authorized",
+    "external_model_processing": "not-authorized",
+    "full_text": "not-included",
+    "publication": "not-released"
+  },
+  "producer": {
+    "commit": "ed79cace6d238ab2c2f6f8ded1065685152d35fb",
+    "name": "diggypaper"
+  },
+  "project": {
+    "deep_link": "/projects/8cef6a60-f03e-4806-adbc-004fb1bf0e13",
+    "description": {
+      "state": "withheld"
+    },
+    "project_id": "8cef6a60-f03e-4806-adbc-004fb1bf0e13",
+    "title": {
+      "state": "withheld"
+    },
+    "visibility": "private"
+  },
+  "schema_version": "research-project-descriptor/0.1.0",
+  "scope": "private-descriptor"
+}
