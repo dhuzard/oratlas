@@ -150,7 +150,7 @@ test.describe("Public archive browsing", () => {
       landscape.getByRole("heading", { name: "Nodes worth exploring for this interest" }),
     ).toBeVisible();
     await expect(
-      landscape.getByRole("img", {
+      landscape.getByRole("group", {
         name: "Reviews connected to claims, evidence, and graph research objects",
       }),
     ).toBeVisible();

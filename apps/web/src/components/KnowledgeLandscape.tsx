@@ -66,6 +66,8 @@ export function KnowledgeLandscape({
   anchorsByLandscapeNodeId,
   labelByGraphNodeVersionId,
   focusedGraphNodeId,
+  clearFiltersHref,
+  exampleHref = "/explore?q=replay",
 }: {
   landscape: KnowledgeLandscapeData;
   focus: string;
@@ -77,6 +79,8 @@ export function KnowledgeLandscape({
   anchorsByLandscapeNodeId: Record<string, readonly KnowledgeRecommendationAnchor[]>;
   labelByGraphNodeVersionId: Record<string, string>;
   focusedGraphNodeId?: string;
+  clearFiltersHref?: string;
+  exampleHref?: string;
 }) {
   const [highlightedNodeIds, setHighlightedNodeIds] = useState<Set<string>>(new Set());
   const visualRef = useRef<HTMLDivElement>(null);
@@ -109,9 +113,16 @@ export function KnowledgeLandscape({
         <p className="home-eyebrow">Guided knowledge landscape</p>
         <h2 id="knowledge-landscape-title">No connected claims match this focus yet</h2>
         <p>
-          Remove an interest or broaden the search. ORAtlas will not fill an empty view with
-          unrelated records.
+          Showing 0 matching claims in this bounded path. Your topic and selected controls remain
+          above so you can edit them. This result does not establish that the wider literature has
+          no evidence.
         </p>
+        <div className="btn-row">
+          <a href="#exploration-topic">Edit topic or interests</a>
+          {clearFiltersHref ? <a href={clearFiltersHref}>Clear refinements</a> : null}
+          {focusedGraphNodeId ? <a href={overviewHref}>Return to overview</a> : null}
+          <a href={exampleHref}>Try the topic “replay”</a>
+        </div>
       </section>
     );
   }
@@ -228,10 +239,19 @@ export function KnowledgeLandscape({
         </p>
       )}
 
-      <div className="knowledge-landscape-visual" tabIndex={0} ref={visualRef}>
+      <p>
+        <a href="#landscape-readable-path">Read the same nodes and connections as a list</a>
+      </p>
+      <div
+        className="knowledge-landscape-visual"
+        tabIndex={0}
+        ref={visualRef}
+        role="region"
+        aria-label="Scrollable knowledge map"
+      >
         <svg
           viewBox={`0 0 920 ${height}`}
-          role="img"
+          role="group"
           aria-label="Reviews connected to claims, evidence, and graph research objects"
         >
           <defs>
@@ -305,7 +325,12 @@ export function KnowledgeLandscape({
         </section>
       ) : null}
 
-      <nav className="knowledge-landscape-list" aria-label="Knowledge landscape details">
+      <nav
+        id="landscape-readable-path"
+        tabIndex={-1}
+        className="knowledge-landscape-list"
+        aria-label="Knowledge landscape details"
+      >
         {DETAIL_KINDS.map((kind) => {
           const kindNodes = orderedNodes.filter((node) => node.kind === kind);
           if (kindNodes.length === 0) return null;
@@ -338,6 +363,29 @@ export function KnowledgeLandscape({
           );
         })}
       </nav>
+      <section aria-labelledby="landscape-connections-title">
+        <h3 id="landscape-connections-title">Connections in this path</h3>
+        {landscape.edges.length > 0 ? (
+          <ul>
+            {landscape.edges.map((edge, index) => {
+              const source = nodeById.get(edge.sourceId);
+              const target = nodeById.get(edge.targetId);
+              if (!source || !target) return null;
+              return (
+                <li key={`${edge.sourceId}:${edge.targetId}:${index}`}>
+                  <a href={source.href}>{source.label}</a>
+                  {" — "}
+                  {edgeAccessibleLabel(edge)}
+                  {" → "}
+                  <a href={target.href}>{target.label}</a>
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
+          <p>No connections are recorded in this path.</p>
+        )}
+      </section>
     </section>
   );
 }

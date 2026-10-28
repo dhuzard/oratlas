@@ -165,6 +165,15 @@ export default async function ExplorePage({
   const activeFilterCount = ["reviewSlug", "claimType", "relationType", "trustCriterion"].filter(
     (key) => get(key),
   ).length;
+  const preservedParameters = [
+    "focus",
+    "reviewSlug",
+    "claimType",
+    "relationType",
+    "trustCriterion",
+  ].flatMap((key): [string, string][] => (get(key) ? [[key, get(key)!]] : []));
+  const clearFiltersHref = scopeHref(q, selectedInterests, knownNodeIds, requestedLandscapeFocus);
+  const exampleHref = scopeHref("replay", [], knownNodeIds);
   const hasTraversableLandscape = Boolean(landscape && graphReferences.length > 0);
   const hasDiscussableLandscape = Boolean(
     hasTraversableLandscape && (await hasDiscussableCanonicalClaimOccurrence(graphReferences)),
@@ -184,33 +193,13 @@ export default async function ExplorePage({
           Enter through a topic or explicit interest, then move between preserved reviews, claims,
           evidence, and research objects. Search starts a path; it does not rank a database dump.
         </p>
-        <form action="/explore" method="get" role="search" className="explore-search">
-          {selectedInterests.map((interest) => (
-            <input type="hidden" name="interest" value={interest} key={interest} />
-          ))}
-          {knownNodeIds.map((nodeId) => (
-            <input type="hidden" name="known" value={nodeId} key={nodeId} />
-          ))}
-          <label htmlFor="explore-q" className="sr-only">
-            Search claims, reviews, or authors
-          </label>
-          <input
-            id="explore-q"
-            type="search"
-            name="q"
-            defaultValue={q ?? ""}
-            placeholder="Search a claim, review, or author…"
-          />
-          <button className="btn" type="submit">
-            Enter graph
-          </button>
-        </form>
       </header>
 
       <ExplorationIntent
         query={q}
         selectedInterests={selectedInterests}
         knownNodeIds={knownNodeIds}
+        preservedParameters={preservedParameters}
       />
 
       <section className="explore-traversal-controls" aria-label="Refine graph traversal">
@@ -219,6 +208,9 @@ export default async function ExplorePage({
             Refine graph entry{activeFilterCount > 0 ? " (" + activeFilterCount + ")" : ""}
           </summary>
           <form action="/explore" method="get" className="filters">
+            {requestedLandscapeFocus ? (
+              <input type="hidden" name="focus" value={requestedLandscapeFocus} />
+            ) : null}
             {q ? <input type="hidden" name="q" value={q} /> : null}
             {selectedInterests.map((interest) => (
               <input type="hidden" name="interest" value={interest} key={interest} />
@@ -277,7 +269,7 @@ export default async function ExplorePage({
                 Refine path
               </button>
               {activeFilterCount > 0 ? (
-                <Link href={scopeHref(q, selectedInterests, knownNodeIds)}>Clear refinements</Link>
+                <Link href={clearFiltersHref}>Clear refinements</Link>
               ) : null}
             </div>
           </form>
@@ -289,6 +281,8 @@ export default async function ExplorePage({
           {landscape ? (
             <KnowledgeLandscape
               landscape={landscape}
+              clearFiltersHref={activeFilterCount > 0 ? clearFiltersHref : undefined}
+              exampleHref={exampleHref}
               overviewHref={landscapeOverviewHref}
               focusHrefByNode={landscapeFocusHrefs}
               knownNodeIds={knownNodeIds}
@@ -315,6 +309,11 @@ export default async function ExplorePage({
               <p>
                 The graph remains empty until you set an explicit scope. ORAtlas does not infer a
                 hidden profile or silently fill this view with unrelated records.
+              </p>
+              <p>
+                Try <Link href={exampleHref}>the topic &ldquo;replay&rdquo;</Link>: open a matching
+                claim, follow its linked evidence, then inspect the preserved source. This is a
+                topic example, not a scientific conclusion.
               </p>
             </section>
           )}
@@ -384,9 +383,15 @@ function landscapeHref(
   return exploreHref(output);
 }
 
-function scopeHref(q?: string, interests: string[] = [], knownNodeIds: string[] = []): string {
+function scopeHref(
+  q?: string,
+  interests: string[] = [],
+  knownNodeIds: string[] = [],
+  focus?: string,
+): string {
   const output = new URLSearchParams();
   if (q) output.set("q", q);
+  if (focus) output.set("focus", focus);
   for (const interest of interests) output.append("interest", interest);
   for (const nodeId of knownNodeIds) output.append("known", nodeId);
   return exploreHref(output);

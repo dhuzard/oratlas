@@ -1,0 +1,8 @@
+{
+  "path": "scripts/producer-contracts/fixtures/myst/claims.jsonl",
+  "workingTreeSha256": "4338480d8485fab64df3a7d6949c9af2f6703a2b4f3346cb66a6ab49db4e3c3f",
+  "gitBlobSha256": "824de638f3fb9b8450d746460181032e42f23f0e265a4e5d4a0511e0db5eaf14",
+  "workingTreeCRLF": 4,
+  "gitCRLF": 0,
+  "lfNormalizedDiagnosticSha256": "824de638f3fb9b8450d746460181032e42f23f0e265a4e5d4a0511e0db5eaf14"
+}

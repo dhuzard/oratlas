@@ -39,7 +39,7 @@ export default async function HomePage() {
         <div className="home-actions home-primary-actions">
           <Link className="btn" href={demoHref}>
             {verifications && verifications.runs.length > 0
-              ? "Explore a verified publication"
+              ? "Explore the demo publication’s check runs"
               : "Explore the demo publication"}
           </Link>
           <Link className="btn btn-secondary" href="/verification">
@@ -79,18 +79,37 @@ export default async function HomePage() {
             </p>
           </div>
           <div>
-            <p className="demo-label">Scientific verification</p>
+            <p className="demo-label">Named check runs and findings</p>
             {verifications && verifications.runs.length > 0 ? (
               <ul className="compact-list">
-                {Object.entries(verifications.summary).map(([category, counts]) => (
-                  <li key={category}>
-                    <strong>{category}</strong>: {formatCounts(counts)}
+                {verifications.runs.map((run) => (
+                  <li key={run.id}>
+                    <Link href={`/verifications/${run.id}`}>
+                      {run.protocol.seriesKey} · {run.protocol.version}
+                    </Link>
+                    {" — "}run {run.status.replaceAll("-", " ")}
+                    {run.findings.length > 0 ? (
+                      <ul>
+                        {run.findings.map((finding) => (
+                          <li key={finding.id}>
+                            {finding.findingKey} ({finding.findingType.replaceAll("-", " ")}):{" "}
+                            {finding.status.replaceAll("-", " ")}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="muted">No findings recorded for this run.</p>
+                    )}
                   </li>
                 ))}
               </ul>
             ) : (
-              <p>No completed verification findings are attached to this seed yet.</p>
+              <p>No check runs are attached to this seed yet.</p>
             )}
+            <p className="muted">
+              A completed run is not a passed check. Each finding applies to its named check and
+              subject; no run verifies the publication as a whole.
+            </p>
           </div>
           <div>
             <p className="demo-label">Certification</p>
@@ -190,10 +209,4 @@ export default async function HomePage() {
       </section>
     </>
   );
-}
-
-function formatCounts(counts: Record<string, number>) {
-  return Object.entries(counts)
-    .map(([status, count]) => `${count} ${status.replaceAll("-", " ")}`)
-    .join(" · ");
 }

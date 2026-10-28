@@ -104,14 +104,14 @@ export default async function PublicationVersionPage({
       >
         <div className="record-section-heading">
           <div>
-            <p className="home-eyebrow">Independent evidence</p>
+            <p className="home-eyebrow">External check results</p>
             <h2 id="verification-summary-title">Scientific verification</h2>
           </div>
           <Link href="/verification">How verification works</Link>
         </div>
         {verifications.runs.length === 0 ? (
           <Card>
-            <p>No independent verification evidence exists for this exact version.</p>
+            <p>No external verification runs exist for this exact version.</p>
             <p className="muted">
               Absence of a finding is not a failed check and says nothing about scientific quality.
             </p>
@@ -148,8 +148,9 @@ export default async function PublicationVersionPage({
           </>
         )}
         <p className="muted prose">
-          Findings are independent, protocol-scoped evidence. Structured figure consistency, visual
-          similarity, regeneration and independent reproduction are reported as distinct procedures.
+          Findings are protocol-scoped outputs from external verification runs. Structured figure
+          consistency, visual similarity, regeneration and reproduction are reported as distinct
+          procedures. A finding alone does not establish scientific correctness or certification.
         </p>
         {isEditor(user) ? (
           <Card title="Request external verification">
