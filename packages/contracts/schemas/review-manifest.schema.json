@@ -56,12 +56,14 @@
         "abstract": { "type": "string", "maxLength": 10000 },
         "reviewType": {
           "enum": [
+            "ai-synthesis",
             "computational-literature-review",
             "systematic-review",
             "scoping-review",
             "narrative-review",
             "meta-analysis",
-            "other"
+            "other",
+            "data-release"
           ]
         },
         "language": { "type": "string", "pattern": "^[a-z]{2}(-[A-Za-z]{2,8})?$" },

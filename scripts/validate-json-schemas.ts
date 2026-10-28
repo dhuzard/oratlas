@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import Ajv2020 from "ajv/dist/2020.js";
 import addFormats from "ajv-formats";
+import { REVIEW_TYPES } from "../packages/contracts/src/enums.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const manifestSchemaPath = join(
@@ -87,8 +88,25 @@ function main(): void {
     process.exit(1);
   }
 
+  // The JSON Schema review types must match the runtime (Zod) enum exactly, in order.
+  const schemaReviewTypes: unknown = schema.properties.review.properties.reviewType.enum;
+  if (JSON.stringify(schemaReviewTypes) !== JSON.stringify(REVIEW_TYPES)) {
+    console.error("review-manifest.schema.json reviewType enum differs from REVIEW_TYPES:");
+    console.error({ schema: schemaReviewTypes, runtime: REVIEW_TYPES });
+    process.exit(1);
+  }
+  for (const reviewType of REVIEW_TYPES) {
+    const typed = structuredClone(exampleManifest);
+    typed.review.reviewType = reviewType;
+    if (!validate(typed)) {
+      console.error(`Schema rejected runtime review type "${reviewType}":`, validate.errors);
+      process.exit(1);
+    }
+  }
+
   console.info("✓ review-manifest.schema.json is valid and matches the reference example.");
   console.info("✓ Unsafe artifact paths are rejected by the schema.");
+  console.info("✓ reviewType enum matches the runtime REVIEW_TYPES.");
 
   const nodeManifestSchema = JSON.parse(readFileSync(nodeManifestSchemaPath, "utf-8"));
   const exampleNodeManifest = JSON.parse(readFileSync(nodeManifestExamplePath, "utf-8"));

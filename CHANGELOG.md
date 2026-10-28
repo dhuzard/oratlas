@@ -31,6 +31,11 @@ exports; this is intentionally not a broader compatibility promise.
   ORAtlas structurally checked and is never a scientific validation state.
 - Expand-only external-publication source for the canonical graph's exact-version union.
 
+### Fixed
+
+- `review-manifest.schema.json` now accepts the `ai-synthesis` and `data-release` review types
+  the runtime manifest schema already accepted; `schema:check` fails if the two enums drift.
+
 ## [0.1.0] - 2026-07-20
 
 ### Added
