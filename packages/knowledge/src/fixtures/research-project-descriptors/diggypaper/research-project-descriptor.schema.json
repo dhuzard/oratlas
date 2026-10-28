@@ -1,0 +1,257 @@
+{
+  "$id": "https://github.com/dhuzard/diggypaper/docs/contracts/research-project-descriptor/v0.1.0/schemas/research-project-descriptor.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "timestamp": {
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$",
+      "type": "string"
+    },
+    "project_link": {
+      "pattern": "^/projects/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(/[a-z0-9-]+)*$",
+      "type": "string"
+    },
+    "metadata_field": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "state": {
+              "const": "withheld"
+            }
+          },
+          "required": [
+            "state"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "decision_ref": {
+              "pattern": "^decision:[0-9a-f]{32}$",
+              "type": "string"
+            },
+            "state": {
+              "const": "disclosed"
+            },
+            "value": {
+              "maxLength": 2000,
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "state",
+            "value",
+            "decision_ref"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "artifact": {
+      "additionalProperties": false,
+      "properties": {
+        "access_level": {
+          "enum": [
+            "public",
+            "restricted",
+            "private",
+            "embargoed"
+          ]
+        },
+        "deep_link": {
+          "$ref": "#/$defs/project_link"
+        },
+        "digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "packet_id": {
+          "pattern": "^packet:[A-Za-z0-9._-]{1,100}$",
+          "type": "string"
+        },
+        "retrieval": {
+          "const": "authorized-export-required"
+        },
+        "schema_version": {
+          "const": "source-evidence-packet/0.1.0"
+        },
+        "type": {
+          "const": "source-evidence-packet"
+        }
+      },
+      "required": [
+        "type",
+        "schema_version",
+        "packet_id",
+        "digest",
+        "access_level",
+        "retrieval",
+        "deep_link"
+      ],
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "access_effect": {
+      "const": "none"
+    },
+    "artifacts": {
+      "items": {
+        "$ref": "#/$defs/artifact"
+      },
+      "maxItems": 100,
+      "type": "array"
+    },
+    "audience": {
+      "additionalProperties": false,
+      "properties": {
+        "grant_ref": {
+          "anyOf": [
+            {
+              "const": "not-available"
+            },
+            {
+              "pattern": "^grant:[0-9a-f]{32}$",
+              "type": "string"
+            }
+          ]
+        },
+        "recipient_ref": {
+          "pattern": "^recipient:[a-z0-9][a-z0-9-]{0,62}$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "recipient_ref",
+        "grant_ref"
+      ],
+      "type": "object"
+    },
+    "creation_method": {
+      "enum": [
+        "producer-export",
+        "synthetic-fixture"
+      ]
+    },
+    "expires_at": {
+      "$ref": "#/$defs/timestamp"
+    },
+    "holder": {
+      "additionalProperties": false,
+      "properties": {
+        "membership": {
+          "const": "active"
+        },
+        "role": {
+          "enum": [
+            "lead",
+            "annotator"
+          ]
+        }
+      },
+      "required": [
+        "role",
+        "membership"
+      ],
+      "type": "object"
+    },
+    "issued_at": {
+      "$ref": "#/$defs/timestamp"
+    },
+    "policy": {
+      "additionalProperties": false,
+      "properties": {
+        "cross_project_processing": {
+          "const": "not-authorized"
+        },
+        "external_model_processing": {
+          "const": "not-authorized"
+        },
+        "full_text": {
+          "const": "not-included"
+        },
+        "publication": {
+          "const": "not-released"
+        }
+      },
+      "required": [
+        "cross_project_processing",
+        "external_model_processing",
+        "publication",
+        "full_text"
+      ],
+      "type": "object"
+    },
+    "producer": {
+      "additionalProperties": false,
+      "properties": {
+        "commit": {
+          "pattern": "^([0-9a-f]{40}|synthetic-fixture)$",
+          "type": "string"
+        },
+        "name": {
+          "const": "diggypaper"
+        }
+      },
+      "required": [
+        "name",
+        "commit"
+      ],
+      "type": "object"
+    },
+    "project": {
+      "additionalProperties": false,
+      "properties": {
+        "deep_link": {
+          "$ref": "#/$defs/project_link"
+        },
+        "description": {
+          "$ref": "#/$defs/metadata_field"
+        },
+        "project_id": {
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+          "type": "string"
+        },
+        "title": {
+          "$ref": "#/$defs/metadata_field"
+        },
+        "visibility": {
+          "const": "private"
+        }
+      },
+      "required": [
+        "project_id",
+        "visibility",
+        "title",
+        "description",
+        "deep_link"
+      ],
+      "type": "object"
+    },
+    "schema_version": {
+      "const": "research-project-descriptor/0.1.0"
+    },
+    "scope": {
+      "const": "private-descriptor"
+    }
+  },
+  "required": [
+    "schema_version",
+    "scope",
+    "access_effect",
+    "creation_method",
+    "issued_at",
+    "expires_at",
+    "producer",
+    "audience",
+    "holder",
+    "project",
+    "policy",
+    "artifacts"
+  ],
+  "title": "Diggypaper research project descriptor",
+  "type": "object"
+}
