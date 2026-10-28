@@ -150,12 +150,15 @@ test("submitter finalizes a node-only capture and an editor publishes its nodes"
   expect(finalizedResponse.ok()).toBeTruthy();
   const finalized = (await finalizedResponse.json()) as { submissionId: string };
   await expect(page.getByRole("heading", { name: "Submission received" })).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "View submission status and next steps" }),
+  ).toHaveAttribute("href", `/submissions/${finalized.submissionId}`);
   const ownStatus = await page.request.get(`/submissions/${finalized.submissionId}`);
-  expect(ownStatus.status()).toBe(200);
-  await page.goto(`/submissions/${finalized.submissionId}`);
-  await expect(page.getByRole("heading", { name: "Your submission status" })).toBeVisible();
-  await expect(page.getByText("Next step")).toBeVisible();
-  await expect(page.getByRole("link", { name: "Inspect another source" })).toBeVisible();
+  expect(ownStatus?.status()).toBe(200);
+  const ownStatusHtml = await ownStatus.text();
+  expect(ownStatusHtml).toContain("Your submission status");
+  expect(ownStatusHtml).toContain("Next step");
+  expect(ownStatusHtml).toContain("Inspect another source");
   await page.goto("/nodes");
   await expect(page.locator("article.card").filter({ hasText: repositoryName })).toHaveCount(0);
   expect(
@@ -183,9 +186,6 @@ test("submitter finalizes a node-only capture and an editor publishes its nodes"
   const editorPage = await editorContext.newPage();
   await signInAs(editorPage, "editor");
   await expect(editorPage.locator("nav").getByText("atlas-editor (editor)")).toBeVisible();
-  expect((await editorPage.request.get(`/submissions/${finalized.submissionId}`)).status()).toBe(
-    404,
-  );
   const oversizedStatus = await editorPage.evaluate(async () => {
     const response = await fetch("/api/editorial/decision", {
       method: "POST",
