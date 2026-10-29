@@ -232,6 +232,132 @@ describe("canonical review graph materialization", () => {
     ).toBe(true);
   });
 
+  it("enriches a shared work alias set across citations in deterministic order", async () => {
+    const claim = await prisma.claim.create({
+      data: {
+        reviewVersionId,
+        localClaimId: "claim-alias-enrichment",
+        text: "Alias enrichment remains order independent.",
+        normalizedText: "alias enrichment remains order independent.",
+      },
+    });
+    const [plain, enriched] = await Promise.all([
+      prisma.citation.create({
+        data: {
+          id: "citation-alias-a",
+          reviewVersionId,
+          localCitationId: "citation-alias-a",
+          doi: "10.1000/alias-enrichment",
+        },
+      }),
+      prisma.citation.create({
+        data: {
+          id: "citation-alias-b",
+          reviewVersionId,
+          localCitationId: "citation-alias-b",
+          doi: "https://doi.org/10.1000/ALIAS-ENRICHMENT",
+          pmid: "987654",
+        },
+      }),
+    ]);
+    await prisma.claimEvidenceRelation.createMany({
+      data: [plain, enriched].map((citation) => ({
+        claimId: claim.id,
+        citationId: citation.id,
+        relationType: "supports",
+      })),
+    });
+
+    await prisma.$transaction((tx) => materializeCanonicalReviewGraph(tx, reviewVersionId));
+
+    const work = await prisma.knowledgeNode.findUniqueOrThrow({
+      where: { stableKey: "work:doi:10.1000/alias-enrichment" },
+      include: { aliases: { orderBy: [{ scheme: "asc" }, { value: "asc" }] } },
+    });
+    expect(work.aliases.map(({ scheme, value }) => [scheme, value])).toEqual([
+      ["doi", "10.1000/alias-enrichment"],
+      ["pmid", "987654"],
+    ]);
+    const materialized = await prisma.citation.findMany({
+      where: { id: { in: [plain.id, enriched.id] } },
+      orderBy: { id: "asc" },
+    });
+    expect(materialized.map(({ knowledgeNodeId, workId }) => [knowledgeNodeId, workId])).toEqual(
+      [plain, enriched].map(() => [work.id, work.stableKey]),
+    );
+  });
+
+  it("rolls back earlier batched writes when a later citation is malformed", async () => {
+    const claim = await prisma.claim.create({
+      data: {
+        id: "claim-rollback-batch",
+        reviewVersionId,
+        localClaimId: "claim-rollback-batch",
+        text: "This binding must remain absent after rollback.",
+        normalizedText: "this binding must remain absent after rollback.",
+      },
+    });
+    const first = await prisma.citation.create({
+      data: {
+        id: "citation-rollback-a",
+        reviewVersionId,
+        localCitationId: "citation-rollback-a",
+        doi: "10.1000/rollback-batch",
+      },
+    });
+    const malformed = await prisma.citation.create({
+      data: {
+        id: "citation-rollback-z",
+        reviewVersionId,
+        localCitationId: "citation-rollback-z",
+        doi: "10.1000/rollback-malformed",
+        authorsJson: "{malformed",
+      },
+    });
+    await prisma.claimEvidenceRelation.createMany({
+      data: [first, malformed].map((citation) => ({
+        claimId: claim.id,
+        citationId: citation.id,
+        relationType: "supports",
+      })),
+    });
+
+    await expect(
+      prisma.$transaction((tx) => materializeCanonicalReviewGraph(tx, reviewVersionId)),
+    ).rejects.toThrow(/malformed author provenance/);
+
+    const after = await prisma.claim.findUniqueOrThrow({
+      where: { id: claim.id },
+      include: { graphVersion: true },
+    });
+    expect(after.knowledgeNodeId).toBeNull();
+    expect(after.graphVersion).toBeNull();
+    await expect(
+      prisma.knowledgeNode.findUnique({ where: { stableKey: `claim:${claim.id}` } }),
+    ).resolves.toBeNull();
+    const citations = await prisma.citation.findMany({
+      where: { id: { in: [first.id, malformed.id] } },
+      include: { graphVersion: true, workIdentityConflict: true },
+      orderBy: { id: "asc" },
+    });
+    expect(
+      citations.every(
+        ({ knowledgeNodeId, workId, graphVersion, workIdentityConflict }) =>
+          knowledgeNodeId === null &&
+          workId === null &&
+          graphVersion === null &&
+          workIdentityConflict === null,
+      ),
+    ).toBe(true);
+    await expect(
+      prisma.knowledgeNode.findUnique({ where: { stableKey: "work:doi:10.1000/rollback-batch" } }),
+    ).resolves.toBeNull();
+
+    await prisma.claimEvidenceRelation.deleteMany({ where: { claimId: claim.id } });
+    await prisma.citation.deleteMany({ where: { id: { in: [first.id, malformed.id] } } });
+    await prisma.claim.delete({ where: { id: claim.id } });
+  });
+
   it("keeps mutable publication lifecycle state outside immutable graph payload bytes", async () => {
     const before = await prisma.reviewVersion.findUniqueOrThrow({
       where: { id: reviewVersionId },
