@@ -120,6 +120,7 @@ function b64decode(content: string): string {
 export interface InspectOptions {
   transport?: GithubTransport;
   token?: string;
+  oauthApp?: { clientId: string; clientSecret: string };
   limits?: Partial<InspectionLimits>;
   now?: () => Date;
   /** Explicit source choice; defaults to a deliberately selected repository-only capture. */
@@ -151,7 +152,8 @@ export async function inspectRepository(
     ref = input;
   }
 
-  const transport = options.transport ?? createFetchTransport({ token: options.token });
+  const transport =
+    options.transport ?? createFetchTransport({ token: options.token, oauthApp: options.oauthApp });
   const warnings: string[] = [];
 
   // 1. Repository metadata

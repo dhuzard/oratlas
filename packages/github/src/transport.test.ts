@@ -32,6 +32,21 @@ describe("createFetchTransport security boundaries", () => {
     expect(new Headers(init?.headers).get("authorization")).toBe("Bearer secret");
   });
 
+  it("uses OAuth app credentials for public reads and keeps an explicit token authoritative", async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async () => new Response("{}", { status: 200 }));
+    const oauthApp = { clientId: "client-id", clientSecret: "client-secret" };
+    await createFetchTransport({ fetchImpl, oauthApp }).request("/repos/owner/repo");
+    expect(new Headers(fetchImpl.mock.calls[0]![1]?.headers).get("authorization")).toBe(
+      `Basic ${Buffer.from("client-id:client-secret").toString("base64")}`,
+    );
+    await createFetchTransport({ fetchImpl, oauthApp, token: "explicit-token" }).request(
+      "/repos/owner/repo",
+    );
+    expect(new Headers(fetchImpl.mock.calls[1]![1]?.headers).get("authorization")).toBe(
+      "Bearer explicit-token",
+    );
+  });
+
   it("rejects an oversized declared response before reading its body", async () => {
     let cancelled = false;
     const body = new ReadableStream<Uint8Array>({

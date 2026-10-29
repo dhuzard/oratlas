@@ -17,6 +17,8 @@ export interface GithubTransport {
 
 export interface FetchTransportOptions {
   token?: string;
+  /** OAuth app credentials authenticate public-data reads without a user token. */
+  oauthApp?: { clientId: string; clientSecret: string };
   timeoutMs?: number;
   /** Maximum decoded response bytes buffered for any single API request. */
   maxResponseBytes?: number;
@@ -93,6 +95,7 @@ async function readTextBounded(response: Response, maxBytes: number): Promise<st
 export function createFetchTransport(options: FetchTransportOptions = {}): GithubTransport {
   const {
     token,
+    oauthApp,
     timeoutMs = 10_000,
     maxResponseBytes = DEFAULT_MAX_RESPONSE_BYTES,
     baseUrl = API_BASE,
@@ -114,6 +117,9 @@ export function createFetchTransport(options: FetchTransportOptions = {}): Githu
         "X-GitHub-Api-Version": "2022-11-28",
       };
       if (token) headers.Authorization = `Bearer ${token}`;
+      else if (oauthApp?.clientId && oauthApp.clientSecret) {
+        headers.Authorization = `Basic ${Buffer.from(`${oauthApp.clientId}:${oauthApp.clientSecret}`).toString("base64")}`;
+      }
       try {
         const res = await fetchImpl(`${validatedBaseUrl}${path}`, {
           headers,
