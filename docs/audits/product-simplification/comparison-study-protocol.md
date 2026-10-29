@@ -2,6 +2,9 @@
 
 **Status: prepared, not run.** This protocol and its blank artifact do not contain participant data or study results. They assess whether readers can compare exact public claims, inspect source context and reuse exact references. They do not test scientific correctness, candidate-ranking quality, long-term retention or private-workspace access.
 
+The [moderator run sheet](comparison-study-run-sheet.md) is a draft operational aid. Its consent,
+storage, retention and participant-environment fields require organizer review before recruitment.
+
 ## Study question and scope
 
 Can a new reader use ORAtlas to explain what is known and unknown about two public claim occurrences, inspect both source contexts and relevant evidence, and reopen the same exact pair without mistaking capture, shared citations or comparison for scientific confirmation?
