@@ -15,7 +15,7 @@ describe.skipIf(!enabled)("batched canonical review materialization on PostgreSQ
     await prisma.$disconnect();
   });
 
-  it("preserves exact graph IDs, compatibility bindings and assessment bytes on replay", async () => {
+  it("preserves exact IDs, bindings and assessment bytes across 40-row chunks and replay", async () => {
     const repository = await prisma.repository.create({
       data: {
         owner: "synthetic-materialization",
@@ -51,8 +51,11 @@ describe.skipIf(!enabled)("batched canonical review materialization on PostgreSQ
         isExample: true,
       },
     });
-    const claimIds = [0, 1].map((index) => `pg-batch-claim-${suffix}-${index}`);
-    const citationIds = [0, 1].map((index) => `pg-batch-citation-${suffix}-${index}`);
+    // One more than the binding helper's chunk size exercises the final chunk
+    // for every compatibility table on PostgreSQL, including parameter typing.
+    const indices = Array.from({ length: 41 }, (_, index) => index);
+    const claimIds = indices.map((index) => `pg-batch-claim-${suffix}-${index}`);
+    const citationIds = indices.map((index) => `pg-batch-citation-${suffix}-${index}`);
     await prisma.claim.createMany({
       data: claimIds.map((id, index) => ({
         id,
@@ -72,12 +75,12 @@ describe.skipIf(!enabled)("batched canonical review materialization on PostgreSQ
         authorsJson: '["Synthetic Author"]',
       })),
     });
-    const relationIds = [0, 1, 2].map((index) => `pg-batch-relation-${suffix}-${index}`);
+    const relationIds = indices.map((index) => `pg-batch-relation-${suffix}-${index}`);
     await prisma.claimEvidenceRelation.createMany({
       data: relationIds.map((id, index) => ({
         id,
-        claimId: claimIds[index % 2]!,
-        citationId: citationIds[Math.floor(index / 2)]!,
+        claimId: claimIds[index]!,
+        citationId: citationIds[index]!,
         relationType: "supports",
       })),
     });
@@ -129,15 +132,18 @@ describe.skipIf(!enabled)("batched canonical review materialization on PostgreSQ
 
     const first = await run();
     expect(first).toMatchObject({
-      claimCount: 2,
-      reviewAssertionEdgeCount: 2,
-      workCount: 2,
-      evidenceEdgeCount: 3,
+      claimCount: 41,
+      reviewAssertionEdgeCount: 41,
+      workCount: 41,
+      evidenceEdgeCount: 41,
       workIdentityConflictCount: 0,
     });
     const before = await readState();
-    expect(before.versions).toHaveLength(5);
-    expect(before.edges).toHaveLength(5);
+    expect(before.claims).toHaveLength(41);
+    expect(before.citations).toHaveLength(41);
+    expect(before.relations).toHaveLength(41);
+    expect(before.versions).toHaveLength(83);
+    expect(before.edges).toHaveLength(82);
     expect(before.claims.every((row) => row.knowledgeNodeId && row.graphVersion)).toBe(true);
     expect(before.citations.every((row) => row.knowledgeNodeId && row.graphVersion)).toBe(true);
     expect(before.relations.every((row) => row.nodeEdgeId && row.nodeEdge)).toBe(true);

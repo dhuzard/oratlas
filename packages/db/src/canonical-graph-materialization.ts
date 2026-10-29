@@ -1,6 +1,14 @@
 import { createHash } from "node:crypto";
 import { canonicalJson, canonicalizeNodeAlias, type NodeAlias } from "@oratlas/contracts";
 import type { Prisma } from "../generated/client/index.js";
+import {
+  bindCanonicalClaims,
+  bindCanonicalCitations,
+  bindCanonicalEvidenceRelations,
+  type CanonicalClaimBinding,
+  type CanonicalCitationBinding,
+  type CanonicalEvidenceRelationBinding,
+} from "./canonical-graph-batch-bindings.js";
 
 export interface CanonicalGraphMaterializationReport {
   reviewNodeId: string;
@@ -125,12 +133,13 @@ export async function materializeCanonicalReviewGraph(
   const claimVersionById = new Map<string, { nodeId: string; versionId: string }>();
   let reviewAssertionEdgeCount = 0;
   const claimInputs: ExactVersionInput[] = [];
+  const claimBindings: CanonicalClaimBinding[] = [];
   for (const claim of version.claims) {
     const node = claimNodes.get(claim.id);
     if (!node)
       throw new CanonicalGraphMaterializationError(`Claim '${claim.id}' failed materialization.`);
     if (!claim.knowledgeNodeId) {
-      await tx.claim.update({ where: { id: claim.id }, data: { knowledgeNodeId: node.id } });
+      claimBindings.push({ id: claim.id, knowledgeNodeId: node.id });
     }
     claimInputs.push({
       knowledgeNodeId: node.id,
@@ -156,6 +165,7 @@ export async function materializeCanonicalReviewGraph(
       isExample: version.isExample,
     });
   }
+  await bindCanonicalClaims(tx, claimBindings);
   const claimVersions = await exactVersions(tx, claimInputs);
   for (const claim of version.claims) {
     const node = claimNodes.get(claim.id)!;
@@ -191,18 +201,28 @@ export async function materializeCanonicalReviewGraph(
   const workByCitationId = new Map<string, { nodeId: string; versionId: string }>();
   let workIdentityConflictCount = 0;
   const citationInputs: ExactVersionInput[] = [];
+  const citationBindings: CanonicalCitationBinding[] = [];
+  const independentWorks = await createIndependentWorkNodes(
+    tx,
+    version.citations,
+    version.isExample,
+  );
+  const boundWorks = await loadBoundWorkCache(tx, version.citations);
   // Alias writes must remain visible to the next citation in ID order.
   for (const citation of version.citations) {
-    const resolution = await resolveWorkNode(tx, citation, version.isExample);
+    const independent = independentWorks.get(citation.id);
+    const resolution = independent
+      ? { node: independent, conflict: false }
+      : await resolveWorkNode(tx, citation, version.isExample, boundWorks);
     if (resolution.conflict) workIdentityConflictCount += 1;
     assertNullableBinding("citation", citation.knowledgeNodeId, resolution.node.id);
     if (!citation.knowledgeNodeId || citation.workId !== resolution.node.stableKey) {
-      await tx.citation.update({
-        where: { id: citation.id },
-        data: {
-          knowledgeNodeId: resolution.node.id,
-          workId: resolution.node.stableKey,
-        },
+      citationBindings.push({
+        id: citation.id,
+        knowledgeNodeId: resolution.node.id,
+        workId: resolution.node.stableKey!,
+        expectedKnowledgeNodeId: citation.knowledgeNodeId,
+        expectedWorkId: citation.workId,
       });
     }
     citationInputs.push({
@@ -229,6 +249,9 @@ export async function materializeCanonicalReviewGraph(
       isExample: version.isExample,
     });
   }
+  // Resolution reads nodes, aliases and conflicts, never another citation's
+  // compatibility binding. Alias writes above remain sequential and immediate.
+  await bindCanonicalCitations(tx, citationBindings);
   const citationVersions = await exactVersions(tx, citationInputs);
   for (const citation of version.citations) {
     const graphVersion = citationVersions.get(citation.id)!;
@@ -262,6 +285,7 @@ export async function materializeCanonicalReviewGraph(
       };
     });
     const edges = await sourceAssertionEdges(tx, inputs);
+    const relationBindings: CanonicalEvidenceRelationBinding[] = [];
     for (const [index, relation] of relationBatch.entries()) {
       const input = inputs[index]!;
       const edge = edges.get(edgeKey(input))!;
@@ -276,13 +300,11 @@ export async function materializeCanonicalReviewGraph(
       }
       assertNullableBinding("claim-evidence relation", relation.nodeEdgeId, edge.id);
       if (!relation.nodeEdgeId) {
-        await tx.claimEvidenceRelation.update({
-          where: { id: relation.id },
-          data: { nodeEdgeId: edge.id },
-        });
+        relationBindings.push({ id: relation.id, nodeEdgeId: edge.id });
       }
       evidenceEdgeCount += 1;
     }
+    await bindCanonicalEvidenceRelations(tx, relationBindings);
   }
 
   return {
@@ -534,10 +556,140 @@ type CitationIdentityInput = {
   openAlexId: string | null;
 };
 
+/**
+ * Only fresh, isolated occurrences may be materialized ahead of citation order.
+ * An alias shared with ANY input occurrence (including a bound/example one), an
+ * existing alias, or an existing stable key forces the original ordered resolver.
+ * Thus these new aliases cannot change any other citation's discovery candidates.
+ */
+async function createIndependentWorkNodes(
+  tx: Prisma.TransactionClient,
+  citations: readonly CitationIdentityInput[],
+  reviewIsExample: boolean,
+) {
+  const result = new Map<string, Prisma.KnowledgeNodeGetPayload<object>>();
+  if (!citations.some((citation) => !citation.workId && !citation.knowledgeNodeId)) return result;
+  const prepared = citations.map((citation) => {
+    const aliases = citationAliases(citation, reviewIsExample);
+    return { citation, aliases, stableKey: freshWorkStableKey(citation.id, aliases) };
+  });
+  const aliasCounts = new Map<string, number>();
+  for (const { aliases } of prepared) {
+    for (const alias of aliases) {
+      const key = workAliasKey(alias);
+      aliasCounts.set(key, (aliasCounts.get(key) ?? 0) + 1);
+    }
+  }
+  const candidates = prepared.filter(
+    ({ citation, aliases }) =>
+      !citation.workId &&
+      !citation.knowledgeNodeId &&
+      aliases.every((alias) => aliasCounts.get(workAliasKey(alias)) === 1),
+  );
+  for (const batch of batches(candidates)) {
+    const aliasKeys = batch.flatMap(({ aliases }) =>
+      aliases.map(({ scheme, value }) => ({ scheme, value })),
+    );
+    const existingAliases = new Set<string>();
+    // One citation can contribute three keys; bound the predicates themselves.
+    for (const keys of batches(aliasKeys)) {
+      const matches = await tx.nodeAlias.findMany({
+        where: { OR: keys },
+        select: { scheme: true, value: true },
+      });
+      for (const alias of matches) existingAliases.add(workAliasKey(alias));
+    }
+    const existingNodes = await tx.knowledgeNode.findMany({
+      where: { stableKey: { in: batch.map(({ stableKey }) => stableKey) } },
+      select: { stableKey: true },
+    });
+    const existingStableKeys = new Set(existingNodes.map(({ stableKey }) => stableKey));
+    const independent = batch.filter(
+      ({ aliases, stableKey }) =>
+        !existingStableKeys.has(stableKey) &&
+        aliases.every((alias) => !existingAliases.has(workAliasKey(alias))),
+    );
+    if (!independent.length) continue;
+    await tx.knowledgeNode.createMany({
+      data: independent.map(({ stableKey }) => ({
+        stableKey,
+        originType: "canonical-work",
+        localNodeId: `work-${digest(stableKey).slice(0, 24)}`,
+        kind: "work",
+      })),
+    });
+    const created = await tx.knowledgeNode.findMany({
+      where: { stableKey: { in: independent.map(({ stableKey }) => stableKey) } },
+    });
+    const byStableKey = new Map(created.map((node) => [node.stableKey, node]));
+    const aliasRows: Prisma.NodeAliasCreateManyInput[] = [];
+    for (const { citation, aliases, stableKey } of independent) {
+      const node = byStableKey.get(stableKey);
+      if (!node)
+        throw new CanonicalGraphMaterializationError(
+          `Citation '${citation.id}' failed materialization.`,
+        );
+      result.set(citation.id, node);
+      for (const alias of aliases) aliasRows.push({ knowledgeNodeId: node.id, ...alias });
+    }
+    for (const rows of batches(aliasRows)) await tx.nodeAlias.createMany({ data: rows });
+  }
+  return result;
+}
+
+function workAliasKey(alias: { scheme: string; value: string }): string {
+  return JSON.stringify([alias.scheme, alias.value]);
+}
+
+function freshWorkStableKey(citationId: string, aliases: readonly NodeAlias[]): string {
+  const primary = aliases
+    .filter((alias) => !alias.isExample)
+    .sort((left, right) =>
+      `${left.scheme}:${left.value}`.localeCompare(`${right.scheme}:${right.value}`, "en"),
+    )[0];
+  return primary ? `work:${primary.scheme}:${primary.value}` : `work-occurrence:${citationId}`;
+}
+
+type BoundWorkNode = Prisma.KnowledgeNodeGetPayload<{ include: { aliases: true } }>;
+type BoundWorkCache = {
+  nodes: Map<string, BoundWorkNode>;
+  conflictingCitations: Set<string>;
+};
+
+async function loadBoundWorkCache(
+  tx: Prisma.TransactionClient,
+  citations: readonly CitationIdentityInput[],
+): Promise<BoundWorkCache | undefined> {
+  if (
+    !citations.length ||
+    citations.some((citation) => !citation.workId || !citation.knowledgeNodeId)
+  ) {
+    return undefined;
+  }
+  const cache: BoundWorkCache = { nodes: new Map(), conflictingCitations: new Set() };
+  const nodeIds = [...new Set(citations.map((citation) => citation.knowledgeNodeId!))];
+  for (const ids of batches(nodeIds)) {
+    const nodes = await tx.knowledgeNode.findMany({
+      where: { id: { in: ids } },
+      include: { aliases: true },
+    });
+    for (const node of nodes) cache.nodes.set(node.id, node);
+  }
+  for (const batch of batches(citations)) {
+    const conflicts = await tx.workIdentityConflict.findMany({
+      where: { citationId: { in: batch.map((citation) => citation.id) } },
+      select: { citationId: true },
+    });
+    for (const conflict of conflicts) cache.conflictingCitations.add(conflict.citationId);
+  }
+  return cache;
+}
+
 async function resolveWorkNode(
   tx: Prisma.TransactionClient,
   citation: CitationIdentityInput,
   reviewIsExample: boolean,
+  boundCache?: BoundWorkCache,
 ) {
   if (citation.workId || citation.knowledgeNodeId) {
     if (!citation.workId || !citation.knowledgeNodeId) {
@@ -547,13 +699,18 @@ async function resolveWorkNode(
     }
     const aliases = citationAliases(citation, reviewIsExample);
     const matchable = aliases.filter((alias) => !alias.isExample);
-    const [node, existingConflict] = await Promise.all([
-      tx.knowledgeNode.findUnique({
-        where: { id: citation.knowledgeNodeId },
-        include: { aliases: true },
-      }),
-      tx.workIdentityConflict.findUnique({ where: { citationId: citation.id } }),
-    ]);
+    const [node, existingConflict] = boundCache
+      ? ([
+          boundCache.nodes.get(citation.knowledgeNodeId) ?? null,
+          boundCache.conflictingCitations.has(citation.id),
+        ] as const)
+      : await Promise.all([
+          tx.knowledgeNode.findUnique({
+            where: { id: citation.knowledgeNodeId },
+            include: { aliases: true },
+          }),
+          tx.workIdentityConflict.findUnique({ where: { citationId: citation.id } }),
+        ]);
     if (
       !node ||
       node.kind !== "work" ||
@@ -569,7 +726,10 @@ async function resolveWorkNode(
         `Citation '${citation.id}' aliases conflict with its canonical work binding.`,
       );
     }
-    for (const alias of aliases) await preserveAlias(tx, node.id, alias);
+    // Cached nodes are shared by ID. Appending newly preserved aliases keeps
+    // the next bound occurrence's compatibility check identical to a fresh read.
+    for (const alias of aliases)
+      await preserveAlias(tx, node.id, alias, boundCache ? node.aliases : undefined);
     return { node, conflict: Boolean(existingConflict) };
   }
   const aliases = citationAliases(citation, reviewIsExample);
@@ -594,13 +754,9 @@ async function resolveWorkNode(
   const conflict =
     candidateNodes.length > 1 || (candidateNodes.length === 1 && compatible.length !== 1);
 
-  const primary = [...matchable].sort((left, right) =>
-    `${left.scheme}:${left.value}`.localeCompare(`${right.scheme}:${right.value}`, "en"),
-  )[0];
   const stableKey = conflict
     ? `work-occurrence:${citation.id}`
-    : (compatible[0]?.stableKey ??
-      (primary ? `work:${primary.scheme}:${primary.value}` : `work-occurrence:${citation.id}`));
+    : (compatible[0]?.stableKey ?? freshWorkStableKey(citation.id, aliases));
   if (!stableKey) {
     throw new CanonicalGraphMaterializationError("Resolved work node has no stable key.");
   }
@@ -649,6 +805,7 @@ async function preserveAlias(
   tx: Prisma.TransactionClient,
   knowledgeNodeId: string,
   alias: NodeAlias,
+  cachedAliases?: BoundWorkNode["aliases"],
 ): Promise<void> {
   const key = {
     knowledgeNodeId,
@@ -656,9 +813,14 @@ async function preserveAlias(
     role: alias.role,
     value: alias.value,
   };
-  const existing = await tx.nodeAlias.findUnique({
-    where: { knowledgeNodeId_scheme_role_value: key },
-  });
+  const existing = cachedAliases
+    ? cachedAliases.find(
+        (candidate) =>
+          candidate.scheme === alias.scheme &&
+          candidate.role === alias.role &&
+          candidate.value === alias.value,
+      )
+    : await tx.nodeAlias.findUnique({ where: { knowledgeNodeId_scheme_role_value: key } });
   if (existing) {
     if (existing.isExample !== alias.isExample) {
       throw new CanonicalGraphMaterializationError(
@@ -667,7 +829,8 @@ async function preserveAlias(
     }
     return;
   }
-  await tx.nodeAlias.create({ data: { ...key, isExample: alias.isExample } });
+  const created = await tx.nodeAlias.create({ data: { ...key, isExample: alias.isExample } });
+  cachedAliases?.push(created);
 }
 
 function citationAliases(citation: CitationIdentityInput, reviewIsExample: boolean): NodeAlias[] {
