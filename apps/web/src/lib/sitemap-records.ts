@@ -184,7 +184,7 @@ export function buildSitemapRecords(
   for (const path of STATIC_PATHS) addRecord(records, { path });
 
   for (const review of sources.reviews) {
-    if (review.reviewType === "ai-synthesis") {
+    if (review.synthesisSeriesKey !== null) {
       const readable = review.versions.filter((version) =>
         isReadableSynthesisVersion(review, version),
       );

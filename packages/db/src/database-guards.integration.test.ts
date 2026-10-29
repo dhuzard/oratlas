@@ -3,6 +3,7 @@ import { randomBytes } from "node:crypto";
 import { resolve } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { PrismaClient } from "../generated/client/index.js";
+import { assertReviewSourceUnion } from "./review-source-union-test.js";
 import {
   applyDatabaseGuards,
   baselineSchemaUrl,
@@ -17,18 +18,27 @@ let contractPrisma: PrismaClient | undefined;
 let contractSchema: string | undefined;
 
 function runPrismaInSchema(databaseUrl: string, args: string[]): void {
-  const executable = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
-  const result = spawnSync(executable, ["exec", "prisma", ...args], {
+  const prismaCli = resolve(import.meta.dirname, "../node_modules/prisma/build/index.js");
+  const result = spawnSync(process.execPath, [prismaCli, ...args], {
     cwd: resolve(import.meta.dirname, ".."),
     env: { ...process.env, DATABASE_URL: databaseUrl },
     encoding: "utf8",
   });
   if (result.status !== 0) {
-    throw new Error(`Isolated contract migration failed: ${result.stderr || result.stdout}`);
+    throw new Error(
+      `Isolated contract migration failed: ${result.error?.message ?? result.stderr ?? result.stdout}`,
+    );
   }
 }
 
 describe.skipIf(!enabled)("PostgreSQL database guards", () => {
+  it("separates repository AI synthesis from internal synthesis provenance", async () => {
+    // Verify migration-only upgrade from the frozen baseline before guard reinstallation.
+    await assertReviewSourceUnion(contractPrisma!);
+    await applyDatabaseGuards(contractPrisma!, "postgresql");
+    await assertReviewSourceUnion(contractPrisma!);
+    await assertReviewSourceUnion(prisma);
+  });
   beforeAll(async () => {
     contractSchema = `oratlas_baseline_${randomBytes(10).toString("hex")}`;
     const databaseUrl = baselineSchemaUrl(

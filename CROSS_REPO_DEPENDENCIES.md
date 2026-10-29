@@ -144,6 +144,14 @@ only in local capture scripts (ORA-K02).
 - Murmuration/HCM review: `dhuzard/hcm-circadian-mouse-review`, immutable GitHub repository id
   `1437035846`, commit `a906c5f15e77b8a4ac0671c9df15f75b8095029f`, capture-manifest
   SHA-256 `39e96a9d7cbb30f0e4d7ae6e1a8b2562eecd125db5aa90896397e6e414ddc37c`.
+- Additive HCM published release capture: `v0.1.0`, GitHub release id `426624753`,
+  annotated tag object `b26d0f8fc90c137c4f990ab038a152fdda87ea44`, same commit as above,
+  tree `1df78fd454940b4d210748a0ebe6d171c43fe435`, capture-manifest SHA-256
+  `9c6a1277b5fea5fa6710affb233f082cacdbdc2560295c4e34dd04fd83fa470b`, stored in
+  `packages/extractor/src/fixtures/source-pilot/hcm-release`. The six file payloads
+  match the earlier capture; the default-branch pin is preserved. The numeric release
+  id is a live observation recorded in the fixture README, outside the fixture schema.
+  This exact release selection still does not capture the completed report/matrix.
 - Exact bounded captures, per-file hashes, protocol declarations, limitations and rollback are
   recorded in `packages/extractor/src/fixtures/source-pilot/README.md`. The offline preview
   does not register a publication, confirm a relation, authenticate a declared ORCID, or

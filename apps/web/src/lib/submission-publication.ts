@@ -9,7 +9,11 @@ import {
 import { assertKnowledgeNodeMaterializationBinding, type Prisma } from "@oratlas/db";
 import { isExampleDoi } from "@oratlas/zenodo";
 import { parseJsonColumn } from "./db";
-import { ingestNodeRelationTrustAssessment, ingestTrustAssessment } from "./assessment-ingestion";
+import {
+  ingestNodeRelationTrustAssessment,
+  ingestTrustAssessmentsForFreshRelations,
+  type FreshRelationTrustInput,
+} from "./assessment-ingestion";
 import { materializeCanonicalReviewGraph } from "./canonical-graph-materialization";
 import type { SubmissionPayload, validNodeCandidates } from "./submission-payload";
 import type { SubmissionForAcceptance } from "./submission-contract";
@@ -423,13 +427,19 @@ async function materializeKnowledge(
     relationIdByPair.set(pair, row.id);
     sourceReviewByPair.set(pair, relation.humanReviewed ?? null);
   }
+  const freshTrust: FreshRelationTrustInput[] = [];
   for (const trust of payload.knowledge.trust) {
     if ("subjectType" in trust) continue;
     const pair = `${trust.claimId}|${trust.citationId}`;
     const relationId = relationIdByPair.get(pair);
     if (!relationId) continue;
-    await ingestTrustAssessment(tx, relationId, trust, sourceReviewByPair.get(pair) ?? null);
+    freshTrust.push({
+      claimEvidenceRelationId: relationId,
+      record: trust,
+      sourceRelationHumanReviewed: sourceReviewByPair.get(pair) ?? null,
+    });
   }
+  await ingestTrustAssessmentsForFreshRelations(tx, freshTrust);
 }
 
 export async function materializeNodeRelationTrustAssessments(

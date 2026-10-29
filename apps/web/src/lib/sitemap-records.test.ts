@@ -156,6 +156,18 @@ const mapsValidNodeVersion = (_node: unknown, version: { title: string | null })
   version.title?.startsWith("Corrupt") ? undefined : ({ id: "mapped" } as never);
 
 describe("sitemap records", () => {
+  it("indexes source-declared AI synthesis through repository version paths", () => {
+    const records = buildSitemapRecords({
+      reviews: [
+        repositoryReview("hcm", [repositoryVersion("release")], { reviewType: "ai-synthesis" }),
+      ],
+      nodes: [],
+    });
+    const paths = records.map((record) => record.path);
+    expect(paths).toContain("/reviews/hcm");
+    expect(paths).toContain("/reviews/hcm/versions/release");
+    expect(paths.some((path) => path.includes("/syntheses/"))).toBe(false);
+  });
   it("includes static, current, and exact repository-review URLs while failing closed", () => {
     const current = repositoryVersion("current");
     const withdrawn = repositoryVersion("withdrawn", {

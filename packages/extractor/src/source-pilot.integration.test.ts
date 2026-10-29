@@ -9,6 +9,7 @@ import { projectSourceEvidenceLinks, runExtraction } from "./index.js";
 import crtJson from "./fixtures/ethical-debt-v0.1.0-trust-preview.3/fixture.json" with { type: "json" };
 import ntsJson from "./fixtures/source-pilot/nts/fixture.json" with { type: "json" };
 import hcmJson from "./fixtures/source-pilot/hcm/fixture.json" with { type: "json" };
+import hcmReleaseJson from "./fixtures/source-pilot/hcm-release/fixture.json" with { type: "json" };
 
 const cases = [
   {
@@ -80,6 +81,42 @@ function project(content = nativeSidecar, stale = false) {
 }
 
 describe("three-source read-only import preview (#264)", () => {
+  it("preserves the additive HCM published release selection and annotated tag binding", async () => {
+    expect(() => verifyCapturedFixture(hcmReleaseJson as CapturedRepositoryFixture)).not.toThrow();
+    expect(hcmReleaseJson.pin).toEqual({ kind: "release", value: "v0.1.0" });
+    expect(hcmReleaseJson.manifestSha256).toBe(
+      "9c6a1277b5fea5fa6710affb233f082cacdbdc2560295c4e34dd04fd83fa470b",
+    );
+    const { report, extraction } = await preview(hcmReleaseJson);
+    expect(report.status).toBe("succeeded");
+    expect(report.selectedSource).toMatchObject({
+      kind: "release",
+      releaseTag: "v0.1.0",
+      releaseUrl: "https://github.com/dhuzard/hcm-circadian-mouse-review/releases/tag/v0.1.0",
+      commitSha: "a906c5f15e77b8a4ac0671c9df15f75b8095029f",
+      treeSha: "1df78fd454940b4d210748a0ebe6d171c43fe435",
+      tagObjectSha: "b26d0f8fc90c137c4f990ab038a152fdda87ea44",
+    });
+    expect(hcmReleaseJson.files).toEqual(hcmJson.files);
+    expect(hcmJson.source.kind).toBe("default-branch");
+    expect(hcmReleaseJson.manifestSha256).not.toBe(hcmJson.manifestSha256);
+    const { claims, citations, relations, trust } = extraction.knowledge;
+    expect([claims.length, citations.length, relations.length, trust.length]).toEqual([
+      58, 5, 58, 0,
+    ]);
+    for (const path of [
+      "source/run/final_report.md",
+      "knowledge/oratlas/report.md",
+      "source/run/mapppp_bundle.json",
+    ])
+      expect(hcmReleaseJson.files).not.toHaveProperty(path);
+    const tampered = structuredClone(hcmReleaseJson);
+    tampered.source.tagObjectSha = "0".repeat(40);
+    expect(() => createCapturedFixtureTransport(tampered as CapturedRepositoryFixture)).toThrow(
+      /integrity/,
+    );
+  });
+
   it.each(cases)(
     "replays $name with exact identity, source bytes and counts",
     async ({ fixture, commit, repositoryId, digest, counts }) => {

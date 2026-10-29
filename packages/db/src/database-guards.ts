@@ -98,8 +98,8 @@ export const POSTGRES_DATABASE_GUARD_SQL = [
   )`,
   'ALTER TABLE "Review" DROP CONSTRAINT IF EXISTS "Review_source_union_check"',
   `ALTER TABLE "Review" ADD CONSTRAINT "Review_source_union_check" CHECK (
-    ("reviewType" = 'ai-synthesis' AND "repositoryId" IS NULL AND "currentSnapshotId" IS NULL AND "synthesisSeriesKey" IS NOT NULL)
-    OR (("reviewType" IS NULL OR "reviewType" <> 'ai-synthesis') AND "synthesisSeriesKey" IS NULL AND "currentSynthesisVersionId" IS NULL)
+    (COALESCE("reviewType" = 'ai-synthesis', FALSE) AND "repositoryId" IS NULL AND "currentSnapshotId" IS NULL AND "synthesisSeriesKey" IS NOT NULL)
+    OR (("reviewType" IS NULL OR "reviewType" <> 'ai-synthesis' OR ("repositoryId" IS NOT NULL AND "currentSnapshotId" IS NOT NULL)) AND "synthesisSeriesKey" IS NULL AND "currentSynthesisVersionId" IS NULL)
   )`,
   'ALTER TABLE "ReviewVersion" DROP CONSTRAINT IF EXISTS "ReviewVersion_source_union_check"',
   `ALTER TABLE "ReviewVersion" ADD CONSTRAINT "ReviewVersion_source_union_check" CHECK (
@@ -741,7 +741,7 @@ const sqliteGuardConditions = {
     THEN 1 ELSE 0 END`,
   Review: `CASE WHEN
     (NEW."reviewType" = 'ai-synthesis' AND NEW."repositoryId" IS NULL AND NEW."currentSnapshotId" IS NULL AND NEW."synthesisSeriesKey" IS NOT NULL)
-    OR ((NEW."reviewType" IS NULL OR NEW."reviewType" <> 'ai-synthesis') AND NEW."synthesisSeriesKey" IS NULL AND NEW."currentSynthesisVersionId" IS NULL)
+    OR ((NEW."reviewType" IS NULL OR NEW."reviewType" <> 'ai-synthesis' OR (NEW."repositoryId" IS NOT NULL AND NEW."currentSnapshotId" IS NOT NULL)) AND NEW."synthesisSeriesKey" IS NULL AND NEW."currentSynthesisVersionId" IS NULL)
     THEN 1 ELSE 0 END`,
   ReviewVersion: `CASE WHEN
     (NEW."recordSourceType" = 'repository' AND NEW."snapshotId" IS NOT NULL AND NEW."synthesisDraftId" IS NULL AND NEW."synthesisDocumentJson" IS NULL AND NEW."synthesisOrdinal" IS NULL)
