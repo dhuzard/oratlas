@@ -15,6 +15,10 @@
 4. **Validation** — a structured report: hard errors, warnings, DOI validation, release
    validation, metadata completeness, repository compatibility, evidence-data availability, and
    TRUST-data availability.
+   A Zenodo result found through a repository URL contributes a version DOI only when its
+   deposited version matches the explicitly selected GitHub release or tag. A shared repository
+   URL alone does not establish version identity. Repository-only captures do not acquire a
+   version DOI from this lookup.
 5. **Submit** — the browser returns a single-use, opaque inspection capability. The server loads
    the exact canonical capture; it does not inspect GitHub again.
 
@@ -35,6 +39,11 @@ Every inspection creates an append-only `InspectionCapture` with exact canonical
 a SHA-256 hash. Its random capability expires after 30 minutes, is bound to the inspecting user,
 and can create only one submission. Reinspection creates another capture; it does not mutate the
 existing `(repository, commit)` snapshot.
+
+If an earlier capture attached a DOI from a different deposit, do not override that mismatch
+or alter the producer's files to make it pass. Request changes or reject the affected submission,
+then inspect and submit the exact release again. The old capture remains auditable; rollback of the
+lookup rule restores the earlier enrichment behavior but does not rewrite existing submissions.
 
 `Submission.submittedPayloadJson` stores exactly what the submitter finalized (effective metadata,
 validation, compatibility level, and knowledge artifacts) in canonical JSON with its own hash.

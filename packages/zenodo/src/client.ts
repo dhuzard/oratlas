@@ -30,7 +30,10 @@ export interface DoiResolver {
 }
 
 export interface ZenodoRepositoryResolver {
-  findZenodoRecordByRepositoryUrl(repositoryUrl: string): Promise<ZenodoRecord | null>;
+  findZenodoRecordByRepositoryUrl(
+    repositoryUrl: string,
+    selectedTag?: string,
+  ): Promise<ZenodoRecord | null>;
 }
 
 export interface FetchResolverOptions {
@@ -235,7 +238,10 @@ export function createFetchResolver(
       });
     },
 
-    async findZenodoRecordByRepositoryUrl(repositoryUrl: string): Promise<ZenodoRecord | null> {
+    async findZenodoRecordByRepositoryUrl(
+      repositoryUrl: string,
+      selectedTag?: string,
+    ): Promise<ZenodoRecord | null> {
       const canonicalUrl = canonicalGithubRepositoryUrl(repositoryUrl);
       if (!canonicalUrl) return null;
 
@@ -267,6 +273,9 @@ export function createFetchResolver(
             const record = parseZenodoRecord(hit as Record<string, unknown>);
             if (
               record.recordId &&
+              (!selectedTag ||
+                (record.versionTag &&
+                  normalizeReleaseTag(record.versionTag) === normalizeReleaseTag(selectedTag))) &&
               record.relatedUrls.some(
                 (url) =>
                   canonicalGithubRepositoryUrl(url)?.toLowerCase() === canonicalUrl.toLowerCase(),
@@ -282,6 +291,10 @@ export function createFetchResolver(
       });
     },
   };
+}
+
+function normalizeReleaseTag(value: string): string {
+  return value.trim().replace(/^v/i, "").toLowerCase();
 }
 
 function canonicalGithubRepositoryUrl(value: string): string | undefined {
