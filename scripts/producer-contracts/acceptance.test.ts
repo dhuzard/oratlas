@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
   canonicalJson,
@@ -12,8 +13,17 @@ import {
   normalizeMystPublication,
 } from "../../packages/publications/src/adapters/myst.js";
 
-const root = new URL("./fixtures/", import.meta.url);
-const bytes = (path: string) => readFileSync(new URL(path, root));
+const repositoryRoot = fileURLToPath(new URL("../../", import.meta.url));
+const bytes = (path: string) => {
+  if (path.includes("..") || path.startsWith("/") || path.includes("\\")) {
+    throw new Error("Unsafe producer fixture path.");
+  }
+  // Pinned digests describe committed blobs, which a Windows CRLF checkout can change.
+  return execFileSync("git", ["show", `HEAD:scripts/producer-contracts/fixtures/${path}`], {
+    cwd: repositoryRoot,
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+};
 const json = (path: string) => JSON.parse(bytes(path).toString("utf8"));
 const sha = (value: string | Uint8Array) => createHash("sha256").update(value).digest("hex");
 const pins = json("pins.json");
