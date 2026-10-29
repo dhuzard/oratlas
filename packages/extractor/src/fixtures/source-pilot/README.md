@@ -75,11 +75,14 @@ Run: `pnpm exec vitest run packages/extractor/src/source-pilot.integration.test.
 ## Acceptance and rollback
 
 Inspection is a read-only preview, separate from editorial acceptance and canonical
-materialization. There is no database write, connector enablement, schema migration,
-or production import in this slice. Full HCM acceptance requires a separately
-reviewed exact-byte report/matrix capture. Authenticated editorial import remains a
-separate workflow after all applicable gates.
+materialization. The disposable editorial pilot writes only to its test database.
+This slice includes an additive database guard migration to accept repository
+`ai-synthesis` manifests; it performs no production import. Full HCM report and
+matrix evidence assessment requires a separately reviewed exact-byte capture.
+Authenticated editorial import remains a separate workflow after all applicable gates.
 
-Rollback removes this fixture directory and the new integration test. The existing
-CRT release pin, production routes, database and canonical identities are unchanged.
+Rollback removes the fixture and integration test and restores the previous database
+guard if no repository `ai-synthesis` records have been accepted. Existing records
+must be assessed before restoring the stricter guard. The existing CRT release pin
+and canonical identities are unchanged.
 New producer pins require a new reviewed capture; do not overwrite these bytes.
