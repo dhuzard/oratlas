@@ -56,6 +56,12 @@ export default async function ComparePage({
         </div>
       </header>
 
+      <p className="muted prose">
+        Only available public exact claim records can be compared. A source inspection is not an
+        accepted claim record.{" "}
+        <Link href="/publications/pilot">Read about the public source pilot</Link>.
+      </p>
+
       <details className="comparison-exact-entry">
         <summary>Already have two exact claim references?</summary>
         <p>
