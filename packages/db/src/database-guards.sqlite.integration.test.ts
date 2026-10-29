@@ -5,6 +5,7 @@ import { join, resolve } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { PrismaClient } from "../generated/client/index.js";
 import { applyDatabaseGuards } from "./database-guards.js";
+import { assertReviewSourceUnion } from "./review-source-union-test.js";
 
 const databasePath = join(tmpdir(), `oratlas-decision-guards-${process.pid}-${Date.now()}.db`);
 // Keep PRAGMA state and the raw fixture writes on one SQLite connection.
@@ -12,6 +13,9 @@ const databaseUrl = `file:${databasePath.replaceAll("\\", "/")}?connection_limit
 let prisma: PrismaClient;
 
 describe("SQLite database guards", () => {
+  it("separates repository AI synthesis from internal synthesis provenance", async () => {
+    await assertReviewSourceUnion(prisma);
+  });
   beforeAll(async () => {
     execFileSync(
       process.execPath,

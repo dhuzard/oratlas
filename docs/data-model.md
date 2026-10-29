@@ -174,6 +174,25 @@ observed alias set is compatible. Ambiguous aliases create a citation-local fall
 source-assertion edges through the legacy relation id, while editor-confirmed graph edges keep the
 `canonical` discriminator.
 
+`Review.reviewType` describes the publication, including source-declared `ai-synthesis`
+from repository exporters. It does not identify ORAtlas-generated synthesis series.
+A repository review declaring `ai-synthesis` requires both `repositoryId` and
+`currentSnapshotId`, with no `synthesisSeriesKey` or `currentSynthesisVersionId`.
+Internal synthesis series require `ai-synthesis`, a series key, and no repository or
+snapshot. Exact versions remain discriminated by `recordSourceType`; the exclusive
+`ReviewVersion` source guard is unchanged. Discovery uses the series identity rather
+than treating every AI synthesis as an internally generated publication.
+
+Migration `20261029000000_repository_ai_synthesis_review_type` adds this compatibility
+without rewriting existing records or producer types. Before deployment, test the
+migration from the frozen PostgreSQL baseline and reapply database guards; SQLite
+uses the equivalent updated triggers. Back up the database before production migration.
+Before any repository AI synthesis is accepted, rollback can restore the previous
+constraint and application. After acceptance, the previous constraint cannot validate
+the new rows: retain the additive guard with a compatible application rollback, or
+restore the pre-import backup. Do not delete accepted publications or rewrite their
+source-declared types to make an old constraint pass.
+
 KG-02 keeps ownership repository-scoped: the repository's `owner` identifies the publishing lab in
 the current GitHub-based POC. A separate organization/lab authority model is not inferred from a
 mutable display name and remains outside this schema slice.

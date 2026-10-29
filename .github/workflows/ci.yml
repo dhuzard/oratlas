@@ -252,6 +252,16 @@ jobs:
         env:
           DATABASE_URL: "postgresql://oratlas:oratlas@localhost:5432/oratlas?schema=atomic_publication"
 
+      - name: Exercise pinned three-source editorial imports on PostgreSQL
+        run: |
+          # Dedicated disposable schema; retain the ordinary 15-second acceptance transaction.
+          pnpm --filter @oratlas/db exec prisma db push --schema prisma/schema.postgres.prisma --skip-generate
+          pnpm --filter @oratlas/db db:guards
+          pnpm exec vitest run apps/web/src/lib/source-pilot-editorial.integration.test.ts
+        env:
+          DATABASE_URL: "postgresql://oratlas:oratlas@localhost:5432/oratlas?schema=source_pilot"
+          SOURCE_PILOT_POSTGRES_TEST_DATABASE_URL: "postgresql://oratlas:oratlas@localhost:5432/oratlas?schema=source_pilot"
+
       - name: Exercise challenge abuse controls on PostgreSQL
         run: pnpm exec vitest run apps/web/src/lib/challenges.integration.test.ts
         env:
