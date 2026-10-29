@@ -30,6 +30,17 @@ from that ORAtlas deployment. No claim of live compatibility follows from it.
   block and claims-stream hashes and locate exact Unicode selector spans. Normalized
   results remain source occurrences and source declarations; no scientific verification
   or canonical graph identity is minted.
+- This proves normalization of the pinned source declaration, not source-byte registration.
+  The manifest declares a Git repository and commit, while each claim's `documentPath`
+  (`index.md` or `results.md`) is relative to the MyST project root. In this capture that
+  root is `examples/basic`, but the source descriptor has no root/subdirectory field; the
+  registration resolver receives only the descriptor and those document paths. It cannot
+  establish from the pinned declaration alone that `examples/basic` is the intended source
+  root in the repository. The acceptance test also passes `structuralProvenance: "source-byte"`
+  directly to the normalizer; it does not run registration with a Git source resolver. The
+  fixture's copied source bytes do match the declared hashes/selectors, but no source-byte
+  registration result is demonstrated until the source-root contract is unambiguous and a
+  resolver journey is exercised.
 - MyST rejections cover unsupported schema, missing/malformed claims, unsafe path,
   inconsistent selector span, duplicate ID, stale stream digest and missing stream.
 - Verifier files contain actual execution output from the pinned producer's
@@ -90,7 +101,9 @@ Producer-owned checks: `tests/oratlas/test_client_e2e.py`,
 - Add a published MyST inventory/page capture and full registration source resolver
   journey. The example exporter does not emit those build artifacts. Inconsistent
   selector lengths are covered; ambiguous inventory/citation targets and source-context
-  ambiguity are not demonstrated by this capture.
+  ambiguity are not demonstrated by this capture. The source-root limitation above also
+  means this fixture does not prove that registration can obtain the pinned `examples/basic`
+  source documents from its repository descriptor.
 - Execute unknown protocol and changed input digest rejection in the ORAtlas-owned
   cross-language lane. These are producer-owned checks today; schema/digest equality
   assertions alone do not execute the external worker's rejection path.
@@ -110,3 +123,5 @@ On 2026-10-21, Node 24.16.0, the focused command passed **15 tests in 2 files**:
 13 immutable capture/negative tests and 2 SQLite service/HTTP lifecycle tests. These
 results apply to this slice; required full CI, PostgreSQL and security checks remain
 merge gates and are not replaced by the focused command.
+
+No producer source or captured producer bytes were changed for this documentation update.
