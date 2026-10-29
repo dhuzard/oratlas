@@ -232,6 +232,179 @@ describe("canonical review graph materialization", () => {
     ).toBe(true);
   });
 
+  it("restores a deleted alias on an all-bound replay without changing work identity", async () => {
+    const citationsBefore = await Promise.all([
+      prisma.citation.create({
+        data: {
+          id: "citation-replay-alias-a",
+          reviewVersionId,
+          localCitationId: "citation-replay-alias-a",
+          doi: "https://doi.org/10.1000/replay-alias",
+          pmid: "555002",
+        },
+      }),
+      prisma.citation.create({
+        data: {
+          id: "citation-replay-alias-b",
+          reviewVersionId,
+          localCitationId: "citation-replay-alias-b",
+          doi: "10.1000/REPLAY-ALIAS",
+          pmid: "555002",
+        },
+      }),
+    ]);
+    await prisma.$transaction((tx) => materializeCanonicalReviewGraph(tx, reviewVersionId));
+    const boundBefore = await prisma.citation.findMany({
+      where: { id: { in: citationsBefore.map(({ id }) => id) } },
+      orderBy: { id: "asc" },
+    });
+    const workId = boundBefore[0]!.knowledgeNodeId!;
+    const stableWorkId = boundBefore[0]!.workId!;
+    expect(boundBefore).toHaveLength(2);
+    expect(
+      boundBefore.every(
+        ({ knowledgeNodeId, workId: boundWorkId }) =>
+          knowledgeNodeId === workId && boundWorkId === stableWorkId,
+      ),
+    ).toBe(true);
+
+    const deletedAlias = await prisma.nodeAlias.findFirstOrThrow({
+      where: { knowledgeNodeId: workId, scheme: "pmid", value: "555002" },
+    });
+    await prisma.nodeAlias.delete({ where: { id: deletedAlias.id } });
+
+    const replay = await prisma.$transaction((tx) =>
+      materializeCanonicalReviewGraph(tx, reviewVersionId),
+    );
+    expect(replay.workCount).toBe(4);
+    const citationsAfter = await prisma.citation.findMany({
+      where: { id: { in: boundBefore.map(({ id }) => id) } },
+      orderBy: { id: "asc" },
+    });
+    expect(
+      citationsAfter.map(({ knowledgeNodeId, workId: boundWorkId }) => [
+        knowledgeNodeId,
+        boundWorkId,
+      ]),
+    ).toEqual(boundBefore.map(() => [workId, stableWorkId]));
+    await expect(
+      prisma.nodeAlias.findMany({
+        where: { knowledgeNodeId: workId, scheme: "pmid", value: "555002" },
+      }),
+    ).resolves.toHaveLength(1);
+
+    await prisma.$transaction((tx) => materializeCanonicalReviewGraph(tx, reviewVersionId));
+    expect(
+      await prisma.citation.count({ where: { workId: stableWorkId, knowledgeNodeId: workId } }),
+    ).toBe(2);
+    await expect(
+      prisma.nodeAlias.findMany({
+        where: { knowledgeNodeId: workId, scheme: "pmid", value: "555002" },
+      }),
+    ).resolves.toHaveLength(1);
+  });
+
+  it("materializes identities and relations across multiple write batches", async () => {
+    const explicitNode = await prisma.knowledgeNode.create({
+      data: {
+        repositoryId,
+        localNodeId: "claim-bulk-explicit-node",
+        kind: "claim",
+        versions: {
+          create: {
+            snapshotId,
+            title: "Legacy bulk claim",
+            contributorsJson: "[]",
+            license: "CC-BY-4.0",
+            provenanceJson: "{}",
+            payloadJson: "{}",
+          },
+        },
+      },
+    });
+    const claimRows = Array.from({ length: 41 }, (_, index) => ({
+      id: `claim-bulk-${String(index).padStart(2, "0")}`,
+      reviewVersionId,
+      localClaimId: `claim-bulk-${index}`,
+      text: `Bulk claim ${index}.`,
+      normalizedText: `bulk claim ${index}.`,
+      ...(index === 0 ? { knowledgeNodeId: explicitNode.id } : {}),
+    }));
+    const citationRows = Array.from({ length: 41 }, (_, index) => ({
+      id: `citation-bulk-${String(index).padStart(2, "0")}`,
+      reviewVersionId,
+      localCitationId: `citation-bulk-${index}`,
+      doi:
+        index < 2
+          ? index === 0
+            ? "https://doi.org/10.1000/BATCH-COMMON"
+            : "10.1000/batch-common"
+          : `10.1000/bulk-${index}`,
+      ...(index === 0 ? { pmid: "555001" } : {}),
+    }));
+    await prisma.claim.createMany({ data: claimRows });
+    await prisma.citation.createMany({ data: citationRows });
+    await prisma.claimEvidenceRelation.createMany({
+      data: claimRows.map((claim, index) => ({
+        claimId: claim.id,
+        citationId: citationRows[index]!.id,
+        relationType: "supports",
+      })),
+    });
+
+    const first = await prisma.$transaction((tx) =>
+      materializeCanonicalReviewGraph(tx, reviewVersionId),
+    );
+    expect(first).toMatchObject({
+      claimCount: 42, // includes the fixture claim
+      reviewAssertionEdgeCount: 42,
+      workCount: 45, // includes the fixture and deleted-alias replay citations
+      evidenceEdgeCount: 43,
+      workIdentityConflictCount: 0,
+    });
+
+    const explicitClaim = await prisma.claim.findUniqueOrThrow({
+      where: { id: claimRows[0]!.id },
+      include: { graphVersion: true },
+    });
+    expect(explicitClaim.knowledgeNodeId).toBe(explicitNode.id);
+    expect(explicitClaim.graphVersion).toMatchObject({
+      knowledgeNodeId: explicitNode.id,
+      sourceClaimId: explicitClaim.id,
+    });
+    const sharedWork = await prisma.knowledgeNode.findUniqueOrThrow({
+      where: { stableKey: "work:doi:10.1000/batch-common" },
+      include: { aliases: true },
+    });
+    expect(sharedWork.aliases.map(({ scheme, value }) => [scheme, value])).toContainEqual([
+      "pmid",
+      "555001",
+    ]);
+    const sharedCitations = await prisma.citation.findMany({
+      where: { id: { in: [citationRows[0]!.id, citationRows[1]!.id] } },
+      orderBy: { id: "asc" },
+    });
+    expect(sharedCitations.map(({ knowledgeNodeId, workId }) => [knowledgeNodeId, workId])).toEqual(
+      [citationRows[0], citationRows[1]].map(() => [sharedWork.id, sharedWork.stableKey]),
+    );
+    const bulkRelations = await prisma.claimEvidenceRelation.findMany({
+      where: { claimId: { in: claimRows.map(({ id }) => id) } },
+      include: { nodeEdge: true },
+    });
+    expect(bulkRelations).toHaveLength(41);
+    expect(
+      bulkRelations.every(
+        ({ nodeEdge }) =>
+          nodeEdge?.status === "source-assertion" &&
+          nodeEdge.provenance === "imported-from-review" &&
+          nodeEdge.confirmedTargetNodeVersionId !== null,
+      ),
+    ).toBe(true);
+    await expect(
+      prisma.$transaction((tx) => materializeCanonicalReviewGraph(tx, reviewVersionId)),
+    ).resolves.toEqual(first);
+  });
+
   it("enriches a shared work alias set across citations in deterministic order", async () => {
     const claim = await prisma.claim.create({
       data: {
