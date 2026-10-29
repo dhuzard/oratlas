@@ -21,7 +21,13 @@ import { createFetchResolver, validateDoi } from "@oratlas/zenodo";
 import { buildPublicationConsistency } from "./publication-consistency";
 
 const env = getServerEnv();
-const runner = new SynchronousIngestionRunner({ token: env.GITHUB_TOKEN || undefined });
+const runner = new SynchronousIngestionRunner({
+  token: env.GITHUB_TOKEN || undefined,
+  oauthApp:
+    env.GITHUB_CLIENT_ID && env.GITHUB_CLIENT_SECRET
+      ? { clientId: env.GITHUB_CLIENT_ID, clientSecret: env.GITHUB_CLIENT_SECRET }
+      : undefined,
+});
 const zenodoResolver = createFetchResolver();
 
 export interface InspectionOutcome {

@@ -108,6 +108,11 @@ printf '%s' "YOUR_GITHUB_TOKEN" | \
 Do not create optional secrets with empty values. The Cloud Build deployment
 step adds them only when they exist.
 
+For public repository inspection, the deployed OAuth app client ID and client
+secret also authenticate GitHub REST reads. Signed-in users need no personal
+access token. `oratlas-github-token` remains an optional operator override;
+inspection continues anonymously only when neither credential source is set.
+
 ## 5. Configure deployment and runtime identities
 
 ```bash
