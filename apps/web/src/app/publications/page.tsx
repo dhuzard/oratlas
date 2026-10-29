@@ -67,6 +67,15 @@ export default async function PublicationsPage() {
         <p className="muted">
           Arbitrary PDF uploads, private sources, JATS and Quarto imports are not supported here.
         </p>
+        <details>
+          <summary>Three public source examples · read-only pilot</summary>
+          <p>
+            See what CRT, DiggyPaper and Murmuration exports expose, including exact inspected
+            versions, missing material and source-native assessments. These observations do not
+            establish accepted archive records or scientific relationships.
+          </p>
+          <Link href="/publications/pilot">Inspect the public source pilot</Link>
+        </details>
       </section>
 
       <h2>Registered publication versions</h2>

@@ -10,6 +10,7 @@ packages/db/generated
 CHANGELOG.md
 apps/web/src/generated/openapi-artifacts.ts
 packages/extractor/src/fixtures/crt-diggypaper-evidence-lineage
+packages/extractor/src/fixtures/source-pilot
 packages/knowledge/src/fixtures/source-credit-interop
 
 # Exact bytes captured from pinned public producers; digests are contractual.

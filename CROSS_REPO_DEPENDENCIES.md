@@ -134,6 +134,21 @@ only in local capture scripts (ORA-K02).
 - This pin is additive to the review/credit pins above. Updates require a deliberate
   reviewed recapture, never reinterpreting earlier fixtures or private source rights.
 
+## 7. Three-source public import preview — offline observations (#264)
+
+- The CRT example reuses the frozen Ethical Debt release fixture in section 4. Its current
+  repository head was inspected separately; it is not the deterministic acceptance pin.
+- DiggyPaper/NTS review: `dhuzard/nts-animal-use-review`, immutable GitHub repository id
+  `1437255500`, commit `b957ced01f0ff80fefcb08e5bebbdfe321383863`, capture-manifest
+  SHA-256 `e535a01d649ba483dc23cce25294d168e1e7084cf0c83e577a3bfbee12ba4c95`.
+- Murmuration/HCM review: `dhuzard/hcm-circadian-mouse-review`, immutable GitHub repository id
+  `1437035846`, commit `a906c5f15e77b8a4ac0671c9df15f75b8095029f`, capture-manifest
+  SHA-256 `39e96a9d7cbb30f0e4d7ae6e1a8b2562eecd125db5aa90896397e6e414ddc37c`.
+- Exact bounded captures, per-file hashes, protocol declarations, limitations and rollback are
+  recorded in `packages/extractor/src/fixtures/source-pilot/README.md`. The offline preview
+  does not register a publication, confirm a relation, authenticate a declared ORCID, or
+  import the full Murmuration report/matrix. A pin change needs a new reviewed capture.
+
 ## Consumption principles (all upstreams)
 
 1. Conventions in, never code in: ORAtlas reads file layouts and record formats; it does not
