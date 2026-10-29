@@ -46,12 +46,14 @@ export async function inspectAndExtract(
   let extraction = runExtraction(report);
   if (
     report.status !== "failed" &&
+    (report.selectedSource?.kind === "release" || report.selectedSource?.kind === "tag") &&
     (!extraction.metadata.fields.versionDoi ||
       !extraction.metadata.fields.conceptDoi ||
       !extraction.metadata.fields.zenodoRecordId)
   ) {
     const zenodoRecord = await zenodoResolver.findZenodoRecordByRepositoryUrl(
       report.repo.canonicalUrl,
+      report.selectedSource.releaseTag,
     );
     if (zenodoRecord) {
       const metadata = enrichMetadataFromZenodo(extraction.metadata, report, zenodoRecord);

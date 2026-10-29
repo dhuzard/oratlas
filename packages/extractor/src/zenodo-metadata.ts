@@ -23,6 +23,18 @@ export function enrichMetadataFromZenodo(
   record: ZenodoRecord,
   now: () => Date = () => new Date(),
 ): ExtractedMetadata {
+  const selected = report.selectedSource;
+  const selectedTag =
+    selected?.kind === "release" || selected?.kind === "tag" ? selected.releaseTag : undefined;
+  // A shared repository URL is not a version identity. Never attach a DOI from
+  // another deposit, and never attach a version DOI to a mutable branch.
+  if (
+    !selectedTag ||
+    !record.versionTag ||
+    normalizeTag(selectedTag) !== normalizeTag(record.versionTag)
+  ) {
+    return metadata;
+  }
   const additions: Partial<Record<string, ZenodoField>> = {};
   const versionDoi = normalizeDoi(record.doi ?? "");
   const conceptDoi = normalizeDoi(record.conceptDoi ?? "");

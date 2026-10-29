@@ -171,6 +171,39 @@ describe("createFetchResolver security boundaries", () => {
     expect(fetchImpl.mock.calls[0]![1]?.redirect).toBe("error");
   });
 
+  it("skips a newer deposit for the same repository when its version is not the selected release", async () => {
+    const hit = (id: number, version: string) => ({
+      id,
+      doi: `10.5281/zenodo.${id}`,
+      metadata: {
+        version,
+        related_identifiers: [{ identifier: "https://github.com/owner/review" }],
+      },
+    });
+    const fetchImpl = vi.fn<typeof fetch>(
+      async () =>
+        new Response(
+          JSON.stringify({ hits: { hits: [hit(2, "0.1.0-rc.2"), hit(3, "0.1.0-preview.3")] } }),
+          {
+            status: 200,
+          },
+        ),
+    );
+    const resolver = createFetchResolver({ fetchImpl });
+    await expect(
+      resolver.findZenodoRecordByRepositoryUrl(
+        "https://github.com/owner/review",
+        "v0.1.0-preview.3",
+      ),
+    ).resolves.toMatchObject({ recordId: "3" });
+    await expect(
+      resolver.findZenodoRecordByRepositoryUrl(
+        "https://github.com/owner/review",
+        "v0.1.0-trust-preview.3",
+      ),
+    ).resolves.toBeNull();
+  });
+
   it("rejects invalid repository URLs and search false positives", async () => {
     const fetchImpl = vi.fn<typeof fetch>(
       async () =>

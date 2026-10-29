@@ -106,7 +106,23 @@ describe("runExtraction — partially compatible repository", () => {
   it("fills missing publication identifiers from an exact Zenodo repository match", async () => {
     const fixture = structuredClone(partiallyCompatibleFixture);
     fixture.tags = [{ name: "v0.1.0-rc.2", commitSha: "a".repeat(40) }];
-    const report = await inspect(fixture);
+    fixture.releases = [
+      {
+        tag_name: "v0.1.0-rc.2",
+        name: "v0.1.0-rc.2",
+        html_url:
+          "https://github.com/example-lab/attention-oscillations-review/releases/tag/v0.1.0-rc.2",
+        published_at: "2026-07-01T00:00:00Z",
+        draft: false,
+        prerelease: true,
+        body: "",
+      },
+    ];
+    const report = await inspectRepository(`${fixture.owner}/${fixture.name}`, {
+      transport: createFakeTransport(fixture),
+      now,
+      source: { kind: "release", tag: "v0.1.0-rc.2" },
+    });
     const extraction = runExtraction(report, now);
     const extracted = extraction.metadata;
     const enriched = enrichMetadataFromZenodo(
@@ -142,6 +158,35 @@ describe("runExtraction — partially compatible repository", () => {
     expect(compatibility.recommendations.join(" ")).not.toContain(
       "Connect the repository to Zenodo",
     );
+
+    const wrongDeposit = enrichMetadataFromZenodo(
+      extracted,
+      report,
+      {
+        recordId: "2",
+        doi: "10.5281/zenodo.2",
+        creators: [],
+        relatedUrls: [],
+        versionTag: "0.1.0-rc.1",
+      },
+      now,
+    );
+    expect(wrongDeposit).toBe(extracted);
+    const branch = await inspect(fixture);
+    expect(
+      enrichMetadataFromZenodo(
+        extracted,
+        branch,
+        {
+          recordId: "21549715",
+          doi: "10.5281/zenodo.21549715",
+          creators: [],
+          relatedUrls: [],
+          versionTag: "0.1.0-rc.2",
+        },
+        now,
+      ),
+    ).toBe(extracted);
   });
 });
 

@@ -5,7 +5,7 @@ import {
   verifyCapturedFixture,
   type CapturedRepositoryFixture,
 } from "@oratlas/github";
-import { projectSourceEvidenceLinks, runExtraction } from "./index.js";
+import { enrichMetadataFromZenodo, projectSourceEvidenceLinks, runExtraction } from "./index.js";
 import crtJson from "./fixtures/ethical-debt-v0.1.0-trust-preview.3/fixture.json" with { type: "json" };
 import ntsJson from "./fixtures/source-pilot/nts/fixture.json" with { type: "json" };
 import hcmJson from "./fixtures/source-pilot/hcm/fixture.json" with { type: "json" };
@@ -81,6 +81,24 @@ function project(content = nativeSidecar, stale = false) {
 }
 
 describe("three-source read-only import preview (#264)", () => {
+  it("does not attach the older rc.2 Zenodo DOI to the frozen CRT preview release", async () => {
+    const { report, extraction } = await preview(crtJson);
+    expect(report.selectedSource?.releaseTag).toBe("v0.1.0-trust-preview.3");
+    expect(extraction.metadata.fields.versionDoi).toBeUndefined();
+    const enriched = enrichMetadataFromZenodo(extraction.metadata, report, {
+      recordId: "21549715",
+      doi: "10.5281/zenodo.21549715",
+      conceptRecordId: "21549714",
+      conceptDoi: "10.5281/zenodo.21549714",
+      versionTag: "0.1.0-rc.2",
+      creators: ["Huzard, Damien"],
+      relatedUrls: ["https://github.com/dhuzard/ethical-debt-AI-review"],
+    });
+    expect(enriched).toBe(extraction.metadata);
+    expect(enriched.fields.versionDoi).toBeUndefined();
+    expect(enriched.fields.zenodoRecordId).toBeUndefined();
+  });
+
   it("preserves the additive HCM published release selection and annotated tag binding", async () => {
     expect(() => verifyCapturedFixture(hcmReleaseJson as CapturedRepositoryFixture)).not.toThrow();
     expect(hcmReleaseJson.pin).toEqual({ kind: "release", value: "v0.1.0" });
