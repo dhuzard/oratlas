@@ -3,6 +3,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 import { beforeAll, describe, expect, it } from "vitest";
 import {
   activeNextStores,
@@ -120,7 +121,7 @@ describe("G1 Next request-context adapter (offline)", () => {
           `import { createRequire } from "node:module";`,
           `const fromWeb = createRequire(${JSON.stringify(resolve(process.cwd(), "apps/web/package.json"))});`,
           `fromWeb("next/headers");`,
-          `const adapter = await import(${JSON.stringify(resolve(process.cwd(), "scripts/private-workspace-g1/next-request-context.ts"))});`,
+          `const adapter = await import(${JSON.stringify(pathToFileURL(resolve(process.cwd(), "scripts/private-workspace-g1/next-request-context.ts")).href)});`,
           `adapter.installAsyncLocalStorage();`,
           `try { adapter.nextInternals(); console.log("LOADED"); } catch (error) { console.log(String(error)); }`,
         ].join("\n"),
