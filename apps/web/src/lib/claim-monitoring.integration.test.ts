@@ -74,8 +74,15 @@ const knowledge: FullExtraction["knowledge"] = {
 beforeAll(async () => {
   process.env.DATABASE_URL = databaseUrl;
   execFileSync(
-    resolve(process.cwd(), "packages/db/node_modules/.bin/prisma"),
-    ["db", "push", "--schema", "packages/db/prisma/schema.prisma", "--skip-generate"],
+    process.execPath,
+    [
+      resolve(process.cwd(), "packages/db/node_modules/prisma/build/index.js"),
+      "db",
+      "push",
+      "--schema",
+      "packages/db/prisma/schema.prisma",
+      "--skip-generate",
+    ],
     { env: { ...process.env, DATABASE_URL: databaseUrl, RUST_LOG: "info" }, stdio: "pipe" },
   );
   const { prisma } = await import("./db");

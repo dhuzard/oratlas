@@ -2,6 +2,7 @@ import { execFileSync } from "node:child_process";
 import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve, join } from "node:path";
+import { pathToFileURL } from "node:url";
 import { afterEach, expect, it } from "vitest";
 import { captureHttp, G1_FIXED_CLOCK } from "../capture.js";
 import { NO_SESSION } from "../principals.js";
@@ -60,7 +61,7 @@ it("freezes Date only while retaining explicit dates and real UUID entropy and r
     process.execPath,
     [
       "--import",
-      resolve("scripts/private-workspace-g1/next-serving/clock.mjs"),
+      pathToFileURL(resolve("scripts/private-workspace-g1/next-serving/clock.mjs")).href,
       "-e",
       `
     const assert = require('node:assert/strict');
